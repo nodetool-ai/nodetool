@@ -35,27 +35,33 @@ export class WebFetchLibNode extends BaseNode {
     const selector = String(this.selector ?? "body");
     if (!url) throw new Error("URL is required");
 
-    const axios = (await import("axios")).default;
     const cheerio = await import("cheerio");
     const TurndownService = (await import("turndown")).default;
 
-    const response = await axios.get(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
-      responseType: "text",
-      timeout: 30000
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    const responseText = await response.text();
 
     const contentType = String(
-      response.headers["content-type"] ?? ""
+      response.headers.get("content-type") ?? ""
     ).toLowerCase();
     if (
       !contentType.includes("text/html") &&
       !contentType.includes("application/xhtml+xml")
     ) {
-      return { output: String(response.data) };
+      return { output: responseText };
     }
 
-    const $ = cheerio.load(String(response.data));
+    const $ = cheerio.load(responseText);
     const elements = $(selector);
     if (elements.length === 0) {
       throw new Error(`No elements found matching selector: ${selector}`);
@@ -94,14 +100,19 @@ export class DownloadFileLibNode extends BaseNode {
     const url = String(this.url ?? "");
     if (!url) throw new Error("URL is required");
 
-    const axios = (await import("axios")).default;
-    const response = await axios.get(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
-      responseType: "arraybuffer",
-      timeout: 60000
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
-    const data = Buffer.from(response.data).toString("base64");
+    const data = Buffer.from(await response.arrayBuffer()).toString("base64");
     return { output: { __bytes__: data } };
   }
 }
@@ -539,7 +550,6 @@ export class SpiderCrawlLibNode extends BaseNode {
 
     if (!startUrl) throw new Error("start_url is required");
 
-    const axios = (await import("axios")).default;
     const cheerio = await import("cheerio");
 
     const startParsed = new URL(startUrl);
@@ -555,15 +565,24 @@ export class SpiderCrawlLibNode extends BaseNode {
       if (robotsCache.has(origin)) return robotsCache.get(origin)!;
       const disallowed: string[] = [];
       try {
-        const res = await axios.get(`${origin}/robots.txt`, {
-          headers: { "User-Agent": USER_AGENT },
-          timeout: 10000,
-          responseType: "text",
-          validateStatus: () => true
-        });
-        if (res.status === 200 && typeof res.data === "string") {
+        const robotsController = new AbortController();
+        const robotsTimeoutId = setTimeout(
+          () => robotsController.abort(),
+          10000
+        );
+        let res: Response;
+        try {
+          res = await fetch(`${origin}/robots.txt`, {
+            headers: { "User-Agent": USER_AGENT },
+            signal: robotsController.signal
+          });
+        } finally {
+          clearTimeout(robotsTimeoutId);
+        }
+        const resText = await res.text();
+        if (res.ok && typeof resText === "string") {
           // Parse robots.txt — look for User-agent: * sections
-          const lines = res.data.split("\n");
+          const lines = resText.split("\n");
           let inWildcard = false;
           for (const rawLine of lines) {
             const line = rawLine.trim();
@@ -628,15 +647,23 @@ export class SpiderCrawlLibNode extends BaseNode {
       visited.add(currentUrl);
 
       try {
-        const response = await axios.get(currentUrl, {
-          headers: { "User-Agent": USER_AGENT },
-          timeout,
-          responseType: "text",
-          validateStatus: () => true
-        });
+        const crawlController = new AbortController();
+        const crawlTimeoutId = setTimeout(
+          () => crawlController.abort(),
+          timeout
+        );
+        let response: Response;
+        try {
+          response = await fetch(currentUrl, {
+            headers: { "User-Agent": USER_AGENT },
+            signal: crawlController.signal
+          });
+        } finally {
+          clearTimeout(crawlTimeoutId);
+        }
 
         const statusCode = response.status;
-        const htmlContent = String(response.data);
+        const htmlContent = await response.text();
         const $ = cheerio.load(htmlContent);
         const title = $("title").text() || null;
 

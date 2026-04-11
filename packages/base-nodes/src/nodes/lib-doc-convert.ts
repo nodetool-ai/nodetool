@@ -9,23 +9,6 @@ import { promisify } from "node:util";
 
 const execFile = promisify(execFileCb);
 
-type Pdf2Md = (pdfBuffer: Uint8Array | ArrayBuffer) => Promise<string>;
-let pdf2mdLoader: Promise<Pdf2Md> | null = null;
-
-async function getPdf2Md(): Promise<Pdf2Md> {
-  if (!pdf2mdLoader) {
-    pdf2mdLoader = import("@opendocsg/pdf2md").then((module) => {
-      const pdf2md = module.default;
-      if (typeof pdf2md !== "function") {
-        throw new Error("@opendocsg/pdf2md did not export a default function");
-      }
-      return pdf2md as Pdf2Md;
-    });
-  }
-
-  return pdf2mdLoader;
-}
-
 /**
  * Resolve bytes from a ref object or raw Uint8Array.
  */
@@ -182,8 +165,26 @@ async function loadFromUri(uri: string, context?: ProcessingContext): Promise<Bu
 // ---------------------------------------------------------------------------
 
 async function pdfToText(inputBytes: Buffer): Promise<string> {
-  const pdf2md = await getPdf2Md();
-  return pdf2md(Uint8Array.from(inputBytes));
+  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(inputBytes), useSystemFonts: true });
+  const doc = await loadingTask.promise;
+
+  let text = "";
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    let lastY: number | null = null;
+    for (const item of content.items as any[]) {
+      const y = item.transform[5];
+      if (lastY !== null && Math.abs(y - lastY) > 2) text += "\n";
+      text += item.str;
+      lastY = y;
+    }
+    text += "\n\n";
+  }
+
+  void doc.destroy();
+  return text.trim();
 }
 
 // ---------------------------------------------------------------------------
