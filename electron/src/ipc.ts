@@ -90,6 +90,11 @@ export type IpcOnceHandler<T extends keyof IpcEvents> = (
 
 // Channels that should have their payloads redacted for security
 const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
+// High-frequency channels that only log on error to reduce noise
+const QUIET_CHANNELS = [
+  "settings-get-close-behavior",
+  "frontend-log",
+];
 const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
 
 const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
@@ -265,24 +270,29 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
     const startTime = Date.now();
     const channelStr = String(channel);
     const isSensitive = SENSITIVE_CHANNELS.includes(channelStr);
+    const isQuiet = QUIET_CHANNELS.includes(channelStr);
 
-    // Log incoming request
-    if (isSensitive) {
-      logMessage(`IPC → ${channelStr} (payload redacted)`);
-    } else {
-      const payloadStr =
-        data !== undefined ? JSON.stringify(data) : "undefined";
-      const truncatedPayload =
-        payloadStr.length > 200
-          ? payloadStr.substring(0, 200) + "..."
-          : payloadStr;
-      logMessage(`IPC → ${channelStr}: ${truncatedPayload}`);
+    // Log incoming request (skip quiet channels)
+    if (!isQuiet) {
+      if (isSensitive) {
+        logMessage(`IPC → ${channelStr} (payload redacted)`);
+      } else {
+        const payloadStr =
+          data !== undefined ? JSON.stringify(data) : "undefined";
+        const truncatedPayload =
+          payloadStr.length > 200
+            ? payloadStr.substring(0, 200) + "..."
+            : payloadStr;
+        logMessage(`IPC → ${channelStr}: ${truncatedPayload}`);
+      }
     }
 
     try {
       const result = await handler(event, data);
-      const duration = Date.now() - startTime;
-      logMessage(`IPC ← ${channelStr} OK (${duration}ms)`);
+      if (!isQuiet) {
+        const duration = Date.now() - startTime;
+        logMessage(`IPC ← ${channelStr} OK (${duration}ms)`);
+      }
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;

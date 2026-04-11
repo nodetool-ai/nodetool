@@ -24,6 +24,7 @@
     "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*",
     "@nodetool/vectorstore": "*",
+    "@opendocsg/pdf2md": "^0.2.6",
     "@supabase/supabase-js": "^2.98.0",
     "axios": "^1.15.0",
     "better-sqlite3": "^12.6.2",

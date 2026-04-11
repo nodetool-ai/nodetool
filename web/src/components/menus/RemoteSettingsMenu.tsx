@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
-import WarningIcon from "@mui/icons-material/Warning";
+
 import LoginIcon from "@mui/icons-material/Login";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useMemo, useState, useCallback, useEffect, memo } from "react";
@@ -379,14 +379,6 @@ const RemoteSettings = () => {
           >
             <div className="settings-main-content">
               <Text size="giant">Settings</Text>
-
-              <div className="secrets">
-                <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main }} />
-                <Text>
-                  Keep your keys and tokens secure and do not share them
-                  publicly
-                </Text>
-              </div>
 
               {/* HuggingFace OAuth Section */}
               <div className="settings-section">

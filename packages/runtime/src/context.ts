@@ -1572,6 +1572,8 @@ export class ProcessingContext {
    */
   static sanitizeForClient(value: unknown): unknown {
     if (value === null || value === undefined) return value;
+    const binary = ProcessingContext.toClientBytes(value);
+    if (binary) return binary;
     if (Array.isArray(value)) {
       return value.map((v) => ProcessingContext.sanitizeForClient(v));
     }
@@ -1607,6 +1609,18 @@ export class ProcessingContext {
       result[k] = ProcessingContext.sanitizeForClient(v);
     }
     return result;
+  }
+
+  private static toClientBytes(
+    value: unknown
+  ): Record<string, unknown> | null {
+    if (value instanceof Uint8Array) {
+      return { type: "bytes", length: value.length };
+    }
+    if (value instanceof ArrayBuffer) {
+      return { type: "bytes", length: value.byteLength };
+    }
+    return null;
   }
 
   /**
@@ -1748,6 +1762,8 @@ export class ProcessingContext {
     mode: AssetOutputMode = this.assetOutputMode
   ): Promise<unknown> {
     if (value === null || value === undefined) return value;
+    const binary = ProcessingContext.toClientBytes(value);
+    if (binary) return binary;
 
     if (Array.isArray(value)) {
       return Promise.all(

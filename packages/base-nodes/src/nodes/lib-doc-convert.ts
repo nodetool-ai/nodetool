@@ -9,30 +9,152 @@ import { promisify } from "node:util";
 
 const execFile = promisify(execFileCb);
 
+type Pdf2Md = (pdfBuffer: Uint8Array | ArrayBuffer) => Promise<string>;
+let pdf2mdLoader: Promise<Pdf2Md> | null = null;
+
+async function getPdf2Md(): Promise<Pdf2Md> {
+  if (!pdf2mdLoader) {
+    pdf2mdLoader = import("@opendocsg/pdf2md").then((module) => {
+      const pdf2md = module.default;
+      if (typeof pdf2md !== "function") {
+        throw new Error("@opendocsg/pdf2md did not export a default function");
+      }
+      return pdf2md as Pdf2Md;
+    });
+  }
+
+  return pdf2mdLoader;
+}
+
 /**
  * Resolve bytes from a ref object or raw Uint8Array.
  */
-function refToBytes(ref: unknown): Buffer | null {
-  if (!ref || typeof ref !== "object") return null;
+function isByte(value: unknown): value is number {
+  return typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= 255;
+}
 
-  // Native Uint8Array/Buffer
-  if (ref instanceof Uint8Array) return Buffer.from(ref.buffer, ref.byteOffset, ref.byteLength);
-  if (Buffer.isBuffer(ref)) return ref;
+function bufferFromArrayLike(
+  value: { length: number; [index: number]: unknown }
+): Buffer | null {
+  if (!Number.isSafeInteger(value.length) || value.length < 0) {
+    return null;
+  }
+  const bytes = new Uint8Array(value.length);
+  for (let i = 0; i < value.length; i++) {
+    const item = value[i];
+    if (!isByte(item)) {
+      return null;
+    }
+    bytes[i] = item;
+  }
+  return Buffer.from(bytes);
+}
+
+function bufferFromNumericObject(obj: Record<string, unknown>): Buffer | null {
+  if (!Object.hasOwn(obj, "0")) {
+    return null;
+  }
+
+  let length = 0;
+  while (Object.hasOwn(obj, String(length))) {
+    if (!isByte(obj[String(length)])) {
+      return null;
+    }
+    length++;
+  }
+
+  if (length === 0) {
+    return null;
+  }
+
+  const bytes = new Uint8Array(length);
+  let numericKeyCount = 0;
+  for (const key in obj) {
+    if (!Object.hasOwn(obj, key) || !/^\d+$/.test(key)) {
+      continue;
+    }
+    const index = Number(key);
+    if (index >= length) {
+      return null;
+    }
+    const value = obj[key];
+    if (!isByte(value)) {
+      return null;
+    }
+    bytes[index] = value;
+    numericKeyCount++;
+  }
+
+  if (numericKeyCount !== length) {
+    return null;
+  }
+
+  return Buffer.from(bytes);
+}
+
+function bufferFromBase64(value: string): Buffer | null {
+  const trimmed = value.trim();
+  const dataUriMatch = trimmed.match(/^data:[^;]+;base64,(.+)$/s);
+  const payload = dataUriMatch ? dataUriMatch[1] : trimmed;
+
+  if (
+    (!dataUriMatch && payload.length <= 20) ||
+    payload.length % 4 !== 0 ||
+    !/^[A-Za-z0-9+/\n\r]+=*$/.test(payload)
+  ) {
+    return null;
+  }
+
+  return Buffer.from(payload, "base64");
+}
+
+function refToBytes(ref: unknown): Buffer | null {
+  if (ref == null) return null;
+
+  if (typeof ref === "string") {
+    return bufferFromBase64(ref);
+  }
+
+  // Native Uint8Array/Buffer — always copy to own the memory
+  if (ref instanceof Uint8Array) return Buffer.copyBytesFrom(ref);
+  if (Buffer.isBuffer(ref)) return Buffer.from(ref);
+  if (ref instanceof ArrayBuffer) return Buffer.from(new Uint8Array(ref));
+  if (ArrayBuffer.isView(ref)) {
+    const view = ref as ArrayBufferView;
+    return Buffer.from(
+      new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+    );
+  }
+  if (Array.isArray(ref)) {
+    return bufferFromArrayLike(ref);
+  }
+  if (typeof ref !== "object") return null;
 
   // Cross-context Uint8Array (constructor name match, instanceof fails)
   const name = (ref as object).constructor?.name;
-  if ((name === "Uint8Array" || name === "Buffer") && typeof (ref as any).length === "number") {
-    // Copy bytes — Buffer.from(arrayLike) handles this
-    return Buffer.from(ref as unknown as number[]);
+  if (
+    (name === "Uint8Array" || name === "Buffer") &&
+    typeof (ref as any).length === "number"
+  ) {
+    const fromArrayLike = bufferFromArrayLike(ref as {
+      length: number;
+      [index: number]: unknown;
+    });
+    if (fromArrayLike) {
+      return fromArrayLike;
+    }
   }
 
-  // Object with .data field
   const obj = ref as Record<string, unknown>;
-  if (obj.data instanceof Uint8Array) return Buffer.from(obj.data.buffer, obj.data.byteOffset, obj.data.byteLength);
-  if (Buffer.isBuffer(obj.data)) return obj.data as Buffer;
-  if (typeof obj.data === "string" && obj.data.length > 20 &&
-      /^[A-Za-z0-9+/\n\r]+=*$/.test(obj.data.slice(0, 200))) {
-    return Buffer.from(obj.data, "base64");
+  const fromNumericObject = bufferFromNumericObject(obj);
+  if (fromNumericObject) {
+    return fromNumericObject;
+  }
+  if ("data" in obj) {
+    return refToBytes(obj.data);
   }
 
   return null;
@@ -56,23 +178,12 @@ async function loadFromUri(uri: string, context?: ProcessingContext): Promise<Bu
 }
 
 // ---------------------------------------------------------------------------
-// PDF → Text (pdftotext from poppler)
+// PDF → Markdown
 // ---------------------------------------------------------------------------
 
 async function pdfToText(inputBytes: Buffer): Promise<string> {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-pdf-"));
-  const inputPath = path.join(tmpDir, "input.pdf");
-  const outputPath = path.join(tmpDir, "output.txt");
-  try {
-    await fs.writeFile(inputPath, inputBytes);
-    await execFile("pdftotext", ["-layout", inputPath, outputPath], {
-      maxBuffer: 50 * 1024 * 1024,
-      timeout: 60000
-    });
-    return await fs.readFile(outputPath, "utf-8");
-  } finally {
-    await fs.rm(tmpDir, { recursive: true, force: true });
-  }
+  const pdf2md = await getPdf2Md();
+  return pdf2md(Uint8Array.from(inputBytes));
 }
 
 // ---------------------------------------------------------------------------
@@ -122,7 +233,7 @@ export class ConvertToMarkdownLibNode extends BaseNode {
   static readonly title = "Convert To Markdown";
   static readonly description =
     "Converts PDF, DOCX, or HTML to markdown text.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Connect one input — document ref, raw bytes, or HTML string.";
-  static readonly requiredRuntimes = ["pdftotext", "pandoc"];
+  static readonly requiredRuntimes = ["pandoc"];
   static readonly metadataOutputTypes = {
     output: "str"
   };

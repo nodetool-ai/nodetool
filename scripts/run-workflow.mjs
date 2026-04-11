@@ -6,6 +6,18 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const tsRoot = path.resolve(scriptDir, "..");
 
+function writeStream(stream, text) {
+  return new Promise((resolve, reject) => {
+    stream.write(text, (error) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 function usage() {
   process.stdout.write(
     [
@@ -222,6 +234,15 @@ async function loadWorkflowFile(filePath) {
     throw new Error("Invalid workflow JSON: graph must contain arrays 'nodes' and 'edges'");
   }
 
+  // Normalize: app/export JSON uses `data`, kernel expects `properties`
+  graph.nodes = graph.nodes.map((n) => {
+    if (n.properties === undefined && n.data !== undefined) {
+      const { data, ...rest } = n;
+      return { ...rest, properties: data };
+    }
+    return n;
+  });
+
   return {
     workflowPath: abs,
     graph,
@@ -427,7 +448,7 @@ async function main() {
   );
 
   if (parsed.jsonOnly) {
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    await writeStream(process.stdout, `${JSON.stringify(result, null, 2)}\n`);
   } else {
     const summary = {
       workflowPath,
@@ -440,17 +461,23 @@ async function main() {
       ),
       error: result.error ?? null,
     };
-    process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+    await writeStream(process.stdout, `${JSON.stringify(summary, null, 2)}\n`);
     if (parsed.showMessages) {
-      process.stdout.write(`\nMessages:\n${JSON.stringify(result.messages, null, 2)}\n`);
+      await writeStream(
+        process.stdout,
+        `\nMessages:\n${JSON.stringify(result.messages, null, 2)}\n`
+      );
     }
   }
 
   if (pythonBridge) pythonBridge.close();
-  process.exit(result.status === "completed" ? 0 : 1);
+  process.exitCode = result.status === "completed" ? 0 : 1;
 }
 
 main().catch((err) => {
-  process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
-  process.exit(1);
+  void writeStream(
+    process.stderr,
+    `${err instanceof Error ? err.message : String(err)}\n`
+  );
+  process.exitCode = 1;
 });

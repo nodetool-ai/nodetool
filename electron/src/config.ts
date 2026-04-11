@@ -62,13 +62,20 @@ const getDefaultCondaEnvPath = (): string => {
   }
 };
 
+let cachedCondaEnvPath: string | null = null;
+
 const getCondaEnvPath = (): string => {
+  if (cachedCondaEnvPath !== null) {
+    return cachedCondaEnvPath;
+  }
+
   // In explicit dev mode, prefer an already-activated conda environment so
   // local Electron development can reuse the shell environment.
   if (process.env.NT_ELECTRON_DEV_MODE === "1") {
     const activeEnv = process.env.CONDA_PREFIX?.trim();
     if (activeEnv) {
-      logMessage(`Using activated conda environment in dev mode: ${activeEnv}`, "warn");
+      logMessage(`Using activated conda environment in dev mode: ${activeEnv}`);
+      cachedCondaEnvPath = activeEnv;
       return activeEnv;
     }
   }
@@ -83,6 +90,7 @@ const getCondaEnvPath = (): string => {
     );
     const fallbackOnError = getDefaultCondaEnvPath();
     logMessage(`Conda path fallback: ${fallbackOnError}`);
+    cachedCondaEnvPath = fallbackOnError;
     return fallbackOnError;
   }
 
@@ -93,6 +101,7 @@ const getCondaEnvPath = (): string => {
     condaPathFromSettings.trim().length > 0
   ) {
     logMessage(`Conda env path: ${condaPathFromSettings}`);
+    cachedCondaEnvPath = condaPathFromSettings;
     return condaPathFromSettings;
   }
 
@@ -112,6 +121,7 @@ const getCondaEnvPath = (): string => {
     );
   }
 
+  cachedCondaEnvPath = fallbackPath;
   return fallbackPath;
 };
 
