@@ -211,8 +211,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       return { background: "transparent" } as React.CSSProperties;
     }
     const tint = backgroundColor || "var(--c_node_header_bg)";
-    const baseOpacity = selected ? 0.45 : 0.35;
-    const endOpacity = selected ? 0.16 : 0.12;
+    const baseOpacity = selected ? 0.55 : 0.35;
+    const endOpacity = selected ? 0.22 : 0.12;
     return {
       background: `linear-gradient(135deg, ${hexToRgba(tint, baseOpacity)}, ${hexToRgba(
         tint,
