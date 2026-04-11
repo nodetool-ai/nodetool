@@ -447,12 +447,26 @@ export {
   LIB_HTTP_NODES
 } from "./nodes/lib-http.js";
 export {
+  GraphQLQueryLibNode,
+  GraphQLQueryWithAuthLibNode,
+  GraphQLIntrospectionLibNode,
+  GraphQLBatchQueryLibNode,
+  LIB_GRAPHQL_NODES
+} from "./nodes/lib-graphql.js";
+export {
   SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
   MoveToArchiveLibNode,
   LIB_MAIL_NODES
 } from "./nodes/lib-mail.js";
+export {
+  TwilioSendSMSLibNode,
+  TwilioSendWhatsAppLibNode,
+  TwilioGetMessagesLibNode,
+  TwilioLookupLibNode,
+  LIB_TWILIO_NODES
+} from "./nodes/lib-twilio.js";
 export {
   ConvertToMarkdownLibNode,
   LIB_MARKITDOWN_NODES
@@ -503,6 +517,25 @@ export {
   RPCLibNode,
   LIB_SUPABASE_NODES
 } from "./nodes/lib-supabase.js";
+export {
+  NotionSearchLibNode,
+  NotionGetPageLibNode,
+  NotionGetPageContentLibNode,
+  NotionCreatePageLibNode,
+  NotionUpdatePageLibNode,
+  NotionQueryDatabaseLibNode,
+  LIB_NOTION_NODES
+} from "./nodes/lib-notion.js";
+export {
+  S3ListBucketsLibNode,
+  S3ListObjectsLibNode,
+  S3GetObjectLibNode,
+  S3PutObjectLibNode,
+  S3DeleteObjectLibNode,
+  S3CopyObjectLibNode,
+  S3GetPresignedUrlLibNode,
+  LIB_S3_NODES
+} from "./nodes/lib-s3.js";
 export {
   CreateWorkbookLibNode,
   ExcelToDataFrameLibNode,
@@ -572,6 +605,16 @@ export { SEARCH_NODES } from "./nodes/search.js";
 export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 export { TeamAgentNode, TeamLeadNode, TEAM_NODES } from "./nodes/team.js";
+export {
+  SentimentAnalysisLibNode,
+  TokenizeLibNode,
+  StemLibNode,
+  TfIdfLibNode,
+  ClassifyTextLibNode,
+  ExtractEntitiesLibNode,
+  PhoneticMatchLibNode,
+  LIB_NLP_NODES
+} from "./nodes/lib-nlp.js";
 import { CONTROL_NODES } from "./nodes/control.js";
 import { TEXT_EXTRA_NODES } from "./nodes/text-extra.js";
 import { CONSTANT_NODES } from "./nodes/constant.js";
@@ -608,16 +651,20 @@ import { LIB_RSS_NODES } from "./nodes/lib-rss.js";
 import { LIB_AUDIO_DSP_NODES } from "./nodes/lib-audio-dsp.js";
 import { LIB_SQLITE_NODES } from "./nodes/lib-sqlite.js";
 import { LIB_SUPABASE_NODES } from "./nodes/lib-supabase.js";
+import { LIB_S3_NODES } from "./nodes/lib-s3.js";
 import { LIB_EXCEL_NODES } from "./nodes/lib-excel.js";
 import { LIB_DOCX_NODES } from "./nodes/lib-docx.js";
 import { LIB_BEAUTIFULSOUP_NODES } from "./nodes/lib-html-parse.js";
 import { LIB_BROWSER_NODES } from "./nodes/lib-browser.js";
 import { LIB_HTTP_NODES } from "./nodes/lib-http.js";
+import { LIB_GRAPHQL_NODES } from "./nodes/lib-graphql.js";
 import { LIB_MAIL_NODES } from "./nodes/lib-mail.js";
+import { LIB_TWILIO_NODES } from "./nodes/lib-twilio.js";
 import { LIB_MARKITDOWN_NODES } from "./nodes/lib-doc-convert.js";
 import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
 import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
+import { LIB_NOTION_NODES } from "./nodes/lib-notion.js";
 import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 import { VECTOR_NODES } from "./nodes/vector.js";
 import { GEMINI_NODES } from "./nodes/gemini.js";
@@ -629,6 +676,7 @@ import { SEARCH_NODES } from "./nodes/search.js";
 import { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 import { TEAM_NODES } from "./nodes/team.js";
+import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -667,16 +715,20 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_AUDIO_DSP_NODES,
   ...LIB_SQLITE_NODES,
   ...LIB_SUPABASE_NODES,
+  ...LIB_S3_NODES,
   ...LIB_EXCEL_NODES,
   ...LIB_DOCX_NODES,
   ...LIB_BEAUTIFULSOUP_NODES,
   ...LIB_BROWSER_NODES,
   ...LIB_HTTP_NODES,
+  ...LIB_GRAPHQL_NODES,
   ...LIB_MAIL_NODES,
+  ...LIB_TWILIO_NODES,
   ...LIB_MARKITDOWN_NODES,
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
+  ...LIB_NOTION_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
   ...GEMINI_NODES,
@@ -687,7 +739,8 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
   ...ANTHROPIC_NODES,
-  ...TEAM_NODES
+  ...TEAM_NODES,
+  ...LIB_NLP_NODES
 ];
 
 export function registerBaseNodes(registry: NodeRegistry): void {
