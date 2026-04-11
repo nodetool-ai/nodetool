@@ -638,16 +638,17 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                 {/* Tab 1: API & Keys */}
                 <TabPanel value={settingsTab} index={1}>
-                  <SearchInput
-                    placeholder="Search API keys, settings, and folders..."
-                    value={apiSearchTerm}
-                    onChange={setApiSearchTerm}
-                    size="small"
-                    showClear
-                    sx={{ marginBottom: "1em" }}
-                  />
+                  <div style={{ marginBottom: "1.5em" }}>
+                    <SearchInput
+                      placeholder="Search API keys, settings, and folders..."
+                      value={apiSearchTerm}
+                      onChange={setApiSearchTerm}
+                      size="small"
+                      showClear
+                    />
+                  </div>
 
-                  <Text size="big" id="api-keys" sx={{ marginBottom: "0.5em" }}>
+                  <Text size="big" id="api-keys" sx={{ marginBottom: "0.75em" }}>
                     API Keys
                   </Text>
                   <SecretsMenu searchTerm={apiSearchTerm} />
