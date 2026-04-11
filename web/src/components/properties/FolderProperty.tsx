@@ -16,7 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import dialogStyles from "../../styles/DialogStyles";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import Select from "../inputs/Select";
 import { FlexRow, DialogActionButtons } from "../ui_primitives";
 

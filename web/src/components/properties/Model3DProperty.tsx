@@ -6,7 +6,7 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useCallback } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";

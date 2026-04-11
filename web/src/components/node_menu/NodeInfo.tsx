@@ -11,7 +11,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { HighlightText } from "../ui_primitives/HighlightText";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;

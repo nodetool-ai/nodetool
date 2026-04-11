@@ -11,7 +11,6 @@ import AudioViewer from "../asset_viewer/AudioViewer";
 import VideoViewer from "../asset_viewer/VideoViewer";
 import LazyPDFViewer from "../asset_viewer/LazyPDFViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
-import axios from "axios";
 import log from "loglevel";
 
 const isModel3D = (type: string, url?: string): boolean => {
@@ -155,14 +154,15 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
   useEffect(() => {
     if (!isTextFile || !asset.get_url) {return;}
     setIsLoading(true);
-    axios
-      .get(asset.get_url, { responseType: "text" })
+    fetch(asset.get_url)
       .then((response) => {
-        setTextContent(
-          typeof response.data === "string"
-            ? response.data
-            : JSON.stringify(response.data, null, 2)
-        );
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.status}`);
+        }
+        return response.text();
+      })
+      .then((text) => {
+        setTextContent(text);
       })
       .catch(log.error)
       .finally(() => setIsLoading(false));

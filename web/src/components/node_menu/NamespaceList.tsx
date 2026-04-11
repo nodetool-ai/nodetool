@@ -13,7 +13,7 @@ import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
 import FavoritesTiles from "./FavoritesTiles";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";

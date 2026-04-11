@@ -22,7 +22,6 @@
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/sdk-trace-base": "^2.6.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@traceloop/node-server-sdk": "^0.22.8",
     "openai": "^4.104.0",
     "replicate": "^1.4.0",
     "ws": "^8.19.0"
@@ -31,9 +30,9 @@
     "@anthropic-ai/claude-agent-sdk": "^0.2.101"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
-    "typescript": "^5.4.0",
+    "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
   "exports": {

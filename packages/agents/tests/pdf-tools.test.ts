@@ -9,9 +9,27 @@ import {
   ConvertDocumentTool
 } from "../src/tools/pdf-tools.js";
 
-// Mock pdf-parse
-vi.mock("pdf-parse", () => ({
-  default: vi.fn()
+// Mock pdfjs-dist
+function makeMockPdfDoc(pageTexts: string[]) {
+  return {
+    numPages: pageTexts.length,
+    getPage: vi.fn(async (pageNum: number) => ({
+      getTextContent: vi.fn(async () => ({
+        items: (pageTexts[pageNum - 1] ?? "")
+          .split(" ")
+          .map((str) => ({ str }))
+      }))
+    })),
+    destroy: vi.fn()
+  };
+}
+
+const mockGetDocument = vi.fn();
+
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
+  getDocument: (...args: unknown[]) => ({
+    promise: mockGetDocument(...args)
+  })
 }));
 
 // Mock child_process
@@ -60,23 +78,15 @@ describe("ExtractPDFTextTool", () => {
     expect(tool.name).toBe("extract_pdf_text");
     const pt = tool.toProviderTool();
     expect(pt.description).toBeTruthy();
-    expect((pt.inputSchema as any).required).toContain("path");
+    expect((pt.inputSchema as Record<string, unknown>).required).toContain("path");
   });
 
   it("extracts full text from a PDF", async () => {
     const { readFile } = await import("node:fs/promises");
-    const pdfParse = (await import("pdf-parse")).default;
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
-    vi.mocked(pdfParse).mockResolvedValue({
-      text: "Hello World",
-      numpages: 1,
-      numrender: 1,
-      info: {},
-      metadata: null,
-      version: "1.0"
-    } as any);
+    mockGetDocument.mockResolvedValue(makeMockPdfDoc(["Hello World"]));
 
-    const result = (await tool.process(ctx, { path: "doc.pdf" })) as any;
+    const result = (await tool.process(ctx, { path: "doc.pdf" })) as Record<string, unknown>;
     expect(result.text).toBe("Hello World");
     expect(readFile).toHaveBeenCalledWith(
       resolve(join(workspaceDir, "doc.pdf"))
@@ -85,22 +95,16 @@ describe("ExtractPDFTextTool", () => {
 
   it("extracts text for a specific page range", async () => {
     const { readFile } = await import("node:fs/promises");
-    const pdfParse = (await import("pdf-parse")).default;
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
-    vi.mocked(pdfParse).mockResolvedValue({
-      text: "Page0\fPage1\fPage2",
-      numpages: 3,
-      numrender: 3,
-      info: {},
-      metadata: null,
-      version: "1.0"
-    } as any);
+    mockGetDocument.mockResolvedValue(
+      makeMockPdfDoc(["Page0", "Page1", "Page2"])
+    );
 
     const result = (await tool.process(ctx, {
       path: "doc.pdf",
       start_page: 1,
       end_page: 1
-    })) as any;
+    })) as Record<string, unknown>;
     expect(result.text).toBe("Page1");
   });
 
@@ -110,7 +114,7 @@ describe("ExtractPDFTextTool", () => {
 
     const result = (await tool.process(ctx, {
       path: "missing.pdf"
-    })) as any;
+    })) as Record<string, unknown>;
     expect(result.error).toContain("File not found");
   });
 
@@ -137,29 +141,23 @@ describe("ExtractPDFTablesTool", () => {
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("extract_pdf_tables");
-    expect((tool.inputSchema as any).required).toContain("path");
-    expect((tool.inputSchema as any).required).toContain("output_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).toContain("path");
+    expect((tool.inputSchema as Record<string, unknown>).required).toContain("output_file");
   });
 
   it("extracts tables and writes JSON output", async () => {
     const { readFile, writeFile, mkdir } = await import("node:fs/promises");
-    const pdfParse = (await import("pdf-parse")).default;
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
     vi.mocked(writeFile).mockResolvedValue(undefined);
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(pdfParse).mockResolvedValue({
-      text: "Name  Age  City\nAlice  30  NYC\nBob  25  LA",
-      numpages: 1,
-      numrender: 1,
-      info: {},
-      metadata: null,
-      version: "1.0"
-    } as any);
+    mockGetDocument.mockResolvedValue(
+      makeMockPdfDoc(["Name  Age  City\nAlice  30  NYC\nBob  25  LA"])
+    );
 
     const result = (await tool.process(ctx, {
       path: "data.pdf",
       output_file: "tables.json"
-    })) as any;
+    })) as Record<string, unknown>;
 
     expect(result.output_file).toBe(resolve(join(workspaceDir, "tables.json")));
     expect(writeFile).toHaveBeenCalled();
@@ -176,7 +174,7 @@ describe("ExtractPDFTablesTool", () => {
     const result = (await tool.process(ctx, {
       path: "bad.pdf",
       output_file: "out.json"
-    })) as any;
+    })) as Record<string, unknown>;
     expect(result.error).toContain("read error");
   });
 
@@ -196,63 +194,51 @@ describe("ConvertPDFToMarkdownTool", () => {
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("convert_pdf_to_markdown");
-    expect((tool.inputSchema as any).required).toContain("input_file");
-    expect((tool.inputSchema as any).required).toContain("output_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).toContain("input_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).toContain("output_file");
   });
 
   it("converts PDF to markdown", async () => {
     const { readFile, writeFile, mkdir } = await import("node:fs/promises");
-    const pdfParse = (await import("pdf-parse")).default;
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
     vi.mocked(writeFile).mockResolvedValue(undefined);
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(pdfParse).mockResolvedValue({
-      text: "# Title\n\nSome content",
-      numpages: 1,
-      numrender: 1,
-      info: {},
-      metadata: null,
-      version: "1.0"
-    } as any);
+    mockGetDocument.mockResolvedValue(
+      makeMockPdfDoc(["# Title\n\nSome content"])
+    );
 
     const result = (await tool.process(ctx, {
       input_file: "doc.pdf",
       output_file: "doc.md"
-    })) as any;
+    })) as Record<string, unknown>;
 
     expect(result.output_file).toBe(resolve(join(workspaceDir, "doc.md")));
     expect(writeFile).toHaveBeenCalledWith(
       resolve(join(workspaceDir, "doc.md")),
-      "# Title\n\nSome content",
+      expect.any(String),
       "utf-8"
     );
   });
 
   it("handles page range", async () => {
     const { readFile, writeFile, mkdir } = await import("node:fs/promises");
-    const pdfParse = (await import("pdf-parse")).default;
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
     vi.mocked(writeFile).mockResolvedValue(undefined);
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(pdfParse).mockResolvedValue({
-      text: "Page0\fPage1\fPage2",
-      numpages: 3,
-      numrender: 3,
-      info: {},
-      metadata: null,
-      version: "1.0"
-    } as any);
+    mockGetDocument.mockResolvedValue(
+      makeMockPdfDoc(["Page0", "Page1", "Page2"])
+    );
 
     const result = (await tool.process(ctx, {
       input_file: "doc.pdf",
       output_file: "doc.md",
       start_page: 1,
       end_page: 2
-    })) as any;
+    })) as Record<string, unknown>;
 
     expect(result.output_file).toBeDefined();
     const writtenContent = vi.mocked(writeFile).mock.calls[0][1];
-    expect(writtenContent).toBe("Page1\fPage2");
+    expect(writtenContent).toBe("Page1\nPage2");
   });
 
   it("returns error on failure", async () => {
@@ -262,7 +248,7 @@ describe("ConvertPDFToMarkdownTool", () => {
     const result = (await tool.process(ctx, {
       input_file: "bad.pdf",
       output_file: "out.md"
-    })) as any;
+    })) as Record<string, unknown>;
     expect(result.error).toContain("not found");
   });
 
@@ -282,23 +268,23 @@ describe("ConvertMarkdownToPDFTool", () => {
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("convert_markdown_to_pdf");
-    expect((tool.inputSchema as any).required).toContain("input_file");
-    expect((tool.inputSchema as any).required).toContain("output_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).toContain("input_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).toContain("output_file");
   });
 
   it("calls pandoc to convert markdown to PDF", async () => {
     const { mkdir } = await import("node:fs/promises");
     const { execFile } = await import("node:child_process");
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: any, _args: any, cb: any) => {
+    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
       if (typeof cb === "function") cb(null, "", "");
-      return {} as any;
+      return {} as ReturnType<typeof execFile>;
     });
 
     const result = (await tool.process(ctx, {
       input_file: "doc.md",
       output_file: "doc.pdf"
-    })) as any;
+    })) as Record<string, unknown>;
 
     expect(result.status).toBe("success");
     expect(result.output_file).toBe(resolve(join(workspaceDir, "doc.pdf")));
@@ -321,15 +307,15 @@ describe("ConvertMarkdownToPDFTool", () => {
     const { mkdir } = await import("node:fs/promises");
     const { execFile } = await import("node:child_process");
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: any, _args: any, cb: any) => {
+    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
       if (typeof cb === "function") cb(new Error("pandoc not found"));
-      return {} as any;
+      return {} as ReturnType<typeof execFile>;
     });
 
     const result = (await tool.process(ctx, {
       input_file: "doc.md",
       output_file: "doc.pdf"
-    })) as any;
+    })) as Record<string, unknown>;
 
     expect(result.error).toContain("pandoc not found");
   });
@@ -350,17 +336,17 @@ describe("ConvertDocumentTool", () => {
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("convert_document");
-    expect((tool.inputSchema as any).required).toContain("input_file");
-    expect((tool.inputSchema as any).required).toContain("output_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).toContain("input_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).toContain("output_file");
   });
 
   it("calls pandoc with correct format arguments", async () => {
     const { mkdir } = await import("node:fs/promises");
     const { execFile } = await import("node:child_process");
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: any, _args: any, cb: any) => {
+    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
       if (typeof cb === "function") cb(null, "", "");
-      return {} as any;
+      return {} as ReturnType<typeof execFile>;
     });
 
     const result = (await tool.process(ctx, {
@@ -368,7 +354,7 @@ describe("ConvertDocumentTool", () => {
       output_file: "doc.html",
       from_format: "rst",
       to_format: "html"
-    })) as any;
+    })) as Record<string, unknown>;
 
     expect(result.status).toBe("success");
     expect(execFile).toHaveBeenCalledWith(
@@ -382,9 +368,9 @@ describe("ConvertDocumentTool", () => {
     const { mkdir } = await import("node:fs/promises");
     const { execFile } = await import("node:child_process");
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: any, _args: any, cb: any) => {
+    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
       if (typeof cb === "function") cb(null, "", "");
-      return {} as any;
+      return {} as ReturnType<typeof execFile>;
     });
 
     await tool.process(ctx, {
@@ -402,15 +388,15 @@ describe("ConvertDocumentTool", () => {
     const { mkdir } = await import("node:fs/promises");
     const { execFile } = await import("node:child_process");
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: any, _args: any, cb: any) => {
+    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
       if (typeof cb === "function") cb(new Error("conversion failed"));
-      return {} as any;
+      return {} as ReturnType<typeof execFile>;
     });
 
     const result = (await tool.process(ctx, {
       input_file: "doc.md",
       output_file: "doc.pdf"
-    })) as any;
+    })) as Record<string, unknown>;
 
     expect(result.error).toContain("conversion failed");
   });

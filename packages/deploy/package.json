@@ -18,12 +18,12 @@
     "@nodetool/storage": "*",
     "js-yaml": "^4.1.0",
     "ssh2": "^1.15.0",
-    "zod": "^3.23.0"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/ssh2": "^1.15.0",
-    "typescript": "^5.4.0",
+    "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
   "exports": {

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { Text } from "../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 
 interface NodeStatusProps {

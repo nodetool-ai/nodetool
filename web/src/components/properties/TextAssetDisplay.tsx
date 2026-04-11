@@ -1,11 +1,10 @@
 import { useState, useCallback, useMemo, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { useAssetStore } from "../../stores/AssetStore";
 import TextEditorModal from "./TextEditorModal";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { Tooltip, Text } from "../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const MAX_TEXT_LENGTH = 1000;
 const MAX_TEXT_HEIGHT = 50;
@@ -27,8 +26,9 @@ const TextAssetDisplay = ({ assetId }: TextAssetDisplayProps) => {
     queryFn: async () => {
       const asset = await getAsset(assetId);
       if (!asset?.get_url) {throw new Error("Asset has no get_url");}
-      const response = await axios.get(asset.get_url, { responseType: "text" });
-      return response.data;
+      const response = await fetch(asset.get_url);
+      if (!response.ok) {throw new Error(`Failed to fetch asset: ${response.status}`);}
+      return response.text();
     }
   });
 

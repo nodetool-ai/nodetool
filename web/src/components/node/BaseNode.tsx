@@ -16,7 +16,7 @@ import {
   Position,
   ResizeParams
 } from "@xyflow/react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { Container } from "@mui/material";
 import { Tooltip, EditorButton } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";

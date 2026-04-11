@@ -6,7 +6,6 @@ import { BASE_URL } from "./BASE_URL";
 import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
 import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
-import axios from "axios";
 import { useAssetGridStore } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
 import {
@@ -349,18 +348,23 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         params.append("cursor", query.cursor);
       }
 
-      const response = await axios.get(
+      const response = await fetch(
         `${BASE_URL}/api/assets/search?${params.toString()}`,
-        { headers }
+        { headers: headers as HeadersInit }
       );
 
-      return response.data as AssetSearchResult;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
         throw createErrorMessage(
-          error.response?.data,
+          errorData,
           "Failed to search assets"
         );
+      }
+
+      return (await response.json()) as AssetSearchResult;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Failed to search assets")) {
+        throw error;
       }
       throw new Error("Failed to search assets");
     }
@@ -460,18 +464,34 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
       const url = `${BASE_URL}/api/assets/download`;
 
-      const response = await axios({
-        url: url,
+      const response = await fetch(url, {
         method: "POST",
-        headers,
-        data: {
-          asset_ids: ids
+        headers: {
+          ...(headers as Record<string, string>),
+          "Content-Type": "application/json"
         },
-        responseType: "arraybuffer"
+        body: JSON.stringify({ asset_ids: ids })
       });
 
-      const filename = response.headers["content-disposition"]
-        ? response.headers["content-disposition"].split("filename=")[1]
+      if (!response.ok) {
+        let errorDetail: unknown = null;
+        try {
+          const errorBuffer = await response.arrayBuffer();
+          errorDetail = JSON.parse(new TextDecoder().decode(errorBuffer));
+          log.error("[AssetStore] Decoded server error message:", errorDetail);
+        } catch {
+          // Could not parse error response
+        }
+        throw new Error(
+          `Download failed with status ${response.status}`
+        );
+      }
+
+      const data = await response.arrayBuffer();
+
+      const disposition = response.headers.get("content-disposition");
+      const filename = disposition
+        ? disposition.split("filename=")[1]
         : "assets.zip";
 
       // Check for Electron's API (could be window.electron or window.api)
@@ -491,7 +511,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
 
       if (electronApi?.saveFile) {
-        const result = await electronApi.saveFile(response.data, filename, [
+        const result = await electronApi.saveFile(data, filename, [
           { name: "ZIP Files", extensions: ["zip"] }
         ]);
         if (!result.success && !result.canceled) {
@@ -499,9 +519,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         }
       } else {
         // Browser fallback
-        const blob = new Blob([response.data], {
-          type: response.headers["content-type"]
-        });
+        const contentType = response.headers.get("content-type") || "application/zip";
+        const blob = new Blob([data], { type: contentType });
         const downloadUrl = window.URL.createObjectURL(blob);
         const anchorElement = document.createElement("a");
         anchorElement.href = downloadUrl;
@@ -519,30 +538,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         "[AssetStore] CATCH BLOCK: An error occurred during download.",
         error
       );
-      if (axios.isAxiosError(error)) {
-        log.error("[AssetStore] Axios error details:", {
-          message: error.message,
-          code: error.code,
-          status: error.response?.status,
-          data: error.response?.data
-        });
-        if (error.response?.data instanceof ArrayBuffer) {
-          try {
-            const errorMessage = JSON.parse(
-              new TextDecoder().decode(error.response.data)
-            );
-            log.error(
-              "[AssetStore] Decoded server error message:",
-              errorMessage
-            );
-          } catch (e) {
-            log.error(
-              "[AssetStore] Could not parse error response from ArrayBuffer:",
-              e
-            );
-          }
-        }
-      }
       throw error;
     }
   },

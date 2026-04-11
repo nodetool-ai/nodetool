@@ -19,7 +19,7 @@ import { useSettingsStore } from "../../../stores/SettingsStore";
 import { useAssetSelection } from "../../../hooks/assets/useAssetSelection";
 import SliderBasic from "../../inputs/SliderBasic";
 import { Asset } from "../../../stores/ApiTypes";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 interface WorkflowAssetToolbarProps {
   assets: Asset[];

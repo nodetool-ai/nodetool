@@ -9,7 +9,7 @@ import {
 import { Tooltip, ToolbarIconButton, FlexRow } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 /**
  * Interface for a tool object in the tools list property

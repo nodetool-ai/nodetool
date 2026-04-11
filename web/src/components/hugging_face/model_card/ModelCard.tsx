@@ -7,7 +7,7 @@ import { Card } from "@mui/material";
 import { ModelComponentProps } from "../ModelUtils";
 import ModelCardActions from "./ModelCardActions";
 import ModelCardContent from "./ModelCardContent";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../DownloadProgress";
 

@@ -10,7 +10,7 @@ import ColumnsManager from "../node/ColumnsManager";
 import { EditorButton, ButtonGroup } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const styles = (theme: Theme) =>
   css({

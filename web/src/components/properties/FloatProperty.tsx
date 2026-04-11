@@ -1,7 +1,7 @@
 import { memo, useCallback } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useInputMinMax } from "../../hooks/useInputMinMax";
 
 const FloatProperty = (props: PropertyProps) => {

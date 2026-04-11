@@ -8,7 +8,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NodeItem from "./NodeItem";
 import SearchResultsPanel from "./SearchResultsPanel";
 import { Text } from "../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";

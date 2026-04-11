@@ -16,8 +16,8 @@ import {
   Position,
   Edge
 } from "@xyflow/react";
-import debounce from "lodash/debounce";
-import isEqual from "lodash/isEqual";
+import { debounce } from "../../utils/lodashAlternatives";
+import isEqual from "fast-deep-equal";
 import { Container, IconButton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";

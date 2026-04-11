@@ -14,7 +14,7 @@ import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
 import { type Theme } from "@mui/material/styles";
 
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { FolderOutlined } from "@mui/icons-material";
 import DownloadingIcon from "@mui/icons-material/Downloading";
 import {

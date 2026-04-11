@@ -1,7 +1,7 @@
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { Text } from "../ui_primitives";
 
 const AssetProperty = (props: PropertyProps) => {

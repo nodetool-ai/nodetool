@@ -2,8 +2,8 @@
 import { css } from "@emotion/react";
 import { memo, useState, useCallback, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
-import debounce from "lodash/debounce";
-import isEqual from "lodash/isEqual";
+import { debounce } from "../../utils/lodashAlternatives";
+import isEqual from "fast-deep-equal";
 import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";

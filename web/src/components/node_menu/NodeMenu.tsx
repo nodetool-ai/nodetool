@@ -20,7 +20,7 @@ import Draggable from "react-draggable";
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { FlexColumn, FlexRow, Chip } from "../ui_primitives";
 import log from "loglevel";

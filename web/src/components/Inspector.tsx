@@ -11,7 +11,7 @@ import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
 import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
