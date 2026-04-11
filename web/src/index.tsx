@@ -105,6 +105,9 @@ const CollectionsExplorer = React.lazy(
 const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
+const ChainEditorPage = React.lazy(
+  () => import("./components/chain_editor/ChainEditorPage")
+);
 const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
 const NodeTestPage = React.lazy(
@@ -415,6 +418,36 @@ function getRoutes() {
     {
       path: "graph/:workflowId",
       element: <WorkflowGraphView />
+    },
+    {
+      path: "chain/:workflowId?",
+      element: (
+        <ProtectedRoute>
+          <div
+            className="page-enter"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <SkipLinks />
+            <AppHeader />
+            <div
+              id="main-content"
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%"
+              }}
+            >
+              <PanelLeft />
+              <ChainEditorPage />
+            </div>
+          </div>
+        </ProtectedRoute>
+      )
     }
   ];
 
