@@ -233,12 +233,12 @@ describe("lib.convert.ConvertToMarkdown", () => {
     expect(output.data).toBe("Just plain text, no HTML.");
   });
 
-  it("throws when no uri or data is provided", async () => {
+  it("throws when no input is provided", async () => {
     await expect(
       new ConvertToMarkdownLibNode({
-        document: { uri: "", data: "" }
+        document: null
       }).process()
-    ).rejects.toThrow("A document URI or data is required");
+    ).rejects.toThrow("Input is required");
   });
 });
 
