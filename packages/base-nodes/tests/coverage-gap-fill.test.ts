@@ -3039,7 +3039,7 @@ describe("lib-beautifulsoup round 2", () => {
       "<html><body><script>bad()</script><div id='content'>Real content here</div></body></html>";
     const __n235 = new WebsiteContentExtractorLibNode();
     __n235.assign({
-      html
+      html_content: html
     });
     const res = await __n235.process();
     expect(typeof res.output).toBe("string");

@@ -375,9 +375,16 @@ export class WebsiteContentExtractorLibNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const htmlContent = String(this.html_content ?? "");
 
-    const { document } = parseHTML(htmlContent);
-    const reader = new Readability(document);
-    const article = reader.parse();
+    let article: ReturnType<Readability<string>["parse"]> = null;
+    try {
+      const { document } = parseHTML(htmlContent);
+      // linkedom's document is mostly compatible with Readability but may
+      // fail on some inputs — fall through to cheerio fallback on error.
+      const reader = new Readability(document as unknown as Document);
+      article = reader.parse();
+    } catch {
+      // Readability incompatibility with linkedom — use fallback below
+    }
 
     if (article) {
       return {
