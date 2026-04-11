@@ -124,7 +124,7 @@ export class AddNodeTool extends Tool {
     const meta = !isAgentStep ? this.registry.getMetadata(type) : null;
     const configurableProps = meta?.properties
       ?.filter((p: { name: string }) => p.name !== "text" && p.name !== "input") // skip edge-connected inputs
-      ?.map((p: { name: string; default: unknown }) => `${p.name} (default: ${JSON.stringify(p.default)})`) ?? [];
+      ?.map((p: { name: string; default?: unknown }) => `${p.name} (default: ${JSON.stringify(p.default)})`) ?? [];
 
     const result: Record<string, unknown> = {
       status: "node_added",
