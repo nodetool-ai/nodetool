@@ -16,6 +16,25 @@ import { CloseButton } from "../ui_primitives";
 import { useNodeResultHistory } from "../../hooks/nodes/useNodeResultHistory";
 import { HistoricalResult } from "../../stores/NodeResultHistoryStore";
 import PreviewImageGrid, { ImageSource } from "./PreviewImageGrid";
+import OutputRenderer from "./OutputRenderer";
+import { Divider } from "../ui_primitives";
+
+/**
+ * Unwrap a history result to find the displayable value.
+ * Single-key objects get unwrapped; multi-key picks the first typed value.
+ */
+function unwrapHistoryResult(result: unknown): unknown {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return result;
+  }
+  const entries = Object.entries(result as Record<string, unknown>);
+  if (entries.length === 1) return entries[0][1];
+  const typed = entries.find(
+    ([, v]) => v && typeof v === "object" && "type" in (v as Record<string, unknown>)
+  );
+  if (typed) return typed[1];
+  return result;
+}
 
 interface NodeHistoryPanelProps {
   workflowId: string;
@@ -224,21 +243,20 @@ const NodeHistoryPanel: React.FC<NodeHistoryPanelProps> = ({
             />
           </div>
         ) : sessionHistory.length > 0 ? (
-          <FlexColumn
-            align="center"
-            justify="center"
-            fullHeight
-            sx={{ p: 4 }}
-          >
-            <Text color="secondary">
-              {historyCount} result(s) available, but no images to display
-            </Text>
-            <Caption
-              sx={{ mt: 1 }}
-            >
-              Only image outputs are shown as tiles
-            </Caption>
-          </FlexColumn>
+          <div style={{ flex: 1, overflow: "auto", padding: "8px 16px" }}>
+            {sessionHistory.map((item: HistoricalResult, index: number) => {
+              const value = unwrapHistoryResult(item.result);
+              return (
+                <div key={`history-${item.timestamp}-${index}`}>
+                  {index > 0 && <Divider sx={{ my: 1 }} />}
+                  <Caption size="tiny" sx={{ opacity: 0.5, mb: 0.5 }}>
+                    {new Date(item.timestamp).toLocaleTimeString()}
+                  </Caption>
+                  <OutputRenderer value={value} />
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <FlexColumn
             align="center"
