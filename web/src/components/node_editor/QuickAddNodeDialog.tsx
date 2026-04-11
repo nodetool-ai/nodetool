@@ -31,7 +31,7 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import useQuickAddNodeStore from "../../stores/QuickAddNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 
 const styles = (theme: Theme) =>

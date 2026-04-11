@@ -12,7 +12,7 @@ import { Tooltip, FlexRow, ToolbarIconButton, EditorButton } from "../ui_primiti
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { validateIdentifierName } from "../../utils/identifierValidation";

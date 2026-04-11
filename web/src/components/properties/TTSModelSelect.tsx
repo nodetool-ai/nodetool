@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { TTSModel, TTSModelValue } from "../../stores/ApiTypes";

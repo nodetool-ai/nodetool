@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import { XYPosition } from "@xyflow/react";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import axios from "axios";
 import {
   constantForType,
   contentTypeToNodeType
@@ -33,10 +32,12 @@ export const useAddNodeFromAsset = () => {
       if (!asset?.get_url) {
         throw new Error("Asset URL is not available");
       }
-      const response = await axios.get(asset.get_url, {
-        responseType: "arraybuffer"
-      });
-      return new TextDecoder().decode(new Uint8Array(response.data));
+      const response = await fetch(asset.get_url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch asset: ${response.status}`);
+      }
+      const buffer = await response.arrayBuffer();
+      return new TextDecoder().decode(new Uint8Array(buffer));
     },
     []
   );

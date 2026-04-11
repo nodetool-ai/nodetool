@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import HuggingFaceModelMenuDialog from "../model_menu/HuggingFaceModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ImageModel, UnifiedModel, HuggingFaceModelValue, HuggingFaceModelValueInput } from "../../stores/ApiTypes";

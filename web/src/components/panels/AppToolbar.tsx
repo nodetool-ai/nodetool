@@ -19,7 +19,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useCombo } from "../../stores/KeyPressedStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";

@@ -17,8 +17,8 @@
     "replicate": "*"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
   "exports": {

@@ -13,7 +13,7 @@ import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";

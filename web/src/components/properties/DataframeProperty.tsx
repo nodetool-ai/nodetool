@@ -13,7 +13,7 @@ import { Tooltip, ToolbarIconButton, EditorButton, ButtonGroup } from "../ui_pri
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import {
   parseDataframeFile,
   isSupportedDataframeFile

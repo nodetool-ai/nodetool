@@ -13,7 +13,7 @@ import {
 import useLogsStore from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { CopyButton, Text, Chip, EditorButton } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";

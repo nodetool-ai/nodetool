@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import log from "loglevel";
 import { FileInfo } from "../../stores/ApiTypes";

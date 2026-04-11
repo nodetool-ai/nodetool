@@ -161,7 +161,7 @@ client.use(authMiddleware);
  * Asynchronously generates an object containing the necessary authentication headers
  * (Authorization Bearer token and apikey) based on the current Supabase session.
  * Returns an empty object if no session exists.
- * Useful for manual fetch/axios requests that don't use the main `client`.
+ * Useful for manual fetch requests that don't use the main `client`.
  *
  * @returns {Promise<Record<string, string>>} A promise resolving to the headers object.
  */

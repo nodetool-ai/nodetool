@@ -13,7 +13,7 @@ import {
   Popover,
   PopoverOrigin
 } from "@mui/material";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { Widgets, Close } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useNodeToolsMenuStore } from "../../../stores/NodeMenuStore";

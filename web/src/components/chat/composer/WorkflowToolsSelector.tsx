@@ -17,7 +17,7 @@ import {
   Popover,
   PopoverOrigin
 } from "@mui/material";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { Schema } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useWorkflowTools } from "../../../serverState/useWorkflowTools";

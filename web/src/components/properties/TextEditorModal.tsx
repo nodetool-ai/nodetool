@@ -22,8 +22,8 @@ import { ListItemNode, ListNode } from "@lexical/list";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { EditorState, $getRoot } from "lexical";
-import debounce from "lodash/debounce";
-import isEqual from "lodash/isEqual";
+import { debounce } from "../../utils/lodashAlternatives";
+import isEqual from "fast-deep-equal";
 import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";

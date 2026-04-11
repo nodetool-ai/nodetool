@@ -3,7 +3,7 @@ import ListTable, { ListDataType } from "../node/DataTable/ListTable";
 import { memo, useCallback, useState, useMemo } from "react";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const detectTypeFromList = (list: unknown[]) => {
   if (list.length === 0) {

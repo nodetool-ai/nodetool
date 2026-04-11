@@ -15,7 +15,7 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { tableStyles } from "../../../styles/TableStyles";
 import TableActions from "./TableActions";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import type { TableData } from "./TableActions";
 
 export type ListDataType = "int" | "string" | "datetime" | "float";

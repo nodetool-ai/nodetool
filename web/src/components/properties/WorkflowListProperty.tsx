@@ -4,7 +4,7 @@ import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 

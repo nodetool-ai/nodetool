@@ -6,7 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import ImageView from "./ImageView";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const styles = (theme: Theme) =>
   css({

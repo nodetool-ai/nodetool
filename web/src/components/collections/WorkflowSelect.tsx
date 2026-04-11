@@ -3,7 +3,7 @@ import { Text } from "../ui_primitives";
 import { WorkflowList } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 interface WorkflowSelectProps {

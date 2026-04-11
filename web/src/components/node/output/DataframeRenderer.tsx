@@ -4,7 +4,7 @@ import { memo, useCallback, useState } from "react";
 import { IconButton } from "@mui/material";
 import { Tooltip } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 

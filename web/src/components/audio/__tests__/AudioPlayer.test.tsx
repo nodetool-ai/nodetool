@@ -60,21 +60,13 @@ jest.mock("wavesurfer.js/dist/plugins/minimap", () => ({
   }
 }));
 
-jest.mock("axios", () => {
-  const axiosMock = {
-    get: jest.fn(() =>
-      Promise.resolve({
-        status: 200,
-        data: new Blob(["audio data"], { type: "audio/mp3" })
-      })
-    ),
-    isCancel: jest.fn(() => false)
-  };
-  return {
-    __esModule: true,
-    default: axiosMock
-  };
-});
+// Mock fetch for audio loading
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    blob: () => Promise.resolve(new Blob(["audio data"], { type: "audio/mp3" }))
+  })
+) as jest.Mock;
 
 jest.mock("loglevel", () => ({
   __esModule: true,

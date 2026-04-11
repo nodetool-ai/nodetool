@@ -8,7 +8,7 @@ import {
   hasNodeError,
 } from "../../stores/ErrorStore";
 import useErrorStore from "../../stores/ErrorStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { CopyButton } from "../ui_primitives";
 
 export const errorStyles = (theme: Theme) =>

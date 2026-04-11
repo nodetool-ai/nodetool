@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box } from "@mui/material";
 import { Text } from "../../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const objectStyles = (theme: Theme) =>
   css({

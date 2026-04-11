@@ -2,7 +2,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Box } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useWorkflowActionsStore } from "../../stores/WorkflowActionsStore";

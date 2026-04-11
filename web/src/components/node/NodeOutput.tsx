@@ -4,7 +4,7 @@ import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { useNodes } from "../../contexts/NodeContext";

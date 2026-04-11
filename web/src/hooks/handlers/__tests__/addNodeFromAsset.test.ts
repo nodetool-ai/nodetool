@@ -7,9 +7,8 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 jest.mock("../../../contexts/NodeContext");
 jest.mock("../../../stores/MetadataStore");
 jest.mock("../../../stores/NotificationStore");
-jest.mock("axios", () => ({
-  get: jest.fn()
-}));
+// fetch is used natively for asset downloads
+global.fetch = jest.fn() as jest.Mock;
 
 describe("useAddNodeFromAsset", () => {
   const mockAddNode = jest.fn();

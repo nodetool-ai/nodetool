@@ -7,7 +7,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Tooltip, CloseButton } from "../ui_primitives";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";

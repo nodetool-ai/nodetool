@@ -7,7 +7,7 @@ import { CloseButton, Tooltip } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo, useCallback } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import Terminal from "../terminal/Terminal";
 import TracePanel from "./TracePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
