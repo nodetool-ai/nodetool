@@ -102,7 +102,7 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
             justify="center"
             sx={{ padding: 2 }}
           >
-            <LoadingSpinner size={24} />
+            <LoadingSpinner size="medium" />
           </FlexRow>
         ) : ollamaError ? (
           <div style={{ padding: 16, maxWidth: 300 }}>

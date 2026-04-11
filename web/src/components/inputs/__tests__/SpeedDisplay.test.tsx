@@ -20,6 +20,7 @@ jest.mock("react-dom", () => ({
 
 // Mock loglevel
 jest.mock("loglevel", () => ({
+  __esModule: true,
   default: {
     warn: jest.fn()
   }

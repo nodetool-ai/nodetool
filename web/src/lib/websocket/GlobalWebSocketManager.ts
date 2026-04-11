@@ -304,7 +304,6 @@ class GlobalWebSocketManager extends EventEmitter {
     return this.wsManager?.getWebSocket() ?? null;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscribeEvent(
     event: GlobalWebSocketEvent,
     listener: (...args: any[]) => void

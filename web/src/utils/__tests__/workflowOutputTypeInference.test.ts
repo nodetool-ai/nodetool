@@ -8,6 +8,7 @@ import { Graph, Node, Edge, OutputSlot } from "../../stores/ApiTypes";
 const mockGetMetadata = jest.fn();
 
 jest.mock("../../stores/MetadataStore", () => ({
+  __esModule: true,
   default: {
     getState: () => ({
       getMetadata: mockGetMetadata

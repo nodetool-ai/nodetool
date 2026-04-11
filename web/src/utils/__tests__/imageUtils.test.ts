@@ -85,7 +85,7 @@ describe("imageUtils", () => {
     it("handles relative URL path (API storage)", () => {
       const source: ImageData = "/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg";
       const result = createImageUrl(source, null);
-      expect(result.url).toBe("/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg");
+      expect(result.url).toBe("http://localhost:7777/api/storage/341ebf3aec5711f0aa8400007c77feb7.jpg");
       expect(result.blobUrl).toBeNull();
     });
 

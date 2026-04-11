@@ -17,6 +17,7 @@ jest.mock("../../../contexts/NodeContext", () => ({
 }));
 
 jest.mock("../../../stores/NodeMenuStore", () => ({
+  __esModule: true,
   default: jest.fn((selector) => {
     if (typeof selector === 'function') {
       return selector({ closeNodeMenu: mockCloseNodeMenu });

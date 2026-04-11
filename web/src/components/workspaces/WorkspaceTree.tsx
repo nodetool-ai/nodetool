@@ -419,7 +419,7 @@ const WorkspaceTree: React.FC = () => {
   filesRef.current = files;
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
   const [filesWorkspaceId, setFilesWorkspaceId] = useState<string | undefined>();
-  const filesWorkspaceIdRef = useRef<string | undefined>();
+  const filesWorkspaceIdRef = useRef<string | undefined>(undefined);
   filesWorkspaceIdRef.current = filesWorkspaceId;
   const previousWorkflowId = useRef<string | null | undefined>(undefined);
   const {

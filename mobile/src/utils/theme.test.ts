@@ -19,11 +19,11 @@ describe('theme', () => {
     });
 
     it('has dark background color', () => {
-      expect(paletteDark.background).toBe('#141414');
+      expect(paletteDark.background).toBe('#0F0F0F');
     });
 
     it('has white text color', () => {
-      expect(paletteDark.text).toBe('#FFFFFF');
+      expect(paletteDark.text).toBe('#F5F5F5');
     });
 
     it('all colors are strings', () => {
@@ -58,11 +58,11 @@ describe('theme', () => {
     });
 
     it('has light background color', () => {
-      expect(paletteLight.background).toBe('#FAF7F2');
+      expect(paletteLight.background).toBe('#F8F6F3');
     });
 
     it('has dark text color', () => {
-      expect(paletteLight.text).toBe('#2A2A2A');
+      expect(paletteLight.text).toBe('#1A1A1A');
     });
 
     it('all colors are strings', () => {

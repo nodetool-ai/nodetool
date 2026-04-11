@@ -67,39 +67,18 @@ jest.mock("three", () => ({
   }
 }));
 
-const mockTheme = {
-  vars: {
-    palette: {
-      grey: {
-        100: "#f5f5f5",
-        800: "#333",
-        900: "#222"
-      },
-      primary: {
-        main: "#1976d2",
-        dark: "#1565c0"
-      },
-      common: {
-        white: "#fff"
-      },
-      action: {
-        disabledBackground: "rgba(0,0,0,0.12)"
-      }
-    }
-  }
-};
-
-// Mock the theme hook
-jest.mock("@mui/material/styles", () => ({
-  ...jest.requireActual("@mui/material/styles"),
-  useTheme: () => mockTheme
-}));
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 
 describe("Model3DViewer", () => {
   const testUrl = "https://example.com/model.glb";
 
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+  );
+
   test("renders loading state initially", () => {
-    render(<Model3DViewer url={testUrl} />);
+    render(<Model3DViewer url={testUrl} />, { wrapper });
     // With mocked components, the model loads instantly, so the loading state
     // is cleared before we can assert on it. Instead, verify the component
     // renders without crashing and the Canvas is present.
@@ -107,18 +86,18 @@ describe("Model3DViewer", () => {
   });
 
   test("renders without URL showing placeholder", () => {
-    render(<Model3DViewer />);
+    render(<Model3DViewer />, { wrapper });
     expect(screen.getByText("No 3D model loaded")).toBeInTheDocument();
   });
 
   test("renders Canvas component with URL", () => {
-    render(<Model3DViewer url={testUrl} />);
+    render(<Model3DViewer url={testUrl} />, { wrapper });
     expect(screen.getByTestId("r3f-canvas")).toBeInTheDocument();
   });
 
   test("renders in compact mode without toolbar", () => {
     const { container } = render(
-      <Model3DViewer url={testUrl} compact={true} />
+      <Model3DViewer url={testUrl} compact={true} />, { wrapper }
     );
     // Toolbar should not be present in compact mode
     expect(container.querySelector(".controls-toolbar")).not.toBeInTheDocument();
@@ -126,7 +105,7 @@ describe("Model3DViewer", () => {
 
   test("renders toolbar in non-compact mode", () => {
     const { container } = render(
-      <Model3DViewer url={testUrl} compact={false} />
+      <Model3DViewer url={testUrl} compact={false} />, { wrapper }
     );
     // Toolbar should be present in non-compact mode
     expect(container.querySelector(".controls-toolbar")).toBeInTheDocument();
@@ -136,7 +115,7 @@ describe("Model3DViewer", () => {
     const handleClick = jest.fn();
     const user = userEvent.setup();
     const { container } = render(
-      <Model3DViewer url={testUrl} compact={true} onClick={handleClick} />
+      <Model3DViewer url={testUrl} compact={true} onClick={handleClick} />, { wrapper }
     );
 
     const modelContainer = container.querySelector(".model-container");
@@ -153,7 +132,7 @@ describe("Model3DViewer", () => {
       get_url: testUrl
     } as any;
 
-    render(<Model3DViewer asset={asset} />);
+    render(<Model3DViewer asset={asset} />, { wrapper });
     expect(screen.getByTestId("r3f-canvas")).toBeInTheDocument();
   });
 
@@ -164,12 +143,12 @@ describe("Model3DViewer", () => {
       get_url: testUrl
     } as any;
 
-    render(<Model3DViewer asset={asset} compact={false} />);
+    render(<Model3DViewer asset={asset} compact={false} />, { wrapper });
     expect(screen.getByText("test-model.glb")).toBeInTheDocument();
   });
 
   test("renders control buttons in non-compact mode", () => {
-    render(<Model3DViewer url={testUrl} compact={false} />);
+    render(<Model3DViewer url={testUrl} compact={false} />, { wrapper });
 
     // Check for various control buttons by their tooltip titles
     expect(screen.getByRole("button", { name: /toggle grid/i })).toBeInTheDocument();
@@ -180,7 +159,7 @@ describe("Model3DViewer", () => {
   });
 
   test("renders wireframe toggle buttons", () => {
-    render(<Model3DViewer url={testUrl} compact={false} />);
+    render(<Model3DViewer url={testUrl} compact={false} />, { wrapper });
 
     expect(screen.getByRole("button", { name: /solid/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /wire/i })).toBeInTheDocument();

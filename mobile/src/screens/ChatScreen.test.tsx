@@ -184,7 +184,7 @@ describe('ChatScreen', () => {
       const { getByTestId } = render(<HeaderRight />);
       
       // Click the add icon button (new chat button)
-      fireEvent.press(getByTestId('icon-add-outline'));
+      fireEvent.press(getByTestId('icon-add-circle-outline'));
       
       await waitFor(() => {
         expect(mockStore.createNewThread).toHaveBeenCalled();
@@ -202,7 +202,7 @@ describe('ChatScreen', () => {
       const { getByTestId } = render(<HeaderRight />);
       
       // Click the add icon button (new chat button)
-      fireEvent.press(getByTestId('icon-add-outline'));
+      fireEvent.press(getByTestId('icon-add-circle-outline'));
       
       // Should not throw
       await waitFor(() => {
