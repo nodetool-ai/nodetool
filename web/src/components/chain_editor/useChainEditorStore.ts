@@ -26,6 +26,14 @@ function defaultProperties(metadata: NodeMetadata): Record<string, unknown> {
   return props;
 }
 
+function isInputNode(nodeType: string): boolean {
+  return nodeType.includes(".input.");
+}
+
+function isOutputNode(nodeType: string): boolean {
+  return nodeType.includes(".output.");
+}
+
 interface ChainEditorState {
   chain: ChainNode[];
   connections: ChainConnection[];
@@ -61,7 +69,19 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
 
   addNode: (metadata, atIndex) => {
     const { chain } = get();
-    const idx = atIndex !== undefined ? atIndex : chain.length;
+    // Input nodes always go to the top (after existing input nodes)
+    // Output nodes always go to the bottom
+    let idx: number;
+    if (isInputNode(metadata.node_type)) {
+      idx = chain.filter((n) => isInputNode(n.nodeType)).length;
+    } else if (isOutputNode(metadata.node_type)) {
+      idx = chain.length;
+    } else {
+      idx = atIndex !== undefined ? atIndex : chain.length;
+      // Ensure non-input nodes don't go before input nodes
+      const inputCount = chain.filter((n) => isInputNode(n.nodeType)).length;
+      if (idx < inputCount) idx = inputCount;
+    }
 
     const defaultOutput =
       metadata.outputs.length > 0 ? metadata.outputs[0].name : "";
@@ -272,6 +292,13 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
         expanded: false,
       });
     }
+
+    // Sort: input nodes first, then regular nodes, then output nodes
+    chain.sort((a, b) => {
+      const aInput = isInputNode(a.nodeType) ? 0 : isOutputNode(a.nodeType) ? 2 : 1;
+      const bInput = isInputNode(b.nodeType) ? 0 : isOutputNode(b.nodeType) ? 2 : 1;
+      return aInput - bInput;
+    });
 
     set({
       chain,

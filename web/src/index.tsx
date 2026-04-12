@@ -434,17 +434,7 @@ function getRoutes() {
           >
             <SkipLinks />
             <AppHeader />
-            <div
-              id="main-content"
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <ChainEditorPage />
-            </div>
+            <ChainEditorPage />
           </div>
         </ProtectedRoute>
       )

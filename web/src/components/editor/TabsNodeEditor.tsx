@@ -13,9 +13,10 @@ import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 
 import TabsBar from "./TabsBar";
+import ChainEditorBridge from "../chain_editor/ChainEditorBridge";
 import FileTabContent from "./FileTabContent";
 import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -448,6 +449,9 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   }, [idsForTabs, openMap, queryResults]);
 
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const editorViewMode = useSettingsStore((s) => s.settings.editorViewMode);
+  const showChainView = isMobile || editorViewMode === "chain";
 
   const activeFileTabId = useFileTabsStore((state) => state.activeFileTabId);
   const openFileTabs = useFileTabsStore((state) => state.openFileTabs);
@@ -519,34 +523,41 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                   }}
                 >
                   <NodeContext.Provider value={store}>
-                    <ReactFlowProvider>
-                      <ContextMenuProvider>
-                        <ConnectableNodesProvider>
-                          <KeyboardProvider>
-                            {isActive && (
-                              <div className="status-message-container">
-                                <StatusMessage />
+                    {showChainView ? (
+                      <ReactFlowProvider>
+                        <ChainEditorBridge />
+                        {isActive && <FloatingToolBar />}
+                      </ReactFlowProvider>
+                    ) : (
+                      <ReactFlowProvider>
+                        <ContextMenuProvider>
+                          <ConnectableNodesProvider>
+                            <KeyboardProvider>
+                              {isActive && (
+                                <div className="status-message-container">
+                                  <StatusMessage />
+                                </div>
+                              )}
+                              <div
+                                style={{
+                                  flex: 1,
+                                  minHeight: 0,
+                                  position: "relative",
+                                  width: "100%",
+                                  height: "100%"
+                                }}
+                              >
+                                <NodeEditor
+                                  workflowId={workflow.id}
+                                  active={isActive}
+                                />
                               </div>
-                            )}
-                            <div
-                              style={{
-                                flex: 1,
-                                minHeight: 0,
-                                position: "relative",
-                                width: "100%",
-                                height: "100%"
-                              }}
-                            >
-                              <NodeEditor
-                                workflowId={workflow.id}
-                                active={isActive}
-                              />
-                            </div>
-                            {isActive && <FloatingToolBar />}
-                          </KeyboardProvider>
-                        </ConnectableNodesProvider>
-                      </ContextMenuProvider>
-                    </ReactFlowProvider>
+                              {isActive && <FloatingToolBar />}
+                            </KeyboardProvider>
+                          </ConnectableNodesProvider>
+                        </ContextMenuProvider>
+                      </ReactFlowProvider>
+                    )}
                   </NodeContext.Provider>
                 </Box>
               );

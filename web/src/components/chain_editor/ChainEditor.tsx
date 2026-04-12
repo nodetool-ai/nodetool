@@ -5,20 +5,22 @@
  * with connectors and add-node buttons.
  */
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, TextField, Button } from "@mui/material";
+import { Box, IconButton, TextField } from "@mui/material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { Text } from "../ui_primitives/Text";
 import { EmptyState } from "../ui_primitives/EmptyState";
+import { Tooltip } from "../ui_primitives";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
 import { ChainConnector } from "./ChainConnector";
 import { AddNodeButton } from "./AddNodeButton";
 import { NodePickerDialog } from "./NodePickerDialog";
+import { client } from "../../stores/ApiClient";
 import type { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
 
 interface ChainEditorProps {
@@ -27,6 +29,7 @@ interface ChainEditorProps {
 
 export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
   const theme = useTheme();
+  const [saving, setSaving] = useState(false);
 
   const chain = useChainEditorStore((s) => s.chain);
   const workflowName = useChainEditorStore((s) => s.workflowName);
@@ -43,6 +46,31 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
   const showNodePicker = useChainEditorStore((s) => s.showNodePicker);
   const hideNodePicker = useChainEditorStore((s) => s.hideNodePicker);
   const setWorkflowName = useChainEditorStore((s) => s.setWorkflowName);
+  const workflowId = useChainEditorStore((s) => s.workflowId);
+  const toWorkflowGraph = useChainEditorStore((s) => s.toWorkflowGraph);
+
+  const handleSave = useCallback(async () => {
+    if (onSave) {
+      onSave();
+      return;
+    }
+    setSaving(true);
+    try {
+      const graph = toWorkflowGraph();
+      if (workflowId) {
+        await client.PUT("/api/workflows/{id}", {
+          params: { path: { id: workflowId } },
+          body: { name: workflowName, access: "private", graph } as never,
+        });
+      } else {
+        await client.POST("/api/workflows/", {
+          body: { name: workflowName, access: "private", graph } as never,
+        });
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [onSave, toWorkflowGraph, workflowId, workflowName]);
 
   const handleAddNode = useCallback(
     (metadata: NodeMetadata) => {
@@ -84,17 +112,16 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
           slotProps={{ input: { disableUnderline: true, sx: { fontWeight: 600, fontSize: theme.fontSizeNormal } } }}
           sx={{ flex: 1 }}
         />
-        {onSave && (
-          <Button
+        <Tooltip title="Save workflow">
+          <IconButton
             size="small"
-            variant="outlined"
-            startIcon={<SaveOutlinedIcon sx={{ fontSize: 18 }} />}
-            onClick={onSave}
-            sx={{ textTransform: "none", fontWeight: 600 }}
+            onClick={handleSave}
+            disabled={saving}
+            sx={{ color: theme.vars.palette.text.secondary }}
           >
-            Save
-          </Button>
-        )}
+            <SaveOutlinedIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        </Tooltip>
       </FlexRow>
 
       {/* Chain content */}
@@ -102,7 +129,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
         sx={{
           flex: 1,
           overflow: "auto",
-          px: 2,
+          px: { xs: 1.5, sm: 2 },
           py: 1,
           maxWidth: 600,
           width: "100%",

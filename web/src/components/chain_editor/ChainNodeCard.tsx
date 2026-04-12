@@ -114,7 +114,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
       </FlexRow>
 
       {/* Expanded content */}
-      <Collapse in={node.expanded}>
+      <Collapse in={node.expanded} unmountOnExit>
         <FlexColumn gap={1.5} sx={{ px: 1.75, pb: 1.75 }}>
           {node.metadata.description && (
             <Text size="smaller" color="secondary" lineClamp={3}>
@@ -134,6 +134,8 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
           <Divider spacing="compact" color="subtle" />
 
           <ChainNodeProperties
+            nodeId={node.id}
+            nodeType={node.nodeType}
             properties={node.metadata.properties}
             values={node.properties}
             connectedInput={node.inputMapping}
