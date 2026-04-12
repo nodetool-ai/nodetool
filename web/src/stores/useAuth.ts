@@ -21,7 +21,7 @@ export type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
  *   1. `VITE_AUTH_REDIRECT_URL` build-time env var (explicit override for
  *      deployments behind proxies, custom domains, or Electron shells where
  *      `window.location.origin` is not the public URL).
- *   2. `window.location.origin + "/dashboard"` at runtime.
+ *   2. `window.location.origin + "/"` at runtime.
  */
 export const getAuthRedirectUrl = (): string => {
   const configured = import.meta.env.VITE_AUTH_REDIRECT_URL;
@@ -29,9 +29,9 @@ export const getAuthRedirectUrl = (): string => {
     return configured;
   }
   if (typeof window !== "undefined" && window.location?.origin) {
-    return window.location.origin + "/dashboard";
+    return window.location.origin + "/";
   }
-  return "/dashboard";
+  return "/";
 };
 
 // Supabase subscription type from @supabase/supabase-js
