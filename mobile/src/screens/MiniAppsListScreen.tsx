@@ -104,7 +104,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   };
 
   const handleWorkflowPress = (workflow: Workflow) => {
-    navigation.navigate('MiniApp', { workflowId: workflow.id, workflowName: workflow.name });
+    navigation.navigate('GraphEditor', { workflowId: workflow.id });
   };
 
   const renderWorkflowItem = ({ item }: { item: Workflow }) => (

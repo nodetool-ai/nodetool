@@ -131,6 +131,7 @@ export function chainToGraph(
     sourceHandle: c.sourceOutput,
     target: c.targetId,
     targetHandle: c.targetInput,
+    edge_type: "data" as const,
   }));
 
   return { nodes, edges };

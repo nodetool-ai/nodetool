@@ -35,7 +35,7 @@ export const ChainEditor: React.FC = () => {
 
   // ── Store selectors ────────────────────────────────────────────────
   const chain = useGraphEditorStore((s) => s.chain);
-  const connections = useGraphEditorStore((s) => s.connections);
+  const workflowId = useGraphEditorStore((s) => s.workflowId);
   const workflowName = useGraphEditorStore((s) => s.workflowName);
   const allMetadata = useGraphEditorStore((s) => s.allMetadata);
   const metadataLoading = useGraphEditorStore((s) => s.metadataLoading);
@@ -262,6 +262,7 @@ export const ChainEditor: React.FC = () => {
                     node={node}
                     index={index}
                     totalNodes={chain.length}
+                    workflowId={workflowId}
                     prevOutputType={prevOutputTypes[index]}
                     onToggleExpanded={() => toggleExpanded(node.id)}
                     onUpdateProperty={(name, value) =>
@@ -343,6 +344,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     alignItems: "stretch",
+    maxWidth: 600,
+    width: "100%",
+    alignSelf: "center",
   },
   centered: {
     flex: 1,
