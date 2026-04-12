@@ -15,6 +15,7 @@ import { spawn } from "node:child_process";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { getTsxWatchCommand, registerChildShutdownHandlers } from "./child-shutdown.mjs";
 
 const mode = process.argv[2] ?? "server";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -51,15 +52,13 @@ if (await isPortInUse(host, port)) {
   process.exit(0);
 }
 
-// Resolve tsx binary from the workspace
-const tsxBinaryName = process.platform === "win32" ? "tsx.cmd" : "tsx";
-const tsxBin = resolve(rootDir, "node_modules", ".bin", tsxBinaryName);
-
 console.log(`\n  Starting dev server (tsx --watch) on http://${host}:${port}`);
 console.log(`  Entry: ${entrypoints[mode]}`);
 console.log(`  Changes to any imported .ts file will trigger a restart.\n`);
 
-const child = spawn(tsxBin, ["--watch", entrypoints[mode]], {
+const { command, args } = getTsxWatchCommand(rootDir, entrypoints[mode]);
+
+const child = spawn(command, args, {
   cwd: rootDir,
   stdio: "inherit",
   env: {
@@ -73,6 +72,9 @@ const child = spawn(tsxBin, ["--watch", entrypoints[mode]], {
   },
 });
 
+registerChildShutdownHandlers({ child });
 child.on("exit", (code) => process.exit(code ?? 1));
-process.on("SIGINT", () => { child.kill("SIGINT"); });
-process.on("SIGTERM", () => { child.kill("SIGTERM"); });
+if (process.platform !== "win32") {
+  process.on("SIGINT", () => { child.kill("SIGINT"); });
+  process.on("SIGTERM", () => { child.kill("SIGTERM"); });
+}

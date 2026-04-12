@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { registerChildShutdownHandlers } from "./child-shutdown.mjs";
 
 const mode = process.argv[2] ?? "server";
 const buildMode = process.argv[3] ?? "all";
@@ -54,14 +55,6 @@ function isPortInUse(hostname, portNumber) {
   });
 }
 
-function killTree(pid) {
-  if (process.platform === "win32") {
-    spawnSync("taskkill", ["/F", "/T", "/PID", String(pid)], { stdio: "ignore" });
-  } else {
-    try { process.kill(-pid, "SIGTERM"); } catch { /* already gone */ }
-  }
-}
-
 function run(command, args, cwd) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(command, args, {
@@ -72,21 +65,7 @@ function run(command, args, cwd) {
       detached: process.platform !== "win32",
     });
 
-    // On Windows, register a handler to force-kill the whole process tree
-    if (process.platform === "win32" && child.pid) {
-      const pid = child.pid;
-      const killOnExit = () => killTree(pid);
-      process.once("SIGINT", killOnExit);
-      process.once("SIGTERM", killOnExit);
-      process.once("SIGBREAK", killOnExit);
-      process.once("exit", killOnExit);
-      child.once("exit", () => {
-        process.off("SIGINT", killOnExit);
-        process.off("SIGTERM", killOnExit);
-        process.off("SIGBREAK", killOnExit);
-        process.off("exit", killOnExit);
-      });
-    }
+    registerChildShutdownHandlers({ child });
 
     child.on("error", rejectRun);
     child.on("exit", (code) => {

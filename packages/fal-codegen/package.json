@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
     "generate": "tsx src/generate.ts",
     "test": "vitest run",
     "test:watch": "vitest",
