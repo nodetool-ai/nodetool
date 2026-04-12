@@ -167,6 +167,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
                   node={node}
                   index={index}
                   totalNodes={chain.length}
+                  workflowId={workflowId}
                   prevOutputType={prevOutputTypes[index]}
                   onToggleExpanded={() => toggleExpanded(node.id)}
                   onUpdateProperty={(name, value) => updateProperty(node.id, name, value)}

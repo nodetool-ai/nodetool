@@ -5,18 +5,16 @@
  */
 
 import { css } from "@emotion/react";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, type CSSProperties } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import { Dialog } from "../ui_primitives/Dialog";
-import { FlexRow } from "../ui_primitives/FlexRow";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { Text } from "../ui_primitives/Text";
 import { TextInput } from "../ui_primitives/TextInput";
-import { Chip } from "../ui_primitives/Chip";
+import { HighlightText } from "../ui_primitives/HighlightText";
 import useMetadataStore from "../../stores/MetadataStore";
 import { computeSearchResults } from "../../utils/nodeSearch";
 import {
@@ -24,17 +22,12 @@ import {
   type QuickActionDefinition,
 } from "../node_menu/QuickActionTiles";
 import type { NodeMetadata } from "../../stores/ApiTypes";
+import { FixedSizeList } from "react-window";
 
 interface NodePickerDialogProps {
   open: boolean;
   onSelect: (metadata: NodeMetadata) => void;
   onClose: () => void;
-}
-
-function formatNamespace(ns: string): string {
-  const parts = ns.split(".");
-  const last = parts[parts.length - 1];
-  return last.charAt(0).toUpperCase() + last.slice(1);
 }
 
 const quickTileStyles = (theme: Theme) =>
@@ -110,17 +103,6 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
     return sortedResults;
   }, [metadataList, searchQuery, hasSearch]);
 
-  // Group search results by namespace
-  const sections = useMemo(() => {
-    const groups = new Map<string, NodeMetadata[]>();
-    for (const m of searchResults) {
-      if (!groups.has(m.namespace)) groups.set(m.namespace, []);
-      groups.get(m.namespace)!.push(m);
-    }
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([ns, nodes]) => ({ title: ns, nodes }));
-  }, [searchResults]);
 
   const handleSelect = useCallback(
     (m: NodeMetadata) => {
@@ -141,6 +123,47 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
   );
 
   const tileStyles = useMemo(() => quickTileStyles(theme), [theme]);
+
+  const ROW_HEIGHT = 32;
+  const LIST_HEIGHT = 400;
+
+  const ResultRow = useCallback(
+    ({ index, style }: { index: number; style: CSSProperties }) => {
+      const node = searchResults[index];
+      return (
+        <div
+          style={{
+            ...style,
+            padding: "0 8px",
+            display: "flex",
+            alignItems: "center",
+            cursor: "pointer",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            borderRadius: "4px",
+          }}
+          onClick={() => handleSelect(node)}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor =
+              theme.vars.palette.action.hover as string;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          <Text size="small" weight={500} component="span">
+            <HighlightText
+              text={node.title}
+              query={searchQuery}
+              matchStyle="primary"
+            />
+          </Text>
+        </div>
+      );
+    },
+    [searchResults, searchQuery, handleSelect, theme]
+  );
 
   return (
     <Dialog open={open} onClose={onClose} title="Add Node" minWidth={520}>
@@ -168,9 +191,8 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
           }}
         />
 
-        <Box sx={{ overflow: "auto", flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
           {!hasSearch ? (
-            /* Quick action tiles when no search */
             <FlexColumn gap={2}>
               <Text size="small" weight={600} color="secondary">
                 Quick Actions
@@ -193,97 +215,30 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                 ))}
               </div>
             </FlexColumn>
-          ) : sections.length === 0 ? (
+          ) : searchResults.length === 0 ? (
             <FlexColumn align="center" justify="center" sx={{ py: 6 }}>
               <Text size="small" color="secondary">
                 No nodes found
               </Text>
             </FlexColumn>
           ) : (
-            <>
-              <Text size="tiny" color="secondary" sx={{ mb: 1 }}>
+            <FlexColumn gap={0}>
+              <Text size="tiny" color="secondary" sx={{ mb: 0.5, px: 0.5, opacity: 0.5 }}>
                 {searchResults.length}{" "}
                 {searchResults.length === 1 ? "result" : "results"}
               </Text>
-              {sections.map((section) => (
-                <Box key={section.title} sx={{ mb: 2 }}>
-                  <FlexRow
-                    gap={1}
-                    align="center"
-                    sx={{ py: 0.5, px: 0.5 }}
-                  >
-                    <Text
-                      size="smaller"
-                      weight={600}
-                      color="secondary"
-                      sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-                    >
-                      {formatNamespace(section.title)}
-                    </Text>
-                    <Text size="tiny" color="secondary">
-                      {section.nodes.length}
-                    </Text>
-                  </FlexRow>
-
-                  {section.nodes.map((node) => (
-                    <Box
-                      key={node.node_type}
-                      onClick={() => handleSelect(node)}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1.5,
-                        p: 1.5,
-                        borderRadius: 1.5,
-                        cursor: "pointer",
-                        border: "1px solid transparent",
-                        "&:hover": {
-                          backgroundColor: theme.vars.palette.action.hover,
-                          borderColor: theme.vars.palette.divider,
-                        },
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
-                        <Text size="small" weight={600}>
-                          {node.title}
-                        </Text>
-                        {node.description && (
-                          <Text size="smaller" color="secondary" lineClamp={2}>
-                            {node.description}
-                          </Text>
-                        )}
-                        <FlexRow gap={0.5} wrap>
-                          {node.outputs.length > 0 && (
-                            <Chip
-                              label={`${node.outputs.length} output${node.outputs.length !== 1 ? "s" : ""}`}
-                              color="primary"
-                              compact
-                              size="small"
-                            />
-                          )}
-                          {node.properties.length > 0 && (
-                            <Chip
-                              label={`${node.properties.length} input${node.properties.length !== 1 ? "s" : ""}`}
-                              color="secondary"
-                              compact
-                              size="small"
-                            />
-                          )}
-                        </FlexRow>
-                      </FlexColumn>
-                      <AddCircleOutlineIcon
-                        sx={{
-                          fontSize: 22,
-                          color: theme.vars.palette.primary.main,
-                          flexShrink: 0,
-                        }}
-                      />
-                    </Box>
-                  ))}
-                </Box>
-              ))}
-            </>
+              <FixedSizeList
+                height={Math.min(
+                  LIST_HEIGHT,
+                  searchResults.length * ROW_HEIGHT
+                )}
+                itemCount={searchResults.length}
+                itemSize={ROW_HEIGHT}
+                width="100%"
+              >
+                {ResultRow}
+              </FixedSizeList>
+            </FlexColumn>
           )}
         </Box>
       </FlexColumn>

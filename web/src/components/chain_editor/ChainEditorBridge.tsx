@@ -3,23 +3,26 @@
  * Used when the chain editor is shown inside the main editor route.
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainEditor } from "./ChainEditor";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import type { Workflow, Edge as GraphEdge } from "../../stores/ApiTypes";
 
-const ChainEditorBridge: React.FC = () => {
+interface ChainEditorBridgeProps {
+  isActive: boolean;
+}
+
+const ChainEditorBridge: React.FC<ChainEditorBridgeProps> = ({ isActive }) => {
   const workflow = useNodes((s) => s.workflow);
   const nodes = useNodes((s) => s.nodes);
   const edges = useNodes((s) => s.edges);
   const loadWorkflow = useChainEditorStore((s) => s.loadWorkflow);
-  const loadedRef = useRef<string | null>(null);
+  const currentChainWorkflowId = useChainEditorStore((s) => s.workflowId);
 
   useEffect(() => {
-    if (!workflow || loadedRef.current === workflow.id) return;
-    loadedRef.current = workflow.id;
+    if (!isActive || !workflow || currentChainWorkflowId === workflow.id) return;
 
     const graphNodes = nodes.map(reactFlowNodeToGraphNode);
     const graphEdges: GraphEdge[] = edges.map((e) => ({
@@ -36,7 +39,7 @@ const ChainEditorBridge: React.FC = () => {
     } as Workflow;
 
     loadWorkflow(fullWorkflow);
-  }, [workflow, nodes, edges, loadWorkflow]);
+  }, [isActive, workflow, nodes, edges, loadWorkflow, currentChainWorkflowId]);
 
   return <ChainEditor />;
 };

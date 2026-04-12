@@ -525,7 +525,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
                   <NodeContext.Provider value={store}>
                     {showChainView ? (
                       <ReactFlowProvider>
-                        <ChainEditorBridge />
+                        <ChainEditorBridge isActive={isActive} />
                         {isActive && <FloatingToolBar />}
                       </ReactFlowProvider>
                     ) : (
