@@ -4,6 +4,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import net from "net";
 import { logMessage } from "./logger";
+import { probeHttpOk } from "./httpProbe";
 
 interface WatchdogOptionsBase {
   name: string;
@@ -542,19 +543,7 @@ export class Watchdog {
    * Used for ongoing health monitoring.
    */
   private async isHealthy(): Promise<boolean> {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    try {
-      const res = await fetch(this.opts.healthUrl, {
-        method: "GET",
-        signal: controller.signal,
-      });
-      return res.ok;
-    } catch {
-      return false;
-    } finally {
-      clearTimeout(id);
-    }
+    return probeHttpOk(this.opts.healthUrl, { timeoutMs: 15000 });
   }
 
   private async writePidFile(pid: number): Promise<void> {
