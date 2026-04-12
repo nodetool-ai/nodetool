@@ -44,7 +44,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   }, []);
 
   const filteredWorkflows = useMemo(() => {
-    if (!debouncedQuery.trim()) return workflows;
+    if (!debouncedQuery.trim()) {return workflows;}
     const query = debouncedQuery.toLowerCase();
     return workflows.filter(
       (w) =>
