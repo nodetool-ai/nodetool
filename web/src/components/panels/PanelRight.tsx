@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import { Box, IconButton, useMediaQuery } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore, type RightPanelView } from "../../stores/RightPanelStore";
@@ -20,7 +20,7 @@ import { setFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntime
 import type { NodeStore } from "../../stores/NodeStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 
-import { TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
+import { TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH, TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import WorkflowAssistantChat from "./WorkflowAssistantChat";
 import LogPanel from "./LogPanel";
 import PanelHeadline from "../ui/PanelHeadline";
@@ -30,6 +30,19 @@ import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
 import AgentPanel from "./AgentPanel";
+import { MobileBottomSheet, Tooltip } from "../ui_primitives";
+
+// Icons for mobile tab rail
+import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
+import ArticleIcon from "@mui/icons-material/Article";
+import FolderIcon from "@mui/icons-material/Folder";
+import HistoryIcon from "@mui/icons-material/History";
+import SettingsIcon from "@mui/icons-material/Settings";
+import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
+import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import TuneIcon from "@mui/icons-material/Tune";
+import SvgFileIcon from "../SvgFileIcon";
 
 const HEADER_AREA_HEIGHT = 77; // Total header area offset (AppHeader + toolbar row)
 
@@ -145,9 +158,169 @@ const ChatAgentPanel = memo(function ChatAgentPanel({
   return <AgentPanel />;
 });
 
+/* ------------------------------------------------------------------ */
+/*  MobilePanelRight – bottom-sheet variant used on small viewports    */
+/* ------------------------------------------------------------------ */
+
+const MOBILE_LAUNCHER_TOP = 64; // matches mobile AppHeader offset used in PanelLeft
+
+const mobileLauncherStyles = (theme: Theme) =>
+  css({
+    position: "fixed",
+    top: `${MOBILE_LAUNCHER_TOP}px`,
+    right: 8,
+    zIndex: 1100,
+    backgroundColor: theme.vars.palette.background.paper,
+    color: theme.vars.palette.text.primary,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+    padding: "8px",
+    borderRadius: "10px",
+    "&:hover": {
+      backgroundColor: theme.vars.palette.action.hover
+    },
+    "&.active": {
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.contrastText,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.primary.dark
+      }
+    },
+    "& svg": {
+      fontSize: "1.25rem"
+    }
+  });
+
+const mobileTabRailStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexWrap: "nowrap",
+    gap: "4px",
+    padding: "8px 12px",
+    overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
+    "& .tab-button": {
+      padding: "6px 10px",
+      borderRadius: "8px",
+      color: theme.vars.palette.text.secondary,
+      minWidth: "auto",
+      flexShrink: 0,
+      "&.active": {
+        backgroundColor: `${theme.vars.palette.action.selected}66`,
+        color: theme.vars.palette.primary.main,
+        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
+      },
+      "& svg": {
+        fontSize: "1.1rem"
+      }
+    }
+  });
+
+const RIGHT_VIEW_LABELS: Record<RightPanelView, string> = {
+  inspector: "Inspector",
+  assistant: "Assistant",
+  agent: "Agent",
+  workspace: "Workspace",
+  versions: "Versions",
+  workflow: "Settings",
+  workflowAssets: "Assets",
+  jobs: "Jobs",
+  logs: "Logs"
+};
+
+interface MobilePanelRightProps {
+  activeView: RightPanelView;
+  isVisible: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  setView: (view: RightPanelView) => void;
+  children: React.ReactNode;
+}
+
+const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
+  activeView,
+  isVisible,
+  onOpen,
+  onClose,
+  setView,
+  children
+}) => {
+  const theme = useTheme();
+
+  const renderTabButton = (
+    view: RightPanelView,
+    label: string,
+    icon: React.ReactNode
+  ) => (
+    <Tooltip title={label} placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+      <IconButton
+        className={`tab-button ${activeView === view ? "active" : ""}`}
+        onClick={() => setView(view)}
+        aria-label={label}
+        tabIndex={-1}
+      >
+        {icon}
+      </IconButton>
+    </Tooltip>
+  );
+
+  return (
+    <>
+      <IconButton
+        className={`panel-right-mobile-launcher ${isVisible ? "active" : ""}`}
+        css={mobileLauncherStyles(theme)}
+        onClick={isVisible ? onClose : onOpen}
+        aria-label={isVisible ? "Close panel" : "Open inspector panel"}
+        aria-expanded={isVisible}
+        tabIndex={-1}
+      >
+        <TuneIcon />
+      </IconButton>
+
+      <MobileBottomSheet
+        open={isVisible}
+        onClose={onClose}
+        title={RIGHT_VIEW_LABELS[activeView] ?? "Panel"}
+        ariaLabel="Inspector and workflow panels"
+        headerExtras={
+          <div css={mobileTabRailStyles(theme)}>
+            {renderTabButton("inspector", "Inspector", <CenterFocusWeakIcon />)}
+            {renderTabButton(
+              "assistant",
+              "Assistant",
+              <SvgFileIcon iconName="assistant" svgProp={{ width: 18, height: 18 }} />
+            )}
+            {renderTabButton("agent", "Agent", <SmartToyIcon />)}
+            {renderTabButton("workspace", "Workspace", <FolderIcon />)}
+            {renderTabButton("workflow", "Settings", <SettingsIcon />)}
+            {renderTabButton("workflowAssets", "Assets", <FolderSpecialIcon />)}
+            {renderTabButton("versions", "Versions", <HistoryIcon />)}
+            {renderTabButton("logs", "Logs", <ArticleIcon />)}
+            {renderTabButton("jobs", "Jobs", <WorkHistoryIcon />)}
+          </div>
+        }
+      >
+        <Box
+          sx={{
+            height: "65vh",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden"
+          }}
+        >
+          {children}
+        </Box>
+      </MobileBottomSheet>
+    </>
+  );
+};
+
+MobilePanelRight.displayName = "MobilePanelRight";
+
 const PanelRight: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const {
     ref: panelRef,
     size: panelSize,
@@ -159,6 +332,7 @@ const PanelRight: React.FC = () => {
 
   const activeView = useRightPanelStore((state) => state.panel.activeView);
   const setActiveView = useRightPanelStore((state) => state.setActiveView);
+  const setVisibility = useRightPanelStore((state) => state.setVisibility);
 
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
@@ -366,6 +540,126 @@ const PanelRight: React.FC = () => {
   const handleWorkflowAssetsToggle = useCallback(() => handlePanelToggle("workflowAssets"), [handlePanelToggle]);
   const handleAgentToggle = useCallback(() => handlePanelToggle("agent"), [handlePanelToggle]);
 
+  const handleMobileSheetClose = useCallback(
+    () => setVisibility(false),
+    [setVisibility]
+  );
+  const handleMobileSheetOpen = useCallback(
+    () => setVisibility(true),
+    [setVisibility]
+  );
+  const mobileSetView = useCallback(
+    (view: RightPanelView) => {
+      // On mobile, tapping a tab should always keep the sheet open and switch.
+      setActiveView(view);
+      setVisibility(true);
+    },
+    [setActiveView, setVisibility]
+  );
+
+  // The view-specific body is shared between desktop (in the fixed drawer) and
+  // mobile (inside a bottom sheet).
+  const panelBody = (
+    <ContextMenuProvider>
+      <ReactFlowProvider>
+        {activeView === "logs" ? (
+          <LogPanel />
+        ) : activeView === "jobs" ? (
+          <Box
+            className="jobs-panel"
+            sx={{
+              width: "100%",
+              height: "100%",
+              overflow: "auto",
+              padding: "0 1em"
+            }}
+          >
+            <PanelHeadline title="Jobs" />
+            <JobsPanel />
+          </Box>
+        ) : activeView === "workspace" ? (
+          <Box
+            className="workspace-panel"
+            sx={{
+              width: "100%",
+              height: "100%",
+              overflow: "hidden"
+            }}
+          >
+            <WorkspaceTree />
+          </Box>
+        ) : activeView === "versions" ? (
+          currentWorkflowId ? (
+            <VersionHistoryPanel
+              workflowId={currentWorkflowId}
+              onRestore={handleRestoreVersion}
+              onClose={() => handlePanelToggle("versions")}
+            />
+          ) : null
+        ) : activeView === "workflow" ? (
+          activeNodeStore && currentWorkflowId && currentWorkflow ? (
+            <Box
+              className="workflow-panel"
+              sx={{
+                width: "100%",
+                height: "100%",
+                overflow: "auto"
+              }}
+            >
+              <WorkflowForm
+                workflow={currentWorkflow}
+                onClose={handleWorkflowToggle}
+              />
+            </Box>
+          ) : null
+        ) : activeView === "workflowAssets" ? (
+          <Box
+            className="workflow-assets-panel"
+            sx={{
+              width: "100%",
+              height: "100%",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              padding: "0 1em"
+            }}
+          >
+            <PanelHeadline title="Workflow Assets" />
+            <Box className="workflow-assets-panel-inner" sx={{ flex: 1, overflow: "hidden" }}>
+              <WorkflowAssetPanel />
+            </Box>
+          </Box>
+        ) : (activeView === "assistant" || activeView === "agent") ? (
+          <ChatAgentPanel
+            activeTab={activeView}
+            activeNodeStore={activeNodeStore}
+          />
+        ) : (
+          activeNodeStore && (
+            <NodeContext.Provider value={activeNodeStore}>
+              <ContextMenus />
+              {activeView === "inspector" && <Inspector />}
+            </NodeContext.Provider>
+          )
+        )}
+      </ReactFlowProvider>
+    </ContextMenuProvider>
+  );
+
+  if (isMobile) {
+    return (
+      <MobilePanelRight
+        activeView={activeView}
+        isVisible={isVisible}
+        onOpen={handleMobileSheetOpen}
+        onClose={handleMobileSheetClose}
+        setView={mobileSetView}
+      >
+        {panelBody}
+      </MobilePanelRight>
+    );
+  }
+
   return (
     <div css={styles(theme)} className="panel-right-container">
       {/* Drawer content - appears left of toolbar when visible */}
@@ -383,92 +677,7 @@ const PanelRight: React.FC = () => {
             aria-label="Resize panel"
             tabIndex={-1}
           />
-          <div className="panel-inner-content">
-            <ContextMenuProvider>
-              <ReactFlowProvider>
-                {activeView === "logs" ? (
-                  <LogPanel />
-                ) : activeView === "jobs" ? (
-                  <Box
-                    className="jobs-panel"
-                    sx={{
-                      width: "100%",
-                      height: "100%",
-                      overflow: "auto",
-                      padding: "0 1em"
-                    }}
-                  >
-                    <PanelHeadline title="Jobs" />
-                    <JobsPanel />
-                  </Box>
-                ) : activeView === "workspace" ? (
-                  <Box
-                    className="workspace-panel"
-                    sx={{
-                      width: "100%",
-                      height: "100%",
-                      overflow: "hidden"
-                    }}
-                  >
-                    <WorkspaceTree />
-                  </Box>
-                ) : activeView === "versions" ? (
-                  currentWorkflowId ? (
-                    <VersionHistoryPanel
-                      workflowId={currentWorkflowId}
-                      onRestore={handleRestoreVersion}
-                      onClose={() => handlePanelToggle("versions")}
-                    />
-                  ) : null
-                ) : activeView === "workflow" ? (
-                  activeNodeStore && currentWorkflowId && currentWorkflow ? (
-                    <Box
-                      className="workflow-panel"
-                      sx={{
-                        width: "100%",
-                        height: "100%",
-                        overflow: "auto"
-                      }}
-                    >
-                      <WorkflowForm
-                        workflow={currentWorkflow}
-                        onClose={handleWorkflowToggle}
-                      />
-                    </Box>
-                  ) : null
-                ) : activeView === "workflowAssets" ? (
-                  <Box
-                    className="workflow-assets-panel"
-                    sx={{
-                      width: "100%",
-                      height: "100%",
-                      overflow: "hidden",
-                      display: "flex",
-                      flexDirection: "column",
-                      padding: "0 1em"
-                    }}
-                  >
-                    <PanelHeadline title="Workflow Assets" />
-                    <Box className="workflow-assets-panel-inner" sx={{ flex: 1, overflow: "hidden" }}>
-                      <WorkflowAssetPanel />
-                    </Box>
-                  </Box>
-                ) : (activeView === "assistant" || activeView === "agent") ? (
-                  <ChatAgentPanel
-                    activeTab={activeView}
-                    activeNodeStore={activeNodeStore}
-                  />
-                ) : (
-                  activeNodeStore && (
-                    <NodeContext.Provider value={activeNodeStore}>
-                      <ContextMenus />
-                      {activeView === "inspector" && <Inspector />}
-                    </NodeContext.Provider>
-                  )
-                )}
-              </ReactFlowProvider>
-            </ContextMenuProvider>
-          </div>
+          <div className="panel-inner-content">{panelBody}</div>
         </div>
       )}
 
