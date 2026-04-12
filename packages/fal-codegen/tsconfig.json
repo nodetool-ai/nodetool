@@ -6,6 +6,17 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["src"],
-  "exclude": ["dist", "tests", "node_modules"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist",
+    "tests",
+    "node_modules"
+  ],
+  "references": [
+    {
+      "path": "../node-sdk"
+    }
+  ]
 }

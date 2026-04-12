@@ -166,6 +166,14 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: colors.primaryMuted }]}
+            onPress={() => navigation.navigate('GraphEditor')}
+            accessibilityRole="button"
+            accessibilityLabel="Create workflow"
+          >
+            <Ionicons name="git-network-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: colors.primaryMuted }]}
             onPress={() => navigation.navigate('Chat')}
             accessibilityRole="button"
             accessibilityLabel="Open chat"

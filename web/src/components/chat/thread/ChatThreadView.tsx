@@ -195,10 +195,13 @@ const MemoizedMessageList = memo<MemoizedMessageListProps>(
     const executionMessagesById = useMemo(() => {
       const map = new Map<string, Message[]>();
       for (const msg of messages) {
-        if (msg.role !== "agent_execution" || !msg.agent_execution_id) { continue; }
-        const list = map.get(msg.agent_execution_id) || [];
+        if (msg.role !== "agent_execution") continue;
+        // Use agent_execution_id if present, otherwise group all ungrouped
+        // execution messages under a synthetic key "__ungrouped__"
+        const key = msg.agent_execution_id || "__ungrouped__";
+        const list = map.get(key) || [];
         list.push(msg);
-        map.set(msg.agent_execution_id, list);
+        map.set(key, list);
       }
       return map;
     }, [messages]);
@@ -248,9 +251,10 @@ const MemoizedMessageList = memo<MemoizedMessageListProps>(
     return (
       <>
         {filteredMessages.map((msg, index) => {
-          if (msg.role === "agent_execution" && msg.agent_execution_id) {
-            const executionMessages =
-              executionMessagesById.get(msg.agent_execution_id);
+          if (msg.role === "agent_execution") {
+            const key = msg.agent_execution_id || "__ungrouped__";
+            const executionMessages = executionMessagesById.get(key);
+            // Only render the first message per group; the rest are consolidated
             if (executionMessages && executionMessages[0] !== msg) {
               return null;
             }

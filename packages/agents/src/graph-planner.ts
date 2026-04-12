@@ -311,7 +311,7 @@ export class GraphPlanner {
       }));
       messages.push({
         role: "assistant",
-        content: content || undefined,
+        content: content ?? "",
         toolCalls
       });
 

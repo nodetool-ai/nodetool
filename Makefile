@@ -207,7 +207,7 @@ typecheck-electron:
 
 typecheck-mobile:
 	@echo "Building shared protocol package for mobile..."
-	cd packages/protocol && npm run build
+	npx tsc --build packages/protocol
 	@echo "Type checking mobile package..."
 	cd mobile && npm run typecheck
 

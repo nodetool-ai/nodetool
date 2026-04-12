@@ -29,6 +29,8 @@ import TerminalIcon from "@mui/icons-material/Terminal";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
+import LinearScaleIcon from "@mui/icons-material/LinearScale";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
@@ -382,6 +384,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   const instantUpdate = useSettingsStore((state) => state.settings.instantUpdate);
   const setInstantUpdate = useSettingsStore((state) => state.setInstantUpdate);
+  const editorViewMode = useSettingsStore((state) => state.settings.editorViewMode);
+  const setEditorViewMode = useSettingsStore((state) => state.setEditorViewMode);
 
   const isMiniMapVisible = useMiniMapStore((state) => state.visible);
 
@@ -446,6 +450,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleCloseAdvancedMenu();
   }, [handleToggleMiniMap, handleCloseAdvancedMenu]);
 
+  const handleToggleViewMode = useCallback(() => {
+    setEditorViewMode(editorViewMode === "graph" ? "chain" : "graph");
+  }, [editorViewMode, setEditorViewMode]);
+
   if (!path.startsWith("/editor")) {
     return null;
   }
@@ -481,12 +489,21 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           aria-label="Add node"
         />
         <ToolbarButton
-          icon={<LayoutIcon />}
-          tooltip="Auto Layout"
+          icon={editorViewMode === "graph" ? <LinearScaleIcon /> : <AccountTreeIcon />}
+          tooltip={editorViewMode === "graph" ? "Chain View" : "Graph View"}
           variant="neutral"
-          onClick={handleAutoLayout}
-          aria-label="Auto layout nodes"
+          onClick={handleToggleViewMode}
+          aria-label="Toggle editor view mode"
         />
+        {editorViewMode === "graph" && (
+          <ToolbarButton
+            icon={<LayoutIcon />}
+            tooltip="Auto Layout"
+            variant="neutral"
+            onClick={handleAutoLayout}
+            aria-label="Auto layout nodes"
+          />
+        )}
         <ToolbarButton
           icon={<SaveIcon />}
           tooltip="Save"

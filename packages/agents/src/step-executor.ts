@@ -1198,7 +1198,7 @@ export class StepExecutor {
         // Clean think tags from content
         content = removeThinkTags(content);
 
-        message = { role: "assistant", content: content || undefined };
+        message = { role: "assistant", content: content ?? "" };
         if (toolCalls.length > 0) {
           message.toolCalls = toolCalls;
         }

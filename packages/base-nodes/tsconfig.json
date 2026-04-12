@@ -4,5 +4,33 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../agents"
+    },
+    {
+      "path": "../code-runners"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../kernel"
+    },
+    {
+      "path": "../kie-nodes"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../vectorstore"
+    }
+  ]
 }

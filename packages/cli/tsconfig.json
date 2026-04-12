@@ -7,11 +7,59 @@
     "jsxImportSource": "react",
     "module": "Node16",
     "moduleResolution": "Node16",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../agents"
+    },
+    {
+      "path": "../base-nodes"
+    },
+    {
+      "path": "../chat"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../dsl"
+    },
+    {
+      "path": "../elevenlabs-nodes"
+    },
+    {
+      "path": "../fal-nodes"
+    },
+    {
+      "path": "../kernel"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../replicate-nodes"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../security"
+    }
+  ]
 }

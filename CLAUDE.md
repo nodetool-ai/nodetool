@@ -137,6 +137,143 @@ make typecheck   # Must pass before committing
 - **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors, run `npm rebuild` (for `make dev`) or `cd electron && npx electron-builder install-app-deps` (for `make electron-dev`). `make electron-dev` does this automatically.
 - **Claude Agent Provider in nested sessions (e.g. Claude Code web)**: The SDK spawns a subprocess via `node cli.js`. In environments like Claude Code on the web (`claude.ai/code`), you must: (1) strip all `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars — not just `CLAUDECODE`; (2) run as a non-root user — the SDK refuses `--dangerously-skip-permissions` when uid=0; (3) keep `ANTHROPIC_BASE_URL` and `HTTP_PROXY`/`HTTPS_PROXY` vars for API routing. See `docs/AGENTS.md` § Claude Agent SDK for full details.
 
+## CLI
+
+Two entry points: `nodetool` (management commands) and `nodetool-chat` (interactive chat).
+
+```bash
+# From source (no build needed — uses tsx):
+npm run dev:nodetool -- <command>       # nodetool commands
+npm run dev:chat -- [flags]             # interactive chat
+
+# From built dist (requires npm run build:packages):
+npm run nodetool -- <command>
+npm run chat -- [flags]
+```
+
+### nodetool chat (Agent Mode)
+
+```bash
+# Interactive agent chat
+npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
+npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-4-6
+
+# Piped input (non-interactive)
+echo "research 5 AI topics" | npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
+
+# Connect to running WebSocket server
+npm run dev:chat -- --agent --url ws://localhost:7777/ws
+```
+
+Chat flags:
+```
+-a, --agent              Enable agent mode (planning + parallel execution)
+--no-agent               Disable agent mode
+-p, --provider <name>    anthropic, openai, ollama, gemini, mistral, groq
+-m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-5.4-mini)
+-w, --workspace <path>   Workspace directory for file tools
+--tools <list>           Comma-separated tool names
+-u, --url <ws-url>       Connect to WebSocket server instead of local provider
+```
+
+Interactive commands: `/agent` toggle, `/model <id>`, `/provider <name>`, `/tools`, `/clear`, `/exit`
+
+### nodetool serve
+
+```bash
+npm run dev:nodetool -- serve                     # Start on localhost:7777
+npm run dev:nodetool -- serve --host 0.0.0.0      # Bind all interfaces
+npm run dev:nodetool -- serve --port 8080          # Custom port
+```
+
+### nodetool run (DSL Workflows)
+
+```bash
+npm run dev:nodetool -- run workflow.ts            # Run a TypeScript DSL file
+npm run dev:nodetool -- run workflow.ts --json     # Output results as JSON
+```
+
+### nodetool workflows
+
+Requires a running server (localhost:7777 or `--api-url`).
+
+```bash
+npm run dev:nodetool -- workflows list                          # List all workflows
+npm run dev:nodetool -- workflows list --json                   # JSON output
+npm run dev:nodetool -- workflows get <workflow_id>             # Get workflow details
+npm run dev:nodetool -- workflows get <id> --json               # JSON output
+
+# Run workflow by ID (uses local DB), JSON file, or DSL file
+npm run dev:nodetool -- workflows run <workflow_id>
+npm run dev:nodetool -- workflows run <workflow_id> --params '{"key": "value"}'
+npm run dev:nodetool -- workflows run workflow.json
+npm run dev:nodetool -- workflows run workflow.ts
+npm run dev:nodetool -- workflows run <id> --json               # JSON output
+
+# Export workflow as TypeScript DSL
+npm run dev:nodetool -- workflows export-dsl <workflow_id>
+npm run dev:nodetool -- workflows export-dsl <id> -o output.ts  # Write to file
+npm run dev:nodetool -- workflows export-dsl workflow.json       # From JSON file
+```
+
+### nodetool jobs
+
+```bash
+npm run dev:nodetool -- jobs list                               # List jobs
+npm run dev:nodetool -- jobs list --workflow-id <id>             # Filter by workflow
+npm run dev:nodetool -- jobs get <job_id>                        # Job details
+npm run dev:nodetool -- jobs get <job_id> --json
+```
+
+### nodetool assets
+
+```bash
+npm run dev:nodetool -- assets list                             # List assets
+npm run dev:nodetool -- assets list --query "photo"             # Search
+npm run dev:nodetool -- assets list --content-type image/png    # Filter by type
+npm run dev:nodetool -- assets get <asset_id>                   # Asset details
+```
+
+### nodetool secrets
+
+```bash
+npm run dev:nodetool -- secrets list                            # List secret keys
+npm run dev:nodetool -- secrets store OPENAI_API_KEY            # Store (prompts for value)
+npm run dev:nodetool -- secrets store MY_KEY --description "..."
+npm run dev:nodetool -- secrets get OPENAI_API_KEY              # Print value
+```
+
+### nodetool settings & info
+
+```bash
+npm run dev:nodetool -- settings show                           # Show env config
+npm run dev:nodetool -- settings show --json
+npm run dev:nodetool -- info                                    # System info, API key status
+npm run dev:nodetool -- info --json
+```
+
+### Global Options
+
+Most server-calling commands accept `--api-url <url>` (default: `http://localhost:7777`, env: `NODETOOL_API_URL`).
+
+### Observing Agent Execution
+
+```bash
+# Debug logging (all LLM calls, planning details)
+NODETOOL_LOG_LEVEL=debug npm run dev:chat -- --agent
+
+# OpenTelemetry tracing to console
+OTEL_TRACES_EXPORTER=console TRACELOOP_DISABLE_BATCH=true npm run dev:chat -- --agent
+
+# Traceloop cloud
+TRACELOOP_API_KEY=your-key npm run dev:chat -- --agent
+
+# Custom OTLP backend (Jaeger, Grafana)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:chat -- --agent
+```
+
+See [packages/agents/CLAUDE.md](packages/agents/CLAUDE.md) for agent architecture, parallel execution, skills, and tuning.
+
 ## Detailed Guidelines
 
 See the AGENTS.md hierarchy for detailed coding rules per area:
