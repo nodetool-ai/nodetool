@@ -16,6 +16,7 @@ import Constants from 'expo-constants';
 import axios from 'axios';
 import { apiService } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
+import { useAuthStore } from '../stores/AuthStore';
 
 type ConnectionStatus = 'idle' | 'testing' | 'success' | 'error';
 
@@ -35,6 +36,28 @@ export default function SettingsScreen() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [savedIndicator, setSavedIndicator] = useState(false);
   const { colors, shadows, mode, setTheme } = useTheme();
+  const user = useAuthStore((s) => s.user);
+  const authState = useAuthStore((s) => s.state);
+  const signOut = useAuthStore((s) => s.signOut);
+  const isSigningOut = authState === 'loading';
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   useEffect(() => {
     loadSettings();
@@ -277,6 +300,60 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Account Section */}
+      {user && (
+        <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconWrap, { backgroundColor: colors.primaryMuted }]}>
+              <Ionicons name="person-circle-outline" size={16} color={colors.primary} />
+            </View>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Account</Text>
+          </View>
+
+          <View style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}>
+            <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>Signed in as</Text>
+            <Text
+              style={[styles.aboutValue, { color: colors.text, flexShrink: 1, marginLeft: 12 }]}
+              numberOfLines={1}
+              ellipsizeMode="middle"
+            >
+              {user.email || user.id}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              {
+                backgroundColor: colors.error + '15',
+                borderColor: colors.error,
+                borderWidth: 1,
+                marginTop: 12,
+              },
+              isSigningOut && styles.buttonDisabled,
+            ]}
+            onPress={handleSignOut}
+            disabled={isSigningOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
+            {isSigningOut ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <View style={styles.buttonContent}>
+                <Ionicons
+                  name="log-out-outline"
+                  size={18}
+                  color={colors.error}
+                  style={styles.buttonIcon}
+                />
+                <Text style={[styles.buttonText, { color: colors.error }]}>Sign Out</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* About Section */}
       <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
