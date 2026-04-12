@@ -155,11 +155,11 @@ npm run chat -- [flags]
 
 ```bash
 # Interactive agent chat
-npm run dev:chat -- --agent --provider openai --model gpt-4.1-mini
+npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
 npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-4-6
 
 # Piped input (non-interactive)
-echo "research 5 AI topics" | npm run dev:chat -- --agent --provider openai --model gpt-4.1-mini
+echo "research 5 AI topics" | npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
 
 # Connect to running WebSocket server
 npm run dev:chat -- --agent --url ws://localhost:7777/ws
@@ -170,7 +170,7 @@ Chat flags:
 -a, --agent              Enable agent mode (planning + parallel execution)
 --no-agent               Disable agent mode
 -p, --provider <name>    anthropic, openai, ollama, gemini, mistral, groq
--m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-4.1-mini)
+-m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider

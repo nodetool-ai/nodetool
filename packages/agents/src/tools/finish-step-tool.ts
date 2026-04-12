@@ -19,17 +19,32 @@ export class FinishStepTool extends Tool {
   constructor(outputSchema?: Record<string, unknown>) {
     super();
     if (outputSchema) {
-      const schemaCopy = { ...outputSchema };
+      let resultSchema = { ...outputSchema };
+      // OpenAI requires function parameter schemas to be type "object" at the
+      // top level.  When the step declares an array output, wrap it so the
+      // overall tool schema stays valid while the result value keeps its
+      // intended array shape.
+      if (resultSchema["type"] === "array") {
+        resultSchema = {
+          type: "object",
+          description: resultSchema["description"] ?? "Result wrapper",
+          properties: {
+            items: resultSchema
+          },
+          required: ["items"],
+          additionalProperties: false
+        };
+      }
       if (
-        schemaCopy["type"] === "object" &&
-        !("additionalProperties" in schemaCopy)
+        resultSchema["type"] === "object" &&
+        !("additionalProperties" in resultSchema)
       ) {
-        schemaCopy["additionalProperties"] = false;
+        resultSchema["additionalProperties"] = false;
       }
       this.inputSchema = {
         type: "object",
         properties: {
-          result: schemaCopy
+          result: resultSchema
         },
         required: ["result"],
         additionalProperties: false
