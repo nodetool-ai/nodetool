@@ -10,4 +10,11 @@ export type RootStackParamList = {
   Settings: undefined;
   Chat: undefined;
   LanguageModelSelection: undefined;
+  Assets: {
+    parentId?: string;
+    folderName?: string;
+  } | undefined;
+  AssetViewer: {
+    assetId: string;
+  };
 };

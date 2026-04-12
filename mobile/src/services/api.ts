@@ -1,6 +1,12 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { paths } from '../api';
+import { paths, components } from '../api';
+
+export type Asset = components["schemas"]["Asset"];
+export type AssetList = components["schemas"]["AssetList"];
+export type AssetUpdateRequest = components["schemas"]["AssetUpdateRequest"];
+export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
+export type AssetWithPath = components["schemas"]["AssetWithPath"];
 
 const API_HOST_KEY = '@nodetool_api_host';
 const DEFAULT_API_HOST = 'http://localhost:7777';
@@ -154,6 +160,56 @@ class ApiService {
     });
     if (error) { throw error; }
     return data as paths["/api/workflows/"]["post"]["responses"][200]["content"]["application/json"];
+  }
+
+  async listAssets(params: {
+    parent_id?: string | null;
+    content_type?: string | null;
+    cursor?: string | null;
+    page_size?: number | null;
+  } = {}): Promise<AssetList> {
+    const { data, error } = await this.client.GET('/api/assets/', {
+      params: { query: params },
+    });
+    if (error) { throw error; }
+    return data as AssetList;
+  }
+
+  async getAsset(id: string): Promise<Asset> {
+    const { data, error } = await this.client.GET('/api/assets/{id}', {
+      params: { path: { id } },
+    });
+    if (error) { throw error; }
+    return data as Asset;
+  }
+
+  async searchAssets(params: {
+    query: string;
+    content_type?: string | null;
+    page_size?: number | null;
+    cursor?: string | null;
+  }): Promise<AssetSearchResult> {
+    const { data, error } = await this.client.GET('/api/assets/search', {
+      params: { query: params },
+    });
+    if (error) { throw error; }
+    return data as AssetSearchResult;
+  }
+
+  async updateAsset(id: string, update: AssetUpdateRequest): Promise<Asset> {
+    const { data, error } = await this.client.PUT('/api/assets/{id}', {
+      params: { path: { id } },
+      body: update,
+    });
+    if (error) { throw error; }
+    return data as Asset;
+  }
+
+  async deleteAsset(id: string): Promise<void> {
+    const { error } = await this.client.DELETE('/api/assets/{id}', {
+      params: { path: { id } },
+    });
+    if (error) { throw error; }
   }
 
   getWebSocketUrl(path: string): string {
