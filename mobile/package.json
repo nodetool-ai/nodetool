@@ -21,7 +21,7 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/native": "^7.1.26",
     "@react-navigation/native-stack": "^7.9.0",
-    "axios": "^1.14.0",
+    "axios": "^1.15.0",
     "expo": "~54.0.30",
     "expo-av": "~16.0.8",
     "expo-clipboard": "~3.0.0",
@@ -68,11 +68,16 @@
   },
   "private": true,
   "overrides": {
-    "axios": "^1.14.0",
+    "axios": "$axios",
     "minimatch": ">=3.1.4",
     "flatted": ">=3.4.2",
-    "lodash": ">=4.17.23",
+    "lodash": ">=4.18.1",
     "ajv": ">=6.14.0",
-    "immutable": ">=3.8.3"
+    "immutable": ">=3.8.3",
+    "highlight.js": ">=10.4.1",
+    "prismjs": ">=1.30.0",
+    "markdown-it": ">=12.3.2",
+    "refractor": ">=3.3.1",
+    "@tootallnate/once": ">=3.0.1"
   }
 }
