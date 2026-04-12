@@ -352,7 +352,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
                 return {};
               })(),
               messages: (() => {
-                const existingIndex = state.messages.findIndex(
+                const existingIndex = state.messages.findLastIndex(
                   (existingMessage) => existingMessage.id === converted.id
                 );
                 if (existingIndex === -1) {
@@ -370,7 +370,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
                 if (!activeKey) {
                   return state.sessionMessages;
                 }
-                const existingIndex = state.messages.findIndex(
+                const existingIndex = state.messages.findLastIndex(
                   (existingMessage) => existingMessage.id === converted.id
                 );
                 const updatedMessages =
