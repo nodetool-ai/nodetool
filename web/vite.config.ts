@@ -60,7 +60,6 @@ export default defineConfig(async ({ mode }) => {
       alias: {
         "@nodetool/protocol": resolve(configDir, "../packages/protocol/src/index.ts"),
         "monaco-editor": resolve(rootNodeModules, "monaco-editor"),
-        "elkjs": "elkjs/lib/elk.bundled.js",
       },
     },
     plugins: [
