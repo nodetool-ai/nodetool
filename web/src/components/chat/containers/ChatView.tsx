@@ -50,7 +50,7 @@ const styles = (_theme: Theme) =>
     ".chat-composer-wrapper": {
       flex: 1,
       minWidth: 0
-    }
+    },
   });
 
 type ChatViewProps = {

@@ -41,6 +41,14 @@ function defaultProperties(metadata: NodeMetadata): Record<string, unknown> {
   return props;
 }
 
+function isInputNode(nodeType: string): boolean {
+  return nodeType.includes(".input.");
+}
+
+function isOutputNode(nodeType: string): boolean {
+  return nodeType.includes(".output.");
+}
+
 // ── Store interface ──────────────────────────────────────────────────
 
 interface GraphEditorState {
@@ -85,7 +93,7 @@ interface GraphEditorState {
 
   // ---- Actions: workflow ----
   loadWorkflow: (workflow: Workflow, metadata: NodeMetadata[]) => void;
-  toWorkflow: () => { nodes: ReturnType<typeof chainToGraph>["nodes"]; edges: ReturnType<typeof chainToGraph>["edges"] };
+  toWorkflowGraph: () => ReturnType<typeof chainToGraph>;
   saveWorkflow: () => Promise<Workflow | null>;
   newWorkflow: (name?: string) => void;
   setWorkflowName: (name: string) => void;
@@ -135,7 +143,19 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
 
   addNode: (metadata, atIndex) => {
     const { chain } = get();
-    const idx = atIndex !== undefined ? atIndex : chain.length;
+    // Input nodes always go to the top (after existing input nodes)
+    // Output nodes always go to the bottom
+    let idx: number;
+    if (isInputNode(metadata.node_type)) {
+      idx = chain.filter((n) => isInputNode(n.nodeType)).length;
+    } else if (isOutputNode(metadata.node_type)) {
+      idx = chain.length;
+    } else {
+      idx = atIndex !== undefined ? atIndex : chain.length;
+      // Ensure non-input nodes don't go before input nodes
+      const inputCount = chain.filter((n) => isInputNode(n.nodeType)).length;
+      if (idx < inputCount) idx = inputCount;
+    }
 
     const defaultOutput =
       metadata.outputs.length > 0 ? metadata.outputs[0].name : "";
@@ -392,7 +412,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
         const selectedOutput =
           outgoingEdge?.sourceHandle ?? (meta.outputs[0]?.name ?? "");
 
-        return {
+        const chainNode: ChainNode = {
           id: node.id,
           nodeType: node.type,
           metadata: meta,
@@ -400,9 +420,17 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           selectedOutput,
           inputMapping,
           expanded: false,
-        } satisfies ChainNode;
+        };
+        return chainNode;
       })
       .filter((n): n is ChainNode => n !== null);
+
+    // Sort: input nodes first, then regular nodes, then output nodes
+    chain.sort((a, b) => {
+      const aGroup = isInputNode(a.nodeType) ? 0 : isOutputNode(a.nodeType) ? 2 : 1;
+      const bGroup = isInputNode(b.nodeType) ? 0 : isOutputNode(b.nodeType) ? 2 : 1;
+      return aGroup - bGroup;
+    });
 
     set({
       chain,
@@ -414,7 +442,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     });
   },
 
-  toWorkflow: () => {
+  toWorkflowGraph: () => {
     const { chain, connections } = get();
     return chainToGraph(chain, connections);
   },
@@ -429,7 +457,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           id: workflowId,
           name: workflowName,
           description: "",
-          graph: graph as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> },
+          graph: graph as unknown as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> },
           access: "private",
         });
         return result as unknown as Workflow;
@@ -437,7 +465,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
         const result = await apiService.createWorkflow({
           name: workflowName,
           description: "",
-          graph: graph as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> },
+          graph: graph as unknown as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> },
           access: "private",
         });
         const newId = (result as unknown as Workflow).id;

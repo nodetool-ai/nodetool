@@ -1,6 +1,12 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { paths } from '../api';
+import { paths, components } from '../api';
+
+export type Asset = components["schemas"]["Asset"];
+export type AssetList = components["schemas"]["AssetList"];
+export type AssetUpdateRequest = components["schemas"]["AssetUpdateRequest"];
+export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
+export type AssetWithPath = components["schemas"]["AssetWithPath"];
 
 const API_HOST_KEY = '@nodetool_api_host';
 const DEFAULT_API_HOST = 'http://localhost:7777';
@@ -102,14 +108,19 @@ class ApiService {
     return data as paths["/api/workflows/{id}/run"]["post"]["responses"][200]["content"]["application/json"];
   }
 
-  async getLanguageModelProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
+  async getProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
     const { data, error } = await this.client.GET('/api/models/providers');
-    if (error) {throw error;}
+    if (error) { throw error; }
+    return data || [];
+  }
 
-    // Filter for providers that support 'generate_message'
-    return (data || []).filter((p) =>
-      p.capabilities && p.capabilities.includes('generate_message')
-    );
+  async getProvidersByCapability(capability: string): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
+    const all = await this.getProviders();
+    return all.filter((p) => p.capabilities?.includes(capability));
+  }
+
+  async getLanguageModelProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
+    return this.getProvidersByCapability('generate_message');
   }
 
   async getLanguageModels(provider: string): Promise<paths["/api/models/llm/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
@@ -118,7 +129,47 @@ class ApiService {
         path: { provider: provider as paths["/api/models/llm/{provider}"]["get"]["parameters"]["path"]["provider"] },
       },
     });
-    if (error) {throw error;}
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async getImageModels(provider: string): Promise<paths["/api/models/image/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/models/image/{provider}', {
+      params: {
+        path: { provider: provider as paths["/api/models/image/{provider}"]["get"]["parameters"]["path"]["provider"] },
+      },
+    });
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async getTTSModels(provider: string): Promise<paths["/api/models/tts/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/models/tts/{provider}', {
+      params: {
+        path: { provider: provider as paths["/api/models/tts/{provider}"]["get"]["parameters"]["path"]["provider"] },
+      },
+    });
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async getASRModels(provider: string): Promise<paths["/api/models/asr/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/models/asr/{provider}', {
+      params: {
+        path: { provider: provider as paths["/api/models/asr/{provider}"]["get"]["parameters"]["path"]["provider"] },
+      },
+    });
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async getVideoModels(provider: string): Promise<paths["/api/models/video/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/models/video/{provider}', {
+      params: {
+        path: { provider: provider as paths["/api/models/video/{provider}"]["get"]["parameters"]["path"]["provider"] },
+      },
+    });
+    if (error) { throw error; }
     return data || [];
   }
 
@@ -154,6 +205,56 @@ class ApiService {
     });
     if (error) { throw error; }
     return data as paths["/api/workflows/"]["post"]["responses"][200]["content"]["application/json"];
+  }
+
+  async listAssets(params: {
+    parent_id?: string | null;
+    content_type?: string | null;
+    cursor?: string | null;
+    page_size?: number | null;
+  } = {}): Promise<AssetList> {
+    const { data, error } = await this.client.GET('/api/assets/', {
+      params: { query: params },
+    });
+    if (error) { throw error; }
+    return data as AssetList;
+  }
+
+  async getAsset(id: string): Promise<Asset> {
+    const { data, error } = await this.client.GET('/api/assets/{id}', {
+      params: { path: { id } },
+    });
+    if (error) { throw error; }
+    return data as Asset;
+  }
+
+  async searchAssets(params: {
+    query: string;
+    content_type?: string | null;
+    page_size?: number | null;
+    cursor?: string | null;
+  }): Promise<AssetSearchResult> {
+    const { data, error } = await this.client.GET('/api/assets/search', {
+      params: { query: params },
+    });
+    if (error) { throw error; }
+    return data as AssetSearchResult;
+  }
+
+  async updateAsset(id: string, update: AssetUpdateRequest): Promise<Asset> {
+    const { data, error } = await this.client.PUT('/api/assets/{id}', {
+      params: { path: { id } },
+      body: update,
+    });
+    if (error) { throw error; }
+    return data as Asset;
+  }
+
+  async deleteAsset(id: string): Promise<void> {
+    const { error } = await this.client.DELETE('/api/assets/{id}', {
+      params: { path: { id } },
+    });
+    if (error) { throw error; }
   }
 
   getWebSocketUrl(path: string): string {
