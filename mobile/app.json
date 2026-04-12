@@ -3,6 +3,7 @@
     "name": "NodeTool",
     "slug": "nodetool-mobile",
     "version": "1.0.0",
+    "scheme": "nodetool",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

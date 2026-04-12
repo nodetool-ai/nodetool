@@ -30,6 +30,7 @@ export default function LoginScreen() {
   const error = useAuthStore((s) => s.error);
   const signInWithPassword = useAuthStore((s) => s.signInWithPassword);
   const signUpWithPassword = useAuthStore((s) => s.signUpWithPassword);
+  const signInWithOAuth = useAuthStore((s) => s.signInWithOAuth);
   const clearError = useAuthStore((s) => s.clearError);
 
   const [mode, setMode] = useState<Mode>('signin');
@@ -65,6 +66,13 @@ export default function LoginScreen() {
     setMode((prev) => (prev === 'signin' ? 'signup' : 'signin'));
     setLocalError(null);
     clearError();
+  };
+
+  const handleGoogleSignIn = async () => {
+    Keyboard.dismiss();
+    setLocalError(null);
+    clearError();
+    await signInWithOAuth('google');
   };
 
   const displayError = localError || error;
@@ -202,6 +210,37 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.borderLight }]} />
+            <Text style={[styles.dividerText, { color: colors.textTertiary }]}>OR</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.borderLight }]} />
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.oauthButton,
+              {
+                backgroundColor: colors.inputBg,
+                borderColor: colors.borderLight,
+              },
+              isLoading && styles.buttonDisabled,
+            ]}
+            onPress={handleGoogleSignIn}
+            disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+          >
+            <Ionicons
+              name="logo-google"
+              size={18}
+              color={colors.text}
+              style={styles.oauthIcon}
+            />
+            <Text style={[styles.oauthButtonText, { color: colors.text }]}>
+              Continue with Google
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.switchModeButton}
             onPress={toggleMode}
@@ -315,6 +354,37 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 18,
+    marginBottom: 12,
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  oauthButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  oauthIcon: {
+    marginRight: 10,
+  },
+  oauthButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   switchModeButton: {
     marginTop: 14,

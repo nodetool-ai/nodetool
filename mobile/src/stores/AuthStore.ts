@@ -1,8 +1,13 @@
 import { create } from 'zustand';
-import type { Session, User, Subscription, AuthError } from '@supabase/supabase-js';
+import type { Session, User, Subscription, AuthError, Provider } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
 
 export type AuthState = 'init' | 'loading' | 'logged_in' | 'logged_out' | 'error';
+
+export type OAuthProvider = Extract<Provider, 'google'>;
 
 interface AuthStore {
   session: Session | null;
@@ -18,6 +23,8 @@ interface AuthStore {
   signInWithPassword: (email: string, password: string) => Promise<void>;
   /** Email + password sign up. */
   signUpWithPassword: (email: string, password: string) => Promise<void>;
+  /** OAuth sign in via Supabase (opens an in-app browser). */
+  signInWithOAuth: (provider: OAuthProvider) => Promise<void>;
   /** Sign the current user out. */
   signOut: () => Promise<void>;
   /** Clear any stored error message. */
@@ -153,6 +160,72 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({
         state: 'error',
         error: formatAuthError(error, 'Failed to sign up'),
+      });
+    }
+  },
+
+  signInWithOAuth: async (provider: OAuthProvider) => {
+    set({ state: 'loading', error: null });
+    try {
+      const redirectTo = AuthSession.makeRedirectUri({
+        scheme: 'nodetool',
+        path: 'auth-callback',
+      });
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) {
+        throw error;
+      }
+      if (!data?.url) {
+        throw new Error('No authorization URL returned from Supabase');
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (result.type !== 'success' || !result.url) {
+        // User cancelled or dismissed the browser.
+        set({ state: get().session ? 'logged_in' : 'logged_out', error: null });
+        return;
+      }
+
+      // Supabase returns tokens either in the URL fragment (#) or query (?).
+      // `getQueryParams` handles both.
+      const { params, errorCode } = QueryParams.getQueryParams(result.url);
+      if (errorCode) {
+        throw new Error(errorCode);
+      }
+
+      const accessToken = params.access_token;
+      const refreshToken = params.refresh_token;
+      if (!accessToken || !refreshToken) {
+        throw new Error('Missing access or refresh token in OAuth callback');
+      }
+
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      set({
+        session: sessionData.session,
+        user: sessionData.user,
+        state: sessionData.session ? 'logged_in' : 'logged_out',
+        error: null,
+      });
+    } catch (error: unknown) {
+      set({
+        state: 'error',
+        error: formatAuthError(error, `Failed to sign in with ${provider}`),
       });
     }
   },
