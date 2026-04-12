@@ -44,7 +44,7 @@ import { getIsElectronDetails } from "../../utils/browser";
 import { isProduction } from "../../stores/ApiClient";
 
 const HEADER_HEIGHT = 77;
-const HEADER_HEIGHT_MOBILE = 56;
+const HEADER_HEIGHT_MOBILE = 40;
 
 const styles = (
   theme: Theme,
@@ -362,10 +362,12 @@ const VerticalToolbar = memo(function VerticalToolbar({
 
 const PanelContent = memo(function PanelContent({
   activeView,
-  handlePanelToggle
+  handlePanelToggle,
+  isMobile = false
 }: {
   activeView: string;
   handlePanelToggle: (view: LeftPanelView) => void;
+  isMobile?: boolean;
 }) {
   const navigate = useNavigate();
   const path = useLocation().pathname;
@@ -380,24 +382,26 @@ const PanelContent = memo(function PanelContent({
       {activeView === "assets" && (
         <Box
           className="assets-container"
-          sx={{ width: "100%", height: "100%", margin: "0 1em" }}
+          sx={{ width: "100%", height: "100%", margin: isMobile ? "0" : "0 1em" }}
         >
-          <PanelHeadline
-            title="Assets"
-            actions={
-              <Tooltip title="Fullscreen" placement="right-start">
-                <Button
-                  className={`${path === "/assets" ? "active" : ""}`}
-                  onClick={handleFullscreenClick}
-                  tabIndex={-1}
-                  size="small"
-                >
-                  <Fullscreen />
-                </Button>
-              </Tooltip>
-            }
-          />
-          <AssetGrid maxItemSize={5} />
+          {!isMobile && (
+            <PanelHeadline
+              title="Assets"
+              actions={
+                <Tooltip title="Fullscreen" placement="right-start">
+                  <Button
+                    className={`${path === "/assets" ? "active" : ""}`}
+                    onClick={handleFullscreenClick}
+                    tabIndex={-1}
+                    size="small"
+                  >
+                    <Fullscreen />
+                  </Button>
+                </Tooltip>
+              }
+            />
+          )}
+          <AssetGrid maxItemSize={5} isMobile={isMobile} />
         </Box>
       )}
       {activeView === "workflowGrid" && (
@@ -406,13 +410,13 @@ const PanelContent = memo(function PanelContent({
           sx={{
             width: "100%",
             height: "100%",
-            margin: "0 1em",
+            margin: isMobile ? "0" : "0 1em",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column"
           }}
         >
-          <PanelHeadline title="Workflows" />
+          {!isMobile && <PanelHeadline title="Workflows" />}
           <ScrollArea fullHeight>
             <WorkflowList />
           </ScrollArea>
@@ -427,7 +431,7 @@ const PanelContent = memo(function PanelContent({
 // Mobile variant — the left panel becomes a launcher FAB + bottom sheet.
 // ---------------------------------------------------------------------------
 
-const MOBILE_LAUNCHER_TOP = 64; // sits just below the 56px mobile AppHeader
+const MOBILE_LAUNCHER_TOP = 48; // sits just below the 40px AppHeader
 const MOBILE_LAUNCHER_TOP_STANDALONE = 8;
 
 const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
@@ -629,6 +633,7 @@ const MobilePanelLeft: React.FC<{
               <PanelContent
                 activeView={activeView}
                 handlePanelToggle={handlePanelToggle}
+                isMobile
               />
             </ContextMenuProvider>
           </Box>
@@ -705,6 +710,12 @@ const PanelLeft: React.FC = () => {
   const handleMobileClose = useCallback(() => {
     setVisibility(false);
   }, [setVisibility]);
+
+  // On mobile chat routes, hide the left panel — chat has its own conversations UI
+  const isChatRoute = location.pathname.startsWith("/chat");
+  if (isMobile && isChatRoute) {
+    return null;
+  }
 
   if (isMobile) {
     return (

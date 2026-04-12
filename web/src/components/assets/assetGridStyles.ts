@@ -114,9 +114,9 @@ export const assetGridStyles = (theme: Theme) => {
         maxWidth: "200px"
       }
     },
-    "@media (max-width: 520px)": {
+    "@media (max-width: 600px)": {
       "&": {
-        marginTop: "8px"
+        marginTop: "0"
       },
       ".dropzone": {
         maxHeight: "calc(100vh - 140px)"

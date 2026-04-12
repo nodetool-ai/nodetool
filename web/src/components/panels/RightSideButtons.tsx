@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import Help from "../content/Help/Help";
 import SettingsMenu from "../menus/SettingsMenu";
@@ -38,6 +38,7 @@ const styles = (theme: Theme) =>
 
 const RightSideButtons: React.FC = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const helpOpen = useAppHeaderStore((state) => state.helpOpen);
   const handleCloseHelp = useAppHeaderStore((state) => state.handleCloseHelp);
   const handleOpenHelp = useAppHeaderStore((state) => state.handleOpenHelp);
@@ -59,7 +60,7 @@ const RightSideButtons: React.FC = () => {
 
   return (
     <Box className="buttons-right" css={styles(theme)}>
-      {!isProduction && (
+      {!isProduction && !isMobile && (
         <>
           <SystemStatsDisplay />
           <OverallDownloadProgress />

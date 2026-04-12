@@ -162,7 +162,7 @@ const ChatAgentPanel = memo(function ChatAgentPanel({
 /*  MobilePanelRight – bottom-sheet variant used on small viewports    */
 /* ------------------------------------------------------------------ */
 
-const MOBILE_LAUNCHER_TOP = 64; // matches mobile AppHeader offset used in PanelLeft
+const MOBILE_LAUNCHER_TOP = 48; // matches mobile AppHeader offset used in PanelLeft
 
 const mobileLauncherStyles = (theme: Theme) =>
   css({

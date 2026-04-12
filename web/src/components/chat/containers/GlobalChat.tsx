@@ -7,15 +7,20 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { useMediaQuery } from "@mui/material";
+import { useMediaQuery, IconButton } from "@mui/material";
 import {
   AlertBanner,
   Text,
   FlexRow,
   FlexColumn,
-  EditorButton
+  EditorButton,
+  MobileBottomSheet,
+  ScrollArea
 } from "../../ui_primitives";
+import ForumIcon from "@mui/icons-material/Forum";
+import AddIcon from "@mui/icons-material/Add";
 import { useTheme } from "@mui/material/styles";
+import ThreadList from "../thread/ThreadList";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
 import WelcomePlaceholder from "./WelcomePlaceholder";
@@ -127,6 +132,7 @@ const GlobalChat: React.FC = () => {
     useThreadsQuery();
   const theme = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true); // Sidebar open by default
+  const [mobileConversationsOpen, setMobileConversationsOpen] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
   // Reset dismissed state when status or error changes
@@ -310,9 +316,15 @@ const GlobalChat: React.FC = () => {
     (id: string) => {
       switchThread(id);
       navigate(`/chat/${id}`);
+      setMobileConversationsOpen(false);
     },
     [switchThread, navigate]
   );
+
+  const handleMobileNewChat = useCallback(async () => {
+    await handleNewChat();
+    setMobileConversationsOpen(false);
+  }, [handleNewChat]);
 
   const handleSuggestionClick = useCallback(
     (suggestion: string) => {
@@ -509,31 +521,87 @@ const GlobalChat: React.FC = () => {
           sx={{
             position: "relative",
             height: "100%",
-            marginTop: "50px", // Offset for AppHeader
+            marginTop: isMobile ? "48px" : "50px", // Offset for AppHeader
             minHeight: 0,
             flex: 1,
             overflow: "hidden",
             maxHeight: "100%"
           }}
         >
-          {/* Chat Sidebar */}
-          <ChatSidebar
-            threads={threadsWithMessages}
-            currentThreadId={currentThreadId}
-            onNewChat={handleNewChat}
-            onSelectThread={handleSelectThread}
-            onDeleteThread={handleDeleteThread}
-            getThreadPreview={getThreadPreview}
-            isOpen={sidebarOpen}
-            onOpenChange={setSidebarOpen}
-          />
+          {/* Chat Sidebar - desktop: inline panel, mobile: bottom sheet */}
+          {!isMobile ? (
+            <ChatSidebar
+              threads={threadsWithMessages}
+              currentThreadId={currentThreadId}
+              onNewChat={handleNewChat}
+              onSelectThread={handleSelectThread}
+              onDeleteThread={handleDeleteThread}
+              getThreadPreview={getThreadPreview}
+              isOpen={sidebarOpen}
+              onOpenChange={setSidebarOpen}
+            />
+          ) : (
+            <>
+              <IconButton
+                onClick={() => setMobileConversationsOpen(true)}
+                aria-label="Open conversations"
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  left: 8,
+                  zIndex: 100,
+                  backgroundColor: theme.vars.palette.background.paper,
+                  border: `1px solid ${theme.vars.palette.divider}`,
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                  borderRadius: "10px",
+                  padding: "8px",
+                  "&:hover": {
+                    backgroundColor: theme.vars.palette.action.hover
+                  },
+                  "& svg": { fontSize: "1.25rem" }
+                }}
+                tabIndex={-1}
+              >
+                <ForumIcon />
+              </IconButton>
+              <MobileBottomSheet
+                open={mobileConversationsOpen}
+                onClose={() => setMobileConversationsOpen(false)}
+                title="Conversations"
+                ariaLabel="Conversations"
+                headerExtras={
+                  <FlexRow align="center" sx={{ px: 1.5 }}>
+                    <IconButton
+                      onClick={handleMobileNewChat}
+                      aria-label="New chat"
+                      size="small"
+                      tabIndex={-1}
+                    >
+                      <AddIcon />
+                    </IconButton>
+                  </FlexRow>
+                }
+              >
+                <ScrollArea fullHeight sx={{ maxHeight: "60vh" }}>
+                  <ThreadList
+                    threads={threadsWithMessages}
+                    currentThreadId={currentThreadId}
+                    onNewThread={handleMobileNewChat}
+                    onSelectThread={handleSelectThread}
+                    onDeleteThread={handleDeleteThread}
+                    getThreadPreview={getThreadPreview}
+                  />
+                </ScrollArea>
+              </MobileBottomSheet>
+            </>
+          )}
 
-          {/* Chat View - adjusts based on sidebar state */}
+          {/* Chat View - full width on mobile */}
           <FlexColumn
             fullHeight
             sx={{
               flex: 1,
-              marginLeft: sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
+              marginLeft: !isMobile && sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
               transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               minWidth: 0,
               minHeight: 0,
