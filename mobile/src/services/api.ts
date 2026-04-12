@@ -102,14 +102,19 @@ class ApiService {
     return data as paths["/api/workflows/{id}/run"]["post"]["responses"][200]["content"]["application/json"];
   }
 
-  async getLanguageModelProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
+  async getProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
     const { data, error } = await this.client.GET('/api/models/providers');
-    if (error) {throw error;}
+    if (error) { throw error; }
+    return data || [];
+  }
 
-    // Filter for providers that support 'generate_message'
-    return (data || []).filter((p) =>
-      p.capabilities && p.capabilities.includes('generate_message')
-    );
+  async getProvidersByCapability(capability: string): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
+    const all = await this.getProviders();
+    return all.filter((p) => p.capabilities?.includes(capability));
+  }
+
+  async getLanguageModelProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
+    return this.getProvidersByCapability('generate_message');
   }
 
   async getLanguageModels(provider: string): Promise<paths["/api/models/llm/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
@@ -118,7 +123,47 @@ class ApiService {
         path: { provider: provider as paths["/api/models/llm/{provider}"]["get"]["parameters"]["path"]["provider"] },
       },
     });
-    if (error) {throw error;}
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async getImageModels(provider: string): Promise<paths["/api/models/image/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/models/image/{provider}', {
+      params: {
+        path: { provider: provider as paths["/api/models/image/{provider}"]["get"]["parameters"]["path"]["provider"] },
+      },
+    });
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async getTTSModels(provider: string): Promise<paths["/api/models/tts/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/models/tts/{provider}', {
+      params: {
+        path: { provider: provider as paths["/api/models/tts/{provider}"]["get"]["parameters"]["path"]["provider"] },
+      },
+    });
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async getASRModels(provider: string): Promise<paths["/api/models/asr/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/models/asr/{provider}', {
+      params: {
+        path: { provider: provider as paths["/api/models/asr/{provider}"]["get"]["parameters"]["path"]["provider"] },
+      },
+    });
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async getVideoModels(provider: string): Promise<paths["/api/models/video/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/models/video/{provider}', {
+      params: {
+        path: { provider: provider as paths["/api/models/video/{provider}"]["get"]["parameters"]["path"]["provider"] },
+      },
+    });
+    if (error) { throw error; }
     return data || [];
   }
 

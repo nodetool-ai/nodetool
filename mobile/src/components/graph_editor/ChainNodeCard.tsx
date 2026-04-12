@@ -341,6 +341,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
             ]}
           >
             <ChainNodeProperties
+              nodeType={node.nodeType}
               properties={node.metadata.properties}
               values={node.properties}
               connectedInput={node.inputMapping}
