@@ -793,9 +793,99 @@ describe('ChatStore', () => {
 
       useChatStore.getState().setSelectedModel(model1);
       expect(useChatStore.getState().selectedModel).toEqual(model1);
-      
+
       useChatStore.getState().setSelectedModel(model2);
       expect(useChatStore.getState().selectedModel).toEqual(model2);
+    });
+  });
+
+  describe('agent mode', () => {
+    it('defaults to disabled', () => {
+      expect(useChatStore.getState().agentMode).toBe(false);
+    });
+
+    it('can be toggled via setAgentMode', () => {
+      useChatStore.getState().setAgentMode(true);
+      expect(useChatStore.getState().agentMode).toBe(true);
+
+      useChatStore.getState().setAgentMode(false);
+      expect(useChatStore.getState().agentMode).toBe(false);
+    });
+
+    it('propagates agent_mode into outgoing chat messages', async () => {
+      await useChatStore.getState().connect();
+      await useChatStore.getState().createNewThread();
+      useChatStore.getState().setAgentMode(true);
+
+      await useChatStore.getState().sendMessage(
+        [{ type: 'text', text: 'plan me something' } as any],
+        'plan me something'
+      );
+
+      expect(mockWsManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'message',
+          role: 'user',
+          agent_mode: true,
+        })
+      );
+    });
+  });
+
+  describe('agent execution tool calls', () => {
+    beforeEach(async () => {
+      await useChatStore.getState().connect();
+      await useChatStore.getState().createNewThread();
+    });
+
+    it('tracks tool calls for an agent execution by step', () => {
+      const onMessage = mockWsManager.setCallbacks.mock.calls[0][0].onMessage;
+
+      onMessage({
+        type: 'tool_call_update',
+        name: 'google_search',
+        args: { query: 'nodetool' },
+        message: 'Searching...',
+        tool_call_id: 'tc-1',
+        step_id: 'step-1',
+        agent_execution_id: 'agent-exec-1',
+      });
+
+      const calls =
+        useChatStore.getState().agentExecutionToolCalls['agent-exec-1']?.['step-1'] ?? [];
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toEqual(
+        expect.objectContaining({
+          id: 'tc-1',
+          name: 'google_search',
+          message: 'Searching...',
+        })
+      );
+    });
+
+    it('appends agent_execution messages to the current thread cache', () => {
+      const onMessage = mockWsManager.setCallbacks.mock.calls[0][0].onMessage;
+      const threadId = useChatStore.getState().currentThreadId!;
+
+      const agentMessage = {
+        type: 'message',
+        role: 'agent_execution',
+        thread_id: threadId,
+        agent_execution_id: 'agent-exec-1',
+        execution_event_type: 'planning_update',
+        content: {
+          type: 'planning_update',
+          phase: 'initialization',
+          status: 'started',
+          content: 'Starting to plan',
+        },
+      };
+
+      onMessage(agentMessage);
+
+      const messages = useChatStore.getState().messageCache[threadId] || [];
+      expect(messages).toHaveLength(1);
+      expect(messages[0].role).toBe('agent_execution');
     });
   });
 });

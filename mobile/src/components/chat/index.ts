@@ -10,3 +10,5 @@ export { ChatMarkdown } from './ChatMarkdown';
 export { LoadingIndicator } from './LoadingIndicator';
 export { FilePreview } from './FilePreview';
 export { MessageContentRenderer } from './MessageContentRenderer';
+export { AgentExecutionView } from './AgentExecutionView';
+export { ExecutionTree } from './ExecutionTree';

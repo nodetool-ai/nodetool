@@ -32,6 +32,8 @@ export default function ChatScreen({ navigation }: Props) {
   const selectedModel = useChatStore(state => state.selectedModel);
   const sendMessage = useChatStore(state => state.sendMessage);
   const stopGeneration = useChatStore(state => state.stopGeneration);
+  const agentMode = useChatStore(state => state.agentMode);
+  const setAgentMode = useChatStore(state => state.setAgentMode);
 
   const { colors, mode } = useTheme();
 
@@ -105,6 +107,8 @@ export default function ChatScreen({ navigation }: Props) {
         onRefresh={handleRefresh}
         error={error}
         statusMessage={statusMessage}
+        agentMode={agentMode}
+        onAgentModeToggle={setAgentMode}
       />
     </SafeAreaView>
   );

@@ -36,6 +36,10 @@ interface ChatComposerProps {
   externalFiles?: DroppedFile[];
   /** Callback when external files change (for parent to clear them after send) */
   onExternalFilesChange?: (files: DroppedFile[]) => void;
+  /** Whether agent mode is currently enabled */
+  agentMode?: boolean;
+  /** Called when the user toggles agent mode. Hidden when not provided. */
+  onAgentModeToggle?: (enabled: boolean) => void;
 }
 
 export const ChatComposer: React.FC<ChatComposerProps> = ({
@@ -46,6 +50,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   onAttachmentPress,
   externalFiles,
   onExternalFilesChange,
+  agentMode = false,
+  onAgentModeToggle,
 }) => {
   const [text, setText] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -240,6 +246,42 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         </ScrollView>
       )}
 
+      {/* Agent mode toolbar */}
+      {onAgentModeToggle && (
+        <View style={styles.toolbar}>
+          <TouchableOpacity
+            onPress={() => onAgentModeToggle(!agentMode)}
+            activeOpacity={0.7}
+            style={[
+              styles.modeChip,
+              {
+                backgroundColor: agentMode ? colors.primaryMuted : 'transparent',
+                borderColor: agentMode ? colors.primary : colors.borderLight,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: agentMode }}
+            accessibilityLabel={agentMode ? 'Agent mode on' : 'Agent mode off'}
+            testID="agent-mode-toggle"
+          >
+            <Ionicons
+              name={agentMode ? 'flash' : 'flash-outline'}
+              size={14}
+              color={agentMode ? colors.primary : colors.textSecondary}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.modeChipText,
+                { color: agentMode ? colors.primary : colors.textSecondary },
+              ]}
+            >
+              {agentMode ? 'Agent' : 'Chat'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={[styles.inputContainer, { backgroundColor: inputContainerBg }]}>
         {/* Attachment button */}
         <TouchableOpacity
@@ -385,6 +427,24 @@ const styles = StyleSheet.create({
   },
   filePreviewContent: {
     paddingRight: 8,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingHorizontal: 2,
+  },
+  modeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  modeChipText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',

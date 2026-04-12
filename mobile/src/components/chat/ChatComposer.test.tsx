@@ -263,4 +263,68 @@ describe('ChatComposer', () => {
       });
     });
   });
+
+  describe('Agent mode toggle', () => {
+    it('does not render the toggle when onAgentModeToggle is not provided', () => {
+      render(
+        <ChatComposer
+          status="connected"
+          onSendMessage={mockOnSendMessage}
+        />
+      );
+      expect(screen.queryByTestId('agent-mode-toggle')).toBeNull();
+    });
+
+    it('renders the toggle when onAgentModeToggle is provided', () => {
+      const onToggle = jest.fn();
+      render(
+        <ChatComposer
+          status="connected"
+          onSendMessage={mockOnSendMessage}
+          agentMode={false}
+          onAgentModeToggle={onToggle}
+        />
+      );
+      const toggle = screen.getByTestId('agent-mode-toggle');
+      expect(toggle).toBeTruthy();
+    });
+
+    it('flips agent mode on press', () => {
+      const onToggle = jest.fn();
+      render(
+        <ChatComposer
+          status="connected"
+          onSendMessage={mockOnSendMessage}
+          agentMode={false}
+          onAgentModeToggle={onToggle}
+        />
+      );
+
+      fireEvent.press(screen.getByTestId('agent-mode-toggle'));
+      expect(onToggle).toHaveBeenCalledWith(true);
+    });
+
+    it('reflects current agent mode label', () => {
+      const onToggle = jest.fn();
+      const { rerender } = render(
+        <ChatComposer
+          status="connected"
+          onSendMessage={mockOnSendMessage}
+          agentMode={false}
+          onAgentModeToggle={onToggle}
+        />
+      );
+      expect(screen.getByText('Chat')).toBeTruthy();
+
+      rerender(
+        <ChatComposer
+          status="connected"
+          onSendMessage={mockOnSendMessage}
+          agentMode={true}
+          onAgentModeToggle={onToggle}
+        />
+      );
+      expect(screen.getByText('Agent')).toBeTruthy();
+    });
+  });
 });

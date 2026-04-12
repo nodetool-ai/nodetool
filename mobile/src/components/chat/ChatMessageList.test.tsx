@@ -23,6 +23,17 @@ jest.mock('./LoadingIndicator', () => ({
   },
 }));
 
+// Mock AgentExecutionView so we can assert it was invoked without pulling in
+// the execution tree tree component's runtime dependencies (animations, store).
+jest.mock('./AgentExecutionView', () => ({
+  AgentExecutionView: ({ messages }: { messages: { id?: string }[] }) => {
+    const { Text } = require('react-native');
+    return (
+      <Text testID={`agent-execution-${messages.length}`}>agent-execution</Text>
+    );
+  },
+}));
+
 describe('ChatMessageList', () => {
   const createMessage = (id: string, role: 'user' | 'assistant', content: string): Message => ({
     id,
@@ -231,7 +242,7 @@ describe('ChatMessageList', () => {
       const messages = [
         createMessage('test-id', 'user', 'Test'),
       ];
-      
+
       const { UNSAFE_root } = render(
         <ChatMessageList
           messages={messages}
@@ -239,10 +250,12 @@ describe('ChatMessageList', () => {
           isStreaming={false}
         />
       );
-      
+
       const flatList = UNSAFE_root.findByType(require('react-native').FlatList);
-      const key = flatList.props.keyExtractor(messages[0], 0);
-      
+      const listItems = flatList.props.data;
+      expect(listItems).toHaveLength(1);
+      const key = flatList.props.keyExtractor(listItems[0], 0);
+
       expect(key).toBe('test-id');
     });
 
@@ -250,7 +263,7 @@ describe('ChatMessageList', () => {
       const messages: Message[] = [
         { type: 'message', role: 'user', content: 'Test' } as Message,
       ];
-      
+
       const { UNSAFE_root } = render(
         <ChatMessageList
           messages={messages}
@@ -258,11 +271,82 @@ describe('ChatMessageList', () => {
           isStreaming={false}
         />
       );
-      
+
       const flatList = UNSAFE_root.findByType(require('react-native').FlatList);
-      const key = flatList.props.keyExtractor(messages[0], 5);
-      
-      expect(key).toBe('message-5');
+      const listItems = flatList.props.data;
+      expect(listItems).toHaveLength(1);
+      const key = flatList.props.keyExtractor(listItems[0], 0);
+
+      expect(key).toBe('message-0');
+    });
+  });
+
+  describe('Agent execution grouping', () => {
+    it('groups agent_execution messages with the same id into one row', () => {
+      const messages = [
+        createMessage('u1', 'user', 'Plan me a trip'),
+        // Three agent_execution events for the same execution should all
+        // collapse into a single AgentExecutionView row.
+        {
+          id: 'a1',
+          type: 'message',
+          role: 'agent_execution',
+          agent_execution_id: 'exec-1',
+          execution_event_type: 'planning_update',
+          content: { type: 'planning_update', phase: 'initialization', status: '', content: '' },
+        } as unknown as Message,
+        {
+          id: 'a2',
+          type: 'message',
+          role: 'agent_execution',
+          agent_execution_id: 'exec-1',
+          execution_event_type: 'task_update',
+          content: { type: 'task_update' },
+        } as unknown as Message,
+        {
+          id: 'a3',
+          type: 'message',
+          role: 'agent_execution',
+          agent_execution_id: 'exec-1',
+          execution_event_type: 'task_update',
+          content: { type: 'task_update' },
+        } as unknown as Message,
+      ];
+
+      render(
+        <ChatMessageList
+          messages={messages}
+          isLoading={false}
+          isStreaming={false}
+        />
+      );
+
+      // Exactly one agent execution row is rendered, carrying all 3 messages.
+      expect(screen.getByTestId('agent-execution-3')).toBeTruthy();
+    });
+
+    it('filters out tool-role messages', () => {
+      const messages = [
+        createMessage('u1', 'user', 'Hello'),
+        {
+          id: 't1',
+          type: 'message',
+          role: 'tool',
+          content: 'tool result',
+        } as unknown as Message,
+      ];
+
+      const { UNSAFE_root } = render(
+        <ChatMessageList
+          messages={messages}
+          isLoading={false}
+          isStreaming={false}
+        />
+      );
+
+      const flatList = UNSAFE_root.findByType(require('react-native').FlatList);
+      // Only the user message should make it through to the list data.
+      expect(flatList.props.data).toHaveLength(1);
     });
   });
 });

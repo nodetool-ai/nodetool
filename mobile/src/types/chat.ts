@@ -3,7 +3,18 @@
  * Adapted from web/src/stores/ApiTypes.ts and GlobalChatStore.ts
  */
 
-import { Message, MessageContent, LanguageModel, Thread, Chunk, JobUpdate, NodeUpdate, NodeProgress, OutputUpdate } from './ApiTypes';
+import {
+  Message,
+  MessageContent,
+  LanguageModel,
+  Thread,
+  Chunk,
+  JobUpdate,
+  NodeUpdate,
+  NodeProgress,
+  OutputUpdate,
+  ToolCallUpdate,
+} from './ApiTypes';
 
 // Re-export types we use directly
 export type { Message, LanguageModel, Thread, Chunk };
@@ -42,6 +53,7 @@ export type WebSocketMessageData =
   | NodeUpdate
   | NodeProgress
   | OutputUpdate
+  | ToolCallUpdate
   | GenerationStoppedUpdate
   | ErrorUpdate;
 

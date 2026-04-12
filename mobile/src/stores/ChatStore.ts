@@ -23,7 +23,30 @@ import {
   ChatMessageRequest,
   WebSocketMessageData,
   LanguageModel,
+  ToolCallUpdate,
 } from '../types';
+
+/**
+ * A single tool call executed as part of an agent step.
+ * Mirrors the `StepToolCall` type from web's GlobalChatStore.
+ */
+export type StepToolCall = {
+  id: string;
+  name: string;
+  args: Record<string, unknown> | null;
+  message?: string | null;
+  startedAt: number;
+  status?: string | null;
+};
+
+/**
+ * Tool calls grouped by agent execution id, then by step id.
+ * Mirrors the `AgentExecutionToolCalls` type from web's GlobalChatStore.
+ */
+export type AgentExecutionToolCalls = Record<
+  string,
+  Record<string, StepToolCall[]>
+>;
 
 interface ChatState {
   // Connection state
@@ -45,6 +68,12 @@ interface ChatState {
   // Model selection
   selectedModel: LanguageModel | null;
 
+  // Agent mode
+  agentMode: boolean;
+
+  // Agent execution trace — keyed by agent_execution_id, then step_id
+  agentExecutionToolCalls: AgentExecutionToolCalls;
+
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -55,6 +84,7 @@ interface ChatState {
   getCurrentMessages: () => Message[];
   resetMessages: () => void;
   setSelectedModel: (model: LanguageModel) => void;
+  setAgentMode: (enabled: boolean) => void;
 
   // Internal actions
   addMessageToCache: (threadId: string, message: Message) => void;
@@ -89,9 +119,20 @@ function handleWebSocketMessage(
       const msgThreadId = msg.thread_id ?? threadId;
       if (!msgThreadId) {break;}
 
-      // Don't add duplicate messages
       const existingMessages = state.messageCache[msgThreadId] || [];
-      
+
+      // Agent execution messages are appended as-is so the execution tree
+      // can reconstruct planning/task/step state from the full series.
+      if (msg.role === 'agent_execution') {
+        set((s) => ({
+          messageCache: {
+            ...s.messageCache,
+            [msgThreadId]: [...(s.messageCache[msgThreadId] || []), msg],
+          },
+        }));
+        break;
+      }
+
       // Handle assistant message - may need to replace streaming placeholder
       if (msg.role === 'assistant') {
         const lastMsg = existingMessages[existingMessages.length - 1];
@@ -115,6 +156,61 @@ function handleWebSocketMessage(
           [msgThreadId]: [...(s.messageCache[msgThreadId] || []), msg],
         },
       }));
+      break;
+    }
+
+    case 'tool_call_update': {
+      // Track per-step tool calls for agent executions so the execution
+      // tree can annotate each step with its running/finished tool call.
+      const update = data as ToolCallUpdate & {
+        tool_call_id?: string | number | null;
+        step_id?: string | null;
+        agent_execution_id?: string | null;
+      };
+      const toolCallId =
+        update.tool_call_id != null ? String(update.tool_call_id) : null;
+      const agentExecutionId = update.agent_execution_id ?? null;
+      const stepId = update.step_id ?? null;
+
+      if (toolCallId && agentExecutionId && stepId) {
+        set((s) => {
+          const existingExecution =
+            s.agentExecutionToolCalls[agentExecutionId] || {};
+          const existingCalls = existingExecution[stepId] || [];
+          const existingIndex = existingCalls.findIndex(
+            (call) => call.id === toolCallId
+          );
+          const nextCall: StepToolCall = {
+            id: toolCallId,
+            name: update.name || 'Tool',
+            args: update.args ?? null,
+            message: update.message ?? null,
+            startedAt:
+              existingIndex >= 0
+                ? existingCalls[existingIndex].startedAt
+                : Date.now(),
+          };
+          const nextCalls =
+            existingIndex >= 0
+              ? existingCalls.map((call, index) =>
+                  index === existingIndex ? { ...call, ...nextCall } : call
+                )
+              : [...existingCalls, nextCall];
+          return {
+            statusMessage: update.message ?? s.statusMessage,
+            agentExecutionToolCalls: {
+              ...s.agentExecutionToolCalls,
+              [agentExecutionId]: {
+                ...existingExecution,
+                [stepId]: nextCalls,
+              },
+            },
+          };
+        });
+      } else {
+        // Non-agent tool call update: surface the message as status text only
+        set({ statusMessage: update.message ?? null });
+      }
       break;
     }
 
@@ -220,6 +316,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messageCache: {},
   isLoadingMessages: false,
   selectedModel: null,
+  agentMode: false,
+  agentExecutionToolCalls: {},
 
   connect: async () => {
     const state = get();
@@ -360,6 +458,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       thread_id: threadId,
       model: get().selectedModel?.id,
       provider: get().selectedModel?.provider,
+      agent_mode: get().agentMode,
     };
 
     try {
@@ -500,5 +599,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setSelectedModel: (model: LanguageModel) => {
     set({ selectedModel: model });
+  },
+
+  setAgentMode: (enabled: boolean) => {
+    set({ agentMode: enabled });
   },
 }));

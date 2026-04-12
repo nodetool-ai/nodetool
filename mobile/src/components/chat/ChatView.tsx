@@ -26,6 +26,8 @@ interface ChatViewProps {
   onRefresh?: () => Promise<void>;
   error?: string | null;
   statusMessage?: string | null;
+  agentMode?: boolean;
+  onAgentModeToggle?: (enabled: boolean) => void;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -36,6 +38,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onRefresh,
   error,
   statusMessage,
+  agentMode,
+  onAgentModeToggle,
 }) => {
   const { colors } = useTheme();
   const isLoading = status === 'loading';
@@ -144,6 +148,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
         status={status}
         onSendMessage={handleSendMessage}
         onStop={onStop}
+        agentMode={agentMode}
+        onAgentModeToggle={onAgentModeToggle}
       />
     </KeyboardAvoidingView>
   );
