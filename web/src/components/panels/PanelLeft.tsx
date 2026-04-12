@@ -23,7 +23,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
-import { ScrollArea, Tooltip, Divider } from "../ui_primitives";
+import { ScrollArea, Tooltip, Divider, MobileBottomSheet } from "../ui_primitives";
+import MenuIcon from "@mui/icons-material/Menu";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
@@ -422,6 +423,240 @@ const PanelContent = memo(function PanelContent({
   );
 });
 
+// ---------------------------------------------------------------------------
+// Mobile variant — the left panel becomes a launcher FAB + bottom sheet.
+// ---------------------------------------------------------------------------
+
+const MOBILE_LAUNCHER_TOP = 64; // sits just below the 56px mobile AppHeader
+const MOBILE_LAUNCHER_TOP_STANDALONE = 8;
+
+const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
+  css({
+    position: "fixed",
+    top: `${hasHeader ? MOBILE_LAUNCHER_TOP : MOBILE_LAUNCHER_TOP_STANDALONE}px`,
+    left: 8,
+    zIndex: 1100,
+    backgroundColor: theme.vars.palette.background.paper,
+    color: theme.vars.palette.text.primary,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+    padding: "8px",
+    borderRadius: "10px",
+    "&:hover": {
+      backgroundColor: theme.vars.palette.action.hover
+    },
+    "&.active": {
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.contrastText,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.primary.dark
+      }
+    },
+    "& svg": {
+      fontSize: "1.25rem"
+    }
+  });
+
+const mobileHeaderExtrasStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "4px",
+    padding: "8px 12px",
+    overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
+    "& .tab-button": {
+      padding: "6px 10px",
+      borderRadius: "8px",
+      color: theme.vars.palette.text.secondary,
+      minWidth: "auto",
+      "&.active": {
+        backgroundColor: `${theme.vars.palette.action.selected}66`,
+        color: theme.vars.palette.primary.main,
+        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}44 inset`
+      },
+      "& svg": {
+        fontSize: "1.1rem"
+      }
+    }
+  });
+
+const MobilePanelLeft: React.FC<{
+  activeView: LeftPanelView;
+  isVisible: boolean;
+  hasHeader: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  onViewChange: (view: LeftPanelView) => void;
+  handlePanelToggle: (view: LeftPanelView) => void;
+}> = ({
+  activeView,
+  isVisible,
+  hasHeader,
+  onOpen,
+  onClose,
+  onViewChange,
+  handlePanelToggle
+}) => {
+    const theme = useTheme();
+
+    // Shared modal stores (Collections / Models / Workspaces)
+    const isCollectionsOpen = useCollectionsManagerStore((state) => state.isOpen);
+    const setCollectionsOpen = useCollectionsManagerStore(
+      (state) => state.setIsOpen
+    );
+    const isModelsOpen = useModelManagerStore((state) => state.isOpen);
+    const setModelsOpen = useModelManagerStore((state) => state.setIsOpen);
+    const isWorkspacesOpen = useWorkspaceManagerStore((state) => state.isOpen);
+    const setWorkspacesOpen = useWorkspaceManagerStore(
+      (state) => state.setIsOpen
+    );
+
+    const showModelsWorkspaces =
+      getIsElectronDetails().isElectron || !isProduction;
+
+    const handleSheetViewChange = useCallback(
+      (view: LeftPanelView) => {
+        // On mobile we never want tapping a tab to close the sheet — just switch
+        // the active view. Fall back to the toggle helper only when the sheet is
+        // currently closed (so the caller can open it via the FAB).
+        onViewChange(view);
+      },
+      [onViewChange]
+    );
+
+    const launcherTitle =
+      activeView === "assets" ? "Assets" : "Workflows";
+
+    return (
+      <>
+        <IconButton
+          className={`panel-left-mobile-launcher ${isVisible ? "active" : ""}`}
+          css={mobileLauncherStyles(theme, hasHeader)}
+          onClick={isVisible ? onClose : onOpen}
+          aria-label={isVisible ? "Close panel" : "Open workflows panel"}
+          aria-expanded={isVisible}
+          tabIndex={-1}
+        >
+          <MenuIcon />
+        </IconButton>
+
+        <MobileBottomSheet
+          open={isVisible}
+          onClose={onClose}
+          title={launcherTitle}
+          ariaLabel="Workflows and assets panel"
+          headerExtras={
+            <div css={mobileHeaderExtrasStyles(theme)}>
+              <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+                <IconButton
+                  className={`tab-button ${activeView === "workflowGrid" ? "active" : ""}`}
+                  onClick={() => handleSheetViewChange("workflowGrid")}
+                  aria-label="Show workflows"
+                  tabIndex={-1}
+                >
+                  <GridViewIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Assets" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+                <IconButton
+                  className={`tab-button ${activeView === "assets" ? "active" : ""}`}
+                  onClick={() => handleSheetViewChange("assets")}
+                  aria-label="Show assets"
+                  tabIndex={-1}
+                >
+                  <IconForType
+                    iconName="asset"
+                    showTooltip={false}
+                    iconSize="small"
+                  />
+                </IconButton>
+              </Tooltip>
+
+              <Box sx={{ flex: 1 }} />
+
+              <Tooltip title="Collections" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+                <IconButton
+                  className="tab-button"
+                  onClick={() => setCollectionsOpen(true)}
+                  aria-label="Open collections"
+                  tabIndex={-1}
+                >
+                  <DatasetIcon />
+                </IconButton>
+              </Tooltip>
+              {showModelsWorkspaces && (
+                <>
+                  <Tooltip title="Models" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+                    <IconButton
+                      className="tab-button"
+                      onClick={() => setModelsOpen(true)}
+                      aria-label="Open model manager"
+                      tabIndex={-1}
+                    >
+                      <IconForType
+                        iconName="model"
+                        showTooltip={false}
+                        iconSize="small"
+                      />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Workspaces" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+                    <IconButton
+                      className="tab-button"
+                      onClick={() => setWorkspacesOpen(true)}
+                      aria-label="Open workspaces manager"
+                      tabIndex={-1}
+                    >
+                      <FolderOpenIcon />
+                    </IconButton>
+                  </Tooltip>
+                </>
+              )}
+            </div>
+          }
+        >
+          <Box
+            sx={{
+              height: "65vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            }}
+          >
+            <ContextMenuProvider>
+              <ContextMenus />
+              <PanelContent
+                activeView={activeView}
+                handlePanelToggle={handlePanelToggle}
+              />
+            </ContextMenuProvider>
+          </Box>
+        </MobileBottomSheet>
+
+        {/* Modals are owned by this subtree on mobile too */}
+        <CollectionsManager
+          open={isCollectionsOpen}
+          onClose={() => setCollectionsOpen(false)}
+        />
+        {showModelsWorkspaces && (
+          <>
+            <ModelsManager
+              open={isModelsOpen}
+              onClose={() => setModelsOpen(false)}
+            />
+            <WorkspacesManager
+              open={isWorkspacesOpen}
+              onClose={() => setWorkspacesOpen(false)}
+            />
+          </>
+        )}
+      </>
+    );
+  };
+
+MobilePanelLeft.displayName = "MobilePanelLeft";
+
 const PanelLeft: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -448,6 +683,7 @@ const PanelLeft: React.FC = () => {
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflowGrid";
+  const setVisibility = usePanelStore((state) => state.setVisibility);
 
   const onViewChange = useCallback(
     (view: LeftPanelView) => {
@@ -460,8 +696,32 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle(activeView);
   }, [handlePanelToggle, activeView]);
 
+  const handleMobileOpen = useCallback(() => {
+    // Ensure the sheet always opens to the current activeView (setting it if
+    // collapsed).
+    handlePanelToggle(activeView);
+  }, [handlePanelToggle, activeView]);
+
+  const handleMobileClose = useCallback(() => {
+    setVisibility(false);
+  }, [setVisibility]);
+
+  if (isMobile) {
+    return (
+      <MobilePanelLeft
+        activeView={activeView as LeftPanelView}
+        isVisible={isVisible}
+        hasHeader={hasHeader}
+        onOpen={handleMobileOpen}
+        onClose={handleMobileClose}
+        onViewChange={onViewChange}
+        handlePanelToggle={handlePanelToggle}
+      />
+    );
+  }
+
   return (
-    <div css={styles(theme, hasHeader, isMobile)} className="panel-left-container">
+    <div css={styles(theme, hasHeader, false)} className="panel-left-container">
       {/* Fixed toolbar - always on the left edge */}
       <ContextMenuProvider>
         <ContextMenus />
@@ -477,12 +737,8 @@ const PanelLeft: React.FC = () => {
             ref={panelRef}
             className={`drawer-content ${isDragging ? "dragging" : ""}`}
             style={{
-              width: `${isMobile
-                ? Math.min(panelSize - TOOLBAR_WIDTH, Math.floor(window.innerWidth * 0.75) - TOOLBAR_WIDTH)
-                : Math.max(panelSize - TOOLBAR_WIDTH, 250)
-                }px`,
-              minWidth: "250px",
-              maxWidth: isMobile ? `calc(75vw - ${TOOLBAR_WIDTH}px)` : "none"
+              width: `${Math.max(panelSize - TOOLBAR_WIDTH, 250)}px`,
+              minWidth: "250px"
             }}
           >
             {/* Resize handle on right edge */}

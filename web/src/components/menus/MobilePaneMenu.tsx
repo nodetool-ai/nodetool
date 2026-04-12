@@ -2,8 +2,6 @@
 import React, { useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
-  Dialog,
-  DialogContent,
   List,
   ListItem,
   ListItemButton,
@@ -11,7 +9,7 @@ import {
   ListItemText,
   useTheme
 } from "@mui/material";
-import { Divider } from "../ui_primitives";
+import { Divider, MobileBottomSheet } from "../ui_primitives";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -26,9 +24,6 @@ import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 
-//primitives
-import { CloseButton } from "../ui_primitives";
-
 //behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
@@ -42,38 +37,12 @@ import {
 
 const styles = (theme: Theme) =>
   css({
-    ".mobile-pane-menu-dialog": {
-      "& .MuiDialog-paper": {
-        borderRadius: "0px",
-        maxWidth: "100vw",
-        width: "100vw",
-        maxHeight: "100vh",
-        backgroundColor: theme.vars.palette.grey[900],
-        backgroundImage: "none"
-      }
-    },
-    ".menu-header": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "56px 24px 8px 24px", /* Added 40px top padding for header + 16px original */
-      backgroundColor: theme.vars.palette.grey[900],
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
-    },
-    ".menu-title": {
-      fontSize: "1.2rem",
-      fontWeight: 600,
-      color: theme.vars.palette.grey[0]
-    },
-    ".menu-content": {
-      padding: "0 8px 16px 8px",
-      backgroundColor: theme.vars.palette.grey[900]
-    },
+    padding: "0 8px 16px 8px",
     ".menu-item": {
       borderRadius: "8px",
       margin: "2px 0",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[800]
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&.disabled": {
         opacity: 0.5,
@@ -99,12 +68,10 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       textTransform: "uppercase",
       letterSpacing: "0.05em",
-      color: theme.vars.palette.grey[300],
-      padding: "16px 16px 8px 16px",
-      marginTop: "8px",
-      backgroundColor: theme.vars.palette.grey[900],
+      color: theme.vars.palette.text.secondary,
+      padding: "12px 16px 6px 16px",
       "&:first-of-type": {
-        marginTop: 0
+        paddingTop: "4px"
       }
     }
   });
@@ -210,26 +177,13 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
   }, [handleAction, createNode, addNode, getViewportCenter]);
 
   return (
-    <Dialog
+    <MobileBottomSheet
       open={open}
       onClose={onClose}
-      className="mobile-pane-menu-dialog"
-      css={styles(theme)}
-      maxWidth={false}
-      fullScreen
-      PaperProps={{
-        elevation: 0
-      }}
-      BackdropProps={{
-        style: { backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.8)` }
-      }}
+      title="Canvas Menu"
+      ariaLabel="Canvas actions and node insertion"
     >
-      <div className="menu-header">
-        <div className="menu-title">Canvas Menu</div>
-        <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
-      </div>
-
-      <DialogContent className="menu-content">
+      <div className="menu-content" css={styles(theme)}>
         <List dense>
           {/* General Actions */}
           <div className="menu-section-title">Actions</div>
@@ -367,16 +321,16 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
               <ListItemIcon className="menu-item-icon">
                 <GroupWorkIcon />
               </ListItemIcon>
-              <ListItemText 
+              <ListItemText
                 className="menu-item-text"
-                primary="Add Group" 
+                primary="Add Group"
                 secondary="Group container for nodes"
               />
             </ListItemButton>
           </ListItem>
         </List>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </MobileBottomSheet>
   );
 };
 

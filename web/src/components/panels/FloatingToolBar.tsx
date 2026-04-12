@@ -379,7 +379,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isRightPanelVisible,
     rightPanelSize,
     bottomPanelVisible,
-    bottomPanelSize
+    bottomPanelSize,
+    isMobile
   );
 
   const instantUpdate = useSettingsStore((state) => state.settings.instantUpdate);

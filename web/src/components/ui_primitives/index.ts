@@ -287,6 +287,9 @@ export type { SkeletonProps } from "./Skeleton";
 export { DrawerPanel } from "./DrawerPanel";
 export type { DrawerPanelProps } from "./DrawerPanel";
 
+export { MobileBottomSheet } from "./MobileBottomSheet";
+export type { MobileBottomSheetProps } from "./MobileBottomSheet";
+
 // Phase 4 - Additional primitives
 
 export { Checkbox } from "./Checkbox";
