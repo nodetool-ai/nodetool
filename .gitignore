@@ -71,3 +71,4 @@ key.pem
 __plans__
 .claude/settings.local.json
 .memory
+*.tsbuildinfo

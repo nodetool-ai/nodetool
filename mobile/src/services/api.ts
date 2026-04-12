@@ -122,6 +122,40 @@ class ApiService {
     return data || [];
   }
 
+  async getNodeMetadata(): Promise<paths["/api/nodes/metadata"]["get"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.GET('/api/nodes/metadata');
+    if (error) { throw error; }
+    return data || [];
+  }
+
+  async saveWorkflow(workflow: {
+    id: string;
+    name: string;
+    description: string;
+    graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+    access?: string;
+  }): Promise<paths["/api/workflows/{id}"]["put"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.PUT('/api/workflows/{id}', {
+      params: { path: { id: workflow.id } },
+      body: workflow as paths["/api/workflows/{id}"]["put"]["requestBody"]["content"]["application/json"],
+    });
+    if (error) { throw error; }
+    return data as paths["/api/workflows/{id}"]["put"]["responses"][200]["content"]["application/json"];
+  }
+
+  async createWorkflow(workflow: {
+    name: string;
+    description: string;
+    graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+    access?: string;
+  }): Promise<paths["/api/workflows/"]["post"]["responses"][200]["content"]["application/json"]> {
+    const { data, error } = await this.client.POST('/api/workflows/', {
+      body: workflow as paths["/api/workflows/"]["post"]["requestBody"]["content"]["application/json"],
+    });
+    if (error) { throw error; }
+    return data as paths["/api/workflows/"]["post"]["responses"][200]["content"]["application/json"];
+  }
+
   getWebSocketUrl(path: string): string {
     const wsProtocol = this.apiHost.startsWith('https') ? 'wss:' : 'ws:';
     const url = this.apiHost.replace(/^https?:/, wsProtocol);

@@ -86,6 +86,7 @@ export default defineConfig(async ({ mode }) => {
         ? {}
         : {
             rollupOptions: {
+              external: ["web-worker"],
               output: {
                 manualChunks: {
                   "vendor-react": ["react", "react-dom", "react-router-dom"],

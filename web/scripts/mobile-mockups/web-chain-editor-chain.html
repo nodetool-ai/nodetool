@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Web Chain Editor - Chain View</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a0a; color: #fff; width: 1280px; height: 800px;
+    overflow: hidden; -webkit-font-smoothing: antialiased;
+  }
+  .app-header {
+    height: 48px; background: rgba(16,16,16,0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; padding: 0 16px; gap: 12px;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; }
+  .logo svg { width: 24px; height: 24px; fill: #6690d4; }
+  .logo-text { font-size: 15px; font-weight: 700; }
+  .header-nav { display: flex; gap: 4px; margin-left: 16px; }
+  .hn { padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: #B9B9B4; }
+  .hn.active { background: rgba(102,144,212,0.12); color: #6690d4; }
+  .header-spacer { flex: 1; }
+  .panel-left {
+    width: 240px; background: rgba(16,16,16,0.95);
+    border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+  }
+  .ps { padding: 12px; }
+  .pt { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #B9B9B4; margin-bottom: 8px; }
+  .pi { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 13px; color: #B9B9B4; }
+  .pi.active { background: rgba(102,144,212,0.12); color: #6690d4; }
+  .pi svg { width: 16px; height: 16px; fill: currentColor; }
+  .main-area { display: flex; flex: 1; height: calc(100% - 48px); }
+  .chain-area { flex: 1; display: flex; flex-direction: column; }
+  .toolbar {
+    display: flex; align-items: center; padding: 10px 16px; gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(16,16,16,0.95);
+  }
+  .wf-name { font-size: 15px; font-weight: 600; color: #fff; flex: 1; }
+  .save-btn {
+    display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+    background: none; color: #fff; font-size: 13px; font-weight: 600;
+  }
+  .save-btn svg { width: 16px; height: 16px; fill: #fff; }
+  .scroll { flex: 1; overflow: auto; display: flex; justify-content: center; }
+  .chain-col { width: 520px; padding: 8px 0 120px; display: flex; flex-direction: column; align-items: stretch; }
+
+  /* Add button */
+  .add-wrap { display: flex; flex-direction: column; align-items: center; padding: 2px 0; }
+  .add-line { width: 2px; height: 8px; background: rgba(255,255,255,0.06); }
+  .add-btn {
+    width: 28px; height: 28px; border-radius: 14px; border: 1.5px solid rgba(255,255,255,0.08);
+    background: rgba(16,16,16,0.95); display: flex; align-items: center; justify-content: center;
+  }
+  .add-btn svg { width: 16px; height: 16px; fill: #6690d4; }
+
+  /* Connector */
+  .connector { display: flex; flex-direction: column; align-items: center; padding: 2px 0; }
+  .cl { width: 2px; height: 12px; background: rgba(102,144,212,0.3); }
+  .cd { width: 8px; height: 8px; border-radius: 4px; background: #6690d4; }
+  .clabel { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #666; margin-top: 2px; }
+  .clabel svg { width: 12px; height: 12px; fill: #666; }
+
+  /* Card */
+  .card {
+    border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.06);
+    background: rgba(16,16,16,0.95); overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .card.exp { border-color: rgba(139,92,246,0.3); }
+  .card-hd { display: flex; align-items: center; padding: 14px; gap: 12px; cursor: pointer; }
+  .step {
+    width: 32px; height: 32px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; font-size: 14px; font-weight: 800;
+  }
+  .step.indigo { background: rgba(99,102,241,0.13); color: #6366F1; }
+  .step.purple { background: rgba(139,92,246,0.13); color: #8B5CF6; }
+  .step.blue { background: rgba(59,130,246,0.13); color: #3B82F6; }
+  .step.green { background: rgba(16,185,129,0.13); color: #10B981; }
+  .hdr-content { flex: 1; min-width: 0; }
+  .card-title { font-size: 14px; font-weight: 700; }
+  .sub-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .ns { font-size: 12px; font-weight: 600; }
+  .ns.indigo { color: #6366F1; }
+  .ns.purple { color: #8B5CF6; }
+  .ns.blue { color: #3B82F6; }
+  .ns.green { color: #10B981; }
+  .cfg { font-size: 11px; color: #666; }
+  .chev svg { width: 20px; height: 20px; fill: #B9B9B4; }
+
+  /* Expanded */
+  .exp-content { padding: 0 14px 14px; }
+  .desc { font-size: 13px; line-height: 18px; color: #B9B9B4; margin-bottom: 12px; }
+  .map-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px;
+    border: 1px solid rgba(232,121,249,0.25); background: rgba(232,121,249,0.08);
+    margin-bottom: 12px;
+  }
+  .map-badge svg { width: 14px; height: 14px; fill: #E879F9; }
+  .map-badge span { font-size: 13px; font-weight: 600; color: #E879F9; }
+  .divider { height: 1px; background: rgba(255,255,255,0.04); margin: 8px 0; }
+  .prop-row { margin-bottom: 14px; }
+  .prop-lbl { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .prop-lbl-text { font-size: 13px; font-weight: 600; }
+  .req { font-size: 13px; font-weight: 700; color: #FF5555; }
+  .conn-badge {
+    padding: 1px 6px; border-radius: 4px; background: rgba(232,121,249,0.12);
+    font-size: 10px; font-weight: 700; color: #E879F9; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .conn-ph {
+    padding: 10px; border-radius: 6px; border: 1px dashed rgba(232,121,249,0.25);
+    background: rgba(232,121,249,0.05); font-size: 13px; color: #E879F9; font-style: italic;
+  }
+  .text-input {
+    width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03); color: #fff; font-size: 14px; font-family: inherit;
+    resize: none; min-height: 36px;
+  }
+  .num-row { display: flex; align-items: center; gap: 8px; }
+  .num-input {
+    flex: 1; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03); color: #fff; font-size: 14px; font-family: inherit; height: 36px;
+  }
+  .range { font-size: 12px; color: #666; }
+  .enum-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); color: #B9B9B4;
+    cursor: pointer;
+  }
+  .chip.sel { background: rgba(102,144,212,0.12); border-color: rgba(102,144,212,0.3); color: #6690d4; }
+  .out-sel {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px;
+    border: 1px solid rgba(102,144,212,0.25); background: rgba(102,144,212,0.08); margin-top: 4px;
+  }
+  .out-sel svg { width: 14px; height: 14px; fill: #6690d4; }
+  .out-sel .lbl { font-size: 13px; font-weight: 600; color: #6690d4; }
+  .out-sel .typ { font-size: 11px; color: rgba(102,144,212,0.6); }
+  .actions {
+    display: flex; align-items: center; padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.04); gap: 4px;
+  }
+  .act-btn { padding: 6px; display: flex; background: none; border: none; cursor: pointer; border-radius: 4px; }
+  .act-btn:hover { background: rgba(255,255,255,0.04); }
+  .act-btn svg { width: 16px; height: 16px; fill: #B9B9B4; }
+  .act-btn.dis svg { fill: #444; }
+  .act-btn.danger svg { fill: #FF5555; }
+  .act-spacer { flex: 1; }
+</style>
+</head>
+<body>
+  <div class="app-header">
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z"/></svg><span class="logo-text">NodeTool</span></div>
+    <div class="header-nav"><div class="hn">Dashboard</div><div class="hn">Editor</div><div class="hn active">Chain</div><div class="hn">Chat</div></div>
+    <div class="header-spacer"></div>
+  </div>
+  <div class="main-area">
+    <div class="panel-left">
+      <div class="ps">
+        <div class="pt">Workflows</div>
+        <div class="pi"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/></svg>Image Pipeline</div>
+        <div class="pi active"><svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7z"/></svg>Content Pipeline</div>
+      </div>
+    </div>
+    <div class="chain-area">
+      <div class="toolbar"><span class="wf-name">Content Pipeline</span><button class="save-btn"><svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>Save</button></div>
+      <div class="scroll">
+        <div class="chain-col">
+          <div class="add-wrap"><div class="add-line"></div><div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div><div class="add-line"></div></div>
+
+          <!-- Node 1: collapsed -->
+          <div class="card">
+            <div class="card-hd">
+              <div class="step indigo">1</div>
+              <div class="hdr-content"><div class="card-title">Text Input</div><div class="sub-row"><span class="ns indigo">input</span><span class="cfg">1/1 configured</span></div></div>
+              <div class="chev"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+            </div>
+          </div>
+
+          <div class="add-wrap"><div class="add-line"></div><div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div><div class="add-line"></div></div>
+          <div class="connector"><div class="cl"></div><div class="cd"></div><div class="cl"></div>
+            <div class="clabel"><svg viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg><span>output</span><svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg><span>prompt</span></div>
+          </div>
+
+          <!-- Node 2: expanded -->
+          <div class="card exp">
+            <div class="card-hd">
+              <div class="step purple">2</div>
+              <div class="hdr-content"><div class="card-title">Chat Completion</div><div class="sub-row"><span class="ns purple">llm</span></div></div>
+              <div class="chev"><svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z"/></svg></div>
+            </div>
+            <div class="exp-content">
+              <div class="desc">Generate text using a large language model with configurable parameters.</div>
+              <div class="map-badge"><svg viewBox="0 0 24 24"><path d="M11 16h10v2H11zm0-8h10v2H11z"/></svg><span>Input: prompt</span><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+              <div class="divider"></div>
+              <div class="prop-row">
+                <div class="prop-lbl"><span class="prop-lbl-text">Prompt</span><span class="req">*</span><span class="conn-badge">connected</span></div>
+                <div class="conn-ph">Value provided by previous node</div>
+              </div>
+              <div class="prop-row">
+                <div class="prop-lbl"><span class="prop-lbl-text">Model</span></div>
+                <div class="enum-row"><div class="chip">gpt-4o-mini</div><div class="chip sel">gpt-4o</div><div class="chip">gpt-4-turbo</div><div class="chip">claude-3.5</div></div>
+              </div>
+              <div class="prop-row">
+                <div class="prop-lbl"><span class="prop-lbl-text">Temperature</span></div>
+                <div class="num-row"><input class="num-input" value="0.7" readonly><span class="range">0 – 2</span></div>
+              </div>
+              <div class="prop-row">
+                <div class="prop-lbl"><span class="prop-lbl-text">System Prompt</span></div>
+                <textarea class="text-input" rows="2" readonly>You are a creative storyteller. Write an engaging short story based on the user's prompt.</textarea>
+              </div>
+              <div class="out-sel"><svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7z"/></svg><span class="lbl">Output: text</span><span class="typ">str</span><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+              <div class="divider" style="margin-top:12px"></div>
+              <div class="actions">
+                <button class="act-btn dis"><svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z"/></svg></button>
+                <button class="act-btn"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></button>
+                <div class="act-spacer"></div>
+                <button class="act-btn"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+                <button class="act-btn danger"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="add-wrap"><div class="add-line"></div><div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div><div class="add-line"></div></div>
+          <div class="connector"><div class="cl"></div><div class="cd"></div><div class="cl"></div>
+            <div class="clabel"><svg viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg><span>text</span><svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg><span>text</span></div>
+          </div>
+
+          <!-- Node 3: collapsed -->
+          <div class="card">
+            <div class="card-hd">
+              <div class="step green">3</div>
+              <div class="hdr-content"><div class="card-title">Save Text</div><div class="sub-row"><span class="ns green">output</span><span class="cfg">0/2 configured</span></div></div>
+              <div class="chev"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+            </div>
+          </div>
+
+          <div class="add-wrap"><div class="add-line"></div><div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div><div class="add-line"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

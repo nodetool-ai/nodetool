@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Web Chain Editor - Node Picker</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a0a; color: #fff; width: 1280px; height: 800px;
+    overflow: hidden; -webkit-font-smoothing: antialiased;
+  }
+  .app-header { height: 48px; background: rgba(16,16,16,0.95); border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; padding: 0 16px; gap: 12px; }
+  .logo { display: flex; align-items: center; gap: 8px; }
+  .logo svg { width: 24px; height: 24px; fill: #6690d4; }
+  .logo-text { font-size: 15px; font-weight: 700; }
+  .header-nav { display: flex; gap: 4px; margin-left: 16px; }
+  .hn { padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: #B9B9B4; }
+  .hn.active { background: rgba(102,144,212,0.12); color: #6690d4; }
+  .header-spacer { flex: 1; }
+  .panel-left { width: 240px; background: rgba(16,16,16,0.95); border-right: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+  .ps { padding: 12px; }
+  .pt { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #B9B9B4; margin-bottom: 8px; }
+  .pi { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 13px; color: #B9B9B4; }
+  .pi.active { background: rgba(102,144,212,0.12); color: #6690d4; }
+  .pi svg { width: 16px; height: 16px; fill: currentColor; }
+  .main-area { display: flex; flex: 1; height: calc(100% - 48px); }
+  .chain-area { flex: 1; display: flex; flex-direction: column; position: relative; }
+  .toolbar { display: flex; align-items: center; padding: 10px 16px; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(16,16,16,0.95); }
+  .wf-name { font-size: 15px; font-weight: 600; color: #fff; flex: 1; }
+
+  /* Dimmed chain behind */
+  .scroll { flex: 1; overflow: auto; display: flex; justify-content: center; opacity: 0.3; }
+  .chain-col { width: 520px; padding: 8px 0; display: flex; flex-direction: column; align-items: stretch; }
+  .add-wrap { display: flex; flex-direction: column; align-items: center; padding: 2px 0; }
+  .add-line { width: 2px; height: 8px; background: rgba(255,255,255,0.06); }
+  .add-btn { width: 28px; height: 28px; border-radius: 14px; border: 1.5px solid rgba(255,255,255,0.08); background: rgba(16,16,16,0.95); display: flex; align-items: center; justify-content: center; }
+  .add-btn svg { width: 16px; height: 16px; fill: #6690d4; }
+  .card { border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.06); background: rgba(16,16,16,0.95); }
+  .card-hd { display: flex; align-items: center; padding: 14px; gap: 12px; }
+  .step { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; }
+  .step.indigo { background: rgba(99,102,241,0.13); color: #6366F1; }
+  .card-title { font-size: 14px; font-weight: 700; }
+
+  /* Dialog overlay */
+  .overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .dialog {
+    width: 520px; max-height: 600px; background: rgba(22,22,22,0.98);
+    border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6); display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .dlg-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 20px 0;
+  }
+  .dlg-title { font-size: 18px; font-weight: 700; }
+  .close-btn { background: none; border: none; cursor: pointer; padding: 4px; }
+  .close-btn svg { width: 20px; height: 20px; fill: #B9B9B4; }
+  .search-wrap { padding: 16px 20px 12px; }
+  .search-bar {
+    display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03); height: 40px;
+  }
+  .search-bar svg { width: 16px; height: 16px; fill: #B9B9B4; flex-shrink: 0; }
+  .search-bar input {
+    flex: 1; background: none; border: none; outline: none;
+    color: #fff; font-size: 14px; font-family: inherit; height: 40px;
+  }
+  .search-bar input::placeholder { color: #666; }
+  .dlg-content { flex: 1; overflow: auto; padding: 0 20px 20px; }
+  .sec-hdr { display: flex; align-items: center; gap: 6px; padding: 8px 0; }
+  .sec-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #B9B9B4; flex: 1; }
+  .sec-count { font-size: 11px; color: #666; }
+  .node-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px;
+    border-radius: 8px; border: 1px solid transparent; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .node-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); }
+  .ni-content { flex: 1; min-width: 0; }
+  .ni-title { font-size: 14px; font-weight: 600; }
+  .ni-desc { font-size: 12px; line-height: 17px; color: #B9B9B4; margin-top: 2px; }
+  .ni-meta { display: flex; gap: 6px; margin-top: 6px; }
+  .badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge.pri { background: rgba(102,144,212,0.12); color: #6690d4; }
+  .badge.sec { background: rgba(232,121,249,0.12); color: #E879F9; }
+  .ni-add svg { width: 20px; height: 20px; fill: #6690d4; flex-shrink: 0; }
+</style>
+</head>
+<body>
+  <div class="app-header">
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z"/></svg><span class="logo-text">NodeTool</span></div>
+    <div class="header-nav"><div class="hn">Dashboard</div><div class="hn">Editor</div><div class="hn active">Chain</div><div class="hn">Chat</div></div>
+    <div class="header-spacer"></div>
+  </div>
+  <div class="main-area">
+    <div class="panel-left">
+      <div class="ps">
+        <div class="pt">Workflows</div>
+        <div class="pi active"><svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7z"/></svg>Content Pipeline</div>
+      </div>
+    </div>
+    <div class="chain-area">
+      <div class="toolbar"><span class="wf-name">Content Pipeline</span></div>
+      <div class="scroll">
+        <div class="chain-col">
+          <div class="add-wrap"><div class="add-line"></div><div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div><div class="add-line"></div></div>
+          <div class="card"><div class="card-hd"><div class="step indigo">1</div><div style="flex:1"><div class="card-title">Text Input</div></div></div></div>
+        </div>
+      </div>
+      <!-- Dialog overlay -->
+      <div class="overlay">
+        <div class="dialog">
+          <div class="dlg-header">
+            <span class="dlg-title">Add Node</span>
+            <button class="close-btn"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+          </div>
+          <div class="search-wrap">
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              <input type="text" placeholder="Search nodes...">
+            </div>
+          </div>
+          <div class="dlg-content">
+            <div class="sec-hdr"><span class="sec-title">Agents</span><span class="sec-count">4</span></div>
+            <div class="node-item">
+              <div class="ni-content">
+                <div class="ni-title">Planning Agent</div>
+                <div class="ni-desc">Multi-step task planning and execution with tool use</div>
+                <div class="ni-meta"><span class="badge pri">3 outputs</span><span class="badge sec">5 inputs</span></div>
+              </div>
+              <div class="ni-add"><svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+            <div class="node-item">
+              <div class="ni-content">
+                <div class="ni-title">Simple Agent</div>
+                <div class="ni-desc">Single-step agent with configurable tools</div>
+                <div class="ni-meta"><span class="badge pri">1 output</span><span class="badge sec">3 inputs</span></div>
+              </div>
+              <div class="ni-add"><svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+
+            <div class="sec-hdr"><span class="sec-title">Image</span><span class="sec-count">12</span></div>
+            <div class="node-item">
+              <div class="ni-content">
+                <div class="ni-title">Generate Image</div>
+                <div class="ni-desc">Generate images using DALL-E, Stable Diffusion, or Flux</div>
+                <div class="ni-meta"><span class="badge pri">1 output</span><span class="badge sec">4 inputs</span></div>
+              </div>
+              <div class="ni-add"><svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+            <div class="node-item">
+              <div class="ni-content">
+                <div class="ni-title">Resize Image</div>
+                <div class="ni-desc">Resize an image to specified dimensions</div>
+                <div class="ni-meta"><span class="badge pri">1 output</span><span class="badge sec">3 inputs</span></div>
+              </div>
+              <div class="ni-add"><svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+
+            <div class="sec-hdr"><span class="sec-title">LLM</span><span class="sec-count">8</span></div>
+            <div class="node-item">
+              <div class="ni-content">
+                <div class="ni-title">Chat Completion</div>
+                <div class="ni-desc">Generate text using GPT, Claude, or other LLM providers</div>
+                <div class="ni-meta"><span class="badge pri">2 outputs</span><span class="badge sec">6 inputs</span></div>
+              </div>
+              <div class="ni-add"><svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+
+            <div class="sec-hdr"><span class="sec-title">Text</span><span class="sec-count">6</span></div>
+            <div class="node-item">
+              <div class="ni-content">
+                <div class="ni-title">Template</div>
+                <div class="ni-desc">Render a Jinja2 template with dynamic variables</div>
+                <div class="ni-meta"><span class="badge pri">1 output</span><span class="badge sec">2 inputs</span></div>
+              </div>
+              <div class="ni-add"><svg viewBox="0 0 24 24"><path d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
