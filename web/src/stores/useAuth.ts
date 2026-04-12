@@ -8,6 +8,32 @@ import { isLocalhost } from "./ApiClient"; // Keep isLocalhost for potential dev
 // Define Supabase provider types supported by the application
 export type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
 
+/**
+ * Resolve the OAuth redirect URL.
+ *
+ * Supabase's `signInWithOAuth` only honors `redirectTo` values that are on the
+ * project's allow list. If the value is missing or not allow listed, Supabase
+ * falls back to the "Site URL" configured in the Supabase dashboard, which is
+ * typically `http://localhost:3000` — producing the classic "login lands on
+ * localhost" bug even when the app is served from a production domain.
+ *
+ * Resolution order:
+ *   1. `VITE_AUTH_REDIRECT_URL` build-time env var (explicit override for
+ *      deployments behind proxies, custom domains, or Electron shells where
+ *      `window.location.origin` is not the public URL).
+ *   2. `window.location.origin + "/dashboard"` at runtime.
+ */
+export const getAuthRedirectUrl = (): string => {
+  const configured = import.meta.env.VITE_AUTH_REDIRECT_URL;
+  if (typeof configured === "string" && configured.length > 0) {
+    return configured;
+  }
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin + "/dashboard";
+  }
+  return "/dashboard";
+};
+
 // Supabase subscription type from @supabase/supabase-js
 type SupabaseSubscription = {
   unsubscribe: () => void;
@@ -160,9 +186,12 @@ export const useAuth = create<LoginStore>((set, get) => ({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          // URL to redirect to after successful authentication
-          // Must be added to your Supabase project's redirect allow list.
-          redirectTo: window.location.origin + "/dashboard"
+          // URL to redirect to after successful authentication.
+          // Must be added to your Supabase project's redirect allow list,
+          // otherwise Supabase falls back to the project's Site URL
+          // (often localhost). Override via VITE_AUTH_REDIRECT_URL when the
+          // app is served from a domain that differs from window.location.
+          redirectTo: getAuthRedirectUrl()
         }
       });
       if (error) {throw error;}
