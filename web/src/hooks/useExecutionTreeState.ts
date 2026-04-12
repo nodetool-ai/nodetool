@@ -46,9 +46,23 @@ export interface TaskState {
   toolCalls: StepToolCall[];
 }
 
+export interface PlanningEntry {
+  phase: string;
+  status: string;
+  content: string;
+}
+
+export interface LogEntry {
+  nodeId: string;
+  content: string;
+  severity: string;
+}
+
 export interface ExecutionTreeState {
   phase: "idle" | "planning" | "executing" | "done";
   planningContent: string;
+  planningLog: PlanningEntry[];
+  logs: LogEntry[];
   tasks: TaskState[];
 }
 
@@ -96,6 +110,8 @@ export function buildExecutionTreeState(
   const state: ExecutionTreeState = {
     phase: "idle",
     planningContent: "",
+    planningLog: [],
+    logs: [],
     tasks: []
   };
 
@@ -110,7 +126,22 @@ export function buildExecutionTreeState(
       const pu = content as PlanningUpdate;
       state.phase = "planning";
       if (pu.content) state.planningContent = pu.content;
-      if (pu.status === "Failed") state.phase = "done";
+      state.planningLog.push({
+        phase: pu.phase ?? "",
+        status: pu.status ?? "",
+        content: pu.content ?? ""
+      });
+      if (pu.status === "Failed" && pu.phase === "complete") state.phase = "done";
+      continue;
+    }
+
+    if (eventType === "log_update") {
+      const lu = content as { node_id?: string; content?: string; severity?: string };
+      state.logs.push({
+        nodeId: lu.node_id ?? "",
+        content: typeof lu.content === "string" ? lu.content : JSON.stringify(lu.content),
+        severity: lu.severity ?? "info"
+      });
       continue;
     }
 

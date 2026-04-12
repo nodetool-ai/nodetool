@@ -693,6 +693,51 @@ export class UnifiedWebSocketRunner {
     return fallback;
   }
 
+  /**
+   * Run one final LLM call to present structured agent results as readable
+   * markdown. Falls back to formatted JSON if the call fails.
+   */
+  private async presentStructuredResults(
+    provider: BaseProvider,
+    model: string,
+    objective: string,
+    resultsJson: string,
+    threadId: string
+  ): Promise<string> {
+    const messages: ProviderMessage[] = [
+      {
+        role: "user",
+        content: `You completed the following task:\n"${objective}"\n\nHere are the structured results:\n\`\`\`json\n${resultsJson}\n\`\`\`\n\nPresent these results to the user in clear, well-formatted markdown. Be concise — do not repeat the raw JSON. Focus on readability.`
+      }
+    ];
+
+    try {
+      let content = "";
+      for await (const item of provider.generateMessagesTraced({
+        messages,
+        model
+      })) {
+        if ("type" in item && item.type === "chunk") {
+          const chunk = item as { content?: string };
+          content += chunk.content ?? "";
+          // Stream chunks to client so the user sees the response forming
+          await this.sendMessage({
+            type: "chunk",
+            content: chunk.content ?? "",
+            done: false,
+            thread_id: threadId
+          });
+        }
+      }
+      return content || resultsJson;
+    } catch (err) {
+      log.warn("Failed to present structured results via LLM, using JSON fallback", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+      return resultsJson;
+    }
+  }
+
   private inferOutputType(value: unknown): string {
     if (value === null || value === undefined) return "any";
     if (typeof value === "string") return "str";
@@ -3117,6 +3162,16 @@ export class UnifiedWebSocketRunner {
       ) {
         const md = (results as Record<string, unknown>).markdown;
         content = typeof md === "string" ? md : String(results);
+      } else if (results != null && typeof results === "object") {
+        // Structured result — run one more LLM call to present it
+        const resultsJson = JSON.stringify(results, null, 2);
+        content = await this.presentStructuredResults(
+          provider,
+          model,
+          objective,
+          resultsJson,
+          threadId
+        );
       } else {
         content = results != null ? String(results) : "";
       }

@@ -22,7 +22,9 @@ import { Text, FlexRow, FlexColumn } from "../ui_primitives";
 import type {
   ExecutionTreeState,
   TaskState,
-  StepState
+  StepState,
+  PlanningEntry,
+  LogEntry
 } from "../../hooks/useExecutionTreeState";
 
 // ---------------------------------------------------------------------------
@@ -136,6 +138,41 @@ const treeStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       fontSize: "0.75rem",
       marginLeft: "0.25rem"
+    },
+
+    ".tree-planning-log": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.15rem",
+      marginBottom: "0.5rem"
+    },
+
+    ".tree-planning-entry": {
+      display: "flex",
+      alignItems: "baseline",
+      gap: "0.5rem"
+    },
+
+    ".tree-planning-phase": {
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      textTransform: "capitalize",
+      minWidth: "5rem",
+      flexShrink: 0
+    },
+
+    ".tree-planning-content": {
+      color: theme.vars.palette.text.secondary,
+      fontSize: "0.75rem",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+
+    ".tree-log-entry": {
+      color: theme.vars.palette.text.disabled,
+      fontSize: "0.7rem",
+      paddingLeft: "1.5rem"
     }
   });
 
@@ -279,20 +316,73 @@ const TaskNode: React.FC<{
 TaskNode.displayName = "TaskNode";
 
 // ---------------------------------------------------------------------------
-// Planning phase
+// Planning log
 // ---------------------------------------------------------------------------
 
-const PlanningPhase: React.FC<{ content: string }> = memo(({ content }) => (
-  <FlexRow align="center" className="tree-planning">
-    <span className="tree-icon-running">{ICONS.running}</span>
-    <Text>planning</Text>
-    {content ? (
-      <span className="tree-planning-text">{content.slice(0, 80)}</span>
-    ) : null}
-  </FlexRow>
-));
+const PHASE_ICONS_DONE: Record<string, string> = {
+  initialization: "✓",
+  generation: "✓",
+  validation: "✗",
+  complete: "✓"
+};
 
-PlanningPhase.displayName = "PlanningPhase";
+const PHASE_ICONS_ACTIVE: Record<string, string> = {
+  initialization: "◐",
+  generation: "◐",
+  validation: "✗",
+  complete: "✓"
+};
+
+const PlanningLog: React.FC<{
+  entries: PlanningEntry[];
+  logs: LogEntry[];
+  isActive: boolean;
+}> = memo(({ entries, logs, isActive }) => {
+  if (entries.length === 0 && logs.length === 0) {
+    if (isActive) {
+      return (
+        <FlexRow align="center" className="tree-planning">
+          <span className="tree-icon-running">{ICONS.running}</span>
+          <Text>planning</Text>
+        </FlexRow>
+      );
+    }
+    return null;
+  }
+
+  return (
+    <div className="tree-planning-log">
+      {entries.map((entry, i) => {
+        const isLast = i === entries.length - 1;
+        const isRunning = isLast && isActive;
+        const statusClass =
+          entry.status === "failed"
+            ? "tree-icon-failed"
+            : entry.status === "success"
+            ? "tree-icon-completed"
+            : isRunning
+            ? "tree-icon-running"
+            : "tree-icon-completed";
+        const icons = isRunning ? PHASE_ICONS_ACTIVE : PHASE_ICONS_DONE;
+        const icon = icons[entry.phase] ?? "○";
+
+        return (
+          <div key={i} className="tree-planning-entry">
+            <span className={statusClass}>{icon}</span>
+            <span className={`tree-planning-phase ${statusClass}`}>
+              {entry.phase}
+            </span>
+            <span className="tree-planning-content">
+              {entry.content}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
+
+PlanningLog.displayName = "PlanningLog";
 
 // ---------------------------------------------------------------------------
 // Main tree
@@ -313,33 +403,44 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
 
   if (state.phase === "idle") return null;
 
-  if (state.phase === "planning") {
-    return (
-      <div css={treeStyles(theme)}>
-        <PlanningPhase content={state.planningContent} />
-      </div>
-    );
-  }
+  const hasTasks = state.tasks.length > 0;
 
   return (
     <div css={treeStyles(theme)}>
-      <FlexRow align="center" className="tree-plan-header">
-        <span className="tree-plan-icon">{ICONS.plan}</span>
-        <span className="tree-plan-label">Plan</span>
-        <span className="tree-plan-count">
-          ({completedCount}/{state.tasks.length} tasks)
-        </span>
-      </FlexRow>
-      <FlexColumn>
-        {state.tasks.map((task, i) => (
-          <TaskNode
-            key={task.id}
-            task={task}
-            isLast={i === state.tasks.length - 1}
-            onToggle={() => onToggleTask(task.id)}
-          />
-        ))}
-      </FlexColumn>
+      {state.planningLog.length > 0 && (
+        <PlanningLog
+          entries={state.planningLog}
+          logs={state.logs}
+          isActive={state.phase === "planning"}
+        />
+      )}
+      {state.phase === "planning" && state.planningLog.length === 0 && (
+        <FlexRow align="center" className="tree-planning">
+          <span className="tree-icon-running">{ICONS.running}</span>
+          <Text>planning</Text>
+        </FlexRow>
+      )}
+      {hasTasks && (
+        <>
+          <FlexRow align="center" className="tree-plan-header">
+            <span className="tree-plan-icon">{ICONS.plan}</span>
+            <span className="tree-plan-label">Plan</span>
+            <span className="tree-plan-count">
+              ({completedCount}/{state.tasks.length} tasks)
+            </span>
+          </FlexRow>
+          <FlexColumn>
+            {state.tasks.map((task, i) => (
+              <TaskNode
+                key={task.id}
+                task={task}
+                isLast={i === state.tasks.length - 1}
+                onToggle={() => onToggleTask(task.id)}
+              />
+            ))}
+          </FlexColumn>
+        </>
+      )}
     </div>
   );
 };
