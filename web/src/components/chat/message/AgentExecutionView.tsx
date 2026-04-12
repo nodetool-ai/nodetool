@@ -197,16 +197,14 @@ const styles = (theme: Theme) =>
     },
 
     ".log-entry": {
-      fontSize: "0.75rem",
-      padding: "0.5rem 0.75rem",
-      borderRadius: "8px",
-      backgroundColor: theme.vars.palette.action.hover,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      color: theme.vars.palette.text.secondary,
+      fontSize: "0.7rem",
+      padding: "0.25rem 0.6rem",
+      borderRadius: "4px",
+      color: theme.vars.palette.text.disabled,
       fontFamily: theme.fontFamily2 || "monospace",
-      marginBottom: "0.5rem",
+      marginBottom: "0.15rem",
       marginLeft: "0.5rem",
-      borderLeft: `2px solid ${theme.vars.palette.grey[700]}`
+      lineHeight: 1.4,
     },
 
     ".tool-calls-container": {
@@ -534,6 +532,18 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
         }
       } else if (eventType === "log_update") {
         const logUpdate = content as LogUpdate;
+        const logText = typeof logUpdate.content === "string"
+          ? logUpdate.content
+          : JSON.stringify(logUpdate.content);
+        // Deduplicate consecutive identical log entries
+        const lastItem = result.timeline[result.timeline.length - 1];
+        if (lastItem?.type === "log") {
+          const lastLog = lastItem.data as LogUpdate;
+          const lastText = typeof lastLog.content === "string"
+            ? lastLog.content
+            : JSON.stringify(lastLog.content);
+          if (lastText === logText) return;
+        }
         result.timeline.push({
           type: "log",
           data: logUpdate,
@@ -583,6 +593,9 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
       }
       case "log": {
         const logUpdate = item.data as LogUpdate;
+        const logContent = typeof logUpdate.content === "string"
+          ? logUpdate.content
+          : JSON.stringify(logUpdate.content, null, 2);
         return (
           <div key={item.key} style={logItemStyle}>
              <div
@@ -590,7 +603,7 @@ export const AgentExecutionView: React.FC<AgentExecutionViewProps> = ({
               style={logDotStyle}
             />
             <div className="log-entry">
-              {logUpdate.content}
+              {logContent}
             </div>
           </div>
         );

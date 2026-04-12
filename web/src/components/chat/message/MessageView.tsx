@@ -247,7 +247,7 @@ export const MessageView: React.FC<
                 color: logContent?.severity === "error" ? "error.light" : logContent?.severity === "warning" ? "warning.light" : "grey.300",
                 mb: 1
               }}>
-                {logContent?.content}
+                {typeof logContent?.content === "string" ? logContent.content : JSON.stringify(logContent?.content, null, 2)}
               </Box>
             </div>
           );
@@ -293,7 +293,7 @@ export const MessageView: React.FC<
               color: logContent?.severity === "error" ? "error.light" : logContent?.severity === "warning" ? "warning.light" : "grey.300",
               mb: 1
             }}>
-              {logContent?.content}
+              {typeof logContent?.content === "string" ? logContent.content : JSON.stringify(logContent?.content, null, 2)}
             </Box>
           </div>
         );
