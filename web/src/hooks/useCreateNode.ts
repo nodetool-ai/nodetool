@@ -49,6 +49,8 @@ export const useCreateNode = (
         const codeMetadata = useMetadataStore.getState().getMetadata(CODE_NODE_TYPE);
         if (codeMetadata) {
           const newNode = createNode(codeMetadata, rfPos, { code: snippet.code });
+          newNode.data.title = snippet.title;
+          newNode.data.codeNodeMode = "snippet";
           addNode(newNode);
 
           // Set dynamic inputs/outputs with proper types from snippet metadata

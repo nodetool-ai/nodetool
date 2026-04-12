@@ -4,7 +4,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import useLogsStore from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import isEqual from "fast-deep-equal";
 import { NodeData } from "../../stores/NodeData";
 import { useNodes } from "../../contexts/NodeContext";
@@ -20,6 +20,7 @@ import { FlexRow, Tooltip, ToolbarIconButton } from "../ui_primitives";
 export interface NodeHeaderProps {
   id: string;
   metadataTitle: string;
+  title?: string;
   hasParent?: boolean;
   showMenu?: boolean;
   data: NodeData;
@@ -37,11 +38,15 @@ export interface NodeHeaderProps {
   onShowInputs?: () => void;
   externalLink?: string;
   externalLinkTitle?: string;
+  isTitleEditable?: boolean;
+  showCodeBadge?: boolean;
+  codeBadgeTooltip?: string;
 }
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
   metadataTitle,
+  title,
   hasParent,
   backgroundColor,
   selected,
@@ -56,14 +61,18 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   onShowResults,
   onShowInputs,
   externalLink,
-  externalLinkTitle
+  externalLinkTitle,
+  isTitleEditable = false,
+  showCodeBadge = false,
+  codeBadgeTooltip = "Code node"
 }: NodeHeaderProps) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
-  const { updateNode, workflowId: nodeWorkflowId } = useNodes(
+  const { updateNode, updateNodeData, workflowId: nodeWorkflowId } = useNodes(
     (state) => ({
       updateNode: state.updateNode,
+      updateNodeData: state.updateNodeData,
       workflowId: state.workflow?.id
     }),
     shallow
@@ -79,8 +88,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     shallow
   );
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(title ?? metadataTitle);
 
   const logCount = logs?.length || 0;
+
+  useEffect(() => {
+    if (!isEditingTitle) {
+      setDraftTitle(title ?? metadataTitle);
+    }
+  }, [isEditingTitle, metadataTitle, title]);
 
   // Common icon button styles for toggle buttons
   const toggleIconButtonStyles = {
@@ -135,9 +152,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           }
         },
         ".node-title": {
-          display: "flex",
-          flexDirection: "column",
-          gap: 0,
+          display: "inline-flex",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: "6px",
           flexGrow: 1,
           textAlign: "left",
           maxWidth: "250px",
@@ -148,6 +166,37 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           letterSpacing: "0.02em",
           padding: "2px 0",
           color: "var(--palette-text-primary)"
+        },
+        ".node-title-text": {
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        },
+        ".code-badge": {
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "16px",
+          height: "16px",
+          borderRadius: "999px",
+          fontSize: "0.6rem",
+          fontWeight: 700,
+          letterSpacing: "0.02em",
+          color: "var(--palette-text-primary)",
+          backgroundColor: "rgba(255, 255, 255, 0.12)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          flexShrink: 0
+        },
+        ".node-title-input": {
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          outline: "none",
+          color: "inherit",
+          font: "inherit",
+          padding: 0,
+          margin: 0
         }
       }),
     []
@@ -204,7 +253,41 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     setLogsDialogOpen(false);
   }, []);
 
+  const commitTitleEdit = useCallback(() => {
+    const trimmedTitle = draftTitle.trim();
+    updateNodeData(id, {
+      title: trimmedTitle || undefined
+    });
+    setIsEditingTitle(false);
+  }, [draftTitle, id, updateNodeData]);
+
+  const handleTitleDoubleClick = useCallback(
+    (event: React.MouseEvent<HTMLSpanElement>) => {
+      if (!isTitleEditable) {
+        return;
+      }
+      event.stopPropagation();
+      setIsEditingTitle(true);
+    },
+    [isTitleEditable]
+  );
+
+  const handleTitleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commitTitleEdit();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        setDraftTitle(title ?? metadataTitle);
+        setIsEditingTitle(false);
+      }
+    },
+    [commitTitleEdit, metadataTitle, title]
+  );
+
   const hasIcon = Boolean(iconType);
+  const resolvedTitle = title ?? metadataTitle;
 
   const headerStyle: React.CSSProperties | undefined = useMemo(() => {
     if (backgroundColor === "transparent") {
@@ -261,8 +344,26 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         <span
           className="node-title"
           style={titlePaddingStyle}
+          onDoubleClick={handleTitleDoubleClick}
         >
-          {metadataTitle}
+          {showCodeBadge && (
+            <Tooltip title={codeBadgeTooltip} placement="top" delay={400}>
+              <span className="code-badge">C</span>
+            </Tooltip>
+          )}
+          {isEditingTitle ? (
+            <input
+              className="node-title-input nodrag nopan"
+              autoFocus
+              value={draftTitle}
+              onBlur={commitTitleEdit}
+              onClick={(event) => event.stopPropagation()}
+              onChange={(event) => setDraftTitle(event.target.value)}
+              onKeyDown={handleTitleKeyDown}
+            />
+          ) : (
+            <span className="node-title-text">{resolvedTitle}</span>
+          )}
         </span>
         {externalLink && (
           <ToolbarIconButton

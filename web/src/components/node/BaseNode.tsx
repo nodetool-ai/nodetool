@@ -59,6 +59,13 @@ import {
 } from "../../stores/graphEdgeToReactFlowEdge";
 import useConnectionStore from "../../stores/ConnectionStore";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import {
+  CODE_NODE_TYPE,
+  isCodeNode,
+  isCodeNodeTitleEditable,
+  resolveCodeNodeTitle,
+  resolveVisibleBasicFields
+} from "./codeNodeUi";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -387,20 +394,34 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const meta = useMemo(() => {
+    const nodeBasicFields = resolveVisibleBasicFields(
+      type,
+      metadata.basic_fields || [],
+      data
+    );
     return {
       nodeNamespace: metadata.namespace || "",
-      nodeBasicFields: metadata.basic_fields || [],
+      nodeBasicFields,
       hasAdvancedFields:
         (metadata.properties?.length ?? 0) >
-        (metadata.basic_fields?.length ?? 0),
+        nodeBasicFields.length,
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
   }, [
+    data,
+    type,
     metadata.basic_fields,
     metadata.namespace,
     metadata.properties?.length,
     specialNamespaces
   ]);
+
+  const displayTitle = useMemo(
+    () => resolveCodeNodeTitle(type, data.title, metadata.title),
+    [data.title, metadata.title, type]
+  );
+  const showCodeBadge = isCodeNode(type);
+  const isCodeTitleEditable = isCodeNodeTitleEditable(type, data);
 
   // Style
   const styleProps = useMemo(
@@ -704,7 +725,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             result={result}
             nodeId={id}
             workflowId={workflow_id}
-            nodeName={metadata.title}
+            nodeName={displayTitle}
             onShowInputs={nodeType.isOutputNode ? undefined : handleShowInputs}
           />
         </div>
@@ -723,6 +744,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         selected={selected}
         data={data}
         backgroundColor={headerColor}
+        title={displayTitle}
         metadataTitle={metadata.title}
         hasParent={hasParent}
         iconType={metadata?.outputs?.[0]?.type?.type}
@@ -732,6 +754,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         showInputsButton={Boolean(isOverlayVisible && hasToggleableResult)}
         onShowResults={handleShowResults}
         onShowInputs={handleShowInputs}
+        isTitleEditable={isCodeTitleEditable}
+        showCodeBadge={showCodeBadge}
+        codeBadgeTooltip="Code node"
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       {!hasError && metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
@@ -823,7 +848,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </div>
       )}
 
-      {title && <EditableTitle nodeId={id} title={title} />}
+      {title && type !== CODE_NODE_TYPE && (
+        <EditableTitle nodeId={id} title={title} />
+      )}
 
       {selected && metadata.namespace && (
         <Tooltip
