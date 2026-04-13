@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { memo, useEffect, useState } from "react";
 import { Box } from "@mui/material";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 export const ProcessTimer = ({ status }: { status: string }) => {
   const [seconds, setSeconds] = useState("");

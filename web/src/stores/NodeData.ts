@@ -17,6 +17,8 @@ export type NodeData = {
   sync_mode?: string;
   workflow_id: string;
   title?: string;
+  /** Marks snippet-backed Code nodes so the UI can lock title editing and hide code by default. */
+  codeNodeMode?: "snippet";
   color?: string;
   collapsed?: boolean;
   bypassed?: boolean; // When true, node is bypassed and passes inputs through to outputs

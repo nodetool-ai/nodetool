@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
-import { Typography, Box, Tooltip } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { EditorButton, Text, Tooltip } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon
@@ -370,14 +370,14 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       >
         <div className="global-search-results-container search-results-container">
           <div className="global-search-results-header search-results-header">
-            <Typography className="global-search-results-title search-results-title">
+            <Text className="global-search-results-title search-results-title">
               Search Results
-            </Typography>
-            <Typography className="global-search-results-count search-results-count">
+            </Text>
+            <Text className="global-search-results-count search-results-count">
               {isSearching
                 ? `Searching for "${globalSearchQuery}"...`
                 : `No results for "${globalSearchQuery}"`}
-            </Typography>
+            </Text>
           </div>
           <div
             className="global-search-empty-results empty-results"
@@ -391,10 +391,10 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                   className="search-spinner"
                   style={spinnerStyle}
                 ></div>
-                <Typography>Searching...</Typography>
+                <Text>Searching...</Text>
               </div>
             ) : (
-              <Typography>No assets found matching your search.</Typography>
+              <Text>No assets found matching your search.</Text>
             )}
           </div>
         </div>
@@ -410,13 +410,13 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     >
       <div className="global-search-results-container search-results-container">
         <div className="global-search-results-header search-results-header">
-          <Typography className="global-search-results-title search-results-title">
+          <Text className="global-search-results-title search-results-title">
             Search Results
-          </Typography>
-          <Typography className="global-search-results-count search-results-count">
+          </Text>
+          <Text className="global-search-results-count search-results-count">
             {results.length} result{results.length !== 1 ? "s" : ""} for &quot;
             {globalSearchQuery}&quot;
-          </Typography>
+          </Text>
         </div>
 
         <div

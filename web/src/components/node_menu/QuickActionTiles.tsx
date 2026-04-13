@@ -8,7 +8,8 @@ import type {
   DragEvent as ReactDragEvent,
   ReactNode
 } from "react";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ImageIcon from "@mui/icons-material/Image";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
@@ -504,7 +505,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
-        <Typography variant="h5">Multi-Model Nodes</Typography>
+        <Text size="normal" weight={600}>Multi-Model Nodes</Text>
       </div>
       <div className="tiles-container">
         {QUICK_ACTION_BUTTONS.map((definition) => {
@@ -531,8 +532,8 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 </div>
               }
               placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              enterNextDelay={TOOLTIP_ENTER_DELAY}
+              delay={TOOLTIP_ENTER_DELAY}
+              nextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile"
@@ -556,14 +557,14 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 <div className="tile-icon" style={{ color: iconColor }}>
                   {icon}
                 </div>
-                <Typography className="tile-label">{label}</Typography>
+                <Text className="tile-label">{label}</Text>
               </div>
             </Tooltip>
           );
         })}
       </div>
       <div className="tiles-header" style={constantsHeaderStyle}>
-        <Typography variant="h5">Constants</Typography>
+        <Text size="normal" weight={600}>Constants</Text>
       </div>
       <div className="constants-container">
         {CONSTANT_NODES.map((definition) => {
@@ -590,8 +591,8 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 </div>
               }
               placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              enterNextDelay={TOOLTIP_ENTER_DELAY}
+              delay={TOOLTIP_ENTER_DELAY}
+              nextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile constant-tile"
@@ -615,7 +616,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 <div className="tile-icon" style={{ color: iconColor }}>
                   {icon}
                 </div>
-                <Typography className="tile-label">{label}</Typography>
+                <Text className="tile-label">{label}</Text>
               </div>
             </Tooltip>
           );

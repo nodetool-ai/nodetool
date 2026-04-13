@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Tooltip } from "@mui/material";
-import { Caption } from "../../ui_primitives";
+import { Caption, Tooltip } from "../../ui_primitives";
 
 import { Property, Workflow } from "../../../stores/ApiTypes";
 import { getComponentForProperty } from "../../node/PropertyInput";

@@ -12,6 +12,8 @@ NodeTool lets you store and organize files used in your workflows. Assets can be
 
 The **Asset Explorer** is the central hub for managing your files. Open it from the left sidebar.
 
+![Asset Explorer](assets/screenshots/screenshot-placeholder.svg)
+
 ### Views
 
 - **Grid view** -- Thumbnails with previews, best for visual assets like images and videos
@@ -33,11 +35,15 @@ Switch between views using the toggle in the toolbar.
 
 ### Working with Assets in Workflows
 
+![Drag Asset to Canvas](assets/screenshots/screenshot-placeholder.svg)
+
 Drag any asset from the Asset Explorer directly into the workflow canvas. NodeTool automatically creates the appropriate input node based on the file type (image input, audio input, etc.).
 
 ---
 
 ## Asset Viewers
+
+![Asset Preview](assets/screenshots/screenshot-placeholder.svg)
 
 NodeTool includes specialized viewers for common file types:
 

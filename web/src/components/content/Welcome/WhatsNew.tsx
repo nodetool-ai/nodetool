@@ -1,10 +1,10 @@
 import React from "react";
 import {
-  Typography,
   Accordion,
   AccordionSummary,
   AccordionDetails,
 } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 const whatsNewData = [
@@ -173,14 +173,14 @@ const WhatsNew = () => {
       {whatsNewData.map((release, index) => (
         <Accordion key={release.version} defaultExpanded={index === 0}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">{release.version}</Typography>
+            <Text size="normal" weight={600}>{release.version}</Text>
           </AccordionSummary>
           <AccordionDetails>
             {release.changes.map((category) => (
               <div key={`${release.version}-${category.category}`}>
-                <Typography variant="subtitle1" gutterBottom>
+                <Text size="small" weight={500} gutterBottom>
                   <strong>{category.category}</strong>
-                </Typography>
+                </Text>
                 <ul>
                   {category.items.map((item, itemIndex) => (
                     <li key={`${release.version}-${category.category}-${itemIndex}`}>{item}</li>

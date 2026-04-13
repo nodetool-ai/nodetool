@@ -24,6 +24,7 @@ electron/backend-bundle/
 electron/resources/micromamba
 conda-lock.yml
 # Temporary build files
+*.tsbuildinfo
 .tmp/
 __notebooks/
 package/
@@ -70,3 +71,4 @@ key.pem
 __plans__
 .claude/settings.local.json
 .memory
+*.tsbuildinfo

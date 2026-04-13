@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo } from "react";
-import { Box } from "@mui/material";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const styles = (theme: Theme) =>
   css({
@@ -58,14 +57,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 }) => {
   const theme = useTheme();
   return (
-    <Box
+    <div
       css={styles(theme)}
       className={`workflow-chat-container ${isMinimized ? "minimized" : ""} ${
         !isOpen ? "closed" : ""
       }`}
     >
       {children}
-    </Box>
+    </div>
   );
 };
 

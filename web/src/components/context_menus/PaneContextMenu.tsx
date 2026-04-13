@@ -2,8 +2,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { Divider, Menu, Typography, Box } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { Menu, Box } from "@mui/material";
+import { EditorButton, Text, Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -350,7 +350,7 @@ const PaneContextMenu: React.FC = () => {
             <StarIcon
               sx={{ fontSize: "0.85rem", color: "warning.main" }}
             />
-            <Typography variant="inherit">Favorites</Typography>
+            <Text>Favorites</Text>
           </Box>,
           ...favorites.map((favorite) => {
             const displayName = getNodeDisplayName(favorite.nodeType);

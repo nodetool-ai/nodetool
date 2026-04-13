@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { LanguageModel } from "../../stores/ApiTypes";
-import { ScrollArea } from "../ui_primitives";
+import { ScrollArea, Text, Caption } from "../ui_primitives";
 
 const paneStyles = (theme: Theme) =>
   css({
@@ -27,23 +27,23 @@ const ModelInfoPane: React.FC<ModelInfoPaneProps> = ({ model }) => {
         className="model-menu__info-pane is-empty"
         sx={{ color: "var(--palette-grey-300)" }}
       >
-        <Typography variant="body2">Select a model to see details</Typography>
+        <Text size="small">Select a model to see details</Text>
       </ScrollArea>
     );
   }
   return (
     <ScrollArea maxHeight={520} css={paneStyles(theme)} className="model-menu__info-pane">
-      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+      <Text size="small" weight={500} sx={{ mb: 1 }}>
         {model.name}
-      </Typography>
-      <Typography variant="caption" sx={{ display: "block", opacity: 0.8 }}>
+      </Text>
+      <Caption sx={{ display: "block", opacity: 0.8 }}>
         Provider: {model.provider}
-      </Typography>
+      </Caption>
       {/* Placeholder for info fetched via React Query (HF card, etc.) */}
       <Box sx={{ mt: 2 }}>
-        <Typography variant="body2" sx={{ opacity: 0.85 }}>
+        <Text size="small" sx={{ opacity: 0.85 }}>
           Info will be loaded on click. Future: web search + LLM summary.
-        </Typography>
+        </Text>
       </Box>
     </ScrollArea>
   );

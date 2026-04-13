@@ -147,7 +147,7 @@ describe("downloadPreviewAssets", () => {
     });
 
     expect(consoleWarnSpy).toHaveBeenCalled();
-    expect(mockAnchor.href).toBe("/api/storage/123.mp4");
+    expect(mockAnchor.href).toBe("http://localhost:7777/api/storage/123.mp4");
     expect(mockAnchor.download).toBe("123.mp4");
     expect(mockAnchor.click).toHaveBeenCalled();
 

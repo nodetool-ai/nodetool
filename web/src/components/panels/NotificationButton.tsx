@@ -6,15 +6,13 @@ import {
   Badge,
   Box,
   Button,
-  Popover,
-  Tooltip,
-  Typography
+  Popover
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { CopyButton } from "../ui_primitives";
+import { CopyButton, Tooltip, Text, Caption } from "../ui_primitives";
 
 const popoverStyles = css({
   paddingRight: "4em",
@@ -68,7 +66,7 @@ const NotificationButton: React.FC = React.memo(() => {
 
   return (
     <div className="notifications-container">
-      <Tooltip title="Notifications" enterDelay={TOOLTIP_ENTER_DELAY}>
+      <Tooltip title="Notifications" delay={TOOLTIP_ENTER_DELAY}>
         <Button
           className="notification-button command-button command-icon"
           onClick={handleNotificationClick}
@@ -139,15 +137,16 @@ const NotificationButton: React.FC = React.memo(() => {
           }}
         >
           {notifications.length === 0 ? (
-            <Typography
+            <Text
               className="notification-empty-message"
-              color="textSecondary"
+              color="secondary"
               role="status"
               aria-live="polite"
-              sx={{ fontSize: "0.9rem", fontWeight: 300 }}
+              sx={{ fontSize: "0.9rem" }}
+              weight={300}
             >
               No notifications
-            </Typography>
+            </Text>
           ) : (
             <Box role="list" aria-label={`Notification list, ${notifications.length} item${notifications.length > 1 ? "s" : ""}`}>
               {notifications.map((notification) => (
@@ -181,31 +180,26 @@ const NotificationButton: React.FC = React.memo(() => {
                     }
                   }}
                 >
-                <Typography
-                  variant="body2"
-                  color="textPrimary"
+                <Text
+                  size="small"
                   className="notification-content"
                   sx={{
-                    fontSize: "0.85rem",
                     lineHeight: 1.5,
                     wordWrap: "break-word",
                     pr: 3
                   }}
                 >
                   {notification.content}
-                </Typography>
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
+                </Text>
+                  <Caption
                     className="notification-timestamp"
                     sx={{
-                      fontSize: "0.75rem",
                       display: "block",
                       mt: 0.5
                     }}
                   >
                     {notification.timestamp.toLocaleString()}
-                  </Typography>
+                  </Caption>
                   <CopyButton
                     value={notification.content}
                     className="copy-button"

@@ -86,7 +86,7 @@ export default function LanguageModelSelectionScreen() {
   };
 
   const filteredModels = useMemo(() => {
-    if (!searchQuery.trim()) return models;
+    if (!searchQuery.trim()) {return models;}
     const query = searchQuery.toLowerCase();
     return models.filter(
       (m) =>
@@ -96,7 +96,7 @@ export default function LanguageModelSelectionScreen() {
   }, [models, searchQuery]);
 
   const filteredProviders = useMemo(() => {
-    if (!searchQuery.trim()) return providers;
+    if (!searchQuery.trim()) {return providers;}
     const query = searchQuery.toLowerCase();
     return providers.filter((p) => p.provider.toLowerCase().includes(query));
   }, [providers, searchQuery]);
@@ -211,7 +211,7 @@ export default function LanguageModelSelectionScreen() {
         <FlatList
           data={filteredProviders}
           renderItem={renderProviderItem}
-          keyExtractor={(item) => item.provider}
+          keyExtractor={(item: Provider) => item.provider}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={renderEmptyList('providers')}
         />
@@ -219,7 +219,7 @@ export default function LanguageModelSelectionScreen() {
         <FlatList
           data={filteredModels}
           renderItem={renderModelItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: LanguageModel) => item.id}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={renderEmptyList('models')}
         />

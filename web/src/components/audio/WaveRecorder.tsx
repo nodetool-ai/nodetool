@@ -6,10 +6,8 @@ import type { Theme } from "@mui/material/styles";
 
 import {
   Box,
-  Button,
-  CircularProgress,
-  Typography
 } from "@mui/material";
+import { EditorButton, Text, LoadingSpinner } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,
@@ -112,45 +110,44 @@ const WaveRecorder = (props: WaveRecorderProps) => {
 
   return (
     <Box className="waverecorder" css={styles(theme)}>
-      <Button
+      <EditorButton
         onClick={handleRecord}
         className={`record-button nodrag ${isRecording ? " recording" : ""}`}
         variant="text"
-        size="small"
+        density="compact"
         disabled={isLoading}
       >
         {isRecording ? "STOP" : "RECORD"}
-        {isLoading && <CircularProgress size={6} />}
-      </Button>
+        {isLoading && <LoadingSpinner size="small" />}
+      </EditorButton>
 
-      <Button
+      <EditorButton
         className="nodrag device-button"
         onClick={toggleDeviceListVisibility}
         variant="text"
-        size="small"
+        density="compact"
       >
         {isDeviceListVisible ? (
           <SettingsInputComponentIcon className="toggle-on" />
         ) : (
           <SettingsInputComponentIcon className="toggle-off" />
         )}
-      </Button>
+      </EditorButton>
       {error && <div className="error">{error}</div>}
 
       {isDeviceListVisible && (
         <div className="audio-device-list" style={{ margin: "5px" }}>
           {audioInputDevices.length > 0 ? (
             <>
-              <Typography
-                variant="h2"
+              <Text
+                size="smaller"
                 sx={{
-                  fontSize: "var(--fontSizeSmaller)",
                   margin: "0 0 .5em 0",
                   color: "var(--palette-grey-100)"
                 }}
               >
                 Input Device
-              </Typography>
+              </Text>
               <div
                 className={`device-select${
                   isRecording || isLoading ? " disabled" : ""
@@ -167,10 +164,9 @@ const WaveRecorder = (props: WaveRecorderProps) => {
               </div>
             </>
           ) : (
-            <Typography
-              variant="body2"
+            <Text
+              size="small"
               sx={{
-                fontSize: "var(--fontSizeSmall)",
                 position: "absolute",
                 backgroundColor: "var(--palette-warning-main)",
                 color: "var(--palette-grey-900)",
@@ -182,7 +178,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
               }}
             >
               No audio input devices found.
-            </Typography>
+            </Text>
           )}
         </div>
       )}

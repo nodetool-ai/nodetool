@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { Typography } from "@mui/material";
+import { Text } from "../../ui_primitives";
 
 export interface Section {
   id: string;
@@ -16,12 +16,12 @@ export const overviewContents: Section[] = [
     defaultExpanded: true,
     content: (
       <>
-        <Typography>
+        <Text>
           NodeTool is the local-first canvas for building AI workflows. Compose
           text, audio, video, and automation nodes on one graph, run them on
           your machine, then ship the same workflow to RunPod, Cloud Run, or
           your own infrastructure when you need scale.
-        </Typography>
+        </Text>
         <ul>
           <li>
             <b>Visual first:</b> Drag-and-drop nodes, preview intermediate
@@ -44,10 +44,10 @@ export const overviewContents: Section[] = [
     title: "Start Here",
     content: (
       <>
-        <Typography>
+        <Text>
           NodeTool is your local-first canvas for building AI workflows that can
           run identically on your laptop or in the cloud.
-        </Typography>
+        </Text>
         <ul>
           <li>
             <b>Dashboard:</b> Home for workflows, templates, and chats.
@@ -69,7 +69,7 @@ export const overviewContents: Section[] = [
             place.
           </li>
         </ul>
-        <Typography>
+        <Text>
           Want a full walkthrough? Read the{" "}
           <a
             href="https://docs.nodetool.ai/user-interface"
@@ -79,7 +79,7 @@ export const overviewContents: Section[] = [
             User Interface tour
           </a>
           .
-        </Typography>
+        </Text>
       </>
     )
   },
@@ -88,10 +88,10 @@ export const overviewContents: Section[] = [
     title: "What you can build right away",
     content: (
       <>
-        <Typography>
+        <Text>
           The docs highlight four fast-start patterns from the gallery and
           cookbook:
-        </Typography>
+        </Text>
         <ul>
           <li>
             <b>LLM agents with tool access:</b> Plan, call tools, and stream
@@ -178,10 +178,10 @@ export const overviewContents: Section[] = [
     title: "Your first 10 minutes",
     content: (
       <>
-        <Typography>
+        <Text>
           Follow the golden path from the docs to get a working workflow in a
           few minutes:
-        </Typography>
+        </Text>
         <ol>
           <li>
             <a
@@ -209,7 +209,7 @@ export const overviewContents: Section[] = [
             graph.
           </li>
         </ol>
-        <Typography>
+        <Text>
           Full walkthrough:{" "}
           <a
             href="https://docs.nodetool.ai/getting-started"
@@ -219,7 +219,7 @@ export const overviewContents: Section[] = [
             Getting Started guide
           </a>
           .
-        </Typography>
+        </Text>
       </>
     )
   },
@@ -228,9 +228,9 @@ export const overviewContents: Section[] = [
     title: "Choose your path",
     content: (
       <>
-        <Typography>
+        <Text>
           Jump to the doc section that matches what you need:
-        </Typography>
+        </Text>
         <ul>
           <li>
             <a
@@ -307,13 +307,13 @@ export const overviewContents: Section[] = [
     title: "Local-first or cloud-augmented",
     content: (
       <>
-        <Typography variant="subtitle1">Local-only mode</Typography>
+        <Text size="small" weight={500}>Local-only mode</Text>
         <ul>
           <li>Workflows, assets, and models stay on your machine.</li>
           <li>Use MLX, llama.cpp, Whisper, and Flux locally.</li>
           <li>Disable outbound traffic entirely if needed.</li>
         </ul>
-        <Typography variant="subtitle1">Cloud-augmented mode</Typography>
+        <Text size="small" weight={500}>Cloud-augmented mode</Text>
         <ul>
           <li>Mix local nodes with OpenAI, Anthropic, or RunPod workers.</li>
           <li>Configure API keys in <b>Settings → Providers</b>.</li>
@@ -322,7 +322,7 @@ export const overviewContents: Section[] = [
             capacity.
           </li>
         </ul>
-        <Typography>
+        <Text>
           Learn more in{" "}
           <a
             href="https://docs.nodetool.ai/models-and-providers"
@@ -340,7 +340,7 @@ export const overviewContents: Section[] = [
             Storage guide
           </a>
           .
-        </Typography>
+        </Text>
       </>
     )
   },
@@ -349,9 +349,9 @@ export const overviewContents: Section[] = [
     title: "Where you'll spend time",
     content: (
       <>
-        <Typography>
+        <Text>
           Keep these core surfaces in mind as you move around NodeTool:
-        </Typography>
+        </Text>
         <ul>
           <li>
             <b>Dashboard:</b> Organize workflows, templates, and chats.
@@ -374,7 +374,7 @@ export const overviewContents: Section[] = [
             <b>Command Menu:</b> Press Alt+K or Cmd+K to jump anywhere fast.
           </li>
         </ul>
-        <Typography>
+        <Text>
           See the{" "}
           <a
             href="https://docs.nodetool.ai/user-interface"
@@ -384,7 +384,7 @@ export const overviewContents: Section[] = [
             User Interface guide
           </a>{" "}
           for screenshots and shortcuts.
-        </Typography>
+        </Text>
       </>
     )
   },
@@ -393,10 +393,10 @@ export const overviewContents: Section[] = [
     title: "Build with the community",
     content: (
       <>
-        <Typography>
+        <Text>
           NodeTool is open source (AGPL-3.0). Share what you build and learn
           from others:
-        </Typography>
+        </Text>
         <ul>
           <li>
             Join the{" "}

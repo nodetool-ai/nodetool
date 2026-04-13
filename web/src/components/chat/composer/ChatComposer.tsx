@@ -6,7 +6,8 @@ import React, {
   memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, Typography, IconButton, Tooltip, Collapse } from "@mui/material";
+import { Collapse } from "@mui/material";
+import { Tooltip, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
 import { MessageContent } from "../../../stores/ApiTypes";
@@ -121,12 +122,11 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     <div css={createStyles(theme)} className="chat-composer">
       {/* Queued Message Widget */}
       <Collapse in={!!queuedMessage}>
-        <Box sx={{ display: "flex", justifyContent: "flex-end", px: 1, mb: 1 }}>
-          <Box
+        <FlexRow justify="flex-end" sx={{ px: 1, mb: 1 }}>
+          <FlexRow
+            gap={1}
+            align="center"
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
               px: 1.5,
               py: 0.75,
               maxWidth: "400px",
@@ -136,20 +136,18 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
               boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}25`
             }}
           >
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="caption"
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Caption
+                color="primary"
                 sx={{
                   display: "block",
-                  color: "primary.main",
                   fontWeight: 500,
                   mb: 0.25
                 }}
               >
                 Message queued
-              </Typography>
-              <Typography
-                variant="caption"
+              </Caption>
+              <Caption
                 sx={{
                   display: "block",
                   color: "text.secondary",
@@ -159,37 +157,29 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
                 }}
               >
                 {queuedMessage?.prompt}
-              </Typography>
-            </Box>
-            <Tooltip title="Send now (interrupts current response)">
-              <IconButton
-                size="small"
-                onClick={sendQueuedNow}
-                disabled={!onStop}
-                aria-label="Send now"
-                sx={{
-                  color: "primary.main",
-                  "&:hover": { backgroundColor: theme.vars.palette.primary.main + "20" }
-                }}
-              >
-                <SendIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Cancel queued message">
-              <IconButton
-                size="small"
-                onClick={cancelQueued}
-                aria-label="Cancel queued message"
-                sx={{
-                  color: "text.secondary",
-                  "&:hover": { color: "error.main" }
-                }}
-              >
-                <ClearIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
+              </Caption>
+            </div>
+            <ToolbarIconButton
+              tooltip="Send now (interrupts current response)"
+              onClick={sendQueuedNow}
+              disabled={!onStop}
+              icon={<SendIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                color: "primary.main",
+                "&:hover": { backgroundColor: theme.vars.palette.primary.main + "20" }
+              }}
+            />
+            <ToolbarIconButton
+              tooltip="Cancel queued message"
+              onClick={cancelQueued}
+              icon={<ClearIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                color: "text.secondary",
+                "&:hover": { color: "error.main" }
+              }}
+            />
+          </FlexRow>
+        </FlexRow>
       </Collapse>
 
       <div

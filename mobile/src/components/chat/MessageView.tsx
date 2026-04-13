@@ -37,7 +37,7 @@ function getTextContent(content: Message['content']): string {
   if (Array.isArray(content)) {
     return content
       .filter((c: MessageContent) => c?.type === 'text')
-      .map((c: MessageContent) => (c as Record<string, unknown>)?.text || '')
+      .map((c: MessageContent) => (c as unknown as Record<string, unknown>)?.text || '')
       .join('\n');
   }
 

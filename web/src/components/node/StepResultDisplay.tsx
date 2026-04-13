@@ -3,10 +3,9 @@ import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { StepResult } from "../../stores/ApiTypes";
-import { CollapsibleSection } from "../ui_primitives";
+import { CollapsibleSection, Text } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -150,12 +149,12 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
       <div className="step-result-container" css={styles(theme)}>
         <div className="step-result-header">
           <CheckCircleOutlineIcon className="step-result-icon" />
-          <Typography className="step-result-title">
+          <Text className="step-result-title">
             Step Completed
-          </Typography>
+          </Text>
         </div>
         <div className="result-primitive">
-          <Typography className="result-type-label">{resultType}</Typography>
+          <Text className="result-type-label">{resultType}</Text>
           <div>{displayValue}</div>
         </div>
       </div>
@@ -169,15 +168,15 @@ const StepResultDisplay: React.FC<StepResultDisplayProps> = ({
         title={
           <div className="step-result-header">
             <CheckCircleOutlineIcon className="step-result-icon" />
-            <Typography className="step-result-title">
+            <Text className="step-result-title">
               Step Completed
-            </Typography>
+            </Text>
           </div>
         }
         compact
       >
         <div className="step-result-content">
-          <Typography className="result-type-label">{resultType}</Typography>
+          <Text className="result-type-label">{resultType}</Text>
           <pre className="result-value">{displayValue}</pre>
         </div>
       </CollapsibleSection>

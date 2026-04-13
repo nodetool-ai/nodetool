@@ -1,6 +1,6 @@
 import { useMemo, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import Select from "../inputs/Select";
 import { BASE_URL } from "../../stores/BASE_URL";
 

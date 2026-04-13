@@ -10,23 +10,9 @@
 
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import AboutMenu from "../AboutMenu";
-
-// Mock theme hook
-jest.mock("@mui/material/styles", () => ({
-  ...jest.requireActual("@mui/material/styles"),
-  useTheme: () => ({
-    vars: {
-      palette: {
-        divider: "#e0e0e0",
-        text: {
-          secondary: "#666"
-        }
-      }
-    },
-    fontSizeSmall: "0.875rem"
-  })
-}));
 
 // Mock MUI components
 jest.mock("@mui/material", () => ({
@@ -40,8 +26,11 @@ jest.mock("@mui/material", () => ({
 // Mock UI primitives
 jest.mock("../../ui_primitives", () => ({
   FlexRow: ({ children, ...props }: any) => <div data-testid="FlexRow" {...props}>{children}</div>,
+  FlexColumn: ({ children, ...props }: any) => <div data-testid="FlexColumn" {...props}>{children}</div>,
   Text: ({ children, ...props }: any) => <span data-testid="Text" {...props}>{children}</span>,
   Caption: ({ children, ...props }: any) => <span data-testid="Caption" {...props}>{children}</span>,
+  LoadingSpinner: (props: any) => <div data-testid="LoadingSpinner" {...props} />,
+  Chip: ({ children, ...props }: any) => <span data-testid="UIPrimitiveChip" {...props}>{children}</span>,
 }));
 
 // Mock stores
@@ -56,6 +45,10 @@ jest.mock("../../../stores/ApiClient", () => ({
   isElectron: false
 }));
 
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+);
+
 describe("AboutMenu", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -63,18 +56,18 @@ describe("AboutMenu", () => {
 
   describe("Browser Environment Rendering", () => {
     it("should render without crashing", () => {
-      const { container } = render(<AboutMenu />);
+      const { container } = render(<AboutMenu />, { wrapper });
       expect(container).toBeInTheDocument();
     });
 
     it("should render application section", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       expect(screen.getByText("Application")).toBeInTheDocument();
     });
 
     it("should render operating system section", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       expect(screen.getByText("Operating System")).toBeInTheDocument();
       expect(screen.getByText("Platform")).toBeInTheDocument();
@@ -82,7 +75,7 @@ describe("AboutMenu", () => {
     });
 
     it("should display platform value", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       // Platform might appear multiple times, check that at least one exists
       const platformElements = screen.getAllByText(navigator.platform);
@@ -90,7 +83,7 @@ describe("AboutMenu", () => {
     });
 
     it("should display user agent value", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       // User agent might appear multiple times, check that at least one exists
       const userAgentElements = screen.getAllByText(navigator.userAgent);
@@ -98,13 +91,13 @@ describe("AboutMenu", () => {
     });
 
     it("should render links section", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       expect(screen.getByText("Links")).toBeInTheDocument();
     });
 
     it("should not show Electron-only sections in browser", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       expect(screen.queryByText("Installation Paths")).not.toBeInTheDocument();
       expect(screen.queryByText("Features & Versions")).not.toBeInTheDocument();
@@ -113,7 +106,7 @@ describe("AboutMenu", () => {
 
   describe("Links Section", () => {
     it("should render GitHub Repository link with correct attributes", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       const link = screen.getByText("GitHub Repository").closest("a");
       expect(link).toHaveAttribute("href", "https://github.com/nodetool-ai/nodetool");
@@ -122,7 +115,7 @@ describe("AboutMenu", () => {
     });
 
     it("should render NodeTool Forum link with correct attributes", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       const link = screen.getByText("NodeTool Forum").closest("a");
       expect(link).toHaveAttribute("href", "https://forum.nodetool.ai");
@@ -131,7 +124,7 @@ describe("AboutMenu", () => {
     });
 
     it("should render Website link with correct attributes", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       const link = screen.getByText("Website").closest("a");
       expect(link).toHaveAttribute("href", "https://nodetool.ai");
@@ -142,7 +135,7 @@ describe("AboutMenu", () => {
 
   describe("Accessibility", () => {
     it("should render links with accessible names", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       expect(screen.getByRole("link", { name: "GitHub Repository" })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "NodeTool Forum" })).toBeInTheDocument();
@@ -150,7 +143,7 @@ describe("AboutMenu", () => {
     });
 
     it("should render main section headings", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       expect(screen.getByText("Application")).toBeInTheDocument();
       expect(screen.getByText("Operating System")).toBeInTheDocument();
@@ -160,11 +153,11 @@ describe("AboutMenu", () => {
 
   describe("Component Stability", () => {
     it("should render consistently across rerenders", () => {
-      const { rerender } = render(<AboutMenu />);
+      const { rerender } = render(<AboutMenu />, { wrapper });
 
       expect(screen.getByText("Application")).toBeInTheDocument();
 
-      rerender(<AboutMenu />);
+      rerender(<ThemeProvider theme={mockTheme}><AboutMenu /></ThemeProvider>);
 
       expect(screen.getByText("Application")).toBeInTheDocument();
       expect(screen.getByText("Operating System")).toBeInTheDocument();
@@ -172,7 +165,7 @@ describe("AboutMenu", () => {
     });
 
     it("should contain expected main sections", () => {
-      render(<AboutMenu />);
+      render(<AboutMenu />, { wrapper });
 
       expect(screen.getByText("Application")).toBeInTheDocument();
       expect(screen.getByText("Operating System")).toBeInTheDocument();

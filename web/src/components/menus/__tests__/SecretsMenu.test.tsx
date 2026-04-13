@@ -138,16 +138,13 @@ describe("SecretsMenu", () => {
   });
 
   describe("Rendering", () => {
-    it("should render the component with title", async () => {
+    it("should render the component with info text", async () => {
       mockSecretsStore.fetchSecrets.mockResolvedValue([]);
       render(<SecretsMenu />, { wrapper });
 
       await waitFor(() => {
-        expect(screen.getByText("Secrets Management")).toBeInTheDocument();
+        expect(screen.getByText("Secrets are encrypted in the database.")).toBeInTheDocument();
       });
-      expect(
-        screen.getByText(/Keep your secrets secure and do not share them publicly/)
-      ).toBeInTheDocument();
     });
 
     it("should display loading state", async () => {

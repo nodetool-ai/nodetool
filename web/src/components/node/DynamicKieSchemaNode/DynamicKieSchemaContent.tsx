@@ -1,5 +1,6 @@
 import React, { memo } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text, Caption, FlexColumn } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";
@@ -45,29 +46,25 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
         data.dynamic_inputs && Object.keys(data.dynamic_inputs).length > 0;
 
       return (
-        <Box
+        <FlexColumn
+          fullWidth
+          fullHeight
           sx={{
             position: "relative",
-            width: "100%",
-            height: "100%",
-            minHeight: 0,
-            display: "flex",
-            flexDirection: "column"
+            minHeight: 0
           }}
         >
           {!hasModel && (
             <Box sx={{ px: 1.5, py: 1, opacity: 0.7 }}>
-              <Typography variant="body2" color="text.secondary">
+              <Text size="small" color="secondary">
                 Run any model on kie.ai.
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
+              </Text>
+              <Caption
                 component="p"
               >
                 Paste the API documentation from a kie.ai model page into the
                 model_info field.
-              </Typography>
+              </Caption>
             </Box>
           )}
           <Box
@@ -148,12 +145,12 @@ export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =
               borderColor: "divider"
             }}
           >
-            <Typography variant="caption" color="text.secondary">
+            <Caption>
               kie.ai
               {data.model_id && <> &middot; {data.model_id}</>}
-            </Typography>
+            </Caption>
           </Box>
-        </Box>
+        </FlexColumn>
       );
     }
   );

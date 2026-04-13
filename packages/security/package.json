@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },
@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "vitest": "^4.1.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.7.2"
   },
   "exports": {
     ".": {

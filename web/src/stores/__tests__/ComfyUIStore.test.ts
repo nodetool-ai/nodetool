@@ -26,6 +26,7 @@ jest.mock("../../services/ComfyUIService", () => {
 });
 
 jest.mock("loglevel", () => ({
+  __esModule: true,
   default: {
     info: jest.fn(),
     warn: jest.fn(),

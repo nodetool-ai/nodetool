@@ -3,7 +3,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   Menu,
   MenuItem,
-  Typography,
   Box,
   TextField,
   IconButton,
@@ -18,7 +17,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
-import { ScrollArea } from "../ui_primitives";
+import { ScrollArea, Text, Caption, FlexRow } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -327,21 +326,18 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     >
       <Box css={fixedHeaderStyles} className="connectable-nodes-header">
         <MenuItem disabled sx={{ opacity: "1 !important", p: 0, mb: 1 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "100%"
-            }}
+          <FlexRow
+            align="center"
+            justify="space-between"
+            fullWidth
           >
-            <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+            <Text size="small" weight={600}>
               Connectable Nodes
-            </Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", bgcolor: "action.selected", px: 1, py: 0.5, borderRadius: 1 }}>
+            </Text>
+            <Caption sx={{ bgcolor: "action.selected", px: 1, py: 0.5, borderRadius: 1 }}>
               {totalCount}
-            </Typography>
-          </Box>
+            </Caption>
+          </FlexRow>
         </MenuItem>
         <MenuItem sx={{ p: 0, "&:hover": { bgcolor: "transparent" }, cursor: "default" }} disableRipple>
           <TextField
@@ -395,22 +391,20 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       <ScrollArea css={scrollableContentStyles} className="connectable-nodes-content" direction="vertical">
         {totalCount === 0 ? (
           <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
-            <Typography variant="body2">
+            <Text size="small">
               No nodes match &quot;{searchTerm}&quot;.
-            </Typography>
+            </Text>
           </Box>
         ) : (
           Object.entries(groupedNodes).map(([namespace, nodes]) => (
             <React.Fragment key={namespace}>
               <MenuItem className="namespace" disabled sx={{ opacity: "1 !important" }}>
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  fontSize={10}
-                  fontWeight={700}
+                <Caption
+                  color="secondary"
+                  sx={{ fontSize: 10, fontWeight: 700 }}
                 >
                   {namespace.toUpperCase()}
-                </Typography>
+                </Caption>
               </MenuItem>
               {nodes.map((nodeMetadata: NodeMetadata) => (
                 <div className="node-item-container" key={nodeMetadata.node_type}>

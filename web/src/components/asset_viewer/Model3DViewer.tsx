@@ -13,18 +13,20 @@ import React, {
 } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import {
-  Box,
-  Typography,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  ToggleButton,
-  ToggleButtonGroup,
   Select,
   MenuItem,
   FormControl,
   SelectChangeEvent
 } from "@mui/material";
+import {
+  Text,
+  LoadingSpinner,
+  ToolbarIconButton,
+  ToggleGroup,
+  ToggleOption,
+  FlexColumn,
+  FlexRow
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
@@ -106,10 +108,6 @@ export interface Model3DViewerProps {
 const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
   css({
     "&": {
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "flex-start",
-      alignItems: "stretch",
       width: "100%",
       height: compact ? "100%" : "calc(100% - 120px)",
       flex: "1 1 auto",
@@ -125,9 +123,6 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       minHeight: compact ? "60px" : "300px",
       flex: 1,
       alignSelf: "stretch",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
       position: "relative",
       cursor: compact ? "grab" : "default",
       backgroundColor: backgroundColor,
@@ -139,9 +134,6 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       height: "100%",
       minHeight: 0,
       position: "relative",
-      display: "flex",
-      flex: 1,
-      alignSelf: "stretch",
       overflow: "hidden"
     },
     ".canvas-container > div": {
@@ -161,10 +153,6 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: "8px",
       zIndex: 10,
       pointerEvents: "none"
     },
@@ -177,41 +165,12 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       bottom: "1em",
       left: "50%",
       transform: "translateX(-50%)",
-      display: "flex",
-      flexDirection: "row",
-      gap: "0.5em",
       padding: "0.5em",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       borderRadius: "8px",
       zIndex: 100,
+      gap: "0.5em",
       alignItems: "center"
-    },
-    ".controls-toolbar .MuiIconButton-root": {
-      color: theme.vars.palette.grey[100],
-      padding: "6px",
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.disabledBackground
-      },
-      "&.active": {
-        backgroundColor: theme.vars.palette.primary.main,
-        color: theme.vars.palette.common.white
-      }
-    },
-    ".controls-toolbar .MuiToggleButtonGroup-root": {
-      backgroundColor: theme.vars.palette.action.disabledBackground,
-      borderRadius: "4px"
-    },
-    ".controls-toolbar .MuiToggleButton-root": {
-      color: theme.vars.palette.grey[100],
-      border: "none",
-      padding: "4px 8px",
-      "&.Mui-selected": {
-        backgroundColor: theme.vars.palette.primary.main,
-        color: theme.vars.palette.common.white,
-        "&:hover": {
-          backgroundColor: theme.vars.palette.primary.dark
-        }
-      }
     },
     ".controls-select": {
       minWidth: "100px",
@@ -232,10 +191,6 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      gap: "4px",
       zIndex: 10,
       padding: "1em 1.5em",
       maxWidth: "90%",
@@ -711,46 +666,52 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
 
   if (!modelUrl) {
     return (
-      <Box
+      <FlexColumn
         css={styles(theme, compact, bgColorValue)}
         className="model-3d-viewer"
+        fullWidth
       >
-        <Typography variant="body2" color="textSecondary">
+        <Text size="small" color="secondary">
           No 3D model loaded
-        </Typography>
-      </Box>
+        </Text>
+      </FlexColumn>
     );
   }
 
   return (
-    <Box
+    <FlexColumn
       css={styles(theme, compact, bgColorValue)}
       className="model-3d-viewer"
       ref={containerRef}
+      fullWidth
     >
-      <div
+      <FlexColumn
         className={cn("model-container", reactFlowClasses.nodrag)}
         onClick={compact ? onClick : undefined}
         onDoubleClick={compact ? onDoubleClick : undefined}
+        fullWidth
+        fullHeight
+        align="center"
+        justify="center"
       >
-        <div className="canvas-container">
+        <FlexColumn className="canvas-container" fullWidth fullHeight>
           {isLoading && !loadError && (
-            <div className="loading-overlay">
-              <CircularProgress size={compact ? 20 : 40} />
+            <FlexColumn className="loading-overlay" align="center" gap={1}>
+              <LoadingSpinner size={compact ? "small" : "medium"} />
               {!compact && (
-                <Typography variant="body2" color="textSecondary">
+                <Text size="small" color="secondary">
                   Loading model...
-                </Typography>
+                </Text>
               )}
-            </div>
+            </FlexColumn>
           )}
           {loadError && (
-            <div className="error-overlay">
+            <FlexColumn className="error-overlay" align="flex-start" gap={0.5}>
               {loadError.split("\n").map((line, i) => (
-                <Typography
+                <Text
                   key={i}
-                  variant="body2"
-                  color={i === 0 ? "error" : "textSecondary"}
+                  size="small"
+                  color={i === 0 ? "error" : "secondary"}
                   sx={{
                     wordBreak: "break-word",
                     fontSize: i === 0 ? "0.875rem" : "0.75rem",
@@ -758,9 +719,9 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   }}
                 >
                   {line}
-                </Typography>
+                  </Text>
               ))}
-            </div>
+            </FlexColumn>
           )}
           <Canvas
             camera={{ position: [3, 2, 3], fov: 50 }}
@@ -780,7 +741,7 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               <Suspense
                 fallback={
                   <Html center>
-                    <CircularProgress size={40} />
+                    <LoadingSpinner size="medium" />
                   </Html>
                 }
               >
@@ -840,61 +801,54 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               </Suspense>
             </ModelErrorBoundary>
           </Canvas>
-        </div>
+        </FlexColumn>
 
         {/* Fullscreen close button (only visible in fullscreen mode) */}
         {isFullscreen && (
-          <Tooltip title="Exit Fullscreen (Esc)">
-            <IconButton
-              className="fullscreen-close-button"
-              onClick={exitFullscreen}
-              size="medium"
-              aria-label="Exit fullscreen"
-            >
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<CloseIcon />}
+            tooltip="Exit Fullscreen (Esc)"
+            className="fullscreen-close-button"
+            onClick={exitFullscreen}
+            size="medium"
+          />
         )}
 
         {/* Controls toolbar (only in non-compact mode) */}
         {!compact && (
-          <div className="controls-toolbar">
+          <FlexRow className="controls-toolbar" gap={0.5} align="center">
             {/* Grid toggle */}
-            <Tooltip title="Toggle Grid">
-              <IconButton
-                size="small"
-                onClick={handleToggleGrid}
-                className={showGrid ? "active" : ""}
-              >
-                <GridOnIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={<GridOnIcon fontSize="small" />}
+              tooltip="Toggle Grid"
+              onClick={handleToggleGrid}
+              active={showGrid}
+              size="small"
+            />
 
             {/* Axes toggle */}
-            <Tooltip title="Toggle Axes">
-              <IconButton
-                size="small"
-                onClick={handleToggleAxes}
-                className={showAxes ? "active" : ""}
-              >
-                <ViewInArIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={<ViewInArIcon fontSize="small" />}
+              tooltip="Toggle Axes"
+              onClick={handleToggleAxes}
+              active={showAxes}
+              size="small"
+            />
 
             {/* Wireframe toggle */}
-            <ToggleButtonGroup
+            <ToggleGroup
               size="small"
               value={wireframe ? "wireframe" : "solid"}
               exclusive
               onChange={(_, value) => setWireframe(value === "wireframe")}
             >
-              <ToggleButton value="solid" size="small">
+              <ToggleOption value="solid" size="small">
                 Solid
-              </ToggleButton>
-              <ToggleButton value="wireframe" size="small">
+              </ToggleOption>
+              <ToggleOption value="wireframe" size="small">
                 Wire
-              </ToggleButton>
-            </ToggleButtonGroup>
+              </ToggleOption>
+            </ToggleGroup>
 
             {/* Lighting preset select */}
             <FormControl size="small" className="controls-select">
@@ -928,42 +882,47 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
             </FormControl>
 
             {/* Reset camera */}
-            <Tooltip title="Reset Camera">
-              <IconButton size="small" onClick={handleResetCamera}>
-                <RestartAltIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={<RestartAltIcon fontSize="small" />}
+              tooltip="Reset Camera"
+              onClick={handleResetCamera}
+              size="small"
+            />
 
             {/* Screenshot */}
-            <Tooltip title="Take Screenshot">
-              <IconButton size="small" onClick={handleScreenshot}>
-                <CameraAltIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+              icon={<CameraAltIcon fontSize="small" />}
+              tooltip="Take Screenshot"
+              onClick={handleScreenshot}
+              size="small"
+            />
 
             {/* Fullscreen toggle */}
-            <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
-              <IconButton size="small" onClick={toggleFullscreen}>
-                {isFullscreen ? (
+            <ToolbarIconButton
+              icon={
+                isFullscreen ? (
                   <FullscreenExitIcon fontSize="small" />
                 ) : (
                   <FullscreenIcon fontSize="small" />
-                )}
-              </IconButton>
-            </Tooltip>
-          </div>
+                )
+              }
+              tooltip={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              onClick={toggleFullscreen}
+              size="small"
+            />
+          </FlexRow>
         )}
-      </div>
+      </FlexColumn>
 
       {/* Model info */}
       {!compact && asset?.name && (
         <div className="model-info">
-          <Typography variant="h6" color="textSecondary">
+          <Text size="normal" weight={600} color="secondary">
             {asset.name}
-          </Typography>
+          </Text>
         </div>
       )}
-    </Box>
+    </FlexColumn>
   );
 };
 

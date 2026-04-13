@@ -7,8 +7,8 @@ import React, {
   useState,
   useCallback
 } from "react";
-import { Box, Typography, useMediaQuery } from "@mui/material";
-import { AlertBanner } from "../../ui_primitives";
+import { useMediaQuery } from "@mui/material";
+import { AlertBanner, Text, Caption, FlexRow, FlexColumn } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useParams, useNavigate } from "react-router-dom";
@@ -344,50 +344,42 @@ const StandaloneChat: React.FC = () => {
   // Show loading state if threads are still loading
   if (isLoadingThreads) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{ height: "100vh" }}
       >
-        <Typography>Loading chat...</Typography>
-      </Box>
+        <Text>Loading chat...</Text>
+      </FlexRow>
     );
   }
 
   // Show error state if threads failed to load
   if (threadsError) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{ height: "100vh" }}
       >
         <AlertBanner severity="error">
           Failed to load threads: {threadsError.message}
         </AlertBanner>
-      </Box>
+      </FlexRow>
     );
   }
 
   return (
-    <Box
+    <FlexColumn
       ref={chatContainerRef}
       className="standalone-chat-container"
+      fullWidth
       sx={{
         flex: 1,
-        width: "100%",
         minWidth: 0,
         height: "100dvh", // Dynamic viewport height
         maxHeight: "100dvh",
         maxWidth: "100vw",
-        display: "flex",
-        flexDirection: "column",
         // No top padding since there's no AppHeader
         // Add horizontal padding on desktop to avoid left panel
         paddingLeft: isMobile
@@ -404,7 +396,7 @@ const StandaloneChat: React.FC = () => {
       }}
     >
       {/* Main Chat Area */}
-      <Box
+      <FlexColumn
         css={mainAreaStyles(theme)}
         sx={{ height: "100%", maxHeight: "100%" }}
       >
@@ -429,24 +421,23 @@ const StandaloneChat: React.FC = () => {
         )}
 
         {/* Controls row */}
-        <Box
+        <FlexRow
+          gap={0.5}
+          align="center"
+          justify="flex-end"
           sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            gap: 0.5,
             px: 1,
             pt: 2
           }}
         >
           {connectionState.isConnecting && (
-            <Box
+            <FlexRow
               role="status"
               aria-live="polite"
+              align="center"
+              gap={0.75}
               sx={{
                 display: "inline-flex",
-                alignItems: "center",
-                gap: 0.75,
                 py: 0.5,
                 px: 1,
                 borderRadius: "999px",
@@ -454,23 +445,23 @@ const StandaloneChat: React.FC = () => {
                 color: theme.vars.palette.info.main
               }}
             >
-              <Box
-                sx={{
+              <div
+                style={{
                   width: 8,
                   height: 8,
                   borderRadius: "50%",
-                  bgcolor: "currentColor"
+                  backgroundColor: "currentColor"
                 }}
               />
-              <Typography variant="caption" sx={{ fontWeight: 500 }}>
+              <Caption sx={{ fontWeight: 500 }}>
                 {statusMessage || "Connecting"}
-              </Typography>
-            </Box>
+              </Caption>
+            </FlexRow>
           )}
           <NewChatButton onNewThread={handleNewChat} />
-        </Box>
+        </FlexRow>
 
-        <Box className="chat-container" sx={{ minHeight: 0, flex: 1 }}>
+        <div className="chat-container" style={{ minHeight: 0, flex: 1 }}>
           <ChatView
             status={getChatViewStatus()}
             messages={messages}
@@ -494,9 +485,9 @@ const StandaloneChat: React.FC = () => {
             currentTaskUpdate={taskUpdateForDisplay}
             currentLogUpdate={currentLogUpdate}
           />
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

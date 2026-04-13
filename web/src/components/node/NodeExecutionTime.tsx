@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
-import { Typography, Box } from "@mui/material";
-import isEqual from "lodash/isEqual";
+import { Box } from "@mui/material";
+import { Text, FlexRow } from "../ui_primitives";
+import isEqual from "fast-deep-equal";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 
 interface NodeExecutionTimeProps {
@@ -51,27 +52,26 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
   const isError = status === "error";
 
   return (
-    <Box
+    <FlexRow
       className="node-execution-indicator"
+      align="center"
+      gap={0.5}
       sx={{
         position: "absolute",
         top: -20,
         right: 4,
         padding: "2px 8px",
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
         backgroundColor: isError ? "error.dark" : "success.dark",
         borderRadius: 1,
         zIndex: 1000,
         boxShadow: 1
       }}
     >
-      <Typography
+      <Text
+        size="smaller"
+        weight={500}
         sx={{
           color: isError ? "error.contrastText" : "success.contrastText",
-          fontSize: "0.65rem",
-          fontWeight: 500,
           whiteSpace: "nowrap"
         }}
       >
@@ -86,8 +86,8 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
         >
           {formatDuration(duration)}
         </Box>
-      </Typography>
-    </Box>
+      </Text>
+    </FlexRow>
   );
 };
 

@@ -6,13 +6,14 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useCallback } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
-import { Button, TextField, Tooltip } from "@mui/material";
+import { TextField } from "@mui/material";
+import { Tooltip, EditorButton } from "../ui_primitives";
 import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { resolveAssetUri } from "../node/output/hooks";
@@ -195,6 +196,19 @@ const Model3DProperty = (props: PropertyProps) => {
     setOpenViewer(false);
   }, []);
 
+  if (isConnected) {
+    return (
+      <div className="model3d-property connected" css={styles(theme)}>
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+        <ConnectedBadge />
+      </div>
+    );
+  }
+
   return (
     <div className="model3d-property" css={styles(theme)}>
       <PropertyLabel
@@ -202,9 +216,7 @@ const Model3DProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {isConnected && <ConnectedBadge />}
-      {!isConnected && (
-        <div className="drop-container">
+      <div className="drop-container">
           {showUrlInput && (
             <TextField
               className="url-input nowheel nodrag"
@@ -221,7 +233,7 @@ const Model3DProperty = (props: PropertyProps) => {
           <Tooltip
             title={showUrlInput ? "Hide URL input" : "Show input to enter a URL"}
           >
-            <Button
+            <EditorButton
               className="toggle-url-button"
               variant="text"
               style={{
@@ -230,7 +242,7 @@ const Model3DProperty = (props: PropertyProps) => {
               onClick={handleToggleUrlInput}
             >
               {showUrlInput ? "X" : "URL"}
-            </Button>
+            </EditorButton>
           </Tooltip>
 
           <div
@@ -263,7 +275,6 @@ const Model3DProperty = (props: PropertyProps) => {
             onClose={handleCloseViewer}
           />
         </div>
-      )}
     </div>
   );
 };

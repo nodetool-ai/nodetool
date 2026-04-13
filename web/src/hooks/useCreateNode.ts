@@ -8,8 +8,7 @@ import { useRecentNodesStore } from "../stores/RecentNodesStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { findSnippetByNodeType } from "../config/snippetMetadata";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../utils/codeOutputInference";
-
-const CODE_NODE_TYPE = "nodetool.code.Code";
+import { CODE_NODE_TYPE } from "../components/node/codeNodeUi";
 
 /**
  * Hook for creating new nodes in the workflow editor.
@@ -49,6 +48,8 @@ export const useCreateNode = (
         const codeMetadata = useMetadataStore.getState().getMetadata(CODE_NODE_TYPE);
         if (codeMetadata) {
           const newNode = createNode(codeMetadata, rfPos, { code: snippet.code });
+          newNode.data.title = snippet.title;
+          newNode.data.codeNodeMode = "snippet";
           addNode(newNode);
 
           // Set dynamic inputs/outputs with proper types from snippet metadata

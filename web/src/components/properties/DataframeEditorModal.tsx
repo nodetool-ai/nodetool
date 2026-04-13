@@ -9,8 +9,9 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import SearchIcon from "@mui/icons-material/Search";
-import { Tooltip, InputAdornment } from "@mui/material";
-import isEqual from "lodash/isEqual";
+import { InputAdornment } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
+import isEqual from "fast-deep-equal";
 import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -546,7 +547,7 @@ const DataframeEditorModal = ({
             <div className="actions">
               <div className="toolbar-group">
                 <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  delay={TOOLTIP_ENTER_DELAY}
                   title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
                 >
                   <button className="button" onClick={toggleFullscreen}>
@@ -554,7 +555,7 @@ const DataframeEditorModal = ({
                   </button>
                 </Tooltip>
                 <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  delay={TOOLTIP_ENTER_DELAY}
                   title="Close Editor | Esc"
                 >
                   <button className="button button-close" onClick={onClose}>

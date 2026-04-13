@@ -243,7 +243,7 @@ export class ScreenshotTool extends Tool {
         };
       }
 
-      const result = await response.json();
+      const result = await response.json() as Record<string, unknown>;
       return { success: true, ...result };
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);

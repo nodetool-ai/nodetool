@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useCallback, memo } from "react";
-import { Box, Typography } from "@mui/material";
-import { EditorButton } from "./ui_primitives";
+import { Box } from "@mui/material";
+import { EditorButton, Text } from "./ui_primitives";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import Logo from "./Logo";
 
@@ -116,10 +116,10 @@ function Login() {
           borderRadius="1.5em"
           small={false}
         />
-        <Typography component="h3">
+        <Text component="h3">
           Node-based AI <br />
           for text, image, audio & video.
-        </Typography>
+        </Text>
       </div>
       <GoogleAuthButton />
       <div className="button-group">

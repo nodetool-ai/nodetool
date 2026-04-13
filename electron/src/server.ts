@@ -32,11 +32,13 @@ import { getServerUrl, getServerPort } from "./utils";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
+import { pathToFileURL } from "url";
 import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
 import { readSettings, getModelServiceStartupSettings, readSettingsAsync } from "./settings";
+import { probeHttpOk, waitForHttpOk } from "./httpProbe";
 
 let backendWatchdog: Watchdog | null = null;
 let llamaWatchdog: Watchdog | null = null;
@@ -151,18 +153,7 @@ export async function isLlamaServerResponsive(
   port: number,
   timeoutMs = 2000
 ): Promise<boolean> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(`http://127.0.0.1:${port}/health`, {
-      signal: controller.signal,
-    });
-    return res.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(id);
-  }
+  return probeHttpOk(`http://127.0.0.1:${port}/health`, { timeoutMs });
 }
 
 /**
@@ -410,24 +401,37 @@ async function startServer(): Promise<void> {
     logMessage("Could not resolve Python path. Backend will start without Python support.", "warn");
   }
 
+  const rootDir = path.join(__dirname, "..", "..");
+
+  // In dev mode, preload tsx/esm as a Node.js startup hook via --import so that
+  // TypeScript files can be loaded inside the utilityProcess without calling
+  // register() at runtime (which spawns a worker thread and fails in utility processes).
+  const nodeOptionsParts = [process.env.NODE_OPTIONS, "--conditions=nodetool-dev"];
+  if (isDevMode()) {
+    const tsxEsmHook = path.join(rootDir, "node_modules", "tsx", "dist", "esm", "index.mjs");
+    nodeOptionsParts.push(`--import=${pathToFileURL(tsxEsmHook).href}`);
+  }
+
   const backendEnv: Record<string, string> = {
     ...getProcessEnv(),
     PORT: String(selectedPort),
+    HOST: "127.0.0.1",
     STATIC_FOLDER: webPath,
     NODETOOL_PYTHON: pythonPath,
     LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
     NODE_ENV: isDevMode() ? "development" : "production",
+    NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     NODE_PATH: backendNodeModules,
   };
-
   const watchdogOpts: import("./watchdog").WatchdogOptions = isDevMode()
     ? {
-        // Dev mode: run TS source directly via tsx (no build step needed)
+        // Dev mode: fork tsx inside Electron's utilityProcess — same ABI as
+        // production, no external node binary required.
         name: "nodetool",
-        command: path.join(__dirname, "..", "..", "node_modules", ".bin", "tsx"),
+        modulePath: path.join(__dirname, "..", "dev-server-runner.cjs"),
         args: [backendEntryPoint],
         env: backendEnv,
-        cwd: path.join(__dirname, "..", ".."),
+        cwd: rootDir,
         pidFilePath: PID_FILE_PATH,
         healthUrl: `http://127.0.0.1:${selectedPort}/health`,
         onOutput: (line) => handleServerOutput(Buffer.from(line)),
@@ -508,18 +512,8 @@ async function isServerRunning(): Promise<boolean> {
   if (!port) {
     return false;
   }
-  
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1000);
-    const response = await fetch(`http://127.0.0.1:${port}/health`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    return response.ok;
-  } catch {
-    return false;
-  }
+
+  return probeHttpOk(`http://127.0.0.1:${port}/health`, { timeoutMs: 1000 });
 }
 
 /**
@@ -696,38 +690,15 @@ async function initializeBackendServer(): Promise<void> {
  * @throws Error if server doesn't become available within timeout period
  */
 async function waitForServer(timeout: number = 60000): Promise<void> {
-  const startTime = Date.now();
-  while (Date.now() - startTime < timeout) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout per request (faster polling)
-      
-      try {
-        const response = await fetch(
-          getServerUrl("/health"),
-          { signal: controller.signal }
-        );
-        clearTimeout(timeoutId);
-        if (response.ok) {
-          logMessage(
-            `Server endpoint is available at ${getServerUrl("/health")}`
-          );
-          emitServerStarted();
-          return;
-        }
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        if (fetchError.name !== 'AbortError') {
-          // Only log non-timeout errors
-          logMessage(`Health check error: ${fetchError.message}`);
-        }
-      }
-    } catch (error) {
-      // Fallback error handling
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  throw new Error("Server failed to become available");
+  const readyUrl = getServerUrl("/ready");
+  await waitForHttpOk(readyUrl, {
+    timeoutMs: timeout,
+    requestTimeoutMs: 3000,
+    pollIntervalMs: 250,
+    errorMessage: "Server failed to become available",
+  });
+  logMessage(`Server endpoint is available at ${readyUrl}`);
+  emitServerStarted();
 }
 
 /**

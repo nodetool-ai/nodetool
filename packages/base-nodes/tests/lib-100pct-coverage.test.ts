@@ -642,17 +642,9 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
     expect(result).toEqual({});
   });
 
-  it("OpenWorkspaceDirectory calls openPath with dir", async () => {
-    // Use a temp dir that exists, but the open command will fail (or succeed on macOS)
-    const tmpDir = mkdtempSync(join(tmpdir(), "os-test-"));
-    try {
-      const result = await new OpenWorkspaceDirectoryLibNode({}).process({
-        workspaceDir: tmpDir
-      } as any);
-      expect(result).toEqual({});
-    } catch {
-      // On CI or non-macOS, the "open" command may fail - that's ok, we covered the code path
-    }
+  it.skip("OpenWorkspaceDirectory calls openPath with dir — skipped to avoid opening Finder", () => {
+    // This test spawns the platform "open" command which opens a Finder window.
+    // The early-return paths (no context, no workspaceDir) are covered above.
   });
 });
 
@@ -993,10 +985,10 @@ describe("lib-markitdown coverage", () => {
     const result = await new ConvertToMarkdownLibNode({
       document: { uri: htmlPath, data: "" }
     }).process();
-    const output = result.output as { data: string };
-    expect(typeof output.data).toBe("string");
-    expect(output.data.length).toBeGreaterThan(0);
-    expect(output.data).toContain("Hello");
+    const output = result.output as string;
+    expect(typeof output).toBe("string");
+    expect(output.length).toBeGreaterThan(0);
+    expect(output).toContain("Hello");
   });
 
   it("ConvertToMarkdown with non-DOCX URI (file read, plain text)", async () => {
@@ -1007,7 +999,6 @@ describe("lib-markitdown coverage", () => {
     const result = await new ConvertToMarkdownLibNode({
       document: { uri: txtPath, data: "" }
     }).process();
-    const output = result.output as { data: string };
-    expect(output.data).toContain("Just plain text");
+    expect(result.output).toContain("Just plain text");
   });
 });

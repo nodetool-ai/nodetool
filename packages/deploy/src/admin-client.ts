@@ -92,7 +92,7 @@ export class AdminHTTPClient {
     }
 
     const headers = { ...this.headers };
-    let body: BodyInit | undefined;
+    let body: string | ArrayBuffer | undefined;
 
     if (options?.rawBody !== undefined) {
       body =
@@ -123,7 +123,7 @@ export class AdminHTTPClient {
     }
   ): Promise<void> {
     const headers = { ...this.headers };
-    let body: BodyInit | undefined;
+    let body: string | ArrayBuffer | undefined;
 
     if (options?.rawBody !== undefined) {
       body =

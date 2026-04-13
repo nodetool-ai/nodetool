@@ -1,11 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useState } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import PropertyLabel from "../../node/PropertyLabel";
 import { PropertyProps } from "../../node/PropertyInput";
-import { Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Text } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
 import log from "loglevel";
@@ -105,7 +105,7 @@ const PathPreview = ({
         Browse
       </button>
       <div className="path-picker__preview">
-        <Typography>{value?.toString()}</Typography>
+        <Text>{value?.toString()}</Text>
         {value?.toString() && (
           <button
             onClick={onClear}

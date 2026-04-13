@@ -59,6 +59,16 @@ describe("useFloatingToolbarPosition", () => {
     });
   });
 
+  it("skips right-panel horizontal offset on mobile", () => {
+    const { result } = renderHook(() =>
+      useFloatingToolbarPosition(true, 300, false, 0, true)
+    );
+
+    // On mobile the right panel renders as a bottom sheet, so the toolbar
+    // should stay centered (no `right`/`left`/`transform` override).
+    expect(result.current).toEqual({ bottom: "20px" });
+  });
+
   it("respects minimum bottom offset of 80px", () => {
     const { result } = renderHook(() =>
       useFloatingToolbarPosition(false, 0, true, 10)

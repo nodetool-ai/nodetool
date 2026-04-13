@@ -20,8 +20,9 @@
 
 import React, { Suspense } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Box, Typography, Paper, CircularProgress } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Text, Caption, LoadingSpinner, Surface } from "../ui_primitives";
 
 const AppHeader = React.lazy(() => import("../panels/AppHeader"));
 const ModelListIndex = React.lazy(
@@ -73,7 +74,7 @@ const PreviewAppHeader: React.FC = () => {
       data-preview="app-header"
       sx={{ width: "100%", bgcolor: theme.palette.background.default }}
     >
-      <Suspense fallback={<CircularProgress size={20} />}>
+      <Suspense fallback={<LoadingSpinner size="small" />}>
         <AppHeader />
       </Suspense>
     </Box>
@@ -82,7 +83,7 @@ const PreviewAppHeader: React.FC = () => {
 
 const PreviewDashboard: React.FC = () => (
   <Box data-preview="dashboard" sx={{ width: "100%", height: "100vh" }}>
-    <Suspense fallback={<CircularProgress />}>
+    <Suspense fallback={<LoadingSpinner />}>
       <Portal />
     </Suspense>
   </Box>
@@ -90,7 +91,7 @@ const PreviewDashboard: React.FC = () => (
 
 const PreviewModels: React.FC = () => (
   <Box data-preview="models" sx={{ width: "100%", height: "100vh" }}>
-    <Suspense fallback={<CircularProgress />}>
+    <Suspense fallback={<LoadingSpinner />}>
       <ModelListIndex />
     </Suspense>
   </Box>
@@ -98,7 +99,7 @@ const PreviewModels: React.FC = () => (
 
 const PreviewAssets: React.FC = () => (
   <Box data-preview="assets" sx={{ width: "100%", height: "100vh" }}>
-    <Suspense fallback={<CircularProgress />}>
+    <Suspense fallback={<LoadingSpinner />}>
       <AssetExplorer />
     </Suspense>
   </Box>
@@ -116,13 +117,13 @@ const PreviewIndex: React.FC = () => {
         minHeight: "100vh"
       }}
     >
-      <Typography variant="h4" sx={{ mb: 1, fontWeight: 700 }}>
+      <Text size="big" weight={700} sx={{ mb: 1 }}>
         Component Previews
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+      </Text>
+      <Text size="small" color="secondary" sx={{ mb: 4 }}>
         Isolated component views for documentation screenshots. Navigate to{" "}
         <code>/preview/:id</code> to render a component in isolation.
-      </Typography>
+      </Text>
 
       <Box
         sx={{
@@ -132,46 +133,48 @@ const PreviewIndex: React.FC = () => {
         }}
       >
         {PREVIEWS.map((p) => (
-          <Paper
+          <Link
             key={p.id}
-            component={Link}
             to={`/preview/${p.id}`}
-            sx={{
-              p: 3,
-              textDecoration: "none",
-              color: "text.primary",
-              border: `1px solid ${theme.palette.divider}`,
-              "&:hover": {
-                borderColor: theme.palette.primary.main,
-                boxShadow: `0 0 0 2px ${theme.palette.primary.main}22`
-              },
-              transition: "border-color 0.15s, box-shadow 0.15s"
-            }}
+            style={{ textDecoration: "none", color: "inherit", display: "block" }}
           >
-            <Typography variant="h6" sx={{ mb: 0.5 }}>
-              {p.label}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {p.description}
-            </Typography>
-            {p.viewport && (
-              <Typography variant="caption" color="text.disabled">
-                {p.viewport.width} × {p.viewport.height}
-              </Typography>
-            )}
-          </Paper>
+            <Surface
+              elevation={0}
+              sx={{
+                p: 3,
+                border: `1px solid ${theme.palette.divider}`,
+                "&:hover": {
+                  borderColor: theme.palette.primary.main,
+                  boxShadow: `0 0 0 2px ${theme.palette.primary.main}22`
+                },
+                transition: "border-color 0.15s, box-shadow 0.15s"
+              }}
+            >
+              <Text size="normal" weight={600} sx={{ mb: 0.5 }}>
+                {p.label}
+              </Text>
+              <Text size="small" color="secondary" sx={{ mb: 1 }}>
+                {p.description}
+              </Text>
+              {p.viewport && (
+                <Caption sx={{ color: "text.disabled" }}>
+                  {p.viewport.width} × {p.viewport.height}
+                </Caption>
+              )}
+            </Surface>
+          </Link>
         ))}
       </Box>
 
       <Box sx={{ mt: 6 }}>
-        <Typography variant="body2" color="text.secondary">
+        <Text size="small" color="secondary">
           <strong>Playwright screenshot usage:</strong>
           <br />
           <code>
             npx playwright test tests/benchmarks/screenshots.spec.ts
             --project=chromium
           </code>
-        </Typography>
+        </Text>
       </Box>
     </Box>
   );
@@ -205,16 +208,14 @@ const ComponentPreview: React.FC = () => {
           minHeight: "100vh"
         }}
       >
-        <Typography variant="h5" color="error" sx={{ mb: 2 }}>
+        <Text size="normal" weight={600} color="error" sx={{ mb: 2 }}>
           Unknown preview: &ldquo;{component}&rdquo;
-        </Typography>
-        <Typography
-          component={Link}
-          to="/preview"
-          sx={{ color: theme.palette.primary.main }}
-        >
-          ← Back to preview index
-        </Typography>
+        </Text>
+        <Link to="/preview" style={{ color: theme.palette.primary.main, textDecoration: "none" }}>
+          <Text size="small">
+            ← Back to preview index
+          </Text>
+        </Link>
       </Box>
     );
   }

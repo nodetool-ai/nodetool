@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useMemo } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Asset } from "../../stores/ApiTypes";
@@ -146,12 +147,12 @@ const InfoRow = memo(function InfoRow({
   }
   return (
     <div className="info-row">
-      <Typography className="info-label" component="span">
+      <Text className="info-label" component="span">
         {label}
-      </Typography>
-      <Typography className="info-value" component="span">
+      </Text>
+      <Text className="info-value" component="span">
         {value}
-      </Typography>
+      </Text>
     </div>
   );
 });

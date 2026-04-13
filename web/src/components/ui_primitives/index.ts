@@ -100,6 +100,9 @@ export type { TagInputProps, TagValidationResult } from "./TagInput";
 export { ThemeToggleButton } from "./ThemeToggleButton";
 export type { ThemeToggleButtonProps } from "./ThemeToggleButton";
 
+export { AutocompleteTagInput } from "./AutocompleteTagInput";
+export type { AutocompleteTagInputProps } from "./AutocompleteTagInput";
+
 // Navigation & Layout primitives
 export { SearchInput } from "./SearchInput";
 export type { SearchInputProps } from "./SearchInput";
@@ -284,6 +287,9 @@ export type { SkeletonProps } from "./Skeleton";
 export { DrawerPanel } from "./DrawerPanel";
 export type { DrawerPanelProps } from "./DrawerPanel";
 
+export { MobileBottomSheet } from "./MobileBottomSheet";
+export type { MobileBottomSheetProps } from "./MobileBottomSheet";
+
 // Phase 4 - Additional primitives
 
 export { Checkbox } from "./Checkbox";
@@ -309,6 +315,12 @@ export type { SurfaceProps } from "./Surface";
 
 export { Autocomplete } from "./Autocomplete";
 export type { AutocompleteProps, AutocompleteOption } from "./Autocomplete";
+
+export { LabeledSwitch } from "./LabeledSwitch";
+export type { LabeledSwitchProps } from "./LabeledSwitch";
+
+export { SelectField } from "./SelectField";
+export type { SelectFieldProps, SelectOption } from "./SelectField";
 
 // Accessibility
 export { SkipLinks } from "./SkipLinks";

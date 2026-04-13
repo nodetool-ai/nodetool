@@ -11,7 +11,7 @@ import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useAssets from "../../serverState/useAssets";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const styles = (theme: Theme) =>
   css({

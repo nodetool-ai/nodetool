@@ -16,7 +16,6 @@ import {
   Position,
   ResizeParams
 } from "@xyflow/react";
-import isEqual from "lodash/isEqual";
 import {
   Box,
   Button,
@@ -26,9 +25,10 @@ import {
   Link,
   Menu,
   MenuItem,
-  Tooltip,
   Typography
 } from "@mui/material";
+import isEqual from "fast-deep-equal";
+import { Tooltip, EditorButton } from "../ui_primitives";
 import LaunchIcon from "@mui/icons-material/Launch";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
@@ -44,6 +44,7 @@ import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
+import ResultOverlay from "./ResultOverlay";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -80,6 +81,13 @@ import {
   formatCredits,
   type FalCredits,
 } from "../../utils/falCredits";
+import {
+  CODE_NODE_TYPE,
+  isCodeNode,
+  isCodeNodeTitleEditable,
+  resolveCodeNodeTitle,
+  resolveVisibleBasicFields
+} from "./codeNodeUi";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -306,6 +314,7 @@ const getNodeContainerStyles = (
   // stretches to match so vertical resizing is visible.
   height: "100%",
   minHeight,
+  overflow: "visible" as const,
   border: isLoading ? "none" : `1px solid var(--palette-grey-900)`,
   ...theme.applyStyles("dark", {
     border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
@@ -324,11 +333,7 @@ const getNodeContainerStyles = (
   backgroundColor:
     hasParent && !isLoading
       ? parentColor
-      : selected
-        ? "transparent !important"
-        : theme.vars.palette.c_node_bg,
-  backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-  WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
+      : theme.vars.palette.c_node_bg,
   borderRadius: "var(--rounded-node)",
   // dynamic node color
   "--node-primary-color": baseColor || "var(--palette-primary-main)",
@@ -417,20 +422,34 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const meta = useMemo(() => {
+    const nodeBasicFields = resolveVisibleBasicFields(
+      type,
+      metadata.basic_fields || [],
+      data
+    );
     return {
       nodeNamespace: metadata.namespace || "",
-      nodeBasicFields: metadata.basic_fields || [],
+      nodeBasicFields,
       hasAdvancedFields:
         (metadata.properties?.length ?? 0) >
-        (metadata.basic_fields?.length ?? 0),
+        nodeBasicFields.length,
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
   }, [
+    data,
+    type,
     metadata.basic_fields,
     metadata.namespace,
     metadata.properties?.length,
     specialNamespaces
   ]);
+
+  const displayTitle = useMemo(
+    () => resolveCodeNodeTitle(type, data.title, metadata.title),
+    [data.title, metadata.title, type]
+  );
+  const showCodeBadge = isCodeNode(type);
+  const isCodeTitleEditable = isCodeNodeTitleEditable(type, data);
 
   // Style
   const styleProps = useMemo(
@@ -583,8 +602,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isOverlayVisible = suppressResultOverlay
     ? false
     : shouldAlwaysShowResult
-    ? result && !isEmptyResult(result)
-    : showResultOverlay && result && !isEmptyResult(result);
+    ? Boolean(result && !isEmptyResult(result))
+    : Boolean(showResultOverlay && result && !isEmptyResult(result));
   const hasToggleableResult =
     !suppressResultOverlay &&
     !shouldAlwaysShowResult &&
@@ -654,10 +673,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       styleProps.minHeight
     ]
   );
-
-  if (!metadata) {
-    throw new Error("Metadata is not loaded for node " + id);
-  }
 
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
@@ -735,6 +750,34 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       className={styleProps.className}
       sx={containerSx}
     >
+      {/* Result panel — floats above the node */}
+      {isOverlayVisible && (
+        <div
+          className="result-panel-above"
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            maxHeight: 300,
+            overflow: "auto",
+            borderRadius: "8px",
+            backgroundColor: "var(--palette-grey-900)",
+            border: "1px solid var(--palette-grey-800)",
+            zIndex: 5,
+            boxShadow: "0 -2px 12px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.15)",
+            padding: "8px"
+          }}
+        >
+          <ResultOverlay
+            result={result}
+            nodeId={id}
+            workflowId={workflow_id}
+            nodeName={displayTitle}
+            onShowInputs={nodeType.isOutputNode ? undefined : handleShowInputs}
+          />
+        </div>
+      )}
       <Handle
         type="target"
         id={CONTROL_HANDLE_ID}
@@ -749,6 +792,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         selected={selected}
         data={data}
         backgroundColor={headerColor}
+        title={displayTitle}
         metadataTitle={metadata.title}
         hasParent={hasParent}
         iconType={metadata?.outputs?.[0]?.type?.type}
@@ -758,6 +802,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         showInputsButton={Boolean(isOverlayVisible && hasToggleableResult)}
         onShowResults={handleShowResults}
         onShowInputs={handleShowInputs}
+        isTitleEditable={isCodeTitleEditable}
+        showCodeBadge={showCodeBadge}
+        codeBadgeTooltip="Code node"
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       {!hasError && metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
@@ -775,14 +822,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         nodeType={type}
         name={data.properties?.name as string | undefined}
       />
-      <Box
+      <div
         className="node-content-container"
-        sx={{
+        style={{
           flex: "1 1 auto",
           minHeight: 0,
           width: "100%",
-          overflow: "visible", // Allow handles to render outside bounds
-          clipPath: "inset(0 -60px)" // Clip top/bottom, extend left/right for handles and add-button
+          overflow: "visible",
+          clipPath: "inset(0 -60px)"
         }}
       >
         <NodeContent
@@ -804,7 +851,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onShowInputs={handleShowInputs}
           onShowResults={handleShowResults}
         />
-      </Box>
+      </div>
 
       {/* Default behavior: width-only resize for regular nodes.
           If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}
@@ -830,37 +877,37 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {isFocused && (
-        <Box
-          sx={{
+        <div
+          style={{
             position: "absolute",
             top: -20,
             left: "50%",
             transform: "translateX(-50%)",
-            bgcolor: theme.vars.palette.warning.main,
+            backgroundColor: theme.vars.palette.warning.main,
             color: theme.vars.palette.warning.contrastText,
-            px: 1,
-            py: 0.25,
-            borderRadius: 1,
+            padding: "2px 8px",
+            borderRadius: 4,
             fontSize: "0.7rem",
             fontWeight: "bold",
-            zIndex: 1000,
-            boxShadow: 2
+            zIndex: 1000
           }}
         >
           FOCUSED
-        </Box>
+        </div>
       )}
 
-      {title && <EditableTitle nodeId={id} title={title} />}
+      {title && type !== CODE_NODE_TYPE && (
+        <EditableTitle nodeId={id} title={title} />
+      )}
 
       {selected && metadata.namespace && (
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          delay={TOOLTIP_ENTER_DELAY * 2}
           title="Open Node Menu here"
           placement="bottom"
           arrow
         >
-          <Button
+          <EditorButton
             variant="text"
             className="node-namespace nodrag nopan"
             onClick={handleNamespaceClick}
@@ -891,7 +938,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             }}
           >
             {metadata.namespace}
-          </Button>
+          </EditorButton>
         </Tooltip>
       )}
       {selected && metadata.fal_unit_pricing && (

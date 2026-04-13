@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo, useCallback } from "react";
-import { Typography } from "@mui/material";
+import { Text } from "../ui_primitives";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import HomeIcon from "@mui/icons-material/Home";
 import { useTheme } from "@mui/material/styles";
@@ -137,14 +137,14 @@ const BreadcrumbNav: React.FC = () => {
             {index > 0 && (
               <NavigateNextIcon className="breadcrumb-separator" />
             )}
-            <Typography
+            <Text
               className={`breadcrumb-item ${isLast ? "current" : ""}`}
               onClick={() => !isLast && handleClick(crumb.id)}
               component="span"
             >
               {isRoot && <HomeIcon className="breadcrumb-home" />}
               {!isRoot && crumb.name}
-            </Typography>
+            </Text>
           </React.Fragment>
         );
       })}

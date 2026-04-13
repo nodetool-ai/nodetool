@@ -3,11 +3,12 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
-import { Container, Typography } from "@mui/material";
+import { Container } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import log from "loglevel";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
@@ -467,9 +468,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
           )}
 
           {result === null || result === undefined && (
-            <Typography className="hint">
+            <Text className="hint">
               Exposes data to App Mode
-            </Typography>
+            </Text>
           )}
           <PreviewActions
             onDownload={handleDownload}

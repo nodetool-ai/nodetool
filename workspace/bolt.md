@@ -26,3 +26,11 @@
 ## 2024-05-24 - NodeStore `getSelectedNodeCount` `O(N)` Selection Optimization
 **Learning:** Functions exposed on the Zustand `store.getState()` (like `getSelectedNodeCount`) that compute derived state (`O(N)`) are extremely dangerous when subscribed to directly inside a component's `useNodes` hook (e.g. `const count = useNodes((state) => state.getSelectedNodeCount())`). Because Zustand evaluates selector functions on *every* store update (which is 60fps during dragging), an `O(N)` getter becomes `O(K * N)` per frame when `K` components subscribe to it.
 **Action:** When creating derived getters on a Zustand store, either use memoized selectors that components can consume or add a lightweight internal cache (`lastNodesForSelectionCount === get().nodes`) inside the getter itself so it only computes the `O(N)` operation once per state reference update.
+
+## 2026-04-12 - High-Frequency State Arrays `findLastIndex` Optimization
+**Learning:** During high-frequency streaming events (like LLM token generation) where an array in a Zustand store is continuously appended to and updated, using `array.findIndex()` to locate the message creates an O(N²) bottleneck because it scans from the beginning.
+**Action:** Always use `array.findLastIndex()` or an O(1) Map lookup for finding elements in an array when updated elements are appended to the end to prevent blocking the main thread.
+
+## 2025-01-31 - CommandMenu Zustand Selector Optimization
+**Learning:** Returning an object literal from a primitive Zustand selector in `useNodes` (e.g., `(state) => ({ nodes: state.nodes, edges: state.edges })`) defaults to strict equality (`===`), causing continuous re-renders whenever the underlying arrays are updated (e.g., at 60fps during ReactFlow dragging).
+**Action:** Always provide `shallow` from `zustand/shallow` as the second argument to `useNodes` when returning new object literals containing shallowly comparable elements to eliminate unnecessary `O(N)` re-renders.

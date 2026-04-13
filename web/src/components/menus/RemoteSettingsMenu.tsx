@@ -1,18 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
-import WarningIcon from "@mui/icons-material/Warning";
+
 import LoginIcon from "@mui/icons-material/Login";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useMemo, useState, useCallback, useEffect, memo } from "react";
 import {
   Button,
-  TextField,
-  Typography,
   Select,
   MenuItem,
   FormControl,
   InputLabel
 } from "@mui/material";
+import { TextInput, Text } from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
   type SettingWithValue
@@ -113,7 +112,7 @@ const SettingItem = memo(function SettingItem({
           </Select>
         </FormControl>
       ) : (
-        <TextField
+        <TextInput
           type={setting.is_secret ? "password" : "text"}
           autoComplete="off"
           id={`${setting.env_var.toLowerCase()}-input`}
@@ -121,13 +120,14 @@ const SettingItem = memo(function SettingItem({
           value={value || ""}
           onChange={handleChange}
           variant="standard"
+          size="small"
           onKeyDown={handleKeyDown}
         />
       )}
       {setting.description && (
-        <Typography className="description">
+        <Text className="description">
           {setting.description}
-        </Typography>
+        </Text>
       )}
       {SETTING_LINKS[setting.env_var] && (
         <div style={{ marginTop: "0.5em" }}>
@@ -366,9 +366,9 @@ const RemoteSettings = () => {
   return (
     <>
       {isLoading && (
-        <Typography sx={{ textAlign: "center", padding: "2em" }}>
+        <Text sx={{ textAlign: "center", padding: "2em" }}>
           Loading settings...
-        </Typography>
+        </Text>
       )}
       {isSuccess &&
         displayedSettingsByGroup &&
@@ -378,28 +378,20 @@ const RemoteSettings = () => {
             css={getSharedSettingsStyles(theme)}
           >
             <div className="settings-main-content">
-              <Typography variant="h1">Settings</Typography>
-
-              <div className="secrets">
-                <WarningIcon sx={{ color: (theme) => theme.vars.palette.warning.main }} />
-                <Typography>
-                  Keep your keys and tokens secure and do not share them
-                  publicly
-                </Typography>
-              </div>
+              <Text size="giant">Settings</Text>
 
               {/* HuggingFace OAuth Section */}
               <div className="settings-section">
-                <Typography
-                  variant="h2"
+                <Text
+                  size="bigger"
                   id="huggingface-oauth"
                 >
                   HuggingFace Authentication
-                </Typography>
+                </Text>
                 <div className="settings-item large">
-                  <Typography className="description">
+                  <Text className="description">
                     Connect your HuggingFace account to access premium models and features
-                  </Typography>
+                  </Text>
                   <Button
                     variant="contained"
                     color="primary"
@@ -427,12 +419,12 @@ const RemoteSettings = () => {
               {Array.from(displayedSettingsByGroup.entries()).map(
                 ([groupName, groupSettings]) => (
                   <div key={groupName} className="settings-section">
-                    <Typography
-                      variant="h2"
+                    <Text
+                      size="bigger"
                       id={groupName.toLowerCase().replace(/\s+/g, "-")}
                     >
                       {groupName}
-                    </Typography>
+                    </Text>
                     {groupSettings
                       .filter((setting) => !setting.is_secret)
                       .map((setting) => (
@@ -463,9 +455,9 @@ const RemoteSettings = () => {
         )}
       {isSuccess &&
         (!displayedSettingsByGroup || displayedSettingsByGroup.size === 0) && (
-          <Typography sx={{ textAlign: "center", padding: "2em" }}>
+          <Text sx={{ textAlign: "center", padding: "2em" }}>
             No settings available
-          </Typography>
+          </Text>
         )}
     </>
   );

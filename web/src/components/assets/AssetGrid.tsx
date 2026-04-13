@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, memo } from "react";
-import { Box, Divider, Tooltip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text, Tooltip, Divider } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -84,7 +85,7 @@ const SelectedItemsInfo: React.FC<{
   return (
     <div className="header-info">
       <div className="selected-asset-info">
-        <Typography variant="body1" className="selected-info">
+        <Text className="selected-info">
           {selectedAssetIds.length}{" "}
           {selectedAssetIds.length === 1 ? "item" : "items"} selected
           {totalSize > 0 && (
@@ -94,7 +95,7 @@ const SelectedItemsInfo: React.FC<{
               </span>
             </Tooltip>
           )}
-        </Typography>
+        </Text>
       </div>
     </div>
   );
@@ -108,6 +109,7 @@ interface AssetGridProps {
   sortedAssets?: Asset[];
   initialFoldersPanelWidth?: number;
   isFullscreenAssets?: boolean;
+  isMobile?: boolean;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
@@ -115,7 +117,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
   sortedAssets,
-  isFullscreenAssets
+  isFullscreenAssets,
+  isMobile = false
 }) => {
   const { error, folderFilesFiltered } = useAssets();
   // Separate selectors prevent unnecessary re-renders when only one value changes
@@ -203,6 +206,18 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
+
+      if (isMobile) {
+        // On mobile, skip the folders panel — just show files with breadcrumb nav
+        api.addPanel({
+          id: "asset-files",
+          component: "asset-files",
+          title: "Files",
+          params: { isHorizontal, itemSpacing }
+        });
+        return;
+      }
+
       // Add folders panel first with an initial size
       const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
         id: "asset-folders",
@@ -239,25 +254,25 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       };
       applyInitialSize();
     },
-    [isFullscreenAssets, isHorizontal, itemSpacing]
+    [isFullscreenAssets, isHorizontal, itemSpacing, isMobile]
   );
 
   return (
     <Box css={styles(theme)} className="asset-grid-container">
       {error && (
-        <Typography
+        <Text
           className="error-message"
+          color="error"
           sx={{
             position: "absolute",
             top: "1em",
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 1000,
-            color: "var(--palette-error-main)"
+            zIndex: 1000
           }}
         >
           {error.message}
-        </Typography>
+        </Text>
       )}
       {openAsset && (
         <AssetViewer
@@ -267,15 +282,21 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           onClose={() => setOpenAsset(null)}
         />
       )}
-      <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
-      <StorageAnalytics
-        assets={sortedAssets || folderFilesFiltered || []}
-        currentFolder={currentFolder}
-      />
-      <SelectedItemsInfo
-        selectedAssetIds={selectedAssetIds}
-        assets={sortedAssets || folderFilesFiltered || []}
-      />
+      {!isMobile && (
+        <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
+      )}
+      {!isMobile && (
+        <StorageAnalytics
+          assets={sortedAssets || folderFilesFiltered || []}
+          currentFolder={currentFolder}
+        />
+      )}
+      {!isMobile && (
+        <SelectedItemsInfo
+          selectedAssetIds={selectedAssetIds}
+          assets={sortedAssets || folderFilesFiltered || []}
+        />
+      )}
       {/* Drag-and-drop enabled region; upload button now in toolbar */}
       <Dropzone onDrop={uploadFiles}>
         <div

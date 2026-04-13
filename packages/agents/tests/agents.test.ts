@@ -284,22 +284,17 @@ describe("TaskPlanner", () => {
     }
     const task = result.value;
 
-    // Should return null due to circular dependencies
+    // Should return null due to circular dependencies (tool rejects the plan)
     expect(task).toBeNull();
 
-    // Should have a planning_update about circular dependencies
-    const errorUpdates = messages.filter(
+    // Should have a planning_update indicating failure
+    const failedUpdates = messages.filter(
       (m) =>
-        (m.type === "planning_update" &&
-          "content" in m &&
-          typeof (m as any).content === "string" &&
-          (m as any).content.toLowerCase().includes("circular")) ||
-        (m.type === "chunk" &&
-          "content" in m &&
-          typeof (m as any).content === "string" &&
-          (m as any).content.toLowerCase().includes("circular"))
+        m.type === "planning_update" &&
+        "status" in m &&
+        (m as any).status === "failed"
     );
-    expect(errorUpdates.length).toBeGreaterThanOrEqual(1);
+    expect(failedUpdates.length).toBeGreaterThanOrEqual(1);
   });
 
   it("includes outputSchema in planner prompt when provided", async () => {
@@ -385,25 +380,22 @@ describe("TaskPlanner", () => {
     expect(task!.title).toBe("Tools Task");
   });
 
-  it("extracts task from text when no tool call is made", async () => {
-    const taskPayload = {
-      title: "Text Task",
-      steps: [{ id: "step_a", instructions: "Do A", depends_on: [] }]
-    };
-
-    // Provider returns JSON in text, not as a tool call
+  it("returns null when LLM returns text without calling tool", async () => {
+    // Provider returns JSON in text, not as a tool call.
+    // With StepExecutor-based planning, the tool must be called explicitly.
     const provider = createMockProvider([
       [
         {
           type: "chunk",
-          content: `Here is the plan: ${JSON.stringify(taskPayload)}`
+          content: `Here is the plan: {"title":"Text Task","steps":[{"id":"step_a","instructions":"Do A","depends_on":[]}]}`
         }
       ]
     ]);
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model"
+      model: "test-model",
+      maxRetries: 1
     });
 
     const context = createMockContext();
@@ -414,9 +406,8 @@ describe("TaskPlanner", () => {
     }
     const task = result.value;
 
-    expect(task).not.toBeNull();
-    expect(task!.title).toBe("Text Task");
-    expect(task!.steps).toHaveLength(1);
+    // Tool was not called, so no plan is captured
+    expect(task).toBeNull();
   });
 
   it("handles dependsOn camelCase field name and missing depends fields", async () => {
@@ -577,7 +568,7 @@ describe("TaskPlanner", () => {
     expect(task!.steps[1].tools).toEqual(["my_tool"]);
   });
 
-  it("handles missing title and steps in task data", async () => {
+  it("rejects empty task data (no steps)", async () => {
     const taskPayload = {}; // No title, no steps
 
     const provider = createMockProvider([
@@ -592,7 +583,8 @@ describe("TaskPlanner", () => {
 
     const planner = new TaskPlanner({
       provider,
-      model: "test-model"
+      model: "test-model",
+      maxRetries: 1
     });
 
     const context = createMockContext();
@@ -603,9 +595,8 @@ describe("TaskPlanner", () => {
     }
     const task = result.value;
 
-    expect(task).not.toBeNull();
-    expect(task!.title).toBe("Untitled Task");
-    expect(task!.steps).toHaveLength(0);
+    // Empty task data fails validation (must have at least one step)
+    expect(task).toBeNull();
   });
 
   it("handles outputSchema camelCase field name", async () => {

@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, memo } from "react";
-import { IconButton, Tooltip } from "@mui/material";
+import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import { SxProps, Theme, useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
@@ -358,39 +358,40 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
     const iconSize = size === "small" ? 14 : size === "medium" ? 18 : 22;
 
     return (
-      <Tooltip title={fullTooltip} placement={tooltipPlacement}>
-        <IconButton
-          className={className}
-          onClick={handleCopy}
-          disabled={disabled}
-          size={size}
-          tabIndex={tabIndex}
-          aria-label={tooltipText}
-          sx={{
-            width: 24,
-            height: 24,
-            padding: "4px",
-            backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
-            color: theme.vars.palette.common.white,
-            borderRadius: "4px",
-            "&:hover": {
-              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
-            },
-            "& svg": {
-              fontSize: iconSize
-            },
-            ...sx
-          }}
-        >
-          {state === "error" ? (
+      <ToolbarIconButton
+        icon={
+          state === "error" ? (
             <CloseIcon />
           ) : state === "copied" ? (
             <CheckIcon />
           ) : (
             <ContentCopyIcon />
-          )}
-        </IconButton>
-      </Tooltip>
+          )
+        }
+        tooltip={fullTooltip}
+        tooltipPlacement={tooltipPlacement}
+        className={className}
+        onClick={handleCopy}
+        disabled={disabled}
+        size={size}
+        tabIndex={tabIndex}
+        aria-label={tooltipText}
+        sx={{
+          width: 24,
+          height: 24,
+          padding: "4px",
+          backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+          color: theme.vars.palette.common.white,
+          borderRadius: "4px",
+          "&:hover": {
+            backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
+          },
+          "& svg": {
+            fontSize: iconSize
+          },
+          ...sx
+        }}
+      />
     );
   }
 );

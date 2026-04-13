@@ -2,26 +2,18 @@
  * VersionListItem Component
  *
  * Displays a single version entry in the version history list.
+ * Compact row layout (git-log style) with hover-reveal actions.
  */
 
 import React, { useCallback } from "react";
-import {
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-  Tooltip,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction
-} from "@mui/material";
+import { IconButton } from "@mui/material";
 import {
   Restore as RestoreIcon,
   Compare as CompareIcon
 } from "@mui/icons-material";
-import { DeleteButton, LoadingSpinner } from "../ui_primitives";
+import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { WorkflowVersion } from "../../stores/ApiTypes";
 import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
 
@@ -40,32 +32,15 @@ interface VersionListItemProps {
 const getSaveTypeLabel = (saveType: SaveType): string => {
   switch (saveType) {
     case "manual":
-      return "Manual";
+      return "manual";
     case "autosave":
-      return "Autosave";
+      return "auto";
     case "restore":
-      return "Restored";
+      return "restored";
     case "checkpoint":
-      return "Checkpoint";
+      return "checkpoint";
     default:
       return saveType;
-  }
-};
-
-const getSaveTypeColor = (
-  saveType: SaveType
-): "primary" | "secondary" | "success" | "warning" | "info" | "error" => {
-  switch (saveType) {
-    case "manual":
-      return "primary";
-    case "autosave":
-      return "secondary";
-    case "restore":
-      return "info";
-    case "checkpoint":
-      return "warning";
-    default:
-      return "primary";
   }
 };
 
@@ -118,106 +93,141 @@ const VersionListItem = React.memo(function VersionListItem({
     addSuffix: true
   });
 
+  const fullDate = format(new Date(version.created_at), "PPpp");
+
   return (
-    <ListItem
+    <div
       onClick={handleClick}
-      sx={{
+      className="version-list-item"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "4px 8px",
         cursor: "pointer",
         borderLeft: isSelected
-          ? "3px solid"
+          ? "3px solid var(--palette-primary-main)"
           : isCompareTarget
-            ? "3px dashed"
+            ? "3px dashed var(--palette-secondary-main)"
             : "3px solid transparent",
-        borderLeftColor: isSelected
-          ? "primary.main"
+        backgroundColor: isSelected
+          ? "rgba(var(--palette-primary-mainChannel) / 0.08)"
           : isCompareTarget
-            ? "secondary.main"
+            ? "rgba(var(--palette-action-hoverChannel) / 0.04)"
             : "transparent",
-        bgcolor: isSelected
-          ? "action.selected"
-          : isCompareTarget
-            ? "action.hover"
-            : "transparent",
-        "&:hover": {
-          bgcolor: "action.hover"
-        },
-        mb: 0.5,
-        borderRadius: 1,
-        opacity: isRestoring ? 0.6 : 1
+        opacity: isRestoring ? 0.6 : 1,
+        position: "relative"
+      }}
+      onMouseEnter={(e) => {
+        if (!isSelected && !isCompareTarget) {
+          e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected && !isCompareTarget) {
+          e.currentTarget.style.backgroundColor = "transparent";
+        }
       }}
     >
-      <Box sx={{ mr: 1, flexShrink: 0 }}>
+      {/* Mini preview thumbnail */}
+      <div style={{ flexShrink: 0 }}>
         <WorkflowMiniPreview
           workflow={version}
-          width={80}
-          height={50}
+          width={60}
+          height={36}
         />
-      </Box>
-      <ListItemText
-        primary={
-          <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="body2" fontWeight="medium">
-              v{version.version}
-            </Typography>
-            <Chip
-              label={getSaveTypeLabel(version.save_type)}
-              size="small"
-              color={getSaveTypeColor(version.save_type)}
-              sx={{ height: 20, fontSize: "0.7rem" }}
-            />
-          </Box>
-        }
-        primaryTypographyProps={{ component: "div" }}
-        secondary={
-          <Box>
-            <Typography variant="caption" color="text.secondary">
-              {timeAgo} • {formatBytes(version.size_bytes)}
-            </Typography>
-            {version.description && (
-              <Typography
-                variant="caption"
-                display="block"
-                color="text.secondary"
-                sx={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  maxWidth: 180
-                }}
-              >
-                {version.description}
-              </Typography>
-            )}
-          </Box>
-        }
-        secondaryTypographyProps={{ component: "div" }}
-      />
-      <ListItemSecondaryAction>
-        <Box sx={{ display: "flex", gap: 0.5 }}>
-          {compareMode ? (
-            <Tooltip title="Select for comparison">
-              <IconButton size="small" onClick={handleClick} aria-label="Select for comparison">
-                <CompareIcon fontSize="small" />
+      </div>
+
+      {/* Version info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <Text size="small" weight={600}>
+            v{version.version}
+          </Text>
+          <Chip
+            label={getSaveTypeLabel(version.save_type)}
+            compact
+            variant="outlined"
+            size="small"
+            sx={{
+              height: "16px",
+              fontSize: "0.6rem",
+              opacity: 0.7,
+              "& .MuiChip-label": { px: 0.5 }
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <Tooltip title={fullDate}>
+            <span>
+              <Caption size="tiny" color="muted">{timeAgo}</Caption>
+            </span>
+          </Tooltip>
+          <Caption size="tiny" color="muted">
+            {" · "}{formatBytes(version.size_bytes)}
+          </Caption>
+        </div>
+        {version.description && (
+          <Caption
+            size="tiny"
+            color="muted"
+            sx={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              maxWidth: 180,
+              display: "block"
+            }}
+          >
+            {version.description}
+          </Caption>
+        )}
+      </div>
+
+      {/* Actions - visible on hover via CSS */}
+      <div
+        className="version-item-actions"
+        style={{
+          display: "flex",
+          gap: "2px",
+          flexShrink: 0
+        }}
+      >
+        {compareMode ? (
+          <Tooltip title="Select for comparison">
+            <IconButton size="small" onClick={handleClick} aria-label="Select for comparison" sx={{ padding: "2px" }}>
+              <CompareIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+        ) : isRestoring ? (
+          <LoadingSpinner size="small" />
+        ) : (
+          <>
+            <Tooltip title="Restore this version">
+              <IconButton size="small" onClick={handleRestore} aria-label="Restore this version" sx={{ padding: "2px" }}>
+                <RestoreIcon sx={{ fontSize: 14 }} />
               </IconButton>
             </Tooltip>
-          ) : isRestoring ? (
-            <LoadingSpinner size="small" />
-          ) : (
-            <>
-              <Tooltip title="Restore this version">
-                <IconButton size="small" onClick={handleRestore} aria-label="Restore this version">
-                  <RestoreIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <DeleteButton
-                onClick={handleDelete}
-                tooltip="Delete version"
-              />
-            </>
-          )}
-        </Box>
-      </ListItemSecondaryAction>
-    </ListItem>
+            <DeleteButton
+              onClick={handleDelete}
+              tooltip="Delete version"
+              sx={{ padding: "2px", "& .MuiSvgIcon-root": { fontSize: 14 } }}
+            />
+          </>
+        )}
+      </div>
+
+      {/* CSS for hover-reveal actions */}
+      <style>{`
+        .version-list-item .version-item-actions {
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        .version-list-item:hover .version-item-actions {
+          opacity: 1;
+        }
+      `}</style>
+    </div>
   );
 });
 

@@ -12,15 +12,11 @@ interface ChatMarkdownProps {
 export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
   const { colors, mode } = useTheme();
 
-  if (!content) {
-    return null;
-  }
-
   const codeTheme = mode === 'dark' ? atomDark : tomorrow;
   const fontFamily = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
 
   const rules: RenderRules = useMemo(() => ({
-    fence: (node, _children, _parent, styles) => {
+    fence: (node: any, _children: any, _parent: any, styles: any) => {
       const language = (node as any).sourceInfo || (node as any).attributes?.lang || 'text';
 
       return (
@@ -46,7 +42,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
         </View>
       );
     },
-    code_block: (node, _children, _parent, styles) => {
+    code_block: (node: any, _children: any, _parent: any, styles: any) => {
       return (
         <View key={node.key} style={styles.code_block}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -180,6 +176,10 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       color: colors.text,
     },
   }), [colors, mode, fontFamily]);
+
+  if (!content) {
+    return null;
+  }
 
   return (
     <Markdown style={markdownStyles} rules={rules}>

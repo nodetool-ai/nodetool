@@ -8,6 +8,7 @@ import NodeToolsSelector from "../../../../components/chat/composer/NodeToolsSel
 
 // Mock Material-UI components to avoid theme issues
 jest.mock("@mui/material", () => ({
+  createFilterOptions: () => (options: any[]) => options,
   Button: ({ children, onClick, startIcon, endIcon, sx, ...props }: any) => (
     <button onClick={onClick} {...props}>
       {startIcon}

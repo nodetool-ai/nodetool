@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useCallback, useEffect, useMemo, useRef, memo } from "react";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import { Button } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 
 interface ChunkDisplayProps {
   chunk: string;
@@ -78,12 +78,12 @@ const ChunkDisplay: React.FC<ChunkDisplayProps> = memo(({ chunk }) => {
         <MarkdownRenderer content={chunk} />
       </div>
       <div style={buttonContainerStyles}>
-        <Button size="small" onClick={scrollUp}>
+        <EditorButton size="small" onClick={scrollUp}>
           ↑
-        </Button>
-        <Button size="small" onClick={scrollDown}>
+        </EditorButton>
+        <EditorButton size="small" onClick={scrollDown}>
           ↓
-        </Button>
+        </EditorButton>
       </div>
     </div>
   );

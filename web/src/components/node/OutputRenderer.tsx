@@ -27,7 +27,7 @@ import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
 import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";

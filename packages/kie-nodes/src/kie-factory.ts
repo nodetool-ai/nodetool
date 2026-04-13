@@ -139,7 +139,11 @@ function defaultForType(type: string): unknown {
 
 function uploadFnForKind(
   kind: "image" | "audio" | "video"
-): (apiKey: string, ref: unknown) => Promise<string> {
+): (
+  apiKey: string,
+  ref: unknown,
+  context?: Parameters<BaseNode["process"]>[0]
+) => Promise<string> {
   switch (kind) {
     case "image":
       return uploadImageInput;
@@ -153,7 +157,8 @@ function uploadFnForKind(
 async function buildParams(
   instance: BaseNode,
   spec: KieManifestEntry,
-  apiKey: string
+  apiKey: string,
+  context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
   const params: Record<string, unknown> = {};
 
@@ -194,20 +199,20 @@ async function buildParams(
       if (upload.groupKey) {
         if (!groups.has(upload.groupKey)) groups.set(upload.groupKey, []);
         if (isRefSet(value)) {
-          const url = await fn(apiKey, value);
+          const url = await fn(apiKey, value, context);
           groups.get(upload.groupKey)!.push(url);
         }
       } else if (upload.isList) {
         const list = Array.isArray(value) ? value : [];
         const urls: string[] = [];
         for (const item of list) {
-          if (isRefSet(item)) urls.push(await fn(apiKey, item));
+          if (isRefSet(item)) urls.push(await fn(apiKey, item, context));
         }
         const paramName = upload.paramName ?? `${upload.field}_urls`;
         if (urls.length) params[paramName] = urls;
       } else {
         if (isRefSet(value)) {
-          const url = await fn(apiKey, value);
+          const url = await fn(apiKey, value, context);
           const paramName = upload.paramName ?? `${upload.field}_url`;
           if (url) params[paramName] = url;
         }
@@ -239,7 +244,9 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   const specRef = spec;
 
   const KieNodeClass = class extends BaseNode {
-    async process(): Promise<Record<string, unknown>> {
+    async process(
+      context?: Parameters<BaseNode["process"]>[0]
+    ): Promise<Record<string, unknown>> {
       const apiKey = getApiKey(this._secrets);
 
       // Validation
@@ -254,7 +261,7 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
         }
       }
 
-      const params = await buildParams(this, specRef, apiKey);
+      const params = await buildParams(this, specRef, apiKey, context);
 
       let result: { data: string; taskId: string };
       if (specRef.useSuno) {

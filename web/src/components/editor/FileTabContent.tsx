@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useCallback } from "react";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text, Caption, LoadingSpinner } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Asset } from "../../stores/ApiTypes";
@@ -10,7 +11,6 @@ import AudioViewer from "../asset_viewer/AudioViewer";
 import VideoViewer from "../asset_viewer/VideoViewer";
 import LazyPDFViewer from "../asset_viewer/LazyPDFViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
-import axios from "axios";
 import log from "loglevel";
 
 const isModel3D = (type: string, url?: string): boolean => {
@@ -154,14 +154,15 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
   useEffect(() => {
     if (!isTextFile || !asset.get_url) {return;}
     setIsLoading(true);
-    axios
-      .get(asset.get_url, { responseType: "text" })
+    fetch(asset.get_url)
       .then((response) => {
-        setTextContent(
-          typeof response.data === "string"
-            ? response.data
-            : JSON.stringify(response.data, null, 2)
-        );
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.status}`);
+        }
+        return response.text();
+      })
+      .then((text) => {
+        setTextContent(text);
       })
       .catch(log.error)
       .finally(() => setIsLoading(false));
@@ -224,7 +225,7 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
             justifyContent="center"
             flex={1}
           >
-            <CircularProgress />
+            <LoadingSpinner />
           </Box>
         );
       }
@@ -242,9 +243,9 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
 
     return (
       <div className="unsupported-file">
-        <Typography variant="h6">Cannot preview this file</Typography>
-        <Typography variant="body2">{asset.name}</Typography>
-        <Typography variant="caption">Type: {type || "unknown"}</Typography>
+        <Text size="normal" weight={600}>Cannot preview this file</Text>
+        <Text size="small">{asset.name}</Text>
+        <Caption>Type: {type || "unknown"}</Caption>
       </div>
     );
   };

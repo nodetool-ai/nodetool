@@ -64,14 +64,17 @@ describe("workspace/document parity", () => {
     const listNode = withWorkspace(new ListWorkspaceFilesNode(), workspace);
     Object.assign(listNode, { path: ".", pattern: "*.txt" });
     const files = await collectGen(listNode.genProcess());
-    expect(files.map((item) => item.file).sort()).toEqual([
+    // Last yield is the collected files list
+    const fileItems = files.filter((item) => "file" in item);
+    expect(fileItems.map((item) => item.file).sort()).toEqual([
       "file1.txt",
       "file2.txt"
     ]);
 
     Object.assign(listNode, { path: ".", pattern: "*.txt", recursive: true });
     const recursiveFiles = await collectGen(listNode.genProcess());
-    expect(recursiveFiles.map((item) => item.file).sort()).toEqual([
+    const recursiveFileItems = recursiveFiles.filter((item) => "file" in item);
+    expect(recursiveFileItems.map((item) => item.file).sort()).toEqual([
       "file1.txt",
       "file2.txt",
       path.join("subdir", "nested.txt")
@@ -129,15 +132,18 @@ describe("workspace/document parity", () => {
     const listNode = new ListDocumentsNode();
     Object.assign(listNode, { folder: root, pattern: "*.txt" });
     const direct = await collectGen(listNode.genProcess());
-    expect(direct).toHaveLength(3);
+    // Last yield is the collected documents list
+    const directItems = direct.filter((item) => "document" in item);
+    expect(directItems).toHaveLength(3);
     expect(
-      direct.every((item) => String(item.document?.uri).endsWith(".txt"))
+      directItems.every((item) => String(item.document?.uri).endsWith(".txt"))
     ).toBe(true);
 
     Object.assign(listNode, { folder: root, recursive: true, pattern: "*.md" });
     const recursive = await collectGen(listNode.genProcess());
-    expect(recursive).toHaveLength(1);
-    expect(String(recursive[0]?.document?.uri)).toContain("deep.md");
+    const recursiveItems = recursive.filter((item) => "document" in item);
+    expect(recursiveItems).toHaveLength(1);
+    expect(String(recursiveItems[0]?.document?.uri)).toContain("deep.md");
   });
 
   it("matches Python-style recursive and markdown split metadata", async () => {
@@ -152,8 +158,10 @@ describe("workspace/document parity", () => {
       separators: ["\n\n", "\n", "."]
     });
     const recursiveChunks = await collectGen(splitRecNode.genProcess());
+    // Last yield is the collected chunks list
+    const recursiveItems = recursiveChunks.filter((item) => !("chunks" in item));
 
-    expect(recursiveChunks).toEqual([
+    expect(recursiveItems).toEqual([
       {
         chunk: "First line",
         text: "First line",
@@ -187,8 +195,9 @@ describe("workspace/document parity", () => {
       strip_headers: true
     });
     const markdownChunks = await collectGen(splitMdNode.genProcess());
+    const markdownItems = markdownChunks.filter((item) => !("chunks" in item));
 
-    expect(markdownChunks).toEqual([
+    expect(markdownItems).toEqual([
       {
         chunk: "Content 1",
         text: "Content 1",

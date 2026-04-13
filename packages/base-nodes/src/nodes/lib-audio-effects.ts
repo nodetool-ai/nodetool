@@ -604,7 +604,7 @@ export class ReverbNode extends BaseNode {
   }
 }
 
-// ── PitchShift (soundtouchjs) ────────────────────────────────────
+// ── PitchShift (rubberband WASM) ─────────────────────────────────
 
 export class PitchShiftNode extends BaseNode {
   static readonly nodeType = "lib.audio.PitchShift";
@@ -649,67 +649,84 @@ export class PitchShiftNode extends BaseNode {
       return { output: audio };
     }
 
-    const { SoundTouch } = await import("soundtouchjs");
+    const { createRubberbandWrapper } = await import(
+      "@k13engineering/rubberband"
+    );
     const wav = decodeWav(audio);
     const { samples, sampleRate, numChannels } = wav;
     const frameSamples = Math.floor(samples.length / numChannels);
 
-    // SoundTouch works with stereo interleaved samples
-    // Convert to stereo interleaved if mono
-    let stereoInput: Float32Array;
-    if (numChannels === 1) {
-      stereoInput = new Float32Array(frameSamples * 2);
-      for (let i = 0; i < frameSamples; i++) {
-        stereoInput[i * 2] = samples[i];
-        stereoInput[i * 2 + 1] = samples[i];
+    const CHUNK_SIZE = 8192;
+    const rb = createRubberbandWrapper({
+      sampleRate,
+      channelCount: numChannels,
+      maxBufferSizeInFrames: CHUNK_SIZE,
+      options: {
+        processMode: "realtime",
+        engineMode: "finer",
+        pitchMode: "highquality"
       }
-    } else if (numChannels === 2) {
-      stereoInput = samples;
-    } else {
-      // For >2 channels, just take first two
-      stereoInput = new Float32Array(frameSamples * 2);
+    });
+
+    rb.requestPitchScale({ pitchScale: Math.pow(2, semitones / 12) });
+
+    // Deinterleave into per-channel planes
+    const planes: Float32Array[] = [];
+    for (let ch = 0; ch < numChannels; ch++) {
+      const plane = new Float32Array(frameSamples);
       for (let i = 0; i < frameSamples; i++) {
-        stereoInput[i * 2] = samples[i * numChannels];
-        stereoInput[i * 2 + 1] = samples[i * numChannels + 1];
+        plane[i] = samples[i * numChannels + ch];
       }
+      planes.push(plane);
     }
 
-    const st = new SoundTouch();
-    st.sampleRate = sampleRate;
-    st.pitchSemitones = semitones;
+    // Process in chunks, collecting output
+    const outputParts: Float32Array[][] = [];
+    const collectAvailable = () => {
+      let avail = rb.available();
+      while (avail > 0) {
+        const count = Math.min(avail, CHUNK_SIZE);
+        outputParts.push(rb.retrieve({ sampleCount: count }).planes);
+        avail = rb.available();
+      }
+    };
 
-    // Feed in chunks
-    const chunkSize = 4096;
-    for (let offset = 0; offset < frameSamples; offset += chunkSize) {
-      const end = Math.min(offset + chunkSize, frameSamples);
-      const chunk = stereoInput.slice(offset * 2, end * 2);
-      st.inputBuffer.putSamples(chunk, 0, end - offset);
-      st.process();
+    for (let offset = 0; offset < frameSamples; offset += CHUNK_SIZE) {
+      const end = Math.min(offset + CHUNK_SIZE, frameSamples);
+      const chunkPlanes = planes.map((p) => p.slice(offset, end));
+      rb.process({ audioData: { planes: chunkPlanes } });
+      collectAvailable();
+    }
+    rb.end();
+    collectAvailable();
+
+    // Concatenate output per channel
+    const totalOutFrames = outputParts.reduce(
+      (s, p) => s + p[0].length,
+      0
+    );
+    const outPlanes: Float32Array[] = [];
+    for (let ch = 0; ch < numChannels; ch++) {
+      const plane = new Float32Array(totalOutFrames);
+      let pos = 0;
+      for (const part of outputParts) {
+        plane.set(part[ch], pos);
+        pos += part[ch].length;
+      }
+      outPlanes.push(plane);
     }
 
-    // Flush remaining
-    st.inputBuffer.putSamples(new Float32Array(0), 0, 0);
-    st.process();
+    // Trim processing latency — pitch shift preserves duration
+    const latency = rb.latencyInSamples();
+    const trimStart = Math.min(latency, totalOutFrames);
+    const trimEnd = Math.min(trimStart + frameSamples, totalOutFrames);
+    const outFrames = trimEnd - trimStart;
 
-    const available = st.outputBuffer.frameCount;
-    const stereoOutput = new Float32Array(available * 2);
-    st.outputBuffer.receiveSamples(stereoOutput, available);
-
-    // Convert back to original channel count
-    let outSamples: Float32Array;
-    if (numChannels === 1) {
-      outSamples = new Float32Array(available);
-      for (let i = 0; i < available; i++) {
-        outSamples[i] = (stereoOutput[i * 2] + stereoOutput[i * 2 + 1]) / 2;
-      }
-    } else {
-      outSamples = new Float32Array(available * numChannels);
-      for (let i = 0; i < available; i++) {
-        outSamples[i * numChannels] = stereoOutput[i * 2];
-        outSamples[i * numChannels + 1] = stereoOutput[i * 2 + 1];
-        for (let ch = 2; ch < numChannels; ch++) {
-          outSamples[i * numChannels + ch] = 0;
-        }
+    // Re-interleave trimmed output
+    const outSamples = new Float32Array(outFrames * numChannels);
+    for (let i = 0; i < outFrames; i++) {
+      for (let ch = 0; ch < numChannels; ch++) {
+        outSamples[i * numChannels + ch] = outPlanes[ch][trimStart + i];
       }
     }
 
@@ -719,7 +736,7 @@ export class PitchShiftNode extends BaseNode {
   }
 }
 
-// ── TimeStretch (soundtouchjs) ───────────────────────────────────
+// ── TimeStretch (rubberband WASM) ────────────────────────────────
 
 export class TimeStretchNode extends BaseNode {
   static readonly nodeType = "lib.audio.TimeStretch";
@@ -763,61 +780,86 @@ export class TimeStretchNode extends BaseNode {
       return { output: audio };
     }
 
-    const { SoundTouch } = await import("soundtouchjs");
+    const { createRubberbandWrapper } = await import(
+      "@k13engineering/rubberband"
+    );
     const wav = decodeWav(audio);
     const { samples, sampleRate, numChannels } = wav;
     const frameSamples = Math.floor(samples.length / numChannels);
 
-    let stereoInput: Float32Array;
-    if (numChannels === 1) {
-      stereoInput = new Float32Array(frameSamples * 2);
-      for (let i = 0; i < frameSamples; i++) {
-        stereoInput[i * 2] = samples[i];
-        stereoInput[i * 2 + 1] = samples[i];
+    const CHUNK_SIZE = 8192;
+    const rb = createRubberbandWrapper({
+      sampleRate,
+      channelCount: numChannels,
+      maxBufferSizeInFrames: CHUNK_SIZE,
+      options: {
+        processMode: "realtime",
+        engineMode: "finer"
       }
-    } else if (numChannels === 2) {
-      stereoInput = samples;
-    } else {
-      stereoInput = new Float32Array(frameSamples * 2);
+    });
+
+    // Rubber Band timeRatio = output_duration / input_duration
+    // rate > 1 means faster (shorter output), so timeRatio = 1 / rate
+    rb.requestTimeRatio({ timeRatio: 1 / rate });
+
+    // Deinterleave into per-channel planes
+    const planes: Float32Array[] = [];
+    for (let ch = 0; ch < numChannels; ch++) {
+      const plane = new Float32Array(frameSamples);
       for (let i = 0; i < frameSamples; i++) {
-        stereoInput[i * 2] = samples[i * numChannels];
-        stereoInput[i * 2 + 1] = samples[i * numChannels + 1];
+        plane[i] = samples[i * numChannels + ch];
       }
+      planes.push(plane);
     }
 
-    const st = new SoundTouch();
-    st.sampleRate = sampleRate;
-    st.tempo = rate;
+    // Process in chunks, collecting output
+    const outputParts: Float32Array[][] = [];
+    const collectAvailable = () => {
+      let avail = rb.available();
+      while (avail > 0) {
+        const count = Math.min(avail, CHUNK_SIZE);
+        outputParts.push(rb.retrieve({ sampleCount: count }).planes);
+        avail = rb.available();
+      }
+    };
 
-    const chunkSize = 4096;
-    for (let offset = 0; offset < frameSamples; offset += chunkSize) {
-      const end = Math.min(offset + chunkSize, frameSamples);
-      const chunk = stereoInput.slice(offset * 2, end * 2);
-      st.inputBuffer.putSamples(chunk, 0, end - offset);
-      st.process();
+    for (let offset = 0; offset < frameSamples; offset += CHUNK_SIZE) {
+      const end = Math.min(offset + CHUNK_SIZE, frameSamples);
+      const chunkPlanes = planes.map((p) => p.slice(offset, end));
+      rb.process({ audioData: { planes: chunkPlanes } });
+      collectAvailable();
+    }
+    rb.end();
+    collectAvailable();
+
+    // Concatenate output per channel
+    const totalOutFrames = outputParts.reduce(
+      (s, p) => s + p[0].length,
+      0
+    );
+    const outPlanes: Float32Array[] = [];
+    for (let ch = 0; ch < numChannels; ch++) {
+      const plane = new Float32Array(totalOutFrames);
+      let pos = 0;
+      for (const part of outputParts) {
+        plane.set(part[ch], pos);
+        pos += part[ch].length;
+      }
+      outPlanes.push(plane);
     }
 
-    st.inputBuffer.putSamples(new Float32Array(0), 0, 0);
-    st.process();
+    // Trim processing latency — expected output = input / rate
+    const latency = rb.latencyInSamples();
+    const expectedFrames = Math.round(frameSamples / rate);
+    const trimStart = Math.min(latency, totalOutFrames);
+    const trimEnd = Math.min(trimStart + expectedFrames, totalOutFrames);
+    const outFrames = trimEnd - trimStart;
 
-    const available = st.outputBuffer.frameCount;
-    const stereoOutput = new Float32Array(available * 2);
-    st.outputBuffer.receiveSamples(stereoOutput, available);
-
-    let outSamples: Float32Array;
-    if (numChannels === 1) {
-      outSamples = new Float32Array(available);
-      for (let i = 0; i < available; i++) {
-        outSamples[i] = (stereoOutput[i * 2] + stereoOutput[i * 2 + 1]) / 2;
-      }
-    } else {
-      outSamples = new Float32Array(available * numChannels);
-      for (let i = 0; i < available; i++) {
-        outSamples[i * numChannels] = stereoOutput[i * 2];
-        outSamples[i * numChannels + 1] = stereoOutput[i * 2 + 1];
-        for (let ch = 2; ch < numChannels; ch++) {
-          outSamples[i * numChannels + ch] = 0;
-        }
+    // Re-interleave trimmed output
+    const outSamples = new Float32Array(outFrames * numChannels);
+    for (let i = 0; i < outFrames; i++) {
+      for (let ch = 0; ch < numChannels; ch++) {
+        outSamples[i * numChannels + ch] = outPlanes[ch][trimStart + i];
       }
     }
 

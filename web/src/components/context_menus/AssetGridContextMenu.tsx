@@ -1,6 +1,7 @@
 //mui
 import type { MouseEvent } from "react";
-import { Menu, MenuItem, Typography, Divider } from "@mui/material";
+import { Menu, MenuItem } from "@mui/material";
+import { Text, Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -52,9 +53,9 @@ const AssetGridContextMenu = () => {
       }
     >
       <MenuItem disabled>
-        <Typography variant="body1" className="title">
+        <Text className="title">
           Folder: {currentFolder?.name || "ASSETS"}
-        </Typography>
+        </Text>
       </MenuItem>
       <Divider />
       <ContextMenuItem

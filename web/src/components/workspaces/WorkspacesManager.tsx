@@ -5,8 +5,6 @@ import type { Theme } from "@mui/material/styles";
 import {
   DialogContent,
   DialogTitle,
-  Typography,
-  Tooltip,
   Box,
   List,
   ListItem,
@@ -38,7 +36,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import PanelHeadline from "../ui/PanelHeadline";
-import { Dialog } from "../ui_primitives";
+import { Dialog, Text, Tooltip, FlexRow } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -493,24 +491,21 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         <DialogContent>
           <div className="workspaces-manager">
             {isLoading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  py: 4
-                }}
+              <FlexRow
+                justify="center"
+                align="center"
+                sx={{ py: 4 }}
               >
                 <CircularProgress size={30} />
-              </Box>
+              </FlexRow>
             ) : error ? (
               <Box className="empty-state">
-                <Typography color="error" sx={{ mb: 1 }}>
+                <Text color="error" sx={{ mb: 1 }}>
                   Unable to load workspaces
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                </Text>
+                <Text size="small" color="secondary" sx={{ mb: 2 }}>
                   Check your connection and try again
-                </Typography>
+                </Text>
                 <Button
                   variant="outlined"
                   onClick={handleRetry}
@@ -558,19 +553,19 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           <ListItemText
                             className="workspace-info"
                             primary={
-                              <Typography className="workspace-name">
+                              <Text className="workspace-name">
                                 {workspace.name}
-                              </Typography>
+                              </Text>
                             }
                             secondaryTypographyProps={{ component: 'div' }}
                             secondary={
                               <>
-                                <Typography
+                                <Text
                                   component="span"
                                   className="workspace-path"
                                 >
                                   {workspace.path}
-                                </Typography>
+                                </Text>
                                 <span className="workspace-badges">
                                   {!workspace.is_accessible && (
                                     <Chip
@@ -637,10 +632,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
             ) : (
               <Box className="empty-state">
                 <FolderIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
-                <Typography>No workspaces configured</Typography>
-                <Typography variant="body2">
+                <Text>No workspaces configured</Text>
+                <Text size="small">
                   Add a workspace to allow agents to access local folders
-                </Typography>
+                </Text>
               </Box>
             )}
 
@@ -684,13 +679,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     }
                     label="Set as default workspace"
                   />
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: 1,
-                      mt: 1
-                    }}
+                  <FlexRow
+                    justify="flex-end"
+                    gap={1}
+                    sx={{ mt: 1 }}
                   >
                     <Button
                       onClick={handleCancelAdd}
@@ -705,7 +697,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     >
                       {createMutation.isPending ? "Adding..." : "Add Workspace"}
                     </Button>
-                  </Box>
+                  </FlexRow>
                 </div>
               ) : (
                 <Button
@@ -736,10 +728,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         onConfirm={handleConfirmDelete}
         title="Delete Workspace"
         content={
-          <Typography>
+          <Text>
             Are you sure you want to delete this workspace? This action cannot
             be undone.
-          </Typography>
+          </Text>
         }
         confirmText="Delete"
         cancelText="Cancel"

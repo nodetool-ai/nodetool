@@ -26,7 +26,7 @@ import DataframeProperty from "../properties/DataframeProperty";
 import DictProperty from "../properties/DictProperty";
 import RecordTypeProperty from "../properties/RecordTypeProperty";
 import ModelProperty from "../properties/ModelProperty";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import ColorProperty from "../properties/ColorProperty";
 import FilePathProperty from "../properties/FilePathProperty";
 import CollectionProperty from "../properties/CollectionProperty";
@@ -38,7 +38,7 @@ import ImageSizeProperty from "../properties/ImageSizeProperty";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
-import { Tooltip } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -117,7 +117,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
     // RESET BUTTON — shown on hover when value differs from default
     ".reset-button": {
       position: "absolute",
-      right: 0,
+      right: "var(--property-reset-button-offset, 0px)",
       top: 0,
       display: "flex",
       alignItems: "center",
@@ -712,10 +712,21 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     handleDeleteProperty(property.name);
   }, [handleDeleteProperty, property.name]);
 
+  const hasTopRightPropertyActions =
+    componentType === StringProperty ||
+    componentType === JSONProperty ||
+    componentType === DataframeProperty;
+
   return (
     <div
       className={`property-input-container${isChanged ? " value-changed" : ""}`}
-      css={propertyInputContainerStyles(theme)}
+      css={[
+        propertyInputContainerStyles(theme),
+        hasTopRightPropertyActions &&
+          css({
+            "--property-reset-button-offset": "40px"
+          })
+      ]}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >

@@ -26,8 +26,9 @@ import { TaskUpdateEvent } from "@nodetool/protocol";
 import { BaseAgent } from "./base-agent.js";
 import { TaskPlanner } from "./task-planner.js";
 import { TaskExecutor } from "./task-executor.js";
+import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import type { Tool } from "./tools/base-tool.js";
-import type { Task } from "./types.js";
+import type { Task, TaskPlan } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Skill types and helpers
@@ -204,6 +205,8 @@ export class Agent extends BaseAgent {
   private readonly requestedSkills?: string[];
   private readonly skillDirs: string[];
   private readonly initialTask?: Task;
+  /** The multi-task plan, set after planning. */
+  taskPlan: TaskPlan | null = null;
 
   constructor(opts: AgentOptions) {
     super({
@@ -407,59 +410,133 @@ export class Agent extends BaseAgent {
       path.join(os.homedir(), "nodetool_workspace", Date.now().toString());
     await fs.mkdir(workspacePath, { recursive: true });
 
-    // Plan: use TaskPlanner to decompose the objective, or use pre-defined task
-    let task: Task | null = this.initialTask ?? null;
-
-    if (!task) {
-      log.info("Planning phase started", { name: this.name });
-      yield {
-        type: "log_update",
-        node_id: "agent_planner",
-        node_name: this.name,
-        content: `Planning steps for objective: ${this.objective.slice(0, 100)}...`,
-        severity: "info"
-      } satisfies LogUpdate;
-
-      const planner = new TaskPlanner({
-        provider: this.provider,
-        model: this.planningModel,
-        reasoningModel: this.reasoningModel,
-        tools: this.tools,
-        systemPrompt: mergedSystemPrompt,
-        outputSchema: this.outputSchema,
-        inputs: this.inputs
-      });
-
-      const planGen = planner.plan(effectiveObjective, context);
-      let planResult = await planGen.next();
-      while (!planResult.done) {
-        yield planResult.value;
-        planResult = await planGen.next();
-      }
-      task = planResult.value;
+    // If a pre-defined task is given, fall back to single-task execution
+    if (this.initialTask) {
+      yield* this.executeSingleTask(
+        context,
+        this.initialTask,
+        mergedSystemPrompt
+      );
+      return;
     }
 
-    if (!task) {
+    // Plan: use TaskPlanner to decompose the objective into parallel tasks
+    log.info("Planning phase started", { name: this.name });
+    yield {
+      type: "log_update",
+      node_id: "agent_planner",
+      node_name: this.name,
+      content: `Planning parallel tasks for objective: ${this.objective.slice(0, 100)}...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const planner = new TaskPlanner({
+      provider: this.provider,
+      model: this.planningModel,
+      reasoningModel: this.reasoningModel,
+      tools: this.tools,
+      systemPrompt: mergedSystemPrompt,
+      outputSchema: this.outputSchema,
+      inputs: this.inputs
+    });
+
+    const planGen = planner.planMultiTask(effectiveObjective, context);
+    let planResult = await planGen.next();
+    while (!planResult.done) {
+      yield planResult.value;
+      planResult = await planGen.next();
+    }
+    const taskPlan = planResult.value;
+
+    if (!taskPlan) {
       log.error("Agent failed", {
         name: this.name,
-        error: "TaskPlanner failed to create a task plan."
+        error: "TaskPlanner failed to create a multi-task plan."
       });
       throw new Error("TaskPlanner failed to create a task plan.");
     }
 
+    this.taskPlan = taskPlan;
+
+    // Set the first task as `this.task` for backward compatibility
+    if (taskPlan.tasks.length > 0) {
+      this.task = taskPlan.tasks[0];
+    }
+
     log.info("Planning complete", {
       name: this.name,
-      steps: task.steps.length
+      tasks: taskPlan.tasks.length,
+      totalSteps: taskPlan.tasks.reduce((sum, t) => sum + t.steps.length, 0)
     });
-    this.task = task;
 
-    if (!this.initialTask) {
-      yield {
-        type: "task_update",
-        event: TaskUpdateEvent.TaskCreated,
-        task: task as unknown as TaskUpdate["task"]
-      } satisfies TaskUpdate;
+    // Apply output schema to the last step of the last task if specified
+    if (this.outputSchema && taskPlan.tasks.length > 0) {
+      const lastTask = taskPlan.tasks[taskPlan.tasks.length - 1];
+      if (lastTask.steps.length > 0) {
+        lastTask.steps[lastTask.steps.length - 1].outputSchema =
+          JSON.stringify(this.outputSchema);
+      }
     }
+
+    const totalSteps = taskPlan.tasks.reduce(
+      (sum, t) => sum + t.steps.length,
+      0
+    );
+    const independentTasks = taskPlan.tasks.filter(
+      (t) => !t.dependsOn || t.dependsOn.length === 0
+    ).length;
+
+    yield {
+      type: "log_update",
+      node_id: "agent_executor",
+      node_name: this.name,
+      content: `Starting parallel execution: ${taskPlan.tasks.length} tasks (${independentTasks} parallelizable), ${totalSteps} total steps...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    // Execute: run ParallelTaskExecutor over the planned tasks
+    const executor = new ParallelTaskExecutor({
+      provider: this.provider,
+      model: this.model,
+      context,
+      tools: [...this.tools],
+      taskPlan,
+      systemPrompt: mergedSystemPrompt,
+      inputs: this.inputs,
+      maxStepIterations: this.maxStepIterations,
+      maxTokenLimit: this.maxTokenLimit
+    });
+
+    for await (const item of executor.execute()) {
+      if (item.type === "step_result") {
+        const stepResult = item as StepResult;
+        if (stepResult.is_task_result) {
+          log.info("Setting final results", {
+            objective: this.objective.slice(0, 50)
+          });
+          this.results = stepResult.result;
+        }
+      }
+      yield item;
+    }
+
+    // If no task_result was captured, use the final task's result
+    if (this.results === null) {
+      this.results = executor.getFinalResult();
+    }
+
+    log.info("Agent completed", { name: this.name });
+  }
+
+  /**
+   * Execute a single pre-defined task (legacy path for backward compatibility).
+   */
+  private async *executeSingleTask(
+    context: ProcessingContext,
+    task: Task,
+    systemPrompt: string | undefined
+  ): AsyncGenerator<ProcessingMessage> {
+    this.task = task;
 
     // Apply output schema to the last step if specified
     if (this.outputSchema && task.steps.length > 0) {
@@ -468,7 +545,7 @@ export class Agent extends BaseAgent {
       );
     }
 
-    log.info("Executing task", { name: this.name, title: task.title });
+    log.info("Executing single task", { name: this.name, title: task.title });
 
     yield {
       type: "log_update",
@@ -478,18 +555,18 @@ export class Agent extends BaseAgent {
       severity: "info"
     } satisfies LogUpdate;
 
-    // Execute: run TaskExecutor over the planned steps
     const executor = new TaskExecutor({
       provider: this.provider,
       model: this.model,
       context,
       tools: [...this.tools],
       task,
-      systemPrompt: mergedSystemPrompt,
+      systemPrompt,
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
-      maxTokenLimit: this.maxTokenLimit
+      maxTokenLimit: this.maxTokenLimit,
+      parallelExecution: true
     });
 
     for await (const item of executor.executeTasks()) {

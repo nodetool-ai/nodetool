@@ -2,17 +2,6 @@
 import { css } from "@emotion/react";
 
 import React, { useState, useCallback, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  CircularProgress,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Typography
-} from "@mui/material";
 import { InsertDriveFile } from "@mui/icons-material";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -24,11 +13,19 @@ import { useAuth } from "../../stores/useAuth";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { DialogActionButtons } from "../ui_primitives";
+import {
+  Dialog,
+  DialogActionButtons,
+  LoadingSpinner,
+  ListGroup,
+  ListItemRow,
+  Text
+} from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
     ".asset-delete-confirmation-content": {
+      position: "relative",
       minWidth: "600px",
       minHeight: "200px",
       maxHeight: "60vh"
@@ -173,20 +170,17 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       open={dialogOpen}
       onClose={handleClose}
       disableRestoreFocus
+      title={getDialogTitle()}
     >
-      <DialogTitle sx={{ color: theme.vars.palette.warning.main }}>
-        {getDialogTitle()}
-      </DialogTitle>
-      <DialogContent className="asset-delete-confirmation-content">
-        <Typography
-          variant="body1"
-          color={theme.vars.palette.grey[200]}
+      <div className="asset-delete-confirmation-content">
+        <Text
+          color="secondary"
           style={{ marginBottom: "1em" }}
         >
           You can right click selected assets and download them before deleting.
-        </Typography>
+        </Text>
         {isPreparingDelete ? (
-          <CircularProgress size={16} />
+          <LoadingSpinner size="small" />
         ) : (
           <>
             {!showRootFolderWarning && (
@@ -201,22 +195,21 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
                     />
                   ))
                 ) : (
-                  <List dense>
+                  <ListGroup compact flush>
                     {fileAssets.map((file) => (
-                      <ListItem key={file.id}>
-                        <ListItemIcon>
-                          <InsertDriveFile />
-                        </ListItemIcon>
-                        <ListItemText primary={file.name} />
-                      </ListItem>
+                      <ListItemRow
+                        key={file.id}
+                        primary={file.name}
+                        icon={<InsertDriveFile />}
+                      />
                     ))}
-                  </List>
+                  </ListGroup>
                 )}
               </>
             )}
           </>
         )}
-      </DialogContent>
+      </div>
       <DialogActionButtons
         onConfirm={executeDeletion}
         onCancel={handleClose}

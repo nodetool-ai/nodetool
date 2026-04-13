@@ -630,6 +630,7 @@ describe("text nodes", () => {
     });
     const items: Array<Record<string, unknown>> = [];
     for await (const row of load.genProcess()) {
+      if ("texts" in row) continue; // skip final list yield
       items.push(row);
     }
     expect(items.length).toBe(1);

@@ -2,7 +2,6 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography } from "@mui/material";
 import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -15,7 +14,7 @@ import {
 } from "../../stores/ApiTypes";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -24,7 +23,7 @@ import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
-import { FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
+import { FlexColumn, FlexRow, LoadingSpinner, Text } from "../ui_primitives";
 import log from "loglevel";
 
 const styles = (theme: Theme) =>
@@ -358,19 +357,15 @@ const WorkflowList = () => {
           {isError && (
             <FlexRow gap={4} align="center">
               <ErrorOutlineRounded />
-              <Typography>{error?.message}</Typography>
-              <Typography>No workflows found.</Typography>
+              <Text>{error?.message}</Text>
+              <Text>No workflows found.</Text>
             </FlexRow>
           )}
-          {showFavoritesOnly &&
-            workflows.length === 0 &&
-            !isLoading &&
-            !isError && (
-              <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
-                No favorite workflows. Click the star icon on a workflow to add
-                it to your favorites.
-              </Typography>
-            )}
+          {showFavoritesOnly && workflows.length === 0 && !isLoading && !isError && (
+            <Text size="small" sx={{ mt: 1, fontStyle: "italic" }}>
+              No favorite workflows. Click the star icon on a workflow to add it to your favorites.
+            </Text>
+          )}
         </div>
         <div className="workflow-items">
           {!isLoading && !isError && workflows.length === 0 ? (
@@ -382,8 +377,8 @@ const WorkflowList = () => {
             >
               {data?.workflows && data.workflows.length > 0 ? (
                 <>
-                  <Typography variant="h6">No matching workflows</Typography>
-                  <Typography variant="body2">
+                  <Text size="normal" weight={600}>No matching workflows</Text>
+                  <Text size="small">
                     {filterValue && selectedTags.length > 0
                       ? "Try adjusting your search term or tag filters."
                       : filterValue
@@ -391,14 +386,14 @@ const WorkflowList = () => {
                         : selectedTags.length > 0
                           ? "Try removing some tag filters."
                           : "No workflows match the current filters."}
-                  </Typography>
+                  </Text>
                 </>
               ) : (
                 <>
-                  <Typography variant="h6">No workflows yet</Typography>
-                  <Typography variant="body2">
+                  <Text size="normal" weight={600}>No workflows yet</Text>
+                  <Text size="small">
                     Create your first workflow with the + button above.
-                  </Typography>
+                  </Text>
                 </>
               )}
             </FlexColumn>

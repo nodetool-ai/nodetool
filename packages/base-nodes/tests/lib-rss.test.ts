@@ -70,6 +70,7 @@ describe("native lib.rss", () => {
       const rows: Array<Record<string, unknown>> = [];
       node.assign({ url });
       for await (const item of node.genProcess()) {
+        if ("items" in item) continue; // skip final list yield
         rows.push(item);
       }
       expect(rows).toHaveLength(2);

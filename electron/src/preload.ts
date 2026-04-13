@@ -650,19 +650,6 @@ const api = {
   },
 
   // ============================================================================
-  // debug: Debug operations
-  // ============================================================================
-  debug: {
-    /** Export a debug bundle containing logs, environment info, and workflow data */
-    exportBundle: (request: {
-      workflow_id?: string;
-      graph?: Record<string, unknown>;
-      errors?: string[];
-      preferred_save?: "desktop" | "downloads";
-    }) => ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
-  },
-
-  // ============================================================================
   // dialog: Native file/folder dialogs
   // ============================================================================
   dialog: {

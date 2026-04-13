@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Typography, Divider, Tooltip } from "@mui/material";
+import { Typography } from "@mui/material";
+import { Tooltip, Text, Divider } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -11,11 +12,11 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { HighlightText } from "../ui_primitives/HighlightText";
-import isEqual from "lodash/isEqual";
 import {
   formatFalUnitPricingShort,
   formatFalUnitPricingTooltip,
 } from "../../utils/formatFalUnitPricing";
+import isEqual from "fast-deep-equal";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;
@@ -214,9 +215,9 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
   return (
     <div css={nodeInfoStyles(theme)} style={{ width: menuWidth }}>
       <div className="title-container">
-        <Typography className="node-title">
+        <Text className="node-title">
           {titleizeString(nodeMetadata.title)}
-        </Typography>
+        </Text>
       </div>
       <div className="node-description">
         <HighlightText
@@ -225,10 +226,10 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           matchStyle="primary"
         />
       </div>
-      <Typography className="node-tags">
+      <Text className="node-tags">
         {renderTags(description.tags.join(", "))}
-      </Typography>
-      <Typography component="div" className="node-usecases">
+      </Text>
+      <Text component="div" className="node-usecases">
         {description.useCases.raw && (
           <>
             <HighlightText
@@ -239,7 +240,7 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
             />
           </>
         )}
-      </Typography>
+      </Text>
 
       <Divider sx={{ opacity: 0.5, margin: ".1em 0" }} />
 
@@ -270,57 +271,57 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
       {showConnections && (
         <div className="inputs-outputs">
           <div className="inputs">
-            <Typography variant="h4">Inputs</Typography>
+            <Text size="big">Inputs</Text>
             {nodeMetadata.properties.map((property) => (
               <div key={property.name} className="item">
                 <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  delay={TOOLTIP_ENTER_DELAY}
                   placement="top-start"
                   title={property.description}
                 >
-                  <Typography
+                  <Text
                     className={
                       property.description ? "property description" : "property"
                     }
                   >
                     {property.name}
-                  </Typography>
+                  </Text>
                 </Tooltip>
                 <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  delay={TOOLTIP_ENTER_DELAY}
                   placement="top-end"
                   title={descriptionForType(property.type.type || "")}
                 >
-                  <Typography
+                  <Text
                     className="type"
                     style={{
                       borderColor: colorForType(property.type.type)
                     }}
                   >
                     {property.type.type}
-                  </Typography>
+                  </Text>
                 </Tooltip>
               </div>
             ))}
           </div>
           <div className="outputs">
-            <Typography variant="h4">Outputs</Typography>
+            <Text size="big">Outputs</Text>
             {nodeMetadata.outputs.map((property) => (
               <div key={property.name} className="item">
-                <Typography className="property">{property.name}</Typography>
+                <Text className="property">{property.name}</Text>
                 <Tooltip
-                  enterDelay={TOOLTIP_ENTER_DELAY}
+                  delay={TOOLTIP_ENTER_DELAY}
                   placement="top-end"
                   title={descriptionForType(property.type.type || "")}
                 >
-                  <Typography
+                  <Text
                     className="type"
                     style={{
                       borderColor: colorForType(property.type.type)
                     }}
                   >
                     {property.type.type}
-                  </Typography>
+                  </Text>
                 </Tooltip>
               </div>
             ))}

@@ -8,6 +8,8 @@ The Workflow Editor is where you build, test, and refine AI workflows. This page
 
 > **New to NodeTool?** Start with the [Getting Started](getting-started.md) guide to run your first workflow, then come back here to learn the editor in depth.
 
+> **Want every panel explained?** See [Editor Panels](editor-panels.md) for a deep dive on the left, right, bottom, and floating panels.
+
 ---
 
 ## Editor Layout
@@ -60,6 +62,8 @@ Each node does one thing.
 3. See compatible nodes
 
 ### Node Structure
+
+![Node Anatomy](assets/screenshots/screenshot-placeholder.svg)
 
 - **Header** (top) - Name, drag to move
 - **Inputs** (left circles) - Data in
@@ -150,6 +154,8 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 
 ### Watching Progress
 
+![Workflow Progress](assets/screenshots/screenshot-placeholder.svg)
+
 - **Streaming nodes** show output as it's generated
 - **Preview nodes** display intermediate results
 - **Node borders** indicate status (running, complete, error)
@@ -194,6 +200,8 @@ Suspended workflows are useful for:
 
 ### Missing Models
 
+![Missing Model Indicator](assets/screenshots/screenshot-placeholder.svg)
+
 If a node needs an AI model you haven't installed:
 1. Click the **"Missing Model"** indicator on the node
 2. The **Recommended Models** dialog opens
@@ -205,9 +213,13 @@ If a node needs an AI model you haven't installed:
 
 ### Auto Layout
 
+![Auto Layout Before/After](assets/screenshots/screenshot-placeholder.svg)
+
 Click the **Auto Layout** button (or press `L`) to automatically arrange your nodes in a clean, readable layout. The editor also auto-arranges nodes when Global Chat creates or modifies workflows.
 
 ### Grouping Nodes
+
+![Node Groups](assets/screenshots/screenshot-placeholder.svg)
 
 Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
 - Keep related nodes together
@@ -227,6 +239,8 @@ Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
 
 ### Multiple Workflows
 
+![Workflow Tabs](assets/screenshots/screenshot-placeholder.svg)
+
 - Open multiple workflows in **tabs** at the top
 - Switch with `Ctrl/⌘ + 1-9` or click the tab
 - Drag tabs to reorder
@@ -245,16 +259,22 @@ Access these views by clicking icons on the left:
 
 ### Right Panel (Inspector)
 
+![Inspector Panel](assets/screenshots/screenshot-placeholder.svg)
+
 Press `i` to toggle the **Inspector** panel, which shows:
 - Detailed properties for selected nodes
 - Input/output documentation
 - Validation errors and warnings
+
+See [Editor Panels → Right Panel](editor-panels.md#right-panel-inspector) for every tab (Inspector, Logs, Jobs, Agent, Trace, Version History, Workspace).
 
 ---
 
 ## Finding Nodes
 
 ### The Node Menu
+
+![Node Menu Open](assets/screenshots/screenshot-placeholder.svg)
 
 Press `Space` to open, then:
 
@@ -275,6 +295,8 @@ Get help on any node:
 ---
 
 ## Context Menus
+
+![Context Menu on Node](assets/screenshots/screenshot-placeholder.svg)
 
 Right-click for options anywhere:
 
@@ -304,6 +326,8 @@ Click the edit icon on image outputs or properties to open the full-featured edi
 > **📖 Full Guide:** See [Image Editor](image-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
 
 ### Color Picker
+
+![Color Picker Modal](assets/screenshots/screenshot-placeholder.svg)
 
 The professional color picker appears when selecting colors in properties:
 

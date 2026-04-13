@@ -38,6 +38,7 @@ export type NodeClass = {
   isControlled: boolean;
   exposeAsTool?: boolean;
   supportsDynamicOutputs?: boolean;
+  autoSaveAsset: boolean;
   modelPacks?: unknown[];
   metadataOutputTypes?: DeclaredOutputTypes;
   outputTypes: DeclaredOutputTypes;
@@ -92,6 +93,7 @@ export abstract class BaseNode {
   static readonly isControlled: boolean = false;
   static readonly exposeAsTool: boolean | undefined = undefined;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
+  static readonly autoSaveAsset: boolean = false;
   static readonly modelPacks: unknown[] | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =
     undefined;

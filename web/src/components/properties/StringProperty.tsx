@@ -4,10 +4,9 @@ import { useState, useCallback, memo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
-import isEqual from "lodash/isEqual";
-import { IconButton, Tooltip } from "@mui/material";
+import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
-import { CopyButton } from "../ui_primitives";
+import { CopyButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
@@ -100,15 +99,13 @@ const StringProperty = ({
 
   if (isConnected) {
     return (
-      <div className="string-property" css={propertyStyles}>
-        <div className="property-row">
-          <PropertyLabel
-            name={property.name}
-            description={property.description}
-            id={id}
-          />
-          <ConnectedBadge />
-        </div>
+      <div className="string-property connected">
+        <PropertyLabel
+          name={property.name}
+          description={property.description}
+          id={id}
+        />
+        <ConnectedBadge />
       </div>
     );
   }
@@ -128,11 +125,7 @@ const StringProperty = ({
         />
         {isHovered && (
           <div className="string-action-buttons">
-            <Tooltip title="Open Editor" placement="bottom">
-              <IconButton size="small" onClick={toggleExpand} aria-label="Open Editor">
-                <OpenInFullIcon />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton tooltip="Open Editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
             <CopyButton value={value} buttonSize="small" />
           </div>
         )}

@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, memo } from "react";
 import {
-  Button,
   Menu,
   MenuItem,
   ListItemText
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { EditorButton } from "../ui_primitives";
 
 export interface PanelInfo {
   id: string;
@@ -48,7 +48,7 @@ const AddPanelDropdown: React.FC<AddPanelDropdownProps> = ({
 
   return (
     <div>
-      <Button
+      <EditorButton
         id="add-panel-button"
         aria-controls={open ? "add-panel-menu" : undefined}
         aria-haspopup="true"
@@ -58,7 +58,7 @@ const AddPanelDropdown: React.FC<AddPanelDropdownProps> = ({
         startIcon={<AddIcon />}
       >
         Add Panel
-      </Button>
+      </EditorButton>
       <Menu
         id="add-panel-menu"
         anchorEl={anchorEl}

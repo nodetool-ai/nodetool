@@ -175,7 +175,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
 
       if (!result.canceled && result.assets.length > 0) {
-        const newFiles: DroppedFile[] = result.assets.map((asset) => {
+        const newFiles: DroppedFile[] = result.assets.map((asset: any) => {
           const mimeType = asset.mimeType || 'image/jpeg';
           const dataUri = asset.base64
             ? `data:${mimeType};base64,${asset.base64}`
@@ -206,7 +206,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      const newFiles: DroppedFile[] = result.assets.map((asset) => ({
+      const newFiles: DroppedFile[] = result.assets.map((asset: any) => ({
         name: asset.name,
         type: asset.mimeType || 'application/octet-stream',
         size: asset.size || 0,

@@ -41,9 +41,9 @@ help:
 	@echo "  make format           - Format code (alias for lint-fix)"
 	@echo ""
 	@echo "Documentation Screenshots:"
-	@echo "  make screenshots                 - Capture real screenshots (auto-starts web dev server)"
+	@echo "  make screenshots                 - Capture real screenshots (builds backend packages, starts real backend with mock data)"
 	@echo "  make screenshots-force           - Re-capture ALL screenshots (overwrite existing)"
-	@echo "    API calls are intercepted with mock data — no real backend needed."
+	@echo "    Backend: real NodeTool API on port 7777 with in-memory SQLite + mock data."
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean            - Remove build artifacts and dependencies"
@@ -120,9 +120,11 @@ check-node-version:
 	fi
 
 ifeq ($(OS),Windows_NT)
+ELECTRON_VERSION := $(shell node -e "process.stdout.write(require('./electron/package.json').devDependencies.electron)")
 electron-dev: check-node-version
-	@echo "Rebuilding native modules for Electron..."
-	cd electron && npx electron-builder install-app-deps
+	@echo "Rebuilding native modules for Electron ABI (force)..."
+	cd node_modules/better-sqlite3 && npx node-gyp rebuild --target=$(ELECTRON_VERSION) --arch=x64 --dist-url=https://electronjs.org/headers
+	cd node_modules/bufferutil && npx node-gyp rebuild --target=$(ELECTRON_VERSION) --arch=x64 --dist-url=https://electronjs.org/headers
 	@echo "Starting Electron development mode..."
 	powershell -ExecutionPolicy Bypass -File scripts/electron-dev.ps1
 else
@@ -208,7 +210,7 @@ typecheck-electron:
 
 typecheck-mobile:
 	@echo "Building shared protocol package for mobile..."
-	cd packages/protocol && npm run build
+	npx tsc --build packages/protocol
 	@echo "Type checking mobile package..."
 	cd mobile && npm run typecheck
 
@@ -236,11 +238,15 @@ all: install typecheck lint test build
 
 # Documentation screenshot targets
 screenshots:
-	@echo "Capturing documentation screenshots (API calls intercepted with mock data)..."
+	@echo "Capturing documentation screenshots (real backend with mock data)..."
+	@echo "Building backend packages first..."
+	npm run build:packages
 	cd web && npm run screenshots
 
 screenshots-force:
 	@echo "Re-capturing ALL documentation screenshots (overwriting existing)..."
+	@echo "Building backend packages first..."
+	npm run build:packages
 	cd web && npm run screenshots:force
 
 # Quick start target for new developers

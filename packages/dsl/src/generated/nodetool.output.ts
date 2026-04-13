@@ -14,9 +14,5 @@ export interface OutputOutputs {
 }
 
 export function output(inputs: OutputInputs): DslNode<OutputOutputs, "output"> {
-  return createNode(
-    "nodetool.output.Output",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output", streaming: true }
-  );
+  return createNode("nodetool.output.Output", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
 }

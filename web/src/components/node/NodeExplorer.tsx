@@ -2,15 +2,12 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, useState, memo } from "react";
 import {
-  Box,
-  Button,
-  Chip,
   List,
   ListItem,
   ListItemButton,
-  TextField,
-  Typography
+  TextField
 } from "@mui/material";
+import { Text, Chip, EditorButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -280,7 +277,7 @@ const NodeExplorer: React.FC = () => {
   );
 
   return (
-    <Box className="node-explorer" css={styles(theme)}>
+    <div className="node-explorer" css={styles(theme)}>
       <PanelHeadline
         title="Node Explorer"
         actions={
@@ -312,13 +309,13 @@ const NodeExplorer: React.FC = () => {
         }}
       />
       {entries.length === 0 ? (
-        <Box className="empty-state">
-          <Typography variant="body2">
+        <div className="empty-state">
+          <Text size="small">
             {nodes.length === 0
               ? "No nodes in this workflow yet."
               : "No nodes match your filter."}
-          </Typography>
-        </Box>
+          </Text>
+        </div>
       ) : (
         <List className="node-list" dense disablePadding>
           {entries.map((entry) => (
@@ -330,17 +327,17 @@ const NodeExplorer: React.FC = () => {
                 onContextMenu={handleContextMenu}
               >
                 <div className="node-text">
-                  <Typography className="node-title" variant="body1">
+                  <Text className="node-title">
                     {entry.title}
-                  </Typography>
+                  </Text>
                   {entry.subtitle && (
-                    <Typography className="node-subtitle" variant="body2">
+                    <Text className="node-subtitle" size="small">
                       {entry.subtitle}
-                    </Typography>
+                    </Text>
                   )}
                 </div>
               </ListItemButton>
-              <Button
+              <EditorButton
                 className="node-edit-button"
                 size="small"
                 aria-label="Edit node"
@@ -348,12 +345,12 @@ const NodeExplorer: React.FC = () => {
                 onClick={handleEditButtonClick}
               >
                 <NorthEastIcon fontSize="small" />
-              </Button>
+              </EditorButton>
             </ListItem>
           ))}
         </List>
       )}
-    </Box>
+    </div>
   );
 };
 

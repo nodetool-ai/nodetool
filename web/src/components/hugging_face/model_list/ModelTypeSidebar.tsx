@@ -5,9 +5,9 @@ import {
   List,
   ListItem,
   ListItemButton,
-  ListItemText,
-  Tooltip
+  ListItemText
 } from "@mui/material";
+import { Tooltip } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/data_types";
 import { prettifyModelType } from "../../../utils/modelFormatting";

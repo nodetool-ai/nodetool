@@ -2,22 +2,20 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo } from "react";
 import PropertyField from "./node/PropertyField";
-import { Box, Tooltip, Typography } from "@mui/material";
-import useNodeMenuStore from "../stores/NodeMenuStore";
+import { Box } from "@mui/material";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
-import NodeDescription from "./node/NodeDescription";
 import NodeExplorer from "./node/NodeExplorer";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
-import { CloseButton, EditorButton, ScrollArea } from "./ui_primitives";
-import PanelHeadline from "./ui/PanelHeadline";
+import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
+import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 
 const styles = (theme: Theme) =>
   css({
@@ -43,65 +41,53 @@ const styles = (theme: Theme) =>
       left: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "10px",
+      gap: theme.spacing(3),
       width: "100%",
       height: "100%",
-      padding: "0.5em",
+      padding: `${theme.spacing(2)} ${theme.spacing(3)} ${theme.spacing(2)} ${theme.spacing(5)}`,
       transformOrigin: "top left"
     },
-    ".inspector-header h5": {
-      margin: ".5em 0 .5em 0"
-    },
-    ".bottom": {
-      position: "relative",
+    ".header-row": {
       display: "flex",
-      flexDirection: "column",
-      gap: "1em",
-      width: "100%",
-      maxHeight: "20vh",
-      padding: "0.5em "
+      alignItems: "center",
+      justifyContent: "space-between"
     },
     ".inspector-header": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.5em",
       width: "100%",
-      padding: "0 0 0.5em 0",
-      margin: 0,
-      marginBottom: "1em"
-    },
-    ".inspector-header .header-row": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: "0.5em"
+      paddingBottom: theme.spacing(1),
+      marginBottom: theme.spacing(0.5),
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".title": {
       width: "100%",
       userSelect: "none",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal
+      fontSize: theme.fontSizeNormal,
+      fontWeight: 500
+    },
+    ".namespace": {
+      fontSize: theme.fontSizeTiny,
+      color: theme.vars.palette.text.disabled,
+      fontFamily: "monospace",
+      letterSpacing: "0.02em",
+      marginTop: theme.spacing(0.25)
+    },
+    ".header-description": {
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.fontSizeTiny,
+      lineHeight: 1.4,
+      marginTop: theme.spacing(0.5),
+      opacity: 0.8,
+      whiteSpace: "pre-wrap"
     },
     ".description": {
       color: "var(--palette-grey-100)",
-      fontSize: theme.fontSizeSmall,
+      fontSize: theme.fontSizeTiny,
       paddingRight: "0.5em",
-      maxHeight: "400px",
-      marginTop: "auto",
+      maxHeight: "200px",
       overflowY: "auto"
-    },
-    ".namespace": {
-      justifyContent: "center",
-      overflowY: "auto",
-      marginBottom: ".75em",
-      width: "100%",
-      textAlign: "center",
-      overflow: "hidden",
-      wordBreak: "break-word",
-      lineHeight: "1.25em",
-      color: "var(--palette-primary-main)",
-      textTransform: "uppercase",
-      fontSize: theme.fontSizeSmaller
     },
     ".multi-property-row": {
       display: "flex",
@@ -165,7 +151,6 @@ const Inspector: React.FC = () => {
   );
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
-  const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const theme = useTheme();
   const inspectorStyles = useMemo(() => styles(theme), [theme]);
   const nodesWithMetadata = useMemo(
@@ -254,23 +239,6 @@ const Inspector: React.FC = () => {
     ? getMetadata(selectedNode.type as string)
     : null;
 
-  const handleOpenNodeMenu = useCallback(() => {
-    if (!metadata) {return;}
-    openNodeMenu({
-      x: 500,
-      y: 200,
-      dropType: metadata.namespace
-    });
-  }, [openNodeMenu, metadata]);
-
-  const handleTagClick = useCallback((tag: string) => {
-    openNodeMenu({
-      x: 500,
-      y: 200,
-      searchTerm: tag
-    });
-  }, [openNodeMenu]);
-
   if (selectedNodes.length === 0) {
     return (
       <EditorUiProvider scope="inspector">
@@ -292,9 +260,9 @@ const Inspector: React.FC = () => {
         <Box className="inspector" css={inspectorStyles}>
           <Box className="top">
             <ScrollArea className="top-content" direction="vertical">
-              <Typography>
+              <Text size="small" color="secondary">
                 Metadata is not available for all selected nodes.
-              </Typography>
+              </Text>
             </ScrollArea>
           </Box>
         </Box>
@@ -307,17 +275,15 @@ const Inspector: React.FC = () => {
           <Box className="top">
             <ScrollArea className="top-content" direction="vertical">
               <div className="inspector-header">
-                <PanelHeadline
-                  title="Inspector"
-                  actions={
-                    <CloseButton
-                      onClick={handleInspectorClose}
-                      tooltip="Close inspector"
-                      buttonSize="small"
-                      nodrag={false}
-                    />
-                  }
-                />
+                <div className="header-row">
+                  <div className="title">{selectedNodes.length} nodes selected</div>
+                  <CloseButton
+                    onClick={handleInspectorClose}
+                    tooltip="Close inspector"
+                    buttonSize="small"
+                    nodrag={false}
+                  />
+                </div>
                 <div className="title">
                   {`Editing ${selectedNodes.length} nodes`}
                 </div>
@@ -346,6 +312,7 @@ const Inspector: React.FC = () => {
                       <Tooltip
                         title="Mixed values across the selected nodes"
                         placement="top-start"
+                        delay={200}
                       >
                         <span className="mixed-indicator">
                           <WarningAmberOutlinedIcon fontSize="small" />
@@ -355,13 +322,9 @@ const Inspector: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ padding: "0.25em 0" }}
-                >
+                <Caption size="smaller" color="muted" sx={{ padding: "0.25em 0" }}>
                   No shared editable properties across the selected nodes.
-                </Typography>
+                </Caption>
               )}
             </ScrollArea>
           </Box>
@@ -377,10 +340,9 @@ const Inspector: React.FC = () => {
         <Box className="top">
           <ScrollArea className="top-content" direction="vertical">
             <Box className="inspector-header">
-              <PanelHeadline title="Inspector" />
-              <Typography variant="body2" color="text.secondary">
-                Select nodes to edit
-              </Typography>
+              <Caption size="smaller" color="muted">
+                Select a node to inspect
+              </Caption>
             </Box>
           </ScrollArea>
         </Box>
@@ -390,7 +352,7 @@ const Inspector: React.FC = () => {
   }
 
   if (!metadata) {
-    return <Typography>No metadata available for this node</Typography>;
+    return <Text size="small" color="secondary">No metadata available for this node</Text>;
   }
 
   return (
@@ -399,20 +361,27 @@ const Inspector: React.FC = () => {
         <Box className="top">
           <ScrollArea className="top-content" direction="vertical">
             <div className="inspector-header">
-              <PanelHeadline
-                title="Inspector"
-                actions={
-                  <CloseButton
-                    onClick={handleInspectorClose}
-                    tooltip="Close inspector"
-                    buttonSize="small"
-                    nodrag={false}
-                  />
-                }
-              />
               <div className="header-row">
                 <div className="title">{metadata.title}</div>
+                <CloseButton
+                  onClick={handleInspectorClose}
+                  tooltip="Close inspector"
+                  buttonSize="small"
+                  nodrag={false}
+                />
               </div>
+              <div className="namespace">{metadata.node_type}</div>
+              {metadata.description && (
+                <CollapsibleSection
+                  title={<Caption size="tiny" color="muted">Description</Caption>}
+                  defaultOpen={false}
+                  compact
+                >
+                  <div className="header-description">
+                    {metadata.description}
+                  </div>
+                </CollapsibleSection>
+              )}
             </div>
             {/* Base properties */}
             {metadata.properties.map((property, index) => (
@@ -468,6 +437,7 @@ const Inspector: React.FC = () => {
                 }
 
                 const isFalNode = selectedNode.type === "fal.DynamicFal" ||
+                  selectedNode.type === DYNAMIC_KIE_NODE_TYPE ||
                   selectedNode.type === "kie.DynamicKie";
 
                 // Build property object with proper typing
@@ -498,26 +468,7 @@ const Inspector: React.FC = () => {
             )}
           </ScrollArea>
         </Box>
-        <div className="bottom">
-          <NodeDescription
-            className="description"
-            description={metadata.description}
-            onTagClick={handleTagClick}
-          />
-          <Tooltip title="Show in NodeMenu" placement="top-start">
-            <EditorButton
-              variant="outlined"
-              sx={{
-                padding: ".5em"
-              }}
-              className="namespace"
-              onClick={handleOpenNodeMenu}
-              density="compact"
-            >
-              {metadata.namespace}
-            </EditorButton>
-          </Tooltip>
-        </div>
+        <div className="bottom"></div>
       </Box>
     </EditorUiProvider>
   );

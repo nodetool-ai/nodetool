@@ -649,7 +649,8 @@ describe("document nodes", () => {
         chunk_size: 30,
         chunk_overlap: 5
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       // step = 30 - 5 = 25, so chunks at 0, 25, 50, 75
       expect(chunks).toHaveLength(4);
       expect(chunks[0]).toEqual({
@@ -685,7 +686,8 @@ describe("document nodes", () => {
         chunk_size: 100,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks).toHaveLength(1);
       expect(chunks[0]).toEqual({
         chunk: "short",
@@ -702,7 +704,8 @@ describe("document nodes", () => {
         chunk_size: 100,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks).toHaveLength(1);
       expect(chunks[0].source_id).toBe("document");
     });
@@ -714,7 +717,8 @@ describe("document nodes", () => {
         chunk_size: 100,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks).toHaveLength(0);
     });
   });
@@ -729,7 +733,8 @@ describe("document nodes", () => {
         chunk_size: 20,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       // Structure-aware split: extracts block-level elements separately
       expect(chunks.length).toBeGreaterThan(0);
       // No chunk should contain HTML tags
@@ -748,7 +753,8 @@ describe("document nodes", () => {
         chunk_size: 100,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks).toHaveLength(1);
       expect(chunks[0]).toEqual({
         chunk: "Hi",
@@ -769,7 +775,8 @@ describe("document nodes", () => {
         chunk_size: 20,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       // Structure-aware split: splits by JSON structure
       expect(chunks.length).toBeGreaterThan(0);
       // Verify all chunks have correct types
@@ -789,7 +796,8 @@ describe("document nodes", () => {
         chunk_size: 1000,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks).toHaveLength(1);
       expect(chunks[0].text).toBe(JSON.stringify({ x: 1 }, null, 2));
       expect((chunks[0].source_id as string).startsWith("tiny-json:")).toBe(true);
@@ -829,7 +837,8 @@ describe("document nodes", () => {
         chunk_size: 40,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks.length).toBeGreaterThan(1);
       // Each chunk should be a non-empty string
       for (const c of chunks) {
@@ -844,7 +853,8 @@ describe("document nodes", () => {
         chunk_size: 1000,
         chunk_overlap: 0
       });
-      const chunks = await collectGen(node.genProcess());
+      const allYields = await collectGen(node.genProcess());
+      const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks).toHaveLength(1);
     });
   });

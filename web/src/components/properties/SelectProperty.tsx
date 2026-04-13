@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import { useNodes } from "../../contexts/NodeContext";

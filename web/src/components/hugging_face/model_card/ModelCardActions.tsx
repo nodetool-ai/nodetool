@@ -1,9 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback } from "react";
-import { CardActions, Box, Typography, Tooltip, Button } from "@mui/material";
+import { CardActions, Box, Button } from "@mui/material";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import { DeleteButton } from "../../ui_primitives";
+import { DeleteButton, Tooltip, Text } from "../../ui_primitives";
 import { Check } from "@mui/icons-material";
 import DownloadIcon from "@mui/icons-material/Download";
 import { useTheme } from "@mui/material/styles";
@@ -121,10 +121,10 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
       >
         {model.downloads && (
           <Box className="model-stats">
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              style={{
+            <Text
+              size="small"
+              color="secondary"
+              sx={{
                 display: "flex",
                 alignItems: "center",
                 gap: 5
@@ -139,9 +139,9 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
                   }}
                 />
               </Tooltip>
-              <Typography variant="body2" component="span">
+              <Text size="small" component="span">
                 {model.downloads?.toLocaleString() || "N/A"}
-              </Typography>
+              </Text>
 
               <Tooltip title="Likes on HF">
                 <FavoriteIcon
@@ -150,7 +150,7 @@ const ModelCardActions: React.FC<ModelCardActionsProps> = ({
                 />
               </Tooltip>
               {model.likes?.toLocaleString() || "N/A"}
-            </Typography>
+            </Text>
           </Box>
         )}
         {model.type?.startsWith("hf.") && (

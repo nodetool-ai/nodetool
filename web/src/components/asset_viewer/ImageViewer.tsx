@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo, useMemo } from "react";
-import { Typography } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { Asset } from "../../stores/ApiTypes";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
@@ -198,7 +198,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
   return (
     <div css={viewerStyles} className="image-viewer">
       <div className="image-info">
-        <Typography variant="body2">{`${imageWidth} x ${imageHeight}`}</Typography>
+        <Text size="small">{`${imageWidth} x ${imageHeight}`}</Text>
       </div>
       <div
         style={containerStyle}

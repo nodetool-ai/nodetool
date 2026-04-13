@@ -15,6 +15,7 @@ import SearchErrorBoundary from "../SearchErrorBoundary";
 
 // Mock loglevel to avoid console output in tests
 jest.mock("loglevel", () => ({
+  __esModule: true,
   default: {
     error: jest.fn(),
   },
@@ -359,7 +360,8 @@ describe("SearchErrorBoundary", () => {
 
       await waitFor(() => {
         const heading = screen.getByText("Search Error");
-        expect(heading.tagName).toBe("H6");
+        // Text component renders as <p> by default
+        expect(heading.tagName).toBe("P");
       });
     });
 

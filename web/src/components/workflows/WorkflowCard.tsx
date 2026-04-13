@@ -2,11 +2,9 @@
 import { css } from "@emotion/react";
 import {
   Box,
-  Typography,
-  CircularProgress,
-  Fade,
-  Tooltip
+  Fade
 } from "@mui/material";
+import { Text, Tooltip, LoadingSpinner } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
@@ -190,7 +188,7 @@ const WorkflowCard = ({
       title={workflow.description || ""}
       placement="top"
       arrow
-      enterDelay={300}
+      delay={300}
       leaveDelay={0}
       slotProps={{
         tooltip: {
@@ -219,10 +217,10 @@ const WorkflowCard = ({
         {isLoading && (
           <Fade in={true}>
             <Box className="loading-overlay">
-              <CircularProgress size={36} color="primary" />
-              <Typography className="loading-text">
+              <LoadingSpinner size="medium" />
+              <Text className="loading-text">
                 Creating workflow...
-              </Typography>
+              </Text>
             </Box>
           </Fade>
         )}
@@ -234,13 +232,13 @@ const WorkflowCard = ({
             alt={workflow.name}
             loading="lazy"
           />
-          <Typography className="package-badge">
+          <Text className="package-badge">
             {packageNameDisplay}
-          </Typography>
+          </Text>
           {nodesOnlySearch && matchedNodes.length > 0 && (
             <Box className="matched-nodes">
               {matchedNodes.slice(0, 3).map((match, idx) => (
-                <Typography key={idx} className="matched-item">
+                <Text key={idx} className="matched-item">
                   {getNodeDisplayName(match.text) && (
                     <span className="matched-item-name">
                       {getNodeDisplayName(match.text)}
@@ -249,21 +247,21 @@ const WorkflowCard = ({
                   <span className="matched-item-namespace">
                     {getNodeNamespace(match.text)}
                   </span>
-                </Typography>
+                </Text>
               ))}
               {matchedNodes.length > 3 && (
-                <Typography className="matched-item">
+                <Text className="matched-item">
                   +{matchedNodes.length - 3} more
-                </Typography>
+                </Text>
               )}
             </Box>
           )}
         </Box>
 
         <Box className="card-content">
-          <Typography component="h3" className="card-title">
+          <Text component="h3" className="card-title">
             {workflow.name}
-          </Typography>
+          </Text>
         </Box>
       </Box>
     </Tooltip>

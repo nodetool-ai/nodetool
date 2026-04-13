@@ -26,6 +26,23 @@ This hierarchy allows committed defaults, per-environment overrides, and develop
 
 ## Managing Settings & Secrets
 
+The in-app Settings dialog is the easiest way to manage everything. It has a sidebar with subsections:
+
+| Section | What it covers |
+|---------|---------------|
+| **General** | Theme, startup behavior, language |
+| **Providers** | API keys for OpenAI, Anthropic, Google, etc. |
+| **Default Models** | Pick the default LLM, image model, and embedding model |
+| **Folders** | Workspace, cache, and asset directories |
+| **Secrets** | Encrypted provider tokens and credentials |
+| **Remote** | Point the app at a remote NodeTool server |
+| **ComfyUI** | Integration settings for the ComfyUI sidecar |
+| **About** | Version and build info |
+
+![Settings Subviews](assets/screenshots/screenshot-placeholder.svg)
+
+From the command line:
+
 - `nodetool settings show [--secrets]` – print the current values in a Rich table.
 - `nodetool settings edit [--secrets]` – open the YAML file in `$EDITOR`. Files are created on first use.
 

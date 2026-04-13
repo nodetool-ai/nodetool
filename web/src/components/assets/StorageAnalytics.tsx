@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useMemo, memo } from "react";
-import { Typography, Box } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
 import { formatFileSize } from "../../utils/formatUtils";
@@ -93,9 +94,9 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
 
   return (
     <Box css={styles(theme)} className="storage-analytics">
-      <Typography className="folder-info">
+      <Text className="folder-info">
         {currentFolder?.name || "ASSETS"}
-      </Typography>
+      </Text>
 
       <div className="storage-stats">
         <div className="stat-item">

@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback } from "react";
-import { Box, Typography } from "@mui/material";
-import { EditorButton, LoadingSpinner, FlexRow } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { EditorButton, LoadingSpinner, FlexRow, Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
 import { Workflow } from "../../stores/ApiTypes";
@@ -130,9 +130,9 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
   return (
     <Box className="examples-list" css={styles(theme)}>
       <FlexRow justify="space-between" align="center">
-        <Typography variant="h3" className="section-title">
+        <Text size="big" className="section-title">
           Templates
-        </Typography>
+        </Text>
       </FlexRow>
       <Box className="content-scrollable">
         {isLoadingTemplates ? (
@@ -161,11 +161,11 @@ const ExamplesList: React.FC<TemplatesListProps> = ({
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
                 />
-                <Typography className="example-name">{example.name}</Typography>
+                <Text className="example-name">{example.name}</Text>
                 {example.description && (
-                  <Typography className="example-description-tooltip">
+                  <Text className="example-description-tooltip">
                     {truncateString(example.description, 150)}
-                  </Typography>
+                  </Text>
                 )}
               </Box>
             ))}

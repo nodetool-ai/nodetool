@@ -1485,6 +1485,19 @@ describe("ProcessingContext – normalizeOutputValue", () => {
     expect(await ctx.normalizeOutputValue(true)).toBe(true);
   });
 
+  it("replaces Uint8Array values with a bytes descriptor", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+
+    const result = (await ctx.normalizeOutputValue({
+      output: bytes,
+      status: 200
+    })) as { output: { type: string; length: number }; status: number };
+
+    expect(result.status).toBe(200);
+    expect(result.output).toEqual({ type: "bytes", length: 4 });
+  });
+
   it("passes through in raw/python mode", async () => {
     const ctx = new ProcessingContext({ jobId: "j1", assetOutputMode: "raw" });
     const value = {
@@ -1691,6 +1704,18 @@ describe("ProcessingContext – sanitizeForClient edge cases", () => {
       unknown
     >;
     expect(result.uri).toBe("");
+  });
+
+  it("replaces Uint8Array values with a bytes descriptor", () => {
+    const value = {
+      output: new Uint8Array([65, 66, 67])
+    };
+
+    const result = ProcessingContext.sanitizeForClient(value) as {
+      output: { type: string; length: number };
+    };
+
+    expect(result.output).toEqual({ type: "bytes", length: 3 });
   });
 });
 

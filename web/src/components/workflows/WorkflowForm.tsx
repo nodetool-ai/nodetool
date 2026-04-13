@@ -1,17 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import {
-  FormControl,
-  OutlinedInput,
-  FormLabel,
-  Button,
-  Typography,
-  Autocomplete,
-  TextField,
-  MenuItem,
-  FormHelperText,
-  createFilterOptions
-} from "@mui/material";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton } from "../ui_primitives";
 import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -32,7 +21,6 @@ const DEFAULT_TAG_SUGGESTIONS = [
   "rag"
 ];
 
-const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
 
 const styles = (theme: Theme) =>
   css({
@@ -45,6 +33,9 @@ const styles = (theme: Theme) =>
     
     // Section grouping
     ".settings-section": {
+      display: "flex",
+      flexDirection: "column" as const,
+      gap: theme.spacing(1),
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.action.hover,
@@ -61,8 +52,8 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(2)
     },
     
-    // Form controls
-    ".MuiFormControl-root": {
+    // Form controls — both FormControl and TextField
+    ".MuiFormControl-root, .MuiTextField-root": {
       marginBottom: theme.spacing(2),
       "&:last-child": {
         marginBottom: 0
@@ -113,7 +104,7 @@ const styles = (theme: Theme) =>
       "& .MuiOutlinedInput-root": {
         fontFamily: theme.fontFamily1,
         color: theme.vars.palette.grey[0],
-        minHeight: "42px"
+        minHeight: "auto"
       },
       "& .MuiAutocomplete-popper": {
         backgroundColor: theme.vars.palette.grey[800],
@@ -140,36 +131,6 @@ const styles = (theme: Theme) =>
         borderColor: theme.vars.palette.grey[500],
         fontSize: theme.fontSizeSmall,
         height: "26px"
-      }
-    },
-    
-    // Shortcut input
-    ".shortcut-input-container": {
-      position: "relative",
-      display: "flex",
-      alignItems: "center"
-    },
-    
-    ".shortcut-input .MuiOutlinedInput-root": {
-      cursor: "pointer",
-      fontFamily: theme.fontFamily1,
-      color: theme.vars.palette.grey[0],
-      "&.Mui-focused": {
-        backgroundColor: theme.vars.palette.grey[800]
-      }
-    },
-    
-    ".clear-button": {
-      position: "absolute",
-      right: "8px",
-      color: theme.vars.palette.grey[300],
-      fontSize: theme.fontSizeSmall,
-      textTransform: "none",
-      minWidth: "auto",
-      padding: "4px 10px",
-      "&:hover": {
-        color: theme.vars.palette.grey[0],
-        backgroundColor: theme.vars.palette.action.disabledBackground
       }
     },
     
@@ -227,7 +188,6 @@ interface WorkflowFormProps {
 
 const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
-  const [isCapturing, setIsCapturing] = useState(false);
   const { saveWorkflow } = useWorkflowManager((state) => ({
     saveWorkflow: state.saveWorkflow
   }));
@@ -267,72 +227,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     onClose();
   }, [saveWorkflow, localWorkflow, addNotification, onClose]);
 
-  const handleTagChange = (_event: React.SyntheticEvent, newValue: (string | { inputValue: string; title: string })[]) => {
-    // Handle both string values and objects from freeSolo createOption
-    const processedTags = newValue.map((item) => {
-      if (typeof item === "string") {
-        return item.trim().toLowerCase();
-      }
-      // Handle the createOption object format
-      return item.inputValue.trim().toLowerCase();
-    }).filter((tag) => tag.length > 0);
-    
-    // Remove duplicates
-    const uniqueTags = Array.from(new Set(processedTags));
-    
-    const updatedWorkflow = {
-      ...workflow,
-      ...localWorkflow,
-      tags: uniqueTags
-    };
-    setLocalWorkflow(updatedWorkflow);
-  };
-
-  const handleShortcutKeyDown = (event: React.KeyboardEvent) => {
-    event.preventDefault();
-
-    if (!isCapturing) {return;}
-
-    const pressedKey = event.key;
-    if (pressedKey === "Escape") {
-      setIsCapturing(false);
-      return;
-    }
-
-    // Skip if only modifier keys are pressed
-    if (MODIFIER_KEYS.includes(pressedKey)) {return;}
-
-    // Build the shortcut string
-    const parts: string[] = [];
-    if (event.ctrlKey) {parts.push("CommandOrControl");}
-    if (event.altKey) {parts.push("Alt");}
-    if (event.shiftKey) {parts.push("Shift");}
-    if (event.metaKey) {parts.push("Meta");}
-
-    // Add the main key
-    parts.push(pressedKey.length === 1 ? pressedKey.toUpperCase() : pressedKey);
-
-    const shortcut = parts.join("+");
-    setLocalWorkflow((prev: Workflow) => ({
-      ...prev,
-      settings: {
-        ...(prev.settings || {}),
-        shortcut: shortcut
-      }
-    }));
-    setIsCapturing(false);
-  };
-
-  const clearShortcut = useCallback(() => {
-    setLocalWorkflow((prev: Workflow) => ({
-      ...prev,
-      settings: {
-        ...(prev.settings || {}),
-        shortcut: ""
-      }
-    }));
-  }, []);
-
   const handleToolNameChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const rawValue = event.target.value || "";
@@ -361,157 +255,74 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
       {/* Basic Information Section */}
       <div className="settings-section">
-        <FormControl fullWidth>
-          <FormLabel htmlFor="name">Name</FormLabel>
-          <OutlinedInput
-            fullWidth
-            name="name"
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            value={localWorkflow.name}
-            onChange={handleChange}
-          />
-        </FormControl>
+        <TextInput
+          label="Name"
+          name="name"
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          value={localWorkflow.name}
+          onChange={handleChange}
+        />
 
-        <FormControl fullWidth>
-          <FormLabel htmlFor="description">Description</FormLabel>
-          <OutlinedInput
-            name="description"
-            value={localWorkflow.description}
-            onChange={handleChange}
-            multiline
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            minRows={2}
-          />
-        </FormControl>
+        <TextInput
+          label="Description"
+          name="description"
+          value={localWorkflow.description}
+          onChange={handleChange}
+          multiline
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          minRows={2}
+        />
 
-        <FormControl fullWidth>
-          <FormLabel htmlFor="tags">Tags</FormLabel>
-          <Autocomplete
-            className="tag-input"
-            multiple
-            freeSolo
-            selectOnFocus
-            clearOnBlur
-            handleHomeEndKeys
-            options={tagOptions}
-            value={localWorkflow.tags || []}
-            onChange={handleTagChange}
-            filterOptions={(options, params) => {
-              const filter = createFilterOptions<string>();
-              const filtered = filter(options, params);
-              const { inputValue } = params;
-              // Suggest creating a new tag if it doesn't exist
-              const isExisting = options.some(
-                (option) => inputValue.toLowerCase() === option.toLowerCase()
-              );
-              if (inputValue !== "" && !isExisting) {
-                filtered.push(inputValue);
-              }
-              return filtered;
-            }}
-            getOptionLabel={(option) => {
-              if (typeof option === "string") {
-                return option;
-              }
-              return (option as { inputValue?: string }).inputValue || "";
-            }}
-            renderOption={(props, option) => {
-              const { key, ...rest } = props;
-              const optionStr = typeof option === "string" ? option : (option as { inputValue?: string }).inputValue || "";
-              const isNew = optionStr !== "" && !tagOptions.includes(optionStr);
-              return (
-                <li key={key} {...rest}>
-                  {isNew ? `Add "${optionStr}"` : optionStr}
-                </li>
-              );
-            }}
-            slotProps={{
-              popper: {
-                style: {
-                  zIndex: theme.zIndex.autocomplete
-                }
-              }
-            }}
-            renderInput={(params) => (
-              <TextField {...params} placeholder="Type or select tags..." />
-            )}
-          />
-          <FormHelperText>
-            Select from suggestions or type custom tags (press Enter to add)
-          </FormHelperText>
-        </FormControl>
+        <AutocompleteTagInput
+          label="Tags"
+          value={localWorkflow.tags || []}
+          onChange={(tags) => {
+            const uniqueTags = Array.from(new Set(tags.map(t => t.trim().toLowerCase()).filter(t => t.length > 0)));
+            setLocalWorkflow((prev: Workflow) => ({ ...prev, tags: uniqueTags }));
+          }}
+          suggestions={tagOptions}
+          placeholder="Type or select tags..."
+          description="Select from suggestions or type custom tags (press Enter to add)"
+        />
       </div>
 
       {/* Execution Section */}
       <div className="settings-section">
-        <Typography className="section-title">Execution</Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+        <Text className="section-title">Execution</Text>
+        <Caption sx={{ display: "block", mb: 2 }}>
           Configure how this workflow runs and can be triggered
-        </Typography>
+        </Caption>
 
-        <FormControl fullWidth>
-          <FormLabel>Run Mode</FormLabel>
-          <TextField
-            select
-            value={localWorkflow.run_mode || "workflow"}
-            onChange={(e) =>
-              setLocalWorkflow((prev: Workflow) => ({
-                ...prev,
-                run_mode: e.target.value
-              }))
-            }
-          >
-            <MenuItem value="workflow">Workflow</MenuItem>
-            <MenuItem value="chat">Chat</MenuItem>
-            <MenuItem value="comfy">Comfy</MenuItem>
-            <MenuItem value="app">App</MenuItem>
-            <MenuItem value="tool">Tool</MenuItem>
-          </TextField>
-        </FormControl>
+        <SelectField
+          label="Run Mode"
+          value={localWorkflow.run_mode || "workflow"}
+          onChange={(value) =>
+            setLocalWorkflow((prev: Workflow) => ({
+              ...prev,
+              run_mode: value
+            }))
+          }
+          options={[
+            { value: "workflow", label: "Workflow" },
+            { value: "chat", label: "Chat" },
+            { value: "comfy", label: "Comfy" },
+            { value: "app", label: "App" },
+            { value: "tool", label: "Tool" }
+          ]}
+        />
 
-        <FormControl fullWidth>
-          <FormLabel htmlFor="shortcut">Keyboard Shortcut</FormLabel>
-          <div className="shortcut-input-container">
-            <OutlinedInput
-              className="shortcut-input"
-              fullWidth
-              name="shortcut"
-              value={
-                isCapturing
-                  ? "Press keys..."
-                  : localWorkflow.settings?.shortcut || "Click to set shortcut"
-              }
-              onKeyDown={handleShortcutKeyDown}
-              onFocus={() => setIsCapturing(true)}
-              onBlur={() => setIsCapturing(false)}
-              readOnly
-            />
-            {localWorkflow.settings?.shortcut && (
-              <Button
-                className="clear-button"
-                onClick={clearShortcut}
-                size="small"
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-          <FormHelperText>
-            Global shortcut to run this workflow (Electron only)
-          </FormHelperText>
-        </FormControl>
       </div>
 
       {/* Advanced Section */}
       <div className="settings-section">
-        <Typography className="section-title">Advanced</Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+        <Text className="section-title">Advanced</Text>
+        <Caption sx={{ display: "block", mb: 2 }}>
           Advanced configuration for workspaces and API/tool usage
-        </Typography>
+        </Caption>
 
         <WorkspaceSelect
           value={localWorkflow.workspace_id ?? undefined}
@@ -519,31 +330,26 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           helperText="Associate a workspace folder with this workflow for agent access"
         />
 
-        <FormControl fullWidth>
-          <FormLabel htmlFor="tool_name">Tool Name</FormLabel>
-          <OutlinedInput
-            fullWidth
-            name="tool_name"
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            value={localWorkflow.tool_name || ""}
-            onChange={handleToolNameChange}
-            placeholder="my_workflow_tool"
-          />
-          <FormHelperText>
-            Identifier for API/tool usage. Letters, numbers, underscores only.
-          </FormHelperText>
-        </FormControl>
+        <TextInput
+          label="Tool Name"
+          name="tool_name"
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          value={localWorkflow.tool_name || ""}
+          onChange={handleToolNameChange}
+          placeholder="my_workflow_tool"
+          helperText="Identifier for API/tool usage. Letters, numbers, underscores only."
+        />
       </div>
 
       <div className="button-container">
-        <Button className="cancel-button" onClick={onClose}>
+        <EditorButton className="cancel-button" onClick={onClose}>
           Cancel
-        </Button>
-        <Button className="save-button" onClick={handleSave}>
+        </EditorButton>
+        <EditorButton className="save-button" onClick={handleSave}>
           Save Changes
-        </Button>
+        </EditorButton>
       </div>
     </div>
   );

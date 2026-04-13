@@ -5,12 +5,11 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   IconButton,
-  Tooltip,
   Slider,
-  Typography,
   Checkbox,
   FormControlLabel
 } from "@mui/material";
+import { Tooltip, Text, Caption } from "../../ui_primitives";
 
 // Icons
 import PanToolIcon from "@mui/icons-material/PanTool";
@@ -326,7 +325,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
       <div className="toolbar">
         {/* Tools Section */}
         <div className="toolbar-section">
-          <Typography className="section-title">Tools</Typography>
+          <Text className="section-title">Tools</Text>
           <div className="tools-grid">
             <Tooltip title="Select / Pan (V)" placement="top">
               <IconButton
@@ -470,10 +469,10 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         {/* Crop Actions (shown when crop tool is active) */}
         {isCropping && (
           <div className="toolbar-section">
-            <Typography className="section-title">Crop Selection</Typography>
-            <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
+            <Text className="section-title">Crop Selection</Text>
+            <Caption sx={{ mb: 1, display: "block" }}>
               Drag on the image to select crop area
-            </Typography>
+            </Caption>
             <div className="crop-actions">
               <button
                 className="crop-action-button crop-apply"
@@ -609,7 +608,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         {/* Brush Settings (shown when draw/erase tool is active) */}
         {(tool === "draw" || tool === "erase") && (
           <div className="toolbar-section">
-            <Typography className="section-title">Brush Settings</Typography>
+            <Text className="section-title">Brush Settings</Text>
 
             <div className="color-picker-row">
               <input
@@ -668,7 +667,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         {/* Fill Settings (shown when fill tool is active) */}
         {tool === "fill" && (
           <div className="toolbar-section">
-            <Typography className="section-title">Fill Settings</Typography>
+            <Text className="section-title">Fill Settings</Text>
             <div className="color-picker-row">
               <input
                 type="color"
@@ -691,7 +690,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         {/* Shape Settings (shown when shape tools are active) */}
         {(tool === "rectangle" || tool === "ellipse" || tool === "line" || tool === "arrow") && (
           <div className="toolbar-section">
-            <Typography className="section-title">Shape Settings</Typography>
+            <Text className="section-title">Shape Settings</Text>
 
             <div className="color-picker-row">
               <input
@@ -746,9 +745,9 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
 
             {shapeSettings.filled && (tool === "rectangle" || tool === "ellipse") && (
               <div className="color-picker-row" style={{ marginTop: "8px" }}>
-                <Typography variant="caption" sx={{ color: "grey.500", mr: 1, minWidth: "50px" }}>
+                <Caption sx={{ color: "grey.500", mr: 1, minWidth: "50px" }}>
                   Fill
-                </Typography>
+                </Caption>
                 <input
                   type="color"
                   value={shapeSettings.fillColor}
@@ -764,7 +763,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
         {/* Text Settings (shown when text tool is active) */}
         {tool === "text" && (
           <div className="toolbar-section">
-            <Typography className="section-title">Text Settings</Typography>
+            <Text className="section-title">Text Settings</Text>
 
             <div className="color-picker-row">
               <input
@@ -834,7 +833,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
 
         {/* Transform Actions */}
         <div className="toolbar-section">
-          <Typography className="section-title">Transform</Typography>
+          <Text className="section-title">Transform</Text>
           <div className="actions-row">
             <Tooltip title="Rotate 90° CCW">
               <IconButton
@@ -881,7 +880,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
 
         {/* Adjustments */}
         <div className="toolbar-section">
-          <Typography className="section-title">Adjustments</Typography>
+          <Text className="section-title">Adjustments</Text>
 
           <div className="slider-container">
             <div className="slider-label">
@@ -934,7 +933,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
 
         {/* Zoom Controls */}
         <div className="toolbar-section">
-          <Typography className="section-title">View</Typography>
+          <Text className="section-title">View</Text>
           <div className="zoom-controls">
             <IconButton
               className="action-button"
@@ -968,7 +967,7 @@ const ImageEditorToolbar: React.FC<ImageEditorToolbarProps> = ({
 
         {/* History */}
         <div className="toolbar-section">
-          <Typography className="section-title">History</Typography>
+          <Text className="section-title">History</Text>
           <div className="actions-row">
             <Tooltip title="Undo (Ctrl+Z)">
               <span>

@@ -2,14 +2,11 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import ArrayView from "../ArrayView";
 import { ThemeProvider } from "@mui/material/styles";
-import { createTheme } from "@mui/material";
+import mockTheme from "../../../__mocks__/themeMock";
 import { NPArray } from "../../../stores/ApiTypes";
 
-// Mock theme provider for consistent rendering
-const theme = createTheme();
-
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={theme}>{component}</ThemeProvider>);
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 describe("ArrayView", () => {

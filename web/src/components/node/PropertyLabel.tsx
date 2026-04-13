@@ -2,8 +2,8 @@
 import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
-import isEqual from "lodash/isEqual";
-import Tooltip from "@mui/material/Tooltip";
+import isEqual from "fast-deep-equal";
+import { Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
@@ -50,10 +50,10 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   }, [name, isDynamicProperty]);
 
   const isInspector = scope === "inspector";
-  const labelFontSize = isInspector ? theme.fontSizeNormal : theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1);
-  // Auto-show inline descriptions in inspector scope
-  const shouldShowInlineDescription = showDescriptionInline || isInspector;
+  const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
+  // Only show inline descriptions when explicitly requested, not automatically in inspector
+  const shouldShowInlineDescription = showDescriptionInline && !isInspector;
 
   return (
     <div
@@ -86,9 +86,9 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
       })}
     >
       <Tooltip
-        title={showTooltip && !shouldShowInlineDescription ? description || "" : ""}
-        enterDelay={TOOLTIP_ENTER_DELAY * 2}
-        enterNextDelay={TOOLTIP_ENTER_DELAY}
+        title={showTooltip ? description || "" : ""}
+        delay={TOOLTIP_ENTER_DELAY * 2}
+        nextDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
         slotProps={{
           tooltip: {

@@ -9,7 +9,7 @@ import {
 import useConnectionStore from "../../stores/ConnectionStore";
 import { colorForType } from "../../config/data_types";
 import { Slugify } from "../../utils/TypeHandler";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const CONTROL_EDGE_COLOR = "#f59e0b";
 const DEFAULT_EDGE_COLOR = "#888";

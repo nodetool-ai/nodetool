@@ -4,5 +4,60 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../agents"
+    },
+    {
+      "path": "../auth"
+    },
+    {
+      "path": "../base-nodes"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../dsl"
+    },
+    {
+      "path": "../elevenlabs-nodes"
+    },
+    {
+      "path": "../fal-nodes"
+    },
+    {
+      "path": "../huggingface"
+    },
+    {
+      "path": "../kernel"
+    },
+    {
+      "path": "../kie-nodes"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../replicate-nodes"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../security"
+    },
+    {
+      "path": "../vectorstore"
+    }
+  ]
 }

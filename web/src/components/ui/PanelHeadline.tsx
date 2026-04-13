@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Typography, Box } from "@mui/material";
+import { FlexRow, Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
@@ -12,10 +12,6 @@ interface PanelHeadlineProps {
 
 const styles = (theme: Theme) =>
   css({
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
     padding: ".5em .5em .5em 0",
 
     ".headline-title": {
@@ -26,12 +22,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       textShadow: `0px 0px 1px ${theme.vars.palette.common.black}${Math.round(0.4 * 255).toString(16).padStart(2, "0")}`,
       margin: 0
-    },
-
-    ".headline-actions": {
-      display: "flex",
-      alignItems: "center",
-      gap: "4px"
     }
   });
 
@@ -39,12 +29,27 @@ const PanelHeadline: React.FC<PanelHeadlineProps> = ({ title, actions }) => {
   const theme = useTheme();
 
   return (
-    <Box css={styles(theme)} className="panel-headline">
-      <Typography variant="h6" component="span" className="headline-title">
+    <FlexRow
+      css={styles(theme)}
+      className="panel-headline"
+      justify="space-between"
+      align="center"
+      fullWidth
+    >
+      <Text
+        size="normal"
+        weight={600}
+        component="span"
+        className="headline-title"
+      >
         {title}
-      </Typography>
-      {actions && <Box className="headline-actions">{actions}</Box>}
-    </Box>
+      </Text>
+      {actions && (
+        <FlexRow className="headline-actions" align="center" gap={0.5}>
+          {actions}
+        </FlexRow>
+      )}
+    </FlexRow>
   );
 };
 

@@ -50,11 +50,10 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "0em 1em",
+    padding: "0.75em 1.25em",
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    h2: {
-      marginTop: "0",
-      padding: "0.5em 0",
+    "& p, & h2": {
+      margin: 0,
       color: theme.vars.palette.grey[0],
       fontSize: theme.fontSizeBigger,
       lineHeight: "1.5",
@@ -193,11 +192,18 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       "& .MuiInputBase-root": {
         maxWidth: "34em",
         backgroundColor: theme.vars.palette.background.paper,
+        border: `1px solid ${theme.vars.palette.divider}`,
         borderRadius: ".3em",
         margin: "0",
         padding: ".3em 1em",
-        transition: "background-color 0.2s ease",
+        transition: "border-color 0.2s ease, background-color 0.2s ease",
         fontSize: theme.fontSizeNormal,
+        "&:hover": {
+          borderColor: theme.vars.palette.grey[300]
+        },
+        "&.Mui-focused": {
+          borderColor: theme.vars.palette.primary.main
+        },
         "&::before": {
           content: "none"
         }
@@ -211,6 +217,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     },
     ".description": {
       color: theme.vars.palette.grey[50],
+      opacity: 0.5,
       fontSize: theme.fontSizeSmall,
       margin: "0",
       padding: "0",

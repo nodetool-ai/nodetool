@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ServerStatus } from "../types";
+import logoUrl from "../assets/logo.png";
 
 interface UpdateProgressData {
   componentName: string;
@@ -210,43 +211,9 @@ const BootMessage: React.FC<BootMessageProps> = ({
         <div className="brand-ring" aria-hidden="true" />
 
         {!isInstalling && (
-          <svg
-            className="nodetool-icon"
-            width="396"
-            height="404"
-            viewBox="0 0 396 404"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ animation: 'logo-pulse 4s ease-in-out infinite' }}
-          >
-            <path
-              className="path-1"
-              d="M128 176.5L195.5 139L70.5 70L2.5 108L1 112V403L126 323V180L128 176.5Z"
-              fill="var(--c_border)"
-            />
-            <path
-              className="path-2"
-              d="M394.5 403L267.5 323V180L394.5 108V403Z"
-              fill="var(--c_border)"
-            />
-            <path
-              className="path-3"
-              d="M394.5 108L195 1L70 69.5L268 179L394.5 108Z"
-              fill="var(--c_border)"
-            />
-            <path
-              className="path-4"
-              d="M195.5 138.5L69.3451 70L3.5 107L127 176.5L195.5 138.5Z"
-              fill="var(--c_border)"
-            />
-            <path
-              className="path-5"
-              d="M394.5 108V403L267.5 323V180L394.5 108ZM394.5 108L195 1L70 69.5L268 179L394.5 108ZM195.5 139L128 176.5L126 180V323L1 403V112L2.5 108L70.5 70L195.5 139ZM69.3451 70L195.5 138.5L127 176.5L3.5 107L69.3451 70Z"
-              stroke="var(--c_text_primary)"
-              strokeWidth="2"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <div className="boot-logo-wrapper">
+            <img src={logoUrl} className="boot-logo" alt="Nodetool" />
+          </div>
         )}
 
         <div className="boot-text">{resolvedMessage}</div>

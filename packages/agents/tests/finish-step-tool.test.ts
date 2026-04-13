@@ -102,10 +102,18 @@ describe("FinishStepTool", () => {
 
       const result = (tool.inputSchema as any).properties.result;
       expect(result).toEqual({
-        type: "array",
-        items: { type: "string" }
+        type: "object",
+        description: "Result wrapper",
+        properties: {
+          items: {
+            type: "array",
+            items: { type: "string" }
+          }
+        },
+        required: ["items"],
+        additionalProperties: false
       });
-      expect(result.additionalProperties).toBeUndefined();
+      expect(result.additionalProperties).toBe(false);
     });
 
     it("does not mutate the original outputSchema", () => {

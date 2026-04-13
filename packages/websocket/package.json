@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
     "build:all": "node ../../scripts/build-websocket-workspaces.mjs",
     "build:stale": "node ../../scripts/build-stale-websocket-workspaces.mjs",
     "dev": "node ../../scripts/run-websocket-dev.mjs server",
@@ -45,8 +45,8 @@
     "node-pty": "^1.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
   "exports": {

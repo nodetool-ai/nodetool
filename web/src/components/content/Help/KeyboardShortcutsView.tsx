@@ -7,7 +7,8 @@ import React, {
 } from "react";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
-import { ToggleButtonGroup, ToggleButton, Tooltip } from "@mui/material";
+import { ToggleButtonGroup, ToggleButton } from "@mui/material";
+import { Tooltip } from "../../ui_primitives";
 import {
   Shortcut,
   expandShortcutsForOS,

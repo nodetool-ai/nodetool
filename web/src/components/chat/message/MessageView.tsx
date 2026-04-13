@@ -4,19 +4,10 @@ import {
   MessageContent,
   MessageTextContent,
   MessageImageContent,
-  ToolCall,
-  PlanningUpdate,
-  TaskUpdate,
-  StepResult
+  ToolCall
 } from "../../../stores/ApiTypes";
 
-/** Shape of a parsed execution-event content object. */
-type ExecutionEventContent = {
-  type?: string;
-  severity?: string;
-  content?: React.ReactNode;
-  [key: string]: unknown;
-};
+
 import ChatMarkdown from "./ChatMarkdown";
 import { useEditorInsertion } from "../../../contexts/EditorInsertionContext";
 import { ThoughtSection } from "./thought/ThoughtSection";
@@ -28,20 +19,21 @@ import {
 } from "../utils/messageUtils";
 import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
-import { CopyButton } from "../../ui_primitives";
+import {
+  CopyButton,
+  Tooltip,
+  Caption,
+  Text,
+  FlexRow,
+  FlexColumn,
+  ToolbarIconButton,
+  LoadingSpinner
+} from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import {
-  Box,
-  Collapse,
-  IconButton,
-  Tooltip,
-  Typography
-} from "@mui/material";
-import CircularProgress from "@mui/material/CircularProgress";
-import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
-import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
-import StepResultDisplay from "../../node/StepResultDisplay";
+import { Collapse } from "@mui/material";
+
+
 import AgentExecutionView from "./AgentExecutionView";
 
 /**
@@ -85,44 +77,37 @@ const ToolCallCard: React.FC<{
   }, []);
 
   return (
-    <Box className={`tool-call-card${isRunning ? " running" : ""}`}>
-      <Box className="tool-call-header">
-        <Typography component="span" variant="caption" className="tool-call-name">
-          {tc.name}
-        </Typography>
-        {(isRunning || tc.message) && (
-          <Typography component="span" variant="caption" className="tool-message">
-            {isRunning ? runningToolMessage || tc.message : tc.message}
-          </Typography>
-        )}
-        {isRunning && <CircularProgress size={12} sx={{ ml: 0.5 }} />}
-        <Box sx={{ flex: 1 }} />
+    <div className={`tool-call-card${isRunning ? " running" : ""}`}>
+      <FlexRow className="tool-call-header" align="center" justify="space-between" fullWidth gap={0.5}>
+        <FlexRow align="center" gap={0.5} sx={{ minWidth: 0 }}>
+          <Text component="span" size="small" weight={600} className="tool-call-name" truncate>
+            {formatToolName(tc.name)}
+          </Text>
+          {(isRunning || tc.message) && (
+            <Text component="span" size="small" className="tool-message" truncate>
+              {isRunning ? runningToolMessage || tc.message : tc.message}
+            </Text>
+          )}
+          {isRunning && <LoadingSpinner size="small" />}
+        </FlexRow>
         {hasDetails && (
-          <Tooltip title={open ? "Hide details" : "Show details"}>
-            <IconButton
-              size="small"
-              className="tool-expand-button"
-              onClick={handleToggleOpen}
-              aria-label={open ? "Hide details" : "Show details"}
-            >
-              <ExpandMoreIcon
-                className={`expand-icon${open ? " expanded" : ""}`}
-              />
-            </IconButton>
-          </Tooltip>
+          <ToolbarIconButton
+            tooltip={open ? "Hide details" : "Show details"}
+            onClick={handleToggleOpen}
+            icon={<ExpandMoreIcon className={`expand-icon${open ? " expanded" : ""}`} />}
+            className="tool-expand-button"
+          />
         )}
-      </Box>
+      </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
         {hasArgs && (
-          <Box sx={{ mt: 0.25 }}>
-            <Typography variant="caption" className="tool-section-title">
-              Arguments
-            </Typography>
+          <FlexColumn gap={0.25} sx={{ marginTop: "2px" }}>
+            <Caption className="tool-section-title">Arguments</Caption>
             <PrettyJson value={tc.args} />
-          </Box>
+          </FlexColumn>
         )}
       </Collapse>
-    </Box>
+    </div>
   );
 });
 ToolCallCard.displayName = "ToolCallCard";
@@ -148,52 +133,6 @@ export const MessageView: React.FC<
 }) => {
   const insertIntoEditor = useEditorInsertion();
 
-  // Memoize JSON parsing to avoid repeated parsing on every render
-  // Use string comparison to avoid re-parsing identical content
-  const { executionContent, executionEventType } = useMemo(() => {
-    let executionContent: ExecutionEventContent | string | null = message.content as ExecutionEventContent | string | null;
-    let executionEventType = message.execution_event_type;
-
-    // Fast path: if content is not a string, no parsing needed
-    if (typeof executionContent !== "string") {
-      if (
-        !executionEventType &&
-        executionContent &&
-        typeof executionContent === "object" &&
-        "type" in executionContent
-      ) {
-        executionEventType = executionContent.type;
-      }
-      return { executionContent, executionEventType };
-    }
-
-    // Only parse if content is a string
-    try {
-      executionContent = JSON.parse(executionContent);
-      // Handle double-encoded JSON (common in some API responses)
-      if (typeof executionContent === "string") {
-        try {
-          executionContent = JSON.parse(executionContent);
-        } catch {
-          // Keep intermediate string if nested JSON parsing fails
-        }
-      }
-    } catch {
-      // Keep original string if JSON parsing fails
-    }
-
-    if (
-      !executionEventType &&
-      executionContent &&
-      typeof executionContent === "object" &&
-      "type" in executionContent
-    ) {
-      executionEventType = executionContent.type;
-    }
-
-    return { executionContent, executionEventType };
-  }, [message.content, message.execution_event_type]);
-
   // Memoize handlers to prevent recreation on every render
   const handleCopy = useCallback(() => {
     let textToCopy = "";
@@ -214,97 +153,13 @@ export const MessageView: React.FC<
 
   // Handle agent execution messages with consolidation
   if (message.role === "agent_execution") {
-    const agentExecutionId = message.agent_execution_id;
-
-    // If no agent_execution_id, fall back to old behavior
-    if (!agentExecutionId) {
-
-        if (executionEventType === "planning_update") {
-          return (
-            <div className="chat-message-list-item execution-event">
-              <PlanningUpdateDisplay planningUpdate={executionContent as PlanningUpdate} />
-            </div>
-          );
-        } else if (executionEventType === "task_update") {
-          return (
-            <div className="chat-message-list-item execution-event">
-              <TaskUpdateDisplay taskUpdate={executionContent as TaskUpdate} />
-            </div>
-          );
-        } else if (executionEventType === "step_result") {
-          const stepResult = executionContent as StepResult;
-          return (
-            <div className="chat-message-list-item execution-event">
-              <StepResultDisplay stepResult={stepResult} />
-            </div>
-          );
-        } else if (executionEventType === "log_update") {
-          const logContent = executionContent as ExecutionEventContent | null;
-          return (
-            <div className="chat-message-list-item execution-event">
-              <Box sx={{
-                fontSize: "0.8rem",
-                padding: "0.5rem 0.75rem",
-                borderRadius: "8px",
-                backgroundColor: "rgba(30, 35, 40, 0.4)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                color: logContent?.severity === "error" ? "error.light" : logContent?.severity === "warning" ? "warning.light" : "grey.300",
-                mb: 1
-              }}>
-                {logContent?.content}
-              </Box>
-            </div>
-          );
-        }
-
-        return null;
-      }
-
-    const executionMessages = executionMessagesById?.get(agentExecutionId) ?? [];
+    const key = message.agent_execution_id || "__ungrouped__";
+    const executionMessages = executionMessagesById?.get(key) ?? [];
     if (executionMessages.length > 0) {
       return <AgentExecutionView messages={executionMessages} />;
     }
-
-    if (executionEventType === "planning_update") {
-        return (
-          <div className="chat-message-list-item execution-event">
-            <PlanningUpdateDisplay planningUpdate={executionContent as PlanningUpdate} />
-          </div>
-        );
-      } else if (executionEventType === "task_update") {
-        return (
-          <div className="chat-message-list-item execution-event">
-            <TaskUpdateDisplay taskUpdate={executionContent as TaskUpdate} />
-          </div>
-        );
-      } else if (executionEventType === "step_result") {
-        const stepResult = executionContent as StepResult;
-        return (
-          <div className="chat-message-list-item execution-event">
-            <StepResultDisplay stepResult={stepResult} />
-          </div>
-        );
-      } else if (executionEventType === "log_update") {
-        const logContent = executionContent as ExecutionEventContent | null;
-        return (
-          <div className="chat-message-list-item execution-event">
-            <Box sx={{
-              fontSize: "0.8rem",
-              padding: "0.5rem 0.75rem",
-              borderRadius: "8px",
-              backgroundColor: "rgba(30, 35, 40, 0.4)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              color: logContent?.severity === "error" ? "error.light" : logContent?.severity === "warning" ? "warning.light" : "grey.300",
-              mb: 1
-            }}>
-              {logContent?.content}
-            </Box>
-          </div>
-        );
-      }
-
-      return null;
-    }
+    return null;
+  }
 
     // Add error class if message has error flag
     const baseClass = getMessageClass(message.role);

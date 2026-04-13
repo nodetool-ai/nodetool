@@ -49,7 +49,7 @@ import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
@@ -59,8 +59,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
-import { CircularProgress } from "@mui/material";
-import { Typography } from "@mui/material";
+import { Text, LoadingSpinner } from "../ui_primitives";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
@@ -282,6 +281,7 @@ const ReactFlowWrapper = ({
       "nodetool.control.Reroute": RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
+      "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       [SKETCH_NODE_TYPE]: SketchNode,
@@ -512,16 +512,16 @@ const ReactFlowWrapper = ({
   if (isLoading) {
     return (
       <div className="loading-overlay">
-        <CircularProgress /> Loading workflow...
+        <LoadingSpinner /> Loading workflow...
       </div>
     );
   }
   if (error) {
     return (
       <div className="loading-overlay">
-        <Typography variant="body1" color="error">
+        <Text color="error">
           {(error as Error).message}
-        </Typography>
+        </Text>
       </div>
     );
   }

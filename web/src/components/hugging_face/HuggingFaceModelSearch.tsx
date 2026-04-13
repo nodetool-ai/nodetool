@@ -5,13 +5,12 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback } from "react";
 import {
   TextField,
-  Typography,
-  Button,
   Card,
   CardContent,
   Grid,
   Box
 } from "@mui/material";
+import { Text, Caption, EditorButton } from "../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
@@ -103,7 +102,7 @@ const HuggingFaceModelSearch: React.FC = () => {
   return (
     <div css={styles(theme)}>
       <form onSubmit={handleSubmit}>
-        {error && <Typography color="error">{error.message}</Typography>}
+        {error && <Text color="error">{error.message}</Text>}
         <TextField
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -112,7 +111,7 @@ const HuggingFaceModelSearch: React.FC = () => {
           fullWidth
           margin="normal"
         />
-        <Button
+        <EditorButton
           type="submit"
           variant="contained"
           color="primary"
@@ -120,12 +119,12 @@ const HuggingFaceModelSearch: React.FC = () => {
           style={{ marginTop: "1rem" }}
         >
           Download
-        </Button>
+        </EditorButton>
       </form>
 
       <Grid container spacing={2} className="search-results">
         {isLoading ? (
-          <Typography>Searching...</Typography>
+          <Text>Searching...</Text>
         ) : (
           data?.map((model: any) => (
             <Grid
@@ -139,28 +138,27 @@ const HuggingFaceModelSearch: React.FC = () => {
                 variant={selectedModel === model.id ? "outlined" : "elevation"}
               >
                 <CardContent className="card-content">
-                  <Typography variant="h6" gutterBottom>
+                  <Text size="normal" weight={600} gutterBottom>
                     {model.modelId}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="textSecondary"
+                  </Text>
+                  <Text
+                    size="small"
+                    color="secondary"
                     gutterBottom
                   >
                     {model.pipeline_tag}
-                  </Typography>
-                  <Typography variant="body2" noWrap>
+                  </Text>
+                  <Text size="small" noWrap>
                     {model.description}
-                  </Typography>
+                  </Text>
                   <Box className="card-footer">
-                    <Typography variant="caption" color="textSecondary">
+                    <Caption color="secondary">
                       Downloads: {model.downloads.toLocaleString()}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="textSecondary"
-                      display="block"
-                    ></Typography>
+                    </Caption>
+                    <Caption
+                      color="secondary"
+                      sx={{ display: "block" }}
+                    ></Caption>
                   </Box>
                 </CardContent>
               </Card>

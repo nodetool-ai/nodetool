@@ -4,8 +4,7 @@ import { css } from "@emotion/react";
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 //mui
-import { Typography } from "@mui/material";
-import { EditorButton, Dialog } from "../ui_primitives";
+import { EditorButton, Dialog, Text } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -30,7 +29,13 @@ import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
-import { ToolbarIconButton, CloseButton, DownloadButton } from "../ui_primitives";
+import {
+  ToolbarIconButton,
+  CloseButton,
+  DownloadButton,
+  FlexRow,
+  FlexColumn
+} from "../ui_primitives";
 import log from "loglevel";
 
 const containerStyles = css({
@@ -68,9 +73,6 @@ const styles = (theme: Theme) =>
     ".asset-info": {
       position: "relative",
       maxWidth: "350px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5em",
       margin: 0,
       padding: 0,
       bottom: "1em",
@@ -91,9 +93,6 @@ const styles = (theme: Theme) =>
     ".actions": {
       zIndex: 10000,
       position: "absolute",
-      display: "flex",
-      flexDirection: "row",
-      gap: "1.5em",
       top: "1em",
       right: "2em"
     },
@@ -114,11 +113,6 @@ const styles = (theme: Theme) =>
     // -------------------
     ".asset-navigation": {
       position: "absolute",
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "center",
-      alignItems: "self-end",
-      gap: "1em",
       width: "100%",
       height: "120px",
       padding: "0 0 .5em 0",
@@ -167,20 +161,8 @@ const styles = (theme: Theme) =>
       right: "1em"
     },
     ".prev-next-items": {
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "center",
-      gap: ".5em",
-      alignItems: "center",
       width: "430px",
       maxWidth: "30vw"
-    },
-    ".prev-next-items.left": {
-      justifyContent: "flex-end",
-      marginLeft: "auto"
-    },
-    ".prev-next-items.right": {
-      justifyContent: "flex-start"
     },
     ".prev-next-items.current": {
       boxSizing: "border-box",
@@ -206,9 +188,6 @@ const styles = (theme: Theme) =>
       top: "1em",
       left: "50%",
       transform: "translateX(-50%)",
-      display: "flex",
-      gap: "1em",
-      alignItems: "center",
       padding: "8px 16px",
       backgroundColor: "rgba(0,0,0,0.85)",
       borderRadius: 8,
@@ -527,8 +506,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             />
           </>
         )}
-        <div className="asset-navigation">
-          <div className="prev-next-items left">
+        <FlexRow className="asset-navigation" align="flex-end" justify="center" gap={1}>
+          <FlexRow className="prev-next-items left" align="center" justify="flex-end" gap={0.5}>
             {displayPrevAssets?.map((asset, idx) => {
               const assetIndex = Math.max(
                 0,
@@ -556,10 +535,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                 </EditorButton>
               );
             })}
-          </div>
-          <div
+          </FlexRow>
+          <FlexRow
             className={`prev-next-items current ${compareAssetA?.id === currentAsset?.id ? "compare-selected" : ""
               }`}
+            align="center"
+            justify="center"
           >
             <AssetItem
               asset={currentAsset as Asset}
@@ -571,8 +552,8 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               showDuration={true}
               showFiletype={true}
             />
-          </div>
-          <div className="prev-next-items right">
+          </FlexRow>
+          <FlexRow className="prev-next-items right" align="center" justify="flex-start" gap={0.5}>
             {displayNextAssets?.map((asset, idx) => {
               const assetIndex = currentIndex + 1 + idx;
               const isCompareSelected = compareAssetA?.id === asset.id;
@@ -597,20 +578,20 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
                 </EditorButton>
               );
             })}
-          </div>
-          <div className="asset-info">
-            <Typography className="folder-name">
+          </FlexRow>
+          <FlexColumn className="asset-info" gap={0.5} align="flex-end">
+            <Text className="folder-name">
               <span style={{ color: "white", marginRight: ".5em" }}>/</span>
               {currentFolderName || ""}
-            </Typography>
+            </Text>
             {currentAsset?.name && (
-              <Typography variant="body2">{currentAsset.name}</Typography>
+              <Text size="small">{currentAsset.name}</Text>
             )}
             {currentAsset?.id && (
-              <Typography variant="body2">{currentAsset.id}</Typography>
+              <Text size="small">{currentAsset.id}</Text>
             )}
-          </div>
-        </div>
+          </FlexColumn>
+        </FlexRow>
       </>
     );
   }, [
@@ -639,7 +620,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         open={open}
         onClose={handleClose}
       >
-        <div className="actions">
+        <FlexRow className="actions" gap={1.5} align="center">
           <DownloadButton
             onClick={handleDownload}
             className="button download"
@@ -688,18 +669,18 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             className="button close"
             nodrag={false}
           />
-        </div>
+        </FlexRow>
 
         {/* Compare mode instruction bar */}
         {compareMode && !compareAssetB && (
-          <div className="compare-mode-bar">
-            <Typography variant="body2">
+          <FlexRow className="compare-mode-bar" gap={1} align="center">
+            <Text size="small">
               Select another image from the thumbnails below to compare
-            </Typography>
+            </Text>
             <EditorButton density="compact" onClick={cancelCompareMode}>
               Cancel
             </EditorButton>
-          </div>
+          </FlexRow>
         )}
 
         {/* Show ImageComparer when both assets selected, otherwise show normal viewer */}

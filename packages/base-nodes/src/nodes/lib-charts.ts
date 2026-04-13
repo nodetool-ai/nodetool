@@ -127,16 +127,21 @@ export class ChartRendererLibNode extends BaseNode {
       throw new Error("Data is required for rendering the chart.");
     }
 
-    let ChartJSNodeCanvas: typeof import("chartjs-node-canvas").ChartJSNodeCanvas;
+    let createCanvas: typeof import("@napi-rs/canvas").createCanvas;
+    let ChartJS: typeof import("chart.js");
     try {
-      ({ ChartJSNodeCanvas } = await import("chartjs-node-canvas"));
+      ({ createCanvas } = await import("@napi-rs/canvas"));
+      ChartJS = await import("chart.js");
     } catch (e) {
       throw new Error(
-        "Chart rendering requires the 'canvas' native module. " +
-          "Install it with: npm rebuild canvas. " +
+        "Chart rendering requires '@napi-rs/canvas' and 'chart.js'. " +
+          "Install them with: npm install @napi-rs/canvas chart.js. " +
           `(${e instanceof Error ? e.message : String(e)})`
       );
     }
+
+    const { Chart, registerables } = ChartJS;
+    Chart.register(...registerables);
 
     const configData = (config.data ?? {}) as Record<string, unknown>;
     const series = (configData.series ?? []) as Array<Record<string, unknown>>;
@@ -208,14 +213,27 @@ export class ChartRendererLibNode extends BaseNode {
     };
 
     const backgroundColor = String(this.background_color ?? "#ffffff");
-    const canvas = new ChartJSNodeCanvas({
-      width,
-      height,
-      backgroundColour: backgroundColor
+    const cvs = createCanvas(width, height);
+    const ctx = cvs.getContext("2d");
+
+    // Fill background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+
+    // Chart.js accepts any canvas-like context
+    const chart = new Chart(ctx as unknown as CanvasRenderingContext2D, {
+      ...chartConfig,
+      options: {
+        ...chartConfig.options,
+        responsive: false,
+        animation: false
+      }
     });
-    const buffer = await canvas.renderToBuffer(
-      chartConfig as Parameters<typeof canvas.renderToBuffer>[0]
-    );
+    chart.draw();
+
+    const buffer = cvs.toBuffer("image/png");
+    chart.destroy();
+
     const data = Buffer.from(buffer).toString("base64");
 
     return { output: { type: "image", data } };

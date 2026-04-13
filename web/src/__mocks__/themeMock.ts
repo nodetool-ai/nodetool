@@ -147,7 +147,8 @@ const mockTheme = createTheme({
     // Add glass effect for ResultOverlay component
     // Add glass effect for ResultOverlay component
     glass: {
-      blur: "blur(12px)"
+      blur: "blur(12px)",
+      backgroundDialog: "rgba(0, 0, 0, 0.5)"
     },
     // Add Button palette for MUI v7 Button component
     Button: {
@@ -281,6 +282,13 @@ const mockTheme = createTheme({
   infoTrack: "rgba(33, 150, 243, 0.62)",
   successTrack: "rgba(76, 175, 80, 0.62)",
   warningTrack: "rgba(255, 152, 0, 0.62)",
+};
+
+// Add Chip palette properties for MUI Chip component (theme.vars.palette.Chip)
+(mockTheme as any).vars.palette.Chip = {
+  defaultAvatarColor: "#9e9e9e",
+  defaultIconColor: "#9e9e9e",
+  defaultBorder: "#616161",
 };
 
 // Add opacity vars for MUI InputBase component

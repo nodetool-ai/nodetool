@@ -1,5 +1,6 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box, CircularProgress, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, CircularProgress, IconButton } from "@mui/material";
+import { Tooltip, Caption } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -8,7 +9,7 @@ import { resolveKieSchemaClient } from "../../../utils/kieDynamicSchema";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
-export const DYNAMIC_KIE_NODE_TYPE = "kie.DynamicKie";
+export const DYNAMIC_KIE_NODE_TYPE = "kie.dynamic_schema.KieAI";
 
 interface KieSchemaLoaderProps {
   nodeId: string;
@@ -27,17 +28,26 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
 
     const modelInfo = (
       (data.properties?.model_info as string) ??
+      (data.dynamic_properties?.model_info as string) ??
       (data as NodeData & { model_info?: string }).model_info ??
       ""
     ).trim();
 
     const [autoLoadAttempted, setAutoLoadAttempted] = useState(false);
+    const previousModelInfoRef = React.useRef(modelInfo);
+    const lastAutoLoadedModelInfoRef = React.useRef<string | null>(null);
+    const hasResolvedSchema =
+      !!data.model_id && Object.keys(data.dynamic_inputs ?? {}).length > 0;
 
-    const handleLoad = useCallback(async () => {
+    const handleLoad = useCallback(async (force = false) => {
       if (!modelInfo) {
         setError("Paste kie.ai API documentation first.");
         return;
       }
+      if (!force && lastAutoLoadedModelInfoRef.current === modelInfo) {
+        return;
+      }
+      lastAutoLoadedModelInfoRef.current = modelInfo;
       setError(null);
       setLoading(true);
       try {
@@ -109,37 +119,49 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
     }, [nodeId, modelInfo, updateNodeData]);
 
     React.useEffect(() => {
-      const isResolved = !!data.model_id;
-      if (
-        modelInfo &&
-        !isResolved &&
-        !loading &&
-        !error &&
-        !autoLoadAttempted
-      ) {
+      if (!modelInfo) {
+        previousModelInfoRef.current = modelInfo;
+        lastAutoLoadedModelInfoRef.current = null;
+        setAutoLoadAttempted(false);
+        setError(null);
+        return;
+      }
+
+      if (loading) {
+        return;
+      }
+
+      const modelInfoChanged = previousModelInfoRef.current !== modelInfo;
+      previousModelInfoRef.current = modelInfo;
+
+      if (modelInfoChanged) {
+        lastAutoLoadedModelInfoRef.current = null;
+        setError(null);
         setAutoLoadAttempted(true);
-        handleLoad();
+        void handleLoad();
+        return;
+      }
+
+      if (!hasResolvedSchema && !error && !autoLoadAttempted) {
+        setAutoLoadAttempted(true);
+        void handleLoad();
       }
     }, [
       modelInfo,
-      data.model_id,
+      hasResolvedSchema,
       loading,
       error,
       autoLoadAttempted,
       handleLoad
     ]);
 
-    React.useEffect(() => {
-      setAutoLoadAttempted(false);
-    }, [modelInfo]);
-
     return (
       <Box sx={{ display: "inline-flex", alignItems: "center" }}>
-        <Tooltip title="Reload Schema" arrow enterDelay={TOOLTIP_ENTER_DELAY}>
+        <Tooltip title="Reload Schema" arrow delay={TOOLTIP_ENTER_DELAY}>
           <IconButton
             size="small"
             disabled={loading}
-            onClick={handleLoad}
+            onClick={() => void handleLoad(true)}
             sx={{
               padding: "4px",
               color: "rgba(255, 255, 255, 0.5)",
@@ -157,8 +179,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
           </IconButton>
         </Tooltip>
         {error && (
-          <Typography
-            variant="caption"
+          <Caption
             color="error"
             sx={{
               position: "absolute",
@@ -170,7 +191,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
             }}
           >
             {error}
-          </Typography>
+          </Caption>
         )}
       </Box>
     );

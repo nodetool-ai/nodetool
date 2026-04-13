@@ -1,18 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import log from "loglevel";
 import { FileInfo } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { BASE_URL } from "../../stores/BASE_URL";
 import {
   Box,
-  Typography,
   Button,
   Skeleton
 } from "@mui/material";
+import { Text, Caption } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -38,7 +37,7 @@ import PanelHeadline from "../ui/PanelHeadline";
 // Types
 export interface TreeViewItem {
   id: string;
-  label: string | React.ReactNode;
+  label: string;
   className?: string;
   children?: TreeViewItem[];
   itemProps?: Record<string, any>;
@@ -331,7 +330,7 @@ const FileLabel: React.FC<{ name: string; isDir: boolean }> = ({
 const fileToTreeItem = (file: FileInfo): TreeViewItem => {
   const item: TreeViewItem = {
     id: file.path,
-    label: <FileLabel name={file.name} isDir={file.is_dir} />,
+    label: file.name,
     treeItemProps: {
       className: file.is_dir ? "folder-item" : "file-item"
     }
@@ -352,24 +351,19 @@ const fileToTreeItem = (file: FileInfo): TreeViewItem => {
 };
 
 const fetchWorkspaceFiles = async (
-  workflowId: string,
+  workspaceId: string,
   path: string = "."
 ): Promise<TreeViewItem[]> => {
-  const { data, error } = await client.GET(
-    "/api/workspaces/workflow/{workflow_id}/files",
-    {
-      params: {
-        path: { workflow_id: workflowId },
-        query: { path }
-      }
-    }
+  const params = new URLSearchParams({ path });
+  const res = await fetch(
+    `${BASE_URL}/api/workspaces/${encodeURIComponent(workspaceId)}/files?${params}`
   );
-
-  if (error) {
-    throw createErrorMessage(error, "Failed to list workspace files");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Failed to list workspace files (${res.status})`);
   }
-
-  return data.map((file: FileInfo) => fileToTreeItem(file));
+  const data: FileInfo[] = await res.json();
+  return data.map((file) => fileToTreeItem(file));
 };
 
 
@@ -421,8 +415,12 @@ const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
 const WorkspaceTree: React.FC = () => {
   const theme = useTheme();
   const [files, setFiles] = useState<TreeViewItem[]>([]);
+  const filesRef = useRef<TreeViewItem[]>([]);
+  filesRef.current = files;
   const [selectedFilePath, setSelectedFilePath] = useState<string>("");
   const [filesWorkspaceId, setFilesWorkspaceId] = useState<string | undefined>();
+  const filesWorkspaceIdRef = useRef<string | undefined>(undefined);
+  filesWorkspaceIdRef.current = filesWorkspaceId;
   const previousWorkflowId = useRef<string | null | undefined>(undefined);
   const {
     currentWorkflowId,
@@ -452,9 +450,9 @@ const WorkspaceTree: React.FC = () => {
     isLoading: isLoadingFiles,
     refetch: refetchFiles
   } = useQuery({
-    queryKey: ["workflow-workspace-files", workflowId, filesWorkspaceId],
-    queryFn: () => fetchWorkspaceFiles(workflowId!),
-    enabled: Boolean(workflowId && filesWorkspaceId)
+    queryKey: ["workspace-files", filesWorkspaceId],
+    queryFn: () => fetchWorkspaceFiles(filesWorkspaceId!),
+    enabled: Boolean(filesWorkspaceId)
   });
 
   // Query for workspace is no longer needed since we use WorkspaceSelect
@@ -478,10 +476,10 @@ const WorkspaceTree: React.FC = () => {
   );
 
   useEffect(() => {
-    if (initialFiles && !isEqual(initialFiles, files)) {
+    if (initialFiles) {
       setFiles(initialFiles);
     }
-  }, [files, initialFiles]);
+  }, [initialFiles]);
 
   useEffect(() => {
     setSelectedFilePath("");
@@ -499,29 +497,32 @@ const WorkspaceTree: React.FC = () => {
     }
   }, [filesWorkspaceId, workflowId, workspaceId]);
 
-  const handleItemClick = useCallback(
-    async (event: React.MouseEvent, itemId: string) => {
-      if (!workflowId) { return; }
+  const loadItemChildren = useCallback(
+    async (itemId: string) => {
+      const wsId = filesWorkspaceIdRef.current;
+      if (!wsId) return;
 
-      setSelectedFilePath(itemId);
+      const currentFiles = filesRef.current;
+      const targetItem = findItemInTree(currentFiles, itemId);
+      if (!shouldLoadChildren(targetItem)) return;
+
       try {
-        const targetItem = findItemInTree(files, itemId);
-        if (shouldLoadChildren(targetItem)) {
-          const relativePath = itemId || ".";
-
-          const children = await fetchWorkspaceFiles(workflowId, relativePath);
-          setFiles((currentFiles) =>
-            updateTreeWithChildren(currentFiles, itemId, children)
-          );
-        }
+        const children = await fetchWorkspaceFiles(wsId, itemId || ".");
+        setFiles((prev) => updateTreeWithChildren(prev, itemId, children));
       } catch (error) {
         log.error("Failed to load children:", error);
-        setFiles((currentFiles) =>
-          updateTreeWithChildren(currentFiles, itemId, [createErrorItem(itemId)])
-        );
+        setFiles((prev) => updateTreeWithChildren(prev, itemId, [createErrorItem(itemId)]));
       }
     },
-    [files, workflowId]
+    []
+  );
+
+  const handleItemClick = useCallback(
+    async (_event: React.MouseEvent, itemId: string) => {
+      setSelectedFilePath(itemId);
+      await loadItemChildren(itemId);
+    },
+    [loadItemChildren]
   );
 
   const handleItemDoubleClick = useCallback(
@@ -577,12 +578,12 @@ const WorkspaceTree: React.FC = () => {
           <FolderOpenIcon
             sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }}
           />
-          <Typography color="text.secondary" variant="body2">
+          <Text size="small" color="secondary">
             No workflow selected
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </Text>
+          <Caption color="secondary">
             Open a workflow to access its workspace files
-          </Typography>
+          </Caption>
         </div>
       </Box>
     );
@@ -652,12 +653,12 @@ const WorkspaceTree: React.FC = () => {
             <FolderOpenIcon
               sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }}
             />
-            <Typography color="text.secondary" variant="body2">
+            <Text size="small" color="secondary">
               No workspace selected
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </Text>
+            <Caption color="secondary">
               Select a workspace above or create one
-            </Typography>
+            </Caption>
             <Button
               size="small"
               startIcon={<AddIcon />}
@@ -680,6 +681,11 @@ const WorkspaceTree: React.FC = () => {
           <div onDoubleClick={handleTreeDoubleClick}>
             <RichTreeView
               onItemClick={handleItemClick}
+              onExpandedItemsChange={(_event: React.SyntheticEvent, itemIds: string[]) => {
+                for (const itemId of itemIds) {
+                  loadItemChildren(itemId);
+                }
+              }}
               items={files as any}
               aria-label="workspace file browser"
               selectedItems={selectedFilePath}
@@ -698,12 +704,12 @@ const WorkspaceTree: React.FC = () => {
             <FolderOpenIcon
               sx={{ fontSize: 36, opacity: 0.3, color: "text.secondary" }}
             />
-            <Typography color="text.secondary" variant="body2">
+            <Text size="small" color="secondary">
               Workspace is empty
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </Text>
+            <Caption color="secondary">
               Add files to your workspace folder to see them here
-            </Typography>
+            </Caption>
           </div>
         )}
       </div>

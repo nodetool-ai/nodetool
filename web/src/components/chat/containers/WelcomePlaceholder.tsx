@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Typography, Box, Chip } from "@mui/material";
+import { Text, Chip } from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { memo, useCallback } from "react";
 
@@ -73,13 +73,13 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   return (
     <div css={styles(theme)}>
       <AutoAwesomeIcon className="welcome-icon" />
-      <Typography className="welcome-title">
+      <Text className="welcome-title">
         How can I help you today?
-      </Typography>
-      <Typography className="welcome-subtitle">
+      </Text>
+      <Text className="welcome-subtitle">
         Ask me anything, drop files to analyze, or try one of these:
-      </Typography>
-      <Box className="suggestions">
+      </Text>
+      <div className="suggestions">
         {SUGGESTIONS.map((suggestion) => (
           <Chip
             key={suggestion}
@@ -99,7 +99,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
             }}
           />
         ))}
-      </Box>
+      </div>
     </div>
   );
 };

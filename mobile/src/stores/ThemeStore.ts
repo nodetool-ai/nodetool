@@ -17,16 +17,25 @@ interface ThemeState {
 const getColorsForMode = (mode: ThemeMode): ThemeColors => {
   if (mode === 'system') {
     const systemColorScheme = Appearance.getColorScheme();
+    // Default to dark when system preference is null (common in simulators)
     return systemColorScheme === 'light' ? paletteLight : paletteDark;
   }
   return mode === 'light' ? paletteLight : paletteDark;
 };
 
+/** Resolve effective dark/light from mode. Exported for use in non-hook contexts. */
+export const isDarkMode = (mode: ThemeMode): boolean => {
+  if (mode === 'system') {
+    return Appearance.getColorScheme() !== 'light';
+  }
+  return mode === 'dark';
+};
+
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      mode: 'system',
-      colors: getColorsForMode('system'),
+      mode: 'dark' as ThemeMode,
+      colors: getColorsForMode('dark'),
       toggleTheme: () => {
         const currentMode = get().mode;
         let newMode: ThemeMode;
@@ -57,6 +66,14 @@ export const useThemeStore = create<ThemeState>()(
     {
       name: 'theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      // Only persist mode — colors are always recomputed from mode to avoid
+      // stale color palettes surviving across theme changes or app updates.
+      partialize: (state) => ({ mode: state.mode }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.colors = getColorsForMode(state.mode);
+        }
+      },
     }
   )
 );

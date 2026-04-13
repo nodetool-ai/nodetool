@@ -6,6 +6,10 @@ export default {
     '\\.(css|less|scss|sass)$': '<rootDir>/src/__mocks__/styleMock.ts',
     '\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/src/__mocks__/fileMock.ts',
     '^@nodetool/protocol$': '<rootDir>/src/__mocks__/protocol.ts',
+    '^@nodetool/config$': '<rootDir>/../packages/config/src/index.ts',
+    '^@nodetool/config/(.*)$': '<rootDir>/../packages/config/src/$1',
+    // Strip .js extensions from TypeScript ESM imports
+    '^(\\.{1,2}/.+)\\.js$': '$1',
   },
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {

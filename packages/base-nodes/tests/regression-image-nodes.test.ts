@@ -97,12 +97,13 @@ function imageRefFromBuffer(buf: Buffer): Record<string, unknown> {
   };
 }
 
-/** Collect all results from an async generator. */
+/** Collect all results from an async generator, filtering out final list yields. */
 async function collectGen(
   gen: AsyncGenerator<Record<string, unknown>>
 ): Promise<Record<string, unknown>[]> {
   const results: Record<string, unknown>[] = [];
   for await (const item of gen) {
+    if ("images" in item) continue; // skip final list yield
     results.push(item);
   }
   return results;
@@ -146,7 +147,8 @@ describe("LoadImageFolderNode — include_subdirectories", () => {
 
     const node = new LoadImageFolderNode();
     node.assign({ folder: dir, include_subdirectories: true });
-    const results = await collectGen(node.genProcess());
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
 
     const names = results.map((r) => r.name);
     expect(names).toContain("top.png");
@@ -164,7 +166,8 @@ describe("LoadImageFolderNode — include_subdirectories", () => {
 
     const node = new LoadImageFolderNode();
     node.assign({ folder: dir, include_subdirectories: false });
-    const results = await collectGen(node.genProcess());
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
 
     const names = results.map((r) => r.name);
     expect(names).toContain("top.png");
@@ -187,7 +190,8 @@ describe("LoadImageFolderNode — extensions filter", () => {
 
     const node = new LoadImageFolderNode();
     node.assign({ folder: dir, extensions: [".png"] });
-    const results = await collectGen(node.genProcess());
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
 
     const names = results.map((r) => r.name);
     expect(names).toContain("photo.png");
@@ -203,7 +207,8 @@ describe("LoadImageFolderNode — extensions filter", () => {
 
     const node = new LoadImageFolderNode();
     node.assign({ folder: dir });
-    const results = await collectGen(node.genProcess());
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
 
     const names = results.map((r) => r.name);
     expect(names).toContain("photo.png");
@@ -224,7 +229,8 @@ describe("LoadImageFolderNode — pattern matching", () => {
 
     const node = new LoadImageFolderNode();
     node.assign({ folder: dir, pattern: "cat*" });
-    const results = await collectGen(node.genProcess());
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
 
     const names = results.map((r) => r.name);
     expect(names).toContain("cat.png");
@@ -240,7 +246,8 @@ describe("LoadImageFolderNode — pattern matching", () => {
 
     const node = new LoadImageFolderNode();
     node.assign({ folder: dir, pattern: "" });
-    const results = await collectGen(node.genProcess());
+    const allYields = await collectGen(node.genProcess());
+    const results = allYields.filter((item) => "image" in item);
 
     expect(results.length).toBe(2);
   });

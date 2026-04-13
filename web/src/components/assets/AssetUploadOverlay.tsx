@@ -4,7 +4,8 @@ import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../ui_primitives";
 //server state
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import LinearProgressWithLabel from "./LinearProgressWithLabel";
@@ -53,10 +54,10 @@ const AssetUploadOverlay = () => {
     <div css={styles(theme)} className="uploading-overlay">
       <div className="uploading-message">
         <Box>
-          <Typography variant="h2">Uploading assets</Typography>
-          <Typography variant="h5">
+          <Text size="bigger">Uploading assets</Text>
+          <Text size="normal" weight={600}>
             {completed} / {files.length} files completed
-          </Typography>
+          </Text>
         </Box>
         <LinearProgressWithLabel value={overallProgress} />
         <ul>

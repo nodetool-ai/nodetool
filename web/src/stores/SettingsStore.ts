@@ -46,6 +46,7 @@ export interface Settings {
    * the downstream subgraph automatically (like "Run from here").
    */
   instantUpdate: boolean;
+  editorViewMode: "graph" | "chain";
   autosave: AutosaveSettings;
 }
 
@@ -70,6 +71,7 @@ interface SettingsStore {
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
+  setEditorViewMode: (value: "graph" | "chain") => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
@@ -87,6 +89,7 @@ export const defaultSettings: Settings = {
   showWelcomeOnStartup: true,
   soundNotifications: true,
   instantUpdate: false,
+  editorViewMode: "graph",
   autosave: { ...defaultAutosaveSettings }
 };
 
@@ -207,6 +210,13 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             instantUpdate: value
+          }
+        })),
+      setEditorViewMode: (value: "graph" | "chain") =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            editorViewMode: value
           }
         })),
       updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>

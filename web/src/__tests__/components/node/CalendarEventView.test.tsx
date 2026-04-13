@@ -1,7 +1,13 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 import CalendarEventView from "../../../components/node/CalendarEventView";
 import { CalendarEvent } from "../../../stores/ApiTypes";
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+);
 
 describe("CalendarEventView", () => {
   const mockEvent: CalendarEvent = {
@@ -37,7 +43,7 @@ describe("CalendarEventView", () => {
   };
 
   it("renders event details correctly", () => {
-    render(<CalendarEventView event={mockEvent} />);
+    render(<CalendarEventView event={mockEvent} />, { wrapper });
 
     expect(screen.getByText("Team Meeting")).toBeInTheDocument();
     expect(screen.getByText(/Conference Room A/)).toBeInTheDocument();
@@ -46,7 +52,7 @@ describe("CalendarEventView", () => {
   });
 
   it("formats dates correctly", () => {
-    render(<CalendarEventView event={mockEvent} />);
+    render(<CalendarEventView event={mockEvent} />, { wrapper });
     // Locale-independent: accept either MM/DD/YYYY or DD.MM.YYYY (with optional leading zeros)
     expect(
       screen.getByText(/(?:0?10\D+0?15|0?15\D+0?10)\D+2023/)

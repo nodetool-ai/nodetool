@@ -2,15 +2,10 @@
 import { memo, useState, useRef } from "react";
 import {
   Box,
-  CircularProgress,
   Modal,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   TextField
 } from "@mui/material";
+import { LoadingSpinner, Dialog, EditorButton } from "../ui_primitives";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 //css
@@ -25,7 +20,7 @@ import "../../styles/handle_edge_tooltip.css";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 // constants
 import DraggableNodeDocumentation from "../content/Help/DraggableNodeDocumentation";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useShallow } from "zustand/react/shallow";
 import ReactFlowWrapper from "../node/ReactFlowWrapper";
 import { useTemporalNodes, useNodeStoreRef } from "../../contexts/NodeContext";
@@ -175,7 +170,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         >
           {isUploading && (
             <div className="loading-overlay">
-              <CircularProgress /> Uploading assets...
+              <LoadingSpinner variant="circular" size="medium" /> Uploading assets...
             </div>
           )}
           <ReactFlowWrapper workflowId={workflowId} active={active} />
@@ -239,30 +234,26 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         onClose={handleSaveExampleCancel}
         maxWidth="sm"
         fullWidth
+        title="Save Example"
+        onConfirm={handleSaveExampleConfirm}
+        onCancel={handleSaveExampleCancel}
+        confirmText="Save"
+        cancelText="Cancel"
       >
-        <DialogTitle>Save Example</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Package Name"
-            fullWidth
-            variant="outlined"
-            value={packageNameInput}
-            onChange={(e) => setPackageNameInput(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === "Enter") {
-                handleSaveExampleConfirm();
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleSaveExampleCancel}>Cancel</Button>
-          <Button onClick={handleSaveExampleConfirm} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
+        <TextField
+          autoFocus
+          margin="dense"
+          label="Package Name"
+          fullWidth
+          variant="outlined"
+          value={packageNameInput}
+          onChange={(e) => setPackageNameInput(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              handleSaveExampleConfirm();
+            }
+          }}
+        />
       </Dialog>
     </>
   );

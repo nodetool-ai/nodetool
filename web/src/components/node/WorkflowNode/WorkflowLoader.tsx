@@ -2,12 +2,12 @@ import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import {
   Box,
   CircularProgress,
-  Typography,
   Autocomplete,
   TextField
 } from "@mui/material";
+import { Caption } from "../../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { TypeMetadata, Workflow, WorkflowList } from "../../../stores/ApiTypes";
@@ -326,13 +326,12 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
           )}
         />
         {error && (
-          <Typography
-            variant="caption"
+          <Caption
             color="error"
             sx={{ display: "block", mt: 0.5 }}
           >
             {error}
-          </Typography>
+          </Caption>
         )}
       </Box>
     );

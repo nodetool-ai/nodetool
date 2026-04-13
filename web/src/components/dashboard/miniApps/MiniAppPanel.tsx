@@ -3,16 +3,13 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
-  CircularProgress,
-  Typography,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
-  LinearProgress,
-  Tooltip,
-  IconButton
+  LinearProgress
 } from "@mui/material";
+import { Text, Tooltip, FlexColumn, FlexRow, LoadingSpinner, ToolbarIconButton } from "../../ui_primitives";
 import EditIcon from "@mui/icons-material/Edit";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -197,19 +194,15 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
 
   if (!workflowId) {
     return (
-      <Box
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          p: 2
-        }}
+      <FlexColumn
+        fullHeight
+        align="center"
+        justify="center"
+        padding={2}
       >
-        <Typography variant="h6" gutterBottom>
+        <Text size="normal" weight={600} gutterBottom>
           Select a Mini App
-        </Typography>
+        </Text>
         <FormControl fullWidth sx={{ maxWidth: 300 }}>
           <InputLabel id="workflow-select-label">Workflow</InputLabel>
           <Select
@@ -231,7 +224,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
             })()}
           </Select>
         </FormControl>
-      </Box>
+      </FlexColumn>
     );
   }
 
@@ -239,31 +232,32 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     <NodeContext.Provider value={activeNodeStore ?? null}>
       <Box css={styles} component="section" sx={{ height: "100%", overflow: "hidden" }}>
         {isLoading && (
-          <Box display="flex" justifyContent="center" p={2}>
-            <CircularProgress />
-          </Box>
+          <FlexRow justify="center" padding={2}>
+            <LoadingSpinner />
+          </FlexRow>
         )}
-        {error && <Typography color="error">{error.message}</Typography>}
+        {error && <Text color="error">{error.message}</Text>}
         {workflow && (
           <>
-            <Box
+            <FlexRow
+              justify="space-between"
+              align="center"
               sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
                 mb: 1,
                 px: 1
               }}
             >
-              <Typography variant="h6" fontWeight="500" noWrap>
+              <Text size="normal" weight={500} noWrap>
                 {workflow?.name}
-              </Typography>
-              <Tooltip title="Open in Editor">
-                <IconButton size="small" onClick={handleOpenInEditor} aria-label="Open in Editor">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
+              </Text>
+              <ToolbarIconButton
+                icon={<EditIcon fontSize="small" />}
+                tooltip="Open in Editor"
+                onClick={handleOpenInEditor}
+                size="small"
+                nodrag={false}
+              />
+            </FlexRow>
 
             <div className="content-grid" style={{ height: "calc(100% - 40px)", overflow: "auto", display: "flex", flexDirection: "column" }}>
               <MiniAppInputsForm
@@ -272,15 +266,15 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                 inputValues={inputValues}
                 onInputChange={updateInputValue}
               />
-              <Box display="flex" flexDirection="column" gap={1} flex={1} minHeight={0}>
+              <FlexColumn gap={1} sx={{ flex: 1, minHeight: 0 }}>
                 {statusMessage && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
+                  <Text
+                    size="small"
+                    color="secondary"
                     className={runnerState === "running" ? "status-message animating" : ""}
                   >
                     {statusMessage}
-                  </Typography>
+                  </Text>
                 )}
                 {progress ? (
                   <LinearProgress
@@ -297,7 +291,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
                     }
                   />
                 </Box>
-              </Box>
+              </FlexColumn>
             </div>
           </>
         )}

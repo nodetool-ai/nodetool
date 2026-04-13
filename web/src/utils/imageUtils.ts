@@ -56,7 +56,6 @@ export const createImageUrl = (
   // Case 1: URI is provided
   if (uri) {
     const resolved = uri.startsWith("/api/") ? `${BASE_URL}${uri}` : uri;
-    console.log("[createImageUrl] uri:", uri, "BASE_URL:", JSON.stringify(BASE_URL), "resolved:", resolved);
     return { url: resolved, blobUrl: null };
   }
 
@@ -75,7 +74,6 @@ export const createImageUrl = (
     }
     if (data.startsWith("/")) {
       const resolved = data.startsWith("/api/") ? `${BASE_URL}${data}` : data;
-      console.log("[createImageUrl] data path:", data, "BASE_URL:", JSON.stringify(BASE_URL), "resolved:", resolved);
       return { url: resolved, blobUrl: null };
     }
     // Assume base64 encoded

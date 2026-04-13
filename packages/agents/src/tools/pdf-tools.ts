@@ -13,6 +13,36 @@ import { Tool } from "./base-tool.js";
 
 const execFileAsync = promisify(execFile);
 
+// ---------------------------------------------------------------------------
+// Shared PDF helper using pdfjs-dist
+// ---------------------------------------------------------------------------
+
+interface PdfExtraction {
+  /** Per-page text arrays (one entry per page). */
+  pages: string[];
+  numPages: number;
+}
+
+/**
+ * Extract text from a PDF buffer using pdfjs-dist.
+ * Returns per-page text so callers can slice by page range.
+ */
+async function extractPdfPages(buffer: Buffer): Promise<PdfExtraction> {
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const data = new Uint8Array(buffer);
+  const doc = await getDocument({ data, useSystemFonts: true }).promise;
+  const pages: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    const items = content.items as Array<{ str?: string }>;
+    pages.push(items.map((item) => item.str ?? "").join(" "));
+  }
+  const numPages = doc.numPages;
+  void doc.destroy();
+  return { pages, numPages };
+}
+
 export class ExtractPDFTextTool extends Tool {
   readonly name = "extract_pdf_text";
   readonly description = "Extract plain text from a PDF document";
@@ -42,23 +72,20 @@ export class ExtractPDFTextTool extends Tool {
     params: Record<string, unknown>
   ): Promise<unknown> {
     try {
-      const pdfParse = (await import("pdf-parse")).default;
       const filePath = context.resolveWorkspacePath(params["path"] as string);
       const buffer = await readFile(filePath);
-      const data = await pdfParse(buffer);
+      const { pages } = await extractPdfPages(buffer);
 
       const startPage = (params["start_page"] as number) ?? 0;
       const endPage = (params["end_page"] as number) ?? -1;
 
       if (startPage === 0 && endPage === -1) {
-        return { text: data.text };
+        return { text: pages.join("\n") };
       }
 
-      // Split by form feed to get pages, then select range
-      const pages = data.text.split("\f");
       const end = endPage === -1 ? pages.length - 1 : endPage;
       const selectedPages = pages.slice(startPage, end + 1);
-      return { text: selectedPages.join("\f") };
+      return { text: selectedPages.join("\n") };
     } catch (e) {
       return { error: String(e instanceof Error ? e.message : e) };
     }
@@ -104,19 +131,16 @@ export class ExtractPDFTablesTool extends Tool {
     params: Record<string, unknown>
   ): Promise<unknown> {
     try {
-      const pdfParse = (await import("pdf-parse")).default;
       const filePath = context.resolveWorkspacePath(params["path"] as string);
       const outputFile = context.resolveWorkspacePath(
         params["output_file"] as string
       );
       const buffer = await readFile(filePath);
-      const data = await pdfParse(buffer);
+      const { pages } = await extractPdfPages(buffer);
 
       const startPage = (params["start_page"] as number) ?? 0;
       const endPage = (params["end_page"] as number) ?? -1;
 
-      // Split text into pages and select range
-      const pages = data.text.split("\f");
       const end = endPage === -1 ? pages.length - 1 : endPage;
 
       // Best-effort table extraction: look for lines with consistent
@@ -207,7 +231,6 @@ export class ConvertPDFToMarkdownTool extends Tool {
     params: Record<string, unknown>
   ): Promise<unknown> {
     try {
-      const pdfParse = (await import("pdf-parse")).default;
       const inputFile = context.resolveWorkspacePath(
         params["input_file"] as string
       );
@@ -216,16 +239,17 @@ export class ConvertPDFToMarkdownTool extends Tool {
       );
 
       const buffer = await readFile(inputFile);
-      const data = await pdfParse(buffer);
-      let mdText = data.text;
+      const { pages } = await extractPdfPages(buffer);
 
       const startPage = (params["start_page"] as number) ?? 0;
       const endPage = (params["end_page"] as number) ?? -1;
 
+      let mdText: string;
       if (startPage !== 0 || endPage !== -1) {
-        const pages = mdText.split("\f");
         const end = endPage === -1 ? pages.length - 1 : endPage;
-        mdText = pages.slice(startPage, end + 1).join("\f");
+        mdText = pages.slice(startPage, end + 1).join("\n");
+      } else {
+        mdText = pages.join("\n");
       }
 
       const parentDir = dirname(outputFile);

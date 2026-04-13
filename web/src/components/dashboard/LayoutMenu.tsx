@@ -3,19 +3,14 @@ import React, { useState, useCallback, useMemo } from "react";
 import {
   Button,
   Menu,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
   TextField
 } from "@mui/material";
-import { MenuItemPrimitive } from "../ui_primitives/MenuItemPrimitive";
+import { MenuItemPrimitive, Divider, Dialog } from "../ui_primitives";
 import { Save, Layers, Add } from "@mui/icons-material";
 import { useLayoutStore, UserLayout } from "../../stores/LayoutStore";
 import { DockviewApi } from "dockview";
 import { defaultLayout } from "../../config/defaultLayouts";
 import { applyDockviewLayoutSafely } from "../../utils/dockviewLayout";
-import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 
 /** Minimal shape of a panel entry in SerializedDockview.panels */
 interface SerializedPanel {
@@ -174,24 +169,22 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
           onClick={handleSaveAsNewClick}
         />
       </Menu>
-      <Dialog open={isSaveDialogOpen} onClose={handleSaveDialogClose}>
-        <DialogTitle>Save New Layout</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Layout Name"
-            type="text"
-            fullWidth
-            variant="standard"
-            value={newLayoutName}
-            onChange={(e) => setNewLayoutName(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActionButtons
-          onCancel={handleSaveDialogClose}
-          onConfirm={handleSaveNewLayout}
-          confirmText="Save"
+      <Dialog
+        open={isSaveDialogOpen}
+        onClose={handleSaveDialogClose}
+        title="Save New Layout"
+        onConfirm={handleSaveNewLayout}
+        confirmText="Save"
+      >
+        <TextField
+          autoFocus
+          margin="dense"
+          label="Layout Name"
+          type="text"
+          fullWidth
+          variant="standard"
+          value={newLayoutName}
+          onChange={(e) => setNewLayoutName(e.target.value)}
         />
       </Dialog>
     </div>
