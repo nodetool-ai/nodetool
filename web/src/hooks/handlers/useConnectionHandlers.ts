@@ -17,6 +17,7 @@ import {
   ConnectionMatchMenuPayload,
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
+import { DYNAMIC_KIE_NODE_TYPE } from "../../components/node/DynamicKieSchemaNode";
 import { wouldCreateCycle } from "../../utils/graphCycle";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import log from "loglevel";
@@ -503,6 +504,7 @@ export default function useConnectionHandlers() {
           nodeMetadata.is_dynamic &&
           connectDirection === "source" &&
           node.type !== "fal.DynamicFal" &&
+          node.type !== DYNAMIC_KIE_NODE_TYPE &&
           node.type !== "kie.DynamicKie"
         ) {
           // Use the source node's name as the property name

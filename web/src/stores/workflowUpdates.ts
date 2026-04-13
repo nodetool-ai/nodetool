@@ -30,6 +30,7 @@ import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager"
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import { NodeStore } from "./NodeStore";
+import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 
 export type { NodeStore };
 
@@ -561,6 +562,7 @@ export const handleUpdate = (
 
         const isDynamicSchemaNode =
           update.node_type === "fal.DynamicFal" ||
+          update.node_type === DYNAMIC_KIE_NODE_TYPE ||
           update.node_type === "kie.DynamicKie";
 
         for (const key in update.properties) {

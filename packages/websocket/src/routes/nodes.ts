@@ -3,10 +3,46 @@ import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
 import { handleNodesDummy, handleNodeMetadata } from "../http-api.js";
 import { getSecret } from "@nodetool/security";
+import { resolveKieDynamicSchema } from "../../../base-nodes/dist/index.js";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
+}
+
+function extractKieModelInfo(body: unknown): unknown {
+  if (Buffer.isBuffer(body)) {
+    const text = body.toString("utf8").trim();
+    if (!text) {
+      return undefined;
+    }
+    try {
+      return extractKieModelInfo(JSON.parse(text));
+    } catch {
+      return text;
+    }
+  }
+
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body) as unknown;
+      return extractKieModelInfo(parsed);
+    } catch {
+      return body;
+    }
+  }
+
+  if (!body || typeof body !== "object") {
+    return undefined;
+  }
+
+  const record = body as Record<string, unknown>;
+  return (
+    record.model_info ??
+    record.modelInfo ??
+    extractKieModelInfo(record.properties) ??
+    extractKieModelInfo(record.body)
+  );
 }
 
 const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
@@ -54,6 +90,35 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     await bridge(req, reply, (request) =>
       handleNodeMetadata(request, apiOptions)
     );
+  });
+
+  app.post("/api/kie/resolve-dynamic-schema", async (req, reply) => {
+    const modelInfo = extractKieModelInfo(req.body);
+
+    if (typeof modelInfo !== "string" || !modelInfo.trim()) {
+      reply
+        .status(400)
+        .send(
+          apiError(
+            ApiErrorCode.INVALID_INPUT,
+            "model_info must be a non-empty string"
+          )
+        );
+      return;
+    }
+
+    try {
+      reply.send(resolveKieDynamicSchema(modelInfo.trim()));
+    } catch (error) {
+      reply
+        .status(400)
+        .send(
+          apiError(
+            ApiErrorCode.INVALID_INPUT,
+            error instanceof Error ? error.message : String(error)
+          )
+        );
+    }
   });
 
   /**
