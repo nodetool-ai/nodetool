@@ -1,6 +1,7 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { paths, components } from '../api';
+import { useAuthStore } from '../stores/AuthStore';
 
 export type Asset = components["schemas"]["Asset"];
 export type AssetList = components["schemas"]["AssetList"];
@@ -23,14 +24,17 @@ class ApiService {
   }
 
   private setupMiddleware() {
-    const loggerMiddleware: Middleware = {
+    const authMiddleware: Middleware = {
       onRequest: async ({ request }) => {
+        const session = useAuthStore.getState().session;
+        if (session?.access_token) {
+          request.headers.set('Authorization', `Bearer ${session.access_token}`);
+        }
         console.log(`[API Request] ${request.method} ${request.url}`);
         return request;
       },
-      onResponse: async ({ response, request }) => { // Add request to arg destructuring
+      onResponse: async ({ response, request }) => {
         console.log(`[API Response] ${response.status} ${request.url}`);
-        // Clone response to log body if needed, but be careful with streams
         return response;
       },
     };
@@ -38,7 +42,7 @@ class ApiService {
     // Eject existing middleware if any - openapi-fetch < 0.8 doesn't support eject easily 
     // but in a class we can just recreate the client on host change. 
     // For now, just add.
-    this.client.use(loggerMiddleware);
+    this.client.use(authMiddleware);
   }
 
   async loadApiHost(): Promise<string> {

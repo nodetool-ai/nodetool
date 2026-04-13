@@ -5,6 +5,20 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
+// Mock react-native-url-polyfill (side-effect import in services/supabase.ts)
+jest.mock('react-native-url-polyfill/auto', () => ({}));
+
+// Mock expo-constants (used for Supabase config and app version)
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: {
+    expoConfig: {
+      version: '1.0.0',
+      extra: {},
+    },
+  },
+}));
+
 // Mock uuid
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid-1234'),
