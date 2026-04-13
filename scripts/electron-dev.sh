@@ -25,8 +25,14 @@ fi
 # runs via ELECTRON_RUN_AS_NODE, same binary as production utility process).
 echo "Rebuilding native modules for Electron ABI (force)..."
 ELECTRON_VERSION=$(node -e "process.stdout.write(require('./electron/package.json').devDependencies.electron)")
-(cd node_modules/better-sqlite3 && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch=x64 --dist-url=https://electronjs.org/headers)
-(cd node_modules/bufferutil && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch=x64 --dist-url=https://electronjs.org/headers)
+ARCH=$(uname -m)
+if [[ "$ARCH" == "arm64" ]]; then
+  GYARCH="arm64"
+else
+  GYARCH="x64"
+fi
+(cd node_modules/better-sqlite3 && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+(cd node_modules/bufferutil && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
 
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
