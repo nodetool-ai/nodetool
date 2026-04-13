@@ -54,7 +54,8 @@
     "generate:kie": "npm run generate --workspace=packages/kie-codegen -- --all",
     "dev:chat": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/index.ts",
     "dev:workflow": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts workflows run",
-    "dev:nodetool": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts"
+    "dev:nodetool": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts",
+    "bump-version": "node ./scripts/bump-version.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
