@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import axios from 'axios';
 import { apiService } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
@@ -124,23 +123,18 @@ export default function SettingsScreen() {
 
     try {
       setConnectionStatus('testing');
-      const testClient = axios.create({
-        baseURL: trimmed,
-        timeout: 15000,
-      });
-      await testClient.get('/api/workflows/', { params: { limit: 1 } });
-
       await apiService.saveApiHost(trimmed);
+      await apiService.getWorkflows(1);
       setApiHost(trimmed);
       setConnectionStatus('success');
       setTimeout(() => setConnectionStatus('idle'), 3000);
     } catch (error: unknown) {
       console.error('Connection test failed:', error);
       setConnectionStatus('error');
-      const axiosError = error as { code?: string };
-      const detail = axiosError.code === 'ECONNABORTED'
+      const message = error instanceof Error ? error.message : String(error);
+      const detail = message.includes('timeout') || message.includes('Timeout')
         ? 'Connection timed out. Is the server running?'
-        : axiosError.code === 'ERR_NETWORK'
+        : message.includes('Network') || message.includes('fetch')
           ? 'Network error. Check the URL and your connection.'
           : 'Could not reach the server. Verify the URL is correct.';
       Alert.alert('Connection Failed', detail);

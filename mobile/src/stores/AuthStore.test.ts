@@ -7,28 +7,20 @@ type AuthChangeCallback = (
 
 const mockUnsubscribe = jest.fn();
 const mockGetSession = jest.fn();
-const mockSignInWithPassword = jest.fn();
-const mockSignUp = jest.fn();
 const mockSignOut = jest.fn();
 const mockOnAuthStateChange = jest.fn();
-const mockSignInWithOAuth = jest.fn();
-const mockSetSession = jest.fn();
-const mockOpenAuthSession = jest.fn();
-const mockMakeRedirectUri: jest.Mock = jest.fn(
-  () => 'nodetool://auth-callback'
-);
-const mockGetQueryParams = jest.fn();
+const mockSignInWithIdToken = jest.fn();
+const mockGoogleConfigure = jest.fn();
+const mockGoogleHasPlayServices = jest.fn();
+const mockGoogleSignIn = jest.fn();
 
 jest.mock('../services/supabase', () => ({
   supabase: {
     auth: {
       getSession: (...args: unknown[]) => mockGetSession(...args),
-      signInWithPassword: (...args: unknown[]) => mockSignInWithPassword(...args),
-      signUp: (...args: unknown[]) => mockSignUp(...args),
       signOut: (...args: unknown[]) => mockSignOut(...args),
       onAuthStateChange: (...args: unknown[]) => mockOnAuthStateChange(...args),
-      signInWithOAuth: (...args: unknown[]) => mockSignInWithOAuth(...args),
-      setSession: (...args: unknown[]) => mockSetSession(...args),
+      signInWithIdToken: (...args: unknown[]) => mockSignInWithIdToken(...args),
     },
   },
   isSupabaseConfigured: true,
@@ -36,16 +28,12 @@ jest.mock('../services/supabase', () => ({
   SUPABASE_ANON_KEY: 'anon-test-key',
 }));
 
-jest.mock('expo-web-browser', () => ({
-  openAuthSessionAsync: (...args: unknown[]) => mockOpenAuthSession(...args),
-}));
-
-jest.mock('expo-auth-session', () => ({
-  makeRedirectUri: (...args: unknown[]) => mockMakeRedirectUri(...args),
-}));
-
-jest.mock('expo-auth-session/build/QueryParams', () => ({
-  getQueryParams: (...args: unknown[]) => mockGetQueryParams(...args),
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: (...args: unknown[]) => mockGoogleConfigure(...args),
+    hasPlayServices: (...args: unknown[]) => mockGoogleHasPlayServices(...args),
+    signIn: (...args: unknown[]) => mockGoogleSignIn(...args),
+  },
 }));
 
 import { useAuthStore } from './AuthStore';
@@ -134,84 +122,6 @@ describe('AuthStore', () => {
     expect(useAuthStore.getState().user).toEqual(session.user);
   });
 
-  it('signInWithPassword updates session on success', async () => {
-    const session = { access_token: 'tok', user: { id: 'u', email: 'e@f.g' } };
-    mockSignInWithPassword.mockResolvedValue({
-      data: { session, user: session.user },
-      error: null,
-    });
-
-    await act(async () => {
-      await useAuthStore.getState().signInWithPassword('e@f.g', 'secret123');
-    });
-
-    expect(mockSignInWithPassword).toHaveBeenCalledWith({
-      email: 'e@f.g',
-      password: 'secret123',
-    });
-    expect(useAuthStore.getState().state).toBe('logged_in');
-    expect(useAuthStore.getState().user).toEqual(session.user);
-  });
-
-  it('signInWithPassword trims the email', async () => {
-    mockSignInWithPassword.mockResolvedValue({
-      data: { session: null, user: null },
-      error: null,
-    });
-
-    await act(async () => {
-      await useAuthStore.getState().signInWithPassword('  foo@bar.com  ', 'secret');
-    });
-
-    expect(mockSignInWithPassword).toHaveBeenCalledWith({
-      email: 'foo@bar.com',
-      password: 'secret',
-    });
-  });
-
-  it('signInWithPassword sets error state on failure', async () => {
-    mockSignInWithPassword.mockResolvedValue({
-      data: { session: null, user: null },
-      error: { message: 'Invalid credentials' },
-    });
-
-    await act(async () => {
-      await useAuthStore.getState().signInWithPassword('a@b.c', 'wrong');
-    });
-
-    expect(useAuthStore.getState().state).toBe('error');
-    expect(useAuthStore.getState().error).toBe('Invalid credentials');
-  });
-
-  it('signUpWithPassword returns info message when confirmation required', async () => {
-    mockSignUp.mockResolvedValue({
-      data: { session: null, user: { id: 'new' } },
-      error: null,
-    });
-
-    await act(async () => {
-      await useAuthStore.getState().signUpWithPassword('new@user.com', 'password');
-    });
-
-    expect(useAuthStore.getState().state).toBe('logged_out');
-    expect(useAuthStore.getState().error).toMatch(/confirm your account/i);
-  });
-
-  it('signUpWithPassword logs in when session is returned immediately', async () => {
-    const session = { access_token: 't', user: { id: 'new2' } };
-    mockSignUp.mockResolvedValue({
-      data: { session, user: session.user },
-      error: null,
-    });
-
-    await act(async () => {
-      await useAuthStore.getState().signUpWithPassword('n2@u.com', 'password');
-    });
-
-    expect(useAuthStore.getState().state).toBe('logged_in');
-    expect(useAuthStore.getState().session).toEqual(session);
-  });
-
   it('signOut clears session and sets logged_out', async () => {
     useAuthStore.setState({
       session: { access_token: 't' } as never,
@@ -265,123 +175,71 @@ describe('AuthStore', () => {
     expect(useAuthStore.getState().error).toBeNull();
   });
 
-  describe('signInWithOAuth (google)', () => {
-    const oauthUrl = 'https://supabase.example/authorize?provider=google';
-    const callbackUrl =
-      'nodetool://auth-callback#access_token=acc&refresh_token=ref';
-
-    it('exchanges OAuth callback tokens for a session on success', async () => {
-      mockSignInWithOAuth.mockResolvedValue({
-        data: { url: oauthUrl },
-        error: null,
-      });
-      mockOpenAuthSession.mockResolvedValue({
-        type: 'success',
-        url: callbackUrl,
-      });
-      mockGetQueryParams.mockReturnValue({
-        params: { access_token: 'acc', refresh_token: 'ref' },
-        errorCode: null,
+  describe('signInWithGoogle', () => {
+    it('exchanges Google ID token for a Supabase session on success', async () => {
+      mockGoogleHasPlayServices.mockResolvedValue(true);
+      mockGoogleSignIn.mockResolvedValue({
+        data: { idToken: 'google-id-token-123' },
       });
       const session = { access_token: 'acc', user: { id: 'g1', email: 'g@u.com' } };
-      mockSetSession.mockResolvedValue({
+      mockSignInWithIdToken.mockResolvedValue({
         data: { session, user: session.user },
         error: null,
       });
 
       await act(async () => {
-        await useAuthStore.getState().signInWithOAuth('google');
+        await useAuthStore.getState().signInWithGoogle();
       });
 
-      expect(mockSignInWithOAuth).toHaveBeenCalledWith({
+      expect(mockGoogleHasPlayServices).toHaveBeenCalled();
+      expect(mockGoogleSignIn).toHaveBeenCalled();
+      expect(mockSignInWithIdToken).toHaveBeenCalledWith({
         provider: 'google',
-        options: {
-          redirectTo: 'nodetool://auth-callback',
-          skipBrowserRedirect: true,
-        },
-      });
-      expect(mockOpenAuthSession).toHaveBeenCalledWith(
-        oauthUrl,
-        'nodetool://auth-callback'
-      );
-      expect(mockSetSession).toHaveBeenCalledWith({
-        access_token: 'acc',
-        refresh_token: 'ref',
+        token: 'google-id-token-123',
       });
       expect(useAuthStore.getState().state).toBe('logged_in');
       expect(useAuthStore.getState().user).toEqual(session.user);
     });
 
-    it('returns to logged_out when the user cancels the browser', async () => {
-      mockSignInWithOAuth.mockResolvedValue({
-        data: { url: oauthUrl },
-        error: null,
-      });
-      mockOpenAuthSession.mockResolvedValue({ type: 'cancel' });
+    it('sets error when Google Sign-In returns no ID token', async () => {
+      mockGoogleHasPlayServices.mockResolvedValue(true);
+      mockGoogleSignIn.mockResolvedValue({ data: { idToken: null } });
 
       await act(async () => {
-        await useAuthStore.getState().signInWithOAuth('google');
-      });
-
-      expect(mockSetSession).not.toHaveBeenCalled();
-      expect(useAuthStore.getState().state).toBe('logged_out');
-      expect(useAuthStore.getState().error).toBeNull();
-    });
-
-    it('sets error state when Supabase returns an error', async () => {
-      mockSignInWithOAuth.mockResolvedValue({
-        data: null,
-        error: { message: 'provider disabled' },
-      });
-
-      await act(async () => {
-        await useAuthStore.getState().signInWithOAuth('google');
+        await useAuthStore.getState().signInWithGoogle();
       });
 
       expect(useAuthStore.getState().state).toBe('error');
-      expect(useAuthStore.getState().error).toBe('provider disabled');
-      expect(mockOpenAuthSession).not.toHaveBeenCalled();
+      expect(useAuthStore.getState().error).toMatch(/no id token/i);
     });
 
-    it('sets error state when callback URL lacks tokens', async () => {
-      mockSignInWithOAuth.mockResolvedValue({
-        data: { url: oauthUrl },
-        error: null,
+    it('sets error when Supabase rejects the ID token', async () => {
+      mockGoogleHasPlayServices.mockResolvedValue(true);
+      mockGoogleSignIn.mockResolvedValue({
+        data: { idToken: 'bad-token' },
       });
-      mockOpenAuthSession.mockResolvedValue({
-        type: 'success',
-        url: 'nodetool://auth-callback',
-      });
-      mockGetQueryParams.mockReturnValue({ params: {}, errorCode: null });
-
-      await act(async () => {
-        await useAuthStore.getState().signInWithOAuth('google');
-      });
-
-      expect(useAuthStore.getState().state).toBe('error');
-      expect(useAuthStore.getState().error).toMatch(/missing access or refresh token/i);
-    });
-
-    it('sets error state when callback URL includes an error code', async () => {
-      mockSignInWithOAuth.mockResolvedValue({
-        data: { url: oauthUrl },
-        error: null,
-      });
-      mockOpenAuthSession.mockResolvedValue({
-        type: 'success',
-        url: 'nodetool://auth-callback?error=access_denied',
-      });
-      mockGetQueryParams.mockReturnValue({
-        params: {},
-        errorCode: 'access_denied',
+      mockSignInWithIdToken.mockResolvedValue({
+        data: { session: null, user: null },
+        error: { message: 'Invalid token' },
       });
 
       await act(async () => {
-        await useAuthStore.getState().signInWithOAuth('google');
+        await useAuthStore.getState().signInWithGoogle();
       });
 
       expect(useAuthStore.getState().state).toBe('error');
-      expect(useAuthStore.getState().error).toBe('access_denied');
+      expect(useAuthStore.getState().error).toBe('Invalid token');
+    });
+
+    it('sets error when Google Sign-In throws', async () => {
+      mockGoogleHasPlayServices.mockRejectedValue(new Error('No play services'));
+
+      await act(async () => {
+        await useAuthStore.getState().signInWithGoogle();
+      });
+
+      expect(useAuthStore.getState().state).toBe('error');
+      expect(useAuthStore.getState().error).toBe('No play services');
     });
   });
 });
