@@ -8,8 +8,7 @@ import { useRecentNodesStore } from "../stores/RecentNodesStore";
 import useMetadataStore from "../stores/MetadataStore";
 import { findSnippetByNodeType } from "../config/snippetMetadata";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../utils/codeOutputInference";
-
-const CODE_NODE_TYPE = "nodetool.code.Code";
+import { CODE_NODE_TYPE } from "../components/node/codeNodeUi";
 
 /**
  * Hook for creating new nodes in the workflow editor.
