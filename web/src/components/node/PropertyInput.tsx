@@ -709,10 +709,21 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     handleDeleteProperty(property.name);
   }, [handleDeleteProperty, property.name]);
 
+  const hasTopRightPropertyActions =
+    componentType === StringProperty ||
+    componentType === JSONProperty ||
+    componentType === DataframeProperty;
+
   return (
     <div
       className={`property-input-container${isChanged ? " value-changed" : ""}`}
-      css={propertyInputContainerStyles(theme)}
+      css={[
+        propertyInputContainerStyles(theme),
+        hasTopRightPropertyActions &&
+          css({
+            "--property-reset-button-offset": "40px"
+          })
+      ]}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >

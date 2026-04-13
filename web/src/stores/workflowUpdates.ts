@@ -31,6 +31,7 @@ import useExecutionTimeStore from "./ExecutionTimeStore";
 import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
+import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 
 export type { NodeStore };
 
@@ -286,11 +287,12 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
-    setOutputResult(workflow.id, update.node_id, update.value, true);
+    const normalizedValue = normalizeOutputUpdateValue(update);
+    setOutputResult(workflow.id, update.node_id, normalizedValue, true);
 
     // Add each streaming output to history for display in ResultOverlay
     addToHistory(workflow.id, update.node_id, {
-      result: update.value,
+      result: normalizedValue,
       timestamp: Date.now(),
       jobId: runner.job_id,
       status: "completed"
@@ -301,9 +303,9 @@ export const handleUpdate = (
       workflowName: workflow.name,
       nodeId: update.node_id,
       nodeName: update.node_name,
-      content: `Output: ${typeof update.value === "string"
-          ? update.value
-          : JSON.stringify(update.value)
+      content: `Output: ${typeof normalizedValue === "string"
+          ? normalizedValue
+          : JSON.stringify(normalizedValue)
         }`,
       severity: "info",
       timestamp: Date.now()
