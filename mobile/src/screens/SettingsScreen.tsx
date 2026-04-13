@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiService } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
@@ -123,6 +124,16 @@ export default function SettingsScreen() {
 
     try {
       setConnectionStatus('testing');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(`${trimmed}/api/workflows/?limit=1`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
       await apiService.saveApiHost(trimmed);
       await apiService.getWorkflows(1);
       setApiHost(trimmed);
@@ -131,10 +142,9 @@ export default function SettingsScreen() {
     } catch (error: unknown) {
       console.error('Connection test failed:', error);
       setConnectionStatus('error');
-      const message = error instanceof Error ? error.message : String(error);
-      const detail = message.includes('timeout') || message.includes('Timeout')
+      const detail = error instanceof DOMException && error.name === 'AbortError'
         ? 'Connection timed out. Is the server running?'
-        : message.includes('Network') || message.includes('fetch')
+        : error instanceof TypeError
           ? 'Network error. Check the URL and your connection.'
           : 'Could not reach the server. Verify the URL is correct.';
       Alert.alert('Connection Failed', detail);
