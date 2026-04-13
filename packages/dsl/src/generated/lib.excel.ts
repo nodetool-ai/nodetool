@@ -12,14 +12,8 @@ export interface CreateWorkbookOutputs {
   output: unknown;
 }
 
-export function createWorkbook(
-  inputs: CreateWorkbookInputs
-): DslNode<CreateWorkbookOutputs, "output"> {
-  return createNode(
-    "lib.excel.CreateWorkbook",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function createWorkbook(inputs: CreateWorkbookInputs): DslNode<CreateWorkbookOutputs, "output"> {
+  return createNode("lib.excel.CreateWorkbook", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Excel To Data Frame — lib.excel.ExcelToDataFrame
@@ -33,14 +27,8 @@ export interface ExcelToDataFrameOutputs {
   output: DataframeRef;
 }
 
-export function excelToDataFrame(
-  inputs: ExcelToDataFrameInputs
-): DslNode<ExcelToDataFrameOutputs, "output"> {
-  return createNode(
-    "lib.excel.ExcelToDataFrame",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function excelToDataFrame(inputs: ExcelToDataFrameInputs): DslNode<ExcelToDataFrameOutputs, "output"> {
+  return createNode("lib.excel.ExcelToDataFrame", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Data Frame To Excel — lib.excel.DataFrameToExcel
@@ -56,14 +44,8 @@ export interface DataFrameToExcelOutputs {
   output: unknown;
 }
 
-export function dataFrameToExcel(
-  inputs: DataFrameToExcelInputs
-): DslNode<DataFrameToExcelOutputs, "output"> {
-  return createNode(
-    "lib.excel.DataFrameToExcel",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function dataFrameToExcel(inputs: DataFrameToExcelInputs): DslNode<DataFrameToExcelOutputs, "output"> {
+  return createNode("lib.excel.DataFrameToExcel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Format Cells — lib.excel.FormatCells
@@ -80,14 +62,8 @@ export interface FormatCellsOutputs {
   output: unknown;
 }
 
-export function formatCells(
-  inputs: FormatCellsInputs
-): DslNode<FormatCellsOutputs, "output"> {
-  return createNode(
-    "lib.excel.FormatCells",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function formatCells(inputs: FormatCellsInputs): DslNode<FormatCellsOutputs, "output"> {
+  return createNode("lib.excel.FormatCells", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Auto Fit Columns — lib.excel.AutoFitColumns
@@ -100,14 +76,8 @@ export interface AutoFitColumnsOutputs {
   output: unknown;
 }
 
-export function autoFitColumns(
-  inputs: AutoFitColumnsInputs
-): DslNode<AutoFitColumnsOutputs, "output"> {
-  return createNode(
-    "lib.excel.AutoFitColumns",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function autoFitColumns(inputs: AutoFitColumnsInputs): DslNode<AutoFitColumnsOutputs, "output"> {
+  return createNode("lib.excel.AutoFitColumns", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Workbook — lib.excel.SaveWorkbook
@@ -117,14 +87,9 @@ export interface SaveWorkbookInputs {
   filename?: Connectable<string>;
 }
 
-export interface SaveWorkbookOutputs {}
+export interface SaveWorkbookOutputs {
+}
 
-export function saveWorkbook(
-  inputs: SaveWorkbookInputs
-): DslNode<SaveWorkbookOutputs> {
-  return createNode(
-    "lib.excel.SaveWorkbook",
-    inputs as Record<string, unknown>,
-    { outputNames: [] }
-  );
+export function saveWorkbook(inputs: SaveWorkbookInputs): DslNode<SaveWorkbookOutputs> {
+  return createNode("lib.excel.SaveWorkbook", inputs as Record<string, unknown>, { outputNames: [] });
 }

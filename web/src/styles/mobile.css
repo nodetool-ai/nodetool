@@ -250,10 +250,9 @@
   .mobile .global-chat-container {
     height: 100dvh !important;
     max-height: 100dvh !important;
-    padding-top: 40px !important; /* Add padding for header */
-    /* Leave space for the left panel/resize handle */
-    margin-left: 40px !important;
-    max-width: calc(100vw - 60px) !important;
+    padding-top: 0 !important;
+    margin-left: 0 !important;
+    max-width: 100vw !important;
     contain: layout style !important;
   }
 
@@ -670,5 +669,50 @@
   .mobile .reactflow-wrapper,
   .mobile .react-flow {
     touch-action: none !important;
+  }
+
+  /* Chat View */
+  .mobile .chat-view {
+    padding: 0 14px 8px 14px !important;
+  }
+  .mobile .chat-view .chat-thread-container {
+    scrollbar-width: none;
+  }
+  .mobile .chat-view .chat-thread-container::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile .chat-view .chat-controls {
+    padding: 0 !important;
+  }
+
+  /* Chat Input Section */
+  .mobile .chat-input-section {
+    width: 100% !important;
+    align-items: stretch !important;
+  }
+
+  /* Chat Thread View */
+  .mobile .chat-thread-view-root {
+    padding: 0.5em 0 !important;
+  }
+  .mobile .chat-thread-view-root .scrollable-message-wrapper {
+    padding: 0;
+    scrollbar-width: none;
+  }
+  .mobile .chat-thread-view-root .scrollable-message-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile .chat-messages-list {
+    max-width: 100% !important;
+  }
+
+  /* Chat Composer */
+  .mobile .chat-composer .compose-message {
+    min-height: 52px;
+    justify-content: center;
+  }
+  .mobile .chat-composer .compose-message textarea {
+    padding: 12px 10px 12px 6px;
+    min-height: 48px;
   }
 }

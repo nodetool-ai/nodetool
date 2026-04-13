@@ -109,6 +109,7 @@ interface AssetGridProps {
   sortedAssets?: Asset[];
   initialFoldersPanelWidth?: number;
   isFullscreenAssets?: boolean;
+  isMobile?: boolean;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
@@ -116,7 +117,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
   sortedAssets,
-  isFullscreenAssets
+  isFullscreenAssets,
+  isMobile = false
 }) => {
   const { error, folderFilesFiltered } = useAssets();
   // Separate selectors prevent unnecessary re-renders when only one value changes
@@ -204,6 +206,18 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
+
+      if (isMobile) {
+        // On mobile, skip the folders panel — just show files with breadcrumb nav
+        api.addPanel({
+          id: "asset-files",
+          component: "asset-files",
+          title: "Files",
+          params: { isHorizontal, itemSpacing }
+        });
+        return;
+      }
+
       // Add folders panel first with an initial size
       const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
         id: "asset-folders",
@@ -240,7 +254,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       };
       applyInitialSize();
     },
-    [isFullscreenAssets, isHorizontal, itemSpacing]
+    [isFullscreenAssets, isHorizontal, itemSpacing, isMobile]
   );
 
   return (
@@ -268,15 +282,21 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           onClose={() => setOpenAsset(null)}
         />
       )}
-      <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
-      <StorageAnalytics
-        assets={sortedAssets || folderFilesFiltered || []}
-        currentFolder={currentFolder}
-      />
-      <SelectedItemsInfo
-        selectedAssetIds={selectedAssetIds}
-        assets={sortedAssets || folderFilesFiltered || []}
-      />
+      {!isMobile && (
+        <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
+      )}
+      {!isMobile && (
+        <StorageAnalytics
+          assets={sortedAssets || folderFilesFiltered || []}
+          currentFolder={currentFolder}
+        />
+      )}
+      {!isMobile && (
+        <SelectedItemsInfo
+          selectedAssetIds={selectedAssetIds}
+          assets={sortedAssets || folderFilesFiltered || []}
+        />
+      )}
       {/* Drag-and-drop enabled region; upload button now in toolbar */}
       <Dropzone onDrop={uploadFiles}>
         <div

@@ -13,10 +13,7 @@ export interface SchemaOutputs {
 }
 
 export function schema(inputs: SchemaInputs): DslNode<SchemaOutputs, "output"> {
-  return createNode("nodetool.data.Schema", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.Schema", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Filter — nodetool.data.Filter
@@ -30,10 +27,7 @@ export interface FilterOutputs {
 }
 
 export function filter(inputs: FilterInputs): DslNode<FilterOutputs, "output"> {
-  return createNode("nodetool.data.Filter", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.Filter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Slice — nodetool.data.Slice
@@ -48,10 +42,7 @@ export interface SliceOutputs {
 }
 
 export function slice(inputs: SliceInputs): DslNode<SliceOutputs, "output"> {
-  return createNode("nodetool.data.Slice", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.Slice", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save Dataframe — nodetool.data.SaveDataframe
@@ -65,14 +56,8 @@ export interface SaveDataframeOutputs {
   output: DataframeRef;
 }
 
-export function saveDataframe(
-  inputs: SaveDataframeInputs
-): DslNode<SaveDataframeOutputs, "output"> {
-  return createNode(
-    "nodetool.data.SaveDataframe",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function saveDataframe(inputs: SaveDataframeInputs): DslNode<SaveDataframeOutputs, "output"> {
+  return createNode("nodetool.data.SaveDataframe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Import CSV — nodetool.data.ImportCSV
@@ -84,14 +69,8 @@ export interface ImportCSVOutputs {
   output: DataframeRef;
 }
 
-export function importCSV(
-  inputs: ImportCSVInputs
-): DslNode<ImportCSVOutputs, "output"> {
-  return createNode(
-    "nodetool.data.ImportCSV",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function importCSV(inputs: ImportCSVInputs): DslNode<ImportCSVOutputs, "output"> {
+  return createNode("nodetool.data.ImportCSV", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Load CSVURL — nodetool.data.LoadCSVURL
@@ -103,14 +82,8 @@ export interface LoadCSVURLOutputs {
   output: DataframeRef;
 }
 
-export function loadCSVURL(
-  inputs: LoadCSVURLInputs
-): DslNode<LoadCSVURLOutputs, "output"> {
-  return createNode(
-    "nodetool.data.LoadCSVURL",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function loadCSVURL(inputs: LoadCSVURLInputs): DslNode<LoadCSVURLOutputs, "output"> {
+  return createNode("nodetool.data.LoadCSVURL", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Load CSVFile — nodetool.data.LoadCSVFile
@@ -122,14 +95,8 @@ export interface LoadCSVFileOutputs {
   output: DataframeRef;
 }
 
-export function loadCSVFile(
-  inputs: LoadCSVFileInputs
-): DslNode<LoadCSVFileOutputs, "output"> {
-  return createNode(
-    "nodetool.data.LoadCSVFile",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function loadCSVFile(inputs: LoadCSVFileInputs): DslNode<LoadCSVFileOutputs, "output"> {
+  return createNode("nodetool.data.LoadCSVFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // From List — nodetool.data.FromList
@@ -141,14 +108,8 @@ export interface FromListOutputs {
   output: DataframeRef;
 }
 
-export function fromList(
-  inputs: FromListInputs
-): DslNode<FromListOutputs, "output"> {
-  return createNode(
-    "nodetool.data.FromList",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function fromList(inputs: FromListInputs): DslNode<FromListOutputs, "output"> {
+  return createNode("nodetool.data.FromList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Convert JSON to DataFrame — nodetool.data.JSONToDataframe
@@ -160,14 +121,8 @@ export interface JSONToDataframeOutputs {
   output: DataframeRef;
 }
 
-export function jsonToDataframe(
-  inputs: JSONToDataframeInputs
-): DslNode<JSONToDataframeOutputs, "output"> {
-  return createNode(
-    "nodetool.data.JSONToDataframe",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function jsonToDataframe(inputs: JSONToDataframeInputs): DslNode<JSONToDataframeOutputs, "output"> {
+  return createNode("nodetool.data.JSONToDataframe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // To List — nodetool.data.ToList
@@ -180,10 +135,7 @@ export interface ToListOutputs {
 }
 
 export function toList(inputs: ToListInputs): DslNode<ToListOutputs, "output"> {
-  return createNode("nodetool.data.ToList", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.ToList", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Select Column — nodetool.data.SelectColumn
@@ -196,14 +148,8 @@ export interface SelectColumnOutputs {
   output: DataframeRef;
 }
 
-export function selectColumn(
-  inputs: SelectColumnInputs
-): DslNode<SelectColumnOutputs, "output"> {
-  return createNode(
-    "nodetool.data.SelectColumn",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function selectColumn(inputs: SelectColumnInputs): DslNode<SelectColumnOutputs, "output"> {
+  return createNode("nodetool.data.SelectColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Extract Column — nodetool.data.ExtractColumn
@@ -216,14 +162,8 @@ export interface ExtractColumnOutputs {
   output: unknown[];
 }
 
-export function extractColumn(
-  inputs: ExtractColumnInputs
-): DslNode<ExtractColumnOutputs, "output"> {
-  return createNode(
-    "nodetool.data.ExtractColumn",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function extractColumn(inputs: ExtractColumnInputs): DslNode<ExtractColumnOutputs, "output"> {
+  return createNode("nodetool.data.ExtractColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Add Column — nodetool.data.AddColumn
@@ -237,14 +177,8 @@ export interface AddColumnOutputs {
   output: DataframeRef;
 }
 
-export function addColumn(
-  inputs: AddColumnInputs
-): DslNode<AddColumnOutputs, "output"> {
-  return createNode(
-    "nodetool.data.AddColumn",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function addColumn(inputs: AddColumnInputs): DslNode<AddColumnOutputs, "output"> {
+  return createNode("nodetool.data.AddColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Merge — nodetool.data.Merge
@@ -258,10 +192,7 @@ export interface MergeOutputs {
 }
 
 export function merge(inputs: MergeInputs): DslNode<MergeOutputs, "output"> {
-  return createNode("nodetool.data.Merge", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.Merge", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Append — nodetool.data.Append
@@ -275,10 +206,7 @@ export interface AppendOutputs {
 }
 
 export function append(inputs: AppendInputs): DslNode<AppendOutputs, "output"> {
-  return createNode("nodetool.data.Append", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.Append", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Join — nodetool.data.Join
@@ -293,10 +221,7 @@ export interface JoinOutputs {
 }
 
 export function join(inputs: JoinInputs): DslNode<JoinOutputs, "output"> {
-  return createNode("nodetool.data.Join", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.Join", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Row Iterator — nodetool.data.RowIterator
@@ -309,14 +234,8 @@ export interface RowIteratorOutputs {
   index: unknown;
 }
 
-export function rowIterator(
-  inputs: RowIteratorInputs
-): DslNode<RowIteratorOutputs> {
-  return createNode(
-    "nodetool.data.RowIterator",
-    inputs as Record<string, unknown>,
-    { outputNames: ["dict", "index"], streaming: true }
-  );
+export function rowIterator(inputs: RowIteratorInputs): DslNode<RowIteratorOutputs> {
+  return createNode("nodetool.data.RowIterator", inputs as Record<string, unknown>, { outputNames: ["dict", "index"], streaming: true });
 }
 
 // Find Row — nodetool.data.FindRow
@@ -329,14 +248,8 @@ export interface FindRowOutputs {
   output: DataframeRef;
 }
 
-export function findRow(
-  inputs: FindRowInputs
-): DslNode<FindRowOutputs, "output"> {
-  return createNode(
-    "nodetool.data.FindRow",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function findRow(inputs: FindRowInputs): DslNode<FindRowOutputs, "output"> {
+  return createNode("nodetool.data.FindRow", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Sort By Column — nodetool.data.SortByColumn
@@ -349,14 +262,8 @@ export interface SortByColumnOutputs {
   output: DataframeRef;
 }
 
-export function sortByColumn(
-  inputs: SortByColumnInputs
-): DslNode<SortByColumnOutputs, "output"> {
-  return createNode(
-    "nodetool.data.SortByColumn",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function sortByColumn(inputs: SortByColumnInputs): DslNode<SortByColumnOutputs, "output"> {
+  return createNode("nodetool.data.SortByColumn", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Drop Duplicates — nodetool.data.DropDuplicates
@@ -368,14 +275,8 @@ export interface DropDuplicatesOutputs {
   output: DataframeRef;
 }
 
-export function dropDuplicates(
-  inputs: DropDuplicatesInputs
-): DslNode<DropDuplicatesOutputs, "output"> {
-  return createNode(
-    "nodetool.data.DropDuplicates",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function dropDuplicates(inputs: DropDuplicatesInputs): DslNode<DropDuplicatesOutputs, "output"> {
+  return createNode("nodetool.data.DropDuplicates", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Drop NA — nodetool.data.DropNA
@@ -388,10 +289,7 @@ export interface DropNAOutputs {
 }
 
 export function dropNA(inputs: DropNAInputs): DslNode<DropNAOutputs, "output"> {
-  return createNode("nodetool.data.DropNA", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.DropNA", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // For Each Row — nodetool.data.ForEachRow
@@ -404,14 +302,8 @@ export interface ForEachRowOutputs {
   index: unknown;
 }
 
-export function forEachRow(
-  inputs: ForEachRowInputs
-): DslNode<ForEachRowOutputs> {
-  return createNode(
-    "nodetool.data.ForEachRow",
-    inputs as Record<string, unknown>,
-    { outputNames: ["row", "index"], streaming: true }
-  );
+export function forEachRow(inputs: ForEachRowInputs): DslNode<ForEachRowOutputs> {
+  return createNode("nodetool.data.ForEachRow", inputs as Record<string, unknown>, { outputNames: ["row", "index"], streaming: true });
 }
 
 // Load CSV Assets — nodetool.data.LoadCSVAssets
@@ -422,16 +314,12 @@ export interface LoadCSVAssetsInputs {
 export interface LoadCSVAssetsOutputs {
   dataframe: DataframeRef;
   name: string;
+  dataframes: unknown[];
+  names: unknown[];
 }
 
-export function loadCSVAssets(
-  inputs: LoadCSVAssetsInputs
-): DslNode<LoadCSVAssetsOutputs> {
-  return createNode(
-    "nodetool.data.LoadCSVAssets",
-    inputs as Record<string, unknown>,
-    { outputNames: ["dataframe", "name"], streaming: true }
-  );
+export function loadCSVAssets(inputs: LoadCSVAssetsInputs): DslNode<LoadCSVAssetsOutputs> {
+  return createNode("nodetool.data.LoadCSVAssets", inputs as Record<string, unknown>, { outputNames: ["dataframe", "name", "dataframes", "names"], streaming: true });
 }
 
 // Aggregate — nodetool.data.Aggregate
@@ -445,14 +333,8 @@ export interface AggregateOutputs {
   output: DataframeRef;
 }
 
-export function aggregate(
-  inputs: AggregateInputs
-): DslNode<AggregateOutputs, "output"> {
-  return createNode(
-    "nodetool.data.Aggregate",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function aggregate(inputs: AggregateInputs): DslNode<AggregateOutputs, "output"> {
+  return createNode("nodetool.data.Aggregate", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Pivot — nodetool.data.Pivot
@@ -469,10 +351,7 @@ export interface PivotOutputs {
 }
 
 export function pivot(inputs: PivotInputs): DslNode<PivotOutputs, "output"> {
-  return createNode("nodetool.data.Pivot", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.Pivot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Rename — nodetool.data.Rename
@@ -486,10 +365,7 @@ export interface RenameOutputs {
 }
 
 export function rename(inputs: RenameInputs): DslNode<RenameOutputs, "output"> {
-  return createNode("nodetool.data.Rename", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.Rename", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Fill NA — nodetool.data.FillNA
@@ -505,10 +381,7 @@ export interface FillNAOutputs {
 }
 
 export function fillNA(inputs: FillNAInputs): DslNode<FillNAOutputs, "output"> {
-  return createNode("nodetool.data.FillNA", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("nodetool.data.FillNA", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Save CSVDataframe File — nodetool.data.SaveCSVDataframeFile
@@ -522,14 +395,8 @@ export interface SaveCSVDataframeFileOutputs {
   output: DataframeRef;
 }
 
-export function saveCSVDataframeFile(
-  inputs: SaveCSVDataframeFileInputs
-): DslNode<SaveCSVDataframeFileOutputs, "output"> {
-  return createNode(
-    "nodetool.data.SaveCSVDataframeFile",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function saveCSVDataframeFile(inputs: SaveCSVDataframeFileInputs): DslNode<SaveCSVDataframeFileOutputs, "output"> {
+  return createNode("nodetool.data.SaveCSVDataframeFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Filter None — nodetool.data.FilterNone
@@ -541,12 +408,19 @@ export interface FilterNoneOutputs {
   output: unknown;
 }
 
-export function filterNone(
-  inputs: FilterNoneInputs
-): DslNode<FilterNoneOutputs, "output"> {
-  return createNode(
-    "nodetool.data.FilterNone",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output", streaming: true }
-  );
+export function filterNone(inputs: FilterNoneInputs): DslNode<FilterNoneOutputs, "output"> {
+  return createNode("nodetool.data.FilterNone", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output", streaming: true });
+}
+
+// Describe — nodetool.data.Describe
+export interface DescribeInputs {
+  dataframe?: Connectable<DataframeRef>;
+}
+
+export interface DescribeOutputs {
+  output: DataframeRef;
+}
+
+export function describe(inputs: DescribeInputs): DslNode<DescribeOutputs, "output"> {
+  return createNode("nodetool.data.Describe", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

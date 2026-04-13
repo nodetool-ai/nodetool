@@ -579,7 +579,11 @@ export {
   PdfPageMetadataNode,
   LIB_PDF_NODES
 } from "./nodes/lib-pdf.js";
-export { KieAINode, KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
+export {
+  KieAINode,
+  KIE_DYNAMIC_NODES,
+  resolveKieDynamicSchema
+} from "./nodes/kie-dynamic.js";
 export {
   CollectionNode,
   CountNode,

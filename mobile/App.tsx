@@ -11,6 +11,8 @@ import ChatScreen from './src/screens/ChatScreen';
 import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionScreen';
 import GraphEditorScreen from './src/screens/GraphEditorScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import AssetsScreen from './src/screens/AssetsScreen';
+import AssetViewerScreen from './src/screens/AssetViewerScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { apiService } from './src/services/api';
 import { useTheme } from './src/hooks/useTheme';
@@ -113,6 +115,16 @@ export default function App() {
                   name="LanguageModelSelection"
                   component={LanguageModelSelectionScreen}
                   options={{ title: 'Select Provider' }}
+                />
+                <Stack.Screen
+                  name="Assets"
+                  component={AssetsScreen}
+                  options={{ title: 'Assets' }}
+                />
+                <Stack.Screen
+                  name="AssetViewer"
+                  component={AssetViewerScreen}
+                  options={{ title: 'Asset' }}
                 />
               </>
             ) : (

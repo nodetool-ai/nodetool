@@ -277,6 +277,7 @@ const ReactFlowWrapper = ({
       "nodetool.control.Reroute": RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
+      "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       default: PlaceholderNode

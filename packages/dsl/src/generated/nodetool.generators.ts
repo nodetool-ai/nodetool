@@ -1,12 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
-import type {
-  ImageRef,
-  AudioRef,
-  DataframeRef,
-  ChartConfig
-} from "../types.js";
+import type { ImageRef, AudioRef, DataframeRef } from "../types.js";
 
 // Structured Output Generator — nodetool.generators.StructuredOutputGenerator
 export interface StructuredOutputGeneratorInputs {
@@ -15,18 +10,15 @@ export interface StructuredOutputGeneratorInputs {
   instructions?: Connectable<string>;
   context?: Connectable<string>;
   max_tokens?: Connectable<number>;
+  image?: Connectable<ImageRef>;
+  audio?: Connectable<AudioRef>;
 }
 
-export interface StructuredOutputGeneratorOutputs {}
+export interface StructuredOutputGeneratorOutputs {
+}
 
-export function structuredOutputGenerator(
-  inputs: StructuredOutputGeneratorInputs
-): DslNode<StructuredOutputGeneratorOutputs> {
-  return createNode(
-    "nodetool.generators.StructuredOutputGenerator",
-    inputs as Record<string, unknown>,
-    { outputNames: [] }
-  );
+export function structuredOutputGenerator(inputs: StructuredOutputGeneratorInputs): DslNode<StructuredOutputGeneratorOutputs> {
+  return createNode("nodetool.generators.StructuredOutputGenerator", inputs as Record<string, unknown>, { outputNames: [] });
 }
 
 // Data Generator — nodetool.generators.DataGenerator
@@ -44,14 +36,8 @@ export interface DataGeneratorOutputs {
   index: number;
 }
 
-export function dataGenerator(
-  inputs: DataGeneratorInputs
-): DslNode<DataGeneratorOutputs> {
-  return createNode(
-    "nodetool.generators.DataGenerator",
-    inputs as Record<string, unknown>,
-    { outputNames: ["record", "dataframe", "index"], streaming: true }
-  );
+export function dataGenerator(inputs: DataGeneratorInputs): DslNode<DataGeneratorOutputs> {
+  return createNode("nodetool.generators.DataGenerator", inputs as Record<string, unknown>, { outputNames: ["record", "dataframe", "index"], streaming: true });
 }
 
 // List Generator — nodetool.generators.ListGenerator
@@ -67,14 +53,8 @@ export interface ListGeneratorOutputs {
   index: number;
 }
 
-export function listGenerator(
-  inputs: ListGeneratorInputs
-): DslNode<ListGeneratorOutputs> {
-  return createNode(
-    "nodetool.generators.ListGenerator",
-    inputs as Record<string, unknown>,
-    { outputNames: ["item", "index"], streaming: true }
-  );
+export function listGenerator(inputs: ListGeneratorInputs): DslNode<ListGeneratorOutputs> {
+  return createNode("nodetool.generators.ListGenerator", inputs as Record<string, unknown>, { outputNames: ["item", "index"], streaming: true });
 }
 
 // Chart Generator — nodetool.generators.ChartGenerator
@@ -86,17 +66,11 @@ export interface ChartGeneratorInputs {
 }
 
 export interface ChartGeneratorOutputs {
-  output: ChartConfig;
+  output: unknown;
 }
 
-export function chartGenerator(
-  inputs: ChartGeneratorInputs
-): DslNode<ChartGeneratorOutputs, "output"> {
-  return createNode(
-    "nodetool.generators.ChartGenerator",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function chartGenerator(inputs: ChartGeneratorInputs): DslNode<ChartGeneratorOutputs, "output"> {
+  return createNode("nodetool.generators.ChartGenerator", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // SVGGenerator — nodetool.generators.SVGGenerator
@@ -112,12 +86,6 @@ export interface SVGGeneratorOutputs {
   output: unknown[];
 }
 
-export function svgGenerator(
-  inputs: SVGGeneratorInputs
-): DslNode<SVGGeneratorOutputs, "output"> {
-  return createNode(
-    "nodetool.generators.SVGGenerator",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function svgGenerator(inputs: SVGGeneratorInputs): DslNode<SVGGeneratorOutputs, "output"> {
+  return createNode("nodetool.generators.SVGGenerator", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

@@ -379,7 +379,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isRightPanelVisible,
     rightPanelSize,
     bottomPanelVisible,
-    bottomPanelSize
+    bottomPanelSize,
+    isMobile
   );
 
   const instantUpdate = useSettingsStore((state) => state.settings.instantUpdate);
@@ -476,18 +477,20 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           />
         )}
 
-        <ToolbarButton
-          icon={<AddCircleIcon />}
-          tooltip="Add Node"
-          shortcut="openNodeMenu"
-          variant={shouldHighlightNodeMenu ? "neutral" : "secondary"}
-          className={cn(
-            !shouldHighlightNodeMenu && "node-menu",
-            shouldHighlightNodeMenu && "node-menu-attention"
-          )}
-          onClick={handleToggleNodeMenu}
-          aria-label="Add node"
-        />
+        {editorViewMode === "graph" && (
+          <ToolbarButton
+            icon={<AddCircleIcon />}
+            tooltip="Add Node"
+            shortcut="openNodeMenu"
+            variant={shouldHighlightNodeMenu ? "neutral" : "secondary"}
+            className={cn(
+              !shouldHighlightNodeMenu && "node-menu",
+              shouldHighlightNodeMenu && "node-menu-attention"
+            )}
+            onClick={handleToggleNodeMenu}
+            aria-label="Add node"
+          />
+        )}
         <ToolbarButton
           icon={editorViewMode === "graph" ? <LinearScaleIcon /> : <AccountTreeIcon />}
           tooltip={editorViewMode === "graph" ? "Chain View" : "Graph View"}

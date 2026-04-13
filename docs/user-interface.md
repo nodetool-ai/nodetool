@@ -8,6 +8,8 @@ A complete tour of the NodeTool interface — covering the Dashboard, Workflow C
 
 > **New to NodeTool?** Start with the [Getting Started guide](getting-started.md) to run your first workflow, then come back here for the full interface walkthrough.
 
+> **Looking for every view at a glance?** See the [App Views Gallery](app-views.md) — a visual index of every screen, panel, and dialog with links to detailed docs.
+
 ---
 
 ## At a Glance
@@ -175,6 +177,24 @@ Launch mini-apps in dedicated windows from the system tray:
 
 ---
 
+## Mini-Apps
+
+Turn a workflow into a simple form-based app for sharing.
+
+![Mini-App Interface](assets/screenshots/screenshot-placeholder.svg)
+
+### Running a Mini-App
+
+- **Inside the app** — open the Mini-App from the Templates panel or from `/apps/:workflowId`.
+- **Standalone window (desktop)** — launch a mini-app from the tray; it opens in its own window.
+- **Mobile** — see [Mobile App → Mini Apps](mobile-app.md#mini-apps).
+
+See the full [Electron Views](electron-views.md#mini-app-window) docs for the desktop runner.
+
+![Mini-App Results](assets/screenshots/screenshot-placeholder.svg)
+
+---
+
 ## Assets
 
 The Asset Explorer manages all your files.
@@ -249,6 +269,8 @@ Your layout is saved automatically. To reset:
 
 Press `Alt+K` (Windows/Linux) or `⌘+K` (Mac) to open the **Command Menu**.
 
+![Command Menu](assets/screenshots/screenshot-placeholder.svg)
+
 This is the fastest way to:
 - Open any workflow
 - Switch between sections
@@ -312,6 +334,8 @@ Just start typing what you want!
 
 ## Next Steps
 
+- **[App Views Gallery](app-views.md)** – Visual index of every screen, panel, and dialog
 - **[Workflow Editor deep dive](workflow-editor.md)** – Master the canvas
+- **[Editor Panels](editor-panels.md)** – Left, right, bottom, and floating panels
 - **[Tips & Tricks](tips-and-tricks.md)** – Power user secrets
 - **[Cookbook](cookbook.md)** – Learn workflow patterns

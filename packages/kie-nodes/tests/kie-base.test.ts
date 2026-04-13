@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getApiKey, isRefSet } from "../src/kie-base.js";
+import { getApiKey, isRefSet, uploadImageInput } from "../src/kie-base.js";
 
 // ---------------------------------------------------------------------------
 // getApiKey
@@ -82,5 +82,45 @@ describe("isRefSet", () => {
 
   it("returns false when data and uri are null", () => {
     expect(isRefSet({ data: null, uri: null })).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// uploadImageInput
+// ---------------------------------------------------------------------------
+describe("uploadImageInput", () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: { downloadUrl: "https://kie.example/uploaded.png" }
+      })
+    }) as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it("uploads bytes from local storage-backed image URIs", async () => {
+    const storage = {
+      retrieve: vi
+        .fn()
+        .mockResolvedValue(Uint8Array.from([137, 80, 78, 71]))
+    };
+
+    const result = await uploadImageInput(
+      "test-api-key",
+      { type: "image", uri: "/api/storage/test-image.png" },
+      { storage } as any
+    );
+
+    expect(storage.retrieve).toHaveBeenCalledWith("/api/storage/test-image.png");
+    expect(result).toBe("https://kie.example/uploaded.png");
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });

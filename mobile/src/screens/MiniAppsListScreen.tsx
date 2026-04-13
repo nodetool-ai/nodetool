@@ -44,7 +44,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   }, []);
 
   const filteredWorkflows = useMemo(() => {
-    if (!debouncedQuery.trim()) return workflows;
+    if (!debouncedQuery.trim()) {return workflows;}
     const query = debouncedQuery.toLowerCase();
     return workflows.filter(
       (w) =>
@@ -104,7 +104,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
   };
 
   const handleWorkflowPress = (workflow: Workflow) => {
-    navigation.navigate('MiniApp', { workflowId: workflow.id, workflowName: workflow.name });
+    navigation.navigate('GraphEditor', { workflowId: workflow.id });
   };
 
   const renderWorkflowItem = ({ item }: { item: Workflow }) => (
@@ -171,6 +171,14 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
             accessibilityLabel="Create workflow"
           >
             <Ionicons name="git-network-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: colors.primaryMuted }]}
+            onPress={() => navigation.navigate('Assets')}
+            accessibilityRole="button"
+            accessibilityLabel="Open assets"
+          >
+            <Ionicons name="images-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: colors.primaryMuted }]}

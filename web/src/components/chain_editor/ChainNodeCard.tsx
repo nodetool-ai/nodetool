@@ -220,8 +220,10 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
           sx={{
             px: 1.75,
             pb: 1.5,
-            maxHeight: 300,
-            overflow: "auto",
+            ...(node.nodeType !== "nodetool.workflows.base_node.Preview" && {
+              maxHeight: 300,
+              overflow: "auto",
+            }),
           }}
         >
           <OutputRenderer value={outputValue} />

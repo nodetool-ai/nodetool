@@ -1,11 +1,20 @@
 import { renderHook, act } from "@testing-library/react";
 import { useCreateNode } from "../useCreateNode";
 import { useReactFlow } from "@xyflow/react";
+import useMetadataStore from "../../stores/MetadataStore";
+import { findSnippetByNodeType } from "../../config/snippetMetadata";
 
 const mockAddNode = jest.fn();
+const mockUpdateNodeData = jest.fn();
 const mockCreateNode = jest.fn().mockReturnValue({
   id: "new-node-1",
   position: { x: 100, y: 200 },
+  data: {
+    properties: {},
+    selectable: true,
+    dynamic_properties: {},
+    workflow_id: "wf-1"
+  }
 });
 
 jest.mock("../../contexts/NodeContext", () => ({
@@ -13,6 +22,7 @@ jest.mock("../../contexts/NodeContext", () => ({
     const mockState = {
       addNode: mockAddNode,
       createNode: mockCreateNode,
+      updateNodeData: mockUpdateNodeData
     };
     if (typeof selector === "function") {
       return selector(mockState);
@@ -49,12 +59,34 @@ jest.mock("../../stores/RecentNodesStore", () => ({
   },
 }));
 
+jest.mock("../../config/snippetMetadata", () => ({
+  findSnippetByNodeType: jest.fn()
+}));
+
+jest.mock("../../utils/codeOutputInference", () => ({
+  inferOutputKeysFromCode: jest.fn(() => null),
+  inferInputKeysFromCode: jest.fn(() => null)
+}));
+
+jest.mock("../../stores/MetadataStore", () => {
+  const store = jest.fn() as jest.Mock & { getState: jest.Mock };
+  store.getState = jest.fn();
+  return {
+    __esModule: true,
+    default: store
+  };
+});
+
 describe("useCreateNode", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useReactFlow as jest.Mock).mockReturnValue({
       screenToFlowPosition: jest.fn().mockReturnValue({ x: 100, y: 200 }),
     });
+    (useMetadataStore.getState as jest.Mock).mockReturnValue({
+      getMetadata: jest.fn()
+    });
+    (findSnippetByNodeType as jest.Mock).mockReturnValue(undefined);
   });
 
   it("returns a callback function", () => {
@@ -225,6 +257,67 @@ describe("useCreateNode", () => {
     });
 
     expect(mockCloseNodeMenu).toHaveBeenCalled();
+  });
+
+  it("applies snippet title and snippet mode to created code nodes", () => {
+    const snippet = {
+      id: "bool-conditional",
+      title: "Conditional Switch",
+      description: "Return one of two values based on a condition",
+      category: "Boolean & Logic",
+      code: "return { output: condition ? if_true : if_false };",
+      tags: ["conditional"]
+    };
+    const codeMetadata = {
+      node_type: "nodetool.code.Code",
+      title: "Code",
+      description: "Code node",
+      namespace: "nodetool.code",
+      layout: "default",
+      outputs: [],
+      properties: [],
+      is_dynamic: true,
+      supports_dynamic_outputs: true,
+      expose_as_tool: false,
+      recommended_models: [],
+      basic_fields: ["code"],
+      is_streaming_output: false,
+      required_settings: []
+    };
+    (findSnippetByNodeType as jest.Mock).mockReturnValue(snippet);
+    (useMetadataStore.getState as jest.Mock).mockReturnValue({
+      getMetadata: jest.fn().mockReturnValue(codeMetadata)
+    });
+
+    const { result } = renderHook(() => useCreateNode());
+
+    act(() => {
+      result.current({
+        node_type: "nodetool.boolean_logic.bool_conditional",
+        title: "Conditional Switch",
+        description: "Virtual snippet node",
+        namespace: "nodetool.boolean_logic",
+        layout: "default",
+        outputs: [],
+        properties: [],
+        is_dynamic: true,
+        supports_dynamic_outputs: true,
+        expose_as_tool: false,
+        recommended_models: [],
+        basic_fields: [],
+        is_streaming_output: false,
+        required_settings: []
+      });
+    });
+
+    expect(mockAddNode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: "Conditional Switch",
+          codeNodeMode: "snippet"
+        })
+      })
+    );
   });
 
   it("maintains callback referential identity", () => {

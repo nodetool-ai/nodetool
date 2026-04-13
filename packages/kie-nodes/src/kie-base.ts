@@ -6,6 +6,12 @@
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-stream-upload";
 
+type UploadContext = {
+  storage?: {
+    retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
+  } | null;
+};
+
 function headers(apiKey: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
@@ -124,21 +130,69 @@ export function getApiKey(secrets: Record<string, string>): string {
   return key;
 }
 
+function isRemoteHttpUrl(uri: string | undefined): uri is string {
+  return !!uri && /^https?:\/\//.test(uri);
+}
+
+function isLocalHttpUrl(uri: string): boolean {
+  return (
+    uri.includes("localhost") ||
+    uri.includes("127.0.0.1") ||
+    uri.includes("[::1]")
+  );
+}
+
+async function resolveUploadBytes(
+  ref: Record<string, unknown>,
+  context?: UploadContext
+): Promise<Buffer | null> {
+  const data = ref.data as string | undefined;
+  if (data) {
+    return Buffer.from(data, "base64");
+  }
+
+  const uri = ref.uri as string | undefined;
+  if (!uri) return null;
+
+  if (uri.startsWith("data:")) {
+    const commaIndex = uri.indexOf(",");
+    if (commaIndex !== -1) {
+      const encoded = uri.slice(commaIndex + 1);
+      return Buffer.from(encoded, "base64");
+    }
+  }
+
+  const bytes = await context?.storage?.retrieve(uri);
+  if (bytes) {
+    return Buffer.from(bytes);
+  }
+
+  if (isRemoteHttpUrl(uri) && isLocalHttpUrl(uri)) {
+    const response = await fetch(uri);
+    if (response.ok) {
+      return Buffer.from(await response.arrayBuffer());
+    }
+  }
+
+  return null;
+}
+
 export async function uploadImageInput(
   apiKey: string,
-  image: unknown
+  image: unknown,
+  context?: UploadContext
 ): Promise<string> {
   if (!image || typeof image !== "object") throw new Error("Image is required");
   const img = image as Record<string, unknown>;
   const uri = img.uri as string | undefined;
-  if (uri?.startsWith("http://") || uri?.startsWith("https://")) {
-    if (!uri.includes("localhost") && !uri.includes("127.0.0.1")) return uri;
+  if (isRemoteHttpUrl(uri) && !isLocalHttpUrl(uri)) {
+    return uri;
   }
-  const data = img.data as string | undefined;
-  if (!data) throw new Error("Image has no data or URI");
+  const bytes = await resolveUploadBytes(img, context);
+  if (!bytes) throw new Error("Image has no data or URI");
   return uploadFile(
     apiKey,
-    Buffer.from(data, "base64"),
+    bytes,
     "images/user-uploads",
     `upload-${Date.now()}.png`
   );
@@ -146,19 +200,20 @@ export async function uploadImageInput(
 
 export async function uploadAudioInput(
   apiKey: string,
-  audio: unknown
+  audio: unknown,
+  context?: UploadContext
 ): Promise<string> {
   if (!audio || typeof audio !== "object") throw new Error("Audio is required");
   const a = audio as Record<string, unknown>;
   const uri = a.uri as string | undefined;
-  if (uri?.startsWith("http://") || uri?.startsWith("https://")) {
-    if (!uri.includes("localhost") && !uri.includes("127.0.0.1")) return uri;
+  if (isRemoteHttpUrl(uri) && !isLocalHttpUrl(uri)) {
+    return uri;
   }
-  const data = a.data as string | undefined;
-  if (!data) throw new Error("Audio has no data or URI");
+  const bytes = await resolveUploadBytes(a, context);
+  if (!bytes) throw new Error("Audio has no data or URI");
   return uploadFile(
     apiKey,
-    Buffer.from(data, "base64"),
+    bytes,
     "audio/user-uploads",
     `upload-${Date.now()}.mp3`
   );
@@ -166,19 +221,20 @@ export async function uploadAudioInput(
 
 export async function uploadVideoInput(
   apiKey: string,
-  video: unknown
+  video: unknown,
+  context?: UploadContext
 ): Promise<string> {
   if (!video || typeof video !== "object") throw new Error("Video is required");
   const v = video as Record<string, unknown>;
   const uri = v.uri as string | undefined;
-  if (uri?.startsWith("http://") || uri?.startsWith("https://")) {
-    if (!uri.includes("localhost") && !uri.includes("127.0.0.1")) return uri;
+  if (isRemoteHttpUrl(uri) && !isLocalHttpUrl(uri)) {
+    return uri;
   }
-  const data = v.data as string | undefined;
-  if (!data) throw new Error("Video has no data or URI");
+  const bytes = await resolveUploadBytes(v, context);
+  if (!bytes) throw new Error("Video has no data or URI");
   return uploadFile(
     apiKey,
-    Buffer.from(data, "base64"),
+    bytes,
     "videos/user-uploads",
     `upload-${Date.now()}.mp4`
   );

@@ -50,7 +50,6 @@ import {
   installExpectedPackages,
   checkExpectedPackageVersions,
 } from "./packageManager";
-import { checkAndUpdateCondaPackages } from "./condaPackageChecker";
 import { IpcChannels } from "./types.d";
 import { readSettings, updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
@@ -295,10 +294,7 @@ async function initialize(): Promise<void> {
 
       if (hasPython) {
         // Run package version checks in background before starting server
-        const pipUpdatesPerformed = await checkAndInstallExpectedPackages();
-        if (pipUpdatesPerformed) {
-          await checkAndUpdateCondaPackages();
-        }
+        await checkAndInstallExpectedPackages();
       } else {
         logMessage(
           "Python environment not installed. App will start without Python support. " +

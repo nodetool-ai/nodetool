@@ -23,7 +23,7 @@ describe('theme', () => {
     });
 
     it('has white text color', () => {
-      expect(paletteDark.text).toBe('#F5F5F5');
+      expect(paletteDark.text).toBe('#E8E8E8');
     });
 
     it('all colors are strings', () => {

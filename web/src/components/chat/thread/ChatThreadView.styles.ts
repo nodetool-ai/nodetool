@@ -9,7 +9,7 @@ export const createStyles = (theme: Theme) => ({
     display: "flex",
     flexDirection: "column",
     padding: "2em 0",
-    minHeight: 0
+    minHeight: 0,
   }),
   messageWrapper: css({
     flex: 1,
@@ -34,7 +34,7 @@ export const createStyles = (theme: Theme) => ({
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: `${theme.vars.palette.warning.main} !important`
-    }
+    },
   }),
   chatMessagesList: css({
     maxWidth: "800px",
