@@ -93,7 +93,7 @@ describe("FinishStepTool", () => {
       expect(result.additionalProperties).toBe(true);
     });
 
-    it("does not add additionalProperties to non-object type schemas", () => {
+    it("wraps array type schemas in an object with items", () => {
       const outputSchema = {
         type: "array",
         items: { type: "string" }
@@ -102,10 +102,17 @@ describe("FinishStepTool", () => {
 
       const result = (tool.inputSchema as any).properties.result;
       expect(result).toEqual({
-        type: "array",
-        items: { type: "string" }
+        type: "object",
+        description: "Result wrapper",
+        properties: {
+          items: {
+            type: "array",
+            items: { type: "string" }
+          }
+        },
+        required: ["items"],
+        additionalProperties: false
       });
-      expect(result.additionalProperties).toBeUndefined();
     });
 
     it("does not mutate the original outputSchema", () => {
