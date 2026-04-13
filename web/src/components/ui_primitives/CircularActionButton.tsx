@@ -170,6 +170,10 @@ export interface CircularActionButtonProps {
    */
   disableRipple?: boolean;
   /**
+   * Explicit aria-label for accessibility (required when tooltip is not a string)
+   */
+  ariaLabel?: string;
+  /**
    * Tab index for keyboard navigation
    * @default 0
    */
@@ -229,7 +233,8 @@ export const CircularActionButton = memo(
         className,
         sx,
         disableRipple = false,
-        tabIndex = 0
+        tabIndex = 0,
+        ariaLabel
       },
       ref
     ) => {
@@ -299,11 +304,13 @@ export const CircularActionButton = memo(
         icon
       );
 
+      const label = ariaLabel || (typeof tooltip === "string" ? tooltip : undefined);
+
       const button = (
         <IconButton
           ref={ref}
           tabIndex={tabIndex}
-          aria-label={typeof tooltip === "string" ? tooltip : undefined}
+          aria-label={label}
           className={cn(
             "circular-action-button",
             nodrag && editorClassNames.nodrag,
