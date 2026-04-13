@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import BootMessage from "./BootMessage";
 import LogContainer from "./LogContainer";
 import UpdateNotification from "./UpdateNotification";
-import { useIconAnimation } from "../hooks/useIconAnimation";
 import "./index.css";
 import PackageManager from "./PackageManager";
 import PackageUpdatesNotification from "./PackageUpdatesNotification";
@@ -38,8 +37,6 @@ const App: React.FC = () => {
   const [packageUpdates, setPackageUpdates] = useState<
     PackageUpdateInfo[] | null
   >(null);
-
-  const { startAnimations, clearAllAnimations } = useIconAnimation();
 
   const addLog = useCallback((message: string) => {
     setLogs((prev: string[]) => [...prev, message]);
@@ -185,17 +182,6 @@ const App: React.FC = () => {
     [addLog]
   );
 
-  useEffect(() => {
-    if (showBootMessage) {
-      startAnimations();
-      return () => {
-        clearAllAnimations();
-      };
-    }
-
-    clearAllAnimations();
-    return undefined;
-  }, [showBootMessage, startAnimations, clearAllAnimations]);
 
   useEffect(() => {
     // Initialize platform class
@@ -220,11 +206,9 @@ const App: React.FC = () => {
 
     // Cleanup on unmount
     return () => {
-      clearAllAnimations();
       unsubs.forEach(unsub => unsub());
     };
   }, [
-    clearAllAnimations,
     initializeApp,
     handleUpdateProgress,
     handleServerStarted,
@@ -265,7 +249,6 @@ const App: React.FC = () => {
     setBootMessage("Starting server...");
     setServerStatus("starting");
     setServerError(null);
-    clearAllAnimations();
     void window.api.server.start().catch((error: any) => {
       const message = error?.message ?? "Failed to start backend server.";
       setServerStatus("error");
@@ -273,7 +256,7 @@ const App: React.FC = () => {
       setBootMessage(message);
       setShowLogs(true);
     });
-  }, [clearAllAnimations]);
+  }, []);
 
   return (
     <div className="app">

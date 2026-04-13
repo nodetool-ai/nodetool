@@ -18,24 +18,6 @@ const webPath: string = app.isPackaged
 const PID_DIRECTORY: string = path.join(app.getPath("temp"), "nodetool-electron");
 const PID_FILE_PATH: string = path.join(PID_DIRECTORY, "server.pid");
 
-const PLATFORM_SPECIFIC_LOCK_FILES: Partial<
-  Record<NodeJS.Platform, Record<string, string>>
-> = {
-  darwin: {
-    x64: "environment-osx-64.lock.yml",
-    arm64: "environment-osx-arm64.lock.yml",
-  },
-  linux: {
-    x64: "environment-linux-64.lock.yml",
-    arm64: "environment-linux-aarch64.lock.yml",
-  },
-  win32: {
-    x64: "environment-win-64.lock.yml",
-  },
-};
-
-const FALLBACK_LOCK_FILE_NAME = "environment.lock.yml";
-
 // Returns a sane default install location if settings do not define CONDA_ENV
 // IMPORTANT: These paths MUST match getDefaultInstallLocation() in python.ts
 // to avoid looking in the wrong place when settings are unavailable
@@ -129,10 +111,34 @@ const getCondaEnvPath = (): string => {
  * Retrieves the path to the Node.js binary in the conda environment
  * @returns {string} Path to Node.js executable
  */
-const getNodePath = (): string =>
-  process.platform === "win32"
-    ? path.join(getCondaEnvPath(), "node.exe")
-    : path.join(getCondaEnvPath(), "bin", "node");
+const findNodeInPath = (): string | null => {
+  const exe = process.platform === "win32" ? "node.exe" : "node";
+  const dirs = (process.env.PATH ?? "").split(path.delimiter);
+  for (const dir of dirs) {
+    const full = path.join(dir, exe);
+    try {
+      fs.accessSync(full, fs.constants.X_OK);
+      return full;
+    } catch {
+      // not here, keep looking
+    }
+  }
+  return null;
+};
+
+const getNodePath = (): string => {
+  const condaNode =
+    process.platform === "win32"
+      ? path.join(getCondaEnvPath(), "node.exe")
+      : path.join(getCondaEnvPath(), "bin", "node");
+  try {
+    fs.accessSync(condaNode);
+    return condaNode;
+  } catch {
+    // conda env has no node — resolve full path from current process PATH
+    return findNodeInPath() ?? (process.platform === "win32" ? "node.exe" : "node");
+  }
+};
 
 /**
  * Retrieves the path to the Python executable
@@ -163,60 +169,6 @@ const getLlamaServerPath = (): string => {
   return process.platform === "win32"
     ? path.join(condaPath, "Library", "bin", "llama-server.exe")
     : path.join(condaPath, "bin", "llama-server");
-};
-
-/**
- * Retrieves the path to the locked micromamba environment manifest
- */
-const resolvePlatformLockFileName = (): string => {
-  const platformLockMap = PLATFORM_SPECIFIC_LOCK_FILES[process.platform];
-  if (!platformLockMap) {
-    logMessage(
-      `No platform-specific lock map for platform ${process.platform}, using fallback.`
-    );
-    return FALLBACK_LOCK_FILE_NAME;
-  }
-
-  const lockForArch = platformLockMap[process.arch];
-  if (lockForArch) {
-    return lockForArch;
-  }
-
-  logMessage(
-    `No lock file entry for ${process.platform}/${process.arch}, falling back to ${FALLBACK_LOCK_FILE_NAME}`
-  );
-  return FALLBACK_LOCK_FILE_NAME;
-};
-
-const getCondaLockFilePath = (): string => {
-  const lockFileName = resolvePlatformLockFileName();
-
-  const resourcesRoot =
-    typeof process.resourcesPath === "string"
-      ? process.resourcesPath
-      : path.join(__dirname, "..", "resources");
-
-  const packagedPath = path.join(resourcesRoot, lockFileName);
-  if (app.isPackaged) {
-    if (fs.existsSync(packagedPath)) {
-      return packagedPath;
-    }
-
-    logMessage(
-      `Expected packaged lock file ${packagedPath} not found. Falling back to ${FALLBACK_LOCK_FILE_NAME}.`
-    );
-    return path.join(resourcesRoot, FALLBACK_LOCK_FILE_NAME);
-  }
-
-  const devPath = path.join(__dirname, "..", "resources", lockFileName);
-  if (fs.existsSync(devPath)) {
-    return devPath;
-  }
-
-  logMessage(
-    `Expected dev lock file ${devPath} not found. Falling back to ${FALLBACK_LOCK_FILE_NAME}.`
-  );
-  return path.join(__dirname, "..", "resources", FALLBACK_LOCK_FILE_NAME);
 };
 
 /**
@@ -360,7 +312,6 @@ export {
   getPythonPath,
   getUVPath,
   getLlamaServerPath,
-  getCondaLockFilePath,
   getProcessEnv,
   getSystemDataPath,
   _resetCondaEnvCache,

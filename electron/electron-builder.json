@@ -25,37 +25,6 @@
                 "**/*"
             ]
         },
-        {
-            "from": "resources/environment.lock.yml",
-            "to": "environment.lock.yml"
-        },
-        {
-            "from": "resources/environment-osx-64.lock.yml",
-            "to": "environment-osx-64.lock.yml"
-        },
-        {
-            "from": "resources/environment-osx-arm64.lock.yml",
-            "to": "environment-osx-arm64.lock.yml"
-        },
-        {
-            "from": "resources/environment-linux-64.lock.yml",
-            "to": "environment-linux-64.lock.yml"
-        },
-        {
-            "from": "resources/environment-linux-aarch64.lock.yml",
-            "to": "environment-linux-aarch64.lock.yml"
-        },
-        {
-            "from": "resources/environment-win-64.lock.yml",
-            "to": "environment-win-64.lock.yml"
-        },
-        {
-            "from": "resources/micromamba",
-            "to": "micromamba",
-            "filter": [
-                "**/*"
-            ]
-        }
     ],
     "publish": [
         {
