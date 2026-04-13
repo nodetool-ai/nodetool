@@ -34,6 +34,8 @@ The chat maintains a persistent WebSocket connection and automatically reconnect
 
 ### Choosing a Model
 
+![Chat Model Selector](assets/screenshots/screenshot-placeholder.svg)
+
 Select your preferred AI model from the model picker at the top of the chat. Available models depend on your configured providers:
 
 - **Cloud models** -- OpenAI GPT, Anthropic Claude, Google Gemini (requires API keys)
@@ -44,6 +46,8 @@ Configure providers in **Settings > Providers**. See [Models & Providers](models
 ---
 
 ## Conversation Threads
+
+![Chat Thread List](assets/screenshots/screenshot-placeholder.svg)
 
 Global Chat organizes conversations into threads:
 
@@ -58,6 +62,8 @@ Global Chat organizes conversations into threads:
 ## Agent Mode
 
 ### What is Agent Mode?
+
+![Agent Mode Enabled](assets/screenshots/screenshot-placeholder.svg)
 
 Agent Mode enables autonomous task execution. When enabled, the AI can break down complex requests into steps, select appropriate tools, and execute multi-step plans without manual intervention.
 
@@ -88,6 +94,8 @@ With Agent Mode enabled, the assistant can:
 
 ### Viewing Agent Progress
 
+![Agent Planning](assets/screenshots/screenshot-placeholder.svg)
+
 When an agent is executing tasks, you'll see:
 
 - **Task plan** -- The breakdown of steps the agent will execute
@@ -100,6 +108,8 @@ When an agent is executing tasks, you'll see:
 ## Workflow Integration
 
 ### Running Workflows from Chat
+
+![Workflow Attached to Chat](assets/screenshots/screenshot-placeholder.svg)
 
 1. Save a workflow in the workflow editor
 2. Open Global Chat
@@ -117,6 +127,8 @@ In Agent Mode, you can ask the agent to create or modify workflows. The agent us
 Global Chat agents have access to a comprehensive tool suite:
 
 ### Built-in Tools
+
+![Chat Tools Menu](assets/screenshots/screenshot-placeholder.svg)
 
 | Tool Category | What It Does |
 |--------------|--------------|

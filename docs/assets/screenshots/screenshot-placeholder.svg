@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Screenshot pending capture">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a1d22"/>
+      <stop offset="1" stop-color="#0e1013"/>
+    </linearGradient>
+    <pattern id="grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#2a2d32" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect width="1280" height="720" fill="url(#grid)" opacity="0.4"/>
+  <g transform="translate(640 310)" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif">
+    <circle r="52" fill="none" stroke="#5cc8ff" stroke-width="3" opacity="0.6"/>
+    <path d="M -18 -10 L -18 14 L 0 22 L 18 14 L 18 -10 L 0 -18 Z" fill="none" stroke="#5cc8ff" stroke-width="2.5" opacity="0.8"/>
+    <circle cx="0" cy="-2" r="5" fill="#5cc8ff" opacity="0.8"/>
+    <text y="108" fill="#e6e8ec" font-size="32" font-weight="600" letter-spacing="0.5">Screenshot pending</text>
+    <text y="150" fill="#8b9199" font-size="18" letter-spacing="0.3">This view is documented; the image will be added in a future capture pass.</text>
+    <text y="180" fill="#64697a" font-size="15">See docs/SCREENSHOTS.md for the capture plan.</text>
+  </g>
+</svg>

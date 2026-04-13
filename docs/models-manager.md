@@ -12,9 +12,13 @@ The **Models Manager** helps you browse, download, and manage AI models availabl
 
 Click the **Models** icon in the app header to open the Models Manager dialog. It shows all downloaded models, recommended models, and available models from configured providers.
 
+![Models Manager — Full View](assets/screenshots/models-list.png)
+
 ---
 
 ## Browsing Models
+
+![Model Type Filters](assets/screenshots/screenshot-placeholder.svg)
 
 ### Filter by Type
 
@@ -43,6 +47,8 @@ Use the type filters on the left to narrow the list:
 
 ## Downloading Models
 
+![Download Progress](assets/screenshots/screenshot-placeholder.svg)
+
 1. Find the model you want in the browser
 2. Click **Download** to start fetching it to your local cache
 3. Track progress in the **Downloads** bar at the bottom of the screen
@@ -64,14 +70,33 @@ Downloaded models are stored in your local HuggingFace cache (`~/.cache/huggingf
 
 ### Per-Model Actions
 
+![Model Card Actions](assets/screenshots/screenshot-placeholder.svg)
+
 - **Download** -- Fetch a model to your local cache
 - **Delete** -- Remove a model you no longer need to free disk space
 - **Show in Explorer** -- Open the model folder on your computer
 - **README** -- Read the model's documentation on Hugging Face
 
+![Model README](assets/screenshots/screenshot-placeholder.svg)
+
 ### Recommended Models
 
+![Recommended Models Dialog](assets/screenshots/screenshot-placeholder.svg)
+
 Many workflow nodes specify recommended or required models. The Models Manager highlights these under a **Recommended** section with direct install links, so you can quickly get the models your workflows need.
+
+### Model Selection Dialogs
+
+Each property role has a type-aware picker:
+
+- **Language Model** — LLM selector with provider grouping
+- **Image Model** — image-generation models only
+- **Video Model** — video-generation models only
+- **TTS / ASR Model** — speech models only
+- **Embedding Model** — vector embedding models only
+- **HuggingFace Model** — search any HF repo
+
+![Language Model Selector](assets/screenshots/screenshot-placeholder.svg)
 
 ### Cloud Provider Models
 

@@ -2,6 +2,8 @@
 
 Screenshots needed for NodeTool documentation. Each entry includes page location, position, description, priority, and notes.
 
+> **Visual index of every view:** see [`app-views.md`](app-views.md). Any view listed there without a real screenshot today is tracked on this page. The goal is to have **every view** in the app represented by an image on the docs site.
+
 ---
 
 ## Table of Contents
@@ -9,12 +11,20 @@ Screenshots needed for NodeTool documentation. Each entry includes page location
 1. [Getting Started](#getting-started)
 2. [User Interface](#user-interface)
 3. [Workflow Editor](#workflow-editor)
-4. [Global Chat](#global-chat)
-5. [Models Manager](#models-manager)
-6. [Assets](#assets)
-7. [Mini-Apps](#mini-apps)
-8. [Cookbook Examples](#cookbook-examples)
-9. [Configuration & Settings](#configuration--settings)
+4. [Editor Panels](#editor-panels)
+5. [Chain Editor](#chain-editor)
+6. [Workflow Graph View](#workflow-graph-view)
+7. [Templates Gallery](#templates-gallery)
+8. [Collections](#collections)
+9. [Global Chat](#global-chat)
+10. [Models Manager](#models-manager)
+11. [Assets](#assets)
+12. [Mini-Apps](#mini-apps)
+13. [Mobile App](#mobile-app)
+14. [Desktop / Electron](#desktop--electron)
+15. [Cookbook Examples](#cookbook-examples)
+16. [Configuration & Settings](#configuration--settings)
+17. [Authentication](#authentication)
 
 ---
 
@@ -558,21 +568,253 @@ Screenshots needed for NodeTool documentation. Each entry includes page location
 
 ---
 
+## Editor Panels
+
+### Screenshot: Left Panel (Workflows / Chat / Assets / Collections / Packs / VibeCoding)
+| Field | Value |
+|-------|-------|
+| **Page** | `editor-panels.md`, `app-views.md` |
+| **Position** | In "Left Panel" section — one capture per tab |
+| **Description** | Each left-panel tab in turn with a representative workspace |
+| **Priority** | High |
+| **Filename** | `assets/screenshots/left-panel-<tab>.png` |
+| **Notes** | Tabs: workflows, chat, assets, collections, packs, vibecoding. |
+
+### Screenshot: Right Panel (Inspector + other tabs)
+| Field | Value |
+|-------|-------|
+| **Page** | `editor-panels.md` |
+| **Position** | In "Right Panel (Inspector)" section |
+| **Description** | Inspector showing node properties, and additional tabs (Logs, Jobs, Agent, Trace, Version History, Workspace) |
+| **Priority** | High |
+| **Filename** | `assets/screenshots/right-panel-<tab>.png` |
+| **Notes** | Capture a tab per image: `right-panel-inspector.png`, `right-panel-logs.png`, `right-panel-jobs.png`, `right-panel-agent.png`, `right-panel-trace.png`, `right-panel-version.png`, `right-panel-workspace.png`. |
+
+### Screenshot: Bottom Panel (Terminal / Trace / Jobs / Logs)
+| Field | Value |
+|-------|-------|
+| **Page** | `editor-panels.md` |
+| **Position** | In "Bottom Panel" section |
+| **Description** | Each bottom-panel tab in turn |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/bottom-panel-<tab>.png` |
+| **Notes** | Tabs: terminal, trace, jobs, logs, system-stats. |
+
+### Screenshot: Floating Toolbar states
+| Field | Value |
+|-------|-------|
+| **Page** | `editor-panels.md`, `workflow-editor.md` |
+| **Position** | In "Floating Toolbar" section |
+| **Description** | Toolbar in idle, running, paused, and suspended states |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/floating-toolbar-<state>.png` |
+| **Notes** | States: idle, running, paused, suspended. |
+
+### Screenshot: Right Side Buttons
+| Field | Value |
+|-------|-------|
+| **Page** | `editor-panels.md` |
+| **Position** | In "Right Side Buttons" section |
+| **Description** | Stack of toggle buttons on the right edge of the canvas |
+| **Priority** | Low |
+| **Filename** | `assets/screenshots/right-side-buttons.png` |
+| **Notes** | Capture with notifications badge visible. |
+
+### Screenshot: Workflow Assistant Chat
+| Field | Value |
+|-------|-------|
+| **Page** | `editor-panels.md`, `global-chat.md` |
+| **Position** | In "Workflow Assistant Chat" section |
+| **Description** | Side panel chat with the assistant mid-response |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/workflow-assistant.png` |
+| **Notes** | Show assistant modifying the workflow. |
+
+---
+
+## Chain Editor
+
+### Screenshot: Chain Editor — Empty
+| Filename | Status |
+|----------|--------|
+| `assets/screenshots/web-chain-editor-empty.png` | Captured |
+
+### Screenshot: Chain Editor — Chain
+| Filename | Status |
+|----------|--------|
+| `assets/screenshots/web-chain-editor-chain.png` | Captured |
+
+### Screenshot: Chain Editor — Picker
+| Filename | Status |
+|----------|--------|
+| `assets/screenshots/web-chain-editor-picker.png` | Captured |
+
+### Screenshot: Chain Card Properties
+| Field | Value |
+|-------|-------|
+| **Page** | `chain-editor.md` |
+| **Position** | In "Editing Card Properties" |
+| **Description** | Expanded card showing property fields |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/chain-card-properties.png` |
+
+---
+
+## Workflow Graph View
+
+### Screenshot: Read-only Graph
+| Field | Value |
+|-------|-------|
+| **Page** | `workflow-graph-view.md` |
+| **Position** | Top of page |
+| **Description** | Read-only graph view of a saved workflow |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/workflow-graph-view.png` |
+| **Notes** | No inspector or panels visible. Include title overlay. |
+
+---
+
+## Templates Gallery
+
+### Screenshot: Templates Grid
+| Filename | Status |
+|----------|--------|
+| `assets/screenshots/templates-grid.png` | Captured |
+
+### Screenshot: Template Card Hover
+| Field | Value |
+|-------|-------|
+| **Page** | `templates-gallery.md` |
+| **Position** | In "Anatomy of a Template Card" |
+| **Description** | Single card with hover preview and badges |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/template-card-hover.png` |
+
+### Screenshot: Template Filters
+| Field | Value |
+|-------|-------|
+| **Page** | `templates-gallery.md` |
+| **Position** | In "Filtering and Searching" |
+| **Description** | Filter bar with a tag active and a search typed |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/template-filters.png` |
+
+---
+
+## Collections
+
+### Screenshot: Collections Explorer
+| Filename | Status |
+|----------|--------|
+| `assets/screenshots/collections-explorer.png` | Captured |
+
+### Screenshot: New Collection
+| Field | Value |
+|-------|-------|
+| **Page** | `collections.md` |
+| **Position** | In "Creating a Collection" |
+| **Description** | New Collection dialog with a name typed in |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/new-collection.png` |
+
+### Screenshot: Collection Details
+| Field | Value |
+|-------|-------|
+| **Page** | `collections.md` |
+| **Position** | In "Managing Documents" |
+| **Description** | Open collection with 4–6 documents and an index status bar |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/collection-details.png` |
+
+### Screenshot: Collection Settings
+| Field | Value |
+|-------|-------|
+| **Page** | `collections.md` |
+| **Position** | In "Indexing Options" |
+| **Description** | Per-collection settings panel (embedding model, chunk size, overlap, hybrid toggle) |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/collection-settings.png` |
+
+---
+
+## Mobile App
+
+### Screenshots (captured)
+
+| Filename | Page | Position |
+|----------|------|----------|
+| `assets/screenshots/dashboard-mobile.png` | `mobile-app.md` | Top |
+| `assets/screenshots/dashboard-tablet.png` | `mobile-app.md` | Tablet Dashboard |
+| `assets/screenshots/chat-mobile.png` | `mobile-app.md` | AI Chat |
+| `assets/screenshots/mobile-graph-editor-overview.png` | `mobile-app.md` | Mobile Graph Editor — Overview |
+| `assets/screenshots/mobile-graph-editor-empty.png` | `mobile-app.md` | Mobile Graph Editor — Empty |
+| `assets/screenshots/mobile-graph-editor-picker.png` | `mobile-app.md` | Mobile Graph Editor — Picker |
+| `assets/screenshots/mobile-graph-editor-chain.png` | `mobile-app.md` | Mobile Graph Editor — Chain |
+
+### Pending
+
+| Filename | Page | Description |
+|----------|------|-------------|
+| `assets/screenshots/mobile-mini-apps-list.png` | `mobile-app.md` | Mini-apps list with tiles |
+| `assets/screenshots/mobile-mini-app-runner.png` | `mobile-app.md` | Running a single mini-app |
+| `assets/screenshots/mobile-settings.png` | `mobile-app.md` | Mobile settings screen |
+| `assets/screenshots/mobile-model-selection.png` | `mobile-app.md` | Language model picker |
+
+---
+
+## Desktop / Electron
+
+| Filename | Page | Description |
+|----------|------|-------------|
+| `assets/screenshots/electron-boot.png` | `electron-views.md` | Splash while backend starts |
+| `assets/screenshots/electron-install-wizard.png` | `electron-views.md` | First-run Python/runtime installer |
+| `assets/screenshots/electron-package-manager.png` | `electron-views.md` | Package Manager native window |
+| `assets/screenshots/electron-log-viewer.png` | `electron-views.md` | Log Viewer tailing backend logs |
+| `assets/screenshots/electron-update-toast.png` | `electron-views.md` | Update-available toast |
+| `assets/screenshots/electron-workflow-pin.png` | `electron-views.md` | Pinned frameless workflow window |
+| `assets/screenshots/electron-miniapp-window.png` | `electron-views.md` | Mini-app launched from tray |
+| `assets/screenshots/electron-tray.png` | `electron-views.md` | Tray icon with expanded menu |
+| `assets/screenshots/electron-menu-bar.png` | `electron-views.md` | Native menu bar expanded |
+
+---
+
+## Authentication
+
+### Screenshot: Login Screen
+| Field | Value |
+|-------|-------|
+| **Page** | `authentication.md`, `app-views.md` |
+| **Position** | Top of page |
+| **Description** | Login screen with provider buttons |
+| **Priority** | Medium |
+| **Filename** | `assets/screenshots/login.png` |
+| **Notes** | Capture both Supabase mode and Localhost mode if possible. |
+
+---
+
 ## Summary Statistics
 
 | Category | Screenshot Count |
 |----------|-----------------|
 | Getting Started | 6 |
-| User Interface | 7 |
+| User Interface | 8 |
 | Workflow Editor | 12 |
+| Editor Panels | 20+ (multiple per tab) |
+| Chain Editor | 4 (3 captured) |
+| Workflow Graph View | 1 |
+| Templates Gallery | 3 (1 captured) |
+| Collections | 4 (1 captured) |
 | Global Chat | 6 |
 | Models Manager | 4 |
 | Assets | 3 |
 | Mini-Apps | 2 |
+| Mobile App | 11 (7 captured) |
+| Desktop / Electron | 9 |
 | Cookbook Examples | 5 |
 | Configuration & Settings | 3 |
 | Key Concepts | 2 |
-| **Total** | **50** |
+| Authentication | 1 |
+| **Total** | **~100** |
 
 ---
 
