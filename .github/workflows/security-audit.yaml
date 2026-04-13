@@ -22,26 +22,27 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
-          cache-dependency-path: web/package-lock.json
 
-      - name: Install dependencies
-        run: |
-          cd web && npm ci
-          cd ../electron && npm ci
-          cd ../mobile && npm ci
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Install mobile dependencies
+        run: cd mobile && npm ci
 
       - name: Run npm audit
         continue-on-error: true
         run: |
           echo "## npm audit results" >> $GITHUB_STEP_SUMMARY
-          for pkg in web electron mobile; do
-            echo "### $pkg" >> $GITHUB_STEP_SUMMARY
-            cd $pkg && npm audit --json > npm-audit.json 2>/dev/null || true
-            npm audit 2>/dev/null | tail -20 >> $GITHUB_STEP_SUMMARY || true
-            cd ..
-          done
+          echo "### workspace root (web, electron, packages/*)" >> $GITHUB_STEP_SUMMARY
+          npm audit --json > npm-audit.json 2>/dev/null || true
+          npm audit 2>/dev/null | tail -20 >> $GITHUB_STEP_SUMMARY || true
+          echo "### mobile" >> $GITHUB_STEP_SUMMARY
+          cd mobile && npm audit --json > npm-audit.json 2>/dev/null || true
+          npm audit 2>/dev/null | tail -20 >> $GITHUB_STEP_SUMMARY || true
 
       - name: Run quality checks baseline
         id: pre-check

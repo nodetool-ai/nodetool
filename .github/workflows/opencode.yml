@@ -29,14 +29,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
-          cache-dependency-path: web/package-lock.json
 
-      - name: Install dependencies
-        run: |
-          cd web && npm ci
-          cd ../electron && npm ci
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
