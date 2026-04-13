@@ -229,7 +229,7 @@ const AssetEditor: React.FC = () => {
                     onClose={handleClose}
                     title={`Edit: ${asset.name || "Image"}`}
                     />
-            )}
+            ) : null}
             {isSaving && (
                 <FlexColumn
                     sx={{

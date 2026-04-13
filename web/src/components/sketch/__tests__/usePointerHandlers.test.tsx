@@ -99,7 +99,7 @@ describe("usePointerHandlers", () => {
         metaKey: false,
         nativeEvent: {} as PointerEvent,
         target
-      } as React.PointerEvent);
+      } as unknown as React.PointerEvent);
     });
 
     expect(params.containerRef.current?.style.cursor).toBe("grabbing");
@@ -109,7 +109,7 @@ describe("usePointerHandlers", () => {
         clientX: 100,
         clientY: 120,
         nativeEvent: {} as PointerEvent
-      } as React.PointerEvent);
+      } as unknown as React.PointerEvent);
     });
 
     expect(params.containerRef.current?.style.cursor).toBe("");
@@ -144,7 +144,7 @@ describe("usePointerHandlers", () => {
     const transformTool = getToolHandler("transform") as TransformTool;
     expect(transformTool.getOriginalTransform().x).toBe(0);
 
-    params.drawGizmo.mockClear();
+    (params.drawGizmo as jest.Mock).mockClear();
     const updatedDoc = {
       ...initialDoc,
       activeLayerId: nextLayer.id

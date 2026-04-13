@@ -98,7 +98,7 @@ describe("modifierIntent", () => {
 
 describe("selectionFinalization", () => {
   function makeOverlay(width: number, height: number, fillValue = 255): Selection {
-    const data = new Uint8Array(width * height);
+    const data = new Uint8ClampedArray(width * height);
     if (fillValue > 0) {
       data.fill(fillValue);
     }

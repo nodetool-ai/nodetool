@@ -436,23 +436,28 @@ describe("layerBounds", () => {
         .mockImplementation(function (
           this: HTMLCanvasElement,
           contextId: string,
-          ...args: unknown[]
+          ...args: any[]
         ) {
-          const realCtx = origGetContext.call(this, contextId, ...args);
+          const realCtx = (origGetContext as any).call(this, contextId, ...args) as
+            | ReturnType<typeof origGetContext>
+            | null;
           if (realCtx && contextId === "2d") {
-            const origDrawImage = (realCtx as CanvasRenderingContext2D).drawImage;
-            (realCtx as CanvasRenderingContext2D).drawImage = function (
+            const ctx2d = realCtx as unknown as CanvasRenderingContext2D;
+            const origDrawImage = ctx2d.drawImage;
+            ctx2d.drawImage = (function (
+              this: CanvasRenderingContext2D,
               source: CanvasImageSource,
               dx: number,
-              dy: number
+              dy: number,
+              ...rest: any[]
             ) {
               drawImageCalls.push({
                 source: source as HTMLCanvasElement,
                 dx,
                 dy
               });
-              return origDrawImage.call(this, source, dx, dy);
-            };
+              return (origDrawImage as any).call(this, source, dx, dy, ...rest);
+            }) as CanvasRenderingContext2D["drawImage"];
           }
           return realCtx;
         } as typeof origGetContext);

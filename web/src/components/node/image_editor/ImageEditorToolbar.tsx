@@ -7,7 +7,8 @@ import {
   IconButton,
   Slider,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Typography
 } from "@mui/material";
 import { Tooltip, Text, Caption } from "../../ui_primitives";
 

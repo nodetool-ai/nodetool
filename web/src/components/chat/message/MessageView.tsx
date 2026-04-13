@@ -18,6 +18,7 @@ import {
   stripContextContent
 } from "../utils/messageUtils";
 import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
+import { formatToolName } from "../../../utils/formatUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
   CopyButton,

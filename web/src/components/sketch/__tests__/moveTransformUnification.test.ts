@@ -51,7 +51,7 @@ function makeLayer(overrides?: Partial<Layer>): Layer {
   return {
     id: "test-layer",
     name: "Test Layer",
-    type: "paint",
+    type: "raster",
     visible: true,
     opacity: 1,
     locked: false,
@@ -89,6 +89,7 @@ function makeMockCtx(docOverrides?: {
   const activeLayerId = docOverrides?.activeLayerId ?? layers[0]?.id ?? "test-layer";
   const cw = docOverrides?.canvasWidth ?? 100;
   const ch = docOverrides?.canvasHeight ?? 100;
+  const layerCanvasesRef = { current: new Map<string, HTMLCanvasElement>() };
 
   return {
     doc: {
@@ -111,15 +112,16 @@ function makeMockCtx(docOverrides?: {
     gizmoCanvasRef: { current: null },
     cursorCanvasRef: { current: null },
     containerRef: { current: null },
-    layerCanvasesRef: { current: new Map() },
+    layerCanvasesRef,
     mousePositionRef: { current: { x: 0, y: 0 } },
     activeStrokeRef: { current: null },
     getOrCreateLayerCanvas: jest.fn((layerId: string) => {
-      const existing = (this as unknown as { layerCanvasesRef: { current: Map<string, HTMLCanvasElement> } })?.layerCanvasesRef?.current?.get(layerId);
+      const existing = layerCanvasesRef.current.get(layerId);
       if (existing) {
         return existing;
       }
       const canvas = makeMockCanvas(cw, ch);
+      layerCanvasesRef.current.set(layerId, canvas);
       return canvas;
     }),
     redraw: jest.fn(),

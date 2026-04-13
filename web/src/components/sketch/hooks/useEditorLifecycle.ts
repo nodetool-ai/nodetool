@@ -58,7 +58,7 @@ export interface UseEditorLifecycleParams {
   segmentation: ReturnType<typeof useSegmentation>;
 
   /** Ref to the latest toolSettings — read at snapshot time without dependency. */
-  liveToolSettingsRef: React.RefObject<SketchDocument["toolSettings"] | undefined>;
+  liveToolSettingsRef: { current: SketchDocument["toolSettings"] };
 }
 
 export interface EditorLifecycleResult {
