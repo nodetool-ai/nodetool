@@ -43,14 +43,9 @@ jobs:
       - name: Print selected version
         run: echo "Using VERSION=$VERSION"
 
-      - name: Validate conda lock resources
-        shell: bash
-        run: bash scripts/verify-env-locks.sh
-
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          # Keep this aligned with the packaged backend runtime from electron/resources/environment-*.yml.
           node-version: ${{ matrix.node_version }}
 
       - name: Install Apple Certificate
@@ -138,7 +133,6 @@ jobs:
           DEBUG: electron-builder
         run: |
           cd electron
-          npm run download-micromamba
           npm run vite:build
           npm run prepare-backend
           npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
@@ -357,7 +351,6 @@ jobs:
         run: |
           ulimit -n 65536
           cd electron
-          npm run download-micromamba
           npm run vite:build
           npm run prepare-backend
           npx electron-builder --config electron-builder.json --publish never
