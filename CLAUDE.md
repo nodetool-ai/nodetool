@@ -134,7 +134,7 @@ make typecheck   # Must pass before committing
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`.
-- **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors, run `npm rebuild` (for `make dev`) or `cd electron && npx electron-builder install-app-deps` (for `make electron-dev`). `make electron-dev` does this automatically.
+- **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors in Electron dev mode, run `make electron-dev` which automatically rebuilds native modules (better-sqlite3, bufferutil) against Electron's ABI via node-gyp. Do NOT use `npm rebuild` or `electron-builder install-app-deps` — these rebuild for system Node, not Electron's embedded Node.
 - **Claude Agent Provider in nested sessions (e.g. Claude Code web)**: The SDK spawns a subprocess via `node cli.js`. In environments like Claude Code on the web (`claude.ai/code`), you must: (1) strip all `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars — not just `CLAUDECODE`; (2) run as a non-root user — the SDK refuses `--dangerously-skip-permissions` when uid=0; (3) keep `ANTHROPIC_BASE_URL` and `HTTP_PROXY`/`HTTPS_PROXY` vars for API routing. See `docs/AGENTS.md` § Claude Agent SDK for full details.
 
 ## CLI

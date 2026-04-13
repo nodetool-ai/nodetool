@@ -119,9 +119,11 @@ check-node-version:
 	fi
 
 ifeq ($(OS),Windows_NT)
+ELECTRON_VERSION := $(shell node -e "process.stdout.write(require('./electron/package.json').devDependencies.electron)")
 electron-dev: check-node-version
-	@echo "Rebuilding native modules for Electron..."
-	cd electron && npx electron-builder install-app-deps
+	@echo "Rebuilding native modules for Electron ABI (force)..."
+	cd node_modules/better-sqlite3 && npx node-gyp rebuild --target=$(ELECTRON_VERSION) --arch=x64 --dist-url=https://electronjs.org/headers
+	cd node_modules/bufferutil && npx node-gyp rebuild --target=$(ELECTRON_VERSION) --arch=x64 --dist-url=https://electronjs.org/headers
 	@echo "Starting Electron development mode..."
 	powershell -ExecutionPolicy Bypass -File scripts/electron-dev.ps1
 else

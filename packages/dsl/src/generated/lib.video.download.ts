@@ -6,7 +6,7 @@ import type { ImageRef, AudioRef, VideoRef } from "../types.js";
 // YouTube Downloader — lib.video.download.YtDlpDownload
 export interface YtDlpDownloadInputs {
   url?: Connectable<string>;
-  mode?: Connectable<unknown>;
+  mode?: Connectable<"video" | "audio" | "metadata">;
   format_selector?: Connectable<string>;
   container?: Connectable<string>;
   subtitles?: Connectable<boolean>;
@@ -24,12 +24,6 @@ export interface YtDlpDownloadOutputs {
   thumbnail: ImageRef;
 }
 
-export function ytDlpDownload(
-  inputs: YtDlpDownloadInputs
-): DslNode<YtDlpDownloadOutputs> {
-  return createNode(
-    "lib.video.download.YtDlpDownload",
-    inputs as Record<string, unknown>,
-    { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] }
-  );
+export function ytDlpDownload(inputs: YtDlpDownloadInputs): DslNode<YtDlpDownloadOutputs> {
+  return createNode("lib.video.download.YtDlpDownload", inputs as Record<string, unknown>, { outputNames: ["video", "audio", "metadata", "subtitles", "thumbnail"] });
 }

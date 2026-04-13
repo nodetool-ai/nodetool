@@ -14,11 +14,7 @@ export interface BlurOutputs {
 }
 
 export function blur(inputs: BlurInputs): DslNode<BlurOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Blur",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+  return createNode("lib.image.filter.Blur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Canny — lib.image.filter.Canny
@@ -33,11 +29,7 @@ export interface CannyOutputs {
 }
 
 export function canny(inputs: CannyInputs): DslNode<CannyOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Canny",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+  return createNode("lib.image.filter.Canny", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Contour — lib.image.filter.Contour
@@ -49,14 +41,8 @@ export interface ContourOutputs {
   output: ImageRef;
 }
 
-export function contour(
-  inputs: ContourInputs
-): DslNode<ContourOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Contour",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function contour(inputs: ContourInputs): DslNode<ContourOutputs, "output"> {
+  return createNode("lib.image.filter.Contour", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Convert To Grayscale — lib.image.filter.ConvertToGrayscale
@@ -68,14 +54,8 @@ export interface ConvertToGrayscaleOutputs {
   output: ImageRef;
 }
 
-export function convertToGrayscale(
-  inputs: ConvertToGrayscaleInputs
-): DslNode<ConvertToGrayscaleOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.ConvertToGrayscale",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function convertToGrayscale(inputs: ConvertToGrayscaleInputs): DslNode<ConvertToGrayscaleOutputs, "output"> {
+  return createNode("lib.image.filter.ConvertToGrayscale", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Emboss — lib.image.filter.Emboss
@@ -88,11 +68,7 @@ export interface EmbossOutputs {
 }
 
 export function emboss(inputs: EmbossInputs): DslNode<EmbossOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Emboss",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+  return createNode("lib.image.filter.Emboss", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Expand — lib.image.filter.Expand
@@ -107,11 +83,7 @@ export interface ExpandOutputs {
 }
 
 export function expand(inputs: ExpandInputs): DslNode<ExpandOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Expand",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+  return createNode("lib.image.filter.Expand", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Find Edges — lib.image.filter.FindEdges
@@ -123,34 +95,22 @@ export interface FindEdgesOutputs {
   output: ImageRef;
 }
 
-export function findEdges(
-  inputs: FindEdgesInputs
-): DslNode<FindEdgesOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.FindEdges",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function findEdges(inputs: FindEdgesInputs): DslNode<FindEdgesOutputs, "output"> {
+  return createNode("lib.image.filter.FindEdges", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Get Channel — lib.image.filter.GetChannel
 export interface GetChannelInputs {
   image?: Connectable<ImageRef>;
-  channel?: Connectable<unknown>;
+  channel?: Connectable<"R" | "G" | "B">;
 }
 
 export interface GetChannelOutputs {
   output: ImageRef;
 }
 
-export function getChannel(
-  inputs: GetChannelInputs
-): DslNode<GetChannelOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.GetChannel",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function getChannel(inputs: GetChannelInputs): DslNode<GetChannelOutputs, "output"> {
+  return createNode("lib.image.filter.GetChannel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Invert — lib.image.filter.Invert
@@ -163,11 +123,7 @@ export interface InvertOutputs {
 }
 
 export function invert(inputs: InvertInputs): DslNode<InvertOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Invert",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+  return createNode("lib.image.filter.Invert", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Posterize — lib.image.filter.Posterize
@@ -180,14 +136,8 @@ export interface PosterizeOutputs {
   output: ImageRef;
 }
 
-export function posterize(
-  inputs: PosterizeInputs
-): DslNode<PosterizeOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Posterize",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function posterize(inputs: PosterizeInputs): DslNode<PosterizeOutputs, "output"> {
+  return createNode("lib.image.filter.Posterize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Smooth — lib.image.filter.Smooth
@@ -200,11 +150,7 @@ export interface SmoothOutputs {
 }
 
 export function smooth(inputs: SmoothInputs): DslNode<SmoothOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Smooth",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+  return createNode("lib.image.filter.Smooth", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Solarize — lib.image.filter.Solarize
@@ -217,12 +163,6 @@ export interface SolarizeOutputs {
   output: ImageRef;
 }
 
-export function solarize(
-  inputs: SolarizeInputs
-): DslNode<SolarizeOutputs, "output"> {
-  return createNode(
-    "lib.image.filter.Solarize",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function solarize(inputs: SolarizeInputs): DslNode<SolarizeOutputs, "output"> {
+  return createNode("lib.image.filter.Solarize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

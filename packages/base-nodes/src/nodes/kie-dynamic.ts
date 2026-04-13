@@ -4,6 +4,7 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { NodeClass } from "@nodetool/node-sdk";
 import { getApiKey, kieExecuteTask } from "@nodetool/kie-nodes";
+import type { TypeMetadata } from "@nodetool/node-sdk";
 
 interface KieParamInfo {
   name: string;
@@ -23,6 +24,21 @@ interface KieSchemaBundle {
   modelId: string;
   params: KieParamInfo[];
   outputType: string; // "image" | "video" | "audio"
+}
+
+export interface ResolvedKieDynamicSchema {
+  model_id: string;
+  dynamic_properties: Record<string, unknown>;
+  dynamic_inputs: Record<
+    string,
+    TypeMetadata & {
+      description?: string;
+      min?: number;
+      max?: number;
+      default?: unknown;
+    }
+  >;
+  dynamic_outputs: Record<string, TypeMetadata>;
 }
 
 const HIDDEN_PARAMS = new Set(["upload_method", "callBackUrl", "callback_url"]);
@@ -98,7 +114,9 @@ function parseInputParams(text: string): KieParamInfo[] {
 
     let minVal: number | undefined;
     let maxVal: number | undefined;
-    const rangeMatch = trimmed.match(/\*\*Range\*\*:\s*`(\d+)`\s*to\s*`(\d+)`/);
+    const rangeMatch = trimmed.match(
+      /\*\*Range\*\*:\s*(?:`?(\d+)`?\s*(?:to|-)\s*`?(\d+)`?)/
+    );
     if (rangeMatch) {
       minVal = Number(rangeMatch[1]);
       maxVal = Number(rangeMatch[2]);
@@ -157,6 +175,56 @@ function coerceDefault(raw: string, paramType: string): unknown {
   }
 }
 
+function mapParamType(param: KieParamInfo): TypeMetadata {
+  switch (param.type) {
+    case "string":
+      return {
+        type: "str",
+        type_args: [],
+        ...(param.options?.length ? { values: param.options } : {})
+      };
+    case "boolean":
+      return { type: "bool", type_args: [] };
+    case "integer":
+      return { type: "int", type_args: [] };
+    case "number":
+      return { type: "float", type_args: [] };
+    case "array":
+      return {
+        type: "list",
+        type_args: [{ type: "str", type_args: [] }]
+      };
+    default:
+      return { type: "any", type_args: [] };
+  }
+}
+
+function defaultDynamicValue(param: KieParamInfo): unknown {
+  if (param.default !== undefined) {
+    return param.default;
+  }
+  if (param.type === "array") {
+    return [];
+  }
+  if (param.type === "string") {
+    return "";
+  }
+  if (param.type === "boolean") {
+    return false;
+  }
+  return null;
+}
+
+function mapOutputType(outputType: string): TypeMetadata {
+  if (outputType === "video") {
+    return { type: "video", type_args: [], optional: false };
+  }
+  if (outputType === "audio") {
+    return { type: "audio", type_args: [], optional: false };
+  }
+  return { type: "image", type_args: [], optional: false };
+}
+
 function parseKieDocs(text: string): KieSchemaBundle {
   const modelId = extractModelId(text);
   if (!modelId) throw new Error("Could not find model ID in documentation");
@@ -164,6 +232,42 @@ function parseKieDocs(text: string): KieSchemaBundle {
     modelId,
     params: parseInputParams(text),
     outputType: inferOutputType(modelId, text)
+  };
+}
+
+export function resolveKieDynamicSchema(
+  modelInfo: string
+): ResolvedKieDynamicSchema {
+  const bundle = parseKieDocs(modelInfo);
+  const dynamic_properties: Record<string, unknown> = {};
+  const dynamic_inputs: ResolvedKieDynamicSchema["dynamic_inputs"] = {};
+
+  for (const param of bundle.params) {
+    dynamic_properties[param.name] = defaultDynamicValue(param);
+    dynamic_inputs[param.name] = {
+      ...mapParamType(param),
+      optional: !param.required,
+      ...(param.description ? { description: param.description } : {}),
+      ...(param.minVal !== undefined ? { min: param.minVal } : {}),
+      ...(param.maxVal !== undefined ? { max: param.maxVal } : {}),
+      ...(param.default !== undefined ? { default: param.default } : {})
+    };
+  }
+
+  const outputName =
+    bundle.outputType === "video"
+      ? "video"
+      : bundle.outputType === "audio"
+        ? "audio"
+        : "image";
+
+  return {
+    model_id: bundle.modelId,
+    dynamic_properties,
+    dynamic_inputs,
+    dynamic_outputs: {
+      [outputName]: mapOutputType(bundle.outputType)
+    }
   };
 }
 
@@ -177,14 +281,6 @@ export class KieAINode extends BaseNode {
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
 
-  @prop({
-    type: "int",
-    default: 0,
-    title: "Timeout Seconds",
-    description: "Timeout in seconds for API calls (0 = use default)",
-    min: 0,
-    max: 3600
-  })
   @prop({
     type: "str",
     default: "",
@@ -203,7 +299,7 @@ export class KieAINode extends BaseNode {
     // Build input params from dynamic properties
     const apiInput: Record<string, unknown> = {};
     for (const p of bundle.params) {
-      const val = (this as any)[p.name];
+      const val = this.getDynamic(p.name) ?? (this as any)[p.name];
       if (val === undefined || val === null) {
         if (p.required) throw new Error(`Missing required input: ${p.name}`);
         continue;

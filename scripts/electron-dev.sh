@@ -21,10 +21,18 @@ fi
 
 # The Electron main process has native modules compiled for Electron's Node ABI.
 # The backend runs as a separate system Node process (via tsx), so we need
-# native modules compiled for the system Node ABI. Rebuild them here.
-# This is fast if already up-to-date and only affects the spawned backend.
-echo "Rebuilding native modules for system Node (tsx backend)..."
-npm rebuild better-sqlite3 canvas 2>/dev/null || true
+# native modules must match Electron's embedded Node ABI (dev server now
+# runs via ELECTRON_RUN_AS_NODE, same binary as production utility process).
+echo "Rebuilding native modules for Electron ABI (force)..."
+ELECTRON_VERSION=$(node -e "process.stdout.write(require('./electron/package.json').devDependencies.electron)")
+ARCH=$(uname -m)
+if [[ "$ARCH" == "arm64" ]]; then
+  GYARCH="arm64"
+else
+  GYARCH="x64"
+fi
+(cd node_modules/better-sqlite3 && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+(cd node_modules/bufferutil && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
 
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."

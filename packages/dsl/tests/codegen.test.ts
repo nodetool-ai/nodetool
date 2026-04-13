@@ -62,6 +62,13 @@ describe("codegen output", () => {
     expect(content).toContain("createNode");
   });
 
+  test("kie.dynamic_schema uses string model_info input", () => {
+    const kiePath = path.join(generatedDir, "kie.dynamic_schema.ts");
+    expect(fs.existsSync(kiePath)).toBe(true);
+    const content = fs.readFileSync(kiePath, "utf-8");
+    expect(content).toContain("model_info?: Connectable<string>;");
+  });
+
   test("generated files declare output metadata", () => {
     const controlPath = path.join(generatedDir, "nodetool.control.ts");
     const content = fs.readFileSync(controlPath, "utf-8");
