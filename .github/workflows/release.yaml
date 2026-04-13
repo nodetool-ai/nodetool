@@ -18,6 +18,7 @@ permissions:
 jobs:
   release-build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -47,6 +48,27 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node_version }}
+
+      - name: Sync package versions to release tag
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.version != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_NO_V="${VERSION#v}"
+          VERSION_NO_V="${VERSION_NO_V//\//-}"
+          export VERSION_NO_V
+          echo "Syncing package.json versions to ${VERSION_NO_V}"
+          node -e '
+            const fs = require("fs");
+            const version = process.env.VERSION_NO_V;
+            const files = ["package.json", "electron/package.json", "web/package.json"];
+            for (const p of files) {
+              const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
+              pkg.version = version;
+              fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + "\n");
+              console.log(`Updated ${p} to ${version}`);
+            }
+          '
 
       - name: Install Apple Certificate
         if: matrix.os == 'macos-latest'
@@ -228,6 +250,29 @@ jobs:
         run: |
           cd electron
           npx electron-builder --config electron-builder.json --win --x64 --prepackaged dist/win-unpacked --publish never
+
+      - name: Locate built Windows installer
+        if: matrix.os == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          if [ ! -f "${INSTALLER_PATH}" ]; then
+            echo "Expected installer not at ${INSTALLER_PATH}; searching dist for Setup exe"
+            FOUND="$(ls -1 "${DIST_DIR}"/*Setup*.exe 2>/dev/null | head -n 1 || true)"
+            if [ -z "${FOUND}" ] || [ ! -f "${FOUND}" ]; then
+              echo "Could not find any Setup installer .exe in ${DIST_DIR}"
+              ls -la "${DIST_DIR}" || true
+              exit 1
+            fi
+            TARGET="${DIST_DIR}/Nodetool-Setup-${VERSION}.exe"
+            if [ "${FOUND}" != "${TARGET}" ]; then
+              echo "Renaming ${FOUND} -> ${TARGET}"
+              mv -f "${FOUND}" "${TARGET}"
+            fi
+            echo "INSTALLER_PATH=${TARGET}" >> "${GITHUB_ENV}"
+          else
+            echo "Installer found at ${INSTALLER_PATH}"
+          fi
 
       - name: Sign installer exe (SSL.com eSigner)
         if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/')
