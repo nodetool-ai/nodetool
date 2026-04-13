@@ -12,10 +12,6 @@ interface ChatMarkdownProps {
 export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
   const { colors, mode } = useTheme();
 
-  if (!content) {
-    return null;
-  }
-
   const codeTheme = mode === 'dark' ? atomDark : tomorrow;
   const fontFamily = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
 
@@ -180,6 +176,10 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
       color: colors.text,
     },
   }), [colors, mode, fontFamily]);
+
+  if (!content) {
+    return null;
+  }
 
   return (
     <Markdown style={markdownStyles} rules={rules}>

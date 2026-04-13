@@ -35,7 +35,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   const { colors } = useTheme();
 
   const handleRefresh = useCallback(async () => {
-    if (!onRefresh) return;
+    if (!onRefresh) {return;}
     setIsRefreshing(true);
     await onRefresh();
     setIsRefreshing(false);
