@@ -4,7 +4,6 @@ import {
   getLlamaServerPath,
   getPythonPath,
   getProcessEnv,
-  getNodePath,
   PID_FILE_PATH,
   PID_DIRECTORY,
   webPath,
@@ -33,7 +32,7 @@ import { getServerUrl, getServerPort } from "./utils";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
-import { getDevServerCommand } from "./serverRuntime";
+import { pathToFileURL } from "url";
 import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
@@ -402,6 +401,17 @@ async function startServer(): Promise<void> {
     logMessage("Could not resolve Python path. Backend will start without Python support.", "warn");
   }
 
+  const rootDir = path.join(__dirname, "..", "..");
+
+  // In dev mode, preload tsx/esm as a Node.js startup hook via --import so that
+  // TypeScript files can be loaded inside the utilityProcess without calling
+  // register() at runtime (which spawns a worker thread and fails in utility processes).
+  const nodeOptionsParts = [process.env.NODE_OPTIONS, "--conditions=nodetool-dev"];
+  if (isDevMode()) {
+    const tsxEsmHook = path.join(rootDir, "node_modules", "tsx", "dist", "esm", "index.mjs");
+    nodeOptionsParts.push(`--import=${pathToFileURL(tsxEsmHook).href}`);
+  }
+
   const backendEnv: Record<string, string> = {
     ...getProcessEnv(),
     PORT: String(selectedPort),
@@ -410,23 +420,18 @@ async function startServer(): Promise<void> {
     NODETOOL_PYTHON: pythonPath,
     LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
     NODE_ENV: isDevMode() ? "development" : "production",
-    NODE_OPTIONS: [process.env.NODE_OPTIONS, "--conditions=nodetool-dev"].filter(Boolean).join(" "),
+    NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     NODE_PATH: backendNodeModules,
   };
-  const devServerCommand = getDevServerCommand(
-    path.join(__dirname, "..", ".."),
-    backendEntryPoint,
-    getNodePath()
-  );
-
   const watchdogOpts: import("./watchdog").WatchdogOptions = isDevMode()
     ? {
-        // Dev mode: run TS source directly via tsx (no build step needed)
+        // Dev mode: fork tsx inside Electron's utilityProcess — same ABI as
+        // production, no external node binary required.
         name: "nodetool",
-        command: devServerCommand.command,
-        args: devServerCommand.args,
+        modulePath: path.join(__dirname, "..", "dev-server-runner.cjs"),
+        args: [backendEntryPoint],
         env: backendEnv,
-        cwd: path.join(__dirname, "..", ".."),
+        cwd: rootDir,
         pidFilePath: PID_FILE_PATH,
         healthUrl: `http://127.0.0.1:${selectedPort}/health`,
         onOutput: (line) => handleServerOutput(Buffer.from(line)),
