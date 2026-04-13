@@ -10,17 +10,12 @@ export interface GoogleSearchInputs {
 }
 
 export interface GoogleSearchOutputs {
-  output: unknown[];
+  results: unknown[];
+  text: string;
 }
 
-export function googleSearch(
-  inputs: GoogleSearchInputs
-): DslNode<GoogleSearchOutputs, "output"> {
-  return createNode(
-    "search.google.GoogleSearch",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function googleSearch(inputs: GoogleSearchInputs): DslNode<GoogleSearchOutputs> {
+  return createNode("search.google.GoogleSearch", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }
 
 // Google News — search.google.GoogleNews
@@ -30,17 +25,12 @@ export interface GoogleNewsInputs {
 }
 
 export interface GoogleNewsOutputs {
-  output: unknown[];
+  results: unknown[];
+  text: string;
 }
 
-export function googleNews(
-  inputs: GoogleNewsInputs
-): DslNode<GoogleNewsOutputs, "output"> {
-  return createNode(
-    "search.google.GoogleNews",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function googleNews(inputs: GoogleNewsInputs): DslNode<GoogleNewsOutputs> {
+  return createNode("search.google.GoogleNews", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }
 
 // Google Images — search.google.GoogleImages
@@ -51,17 +41,11 @@ export interface GoogleImagesInputs {
 }
 
 export interface GoogleImagesOutputs {
-  output: ImageRef[];
+  results: ImageRef[];
 }
 
-export function googleImages(
-  inputs: GoogleImagesInputs
-): DslNode<GoogleImagesOutputs, "output"> {
-  return createNode(
-    "search.google.GoogleImages",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function googleImages(inputs: GoogleImagesInputs): DslNode<GoogleImagesOutputs, "results"> {
+  return createNode("search.google.GoogleImages", inputs as Record<string, unknown>, { outputNames: ["results"], defaultOutput: "results" });
 }
 
 // Google Finance — search.google.GoogleFinance
@@ -71,17 +55,11 @@ export interface GoogleFinanceInputs {
 }
 
 export interface GoogleFinanceOutputs {
-  output: Record<string, unknown>;
+  results: Record<string, unknown>;
 }
 
-export function googleFinance(
-  inputs: GoogleFinanceInputs
-): DslNode<GoogleFinanceOutputs, "output"> {
-  return createNode(
-    "search.google.GoogleFinance",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function googleFinance(inputs: GoogleFinanceInputs): DslNode<GoogleFinanceOutputs, "results"> {
+  return createNode("search.google.GoogleFinance", inputs as Record<string, unknown>, { outputNames: ["results"], defaultOutput: "results" });
 }
 
 // Google Jobs — search.google.GoogleJobs
@@ -92,17 +70,12 @@ export interface GoogleJobsInputs {
 }
 
 export interface GoogleJobsOutputs {
-  output: unknown[];
+  results: unknown[];
+  text: string;
 }
 
-export function googleJobs(
-  inputs: GoogleJobsInputs
-): DslNode<GoogleJobsOutputs, "output"> {
-  return createNode(
-    "search.google.GoogleJobs",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function googleJobs(inputs: GoogleJobsInputs): DslNode<GoogleJobsOutputs> {
+  return createNode("search.google.GoogleJobs", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }
 
 // Google Lens — search.google.GoogleLens
@@ -111,16 +84,11 @@ export interface GoogleLensInputs {
   num_results?: Connectable<number>;
 }
 
-export interface GoogleLensOutputs {}
+export interface GoogleLensOutputs {
+}
 
-export function googleLens(
-  inputs: GoogleLensInputs
-): DslNode<GoogleLensOutputs> {
-  return createNode(
-    "search.google.GoogleLens",
-    inputs as Record<string, unknown>,
-    { outputNames: [] }
-  );
+export function googleLens(inputs: GoogleLensInputs): DslNode<GoogleLensOutputs> {
+  return createNode("search.google.GoogleLens", inputs as Record<string, unknown>, { outputNames: [] });
 }
 
 // Google Maps — search.google.GoogleMaps
@@ -130,17 +98,12 @@ export interface GoogleMapsInputs {
 }
 
 export interface GoogleMapsOutputs {
-  output: unknown[];
+  results: unknown[];
+  text: string;
 }
 
-export function googleMaps(
-  inputs: GoogleMapsInputs
-): DslNode<GoogleMapsOutputs, "output"> {
-  return createNode(
-    "search.google.GoogleMaps",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function googleMaps(inputs: GoogleMapsInputs): DslNode<GoogleMapsOutputs> {
+  return createNode("search.google.GoogleMaps", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }
 
 // Google Shopping — search.google.GoogleShopping
@@ -155,15 +118,10 @@ export interface GoogleShoppingInputs {
 }
 
 export interface GoogleShoppingOutputs {
-  output: unknown[];
+  results: unknown[];
+  text: string;
 }
 
-export function googleShopping(
-  inputs: GoogleShoppingInputs
-): DslNode<GoogleShoppingOutputs, "output"> {
-  return createNode(
-    "search.google.GoogleShopping",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function googleShopping(inputs: GoogleShoppingInputs): DslNode<GoogleShoppingOutputs> {
+  return createNode("search.google.GoogleShopping", inputs as Record<string, unknown>, { outputNames: ["results", "text"] });
 }

@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc && node -e \"require('node:fs').cpSync('src/fal-manifest.json', 'dist/fal-manifest.json')\"",
+    "build": "node ../../scripts/clean-ts-build.mjs && tsc && node -e \"require('node:fs').cpSync('src/fal-manifest.json', 'dist/fal-manifest.json')\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"

@@ -18,13 +18,8 @@ export interface SendEmailOutputs {
   output: boolean;
 }
 
-export function sendEmail(
-  inputs: SendEmailInputs
-): DslNode<SendEmailOutputs, "output"> {
-  return createNode("lib.mail.SendEmail", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function sendEmail(inputs: SendEmailInputs): DslNode<SendEmailOutputs, "output"> {
+  return createNode("lib.mail.SendEmail", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Gmail Search — lib.mail.GmailSearch
@@ -33,9 +28,9 @@ export interface GmailSearchInputs {
   to_address?: Connectable<string>;
   subject?: Connectable<string>;
   body?: Connectable<string>;
-  date_filter?: Connectable<unknown>;
+  date_filter?: Connectable<"SINCE_ONE_HOUR" | "SINCE_ONE_DAY" | "SINCE_ONE_WEEK" | "SINCE_ONE_MONTH" | "SINCE_ONE_YEAR">;
   keywords?: Connectable<string>;
-  folder?: Connectable<unknown>;
+  folder?: Connectable<"INBOX" | "[Gmail]/Sent Mail" | "[Gmail]/Drafts" | "[Gmail]/Spam" | "[Gmail]/Trash">;
   text?: Connectable<string>;
   max_results?: Connectable<number>;
 }
@@ -43,15 +38,12 @@ export interface GmailSearchInputs {
 export interface GmailSearchOutputs {
   email: Record<string, unknown>;
   message_id: string;
+  emails: unknown[];
+  message_ids: unknown[];
 }
 
-export function gmailSearch(
-  inputs: GmailSearchInputs
-): DslNode<GmailSearchOutputs> {
-  return createNode("lib.mail.GmailSearch", inputs as Record<string, unknown>, {
-    outputNames: ["email", "message_id"],
-    streaming: true
-  });
+export function gmailSearch(inputs: GmailSearchInputs): DslNode<GmailSearchOutputs> {
+  return createNode("lib.mail.GmailSearch", inputs as Record<string, unknown>, { outputNames: ["email", "message_id", "emails", "message_ids"], streaming: true });
 }
 
 // Add Label — lib.mail.AddLabel
@@ -64,13 +56,8 @@ export interface AddLabelOutputs {
   output: boolean;
 }
 
-export function addLabel(
-  inputs: AddLabelInputs
-): DslNode<AddLabelOutputs, "output"> {
-  return createNode("lib.mail.AddLabel", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function addLabel(inputs: AddLabelInputs): DslNode<AddLabelOutputs, "output"> {
+  return createNode("lib.mail.AddLabel", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Move To Archive — lib.mail.MoveToArchive
@@ -82,12 +69,6 @@ export interface MoveToArchiveOutputs {
   output: boolean;
 }
 
-export function moveToArchive(
-  inputs: MoveToArchiveInputs
-): DslNode<MoveToArchiveOutputs, "output"> {
-  return createNode(
-    "lib.mail.MoveToArchive",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function moveToArchive(inputs: MoveToArchiveInputs): DslNode<MoveToArchiveOutputs, "output"> {
+  return createNode("lib.mail.MoveToArchive", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

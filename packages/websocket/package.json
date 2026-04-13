@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build": "node ../../scripts/clean-ts-build.mjs && tsc",
     "build:all": "node ../../scripts/build-websocket-workspaces.mjs",
     "build:stale": "node ../../scripts/build-stale-websocket-workspaces.mjs",
     "dev": "node ../../scripts/run-websocket-dev.mjs server",

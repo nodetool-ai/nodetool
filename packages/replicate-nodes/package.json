@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc && node -e \"require('node:fs').cpSync('src/replicate-manifest.json', 'dist/replicate-manifest.json')\"",
+    "build": "node ../../scripts/clean-ts-build.mjs && tsc && node -e \"require('node:fs').cpSync('src/replicate-manifest.json', 'dist/replicate-manifest.json')\"",
     "extract-manifest": "tsx scripts/extract-manifest.ts",
     "test": "vitest run",
     "test:watch": "vitest",

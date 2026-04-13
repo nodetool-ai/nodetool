@@ -15,11 +15,7 @@ export interface WaitOutputs {
 }
 
 export function wait(inputs: WaitInputs): DslNode<WaitOutputs> {
-  return createNode(
-    "nodetool.triggers.Wait",
-    inputs as Record<string, unknown>,
-    { outputNames: ["data", "resumed_at", "waited_seconds"] }
-  );
+  return createNode("nodetool.triggers.Wait", inputs as Record<string, unknown>, { outputNames: ["data", "resumed_at", "waited_seconds"] });
 }
 
 // Manual Trigger — nodetool.triggers.ManualTrigger
@@ -36,17 +32,8 @@ export interface ManualTriggerOutputs {
   event_type: string;
 }
 
-export function manualTrigger(
-  inputs: ManualTriggerInputs
-): DslNode<ManualTriggerOutputs> {
-  return createNode(
-    "nodetool.triggers.ManualTrigger",
-    inputs as Record<string, unknown>,
-    {
-      outputNames: ["data", "timestamp", "source", "event_type"],
-      streaming: true
-    }
-  );
+export function manualTrigger(inputs: ManualTriggerInputs): DslNode<ManualTriggerOutputs> {
+  return createNode("nodetool.triggers.ManualTrigger", inputs as Record<string, unknown>, { outputNames: ["data", "timestamp", "source", "event_type"], streaming: true });
 }
 
 // Interval Trigger — nodetool.triggers.IntervalTrigger
@@ -67,24 +54,8 @@ export interface IntervalTriggerOutputs {
   event_type: string;
 }
 
-export function intervalTrigger(
-  inputs: IntervalTriggerInputs
-): DslNode<IntervalTriggerOutputs> {
-  return createNode(
-    "nodetool.triggers.IntervalTrigger",
-    inputs as Record<string, unknown>,
-    {
-      outputNames: [
-        "tick",
-        "elapsed_seconds",
-        "interval_seconds",
-        "timestamp",
-        "source",
-        "event_type"
-      ],
-      streaming: true
-    }
-  );
+export function intervalTrigger(inputs: IntervalTriggerInputs): DslNode<IntervalTriggerOutputs> {
+  return createNode("nodetool.triggers.IntervalTrigger", inputs as Record<string, unknown>, { outputNames: ["tick", "elapsed_seconds", "interval_seconds", "timestamp", "source", "event_type"], streaming: true });
 }
 
 // Webhook Trigger — nodetool.triggers.WebhookTrigger
@@ -108,26 +79,8 @@ export interface WebhookTriggerOutputs {
   event_type: string;
 }
 
-export function webhookTrigger(
-  inputs: WebhookTriggerInputs
-): DslNode<WebhookTriggerOutputs> {
-  return createNode(
-    "nodetool.triggers.WebhookTrigger",
-    inputs as Record<string, unknown>,
-    {
-      outputNames: [
-        "body",
-        "headers",
-        "query",
-        "method",
-        "path",
-        "timestamp",
-        "source",
-        "event_type"
-      ],
-      streaming: true
-    }
-  );
+export function webhookTrigger(inputs: WebhookTriggerInputs): DslNode<WebhookTriggerOutputs> {
+  return createNode("nodetool.triggers.WebhookTrigger", inputs as Record<string, unknown>, { outputNames: ["body", "headers", "query", "method", "path", "timestamp", "source", "event_type"], streaming: true });
 }
 
 // File Watch Trigger — nodetool.triggers.FileWatchTrigger
@@ -149,15 +102,6 @@ export interface FileWatchTriggerOutputs {
   timestamp: string;
 }
 
-export function fileWatchTrigger(
-  inputs: FileWatchTriggerInputs
-): DslNode<FileWatchTriggerOutputs> {
-  return createNode(
-    "nodetool.triggers.FileWatchTrigger",
-    inputs as Record<string, unknown>,
-    {
-      outputNames: ["event", "path", "dest_path", "is_directory", "timestamp"],
-      streaming: true
-    }
-  );
+export function fileWatchTrigger(inputs: FileWatchTriggerInputs): DslNode<FileWatchTriggerOutputs> {
+  return createNode("nodetool.triggers.FileWatchTrigger", inputs as Record<string, unknown>, { outputNames: ["event", "path", "dest_path", "is_directory", "timestamp"], streaming: true });
 }

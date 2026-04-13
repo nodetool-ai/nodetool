@@ -38,6 +38,7 @@ const determineCodeLanguage = (nodeType: string) => {
 };
 
 const propertyStyles = css({
+  "--property-reset-button-offset": "64px",
   ".property-row": {
     width: "100%",
     display: "flex",

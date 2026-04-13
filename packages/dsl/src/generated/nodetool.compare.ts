@@ -15,12 +15,6 @@ export interface CompareImagesOutputs {
   output: unknown;
 }
 
-export function compareImages(
-  inputs: CompareImagesInputs
-): DslNode<CompareImagesOutputs, "output"> {
-  return createNode(
-    "nodetool.compare.CompareImages",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function compareImages(inputs: CompareImagesInputs): DslNode<CompareImagesOutputs, "output"> {
+  return createNode("nodetool.compare.CompareImages", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

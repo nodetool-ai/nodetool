@@ -82,6 +82,7 @@ const JSONProperty = (props: PropertyProps) => {
     <div
       className="json-property"
       css={css({
+        "--property-reset-button-offset": "64px",
         ".property-row": {
           display: "flex",
           flexDirection: "column",
