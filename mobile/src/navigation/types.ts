@@ -1,4 +1,5 @@
 export type RootStackParamList = {
+  Login: undefined;
   MiniAppsList: undefined;
   MiniApp: {
     workflowId: string;

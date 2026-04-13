@@ -13,10 +13,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import axios from 'axios';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiService } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
+import { useAuthStore } from '../stores/AuthStore';
 import { RootStackParamList } from '../navigation/types';
 
 type ConnectionStatus = 'idle' | 'testing' | 'success' | 'error';
@@ -39,6 +39,28 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [savedIndicator, setSavedIndicator] = useState(false);
   const { colors, shadows, mode, setTheme } = useTheme();
+  const user = useAuthStore((s) => s.user);
+  const authState = useAuthStore((s) => s.state);
+  const signOut = useAuthStore((s) => s.signOut);
+  const isSigningOut = authState === 'loading';
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   useEffect(() => {
     loadSettings();
@@ -105,23 +127,27 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
 
     try {
       setConnectionStatus('testing');
-      const testClient = axios.create({
-        baseURL: trimmed,
-        timeout: 15000,
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(`${trimmed}/api/workflows/?limit=1`, {
+        signal: controller.signal,
       });
-      await testClient.get('/api/workflows/', { params: { limit: 1 } });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
 
       await apiService.saveApiHost(trimmed);
+      await apiService.getWorkflows(1);
       setApiHost(trimmed);
       setConnectionStatus('success');
       setTimeout(() => setConnectionStatus('idle'), 3000);
     } catch (error: unknown) {
       console.error('Connection test failed:', error);
       setConnectionStatus('error');
-      const axiosError = error as { code?: string };
-      const detail = axiosError.code === 'ECONNABORTED'
+      const detail = error instanceof DOMException && error.name === 'AbortError'
         ? 'Connection timed out. Is the server running?'
-        : axiosError.code === 'ERR_NETWORK'
+        : error instanceof TypeError
           ? 'Network error. Check the URL and your connection.'
           : 'Could not reach the server. Verify the URL is correct.';
       Alert.alert('Connection Failed', detail);
@@ -330,6 +356,60 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
           <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
         </TouchableOpacity>
       </View>
+
+      {/* Account Section */}
+      {user && (
+        <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconWrap, { backgroundColor: colors.primaryMuted }]}>
+              <Ionicons name="person-circle-outline" size={16} color={colors.primary} />
+            </View>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Account</Text>
+          </View>
+
+          <View style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}>
+            <Text style={[styles.aboutLabel, { color: colors.textSecondary }]}>Signed in as</Text>
+            <Text
+              style={[styles.aboutValue, { color: colors.text, flexShrink: 1, marginLeft: 12 }]}
+              numberOfLines={1}
+              ellipsizeMode="middle"
+            >
+              {user.email || user.id}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              {
+                backgroundColor: colors.error + '15',
+                borderColor: colors.error,
+                borderWidth: 1,
+                marginTop: 12,
+              },
+              isSigningOut && styles.buttonDisabled,
+            ]}
+            onPress={handleSignOut}
+            disabled={isSigningOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
+            {isSigningOut ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <View style={styles.buttonContent}>
+                <Ionicons
+                  name="log-out-outline"
+                  size={18}
+                  color={colors.error}
+                  style={styles.buttonIcon}
+                />
+                <Text style={[styles.buttonText, { color: colors.error }]}>Sign Out</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* About Section */}
       <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
