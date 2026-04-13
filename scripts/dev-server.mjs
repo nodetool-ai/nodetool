@@ -15,7 +15,8 @@ import { spawn } from "node:child_process";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { getTsxWatchCommand, registerChildShutdownHandlers } from "./child-shutdown.mjs";
+import { registerChildShutdownHandlers } from "./child-shutdown.mjs";
+import { getTsxWatchCommand } from "./dev-commands.mjs";
 
 const mode = process.argv[2] ?? "server";
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -74,7 +75,3 @@ const child = spawn(command, args, {
 
 registerChildShutdownHandlers({ child });
 child.on("exit", (code) => process.exit(code ?? 1));
-if (process.platform !== "win32") {
-  process.on("SIGINT", () => { child.kill("SIGINT"); });
-  process.on("SIGTERM", () => { child.kill("SIGTERM"); });
-}

@@ -38,10 +38,16 @@ if (!(buildMode in buildCommands)) {
 function isPortInUse(hostname, portNumber) {
   return new Promise((resolveCheck) => {
     const socket = net.createConnection({ host: hostname, port: portNumber });
+    socket.setTimeout(2000);
 
     socket.once("connect", () => {
       socket.end();
       resolveCheck(true);
+    });
+
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolveCheck(false);
     });
 
     socket.once("error", (error) => {
