@@ -9,7 +9,7 @@
     "nodetool": "dist/nodetool.js"
   },
   "scripts": {
-    "build": "node ../../scripts/clean-ts-build.mjs && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "test": "vitest run",

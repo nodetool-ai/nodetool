@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "build": "node ../../scripts/clean-ts-build.mjs && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",

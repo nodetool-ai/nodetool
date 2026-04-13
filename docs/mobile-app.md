@@ -116,6 +116,12 @@ Chat with AI models from your mobile device.
 
 Run your NodeTool workflows with a simplified mobile interface.
 
+### Mini Apps List
+
+Browse every mini-app published by your server.
+
+![Mini Apps List](assets/screenshots/screenshot-placeholder.svg)
+
 ### What Are Mini Apps?
 
 Mini Apps are workflows converted to simple interfaces. They hide the complexity of the workflow and show only:
@@ -135,6 +141,8 @@ Mini Apps are workflows converted to simple interfaces. They hide the complexity
 5. Tap **Run**
 6. View results below
 
+![Mini App Runner](assets/screenshots/screenshot-placeholder.svg)
+
 ### Supported Input Types
 
 | Type | Description |
@@ -142,6 +150,78 @@ Mini Apps are workflows converted to simple interfaces. They hide the complexity
 | Text | Single or multi-line text input |
 | Number | Numeric values |
 | Boolean | On/off toggle switches |
+
+---
+
+## Mobile Graph Editor
+
+The mobile app includes a touch-friendly version of the workflow editor. It defaults to a vertical chain layout but supports pan-and-zoom editing for arbitrary graphs.
+
+### Overview
+
+![Mobile Graph Editor](assets/screenshots/mobile-graph-editor-overview.png)
+
+### Empty State
+
+New workflows open with a single prompt to add your first node.
+
+![Mobile Graph Editor — Empty](assets/screenshots/mobile-graph-editor-empty.png)
+
+### Node Picker
+
+Tap the **+** button to open the full-screen node picker, which filters by input/output compatibility.
+
+![Mobile Graph Editor — Picker](assets/screenshots/mobile-graph-editor-picker.png)
+
+### Linear Chain
+
+Most workflows render as a vertical chain of cards on mobile — easier to scroll and tap.
+
+![Mobile Graph Editor — Chain](assets/screenshots/mobile-graph-editor-chain.png)
+
+Touch gestures:
+
+| Gesture | Action |
+|---------|--------|
+| Tap a card | Open its properties |
+| Long-press | Grab and reorder |
+| Pinch | Zoom (when the graph view is in "free" mode) |
+| Two-finger drag | Pan the canvas |
+
+---
+
+## Mobile Settings
+
+Configure the mobile app from the gear icon:
+
+![Mobile Settings](assets/screenshots/screenshot-placeholder.svg)
+
+| Setting | Purpose |
+|---------|---------|
+| Server URL | Which NodeTool server to talk to |
+| Test Connection | One-tap ping of the configured URL |
+| Default Language Model | Default LLM for new chat threads |
+| Appearance | Light / Dark / System theme |
+| Storage | Cached thread size and clear cache |
+| About | App version, build info, links |
+
+---
+
+## Mobile Language Model Selection
+
+Tapping the model name at the top of a chat opens a searchable picker with every model offered by your server.
+
+![Mobile Model Selection](assets/screenshots/screenshot-placeholder.svg)
+
+Providers without configured API keys are greyed out and linked to the docs for setup.
+
+---
+
+## Tablet Dashboard
+
+On tablets the dashboard uses a two-column layout that shows the workflow list and the active thread side-by-side.
+
+![Tablet Dashboard](assets/screenshots/dashboard-tablet.png)
 
 ---
 

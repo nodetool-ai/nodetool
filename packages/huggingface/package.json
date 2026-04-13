@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../scripts/clean-ts-build.mjs && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },

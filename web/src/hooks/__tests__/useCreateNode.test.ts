@@ -69,7 +69,7 @@ jest.mock("../../utils/codeOutputInference", () => ({
 }));
 
 jest.mock("../../stores/MetadataStore", () => {
-  const store = jest.fn();
+  const store = jest.fn() as jest.Mock & { getState: jest.Mock };
   store.getState = jest.fn();
   return {
     __esModule: true,

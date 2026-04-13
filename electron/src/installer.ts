@@ -1,5 +1,7 @@
 import { promises as fs } from "fs";
 import type { Stats } from "fs";
+import * as https from "https";
+import * as http from "http";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
@@ -419,11 +421,97 @@ async function ensureMicromambaAvailable(): Promise<string> {
     return localExecutable;
   }
 
-  // No download fallback - require bundled micromamba or explicit configuration
-  throw new Error(
-    "micromamba not found. Please ensure micromamba is bundled in resources/micromamba/ " +
-    "or set the MICROMAMBA_EXE environment variable, or install micromamba system-wide."
-  );
+  // Download micromamba on demand
+  logMessage("micromamba not found locally — downloading on demand...");
+  emitBootMessage("Downloading micromamba...");
+  const downloadedExecutable = await downloadMicromamba();
+  process.env[MICROMAMBA_ENV_VAR] = downloadedExecutable;
+  return downloadedExecutable;
+}
+
+const MICROMAMBA_VERSION = "2.3.3-0";
+const MICROMAMBA_BASE_URL = `https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}`;
+
+function resolveMicromambaDownloadUrl(): string | null {
+  const platform = process.platform;
+  const arch = process.arch;
+
+  if (platform === "darwin") {
+    return arch === "arm64"
+      ? `${MICROMAMBA_BASE_URL}/micromamba-osx-arm64`
+      : `${MICROMAMBA_BASE_URL}/micromamba-osx-64`;
+  }
+  if (platform === "linux") {
+    return arch === "arm64"
+      ? `${MICROMAMBA_BASE_URL}/micromamba-linux-aarch64`
+      : `${MICROMAMBA_BASE_URL}/micromamba-linux-64`;
+  }
+  if (platform === "win32" && arch === "x64") {
+    return `${MICROMAMBA_BASE_URL}/micromamba-win-64.exe`;
+  }
+  return null;
+}
+
+function downloadFileFromUrl(url: string, dest: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let resolved = false;
+
+    const makeRequest = (requestUrl: string): void => {
+      const protocol = requestUrl.startsWith("https") ? https : http;
+      const req = protocol.get(requestUrl, (res) => {
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          res.destroy();
+          makeRequest(res.headers.location);
+          return;
+        }
+        if (!res.statusCode || res.statusCode !== 200) {
+          res.destroy();
+          if (!resolved) { resolved = true; reject(new Error(`HTTP ${res.statusCode} downloading micromamba`)); }
+          return;
+        }
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => {
+          if (resolved) return;
+          try {
+            const buf = Buffer.concat(chunks);
+            require("fs").writeFileSync(dest, buf);
+            resolved = true;
+            resolve();
+          } catch (err) {
+            resolved = true;
+            reject(err);
+          }
+        });
+        res.on("error", (err: Error) => { if (!resolved) { resolved = true; reject(err); } });
+      });
+      req.on("error", (err: Error) => { if (!resolved) { resolved = true; reject(err); } });
+      req.setTimeout(60000, () => { req.destroy(); if (!resolved) { resolved = true; reject(new Error("Download timeout")); } });
+    };
+
+    makeRequest(url);
+  });
+}
+
+async function downloadMicromamba(): Promise<string> {
+  const url = resolveMicromambaDownloadUrl();
+  if (!url) {
+    throw new Error(`No micromamba download URL for platform ${process.platform}/${process.arch}`);
+  }
+
+  const dest = getMicromambaExecutablePath();
+  await fs.mkdir(getMicromambaBinDir(), { recursive: true });
+
+  logMessage(`Downloading micromamba from ${url} to ${dest}`);
+  await downloadFileFromUrl(url, dest);
+
+  if (process.platform !== "win32") {
+    await fs.chmod(dest, 0o755);
+  }
+
+  logMessage(`micromamba downloaded to ${dest}`);
+  emitBootMessage("micromamba ready");
+  return dest;
 }
 
 async function runMicromambaCommand(
@@ -888,23 +976,42 @@ function setCondaInstallLocation(location: string): void {
  * If the env doesn't exist yet, the user is prompted for the install folder.
  * Returns the conda env path.
  */
+async function promptForCondaInstallFolder(): Promise<string> {
+  const defaultLocation = getDefaultInstallLocation();
+  const { filePaths, canceled } = await dialog.showOpenDialog({
+    properties: ["openDirectory", "createDirectory"],
+    title: "Select where to install the conda environment",
+    buttonLabel: "Select Folder",
+    defaultPath: defaultLocation,
+  });
+  if (canceled || !filePaths?.[0]) {
+    throw new Error("Installation cancelled — no folder selected.");
+  }
+  return path.join(filePaths[0], "nodetool-env");
+}
+
 async function ensureCondaEnvironment(
   installLocation?: string,
 ): Promise<string> {
-  const condaEnvPath = installLocation || getCondaEnvPath();
+  let condaEnvPath = installLocation || getCondaEnvPath();
 
   // Check if env already exists
   if (await fileExists(path.join(condaEnvPath, "conda-meta"))) {
     return condaEnvPath;
   }
 
-  // Env doesn't exist — create a minimal one
+  // Env doesn't exist — if no location was provided or stored in settings, ask the user
+  if (!installLocation) {
+    const storedLocation = readSettings()["CONDA_ENV"];
+    if (!storedLocation) {
+      condaEnvPath = await promptForCondaInstallFolder();
+    }
+  }
+
   logMessage(`Conda environment not found, creating at: ${condaEnvPath}`);
   emitBootMessage("Setting up conda environment...");
 
-  if (installLocation) {
-    setCondaInstallLocation(installLocation);
-  }
+  setCondaInstallLocation(condaEnvPath);
 
   const micromambaExecutable = await ensureMicromambaAvailable();
   await createEnvironmentWithMicromamba(

@@ -216,8 +216,14 @@ Core business logic for workflows, nodes, agents, and persistence.
 **`node-sdk`** — The framework for defining custom nodes. Exports `BaseNode` (abstract class with static metadata, property/output declarations, and serialization), `NodeRegistry` (central type registry), and TypeScript decorators (`@node()`, `@output()`, `@property()`) for declarative node definition. Nodes implement `process(context, values)` returning an output record.
 
 **`agents`** — Multi-step LLM agent system with layered execution:
-- `Agent` / `SimpleAgent` — Agent abstractions with skill loading.
-- `AgentExecutor` → `TaskPlanner` → `TaskExecutor` → `StepExecutor` — Decomposes goals into tasks, executes them with tool availability.
+- `MultiModeAgent` — Unified entry point supporting `loop`, `plan`, and `multi-agent` modes.
+- `Agent` / `SimpleAgent` — Lower-level agent abstractions with skill loading (used internally by `MultiModeAgent`).
+- `TaskPlanner` — LLM-driven decomposition of an objective into a `TaskPlan` DAG of tasks and steps.
+- `GraphPlanner` + `GraphBuilder` — LLM iteratively builds a typed workflow graph using `search_nodes` / `add_node` / `add_edge` tools; produces `GraphData` ready for the kernel.
+- `ParallelTaskExecutor` → `TaskExecutor` → `StepExecutor` — Runs `TaskPlan` tasks concurrently, each task's steps sequentially (or in parallel when independent).
+- `AgentWorkflowRunner` — Hands a `GraphData` graph to `WorkflowRunner` (kernel) with a custom resolver that maps `nodetool.agents.AgentStep` nodes to `AgentStepExecutor`.
+- `AgentStepExecutor` — Implements the `NodeExecutor` interface; wraps `StepExecutor` so LLM-driven steps run inside the kernel's actor model.
+- `TeamExecutor` — Runs multiple specialized sub-agents concurrently under coordinator, autonomous, or hybrid coordination strategies.
 - Tool system with 100+ tools across categories: search (Google, DataForSEO), code execution, file I/O, browser automation (Playwright), email, image generation, PDF processing, vector search, workflow management, and MCP (Model Context Protocol) integration.
 
 **`models`** — Database persistence layer using Drizzle ORM over SQLite. Defines tables for: `workflows` (DAG definitions), `jobs` (execution records), `messages` / `threads` (chat history), `assets` (file metadata), `secrets` (encrypted credentials), `workspaces`, `workflowVersions`, `oauthCredentials`, `predictions` (usage/cost tracking), `runNodeState`, `runEvents`, and `runLeases` (distributed job leasing).
@@ -281,64 +287,124 @@ Client sends "run_job" via WebSocket
         │
         ▼
 UnifiedWebSocketRunner (packages/websocket)
-  ├── Creates ProcessingContext with storage, cache, secrets
-  ├── Resolves node executors (TS registry → Python bridge fallback)
+  ├── Creates ProcessingContext (storage, cache, secrets, LLM providers)
+  ├── Provides resolveExecutor() for kernel
   │
   ▼
 WorkflowRunner (packages/kernel)
-  ├── Graph.fromDict() — validates and indexes the DAG
-  ├── Creates NodeInbox per node (message buffers)
+  ├── Graph.fromDict() — validates, indexes, detects cycles, sorts topologically
+  ├── Analyzes "streaming paths" — which edges carry streaming data
+  ├── Creates NodeInbox per node (tracks upstream source counts)
+  ├── Calls NodeActor.initialize() for all nodes
   ├── Dispatches input values to InputNodes
+  ├── Spawns NodeActors concurrently (one per node)
   │
   ▼
-NodeActor (packages/kernel)
-  ├── Pulls messages from NodeInbox
-  ├── Resolves NodeExecutor for node type
-  ├── Calls BaseNode.process(context, values)
+NodeActor (packages/kernel) — runs per node
+  ├── Pulls messages from NodeInbox (per-handle FIFO queue)
+  ├── Resolves NodeExecutor via resolveExecutor():
+  │     TypeScript NodeRegistry → PythonNodeExecutor (fallback)
+  │     (AgentWorkflowRunner overrides: AgentStep → AgentStepExecutor)
+  ├── Execution mode (chosen by node metadata):
+  │     • Buffered:          process(inputs) → outputs (one shot)
+  │     • Streaming output:  genProcess(inputs) → yields partial outputs
+  │     • Streaming I/O:     run(StreamingInputs, StreamingOutputs)
+  │     • Controlled:        caches inputs, awaits control event before firing
   │
   ▼
-BaseNode.process() (packages/node-sdk or base-nodes)
-  ├── Executes node logic
-  ├── Emits ProcessingMessages via context
+NodeExecutor.process() / .genProcess() / .run()
+  ├── TypeScript nodes: BaseNode.process(context, values)
+  ├── Python nodes:     PythonNodeExecutor → Python bridge (msgpack over stdio)
+  ├── Agent nodes:      AgentStepExecutor → StepExecutor (LLM + tools)
+  ├── Emits ProcessingMessages via context (node_update, chunk, etc.)
   │
   ▼
 Output Routing
   ├── Results sent along edges to downstream NodeInboxes
-  ├── Edge counters track end-of-stream propagation
+  ├── Edge counters track EOS propagation per edge
+  ├── Streaming paths propagate EOS immediately; buffered paths wait
   ├── OutputUpdate messages streamed to client via WebSocket
   │
   ▼
 Client receives streaming updates (JobUpdate, NodeUpdate, OutputUpdate)
 ```
 
+**NodeExecutor interface** — all executor types implement one or more of:
+
+```typescript
+interface NodeExecutor {
+  // Buffered: gather all inputs, call once
+  process(inputs: Record<string, unknown>, ctx?: ProcessingContext): Promise<Record<string, unknown>>;
+
+  // Streaming output: yields partial results progressively
+  genProcess?(inputs: Record<string, unknown>, ctx?: ProcessingContext): AsyncGenerator<Record<string, unknown>>;
+
+  // Streaming I/O: node controls its own input/output flow
+  run?(inputs: StreamingInputs, outputs: StreamingOutputs, ctx?: ProcessingContext): Promise<void>;
+
+  // Lifecycle hooks
+  initialize?(): Promise<void>;
+  preProcess?(): Promise<void>;
+  finalize?(): Promise<void>;
+}
+```
+
 ### Agent System
+
+The agent system supports three execution modes selected at runtime via `MultiModeAgent`:
+
+**Mode: `loop`** — Simple iterative LLM + tool loop (single `StepExecutor`)
+
+**Mode: `plan`** — LLM decomposes the goal into a `TaskPlan` DAG, then `ParallelTaskExecutor` runs independent tasks concurrently, each via `TaskExecutor` → `StepExecutor`
+
+**Mode: `plan` + `useGraphPlanner`** — `GraphPlanner` builds a workflow graph (DAG of typed nodes) which `AgentWorkflowRunner` hands to the kernel's `WorkflowRunner`. Nodes of type `nodetool.agents.AgentStep` are executed by `AgentStepExecutor` (which wraps a `StepExecutor`); all other nodes resolve through the normal `NodeRegistry`. This is the **hybrid** path: LLM-driven reasoning nodes run alongside deterministic nodes in the same kernel.
+
+**Mode: `multi-agent`** — `SubAgentPlanner` decomposes into specialized sub-agents; `TeamExecutor` runs them with a configurable strategy (`coordinator`, `autonomous`, or `hybrid`).
 
 ```
 User sends "chat_message" with agent mode
         │
         ▼
-AgentExecutor
-  ├── Loads agent skills and available tools
+MultiModeAgent  (selects mode: loop | plan | multi-agent)
+  ├── Loads skills from filesystem (auto-matched to objective)
   │
-  ▼
-TaskPlanner
-  ├── Uses LLM to decompose goal into ordered tasks
-  │
-  ▼
-TaskExecutor (for each task)
-  ├── Selects relevant tools
-  │
-  ▼
-StepExecutor
-  ├── Calls LLM with tool schemas
-  ├── Processes tool_call responses
-  ├── Executes tools (search, code, file, browser, etc.)
-  ├── Returns tool results to LLM
-  ├── Repeats until task is complete
-  │
-  ▼
-Results streamed to client via WebSocket
+  ├─── loop mode ──────────────────────────────────────────┐
+  │    StepExecutor                                         │
+  │      ├── LLM call with tool schemas                     │
+  │      ├── tool_call → execute → result → LLM             │
+  │      └── Repeats until finish_step tool called          │
+  │                                                         │
+  ├─── plan mode ──────────────────────────────────────────┤
+  │    TaskPlanner                                          │
+  │      └── LLM → TaskPlan (tasks[] with depends_on DAG)  │
+  │    ParallelTaskExecutor                                 │
+  │      └── Independent tasks run concurrently            │
+  │          TaskExecutor (per task)                        │
+  │            └── StepExecutor (per step)                  │
+  │                 └── results stored in ProcessingContext │
+  │                                                         │
+  ├─── plan + useGraphPlanner ─────────────────────────────┤
+  │    GraphPlanner                                         │
+  │      ├── LLM iteratively calls: search_nodes,          │
+  │      │   get_node_info, add_node, add_edge, finish_graph│
+  │      └── GraphBuilder validates DAG, emits GraphData   │
+  │    AgentWorkflowRunner                                  │
+  │      └── WorkflowRunner (kernel) with custom resolver: │
+  │            AgentStep nodes → AgentStepExecutor          │
+  │                               └── StepExecutor (LLM)   │
+  │            Other nodes → NodeRegistry (deterministic)   │
+  │                                                         │
+  └─── multi-agent mode ───────────────────────────────────┘
+       SubAgentPlanner → SubAgentConfig[]
+       TeamExecutor → Agent[] (concurrent, coordinator/autonomous/hybrid)
+
+Results streamed to client via WebSocket as AsyncGenerator<ProcessingMessage>
 ```
+
+**Three levels of concurrency:**
+1. **Task-level** — `ParallelTaskExecutor` runs independent tasks from the `TaskPlan` DAG concurrently
+2. **Step-level** — `TaskExecutor` can run independent steps within a task in parallel
+3. **Node-level** — `WorkflowRunner` runs all nodes with satisfied dependencies concurrently via `NodeActor`
 
 ### Node System
 
@@ -347,7 +413,7 @@ Nodes are the fundamental units of computation. Each node:
 - Declares input properties with types and defaults
 - Declares output slots with type information
 - Implements `process(context, values)` returning output values
-- Can be synchronous or streaming (via `StreamingInputs`/`StreamingOutputs`)
+- Can be synchronous, streaming-output (`genProcess`), or full streaming I/O (`run`)
 
 ```typescript
 @node({ namespace: "math", title: "Add" })
@@ -362,7 +428,13 @@ class AddNode extends BaseNode {
 }
 ```
 
-Node types are registered in `NodeRegistry` and resolved at runtime by the kernel's executor resolution chain: TypeScript registry → Python bridge fallback.
+Node types are registered in `NodeRegistry`. At runtime the kernel resolves each node through an executor chain:
+
+1. **TypeScript `NodeRegistry`** — registered `BaseNode` subclasses run in-process
+2. **`PythonNodeExecutor`** — fallback for nodes declared in Python; communicates via the `PythonStdioBridge` (msgpack over stdin/stdout)
+3. **`AgentStepExecutor`** — used by `AgentWorkflowRunner` for nodes of type `nodetool.agents.AgentStep`; runs a `StepExecutor` LLM loop and feeds its result back into the kernel graph
+
+The executor type used also controls which `NodeActor` execution mode fires (buffered / streaming output / streaming I/O / controlled).
 
 ---
 
@@ -642,13 +714,20 @@ REST endpoints follow standard conventions:
 1. User sends a message in the chat UI
 2. GlobalChatStore sends "chat_message" via WebSocket
 3. Server creates or retrieves the thread
-4. AgentExecutor loads skills and tools for the agent
-5. TaskPlanner uses LLM to decompose the goal into tasks
-6. StepExecutor iterates: LLM call → tool_call → tool execution → result
-7. Tool calls that need frontend context are forwarded via UIToolProxy
-8. Streaming chunks sent as they're generated
-9. GlobalChatStore appends chunks to the current message
-10. Final message stored in database (models package)
+4. MultiModeAgent loads skills from filesystem (auto-matched to objective)
+5. Mode selection:
+   loop         → StepExecutor: LLM ↔ tools until finish_step
+   plan         → TaskPlanner → TaskPlan DAG
+                  ParallelTaskExecutor: concurrent tasks, each via StepExecutor
+   plan+graph   → GraphPlanner: LLM builds node graph iteratively
+                  AgentWorkflowRunner → WorkflowRunner (kernel)
+                    AgentStep nodes → AgentStepExecutor → StepExecutor
+                    Other nodes    → NodeRegistry (deterministic)
+   multi-agent  → TeamExecutor: specialized sub-agents run concurrently
+6. All paths yield AsyncGenerator<ProcessingMessage>
+7. Streaming chunks (chunk, task_update, node_update) sent as produced
+8. GlobalChatStore appends chunks to the current message
+9. Final message stored in database (models package)
 ```
 
 ---

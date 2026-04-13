@@ -24,7 +24,23 @@ export type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
  *   2. `window.location.origin + "/"` at runtime.
  */
 export const getAuthRedirectUrl = (): string => {
-  const configured = import.meta.env.VITE_AUTH_REDIRECT_URL;
+  // Try to use process.env first (for Jest tests) to avoid SyntaxError with import.meta outside a module
+  let configured;
+  if (typeof process !== "undefined" && process.env && process.env.VITE_AUTH_REDIRECT_URL) {
+      configured = process.env.VITE_AUTH_REDIRECT_URL;
+  } else {
+      // Use Function constructor to hide import.meta from Jest's Babel transformer
+      try {
+          const getEnv = new Function('return typeof import.meta !== "undefined" ? import.meta.env : undefined;');
+          const env = getEnv();
+          if (env) {
+              configured = env.VITE_AUTH_REDIRECT_URL;
+          }
+      } catch (e) {
+          // Ignore
+      }
+  }
+
   if (typeof configured === "string" && configured.length > 0) {
     return configured;
   }

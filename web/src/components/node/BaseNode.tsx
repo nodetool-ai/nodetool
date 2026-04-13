@@ -646,10 +646,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     ]
   );
 
-  if (!metadata) {
-    throw new Error("Metadata is not loaded for node " + id);
-  }
-
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
     // Reset node height to auto-size when toggling advanced fields

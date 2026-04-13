@@ -96,7 +96,7 @@ NodeTool is a visual workflow builder for AI pipelines — connect nodes to proc
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Image Editor]({{ '/image-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
+- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [App Views Gallery]({{ '/app-views' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Image Editor]({{ '/image-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
 - **I want to explore:** [Example Workflows]({{ '/workflows/' | relative_url }}), [Workflow Patterns]({{ '/cookbook' | relative_url }}), [Community](https://discord.gg/WmQTWZRcYE).
 - **I need AI models:** [Models & Providers]({{ '/models-and-providers' | relative_url }}), [HuggingFace Integration]({{ '/huggingface' | relative_url }}), [Local vs Cloud]({{ '/models' | relative_url }}).
 - **I'm coming from another tool:** [How NodeTool Compares]({{ '/comparisons' | relative_url }}) – understand where NodeTool fits.
@@ -154,6 +154,7 @@ NodeTool is a visual workflow builder for AI pipelines — connect nodes to proc
     <li><a href="{{ '/getting-started' | relative_url }}">Install & first workflow →</a></li>
     <li><a href="{{ '/key-concepts' | relative_url }}">Core concepts →</a></li>
     <li><a href="{{ '/user-interface' | relative_url }}">UI overview →</a></li>
+    <li><a href="{{ '/app-views' | relative_url }}">App views gallery →</a></li>
     <li><a href="{{ '/workflows/' | relative_url }}">Example gallery →</a></li>
     <li><a href="{{ '/cookbook' | relative_url }}">Workflow cookbook →</a></li>
     <li><a href="{{ '/models-and-providers' | relative_url }}">Models & providers →</a></li>
