@@ -12,6 +12,10 @@ import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionSc
 import GraphEditorScreen from './src/screens/GraphEditorScreen';
 import AssetsScreen from './src/screens/AssetsScreen';
 import AssetViewerScreen from './src/screens/AssetViewerScreen';
+import SecretsScreen from './src/screens/SecretsScreen';
+import CollectionsScreen from './src/screens/CollectionsScreen';
+import JobsScreen from './src/screens/JobsScreen';
+import ThreadsScreen from './src/screens/ThreadsScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { apiService } from './src/services/api';
 import { useTheme } from './src/hooks/useTheme';
@@ -112,6 +116,26 @@ export default function App() {
               name="AssetViewer"
               component={AssetViewerScreen}
               options={{ title: 'Asset' }}
+            />
+            <Stack.Screen
+              name="Secrets"
+              component={SecretsScreen}
+              options={{ title: 'API Keys' }}
+            />
+            <Stack.Screen
+              name="Collections"
+              component={CollectionsScreen}
+              options={{ title: 'Collections' }}
+            />
+            <Stack.Screen
+              name="Jobs"
+              component={JobsScreen}
+              options={{ title: 'Jobs' }}
+            />
+            <Stack.Screen
+              name="Threads"
+              component={ThreadsScreen}
+              options={{ title: 'Conversations' }}
             />
           </Stack.Navigator>
         </NavigationContainer>

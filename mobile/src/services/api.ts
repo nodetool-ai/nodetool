@@ -7,6 +7,18 @@ export type AssetList = components["schemas"]["AssetList"];
 export type AssetUpdateRequest = components["schemas"]["AssetUpdateRequest"];
 export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
 export type AssetWithPath = components["schemas"]["AssetWithPath"];
+export type SecretResponse = components["schemas"]["SecretResponse"];
+export type SecretsListResponse = components["schemas"]["SecretsListResponse"];
+export type SecretUpdateRequest = components["schemas"]["SecretUpdateRequest"];
+export type CollectionResponse = components["schemas"]["CollectionResponse"];
+export type CollectionList = components["schemas"]["CollectionList"];
+export type CollectionCreate = components["schemas"]["CollectionCreate"];
+export type CollectionModify = components["schemas"]["CollectionModify"];
+export type JobResponse = components["schemas"]["JobResponse"];
+export type JobListResponse = components["schemas"]["JobListResponse"];
+export type Thread = components["schemas"]["Thread"];
+export type ThreadList = components["schemas"]["ThreadList"];
+export type ThreadUpdateRequest = components["schemas"]["ThreadUpdateRequest"];
 
 const API_HOST_KEY = '@nodetool_api_host';
 const DEFAULT_API_HOST = 'http://localhost:7777';
@@ -261,6 +273,148 @@ class ApiService {
     const wsProtocol = this.apiHost.startsWith('https') ? 'wss:' : 'ws:';
     const url = this.apiHost.replace(/^https?:/, wsProtocol);
     return `${url}${path}`;
+  }
+
+  // ---------------------- Secrets ----------------------
+
+  async listSecrets(): Promise<SecretsListResponse> {
+    const { data, error } = await this.client.GET('/api/settings/secrets');
+    if (error) { throw error; }
+    return (data || { secrets: [], next_key: null }) as SecretsListResponse;
+  }
+
+  async getSecret(key: string, decrypt = false): Promise<SecretResponse> {
+    const { data, error } = await this.client.GET('/api/settings/secrets/{key}', {
+      params: {
+        path: { key },
+        query: { decrypt },
+      },
+    });
+    if (error) { throw error; }
+    return data as SecretResponse;
+  }
+
+  async updateSecret(key: string, update: SecretUpdateRequest): Promise<SecretResponse> {
+    const { data, error } = await this.client.PUT('/api/settings/secrets/{key}', {
+      params: { path: { key } },
+      body: update,
+    });
+    if (error) { throw error; }
+    return data as SecretResponse;
+  }
+
+  async deleteSecret(key: string): Promise<void> {
+    const { error } = await this.client.DELETE('/api/settings/secrets/{key}', {
+      params: { path: { key } },
+    });
+    if (error) { throw error; }
+  }
+
+  // ---------------------- Collections ----------------------
+
+  async listCollections(): Promise<CollectionList> {
+    const { data, error } = await this.client.GET('/api/collections/');
+    if (error) { throw error; }
+    return (data || { collections: [], count: 0 }) as CollectionList;
+  }
+
+  async getCollection(name: string): Promise<CollectionResponse> {
+    const { data, error } = await this.client.GET('/api/collections/{name}', {
+      params: { path: { name } },
+    });
+    if (error) { throw error; }
+    return data as CollectionResponse;
+  }
+
+  async createCollection(body: CollectionCreate): Promise<CollectionResponse> {
+    const { data, error } = await this.client.POST('/api/collections/', {
+      body,
+    });
+    if (error) { throw error; }
+    return data as CollectionResponse;
+  }
+
+  async updateCollection(name: string, body: CollectionModify): Promise<CollectionResponse> {
+    const { data, error } = await this.client.PUT('/api/collections/{name}', {
+      params: { path: { name } },
+      body,
+    });
+    if (error) { throw error; }
+    return data as CollectionResponse;
+  }
+
+  async deleteCollection(name: string): Promise<void> {
+    const { error } = await this.client.DELETE('/api/collections/{name}', {
+      params: { path: { name } },
+    });
+    if (error) { throw error; }
+  }
+
+  // ---------------------- Jobs ----------------------
+
+  async listJobs(params: {
+    workflow_id?: string | null;
+    limit?: number;
+    start_key?: string | null;
+  } = {}): Promise<JobListResponse> {
+    const { data, error } = await this.client.GET('/api/jobs/', {
+      params: { query: params },
+    });
+    if (error) { throw error; }
+    return (data || { jobs: [], next_start_key: null }) as JobListResponse;
+  }
+
+  async getJob(jobId: string): Promise<JobResponse> {
+    const { data, error } = await this.client.GET('/api/jobs/{job_id}', {
+      params: { path: { job_id: jobId } },
+    });
+    if (error) { throw error; }
+    return data as JobResponse;
+  }
+
+  async cancelJob(jobId: string): Promise<void> {
+    const { error } = await this.client.POST('/api/jobs/{job_id}/cancel', {
+      params: { path: { job_id: jobId } },
+    });
+    if (error) { throw error; }
+  }
+
+  // ---------------------- Threads ----------------------
+
+  async listThreads(params: {
+    cursor?: string | null;
+    limit?: number;
+    reverse?: boolean;
+  } = {}): Promise<ThreadList> {
+    const { data, error } = await this.client.GET('/api/threads/', {
+      params: { query: params },
+    });
+    if (error) { throw error; }
+    return (data || { threads: [], next: null }) as ThreadList;
+  }
+
+  async getThread(threadId: string): Promise<Thread> {
+    const { data, error } = await this.client.GET('/api/threads/{thread_id}', {
+      params: { path: { thread_id: threadId } },
+    });
+    if (error) { throw error; }
+    return data as Thread;
+  }
+
+  async updateThread(threadId: string, update: ThreadUpdateRequest): Promise<Thread> {
+    const { data, error } = await this.client.PUT('/api/threads/{thread_id}', {
+      params: { path: { thread_id: threadId } },
+      body: update,
+    });
+    if (error) { throw error; }
+    return data as Thread;
+  }
+
+  async deleteThread(threadId: string): Promise<void> {
+    const { error } = await this.client.DELETE('/api/threads/{thread_id}', {
+      params: { path: { thread_id: threadId } },
+    });
+    if (error) { throw error; }
   }
 }
 

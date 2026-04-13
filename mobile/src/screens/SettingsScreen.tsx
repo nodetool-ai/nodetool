@@ -14,10 +14,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import axios from 'axios';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiService } from '../services/api';
 import { useTheme } from '../hooks/useTheme';
+import { RootStackParamList } from '../navigation/types';
 
 type ConnectionStatus = 'idle' | 'testing' | 'success' | 'error';
+
+type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 function isValidUrl(url: string): boolean {
   try {
@@ -28,7 +32,7 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ navigation }: SettingsScreenProps) {
   const [apiHost, setApiHost] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -278,6 +282,55 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Manage Section */}
+      <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
+        <View style={styles.cardHeader}>
+          <View style={[styles.cardIconWrap, { backgroundColor: colors.accentMuted }]}>
+            <Ionicons name="briefcase-outline" size={16} color={colors.accent} />
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Manage</Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}
+          onPress={() => navigation.navigate('Secrets')}
+          accessibilityRole="button"
+          accessibilityLabel="Manage API keys"
+        >
+          <View style={styles.manageRowLeft}>
+            <Ionicons name="key-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+            <Text style={[styles.aboutLabel, { color: colors.text }]}>API Keys</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}
+          onPress={() => navigation.navigate('Collections')}
+          accessibilityRole="button"
+          accessibilityLabel="Manage collections"
+        >
+          <View style={styles.manageRowLeft}>
+            <Ionicons name="library-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+            <Text style={[styles.aboutLabel, { color: colors.text }]}>Collections</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.aboutRow}
+          onPress={() => navigation.navigate('Jobs')}
+          accessibilityRole="button"
+          accessibilityLabel="View jobs"
+        >
+          <View style={styles.manageRowLeft}>
+            <Ionicons name="time-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
+            <Text style={[styles.aboutLabel, { color: colors.text }]}>Jobs</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+        </TouchableOpacity>
+      </View>
+
       {/* About Section */}
       <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
         <View style={styles.cardHeader}>
@@ -407,6 +460,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  manageRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   aboutLabel: {
     fontSize: 15,
