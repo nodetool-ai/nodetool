@@ -89,7 +89,10 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
   const sourceOptions = useMemo(() => {
     if (!activeInput) return [];
     const inputProp = properties.find((p) => p.name === activeInput);
-    if (!inputProp) return [];
+    // Dynamic inputs have no static type — treat all sources as compatible
+    const isDynamicInput = !inputProp && dynamicInputNames.includes(activeInput);
+
+    if (!inputProp && !isDynamicInput) return [];
 
     const options: Array<{
       node: ChainNode;
@@ -99,7 +102,9 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
 
     for (const node of previousNodes) {
       for (const output of node.metadata.outputs) {
-        const compatible = areTypesCompatible(output.type, inputProp.type);
+        const compatible = isDynamicInput
+          ? true
+          : areTypesCompatible(output.type, inputProp!.type);
         options.push({ node, output, compatible });
       }
     }
@@ -107,7 +112,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
     // Sort: compatible first
     options.sort((a, b) => (a.compatible === b.compatible ? 0 : a.compatible ? -1 : 1));
     return options;
-  }, [activeInput, properties, previousNodes]);
+  }, [activeInput, properties, previousNodes, dynamicInputNames]);
 
   const handleAddDynamicInput = useCallback(() => {
     const name = newInputName.trim();
