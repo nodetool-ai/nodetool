@@ -127,7 +127,6 @@ Run through this checklist before any deployment goes live:
 - [Authentication](authentication.md) -- Auth provider configuration
 - [Configuration Guide](configuration.md) -- Environment variables and settings
 - [Deployment Guide](deployment.md) -- Deployment overview and workflows
-- [Deployment Journeys](deployment-journeys.md) -- Step-by-step deployment scenarios
 - [Self-Hosted Deployment](self-hosted-deployment.md) -- Self-hosted setup details
 - [Proxy Reference](proxy.md) -- Reverse proxy and TLS configuration
 - [Docker Resource Management](docker-resource-management.md) -- Container resource limits
