@@ -172,7 +172,6 @@ class WebSocketService {
     const routingKey = message.workflow_id || message.job_id;
 
     if (!routingKey) {
-      console.warn('WebSocketService: Message without workflow_id or job_id', message);
       return;
     }
 

@@ -4,7 +4,7 @@
  * Manages:
  * - Available node metadata (fetched from API)
  * - The ordered chain of nodes
- * - Property values, output selection, input mapping
+ * - Property values, output selection, input mappings
  * - Workflow conversion and persistence
  */
 
@@ -14,6 +14,8 @@ import type { NodeMetadata, Workflow } from "../types/ApiTypes";
 import type {
   ChainNode,
   ChainConnection,
+  InputMappings,
+  InputSource,
 } from "../types/graphEditor";
 import {
   buildConnections,
@@ -83,7 +85,14 @@ interface GraphEditorState {
   // ---- Actions: node editing ----
   updateProperty: (nodeId: string, name: string, value: unknown) => void;
   setSelectedOutput: (nodeId: string, outputName: string) => void;
-  setInputMapping: (nodeId: string, inputName: string) => void;
+  /** Set a single input mapping: which source node+output feeds this input. */
+  setInputMapping: (
+    nodeId: string,
+    inputName: string,
+    source: InputSource | null
+  ) => void;
+  /** Clear all input mappings for a node. */
+  clearInputMappings: (nodeId: string) => void;
   toggleExpanded: (nodeId: string) => void;
   collapseAll: () => void;
 
@@ -130,10 +139,15 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       for (const m of data) {
         byType.set(m.node_type, m);
       }
-      set({ allMetadata: data, metadataByType: byType, metadataLoading: false });
+      set({
+        allMetadata: data,
+        metadataByType: byType,
+        metadataLoading: false,
+      });
     } catch (err) {
       set({
-        metadataError: err instanceof Error ? err.message : "Failed to load node metadata",
+        metadataError:
+          err instanceof Error ? err.message : "Failed to load node metadata",
         metadataLoading: false,
       });
     }
@@ -143,8 +157,6 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
 
   addNode: (metadata, atIndex) => {
     const { chain } = get();
-    // Input nodes always go to the top (after existing input nodes)
-    // Output nodes always go to the bottom
     let idx: number;
     if (isInputNode(metadata.node_type)) {
       idx = chain.filter((n) => isInputNode(n.nodeType)).length;
@@ -152,7 +164,6 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       idx = chain.length;
     } else {
       idx = atIndex !== undefined ? atIndex : chain.length;
-      // Ensure non-input nodes don't go before input nodes
       const inputCount = chain.filter((n) => isInputNode(n.nodeType)).length;
       if (idx < inputCount) idx = inputCount;
     }
@@ -160,15 +171,21 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     const defaultOutput =
       metadata.outputs.length > 0 ? metadata.outputs[0].name : "";
 
-    // Determine input mapping from previous node
-    let inputMapping: string | null = null;
+    // Auto-map from previous node if compatible
+    const inputMappings: InputMappings = {};
     if (idx > 0) {
       const prev = chain[idx - 1];
       const prevOutput = prev.metadata.outputs.find(
         (o) => o.name === prev.selectedOutput
       );
       if (prevOutput) {
-        inputMapping = findBestInput(metadata, prevOutput.type);
+        const bestInput = findBestInput(metadata, prevOutput.type);
+        if (bestInput) {
+          inputMappings[bestInput] = {
+            sourceNodeId: prev.id,
+            sourceOutput: prev.selectedOutput,
+          };
+        }
       }
     }
 
@@ -178,49 +195,29 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       metadata,
       properties: defaultProperties(metadata),
       selectedOutput: defaultOutput,
-      inputMapping,
+      inputMappings,
       expanded: true,
     };
 
     const updated = [...chain];
     updated.splice(idx, 0, newNode);
 
-    // Re-resolve the input mapping of the node *after* the insertion
-    if (idx < updated.length - 1) {
-      const next = updated[idx + 1];
-      const newNodeOutput = metadata.outputs.find(
-        (o) => o.name === newNode.selectedOutput
-      );
-      if (newNodeOutput) {
-        next.inputMapping = findBestInput(next.metadata, newNodeOutput.type);
-      }
-    }
-
     set({ chain: updated, connections: buildConnections(updated) });
   },
 
   removeNode: (nodeId) => {
     const { chain } = get();
-    const idx = chain.findIndex((n) => n.id === nodeId);
-    if (idx === -1) return;
-
     const updated = chain.filter((n) => n.id !== nodeId);
 
-    // Re-map the node that was after the removed one
-    if (idx > 0 && idx < updated.length) {
-      const prev = updated[idx - 1];
-      const next = updated[idx];
-      const prevOutput = prev.metadata.outputs.find(
-        (o) => o.name === prev.selectedOutput
-      );
-      if (prevOutput) {
-        next.inputMapping = findBestInput(next.metadata, prevOutput.type);
-      } else {
-        next.inputMapping = null;
+    // Clean up any inputMappings referencing the removed node
+    for (const node of updated) {
+      const cleaned: InputMappings = {};
+      for (const [inputName, source] of Object.entries(node.inputMappings)) {
+        if (source.sourceNodeId !== nodeId) {
+          cleaned[inputName] = source;
+        }
       }
-    }
-    if (updated.length > 0 && idx === 0) {
-      updated[0].inputMapping = null;
+      node.inputMappings = cleaned;
     }
 
     set({ chain: updated, connections: buildConnections(updated) });
@@ -240,24 +237,19 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
 
-    // Rebuild all input mappings
+    // Validate all inputMappings: sources must come before targets
+    const idToIndex = new Map(updated.map((n, i) => [n.id, i]));
     for (let i = 0; i < updated.length; i++) {
-      if (i === 0) {
-        updated[i].inputMapping = null;
-      } else {
-        const prev = updated[i - 1];
-        const prevOutput = prev.metadata.outputs.find(
-          (o) => o.name === prev.selectedOutput
-        );
-        if (prevOutput) {
-          updated[i].inputMapping = findBestInput(
-            updated[i].metadata,
-            prevOutput.type
-          );
-        } else {
-          updated[i].inputMapping = null;
+      const cleaned: InputMappings = {};
+      for (const [inputName, source] of Object.entries(
+        updated[i].inputMappings
+      )) {
+        const srcIdx = idToIndex.get(source.sourceNodeId);
+        if (srcIdx !== undefined && srcIdx < i) {
+          cleaned[inputName] = source;
         }
       }
+      updated[i] = { ...updated[i], inputMappings: cleaned };
     }
 
     set({ chain: updated, connections: buildConnections(updated) });
@@ -272,6 +264,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       ...original,
       id: generateId(),
       properties: { ...original.properties },
+      inputMappings: { ...original.inputMappings },
       expanded: false,
     };
     const updated = [...chain];
@@ -294,35 +287,33 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
 
   setSelectedOutput: (nodeId, outputName) => {
     const { chain } = get();
-    const idx = chain.findIndex((n) => n.id === nodeId);
-    if (idx === -1) return;
-
-    const updated = chain.map((n, i) => {
-      if (i !== idx) return n;
+    const updated = chain.map((n) => {
+      if (n.id !== nodeId) return n;
       return { ...n, selectedOutput: outputName };
     });
-
-    // Update the next node's input mapping
-    if (idx < updated.length - 1) {
-      const source = updated[idx];
-      const output = source.metadata.outputs.find(
-        (o) => o.name === outputName
-      );
-      if (output) {
-        updated[idx + 1] = {
-          ...updated[idx + 1],
-          inputMapping: findBestInput(updated[idx + 1].metadata, output.type),
-        };
-      }
-    }
-
     set({ chain: updated, connections: buildConnections(updated) });
   },
 
-  setInputMapping: (nodeId, inputName) => {
+  setInputMapping: (nodeId, inputName, source) => {
+    set((state) => {
+      const chain = state.chain.map((n) => {
+        if (n.id !== nodeId) return n;
+        const mappings = { ...n.inputMappings };
+        if (source) {
+          mappings[inputName] = source;
+        } else {
+          delete mappings[inputName];
+        }
+        return { ...n, inputMappings: mappings };
+      });
+      return { chain, connections: buildConnections(chain) };
+    });
+  },
+
+  clearInputMappings: (nodeId) => {
     set((state) => {
       const chain = state.chain.map((n) =>
-        n.id === nodeId ? { ...n, inputMapping: inputName } : n
+        n.id === nodeId ? { ...n, inputMappings: {} } : n
       );
       return { chain, connections: buildConnections(chain) };
     });
@@ -360,22 +351,29 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       byType.set(m.node_type, m);
     }
 
-    // Build a lookup for edges: target -> { sourceHandle, source }
-    const edgesByTarget = new Map<string, { source: string; sourceHandle: string; targetHandle: string }>();
+    // Build edge lookup: target → list of edges
+    const edgesByTarget = new Map<
+      string,
+      Array<{
+        source: string;
+        sourceHandle: string;
+        targetHandle: string;
+      }>
+    >();
     for (const e of workflow.graph.edges) {
-      edgesByTarget.set(e.target, {
+      const existing = edgesByTarget.get(e.target) ?? [];
+      existing.push({
         source: e.source,
         sourceHandle: e.sourceHandle,
         targetHandle: e.targetHandle,
       });
+      edgesByTarget.set(e.target, existing);
     }
 
-    // Topological order (simple: follow edges from roots)
+    // Topological sort
     const nodeMap = new Map(workflow.graph.nodes.map((n) => [n.id, n]));
     const visited = new Set<string>();
     const ordered: typeof workflow.graph.nodes = [];
-
-    // Find root nodes (no incoming data edges)
     const targets = new Set(workflow.graph.edges.map((e) => e.target));
     const roots = workflow.graph.nodes.filter((n) => !targets.has(n.id));
 
@@ -384,15 +382,11 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       visited.add(nodeId);
       const node = nodeMap.get(nodeId);
       if (node) ordered.push(node);
-      // Follow outgoing edges
       for (const e of workflow.graph.edges) {
-        if (e.source === nodeId) {
-          visit(e.target);
-        }
+        if (e.source === nodeId) visit(e.target);
       }
     }
     for (const r of roots) visit(r.id);
-    // Add any remaining unvisited nodes
     for (const n of workflow.graph.nodes) {
       if (!visited.has(n.id)) ordered.push(n);
     }
@@ -402,34 +396,40 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
         const meta = byType.get(node.type);
         if (!meta) return null;
 
-        const edgeInfo = edgesByTarget.get(node.id);
-        const inputMapping = edgeInfo ? edgeInfo.targetHandle : null;
+        // Build inputMappings from all incoming edges
+        const incomingEdges = edgesByTarget.get(node.id) ?? [];
+        const inputMappings: InputMappings = {};
+        for (const edge of incomingEdges) {
+          inputMappings[edge.targetHandle] = {
+            sourceNodeId: edge.source,
+            sourceOutput: edge.sourceHandle,
+          };
+        }
 
-        // Determine selected output: if this node is a source of an edge, use that sourceHandle
+        // Determine selected output from outgoing edges
         const outgoingEdge = workflow.graph.edges.find(
           (e) => e.source === node.id
         );
         const selectedOutput =
           outgoingEdge?.sourceHandle ?? (meta.outputs[0]?.name ?? "");
 
-        const chainNode: ChainNode = {
+        return {
           id: node.id,
           nodeType: node.type,
           metadata: meta,
           properties: (node.data ?? {}) as Record<string, unknown>,
           selectedOutput,
-          inputMapping,
-          expanded: false,
-        };
-        return chainNode;
+          inputMappings,
+          expanded: false as boolean,
+        } as ChainNode;
       })
       .filter((n): n is ChainNode => n !== null);
 
-    // Sort: input nodes first, then regular nodes, then output nodes
+    // Sort: input nodes first, then regular, then output
     chain.sort((a, b) => {
-      const aGroup = isInputNode(a.nodeType) ? 0 : isOutputNode(a.nodeType) ? 2 : 1;
-      const bGroup = isInputNode(b.nodeType) ? 0 : isOutputNode(b.nodeType) ? 2 : 1;
-      return aGroup - bGroup;
+      const aG = isInputNode(a.nodeType) ? 0 : isOutputNode(a.nodeType) ? 2 : 1;
+      const bG = isInputNode(b.nodeType) ? 0 : isOutputNode(b.nodeType) ? 2 : 1;
+      return aG - bG;
     });
 
     set({
@@ -457,7 +457,10 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           id: workflowId,
           name: workflowName,
           description: "",
-          graph: graph as unknown as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> },
+          graph: graph as unknown as {
+            nodes: Array<Record<string, unknown>>;
+            edges: Array<Record<string, unknown>>;
+          },
           access: "private",
         });
         return result as unknown as Workflow;
@@ -465,7 +468,10 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
         const result = await apiService.createWorkflow({
           name: workflowName,
           description: "",
-          graph: graph as unknown as { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> },
+          graph: graph as unknown as {
+            nodes: Array<Record<string, unknown>>;
+            edges: Array<Record<string, unknown>>;
+          },
           access: "private",
         });
         const newId = (result as unknown as Workflow).id;

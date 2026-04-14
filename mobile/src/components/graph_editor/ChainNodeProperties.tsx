@@ -15,8 +15,8 @@ interface ChainNodePropertiesProps {
   nodeType: string;
   properties: Property[];
   values: Record<string, unknown>;
-  /** Input that is being fed by the previous node (shown as "connected"). */
-  connectedInput: string | null;
+  /** Inputs that are wired from other nodes (shown as "connected"). */
+  connectedInputs: string[];
   onUpdate: (name: string, value: unknown) => void;
 }
 
@@ -24,7 +24,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
   nodeType,
   properties,
   values,
-  connectedInput,
+  connectedInputs,
   onUpdate,
 }) => {
   const { colors } = useTheme();
@@ -54,7 +54,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
           property={prop}
           value={values[prop.name] ?? prop.default}
           nodeType={nodeType}
-          isConnected={prop.name === connectedInput}
+          isConnected={connectedInputs.includes(prop.name)}
           onChange={(v) => handleChange(prop.name, v)}
         />
       ))}

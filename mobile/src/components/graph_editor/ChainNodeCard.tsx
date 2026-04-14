@@ -11,7 +11,7 @@
  * result preview for the selected output.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -25,7 +25,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../hooks/useTheme";
-import type { ChainNode } from "../../types/graphEditor";
+import type { ChainNode, InputSource } from "../../types/graphEditor";
 import type { PropertyTypeMetadata } from "../../types/ApiTypes";
 import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
@@ -47,12 +47,12 @@ interface ChainNodeCardProps {
   totalNodes: number;
   /** Workflow id, used to subscribe to execution state. Null when not running. */
   workflowId: string | null;
-  /** Output type from the previous node (null for the first node). */
-  prevOutputType: PropertyTypeMetadata | null;
+  /** All nodes before this one in the chain (for input mapping). */
+  previousNodes: ChainNode[];
   onToggleExpanded: () => void;
   onUpdateProperty: (name: string, value: unknown) => void;
   onSetOutput: (outputName: string) => void;
-  onSetInputMapping: (inputName: string) => void;
+  onSetInputMapping: (inputName: string, source: InputSource | null) => void;
   onRemove: () => void;
   onDuplicate: () => void;
   onMoveUp: () => void;
@@ -85,21 +85,28 @@ function useNodeExecState(workflowId: string | null, nodeId: string) {
   const progress = runnerStore((s) =>
     workflowId ? s.nodeProgress[nodeId] : undefined
   );
+  // Per-node result from node_update, falling back to job-level results
   const result = runnerStore((s) => {
     if (!workflowId) return undefined;
+    const nodeResult = s.nodeResults[nodeId];
+    if (nodeResult !== undefined) return nodeResult;
     const results = s.results as Record<string, unknown> | null | undefined;
     if (results && typeof results === "object" && !Array.isArray(results)) {
       return (results as Record<string, unknown>)[nodeId];
     }
     return undefined;
   });
+  // Per-node error message
+  const error = runnerStore((s) =>
+    workflowId ? s.nodeErrors[nodeId] : undefined
+  );
 
   const isRunning =
     status === "running" || status === "booting" || status === "starting";
   const isCompleted = status === "completed";
   const isError = status === "error";
 
-  return { status, progress, result, isRunning, isCompleted, isError };
+  return { status, progress, result, error, isRunning, isCompleted, isError };
 }
 
 const NAMESPACE_COLORS: Record<string, string> = {
@@ -135,7 +142,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
   index,
   totalNodes,
   workflowId,
-  prevOutputType,
+  previousNodes,
   onToggleExpanded,
   onUpdateProperty,
   onSetOutput,
@@ -148,10 +155,45 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
   const { colors, shadows } = useTheme();
   const nsColor = getNamespaceColor(node.metadata.namespace);
 
-  const { progress, result, isRunning, isCompleted, isError } =
+  const { progress, result, error, isRunning, isCompleted, isError } =
     useNodeExecState(workflowId, node.id);
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
+
+  // Indeterminate progress bar animation
+  const indeterminateAnim = useRef(new Animated.Value(0)).current;
+  const hasDeterminateProgress = progress !== undefined && progress.total > 0;
+  useEffect(() => {
+    if (!isRunning || hasDeterminateProgress) {
+      indeterminateAnim.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.timing(indeterminateAnim, {
+        toValue: 1,
+        duration: 1500,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: false,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isRunning, hasDeterminateProgress, indeterminateAnim]);
+
+  // Execution time tracking
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (isRunning) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isRunning]);
 
   const handleToggle = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -159,14 +201,30 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
   }, [onToggleExpanded]);
 
   const outputCount = node.metadata.outputs.length;
-  const propertyCount = node.metadata.properties.length;
 
-  // Filter to non-connected properties for the summary
-  const configuredCount = useMemo(() => {
-    return Object.keys(node.properties).filter(
-      (k) => node.properties[k] !== undefined && node.properties[k] !== ""
-    ).length;
-  }, [node.properties]);
+  // Spinning icon animation for running state
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!isRunning) {
+      spinAnim.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 1500,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isRunning, spinAnim]);
+
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   // Pulse animation while running (mirrors the web's pulseGlow keyframes).
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -226,18 +284,35 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
         <View
           style={[styles.progressTrack, { backgroundColor: nsColor + "20" }]}
         >
-          <View
-            style={[
-              styles.progressFill,
-              {
-                backgroundColor: nsColor,
-                width:
-                  progress !== undefined && progress >= 0 && progress <= 1
-                    ? `${Math.min(100, Math.max(0, progress * 100))}%`
-                    : "40%",
-              },
-            ]}
-          />
+          {hasDeterminateProgress ? (
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: nsColor,
+                  width: `${Math.min(100, (progress.progress / progress.total) * 100)}%`,
+                },
+              ]}
+            />
+          ) : (
+            <Animated.View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: nsColor,
+                  width: "40%",
+                  transform: [
+                    {
+                      translateX: indeterminateAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-100, 300],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          )}
         </View>
       )}
       {/* Header */}
@@ -265,30 +340,43 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
           >
             {node.metadata.title}
           </Text>
-          <View style={styles.subtitleRow}>
-            <Text style={[styles.namespace, { color: nsColor }]}>
-              {formatNamespace(node.metadata.namespace)}
-            </Text>
-            {!node.expanded && propertyCount > 0 && (
-              <Text
-                style={[styles.configSummary, { color: colors.textTertiary }]}
-              >
-                {configuredCount}/{propertyCount} configured
-              </Text>
-            )}
-          </View>
         </View>
 
+        {/* Running indicator with time */}
+        {isRunning && (
+          <View style={styles.statusRow}>
+            {hasDeterminateProgress && (
+              <Text style={[styles.progressText, { color: nsColor }]}>
+                {progress.progress}/{progress.total}
+              </Text>
+            )}
+            <Text style={[styles.elapsedText, { color: colors.textTertiary }]}>
+              {elapsed}s
+            </Text>
+            <Animated.View style={{ transform: [{ rotate: spin }] }}>
+              <Ionicons name="sync-outline" size={16} color={nsColor} />
+            </Animated.View>
+          </View>
+        )}
         {isCompleted && (
-          <Ionicons
-            name="checkmark-circle-outline"
-            size={18}
-            color={colors.success}
-          />
+          <View style={styles.statusRow}>
+            {elapsed > 0 && (
+              <Text
+                style={[styles.elapsedText, { color: colors.textTertiary }]}
+              >
+                {elapsed}s
+              </Text>
+            )}
+            <Ionicons
+              name="checkmark-circle"
+              size={18}
+              color={colors.success}
+            />
+          </View>
         )}
         {isError && (
           <Ionicons
-            name="alert-circle-outline"
+            name="alert-circle"
             size={18}
             color={colors.error}
           />
@@ -301,8 +389,18 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
         />
       </TouchableOpacity>
 
+      {/* Error message (visible even when collapsed) */}
+      {isError && error && (
+        <View style={[styles.errorBanner, { backgroundColor: colors.error + "12" }]}>
+          <Ionicons name="alert-circle" size={16} color={colors.error} />
+          <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={4}>
+            {error}
+          </Text>
+        </View>
+      )}
+
       {/* Result preview (visible even when collapsed) */}
-      {outputValue !== undefined && !isRunning && (
+      {outputValue !== undefined && !isRunning && !isError && (
         <View style={styles.resultPreview}>
           <OutputRenderer value={outputValue} />
         </View>
@@ -321,14 +419,14 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
             </Text>
           ) : null}
 
-          {/* Input mapping (if not the first node) */}
-          {index > 0 && (
+          {/* Input mappings (wire inputs from any previous node) */}
+          {previousNodes.length > 0 && (
             <View style={styles.mappingSection}>
               <InputMappingSelector
                 properties={node.metadata.properties}
-                selectedInput={node.inputMapping}
-                sourceOutputType={prevOutputType}
-                onSelect={onSetInputMapping}
+                inputMappings={node.inputMappings}
+                previousNodes={previousNodes}
+                onSetMapping={onSetInputMapping}
               />
             </View>
           )}
@@ -344,7 +442,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
               nodeType={node.nodeType}
               properties={node.metadata.properties}
               values={node.properties}
-              connectedInput={node.inputMapping}
+              connectedInputs={Object.keys(node.inputMappings)}
               onUpdate={onUpdateProperty}
             />
           </View>
@@ -438,9 +536,40 @@ const styles = StyleSheet.create({
   progressTrack: {
     height: 3,
     width: "100%",
+    overflow: "hidden",
   },
   progressFill: {
     height: 3,
+    borderRadius: 1.5,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  progressText: {
+    fontSize: 11,
+    fontWeight: "700",
+    fontFamily: "monospace",
+  },
+  elapsedText: {
+    fontSize: 11,
+    fontWeight: "600",
+    fontFamily: "monospace",
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginHorizontal: 14,
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   resultPreview: {
     paddingHorizontal: 14,
@@ -472,19 +601,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  subtitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  namespace: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  configSummary: {
-    fontSize: 11,
-  },
-  expandedContent: {
+expandedContent: {
     paddingHorizontal: 14,
     paddingBottom: 14,
     gap: 12,

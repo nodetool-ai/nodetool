@@ -829,7 +829,10 @@ export class UnifiedWebSocketRunner {
     log.info("Client connected", { userId: this.userId });
 
     this.startHeartbeat();
-    this.startStatsBroadcast();
+    // Only broadcast system stats in development — unnecessary overhead in production
+    if (process.env.NODE_ENV !== "production") {
+      this.startStatsBroadcast();
+    }
     this.registerObserver();
   }
 

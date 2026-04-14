@@ -26,6 +26,7 @@ import { useTheme } from "../hooks/useTheme";
 import { useGraphEditorStore } from "../stores/GraphEditorStore";
 import { apiService } from "../services/api";
 import { ChainEditor } from "../components/graph_editor/ChainEditor";
+import { FloatingToolbar } from "../components/graph_editor/FloatingToolbar";
 import { Workflow, MiniAppResult } from "../types/miniapp";
 import { useWorkflowRunner } from "../stores/WorkflowRunner";
 import { useMiniAppInputs } from "../hooks/useMiniAppInputs";
@@ -80,49 +81,14 @@ const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     init();
   }, [workflowId, loadWorkflowToStore, newWorkflow, fetchMetadata, allMetadata]);
 
+  const handleToggleView = useCallback(() => {
+    setViewMode((m) => (m === "editor" ? "runner" : "editor"));
+  }, []);
+
   useEffect(() => {
     const title = workflow?.name || "Workflow Editor";
-    navigation.setOptions({
-      title,
-      headerRight: () =>
-        workflowId ? (
-          <View style={editorStyles.headerToggle}>
-            <TouchableOpacity
-              onPress={() => setViewMode("editor")}
-              style={[
-                editorStyles.toggleButton,
-                viewMode === "editor" && { backgroundColor: colors.primary },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Editor view"
-              accessibilityState={{ selected: viewMode === "editor" }}
-            >
-              <Ionicons
-                name="git-network-outline"
-                size={16}
-                color={viewMode === "editor" ? "#fff" : colors.textSecondary}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setViewMode("runner")}
-              style={[
-                editorStyles.toggleButton,
-                viewMode === "runner" && { backgroundColor: colors.primary },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Runner view"
-              accessibilityState={{ selected: viewMode === "runner" }}
-            >
-              <Ionicons
-                name="play-outline"
-                size={16}
-                color={viewMode === "runner" ? "#fff" : colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-        ) : null,
-    });
-  }, [navigation, workflow, workflowId, viewMode, colors]);
+    navigation.setOptions({ title });
+  }, [navigation, workflow]);
 
   if (loading) {
     return (
@@ -146,11 +112,20 @@ const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  if (viewMode === "runner" && workflowId && workflow) {
-    return <MiniAppRunner workflowId={workflowId} workflow={workflow} />;
-  }
-
-  return <ChainEditor />;
+  return (
+    <View style={editorStyles.flex}>
+      {viewMode === "runner" && workflowId && workflow ? (
+        <MiniAppRunner workflowId={workflowId} workflow={workflow} />
+      ) : (
+        <ChainEditor />
+      )}
+      <FloatingToolbar
+        workflowId={workflowId}
+        viewMode={viewMode}
+        onToggleView={handleToggleView}
+      />
+    </View>
+  );
 };
 
 /** Embedded mini app runner view */
@@ -437,6 +412,9 @@ function MiniAppRunner({
 }
 
 const editorStyles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   centered: {
     flex: 1,
     alignItems: "center",
@@ -451,17 +429,6 @@ const editorStyles = StyleSheet.create({
     fontSize: 15,
     textAlign: "center",
     marginHorizontal: 32,
-  },
-  headerToggle: {
-    flexDirection: "row",
-    borderRadius: 8,
-    overflow: "hidden",
-    gap: 4,
-  },
-  toggleButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
   },
 });
 

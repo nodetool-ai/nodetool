@@ -1,8 +1,8 @@
 /**
- * Selector for choosing which input property of a node
- * receives data from the previous node's output.
+ * Selector for wiring inputs of a node to outputs of any previous node.
  *
- * Shows compatible inputs based on type matching.
+ * Shows all input properties and lets the user pick a source
+ * (any previous node + output) for each one.
  */
 
 import React, { useState, useCallback, useMemo } from "react";
@@ -14,18 +14,23 @@ import {
   FlatList,
   StyleSheet,
   SafeAreaView,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../hooks/useTheme";
 import type { Property, PropertyTypeMetadata } from "../../types/ApiTypes";
+import type { ChainNode, InputMappings, InputSource } from "../../types/graphEditor";
 import { areTypesCompatible } from "../../types/graphEditor";
 
 interface InputMappingSelectorProps {
+  /** The current node's properties (potential inputs). */
   properties: Property[];
-  selectedInput: string | null;
-  /** The output type from the previous node (for compatibility filtering). */
-  sourceOutputType: PropertyTypeMetadata | null;
-  onSelect: (inputName: string) => void;
+  /** Current input mappings for this node. */
+  inputMappings: InputMappings;
+  /** All nodes that come before this one in the chain. */
+  previousNodes: ChainNode[];
+  /** Called when user sets/clears a mapping. */
+  onSetMapping: (inputName: string, source: InputSource | null) => void;
 }
 
 function formatType(type: PropertyTypeMetadata): string {
@@ -37,80 +42,150 @@ function formatType(type: PropertyTypeMetadata): string {
 
 export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
   properties,
-  selectedInput,
-  sourceOutputType,
-  onSelect,
+  inputMappings,
+  previousNodes,
+  onSetMapping,
 }) => {
   const { colors } = useTheme();
-  const [pickerVisible, setPickerVisible] = useState(false);
+  const [activeInput, setActiveInput] = useState<string | null>(null);
 
-  const compatibleProps = useMemo(() => {
-    if (!sourceOutputType) return properties;
-    return properties.filter((p) =>
-      areTypesCompatible(sourceOutputType, p.type)
-    );
-  }, [properties, sourceOutputType]);
+  const mappedCount = Object.keys(inputMappings).length;
 
-  const allProps = useMemo(() => {
-    if (!sourceOutputType) return properties;
-    // Show compatible first, then incompatible (dimmed)
-    const compatible = new Set(compatibleProps.map((p) => p.name));
-    return [
-      ...compatibleProps,
-      ...properties.filter((p) => !compatible.has(p.name)),
-    ];
-  }, [properties, compatibleProps, sourceOutputType]);
-
-  const selected = properties.find((p) => p.name === selectedInput);
+  const handleOpenPicker = useCallback((inputName: string) => {
+    setActiveInput(inputName);
+  }, []);
 
   const handleSelect = useCallback(
-    (name: string) => {
-      onSelect(name);
-      setPickerVisible(false);
+    (source: InputSource | null) => {
+      if (activeInput) {
+        onSetMapping(activeInput, source);
+      }
+      setActiveInput(null);
     },
-    [onSelect]
+    [activeInput, onSetMapping]
   );
 
-  if (!selectedInput && compatibleProps.length === 0) return null;
+  // Build source options for the active input
+  const sourceOptions = useMemo(() => {
+    if (!activeInput) return [];
+    const inputProp = properties.find((p) => p.name === activeInput);
+    if (!inputProp) return [];
+
+    const options: Array<{
+      node: ChainNode;
+      output: { name: string; type: PropertyTypeMetadata };
+      compatible: boolean;
+    }> = [];
+
+    for (const node of previousNodes) {
+      for (const output of node.metadata.outputs) {
+        const compatible = areTypesCompatible(output.type, inputProp.type);
+        options.push({ node, output, compatible });
+      }
+    }
+
+    // Sort: compatible first
+    options.sort((a, b) => (a.compatible === b.compatible ? 0 : a.compatible ? -1 : 1));
+    return options;
+  }, [activeInput, properties, previousNodes]);
+
+  if (properties.length === 0) return null;
 
   return (
     <>
-      <TouchableOpacity
-        style={[
-          styles.trigger,
-          {
-            backgroundColor: colors.accentMuted,
-            borderColor: colors.accent + "40",
-          },
-        ]}
-        onPress={() => setPickerVisible(true)}
-        activeOpacity={0.7}
-      >
-        <Ionicons
-          name="enter-outline"
-          size={14}
-          color={colors.accent}
-        />
-        <Text style={[styles.triggerText, { color: colors.accent }]}>
-          Input: {selected?.title ?? selected?.name ?? selectedInput ?? "none"}
-        </Text>
-        <Ionicons
-          name="chevron-down"
-          size={14}
-          color={colors.accent}
-        />
-      </TouchableOpacity>
+      {/* Compact summary of all wired inputs */}
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <Ionicons name="git-merge-outline" size={14} color={colors.accent} />
+          <Text style={[styles.headerText, { color: colors.accent }]}>
+            Inputs {mappedCount > 0 ? `(${mappedCount} wired)` : ""}
+          </Text>
+        </View>
 
+        {properties.map((prop) => {
+          const mapping = inputMappings[prop.name];
+          const sourceNode = mapping
+            ? previousNodes.find((n) => n.id === mapping.sourceNodeId)
+            : null;
+
+          return (
+            <TouchableOpacity
+              key={prop.name}
+              style={[
+                styles.inputRow,
+                {
+                  backgroundColor: mapping
+                    ? colors.accentMuted
+                    : colors.inputBg,
+                  borderColor: mapping
+                    ? colors.accent + "40"
+                    : colors.borderLight,
+                },
+              ]}
+              onPress={() => handleOpenPicker(prop.name)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.inputInfo}>
+                <Text
+                  style={[
+                    styles.inputName,
+                    { color: mapping ? colors.accent : colors.text },
+                  ]}
+                >
+                  {prop.title ?? prop.name}
+                </Text>
+                <Text style={[styles.inputType, { color: colors.textTertiary }]}>
+                  {formatType(prop.type)}
+                </Text>
+              </View>
+
+              {mapping && sourceNode ? (
+                <View style={styles.sourceTag}>
+                  <Ionicons
+                    name="arrow-back"
+                    size={10}
+                    color={colors.accent}
+                  />
+                  <Text
+                    style={[styles.sourceText, { color: colors.accent }]}
+                    numberOfLines={1}
+                  >
+                    {sourceNode.metadata.title}.{mapping.sourceOutput}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => onSetMapping(prop.name, null)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={14}
+                      color={colors.accent}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Ionicons
+                  name="add-circle-outline"
+                  size={18}
+                  color={colors.textTertiary}
+                />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Source picker modal */}
       <Modal
-        visible={pickerVisible}
+        visible={activeInput !== null}
         transparent
         animationType="fade"
-        onRequestClose={() => setPickerVisible(false)}
+        onRequestClose={() => setActiveInput(null)}
       >
         <TouchableOpacity
           style={styles.backdrop}
           activeOpacity={1}
-          onPress={() => setPickerVisible(false)}
+          onPress={() => setActiveInput(null)}
         >
           <SafeAreaView
             style={[
@@ -119,23 +194,43 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
             ]}
           >
             <Text style={[styles.pickerTitle, { color: colors.text }]}>
-              Receives Data On
+              Source for "{activeInput}"
             </Text>
-            {sourceOutputType && (
-              <Text style={[styles.pickerSubtitle, { color: colors.textSecondary }]}>
-                From output type: {formatType(sourceOutputType)}
+            <Text
+              style={[styles.pickerSubtitle, { color: colors.textSecondary }]}
+            >
+              Pick which node output feeds this input
+            </Text>
+
+            {/* None option */}
+            <TouchableOpacity
+              style={[
+                styles.option,
+                {
+                  backgroundColor:
+                    activeInput && !inputMappings[activeInput]
+                      ? colors.accentMuted
+                      : "transparent",
+                  borderColor: colors.borderLight,
+                },
+              ]}
+              onPress={() => handleSelect(null)}
+            >
+              <Text style={[styles.optionName, { color: colors.textSecondary }]}>
+                No connection
               </Text>
-            )}
-            <FlatList
-              data={allProps}
-              keyExtractor={(item) => item.name}
-              renderItem={({ item }) => {
-                const isSelected = item.name === selectedInput;
-                const isCompatible =
-                  !sourceOutputType ||
-                  areTypesCompatible(sourceOutputType, item.type);
+            </TouchableOpacity>
+
+            <ScrollView style={styles.optionsList}>
+              {sourceOptions.map(({ node, output, compatible }) => {
+                const isSelected =
+                  activeInput &&
+                  inputMappings[activeInput]?.sourceNodeId === node.id &&
+                  inputMappings[activeInput]?.sourceOutput === output.name;
+
                 return (
                   <TouchableOpacity
+                    key={`${node.id}-${output.name}`}
                     style={[
                       styles.option,
                       {
@@ -145,10 +240,15 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                         borderColor: isSelected
                           ? colors.accent + "40"
                           : colors.borderLight,
-                        opacity: isCompatible ? 1 : 0.4,
+                        opacity: compatible ? 1 : 0.4,
                       },
                     ]}
-                    onPress={() => handleSelect(item.name)}
+                    onPress={() =>
+                      handleSelect({
+                        sourceNodeId: node.id,
+                        sourceOutput: output.name,
+                      })
+                    }
                     activeOpacity={0.7}
                   >
                     <View style={styles.optionContent}>
@@ -156,13 +256,11 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                         style={[
                           styles.optionName,
                           {
-                            color: isSelected
-                              ? colors.accent
-                              : colors.text,
+                            color: isSelected ? colors.accent : colors.text,
                           },
                         ]}
                       >
-                        {item.title ?? item.name}
+                        {node.metadata.title}
                       </Text>
                       <Text
                         style={[
@@ -170,8 +268,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                           { color: colors.textSecondary },
                         ]}
                       >
-                        {formatType(item.type)}
-                        {item.description ? ` \u2014 ${item.description}` : ""}
+                        .{output.name} → {formatType(output.type)}
                       </Text>
                     </View>
                     {isSelected && (
@@ -181,7 +278,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                         color={colors.accent}
                       />
                     )}
-                    {!isCompatible && (
+                    {!compatible && (
                       <Ionicons
                         name="warning-outline"
                         size={16}
@@ -190,8 +287,8 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                     )}
                   </TouchableOpacity>
                 );
-              }}
-            />
+              })}
+            </ScrollView>
           </SafeAreaView>
         </TouchableOpacity>
       </Modal>
@@ -200,19 +297,50 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
 };
 
 const styles = StyleSheet.create({
-  trigger: {
+  container: {
+    gap: 6,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignSelf: "flex-start",
+    marginBottom: 2,
   },
-  triggerText: {
+  headerText: {
     fontSize: 13,
     fontWeight: "600",
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  inputInfo: {
+    flex: 1,
+    gap: 1,
+  },
+  inputName: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  inputType: {
+    fontSize: 11,
+  },
+  sourceTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 1,
+    maxWidth: "50%",
+  },
+  sourceText: {
+    fontSize: 11,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   backdrop: {
     flex: 1,
@@ -223,7 +351,7 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     width: "100%",
-    maxHeight: 450,
+    maxHeight: 500,
     borderRadius: 16,
     padding: 20,
   },
@@ -235,6 +363,9 @@ const styles = StyleSheet.create({
   pickerSubtitle: {
     fontSize: 13,
     marginBottom: 16,
+  },
+  optionsList: {
+    maxHeight: 350,
   },
   option: {
     flexDirection: "row",

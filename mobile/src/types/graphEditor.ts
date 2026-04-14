@@ -1,9 +1,9 @@
 /**
  * Types for the mobile chain-based graph editor.
  *
- * The editor models a workflow as a linear chain of nodes,
- * similar to Zapier. Each node's selected output connects
- * to a chosen input on the next node.
+ * The editor models a workflow as a linear chain of nodes.
+ * Each input on a node can be wired to any *previous* node's output,
+ * not just the immediately preceding one.
  */
 
 import type {
@@ -17,6 +17,23 @@ import type {
   PropertyTypeMetadata,
 } from "./ApiTypes";
 
+// ── Input source mapping ─────────────────────────────────────────────
+
+/** Describes where a single input gets its data from. */
+export interface InputSource {
+  /** The chain node id of the source. */
+  sourceNodeId: string;
+  /** Which output slot on the source node. */
+  sourceOutput: string;
+}
+
+/**
+ * Maps input property names to their source.
+ * Keys are input property names on *this* node.
+ * An empty record means no inputs are wired.
+ */
+export type InputMappings = Record<string, InputSource>;
+
 // ── Chain node ───────────────────────────────────────────────────────
 
 /** A single node in the vertical chain. */
@@ -29,20 +46,20 @@ export interface ChainNode {
   metadata: NodeMetadata;
   /** User-configured property values keyed by property name. */
   properties: Record<string, unknown>;
-  /** Which output slot feeds the *next* node in the chain. */
+  /** Which output slot feeds downstream nodes by default. */
   selectedOutput: string;
   /**
-   * Which input on *this* node receives data from the *previous* node.
-   * `null` for the first node in the chain.
+   * Maps input property names → source node + output.
+   * Replaces the old single `inputMapping` field.
    */
-  inputMapping: string | null;
+  inputMappings: InputMappings;
   /** Whether the property editor is expanded. */
   expanded: boolean;
 }
 
 // ── Connection (visual + data) ───────────────────────────────────────
 
-/** Describes the connection between two adjacent chain nodes. */
+/** Describes a connection between any two chain nodes. */
 export interface ChainConnection {
   /** Source chain-node id. */
   sourceId: string;
@@ -137,18 +154,16 @@ export function chainToGraph(
   return { nodes, edges };
 }
 
-/** Build the connections array from the ordered chain. */
+/** Build the connections array from the ordered chain's inputMappings. */
 export function buildConnections(chain: ChainNode[]): ChainConnection[] {
   const connections: ChainConnection[] = [];
-  for (let i = 0; i < chain.length - 1; i++) {
-    const source = chain[i];
-    const target = chain[i + 1];
-    if (target.inputMapping) {
+  for (const node of chain) {
+    for (const [inputName, source] of Object.entries(node.inputMappings)) {
       connections.push({
-        sourceId: source.id,
-        sourceOutput: source.selectedOutput,
-        targetId: target.id,
-        targetInput: target.inputMapping,
+        sourceId: source.sourceNodeId,
+        sourceOutput: source.sourceOutput,
+        targetId: node.id,
+        targetInput: inputName,
       });
     }
   }
