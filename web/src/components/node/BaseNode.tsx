@@ -34,6 +34,7 @@ import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import ResultOverlay from "./ResultOverlay";
+import { getBaseNodeSelectionStyles } from "./selectionStyles";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -273,64 +274,6 @@ const getHeaderColors = (
     baseColor
   };
 };
-
-// Memoized function to generate node container styles
-const getNodeContainerStyles = (
-  isLoading: boolean,
-  selected: boolean,
-  isFocused: boolean,
-  hasParent: boolean,
-  hasToggleableResult: boolean,
-  baseColor: string | undefined,
-  parentColor: string | null,
-  theme: Theme,
-  minHeight: number
-) => ({
-  display: "flex" as const,
-  // Important for resizable nodes:
-  // ReactFlow applies width/height to the wrapper. Ensure our visual container
-  // stretches to match so vertical resizing is visible.
-  height: "100%",
-  minHeight,
-  overflow: "visible" as const,
-  border: isLoading ? "none" : `1px solid var(--palette-grey-900)`,
-  ...theme.applyStyles("dark", {
-    border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
-  }),
-  boxShadow: selected
-    ? `0 0 0 1px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
-    : isFocused
-      ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-      : "none",
-  outline: isFocused
-    ? `2px dashed ${theme.vars.palette.warning.main}`
-    : selected
-      ? `3px solid ${baseColor || "#666"}`
-      : "none",
-  outlineOffset: "-2px",
-  backgroundColor:
-    hasParent && !isLoading
-      ? parentColor
-      : theme.vars.palette.c_node_bg,
-  borderRadius: "var(--rounded-node)",
-  // dynamic node color
-  "--node-primary-color": baseColor || "var(--palette-primary-main)",
-  ...(hasToggleableResult
-    ? {
-        // show the corner resize handle on hover
-        "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-          opacity: 0,
-          position: "absolute" as const,
-          right: "-8px",
-          bottom: "-9px",
-          transition: "opacity 0.2s"
-        },
-        "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
-          opacity: 1
-        }
-      }
-    : {})
-});
 
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
@@ -622,21 +565,21 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Memoize the container sx prop to prevent object recreation on every render
   const containerSx = useMemo(
     () =>
-      getNodeContainerStyles(
-        isLoading,
+      getBaseNodeSelectionStyles({
         selected,
         isFocused,
+        isLoading,
         hasParent,
-        Boolean(hasToggleableResult),
+        hasToggleableResult: Boolean(hasToggleableResult),
         baseColor,
         parentColor,
         theme,
-        styleProps.minHeight
-      ),
+        minHeight: styleProps.minHeight
+      }),
     [
-      isLoading,
       selected,
       isFocused,
+      isLoading,
       hasParent,
       hasToggleableResult,
       baseColor,
