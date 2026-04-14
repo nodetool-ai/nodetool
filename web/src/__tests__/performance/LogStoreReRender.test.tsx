@@ -1,15 +1,14 @@
 import React from 'react';
 import { render, act } from '@testing-library/react';
-import useLogsStore from '../../stores/LogStore';
-import { shallow } from 'zustand/shallow';
-import { useStoreWithEqualityFn } from 'zustand/traditional';
+import useLogsStore, { nodeLogKey } from '../../stores/LogStore';
 
-// Optimized component using shallow equality
+// Stable empty array returned when a node has no logs yet.
+const EMPTY_NODE_LOGS: ReturnType<typeof useLogsStore.getState>['logsByNode'][string] = [];
+
+// Optimised component: O(1) logsByNode lookup instead of O(n) filter.
 const OptimizedComponent = ({ workflowId, nodeId, onRender }: { workflowId: string, nodeId: string, onRender: () => void }) => {
-  const logs = useStoreWithEqualityFn(
-    useLogsStore,
-    (state) => state.logs.filter((log) => log.workflowId === workflowId && log.nodeId === nodeId),
-    shallow
+  const logs = useLogsStore(
+    (state) => state.logsByNode[nodeLogKey(workflowId, nodeId)] ?? EMPTY_NODE_LOGS
   );
 
   onRender();
@@ -40,7 +39,7 @@ describe('LogStore Performance', () => {
       });
     });
 
-    // It should NOT re-render because shallow equality check passes
+    // logsByNode['wf1:node1'] reference unchanged → no re-render
     expect(renderCount).toHaveBeenCalledTimes(1);
   });
 

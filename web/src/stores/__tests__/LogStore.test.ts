@@ -4,7 +4,7 @@ import useLogsStore from "../LogStore";
 describe("LogStore", () => {
   beforeEach(() => {
     // Reset store to initial state
-    useLogsStore.setState({ logs: [] });
+    useLogsStore.setState({ logs: [], logsByNode: {} });
   });
 
   describe("initial state", () => {
