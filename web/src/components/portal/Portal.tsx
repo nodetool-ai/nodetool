@@ -143,31 +143,10 @@ const styles = (theme: Theme) =>
           background: theme.vars.palette.action.hover
         }
       },
-      // Mobile: integrate the settings gear button with the composer
+      // Mobile: tighten the inline composer footer (model + agent toggle live here)
       [theme.breakpoints.down("sm")]: {
         "& .chat-input-section": {
-          padding: "8px 0 0 0 !important",
-          gap: "6px",
-          alignItems: "center !important"
-        },
-        // Flatten the mobile settings toggle so it reads as part of the composer
-        "& .mobile-chat-toolbar .toggle-button": {
-          background: "rgba(255, 255, 255, 0.03)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          borderRadius: 22,
-          boxShadow: "none",
-          color: theme.vars.palette.text.secondary,
-          opacity: 0.7,
-          padding: 0,
-          "&:hover": {
-            background: "rgba(255, 255, 255, 0.05)",
-            borderColor: "rgba(255, 255, 255, 0.15)",
-            transform: "none",
-            opacity: 1
-          },
-          "& svg": {
-            fontSize: 18
-          }
+          padding: "8px 0 0 0 !important"
         }
       }
     },
