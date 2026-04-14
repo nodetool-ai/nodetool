@@ -597,6 +597,8 @@ async function executeMicromambaCommand(
   const micromambaProcess = spawn(micromambaExecutable, args, {
     env,
     stdio: "pipe",
+    // Prevent a console window from flashing on Windows while micromamba runs.
+    windowsHide: true,
   });
 
   let lockErrorDetected = false;
