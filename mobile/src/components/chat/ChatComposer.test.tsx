@@ -109,7 +109,8 @@ describe('ChatComposer', () => {
       expect(mockOnSendMessage).toHaveBeenCalledTimes(1);
       expect(mockOnSendMessage).toHaveBeenCalledWith(
         [{ type: 'text', text: 'Hello world' }],
-        'Hello world'
+        'Hello world',
+        undefined
       );
     });
 
@@ -165,7 +166,8 @@ describe('ChatComposer', () => {
       
       expect(mockOnSendMessage).toHaveBeenCalledWith(
         [{ type: 'text', text: 'Hello world' }],
-        'Hello world'
+        'Hello world',
+        undefined
       );
     });
 
