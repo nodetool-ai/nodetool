@@ -344,6 +344,14 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
           >
             {node.metadata.title}
           </Text>
+          {node.expanded && (
+            <Text
+              style={[styles.namespace, { color: nsColor }]}
+              numberOfLines={1}
+            >
+              {formatNamespace(node.metadata.namespace)}
+            </Text>
+          )}
         </View>
 
         {/* Running indicator with time */}
@@ -608,6 +616,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  namespace: {
+    fontSize: 11,
+    fontWeight: "600",
   },
 expandedContent: {
     paddingHorizontal: 14,

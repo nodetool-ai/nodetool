@@ -3,7 +3,14 @@
  * Mirrors the web's FloatingToolBar with mobile-appropriate actions.
  */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   View,
   TouchableOpacity,
@@ -15,7 +22,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../hooks/useTheme";
 import { useGraphEditorStore } from "../../stores/GraphEditorStore";
-import { useWorkflowRunner } from "../../stores/WorkflowRunner";
+import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import type { RunnerState } from "../../stores/WorkflowRunner";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface FloatingToolbarProps {
@@ -32,16 +40,40 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
     const chain = useGraphEditorStore((s) => s.chain);
     const saveWorkflow = useGraphEditorStore((s) => s.saveWorkflow);
     const showNodePicker = useGraphEditorStore((s) => s.showNodePicker);
+    const storeWorkflowId = useGraphEditorStore((s) => s.workflowId);
 
-    // Workflow runner state (only when we have a workflowId)
-    const runnerStore = workflowId
-      ? useWorkflowRunner(workflowId)
-      : null;
-    const runState = runnerStore?.((s) => s.state) ?? "idle";
-    const run = runnerStore?.((s) => s.run);
-    const cancel = runnerStore?.((s) => s.cancel);
-    const resume = runnerStore?.((s) => s.resume);
-    const statusMessage = runnerStore?.((s) => s.statusMessage);
+    // Use store workflowId (updated after save) with prop as fallback
+    const effectiveWorkflowId = storeWorkflowId || workflowId;
+
+    // Subscribe to runner store state without conditional hooks
+    const [runState, setRunState] = useState<RunnerState>("idle");
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+      if (!effectiveWorkflowId) {
+        setRunState("idle");
+        setStatusMessage(null);
+        return;
+      }
+      const store = getWorkflowRunnerStore(effectiveWorkflowId);
+      const update = () => {
+        const s = store.getState();
+        setRunState(s.state);
+        setStatusMessage(s.statusMessage);
+      };
+      update();
+      return store.subscribe(update);
+    }, [effectiveWorkflowId]);
+
+    const cancel = useMemo(() => {
+      if (!effectiveWorkflowId) return undefined;
+      return getWorkflowRunnerStore(effectiveWorkflowId).getState().cancel;
+    }, [effectiveWorkflowId]);
+
+    const resume = useMemo(() => {
+      if (!effectiveWorkflowId) return undefined;
+      return getWorkflowRunnerStore(effectiveWorkflowId).getState().resume;
+    }, [effectiveWorkflowId]);
 
     const isRunning = runState === "running" || runState === "connecting";
     const isPaused = runState === "paused" || runState === "suspended";
@@ -97,7 +129,6 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
     }, [saveWorkflow]);
 
     const handleRun = useCallback(async () => {
-      if (!run) return;
       try {
         // Save first to ensure we have a persisted workflow with current edits
         const saved = await saveWorkflow();
@@ -105,11 +136,14 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
           console.error("Cannot run: workflow save failed");
           return;
         }
-        await run({}, saved);
+        // Get runner store using the saved workflow's ID
+        // (handles new workflows that didn't have an ID before save)
+        const runner = getWorkflowRunnerStore(saved.id);
+        await runner.getState().run({}, saved);
       } catch (err) {
         console.error("Failed to run workflow:", err);
       }
-    }, [run, saveWorkflow]);
+    }, [saveWorkflow]);
 
     const handleStop = useCallback(() => {
       cancel?.();

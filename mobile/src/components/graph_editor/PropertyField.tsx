@@ -23,6 +23,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useTheme } from "../../hooks/useTheme";
 import { useModelsForType } from "../../hooks/useModelsByProvider";
 import { ModelSelectModal } from "./ModelSelectModal";
+import { apiService } from "../../services/api";
 import type { Property } from "../../types/ApiTypes";
 
 // ── Shared types ────────────────────────────────────────────────────
@@ -410,6 +411,7 @@ const ImageWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const uri = extractUri(value);
+  const [uploading, setUploading] = useState(false);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -417,7 +419,29 @@ const ImageWidget: React.FC<{
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      onChange({ type: "image", uri: result.assets[0].uri });
+      const picked = result.assets[0];
+      const fileName = picked.fileName ?? `image_${Date.now()}.jpg`;
+      const mimeType = picked.mimeType ?? "image/jpeg";
+      setUploading(true);
+      try {
+        const asset = await apiService.uploadAsset({
+          uri: picked.uri,
+          name: fileName,
+          contentType: mimeType,
+          parentId: "",
+        });
+        const ext = fileName.includes(".")
+          ? fileName.slice(fileName.lastIndexOf("."))
+          : ".jpg";
+        const storageUri = `${apiService.getApiHost()}/api/storage/${asset.id}${ext}`;
+        onChange({ type: "image", uri: storageUri, asset_id: asset.id });
+      } catch (err) {
+        console.error("Failed to upload image:", err);
+        // Fall back to local URI so the preview still works
+        onChange({ type: "image", uri: picked.uri });
+      } finally {
+        setUploading(false);
+      }
     }
   }, [onChange]);
 
@@ -475,6 +499,7 @@ const AudioWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const uri = extractUri(value);
+  const [uploading, setUploading] = useState(false);
 
   const pickAudio = useCallback(async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -482,7 +507,28 @@ const AudioWidget: React.FC<{
       copyToCacheDirectory: true,
     });
     if (!result.canceled && result.assets?.[0]) {
-      onChange({ type: "audio", uri: result.assets[0].uri });
+      const picked = result.assets[0];
+      const fileName = picked.name ?? `audio_${Date.now()}.wav`;
+      const mimeType = picked.mimeType ?? "audio/wav";
+      setUploading(true);
+      try {
+        const asset = await apiService.uploadAsset({
+          uri: picked.uri,
+          name: fileName,
+          contentType: mimeType,
+          parentId: "",
+        });
+        const ext = fileName.includes(".")
+          ? fileName.slice(fileName.lastIndexOf("."))
+          : ".wav";
+        const storageUri = `${apiService.getApiHost()}/api/storage/${asset.id}${ext}`;
+        onChange({ type: "audio", uri: storageUri, asset_id: asset.id });
+      } catch (err) {
+        console.error("Failed to upload audio:", err);
+        onChange({ type: "audio", uri: picked.uri });
+      } finally {
+        setUploading(false);
+      }
     }
   }, [onChange]);
 
@@ -527,6 +573,7 @@ const VideoWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const uri = extractUri(value);
+  const [uploading, setUploading] = useState(false);
 
   const pickVideo = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -534,7 +581,28 @@ const VideoWidget: React.FC<{
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      onChange({ type: "video", uri: result.assets[0].uri });
+      const picked = result.assets[0];
+      const fileName = picked.fileName ?? `video_${Date.now()}.mp4`;
+      const mimeType = picked.mimeType ?? "video/mp4";
+      setUploading(true);
+      try {
+        const asset = await apiService.uploadAsset({
+          uri: picked.uri,
+          name: fileName,
+          contentType: mimeType,
+          parentId: "",
+        });
+        const ext = fileName.includes(".")
+          ? fileName.slice(fileName.lastIndexOf("."))
+          : ".mp4";
+        const storageUri = `${apiService.getApiHost()}/api/storage/${asset.id}${ext}`;
+        onChange({ type: "video", uri: storageUri, asset_id: asset.id });
+      } catch (err) {
+        console.error("Failed to upload video:", err);
+        onChange({ type: "video", uri: picked.uri });
+      } finally {
+        setUploading(false);
+      }
     }
   }, [onChange]);
 
@@ -1595,8 +1663,25 @@ const AssetRefWidget: React.FC<{
       copyToCacheDirectory: true,
     });
     if (!result.canceled && result.assets?.[0]) {
-      const asset = result.assets[0];
-      onChange({ type: typeLabel, uri: asset.uri, name: asset.name });
+      const picked = result.assets[0];
+      const fileName = picked.name ?? `file_${Date.now()}`;
+      const mimeType = picked.mimeType ?? "application/octet-stream";
+      try {
+        const uploaded = await apiService.uploadAsset({
+          uri: picked.uri,
+          name: fileName,
+          contentType: mimeType,
+          parentId: "",
+        });
+        const ext = fileName.includes(".")
+          ? fileName.slice(fileName.lastIndexOf("."))
+          : "";
+        const storageUri = `${apiService.getApiHost()}/api/storage/${uploaded.id}${ext}`;
+        onChange({ type: typeLabel, uri: storageUri, asset_id: uploaded.id, name: fileName });
+      } catch (err) {
+        console.error("Failed to upload document:", err);
+        onChange({ type: typeLabel, uri: picked.uri, name: fileName });
+      }
     }
   }, [onChange, typeLabel]);
 

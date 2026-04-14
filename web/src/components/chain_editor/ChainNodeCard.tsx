@@ -180,9 +180,11 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
         <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
           <Text size="small" weight={700} truncate>{node.metadata.title}</Text>
-          <Text size="tiny" weight={600} sx={{ color: nsColor }}>
-            {formatNs(node.metadata.namespace)}
-          </Text>
+          {node.expanded && (
+            <Text size="tiny" weight={600} sx={{ color: nsColor }}>
+              {formatNs(node.metadata.namespace)}
+            </Text>
+          )}
         </FlexColumn>
 
         {/* Status indicator */}
