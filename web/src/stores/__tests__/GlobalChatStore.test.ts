@@ -950,18 +950,6 @@ describe("GlobalChatStore", () => {
       expect(typeof store.getState().status).toBe("string");
     });
 
-    it("warns when no Supabase session found", async () => {
-      // We're already in localhost mode from the global mock, so skip this test
-      // as the warning only happens in non-localhost mode
-      expect(true).toBe(true);
-    });
-
-    it("handles Supabase session errors", async () => {
-      // We're in localhost mode, so auth errors won't happen
-      // Skip this test as it's not applicable in localhost mode
-      expect(true).toBe(true);
-    });
-
     it("includes auth context in connection error messages", async () => {
       await store.getState().connect();
 
