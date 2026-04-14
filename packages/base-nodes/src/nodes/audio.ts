@@ -1038,22 +1038,61 @@ export class AudioMixerNode extends BaseNode {
   declare volume5: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const tracks = [
-      this.track1,
-      this.track2,
-      this.track3,
-      this.track4,
-      this.track5
-    ].filter((t) => t && typeof t === "object");
-    const all = tracks.map((a) => audioBytes(a));
-    if (all.length === 0)
+    const entries = [
+      { track: this.track1, volume: this.volume1 },
+      { track: this.track2, volume: this.volume2 },
+      { track: this.track3, volume: this.volume3 },
+      { track: this.track4, volume: this.volume4 },
+      { track: this.track5, volume: this.volume5 }
+    ];
+    const tracks = entries
+      .filter((e) => e.track && typeof e.track === "object")
+      .map((e) => ({
+        bytes: audioBytes(e.track),
+        volume: Number.isFinite(Number(e.volume)) ? Number(e.volume) : 1
+      }))
+      .filter((t) => t.bytes.length > 0);
+
+    if (tracks.length === 0)
       return { output: audioRefFromBytes(new Uint8Array()) };
-    const len = Math.max(...all.map((x) => x.length));
+
+    // If every track is a valid WAV PCM16 file, mix in sample space and
+    // emit a valid WAV so downstream nodes receive a playable file.
+    const parsed = tracks.map((t) => ({
+      wav: parseWavPcm16(t.bytes),
+      bytes: t.bytes,
+      volume: t.volume
+    }));
+    if (parsed.every((p) => p.wav !== null)) {
+      const wavs = parsed as Array<{
+        wav: { samples: Int16Array; headerSize: number };
+        bytes: Uint8Array;
+        volume: number;
+      }>;
+      const len = Math.max(...wavs.map((p) => p.wav.samples.length));
+      const mixed = new Int16Array(len);
+      for (let i = 0; i < len; i += 1) {
+        let total = 0;
+        for (const p of wavs) total += (p.wav.samples[i] ?? 0) * p.volume;
+        const avg = total / wavs.length;
+        mixed[i] = Math.max(-32768, Math.min(32767, Math.round(avg)));
+      }
+      return {
+        output: audioRefFromBytes(
+          buildWavFromSamples(wavs[0].bytes, mixed, wavs[0].wav.headerSize)
+        )
+      };
+    }
+
+    // Fallback: byte-level averaging with volume scaling (preserves
+    // backward-compatible behavior for non-WAV / headerless byte streams).
+    const len = Math.max(...tracks.map((t) => t.bytes.length));
     const out = new Uint8Array(len);
     for (let i = 0; i < len; i += 1) {
       let total = 0;
-      for (const a of all) total += a[i] ?? 0;
-      out[i] = Math.floor(total / all.length);
+      for (const t of tracks) total += (t.bytes[i] ?? 0) * t.volume;
+      const avg = total / tracks.length;
+      out[i] = Math.max(0, Math.min(255, Math.round(avg)));
     }
     return { output: audioRefFromBytes(out) };
   }
