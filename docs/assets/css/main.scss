@@ -394,6 +394,18 @@ blockquote {
   padding: var(--spacing-xl) 0 var(--spacing-lg);
 }
 
+.home-hero img,
+.home-screenshot {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  margin: var(--spacing-lg) 0;
+  box-shadow: 0 4px 20px rgba(75, 150, 210, 0.08);
+}
+
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -1249,6 +1261,10 @@ blockquote {
 
 /* === Responsive Design === */
 @media (max-width: 1024px) {
+  :root {
+    --header-height: 128px;
+  }
+
   .footer-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1257,17 +1273,25 @@ blockquote {
     width: 250px;
   }
 
+  .site-header {
+    height: auto;
+    min-height: var(--header-height);
+  }
+
   .header-container {
+    height: auto;
     grid-template-columns: 1fr auto;
     row-gap: var(--spacing-sm);
     align-items: start;
+    padding: var(--spacing-sm) var(--spacing-lg);
   }
 
   .main-nav {
     align-self: center;
   }
 
-  .search-container {
+  .search-container,
+  .search-container:focus-within {
     order: 3;
     width: 100%;
     margin-right: 0;
@@ -1284,6 +1308,8 @@ blockquote {
     justify-content: flex-end;
     width: 100%;
     gap: var(--spacing-md);
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
   }
 }
 
@@ -1364,7 +1390,8 @@ blockquote {
     flex-direction: column;
   }
 
-  .search-container {
+  .search-container,
+  .search-container:focus-within {
     grid-column: 1 / -1;
     width: 100%;
   }

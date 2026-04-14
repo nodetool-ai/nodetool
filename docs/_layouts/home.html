@@ -13,6 +13,10 @@ layout: default
   padding: var(--spacing-2xl) var(--spacing-lg);
 }
 
+.home-page > :first-child {
+  margin-top: 0;
+}
+
 .hero-section {
   text-align: center;
   padding: var(--spacing-3xl) 0;
@@ -61,6 +65,10 @@ layout: default
 }
 
 @media (max-width: 768px) {
+  .home-page {
+    padding: var(--spacing-xl) 0;
+  }
+
   .hero-title {
     font-size: 2.5rem;
   }
