@@ -51,13 +51,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
 
   return (
     <div className="chat-action-buttons" css={styles(theme)}>
-      {/* {onNewChat && (
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="New Chat">
-          <span className="new-chat-button-wrapper button-wrapper">
-            <NewChatComposerButton disabled={isDisabled} onClick={onNewChat} />
-          </span>
-        </Tooltip>
-      )} */}
       {showStopButton && (
         <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span className="button-wrapper">

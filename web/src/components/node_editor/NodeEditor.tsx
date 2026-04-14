@@ -140,14 +140,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
 
   return (
     <>
-      {/* {missingModelRepos.length > 0 && (
-        <ModelDownloadDialog
-          open={missingModelRepos.length > 0}
-          repos={missingModelRepos}
-          repoPaths={missingModelFiles}
-          onClose={clearMissingModels}
-        />
-      )} */}
       {showDocumentation && selectedNodeType && (
         <DraggableNodeDocumentation
           nodeType={selectedNodeType}
