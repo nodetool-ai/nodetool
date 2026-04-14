@@ -10,6 +10,7 @@ import { createErrorMessage } from "../../utils/errorHandling";
 import { NodeTextField, ToolbarIconButton } from "../ui_primitives";
 import type { Graph } from "../../stores/ApiTypes";
 import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 const WorkflowGenerator: React.FC = memo(() => {
   const [prompt, setPrompt] = useState("");
@@ -20,7 +21,7 @@ const WorkflowGenerator: React.FC = memo(() => {
   const { setNodes, setEdges } = useNodes((state) => ({
     setNodes: state.setNodes,
     setEdges: state.setEdges
-  }));
+  }), shallow);
 
   const handlePromptChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setPrompt(e.target.value);

@@ -34,3 +34,7 @@
 ## 2025-01-31 - CommandMenu Zustand Selector Optimization
 **Learning:** Returning an object literal from a primitive Zustand selector in `useNodes` (e.g., `(state) => ({ nodes: state.nodes, edges: state.edges })`) defaults to strict equality (`===`), causing continuous re-renders whenever the underlying arrays are updated (e.g., at 60fps during ReactFlow dragging).
 **Action:** Always provide `shallow` from `zustand/shallow` as the second argument to `useNodes` when returning new object literals containing shallowly comparable elements to eliminate unnecessary `O(N)` re-renders.
+
+## 2024-04-14 - Zustand useNodes Compound Selectors Performance
+**Learning:** Using `useNodes` with object literal returns (e.g. `useNodes((state) => ({ x: state.x, y: state.y }))`) defaults to strict equality (`===`), causing continuous re-renders whenever the underlying arrays are updated (e.g., at 60fps during ReactFlow dragging). Even if the returned values inside the object don't change, the new object literal reference forces a re-render.
+**Action:** Always provide `shallow` from `zustand/shallow` as the second argument to `useNodes` when returning new object literals containing shallowly comparable elements to eliminate unnecessary `O(N)` re-renders. Added `shallow` equality to all instances of compound selectors in `useNodes` across the codebase.

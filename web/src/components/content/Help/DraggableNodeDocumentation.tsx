@@ -11,6 +11,7 @@ import type { Theme } from "@mui/material/styles";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useNodes } from "../../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 
 const styles = (theme: Theme) => css`
   position: absolute;
@@ -86,7 +87,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const { createNode, addNode } = useNodes((state) => ({
     createNode: state.createNode,
     addNode: state.addNode
-  }));
+  }), shallow);
   const reactFlowInstance = useReactFlow();
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const panel = usePanelStore((state) => state.panel);

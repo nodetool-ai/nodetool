@@ -25,6 +25,7 @@ import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
@@ -195,7 +196,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { updateNodeData, updateNode } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode
-  }));
+  }), shallow);
   const [color, setColor] = useState(
     props.data.properties.comment_color ||
       theme.vars.palette.c_bg_comment ||

@@ -21,6 +21,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { Asset } from "../../stores/ApiTypes";
 import log from "loglevel";
 import { isTextInputActive } from "../../utils/browser";
+import { shallow } from "zustand/shallow";
 
 /**
  * Supported image file extensions for clipboard file handling
@@ -70,7 +71,7 @@ export const useClipboardContentPaste = () => {
     createNode: state.createNode,
     addNode: state.addNode,
     workflow: state.workflow
-  }));
+  }), shallow);
   const { uploadAsset } = useAssetUpload();
   const addNotification = useNotificationStore((state) => state.addNotification);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);

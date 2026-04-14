@@ -30,6 +30,7 @@ import {
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { WORKFLOW_NODE_TYPE } from "../node/WorkflowNode";
 import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 const PaneContextMenu: React.FC = () => {
   const { handlePaste } = useCopyPaste();
@@ -50,7 +51,7 @@ const PaneContextMenu: React.FC = () => {
   const { createNode, addNode } = useNodes((state) => ({
     createNode: state.createNode,
     addNode: state.addNode
-  }));
+  }), shallow);
 
   const closeAllMenus = useCallback(() => {
     setConstantMenuAnchorEl(null);

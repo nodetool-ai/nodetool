@@ -15,6 +15,7 @@ import {
 } from "../../utils/NodeTypeMapping";
 import { useRunFromHere } from "./useRunFromHere";
 import { useDuplicateNodes } from "../useDuplicate";
+import { shallow } from "zustand/shallow";
 
 interface UseNodeContextMenuReturn {
   menuPosition: { x: number; y: number } | null;
@@ -70,7 +71,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     toggleBypass: state.toggleBypass,
     nodes: state.nodes,
     setSelectedNodes: state.setSelectedNodes
-  }));
+  }), shallow);
 
   const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
   const node = rawNode as Node<NodeData> | null;

@@ -7,6 +7,7 @@ import {
   getNodesWithinSelection
 } from "../../utils/selectionBounds";
 import { NodeData } from "../../stores/NodeData";
+import { shallow } from "zustand/shallow";
 
 interface UseSelectionEventsProps {
   reactFlowInstance: ReturnType<typeof useReactFlow>;
@@ -32,7 +33,7 @@ export function useSelectionEvents({
   const { updateNode, setEdgeSelectionState } = useNodes((state) => ({
     updateNode: state.updateNode,
     setEdgeSelectionState: state.setEdgeSelectionState
-  }));
+  }), shallow);
 
   const projectMouseEventToFlow = useCallback(
     (event?: { clientX?: number; clientY?: number } | null) => {
