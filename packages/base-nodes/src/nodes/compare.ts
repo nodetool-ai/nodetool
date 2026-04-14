@@ -74,23 +74,29 @@ export class CompareImagesNode extends BaseNode {
   declare label_b: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const imageA = this.image_a ?? this.image_a ?? {};
-    const imageB = this.image_b ?? this.image_b ?? {};
+    const imageA = this.image_a ?? {};
+    const imageB = this.image_b ?? {};
     const a = toBytes(imageA as ImageLike);
     const b = toBytes(imageB as ImageLike);
 
     // Emit a PreviewUpdate for UI slider comparison if context supports it
     if (context && typeof context.emit === "function") {
-      const nodeId = String(
-        (this as any).__node_id ?? (this as any).name ?? (this as any).__node_name ?? ""
-      );
+      const nodeId = String(this.__node_id ?? this.__node_name ?? "");
+      const normalize =
+        typeof context.normalizeOutputValue === "function"
+          ? context.normalizeOutputValue.bind(context)
+          : async (value: unknown) => value;
+      const [normalizedA, normalizedB] = await Promise.all([
+        normalize(imageA),
+        normalize(imageB)
+      ]);
       context.emit({
         type: "preview_update",
         node_id: nodeId,
         value: {
-          type: "compare_images",
-          image_a: imageA,
-          image_b: imageB,
+          type: "image_comparison",
+          image_a: normalizedA,
+          image_b: normalizedB,
           label_a: String(this.label_a ?? "A"),
           label_b: String(this.label_b ?? "B")
         }
