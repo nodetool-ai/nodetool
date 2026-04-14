@@ -4,11 +4,12 @@ import { typeToString } from "../utils/TypeHandler";
 import { createPortal } from "react-dom";
 import { getMousePosition } from "../utils/MousePosition";
 import { TypeMetadata } from "../stores/ApiTypes";
+import useConnectionStore from "../stores/ConnectionStore";
 
 const LEFT_OFFSET_X = -32;
 const RIGHT_OFFSET_X = 32;
 const Y_OFFSET = -20;
-const ENTER_DELAY = 600;
+const ENTER_DELAY = 1200;
 
 // Generate a unique ID for tooltip descriptions
 let tooltipIdCounter = 0;
@@ -60,6 +61,9 @@ const HandleTooltip = memo(function HandleTooltip({
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const tooltipIdRef = useRef<string>(generateTooltipId());
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const isConnecting = useConnectionStore(
+    (state) => state.connecting || state.isReconnecting
+  );
 
   // Ref to keep track of the timer used for delaying tooltip appearance
   const showTimerRef = useRef<number | null>(null);
@@ -73,6 +77,17 @@ const HandleTooltip = memo(function HandleTooltip({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isConnecting) {
+      return;
+    }
+    if (showTimerRef.current !== null) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
+    setShowTooltip(false);
+  }, [isConnecting]);
+
   const prettyName = paramName
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -84,13 +99,16 @@ const HandleTooltip = memo(function HandleTooltip({
   const typeString = displayType === "number" ? "float" : typeMetadata.type;
 
   const handleMouseEnter = useCallback(() => {
+    if (isConnecting) {
+      return;
+    }
     const position = getMousePosition();
     // Start a timer; show tooltip only after ENTER_DELAY ms
     showTimerRef.current = window.setTimeout(() => {
       setTooltipPosition(position);
       setShowTooltip(true);
     }, ENTER_DELAY);
-  }, []);
+  }, [isConnecting]);
 
   const handleMouseLeave = useCallback(() => {
     // Cancel pending timer if it exists
