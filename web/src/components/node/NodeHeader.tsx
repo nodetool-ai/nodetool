@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import useLogsStore from "../../stores/LogStore";
+import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
-import { useStoreWithEqualityFn } from "zustand/traditional";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import isEqual from "fast-deep-equal";
 import { NodeData } from "../../stores/NodeData";
@@ -43,6 +42,26 @@ export interface NodeHeaderProps {
   codeBadgeTooltip?: string;
 }
 
+// Stable empty array reference — prevents creating a new array instance each
+// render when a node has no logs, keeping Zustand's reference-equality check
+// from triggering unnecessary re-renders.
+const EMPTY_NODE_LOGS: ReturnType<typeof useLogsStore.getState>["logsByNode"][string] =
+  [];
+
+// Constant sx styles for header toggle buttons — defined outside the component
+// so the same object reference is reused across renders.
+const toggleIconButtonStyles = {
+  padding: "4px",
+  backgroundColor: "rgba(255, 255, 255, 0.05)",
+  color: "var(--palette-text-primary)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  borderRadius: "50%",
+  "&:hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "var(--palette-primary-main)"
+  }
+};
+
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
   metadataTitle,
@@ -77,15 +96,11 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     }),
     shallow
   );
-  // Use shallow equality to avoid re-rendering when logs for other nodes change
   const targetWorkflowId = workflowId || nodeWorkflowId || "";
-  const logs = useStoreWithEqualityFn(
-    useLogsStore,
-    (state) =>
-      state.logs.filter(
-        (log) => log.workflowId === targetWorkflowId && log.nodeId === id
-      ),
-    shallow
+  // O(1) lookup via pre-keyed map — avoids filtering the full logs array on
+  // every store update (which previously ran for every NodeHeader in the graph).
+  const logs = useLogsStore(
+    (state) => state.logsByNode[nodeLogKey(targetWorkflowId, id)] ?? EMPTY_NODE_LOGS
   );
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -98,19 +113,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       setDraftTitle(title ?? metadataTitle);
     }
   }, [isEditingTitle, metadataTitle, title]);
-
-  // Common icon button styles for toggle buttons
-  const toggleIconButtonStyles = {
-    padding: "4px",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    color: "var(--palette-text-primary)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "50%",
-    "&:hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
-      borderColor: "var(--palette-primary-main)"
-    }
-  };
 
   const headerCss = useMemo(
     () =>

@@ -6,17 +6,11 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { audioBytes, toBytes } from "../lib/audio-wav.js";
 
 type VideoRefLike = { uri?: string; data?: Uint8Array | string };
 type ImageRefLike = { uri?: string; data?: Uint8Array | string };
-type AudioRefLike = { uri?: string; data?: Uint8Array | string };
 const execFile = promisify(execFileCb);
-
-function toBytes(data: Uint8Array | string | undefined): Uint8Array {
-  if (!data) return new Uint8Array();
-  if (data instanceof Uint8Array) return data;
-  return Uint8Array.from(Buffer.from(data, "base64"));
-}
 
 function videoBytes(video: unknown): Uint8Array {
   if (!video || typeof video !== "object") return new Uint8Array();
@@ -46,11 +40,6 @@ async function videoBytesAsync(video: unknown, context?: ProcessingContext): Pro
 function imageBytes(image: unknown): Uint8Array {
   if (!image || typeof image !== "object") return new Uint8Array();
   return toBytes((image as ImageRefLike).data);
-}
-
-function audioBytes(audio: unknown): Uint8Array {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
-  return toBytes((audio as AudioRefLike).data);
 }
 
 function filePath(uriOrPath: string): string {

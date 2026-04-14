@@ -22,22 +22,17 @@ HTTP requests, loops, conditionals, and complex logic in a single call instead o
 
 ## Sandbox environment
 
-Standard JavaScript with full syntax: variables, loops, conditionals, functions, arrow functions, \
+Vanilla JavaScript with full syntax: variables, loops, conditionals, functions, arrow functions, \
 destructuring, spread, template literals, try/catch, async/await, Map, Set, RegExp, URL, \
 URLSearchParams, Date, Math, JSON, Array methods (map, filter, reduce, find, every, some, etc).
 
-## Extra APIs
+Third-party helpers (lodash, dayjs, cheerio, csv-parse, validator) are NOT available. \
+Use vanilla JS equivalents, or call dedicated tools/nodes when richer behaviour is needed.
 
-### _ (lodash)
-Full lodash library available as \`_\`. Use for data manipulation, grouping, sorting, etc.
-\`\`\`js
-const grouped = _.groupBy(data, "type");
-const sorted = _.sortBy(users, "name");
-const picked = _.pick(obj, ["a", "b"]);
-\`\`\`
+## Bridge APIs
 
-### fetch(url, options?) → {ok, status, headers, body, json}
-HTTP client. Options: {method, headers, body}. Returns parsed response.
+### fetch(url, options?) → {ok, status, headers, body, json, text(), arrayBuffer(), bytes()}
+HTTP client. Options: {method, headers, body}. Returns a Response-like object.
 \`\`\`js
 const res = await fetch("https://api.example.com/data");
 const items = res.json.results;
@@ -57,42 +52,6 @@ Generate a random UUID v4.
 
 ### sleep(ms)
 Pause execution (max 5s per call).
-
-### dayjs(date?)
-Lightweight date library. Parse, format, add/subtract, compare dates.
-\`\`\`js
-dayjs().add(7, "day").format("YYYY-MM-DD");
-dayjs("2024-01-01").diff(dayjs(), "days");
-dayjs(date).isBefore(dayjs());
-dayjs().startOf("month").toISOString();
-\`\`\`
-
-### cheerio
-jQuery-like HTML parser. Parse HTML and extract data with CSS selectors.
-\`\`\`js
-const $ = cheerio.load(html);
-const links = $("a").map((i, el) => $(el).attr("href")).get();
-const text = $("p.content").text();
-const rows = $("table tr").map((i, tr) => $(tr).find("td").map((j, td) => $(td).text()).get()).get();
-\`\`\`
-
-### csvParse(text, options?)
-Robust CSV parser that handles quoted fields, custom delimiters, and headers.
-\`\`\`js
-const rows = csvParse(text, { columns: true, skip_empty_lines: true, trim: true });
-// TSV: csvParse(text, { columns: true, delimiter: "\\t" })
-\`\`\`
-
-### validator
-String validation and sanitization. Comprehensive checks for common formats.
-\`\`\`js
-validator.isEmail("user@example.com");  // true
-validator.isURL("https://example.com"); // true
-validator.isIP("192.168.1.1");          // true
-validator.isUUID("...");                // true
-validator.isJSON('{"a":1}');            // true
-validator.escape("<script>xss</script>"); // HTML entity escape
-\`\`\`
 
 ## Guidelines
 - Use \`return\` to produce the final result (returned in the "result" field)

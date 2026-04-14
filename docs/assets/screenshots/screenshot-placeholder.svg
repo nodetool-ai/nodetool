@@ -17,6 +17,5 @@
     <circle cx="0" cy="-2" r="5" fill="#5cc8ff" opacity="0.8"/>
     <text y="108" fill="#e6e8ec" font-size="32" font-weight="600" letter-spacing="0.5">Screenshot pending</text>
     <text y="150" fill="#8b9199" font-size="18" letter-spacing="0.3">This view is documented; the image will be added in a future capture pass.</text>
-    <text y="180" fill="#64697a" font-size="15">See docs/SCREENSHOTS.md for the capture plan.</text>
   </g>
 </svg>

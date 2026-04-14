@@ -6,7 +6,7 @@ import { apiService } from './api';
 import { encode, decode } from "@msgpack/msgpack";
 import { useAuthStore } from '../stores/AuthStore';
 
-type MessageHandler = (message: any) => void;
+type MessageHandler = (message: Record<string, unknown>) => void;
 
 class WebSocketService {
   private static instance: WebSocketService | null = null;
@@ -100,12 +100,12 @@ class WebSocketService {
 
       this.ws.onmessage = (event) => {
         // Handle both text and binary data
-        let data: any;
+        let data: Record<string, unknown> | undefined;
         try {
           if (typeof event.data === 'string') {
-             data = JSON.parse(event.data);
+             data = JSON.parse(event.data) as Record<string, unknown>;
           } else if (event.data instanceof ArrayBuffer) {
-             data = decode(new Uint8Array(event.data));
+             data = decode(new Uint8Array(event.data)) as Record<string, unknown>;
           } else if (event.data instanceof Blob) {
              // In RN getting arrayBuffer from blob might be async or require FileReader
              // But if we set binaryType='arraybuffer', we should get ArrayBuffer directly ideally?
@@ -114,12 +114,12 @@ class WebSocketService {
              // Let's assume arraybuffer works first. If not, we might need a Blob handling util.
              // For now logging warning if we get Blob but expected ArrayBuffer
              console.warn('WebSocketService: Received Blob, expected ArrayBuffer. Check implementation.');
-             return; 
+             return;
           } else {
              console.warn('WebSocketService: Unknown message type', typeof event.data);
              return;
           }
-          
+
           if (data) {
              this.routeMessage(data);
           }
@@ -167,9 +167,12 @@ class WebSocketService {
   /**
    * Route incoming message to registered handlers
    */
-  private routeMessage(message: any): void {
+  private routeMessage(message: Record<string, unknown>): void {
     // Route by workflow_id or job_id
-    const routingKey = message.workflow_id || message.job_id;
+    const workflowId = message['workflow_id'];
+    const jobId = message['job_id'];
+    const routingKey = (typeof workflowId === 'string' ? workflowId : undefined)
+      ?? (typeof jobId === 'string' ? jobId : undefined);
 
     if (!routingKey) {
       console.warn('WebSocketService: Message without workflow_id or job_id', message);
@@ -214,7 +217,7 @@ class WebSocketService {
   /**
    * Send a message through the WebSocket
    */
-  async send(message: any, path: string = '/ws'): Promise<void> {
+  async send(message: unknown, path: string = '/ws'): Promise<void> {
     await this.ensureConnection(path);
 
     if (!this.ws) {

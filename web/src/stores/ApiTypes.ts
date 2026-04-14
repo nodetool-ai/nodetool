@@ -88,6 +88,13 @@ export interface NodeMetadata extends BaseNodeMetadata {
    * Populated by the backend from node metadata; used to show install prompts.
    */
   required_runtimes?: string[];
+  /**
+   * Marks a node as generative — its outputs should be auto-saved as assets
+   * by the backend, and the UI uses this flag to auto-show the result preview
+   * once the node completes. Set by generative providers (fal, kie, replicate,
+   * elevenlabs, gemini, openai image/audio nodes, etc.).
+   */
+  auto_save_asset?: boolean;
 }
 export type SettingWithValue = components["schemas"]["SettingWithValue"];
 export type TypeMetadata = components["schemas"]["TypeMetadata-Input"];
