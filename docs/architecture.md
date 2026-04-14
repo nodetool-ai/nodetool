@@ -4,19 +4,11 @@ title: "Architecture & Lifecycle"
 description: "How NodeTool's streaming architecture enables real-time feedback, cancellation, and deployment portability."
 ---
 
-## Why This Architecture Matters
+Three core principles:
 
-NodeTool's architecture is designed around three core principles that directly impact your experience:
-
-1. **Streaming-first execution** -- See results as they generate, not after everything completes. Cancel long-running jobs without waiting. Perfect for interactive debugging and user-facing applications.
-
-2. **Unified runtime** -- The same workflow JSON runs in desktop app, headless server, RunPod endpoint, or Cloud Run service. No platform-specific code. No rewrites when scaling.
-
-3. **Pluggable execution strategies** -- Run nodes in threads (fast iteration), subprocesses (isolation), or Docker containers (deployment). Switch strategies without changing your workflow.
-
-**For developers:** This design lets you prototype locally with instant feedback, then deploy to production infrastructure with confidence that behavior will be identical.
-
-**For teams:** Build workflows collaboratively in the visual editor, then let DevOps deploy them as APIs -- no translation layer needed.
+1. **Streaming-first execution** — results stream as they generate; long-running jobs can be cancelled.
+2. **Unified runtime** — the same workflow JSON runs in the desktop app, headless server, RunPod endpoint, or Cloud Run.
+3. **Pluggable execution strategies** — threads (fast iteration), subprocesses (isolation), or Docker (deployment), switchable without changing the workflow.
 
 ---
 

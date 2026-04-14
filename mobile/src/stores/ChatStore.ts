@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { WebSocketManager } from '../services/WebSocketManager';
 import { apiService } from '../services/api';
+import { useAuthStore } from './AuthStore';
 import {
   ChatStatus,
   ConnectionState,
@@ -45,6 +46,11 @@ interface ChatState {
   // Model selection
   selectedModel: LanguageModel | null;
 
+  // Chat options (mirrors web GlobalChatStore)
+  agentMode: boolean;
+  helpMode: boolean;
+  selectedCollections: string[];
+
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -52,9 +58,13 @@ interface ChatState {
   stopGeneration: () => void;
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
+  loadThreadFromServer: (threadId: string) => Promise<void>;
   getCurrentMessages: () => Message[];
   resetMessages: () => void;
   setSelectedModel: (model: LanguageModel) => void;
+  setAgentMode: (enabled: boolean) => void;
+  setHelpMode: (enabled: boolean) => void;
+  setSelectedCollections: (collections: string[]) => void;
 
   // Internal actions
   addMessageToCache: (threadId: string, message: Message) => void;
@@ -220,6 +230,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messageCache: {},
   isLoadingMessages: false,
   selectedModel: null,
+  agentMode: false,
+  helpMode: false,
+  selectedCollections: [],
 
   connect: async () => {
     const state = get();
@@ -238,7 +251,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ status: 'connecting' });
 
     // Get WebSocket URL from API service
-    const wsUrl = apiService.getWebSocketUrl('/ws/chat');
+    let wsUrl = apiService.getWebSocketUrl('/ws');
+    const session = useAuthStore.getState().session;
+    if (session?.access_token) {
+      wsUrl += `?api_key=${session.access_token}`;
+    }
     console.log('Connecting to chat WebSocket:', wsUrl);
 
     // Create WebSocket manager
@@ -353,13 +370,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ status: 'loading' });
 
     // Create message to send
+    const stateForSend = get();
     const messageToSend: ChatMessageRequest = {
       type: 'message',
       role: 'user',
       content: content,
       thread_id: threadId,
-      model: get().selectedModel?.id,
-      provider: get().selectedModel?.provider,
+      model: stateForSend.selectedModel?.id,
+      provider: stateForSend.selectedModel?.provider,
+      agent_mode: stateForSend.agentMode || undefined,
+      help_mode: stateForSend.helpMode || undefined,
+      collections: stateForSend.selectedCollections.length
+        ? stateForSend.selectedCollections
+        : undefined,
     };
 
     try {
@@ -456,6 +479,47 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ currentThreadId: threadId });
   },
 
+  /**
+   * Loads a thread from the server (e.g. after the user picks one from the
+   * Threads screen). Falls back to creating a stub local thread entry if the
+   * server fetch fails so the UI can still render the conversation.
+   */
+  loadThreadFromServer: async (threadId: string) => {
+    try {
+      const remote = await apiService.getThread(threadId);
+      const localThread: Thread = {
+        id: remote.id,
+        title: remote.title || 'Conversation',
+        created_at: remote.created_at,
+        updated_at: remote.updated_at,
+      } as Thread;
+      set((state) => ({
+        threads: { ...state.threads, [remote.id]: localThread },
+        currentThreadId: remote.id,
+        messageCache: state.messageCache[remote.id]
+          ? state.messageCache
+          : { ...state.messageCache, [remote.id]: [] },
+      }));
+    } catch (error) {
+      console.error('Failed to load thread from server:', error);
+      // Optimistically register a stub so the chat screen can still render
+      const now = new Date().toISOString();
+      const stub: Thread = {
+        id: threadId,
+        title: 'Conversation',
+        created_at: now,
+        updated_at: now,
+      } as Thread;
+      set((state) => ({
+        threads: { ...state.threads, [threadId]: stub },
+        currentThreadId: threadId,
+        messageCache: state.messageCache[threadId]
+          ? state.messageCache
+          : { ...state.messageCache, [threadId]: [] },
+      }));
+    }
+  },
+
   getCurrentMessages: () => {
     const { currentThreadId, messageCache } = get();
     if (!currentThreadId) {return [];}
@@ -500,5 +564,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setSelectedModel: (model: LanguageModel) => {
     set({ selectedModel: model });
+  },
+
+  setAgentMode: (enabled: boolean) => {
+    set({ agentMode: enabled });
+  },
+
+  setHelpMode: (enabled: boolean) => {
+    set({ helpMode: enabled });
+  },
+
+  setSelectedCollections: (collections: string[]) => {
+    set({ selectedCollections: collections });
   },
 }));

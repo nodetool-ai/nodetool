@@ -58,7 +58,7 @@ describe("KieAINode static metadata", () => {
 
   it("defaults returns the current serialized metadata fields", () => {
     const node = new KieAINode();
-    expect(node.serialize()).toEqual({ model_info: 0 });
+    expect(node.serialize()).toEqual({ model_info: "" });
   });
 });
 
@@ -382,6 +382,26 @@ describe("KieAINode parseInputParams and full process", () => {
     const body = JSON.parse(createCall![1].body);
     expect(body.model).toBe("test/model-123");
     expect(body.input.prompt).toBe("test prompt");
+  });
+
+  it("reads required dynamic inputs from assigned dynamic properties", async () => {
+    setupSuccessfulKieApi();
+    const node = new KieAINode();
+
+    node.assign({
+      model_info: FULL_DOCS,
+      prompt: "dynamic prompt from assign"
+    });
+
+    node.setDynamic("_secrets", { KIE_API_KEY: "test-key" });
+    const result = await node.process();
+    expect(result.image).toBeDefined();
+
+    const createCall = mockFetch.mock.calls.find((c: unknown[]) =>
+      String(c[0]).includes("createTask")
+    );
+    const body = JSON.parse(createCall![1].body);
+    expect(body.input.prompt).toBe("dynamic prompt from assign");
   });
 
   it("throws when required param is missing", async () => {

@@ -379,6 +379,25 @@ async function main() {
   console.log("\nCopying external packages to staged backend modules...");
   const copiedCount = await copyExternalPackages();
 
+  // --- Copy manifest JSON files next to server.mjs ---
+  // These packages use `dirname(fileURLToPath(import.meta.url))` at runtime,
+  // which resolves to the bundle directory when bundled, so the manifests
+  // must live alongside server.mjs.
+  const manifests = [
+    ["kie-nodes", "kie-manifest.json"],
+    ["replicate-nodes", "replicate-manifest.json"],
+    ["fal-nodes", "fal-manifest.json"],
+  ];
+  for (const [pkg, file] of manifests) {
+    const src = path.join(ROOT_DIR, "packages", pkg, "dist", file);
+    const dest = path.join(BUNDLE_DIR, file);
+    if (fs.existsSync(src)) {
+      await fsp.copyFile(src, dest);
+    } else {
+      console.warn(`  Warning: manifest not found, skipping: ${src}`);
+    }
+  }
+
   // --- Generate minimal package.json ---
   await fsp.writeFile(
     path.join(BUNDLE_DIR, "package.json"),

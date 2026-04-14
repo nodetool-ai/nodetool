@@ -8,12 +8,9 @@ export interface PreviewInputs {
   name?: Connectable<string>;
 }
 
-export interface PreviewOutputs {}
+export interface PreviewOutputs {
+}
 
 export function preview(inputs: PreviewInputs): DslNode<PreviewOutputs> {
-  return createNode(
-    "nodetool.workflows.base_node.Preview",
-    inputs as Record<string, unknown>,
-    { outputNames: [] }
-  );
+  return createNode("nodetool.workflows.base_node.Preview", inputs as Record<string, unknown>, { outputNames: [] });
 }

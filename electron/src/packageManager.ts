@@ -552,6 +552,8 @@ async function runUvCommand(
     const process = spawn(command[0], command.slice(1), {
       env,
       stdio: "pipe",
+      // Prevent a console window from flashing on Windows while uv runs.
+      windowsHide: true,
     });
 
     if (options?.stdin && process.stdin) {

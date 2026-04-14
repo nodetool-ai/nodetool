@@ -125,12 +125,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
   const outputValue = useMemo(() => getOutputFromResult(result), [result]);
 
-  const configuredCount = useMemo(() => {
-    return Object.keys(node.properties).filter(
-      (k) => node.properties[k] !== undefined && node.properties[k] !== ""
-    ).length;
-  }, [node.properties]);
-
   const cardCss = isRunning
     ? runningCardStyles(nsColor)
     : isError
@@ -187,16 +181,9 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
         <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
           <Text size="small" weight={700} truncate>{node.metadata.title}</Text>
-          <FlexRow gap={1} align="center">
-            <Text size="tiny" weight={600} sx={{ color: nsColor }}>
-              {formatNs(node.metadata.namespace)}
-            </Text>
-            {!node.expanded && node.metadata.properties.length > 0 && (
-              <Text size="tiny" color="secondary">
-                {configuredCount}/{node.metadata.properties.length} configured
-              </Text>
-            )}
-          </FlexRow>
+          <Text size="tiny" weight={600} sx={{ color: nsColor }}>
+            {formatNs(node.metadata.namespace)}
+          </Text>
         </FlexColumn>
 
         {/* Status indicator */}

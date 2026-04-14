@@ -41,8 +41,8 @@ async function downloadFromFile(filePath: string): Promise<string> {
   try {
     const data = await fs.readFile(filePath, "utf8");
     return data;
-  } catch (error: any) {
-    throw new Error(`Failed to read file ${filePath}: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`Failed to read file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -65,9 +65,10 @@ async function downloadFile(url: string, dest: string): Promise<void> {
   try {
     expectedSize = await getFileSizeFromUrl(url);
     logMessage(`Expected file size: ${expectedSize} bytes`);
-  } catch (error: any) {
-    logMessage(`Failed to get file size from URL: ${error.message}`, "error");
-    throw new Error(`Failed to get file size from URL: ${error.message}`);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logMessage(`Failed to get file size from URL: ${msg}`, "error");
+    throw new Error(`Failed to get file size from URL: ${msg}`);
   }
 
   let existingFileStats;
@@ -77,8 +78,8 @@ async function downloadFile(url: string, dest: string): Promise<void> {
       logMessage("Existing file matches expected size, skipping download");
       return;
     }
-  } catch (err: any) {
-    if (err.code !== "ENOENT") {
+  } catch (err: unknown) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code !== "ENOENT") {
       logMessage(`Error checking existing file: ${err.message}`, "warn");
     }
   }
@@ -178,8 +179,8 @@ async function downloadFile(url: string, dest: string): Promise<void> {
           }
           logMessage(`Download completed and verified: ${dest}`);
           resolve();
-        } catch (err: any) {
-          reject(new Error(`Failed to verify downloaded file: ${err.message}`));
+        } catch (err: unknown) {
+          reject(new Error(`Failed to verify downloaded file: ${err instanceof Error ? err.message : String(err)}`));
         }
       });
     }

@@ -3,37 +3,27 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 
 // Workspace Directory — lib.os.WorkspaceDirectory
-export interface WorkspaceDirectoryInputs {}
+export interface WorkspaceDirectoryInputs {
+}
 
 export interface WorkspaceDirectoryOutputs {
   output: string;
 }
 
-export function workspaceDirectory(
-  inputs?: WorkspaceDirectoryInputs
-): DslNode<WorkspaceDirectoryOutputs, "output"> {
-  return createNode(
-    "lib.os.WorkspaceDirectory",
-    (inputs ?? {}) as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function workspaceDirectory(inputs?: WorkspaceDirectoryInputs): DslNode<WorkspaceDirectoryOutputs, "output"> {
+  return createNode("lib.os.WorkspaceDirectory", (inputs ?? {}) as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Open Workspace Directory — lib.os.OpenWorkspaceDirectory
-export interface OpenWorkspaceDirectoryInputs {}
+export interface OpenWorkspaceDirectoryInputs {
+}
 
 export interface OpenWorkspaceDirectoryOutputs {
   output: unknown;
 }
 
-export function openWorkspaceDirectory(
-  inputs?: OpenWorkspaceDirectoryInputs
-): DslNode<OpenWorkspaceDirectoryOutputs, "output"> {
-  return createNode(
-    "lib.os.OpenWorkspaceDirectory",
-    (inputs ?? {}) as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function openWorkspaceDirectory(inputs?: OpenWorkspaceDirectoryInputs): DslNode<OpenWorkspaceDirectoryOutputs, "output"> {
+  return createNode("lib.os.OpenWorkspaceDirectory", (inputs ?? {}) as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // File Exists — lib.os.FileExists
@@ -45,13 +35,8 @@ export interface FileExistsOutputs {
   output: boolean;
 }
 
-export function fileExists(
-  inputs: FileExistsInputs
-): DslNode<FileExistsOutputs, "output"> {
-  return createNode("lib.os.FileExists", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function fileExists(inputs: FileExistsInputs): DslNode<FileExistsOutputs, "output"> {
+  return createNode("lib.os.FileExists", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // List Files — lib.os.ListFiles
@@ -63,16 +48,11 @@ export interface ListFilesInputs {
 
 export interface ListFilesOutputs {
   file: string;
+  files: unknown[];
 }
 
-export function listFiles(
-  inputs: ListFilesInputs
-): DslNode<ListFilesOutputs, "file"> {
-  return createNode("lib.os.ListFiles", inputs as Record<string, unknown>, {
-    outputNames: ["file"],
-    defaultOutput: "file",
-    streaming: true
-  });
+export function listFiles(inputs: ListFilesInputs): DslNode<ListFilesOutputs> {
+  return createNode("lib.os.ListFiles", inputs as Record<string, unknown>, { outputNames: ["file", "files"], streaming: true });
 }
 
 // Copy File — lib.os.CopyFile
@@ -85,13 +65,8 @@ export interface CopyFileOutputs {
   output: string;
 }
 
-export function copyFile(
-  inputs: CopyFileInputs
-): DslNode<CopyFileOutputs, "output"> {
-  return createNode("lib.os.CopyFile", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function copyFile(inputs: CopyFileInputs): DslNode<CopyFileOutputs, "output"> {
+  return createNode("lib.os.CopyFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Move File — lib.os.MoveFile
@@ -100,12 +75,11 @@ export interface MoveFileInputs {
   destination_path?: Connectable<string>;
 }
 
-export interface MoveFileOutputs {}
+export interface MoveFileOutputs {
+}
 
 export function moveFile(inputs: MoveFileInputs): DslNode<MoveFileOutputs> {
-  return createNode("lib.os.MoveFile", inputs as Record<string, unknown>, {
-    outputNames: []
-  });
+  return createNode("lib.os.MoveFile", inputs as Record<string, unknown>, { outputNames: [] });
 }
 
 // Create Directory — lib.os.CreateDirectory
@@ -114,16 +88,11 @@ export interface CreateDirectoryInputs {
   exist_ok?: Connectable<boolean>;
 }
 
-export interface CreateDirectoryOutputs {}
+export interface CreateDirectoryOutputs {
+}
 
-export function createDirectory(
-  inputs: CreateDirectoryInputs
-): DslNode<CreateDirectoryOutputs> {
-  return createNode(
-    "lib.os.CreateDirectory",
-    inputs as Record<string, unknown>,
-    { outputNames: [] }
-  );
+export function createDirectory(inputs: CreateDirectoryInputs): DslNode<CreateDirectoryOutputs> {
+  return createNode("lib.os.CreateDirectory", inputs as Record<string, unknown>, { outputNames: [] });
 }
 
 // Get File Size — lib.os.GetFileSize
@@ -135,13 +104,8 @@ export interface GetFileSizeOutputs {
   output: number;
 }
 
-export function getFileSize(
-  inputs: GetFileSizeInputs
-): DslNode<GetFileSizeOutputs, "output"> {
-  return createNode("lib.os.GetFileSize", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function getFileSize(inputs: GetFileSizeInputs): DslNode<GetFileSizeOutputs, "output"> {
+  return createNode("lib.os.GetFileSize", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Created Time — lib.os.CreatedTime
@@ -153,13 +117,8 @@ export interface CreatedTimeOutputs {
   output: unknown;
 }
 
-export function createdTime(
-  inputs: CreatedTimeInputs
-): DslNode<CreatedTimeOutputs, "output"> {
-  return createNode("lib.os.CreatedTime", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function createdTime(inputs: CreatedTimeInputs): DslNode<CreatedTimeOutputs, "output"> {
+  return createNode("lib.os.CreatedTime", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Modified Time — lib.os.ModifiedTime
@@ -171,13 +130,8 @@ export interface ModifiedTimeOutputs {
   output: unknown;
 }
 
-export function modifiedTime(
-  inputs: ModifiedTimeInputs
-): DslNode<ModifiedTimeOutputs, "output"> {
-  return createNode("lib.os.ModifiedTime", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function modifiedTime(inputs: ModifiedTimeInputs): DslNode<ModifiedTimeOutputs, "output"> {
+  return createNode("lib.os.ModifiedTime", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Accessed Time — lib.os.AccessedTime
@@ -189,13 +143,8 @@ export interface AccessedTimeOutputs {
   output: unknown;
 }
 
-export function accessedTime(
-  inputs: AccessedTimeInputs
-): DslNode<AccessedTimeOutputs, "output"> {
-  return createNode("lib.os.AccessedTime", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function accessedTime(inputs: AccessedTimeInputs): DslNode<AccessedTimeOutputs, "output"> {
+  return createNode("lib.os.AccessedTime", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Is File — lib.os.IsFile
@@ -208,10 +157,7 @@ export interface IsFileOutputs {
 }
 
 export function isFile(inputs: IsFileInputs): DslNode<IsFileOutputs, "output"> {
-  return createNode("lib.os.IsFile", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("lib.os.IsFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Is Directory — lib.os.IsDirectory
@@ -223,13 +169,8 @@ export interface IsDirectoryOutputs {
   output: boolean;
 }
 
-export function isDirectory(
-  inputs: IsDirectoryInputs
-): DslNode<IsDirectoryOutputs, "output"> {
-  return createNode("lib.os.IsDirectory", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function isDirectory(inputs: IsDirectoryInputs): DslNode<IsDirectoryOutputs, "output"> {
+  return createNode("lib.os.IsDirectory", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // File Extension — lib.os.FileExtension
@@ -241,13 +182,8 @@ export interface FileExtensionOutputs {
   output: string;
 }
 
-export function fileExtension(
-  inputs: FileExtensionInputs
-): DslNode<FileExtensionOutputs, "output"> {
-  return createNode("lib.os.FileExtension", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function fileExtension(inputs: FileExtensionInputs): DslNode<FileExtensionOutputs, "output"> {
+  return createNode("lib.os.FileExtension", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // File Name — lib.os.FileName
@@ -259,13 +195,8 @@ export interface FileNameOutputs {
   output: string;
 }
 
-export function fileName(
-  inputs: FileNameInputs
-): DslNode<FileNameOutputs, "output"> {
-  return createNode("lib.os.FileName", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function fileName(inputs: FileNameInputs): DslNode<FileNameOutputs, "output"> {
+  return createNode("lib.os.FileName", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Get Directory — lib.os.GetDirectory
@@ -277,13 +208,8 @@ export interface GetDirectoryOutputs {
   output: string;
 }
 
-export function getDirectory(
-  inputs: GetDirectoryInputs
-): DslNode<GetDirectoryOutputs, "output"> {
-  return createNode("lib.os.GetDirectory", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function getDirectory(inputs: GetDirectoryInputs): DslNode<GetDirectoryOutputs, "output"> {
+  return createNode("lib.os.GetDirectory", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // File Name Match — lib.os.FileNameMatch
@@ -297,13 +223,8 @@ export interface FileNameMatchOutputs {
   output: boolean;
 }
 
-export function fileNameMatch(
-  inputs: FileNameMatchInputs
-): DslNode<FileNameMatchOutputs, "output"> {
-  return createNode("lib.os.FileNameMatch", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function fileNameMatch(inputs: FileNameMatchInputs): DslNode<FileNameMatchOutputs, "output"> {
+  return createNode("lib.os.FileNameMatch", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Filter File Names — lib.os.FilterFileNames
@@ -317,14 +238,8 @@ export interface FilterFileNamesOutputs {
   output: string[];
 }
 
-export function filterFileNames(
-  inputs: FilterFileNamesInputs
-): DslNode<FilterFileNamesOutputs, "output"> {
-  return createNode(
-    "lib.os.FilterFileNames",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function filterFileNames(inputs: FilterFileNamesInputs): DslNode<FilterFileNamesOutputs, "output"> {
+  return createNode("lib.os.FilterFileNames", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Basename — lib.os.Basename
@@ -337,13 +252,8 @@ export interface BasenameOutputs {
   output: string;
 }
 
-export function basename(
-  inputs: BasenameInputs
-): DslNode<BasenameOutputs, "output"> {
-  return createNode("lib.os.Basename", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function basename(inputs: BasenameInputs): DslNode<BasenameOutputs, "output"> {
+  return createNode("lib.os.Basename", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Dirname — lib.os.Dirname
@@ -355,13 +265,8 @@ export interface DirnameOutputs {
   output: string;
 }
 
-export function dirname(
-  inputs: DirnameInputs
-): DslNode<DirnameOutputs, "output"> {
-  return createNode("lib.os.Dirname", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function dirname(inputs: DirnameInputs): DslNode<DirnameOutputs, "output"> {
+  return createNode("lib.os.Dirname", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Join Paths — lib.os.JoinPaths
@@ -373,13 +278,8 @@ export interface JoinPathsOutputs {
   output: string;
 }
 
-export function joinPaths(
-  inputs: JoinPathsInputs
-): DslNode<JoinPathsOutputs, "output"> {
-  return createNode("lib.os.JoinPaths", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function joinPaths(inputs: JoinPathsInputs): DslNode<JoinPathsOutputs, "output"> {
+  return createNode("lib.os.JoinPaths", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Normalize Path — lib.os.NormalizePath
@@ -391,13 +291,8 @@ export interface NormalizePathOutputs {
   output: string;
 }
 
-export function normalizePath(
-  inputs: NormalizePathInputs
-): DslNode<NormalizePathOutputs, "output"> {
-  return createNode("lib.os.NormalizePath", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function normalizePath(inputs: NormalizePathInputs): DslNode<NormalizePathOutputs, "output"> {
+  return createNode("lib.os.NormalizePath", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Get Path Info — lib.os.GetPathInfo
@@ -409,13 +304,8 @@ export interface GetPathInfoOutputs {
   output: Record<string, unknown>;
 }
 
-export function getPathInfo(
-  inputs: GetPathInfoInputs
-): DslNode<GetPathInfoOutputs, "output"> {
-  return createNode("lib.os.GetPathInfo", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function getPathInfo(inputs: GetPathInfoInputs): DslNode<GetPathInfoOutputs, "output"> {
+  return createNode("lib.os.GetPathInfo", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Absolute Path — lib.os.AbsolutePath
@@ -427,13 +317,8 @@ export interface AbsolutePathOutputs {
   output: string;
 }
 
-export function absolutePath(
-  inputs: AbsolutePathInputs
-): DslNode<AbsolutePathOutputs, "output"> {
-  return createNode("lib.os.AbsolutePath", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function absolutePath(inputs: AbsolutePathInputs): DslNode<AbsolutePathOutputs, "output"> {
+  return createNode("lib.os.AbsolutePath", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Split Path — lib.os.SplitPath
@@ -445,13 +330,8 @@ export interface SplitPathOutputs {
   output: Record<string, unknown>;
 }
 
-export function splitPath(
-  inputs: SplitPathInputs
-): DslNode<SplitPathOutputs, "output"> {
-  return createNode("lib.os.SplitPath", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function splitPath(inputs: SplitPathInputs): DslNode<SplitPathOutputs, "output"> {
+  return createNode("lib.os.SplitPath", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Split Extension — lib.os.SplitExtension
@@ -463,14 +343,8 @@ export interface SplitExtensionOutputs {
   output: Record<string, unknown>;
 }
 
-export function splitExtension(
-  inputs: SplitExtensionInputs
-): DslNode<SplitExtensionOutputs, "output"> {
-  return createNode(
-    "lib.os.SplitExtension",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function splitExtension(inputs: SplitExtensionInputs): DslNode<SplitExtensionOutputs, "output"> {
+  return createNode("lib.os.SplitExtension", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Relative Path — lib.os.RelativePath
@@ -483,13 +357,8 @@ export interface RelativePathOutputs {
   output: string;
 }
 
-export function relativePath(
-  inputs: RelativePathInputs
-): DslNode<RelativePathOutputs, "output"> {
-  return createNode("lib.os.RelativePath", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function relativePath(inputs: RelativePathInputs): DslNode<RelativePathOutputs, "output"> {
+  return createNode("lib.os.RelativePath", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Path To String — lib.os.PathToString
@@ -501,13 +370,8 @@ export interface PathToStringOutputs {
   output: string;
 }
 
-export function pathToString(
-  inputs: PathToStringInputs
-): DslNode<PathToStringOutputs, "output"> {
-  return createNode("lib.os.PathToString", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function pathToString(inputs: PathToStringInputs): DslNode<PathToStringOutputs, "output"> {
+  return createNode("lib.os.PathToString", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Show Notification — lib.os.ShowNotification
@@ -521,12 +385,6 @@ export interface ShowNotificationOutputs {
   output: unknown;
 }
 
-export function showNotification(
-  inputs: ShowNotificationInputs
-): DslNode<ShowNotificationOutputs, "output"> {
-  return createNode(
-    "lib.os.ShowNotification",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function showNotification(inputs: ShowNotificationInputs): DslNode<ShowNotificationOutputs, "output"> {
+  return createNode("lib.os.ShowNotification", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

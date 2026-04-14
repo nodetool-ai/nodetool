@@ -134,15 +134,6 @@ export const WorkflowNodeContent: React.FC<WorkflowNodeContentProps> = memo(
         {status === "running" && (
           <NodeProgress id={id} workflowId={workflowId} />
         )}
-        {/* Workflow info footer */}
-        {/* {isLoading && (
-          <LoadingSpinner />
-        )}
-        {isError && (
-          <Caption color="error">
-            Error loading workflow
-          </Caption>
-        )} */}
         <Box
           sx={{
             flexShrink: 0,

@@ -36,6 +36,186 @@ const log = createLogger("nodetool.runtime.providers.claude_agent");
 
 const MCP_SERVER_NAME = "nodetool-tools";
 
+/**
+ * Categories of failures surfaced by the Claude Agent provider.
+ * Used to give the user actionable guidance rather than a raw SDK message.
+ */
+export type ClaudeAgentErrorKind =
+  | "sdk_not_installed"
+  | "cli_not_found"
+  | "running_as_root"
+  | "auth"
+  | "rate_limit"
+  | "context_length"
+  | "invalid_model"
+  | "aborted"
+  | "max_turns"
+  | "execution"
+  | "unknown";
+
+/**
+ * Error thrown by the Claude Agent provider. Carries a categorised `kind`
+ * alongside a user-facing message so callers (UI, CLI) can decide how to
+ * render the failure (e.g. show a "Sign in" button for `auth`).
+ */
+export class ClaudeAgentError extends Error {
+  readonly kind: ClaudeAgentErrorKind;
+
+  constructor(kind: ClaudeAgentErrorKind, message: string, cause?: unknown) {
+    super(message, cause !== undefined ? { cause } : undefined);
+    this.name = "ClaudeAgentError";
+    this.kind = kind;
+  }
+}
+
+/**
+ * Classify a raw error from the Claude Agent SDK (or its child process) into
+ * a ClaudeAgentError with an actionable, user-facing message.
+ */
+export function classifyClaudeAgentError(error: unknown): ClaudeAgentError {
+  if (error instanceof ClaudeAgentError) return error;
+
+  const original = error instanceof Error ? error.message : String(error);
+  const lower = original.toLowerCase();
+
+  // SDK package itself not installed (optional dependency missing).
+  if (
+    lower.includes("cannot find module") &&
+    lower.includes("claude-agent-sdk")
+  ) {
+    return new ClaudeAgentError(
+      "sdk_not_installed",
+      "The @anthropic-ai/claude-agent-sdk package is not installed. " +
+        "The Claude Agent provider requires this optional dependency — install it with " +
+        "`npm install @anthropic-ai/claude-agent-sdk`, then restart NodeTool. " +
+        `Original error: ${original}`,
+      error
+    );
+  }
+
+  // Claude Code CLI binary not on PATH.
+  if (
+    lower.includes("enoent") ||
+    lower.includes("claude: not found") ||
+    lower.includes("command not found: claude") ||
+    (lower.includes("spawn") && lower.includes("claude"))
+  ) {
+    return new ClaudeAgentError(
+      "cli_not_found",
+      "Claude Code CLI not found on PATH. The Claude Agent provider spawns the " +
+        "`claude` command — install it from https://docs.anthropic.com/claude-code/install " +
+        "(or via `npm install -g @anthropic-ai/claude-code`), then run `claude login` to " +
+        `authenticate. Original error: ${original}`,
+      error
+    );
+  }
+
+  // Running as root — SDK refuses --dangerously-skip-permissions.
+  if (
+    lower.includes("dangerously-skip-permissions") ||
+    (lower.includes("root") && lower.includes("refus")) ||
+    (lower.includes("uid") && lower.includes("0"))
+  ) {
+    return new ClaudeAgentError(
+      "running_as_root",
+      "The Claude Agent SDK refuses to run as root (uid=0) because it passes " +
+        "--dangerously-skip-permissions to the Claude CLI. Run NodeTool as a non-root " +
+        "user, or switch to the `anthropic` provider which uses ANTHROPIC_API_KEY " +
+        `directly. Original error: ${original}`,
+      error
+    );
+  }
+
+  // Abort.
+  if (
+    lower.includes("abort") ||
+    error instanceof Error && error.name === "AbortError"
+  ) {
+    return new ClaudeAgentError(
+      "aborted",
+      "Claude Agent request was aborted.",
+      error
+    );
+  }
+
+  // Authentication failure.
+  if (
+    lower.includes("unauthorized") ||
+    lower.includes("401") ||
+    lower.includes("403") ||
+    lower.includes("forbidden") ||
+    lower.includes("not logged in") ||
+    lower.includes("not authenticated") ||
+    lower.includes("invalid api key") ||
+    lower.includes("authentication") ||
+    lower.includes("oauth")
+  ) {
+    return new ClaudeAgentError(
+      "auth",
+      "Claude Agent authentication failed. Run `claude login` in a terminal to " +
+        "sign in with your Claude subscription, or set ANTHROPIC_API_KEY. " +
+        `Original error: ${original}`,
+      error
+    );
+  }
+
+  // Rate limit.
+  if (
+    lower.includes("429") ||
+    lower.includes("rate limit") ||
+    lower.includes("too many requests") ||
+    lower.includes("quota")
+  ) {
+    return new ClaudeAgentError(
+      "rate_limit",
+      "Claude Agent rate limit reached. Wait a moment and retry, or check your " +
+        `Claude subscription usage limits. Original error: ${original}`,
+      error
+    );
+  }
+
+  // Context length.
+  if (
+    lower.includes("context length") ||
+    lower.includes("context window") ||
+    lower.includes("token limit") ||
+    lower.includes("maximum context") ||
+    lower.includes("too long") ||
+    lower.includes("prompt is too long")
+  ) {
+    return new ClaudeAgentError(
+      "context_length",
+      "Claude Agent request exceeded the model's context window. Shorten the " +
+        "conversation (clear older messages) or switch to a model with a larger " +
+        `context window. Original error: ${original}`,
+      error
+    );
+  }
+
+  // Invalid / unknown model.
+  if (
+    lower.includes("model") &&
+    (lower.includes("invalid") ||
+      lower.includes("not found") ||
+      lower.includes("unknown") ||
+      lower.includes("does not exist"))
+  ) {
+    return new ClaudeAgentError(
+      "invalid_model",
+      "Claude Agent could not use the requested model. Check that the model ID " +
+        "is valid and available on your Claude subscription. " +
+        `Original error: ${original}`,
+      error
+    );
+  }
+
+  return new ClaudeAgentError(
+    "unknown",
+    `Claude Agent provider error: ${original}`,
+    error
+  );
+}
+
 const CLAUDE_AGENT_MODELS: LanguageModel[] = [
   {
     id: "claude-sonnet-4-20250514",
@@ -305,6 +485,18 @@ export class ClaudeAgentProvider extends BaseProvider {
     const threadId = args.threadId ?? null;
     const resumeSessionId = this.getSessionId(threadId);
 
+    // Pre-flight: fail fast with a clear message if running as root, since the
+    // SDK always refuses --dangerously-skip-permissions for uid=0. Without this
+    // check the underlying error surfaces as an opaque child-process failure.
+    if (typeof process.getuid === "function" && process.getuid() === 0) {
+      throw new ClaudeAgentError(
+        "running_as_root",
+        "The Claude Agent SDK refuses to run as root (uid=0) because it passes " +
+          "--dangerously-skip-permissions to the Claude CLI. Run NodeTool as a " +
+          "non-root user, or use the `anthropic` provider with ANTHROPIC_API_KEY."
+      );
+    }
+
     log.info("Claude Agent generateMessages called", {
       toolCount,
       hasOnToolCall,
@@ -379,22 +571,35 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
     }
 
-    const queryHandle = sdk.query({
-      prompt,
-      options: {
-        model: args.model,
-        systemPrompt,
-        maxTurns: hasTools ? 10 : 1,
-        permissionMode: "bypassPermissions",
-        allowDangerouslySkipPermissions: true,
-        disallowedTools: DISALLOWED_TOOLS,
-        allowedTools,
-        env: cleanEnv,
-        ...(abortController ? { abortController } : {}),
-        ...(mcpServer ? { mcpServers: { [MCP_SERVER_NAME]: mcpServer } } : {}),
-        ...(resumeSessionId ? { resume: resumeSessionId } : {})
-      }
-    });
+    let queryHandle: ReturnType<typeof sdk.query>;
+    try {
+      queryHandle = sdk.query({
+        prompt,
+        options: {
+          model: args.model,
+          systemPrompt,
+          maxTurns: hasTools ? 10 : 1,
+          permissionMode: "bypassPermissions",
+          allowDangerouslySkipPermissions: true,
+          disallowedTools: DISALLOWED_TOOLS,
+          allowedTools,
+          env: cleanEnv,
+          ...(abortController ? { abortController } : {}),
+          ...(mcpServer
+            ? { mcpServers: { [MCP_SERVER_NAME]: mcpServer } }
+            : {}),
+          ...(resumeSessionId ? { resume: resumeSessionId } : {})
+        }
+      });
+    } catch (err) {
+      const classified = classifyClaudeAgentError(err);
+      log.error("Claude Agent sdk.query() failed", {
+        kind: classified.kind,
+        error: classified.message,
+        model: args.model
+      });
+      throw classified;
+    }
 
     // streamedTextLength tracks the text position within the current assistant turn.
     // It resets when a new turn begins (after tool execution in multi-turn MCP queries).
@@ -404,86 +609,127 @@ export class ClaudeAgentProvider extends BaseProvider {
     // so we can skip the duplicate result event.
     let hasYieldedText = false;
 
-    for await (const msg of queryHandle) {
-      const msgObj = msg as Record<string, unknown>;
-      const msgType = msgObj.type as string;
+    try {
+      for await (const msg of queryHandle) {
+        const msgObj = msg as Record<string, unknown>;
+        const msgType = msgObj.type as string;
 
-      // Capture session ID from the init event
-      if (
-        msgType === "system" &&
-        msgObj.subtype === "init" &&
-        typeof msgObj.session_id === "string" &&
-        threadId
-      ) {
-        this.setSessionId(threadId, msgObj.session_id);
-        log.debug("Claude session initialized", {
-          threadId,
-          sessionId: msgObj.session_id
-        });
-        continue;
-      }
-
-      // Yield any new tool calls that were tracked by MCP handlers.
-      // When tool calls appear, a new assistant turn follows — reset text position.
-      if (yieldedToolCallCount < toolCallTracker.length) {
-        while (yieldedToolCallCount < toolCallTracker.length) {
-          yield toolCallTracker[yieldedToolCallCount++];
+        // Capture session ID from the init event
+        if (
+          msgType === "system" &&
+          msgObj.subtype === "init" &&
+          typeof msgObj.session_id === "string" &&
+          threadId
+        ) {
+          this.setSessionId(threadId, msgObj.session_id);
+          log.debug("Claude session initialized", {
+            threadId,
+            sessionId: msgObj.session_id
+          });
+          continue;
         }
-        // Reset for the next assistant turn's text
-        streamedTextLength = 0;
-      }
 
-      // Stream events provide incremental text updates
-      if (msgType === "stream_event") {
-        const partial = msgObj.message as Record<string, unknown> | undefined;
-        const content = partial?.content;
-        if (Array.isArray(content)) {
-          const text = content
-            .filter(
-              (b: any) => b?.type === "text" && typeof b.text === "string"
-            )
-            .map((b: any) => b.text as string)
-            .join("");
-          if (text.length > streamedTextLength) {
-            const delta = text.slice(streamedTextLength);
-            streamedTextLength = text.length;
-            hasYieldedText = true;
-            yield { type: "chunk", content: delta, done: false } as Chunk;
+        // Yield any new tool calls that were tracked by MCP handlers.
+        // When tool calls appear, a new assistant turn follows — reset text position.
+        if (yieldedToolCallCount < toolCallTracker.length) {
+          while (yieldedToolCallCount < toolCallTracker.length) {
+            yield toolCallTracker[yieldedToolCallCount++];
+          }
+          // Reset for the next assistant turn's text
+          streamedTextLength = 0;
+        }
+
+        // Stream events provide incremental text updates
+        if (msgType === "stream_event") {
+          const partial = msgObj.message as Record<string, unknown> | undefined;
+          const content = partial?.content;
+          if (Array.isArray(content)) {
+            const text = content
+              .filter(
+                (b: any) => b?.type === "text" && typeof b.text === "string"
+              )
+              .map((b: any) => b.text as string)
+              .join("");
+            if (text.length > streamedTextLength) {
+              const delta = text.slice(streamedTextLength);
+              streamedTextLength = text.length;
+              hasYieldedText = true;
+              yield { type: "chunk", content: delta, done: false } as Chunk;
+            }
+          }
+          continue;
+        }
+
+        // Full assistant message — emit any remaining text not covered by stream events
+        if (msgType === "assistant") {
+          const message = msgObj.message as Record<string, unknown> | undefined;
+          const content = message?.content;
+          if (Array.isArray(content)) {
+            const text = content
+              .filter(
+                (b: any) => b?.type === "text" && typeof b.text === "string"
+              )
+              .map((b: any) => b.text as string)
+              .join("");
+            if (text.length > streamedTextLength) {
+              const delta = text.slice(streamedTextLength);
+              streamedTextLength = text.length;
+              hasYieldedText = true;
+              yield { type: "chunk", content: delta, done: false } as Chunk;
+            }
+          }
+          // Reset for next turn (if multi-turn agentic query)
+          streamedTextLength = 0;
+          continue;
+        }
+
+        // Result event — surface errors and fall back text when nothing was streamed.
+        if (msgType === "result") {
+          const subtype = msgObj.subtype as string | undefined;
+          const isError = msgObj.is_error === true;
+          const rawResult = msgObj.result;
+          const resultText =
+            typeof rawResult === "string" ? rawResult : undefined;
+
+          if (isError || (subtype && subtype.startsWith("error"))) {
+            const detail = resultText ?? this.describeErrorSubtype(subtype);
+            const kind: ClaudeAgentErrorKind =
+              subtype === "error_max_turns"
+                ? "max_turns"
+                : subtype === "error_during_execution"
+                  ? "execution"
+                  : "unknown";
+            const message =
+              kind === "max_turns"
+                ? `Claude Agent stopped after reaching the max turn limit without ` +
+                  `finishing. Increase maxTurns, simplify the task, or break it into ` +
+                  `smaller steps. Detail: ${detail}`
+                : kind === "execution"
+                  ? `Claude Agent execution error: ${detail}`
+                  : `Claude Agent returned an error result (${
+                      subtype ?? "unknown"
+                    }): ${detail}`;
+            log.error("Claude Agent result error", {
+              subtype,
+              is_error: isError,
+              detail
+            });
+            throw new ClaudeAgentError(kind, message);
+          }
+
+          if (!hasYieldedText && resultText && resultText.length > 0) {
+            yield { type: "chunk", content: resultText, done: false } as Chunk;
           }
         }
-        continue;
       }
-
-      // Full assistant message — emit any remaining text not covered by stream events
-      if (msgType === "assistant") {
-        const message = msgObj.message as Record<string, unknown> | undefined;
-        const content = message?.content;
-        if (Array.isArray(content)) {
-          const text = content
-            .filter(
-              (b: any) => b?.type === "text" && typeof b.text === "string"
-            )
-            .map((b: any) => b.text as string)
-            .join("");
-          if (text.length > streamedTextLength) {
-            const delta = text.slice(streamedTextLength);
-            streamedTextLength = text.length;
-            hasYieldedText = true;
-            yield { type: "chunk", content: delta, done: false } as Chunk;
-          }
-        }
-        // Reset for next turn (if multi-turn agentic query)
-        streamedTextLength = 0;
-        continue;
-      }
-
-      // Result event — final text fallback, only if nothing was streamed yet
-      if (msgType === "result" && !hasYieldedText) {
-        const result = msgObj.result;
-        if (typeof result === "string" && result.length > 0) {
-          yield { type: "chunk", content: result, done: false } as Chunk;
-        }
-      }
+    } catch (err) {
+      const classified = classifyClaudeAgentError(err);
+      log.error("Claude Agent stream failed", {
+        kind: classified.kind,
+        error: classified.message,
+        model: args.model
+      });
+      throw classified;
     }
 
     // Yield any remaining tool calls
@@ -526,7 +772,19 @@ export class ClaudeAgentProvider extends BaseProvider {
     };
   }
 
+  private describeErrorSubtype(subtype: string | undefined): string {
+    switch (subtype) {
+      case "error_max_turns":
+        return "agent reached the maximum number of turns";
+      case "error_during_execution":
+        return "an error occurred during agent execution";
+      default:
+        return subtype ?? "unknown error";
+    }
+  }
+
   isContextLengthError(error: unknown): boolean {
+    if (error instanceof ClaudeAgentError) return error.kind === "context_length";
     const msg = String(error).toLowerCase();
     return (
       msg.includes("context length") ||
@@ -535,5 +793,15 @@ export class ClaudeAgentProvider extends BaseProvider {
       msg.includes("too long") ||
       msg.includes("maximum context")
     );
+  }
+
+  isAuthError(error: unknown): boolean {
+    if (error instanceof ClaudeAgentError) return error.kind === "auth";
+    return super.isAuthError(error);
+  }
+
+  isRateLimitError(error: unknown): boolean {
+    if (error instanceof ClaudeAgentError) return error.kind === "rate_limit";
+    return super.isRateLimitError(error);
   }
 }

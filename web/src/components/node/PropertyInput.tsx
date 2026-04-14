@@ -116,7 +116,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
     // RESET BUTTON — shown on hover when value differs from default
     ".reset-button": {
       position: "absolute",
-      right: 0,
+      right: "var(--property-reset-button-offset, 0px)",
       top: 0,
       display: "flex",
       alignItems: "center",
@@ -709,10 +709,21 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     handleDeleteProperty(property.name);
   }, [handleDeleteProperty, property.name]);
 
+  const hasTopRightPropertyActions =
+    componentType === StringProperty ||
+    componentType === JSONProperty ||
+    componentType === DataframeProperty;
+
   return (
     <div
       className={`property-input-container${isChanged ? " value-changed" : ""}`}
-      css={propertyInputContainerStyles(theme)}
+      css={[
+        propertyInputContainerStyles(theme),
+        hasTopRightPropertyActions &&
+          css({
+            "--property-reset-button-offset": "40px"
+          })
+      ]}
       onContextMenu={onContextMenu}
       onDoubleClick={handleDoubleClick}
     >

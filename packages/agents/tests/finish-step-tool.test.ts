@@ -93,7 +93,7 @@ describe("FinishStepTool", () => {
       expect(result.additionalProperties).toBe(true);
     });
 
-    it("wraps array type schemas in an object with items", () => {
+    it("does not add additionalProperties to non-object type schemas", () => {
       const outputSchema = {
         type: "array",
         items: { type: "string" }
@@ -113,6 +113,7 @@ describe("FinishStepTool", () => {
         required: ["items"],
         additionalProperties: false
       });
+      expect(result.additionalProperties).toBe(false);
     });
 
     it("does not mutate the original outputSchema", () => {

@@ -1,18 +1,17 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Workflow } from "../types/miniapp";
 import { getInputKind } from "../utils/inputUtils";
+import { Node } from "../types/ApiTypes";
 
 import { MiniAppInputKind } from "../types/miniapp";
 
-// Define these locally or import if I can find where they are in mobile
 export interface InputNodeData {
   name: string;
   label?: string;
   description?: string;
-  value?: any;
+  value?: unknown;
   min?: number;
   max?: number;
-  [key: string]: any;
 }
 
 export interface MiniAppInputDefinition {
@@ -23,7 +22,7 @@ export interface MiniAppInputDefinition {
 }
 
 export const useMiniAppInputs = (selectedWorkflow?: Workflow | null) => {
-  const [inputValues, setInputValues] = useState<Record<string, any>>({});
+  const [inputValues, setInputValues] = useState<Record<string, unknown>>({});
 
   const inputDefinitions = useMemo(() => {
     // Mobile 'Workflow' type uses 'graph.nodes'
@@ -31,23 +30,24 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow | null) => {
       return [] as MiniAppInputDefinition[];
     }
 
-    return (selectedWorkflow.graph.nodes || [])
-      .map((node: any) => {
+    return (selectedWorkflow.graph.nodes as Node[])
+      .map((node: Node) => {
         const kind = getInputKind(node.type);
         if (!kind) {
           return null;
         }
 
+        const nodeData = node.data as InputNodeData | undefined;
         return {
           nodeId: node.id,
           nodeType: node.type,
           kind,
           data: {
-              ...node.data,
+              ...nodeData,
               // Ensure name exists
-              name: node.data.name || node.id,
+              name: nodeData?.name || node.id,
               // Ensure label exists (fallback logic from original screen)
-              label: node.data.label || node.data.name || 'Input'
+              label: nodeData?.label || nodeData?.name || 'Input'
           } as InputNodeData
         } satisfies MiniAppInputDefinition;
       })
@@ -63,7 +63,7 @@ export const useMiniAppInputs = (selectedWorkflow?: Workflow | null) => {
       return;
     }
 
-    const initialValues: Record<string, any> = {};
+    const initialValues: Record<string, unknown> = {};
     
     inputDefinitions.forEach((def) => {
         const key = def.data.name;

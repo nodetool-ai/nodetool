@@ -30,3 +30,7 @@
 ## 2026-04-12 - High-Frequency State Arrays `findLastIndex` Optimization
 **Learning:** During high-frequency streaming events (like LLM token generation) where an array in a Zustand store is continuously appended to and updated, using `array.findIndex()` to locate the message creates an O(N²) bottleneck because it scans from the beginning.
 **Action:** Always use `array.findLastIndex()` or an O(1) Map lookup for finding elements in an array when updated elements are appended to the end to prevent blocking the main thread.
+
+## 2025-01-31 - CommandMenu Zustand Selector Optimization
+**Learning:** Returning an object literal from a primitive Zustand selector in `useNodes` (e.g., `(state) => ({ nodes: state.nodes, edges: state.edges })`) defaults to strict equality (`===`), causing continuous re-renders whenever the underlying arrays are updated (e.g., at 60fps during ReactFlow dragging).
+**Action:** Always provide `shallow` from `zustand/shallow` as the second argument to `useNodes` when returning new object literals containing shallowly comparable elements to eliminate unnecessary `O(N)` re-renders.

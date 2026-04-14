@@ -10,9 +10,7 @@ import {
   DialogContent,
   DialogActions
 } from "@mui/material";
-import useLogsStore from "../../stores/LogStore";
-import { shallow } from "zustand/shallow";
-import { useStoreWithEqualityFn } from "zustand/traditional";
+import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import isEqual from "fast-deep-equal";
 import { CopyButton, Text, Chip, EditorButton } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -58,13 +56,9 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();
     const logsRef = useRef<HTMLDivElement>(null);
-    const logs = useStoreWithEqualityFn(
-      useLogsStore,
-      (state) =>
-        state.logs.filter(
-          (log) => log.workflowId === workflowId && log.nodeId === id
-        ),
-      shallow
+    // O(1) lookup via pre-keyed map instead of filtering the full logs array.
+    const logs = useLogsStore(
+      (state) => state.logsByNode[nodeLogKey(workflowId, id)]
     );
     const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>(
       []
@@ -221,13 +215,9 @@ NodeLogsDialog.displayName = "NodeLogsDialog";
 
 export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const theme = useTheme();
-  const logs = useStoreWithEqualityFn(
-    useLogsStore,
-    (state) =>
-      state.logs.filter(
-        (log) => log.workflowId === workflowId && log.nodeId === id
-      ),
-    shallow
+  // O(1) lookup via pre-keyed map instead of filtering the full logs array.
+  const logs = useLogsStore(
+    (state) => state.logsByNode[nodeLogKey(workflowId, id)]
   );
   const [open, setOpen] = useState(false);
 

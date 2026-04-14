@@ -705,39 +705,4 @@ describe("AssetStore", () => {
     });
   });
 
-  describe("utility functions", () => {
-    describe("sort", () => {
-      it("should sort assets by created_at in descending order", () => {
-        const _assets = {
-          asset1: {
-            id: "asset1",
-            name: "asset1.jpg",
-            created_at: "2023-01-01T10:00:00Z"
-          },
-          asset2: {
-            id: "asset2",
-            name: "asset2.jpg",
-            created_at: "2023-01-02T10:00:00Z"
-          },
-          asset3: {
-            id: "asset3",
-            name: "asset3.jpg",
-            created_at: "2023-01-01T15:00:00Z"
-          }
-        };
-
-        // The sort function is internal, so we can't directly test it
-        // But we can verify the behavior through the store methods
-        expect(true).toBe(true); // Placeholder test
-      });
-    });
-
-    describe("buildFolderTree", () => {
-      it("should build folder tree structure", () => {
-        // The buildFolderTree function is internal, so we can't directly test it
-        // But we can verify the behavior through the store methods
-        expect(true).toBe(true); // Placeholder test
-      });
-    });
-  });
 });

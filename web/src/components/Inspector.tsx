@@ -15,6 +15,7 @@ import isEqual from "fast-deep-equal";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
 import { Caption, CloseButton, CollapsibleSection, ScrollArea, Text, Tooltip } from "./ui_primitives";
+import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
 
 const styles = (theme: Theme) =>
   css({
@@ -436,6 +437,7 @@ const Inspector: React.FC = () => {
                 }
 
                 const isFalNode = selectedNode.type === "fal.DynamicFal" ||
+                  selectedNode.type === DYNAMIC_KIE_NODE_TYPE ||
                   selectedNode.type === "kie.DynamicKie";
 
                 // Build property object with proper typing
