@@ -37,6 +37,13 @@ const ENTRY_POINT = path.join(
 const REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
+  // CodeNode sandbox exposes these to user JS — they must be resolvable at
+  // runtime in the packaged Electron app, not bundled into server.mjs.
+  "lodash-es",
+  "dayjs",
+  "cheerio",
+  "csv-parse",
+  "validator",
 ];
 
 const EXTERNAL_PACKAGES = [
@@ -86,6 +93,18 @@ const EXTERNAL_PACKAGES = [
 
   // Sandboxed code execution (native addon, optional)
   "isolated-vm",
+
+  // CodeNode sandbox dependencies. These are exposed as globals inside the
+  // user-code `vm` sandbox (js-sandbox.ts). esbuild can bundle them, but in
+  // packaged Electron builds the bundled copies have failed to initialise
+  // correctly — the sandbox then sees `_`/`dayjs`/etc. as broken references
+  // and snippets that rely on them throw "X is not defined". Loading them
+  // from real node_modules at runtime (same as dev mode) avoids this.
+  "lodash-es",
+  "dayjs",
+  "cheerio",
+  "csv-parse",
+  "validator",
 
   // CJS require() packages
   "openai",
