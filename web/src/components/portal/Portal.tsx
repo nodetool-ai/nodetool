@@ -66,7 +66,11 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "0 24px",
-      paddingTop: 40
+      paddingTop: 40,
+      [theme.breakpoints.down("sm")]: {
+        padding: "0 12px",
+        paddingTop: 24
+      }
     },
     ".portal-heading": {
       fontSize: 18,
@@ -137,6 +141,12 @@ const styles = (theme: Theme) =>
         "&:hover": {
           opacity: 0.9,
           background: theme.vars.palette.action.hover
+        }
+      },
+      // Mobile: tighten the inline composer footer (model + agent toggle live here)
+      [theme.breakpoints.down("sm")]: {
+        "& .chat-input-section": {
+          padding: "8px 0 0 0 !important"
         }
       }
     },
