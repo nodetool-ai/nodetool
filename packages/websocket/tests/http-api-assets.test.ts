@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, Asset } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
 
@@ -446,5 +446,69 @@ describe("HTTP API: assets", () => {
       assets: Array<Record<string, unknown>>;
     };
     expect(data.assets.length).toBe(2);
+  });
+});
+
+describe("HTTP API: assets — get_url and thumb_url", () => {
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  afterEach(() => {
+    for (const [key, val] of Object.entries(saved)) {
+      if (val === undefined) delete process.env[key];
+      else process.env[key] = val;
+    }
+  });
+
+  function snapshotDomains(): void {
+    saved.ASSET_DOMAIN = process.env.ASSET_DOMAIN;
+    saved.TEMP_DOMAIN = process.env.TEMP_DOMAIN;
+  }
+
+  async function createAsset(contentType: string): Promise<Record<string, unknown>> {
+    const res = await handleApiRequest(
+      makeRequest("/api/assets", {
+        method: "POST",
+        body: {
+          name: "file",
+          content_type: contentType,
+          parent_id: "user-1"
+        }
+      })
+    );
+    return (await jsonBody(res)) as Record<string, unknown>;
+  }
+
+  it("returns /api/storage path when ASSET_DOMAIN is not configured", async () => {
+    snapshotDomains();
+    delete process.env.ASSET_DOMAIN;
+    delete process.env.TEMP_DOMAIN;
+
+    const asset = await createAsset("image/png");
+    expect(asset.get_url).toBe(`/api/storage/${asset.id}.png`);
+    expect(asset.thumb_url).toMatch(
+      new RegExp(`^/api/assets/${asset.id}/thumbnail\\?t=\\d+$`)
+    );
+  });
+
+  it("returns absolute URL on ASSET_DOMAIN when configured", async () => {
+    snapshotDomains();
+    process.env.ASSET_DOMAIN = "assets.nodetool.ai";
+    delete process.env.TEMP_DOMAIN;
+
+    const asset = await createAsset("image/jpeg");
+    expect(asset.get_url).toBe(`https://assets.nodetool.ai/${asset.id}.jpg`);
+  });
+
+  it("returns null get_url for folders regardless of ASSET_DOMAIN", async () => {
+    snapshotDomains();
+    process.env.ASSET_DOMAIN = "assets.nodetool.ai";
+
+    const folder = await createAsset("folder");
+    expect(folder.get_url).toBeNull();
+    expect(folder.thumb_url).toBeNull();
   });
 });

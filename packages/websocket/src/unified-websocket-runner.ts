@@ -4,7 +4,11 @@ import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool/security";
 import { getSetting } from "./settings-api.js";
 import { pack, unpack } from "msgpackr";
-import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
+import {
+  createLogger,
+  getDefaultAssetsPath,
+  buildAssetUrl
+} from "@nodetool/config";
 import {
   Graph,
   WorkflowRunner,
@@ -392,10 +396,12 @@ function createRuntimeContext(opts: {
     secretResolver: getSecret,
     storage,
     tempUrlResolver: (fileUri: string) => {
-      // Convert file:///path/to/storage/temp/uuid.png → /api/storage/temp/uuid.png
+      // Convert file:///path/to/storage/temp/uuid.png → public asset URL.
+      // When ASSET_DOMAIN / TEMP_DOMAIN are configured the result uses those
+      // domains; otherwise it falls back to /api/storage/temp/uuid.png.
       const prefix = pathToFileURL(storagePath).toString();
       if (fileUri.startsWith(prefix)) {
-        return `/api/storage/${fileUri.slice(prefix.length + 1)}`;
+        return buildAssetUrl(fileUri.slice(prefix.length + 1));
       }
       return fileUri;
     }
