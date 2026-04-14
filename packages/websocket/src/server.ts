@@ -89,6 +89,7 @@ import costsRoutes from "./routes/costs.js";
 import skillsRoutes from "./routes/skills.js";
 import collectionsRoutes from "./routes/collections.js";
 import modelsRoutes from "./routes/models.js";
+import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 
 const log = createLogger("nodetool.websocket.server");
 const startupT0 = performance.now();
@@ -580,6 +581,7 @@ await app.register(costsRoutes, routeOpts);
 await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
+await app.register(agentSocketRoute);
 
 log.info(`Routes registered [${startupMs()}]`);
 
@@ -670,6 +672,11 @@ app.listen({ port, host }, (err) => {
 
 async function shutdown(signal: string): Promise<void> {
   log.info(`${signal} received — shutting down`);
+  try {
+    getAgentRuntime().closeAllSessions();
+  } catch {
+    // best-effort cleanup
+  }
   pythonBridge.close();
   try {
     await app.close();

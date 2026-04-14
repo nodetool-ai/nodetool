@@ -1,31 +1,32 @@
 /**
- * Codex SDK agent integration for the Electron main process.
+ * Codex SDK agent integration.
  *
- * Uses the official @openai/codex-sdk to manage threads and stream events,
- * replacing the previous manual JSON-RPC over stdin/stdout approach.
+ * Uses the official @openai/codex-sdk to manage threads and stream events.
  */
 
 import { randomUUID } from "node:crypto";
-import { writeFileSync, readFileSync, unlinkSync, existsSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { logMessage } from "./logger";
-import type {
-  AgentModelDescriptor,
-  AgentMessage,
-  FrontendToolManifest,
-} from "./types.d";
-import type { WebContents } from "electron";
+import { createLogger } from "@nodetool/config";
 import {
   Codex,
   type ThreadEvent,
   type ThreadItem,
   type ThreadOptions,
 } from "@openai/codex-sdk";
-import { getMcpToolServerUrl, startMcpToolServer, setMcpToolServerWebContents } from "./mcpToolServer";
+import {
+  getMcpToolServerUrl,
+  startMcpToolServer,
+  setMcpToolServerTransport,
+} from "./mcp-tool-server.js";
+import type { AgentTransport } from "./transport.js";
+import type {
+  AgentMessage,
+  AgentModelDescriptor,
+  FrontendToolManifest,
+} from "./types.js";
 
-// ---------------------------------------------------------------------------
-// Codex client singleton
-// ---------------------------------------------------------------------------
+const log = createLogger("nodetool.websocket.agent.codex");
 
 let codexInstance: Codex | null = null;
 
@@ -36,10 +37,6 @@ function getCodex(): Codex {
   return codexInstance;
 }
 
-// ---------------------------------------------------------------------------
-// Model listing
-// ---------------------------------------------------------------------------
-
 export async function listCodexModels(): Promise<AgentModelDescriptor[]> {
   return [
     { id: "gpt-5.4", label: "GPT-5.4", isDefault: true, provider: "codex" },
@@ -47,16 +44,18 @@ export async function listCodexModels(): Promise<AgentModelDescriptor[]> {
   ];
 }
 
-// ---------------------------------------------------------------------------
-// Session implementation using the Codex SDK
-// ---------------------------------------------------------------------------
-
 export class CodexQuerySession {
   private closed = false;
   private readonly model: string;
   private readonly workspacePath: string;
   private readonly systemPrompt: string;
-  private readonly reasoningEffort: "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  private readonly reasoningEffort:
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
   private threadId: string | null;
   private inFlight = false;
   private abortController: AbortController | null = null;
@@ -76,34 +75,32 @@ export class CodexQuerySession {
   }
 
   /**
-   * Write a .mcp.json to the workspace so the Codex CLI picks up
-   * the NodeTool UI tools MCP server.
+   * Write a .mcp.json to the workspace so the Codex CLI picks up the
+   * NodeTool UI tools MCP server.
    */
-  private async ensureMcpConfig(webContents: WebContents | null): Promise<void> {
+  private async ensureMcpConfig(transport: AgentTransport | null): Promise<void> {
     let mcpUrl = getMcpToolServerUrl();
 
-    // Start the server if not running and we have a renderer
-    if (!mcpUrl && webContents) {
-      mcpUrl = await startMcpToolServer(webContents);
-    } else if (mcpUrl && webContents) {
-      setMcpToolServerWebContents(webContents);
+    if (!mcpUrl && transport) {
+      mcpUrl = await startMcpToolServer(transport);
+    } else if (mcpUrl && transport) {
+      setMcpToolServerTransport(transport);
     }
 
     if (!mcpUrl) {
-      logMessage("MCP tool server not available for Codex session", "warn");
+      log.warn("MCP tool server not available for Codex session");
       return;
     }
 
     const configPath = join(this.workspacePath, ".mcp.json");
 
-    // Check if config already exists with the correct URL
     if (existsSync(configPath)) {
       try {
-        const existing = JSON.parse(
-          readFileSync(configPath, "utf8"),
-        ) as { mcpServers?: { "nodetool-ui"?: { url?: string } } };
+        const existing = JSON.parse(readFileSync(configPath, "utf8")) as {
+          mcpServers?: { "nodetool-ui"?: { url?: string } };
+        };
         if (existing?.mcpServers?.["nodetool-ui"]?.url === mcpUrl) {
-          return; // Already configured
+          return;
         }
       } catch {
         // Corrupted file, overwrite
@@ -121,9 +118,11 @@ export class CodexQuerySession {
 
     try {
       writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-      logMessage(`Wrote Codex MCP config to ${configPath}`);
+      log.info(`Wrote Codex MCP config to ${configPath}`);
     } catch (error) {
-      logMessage(`Failed to write .mcp.json: ${error}`, "warn");
+      log.warn(
+        `Failed to write .mcp.json: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -134,15 +133,17 @@ export class CodexQuerySession {
       workingDirectory: this.workspacePath,
       approvalPolicy: "never",
       sandboxMode: "workspace-write",
-      ...(this.reasoningEffort && { modelReasoningEffort: this.reasoningEffort }),
+      ...(this.reasoningEffort && {
+        modelReasoningEffort: this.reasoningEffort,
+      }),
     };
 
     if (this.threadId) {
-      logMessage(`Resuming Codex thread: ${this.threadId}`);
+      log.info(`Resuming Codex thread: ${this.threadId}`);
       return codex.resumeThread(this.threadId, threadOptions);
     }
 
-    logMessage(`Starting new Codex thread (model: ${this.model})`);
+    log.info(`Starting new Codex thread (model: ${this.model})`);
     return codex.startThread(threadOptions);
   }
 
@@ -155,7 +156,7 @@ export class CodexQuerySession {
 
   async send(
     message: string,
-    webContents: WebContents | null,
+    transport: AgentTransport | null,
     sessionId: string,
     _manifest: FrontendToolManifest[],
     onMessage?: (message: AgentMessage) => void,
@@ -164,14 +165,16 @@ export class CodexQuerySession {
       throw new Error("Cannot send to a closed session");
     }
     if (this.inFlight) {
-      throw new Error("A Codex request is already in progress for this session");
+      throw new Error(
+        "A Codex request is already in progress for this session",
+      );
     }
 
     this.inFlight = true;
     this.abortController = new AbortController();
 
     try {
-      await this.ensureMcpConfig(webContents);
+      await this.ensureMcpConfig(transport);
       const thread = this.getThread();
       const prompt = this.buildPrompt(message);
       const { events } = await thread.runStreamed(prompt, {
@@ -179,14 +182,12 @@ export class CodexQuerySession {
       });
 
       const outputMessages: AgentMessage[] = [];
-      // Track accumulated text per item for streaming updates
       const itemTexts = new Map<string, string>();
 
       for await (const event of events) {
-        // Capture thread ID from the first event
         if (event.type === "thread.started") {
           this.threadId = event.thread_id;
-          logMessage(`Codex thread started: ${this.threadId}`);
+          log.info(`Codex thread started: ${this.threadId}`);
           continue;
         }
 
@@ -199,7 +200,6 @@ export class CodexQuerySession {
         }
       }
 
-      // Emit done marker
       const doneMsg: AgentMessage = {
         type: "system",
         uuid: randomUUID(),
@@ -213,7 +213,7 @@ export class CodexQuerySession {
       return outputMessages;
     } catch (error) {
       if (this.abortController?.signal.aborted) {
-        logMessage("Codex turn was interrupted");
+        log.info("Codex turn was interrupted");
         return [];
       }
 
@@ -245,10 +245,18 @@ export class CodexQuerySession {
     switch (event.type) {
       case "item.started":
       case "item.updated":
-        return this.convertItemToStreamMessage(event.item, resolvedSessionId, itemTexts);
+        return this.convertItemToStreamMessage(
+          event.item,
+          resolvedSessionId,
+          itemTexts,
+        );
 
       case "item.completed":
-        return this.convertCompletedItem(event.item, resolvedSessionId, itemTexts);
+        return this.convertCompletedItem(
+          event.item,
+          resolvedSessionId,
+          itemTexts,
+        );
 
       case "turn.failed":
         return {
@@ -290,14 +298,16 @@ export class CodexQuerySession {
         uuid: item.id,
         session_id: sessionId,
         content: [],
-        tool_calls: [{
-          id: item.id,
-          type: "function",
-          function: {
-            name: "commandExecution",
-            arguments: JSON.stringify({ command: item.command }),
+        tool_calls: [
+          {
+            id: item.id,
+            type: "function",
+            function: {
+              name: "commandExecution",
+              arguments: JSON.stringify({ command: item.command }),
+            },
           },
-        }],
+        ],
       };
     }
 
@@ -307,14 +317,16 @@ export class CodexQuerySession {
         uuid: item.id,
         session_id: sessionId,
         content: [],
-        tool_calls: [{
-          id: item.id,
-          type: "function",
-          function: {
-            name: "fileChange",
-            arguments: JSON.stringify({ changes: item.changes }),
+        tool_calls: [
+          {
+            id: item.id,
+            type: "function",
+            function: {
+              name: "fileChange",
+              arguments: JSON.stringify({ changes: item.changes }),
+            },
           },
-        }],
+        ],
       };
     }
 
@@ -324,14 +336,16 @@ export class CodexQuerySession {
         uuid: item.id,
         session_id: sessionId,
         content: [],
-        tool_calls: [{
-          id: item.id,
-          type: "function",
-          function: {
-            name: item.tool,
-            arguments: JSON.stringify(item.arguments ?? {}),
+        tool_calls: [
+          {
+            id: item.id,
+            type: "function",
+            function: {
+              name: item.tool,
+              arguments: JSON.stringify(item.arguments ?? {}),
+            },
           },
-        }],
+        ],
       };
     }
 
@@ -341,14 +355,16 @@ export class CodexQuerySession {
         uuid: item.id,
         session_id: sessionId,
         content: [],
-        tool_calls: [{
-          id: item.id,
-          type: "function",
-          function: {
-            name: "webSearch",
-            arguments: JSON.stringify({ query: item.query }),
+        tool_calls: [
+          {
+            id: item.id,
+            type: "function",
+            function: {
+              name: "webSearch",
+              arguments: JSON.stringify({ query: item.query }),
+            },
           },
-        }],
+        ],
       };
     }
 

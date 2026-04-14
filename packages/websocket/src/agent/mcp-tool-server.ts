@@ -4,18 +4,22 @@
  * Implements the MCP Streamable HTTP transport so any agent SDK
  * (Claude, Codex, OpenCode) can connect to it as an MCP server.
  *
- * Tool calls are forwarded to the Electron renderer process via IPC
- * for execution against the live workflow graph.
+ * Tool calls are forwarded to the active renderer via the
+ * `AgentTransport` for execution against the live workflow graph.
  */
 
-import { createServer, type Server, type IncomingMessage, type ServerResponse } from "node:http";
-import { randomUUID } from "node:crypto";
-import { logMessage } from "./logger";
+import {
+  createServer,
+  type Server,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
+import { createLogger } from "@nodetool/config";
 import { uiToolSchemas } from "@nodetool/protocol";
-import type { WebContents } from "electron";
-import { ipcMain } from "electron";
-import { IpcChannels } from "./types.d";
 import { z, toJSONSchema } from "zod";
+import type { AgentTransport } from "./transport.js";
+
+const log = createLogger("nodetool.websocket.agent.mcp");
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,7 +65,7 @@ function zodShapeToJsonSchema(zodShape: Record<string, z.ZodTypeAny>): {
   return {
     type: "object",
     properties: (jsonSchema.properties ?? {}) as Record<string, unknown>,
-    required: jsonSchema.required as string[] | undefined
+    required: jsonSchema.required as string[] | undefined,
   };
 }
 
@@ -69,73 +73,25 @@ function buildToolDefinitions(): McpToolDefinition[] {
   return Object.entries(uiToolSchemas).map(([name, schema]) => ({
     name,
     description: schema.description,
-    inputSchema: zodShapeToJsonSchema(schema.parameters as Record<string, z.ZodTypeAny>),
+    inputSchema: zodShapeToJsonSchema(
+      schema.parameters as Record<string, z.ZodTypeAny>,
+    ),
   }));
 }
 
 // ---------------------------------------------------------------------------
-// Tool execution via IPC
-// ---------------------------------------------------------------------------
-
-const TOOL_TIMEOUT_MS = 15000;
-
-async function executeToolViaIpc(
-  webContents: WebContents,
-  toolName: string,
-  args: unknown,
-): Promise<unknown> {
-  const requestId = randomUUID();
-  const toolCallId = randomUUID();
-
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      ipcMain.removeListener(IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE, onResponse);
-      reject(new Error(`Tool ${toolName} timed out after ${TOOL_TIMEOUT_MS}ms`));
-    }, TOOL_TIMEOUT_MS);
-
-    const onResponse = (
-      event: Electron.IpcMainEvent,
-      response: {
-        requestId?: string;
-        result?: { result: unknown; isError: boolean; error?: string };
-      },
-    ) => {
-      if (event.sender !== webContents) return;
-      if (!response || response.requestId !== requestId) return;
-
-      clearTimeout(timeout);
-      ipcMain.removeListener(IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE, onResponse);
-
-      const toolResult = response.result;
-      if (!toolResult) {
-        reject(new Error(`No result from tool ${toolName}`));
-        return;
-      }
-      if (toolResult.isError) {
-        reject(new Error(toolResult.error ?? `Tool ${toolName} failed`));
-        return;
-      }
-      resolve(toolResult.result);
-    };
-
-    ipcMain.on(IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE, onResponse);
-    webContents.send(IpcChannels.FRONTEND_TOOLS_CALL_REQUEST, {
-      requestId,
-      sessionId: "mcp-server",
-      toolCallId,
-      name: toolName,
-      args,
-    });
-  });
-}
-
-// ---------------------------------------------------------------------------
-// MCP HTTP Server
+// MCP HTTP Server (singleton)
 // ---------------------------------------------------------------------------
 
 let serverInstance: Server | null = null;
 let serverPort: number | null = null;
-let activeWebContents: WebContents | null = null;
+
+/**
+ * The currently-active transport that should receive tool calls coming in
+ * over MCP. Last writer wins — the most recently connected renderer becomes
+ * the tool executor for incoming MCP requests.
+ */
+let activeTransport: AgentTransport | null = null;
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -159,7 +115,6 @@ async function handleMcpRequest(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  // CORS headers for local access
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -228,20 +183,34 @@ async function handleRpcMethod(
         };
       }
 
-      if (!activeWebContents || activeWebContents.isDestroyed()) {
+      if (!activeTransport || !activeTransport.isAlive) {
         return {
           jsonrpc: "2.0",
           id,
           result: {
-            content: [{ type: "text", text: "Error: No active renderer — open a workflow in NodeTool first." }],
+            content: [
+              {
+                type: "text",
+                text:
+                  "Error: No active renderer — open a workflow in NodeTool first.",
+              },
+            ],
             isError: true,
           },
         };
       }
 
       try {
-        const result = await executeToolViaIpc(activeWebContents, toolName, toolArgs ?? {});
-        const text = typeof result === "string" ? result : JSON.stringify(result ?? null);
+        const result = await activeTransport.executeTool(
+          "mcp-server",
+          `mcp-${id}`,
+          toolName,
+          toolArgs ?? {},
+        );
+        const text =
+          typeof result === "string"
+            ? result
+            : JSON.stringify(result ?? null);
         return {
           jsonrpc: "2.0",
           id,
@@ -251,7 +220,8 @@ async function handleRpcMethod(
           },
         };
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message =
+          error instanceof Error ? error.message : String(error);
         return {
           jsonrpc: "2.0",
           id,
@@ -282,10 +252,13 @@ async function handleRpcMethod(
 
 /**
  * Start the MCP HTTP server. Returns the URL to connect to.
- * If already running, returns the existing URL.
+ * If already running, returns the existing URL and updates the active
+ * transport.
  */
-export async function startMcpToolServer(webContents: WebContents): Promise<string> {
-  activeWebContents = webContents;
+export async function startMcpToolServer(
+  transport: AgentTransport,
+): Promise<string> {
+  activeTransport = transport;
 
   if (serverInstance && serverPort) {
     return `http://127.0.0.1:${serverPort}/mcp`;
@@ -294,7 +267,10 @@ export async function startMcpToolServer(webContents: WebContents): Promise<stri
   return new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
       handleMcpRequest(req, res).catch((err) => {
-        logMessage(`MCP server error: ${err}`, "error");
+        log.error(
+          "MCP server error",
+          err instanceof Error ? err : new Error(String(err)),
+        );
         sendJson(res, 500, {
           jsonrpc: "2.0",
           id: null,
@@ -312,27 +288,33 @@ export async function startMcpToolServer(webContents: WebContents): Promise<stri
       serverPort = addr.port;
       serverInstance = server;
       const url = `http://127.0.0.1:${serverPort}/mcp`;
-      logMessage(`MCP tool server started at ${url}`);
+      log.info(`MCP tool server started at ${url}`);
       resolve(url);
     });
 
     server.on("error", (err) => {
-      logMessage(`MCP tool server error: ${err}`, "error");
+      log.error("MCP tool server error", err);
       reject(err);
     });
   });
 }
 
-/**
- * Update the active WebContents for tool execution.
- */
-export function setMcpToolServerWebContents(webContents: WebContents): void {
-  activeWebContents = webContents;
+/** Update the active transport for tool execution. */
+export function setMcpToolServerTransport(transport: AgentTransport): void {
+  activeTransport = transport;
 }
 
 /**
- * Get the MCP server URL if running, or null.
+ * Clear the transport reference if it matches the given one. Used when a
+ * client disconnects so we don't keep a dead reference around.
  */
+export function clearMcpToolServerTransport(transport: AgentTransport): void {
+  if (activeTransport === transport) {
+    activeTransport = null;
+  }
+}
+
+/** Get the MCP server URL if running, or null. */
 export function getMcpToolServerUrl(): string | null {
   if (serverInstance && serverPort) {
     return `http://127.0.0.1:${serverPort}/mcp`;
@@ -340,15 +322,13 @@ export function getMcpToolServerUrl(): string | null {
   return null;
 }
 
-/**
- * Stop the MCP tool server.
- */
+/** Stop the MCP tool server. */
 export function stopMcpToolServer(): void {
   if (serverInstance) {
     serverInstance.close();
     serverInstance = null;
     serverPort = null;
-    activeWebContents = null;
-    logMessage("MCP tool server stopped");
+    activeTransport = null;
+    log.info("MCP tool server stopped");
   }
 }

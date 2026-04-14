@@ -44,6 +44,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import { createErrorMessage } from "../../utils/errorHandling";
+import { getAgentSocketClient } from "../../lib/agent/AgentSocketClient";
 import log from "loglevel";
 
 const containerStyles = (_theme: Theme) =>
@@ -299,14 +300,14 @@ const AgentPanel: React.FC = () => {
   }, [workspaces, workspaceId, setWorkspaceContext]);
 
   useEffect(() => {
-    if (!newSessionDialogOpen || !window.api?.agent || !draftWorkspacePath) {
+    if (!newSessionDialogOpen || !draftWorkspacePath) {
       setDraftModels([]);
       setDraftModelsLoading(false);
       return;
     }
     let cancelled = false;
     setDraftModelsLoading(true);
-    window.api.agent
+    getAgentSocketClient()
       .listModels({
         provider: draftProvider,
         workspacePath: draftWorkspacePath

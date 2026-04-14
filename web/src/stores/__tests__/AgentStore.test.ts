@@ -1,84 +1,52 @@
 import type { Message } from "../ApiTypes";
+import { EventEmitter } from "eventemitter3";
 
 describe("AgentStore", () => {
-const createSessionMock = jest.fn<
-  Promise<string>,
-  [
-    {
-      provider?: "claude" | "codex";
-      model: string;
-      workspacePath?: string;
-      resumeSessionId?: string;
-    }
-  ]
->();
+  const createSessionMock = jest.fn<
+    Promise<string>,
+    [
+      {
+        provider?: "claude" | "codex" | "opencode";
+        model: string;
+        workspacePath?: string;
+        resumeSessionId?: string;
+      }
+    ]
+  >();
   const sendMessageMock = jest.fn<Promise<void>, [string, string]>();
   const stopExecutionMock = jest.fn<Promise<void>, [string]>();
   const closeSessionMock = jest.fn<Promise<void>, [string]>();
-  const onStreamMessageMock = jest.fn<
-    () => void,
-    [
-      (event: {
-        sessionId: string;
-        message: {
-          type:
-            | "assistant"
-            | "user"
-            | "result"
-            | "system"
-            | "status"
-            | "stream_event";
-          uuid: string;
-          session_id: string;
-          text?: string;
-          is_error?: boolean;
-          errors?: string[];
-          subtype?: string;
-          content?: Array<{ type: string; text?: string }>;
-        };
-        done: boolean;
-      }) => void
-    ]
-  >();
-  let streamHandler:
-    | ((event: {
-        sessionId: string;
-        message: {
-          type:
-            | "assistant"
-            | "user"
-            | "result"
-            | "system"
-            | "status"
-            | "stream_event";
-          uuid: string;
-          session_id: string;
-          text?: string;
-          is_error?: boolean;
-          errors?: string[];
-          subtype?: string;
-          content?: Array<{ type: string; text?: string }>;
-        };
-        done: boolean;
-      }) => void)
-    | null = null;
+
+  // Bus is reused across loadStore() calls so emitStreamMessage works on the
+  // same emitter the store subscribed to.
+  const clientBus = new EventEmitter();
+  const fakeClient = {
+    on: clientBus.on.bind(clientBus),
+    off: clientBus.off.bind(clientBus),
+    listModels: jest.fn().mockResolvedValue([]),
+    listSessions: jest.fn().mockResolvedValue([]),
+    getSessionMessages: jest.fn().mockResolvedValue([]),
+    createSession: (...args: Parameters<typeof createSessionMock>) =>
+      createSessionMock(...args),
+    sendMessage: (...args: Parameters<typeof sendMessageMock>) =>
+      sendMessageMock(...args),
+    stopExecution: (...args: Parameters<typeof stopExecutionMock>) =>
+      stopExecutionMock(...args),
+    closeSession: (...args: Parameters<typeof closeSessionMock>) =>
+      closeSessionMock(...args)
+  };
+
+  jest.mock("../../lib/agent/AgentSocketClient", () => ({
+    getAgentSocketClient: () => fakeClient
+  }));
+
+  // Frontend tools bridge tries to subscribe at module-load — stub it out.
+  jest.mock("../../lib/tools/frontendToolsIpc", () => ({
+    initFrontendToolsBridge: jest.fn()
+  }));
 
   async function loadStore() {
     jest.resetModules();
-    Object.defineProperty(window, "api", {
-      value: {
-        agent: {
-          createSession: createSessionMock,
-          sendMessage: sendMessageMock,
-          stopExecution: stopExecutionMock,
-          closeSession: closeSessionMock,
-          onStreamMessage: onStreamMessageMock,
-          listSessions: jest.fn().mockResolvedValue([]),
-          listModels: jest.fn().mockResolvedValue([])
-        }
-      },
-      configurable: true
-    });
     const module = await import("../AgentStore");
     return module.default;
   }
@@ -95,6 +63,7 @@ const createSessionMock = jest.fn<
 
   beforeEach(() => {
     jest.clearAllMocks();
+    clientBus.removeAllListeners();
     if (!globalThis.crypto) {
       Object.defineProperty(globalThis, "crypto", {
         value: {},
@@ -109,11 +78,6 @@ const createSessionMock = jest.fn<
     sendMessageMock.mockResolvedValue(undefined);
     stopExecutionMock.mockResolvedValue(undefined);
     closeSessionMock.mockResolvedValue(undefined);
-    onStreamMessageMock.mockImplementation((callback) => {
-      streamHandler = callback;
-      return jest.fn();
-    });
-    streamHandler = null;
   });
 
   function emitStreamMessage(message: {
@@ -132,10 +96,7 @@ const createSessionMock = jest.fn<
     subtype?: string;
     content?: Array<{ type: string; text?: string }>;
   }) {
-    if (!streamHandler) {
-      throw new Error("streamHandler not initialized");
-    }
-    streamHandler({
+    clientBus.emit("stream", {
       sessionId: "session-1",
       message,
       done: false
@@ -247,7 +208,7 @@ const createSessionMock = jest.fn<
     expect(createSessionMock).toHaveBeenCalledTimes(1);
     expect(createSessionMock).toHaveBeenCalledWith({
       provider: "claude",
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       workspacePath: "/tmp/workspace-1",
       resumeSessionId: undefined
     });
