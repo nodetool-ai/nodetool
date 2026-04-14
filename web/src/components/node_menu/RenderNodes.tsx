@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -136,11 +137,13 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   showFavoriteButton = true
 }) => {
   const { setDragToCreate, groupedSearchResults, searchTerm } =
-    useNodeMenuStore((state) => ({
-      setDragToCreate: state.setDragToCreate,
-      groupedSearchResults: state.groupedSearchResults,
-      searchTerm: state.searchTerm
-    }));
+    useNodeMenuStore(
+      useShallow((state) => ({
+        setDragToCreate: state.setDragToCreate,
+        groupedSearchResults: state.groupedSearchResults,
+        searchTerm: state.searchTerm
+      }))
+    );
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
 
   const handleCreateNode = useCreateNode();
@@ -160,9 +163,7 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     [setDragToCreate, setActiveDrag]
   );
 
-  const { selectedPath } = useNodeMenuStore((state) => ({
-    selectedPath: state.selectedPath.join(".")
-  }));
+  const selectedPath = useNodeMenuStore((state) => state.selectedPath.join("."));
 
   // Memoize grouped nodes to prevent recalculation on every render
   const groupedNodes = useMemo(() => {

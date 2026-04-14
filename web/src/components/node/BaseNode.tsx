@@ -96,6 +96,15 @@ const resizer = (
 
 const TOOLBAR_SHOW_DELAY = 200; // ms delay before showing toolbar after selection
 
+// Defined at module level to avoid recreating on every render
+const VISUAL_OUTPUT_TYPES = new Set([
+  "image",
+  "video",
+  "audio",
+  "model_3d",
+  "model3d"
+]);
+
 const Toolbar = memo(function Toolbar({
   id,
   selected,
@@ -485,13 +494,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     nodeType.isConstantNode && hasConnectedInput;
 
   // Only auto-switch to result view for nodes with visual output types
-  const VISUAL_OUTPUT_TYPES = new Set([
-    "image",
-    "video",
-    "audio",
-    "model_3d",
-    "model3d"
-  ]);
   const hasVisualOutput = useMemo(
     () =>
       metadata?.outputs?.some((o: OutputSlot) =>

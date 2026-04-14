@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
 import { Box } from "@mui/material";
 import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
@@ -153,15 +154,15 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
-  const { recentNodes, clearRecentNodes } = useRecentNodesStore((state) => ({
-    recentNodes: state.recentNodes,
-    clearRecentNodes: state.clearRecentNodes
-  }));
+  const { recentNodes, clearRecentNodes } = useRecentNodesStore(
+    useShallow((state) => ({
+      recentNodes: state.recentNodes,
+      clearRecentNodes: state.clearRecentNodes
+    }))
+  );
 
-  const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
-    setDragToCreate: state.setDragToCreate,
-    setHoveredNode: state.setHoveredNode
-  }));
+  const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
+  const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
