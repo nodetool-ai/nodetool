@@ -230,6 +230,13 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     spec.tags.length > 0 ? spec.tags.join(", ") : "fal, ai";
   const description = `${descFirstLine}\n${descSecondLine}`;
   const isImageOutput = spec.outputType === "image";
+  // Generative outputs — auto-save assets and auto-show result preview in UI
+  const isGenerativeOutput = [
+    "image",
+    "video",
+    "audio",
+    "model_3d"
+  ].includes(spec.outputType);
 
   // Capture spec in closure for process/genProcess
   const endpointId = spec.endpointId;
@@ -293,6 +300,12 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     value: ["FAL_API_KEY"],
     configurable: true
   });
+  if (isGenerativeOutput) {
+    Object.defineProperty(FalNodeClass, "autoSaveAsset", {
+      value: true,
+      configurable: true
+    });
+  }
 
   if (isImageOutput) {
     Object.defineProperty(FalNodeClass, "metadataOutputTypes", {
