@@ -28,7 +28,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE_REPO="${NODETOOL_IMAGE_REPO:-ghcr.io/nodetool-ai/nodetool}"
-IMAGE_NAME="nodetool-ts"
+IMAGE_NAME="nodetool-ai/nodetool"
 IMAGE_TAG="latest"
 IMAGE_TAG_PREV="rollback"
 PULL_TAG="${NODETOOL_IMAGE_TAG:-}"   # empty → derive from git HEAD
