@@ -4,8 +4,7 @@ import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './src/navigation/types';
-import MiniAppsListScreen from './src/screens/MiniAppsListScreen';
-import MiniAppScreen from './src/screens/MiniAppScreen';
+import WorkflowsListScreen from './src/screens/WorkflowsListScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionScreen';
@@ -13,6 +12,10 @@ import GraphEditorScreen from './src/screens/GraphEditorScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import AssetsScreen from './src/screens/AssetsScreen';
 import AssetViewerScreen from './src/screens/AssetViewerScreen';
+import SecretsScreen from './src/screens/SecretsScreen';
+import CollectionsScreen from './src/screens/CollectionsScreen';
+import JobsScreen from './src/screens/JobsScreen';
+import ThreadsScreen from './src/screens/ThreadsScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { apiService } from './src/services/api';
 import { useTheme } from './src/hooks/useTheme';
@@ -85,14 +88,9 @@ export default function App() {
             {isLoggedIn ? (
               <>
                 <Stack.Screen
-                  name="MiniAppsList"
-                  component={MiniAppsListScreen}
+                  name="WorkflowsList"
+                  component={WorkflowsListScreen}
                   options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="MiniApp"
-                  component={MiniAppScreen}
-                  options={{ title: 'Mini App' }}
                 />
                 <Stack.Screen
                   name="Settings"
@@ -125,6 +123,26 @@ export default function App() {
                   name="AssetViewer"
                   component={AssetViewerScreen}
                   options={{ title: 'Asset' }}
+                />
+                <Stack.Screen
+                  name="Secrets"
+                  component={SecretsScreen}
+                  options={{ title: 'API Keys' }}
+                />
+                <Stack.Screen
+                  name="Collections"
+                  component={CollectionsScreen}
+                  options={{ title: 'Collections' }}
+                />
+                <Stack.Screen
+                  name="Jobs"
+                  component={JobsScreen}
+                  options={{ title: 'Jobs' }}
+                />
+                <Stack.Screen
+                  name="Threads"
+                  component={ThreadsScreen}
+                  options={{ title: 'Conversations' }}
                 />
               </>
             ) : (

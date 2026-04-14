@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Message, MessageContent, ChatStatus } from '../../types';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatComposer } from './ChatComposer';
+import { ChatOptionsBar } from './ChatOptionsBar';
 import { useTheme } from '../../hooks/useTheme';
 
 interface ChatViewProps {
@@ -26,6 +27,12 @@ interface ChatViewProps {
   onRefresh?: () => Promise<void>;
   error?: string | null;
   statusMessage?: string | null;
+  agentMode?: boolean;
+  helpMode?: boolean;
+  selectedCollections?: string[];
+  onToggleAgentMode?: (next: boolean) => void;
+  onToggleHelpMode?: (next: boolean) => void;
+  onChangeCollections?: (next: string[]) => void;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -36,6 +43,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onRefresh,
   error,
   statusMessage,
+  agentMode = false,
+  helpMode = false,
+  selectedCollections = [],
+  onToggleAgentMode,
+  onToggleHelpMode,
+  onChangeCollections,
 }) => {
   const { colors } = useTheme();
   const isLoading = status === 'loading';
@@ -139,6 +152,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
           />
         )}
       </View>
+
+      {(onToggleAgentMode || onToggleHelpMode || onChangeCollections) && (
+        <ChatOptionsBar
+          agentMode={agentMode}
+          helpMode={helpMode}
+          selectedCollections={selectedCollections}
+          onToggleAgentMode={onToggleAgentMode || (() => {})}
+          onToggleHelpMode={onToggleHelpMode || (() => {})}
+          onChangeCollections={onChangeCollections || (() => {})}
+        />
+      )}
 
       <ChatComposer
         status={status}
