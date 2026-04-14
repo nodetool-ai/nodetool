@@ -102,9 +102,9 @@ export const createPanelComponents = () => ({
       currentTaskUpdate={props.params?.currentTaskUpdate || null}
     />
   ),
-  welcome: (_props: IDockviewPanelProps<PanelProps>) => (
+  welcome: (props: IDockviewPanelProps<PanelProps>) => (
     <Box sx={{ overflow: "auto", height: "100%" }}>
-      <WelcomePanel />
+      <WelcomePanel onSkip={() => props.api.close()} />
     </Box>
   ),
   providers: (_props: IDockviewPanelProps<PanelProps>) => (

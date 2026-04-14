@@ -122,7 +122,7 @@ const panelStyles = (theme: Theme) =>
     }
   });
 
-const WelcomePanel: React.FC = () => {
+const WelcomePanel: React.FC<{ onSkip?: () => void }> = ({ onSkip }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const sections: Section[] = useMemo(() =>
@@ -145,6 +145,11 @@ const WelcomePanel: React.FC = () => {
     },
     [updateSettings]
   );
+
+  const handleSkipWelcome = useCallback(() => {
+    updateSettings({ showWelcomeOnStartup: false });
+    onSkip?.();
+  }, [updateSettings, onSkip]);
 
   const handleClearSearch = useCallback(() => {
     setSearchTerm("");
@@ -258,23 +263,38 @@ const WelcomePanel: React.FC = () => {
         <Text size="normal" weight={600}>
           Welcome to NodeTool
         </Text>
-        <Tooltip
-          title="You can always open this panel from the Add Panel menu."
-          arrow
-        >
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={settings.showWelcomeOnStartup}
-                onChange={handleToggleWelcomeOnStartup}
-                name="showWelcomeOnStartup"
-                size="small"
-              />
-            }
-            label="Show on Startup"
-            sx={{ margin: 0 }}
-          />
-        </Tooltip>
+        <Box sx={{ display: "flex", alignItems: "center", gap: "0.75em" }}>
+          <Tooltip
+            title="You can always open this panel from the Add Panel menu."
+            arrow
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={settings.showWelcomeOnStartup}
+                  onChange={handleToggleWelcomeOnStartup}
+                  name="showWelcomeOnStartup"
+                  size="small"
+                />
+              }
+              label="Show on Startup"
+              sx={{ margin: 0 }}
+            />
+          </Tooltip>
+          <Tooltip
+            title="Hide this welcome panel and don't show it on startup. You can re-enable it from Settings."
+            arrow
+          >
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={handleSkipWelcome}
+              className="skip-welcome-button"
+            >
+              Skip Welcome
+            </Button>
+          </Tooltip>
+        </Box>
       </div>
 
       <div className="tabs-and-search">
