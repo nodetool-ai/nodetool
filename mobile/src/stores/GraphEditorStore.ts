@@ -93,6 +93,10 @@ interface GraphEditorState {
   ) => void;
   /** Clear all input mappings for a node. */
   clearInputMappings: (nodeId: string) => void;
+  /** Add a dynamic input to a dynamic node (e.g. Code). */
+  addDynamicInput: (nodeId: string, inputName: string) => void;
+  /** Remove a dynamic input from a dynamic node. */
+  removeDynamicInput: (nodeId: string, inputName: string) => void;
   toggleExpanded: (nodeId: string) => void;
   collapseAll: () => void;
 
@@ -194,6 +198,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       nodeType: metadata.node_type,
       metadata,
       properties: defaultProperties(metadata),
+      dynamicProperties: {},
       selectedOutput: defaultOutput,
       inputMappings,
       expanded: true,
@@ -264,6 +269,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       ...original,
       id: generateId(),
       properties: { ...original.properties },
+      dynamicProperties: { ...original.dynamicProperties },
       inputMappings: { ...original.inputMappings },
       expanded: false,
     };
@@ -315,6 +321,33 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       const chain = state.chain.map((n) =>
         n.id === nodeId ? { ...n, inputMappings: {} } : n
       );
+      return { chain, connections: buildConnections(chain) };
+    });
+  },
+
+  addDynamicInput: (nodeId, inputName) => {
+    set((state) => {
+      const chain = state.chain.map((n) => {
+        if (n.id !== nodeId || !n.metadata.is_dynamic) return n;
+        return {
+          ...n,
+          dynamicProperties: { ...n.dynamicProperties, [inputName]: null },
+        };
+      });
+      return { chain };
+    });
+  },
+
+  removeDynamicInput: (nodeId, inputName) => {
+    set((state) => {
+      const chain = state.chain.map((n) => {
+        if (n.id !== nodeId) return n;
+        const dynamicProperties = { ...n.dynamicProperties };
+        delete dynamicProperties[inputName];
+        const inputMappings = { ...n.inputMappings };
+        delete inputMappings[inputName];
+        return { ...n, dynamicProperties, inputMappings };
+      });
       return { chain, connections: buildConnections(chain) };
     });
   },
@@ -418,6 +451,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           nodeType: node.type,
           metadata: meta,
           properties: (node.data ?? {}) as Record<string, unknown>,
+          dynamicProperties: (node.dynamic_properties ?? {}) as Record<string, unknown>,
           selectedOutput,
           inputMappings,
           expanded: false as boolean,

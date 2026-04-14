@@ -53,6 +53,8 @@ interface ChainNodeCardProps {
   onUpdateProperty: (name: string, value: unknown) => void;
   onSetOutput: (outputName: string) => void;
   onSetInputMapping: (inputName: string, source: InputSource | null) => void;
+  onAddDynamicInput?: (inputName: string) => void;
+  onRemoveDynamicInput?: (inputName: string) => void;
   onRemove: () => void;
   onDuplicate: () => void;
   onMoveUp: () => void;
@@ -147,6 +149,8 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
   onUpdateProperty,
   onSetOutput,
   onSetInputMapping,
+  onAddDynamicInput,
+  onRemoveDynamicInput,
   onRemove,
   onDuplicate,
   onMoveUp,
@@ -420,13 +424,17 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
           ) : null}
 
           {/* Input mappings (wire inputs from any previous node) */}
-          {previousNodes.length > 0 && (
+          {(previousNodes.length > 0 || node.metadata.is_dynamic) && (
             <View style={styles.mappingSection}>
               <InputMappingSelector
                 properties={node.metadata.properties}
                 inputMappings={node.inputMappings}
+                dynamicProperties={node.dynamicProperties}
+                isDynamic={node.metadata.is_dynamic}
                 previousNodes={previousNodes}
                 onSetMapping={onSetInputMapping}
+                onAddDynamicInput={onAddDynamicInput}
+                onRemoveDynamicInput={onRemoveDynamicInput}
               />
             </View>
           )}

@@ -49,6 +49,8 @@ export const ChainEditor: React.FC = () => {
   const updateProperty = useGraphEditorStore((s) => s.updateProperty);
   const setSelectedOutput = useGraphEditorStore((s) => s.setSelectedOutput);
   const setInputMapping = useGraphEditorStore((s) => s.setInputMapping);
+  const addDynamicInput = useGraphEditorStore((s) => s.addDynamicInput);
+  const removeDynamicInput = useGraphEditorStore((s) => s.removeDynamicInput);
   const toggleExpanded = useGraphEditorStore((s) => s.toggleExpanded);
   const showNodePicker = useGraphEditorStore((s) => s.showNodePicker);
   const hideNodePicker = useGraphEditorStore((s) => s.hideNodePicker);
@@ -213,6 +215,12 @@ export const ChainEditor: React.FC = () => {
                     onSetOutput={(out) => setSelectedOutput(node.id, out)}
                     onSetInputMapping={(inp, source) =>
                       setInputMapping(node.id, inp, source)
+                    }
+                    onAddDynamicInput={(name) =>
+                      addDynamicInput(node.id, name)
+                    }
+                    onRemoveDynamicInput={(name) =>
+                      removeDynamicInput(node.id, name)
                     }
                     onRemove={() => handleRemove(node.id)}
                     onDuplicate={() => duplicateNode(node.id)}

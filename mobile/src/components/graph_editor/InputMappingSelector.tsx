@@ -9,6 +9,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   Modal,
   FlatList,
@@ -27,10 +28,18 @@ interface InputMappingSelectorProps {
   properties: Property[];
   /** Current input mappings for this node. */
   inputMappings: InputMappings;
+  /** Dynamic properties (for dynamic nodes like Code). */
+  dynamicProperties: Record<string, unknown>;
+  /** Whether this node supports dynamic inputs. */
+  isDynamic: boolean;
   /** All nodes that come before this one in the chain. */
   previousNodes: ChainNode[];
   /** Called when user sets/clears a mapping. */
   onSetMapping: (inputName: string, source: InputSource | null) => void;
+  /** Called when user adds a dynamic input. */
+  onAddDynamicInput?: (inputName: string) => void;
+  /** Called when user removes a dynamic input. */
+  onRemoveDynamicInput?: (inputName: string) => void;
 }
 
 function formatType(type: PropertyTypeMetadata): string {
@@ -43,13 +52,24 @@ function formatType(type: PropertyTypeMetadata): string {
 export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
   properties,
   inputMappings,
+  dynamicProperties,
+  isDynamic,
   previousNodes,
   onSetMapping,
+  onAddDynamicInput,
+  onRemoveDynamicInput,
 }) => {
   const { colors } = useTheme();
   const [activeInput, setActiveInput] = useState<string | null>(null);
+  const [newInputName, setNewInputName] = useState("");
+  const [showAddInput, setShowAddInput] = useState(false);
 
   const mappedCount = Object.keys(inputMappings).length;
+
+  // Combine static properties + dynamic properties into a unified list
+  const dynamicInputNames = Object.keys(dynamicProperties).filter(
+    (name) => !properties.some((p) => p.name === name)
+  );
 
   const handleOpenPicker = useCallback((inputName: string) => {
     setActiveInput(inputName);
@@ -89,7 +109,17 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
     return options;
   }, [activeInput, properties, previousNodes]);
 
-  if (properties.length === 0) return null;
+  const handleAddDynamicInput = useCallback(() => {
+    const name = newInputName.trim();
+    if (name && onAddDynamicInput) {
+      onAddDynamicInput(name);
+      setNewInputName("");
+      setShowAddInput(false);
+    }
+  }, [newInputName, onAddDynamicInput]);
+
+  if (properties.length === 0 && dynamicInputNames.length === 0 && !isDynamic)
+    return null;
 
   return (
     <>
@@ -173,6 +203,111 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
             </TouchableOpacity>
           );
         })}
+
+        {/* Dynamic inputs (not in static metadata) */}
+        {dynamicInputNames.map((name) => {
+          const mapping = inputMappings[name];
+          const sourceNode = mapping
+            ? previousNodes.find((n) => n.id === mapping.sourceNodeId)
+            : null;
+
+          return (
+            <TouchableOpacity
+              key={`dyn-${name}`}
+              style={[
+                styles.inputRow,
+                {
+                  backgroundColor: mapping
+                    ? colors.accentMuted
+                    : colors.inputBg,
+                  borderColor: mapping
+                    ? colors.accent + "40"
+                    : colors.borderLight,
+                },
+              ]}
+              onPress={() => handleOpenPicker(name)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.inputInfo}>
+                <Text
+                  style={[
+                    styles.inputName,
+                    { color: mapping ? colors.accent : colors.text },
+                  ]}
+                >
+                  {name}
+                  <Text style={{ color: colors.textTertiary, fontWeight: "400" }}>
+                    {" "}(dynamic)
+                  </Text>
+                </Text>
+              </View>
+
+              {mapping && sourceNode ? (
+                <View style={styles.sourceTag}>
+                  <Ionicons name="arrow-back" size={10} color={colors.accent} />
+                  <Text
+                    style={[styles.sourceText, { color: colors.accent }]}
+                    numberOfLines={1}
+                  >
+                    {sourceNode.metadata.title}.{mapping.sourceOutput}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => onSetMapping(name, null)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="close-circle" size={14} color={colors.accent} />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                  <Ionicons name="add-circle-outline" size={18} color={colors.textTertiary} />
+                  {onRemoveDynamicInput && (
+                    <TouchableOpacity
+                      onPress={() => onRemoveDynamicInput(name)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={colors.error} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Add dynamic input button */}
+        {isDynamic && (
+          showAddInput ? (
+            <View style={[styles.addInputRow, { borderColor: colors.borderLight }]}>
+              <TextInput
+                style={[styles.addInputField, { color: colors.text, borderColor: colors.borderLight }]}
+                value={newInputName}
+                onChangeText={setNewInputName}
+                placeholder="Input name..."
+                placeholderTextColor={colors.textTertiary}
+                autoFocus
+                autoCapitalize="none"
+                onSubmitEditing={handleAddDynamicInput}
+              />
+              <TouchableOpacity onPress={handleAddDynamicInput}>
+                <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setShowAddInput(false); setNewInputName(""); }}>
+                <Ionicons name="close-circle" size={24} color={colors.textTertiary} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.addInputButton, { borderColor: colors.borderLight }]}
+              onPress={() => setShowAddInput(true)}
+            >
+              <Ionicons name="add" size={16} color={colors.primary} />
+              <Text style={[styles.addInputText, { color: colors.primary }]}>
+                Add input
+              </Text>
+            </TouchableOpacity>
+          )
+        )}
       </View>
 
       {/* Source picker modal */}
@@ -341,6 +476,35 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     flexShrink: 1,
+  },
+  addInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  addInputField: {
+    flex: 1,
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  addInputButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    alignSelf: "flex-start",
+  },
+  addInputText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   backdrop: {
     flex: 1,

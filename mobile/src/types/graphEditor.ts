@@ -46,11 +46,17 @@ export interface ChainNode {
   metadata: NodeMetadata;
   /** User-configured property values keyed by property name. */
   properties: Record<string, unknown>;
+  /**
+   * Dynamic properties for nodes with is_dynamic=true (e.g. Code).
+   * These are user-created inputs not defined in static metadata.
+   * Keys are input names, values are stored/passed to the node at runtime.
+   */
+  dynamicProperties: Record<string, unknown>;
   /** Which output slot feeds downstream nodes by default. */
   selectedOutput: string;
   /**
    * Maps input property names → source node + output.
-   * Replaces the old single `inputMapping` field.
+   * Works for both static properties and dynamic properties.
    */
   inputMappings: InputMappings;
   /** Whether the property editor is expanded. */
@@ -135,6 +141,9 @@ export function chainToGraph(
     id: cn.id,
     type: cn.nodeType,
     data: cn.properties,
+    dynamic_properties: Object.keys(cn.dynamicProperties).length > 0
+      ? cn.dynamicProperties
+      : undefined,
     ui_properties: {
       position: { x: 0, y: index * 200 },
       width: 280,
