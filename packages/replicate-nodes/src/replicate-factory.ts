@@ -178,6 +178,10 @@ export function createReplicateNodeClass(
   const descSecondLine =
     spec.tags.length > 0 ? spec.tags.join(", ") : "replicate, ai";
   const description = `${descFirstLine}\n${descSecondLine}`;
+  // Generative outputs — auto-save assets and auto-show result preview in UI
+  const isGenerativeOutput = ["image", "video", "audio"].includes(
+    spec.outputType
+  );
   const specRef = spec;
 
   const ReplicateNodeClass = class extends BaseNode {
@@ -209,6 +213,12 @@ export function createReplicateNodeClass(
     value: ["REPLICATE_API_TOKEN"],
     configurable: true
   });
+  if (isGenerativeOutput) {
+    Object.defineProperty(ReplicateNodeClass, "autoSaveAsset", {
+      value: true,
+      configurable: true
+    });
+  }
   Object.defineProperty(ReplicateNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType === "dict" ? "any" : spec.outputType },
     configurable: true

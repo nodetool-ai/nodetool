@@ -10,3 +10,4 @@ export { ChatMarkdown } from './ChatMarkdown';
 export { LoadingIndicator } from './LoadingIndicator';
 export { FilePreview } from './FilePreview';
 export { MessageContentRenderer } from './MessageContentRenderer';
+export { ChatOptionsBar } from './ChatOptionsBar';

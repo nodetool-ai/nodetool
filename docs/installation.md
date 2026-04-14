@@ -49,42 +49,7 @@ Running models locally gives you privacy and offline use, but needs more resourc
 | **Pro (24–32 GB)** | RTX 3090 / 4090 / 5090 | **Full Qwen-Image 2512**, Wan2.1 Video (720p), 70B LLMs (Llama 3.3/4 Q4). |
 | **Ultra (48 GB+)** | Dual 5090s / Mac Ultra | **DeepSeek-V3 (Full Local)**, 4K Video Gen (LTX-2), LoRA training in minutes. |
 
-In 2026, Apple hardware is particularly strong for local AI because of **Unified Memory Architecture (UMA)**. Unlike Windows PCs where you are limited by the VRAM on your graphics card, a Mac can use a large portion of its total RAM for AI models.
-
-With the **M4 chip family** and the **MLX framework**, Macs are now competitive with NVIDIA for "compute-heavy" tasks like Flux and Qwen-Image.
-
-### **2026 Apple Silicon AI Capability Table**
-
-| Chip Model | Min. RAM | Ideal RAM | Can Handle (MLX Optimized) |
-| --- | --- | --- | --- |
-| **M4 (Base)** | 16 GB | 32 GB | **8B LLMs (Llama 4)**, Flux.1 Schnell (8-bit), Sana 4K images. |
-| **M4 Pro** | 24 GB | 64 GB | **Qwen-Image-Edit**, 32B Reasoning models (DeepSeek R1), Flux.1 Dev. |
-| **M4 Max** | 48 GB | 128 GB | **70B Flagship LLMs**, Full-precision Flux, 720p Video (Wan2.1). |
-| **M2/M3 Ultra** | 128 GB | 512 GB | **DeepSeek-V3 (671B)**, 4K Video workflows, massive Batch-processing. |
-
----
-
-### **Specific Task Guide for Mac (2026)**
-
-#### **1. Image Generation (MLX / MFLUX)**
-
-Apple users should use **MLX-based tools** (like `mflux`) rather than standard PyTorch for a 3x speed boost.
-
-* **Flux.1 Dev:** Requires at least **32GB RAM** to run smoothly at 8-bit.
-* **Qwen-Image-Edit:** Now natively supported via MLX. On an M4 Max, it can perform complex "Multi-Image" edits in under 10 seconds.
-* **Sana (4K):** Runs exceptionally well on the base M4 because of its low parameter count but high resolution output.
-
-#### **2. Language Models (LLMs)**
-
-The rule of thumb for Mac: **Your Model Size (GB) + 4GB (System) < Total RAM.**
-
-* **Llama 3.3/4 (70B) @ Q4:** Needs ~42 GB. Runs great on a **64GB M4 Pro/Max**.
-* **DeepSeek-V3 (MoE):** This massive model requires **at least 128GB RAM** (Ultra chips) even when heavily quantized.
-
-#### **3. Video Generation**
-
-* **Wan2.1 (Small):** Can run on **M4 Pro (48GB)**.
-* **CogVideoX:** Best on **M4 Max** due to high memory bandwidth requirements ( GB/s).
+Apple Silicon's Unified Memory lets Macs use much of system RAM for AI models. With MLX, Macs are competitive with NVIDIA for compute-heavy tasks like Flux and Qwen-Image. Rule of thumb: **model size (GB) + 4 GB system overhead < total RAM**.
 
 ---
 
@@ -145,27 +110,6 @@ NodeTool itself is small, but AI models can be large:
 You can install fewer models to save space, or use cloud providers instead.
 
 > **Tip**: Use an SSD for faster AI model loading and workflow execution.
-
----
-
-## Step-by-Step Installation
-
-### 1. Download NodeTool
-
-Visit [nodetool.ai](https://nodetool.ai) and click the download button for your operating system.
-
-### 2. Run the Installer
-
-Launch the downloaded file and follow the platform-specific prompts (see [Platform-Specific Instructions](#platform-specific-instructions) below).
-
-### 3. Launch NodeTool
-
-Open NodeTool — the app starts immediately. No setup wizard or waiting.
-
-### 4. Start Using
-
-- **Cloud AI**: Go to **Settings → Providers**, add an API key, and start building workflows right away
-- **Local AI**: Open **Models → Model Manager** and install a model — NodeTool will automatically set up Python and any required dependencies the first time
 
 ---
 

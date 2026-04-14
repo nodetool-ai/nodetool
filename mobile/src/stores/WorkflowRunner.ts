@@ -5,6 +5,7 @@
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { apiService } from "../services/api";
 import { webSocketService } from "../services/WebSocketService";
+import { useAuthStore } from "./AuthStore";
 import {
   JobUpdate,
   NodeProgress,
@@ -140,7 +141,7 @@ export const createWorkflowRunnerStore = (
     ensureConnection: async () => {
       set({ state: "connecting" });
       try {
-        await webSocketService.ensureConnection('/ws/predict');
+        await webSocketService.ensureConnection('/ws');
         set({ state: "connected" });
 
         const currentUnsubscribe = get().unsubscribe;
@@ -197,12 +198,16 @@ export const createWorkflowRunnerStore = (
         statusMessage: "Starting workflow...",
       });
 
+      const session = useAuthStore.getState().session;
+      const auth_token = session?.access_token || "local_token";
+      const user_id = session?.user?.id || "1";
+
       const req: RunJobRequest = {
         type: "run_job_request",
         api_url: apiService.getApiHost() + "/ws/predict",
-        user_id: "mobile_user",
+        user_id,
         workflow_id: workflow.id,
-        auth_token: "mobile_token",
+        auth_token,
         job_type: "workflow",
         execution_strategy: "threaded",
         params: params || {},
@@ -218,7 +223,7 @@ export const createWorkflowRunnerStore = (
         type: "run_job",
         command: "run_job",
         data: req,
-      }, "/ws/predict");
+      }, "/ws");
     },
 
     cancel: async () => {
@@ -231,7 +236,7 @@ export const createWorkflowRunnerStore = (
             job_id,
             workflow_id: workflowId
           }
-        }, '/ws/predict');
+        }, '/ws');
       }
       set({ state: "cancelled", statusMessage: "Cancelled" });
     }

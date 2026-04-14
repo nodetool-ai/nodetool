@@ -18,11 +18,11 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type MiniAppsListScreenProps = {
-  navigation: NativeStackNavigationProp<RootStackParamList, 'MiniAppsList'>;
+type WorkflowsListScreenProps = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'WorkflowsList'>;
 };
 
-export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenProps) {
+export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenProps) {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -65,7 +65,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
       setLoadError(errorMessage);
       Alert.alert(
         'Connection Error',
-        `Could not load mini apps.\n\n${errorMessage}`,
+        `Could not load workflows.\n\n${errorMessage}`,
         [
           { text: 'Settings', onPress: () => navigation.navigate('Settings') },
           { text: 'Retry', onPress: loadWorkflows },
@@ -142,7 +142,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
         <View style={[styles.loadingIconWrap, { backgroundColor: colors.primaryMuted }]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading mini apps...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading workflows...</Text>
       </View>
     );
   }
@@ -158,7 +158,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
         }
       ]}>
         <View>
-          <Text style={[styles.title, { color: colors.text }]}>Mini Apps</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Workflows</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {workflows.length > 0 ? `${workflows.length} available` : 'Your workflows'}
           </Text>
@@ -205,7 +205,7 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
             <Ionicons name="apps-outline" size={40} color={colors.primary} />
           </View>
           <Text style={[styles.emptyText, { color: colors.text }]}>
-            {loadError ? 'Connection failed' : 'No mini apps found'}
+            {loadError ? 'Connection failed' : 'No workflows found'}
           </Text>
           <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
             {loadError
@@ -241,14 +241,14 @@ export default function MiniAppsListScreen({ navigation }: MiniAppsListScreenPro
                 <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
                 <TextInput
                   style={[styles.searchInput, { color: colors.text }]}
-                  placeholder="Search mini apps..."
+                  placeholder="Search workflows..."
                   placeholderTextColor={colors.textTertiary}
                   value={searchQuery}
                   onChangeText={handleSearchChange}
                   autoCapitalize="none"
                   autoCorrect={false}
                   clearButtonMode="while-editing"
-                  accessibilityLabel="Search mini apps"
+                  accessibilityLabel="Search workflows"
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => { setSearchQuery(''); setDebouncedQuery(''); }} accessibilityLabel="Clear search">

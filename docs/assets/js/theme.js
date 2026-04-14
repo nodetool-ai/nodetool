@@ -295,8 +295,33 @@
     const input = document.getElementById('site-search');
     const resultsPanel = document.getElementById('search-results');
     const resultsList = document.getElementById('search-results-list');
+    const searchToggle = document.querySelector('.search-toggle');
 
     if (!container || !input || !resultsPanel || !resultsList) return;
+
+    function openSearch() {
+      container.classList.add('open');
+      if (searchToggle) searchToggle.setAttribute('aria-expanded', 'true');
+      // Defer focus so the element is visible/layout-complete before focusing
+      requestAnimationFrame(() => input.focus());
+    }
+
+    function closeSearch() {
+      container.classList.remove('open');
+      if (searchToggle) searchToggle.setAttribute('aria-expanded', 'false');
+      closeResults();
+    }
+
+    if (searchToggle) {
+      searchToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (container.classList.contains('open')) {
+          closeSearch();
+        } else {
+          openSearch();
+        }
+      });
+    }
 
     const endpoint = container.dataset.searchIndex || '/search.json';
     let searchIndex = [];
@@ -516,6 +541,9 @@
       if (event.key === 'Escape') {
         closeResults();
         input.blur();
+        if (container.classList.contains('open')) {
+          closeSearch();
+        }
       }
     });
 
@@ -523,7 +551,11 @@
       const isInputFocused = document.activeElement === input;
       if (event.key === '/' && !isInputFocused) {
         event.preventDefault();
-        input.focus();
+        if (searchToggle && window.getComputedStyle(searchToggle).display !== 'none') {
+          openSearch();
+        } else {
+          input.focus();
+        }
       }
 
       if (event.key === 'Escape' && !resultsPanel.hidden) {
@@ -533,8 +565,12 @@
 
     document.addEventListener('click', (event) => {
       const target = event.target;
-      if (!container.contains(target)) {
+      const clickedToggle = searchToggle && searchToggle.contains(target);
+      if (!container.contains(target) && !clickedToggle) {
         closeResults();
+        if (container.classList.contains('open')) {
+          closeSearch();
+        }
       }
     });
   }

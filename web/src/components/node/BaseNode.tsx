@@ -427,21 +427,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
-  // Only auto-switch to result view for nodes with visual output types
-  const VISUAL_OUTPUT_TYPES = new Set([
-    "image",
-    "video",
-    "audio",
-    "model_3d",
-    "model3d"
-  ]);
-  const hasVisualOutput = useMemo(
-    () =>
-      metadata?.outputs?.some((o: OutputSlot) =>
-        VISUAL_OUTPUT_TYPES.has(o.type.type)
-      ) ?? false,
-    [metadata]
-  );
+  // Only auto-switch to result view for generative nodes (marked via
+  // `auto_save_asset` by providers like fal, kie, replicate, elevenlabs,
+  // gemini/openai image+audio, etc.). Non-generative nodes with visual
+  // outputs (e.g. pass-through image transforms) keep the inputs view
+  // visible until the user explicitly clicks the results toggle.
+  const isGenerativeNode = Boolean(metadata?.auto_save_asset);
 
   // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
@@ -466,11 +457,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     ) {
       setShowResultOverlay(true);
     }
-    // When node completes with a visual result, show results by default
-    // (unless user explicitly opted out). Non-visual nodes stay on inputs.
+    // When a generative node completes, show the rendered result by default
+    // (unless the user explicitly opted out). Non-generative nodes stay on
+    // their inputs view — users can toggle results manually via the header.
     else if (
       result &&
-      hasVisualOutput &&
+      isGenerativeNode &&
       !nodeType.isOutputNode &&
       !nodeType.isConstantNode &&
       status === "completed"
@@ -482,7 +474,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [
     result,
     isConstantInputLockedResult,
-    hasVisualOutput,
+    isGenerativeNode,
     nodeType.isOutputNode,
     nodeType.isConstantNode,
     status,
