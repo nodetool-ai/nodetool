@@ -24,10 +24,8 @@ import {
   DynamicFalSchemaNode,
   DYNAMIC_FAL_NODE_TYPE
 } from "../node/DynamicFalSchemaNode";
-import {
-  DynamicKieSchemaNode,
-  DYNAMIC_KIE_NODE_TYPE
-} from "../node/DynamicKieSchemaNode";
+import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
+import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
 import {
   DynamicReplicateNode,
   DYNAMIC_REPLICATE_NODE_TYPE

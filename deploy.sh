@@ -126,7 +126,7 @@ echo ""
 
 if [[ "$NO_BUILD" != "1" ]]; then
   echo "--- Building web frontend ---"
-  (cd "$SCRIPT_DIR/web" && NODE_OPTIONS="--max-old-space-size=4096" npm run build)
+  (cd "$SCRIPT_DIR/web" && NODE_OPTIONS="--max-old-space-size=6144" npm run build)
   echo ""
 
   echo "--- Building Docker image ---"
