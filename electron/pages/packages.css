@@ -549,3 +549,108 @@ h1 {
   font-size: 13px;
   text-align: center;
 }
+
+/* Live console output panel */
+.pm-console {
+  flex-shrink: 0;
+  background-color: var(--bg-panel);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+}
+
+.pm-console.collapsed {
+  max-height: none;
+}
+
+.pm-console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  background-color: var(--bg-panel);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pm-console.collapsed .pm-console-header {
+  border-bottom: none;
+}
+
+.pm-console-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pm-console-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--success);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.pm-console-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+}
+
+.pm-console-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pm-console-button {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pm-console-button:hover:not(:disabled) {
+  color: var(--text-main);
+  border-color: var(--bg-hover);
+  background-color: var(--bg-hover);
+}
+
+.pm-console-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pm-console-body {
+  flex: 1;
+  min-height: 140px;
+  overflow-y: auto;
+  padding: 10px 24px;
+  background-color: #0b0b0b;
+  font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #d0d0d0;
+}
+
+.pm-console-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.pm-console-empty {
+  color: var(--text-muted);
+  font-family: inherit;
+  font-style: italic;
+}

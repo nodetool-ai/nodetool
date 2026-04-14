@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   PackageInfo,
   PackageModel,
@@ -12,6 +12,8 @@ interface PackageManagerProps {
   onSkip: () => void;
 }
 
+const MAX_CONSOLE_LINES = 500;
+
 const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   const [availablePackages, setAvailablePackages] = useState<PackageInfo[]>([]);
   const [installedPackages, setInstalledPackages] = useState<PackageModel[]>(
@@ -24,6 +26,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   const [installing, setInstalling] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [installLocation, setInstallLocation] = useState<string>("");
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
+  const [isConsoleCollapsed, setIsConsoleCollapsed] = useState(false);
+  const consoleBodyRef = useRef<HTMLDivElement | null>(null);
 
   const loadRuntimeStatuses = useCallback(async () => {
     try {
@@ -66,6 +71,41 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   useEffect(() => {
     loadPackages();
   }, [loadPackages]);
+
+  // Stream live command output from the main process into the console panel.
+  // `server-log` is broadcast for every stdout/stderr line from uv and
+  // micromamba during install/uninstall/update operations.
+  useEffect(() => {
+    const unsubscribe = window.api.server.onLog((message: string) => {
+      setConsoleLogs((prev) => {
+        const next = prev.length >= MAX_CONSOLE_LINES
+          ? prev.slice(prev.length - MAX_CONSOLE_LINES + 1)
+          : prev.slice();
+        next.push(message);
+        return next;
+      });
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Auto-scroll the console to the newest line when logs arrive.
+  useEffect(() => {
+    if (isConsoleCollapsed) return;
+    const body = consoleBodyRef.current;
+    if (body) {
+      body.scrollTop = body.scrollHeight;
+    }
+  }, [consoleLogs, isConsoleCollapsed]);
+
+  const handleClearConsole = useCallback(() => {
+    setConsoleLogs([]);
+  }, []);
+
+  const handleToggleConsole = useCallback(() => {
+    setIsConsoleCollapsed((prev) => !prev);
+  }, []);
 
   const handleSelectLocation = useCallback(async () => {
     try {
@@ -468,6 +508,66 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
             </div>
           )}
         </div>
+      </div>
+
+      <div
+        className={`package-console ${
+          isConsoleCollapsed ? "collapsed" : ""
+        }`}
+      >
+        <div className="package-console-header">
+          <div className="package-console-title">
+            <span className="package-console-indicator" />
+            Console output
+            {consoleLogs.length > 0 && (
+              <span className="package-console-count">
+                ({consoleLogs.length})
+              </span>
+            )}
+          </div>
+          <div className="package-console-actions">
+            <button
+              type="button"
+              className="package-console-button"
+              onClick={handleClearConsole}
+              disabled={consoleLogs.length === 0}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              className="package-console-button"
+              onClick={handleToggleConsole}
+            >
+              {isConsoleCollapsed ? "Show" : "Hide"}
+            </button>
+          </div>
+        </div>
+        {!isConsoleCollapsed && (
+          <div
+            className="package-console-body"
+            ref={consoleBodyRef}
+            role="log"
+            aria-live="polite"
+            aria-label="Package manager console output"
+          >
+            {consoleLogs.length === 0 ? (
+              <div className="package-console-empty">
+                Console output will appear here when you install, update, or
+                uninstall a package.
+              </div>
+            ) : (
+              consoleLogs.map((line, i) => (
+                <div
+                  key={`${i}-${line.length}`}
+                  className="package-console-line"
+                >
+                  {line}
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div
