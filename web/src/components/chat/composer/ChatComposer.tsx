@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Collapse } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { Tooltip, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import SendIcon from "@mui/icons-material/Send";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -46,6 +47,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   toolbarNode
 }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
 
@@ -206,7 +208,11 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
             onChange={handleOnChange}
             onKeyDown={handleKeyDown}
             disabled={isInputDisabled}
-            placeholder="Type a message... (Shift+Enter for new line)"
+            placeholder={
+              isMobile
+                ? "Type a message..."
+                : "Type a message... (Shift+Enter for new line)"
+            }
           />
           <div className="composer-footer">
             {toolbarNode}
