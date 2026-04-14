@@ -4,9 +4,9 @@ set -euo pipefail
 # =============================================================================
 # Nodetool Production Deploy
 #
-# Builds API + web frontend into a single Docker image with zero-downtime
-# rolling deploys. Cloudflare terminates public TLS — origin runs plain HTTP
-# by default.
+# Pulls the pre-built image from GHCR (published by .github/workflows/docker.yml)
+# and runs it with zero-downtime rolling deploys. Cloudflare terminates public
+# TLS — origin runs plain HTTP by default.
 #
 # TLS modes:
 #   (default)       Plain HTTP origin — Cloudflare "Flexible" SSL
@@ -14,10 +14,12 @@ set -euo pipefail
 #   --certs         Bring cert.pem + key.pem — Cloudflare "Full (Strict)"
 #
 # Usage:
-#   ./deploy.sh                  # Build + deploy (HTTP, behind Cloudflare)
+#   ./deploy.sh                  # Pull + deploy (HTTP, behind Cloudflare)
 #   ./deploy.sh --self-signed    # Auto-generate TLS cert for origin
 #   ./deploy.sh --certs          # Use existing cert.pem + key.pem
-#   ./deploy.sh --no-build       # Deploy existing image (skip build)
+#   ./deploy.sh --tag <tag>      # Pull a specific image tag (default: auto from git HEAD)
+#   ./deploy.sh --no-pull        # Deploy existing local image (skip pull)
+#   ./deploy.sh --no-wait        # Don't wait for CI to publish the image
 #   ./deploy.sh --logs           # Tail container logs
 #   ./deploy.sh --status         # Show container status + health
 #   ./deploy.sh --rollback       # Rollback to previous image
@@ -25,19 +27,26 @@ set -euo pipefail
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+IMAGE_REPO="${NODETOOL_IMAGE_REPO:-ghcr.io/nodetool-ai/nodetool}"
 IMAGE_NAME="nodetool-ts"
 IMAGE_TAG="latest"
 IMAGE_TAG_PREV="rollback"
+PULL_TAG="${NODETOOL_IMAGE_TAG:-}"   # empty → derive from git HEAD
 CONTAINER_NAME="nodetool-server"
 PORT="${NODETOOL_PORT:-443}"
 HEALTH_TIMEOUT=60
 HEALTH_INTERVAL=2
+# How long to wait for the CI-built image to appear in the registry
+IMAGE_WAIT_TIMEOUT="${NODETOOL_IMAGE_WAIT:-1800}"  # 30 min
+IMAGE_WAIT_INTERVAL=15
 
 # Parse flags
-NO_BUILD=0
+NO_PULL=0
+NO_WAIT=0
 TLS_MODE="none"  # none | self-signed | certs
 
-for arg in "$@"; do
+while (( $# )); do
+  arg="$1"
   case "$arg" in
     --logs)
       docker logs -f "$CONTAINER_NAME" 2>&1
@@ -74,16 +83,22 @@ for arg in "$@"; do
       fi
       echo "Rolling back to previous image..."
       docker tag "$IMAGE_NAME:$IMAGE_TAG_PREV" "$IMAGE_NAME:$IMAGE_TAG"
-      NO_BUILD=1
+      NO_PULL=1
       ;;
-    --no-build)    NO_BUILD=1 ;;
+    --no-pull|--no-build) NO_PULL=1 ;;
+    --no-wait) NO_WAIT=1 ;;
+    --tag)
+      shift
+      PULL_TAG="${1:?--tag requires a value}"
+      ;;
     --self-signed) TLS_MODE="self-signed" ;;
     --certs)       TLS_MODE="certs" ;;
     --help|-h)
-      sed -n '3,20p' "$0" | sed 's/^# \?//'
+      sed -n '3,22p' "$0" | sed 's/^# \?//'
       exit 0
       ;;
   esac
+  shift
 done
 
 # ── Preflight ────────────────────────────────────────────────────────
@@ -122,41 +137,56 @@ echo "=== Nodetool Production Deploy ==="
 echo "Port: $PORT | TLS: $TLS_MODE"
 echo ""
 
-# ── Build ────────────────────────────────────────────────────────────
+# ── Derive tag from git HEAD ─────────────────────────────────────────
 
-if [[ "$NO_BUILD" != "1" ]]; then
-  echo "--- Building web frontend ---"
-  (cd "$SCRIPT_DIR/web" && NODE_OPTIONS="--max-old-space-size=6144" npm run build)
-  echo ""
+# If no --tag / env was given, compute the tag that the Docker workflow
+# publishes for the current commit. Keeps deploy aligned with the checkout.
+if [[ -z "$PULL_TAG" ]]; then
+  if ! git -C "$SCRIPT_DIR" rev-parse --git-dir &>/dev/null; then
+    echo "ERROR: not a git checkout — pass --tag <tag> or set NODETOOL_IMAGE_TAG"
+    exit 1
+  fi
+  SHA="$(git -C "$SCRIPT_DIR" rev-parse --short=7 HEAD)"
+  # If HEAD is exactly a v* tag, Docker workflow publishes the version
+  if GIT_TAG="$(git -C "$SCRIPT_DIR" describe --exact-match --tags HEAD 2>/dev/null)" \
+      && [[ "$GIT_TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+.*)$ ]]; then
+    PULL_TAG="${BASH_REMATCH[1]}"
+  else
+    BRANCH="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD)"
+    PULL_TAG="${BRANCH}-${SHA}"
+  fi
+fi
 
-  echo "--- Building Docker image ---"
+# ── Pull ─────────────────────────────────────────────────────────────
 
-  cat > "$SCRIPT_DIR/.dockerignore" << 'IGNORE'
-node_modules
-.git
-.deploy
-electron
-mobile
-workflow_runner
-docs
-.github
-*.md
-.env
-cert.pem
-key.pem
-packages/fal-codegen
-packages/replicate-codegen
-packages/kie-codegen
-packages/kie-nodes
-IGNORE
+if [[ "$NO_PULL" != "1" ]]; then
+  # Wait for CI to publish the image for this commit
+  if [[ "$NO_WAIT" != "1" ]]; then
+    echo "--- Waiting for ${IMAGE_REPO}:${PULL_TAG} in registry (timeout: ${IMAGE_WAIT_TIMEOUT}s) ---"
+    elapsed=0
+    until docker manifest inspect "${IMAGE_REPO}:${PULL_TAG}" &>/dev/null; do
+      if (( elapsed >= IMAGE_WAIT_TIMEOUT )); then
+        echo "ERROR: image ${IMAGE_REPO}:${PULL_TAG} not found after ${IMAGE_WAIT_TIMEOUT}s"
+        echo "       Check the Docker workflow: https://github.com/nodetool-ai/nodetool/actions/workflows/docker.yml"
+        exit 1
+      fi
+      printf '.'
+      sleep "$IMAGE_WAIT_INTERVAL"
+      (( elapsed += IMAGE_WAIT_INTERVAL ))
+    done
+    echo " found (${elapsed}s)."
+  fi
 
-  # Save rollback
+  echo "--- Pulling image ${IMAGE_REPO}:${PULL_TAG} ---"
+
+  # Save rollback before overwriting :latest
   if docker image inspect "$IMAGE_NAME:$IMAGE_TAG" &>/dev/null; then
     docker tag "$IMAGE_NAME:$IMAGE_TAG" "$IMAGE_NAME:$IMAGE_TAG_PREV"
   fi
 
-  docker build -t "$IMAGE_NAME:$IMAGE_TAG" -f "$SCRIPT_DIR/Dockerfile" "$SCRIPT_DIR"
-  echo "Image built."
+  docker pull "${IMAGE_REPO}:${PULL_TAG}"
+  docker tag "${IMAGE_REPO}:${PULL_TAG}" "$IMAGE_NAME:$IMAGE_TAG"
+  echo "Image pulled."
   echo ""
 fi
 
@@ -174,7 +204,6 @@ build_run_args() {
     -e NODETOOL_ENV=production
     -e STATIC_FOLDER=/app/web/dist
     --memory=4g --cpus=2
-    -v "$SCRIPT_DIR/web/dist:/app/web/dist:ro"
   )
 
   # TLS mounts
