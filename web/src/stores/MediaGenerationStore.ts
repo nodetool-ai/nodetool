@@ -9,12 +9,13 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ImageModelValue, Message } from "./ApiTypes";
+import type { ImageModelValue, Message, TTSModelValue } from "./ApiTypes";
 
 /**
  * Media-generation request metadata that can be attached to outgoing chat
  * messages. The backend looks for this field on `chat_message` payloads and
- * routes the message to provider.textToImage / provider.textToVideo when
+ * routes the message to provider.textToImage / provider.textToVideo /
+ * provider.imageToImage / provider.imageToVideo / provider.textToSpeech when
  * `mode` is a media mode. Mirrors the Python-side `MediaGenerationRequest`.
  */
 export interface MediaGenerationRequest {
@@ -27,6 +28,12 @@ export interface MediaGenerationRequest {
   resolution?: string | null;
   variations?: number | null;
   duration?: number | null;
+  voice?: string | null;
+  speed?: number | null;
+  audio_format?: string | null;
+  strength?: number | null;
+  num_inference_steps?: number | null;
+  source_asset_id?: string | null;
   extras?: Record<string, unknown> | null;
 }
 
@@ -43,7 +50,10 @@ export type ChatOutgoingMessage = Message & {
 export type MediaMode =
   | "chat"
   | "image"
+  | "image_edit"
   | "video"
+  | "image_to_video"
+  | "audio"
   | "audio_to_video"
   | "retake"
   | "extend"
@@ -51,6 +61,7 @@ export type MediaMode =
 
 export type ImageResolution = "1K" | "2K" | "4K";
 export type VideoResolution = "1080p" | "1440p" | "4K";
+export type AudioFormat = "mp3" | "wav" | "pcm" | "opus";
 
 export interface AspectRatioOption {
   id: string;
@@ -87,6 +98,32 @@ export const IMAGE_RESOLUTIONS: ImageResolution[] = ["1K", "2K", "4K"];
 export const VIDEO_RESOLUTIONS: VideoResolution[] = ["1080p", "1440p", "4K"];
 export const VIDEO_DURATIONS: number[] = [2, 3, 4, 5, 6, 8];
 export const IMAGE_VARIATIONS: number[] = [1, 2, 4, 6, 8];
+
+/** Common voice ids surfaced as defaults across providers. */
+export const DEFAULT_TTS_VOICES: string[] = [
+  "alloy",
+  "ash",
+  "ballad",
+  "coral",
+  "echo",
+  "fable",
+  "nova",
+  "onyx",
+  "sage",
+  "shimmer"
+];
+
+/** Speed presets (multiplier applied to natural speech pace). */
+export const AUDIO_SPEEDS: number[] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+/** Output container formats supported by the backend audio path. */
+export const AUDIO_FORMATS: AudioFormat[] = ["mp3", "wav", "opus", "pcm"];
+
+/** Strength controls how much an image-to-image edit deviates from the source. */
+export const IMAGE_EDIT_STRENGTHS: number[] = [0.25, 0.5, 0.65, 0.75, 0.85, 1.0];
+
+/** Steps presets for image-to-image / image-to-video samplers. */
+export const INFERENCE_STEPS: number[] = [10, 20, 30, 40, 50];
 
 /**
  * Base short edge in pixels for each named resolution.
@@ -125,13 +162,43 @@ export interface VideoGenerationParams {
   duration: number;
 }
 
+export interface AudioGenerationParams {
+  model: TTSModelValue | null;
+  voice: string;
+  speed: number;
+  format: AudioFormat;
+}
+
+export interface ImageEditParams {
+  model: ImageModelValue | null;
+  resolution: ImageResolution;
+  aspectRatio: string;
+  strength: number;
+  numInferenceSteps: number;
+  variations: number;
+}
+
+export interface ImageToVideoParams {
+  model: VideoModelSelection | null;
+  resolution: VideoResolution;
+  aspectRatio: string;
+  duration: number;
+  numInferenceSteps: number;
+}
+
 export interface MediaGenerationState {
   mode: MediaMode;
   image: ImageGenerationParams;
+  imageEdit: ImageEditParams;
   video: VideoGenerationParams;
+  imageToVideo: ImageToVideoParams;
+  audio: AudioGenerationParams;
   setMode: (mode: MediaMode) => void;
   setImageParams: (params: Partial<ImageGenerationParams>) => void;
+  setImageEditParams: (params: Partial<ImageEditParams>) => void;
   setVideoParams: (params: Partial<VideoGenerationParams>) => void;
+  setImageToVideoParams: (params: Partial<ImageToVideoParams>) => void;
+  setAudioParams: (params: Partial<AudioGenerationParams>) => void;
 }
 
 const DEFAULT_IMAGE_PARAMS: ImageGenerationParams = {
@@ -148,21 +215,74 @@ const DEFAULT_VIDEO_PARAMS: VideoGenerationParams = {
   duration: 8
 };
 
+const DEFAULT_AUDIO_PARAMS: AudioGenerationParams = {
+  model: null,
+  voice: "alloy",
+  speed: 1.0,
+  format: "mp3"
+};
+
+const DEFAULT_IMAGE_EDIT_PARAMS: ImageEditParams = {
+  model: null,
+  resolution: "1K",
+  aspectRatio: "1:1",
+  strength: 0.65,
+  numInferenceSteps: 30,
+  variations: 1
+};
+
+const DEFAULT_IMAGE_TO_VIDEO_PARAMS: ImageToVideoParams = {
+  model: null,
+  resolution: "1080p",
+  aspectRatio: "16:9",
+  duration: 4,
+  numInferenceSteps: 30
+};
+
 const useMediaGenerationStore = create<MediaGenerationState>()(
   persist(
     (set) => ({
       mode: "chat",
       image: DEFAULT_IMAGE_PARAMS,
+      imageEdit: DEFAULT_IMAGE_EDIT_PARAMS,
       video: DEFAULT_VIDEO_PARAMS,
+      imageToVideo: DEFAULT_IMAGE_TO_VIDEO_PARAMS,
+      audio: DEFAULT_AUDIO_PARAMS,
       setMode: (mode) => set({ mode }),
       setImageParams: (params) =>
         set((state) => ({ image: { ...state.image, ...params } })),
+      setImageEditParams: (params) =>
+        set((state) => ({ imageEdit: { ...state.imageEdit, ...params } })),
       setVideoParams: (params) =>
-        set((state) => ({ video: { ...state.video, ...params } }))
+        set((state) => ({ video: { ...state.video, ...params } })),
+      setImageToVideoParams: (params) =>
+        set((state) => ({
+          imageToVideo: { ...state.imageToVideo, ...params }
+        })),
+      setAudioParams: (params) =>
+        set((state) => ({ audio: { ...state.audio, ...params } }))
     }),
     {
       name: "nodetool-media-generation",
-      version: 1
+      version: 2,
+      migrate: (persistedState, version) => {
+        const state = (persistedState ?? {}) as Partial<MediaGenerationState>;
+        if (version < 2) {
+          return {
+            ...state,
+            audio: { ...DEFAULT_AUDIO_PARAMS, ...(state.audio ?? {}) },
+            imageEdit: {
+              ...DEFAULT_IMAGE_EDIT_PARAMS,
+              ...(state.imageEdit ?? {})
+            },
+            imageToVideo: {
+              ...DEFAULT_IMAGE_TO_VIDEO_PARAMS,
+              ...(state.imageToVideo ?? {})
+            }
+          } as MediaGenerationState;
+        }
+        return state as MediaGenerationState;
+      }
     }
   )
 );

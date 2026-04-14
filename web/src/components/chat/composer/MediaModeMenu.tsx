@@ -4,8 +4,11 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import MovieIcon from "@mui/icons-material/Movie";
+import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
+import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import ReplayIcon from "@mui/icons-material/Replay";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -48,9 +51,27 @@ const MODES: ModeItem[] = [
     enabled: true
   },
   {
+    id: "image_edit",
+    label: "Edit Images",
+    icon: <AutoFixHighIcon fontSize="small" />,
+    enabled: true
+  },
+  {
     id: "video",
     label: "Generate Videos",
     icon: <MovieIcon fontSize="small" />,
+    enabled: true
+  },
+  {
+    id: "image_to_video",
+    label: "Animate Image",
+    icon: <MovieFilterIcon fontSize="small" />,
+    enabled: true
+  },
+  {
+    id: "audio",
+    label: "Generate Speech",
+    icon: <RecordVoiceOverIcon fontSize="small" />,
     enabled: true
   },
   {

@@ -37,7 +37,9 @@ import type {
   ImageModel as ProviderImageModel,
   VideoModel as ProviderVideoModel,
   TextToImageParams,
-  TextToVideoParams
+  TextToVideoParams,
+  ImageToImageParams,
+  ImageToVideoParams
 } from "@nodetool/runtime";
 import {
   FileStorageAdapter,
@@ -2806,6 +2808,268 @@ export class UnifiedWebSocketRunner {
         return;
       }
 
+      if (mode === "audio") {
+        const voice =
+          typeof mediaGeneration.voice === "string"
+            ? (mediaGeneration.voice as string)
+            : undefined;
+        const speed =
+          typeof mediaGeneration.speed === "number"
+            ? (mediaGeneration.speed as number)
+            : 1.0;
+        const audioFormat =
+          typeof mediaGeneration.audio_format === "string"
+            ? (mediaGeneration.audio_format as string)
+            : "mp3";
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        // Collect PCM samples from the streaming TTS API and concat them
+        // into a single Uint8Array. Providers always emit Int16 PCM samples
+        // (see BaseProvider.textToSpeech contract). The asset is stored as
+        // raw PCM unless the provider returns a different container in
+        // future — `audioFormat` is echoed back in metadata so the UI can
+        // present the requested format to the user.
+        const pcmChunks: Uint8Array[] = [];
+        let totalBytes = 0;
+        for await (const chunk of provider.textToSpeech({
+          text: prompt,
+          model: modelId,
+          voice,
+          speed
+        })) {
+          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+            return;
+          if (chunk?.samples) {
+            const view = new Uint8Array(
+              chunk.samples.buffer,
+              chunk.samples.byteOffset,
+              chunk.samples.byteLength
+            );
+            const copy = new Uint8Array(view);
+            pcmChunks.push(copy);
+            totalBytes += copy.byteLength;
+          }
+        }
+        const merged = new Uint8Array(totalBytes);
+        let offset = 0;
+        for (const c of pcmChunks) {
+          merged.set(c, offset);
+          offset += c.byteLength;
+        }
+        const ext = audioFormat === "pcm" ? "pcm" : audioFormat;
+        const contentType =
+          audioFormat === "mp3"
+            ? "audio/mpeg"
+            : audioFormat === "wav"
+              ? "audio/wav"
+              : audioFormat === "opus"
+                ? "audio/ogg"
+                : "audio/L16";
+        const assetId = await storeMediaAsset(merged, contentType, ext);
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "audio",
+              audio: {
+                type: "audio",
+                asset_id: assetId,
+                mimeType: contentType
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      if (mode === "image_edit" || mode === "image_to_video") {
+        // Resolve the source image from either the message content (most
+        // common path: user dropped an image into the composer) or from the
+        // explicit `source_asset_id` echo on the media_generation payload.
+        const sourceBytes = await this.resolveSourceImageBytes(
+          data,
+          mediaGeneration,
+          userId
+        );
+        if (!sourceBytes) {
+          await this.sendMessage({
+            type: "error",
+            message:
+              "A source image is required — drop or attach an image first",
+            thread_id: threadId
+          });
+          return;
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        if (mode === "image_edit") {
+          const variations = Math.max(
+            1,
+            Math.min(Number(mediaGeneration.variations ?? 1), 8)
+          );
+          const targetWidth =
+            typeof mediaGeneration.width === "number"
+              ? (mediaGeneration.width as number)
+              : undefined;
+          const targetHeight =
+            typeof mediaGeneration.height === "number"
+              ? (mediaGeneration.height as number)
+              : undefined;
+          const strength =
+            typeof mediaGeneration.strength === "number"
+              ? (mediaGeneration.strength as number)
+              : undefined;
+          const numInferenceSteps =
+            typeof mediaGeneration.num_inference_steps === "number"
+              ? (mediaGeneration.num_inference_steps as number)
+              : undefined;
+          const editModel: ProviderImageModel = {
+            id: modelId,
+            name: modelId,
+            provider: providerId
+          };
+          const params: ImageToImageParams = {
+            model: editModel,
+            prompt,
+            targetWidth: targetWidth ?? null,
+            targetHeight: targetHeight ?? null,
+            strength: strength ?? null,
+            numInferenceSteps: numInferenceSteps ?? null
+          };
+          const imageContents: Array<Record<string, unknown>> = [];
+          for (let i = 0; i < variations; i++) {
+            if (
+              requestSeq !== undefined &&
+              requestSeq !== this.chatRequestSeq
+            )
+              return;
+            const bytes = await provider.imageToImage(sourceBytes, params);
+            const assetId = await storeMediaAsset(bytes, "image/png", "png");
+            imageContents.push({
+              type: "image_url",
+              image: {
+                type: "image",
+                asset_id: assetId,
+                mimeType: "image/png"
+              }
+            });
+          }
+          await this.sendMessage({
+            type: "chunk",
+            thread_id: threadId,
+            content: "",
+            done: true
+          });
+          const assistantMsgData: Record<string, unknown> = {
+            type: "message",
+            role: "assistant",
+            content: imageContents,
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model: modelId,
+            media_generation: mediaGeneration
+          };
+          await this.saveMessageToDb(assistantMsgData);
+          await this.sendMessage(assistantMsgData);
+          return;
+        }
+
+        // image_to_video
+        const aspectRatio =
+          typeof mediaGeneration.aspect_ratio === "string"
+            ? (mediaGeneration.aspect_ratio as string)
+            : null;
+        const resolution =
+          typeof mediaGeneration.resolution === "string"
+            ? (mediaGeneration.resolution as string)
+            : null;
+        const duration =
+          typeof mediaGeneration.duration === "number"
+            ? (mediaGeneration.duration as number)
+            : null;
+        const numInferenceSteps =
+          typeof mediaGeneration.num_inference_steps === "number"
+            ? (mediaGeneration.num_inference_steps as number)
+            : null;
+        const i2vModel: ProviderVideoModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+        const params: ImageToVideoParams = {
+          model: i2vModel,
+          prompt,
+          aspectRatio,
+          resolution,
+          numFrames: duration ? duration * 24 : null,
+          numInferenceSteps
+        };
+        const bytes = await provider.imageToVideo(sourceBytes, params);
+        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "video",
+              video: {
+                type: "video",
+                asset_id: assetId,
+                format: "mp4",
+                duration
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
       // Modes not yet implemented on the backend — fall back to an informative
       // error so the client can render the unsupported state cleanly.
       await this.sendMessage({
@@ -2822,6 +3086,106 @@ export class UnifiedWebSocketRunner {
         thread_id: threadId
       });
     }
+  }
+
+  /**
+   * Resolve the source image bytes for image-edit / image-to-video calls.
+   * Searches in priority order:
+   *   1. `media_generation.source_asset_id`  → load from Asset storage
+   *   2. The first `image_url` content block on the user message
+   *      (supports asset_id, http(s) uri, and inline data:base64 payloads)
+   * Returns `null` when no usable source image can be found.
+   */
+  private async resolveSourceImageBytes(
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    userId: string
+  ): Promise<Uint8Array | null> {
+    const tryLoadAsset = async (
+      assetId: string
+    ): Promise<Uint8Array | null> => {
+      if (!assetId) return null;
+      try {
+        const asset = await Asset.find(userId, assetId);
+        if (!asset) return null;
+        const ext = (asset.content_type ?? "image/png").split("/")[1] ?? "png";
+        const { join } = await import("node:path");
+        const { readFile } = await import("node:fs/promises");
+        return new Uint8Array(
+          await readFile(join(getAssetStoragePath(), `${assetId}.${ext}`))
+        );
+      } catch (err) {
+        log.warn("resolveSourceImageBytes: asset load failed", {
+          assetId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+        return null;
+      }
+    };
+
+    const explicitId =
+      typeof mediaGeneration.source_asset_id === "string"
+        ? (mediaGeneration.source_asset_id as string)
+        : null;
+    if (explicitId) {
+      const fromAsset = await tryLoadAsset(explicitId);
+      if (fromAsset) return fromAsset;
+    }
+
+    const content = data.content;
+    if (Array.isArray(content)) {
+      for (const c of content) {
+        if (!c || typeof c !== "object") continue;
+        const block = c as Record<string, unknown>;
+        if (block.type !== "image_url") continue;
+        const image = (block.image ?? {}) as Record<string, unknown>;
+        const assetId =
+          typeof image.asset_id === "string"
+            ? (image.asset_id as string)
+            : null;
+        if (assetId) {
+          const bytes = await tryLoadAsset(assetId);
+          if (bytes) return bytes;
+        }
+        const uri =
+          typeof image.uri === "string" ? (image.uri as string) : null;
+        if (uri) {
+          if (uri.startsWith("data:")) {
+            const commaIdx = uri.indexOf(",");
+            if (commaIdx > -1) {
+              const b64 = uri.slice(commaIdx + 1);
+              try {
+                return new Uint8Array(Buffer.from(b64, "base64"));
+              } catch {
+                /* fall through */
+              }
+            }
+          } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+            try {
+              const resp = await fetch(uri);
+              if (resp.ok) {
+                return new Uint8Array(await resp.arrayBuffer());
+              }
+            } catch (err) {
+              log.warn("resolveSourceImageBytes: fetch failed", {
+                uri,
+                error: err instanceof Error ? err.message : String(err)
+              });
+            }
+          }
+        }
+        const data64 =
+          typeof image.data === "string" ? (image.data as string) : null;
+        if (data64) {
+          try {
+            return new Uint8Array(Buffer.from(data64, "base64"));
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+    return null;
   }
 
   private async handleWorkflowMessage(

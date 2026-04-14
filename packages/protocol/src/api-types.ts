@@ -402,7 +402,10 @@ export interface ToolCall {
 export type MediaGenerationMode =
   | "chat"
   | "image"
+  | "image_edit"
   | "video"
+  | "image_to_video"
+  | "audio"
   | "audio_to_video"
   | "retake"
   | "extend"
@@ -426,6 +429,18 @@ export interface MediaGenerationRequest {
   variations?: number | null;
   /** Duration in seconds (video). */
   duration?: number | null;
+  /** Voice id for text-to-speech. */
+  voice?: string | null;
+  /** Speech rate for text-to-speech (0.25 - 4.0). */
+  speed?: number | null;
+  /** Output audio format (e.g. "mp3", "wav", "pcm"). */
+  audio_format?: string | null;
+  /** Strength for image-to-image edits (0..1). */
+  strength?: number | null;
+  /** Sampler steps for image-to-image edits. */
+  num_inference_steps?: number | null;
+  /** Source image asset id (image_edit / image_to_video). */
+  source_asset_id?: string | null;
   /** Extra provider-specific params. */
   extras?: Record<string, unknown> | null;
 }
