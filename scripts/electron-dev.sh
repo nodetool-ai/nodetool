@@ -19,11 +19,8 @@ if [[ -z "${CONDA_PREFIX:-}" ]]; then
   exit 1
 fi
 
-# The Electron main process has native modules compiled for Electron's Node ABI.
-# The backend runs as a separate system Node process (via tsx), so we need
-# native modules must match Electron's embedded Node ABI (dev server now
-# runs via ELECTRON_RUN_AS_NODE, same binary as production utility process).
-echo "Rebuilding native modules for Electron ABI (force)..."
+# Native modules must match Electron's embedded Node ABI.
+# Skip rebuild if already compiled for the correct Electron version.
 ELECTRON_VERSION=$(node -e "process.stdout.write(require('./electron/package.json').devDependencies.electron)")
 ARCH=$(uname -m)
 if [[ "$ARCH" == "arm64" ]]; then
@@ -31,8 +28,17 @@ if [[ "$ARCH" == "arm64" ]]; then
 else
   GYARCH="x64"
 fi
-(cd node_modules/better-sqlite3 && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
-(cd node_modules/bufferutil && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+
+NATIVE_STAMP="node_modules/.electron-native-rebuild-stamp"
+CURRENT_STAMP="${ELECTRON_VERSION}-${GYARCH}"
+if [[ -f "${NATIVE_STAMP}" ]] && [[ "$(cat "${NATIVE_STAMP}")" == "${CURRENT_STAMP}" ]]; then
+  echo "Native modules already built for Electron ${ELECTRON_VERSION} (${GYARCH}), skipping rebuild."
+else
+  echo "Rebuilding native modules for Electron ${ELECTRON_VERSION} (${GYARCH})..."
+  (cd node_modules/better-sqlite3 && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+  (cd node_modules/bufferutil && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+  echo -n "${CURRENT_STAMP}" > "${NATIVE_STAMP}"
+fi
 
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
