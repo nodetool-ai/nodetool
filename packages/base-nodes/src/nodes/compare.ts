@@ -88,7 +88,7 @@ export class CompareImagesNode extends BaseNode {
         type: "preview_update",
         node_id: nodeId,
         value: {
-          type: "compare_images",
+          type: "image_comparison",
           image_a: imageA,
           image_b: imageB,
           label_a: String(this.label_a ?? "A"),
