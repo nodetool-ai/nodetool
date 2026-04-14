@@ -259,11 +259,6 @@ const Welcome = () => {
     navigate("/assets");
   }, [navigate]);
 
-  const handleSkipWelcome = useCallback(() => {
-    updateSettings({ showWelcomeOnStartup: false });
-    navigate("/editor");
-  }, [navigate, updateSettings]);
-
   const handleClearSearch = useCallback(() => {
     setSearchTerm("");
   }, []);
@@ -456,19 +451,6 @@ const Welcome = () => {
               />
             </Tooltip>
           </div>
-          <Tooltip
-            title="Don't show this welcome screen again. You can re-enable it from Settings or by clicking the NodeTool logo."
-            arrow
-          >
-            <EditorButton
-              onClick={handleSkipWelcome}
-              variant="outlined"
-              className="skip-welcome-button"
-              density="compact"
-            >
-              Skip Welcome Screen
-            </EditorButton>
-          </Tooltip>
           <EditorButton
             onClick={handleNavigateToDashboard}
             className="start-button"

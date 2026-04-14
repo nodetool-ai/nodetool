@@ -223,21 +223,6 @@ const welcomeStyles = (theme: Theme) =>
       margin: 0,
       listStyleType: "square"
     },
-    ".skip-welcome-button": {
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeNormal,
-      color: theme.vars.palette.grey[100],
-      borderColor: theme.vars.palette.grey[500],
-      padding: "0.5em 1.25em",
-      marginTop: "-.5em",
-      borderRadius: ".2em",
-      whiteSpace: "nowrap",
-      transition: "all 0.2s",
-      "&:hover": {
-        color: theme.vars.palette.grey[0],
-        borderColor: theme.vars.palette.grey[200]
-      }
-    },
     ".start-button": {
       backgroundColor: "var(--palette-primary-main)",
       color: theme.vars.palette.grey[1000],
