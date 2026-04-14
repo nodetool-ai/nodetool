@@ -289,6 +289,20 @@ describe("CircularActionButton", () => {
     expect(wrapper).toHaveAttribute("data-tooltip", "Test tooltip");
   });
 
+  it("sets aria-label from ariaLabel prop", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <CircularActionButton
+          icon={<MockIcon />}
+          onClick={mockOnClick}
+          ariaLabel="Explicit Label"
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId("icon-button")).toHaveAttribute("aria-label", "Explicit Label");
+  });
+
   it("renders without tooltip wrapper when tooltip is not provided", () => {
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
