@@ -196,6 +196,7 @@ describe('AuthStore', () => {
       expect(mockSignInWithIdToken).toHaveBeenCalledWith({
         provider: 'google',
         token: 'google-id-token-123',
+        nonce: '',
       });
       expect(useAuthStore.getState().state).toBe('logged_in');
       expect(useAuthStore.getState().user).toEqual(session.user);

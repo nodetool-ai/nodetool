@@ -29,6 +29,7 @@ type AudioRefLike = {
 export function toBytes(value: Uint8Array | string | undefined): Uint8Array {
   if (!value) return new Uint8Array();
   if (value instanceof Uint8Array) return value;
+  if (typeof value !== "string") throw new Error("Invalid audio data");
   return Uint8Array.from(Buffer.from(value, "base64"));
 }
 

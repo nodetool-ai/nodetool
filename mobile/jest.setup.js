@@ -96,6 +96,16 @@ jest.mock('expo-image-picker', () => ({
   }),
 }));
 
+// Mock @react-native-google-signin/google-signin (native module not available in Jest)
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: jest.fn(),
+    hasPlayServices: jest.fn().mockResolvedValue(true),
+    signIn: jest.fn().mockResolvedValue({ data: { idToken: null } }),
+    signOut: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
 // Mock expo-document-picker
 jest.mock('expo-document-picker', () => ({
   getDocumentAsync: jest.fn().mockResolvedValue({

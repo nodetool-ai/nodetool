@@ -1,4 +1,4 @@
-import { promises as fs } from "fs";
+import { promises as fs, writeFileSync } from "fs";
 import type { Stats } from "fs";
 import * as https from "https";
 import * as http from "http";
@@ -475,7 +475,7 @@ function downloadFileFromUrl(url: string, dest: string): Promise<void> {
           if (resolved) return;
           try {
             const buf = Buffer.concat(chunks);
-            require("fs").writeFileSync(dest, buf);
+            writeFileSync(dest, buf);
             resolved = true;
             resolve();
           } catch (err) {
