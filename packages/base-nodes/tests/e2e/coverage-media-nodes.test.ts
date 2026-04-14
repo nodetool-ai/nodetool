@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   // Audio nodes
@@ -283,6 +284,36 @@ describe("audio nodes — full coverage", () => {
     );
     expect(outData[0]).toBe(20); // (10+30)/2
     expect(outData[1]).toBe(30); // (20+40)/2
+  });
+
+  it("AudioMixerNode mixes uri-backed audio refs", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "audio-mixer-"));
+    const aPath = path.join(tmpDir, "a.raw");
+    const bPath = path.join(tmpDir, "b.raw");
+
+    await fs.writeFile(aPath, Buffer.from([10, 20]));
+    await fs.writeFile(bPath, Buffer.from([30, 40]));
+
+    try {
+      const _n = new AudioMixerNode();
+      _n.assign({
+        track1: { uri: `file://${aPath}` },
+        track2: { uri: `file://${bPath}` },
+        track3: null,
+        track4: null,
+        track5: null
+      });
+
+      const result = await _n.process();
+      const outData = Buffer.from(
+        (result.output as { data: string }).data,
+        "base64"
+      );
+
+      expect(Array.from(outData)).toEqual([20, 30]);
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it("AudioMixerNode returns empty for no inputs", async () => {

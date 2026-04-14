@@ -1037,7 +1037,7 @@ export class AudioMixerNode extends BaseNode {
   })
   declare volume5: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const tracks = [
       this.track1,
       this.track2,
@@ -1045,7 +1045,9 @@ export class AudioMixerNode extends BaseNode {
       this.track4,
       this.track5
     ].filter((t) => t && typeof t === "object");
-    const all = tracks.map((a) => audioBytes(a));
+    const all = await Promise.all(
+      tracks.map((audio) => audioBytesAsync(audio, context))
+    );
     if (all.length === 0)
       return { output: audioRefFromBytes(new Uint8Array()) };
     const len = Math.max(...all.map((x) => x.length));
