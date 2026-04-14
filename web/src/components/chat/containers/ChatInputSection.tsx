@@ -5,7 +5,6 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
 import ChatComposer from "../composer/ChatComposer";
 import ChatToolBar from "../controls/ChatToolBar";
-import MobileChatToolbar from "../controls/MobileChatToolbar";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
@@ -23,11 +22,6 @@ const styles = (_theme: Theme) =>
     flexShrink: 0,
     // Mobile styles handled via separate CSS file
 
-    ".chat-controls": {
-      maxWidth: "100%",
-      width: "100%",
-      flexShrink: 0
-    },
     ".chat-composer-wrapper": {
       flex: 1,
       minWidth: 0,
@@ -89,12 +83,14 @@ const ChatInputSection = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const toolbarNode = useMemo(() => (!isMobile && showToolbar) ? (
+  // On mobile, only expose model selection + agent mode toggle inline in the
+  // composer footer (omit tools/collections to keep the row compact).
+  const toolbarNode = useMemo(() => showToolbar ? (
     <ChatToolBar
       selectedTools={selectedTools}
-      onToolsChange={onToolsChange}
+      onToolsChange={isMobile ? undefined : onToolsChange}
       selectedCollections={selectedCollections}
-      onCollectionsChange={onCollectionsChange}
+      onCollectionsChange={isMobile ? undefined : onCollectionsChange}
       selectedModel={selectedModel}
       onModelChange={onModelChange}
       agentMode={agentMode}
@@ -106,21 +102,6 @@ const ChatInputSection = ({
 
   return (
     <div className="chat-input-section" css={styles(theme)}>
-      {isMobile && showToolbar && (
-        <div className="chat-controls">
-          <MobileChatToolbar
-            selectedTools={selectedTools}
-            onToolsChange={onToolsChange}
-            selectedCollections={selectedCollections}
-            onCollectionsChange={onCollectionsChange}
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-            agentMode={agentMode}
-            onAgentModeToggle={onAgentModeToggle}
-            allowedProviders={allowedProviders}
-          />
-        </div>
-      )}
       <div className="chat-composer-wrapper">
         <ChatComposer
           isLoading={isLoading}

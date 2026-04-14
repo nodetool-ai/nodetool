@@ -85,7 +85,7 @@ ______________________________________________________________________
 
 - **[Getting Started](https://docs.nodetool.ai/getting-started)** — Build your first workflow
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available operations and integrations
-- **[Custom Nodes](https://docs.nodetool.ai/development/custom-nodes)** — Extend NodeTool
+- **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
 - **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
 - **[API Reference](https://docs.nodetool.ai/api)** — Programmatic access
 

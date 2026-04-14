@@ -210,6 +210,37 @@ describe("input/output/workspace nodes", () => {
     await expect(node.process()).resolves.toEqual({ score: 1, equal: true });
   });
 
+  it("CompareImagesNode emits the image comparison preview shape used by the web UI", async () => {
+    const node = new CompareImagesNode();
+    const emitted: Array<Record<string, unknown>> = [];
+    const context = {
+      emit: (msg: Record<string, unknown>) => emitted.push(msg)
+    } as unknown as ProcessingContext;
+
+    node.assign({
+      __node_id: "compare-1",
+      image_a: { uri: "https://example.com/a.png", type: "image" },
+      image_b: { uri: "https://example.com/b.png", type: "image" },
+      label_a: "Before",
+      label_b: "After"
+    });
+
+    await node.process(context);
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]).toMatchObject({
+      type: "preview_update",
+      node_id: "compare-1",
+      value: {
+        type: "image_comparison",
+        image_a: { uri: "https://example.com/a.png", type: "image" },
+        image_b: { uri: "https://example.com/b.png", type: "image" },
+        label_a: "Before",
+        label_b: "After"
+      }
+    });
+  });
+
   it("CompareImagesNode returns score < 1 for different bytes of same length", async () => {
     const node = new CompareImagesNode();
     node.assign({

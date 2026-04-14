@@ -4,7 +4,8 @@
  * Port of src/nodetool/workflows/graph_utils.py.
  */
 
-import type { Edge, NodeDescriptor } from "@nodetool/protocol";
+import type { Edge, GraphData, NodeDescriptor } from "@nodetool/protocol";
+import { isControlEdge, TypeMetadata } from "@nodetool/protocol";
 import { Graph } from "./graph.js";
 
 /**
@@ -95,4 +96,188 @@ export function getDownstreamSubgraph(
   );
 
   return { initialEdges, nodes, edges: filteredEdges };
+}
+
+// ---------------------------------------------------------------------------
+// Bypass rewriting
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if a node is marked as bypassed via ui_properties.bypassed.
+ */
+export function isNodeBypassed(node: NodeDescriptor): boolean {
+  const ui = node.ui_properties;
+  if (!ui || typeof ui !== "object") return false;
+  return (ui as Record<string, unknown>).bypassed === true;
+}
+
+/**
+ * Look up the declared type string of a node's output handle.
+ */
+function getOutputTypeString(
+  node: NodeDescriptor | undefined,
+  handle: string
+): string | undefined {
+  if (!node) return undefined;
+  return node.outputs?.[handle];
+}
+
+/**
+ * Look up the declared type string of a node's input (property) handle.
+ *
+ * Checks propertyTypes first (the authoritative map after graph load),
+ * then falls back to the property value's `type` field for backwards
+ * compatibility with raw graph payloads.
+ */
+function getInputTypeString(
+  node: NodeDescriptor | undefined,
+  handle: string
+): string | undefined {
+  if (!node) return undefined;
+  const fromPropertyTypes = node.propertyTypes?.[handle];
+  if (fromPropertyTypes) return fromPropertyTypes;
+  const props = node.properties as Record<string, unknown> | undefined;
+  if (props) {
+    const val = props[handle];
+    if (typeof val === "object" && val !== null && "type" in val) {
+      const t = (val as { type: unknown }).type;
+      if (typeof t === "string") return t;
+    } else if (typeof val === "string") {
+      return val;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Return true when two type strings are compatible according to
+ * TypeMetadata rules. Missing type info on either side is treated as
+ * compatible ("any") so that bypass still works on dynamic nodes where
+ * handle types are not statically declared.
+ */
+function typesCompatible(
+  sourceType: string | undefined,
+  targetType: string | undefined
+): boolean {
+  if (!sourceType || !targetType) return true;
+  try {
+    const s = TypeMetadata.fromString(sourceType);
+    const t = TypeMetadata.fromString(targetType);
+    return s.isCompatibleWith(t);
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Rewrite a graph to route around nodes marked with
+ * `ui_properties.bypassed === true`.
+ *
+ * For each bypassed node and each of its outgoing data edges, we look for
+ * an incoming data edge whose source output type is compatible with the
+ * outgoing edge's target input type. If one is found, a new edge is
+ * created directly from the upstream source to the downstream target,
+ * preserving the downstream handle and any edge metadata (id, ui_properties,
+ * edge_type). Outgoing edges with no type-compatible input are dropped.
+ *
+ * When multiple incoming edges would match an outgoing edge, preference is
+ * given to an incoming edge whose targetHandle matches the outgoing edge's
+ * sourceHandle (name match), falling back to the first type-compatible one.
+ *
+ * Chained bypassed nodes (A → B(bypassed) → C(bypassed) → D) are handled
+ * by iterating until no further bypassed node can be rewritten — each
+ * iteration replaces bypassed sources with their already-resolved upstream
+ * source so that a chain collapses into a direct edge from the first
+ * non-bypassed source to the first non-bypassed target.
+ *
+ * Control edges (edge_type === "control") touching a bypassed node are
+ * dropped: bypassing intentionally removes the node from execution, so
+ * control connections to/from it no longer have a meaningful target.
+ */
+export function rewriteBypassedNodes(data: GraphData): GraphData {
+  const bypassedIds = new Set(
+    data.nodes.filter(isNodeBypassed).map((n) => n.id)
+  );
+  if (bypassedIds.size === 0) {
+    return data;
+  }
+
+  const nodeById = new Map(data.nodes.map((n) => [n.id, n]));
+  let currentEdges: Edge[] = [...data.edges];
+  const processed = new Set<string>();
+
+  // Iterate: process bypassed nodes whose bypassed predecessors have all
+  // already been resolved. This guarantees a chain collapses in source→
+  // target order.
+  let didChange = true;
+  while (didChange) {
+    didChange = false;
+
+    for (const bypassId of bypassedIds) {
+      if (processed.has(bypassId)) continue;
+
+      const incoming = currentEdges.filter((e) => e.target === bypassId);
+      const hasUnprocessedBypassedUpstream = incoming.some(
+        (e) => bypassedIds.has(e.source) && !processed.has(e.source)
+      );
+      if (hasUnprocessedBypassedUpstream) continue;
+
+      const incomingData = incoming.filter((e) => !isControlEdge(e));
+      const outgoing = currentEdges.filter((e) => e.source === bypassId);
+      const outgoingData = outgoing.filter((e) => !isControlEdge(e));
+
+      const reroutedEdges: Edge[] = [];
+      for (const outEdge of outgoingData) {
+        const targetNode = nodeById.get(outEdge.target);
+        const targetInputType = getInputTypeString(
+          targetNode,
+          outEdge.targetHandle
+        );
+
+        // Prefer an incoming edge whose target handle matches the
+        // outgoing source handle (name-based pairing), then fall back to
+        // the first incoming edge whose source output type is compatible
+        // with the downstream target's input type.
+        const candidates: Edge[] = [];
+        for (const inEdge of incomingData) {
+          const sourceNode = nodeById.get(inEdge.source);
+          const sourceOutputType = getOutputTypeString(
+            sourceNode,
+            inEdge.sourceHandle
+          );
+          if (!typesCompatible(sourceOutputType, targetInputType)) continue;
+          if (inEdge.targetHandle === outEdge.sourceHandle) {
+            candidates.unshift(inEdge);
+          } else {
+            candidates.push(inEdge);
+          }
+        }
+
+        const matched = candidates[0];
+        if (!matched) continue;
+
+        reroutedEdges.push({
+          ...outEdge,
+          source: matched.source,
+          sourceHandle: matched.sourceHandle
+        });
+      }
+
+      // Drop all edges touching the bypassed node and append the rerouted
+      // ones.  Control edges attached to the bypassed node are dropped
+      // here — bypassing removes the node from execution entirely.
+      currentEdges = currentEdges.filter(
+        (e) => e.source !== bypassId && e.target !== bypassId
+      );
+      currentEdges.push(...reroutedEdges);
+
+      processed.add(bypassId);
+      didChange = true;
+    }
+  }
+
+  // Remove bypassed nodes themselves from the node list.
+  const remainingNodes = data.nodes.filter((n) => !bypassedIds.has(n.id));
+
+  return { nodes: remainingNodes, edges: currentEdges };
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./packages.css";
 import {
   PackageModel,
@@ -41,6 +41,12 @@ const PackageManager: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<"all" | "installed" | "available" | "updates" | "runtimes">("all");
 
+  // Live console output from package manager commands (uv / micromamba)
+  const MAX_CONSOLE_LINES = 500;
+  const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
+  const [isConsoleCollapsed, setIsConsoleCollapsed] = useState(false);
+  const consoleBodyRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     initialize();
   }, []);
@@ -78,6 +84,44 @@ const PackageManager: React.FC = () => {
   useEffect(() => {
     loadRuntimes();
   }, [loadRuntimes]);
+
+  // Subscribe to server-log events. The main process emits these for every
+  // stdout/stderr line from uv (pip install/uninstall/update) and micromamba
+  // (runtime install/uninstall), giving us a live console feed.
+  useEffect(() => {
+    const api = window.electronAPI;
+    const onLog =
+      api?.server?.onLog ?? api?.onServerLog ?? window.api?.server?.onLog;
+    if (typeof onLog !== "function") return;
+
+    const unsubscribe = onLog((message: string) => {
+      setConsoleLogs((prev) => {
+        const next = prev.length >= MAX_CONSOLE_LINES
+          ? prev.slice(prev.length - MAX_CONSOLE_LINES + 1)
+          : prev.slice();
+        next.push(message);
+        return next;
+      });
+    });
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, []);
+
+  // Auto-scroll to newest console line.
+  useEffect(() => {
+    if (isConsoleCollapsed) return;
+    const body = consoleBodyRef.current;
+    if (body) body.scrollTop = body.scrollHeight;
+  }, [consoleLogs, isConsoleCollapsed]);
+
+  const handleClearConsole = useCallback(() => {
+    setConsoleLogs([]);
+  }, []);
+
+  const handleToggleConsole = useCallback(() => {
+    setIsConsoleCollapsed((prev) => !prev);
+  }, []);
 
   const handleInstallRuntime = useCallback(async (runtimeId: RuntimePackageId) => {
     const api = window.electronAPI;
@@ -642,6 +686,64 @@ const PackageManager: React.FC = () => {
           </div>
         )}
         </>
+        )}
+      </div>
+
+      <div
+        className={`pm-console ${isConsoleCollapsed ? "collapsed" : ""}`}
+      >
+        <div className="pm-console-header">
+          <div className="pm-console-title">
+            <span className="pm-console-indicator" />
+            Console output
+            {consoleLogs.length > 0 && (
+              <span className="pm-console-count">
+                ({consoleLogs.length})
+              </span>
+            )}
+          </div>
+          <div className="pm-console-actions">
+            <button
+              type="button"
+              className="pm-console-button"
+              onClick={handleClearConsole}
+              disabled={consoleLogs.length === 0}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              className="pm-console-button"
+              onClick={handleToggleConsole}
+            >
+              {isConsoleCollapsed ? "Show" : "Hide"}
+            </button>
+          </div>
+        </div>
+        {!isConsoleCollapsed && (
+          <div
+            className="pm-console-body"
+            ref={consoleBodyRef}
+            role="log"
+            aria-live="polite"
+            aria-label="Package manager console output"
+          >
+            {consoleLogs.length === 0 ? (
+              <div className="pm-console-empty">
+                Console output will appear here when you install, update, or
+                uninstall a package.
+              </div>
+            ) : (
+              consoleLogs.map((line, i) => (
+                <div
+                  key={`${i}-${line.length}`}
+                  className="pm-console-line"
+                >
+                  {line}
+                </div>
+              ))
+            )}
+          </div>
         )}
       </div>
     </div>

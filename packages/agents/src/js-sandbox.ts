@@ -2,15 +2,17 @@
  * Shared sandboxed JavaScript execution engine.
  *
  * Used by both the MiniJSAgentTool (agent tool) and the CodeNode (workflow node).
- * Runs user code in an isolated `vm` context with curated APIs and safety limits.
+ * Runs user code in an isolated `vm` context with a small curated surface:
+ * vanilla JavaScript plus a handful of bridge functions (`fetch`, `workspace`,
+ * `getSecret`, `uuid`, `sleep`, `console`). Library-powered helpers (lodash,
+ * dayjs, cheerio, csv-parse, validator) are intentionally NOT exposed here —
+ * use the dedicated workflow nodes instead (lib.datetime.*, lib.html.*,
+ * lib.data.ParseCSV, lib.validate.*, etc.). Keeping the sandbox lib-free
+ * makes snippet behaviour identical between dev and packaged Electron, and
+ * avoids shipping those packages into the user-code surface.
  */
 
 import * as vm from "node:vm";
-import * as _ from "lodash-es";
-import dayjs from "dayjs";
-import * as cheerio from "cheerio";
-import { parse as csvParse } from "csv-parse/sync";
-import validator from "validator";
 import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
@@ -338,15 +340,12 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     TextDecoder: globalThis.TextDecoder,
     URL: globalThis.URL,
     URLSearchParams: globalThis.URLSearchParams,
-    // Async
-    setTimeout: undefined, // blocked
-    setInterval: undefined, // blocked
-    // Non-native APIs
-    _,
-    dayjs,
-    cheerio,
-    csvParse,
-    validator,
+    // Async (setTimeout/setInterval blocked — use sleep() instead)
+    setTimeout: undefined,
+    setInterval: undefined,
+    // Bridge functions — the only non-native surface the sandbox exposes.
+    // Anything requiring a third-party library lives in a dedicated
+    // workflow node, not here.
     fetch: sandboxedFetch,
     uuid,
     sleep,

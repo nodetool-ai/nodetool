@@ -196,18 +196,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           </div>
         }
       />
-      {/* <ContextMenuItem
-        onClick={() => handleCollapseAll(false)}
-        label="Collapse"
-        IconComponent={<UnfoldLessIcon />}
-        tooltip=""
-      />
-      <ContextMenuItem
-        onClick={() => handleExpandAll(false)}
-        label="Expand"
-        IconComponent={<UnfoldMoreIcon />}
-        tooltip=""
-      /> */}
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
           onClick={handleAlignNodesFalse}

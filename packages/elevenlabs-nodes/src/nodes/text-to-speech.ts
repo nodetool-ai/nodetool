@@ -19,6 +19,7 @@ export class TextToSpeechNode extends BaseNode {
     "- Create audiobooks";
   static readonly metadataOutputTypes = { output: "audio" };
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "enum",

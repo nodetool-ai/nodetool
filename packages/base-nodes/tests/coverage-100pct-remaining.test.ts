@@ -2070,14 +2070,3 @@ describe("code.ts uncovered lines", () => {
   });
 });
 
-// ============================================================================
-// 9. VECTOR — remaining uncovered lines
-// ============================================================================
-
-describe("vector.ts uncovered lines", () => {
-  it("placeholder for vector store coverage", async () => {
-    // Vector nodes now use sqlite-vec via @nodetool/vectorstore
-    // No special env var handling needed
-    expect(true).toBe(true);
-  });
-});

@@ -324,13 +324,6 @@ const translateComfyMessage = (
 };
 
 /**
- * Check if a graph should be executed via ComfyUI
- */
-export function shouldUseComfyUIExecution(graph: Graph): boolean {
-  return graphHasComfyUINodes(graph);
-}
-
-/**
  * Execute a graph via ComfyUI backend
  */
 export async function executeViaComfyUI(

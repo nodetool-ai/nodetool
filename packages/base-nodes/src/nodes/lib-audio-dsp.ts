@@ -1,93 +1,9 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { AudioRef } from "@nodetool/node-sdk";
-
-// ── WAV helpers (shared with lib-synthesis.ts pattern) ──────────────
-
-function encodeWav(
-  samples: Float32Array,
-  sampleRate: number,
-  numChannels = 1
-): Uint8Array {
-  const bitsPerSample = 16;
-  const blockAlign = (numChannels * bitsPerSample) / 8;
-  const byteRate = sampleRate * blockAlign;
-  const dataSize = samples.length * 2;
-  const buffer = Buffer.alloc(44 + dataSize);
-  buffer.write("RIFF", 0);
-  buffer.writeUInt32LE(36 + dataSize, 4);
-  buffer.write("WAVE", 8);
-  buffer.write("fmt ", 12);
-  buffer.writeUInt32LE(16, 16);
-  buffer.writeUInt16LE(1, 20); // PCM
-  buffer.writeUInt16LE(numChannels, 22);
-  buffer.writeUInt32LE(sampleRate, 24);
-  buffer.writeUInt32LE(byteRate, 28);
-  buffer.writeUInt16LE(blockAlign, 32);
-  buffer.writeUInt16LE(bitsPerSample, 34);
-  buffer.write("data", 36);
-  buffer.writeUInt32LE(dataSize, 40);
-  for (let i = 0; i < samples.length; i++) {
-    const s = Math.max(-1, Math.min(1, samples[i]));
-    buffer.writeInt16LE(Math.round(s * 0x7fff), 44 + i * 2);
-  }
-  return new Uint8Array(buffer);
-}
-
-function audioRefFromWav(wav: Uint8Array): AudioRef {
-  return { type: "audio", uri: "", data: Buffer.from(wav).toString("base64") };
-}
-
-interface WavData {
-  samples: Float32Array;
-  sampleRate: number;
-  numChannels: number;
-}
-
-function decodeWav(audio: Record<string, unknown>): WavData {
-  let rawData: Uint8Array;
-  if (typeof audio.data === "string") {
-    rawData = Uint8Array.from(Buffer.from(audio.data, "base64"));
-  } else if (audio.data instanceof Uint8Array) {
-    rawData = audio.data;
-  } else {
-    throw new Error("Invalid audio data");
-  }
-
-  const buf = Buffer.from(rawData);
-  if (buf.toString("ascii", 0, 4) !== "RIFF" || buf.length < 44) {
-    throw new Error("Invalid WAV file");
-  }
-
-  const sampleRate = buf.readUInt32LE(24);
-  const bitsPerSample = buf.readUInt16LE(34);
-  const numChannels = buf.readUInt16LE(22);
-
-  let dataOffset = 36;
-  while (dataOffset < buf.length - 8) {
-    const chunkId = buf.toString("ascii", dataOffset, dataOffset + 4);
-    const chunkSize = buf.readUInt32LE(dataOffset + 4);
-    if (chunkId === "data") {
-      dataOffset += 8;
-      break;
-    }
-    dataOffset += 8 + chunkSize;
-  }
-
-  const bytesPerSample = bitsPerSample / 8;
-  const totalSamples = Math.floor((buf.length - dataOffset) / bytesPerSample);
-  const samples = new Float32Array(totalSamples);
-
-  for (let i = 0; i < totalSamples; i++) {
-    const pos = dataOffset + i * bytesPerSample;
-    if (bitsPerSample === 16) {
-      samples[i] = buf.readInt16LE(pos) / 0x7fff;
-    } else if (bitsPerSample === 8) {
-      samples[i] = (buf.readUInt8(pos) - 128) / 128;
-    }
-  }
-
-  return { samples, sampleRate, numChannels };
-}
+import {
+  audioRefFromWav,
+  decodeWav,
+  encodeWav
+} from "../lib/audio-wav.js";
 
 // ── Part B: Audio filter/effect nodes (node-web-audio-api) ─────────
 

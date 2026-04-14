@@ -288,14 +288,6 @@ export const overviewContents: Section[] = [
             >
               Deployment
             </a>{" "}
-            and{" "}
-            <a
-              href="https://docs.nodetool.ai/deployment-journeys"
-              target="_blank"
-              rel="noreferrer"
-            >
-              deployment journeys
-            </a>{" "}
             for shipping to production.
           </li>
         </ul>
