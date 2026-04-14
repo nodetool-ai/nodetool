@@ -21,7 +21,8 @@ import { ChainConnector } from "./ChainConnector";
 import { AddNodeButton } from "./AddNodeButton";
 import { NodePickerDialog } from "./NodePickerDialog";
 import { client } from "../../stores/ApiClient";
-import type { NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
+import type { NodeMetadata } from "../../stores/ApiTypes";
+import type { ChainNode, InputSource } from "./chainTypes";
 
 interface ChainEditorProps {
   onSave?: () => void;
@@ -81,13 +82,8 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
     [addNode, hideNodePicker, insertAtIndex]
   );
 
-  const prevOutputTypes = useMemo((): Array<TypeMetadata | null> => {
-    return chain.map((node, i) => {
-      if (i === 0) return null;
-      const prev = chain[i - 1];
-      const output = prev.metadata.outputs.find((o) => o.name === prev.selectedOutput);
-      return output?.type ?? null;
-    });
+  const previousNodesByIndex = useMemo((): Array<ChainNode[]> => {
+    return chain.map((_node, i) => chain.slice(0, i));
   }, [chain]);
 
   return (
@@ -159,7 +155,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
                     <AddNodeButton onClick={() => showNodePicker(index)} />
                     <ChainConnector
                       sourceOutput={chain[index - 1].selectedOutput}
-                      targetInput={node.inputMapping}
+                      targetInput={Object.keys(node.inputMappings)[0] ?? null}
                     />
                   </>
                 )}
@@ -168,11 +164,11 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
                   index={index}
                   totalNodes={chain.length}
                   workflowId={workflowId}
-                  prevOutputType={prevOutputTypes[index]}
+                  previousNodes={previousNodesByIndex[index]}
                   onToggleExpanded={() => toggleExpanded(node.id)}
                   onUpdateProperty={(name, value) => updateProperty(node.id, name, value)}
                   onSetOutput={(out) => setSelectedOutput(node.id, out)}
-                  onSetInputMapping={(inp) => setInputMapping(node.id, inp)}
+                  onSetInputMapping={(inputName, source) => setInputMapping(node.id, inputName, source)}
                   onRemove={() => removeNode(node.id)}
                   onDuplicate={() => duplicateNode(node.id)}
                   onMoveUp={() => moveNode(index, index - 1)}

@@ -266,6 +266,44 @@ class ApiService {
     return data as Asset;
   }
 
+  async uploadAsset(params: {
+    uri: string;
+    name: string;
+    contentType: string;
+    parentId: string;
+  }): Promise<Asset> {
+    const formData = new FormData();
+    formData.append('file', {
+      uri: params.uri,
+      name: params.name,
+      type: params.contentType,
+    } as unknown as Blob);
+    formData.append('json', JSON.stringify({
+      name: params.name,
+      content_type: params.contentType,
+      parent_id: params.parentId,
+    }));
+
+    const session = (await import('../stores/AuthStore')).useAuthStore.getState().session;
+    const headers: Record<string, string> = {
+      'Content-Type': 'multipart/form-data',
+    };
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
+    const response = await fetch(`${this.apiHost}/api/assets`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Upload failed (${response.status}): ${text}`);
+    }
+    return await response.json() as Asset;
+  }
+
   async deleteAsset(id: string): Promise<void> {
     const { error } = await this.client.DELETE('/api/assets/{id}', {
       params: { path: { id } },

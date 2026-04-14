@@ -175,7 +175,6 @@ class WebSocketService {
       ?? (typeof jobId === 'string' ? jobId : undefined);
 
     if (!routingKey) {
-      console.warn('WebSocketService: Message without workflow_id or job_id', message);
       return;
     }
 

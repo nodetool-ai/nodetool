@@ -15,7 +15,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { apiService, Asset } from '../services/api';
+import { useAuthStore } from '../stores/AuthStore';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -174,6 +177,61 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     );
   }, []);
 
+  const [isUploading, setIsUploading] = useState(false);
+  const user = useAuthStore((s) => s.user);
+
+  const getParentIdForUpload = useCallback(() => {
+    return parentId ?? user?.id ?? '1';
+  }, [parentId, user]);
+
+  const doUpload = useCallback(async (uri: string, name: string, mimeType: string) => {
+    setIsUploading(true);
+    try {
+      const asset = await apiService.uploadAsset({
+        uri,
+        name,
+        contentType: mimeType,
+        parentId: getParentIdForUpload(),
+      });
+      setAssets((prev) => [asset, ...prev]);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Upload failed';
+      Alert.alert('Upload Error', msg);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [getParentIdForUpload]);
+
+  const handlePickImage = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: false,
+      quality: 1,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const picked = result.assets[0];
+    const name = picked.fileName ?? picked.uri.split('/').pop() ?? 'photo';
+    const mimeType = picked.mimeType ?? (picked.type === 'video' ? 'video/mp4' : 'image/jpeg');
+    await doUpload(picked.uri, name, mimeType);
+  }, [doUpload]);
+
+  const handlePickDocument = useCallback(async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const picked = result.assets[0];
+    await doUpload(picked.uri, picked.name, picked.mimeType ?? 'application/octet-stream');
+  }, [doUpload]);
+
+  const handleUpload = useCallback(() => {
+    Alert.alert('Upload', 'Choose a source', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Photo / Video', onPress: handlePickImage },
+      { text: 'File', onPress: handlePickDocument },
+    ]);
+  }, [handlePickImage, handlePickDocument]);
+
   const renderAsset = useCallback(({ item }: { item: Asset }) => {
     const isFolder = item.content_type === 'folder';
     const isImage = item.content_type?.startsWith('image/');
@@ -290,37 +348,52 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
-        <View
-          style={[
-            styles.searchBar,
-            { backgroundColor: colors.inputBg, borderColor: colors.borderLight },
-          ]}
-        >
-          <Ionicons
-            name="search"
-            size={18}
-            color={colors.textTertiary}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder={isRootFolder ? 'Search all assets...' : 'Search in folder...'}
-            placeholderTextColor={colors.textTertiary}
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-            autoCapitalize="none"
-            autoCorrect={false}
-            clearButtonMode="while-editing"
-            accessibilityLabel="Search assets"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={clearSearch}
-              accessibilityLabel="Clear search"
-            >
-              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
-            </TouchableOpacity>
-          )}
+        <View style={styles.searchRow}>
+          <View
+            style={[
+              styles.searchBar,
+              { backgroundColor: colors.inputBg, borderColor: colors.borderLight, flex: 1 },
+            ]}
+          >
+            <Ionicons
+              name="search"
+              size={18}
+              color={colors.textTertiary}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder={isRootFolder ? 'Search all assets...' : 'Search in folder...'}
+              placeholderTextColor={colors.textTertiary}
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+              accessibilityLabel="Search assets"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={clearSearch}
+                accessibilityLabel="Clear search"
+              >
+                <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity
+            style={[styles.uploadButton, { backgroundColor: colors.primary }]}
+            onPress={handleUpload}
+            disabled={isUploading}
+            accessibilityRole="button"
+            accessibilityLabel="Upload asset"
+          >
+            {isUploading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -383,6 +456,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  uploadButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchBar: {
     flexDirection: 'row',
