@@ -167,6 +167,17 @@ export type ProviderStreamItem = Chunk | ToolCall;
 
 export interface StreamingAudioChunk {
   samples: Int16Array;
+  /** Sample rate in Hz. Defaults to 24000 when omitted. */
+  sampleRate?: number;
+}
+
+/**
+ * Returned by providers that produce fully-encoded audio (e.g. FLAC, WAV)
+ * rather than raw PCM samples.
+ */
+export interface EncodedAudioResult {
+  data: Uint8Array;
+  mimeType: string;
 }
 
 export interface Model3D {

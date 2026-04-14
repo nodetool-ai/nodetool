@@ -110,6 +110,7 @@ export type {
   ImageToVideoParams,
   ProviderStreamItem,
   StreamingAudioChunk,
+  EncodedAudioResult,
   AudioChunk,
   ASRResult
 } from "./types.js";

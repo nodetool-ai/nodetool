@@ -9,6 +9,7 @@ import type {
   ProviderId,
   ProviderStreamItem,
   ProviderTool,
+  EncodedAudioResult,
   StreamingAudioChunk,
   TextToImageParams,
   TextToVideoParams,
@@ -364,6 +365,20 @@ export abstract class BaseProvider {
   }): AsyncGenerator<StreamingAudioChunk> {
     yield* [];
     throw new Error(`${this.provider} does not support textToSpeech`);
+  }
+
+  /**
+   * Override this for providers that return fully-encoded audio (FLAC, WAV,
+   * MP3) instead of raw PCM samples. Returns null by default, meaning the
+   * caller should fall back to the streaming PCM `textToSpeech()` path.
+   */
+  async textToSpeechEncoded(_args: {
+    text: string;
+    model: string;
+    voice?: string;
+    speed?: number;
+  }): Promise<EncodedAudioResult | null> {
+    return null;
   }
 
   async automaticSpeechRecognition(_args: {

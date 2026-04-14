@@ -2817,11 +2817,6 @@ export class UnifiedWebSocketRunner {
           typeof mediaGeneration.speed === "number"
             ? (mediaGeneration.speed as number)
             : 1.0;
-        const audioFormat =
-          typeof mediaGeneration.audio_format === "string"
-            ? (mediaGeneration.audio_format as string)
-            : "mp3";
-
         await this.sendMessage({
           type: "chunk",
           thread_id: threadId,
@@ -2831,49 +2826,96 @@ export class UnifiedWebSocketRunner {
           done: false
         });
 
-        // Collect PCM samples from the streaming TTS API and concat them
-        // into a single Uint8Array. Providers always emit Int16 PCM samples
-        // (see BaseProvider.textToSpeech contract). The asset is stored as
-        // raw PCM unless the provider returns a different container in
-        // future — `audioFormat` is echoed back in metadata so the UI can
-        // present the requested format to the user.
-        const pcmChunks: Uint8Array[] = [];
-        let totalBytes = 0;
-        for await (const chunk of provider.textToSpeech({
+        let assetId: string;
+
+        // Some providers (e.g. HuggingFace) return fully-encoded audio
+        // (FLAC, WAV, MP3). Try that path first.
+        const encoded = await provider.textToSpeechEncoded({
           text: prompt,
           model: modelId,
           voice,
           speed
-        })) {
-          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-            return;
-          if (chunk?.samples) {
-            const view = new Uint8Array(
-              chunk.samples.buffer,
-              chunk.samples.byteOffset,
-              chunk.samples.byteLength
-            );
-            const copy = new Uint8Array(view);
-            pcmChunks.push(copy);
-            totalBytes += copy.byteLength;
+        });
+
+        if (encoded) {
+          const ext =
+            encoded.mimeType === "audio/mpeg"
+              ? "mp3"
+              : encoded.mimeType === "audio/wav"
+                ? "wav"
+                : encoded.mimeType === "audio/ogg"
+                  ? "ogg"
+                  : "flac";
+          assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
+        } else {
+          // Streaming PCM path (OpenAI, Gemini, etc.)
+          const pcmChunks: Uint8Array[] = [];
+          let totalBytes = 0;
+          let chunkSampleRate = 24000;
+          for await (const chunk of provider.textToSpeech({
+            text: prompt,
+            model: modelId,
+            voice,
+            speed
+          })) {
+            if (
+              requestSeq !== undefined &&
+              requestSeq !== this.chatRequestSeq
+            )
+              return;
+            if (chunk?.samples) {
+              if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
+              const view = new Uint8Array(
+                chunk.samples.buffer,
+                chunk.samples.byteOffset,
+                chunk.samples.byteLength
+              );
+              const copy = new Uint8Array(view);
+              pcmChunks.push(copy);
+              totalBytes += copy.byteLength;
+            }
           }
+          const merged = new Uint8Array(totalBytes);
+          let off = 0;
+          for (const c of pcmChunks) {
+            merged.set(c, off);
+            off += c.byteLength;
+          }
+
+          // Wrap raw PCM Int16 in a WAV container so browsers can play it.
+          const sampleRate = chunkSampleRate;
+          const numChannels = 1;
+          const bitsPerSample = 16;
+          const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+          const blockAlign = numChannels * (bitsPerSample / 8);
+          const wavHeader = new ArrayBuffer(44);
+          const dv = new DataView(wavHeader);
+          const writeStr = (pos: number, str: string) => {
+            for (let i = 0; i < str.length; i++)
+              dv.setUint8(pos + i, str.charCodeAt(i));
+          };
+          writeStr(0, "RIFF");
+          dv.setUint32(4, 36 + merged.byteLength, true);
+          writeStr(8, "WAVE");
+          writeStr(12, "fmt ");
+          dv.setUint32(16, 16, true);
+          dv.setUint16(20, 1, true);
+          dv.setUint16(22, numChannels, true);
+          dv.setUint32(24, sampleRate, true);
+          dv.setUint32(28, byteRate, true);
+          dv.setUint16(32, blockAlign, true);
+          dv.setUint16(34, bitsPerSample, true);
+          writeStr(36, "data");
+          dv.setUint32(40, merged.byteLength, true);
+
+          const wav = new Uint8Array(44 + merged.byteLength);
+          wav.set(new Uint8Array(wavHeader), 0);
+          wav.set(merged, 44);
+
+          assetId = await storeMediaAsset(wav, "audio/wav", "wav");
         }
-        const merged = new Uint8Array(totalBytes);
-        let offset = 0;
-        for (const c of pcmChunks) {
-          merged.set(c, offset);
-          offset += c.byteLength;
-        }
-        const ext = audioFormat === "pcm" ? "pcm" : audioFormat;
-        const contentType =
-          audioFormat === "mp3"
-            ? "audio/mpeg"
-            : audioFormat === "wav"
-              ? "audio/wav"
-              : audioFormat === "opus"
-                ? "audio/ogg"
-                : "audio/L16";
-        const assetId = await storeMediaAsset(merged, contentType, ext);
+
+        const audioMimeType = encoded ? encoded.mimeType : "audio/wav";
 
         await this.sendMessage({
           type: "chunk",
@@ -2891,7 +2933,7 @@ export class UnifiedWebSocketRunner {
               audio: {
                 type: "audio",
                 asset_id: assetId,
-                mimeType: contentType
+                mimeType: audioMimeType
               }
             }
           ],
