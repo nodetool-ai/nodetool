@@ -265,29 +265,47 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     });
   };
 
-  // Tab 0: General sidebar sections
+  // Tab 0: General sidebar folders
   const generalSidebarSections = [
     {
-      category: "General",
+      category: "Workspace",
       items: [
         { id: "editor", label: "Editor" },
-        { id: "canvas-navigation", label: "Canvas & Navigation" },
-        { id: "default-models", label: "Default Models" },
-        { id: "autosave", label: "Autosave" },
         { id: "appearance", label: "Appearance" }
       ]
+    },
+    {
+      category: "Canvas",
+      items: [{ id: "canvas-navigation", label: "Canvas & Navigation" }]
+    },
+    {
+      category: "AI",
+      items: [{ id: "default-models", label: "Default Models" }]
+    },
+    {
+      category: "History",
+      items: [{ id: "autosave", label: "Autosave" }]
     }
   ];
 
-  // Tab 1: API & Keys sidebar sections
+  // Tab 1: API & Keys sidebar folders
   const apiKeysSidebarSections = [
     {
-      category: "API & Keys",
+      category: "Credentials",
       items: [
         { id: "api-keys", label: "API Keys" },
-        { id: "api-settings", label: "API Settings" },
-        { id: "folders", label: "Folders" }
+        ...(session?.access_token && !isLocalhost
+          ? [{ id: "nodetool-api-token", label: "Nodetool API Token" }]
+          : [])
       ]
+    },
+    {
+      category: "Configuration",
+      items: [{ id: "api-settings", label: "API Settings" }]
+    },
+    {
+      category: "Storage",
+      items: [{ id: "folders", label: "Folders" }]
     }
   ];
 
