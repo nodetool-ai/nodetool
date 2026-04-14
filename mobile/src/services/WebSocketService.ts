@@ -4,6 +4,7 @@
  */
 import { apiService } from './api';
 import { encode, decode } from "@msgpack/msgpack";
+import { useAuthStore } from '../stores/AuthStore';
 
 type MessageHandler = (message: any) => void;
 
@@ -80,8 +81,12 @@ class WebSocketService {
   private connect(path: string) {
     try {
       this.currentPath = path;
-      const url = apiService.getWebSocketUrl(path);
-      console.log('WebSocketService: Connecting to', url);
+      let url = apiService.getWebSocketUrl(path);
+      const session = useAuthStore.getState().session;
+      if (session?.access_token) {
+        url += `?api_key=${session.access_token}`;
+      }
+      console.log('WebSocketService: Connecting to', url.replace(/api_key=.*/, 'api_key=***'));
 
       this.ws = new WebSocket(url);
       this.ws.binaryType = 'arraybuffer'; 
@@ -209,7 +214,7 @@ class WebSocketService {
   /**
    * Send a message through the WebSocket
    */
-  async send(message: any, path: string = '/ws/predict'): Promise<void> {
+  async send(message: any, path: string = '/ws'): Promise<void> {
     await this.ensureConnection(path);
 
     if (!this.ws) {

@@ -1,10 +1,6 @@
 export type RootStackParamList = {
   Login: undefined;
-  MiniAppsList: undefined;
-  MiniApp: {
-    workflowId: string;
-    workflowName: string;
-  };
+  WorkflowsList: undefined;
   GraphEditor: {
     workflowId?: string;
   } | undefined;

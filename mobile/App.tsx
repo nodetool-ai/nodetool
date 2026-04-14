@@ -4,8 +4,7 @@ import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './src/navigation/types';
-import MiniAppsListScreen from './src/screens/MiniAppsListScreen';
-import MiniAppScreen from './src/screens/MiniAppScreen';
+import WorkflowsListScreen from './src/screens/WorkflowsListScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionScreen';
@@ -89,14 +88,9 @@ export default function App() {
             {isLoggedIn ? (
               <>
                 <Stack.Screen
-                  name="MiniAppsList"
-                  component={MiniAppsListScreen}
+                  name="WorkflowsList"
+                  component={WorkflowsListScreen}
                   options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="MiniApp"
-                  component={MiniAppScreen}
-                  options={{ title: 'Mini App' }}
                 />
                 <Stack.Screen
                   name="Settings"

@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { WebSocketManager } from '../services/WebSocketManager';
 import { apiService } from '../services/api';
+import { useAuthStore } from './AuthStore';
 import {
   ChatStatus,
   ConnectionState,
@@ -250,7 +251,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ status: 'connecting' });
 
     // Get WebSocket URL from API service
-    const wsUrl = apiService.getWebSocketUrl('/ws/chat');
+    let wsUrl = apiService.getWebSocketUrl('/ws');
+    const session = useAuthStore.getState().session;
+    if (session?.access_token) {
+      wsUrl += `?api_key=${session.access_token}`;
+    }
     console.log('Connecting to chat WebSocket:', wsUrl);
 
     // Create WebSocket manager
