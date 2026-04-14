@@ -13,6 +13,7 @@ import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 // Removed comment creation via drag
 
 // Throttle interval for intersection checks (ms)
@@ -45,7 +46,7 @@ export default function useDragHandlers() {
     useNodes((state) => ({
       setHoveredNodes: state.setHoveredNodes,
       findNode: state.findNode
-    }));
+    }), shallow);
 
   // Refs for throttling and tracking last state to avoid unnecessary updates
   const lastIntersectionCheckRef = useRef<number>(0);

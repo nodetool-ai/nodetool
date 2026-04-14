@@ -23,6 +23,7 @@ import {
 import { ComfyUIWorkflow, ComfyUIPrompt } from "../../services/ComfyUIService";
 import { Graph, Workflow } from "../../stores/ApiTypes";
 import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -160,7 +161,7 @@ export const useFileHandlers = () => {
     createNode: state.createNode,
     addNode: state.addNode,
     workflow: state.workflow
-  }));
+  }), shallow);
   const addNotification = useNotificationStore((state) => state.addNotification);
   const { user } = useAuth((auth) => ({ user: auth.user }));
   const createDataframe = useCreateDataframe(createNode, addNode);

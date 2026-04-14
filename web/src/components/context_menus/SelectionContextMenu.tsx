@@ -23,6 +23,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { useNodes } from "../../contexts/NodeContext";
 import isEqual from "fast-deep-equal";
+import { shallow } from "zustand/shallow";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -34,7 +35,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { deleteNode, toggleBypassSelected } = useNodes((state) => ({
     deleteNode: state.deleteNode,
     toggleBypassSelected: state.toggleBypassSelected
-  }));
+  }), shallow);
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();

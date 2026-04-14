@@ -9,6 +9,7 @@ import useMetadataStore from "../stores/MetadataStore";
 import { findSnippetByNodeType } from "../config/snippetMetadata";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../utils/codeOutputInference";
 import { CODE_NODE_TYPE } from "../components/node/codeNodeUi";
+import { shallow } from "zustand/shallow";
 
 /**
  * Hook for creating new nodes in the workflow editor.
@@ -32,7 +33,7 @@ export const useCreateNode = (
     addNode: state.addNode,
     createNode: state.createNode,
     updateNodeData: state.updateNodeData
-  }));
+  }), shallow);
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
 
   const handleCreateNode = useCallback(

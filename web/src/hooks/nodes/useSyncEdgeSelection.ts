@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNodes } from "../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 
 export const useSyncEdgeSelection = (
   nodeId: string,
@@ -13,7 +14,7 @@ export const useSyncEdgeSelection = (
       getOutputEdges: state.getOutputEdges,
       findNode: state.findNode,
       setEdgeSelectionState: state.setEdgeSelectionState
-    }));
+    }), shallow);
 
   useEffect(() => {
     const inputEdges = getInputEdges(nodeId);

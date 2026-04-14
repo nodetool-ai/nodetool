@@ -21,6 +21,7 @@ import { DYNAMIC_KIE_NODE_TYPE } from "../../components/node/DynamicKieSchemaNod
 import { wouldCreateCycle } from "../../utils/graphCycle";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
@@ -52,7 +53,7 @@ export default function useConnectionHandlers() {
   );
   const { updateNodeData } = useNodes((state) => ({
     updateNodeData: state.updateNodeData
-  }));
+  }), shallow);
   const { connecting, startConnecting, endConnecting } = useConnectionStore(
     useShallow((state) => ({
       connecting: state.connecting,

@@ -12,6 +12,7 @@ import log from "loglevel";
 import Papa from "papaparse";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 interface ParsedCSV {
   data: string[][];
   errors: Papa.ParseError[];
@@ -21,7 +22,7 @@ export const useAddNodeFromAsset = () => {
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
     createNode: state.createNode
-  }));
+  }), shallow);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification

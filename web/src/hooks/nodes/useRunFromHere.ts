@@ -9,6 +9,7 @@ import { subgraph } from "../../core/graph";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodes } from "../../contexts/NodeContext";
 import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 interface UseRunFromHereReturn {
   runFromHere: () => void;
@@ -30,7 +31,7 @@ export function useRunFromHere(
     edges: state.edges,
     workflow: state.workflow,
     findNode: state.findNode
-  }));
+  }), shallow);
 
   const run = useWebsocketRunner((state) => state.run);
   const isWorkflowRunning = useWebsocketRunner(
