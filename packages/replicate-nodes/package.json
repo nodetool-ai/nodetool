@@ -26,6 +26,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./replicate-manifest.json": "./src/replicate-manifest.json"
   }
 }

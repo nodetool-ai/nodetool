@@ -9,6 +9,7 @@ import {
   getDefaultAssetsPath,
   buildAssetUrl
 } from "@nodetool/config";
+import { resolveContentUrls } from "./resolve-media-urls.js";
 import {
   Graph,
   WorkflowRunner,
@@ -891,6 +892,16 @@ export class UnifiedWebSocketRunner {
       this.websocket.applicationState === "disconnected"
     ) {
       return;
+    }
+
+    // Resolve storage keys in content to browser-accessible URLs before
+    // sending over the wire.  This keeps DB storage URL-agnostic while
+    // delivering ready-to-use URLs to the client.
+    if (Array.isArray(message.content)) {
+      message = {
+        ...message,
+        content: resolveContentUrls(message.content as unknown[])
+      };
     }
 
     const payload =
@@ -2624,27 +2635,32 @@ export class UnifiedWebSocketRunner {
 
     const provider = await this.resolveProvider(providerId, userId);
 
-    const workspaceDir =
-      workflowId && this.workspaceResolver
-        ? await this.workspaceResolver(workflowId, userId)
-        : tmpdir();
-    const ctx = createRuntimeContext({
-      jobId: randomUUID(),
-      userId,
-      workspaceDir
-    });
-
-    // Compute a stable asset prefix so generated outputs live under a
-    // predictable path in the storage backend.
-    const storeBytes = async (
+    // Store generated media as a proper Asset record and return the
+    // asset ID.  The DB message stores only `asset_id` — URLs are
+    // resolved at serve time by resolveContentUrls / sendMessage.
+    const storagePath = getAssetStoragePath();
+    const storeMediaAsset = async (
       bytes: Uint8Array,
+      contentType: string,
       ext: string
     ): Promise<string> => {
-      if (!ctx.storage) {
-        throw new Error("No storage backend configured for media generation");
-      }
-      const key = `assets/media/${randomUUID()}.${ext}`;
-      return await ctx.storage.store(key, bytes);
+      const { join } = await import("node:path");
+      const { writeFile: fsWrite, mkdir: fsMkdir } = await import(
+        "node:fs/promises"
+      );
+      const asset = new Asset({
+        user_id: userId,
+        workflow_id: workflowId ?? null,
+        name: `${mode}_${Date.now()}`,
+        content_type: contentType,
+        parent_id: null
+      });
+      const fileName = `${asset.id}.${ext}`;
+      await fsMkdir(storagePath, { recursive: true });
+      await fsWrite(join(storagePath, fileName), bytes);
+      asset.size = bytes.length;
+      await asset.save();
+      return asset.id;
     };
 
     try {
@@ -2688,10 +2704,10 @@ export class UnifiedWebSocketRunner {
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;
           const bytes = await provider.textToImage(params);
-          const uri = await storeBytes(bytes, "png");
+          const assetId = await storeMediaAsset(bytes, "image/png", "png");
           imageContents.push({
             type: "image_url",
-            image: { type: "image", uri, mimeType: "image/png" }
+            image: { type: "image", asset_id: assetId, mimeType: "image/png" }
           });
         }
 
@@ -2753,7 +2769,7 @@ export class UnifiedWebSocketRunner {
         });
 
         const bytes = await provider.textToVideo(params);
-        const uri = await storeBytes(bytes, "mp4");
+        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
 
         await this.sendMessage({
           type: "chunk",
@@ -2770,7 +2786,7 @@ export class UnifiedWebSocketRunner {
               type: "video",
               video: {
                 type: "video",
-                uri,
+                asset_id: assetId,
                 format: "mp4",
                 duration: duration
               }

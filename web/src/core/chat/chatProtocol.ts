@@ -409,9 +409,16 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   // Record this chunk as processed for deduplication
   recordProcessedChunk(threadId, chunk.content, newMessageLength);
 
+  // Preserve statusMessage during media generation (it's set from
+  // content_metadata.media_generation in the chunk handler above).
+  // Only clear it when the stream finishes (done=true) or when the
+  // chunk carries actual text content (regular LLM streaming).
+  const keepStatusMessage =
+    !chunk.done && !chunk.content && state.statusMessage;
+
   const baseUpdate: Partial<GlobalChatState> = {
     status: chunk.done ? "connected" : "streaming",
-    statusMessage: null,
+    statusMessage: keepStatusMessage ? state.statusMessage : null,
     messageCache: {
       ...state.messageCache,
       [threadId]: updatedMessages
@@ -1096,6 +1103,22 @@ export async function handleChatWebSocketMessage(
         clearTimeout(timeoutId);
         set({ sendMessageTimeoutId: null });
       }
+    }
+    // Surface a progress message for media generation chunks so the UI
+    // shows "Generating image…" / "Generating video…" instead of "Thinking…"
+    const mediaMeta = chunk.content_metadata?.media_generation as
+      | Record<string, unknown>
+      | undefined;
+    if (mediaMeta && !chunk.done) {
+      const mode = String(mediaMeta.mode ?? "");
+      const model = mediaMeta.model ? String(mediaMeta.model) : "";
+      const label =
+        mode === "image"
+          ? "Generating image"
+          : mode === "video"
+            ? "Generating video"
+            : "Generating";
+      set({ statusMessage: model ? `${label} with ${model}…` : `${label}…` });
     }
     applyReducer(applyChunk, chunk);
   } else if (data.type === "output_update") {

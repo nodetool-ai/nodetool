@@ -9,57 +9,20 @@ import { BaseProvider } from "./base-provider.js";
 import { createLogger } from "@nodetool/config";
 import type {
   ImageModel,
+  VideoModel,
   Message,
   ProviderStreamItem,
   TextToImageParams,
-  ImageToImageParams
+  ImageToImageParams,
+  TextToVideoParams,
+  ImageToVideoParams
 } from "./types.js";
+import { loadImageModels, loadVideoModels } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.fal");
 
-const FAL_IMAGE_MODELS: ImageModel[] = [
-  // FLUX Models
-  { id: "fal-ai/flux/dev", name: "FLUX.1 Dev", provider: "fal_ai" },
-  { id: "fal-ai/flux/schnell", name: "FLUX.1 Schnell", provider: "fal_ai" },
-  { id: "fal-ai/flux-pro/v1.1", name: "FLUX.1 Pro v1.1", provider: "fal_ai" },
-  {
-    id: "fal-ai/flux-pro/v1.1-ultra",
-    name: "FLUX.1 Pro Ultra",
-    provider: "fal_ai"
-  },
-  { id: "fal-ai/flux-pro/new", name: "FLUX.1 Pro (New)", provider: "fal_ai" },
-  { id: "fal-ai/flux-lora", name: "FLUX.1 Dev with LoRA", provider: "fal_ai" },
-  // Ideogram Models
-  { id: "fal-ai/ideogram/v2", name: "Ideogram v2", provider: "fal_ai" },
-  {
-    id: "fal-ai/ideogram/v2/turbo",
-    name: "Ideogram v2 Turbo",
-    provider: "fal_ai"
-  },
-  // Recraft Models
-  { id: "fal-ai/recraft-v3", name: "Recraft v3", provider: "fal_ai" },
-  { id: "fal-ai/recraft-20b", name: "Recraft 20B", provider: "fal_ai" },
-  // Stable Diffusion Models
-  {
-    id: "fal-ai/stable-diffusion-v3-medium",
-    name: "Stable Diffusion v3 Medium",
-    provider: "fal_ai"
-  },
-  {
-    id: "fal-ai/stable-diffusion-v35-large",
-    name: "Stable Diffusion v3.5 Large",
-    provider: "fal_ai"
-  },
-  { id: "fal-ai/fast-sdxl", name: "Fast SDXL", provider: "fal_ai" },
-  // Other Models
-  { id: "fal-ai/luma-photon", name: "Luma Photon", provider: "fal_ai" },
-  {
-    id: "fal-ai/luma-photon/flash",
-    name: "Luma Photon Flash",
-    provider: "fal_ai"
-  },
-  { id: "fal-ai/imagen4/preview", name: "Imagen 4 Preview", provider: "fal_ai" }
-];
+const FAL_MANIFEST_PKG = "@nodetool/fal-nodes";
+const FAL_MANIFEST_PATH = "fal-manifest.json";
 
 type FalClient = {
   subscribe(
@@ -91,7 +54,11 @@ export class FalProvider extends BaseProvider {
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return FAL_IMAGE_MODELS;
+    return loadImageModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  }
+
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    return loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
   }
 
   async generateMessage(
@@ -164,6 +131,53 @@ export class FalProvider extends BaseProvider {
     const imageUrl = extractImageUrl(data);
     return downloadBytes(imageUrl);
   }
+
+  override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    const client = await this.getClient();
+    const args: Record<string, unknown> = {
+      prompt: params.prompt
+    };
+    if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
+    if (params.aspectRatio) args.aspect_ratio = params.aspectRatio;
+    if (params.numFrames) args.num_frames = params.numFrames;
+    if (params.guidanceScale != null)
+      args.guidance_scale = params.guidanceScale;
+    if (params.seed != null && params.seed !== -1) args.seed = params.seed;
+
+    const modelId = params.model.id;
+    log.debug("FAL textToVideo", { model: modelId });
+    const result = await client.subscribe(modelId, { input: args, logs: true });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    const videoUrl = extractVideoUrl(data);
+    return downloadBytes(videoUrl);
+  }
+
+  override async imageToVideo(
+    image: Uint8Array,
+    params: ImageToVideoParams
+  ): Promise<Uint8Array> {
+    const client = await this.getClient();
+    const b64 = Buffer.from(image).toString("base64");
+    const imageDataUri = `data:image/png;base64,${b64}`;
+
+    const args: Record<string, unknown> = {
+      image_url: imageDataUri
+    };
+    if (params.prompt) args.prompt = params.prompt;
+    if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
+    if (params.aspectRatio) args.aspect_ratio = params.aspectRatio;
+    if (params.numFrames) args.num_frames = params.numFrames;
+    if (params.guidanceScale != null)
+      args.guidance_scale = params.guidanceScale;
+    if (params.seed != null && params.seed !== -1) args.seed = params.seed;
+
+    const modelId = params.model.id;
+    log.debug("FAL imageToVideo", { model: modelId });
+    const result = await client.subscribe(modelId, { input: args, logs: true });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    const videoUrl = extractVideoUrl(data);
+    return downloadBytes(videoUrl);
+  }
 }
 
 function extractImageUrl(result: Record<string, unknown>): string {
@@ -174,7 +188,22 @@ function extractImageUrl(result: Record<string, unknown>): string {
   }
   const image = result.image as Record<string, unknown> | undefined;
   if (image?.url) return image.url as string;
-  throw new Error(`Unexpected FAL response format: ${JSON.stringify(result)}`);
+  throw new Error(`Unexpected FAL image response: ${JSON.stringify(result)}`);
+}
+
+function extractVideoUrl(result: Record<string, unknown>): string {
+  // FAL video endpoints return { video: { url } } or { video_url } or { url }
+  const video = result.video as Record<string, unknown> | undefined;
+  if (video?.url) return video.url as string;
+  if (typeof result.video_url === "string") return result.video_url;
+  if (typeof result.url === "string") return result.url;
+  // Some endpoints return an array of videos
+  const videos = result.videos as Array<Record<string, unknown>> | undefined;
+  if (videos && videos.length > 0) {
+    const url = videos[0].url as string | undefined;
+    if (url) return url;
+  }
+  throw new Error(`Unexpected FAL video response: ${JSON.stringify(result)}`);
 }
 
 async function downloadBytes(url: string): Promise<Uint8Array> {

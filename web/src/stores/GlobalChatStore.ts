@@ -587,7 +587,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 sendMessageTimeoutId: null
               });
             }
-          }, 60000);
+          }, 5 * 60 * 1000);
           set({ sendMessageTimeoutId: timeoutId });
         } catch (error) {
           // Clear timeout on error

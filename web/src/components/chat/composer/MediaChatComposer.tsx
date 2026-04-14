@@ -42,8 +42,10 @@ import MediaOptionMenu, { MediaOption } from "./MediaOptionMenu";
 import MediaAspectRatioMenu from "./MediaAspectRatioMenu";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
 import VideoModelMenuDialog from "../../model_menu/VideoModelMenuDialog";
+import LanguageModelMenuDialog from "../../model_menu/LanguageModelMenuDialog";
 import type {
   ImageModel,
+  LanguageModel,
   MessageContent,
   VideoModel
 } from "../../../stores/ApiTypes";
@@ -73,6 +75,9 @@ export interface MediaChatComposerProps {
   disabled?: boolean;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  selectedModel?: LanguageModel;
+  onModelChange?: (model: LanguageModel) => void;
+  allowedProviders?: string[];
 }
 
 /**
@@ -99,7 +104,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   onStop,
   disabled = false,
   agentMode = false,
-  onAgentModeToggle
+  onAgentModeToggle,
+  selectedModel,
+  onModelChange,
+  allowedProviders
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -127,7 +135,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const [variationsAnchor, setVariationsAnchor] = useState<HTMLButtonElement | null>(null);
   const [imageModelOpen, setImageModelOpen] = useState(false);
   const [videoModelOpen, setVideoModelOpen] = useState(false);
+  const [languageModelOpen, setLanguageModelOpen] = useState(false);
   const imageModelAnchorRef = useRef<HTMLButtonElement | null>(null);
+  const languageModelAnchorRef = useRef<HTMLButtonElement | null>(null);
   const videoModelAnchorRef = useRef<HTMLButtonElement | null>(null);
 
   // File handling (input images for image-to-image / motion-control later)
@@ -381,9 +391,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   );
 
   const chatProviderLabel = useMemo(() => {
-    if (!languageModel?.id) return "Select model";
-    return languageModel.name || languageModel.id;
-  }, [languageModel]);
+    const m = selectedModel ?? languageModel;
+    if (!m?.id) return "Select model";
+    return m.name || m.id;
+  }, [selectedModel, languageModel]);
 
   const handleRetake = useCallback(() => {
     setPrompt("");
@@ -473,18 +484,26 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
           {/* Model chip — changes based on mode */}
           {mode === "chat" && (
-            <MediaControlChip
-              icon={<AutoAwesomeIcon fontSize="small" />}
-              label={chatProviderLabel}
-              onClick={() => {
-                // For chat mode we defer to the existing language model
-                // selector surfaced by the parent ChatToolBar; clicking this
-                // chip opens a lightweight hint tooltip via the parent.
-                log.debug("Chat mode model chip click (select via toolbar)");
-              }}
-              disabled
-              showChevron={false}
-            />
+            <>
+              <MediaControlChip
+                ref={languageModelAnchorRef}
+                icon={<AutoAwesomeIcon fontSize="small" />}
+                label={chatProviderLabel}
+                active={languageModelOpen}
+                onClick={() => setLanguageModelOpen(true)}
+                showChevron={false}
+              />
+              <LanguageModelMenuDialog
+                open={languageModelOpen}
+                anchorEl={languageModelAnchorRef.current}
+                onClose={() => setLanguageModelOpen(false)}
+                onModelChange={(model) => {
+                  onModelChange?.(model);
+                  setLanguageModelOpen(false);
+                }}
+                allowedProviders={allowedProviders}
+              />
+            </>
           )}
 
           {mode === "image" && (
