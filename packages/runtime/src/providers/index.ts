@@ -29,7 +29,14 @@ import { FalProvider } from "./fal-provider.js";
 export { BaseProvider };
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
-export type { OnToolCall } from "./claude-agent-provider.js";
+export {
+  ClaudeAgentError,
+  classifyClaudeAgentError
+} from "./claude-agent-provider.js";
+export type {
+  OnToolCall,
+  ClaudeAgentErrorKind
+} from "./claude-agent-provider.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { OpenAIProvider };
