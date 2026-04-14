@@ -426,7 +426,11 @@ return { output: list.flat(Infinity) };`,
     title: "Chunk",
     description: "Split a list into chunks of a given size",
     category: "List",
-    code: `return { output: _.chunk(list, size) };`,
+    code: `const chunks = [];
+for (let i = 0; i < list.length; i += size) {
+  chunks.push(list.slice(i, i + size));
+}
+return { output: chunks };`,
     tags: ["chunk", "batch", "partition", "group"],
   },
   {
@@ -470,9 +474,14 @@ return { output: result };`,
   {
     id: "list-shuffle",
     title: "Shuffle",
-    description: "Randomly shuffle a list",
+    description: "Randomly shuffle a list (Fisher-Yates)",
     category: "List",
-    code: "return { output: _.shuffle(list) };",
+    code: `const arr = [...list];
+for (let i = arr.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+}
+return { output: arr };`,
     tags: ["shuffle", "random", "randomize"],
   },
   {
@@ -506,7 +515,12 @@ return { output: a.filter(x => !setB.has(x)) };`,
     title: "Group By",
     description: "Group items by a key",
     category: "List",
-    code: "return { output: _.groupBy(items, key) };",
+    code: `const groups = {};
+for (const item of items) {
+  const k = item[key];
+  (groups[k] ||= []).push(item);
+}
+return { output: groups };`,
     tags: ["group", "groupBy", "categorize", "bucket"],
   },
   {
@@ -524,9 +538,13 @@ return { output: a.filter(x => !setB.has(x)) };`,
   {
     id: "dict-get",
     title: "Get Value",
-    description: "Get a value from a dictionary by key (supports dot paths)",
+    description: "Get a value from a dictionary by key (supports dot paths like 'a.b.c')",
     category: "Dictionary",
-    code: "return { output: _.get(dict, key) };",
+    code: `const value = String(key).split(".").reduce(
+  (acc, k) => (acc == null ? acc : acc[k]),
+  dict
+);
+return { output: value };`,
     tags: ["get", "access", "key", "value", "path"],
   },
   {
@@ -590,7 +608,10 @@ return { output: rest };`,
     title: "Pick Keys",
     description: "Select specific keys from a dictionary",
     category: "Dictionary",
-    code: "return { output: _.pick(dict, ['key1', 'key2']) };",
+    code: `const picked = ['key1', 'key2'];
+return { output: Object.fromEntries(
+  Object.entries(dict).filter(([k]) => picked.includes(k))
+) };`,
     tags: ["pick", "select", "subset", "pluck"],
   },
   {
@@ -598,7 +619,10 @@ return { output: rest };`,
     title: "Omit Keys",
     description: "Remove specific keys from a dictionary",
     category: "Dictionary",
-    code: "return { output: _.omit(dict, ['key1', 'key2']) };",
+    code: `const omitted = ['key1', 'key2'];
+return { output: Object.fromEntries(
+  Object.entries(dict).filter(([k]) => !omitted.includes(k))
+) };`,
     tags: ["omit", "exclude", "remove", "without"],
   },
   {
@@ -624,7 +648,9 @@ return { output: maxKey };`,
     title: "Map Values",
     description: "Transform all values in a dictionary",
     category: "Dictionary",
-    code: "return { output: _.mapValues(dict, v => v * 2) };",
+    code: `return { output: Object.fromEntries(
+  Object.entries(dict).map(([k, v]) => [k, v * 2])
+) };`,
     tags: ["map", "transform", "values"],
   },
 
@@ -767,9 +793,13 @@ return { output: re.test(value) };`,
   {
     id: "json-path",
     title: "Get JSON Path",
-    description: "Extract a value using dot-path notation",
+    description: "Extract a value using dot-path notation (e.g. 'user.address.city')",
     category: "JSON",
-    code: `return { output: _.get(data, path) };`,
+    code: `const value = String(path).split(".").reduce(
+  (acc, k) => (acc == null ? acc : acc[k]),
+  data
+);
+return { output: value };`,
     tags: ["json", "path", "dot", "nested", "extract", "get"],
   },
   {
@@ -1148,179 +1178,7 @@ return { output: current.length === 1 ? current[0] : current };`,
     tags: ["json", "jsonpath", "extract", "nested", "wildcard"],
   },
 
-  // ---------------------------------------------------------------------------
-  // Date & Time (dayjs-powered)
-  // ---------------------------------------------------------------------------
-  {
-    id: "dayjs-format",
-    title: "Format Date (dayjs)",
-    description: "Parse and format dates with dayjs",
-    category: "Date & Time",
-    code: `return {
-  formatted: dayjs(dateString).format("YYYY-MM-DD HH:mm"),
-  iso: dayjs(dateString).toISOString(),
-  relative: dayjs(dateString).fromNow?.() ?? "N/A"
-};`,
-    tags: ["dayjs", "format", "date", "parse"],
-  },
-  {
-    id: "dayjs-add-subtract",
-    title: "Add / Subtract Time (dayjs)",
-    description: "Add or subtract time from a date",
-    category: "Date & Time",
-    code: `const d = dayjs(dateString);
-return {
-  plus7days: d.add(7, "day").format("YYYY-MM-DD"),
-  minus1month: d.subtract(1, "month").format("YYYY-MM-DD"),
-  plus2hours: d.add(2, "hour").format("YYYY-MM-DD HH:mm")
-};`,
-    tags: ["dayjs", "add", "subtract", "offset", "shift"],
-  },
-  {
-    id: "dayjs-diff",
-    title: "Date Difference (dayjs)",
-    description: "Calculate difference between two dates",
-    category: "Date & Time",
-    code: `const a = dayjs(dateA), b = dayjs(dateB);
-return {
-  days: a.diff(b, "day"),
-  hours: a.diff(b, "hour"),
-  months: a.diff(b, "month")
-};`,
-    tags: ["dayjs", "diff", "difference", "between", "duration"],
-  },
-  {
-    id: "dayjs-compare",
-    title: "Compare Dates (dayjs)",
-    description: "Check if a date is before, after, or same as another",
-    category: "Date & Time",
-    code: `const a = dayjs(dateA), b = dayjs(dateB);
-return {
-  isBefore: a.isBefore(b),
-  isAfter: a.isAfter(b),
-  isSame: a.isSame(b, "day")
-};`,
-    tags: ["dayjs", "compare", "before", "after", "same"],
-  },
-  {
-    id: "dayjs-start-end",
-    title: "Start / End of Period (dayjs)",
-    description: "Get the start or end of a day, week, month, or year",
-    category: "Date & Time",
-    code: `const d = dayjs(dateString);
-return {
-  startOfWeek: d.startOf("week").format("YYYY-MM-DD"),
-  endOfMonth: d.endOf("month").format("YYYY-MM-DD"),
-  startOfYear: d.startOf("year").format("YYYY-MM-DD")
-};`,
-    tags: ["dayjs", "start", "end", "week", "month", "year"],
-  },
-
-  // ---------------------------------------------------------------------------
-  // HTML Parsing (cheerio)
-  // ---------------------------------------------------------------------------
-  {
-    id: "html-extract-links",
-    title: "Extract Links from HTML",
-    description: "Parse HTML and extract all anchor hrefs",
-    category: "Text",
-    code: `const $ = cheerio.load(html);
-const links = $("a").map((i, el) => ({
-  text: $(el).text().trim(),
-  href: $(el).attr("href") || ""
-})).get();
-return { output: links };`,
-    tags: ["html", "cheerio", "links", "anchor", "href", "scrape"],
-  },
-  {
-    id: "html-extract-images",
-    title: "Extract Images from HTML",
-    description: "Parse HTML and extract all image sources",
-    category: "Text",
-    code: `const $ = cheerio.load(html);
-const images = $("img").map((i, el) => ({
-  src: $(el).attr("src") || "",
-  alt: $(el).attr("alt") || ""
-})).get();
-return { output: images };`,
-    tags: ["html", "cheerio", "images", "img", "src", "scrape"],
-  },
-  {
-    id: "html-extract-text",
-    title: "HTML to Text",
-    description: "Strip all HTML tags and get plain text",
-    category: "Text",
-    code: `const $ = cheerio.load(html);
-return { output: $.text().trim() };`,
-    tags: ["html", "cheerio", "text", "strip", "plain"],
-  },
-  {
-    id: "html-select",
-    title: "CSS Selector Query",
-    description: "Extract content using CSS selectors",
-    category: "Text",
-    code: `const $ = cheerio.load(html);
-const results = $(selector).map((i, el) => $(el).text().trim()).get();
-return { output: results };`,
-    tags: ["html", "cheerio", "css", "selector", "query", "dom"],
-  },
-
-  // ---------------------------------------------------------------------------
-  // Validation (validator.js)
-  // ---------------------------------------------------------------------------
-  {
-    id: "validate-email",
-    title: "Validate Email",
-    description: "Check if a string is a valid email address",
-    category: "Boolean & Logic",
-    code: `return { output: validator.isEmail(value) };`,
-    tags: ["validate", "email", "check", "validator"],
-  },
-  {
-    id: "validate-url",
-    title: "Validate URL",
-    description: "Check if a string is a valid URL",
-    category: "Boolean & Logic",
-    code: `return { output: validator.isURL(value) };`,
-    tags: ["validate", "url", "check", "validator", "link"],
-  },
-  {
-    id: "validate-ip",
-    title: "Validate IP Address",
-    description: "Check if a string is a valid IPv4 or IPv6 address",
-    category: "Boolean & Logic",
-    code: `return {
-  isIP: validator.isIP(value),
-  isIPv4: validator.isIP(value, 4),
-  isIPv6: validator.isIP(value, 6)
-};`,
-    tags: ["validate", "ip", "address", "ipv4", "ipv6", "network"],
-  },
-  {
-    id: "validate-multiple",
-    title: "Validate String",
-    description: "Common string validations (email, URL, UUID, phone, etc.)",
-    category: "Boolean & Logic",
-    code: `return {
-  isEmail: validator.isEmail(value),
-  isURL: validator.isURL(value),
-  isUUID: validator.isUUID(value),
-  isJSON: validator.isJSON(value),
-  isNumeric: validator.isNumeric(value),
-  isAlpha: validator.isAlpha(value)
-};`,
-    tags: ["validate", "check", "email", "url", "uuid", "json", "number"],
-  },
-  {
-    id: "validate-sanitize",
-    title: "Sanitize Input",
-    description: "Escape and sanitize user input for safety",
-    category: "Text",
-    code: `return {
-  escaped: validator.escape(value),        // HTML entity escape
-  trimmed: validator.trim(value),
-  normalized: validator.normalizeEmail(value) || value
-};`,
-    tags: ["sanitize", "escape", "html", "xss", "clean", "validator"],
-  },
+  // Date & Time, HTML parsing, and validation snippets have been removed —
+  // the corresponding work is done by dedicated nodes (lib.datetime.*,
+  // lib.html.*, lib.validate.*) so the JS sandbox can stay library-free.
 ];
