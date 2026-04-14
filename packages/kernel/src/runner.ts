@@ -27,6 +27,7 @@ const log = createLogger("nodetool.kernel.runner");
 import type { ProcessingContext } from "@nodetool/runtime";
 import { isControlEdge, isDataEdge } from "@nodetool/protocol";
 import { Graph } from "./graph.js";
+import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
 
@@ -210,7 +211,13 @@ export class WorkflowRunner {
         jobId: request.job_id,
         workflowId: request.workflow_id
       });
-      this._graph = new Graph(graphData);
+      // Rewrite the graph to route around nodes marked
+      // `ui_properties.bypassed === true`. Each outgoing edge of a
+      // bypassed node is re-attached to the matching upstream source
+      // (by type compatibility); outgoing edges with no compatible
+      // upstream are dropped, as is the bypassed node itself.
+      const effectiveGraph = rewriteBypassedNodes(graphData);
+      this._graph = new Graph(effectiveGraph);
 
       // Python parity: _filter_invalid_edges — silently remove edges
       // whose source or target node doesn't exist in the graph.

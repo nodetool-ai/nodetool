@@ -257,7 +257,10 @@ describe("MiniJSAgentTool", () => {
           { type: "b", val: 2 },
           { type: "a", val: 3 },
         ];
-        return _.groupBy(data, item => item.type);
+        return data.reduce((acc, item) => {
+          (acc[item.type] ||= []).push(item);
+          return acc;
+        }, {});
       `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
@@ -439,8 +442,11 @@ describe("MiniJSAgentTool", () => {
           { name: "Eve", score: 88, dept: "sales" },
         ];
 
-        // Group by department using lodash groupBy
-        const byDept = _.groupBy(rawData, item => item.dept);
+        // Group by department (vanilla reduce — sandbox is lib-free)
+        const byDept = rawData.reduce((acc, item) => {
+          (acc[item.dept] ||= []).push(item);
+          return acc;
+        }, {});
 
         // Calculate stats per department
         const stats = {};

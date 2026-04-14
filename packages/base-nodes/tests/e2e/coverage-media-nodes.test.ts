@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   // Audio nodes
@@ -285,6 +286,36 @@ describe("audio nodes — full coverage", () => {
     expect(outData[1]).toBe(30); // (20+40)/2
   });
 
+  it("AudioMixerNode mixes uri-backed audio refs", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "audio-mixer-"));
+    const aPath = path.join(tmpDir, "a.raw");
+    const bPath = path.join(tmpDir, "b.raw");
+
+    await fs.writeFile(aPath, Buffer.from([10, 20]));
+    await fs.writeFile(bPath, Buffer.from([30, 40]));
+
+    try {
+      const _n = new AudioMixerNode();
+      _n.assign({
+        track1: { uri: `file://${aPath}` },
+        track2: { uri: `file://${bPath}` },
+        track3: null,
+        track4: null,
+        track5: null
+      });
+
+      const result = await _n.process();
+      const outData = Buffer.from(
+        (result.output as { data: string }).data,
+        "base64"
+      );
+
+      expect(Array.from(outData)).toEqual([20, 30]);
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   it("AudioMixerNode returns empty for no inputs", async () => {
     const _n = new AudioMixerNode();
     const result = await _n.process();
@@ -293,6 +324,83 @@ describe("audio nodes — full coverage", () => {
       "base64"
     );
     expect(outData.length).toBe(0);
+  });
+
+  it("AudioMixerNode applies per-track volume multipliers", async () => {
+    const a = { data: Buffer.from([100, 100]).toString("base64") };
+    const b = { data: Buffer.from([100, 100]).toString("base64") };
+    const _n = new AudioMixerNode();
+    _n.assign({
+      track1: a,
+      track2: b,
+      track3: null,
+      track4: null,
+      track5: null,
+      volume1: 2,
+      volume2: 0
+    });
+    const result = await _n.process();
+    const outData = Buffer.from(
+      (result.output as { data: string }).data,
+      "base64"
+    );
+    // (100*2 + 100*0) / 2 = 100 for every sample
+    expect(outData[0]).toBe(100);
+    expect(outData[1]).toBe(100);
+  });
+
+  it("AudioMixerNode ignores empty default tracks in the divisor", async () => {
+    // Only one real track; the other 4 defaults have no data and must not
+    // dilute the amplitude.
+    const a = { data: Buffer.from([50, 100, 150]).toString("base64") };
+    const _n = new AudioMixerNode();
+    _n.assign({ track1: a });
+    const result = await _n.process();
+    const outData = Buffer.from(
+      (result.output as { data: string }).data,
+      "base64"
+    );
+    expect(Array.from(outData)).toEqual([50, 100, 150]);
+  });
+
+  it("AudioMixerNode mixes WAV PCM16 inputs into a valid WAV", async () => {
+    function makeMonoWav(samples: number[], sampleRate = 22050): string {
+      const buf = Buffer.alloc(44 + samples.length * 2);
+      buf.write("RIFF", 0);
+      buf.writeUInt32LE(36 + samples.length * 2, 4);
+      buf.write("WAVE", 8);
+      buf.write("fmt ", 12);
+      buf.writeUInt32LE(16, 16);
+      buf.writeUInt16LE(1, 20);
+      buf.writeUInt16LE(1, 22);
+      buf.writeUInt32LE(sampleRate, 24);
+      buf.writeUInt32LE(sampleRate * 2, 28);
+      buf.writeUInt16LE(2, 32);
+      buf.writeUInt16LE(16, 34);
+      buf.write("data", 36);
+      buf.writeUInt32LE(samples.length * 2, 40);
+      for (let i = 0; i < samples.length; i += 1) {
+        buf.writeInt16LE(samples[i], 44 + i * 2);
+      }
+      return buf.toString("base64");
+    }
+
+    const a = { data: makeMonoWav([1000, 2000, 3000]) };
+    const b = { data: makeMonoWav([3000, 4000, 5000]) };
+    const _n = new AudioMixerNode();
+    _n.assign({ track1: a, track2: b });
+    const result = await _n.process();
+    const outBytes = Buffer.from(
+      (result.output as { data: string }).data,
+      "base64"
+    );
+    // Output must still be a valid WAV (RIFF...WAVE header intact)
+    expect(outBytes.toString("ascii", 0, 4)).toBe("RIFF");
+    expect(outBytes.toString("ascii", 8, 12)).toBe("WAVE");
+    // Samples should be averaged: (1000+3000)/2=2000, (2000+4000)/2=3000, (3000+5000)/2=4000
+    expect(outBytes.readInt16LE(44)).toBe(2000);
+    expect(outBytes.readInt16LE(46)).toBe(3000);
+    expect(outBytes.readInt16LE(48)).toBe(4000);
   });
 
   it("TrimAudioNode trims from start and end", async () => {

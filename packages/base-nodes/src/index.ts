@@ -220,6 +220,22 @@ export {
 } from "./nodes/code.js";
 export { CodeNode } from "./nodes/code-node.js";
 export {
+  DateNowNode,
+  FormatDateNode,
+  DateAddNode,
+  DateDiffNode,
+  DateStartEndNode,
+  LIB_DATETIME_NODES
+} from "./nodes/lib-datetime.js";
+export {
+  ValidateEmailNode,
+  ValidateURLNode,
+  ValidateIPNode,
+  ValidateStringNode,
+  SanitizeStringNode,
+  LIB_VALIDATE_NODES
+} from "./nodes/lib-validate.js";
+export {
   LoadAudioAssetsNode,
   LoadAudioFileNode,
   LoadAudioFolderNode,
@@ -681,6 +697,8 @@ import { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 import { TEAM_NODES } from "./nodes/team.js";
 import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
+import { LIB_DATETIME_NODES } from "./nodes/lib-datetime.js";
+import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -696,6 +714,8 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...DATA_NODES,
   ...CODE_NODES,
   CodeNode,
+  ...LIB_DATETIME_NODES,
+  ...LIB_VALIDATE_NODES,
   ...AUDIO_NODES,
   ...TRIGGER_NODES,
   ...IMAGE_NODES,

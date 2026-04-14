@@ -22,6 +22,7 @@ import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import AppHeader from "../panels/AppHeader";
 import ChatInputSection from "../chat/containers/ChatInputSection";
@@ -65,7 +66,11 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "0 24px",
-      paddingTop: 40
+      paddingTop: 40,
+      [theme.breakpoints.down("sm")]: {
+        padding: "0 12px",
+        paddingTop: 24
+      }
     },
     ".portal-heading": {
       fontSize: 18,
@@ -137,6 +142,12 @@ const styles = (theme: Theme) =>
           opacity: 0.9,
           background: theme.vars.palette.action.hover
         }
+      },
+      // Mobile: tighten the inline composer footer (model + agent toggle live here)
+      [theme.breakpoints.down("sm")]: {
+        "& .chat-input-section": {
+          padding: "8px 0 0 0 !important"
+        }
       }
     },
     ".portal-hint": {
@@ -144,6 +155,21 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       textAlign: "center" as const,
       marginTop: 12
+    },
+    ".portal-skip-welcome": {
+      background: "none",
+      border: "none",
+      padding: "4px 8px",
+      marginTop: 8,
+      fontSize: 11,
+      color: theme.vars.palette.text.disabled,
+      cursor: "pointer",
+      textDecoration: "underline",
+      textUnderlineOffset: "2px",
+      transition: "color 0.2s ease",
+      "&:hover": {
+        color: theme.vars.palette.text.secondary
+      }
     },
 
     // Recents wrapper
@@ -215,6 +241,13 @@ const Portal: React.FC = () => {
 
   const fetchSecrets = useSecretsStore((s) => s.fetchSecrets);
   const secrets = useSecretsStore((s) => s.secrets);
+
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+
+  const handleSkipWelcome = useCallback(() => {
+    updateSettings({ showWelcomeOnStartup: false });
+    navigate("/editor", { replace: true });
+  }, [updateSettings, navigate]);
 
   // Fetch secrets on mount to know if providers are configured
   useEffect(() => {
@@ -440,6 +473,17 @@ const Portal: React.FC = () => {
 
         {!isReturningUser && !isTransitioning && (
           <div className="portal-hint">Type anything to get started</div>
+        )}
+
+        {!isTransitioning && (
+          <button
+            type="button"
+            className="portal-skip-welcome"
+            onClick={handleSkipWelcome}
+            title="Don't show this screen on startup. You can re-enable it from Settings."
+          >
+            Skip welcome screen
+          </button>
         )}
       </div>
     </Box>

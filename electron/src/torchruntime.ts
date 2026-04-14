@@ -46,6 +46,8 @@ async function isTorchruntimeInstalled(): Promise<boolean> {
         {
           env: getProcessEnv(),
           stdio: "pipe",
+          // Prevent a console window from flashing on Windows.
+          windowsHide: true,
         }
       );
 
@@ -82,6 +84,8 @@ async function installTorchruntime(): Promise<void> {
       {
         env: getProcessEnv(),
         stdio: "pipe",
+        // Prevent a console window from flashing on Windows.
+        windowsHide: true,
       }
     );
 
@@ -144,6 +148,8 @@ except Exception as e:
       {
         env: getProcessEnv(),
         stdio: "pipe",
+        // Prevent a console window from flashing on Windows.
+        windowsHide: true,
       }
     );
 
