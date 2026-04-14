@@ -23,7 +23,9 @@ export { NodeInputs, NodeOutputs, type NodeOutputsOptions } from "./io.js";
 export {
   findNodeOrThrow,
   getNodeInputTypes,
-  getDownstreamSubgraph
+  getDownstreamSubgraph,
+  isNodeBypassed,
+  rewriteBypassedNodes
 } from "./graph-utils.js";
 export {
   TriggerWorkflowManager,
