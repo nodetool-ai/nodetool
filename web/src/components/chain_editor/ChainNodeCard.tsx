@@ -22,19 +22,18 @@ import { InputMappingSelector } from "./InputMappingSelector";
 import OutputRenderer from "../node/OutputRenderer";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
-import type { ChainNode } from "./chainTypes";
-import type { TypeMetadata } from "../../stores/ApiTypes";
+import type { ChainNode, InputSource } from "./chainTypes";
 
 interface ChainNodeCardProps {
   node: ChainNode;
   index: number;
   totalNodes: number;
   workflowId: string | null;
-  prevOutputType: TypeMetadata | null;
+  previousNodes: ChainNode[];
   onToggleExpanded: () => void;
   onUpdateProperty: (name: string, value: unknown) => void;
   onSetOutput: (name: string) => void;
-  onSetInputMapping: (name: string) => void;
+  onSetInputMapping: (inputName: string, source: InputSource | null) => void;
   onRemove: () => void;
   onDuplicate: () => void;
   onMoveUp: () => void;
@@ -113,7 +112,7 @@ function getOutputFromResult(result: unknown): unknown {
 }
 
 export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
-  node, index, totalNodes, workflowId, prevOutputType,
+  node, index, totalNodes, workflowId, previousNodes,
   onToggleExpanded, onUpdateProperty, onSetOutput, onSetInputMapping,
   onRemove, onDuplicate, onMoveUp, onMoveDown,
 }) => {
@@ -239,12 +238,12 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
             </Text>
           )}
 
-          {index > 0 && (
+          {index > 0 && previousNodes.length > 0 && (
             <InputMappingSelector
               properties={node.metadata.properties}
-              selectedInput={node.inputMapping}
-              sourceOutputType={prevOutputType}
-              onSelect={onSetInputMapping}
+              inputMappings={node.inputMappings}
+              previousNodes={previousNodes}
+              onSetMapping={onSetInputMapping}
             />
           )}
 
@@ -255,7 +254,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
             nodeType={node.nodeType}
             properties={node.metadata.properties}
             values={node.properties}
-            connectedInput={node.inputMapping}
+            connectedInputs={Object.keys(node.inputMappings)}
             onUpdate={onUpdateProperty}
           />
 

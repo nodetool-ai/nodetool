@@ -5,7 +5,7 @@
 import { create } from "zustand";
 import useMetadataStore from "../../stores/MetadataStore";
 import type { NodeMetadata, Workflow } from "../../stores/ApiTypes";
-import type { ChainNode, ChainConnection } from "./chainTypes";
+import type { ChainNode, ChainConnection, InputMappings, InputSource } from "./chainTypes";
 import { buildConnections, chainToGraph, findBestInput } from "./chainTypes";
 
 function generateId(): string {
@@ -48,7 +48,10 @@ interface ChainEditorState {
   duplicateNode: (nodeId: string) => void;
   updateProperty: (nodeId: string, name: string, value: unknown) => void;
   setSelectedOutput: (nodeId: string, outputName: string) => void;
-  setInputMapping: (nodeId: string, inputName: string) => void;
+  /** Set a single input mapping: which source node+output feeds this input. */
+  setInputMapping: (nodeId: string, inputName: string, source: InputSource | null) => void;
+  /** Clear all input mappings for a node. */
+  clearInputMappings: (nodeId: string) => void;
   toggleExpanded: (nodeId: string) => void;
   collapseAll: () => void;
   showNodePicker: (insertAt?: number) => void;
@@ -86,14 +89,21 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
     const defaultOutput =
       metadata.outputs.length > 0 ? metadata.outputs[0].name : "";
 
-    let inputMapping: string | null = null;
+    // Auto-map from previous node if compatible
+    const inputMappings: InputMappings = {};
     if (idx > 0) {
       const prev = chain[idx - 1];
       const prevOutput = prev.metadata.outputs.find(
         (o) => o.name === prev.selectedOutput
       );
       if (prevOutput) {
-        inputMapping = findBestInput(metadata, prevOutput.type);
+        const bestInput = findBestInput(metadata, prevOutput.type);
+        if (bestInput) {
+          inputMappings[bestInput] = {
+            sourceNodeId: prev.id,
+            sourceOutput: prev.selectedOutput,
+          };
+        }
       }
     }
 
@@ -103,47 +113,31 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
       metadata,
       properties: defaultProperties(metadata),
       selectedOutput: defaultOutput,
-      inputMapping,
+      inputMappings,
       expanded: true,
     };
 
     const updated = [...chain];
     updated.splice(idx, 0, newNode);
 
-    if (idx < updated.length - 1) {
-      const next = updated[idx + 1];
-      const newNodeOutput = metadata.outputs.find(
-        (o) => o.name === newNode.selectedOutput
-      );
-      if (newNodeOutput) {
-        next.inputMapping = findBestInput(next.metadata, newNodeOutput.type);
-      }
-    }
-
     set({ chain: updated, connections: buildConnections(updated) });
   },
 
   removeNode: (nodeId) => {
     const { chain } = get();
-    const idx = chain.findIndex((n) => n.id === nodeId);
-    if (idx === -1) return;
-
     const updated = chain.filter((n) => n.id !== nodeId);
-    if (idx > 0 && idx < updated.length) {
-      const prev = updated[idx - 1];
-      const next = updated[idx];
-      const prevOutput = prev.metadata.outputs.find(
-        (o) => o.name === prev.selectedOutput
-      );
-      if (prevOutput) {
-        next.inputMapping = findBestInput(next.metadata, prevOutput.type);
-      } else {
-        next.inputMapping = null;
+
+    // Clean up any inputMappings referencing the removed node
+    for (const node of updated) {
+      const cleaned: InputMappings = {};
+      for (const [inputName, source] of Object.entries(node.inputMappings)) {
+        if (source.sourceNodeId !== nodeId) {
+          cleaned[inputName] = source;
+        }
       }
+      node.inputMappings = cleaned;
     }
-    if (updated.length > 0 && idx === 0) {
-      updated[0].inputMapping = null;
-    }
+
     set({ chain: updated, connections: buildConnections(updated) });
   },
 
@@ -155,19 +149,21 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
 
+    // Validate all inputMappings: sources must come before targets
+    const idToIndex = new Map(updated.map((n, i) => [n.id, i]));
     for (let i = 0; i < updated.length; i++) {
-      if (i === 0) {
-        updated[i].inputMapping = null;
-      } else {
-        const prev = updated[i - 1];
-        const prevOutput = prev.metadata.outputs.find((o) => o.name === prev.selectedOutput);
-        if (prevOutput) {
-          updated[i].inputMapping = findBestInput(updated[i].metadata, prevOutput.type);
-        } else {
-          updated[i].inputMapping = null;
+      const cleaned: InputMappings = {};
+      for (const [inputName, source] of Object.entries(
+        updated[i].inputMappings
+      )) {
+        const srcIdx = idToIndex.get(source.sourceNodeId);
+        if (srcIdx !== undefined && srcIdx < i) {
+          cleaned[inputName] = source;
         }
       }
+      updated[i] = { ...updated[i], inputMappings: cleaned };
     }
+
     set({ chain: updated, connections: buildConnections(updated) });
   },
 
@@ -180,6 +176,7 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
       ...original,
       id: generateId(),
       properties: { ...original.properties },
+      inputMappings: { ...original.inputMappings },
       expanded: false,
     };
     const updated = [...chain];
@@ -197,27 +194,33 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
 
   setSelectedOutput: (nodeId, outputName) => {
     const { chain } = get();
-    const idx = chain.findIndex((n) => n.id === nodeId);
-    if (idx === -1) return;
-
-    const updated = chain.map((n, i) => (i === idx ? { ...n, selectedOutput: outputName } : n));
-
-    if (idx < updated.length - 1) {
-      const source = updated[idx];
-      const output = source.metadata.outputs.find((o) => o.name === outputName);
-      if (output) {
-        updated[idx + 1] = {
-          ...updated[idx + 1],
-          inputMapping: findBestInput(updated[idx + 1].metadata, output.type),
-        };
-      }
-    }
+    const updated = chain.map((n) =>
+      n.id === nodeId ? { ...n, selectedOutput: outputName } : n
+    );
     set({ chain: updated, connections: buildConnections(updated) });
   },
 
-  setInputMapping: (nodeId, inputName) => {
+  setInputMapping: (nodeId, inputName, source) => {
     set((state) => {
-      const chain = state.chain.map((n) => (n.id === nodeId ? { ...n, inputMapping: inputName } : n));
+      const chain = state.chain.map((n) => {
+        if (n.id !== nodeId) return n;
+        const mappings = { ...n.inputMappings };
+        if (source) {
+          mappings[inputName] = source;
+        } else {
+          delete mappings[inputName];
+        }
+        return { ...n, inputMappings: mappings };
+      });
+      return { chain, connections: buildConnections(chain) };
+    });
+  },
+
+  clearInputMappings: (nodeId) => {
+    set((state) => {
+      const chain = state.chain.map((n) =>
+        n.id === nodeId ? { ...n, inputMappings: {} } : n
+      );
       return { chain, connections: buildConnections(chain) };
     });
   },
@@ -243,13 +246,23 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
   loadWorkflow: (workflow) => {
     const metadataMap = useMetadataStore.getState().metadata;
 
-    const edgesByTarget = new Map<string, { source: string; sourceHandle: string; targetHandle: string }>();
+    // Build edge lookup: target → list of edges
+    const edgesByTarget = new Map<
+      string,
+      Array<{
+        source: string;
+        sourceHandle: string;
+        targetHandle: string;
+      }>
+    >();
     for (const e of workflow.graph.edges) {
-      edgesByTarget.set(e.target, {
+      const existing = edgesByTarget.get(e.target) ?? [];
+      existing.push({
         source: e.source,
         sourceHandle: e.sourceHandle,
         targetHandle: e.targetHandle,
       });
+      edgesByTarget.set(e.target, existing);
     }
 
     const nodeMap = new Map(workflow.graph.nodes.map((n) => [n.id, n]));
@@ -277,8 +290,16 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
       const meta = metadataMap[node.type];
       if (!meta) continue;
 
-      const edgeInfo = edgesByTarget.get(node.id);
-      const inputMapping = edgeInfo ? edgeInfo.targetHandle : null;
+      // Build inputMappings from all incoming edges
+      const incomingEdges = edgesByTarget.get(node.id) ?? [];
+      const inputMappings: InputMappings = {};
+      for (const edge of incomingEdges) {
+        inputMappings[edge.targetHandle] = {
+          sourceNodeId: edge.source,
+          sourceOutput: edge.sourceHandle,
+        };
+      }
+
       const outgoingEdge = workflow.graph.edges.find((e) => e.source === node.id);
       const selectedOutput = outgoingEdge?.sourceHandle ?? (meta.outputs[0]?.name ?? "");
 
@@ -288,7 +309,7 @@ export const useChainEditorStore = create<ChainEditorState>((set, get) => ({
         metadata: meta,
         properties: (node.data ?? {}) as Record<string, unknown>,
         selectedOutput,
-        inputMapping,
+        inputMappings,
         expanded: false,
       });
     }
