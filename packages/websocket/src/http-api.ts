@@ -8,7 +8,11 @@ import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
-import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
+import {
+  createLogger,
+  getDefaultAssetsPath,
+  buildAssetUrl
+} from "@nodetool/config";
 import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
@@ -1712,7 +1716,7 @@ function toAssetResponse(asset: Asset): JsonObject {
   const fileName = isFolder
     ? null
     : getAssetFileName(asset.id, asset.content_type);
-  const getUrl = fileName ? `/api/storage/${fileName}` : null;
+  const getUrl = fileName ? buildAssetUrl(fileName) : null;
 
   const hasThumbnail =
     asset.content_type.startsWith("image/") ||
