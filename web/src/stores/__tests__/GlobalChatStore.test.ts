@@ -204,7 +204,8 @@ describe("GlobalChatStore", () => {
           model: "gpt-oss:20b",
           provider: "empty",
           tools: undefined,
-          collections: undefined
+          collections: undefined,
+          media_generation: null
         }
       });
     } finally {
@@ -813,7 +814,8 @@ describe("GlobalChatStore", () => {
           model: "gpt-oss:20b",
           provider: "empty",
           tools: undefined,
-          collections: undefined
+          collections: undefined,
+          media_generation: null
         }
       });
     });

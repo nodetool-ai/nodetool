@@ -310,7 +310,10 @@ describe("ChatView", () => {
           collections: undefined,
           agent_mode: false,
           help_mode: false,
-          graph: undefined
+          graph: undefined,
+          workflow_id: undefined,
+          workflow_target: undefined,
+          media_generation: null
         });
       });
     });

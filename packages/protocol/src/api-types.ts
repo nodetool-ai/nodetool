@@ -391,6 +391,45 @@ export interface ToolCall {
   message?: string | null;
 }
 
+/**
+ * Media-generation request metadata attached to chat messages.
+ * When `mode` is "image" or "video", the server interprets the message as a
+ * text-to-image / text-to-video request and invokes the provider's media
+ * generation API rather than a regular LLM round. The resulting assets are
+ * returned as MessageImageContent / MessageVideoContent in the assistant
+ * message and stored via the asset service.
+ */
+export type MediaGenerationMode =
+  | "chat"
+  | "image"
+  | "video"
+  | "audio_to_video"
+  | "retake"
+  | "extend"
+  | "motion_control";
+
+export interface MediaGenerationRequest {
+  mode: MediaGenerationMode;
+  /** Provider id (e.g. "fal_ai", "openai", "replicate"). */
+  provider?: string | null;
+  /** Model id for the selected media model. */
+  model?: string | null;
+  /** Output width in pixels (image or video). */
+  width?: number | null;
+  /** Output height in pixels (image or video). */
+  height?: number | null;
+  /** Aspect ratio label, e.g. "16:9". */
+  aspect_ratio?: string | null;
+  /** Named resolution tier, e.g. "1K", "1080p". */
+  resolution?: string | null;
+  /** Number of variations to generate (images). */
+  variations?: number | null;
+  /** Duration in seconds (video). */
+  duration?: number | null;
+  /** Extra provider-specific params. */
+  extras?: Record<string, unknown> | null;
+}
+
 export interface Message {
   type?: "message";
   id?: string | null;
@@ -416,6 +455,13 @@ export interface Message {
   execution_event_type?: string | null;
   workflow_target?: string | null;
   created_at?: string | null;
+  /**
+   * Media-generation metadata. When present with `mode !== "chat"` the server
+   * routes the prompt to the provider's media API instead of a regular LLM
+   * turn. Echoed back on assistant messages so the UI can render generation
+   * headers (model, variation count, resolution) alongside the output assets.
+   */
+  media_generation?: MediaGenerationRequest | null;
 }
 
 export interface MessageCreateRequest {

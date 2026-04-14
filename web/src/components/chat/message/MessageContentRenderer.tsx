@@ -93,7 +93,10 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       return renderTextContent(textContent, index);
     }
     case "image_url": {
-      // Handle image content in Harmony format
+      // Handle image content. MessageImageContent uses "image_url" type
+      // (Python-style) and carries an ImageRef under `image`. Both the
+      // user-uploaded images and images produced by the media-generation
+      // pipeline arrive through this branch.
       let imageSource: string | Uint8Array | undefined;
 
       if (content.image?.data) {

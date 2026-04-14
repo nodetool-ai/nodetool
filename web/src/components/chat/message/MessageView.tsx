@@ -35,7 +35,9 @@ import { Collapse } from "@mui/material";
 
 
 import AgentExecutionView from "./AgentExecutionView";
+import MediaOutputGroup, { isMediaOnlyContent } from "./MediaOutputGroup";
 import { formatToolName } from "../../../utils/formatUtils";
+import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -314,13 +316,28 @@ export const MessageView: React.FC<
                   message.id || 0
                 )}
               {Array.isArray(content) &&
-                content.map((c: MessageContent, i: number) => (
-                  <MessageContentRenderer
-                    key={`${message.id}-content-${c.type}-${i}`}
-                    content={c}
-                    renderTextContent={renderTextContent}
-                    index={i}
+                (isMediaOnlyContent(content) &&
+                (((message as Message & {
+                  media_generation?: MediaGenerationRequest | null;
+                }).media_generation?.mode ?? "chat") !== "chat" ||
+                  content.length > 1) ? (
+                  <MediaOutputGroup
+                    message={
+                      message as Message & {
+                        media_generation?: MediaGenerationRequest | null;
+                      }
+                    }
+                    mediaContents={content as MessageContent[]}
                   />
+                ) : (
+                  content.map((c: MessageContent, i: number) => (
+                    <MessageContentRenderer
+                      key={`${message.id}-content-${c.type}-${i}`}
+                      content={c}
+                      renderTextContent={renderTextContent}
+                      index={i}
+                    />
+                  ))
                 ))}
             </>
           )}
