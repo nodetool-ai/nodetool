@@ -10,7 +10,3 @@ docs
 .env
 cert.pem
 key.pem
-packages/fal-codegen
-packages/replicate-codegen
-packages/kie-codegen
-packages/kie-nodes

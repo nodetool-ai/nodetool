@@ -22,9 +22,13 @@ COPY packages/kernel/package.json packages/kernel/
 COPY packages/node-sdk/package.json packages/node-sdk/
 COPY packages/models/package.json packages/models/
 COPY packages/code-runners/package.json packages/code-runners/
+COPY packages/fal-codegen/package.json packages/fal-codegen/
 COPY packages/fal-nodes/package.json packages/fal-nodes/
+COPY packages/replicate-codegen/package.json packages/replicate-codegen/
 COPY packages/replicate-nodes/package.json packages/replicate-nodes/
 COPY packages/elevenlabs-nodes/package.json packages/elevenlabs-nodes/
+COPY packages/kie-codegen/package.json packages/kie-codegen/
+COPY packages/kie-nodes/package.json packages/kie-nodes/
 COPY packages/agents/package.json packages/agents/
 COPY packages/base-nodes/package.json packages/base-nodes/
 COPY packages/dsl/package.json packages/dsl/
