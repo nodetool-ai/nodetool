@@ -4,7 +4,6 @@ import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
 import { editorControlsComponents } from "./components/editorControls";
 
-// @ts-ignore
 import "@fontsource/inter";
 import "@fontsource/inter/200.css";
 import "@fontsource/inter/300.css";
