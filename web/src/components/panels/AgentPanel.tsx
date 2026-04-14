@@ -627,21 +627,24 @@ const AgentPanel: React.FC = () => {
     void handleConfirmNewSession();
   }, [handleConfirmNewSession]);
 
-  const toolbarButtonSx = {
-    borderRadius: "6px",
-    border: `1px solid ${theme.vars.palette.divider}`,
-    padding: "3px 8px",
-    gap: "4px",
-    fontSize: theme.fontSizeSmaller,
-    fontFamily: theme.fontFamily2,
-    color: theme.vars.palette.text.secondary,
-    textTransform: "none" as const,
-    "&:hover": {
-      borderColor: theme.vars.palette.primary.main,
-      color: theme.vars.palette.primary.light,
-      backgroundColor: `${theme.vars.palette.primary.main}0a`,
-    },
-  };
+  const toolbarButtonSx = useMemo(
+    () => ({
+      borderRadius: "6px",
+      border: `1px solid ${theme.vars.palette.divider}`,
+      padding: "3px 8px",
+      gap: "4px",
+      fontSize: theme.fontSizeSmaller,
+      fontFamily: theme.fontFamily2,
+      color: theme.vars.palette.text.secondary,
+      textTransform: "none" as const,
+      "&:hover": {
+        borderColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.primary.light,
+        backgroundColor: `${theme.vars.palette.primary.main}0a`,
+      },
+    }),
+    [theme]
+  );
 
   const providerOptions = useMemo(
     () => [
