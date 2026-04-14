@@ -165,7 +165,23 @@ async function loadFromUri(uri: string, context?: ProcessingContext): Promise<Bu
 // ---------------------------------------------------------------------------
 
 async function pdfToText(inputBytes: Buffer): Promise<string> {
+  // pdfjs-dist 5.x checks for DOMMatrix at import time; provide a stub
+  // for Node.js (only text extraction is used, no canvas rendering).
+  if (typeof globalThis.DOMMatrix === "undefined") {
+    (globalThis as Record<string, unknown>).DOMMatrix = class DOMMatrix {
+      constructor(init?: number[] | string) {
+        const values = Array.isArray(init) ? init : [1, 0, 0, 1, 0, 0];
+        const props = ["a", "b", "c", "d", "e", "f"];
+        for (let i = 0; i < props.length; i++) {
+          (this as Record<string, unknown>)[props[i]] = values[i] ?? 0;
+        }
+      }
+    };
+  }
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  // Point to the worker module so pdfjs can set up its fake worker in Node.js
+  const workerUrl = import.meta.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
   const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(inputBytes), useSystemFonts: true });
   const doc = await loadingTask.promise;
 
