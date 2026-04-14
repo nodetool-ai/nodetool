@@ -7,13 +7,25 @@ import { Workflow } from "./types";
 
 const getWorkerUrl = () => getServerWebSocketUrl("/ws");
 
+interface WebSocketMessage {
+  type: string;
+  status?: string;
+  job_id?: string;
+  node_name?: string;
+  error?: string;
+  result?: { output?: unknown };
+  progress?: number;
+  total?: number;
+  content?: string;
+}
+
 interface WorkflowRunnerState {
   workflow: Workflow | null;
   socket: WebSocket | null;
   state: "idle" | "connecting" | "connected" | "running" | "error";
   progress: { current: number; total: number } | null;
   chunks: string[];
-  results: any[];
+  results: unknown[];
   error: Error | null;
   statusMessage: string | null;
   jobId: string | null;
@@ -36,16 +48,16 @@ interface WorkflowRunnerState {
    * Callback function executed when workflow execution completes
    * @param results Array of workflow execution results
    */
-  onComplete: (results: any[]) => void;
+  onComplete: (results: unknown[]) => void;
 
   /**
    * Runs a workflow with the specified parameters
    * @param workflow The workflow configuration to execute
    * @param params Key-value pairs of workflow parameters
-   * @returns Promise that resolves with the workflow results
+   * @returns Promise that resolves when the job request is sent
    * @throws Error if WebSocket is not connected
    */
-  run: (workflow: Workflow, params: Record<string, any>) => Promise<any>;
+  run: (workflow: Workflow, params: Record<string, unknown>) => Promise<void>;
 
   /**
    * Resumes a suspended or failed job
@@ -53,7 +65,7 @@ interface WorkflowRunnerState {
    * @param workflowId Optional workflow ID
    * @returns Promise that resolves when the resume command is sent
    */
-  resume: (jobId: string, workflowId?: string) => Promise<any>;
+  resume: (jobId: string, workflowId?: string) => Promise<void>;
 
   /**
    * Closes the WebSocket connection and resets state
@@ -125,7 +137,7 @@ export const createWorkflowRunner = () =>
             // Handle other types
             buffer = new Uint8Array(0);
           }
-          const data = decode(buffer) as any;
+          const data = decode(buffer) as WebSocketMessage;
 
           if (data.type === "node_update") {
             set({
@@ -177,10 +189,12 @@ export const createWorkflowRunner = () =>
             }
           } else if (data.type === "node_progress") {
             set({
-              progress: { current: data.progress, total: data.total },
+              progress: { current: data.progress ?? 0, total: data.total ?? 0 },
             });
           } else if (data.type === "chunk") {
-            set({ chunks: [...get().chunks, data.content] });
+            if (data.content !== undefined) {
+              set({ chunks: [...get().chunks, data.content] });
+            }
           } else if (data.type === "node_update") {
             if (data.error) {
               set({ state: "error" });
@@ -191,7 +205,7 @@ export const createWorkflowRunner = () =>
             } else if (
               data.result &&
               data.result.output &&
-              data.node_name.includes("Output")
+              data.node_name?.includes("Output")
             ) {
               set({
                 results: [...get().results, data.result.output],
@@ -216,7 +230,7 @@ export const createWorkflowRunner = () =>
       }
     },
 
-    run: async (workflow: Workflow, params: Record<string, any>) => {
+    run: async (workflow: Workflow, params: Record<string, unknown>) => {
       if (!get().socket || get().state !== "connected") {
         await get().connect();
       }

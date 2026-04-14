@@ -40,6 +40,7 @@ import { logMessage, closeLogStream } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
 import { emitBootMessage, emitShowPackageManager } from "./events";
+import { showKeychainExplanationIfNeeded } from "./keychainPrompt";
 import { createTray, cleanupTrayEvents } from "./tray";
 import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
@@ -282,6 +283,8 @@ async function initialize(): Promise<void> {
 
     if (isDevMode) {
       logMessage("Skipping environment installation and package update checks");
+      // Explain the upcoming keychain prompt before the backend touches keytar.
+      await showKeychainExplanationIfNeeded();
       logMessage("Starting backend server");
       await initializeBackendServer();
       logMessage("initializeBackendServer() completed");
@@ -301,6 +304,9 @@ async function initialize(): Promise<void> {
           "Users can install it via the package manager.",
         );
       }
+
+      // Explain the upcoming keychain prompt before the backend touches keytar.
+      await showKeychainExplanationIfNeeded();
 
       // Start the backend server regardless of Python availability
       logMessage("Starting backend server");

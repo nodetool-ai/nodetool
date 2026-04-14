@@ -43,447 +43,71 @@ The capability system uses introspection to automatically detect which features 
 
 ### Language Model Providers
 
-#### <img src="assets/icons/openai.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="OpenAI" /> OpenAI (`openai-provider.ts`)
-
-**Capabilities:** Language models (GPT-4, GPT-3.5), Image generation (DALL-E), Speech services
-
-**Configuration:**
-
-**Features:**
-
-- ✅ Streaming responses
-- ✅ Native tool/function calling
-- ✅ System prompts
-- ✅ Multimodal inputs (vision)
-- ✅ JSON mode
-- ✅ Image generation (DALL-E 2 & 3)
-- ✅ Text-to-speech (TTS)
-- ✅ Speech-to-text (Whisper)
-
-#### <img src="assets/icons/anthropic.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Anthropic" /> Anthropic (`anthropic-provider.ts`)
-
-**Capabilities:** Claude language models, Advanced reasoning
-
-**Configuration:**
-
-**Features:**
-
-- ✅ Streaming responses
-- ✅ Native tool/function calling
-- ✅ System prompts
-- ✅ Multimodal inputs (vision)
-- ✅ JSON mode (via tool use)
-
-#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Gemini" /> Google Gemini (`gemini-provider.ts`)
-
-**Capabilities:** Gemini language models, Multimodal AI, Video generation
-
-**Features:**
-
-- ✅ Streaming responses
-- ✅ Native tool/function calling
-- ✅ System prompts
-- ✅ File input (via Blobs)
-- ✅ JSON mode
-- ✅ Video generation (Veo 2, Veo 3)
-
-#### <img src="assets/icons/ollama.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Ollama" /> Ollama (`ollama-provider.ts`)
-
-**Capabilities:** Local/self-hosted models, Open-source models
-
-**Configuration:**
-
-**Features:**
-
-- ✅ Streaming responses
-- ✅ Tool calling (model dependent)
-- ✅ System prompts
-- ✅ Multimodal inputs (Base64 images)
-- ✅ JSON mode (model dependent)
-- ✅ No API key required
-- ✅ Privacy-focused (runs locally)
-
-**Notes:**
-
-- Tool use and JSON mode support depends on the specific model
-- Textual fallback mechanism available for incompatible models
-- Models must be pulled via `ollama pull` before use
-
-#### <img src="assets/icons/vllm.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="vLLM" /> vLLM (`vllm-provider.ts`)
-
-**Capabilities:** Self-hosted inference, OpenAI-compatible API
-
-**Features:**
-
-- ✅ Streaming responses
-- ✅ Tool calling (model dependent)
-- ✅ System prompts
-- ✅ Multimodal inputs (OpenAI format)
-- ✅ JSON mode (model dependent)
-- ✅ High throughput inference
-
-### Image Generation Providers
-
-#### <img src="assets/icons/huggingface.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace (`huggingface-provider.ts`)
-
-**Capabilities:** Diverse model ecosystem, Multiple hosted services, 500,000+ models
-
-**Features:**
-
-- 27+ node categories for AI workflows
-- Supports multiple sub-providers (FAL.ai, Together, Replicate, etc.)
-- Text generation with streaming support
-- Text-to-image and image-to-image generation
-- Speech recognition and text-to-speech
-- Audio and video generation
-- Image classification and object detection
-- Zero-shot learning capabilities
-- LoRA model support for Stable Diffusion
-- Quantization support (FP16, FP4, INT4)
-- CPU offload for memory-constrained environments
-
-**Configuration:**
-
-Set `HF_TOKEN` environment variable for authentication. Some models require accepting terms on HuggingFace Hub.
-
-For detailed information on all HuggingFace nodes, model recommendations, and usage examples, see the [HuggingFace Integration Guide](huggingface.md).
+| Provider | File | Streaming | Tool calls | Vision | Notes |
+|----------|------|-----------|------------|--------|-------|
+| OpenAI | `openai-provider.ts` | ✅ | ✅ | ✅ | Includes DALL-E, TTS, Whisper |
+| Anthropic | `anthropic-provider.ts` | ✅ | ✅ | ✅ | JSON via tool use |
+| Google Gemini | `gemini-provider.ts` | ✅ | ✅ | ✅ | File input via Blobs, Veo video |
+| Ollama | `ollama-provider.ts` | ✅ | model-dependent | Base64 | Local, no API key. `ollama pull` first |
+| vLLM | `vllm-provider.ts` | ✅ | model-dependent | ✅ | OpenAI-compatible, self-hosted |
+| HuggingFace | `huggingface-provider.ts` | ✅ | — | — | Hub models via FAL/Together/Replicate. See [HuggingFace Integration](huggingface.md) |
 
 ### Video Generation Providers
 
-Multiple providers now support advanced video generation capabilities through the unified interface. NodeTool supports text-to-video and image-to-video generation:
+Text-to-video and image-to-video providers available through the unified interface.
 
-#### <img src="assets/icons/sora.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Sora" /> OpenAI Sora 2 Pro
-
-**Capabilities:** Text-to-video, Image-to-video
-
-**Features:**
-- ✅ Realistic motion with refined physics simulation
-- ✅ Synchronized native audio generation
-- ✅ Up to 15 seconds of video generation
-- ✅ 1080p output resolution
-- ✅ Advanced scene understanding
-
-**Configuration:** Set `OPENAI_API_KEY` environment variable or configure in Settings → Providers
-
-#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Gemini" /> Google Veo 3.1 (via Gemini)
-
-**Capabilities:** Text-to-video, Image-to-video, Multi-image reference
-
-**Features:**
-- ✅ Upgraded realistic motion synthesis
-- ✅ Extended clip length support
-- ✅ Multi-image reference inputs for consistent generation
-- ✅ Native 1080p with synchronized audio
-- ✅ Advanced camera control
-
-**Configuration:** Set `GEMINI_API_KEY` environment variable or configure in Settings → Providers
-
-#### <img src="assets/icons/xai.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="xAI" /> xAI Grok Imagine
-
-**Capabilities:** Multimodal text/image-to-video, Text-to-image
-
-**Features:**
-- ✅ Coherent motion synthesis from text or image inputs
-- ✅ Synchronized audio generation
-- ✅ Short video generation with strong coherence
-- ✅ Also supports high-quality text-to-image
-
-**Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
-
-#### <img src="assets/icons/alibaba.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Alibaba" /> Alibaba Wan 2.6
-
-**Capabilities:** Multi-shot video generation, Reference-guided generation
-
-**Features:**
-- ✅ Affordable 1080p video generation
-- ✅ Stable character consistency across shots
-- ✅ Native audio synthesis
-- ✅ T2V/I2V with reference-guided modes
-- ✅ Cost-effective for high-volume workflows
-
-**Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
-
-#### <img src="assets/icons/hailuo.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="MiniMax Hailuo" /> MiniMax Hailuo 2.3
-
-**Capabilities:** High-fidelity text-to-video and image-to-video
-
-**Features:**
-- ✅ Expressive character animation
-- ✅ Complex motion and lighting effects
-- ✅ High visual fidelity
-- ✅ Natural movement patterns
-
-**Configuration:** Set `MINIMAX_API_KEY` environment variable or configure in Settings → Providers
-
-#### <img src="assets/icons/kling.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Kling" /> Kling 2.6
-
-**Capabilities:** Video generation with audio
-
-**Features:**
-- ✅ Text/image to synchronized video
-- ✅ Integrated speech synthesis
-- ✅ Ambient sound generation
-- ✅ Sound effects generation
-- ✅ Strong audio-visual coherence
-
-**Configuration:** Access via kie.ai or other API aggregators (direct API key not currently registered in NodeTool)
+| Provider | Capabilities | API Key |
+|----------|--------------|---------|
+| OpenAI Sora 2 Pro | T2V, I2V | `OPENAI_API_KEY` |
+| Google Veo 3.1 (Gemini) | T2V, I2V, multi-image reference | `GEMINI_API_KEY` |
+| MiniMax Hailuo 2.3 | T2V, I2V | `MINIMAX_API_KEY` |
+| xAI Grok Imagine | T2V, I2V, T2I | via kie.ai |
+| Alibaba Wan 2.6 | T2V, I2V, multi-shot | via kie.ai |
+| Kling 2.6 | T2V, I2V with audio | via kie.ai |
 
 ### Image Generation Providers
 
-#### <img src="assets/icons/bfl.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Black Forest Labs" /> Black Forest Labs FLUX.2
-
-**Capabilities:** Advanced text-to-image generation
-
-**Features:**
-- ✅ Photorealistic image generation
-- ✅ Multi-reference consistency
-- ✅ Accurate text rendering in images
-- ✅ Flexible control parameters
-- ✅ High-quality output across diverse styles
-
-**Configuration:** Available through HuggingFace provider or direct API access
-
-#### <img src="assets/icons/gemini.svg" width="24" height="24" style="vertical-align: middle; display: inline-block;" alt="Google" /> Google Nano Banana Pro
-
-**Capabilities:** High-resolution text-to-image
-
-**Features:**
-- ✅ Sharper 2K native output
-- ✅ 4K upscaling
-- ✅ Improved text rendering accuracy
-- ✅ Better character consistency
-- ✅ Detail preservation
-
-**Configuration:** Access via Google's Gemini API using `GEMINI_API_KEY`, or through kie.ai
+| Provider | Access |
+|----------|--------|
+| Black Forest Labs FLUX.2 | via HuggingFace or direct API |
+| Google Nano Banana Pro | `GEMINI_API_KEY` or via kie.ai |
+| OpenAI DALL-E 2/3 | `OPENAI_API_KEY` |
 
 ### 3D Generation Providers
 
-NodeTool supports text-to-3D and image-to-3D providers through the unified provider interface.
+| Provider | Capabilities | API Key |
+|----------|--------------|---------|
+| Hunyuan3D V2/3.0 | T2-3D, I2-3D | `HUNYUAN3D_API_KEY` |
+| Trellis 2 | T2-3D, I2-3D | `TRELLIS_API_KEY` |
+| TripoSR | I2-3D | `TRIPO_API_KEY` |
+| Shap-E | T2-3D, I2-3D | `SHAP_E_API_KEY` |
+| Point-E | T2-3D | `POINT_E_API_KEY` |
+| Meshy AI | T2-3D, I2-3D | `MESHY_API_KEY` |
+| Rodin AI | T2-3D, I2-3D | `RODIN_API_KEY` |
 
-#### Hunyuan3D V2 / 3.0
-
-**Capabilities:** Text-to-3D, Image-to-3D
-
-**Configuration:** Set `HUNYUAN3D_API_KEY` in Settings → Providers
-
-#### Trellis 2
-
-**Capabilities:** Text-to-3D, Image-to-3D
-
-**Configuration:** Set `TRELLIS_API_KEY` in Settings → Providers
-
-#### TripoSR
-
-**Capabilities:** Image-to-3D
-
-**Configuration:** Set `TRIPO_API_KEY` in Settings → Providers
-
-#### Shap-E
-
-**Capabilities:** Text-to-3D, Image-to-3D
-
-**Configuration:** Set `SHAP_E_API_KEY` in Settings → Providers
-
-#### Point-E
-
-**Capabilities:** Text-to-3D
-
-**Configuration:** Set `POINT_E_API_KEY` in Settings → Providers
-
-#### Meshy AI
-
-**Capabilities:** Text-to-3D, Image-to-3D
-
-**Configuration:** Set `MESHY_API_KEY` in Settings → Providers
-
-#### Rodin AI
-
-**Capabilities:** Text-to-3D, Image-to-3D
-
-**Configuration:** Set `RODIN_API_KEY` in Settings → Providers
-
-#### 3D Model Nodes
-
-Use the HuggingFace 3D nodes for base model selection (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes (`nodetool.3d.TextTo3D`, `nodetool.3d.ImageTo3D`) for provider switching across the 3D ecosystem.
+Use the HuggingFace 3D nodes (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes (`nodetool.3d.TextTo3D`, `nodetool.3d.ImageTo3D`) to switch providers.
 
 ### Multi-Provider Aggregators
 
-#### kie.ai
-
-**Capabilities:** Unified access to multiple AI providers and models
-
-**Features:**
-- ✅ Access to all the SOTA models listed above through a single API
-- ✅ Often offers competitive or lower pricing than upstream providers
-- ✅ Simplified API management with one key for multiple models
-- ✅ Cost optimization through provider selection
-- ✅ Aggregated billing across multiple AI services
-
-**Configuration:** Set `KIE_API_KEY` environment variable or configure in Settings → Providers
-
-**Direct NodeTool Support:**
-- OpenAI Sora 2 Pro (via `OPENAI_API_KEY`)
-- Google Veo 3.1 (via `GEMINI_API_KEY`)
-- MiniMax Hailuo 2.3 (via `MINIMAX_API_KEY`)
-
-**Available via kie.ai (no direct NodeTool API key):**
-- xAI Grok Imagine
-- Alibaba Wan 2.6
-- Kling 2.6
-- Black Forest Labs FLUX.2
-- Google Nano Banana Pro
-
-kie.ai provides access to multiple models through a unified interface. This is useful for workflows that use models from different providers, as it reduces API key management complexity and can offer better pricing. **For models without direct NodeTool API key support, kie.ai is the recommended access method.**
+**kie.ai** — `KIE_API_KEY`. Unified access to multiple models via a single API. Recommended for providers without direct NodeTool API key support (xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6, FLUX.2, Nano Banana Pro).
 
 ## Generic Nodes: Provider-Agnostic Workflows
 
-A useful feature of the NodeTool provider system is **generic nodes**. These are nodes that let
-you switch AI providers without modifying your workflow.
+Generic nodes in the `nodetool.*` namespace accept a `model` parameter and route to the matching provider. Use these to switch providers without rewiring the graph.
 
-Generic nodes support provider switching without altering the graph. This is the recommended way to design
-multi-provider workflows.
+| Node | Switch between |
+|------|---------------|
+| `nodetool.agents.Agent` | OpenAI, Anthropic, Gemini, Ollama, any LLM |
+| `nodetool.image.TextToImage` | FLUX.2, Nano Banana Pro, DALL-E, HuggingFace, ComfyUI, MLX |
+| `nodetool.image.ImageToImage` | HuggingFace, local servers, cloud services |
+| `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 2.6, HuggingFace |
+| `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 2.6, Stability AI |
+| `nodetool.3d.TextTo3D` | Hunyuan3D, Trellis 2, Meshy AI, Rodin AI, Shap-E, Point-E |
+| `nodetool.3d.ImageTo3D` | Hunyuan3D, Trellis 2, TripoSR, Meshy AI, Rodin AI, Shap-E |
+| `nodetool.audio.TextToSpeech` | OpenAI TTS, ElevenLabs, local TTS |
+| `nodetool.text.AutomaticSpeechRecognition` | OpenAI Whisper, HuggingFace, local ASR |
 
-### What Are Generic Nodes?
-
-Generic nodes are workflow nodes in the `nodetool.*` namespace that accept a `model` parameter containing provider
-information. Instead of being tied to a specific provider (like `openai.image.Dalle` or `gemini.video.Veo`), these nodes
-dynamically route requests to the appropriate provider based on the selected model.
-
-### Available Generic Nodes
-
-The following generic nodes are available in the NodeTool interface (visible in the left panel quick actions):
-
-#### nodetool.agents.Agent
-
-**Purpose:** Execute complex tasks using any language model provider
-
-**Quick Switch:**
-
-- OpenAI GPT-4
-- Anthropic Claude
-- Google Gemini
-- Ollama (local models)
-- Any other LLM provider
-
-#### nodetool.image.TextToImage
-
-**Purpose:** Generate images from text prompts
-
-**Quick Switch:**
-
-- Black Forest Labs FLUX.2
-- Google Nano Banana Pro
-- HuggingFace (via FAL, Replicate, etc.)
-- OpenAI DALL-E
-- Local models (ComfyUI, MLX)
-
-#### nodetool.image.ImageToImage
-
-**Purpose:** Transform images with text guidance
-
-**Quick Switch:**
-
-- HuggingFace providers
-- Local inference servers
-- Cloud-based services
-
-#### nodetool.video.TextToVideo
-
-**Purpose:** Create videos from text descriptions
-
-**Quick Switch:**
-
-- OpenAI Sora 2 Pro
-- Google Veo 3.1 (Gemini)
-- xAI Grok Imagine
-- Alibaba Wan 2.6
-- MiniMax Hailuo 2.3
-- Kling 2.6
-- HuggingFace models
-- Future video providers
-
-#### nodetool.video.ImageToVideo
-
-**Purpose:** Animate static images into videos
-
-**Quick Switch:**
-
-- OpenAI Sora 2 Pro
-- Google Veo 3.1 (Gemini)
-- xAI Grok Imagine
-- Alibaba Wan 2.6
-- MiniMax Hailuo 2.3
-- Kling 2.6
-- Stability AI
-- Other video generation services
-
-#### nodetool.3d.TextTo3D
-
-**Purpose:** Generate 3D assets from text prompts
-
-**Quick Switch:**
-
-- Hunyuan3D V2/3.0
-- Trellis 2
-- Meshy AI
-- Rodin AI
-- Shap-E
-- Point-E
-
-#### nodetool.3d.ImageTo3D
-
-**Purpose:** Generate 3D assets from images
-
-**Quick Switch:**
-
-- Hunyuan3D V2/3.0
-- Trellis 2
-- TripoSR
-- Meshy AI
-- Rodin AI
-- Shap-E
-
-#### nodetool.audio.TextToSpeech
-
-**Purpose:** Convert text to natural speech
-
-**Quick Switch:**
-
-- OpenAI TTS
-- ElevenLabs
-- Local TTS models
-
-#### nodetool.text.AutomaticSpeechRecognition
-
-**Purpose:** Transcribe audio to text
-
-**Quick Switch:**
-
-- OpenAI Whisper
-- HuggingFace models
-- Local ASR engines
-
-### How to Use Generic Nodes
-
-#### In the Web UI
-
-1. **Quick Actions Panel (Left Side)**
-
-   - Click any of the colorful quick action buttons
-   - Or Shift-click to auto-add to canvas center
-   - Or drag to specific position on canvas
-
-1. **Switch Providers**
-
-   - Select the node
-   - In the properties panel, click the `model` dropdown
-   - Choose from available models grouped by provider
-   - The node automatically routes to the new provider
-
-1. **Benefits**
-
-   - Build workflows once, test with multiple providers
-   - Compare quality/cost across providers
+Select the node, open the `model` dropdown in the properties panel, and pick any available model. The node routes automatically.
    - Fall back to different providers if one is unavailable
    - Optimize costs by mixing providers in one workflow
 
@@ -523,35 +147,9 @@ const params: TextToVideoParams = {
 
 ### Best Practices
 
-1. **Start with Generic Nodes**
-
-   - Use generic nodes for production workflows
-   - Easier to migrate between providers
-   - Better cost optimization options
-
-1. **Provider-Specific Nodes for Special Features**
-
-   - Use provider-specific nodes when you need unique features
-   - Example: Anthropic Claude's thinking mode
-   - Example: OpenAI's vision with detail parameter
-
-1. **Fallback Strategies**
-
-   - Build workflows that try multiple providers
-   - Handle provider-specific errors gracefully
-   - Use cheaper providers for dev/testing
-
-1. **Model Selection**
-
-   - Balance quality, speed, and cost
-   - Fast models for prototyping (e.g., FLUX Schnell)
-   - High-quality models for production (e.g., DALL-E 3, Veo 3)
-
-1. **Parameter Optimization**
-
-   - Learn which parameters each provider respects
-   - Test with different settings per provider
-   - Document optimal settings for your use case
+- Prefer generic nodes so you can swap providers without rewiring.
+- Use provider-specific nodes only for unique features (e.g. Claude thinking mode, OpenAI vision detail).
+- Test cheaper or faster models during development, switch to premium models for production.
 
 ## Provider Configuration Reference
 

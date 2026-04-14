@@ -241,6 +241,10 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
   const title = spec.title || toTitle(spec.className);
   const description = spec.description;
   const isImageOutput = spec.outputType === "image";
+  // Generative outputs — auto-save assets and auto-show result preview in UI
+  const isGenerativeOutput = ["image", "audio", "video"].includes(
+    spec.outputType
+  );
   const specRef = spec;
 
   const KieNodeClass = class extends BaseNode {
@@ -318,6 +322,12 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     value: true,
     configurable: true
   });
+  if (isGenerativeOutput) {
+    Object.defineProperty(KieNodeClass, "autoSaveAsset", {
+      value: true,
+      configurable: true
+    });
+  }
   Object.defineProperty(KieNodeClass, "metadataOutputTypes", {
     value: { output: spec.outputType },
     configurable: true

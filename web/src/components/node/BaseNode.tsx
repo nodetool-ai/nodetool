@@ -34,6 +34,7 @@ import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
 import ResultOverlay from "./ResultOverlay";
+import { getBaseNodeSelectionStyles } from "./selectionStyles";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -274,64 +275,6 @@ const getHeaderColors = (
   };
 };
 
-// Memoized function to generate node container styles
-const getNodeContainerStyles = (
-  isLoading: boolean,
-  selected: boolean,
-  isFocused: boolean,
-  hasParent: boolean,
-  hasToggleableResult: boolean,
-  baseColor: string | undefined,
-  parentColor: string | null,
-  theme: Theme,
-  minHeight: number
-) => ({
-  display: "flex" as const,
-  // Important for resizable nodes:
-  // ReactFlow applies width/height to the wrapper. Ensure our visual container
-  // stretches to match so vertical resizing is visible.
-  height: "100%",
-  minHeight,
-  overflow: "visible" as const,
-  border: isLoading ? "none" : `1px solid var(--palette-grey-900)`,
-  ...theme.applyStyles("dark", {
-    border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
-  }),
-  boxShadow: selected
-    ? `0 0 0 1px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
-    : isFocused
-      ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-      : "none",
-  outline: isFocused
-    ? `2px dashed ${theme.vars.palette.warning.main}`
-    : selected
-      ? `3px solid ${baseColor || "#666"}`
-      : "none",
-  outlineOffset: "-2px",
-  backgroundColor:
-    hasParent && !isLoading
-      ? parentColor
-      : theme.vars.palette.c_node_bg,
-  borderRadius: "var(--rounded-node)",
-  // dynamic node color
-  "--node-primary-color": baseColor || "var(--palette-primary-main)",
-  ...(hasToggleableResult
-    ? {
-        // show the corner resize handle on hover
-        "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-          opacity: 0,
-          position: "absolute" as const,
-          right: "-8px",
-          bottom: "-9px",
-          transition: "opacity 0.2s"
-        },
-        "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
-          opacity: 1
-        }
-      }
-    : {})
-});
-
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
@@ -484,21 +427,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
-  // Only auto-switch to result view for nodes with visual output types
-  const VISUAL_OUTPUT_TYPES = new Set([
-    "image",
-    "video",
-    "audio",
-    "model_3d",
-    "model3d"
-  ]);
-  const hasVisualOutput = useMemo(
-    () =>
-      metadata?.outputs?.some((o: OutputSlot) =>
-        VISUAL_OUTPUT_TYPES.has(o.type.type)
-      ) ?? false,
-    [metadata]
-  );
+  // Only auto-switch to result view for generative nodes (marked via
+  // `auto_save_asset` by providers like fal, kie, replicate, elevenlabs,
+  // gemini/openai image+audio, etc.). Non-generative nodes with visual
+  // outputs (e.g. pass-through image transforms) keep the inputs view
+  // visible until the user explicitly clicks the results toggle.
+  const isGenerativeNode = Boolean(metadata?.auto_save_asset);
 
   // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
@@ -523,11 +457,12 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     ) {
       setShowResultOverlay(true);
     }
-    // When node completes with a visual result, show results by default
-    // (unless user explicitly opted out). Non-visual nodes stay on inputs.
+    // When a generative node completes, show the rendered result by default
+    // (unless the user explicitly opted out). Non-generative nodes stay on
+    // their inputs view — users can toggle results manually via the header.
     else if (
       result &&
-      hasVisualOutput &&
+      isGenerativeNode &&
       !nodeType.isOutputNode &&
       !nodeType.isConstantNode &&
       status === "completed"
@@ -539,7 +474,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [
     result,
     isConstantInputLockedResult,
-    hasVisualOutput,
+    isGenerativeNode,
     nodeType.isOutputNode,
     nodeType.isConstantNode,
     status,
@@ -622,21 +557,21 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Memoize the container sx prop to prevent object recreation on every render
   const containerSx = useMemo(
     () =>
-      getNodeContainerStyles(
-        isLoading,
+      getBaseNodeSelectionStyles({
         selected,
         isFocused,
+        isLoading,
         hasParent,
-        Boolean(hasToggleableResult),
+        hasToggleableResult: Boolean(hasToggleableResult),
         baseColor,
         parentColor,
         theme,
-        styleProps.minHeight
-      ),
+        minHeight: styleProps.minHeight
+      }),
     [
-      isLoading,
       selected,
       isFocused,
+      isLoading,
       hasParent,
       hasToggleableResult,
       baseColor,

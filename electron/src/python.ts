@@ -176,6 +176,8 @@ async function canImportNodeToolWorker(
       {
         stdio: "ignore",
         env: getProcessEnv(),
+        // Prevent a console window from flashing on Windows.
+        windowsHide: true,
       }
     );
 
@@ -353,6 +355,8 @@ async function runCommand(command: string[]): Promise<void> {
   const updateProcess = spawn(executable, command.slice(1), {
     stdio: "pipe",
     env: getProcessEnv(),
+    // Prevent a console window from flashing on Windows during pip operations.
+    windowsHide: true,
   });
 
   logMessage(`Running command: ${command.join(" ")}`);

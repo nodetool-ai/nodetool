@@ -95,10 +95,10 @@ export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly title = "Code";
   static readonly description =
-    "Execute JavaScript in a sandboxed environment. " +
-    "Libraries: _ (lodash), dayjs (dates), cheerio (HTML parsing), csvParse (CSV), validator (email/URL/IP validation). " +
+    "Execute vanilla JavaScript in a sandboxed environment. " +
     "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
-    "Dynamic inputs become global variables; return an object to define outputs.\n    code, javascript, function, script, dynamic, lodash, dayjs, cheerio, csv, validator";
+    "Dynamic inputs become global variables; return an object to define outputs. " +
+    "For date/HTML/CSV/validation work use the dedicated workflow nodes.\n    code, javascript, function, script, dynamic";
   static readonly isDynamic = true;
   static readonly supportsDynamicOutputs = true;
   static readonly isStreamingOutput = true;
@@ -114,7 +114,6 @@ export class CodeNode extends BaseNode {
     description:
       "JavaScript code to execute. " +
       "Dynamic inputs are available as variables. " +
-      "Libraries: _ (lodash), dayjs (dates), cheerio (HTML parsing), csvParse (CSV), validator (string validation). " +
       "APIs: fetch(), workspace.read/write/list(), getSecret(), uuid(), sleep(). " +
       "A persistent `state` object survives across streaming invocations. " +
       "Return an object — its keys become output handles."
