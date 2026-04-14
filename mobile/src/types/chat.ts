@@ -4,6 +4,7 @@
  */
 
 import { Message, MessageContent, LanguageModel, Thread, Chunk, JobUpdate, NodeUpdate, NodeProgress, OutputUpdate } from './ApiTypes';
+import type { MediaGenerationRequest } from '../stores/MediaGenerationStore';
 
 // Re-export types we use directly
 export type { Message, LanguageModel, Thread, Chunk };
@@ -76,6 +77,7 @@ export interface ChatMessageRequest {
   collections?: string[];
   agent_mode?: boolean;
   help_mode?: boolean;
+  media_generation?: MediaGenerationRequest;
 }
 
 /**

@@ -184,6 +184,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       onClose={onClose}
       anchorOrigin={positionConfig.anchorOrigin}
       transformOrigin={positionConfig.transformOrigin}
+      transitionDuration={0}
       slotProps={{
         paper: {
           elevation: 24,
@@ -191,9 +192,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             width: "520px",
             height: "500px",
             maxHeight: "90vh",
-            maxWidth: "100vw", // Allow shrinkage
+            maxWidth: "100vw",
             borderRadius: theme.vars.rounded.dialog,
-            background: theme.vars.palette.background.paper, // No transparency
+            background: theme.vars.palette.background.paper,
             border: `1px solid ${theme.vars.palette.divider}`,
             display: "flex",
             flexDirection: "column",

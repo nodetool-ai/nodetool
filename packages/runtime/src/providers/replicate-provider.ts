@@ -18,6 +18,7 @@ import type {
   VideoModel,
   TextToVideoParams
 } from "./types.js";
+import { loadImageModels, loadVideoModels } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.replicate");
 
@@ -301,157 +302,19 @@ export class ReplicateProvider extends BaseProvider {
   }
 
   async getAvailableImageModels(): Promise<ImageModel[]> {
-    return [
-      {
-        id: "black-forest-labs/flux-schnell",
-        name: "FLUX Schnell",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "black-forest-labs/flux-dev",
-        name: "FLUX Dev",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "black-forest-labs/flux-pro",
-        name: "FLUX Pro",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "black-forest-labs/flux-1.1-pro-ultra",
-        name: "FLUX 1.1 Pro Ultra",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "black-forest-labs/flux-kontext-pro",
-        name: "FLUX Kontext Pro",
-        provider: "replicate",
-        supportedTasks: ["text_to_image", "image_to_image"]
-      },
-      {
-        id: "black-forest-labs/flux-kontext-max",
-        name: "FLUX Kontext Max",
-        provider: "replicate",
-        supportedTasks: ["text_to_image", "image_to_image"]
-      },
-      {
-        id: "stability-ai/sdxl",
-        name: "Stable Diffusion XL",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "stability-ai/stable-diffusion-3.5-large",
-        name: "SD 3.5 Large",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "ideogram-ai/ideogram-v3-turbo",
-        name: "Ideogram V3 Turbo",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "recraft-ai/recraft-v3",
-        name: "Recraft V3",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "google/imagen-4-fast",
-        name: "Imagen 4 Fast",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "bytedance/seedream-4.5",
-        name: "Seedream 4.5",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      },
-      {
-        id: "openai/gpt-image-1.5",
-        name: "GPT Image 1.5",
-        provider: "replicate",
-        supportedTasks: ["text_to_image", "image_to_image"]
-      },
-      {
-        id: "xai/grok-imagine-image",
-        name: "Grok Imagine Image",
-        provider: "replicate",
-        supportedTasks: ["text_to_image"]
-      }
-    ];
+    return loadImageModels(
+      "@nodetool/replicate-nodes",
+      "replicate-manifest.json",
+      "replicate"
+    );
   }
 
   async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return [
-      {
-        id: "google/veo-3.1",
-        name: "Veo 3.1",
-        provider: "replicate",
-        supportedTasks: ["text_to_video"]
-      },
-      {
-        id: "google/veo-3",
-        name: "Veo 3",
-        provider: "replicate",
-        supportedTasks: ["text_to_video"]
-      },
-      {
-        id: "runwayml/gen-4.5",
-        name: "Runway Gen 4.5",
-        provider: "replicate",
-        supportedTasks: ["text_to_video", "image_to_video"]
-      },
-      {
-        id: "kwaivgi/kling-v3-video",
-        name: "Kling V3",
-        provider: "replicate",
-        supportedTasks: ["text_to_video", "image_to_video"]
-      },
-      {
-        id: "minimax/hailuo-2.3",
-        name: "Hailuo 2.3",
-        provider: "replicate",
-        supportedTasks: ["text_to_video"]
-      },
-      {
-        id: "luma/ray-2-720p",
-        name: "Ray 2 720p",
-        provider: "replicate",
-        supportedTasks: ["text_to_video", "image_to_video"]
-      },
-      {
-        id: "wan-video/wan-2.5-t2v",
-        name: "Wan 2.5 T2V",
-        provider: "replicate",
-        supportedTasks: ["text_to_video"]
-      },
-      {
-        id: "pixverse/pixverse-v5.6",
-        name: "PixVerse V5.6",
-        provider: "replicate",
-        supportedTasks: ["text_to_video"]
-      },
-      {
-        id: "bytedance/seedance-1-pro",
-        name: "Seedance 1 Pro",
-        provider: "replicate",
-        supportedTasks: ["text_to_video", "image_to_video"]
-      },
-      {
-        id: "openai/sora-2",
-        name: "Sora 2",
-        provider: "replicate",
-        supportedTasks: ["text_to_video"]
-      }
-    ];
+    return loadVideoModels(
+      "@nodetool/replicate-nodes",
+      "replicate-manifest.json",
+      "replicate"
+    );
   }
 
   async getAvailableTTSModels(): Promise<TTSModel[]> {

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Message, MessageContent, ChatStatus } from '../../types';
+import type { MediaGenerationRequest } from '../../stores/MediaGenerationStore';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatComposer } from './ChatComposer';
 import { ChatOptionsBar } from './ChatOptionsBar';
@@ -22,7 +23,7 @@ import { useTheme } from '../../hooks/useTheme';
 interface ChatViewProps {
   status: ChatStatus;
   messages: Message[];
-  onSendMessage: (content: MessageContent[], text: string) => Promise<void>;
+  onSendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => Promise<void>;
   onStop?: () => void;
   onRefresh?: () => Promise<void>;
   error?: string | null;
@@ -55,8 +56,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const isStreaming = status === 'streaming';
 
   const handleSendMessage = useCallback(
-    (content: MessageContent[], text: string) => {
-      onSendMessage(content, text);
+    (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => {
+      onSendMessage(content, text, mediaGeneration);
     },
     [onSendMessage]
   );

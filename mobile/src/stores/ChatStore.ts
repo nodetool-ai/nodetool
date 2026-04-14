@@ -25,6 +25,7 @@ import {
   WebSocketMessageData,
   LanguageModel,
 } from '../types';
+import type { MediaGenerationRequest } from './MediaGenerationStore';
 
 interface ChatState {
   // Connection state
@@ -54,7 +55,7 @@ interface ChatState {
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
-  sendMessage: (content: MessageContent[], text: string) => Promise<void>;
+  sendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => Promise<void>;
   stopGeneration: () => void;
   createNewThread: (title?: string) => Promise<string>;
   switchThread: (threadId: string) => void;
@@ -321,7 +322,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
-  sendMessage: async (content: MessageContent[], text: string) => {
+  sendMessage: async (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => {
     const { wsManager, currentThreadId } = get();
 
     set({ error: null });
@@ -383,6 +384,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       collections: stateForSend.selectedCollections.length
         ? stateForSend.selectedCollections
         : undefined,
+      media_generation: mediaGeneration,
     };
 
     try {
@@ -398,7 +400,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             statusMessage: null,
           });
         }
-      }, 60000);
+      }, 5 * 60 * 1000);
     } catch (error) {
       console.error('Failed to send message:', error);
       set({

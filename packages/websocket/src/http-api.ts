@@ -13,6 +13,7 @@ import {
   getDefaultAssetsPath,
   buildAssetUrl
 } from "@nodetool/config";
+import { resolveContentUrls } from "./resolve-media-urls.js";
 import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
@@ -1131,7 +1132,7 @@ function toMessageResponse(msg: Message): JsonObject {
     thread_id: msg.thread_id,
     role: msg.role,
     name: msg.name ?? null,
-    content: msg.content,
+    content: resolveContentUrls(msg.content as string | unknown[] | Record<string, unknown> | null),
     tool_calls: msg.tool_calls,
     tool_call_id:
       (msg as unknown as Record<string, unknown>).tool_call_id ?? null,

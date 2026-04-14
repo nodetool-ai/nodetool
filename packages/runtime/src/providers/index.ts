@@ -26,6 +26,7 @@ import { PythonProvider } from "./python-provider.js";
 import { ReplicateProvider } from "./replicate-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { FalProvider } from "./fal-provider.js";
+import { KieProvider } from "./kie-provider.js";
 export { BaseProvider };
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
@@ -52,6 +53,7 @@ export { HuggingFaceProvider };
 export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
+export { KieProvider };
 export {
   FakeProvider,
   createFakeToolCall,
@@ -132,6 +134,9 @@ registerBuiltinProvider("replicate", ReplicateProvider, {
 });
 registerBuiltinProvider("fal_ai", FalProvider, {
   FAL_API_KEY: process.env["FAL_API_KEY"]
+});
+registerBuiltinProvider("kie", KieProvider, {
+  KIE_API_KEY: process.env["KIE_API_KEY"]
 });
 registerBuiltinProvider("openrouter", OpenRouterProvider, {
   OPENROUTER_API_KEY: process.env["OPENROUTER_API_KEY"]
