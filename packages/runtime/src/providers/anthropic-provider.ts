@@ -329,17 +329,24 @@ export class AnthropicProvider extends BaseProvider {
             base64 = parsed.base64;
             mediaType = part.image.mimeType ?? parsed.mime;
           } else if (uri) {
-            const response = await this._fetch(this.resolveUri(uri));
-            if (!response.ok) {
-              throw new Error(`Failed to fetch URI: ${response.status}`);
+            const resolved = await this.resolveUri(uri);
+            if (resolved.startsWith("data:")) {
+              const parsed = parseDataUri(resolved);
+              base64 = parsed.base64;
+              mediaType = part.image.mimeType ?? parsed.mime;
+            } else {
+              const response = await this._fetch(resolved);
+              if (!response.ok) {
+                throw new Error(`Failed to fetch URI: ${response.status}`);
+              }
+              mediaType =
+                part.image.mimeType ??
+                response.headers.get("content-type") ??
+                "image/png";
+              base64 = Buffer.from(
+                new Uint8Array(await response.arrayBuffer())
+              ).toString("base64");
             }
-            mediaType =
-              part.image.mimeType ??
-              response.headers.get("content-type") ??
-              "image/png";
-            base64 = Buffer.from(
-              new Uint8Array(await response.arrayBuffer())
-            ).toString("base64");
           } else {
             throw new Error("Invalid image reference with no uri or data");
           }

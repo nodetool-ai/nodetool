@@ -21,7 +21,7 @@ import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.provider");
 
@@ -508,13 +508,31 @@ export abstract class BaseProvider {
   }
 
   /**
-   * Resolve a potentially relative URI to an absolute URL.
-   * Relative paths (starting with "/") are resolved against the local server.
-   * This handles asset URIs like /api/storage/... stored by the frontend.
+   * Resolve a URI to a form that can be consumed by providers.
+   *
+   * - `/api/storage/<key>` → read the file from the local asset store and
+   *   return a `data:<mime>;base64,…` URI so no HTTP round-trip is needed.
+   * - Everything else → returned unchanged.
    */
-  protected resolveUri(uri: string): string {
-    if (uri.startsWith("/")) {
-      return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
+  protected async resolveUri(uri: string): Promise<string> {
+    if (uri.startsWith("/api/storage/")) {
+      const key = uri.slice("/api/storage/".length);
+      const filePath = `${getDefaultAssetsPath()}/${key}`;
+      try {
+        const { readFile } = await import("node:fs/promises");
+        const bytes = await readFile(filePath);
+        const ext = key.split(".").pop()?.toLowerCase() ?? "";
+        const mime =
+          ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+             gif: "image/gif", webp: "image/webp", mp4: "video/mp4",
+             webm: "video/webm", mp3: "audio/mpeg", wav: "audio/wav",
+             pdf: "application/pdf" } as Record<string, string>)[ext] ??
+          "application/octet-stream";
+        return `data:${mime};base64,${bytes.toString("base64")}`;
+      } catch {
+        // Fall back to HTTP if the file can't be read (e.g. remote deployment)
+        return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
+      }
     }
     return uri;
   }

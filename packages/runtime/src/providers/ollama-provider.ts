@@ -223,7 +223,11 @@ export class OllamaProvider extends BaseProvider {
       return Buffer.from(image.data).toString("base64");
     }
     if (image.uri) {
-      const response = await this._fetch(this.resolveUri(image.uri));
+      const resolved = await this.resolveUri(image.uri);
+      if (resolved.startsWith("data:")) {
+        return parseDataUri(resolved).base64;
+      }
+      const response = await this._fetch(resolved);
       if (!response.ok) {
         throw new Error(`Failed to fetch image URI: ${response.status}`);
       }

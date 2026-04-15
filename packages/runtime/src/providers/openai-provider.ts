@@ -472,10 +472,11 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async uriToBase64(uri: string): Promise<string> {
-    if (uri.startsWith("data:")) {
-      return this.normalizeDataUri(uri);
+    const resolved = await this.resolveUri(uri);
+    if (resolved.startsWith("data:")) {
+      return this.normalizeDataUri(resolved);
     }
-    const response = await this._fetch(this.resolveUri(uri));
+    const response = await this._fetch(resolved);
     if (!response.ok) {
       throw new Error(`Failed to fetch URI: ${response.status}`);
     }
