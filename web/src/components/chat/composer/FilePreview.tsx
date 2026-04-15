@@ -6,7 +6,8 @@ import { DroppedFile } from "../types/chat.types";
 
 const isDisplayableImage = (uri: string) =>
   /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml|bmp);base64,/.test(uri) ||
-  /^https?:\/\//.test(uri);
+  /^https?:\/\//.test(uri) ||
+  uri.startsWith("/");
 
 interface FilePreviewProps {
   file: DroppedFile;
