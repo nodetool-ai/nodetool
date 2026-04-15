@@ -1,5 +1,14 @@
 FROM node:20-slim
 
+# Link this container image to its source repository. GitHub uses this label
+# to auto-connect the GHCR package to the repo, which is what grants the
+# workflow's GITHUB_TOKEN write access on the first push. Without it, pushes
+# fail with "denied: permission_denied: write_package" when the package
+# namespace already exists but no repo is linked.
+LABEL org.opencontainers.image.source="https://github.com/nodetool-ai/nodetool"
+LABEL org.opencontainers.image.description="NodeTool – Visual AI workflow platform"
+LABEL org.opencontainers.image.licenses="AGPL-3.0"
+
 # System deps for native modules
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-venv python3-pip \
