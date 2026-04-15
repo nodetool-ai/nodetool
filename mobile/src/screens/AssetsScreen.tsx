@@ -237,7 +237,8 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     const isImage = item.content_type?.startsWith('image/');
     const isVideo = item.content_type?.startsWith('video/');
     const isAudio = item.content_type?.startsWith('audio/');
-    const thumb = item.thumb_url || (isImage ? item.get_url : null);
+    const rawThumb = item.thumb_url || (isImage ? item.get_url : null);
+    const thumb = apiService.resolveUrl(rawThumb);
 
     let iconName: keyof typeof Ionicons.glyphMap = 'document-outline';
     if (isFolder) iconName = 'folder';

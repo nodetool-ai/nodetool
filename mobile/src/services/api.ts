@@ -311,6 +311,14 @@ class ApiService {
     if (error) { throw error; }
   }
 
+  resolveUrl(urlOrPath: string | null | undefined): string | null {
+    if (!urlOrPath) return null;
+    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+      return urlOrPath;
+    }
+    return `${this.apiHost}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
+  }
+
   getWebSocketUrl(path: string): string {
     const wsProtocol = this.apiHost.startsWith('https') ? 'wss:' : 'ws:';
     const url = this.apiHost.replace(/^https?:/, wsProtocol);

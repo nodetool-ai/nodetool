@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     if (!isSupabaseConfigured) {
       set({
-        state: 'logged_out',
+        state: 'logged_in',
         session: null,
         user: null,
         error: null,
