@@ -9,7 +9,7 @@ import {
   getDefaultAssetsPath,
   buildAssetUrl
 } from "@nodetool/config";
-import { resolveContentUrls } from "./resolve-media-urls.js";
+import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
   Graph,
   WorkflowRunner,
@@ -1712,12 +1712,12 @@ export class UnifiedWebSocketRunner {
     if (!role || !["user", "assistant", "system", "tool"].includes(role)) {
       return null;
     }
+    const rawContent = Array.isArray(m.content)
+      ? (resolveContentForProvider(m.content as unknown[]) as MessageContent[])
+      : (m.content as string | null);
     return {
       role,
-      content:
-        (Array.isArray(m.content)
-          ? (m.content as MessageContent[])
-          : (m.content as string | null)) ?? "",
+      content: rawContent ?? "",
       toolCallId: typeof m.tool_call_id === "string" ? m.tool_call_id : null,
       toolCalls: Array.isArray(m.tool_calls)
         ? (m.tool_calls as Array<{

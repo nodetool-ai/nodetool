@@ -508,32 +508,50 @@ export abstract class BaseProvider {
   }
 
   /**
-   * Resolve a URI to a form that can be consumed by providers.
+   * Resolve a URI to a `data:` URI that providers can consume directly.
    *
-   * - `/api/storage/<key>` → read the file from the local asset store and
-   *   return a `data:<mime>;base64,…` URI so no HTTP round-trip is needed.
-   * - Everything else → returned unchanged.
+   * - `file://...`        → read from disk, return `data:<mime>;base64,…`
+   * - `/api/storage/<k>`  → read from getDefaultAssetsPath()/<k> (legacy fallback)
+   * - Everything else     → returned unchanged (http/https/data: pass through)
    */
   protected async resolveUri(uri: string): Promise<string> {
+    const { readFile } = await import("node:fs/promises");
+
+    if (uri.startsWith("file://")) {
+      try {
+        const { fileURLToPath } = await import("node:url");
+        const filePath = fileURLToPath(uri);
+        const bytes = await readFile(filePath);
+        const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+        const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
+        return `data:${mime};base64,${bytes.toString("base64")}`;
+      } catch {
+        return uri;
+      }
+    }
+
+    // Legacy: old messages stored with browser-facing /api/storage/ path
     if (uri.startsWith("/api/storage/")) {
       const key = uri.slice("/api/storage/".length);
       const filePath = `${getDefaultAssetsPath()}/${key}`;
       try {
-        const { readFile } = await import("node:fs/promises");
         const bytes = await readFile(filePath);
         const ext = key.split(".").pop()?.toLowerCase() ?? "";
-        const mime =
-          ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-             gif: "image/gif", webp: "image/webp", mp4: "video/mp4",
-             webm: "video/webm", mp3: "audio/mpeg", wav: "audio/wav",
-             pdf: "application/pdf" } as Record<string, string>)[ext] ??
-          "application/octet-stream";
+        const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
         return `data:${mime};base64,${bytes.toString("base64")}`;
       } catch {
-        // Fall back to HTTP if the file can't be read (e.g. remote deployment)
         return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
       }
     }
+
     return uri;
   }
 }
+
+const EXT_TO_MIME: Record<string, string> = {
+  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+  gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
+  mp4: "video/mp4", webm: "video/webm",
+  mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg",
+  pdf: "application/pdf"
+};
