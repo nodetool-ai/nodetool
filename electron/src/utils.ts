@@ -1,4 +1,6 @@
 import { constants, promises as fs } from "fs";
+import os from "os";
+import path from "path";
 import { serverState } from "./state";
 
 /**
@@ -76,7 +78,96 @@ function getServerWebSocketUrl(path: string = ""): string {
   return `ws://127.0.0.1:${port}${path}`;
 }
 
+/**
+ * Directory names (relative to the user's home) that commonly hold
+ * credentials or other sensitive data the renderer must never be allowed
+ * to read, even if the path was supplied via a trusted-looking channel.
+ */
+const SENSITIVE_HOME_SUBDIRS = [
+  ".ssh",
+  ".aws",
+  ".gnupg",
+  ".kube",
+  ".docker",
+  ".config/gcloud",
+  ".netrc",
+  ".pgpass",
+  ".npmrc",
+];
+
+/**
+ * Absolute directory prefixes that are always disallowed. Reading from
+ * these is never a legitimate part of a drag/paste/file-picker flow and
+ * would only succeed via abuse.
+ */
+const SENSITIVE_ABSOLUTE_PREFIXES =
+  process.platform === "win32"
+    ? [
+        "C:\\Windows",
+        "C:\\Program Files",
+        "C:\\Program Files (x86)",
+        "C:\\ProgramData\\Microsoft",
+      ]
+    : ["/etc", "/proc", "/sys", "/dev", "/boot", "/root", "/var/log"];
+
+/**
+ * Validates that a file path can be safely read on behalf of the renderer.
+ * Throws a descriptive Error when the path is rejected.
+ *
+ * Checks applied:
+ *   1. Type / null-byte / length (redundant with preload but defense-in-depth).
+ *   2. The path must resolve to an absolute location — relative paths risk
+ *      being interpreted against the main-process CWD.
+ *   3. The resolved path must not sit under a sensitive system or user
+ *      credential directory.
+ */
+function assertSafeReadablePath(filePath: unknown): string {
+  if (typeof filePath !== "string") {
+    throw new Error("Path must be a string");
+  }
+  if (filePath.length === 0) {
+    throw new Error("Path must not be empty");
+  }
+  if (filePath.includes("\0")) {
+    throw new Error("Path contains invalid characters");
+  }
+  if (filePath.length > 4096) {
+    throw new Error("Path exceeds maximum length");
+  }
+
+  const resolved = path.resolve(filePath);
+
+  // Must be absolute after resolution (path.resolve guarantees this, but
+  // we re-check to reject e.g. empty-after-normalization edge cases).
+  if (!path.isAbsolute(resolved)) {
+    throw new Error("Path must be absolute");
+  }
+
+  const home = os.homedir();
+  for (const sub of SENSITIVE_HOME_SUBDIRS) {
+    const forbidden = path.resolve(home, sub);
+    if (
+      resolved === forbidden ||
+      resolved.startsWith(forbidden + path.sep)
+    ) {
+      throw new Error("Access to this path is not permitted");
+    }
+  }
+
+  for (const prefix of SENSITIVE_ABSOLUTE_PREFIXES) {
+    if (
+      resolved === prefix ||
+      resolved.toLowerCase().startsWith(prefix.toLowerCase() + path.sep)
+    ) {
+      throw new Error("Access to this path is not permitted");
+    }
+  }
+
+  return resolved;
+}
+
 export {
+  assertSafeReadablePath,
   checkPermissions,
   fileExists,
   PermissionResult,
