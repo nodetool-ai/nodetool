@@ -11,6 +11,9 @@ import { EventEmitter } from "eventemitter3";
 import log from "loglevel";
 import { AGENT_WS_URL } from "../../stores/BASE_URL";
 import type {
+  AgentClientCommand,
+  AgentClientMessage,
+  AgentClientPayload,
   AgentGetSessionMessagesRequest,
   AgentListSessionsRequest,
   AgentModelDescriptor,
@@ -83,13 +86,16 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
       try {
         socket = new WebSocket(this.url);
       } catch (error) {
+        this.connecting = null;
         reject(error instanceof Error ? error : new Error(String(error)));
         return;
       }
       this.socket = socket;
+      let resolved = false;
       socket.onopen = () => {
         log.info(`[agent-ws] connected to ${this.url}`);
         this.connecting = null;
+        resolved = true;
         this.emit("open");
         resolve();
       };
@@ -105,6 +111,11 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
         this.connecting = null;
         this.failAllPending(new Error("Agent WebSocket closed"));
         this.emit("close");
+        // If the connection never reached OPEN, reject the pending
+        // connect() promise so callers don't hang forever.
+        if (!resolved) {
+          reject(new Error(`Agent WebSocket failed to connect to ${this.url}`));
+        }
         if (!this.intentionalClose) {
           this.scheduleReconnect();
         }
@@ -133,11 +144,15 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
   // ---------------------------------------------------------------------------
 
   async createSession(options: AgentSessionOptions): Promise<string> {
-    return this.request<string>("create_session", { options });
+    return this.request<"create_session", string>("create_session", {
+      options,
+    });
   }
 
   async listModels(options: AgentModelsRequest = {}): Promise<AgentModelDescriptor[]> {
-    return this.request<AgentModelDescriptor[]>("list_models", { options });
+    return this.request<"list_models", AgentModelDescriptor[]>("list_models", {
+      options,
+    });
   }
 
   /**
@@ -145,32 +160,40 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
    * over the `stream` event on this client.
    */
   async sendMessage(sessionId: string, message: string): Promise<void> {
-    await this.request<void>("send_message", {
+    await this.request<"send_message", void>("send_message", {
       session_id: sessionId,
       message,
     });
   }
 
   async stopExecution(sessionId: string): Promise<void> {
-    await this.request<void>("stop_execution", { session_id: sessionId });
+    await this.request<"stop_execution", void>("stop_execution", {
+      session_id: sessionId,
+    });
   }
 
   async closeSession(sessionId: string): Promise<void> {
-    await this.request<void>("close_session", { session_id: sessionId });
+    await this.request<"close_session", void>("close_session", {
+      session_id: sessionId,
+    });
   }
 
   async listSessions(
     options: AgentListSessionsRequest = {},
   ): Promise<AgentSessionInfoEntry[]> {
-    return this.request<AgentSessionInfoEntry[]>("list_sessions", { options });
+    return this.request<"list_sessions", AgentSessionInfoEntry[]>(
+      "list_sessions",
+      { options },
+    );
   }
 
   async getSessionMessages(
     options: AgentGetSessionMessagesRequest,
   ): Promise<AgentTranscriptMessage[]> {
-    return this.request<AgentTranscriptMessage[]>("get_session_messages", {
-      options,
-    });
+    return this.request<"get_session_messages", AgentTranscriptMessage[]>(
+      "get_session_messages",
+      { options },
+    );
   }
 
   /** Reply to a server-initiated `tools_manifest_request`. */
@@ -178,7 +201,7 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
     requestId: string,
     manifest: FrontendToolManifest[],
   ): void {
-    this.send({
+    this.sendMessageEnvelope({
       command: "tools_manifest_response",
       request_id: requestId,
       manifest,
@@ -190,7 +213,7 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
     requestId: string,
     result: { result?: unknown; isError: boolean; error?: string },
   ): void {
-    this.send({
+    this.sendMessageEnvelope({
       command: "tool_call_response",
       request_id: requestId,
       result,
@@ -201,9 +224,14 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
   // Internals
   // ---------------------------------------------------------------------------
 
-  private async request<T>(
-    command: string,
-    payload: Record<string, unknown>,
+  /**
+   * Issue a request/response command. The `command` literal constrains the
+   * shape of `payload` via `AgentClientPayload<C>` so callers can't pass
+   * nonsense fields or miss required ones.
+   */
+  private async request<C extends AgentClientCommand, T>(
+    command: C,
+    payload: AgentClientPayload<C>,
   ): Promise<T> {
     await this.connect();
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
@@ -222,10 +250,14 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
         timer,
       });
 
+      const envelope = {
+        command,
+        request_id: requestId,
+        ...(payload as Record<string, unknown>)
+      } as unknown as AgentClientMessage;
+
       try {
-        this.socket!.send(
-          JSON.stringify({ command, request_id: requestId, ...payload }),
-        );
+        this.socket!.send(JSON.stringify(envelope));
       } catch (error) {
         clearTimeout(timer);
         this.pending.delete(requestId);
@@ -234,13 +266,14 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
     });
   }
 
-  private send(payload: Record<string, unknown>): void {
+  /** Send a typed outbound message (no response tracking). */
+  private sendMessageEnvelope(envelope: AgentClientMessage): void {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      log.warn("[agent-ws] send called but socket is not open", payload);
+      log.warn("[agent-ws] send called but socket is not open", envelope);
       return;
     }
     try {
-      this.socket.send(JSON.stringify(payload));
+      this.socket.send(JSON.stringify(envelope));
     } catch (error) {
       log.error("[agent-ws] failed to send", error);
     }

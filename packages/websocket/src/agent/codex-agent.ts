@@ -14,11 +14,6 @@ import {
   type ThreadItem,
   type ThreadOptions,
 } from "@openai/codex-sdk";
-import {
-  getMcpToolServerUrl,
-  startMcpToolServer,
-  setMcpToolServerTransport,
-} from "./mcp-tool-server.js";
 import type { AgentTransport } from "./transport.js";
 import type {
   AgentMessage,
@@ -75,20 +70,17 @@ export class CodexQuerySession {
   }
 
   /**
-   * Write a .mcp.json to the workspace so the Codex CLI picks up the
-   * NodeTool UI tools MCP server.
+   * Write a `.mcp.json` to the workspace so the Codex CLI picks up the
+   * NodeTool UI tools MCP server. Codex's MCP config lookup is rooted at
+   * the workspace directory, so this is the only location the SDK reads.
+   *
+   * We log prominently when the file is created or rewritten so users
+   * aren't caught off-guard by an unexpected file in their repo. Projects
+   * should add `.mcp.json` to `.gitignore` if they don't want it tracked.
    */
-  private async ensureMcpConfig(transport: AgentTransport | null): Promise<void> {
-    let mcpUrl = getMcpToolServerUrl();
-
-    if (!mcpUrl && transport) {
-      mcpUrl = await startMcpToolServer(transport);
-    } else if (mcpUrl && transport) {
-      setMcpToolServerTransport(transport);
-    }
-
-    if (!mcpUrl) {
-      log.warn("MCP tool server not available for Codex session");
+  private async ensureMcpConfig(mcpServerUrl: string | null): Promise<void> {
+    if (!mcpServerUrl) {
+      log.warn("MCP tool server URL not available for Codex session");
       return;
     }
 
@@ -99,26 +91,35 @@ export class CodexQuerySession {
         const existing = JSON.parse(readFileSync(configPath, "utf8")) as {
           mcpServers?: { "nodetool-ui"?: { url?: string } };
         };
-        if (existing?.mcpServers?.["nodetool-ui"]?.url === mcpUrl) {
+        if (existing?.mcpServers?.["nodetool-ui"]?.url === mcpServerUrl) {
           return;
         }
+        log.info(
+          `Updating NodeTool MCP server URL in existing .mcp.json at ${configPath}`,
+        );
       } catch {
-        // Corrupted file, overwrite
+        log.warn(
+          `Existing .mcp.json at ${configPath} is unreadable — overwriting`,
+        );
       }
+    } else {
+      log.info(
+        `Creating ${configPath} for Codex MCP integration ` +
+          `(add .mcp.json to .gitignore if this is a git repo)`,
+      );
     }
 
     const config = {
       mcpServers: {
         "nodetool-ui": {
           type: "http",
-          url: mcpUrl,
+          url: mcpServerUrl,
         },
       },
     };
 
     try {
       writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-      log.info(`Wrote Codex MCP config to ${configPath}`);
     } catch (error) {
       log.warn(
         `Failed to write .mcp.json: ${error instanceof Error ? error.message : String(error)}`,
@@ -156,10 +157,11 @@ export class CodexQuerySession {
 
   async send(
     message: string,
-    transport: AgentTransport | null,
+    _transport: AgentTransport | null,
     sessionId: string,
     _manifest: FrontendToolManifest[],
     onMessage?: (message: AgentMessage) => void,
+    mcpServerUrl?: string | null,
   ): Promise<AgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");
@@ -174,7 +176,7 @@ export class CodexQuerySession {
     this.abortController = new AbortController();
 
     try {
-      await this.ensureMcpConfig(transport);
+      await this.ensureMcpConfig(mcpServerUrl ?? null);
       const thread = this.getThread();
       const prompt = this.buildPrompt(message);
       const { events } = await thread.runStreamed(prompt, {

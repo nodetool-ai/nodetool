@@ -34,6 +34,7 @@ export type AgentStatus =
   | "connected"
   | "loading"
   | "streaming"
+  | "stopping"
   | "error";
 
 export interface AgentSessionHistoryEntry {
@@ -425,14 +426,35 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   stopGeneration: () => {
-    const { sessionId } = get();
-    if (sessionId) {
-      const client = getAgentSocketClient();
-      client.stopExecution(sessionId).catch((err: unknown) => {
-        log.error("Failed to stop agent execution:", err);
-      });
+    const { sessionId, status: priorStatus } = get();
+    if (!sessionId) {
+      // Nothing running — just normalize to disconnected so the UI doesn't
+      // get stuck in whatever state it was in.
+      set({ status: "disconnected", hasAssistantInCurrentTurn: false });
+      return;
     }
-    set({ status: "connected", hasAssistantInCurrentTurn: false });
+
+    // Show a "stopping" state while the server acknowledges the stop. If it
+    // fails, revert to the previous status so the UI doesn't lie to the user
+    // about the agent being idle when it's still running.
+    set({ status: "stopping" });
+
+    const client = getAgentSocketClient();
+    client
+      .stopExecution(sessionId)
+      .then(() => {
+        set({ status: "connected", hasAssistantInCurrentTurn: false });
+      })
+      .catch((err: unknown) => {
+        log.error("Failed to stop agent execution:", err);
+        set({
+          status: priorStatus,
+          error:
+            err instanceof Error
+              ? `Failed to stop: ${err.message}`
+              : "Failed to stop agent execution"
+        });
+      });
   },
 
   newChat: () => {

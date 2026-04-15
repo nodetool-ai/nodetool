@@ -31,8 +31,8 @@ import {
   closeOpenCodeServer,
 } from "./opencode-agent.js";
 import {
+  clearMcpToolServerSession,
   startMcpToolServer,
-  setMcpToolServerTransport,
   stopMcpToolServer,
 } from "./mcp-tool-server.js";
 import type { AgentTransport } from "./transport.js";
@@ -187,6 +187,19 @@ function convertSdkMessage(
   return null;
 }
 
+export interface AgentQuerySession {
+  send(
+    message: string,
+    transport: AgentTransport | null,
+    sessionId: string,
+    manifest: FrontendToolManifest[],
+    onMessage?: (message: AgentMessage) => void,
+    mcpServerUrl?: string | null,
+  ): Promise<AgentMessage[]>;
+  interrupt(): Promise<void>;
+  close(): void;
+}
+
 class ClaudeAgentSession implements AgentQuerySession {
   private closed = false;
   private readonly model: string;
@@ -196,7 +209,6 @@ class ClaudeAgentSession implements AgentQuerySession {
   private resolvedSessionId: string | null;
   private inFlight = false;
   private activeQuery: Query | null = null;
-  private mcpServerUrl: string | null = null;
 
   constructor(options: {
     model: string;
@@ -214,10 +226,11 @@ class ClaudeAgentSession implements AgentQuerySession {
 
   async send(
     message: string,
-    transport: AgentTransport | null,
+    _transport: AgentTransport | null,
     sessionId: string,
     _manifest: FrontendToolManifest[],
     onMessage?: (message: AgentMessage) => void,
+    mcpServerUrl?: string | null,
   ): Promise<AgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");
@@ -229,14 +242,10 @@ class ClaudeAgentSession implements AgentQuerySession {
     this.inFlight = true;
 
     try {
-      // Start or reuse the HTTP MCP tool server if a transport is available
-      if (transport && !this.mcpServerUrl) {
-        this.mcpServerUrl = await startMcpToolServer(transport);
-      } else if (transport) {
-        setMcpToolServerTransport(transport);
-      }
-
-      const hasMcp = Boolean(this.mcpServerUrl);
+      // The MCP tool server and its per-session transport mapping are owned
+      // by the runtime layer (see AgentRuntime.sendMessageStreaming). The
+      // session itself just consumes the URL it was handed.
+      const hasMcp = Boolean(mcpServerUrl);
       const allowedTools = hasMcp
         ? Object.keys(uiToolSchemas).map((n) => `mcp__nodetool-ui__${n}`)
         : [];
@@ -251,16 +260,22 @@ class ClaudeAgentSession implements AgentQuerySession {
             preset: "claude_code",
             append: this.systemPrompt,
           },
+          // The NodeTool system prompt, `CLAUDE_DISALLOWED_TOOLS`, and the
+          // per-session workspace sandbox are the guardrails here. We
+          // intentionally bypass Claude Code's interactive permission
+          // prompts because the agent is running headless on the NodeTool
+          // server and has no way to surface them. The allowed-tools list
+          // below is the actual whitelist of what it can do.
           permissionMode: "bypassPermissions",
           allowDangerouslySkipPermissions: true,
           disallowedTools: CLAUDE_DISALLOWED_TOOLS,
           allowedTools,
           maxTurns: this.maxTurns,
-          ...(this.mcpServerUrl && {
+          ...(mcpServerUrl && {
             mcpServers: {
               "nodetool-ui": {
                 type: "http" as const,
-                url: this.mcpServerUrl,
+                url: mcpServerUrl,
               },
             },
           }),
@@ -321,18 +336,6 @@ class ClaudeAgentSession implements AgentQuerySession {
       this.activeQuery = null;
     }
   }
-}
-
-export interface AgentQuerySession {
-  send(
-    message: string,
-    transport: AgentTransport | null,
-    sessionId: string,
-    manifest: FrontendToolManifest[],
-    onMessage?: (message: AgentMessage) => void,
-  ): Promise<AgentMessage[]>;
-  interrupt(): Promise<void>;
-  close(): void;
 }
 
 /** Provider interface for agent SDKs (Claude, Codex, OpenCode). */
@@ -602,8 +605,10 @@ class AgentRuntime {
 
     log.info(`Sending message to agent session ${sessionId} (streaming)`);
 
-    // Ensure MCP tool server is running for this transport
-    await startMcpToolServer(transport);
+    // Register this transport as the executor for `sessionId`. The MCP URL
+    // returned is session-scoped so simultaneous sessions from different
+    // renderers don't share the same tool-call route.
+    const mcpServerUrl = await startMcpToolServer(transport, sessionId);
 
     let frontendTools: FrontendToolManifest[] = [];
     try {
@@ -632,10 +637,19 @@ class AgentRuntime {
           !this.activeSessions.has(serialized.session_id)
         ) {
           this.activeSessions.set(serialized.session_id, session);
+          // Mirror the MCP transport mapping under the resolved ID so tool
+          // calls keep working if the SDK starts emitting messages tagged
+          // with the real session ID.
+          startMcpToolServer(transport, serialized.session_id).catch((err) => {
+            log.warn(
+              `Failed to register MCP transport for resolved session ${serialized.session_id}: ${err instanceof Error ? err.message : String(err)}`,
+            );
+          });
         }
         messageCount++;
         transport.streamMessage(sessionId, serialized, false);
       },
+      mcpServerUrl,
     );
 
     transport.streamMessage(
@@ -669,6 +683,7 @@ class AgentRuntime {
     for (const [id, s] of this.activeSessions.entries()) {
       if (s === session) {
         this.activeSessions.delete(id);
+        clearMcpToolServerSession(id);
       }
     }
   }

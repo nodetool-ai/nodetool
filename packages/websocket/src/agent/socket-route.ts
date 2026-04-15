@@ -19,6 +19,7 @@ import type {
   AgentServerMessage,
   FrontendToolManifest,
 } from "./types.js";
+import { validateAgentClientMessage } from "./types.js";
 
 const log = createLogger("nodetool.websocket.agent.route");
 
@@ -268,17 +269,38 @@ const agentSocketRoute: FastifyPluginAsync = async (app) => {
     };
 
     socket.on("message", (raw: Buffer | ArrayBuffer | Buffer[]) => {
-      let parsed: AgentClientMessage;
+      let rawParsed: unknown;
       try {
         const text = raw.toString();
-        parsed = JSON.parse(text) as AgentClientMessage;
+        rawParsed = JSON.parse(text);
       } catch (error) {
         log.warn(
           `Failed to parse agent client message: ${error instanceof Error ? error.message : String(error)}`,
         );
         return;
       }
-      void handleCommand(parsed);
+
+      const validation = validateAgentClientMessage(rawParsed);
+      if (!validation.ok) {
+        log.warn(
+          `Rejecting malformed agent client message: ${validation.error}`,
+        );
+        // If the sender provided a request_id, surface the validation error
+        // back to them so they can fix the call. Otherwise the message gets
+        // dropped silently (which is correct — there's nothing to respond to).
+        const maybeRequestId =
+          rawParsed &&
+          typeof rawParsed === "object" &&
+          typeof (rawParsed as Record<string, unknown>).request_id === "string"
+            ? ((rawParsed as Record<string, unknown>).request_id as string)
+            : null;
+        if (maybeRequestId) {
+          sendResponse(maybeRequestId, undefined, validation.error);
+        }
+        return;
+      }
+
+      void handleCommand(validation.value);
     });
 
     socket.on("close", () => {

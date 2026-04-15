@@ -4,8 +4,11 @@
  * Implements the MCP Streamable HTTP transport so any agent SDK
  * (Claude, Codex, OpenCode) can connect to it as an MCP server.
  *
- * Tool calls are forwarded to the active renderer via the
- * `AgentTransport` for execution against the live workflow graph.
+ * Tool calls are forwarded to the renderer whose session originated the
+ * connection via the `AgentTransport` for execution against the live
+ * workflow graph. The session identity is encoded in the URL path as
+ * `/mcp/<sessionId>` so simultaneous sessions from different renderers
+ * can't clobber each other's tool routing.
  */
 
 import {
@@ -87,11 +90,27 @@ let serverInstance: Server | null = null;
 let serverPort: number | null = null;
 
 /**
- * The currently-active transport that should receive tool calls coming in
- * over MCP. Last writer wins — the most recently connected renderer becomes
- * the tool executor for incoming MCP requests.
+ * Session ID → transport mapping. Each agent session has its own entry so
+ * tool calls are routed to the renderer that originated that session. This
+ * replaces the earlier "active transport" global, which was unsafe when
+ * multiple renderers were connected simultaneously.
  */
-let activeTransport: AgentTransport | null = null;
+const sessionTransports = new Map<string, AgentTransport>();
+
+/** Default CORS origins allowed to hit the MCP HTTP server. */
+const DEFAULT_ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
+  /^https?:\/\/localhost(?::\d+)?$/,
+  /^https?:\/\/127\.0\.0\.1(?::\d+)?$/,
+  // Electron renderer
+  /^file:\/\//,
+];
+
+function isOriginAllowed(origin: string | undefined): boolean {
+  // MCP SDK clients (Claude/Codex) typically don't send an Origin header.
+  // In that case there's no browser enforcing CORS, so allow the request.
+  if (!origin) return true;
+  return DEFAULT_ALLOWED_ORIGIN_PATTERNS.some((re) => re.test(origin));
+}
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -111,13 +130,24 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
+function extractSessionIdFromPath(path: string | undefined): string | null {
+  if (!path) return null;
+  // URL is `/mcp/<sessionId>` (optionally with a trailing slash or query).
+  const match = /^\/mcp\/([^/?#]+)\/?/.exec(path);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 async function handleMcpRequest(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin as string | undefined;
+  if (isOriginAllowed(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin ?? "*");
+  }
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Vary", "Origin");
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -127,6 +157,16 @@ async function handleMcpRequest(
 
   if (req.method !== "POST") {
     sendJson(res, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  const sessionId = extractSessionIdFromPath(req.url);
+  if (!sessionId) {
+    sendJson(res, 404, {
+      jsonrpc: "2.0",
+      id: null,
+      error: { code: -32601, message: "Session ID missing from MCP URL path" },
+    });
     return;
   }
 
@@ -143,12 +183,13 @@ async function handleMcpRequest(
     return;
   }
 
-  const response = await handleRpcMethod(rpcRequest);
+  const response = await handleRpcMethod(rpcRequest, sessionId);
   sendJson(res, 200, response);
 }
 
 async function handleRpcMethod(
   request: McpJsonRpcRequest,
+  sessionId: string,
 ): Promise<McpJsonRpcResponse> {
   const { id, method, params } = request;
 
@@ -183,7 +224,8 @@ async function handleRpcMethod(
         };
       }
 
-      if (!activeTransport || !activeTransport.isAlive) {
+      const transport = sessionTransports.get(sessionId);
+      if (!transport || !transport.isAlive) {
         return {
           jsonrpc: "2.0",
           id,
@@ -192,7 +234,7 @@ async function handleRpcMethod(
               {
                 type: "text",
                 text:
-                  "Error: No active renderer — open a workflow in NodeTool first.",
+                  "Error: No active renderer for this session — open a workflow in NodeTool first.",
               },
             ],
             isError: true,
@@ -201,8 +243,8 @@ async function handleRpcMethod(
       }
 
       try {
-        const result = await activeTransport.executeTool(
-          "mcp-server",
+        const result = await transport.executeTool(
+          sessionId,
           `mcp-${id}`,
           toolName,
           toolArgs ?? {},
@@ -250,21 +292,10 @@ async function handleRpcMethod(
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Start the MCP HTTP server. Returns the URL to connect to.
- * If already running, returns the existing URL and updates the active
- * transport.
- */
-export async function startMcpToolServer(
-  transport: AgentTransport,
-): Promise<string> {
-  activeTransport = transport;
+async function ensureServerStarted(): Promise<void> {
+  if (serverInstance && serverPort) return;
 
-  if (serverInstance && serverPort) {
-    return `http://127.0.0.1:${serverPort}/mcp`;
-  }
-
-  return new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     const server = createServer((req, res) => {
       handleMcpRequest(req, res).catch((err) => {
         log.error(
@@ -287,9 +318,8 @@ export async function startMcpToolServer(
       }
       serverPort = addr.port;
       serverInstance = server;
-      const url = `http://127.0.0.1:${serverPort}/mcp`;
-      log.info(`MCP tool server started at ${url}`);
-      resolve(url);
+      log.info(`MCP tool server listening at http://127.0.0.1:${serverPort}`);
+      resolve();
     });
 
     server.on("error", (err) => {
@@ -299,25 +329,49 @@ export async function startMcpToolServer(
   });
 }
 
-/** Update the active transport for tool execution. */
-export function setMcpToolServerTransport(transport: AgentTransport): void {
-  activeTransport = transport;
+/**
+ * Start (if needed) the MCP HTTP server and register `transport` as the
+ * executor for `sessionId`. Returns the session-scoped MCP URL to hand to
+ * the agent SDK.
+ */
+export async function startMcpToolServer(
+  transport: AgentTransport,
+  sessionId: string,
+): Promise<string> {
+  await ensureServerStarted();
+  sessionTransports.set(sessionId, transport);
+  return `http://127.0.0.1:${serverPort}/mcp/${encodeURIComponent(sessionId)}`;
+}
+
+/** Update the transport associated with an existing session. */
+export function setMcpToolServerTransport(
+  transport: AgentTransport,
+  sessionId: string,
+): void {
+  sessionTransports.set(sessionId, transport);
 }
 
 /**
- * Clear the transport reference if it matches the given one. Used when a
- * client disconnects so we don't keep a dead reference around.
+ * Remove all session→transport mappings pointing at the given transport.
+ * Called when a renderer disconnects so we don't keep dead references.
  */
 export function clearMcpToolServerTransport(transport: AgentTransport): void {
-  if (activeTransport === transport) {
-    activeTransport = null;
+  for (const [sessionId, t] of sessionTransports.entries()) {
+    if (t === transport) {
+      sessionTransports.delete(sessionId);
+    }
   }
 }
 
-/** Get the MCP server URL if running, or null. */
-export function getMcpToolServerUrl(): string | null {
-  if (serverInstance && serverPort) {
-    return `http://127.0.0.1:${serverPort}/mcp`;
+/** Drop a single session's transport mapping. */
+export function clearMcpToolServerSession(sessionId: string): void {
+  sessionTransports.delete(sessionId);
+}
+
+/** Get the MCP server URL for an already-registered session, or null. */
+export function getMcpToolServerUrl(sessionId: string): string | null {
+  if (serverInstance && serverPort && sessionTransports.has(sessionId)) {
+    return `http://127.0.0.1:${serverPort}/mcp/${encodeURIComponent(sessionId)}`;
   }
   return null;
 }
@@ -328,7 +382,7 @@ export function stopMcpToolServer(): void {
     serverInstance.close();
     serverInstance = null;
     serverPort = null;
-    activeTransport = null;
+    sessionTransports.clear();
     log.info("MCP tool server stopped");
   }
 }

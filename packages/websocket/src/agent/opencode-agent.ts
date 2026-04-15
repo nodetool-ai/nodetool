@@ -296,6 +296,7 @@ export class OpenCodeQuerySession {
     sessionId: string,
     _manifest: FrontendToolManifest[],
     onMessage?: (message: AgentMessage) => void,
+    _mcpServerUrl?: string | null,
   ): Promise<AgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");

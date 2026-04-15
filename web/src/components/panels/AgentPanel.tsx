@@ -392,6 +392,11 @@ const AgentPanel: React.FC = () => {
         return "loading" as const;
       case "streaming":
         return "streaming" as const;
+      case "stopping":
+        // While the server acknowledges the stop we still treat the chat as
+        // busy so the user can't fire a new prompt before the agent actually
+        // halts.
+        return "loading" as const;
       case "error":
         return "error" as const;
       default:
