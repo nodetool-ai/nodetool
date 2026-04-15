@@ -18,6 +18,9 @@ import useMetadataStore from "../../stores/MetadataStore";
 import useDynamicOutput from "../../hooks/nodes/useDynamicOutput";
 import { validateIdentifierName } from "../../utils/identifierValidation";
 
+// Module-level constant — avoids creating a new style object on every render.
+const OUTPUT_WRAPPER_STYLE = { marginBottom: "1em" };
+
 export interface NodeOutputsProps {
   id: string;
   outputs: OutputSlot[];
@@ -80,6 +83,8 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
     () => [...staticOutputs, ...dynamicOutputsList],
     [staticOutputs, dynamicOutputsList]
   );
+
+  const supportsDynamicOutputs = Boolean(metadata?.supports_dynamic_outputs);
 
   const onStartEdit = useCallback(
     (name: string) => {
@@ -157,7 +162,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
 
   return (
     <>
-      <div style={{ marginBottom: "1em" }}>
+      <div style={OUTPUT_WRAPPER_STYLE}>
         {allOutputs.length > 1 || metadata?.supports_dynamic_outputs ? (
           <ul className="multi-outputs">
             {allOutputs.map((output) => (
@@ -166,9 +171,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
                   id={id}
                   output={output}
                   showLabel={true}
-                  supportsDynamicOutputs={Boolean(
-                    metadata?.supports_dynamic_outputs
-                  )}
+                  supportsDynamicOutputs={supportsDynamicOutputs}
                   isStreamingOutput={isStreamingOutput}
                   onStartEdit={onStartEdit}
                   onDelete={handleDeleteOutput}
@@ -183,7 +186,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
               id={id}
               output={output}
               showLabel={false}
-              supportsDynamicOutputs={Boolean(metadata?.supports_dynamic_outputs)}
+              supportsDynamicOutputs={supportsDynamicOutputs}
               isStreamingOutput={isStreamingOutput}
               onStartEdit={onStartEdit}
               onDelete={handleDeleteOutput}

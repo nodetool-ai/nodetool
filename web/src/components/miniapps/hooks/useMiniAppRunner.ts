@@ -20,6 +20,10 @@ import {
 import { MiniAppResult, RunnerMessage } from "../types";
 import { useMiniAppsStore } from "../../../stores/MiniAppsStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+
+// Stable empty fallbacks — reused across renders so shallow equality can bail
+// out instead of always seeing a new array/null reference.
+const EMPTY_RESULTS: MiniAppResult[] = [];
 import log from "loglevel";
 
 type WorkflowRunnerState = ReturnType<WorkflowRunnerStore["getState"]>;
@@ -45,7 +49,8 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
   );
   const workflowId = selectedWorkflow?.id;
 
-  // Combine multiple MiniAppsStore subscriptions into one for better performance
+  // Combine multiple MiniAppsStore subscriptions into one for better performance.
+  // shallow equality prevents re-renders when unrelated workflows update the store.
   const {
     results,
     progress,
@@ -56,14 +61,15 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     resetWorkflowState
   } = useMiniAppsStore(
     (state) => ({
-      results: workflowId ? state.apps[workflowId]?.results ?? [] : [],
+      results: workflowId ? state.apps[workflowId]?.results ?? EMPTY_RESULTS : EMPTY_RESULTS,
       progress: workflowId ? state.apps[workflowId]?.progress ?? null : null,
       upsertResult: state.upsertResult,
       setProgress: state.setProgress,
       setLastRunDuration: state.setLastRunDuration,
       lastRunDuration: workflowId ? state.apps[workflowId]?.lastRunDuration ?? null : null,
       resetWorkflowState: state.resetWorkflowState
-    })
+    }),
+    shallow
   );
 
   useEffect(() => {
