@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode, Audio } from 'expo-av';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { apiService, Asset } from '../services/api';
+import { apiService, type Asset } from '../services/api';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -99,7 +99,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
 
   // Audio playback lifecycle
   useEffect(() => {
-    const uri = asset?.get_url;
+    const uri = apiService.resolveUrl(asset?.get_url);
     const isAudio = asset?.content_type?.startsWith('audio/');
     if (!uri || !isAudio) return;
 
@@ -262,7 +262,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   const isImage = contentType.startsWith('image/');
   const isVideo = contentType.startsWith('video/');
   const isAudio = contentType.startsWith('audio/');
-  const url = asset.get_url;
+  const url = apiService.resolveUrl(asset.get_url);
 
   return (
     <ScrollView

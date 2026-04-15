@@ -32,6 +32,7 @@ import { useWorkflowRunner } from "../stores/WorkflowRunner";
 import { useMiniAppInputs } from "../hooks/useMiniAppInputs";
 import { PropertyRenderer } from "../components/properties";
 import { MiniAppResults } from "../components/miniapps/MiniAppResults";
+import MarkdownRenderer from "../utils/MarkdownRenderer";
 
 type Props = NativeStackScreenProps<RootStackParamList, "GraphEditor">;
 
@@ -279,9 +280,9 @@ function MiniAppRunner({
               color={colors.primary}
               style={{ marginRight: 8, marginTop: 1 }}
             />
-            <Text style={[runnerStyles.description, { color: colors.textSecondary }]}>
-              {workflow.description}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <MarkdownRenderer content={workflow.description} />
+            </View>
           </View>
         ) : null}
 
