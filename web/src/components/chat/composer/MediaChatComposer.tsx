@@ -75,7 +75,36 @@ import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { AgentModeSelector } from "./AgentModeSelector";
+import { StopGenerationButton } from "./StopGenerationButton";
 import log from "loglevel";
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 5) return "Starting…";
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+}
+
+function useElapsedTime(active: boolean): number {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!active) {
+      setElapsed(0);
+      return;
+    }
+    startRef.current = Date.now();
+    setElapsed(0);
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active]);
+
+  return elapsed;
+}
 
 export interface MediaChatComposerProps {
   isLoading: boolean;
@@ -639,7 +668,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     log.info("Media composer: More options (coming soon)");
   }, []);
 
-  const isDisabled = disabled || isLoading || isStreaming;
+  const isBusy = isLoading || isStreaming;
+  const isDisabled = disabled || isBusy;
+  const elapsed = useElapsedTime(isBusy);
 
   return (
     <div css={createMediaComposerStyles(theme)} className="media-chat-composer">
@@ -1168,27 +1199,46 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
           {/* Retake (refresh) button */}
           <Tooltip title="Clear prompt" delay={TOOLTIP_ENTER_DELAY}>
-            <button
-              type="button"
-              className="media-retake-btn"
-              onClick={handleRetake}
-              disabled={!canGenerate}
-              aria-label="Clear prompt"
-            >
-              <RefreshIcon />
-            </button>
+            <span style={{ display: "inline-flex" }}>
+              <button
+                type="button"
+                className="media-retake-btn"
+                onClick={handleRetake}
+                disabled={!canGenerate}
+                aria-label="Clear prompt"
+              >
+                <RefreshIcon />
+              </button>
+            </span>
           </Tooltip>
 
-          {/* Primary Generate button */}
-          <button
-            type="button"
-            className={`media-generate-btn${isMediaMode ? "" : " chat-send"}`}
-            onClick={handleSend}
-            disabled={isDisabled || !canGenerate}
-            aria-label={isMediaMode ? "Generate" : "Send"}
-          >
-            {isMediaMode ? "Generate" : "Send"}
-          </button>
+          {/* Primary Generate button / timer */}
+          {isBusy && isMediaMode ? (
+            <FlexRow gap={1} alignItems="center">
+              <Text
+                size="small"
+                sx={{
+                  color: theme.vars.palette.grey[400],
+                  fontVariantNumeric: "tabular-nums",
+                  minWidth: 48,
+                  textAlign: "right"
+                }}
+              >
+                {formatElapsed(elapsed)}
+              </Text>
+              {onStop && <StopGenerationButton onClick={onStop} />}
+            </FlexRow>
+          ) : (
+            <button
+              type="button"
+              className={`media-generate-btn${isMediaMode ? "" : " chat-send"}`}
+              onClick={handleSend}
+              disabled={isDisabled || !canGenerate}
+              aria-label={isMediaMode ? "Generate" : "Send"}
+            >
+              {isMediaMode ? "Generate" : "Send"}
+            </button>
+          )}
         </div>
       </div>
 

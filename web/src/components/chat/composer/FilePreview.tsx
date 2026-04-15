@@ -1,6 +1,7 @@
 import React from "react";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
 import { ResponsiveImage } from "../../ui_primitives/ResponsiveImage";
+import { CloseButton } from "../../ui_primitives/CloseButton";
 import { DroppedFile } from "../types/chat.types";
 
 const isValidImageDataUri = (uri: string) =>
@@ -20,7 +21,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
         fit="cover"
         borderRadius="4px"
         showErrorFallback
-        sx={{ width: "24px", height: "24px" }}
+        sx={{ width: "48px", height: "48px" }}
       />
     ) : (
       <div className="file-icon-wrapper">
@@ -28,13 +29,26 @@ export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
         <div className="file-name">{file.name}</div>
       </div>
     )}
-    <button
-      className="remove-button"
+    <CloseButton
       onClick={onRemove}
-      aria-label={`Remove file ${file.name}`}
-      type="button"
-    >
-      ×
-    </button>
+      tooltip={`Remove ${file.name}`}
+      buttonSize="small"
+      iconVariant="clear"
+      nodrag={false}
+      sx={{
+        position: "absolute",
+        top: -6,
+        right: -6,
+        width: 18,
+        height: 18,
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        "&:hover": {
+          backgroundColor: "rgba(0, 0, 0, 0.9)"
+        },
+        "& .MuiSvgIcon-root": {
+          fontSize: 14
+        }
+      }}
+    />
   </div>
 );
