@@ -58,68 +58,57 @@ export const useDragAndDrop = (
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragging(false);
 
       const dragData = deserializeDragData(e.dataTransfer);
 
       if (dragData && onAssetsDropped) {
-        void (async () => {
-          try {
-            const droppedFiles: DroppedFile[] = [];
+        try {
+          const droppedFiles: DroppedFile[] = [];
 
-            // Handle multiple assets
-            if (dragData.type === "assets-multiple") {
-              const selectedIds = dragData.payload as string[];
-              const { filteredAssets, globalSearchResults } = useAssetGridStore.getState();
-              const potentialAssets = [...filteredAssets, ...globalSearchResults, ...(useAssetGridStore.getState().selectedAssets || [])];
-              const foundAssets = potentialAssets.filter(a => selectedIds.includes(a.id));
-              const uniqueAssets = Array.from(new Map(foundAssets.map(item => [item.id, item])).values());
-              const resolved = await Promise.all(uniqueAssets.filter(a => a.get_url).map(assetToDroppedFile));
-              droppedFiles.push(...resolved);
+          // Handle multiple assets
+          if (dragData.type === "assets-multiple") {
+            const selectedIds = dragData.payload as string[];
+            const { filteredAssets, globalSearchResults } = useAssetGridStore.getState();
+            const potentialAssets = [...filteredAssets, ...globalSearchResults, ...(useAssetGridStore.getState().selectedAssets || [])];
+            const foundAssets = potentialAssets.filter(a => selectedIds.includes(a.id));
+            const uniqueAssets = Array.from(new Map(foundAssets.map(item => [item.id, item])).values());
+            const resolved = await Promise.all(uniqueAssets.filter(a => a.get_url).map(assetToDroppedFile));
+            droppedFiles.push(...resolved);
+          }
+
+          // Handle single asset
+          if (droppedFiles.length === 0 && dragData.type === "asset") {
+            const asset = dragData.payload as Asset;
+            if (asset.get_url) {
+              droppedFiles.push(await assetToDroppedFile(asset));
             }
+          }
 
-            // Handle single asset
-            if (droppedFiles.length === 0 && dragData.type === "asset") {
-              const asset = dragData.payload as Asset;
-              if (asset.get_url) {
-                droppedFiles.push(await assetToDroppedFile(asset));
-              }
-            }
-
-            // Fallback: legacy "asset" key when assets-multiple store lookup fails
-            if (droppedFiles.length === 0 && dragData.type === "assets-multiple") {
-              const assetJson = e.dataTransfer.getData("asset");
-              if (assetJson) {
-                try {
-                  const asset: Asset = JSON.parse(assetJson);
-                  if (asset.get_url) {
-                    droppedFiles.push(await assetToDroppedFile(asset));
-                  }
-                } catch {
-                  // Ignore parse errors
+          // Fallback: legacy "asset" key when assets-multiple store lookup fails
+          if (droppedFiles.length === 0 && dragData.type === "assets-multiple") {
+            const assetJson = e.dataTransfer.getData("asset");
+            if (assetJson) {
+              try {
+                const asset: Asset = JSON.parse(assetJson);
+                if (asset.get_url) {
+                  droppedFiles.push(await assetToDroppedFile(asset));
                 }
+              } catch {
+                // Ignore parse errors
               }
             }
-
-            if (droppedFiles.length > 0) {
-              onAssetsDropped(droppedFiles);
-              return;
-            }
-          } catch (err) {
-            log.error("Failed to process dropped asset", err);
           }
 
-          // Fall through to external files if asset processing yielded nothing
-          if (hasExternalFiles(e.dataTransfer)) {
-            const files = extractFiles(e.dataTransfer);
-            if (files.length > 0) {
-              onFilesDropped(files);
-            }
+          if (droppedFiles.length > 0) {
+            onAssetsDropped(droppedFiles);
+            return;
           }
-        })();
-        return;
+        } catch (err) {
+          log.error("Failed to process dropped asset", err);
+        }
       }
 
       // Handle external files
