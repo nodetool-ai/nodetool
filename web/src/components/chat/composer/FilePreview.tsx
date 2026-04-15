@@ -4,8 +4,10 @@ import { ResponsiveImage } from "../../ui_primitives/ResponsiveImage";
 import { CloseButton } from "../../ui_primitives/CloseButton";
 import { DroppedFile } from "../types/chat.types";
 
-const isValidImageDataUri = (uri: string) =>
-  /^data:image\/(jpeg|jpg|png|gif|webp);base64,/.test(uri);
+const isDisplayableImage = (uri: string) =>
+  /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml|bmp);base64,/.test(uri) ||
+  /^https?:\/\//.test(uri) ||
+  uri.startsWith("/");
 
 interface FilePreviewProps {
   file: DroppedFile;
@@ -14,7 +16,7 @@ interface FilePreviewProps {
 
 export const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => (
   <div className="file-preview">
-    {file.type.startsWith("image/") && isValidImageDataUri(file.dataUri) ? (
+    {file.type.startsWith("image/") && isDisplayableImage(file.dataUri) ? (
       <ResponsiveImage
         src={file.dataUri}
         alt={file.name}

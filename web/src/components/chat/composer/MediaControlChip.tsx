@@ -28,9 +28,11 @@ interface MediaControlChipProps {
   className?: string;
   /** Show as emphasized / primary. */
   emphasis?: "default" | "primary";
+  /** Allow this chip to shrink and truncate its label. */
+  truncate?: boolean;
 }
 
-const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "primary", active: boolean) =>
+const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "primary", active: boolean, truncate: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
@@ -53,7 +55,10 @@ const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "pr
     transition:
       "background-color 160ms ease, border-color 160ms ease, color 160ms ease",
     whiteSpace: "nowrap",
-    flexShrink: 0,
+    flexShrink: truncate ? 1 : 0,
+    minWidth: truncate ? 0 : undefined,
+    maxWidth: truncate ? 200 : undefined,
+    overflow: truncate ? "hidden" : undefined,
     "&:hover:not(:disabled)": {
       backgroundColor: "rgba(255,255,255,0.10)"
     },
@@ -96,7 +101,8 @@ const MediaControlChip = memo(
         disabled = false,
         size = "md",
         className,
-        emphasis = "default"
+        emphasis = "default",
+        truncate = false
       },
       ref
     ) => {
@@ -106,7 +112,7 @@ const MediaControlChip = memo(
           ref={ref}
           type="button"
           className={`media-control-chip${className ? ` ${className}` : ""}${active ? " active" : ""}`}
-          css={createStyles(theme, size, emphasis, active)}
+          css={createStyles(theme, size, emphasis, active, truncate)}
           onClick={onClick}
           disabled={disabled}
           aria-pressed={active || undefined}
@@ -117,7 +123,15 @@ const MediaControlChip = memo(
               component="span"
               size="small"
               weight={500}
-              sx={{ color: "inherit", lineHeight: 1 }}
+              sx={{
+                color: "inherit",
+                lineHeight: 1,
+                ...(truncate && {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                })
+              }}
             >
               {label}
             </Text>

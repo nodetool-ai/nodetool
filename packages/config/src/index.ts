@@ -33,6 +33,7 @@ export {
   getDefaultDbPath,
   getDefaultVectorstoreDbPath,
   getDefaultAssetsPath,
+  getAssetFilePath,
   getAssetDomain,
   getTempDomain,
   buildAssetUrl

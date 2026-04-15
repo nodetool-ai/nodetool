@@ -21,7 +21,7 @@ import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getAssetFilePath } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.provider");
 
@@ -350,11 +350,47 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support textToImage`);
   }
 
+  /**
+   * Generate multiple images from a text prompt.
+   *
+   * Default implementation calls textToImage() sequentially as a fallback.
+   * Providers that support native batch generation (e.g. FAL with num_images)
+   * should override this for efficiency.
+   */
+  async textToImages(
+    params: TextToImageParams,
+    numImages: number
+  ): Promise<Uint8Array[]> {
+    const results: Uint8Array[] = [];
+    for (let i = 0; i < numImages; i++) {
+      results.push(await this.textToImage(params));
+    }
+    return results;
+  }
+
   async imageToImage(
     _image: Uint8Array,
     _params: ImageToImageParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToImage`);
+  }
+
+  /**
+   * Generate multiple image-to-image results in one logical call.
+   *
+   * Default implementation calls imageToImage() sequentially as a fallback.
+   * Providers that support native batch generation should override this.
+   */
+  async imageToImages(
+    image: Uint8Array,
+    params: ImageToImageParams,
+    numImages: number
+  ): Promise<Uint8Array[]> {
+    const results: Uint8Array[] = [];
+    for (let i = 0; i < numImages; i++) {
+      results.push(await this.imageToImage(image, params));
+    }
+    return results;
   }
 
   async *textToSpeech(_args: {
@@ -470,4 +506,52 @@ export abstract class BaseProvider {
       args: this.parseToolCallArgs(args)
     };
   }
+
+  /**
+   * Resolve a URI to a `data:` URI that providers can consume directly.
+   *
+   * - `file://...`        → read from disk, return `data:<mime>;base64,…`
+   * - `/api/storage/<k>`  → read from getDefaultAssetsPath()/<k> (legacy fallback)
+   * - Everything else     → returned unchanged (http/https/data: pass through)
+   */
+  protected async resolveUri(uri: string): Promise<string> {
+    const { readFile } = await import("node:fs/promises");
+
+    if (uri.startsWith("file://")) {
+      try {
+        const { fileURLToPath } = await import("node:url");
+        const filePath = fileURLToPath(uri);
+        const bytes = await readFile(filePath);
+        const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+        const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
+        return `data:${mime};base64,${bytes.toString("base64")}`;
+      } catch {
+        return uri;
+      }
+    }
+
+    // Legacy: old messages stored with browser-facing /api/storage/ path
+    if (uri.startsWith("/api/storage/")) {
+      const key = uri.slice("/api/storage/".length);
+      try {
+        const bytes = await readFile(getAssetFilePath(key));
+        const ext = key.split(".").pop()?.toLowerCase() ?? "";
+        const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
+        return `data:${mime};base64,${bytes.toString("base64")}`;
+      } catch {
+        // Remote deployment: file not local, fall back to absolute HTTP
+        return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
+      }
+    }
+
+    return uri;
+  }
 }
+
+const EXT_TO_MIME: Record<string, string> = {
+  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+  gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
+  mp4: "video/mp4", webm: "video/webm",
+  mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg",
+  pdf: "application/pdf"
+};

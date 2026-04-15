@@ -6,6 +6,28 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 // Generate a unique ID for each file
 const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+/** Infer MIME type from file extension when the browser doesn't provide one */
+function resolveFileType(file: File): string {
+  if (file.type) return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const mimeMap: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+    svg: "image/svg+xml",
+    bmp: "image/bmp",
+    mp4: "video/mp4",
+    webm: "video/webm",
+    mp3: "audio/mpeg",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    pdf: "application/pdf"
+  };
+  return ext ? (mimeMap[ext] ?? "application/octet-stream") : "application/octet-stream";
+}
+
 export const useFileHandling = () => {
   const [droppedFiles, setDroppedFiles] = useState<DroppedFile[]>([]);
   const addNotification = useNotificationStore((state) => state.addNotification);
@@ -54,13 +76,14 @@ export const useFileHandling = () => {
   const addFiles = useCallback(
     (files: File[]) => {
       const filePromises = files.map((file) => {
+        const mimeType = resolveFileType(file);
         return new Promise<DroppedFile>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
             resolve({
               id: generateFileId(),
               dataUri: reader.result as string,
-              type: file.type,
+              type: mimeType,
               name: file.name
             });
           };

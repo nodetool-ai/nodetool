@@ -141,5 +141,19 @@ export const createMediaComposerStyles = (theme: Theme) =>
       display: "flex",
       flexWrap: "wrap",
       gap: 6
+    },
+
+    ".file-preview": {
+      position: "relative",
+      maxWidth: 48,
+      maxHeight: 48,
+      flexShrink: 0,
+
+      img: {
+        width: 48,
+        height: 48,
+        objectFit: "cover",
+        borderRadius: 4
+      }
     }
   });

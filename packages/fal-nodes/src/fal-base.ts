@@ -37,12 +37,22 @@ function getClient(apiKey: string): FalClient {
 export async function falSubmit(
   apiKey: string,
   endpoint: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  onProgress?: (message: string) => void
 ): Promise<Record<string, unknown>> {
   const client = getClient(apiKey);
   const result = await client.subscribe(endpoint, {
     input: args,
-    logs: true
+    logs: true,
+    onQueueUpdate: onProgress
+      ? (update: { status: string; logs?: Array<{ message: string }> }) => {
+          if (update.status === "IN_PROGRESS") {
+            for (const entry of update.logs ?? []) {
+              onProgress(entry.message);
+            }
+          }
+        }
+      : undefined
   });
   return (result.data ?? result) as Record<string, unknown>;
 }
