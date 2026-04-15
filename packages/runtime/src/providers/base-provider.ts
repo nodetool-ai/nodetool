@@ -21,7 +21,7 @@ import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
+import { createLogger, getAssetFilePath } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.provider");
 
@@ -533,13 +533,13 @@ export abstract class BaseProvider {
     // Legacy: old messages stored with browser-facing /api/storage/ path
     if (uri.startsWith("/api/storage/")) {
       const key = uri.slice("/api/storage/".length);
-      const filePath = `${getDefaultAssetsPath()}/${key}`;
       try {
-        const bytes = await readFile(filePath);
+        const bytes = await readFile(getAssetFilePath(key));
         const ext = key.split(".").pop()?.toLowerCase() ?? "";
         const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
         return `data:${mime};base64,${bytes.toString("base64")}`;
       } catch {
+        // Remote deployment: file not local, fall back to absolute HTTP
         return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
       }
     }

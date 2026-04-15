@@ -8,8 +8,7 @@
  * asset_id directly to a file:// URI so no HTTP round-trip is needed.
  */
 
-import { buildAssetUrl, getDefaultAssetsPath } from "@nodetool/config";
-import { join } from "node:path";
+import { buildAssetUrl, getAssetFilePath } from "@nodetool/config";
 import { pathToFileURL } from "node:url";
 
 const MIME_TO_EXT: Record<string, string> = {
@@ -67,7 +66,7 @@ function resolveRefForProvider(
 
   if (typeof resolved.asset_id === "string" && resolved.asset_id && !resolved.uri) {
     const ext = extFromMime(mime);
-    const filePath = join(getDefaultAssetsPath(), `${resolved.asset_id as string}.${ext}`);
+    const filePath = getAssetFilePath(`${resolved.asset_id as string}.${ext}`);
     resolved.uri = pathToFileURL(filePath).href;
   }
 

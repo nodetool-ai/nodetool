@@ -83,12 +83,24 @@ export function getTempDomain(): string | undefined {
 }
 
 /**
- * Build a public URL for an asset identified by its storage key.
+ * Return the absolute filesystem path for a storage key.
+ *
+ * Use this on the server side whenever you need to read an asset from disk.
+ * Never pass the result to a browser client — use `buildAssetUrl` for that.
+ */
+export function getAssetFilePath(key: string): string {
+  return join(getDefaultAssetsPath(), key.replace(/^\/+/, ""));
+}
+
+/**
+ * Build a **client-facing** URL for an asset identified by its storage key.
  *
  * The key is the storage-relative path (e.g. `abc.png` or `temp/uuid.png`).
- * When ASSET_DOMAIN / TEMP_DOMAIN are configured, returns an absolute URL
- * on the matching domain; otherwise returns the server-relative path
- * `/api/storage/<key>` so the HTTP API serves it directly.
+ * When ASSET_DOMAIN / TEMP_DOMAIN are configured, returns an absolute CDN URL.
+ * Otherwise returns `/api/storage/<key>` — a dev-mode path that the browser
+ * can reach via the Vite proxy or the local HTTP server.
+ *
+ * Do NOT use this for server-side file reads. Use `getAssetFilePath` instead.
  */
 export function buildAssetUrl(key: string): string {
   const normalized = key.replace(/^\/+/, "");
