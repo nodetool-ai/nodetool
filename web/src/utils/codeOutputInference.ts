@@ -26,9 +26,9 @@ export function inferOutputKeysFromCode(code: string): string[] | null {
   let lastReturnKeys: string[] | null = null;
 
   walk.simple(ast, {
-    ReturnStatement(node: any) {
+    ReturnStatement(node: acorn.ReturnStatement) {
       if (node.argument?.type === "ObjectExpression") {
-        const keys = extractObjectKeys(node.argument);
+        const keys = extractObjectKeys(node.argument as acorn.ObjectExpression);
         if (keys.length > 0) {
           lastReturnKeys = keys;
         }
@@ -39,14 +39,15 @@ export function inferOutputKeysFromCode(code: string): string[] | null {
   return lastReturnKeys;
 }
 
-function extractObjectKeys(objExpr: any): string[] {
+function extractObjectKeys(objExpr: acorn.ObjectExpression): string[] {
   const keys: string[] = [];
   for (const prop of objExpr.properties) {
     if (prop.type === "SpreadElement") continue;
-    if (prop.key?.type === "Identifier") {
-      keys.push(prop.key.name);
-    } else if (prop.key?.type === "Literal" && typeof prop.key.value === "string") {
-      keys.push(prop.key.value);
+    const property = prop as acorn.Property;
+    if (property.key.type === "Identifier") {
+      keys.push((property.key as acorn.Identifier).name);
+    } else if (property.key.type === "Literal" && typeof (property.key as acorn.Literal).value === "string") {
+      keys.push((property.key as acorn.Literal).value as string);
     }
   }
   return keys;
@@ -95,42 +96,42 @@ export function inferInputKeysFromCode(code: string): string[] | null {
 
   // Collect all declarations
   walk.simple(ast, {
-    VariableDeclarator(node: any) {
+    VariableDeclarator(node: acorn.VariableDeclarator) {
       collectBindingNames(node.id, declared);
     },
-    FunctionDeclaration(node: any) {
+    FunctionDeclaration(node: acorn.FunctionDeclaration | acorn.AnonymousFunctionDeclaration) {
       if (node.id?.name) declared.add(node.id.name);
       for (const param of node.params) {
         collectBindingNames(param, declared);
       }
     },
-    FunctionExpression(node: any) {
+    FunctionExpression(node: acorn.FunctionExpression) {
       if (node.id?.name) declared.add(node.id.name);
       for (const param of node.params) {
         collectBindingNames(param, declared);
       }
     },
-    ArrowFunctionExpression(node: any) {
+    ArrowFunctionExpression(node: acorn.ArrowFunctionExpression) {
       for (const param of node.params) {
         collectBindingNames(param, declared);
       }
     },
-    ClassDeclaration(node: any) {
+    ClassDeclaration(node: acorn.ClassDeclaration | acorn.AnonymousClassDeclaration) {
       if (node.id?.name) declared.add(node.id.name);
     },
-    CatchClause(node: any) {
+    CatchClause(node: acorn.CatchClause) {
       if (node.param) collectBindingNames(node.param, declared);
     },
-    ImportDeclaration(node: any) {
-      for (const spec of node.specifiers || []) {
-        if (spec.local?.name) declared.add(spec.local.name);
+    ImportDeclaration(node: acorn.ImportDeclaration) {
+      for (const spec of node.specifiers) {
+        if (spec.local.name) declared.add(spec.local.name);
       }
     }
   });
 
   // Collect all referenced identifiers (excluding property access and object keys)
   walk.ancestor(ast, {
-    Identifier(node: any, ancestors: any[]) {
+    Identifier(node: acorn.Identifier, _state: unknown, ancestors: acorn.AnyNode[]) {
       const parent = ancestors[ancestors.length - 2];
       if (!parent) return;
 
@@ -174,7 +175,7 @@ export function inferInputKeysFromCode(code: string): string[] | null {
 /**
  * Collect binding names from a pattern node (handles destructuring).
  */
-function collectBindingNames(pattern: any, out: Set<string>): void {
+function collectBindingNames(pattern: acorn.Pattern | null | undefined, out: Set<string>): void {
   if (!pattern) return;
   switch (pattern.type) {
     case "Identifier":
@@ -215,7 +216,7 @@ function tryParse(code: string): acorn.Node | null {
   if (!code || typeof code !== "string") return null;
 
   const opts: acorn.Options = {
-    ecmaVersion: "latest" as any,
+    ecmaVersion: "latest",
     sourceType: "module",
     allowReturnOutsideFunction: true,
     allowAwaitOutsideFunction: true

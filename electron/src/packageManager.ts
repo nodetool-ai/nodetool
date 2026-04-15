@@ -4,6 +4,28 @@ import { logMessage } from "./logger";
 import { getProcessEnv, getPythonPath, getCondaEnvPath } from "./config";
 import * as path from "path";
 
+/** Extract the message from an unknown catch-clause error. */
+function errorMsg(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Shape of a single entry from `uv pip list --format=json`. */
+interface PipPackage {
+  name: string;
+  version: string;
+}
+
+/** Shape of a package entry from the nodetool registry JSON. */
+interface RegistryPackageItem {
+  name: string;
+  description?: string;
+  repo_id: string;
+  namespaces?: string[];
+  version?: string;
+  latestVersion?: string;
+  latest_version?: string;
+}
+
 // TODO: Package manager needs to be rewritten for npm packages.
 // This is a temporary stub — uv/pip is no longer installed in the conda env.
 function getUVPath(): string {
@@ -56,12 +78,12 @@ function getAppVersion(): string {
 async function getInstalledNodetoolPackages(): Promise<string[]> {
   try {
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const allPackages = JSON.parse(output);
+    const allPackages = JSON.parse(output) as PipPackage[];
     return allPackages
-      .filter((pkg: any) => pkg.name.startsWith("nodetool-"))
-      .map((pkg: any) => pkg.name);
-  } catch (error: any) {
-    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+      .filter((pkg) => pkg.name.startsWith("nodetool-"))
+      .map((pkg) => pkg.name);
+  } catch (error: unknown) {
+    logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
     return [];
   }
 }
@@ -93,8 +115,8 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
 
       response.on("end", () => {
         try {
-          const registryData = JSON.parse(data);
-          const packages = (registryData.packages || []).map((pkg: any) => ({
+          const registryData = JSON.parse(data) as { packages?: RegistryPackageItem[] };
+          const packages = (registryData.packages || []).map((pkg) => ({
             name: pkg.name,
             description: pkg.description ?? "",
             repo_id: pkg.repo_id,
@@ -245,9 +267,9 @@ async function fetchLatestVersionFromSimpleIndex(
 
     candidates.sort(compareVersions);
     return candidates[candidates.length - 1];
-  } catch (error: any) {
+  } catch (error: unknown) {
     logMessage(
-      `Failed to fetch latest version for ${packageName}: ${error.message}`,
+      `Failed to fetch latest version for ${packageName}: ${errorMsg(error)}`,
       "warn"
     );
     return null;
@@ -259,14 +281,14 @@ async function fetchPackageNodes(repoId: string): Promise<PackageNode[]> {
     const packageName = repoId.split("/")[1];
     const url = `https://raw.githubusercontent.com/${repoId}/main/${METADATA_PATH}/${packageName}.json`;
     const jsonText = await httpsGet(url);
-    const metadata = JSON.parse(jsonText);
-    const nodes: PackageNode[] = (metadata.nodes || []).map((node: any) => ({
+    const metadata = JSON.parse(jsonText) as { nodes?: Partial<PackageNode>[] };
+    const nodes: PackageNode[] = (metadata.nodes || []).map((node) => ({
       ...node,
       package: repoId,
-    }));
+    } as PackageNode));
     return nodes;
-  } catch (error: any) {
-    logMessage(`Error fetching nodes from ${repoId}: ${error.message}`, "warn");
+  } catch (error: unknown) {
+    logMessage(`Error fetching nodes from ${repoId}: ${errorMsg(error)}`, "warn");
     return [];
   }
 }
@@ -289,8 +311,8 @@ export async function fetchAllNodes(
     }
     nodeCache = allNodes;
     return allNodes;
-  } catch (error: any) {
-    logMessage(`Failed to fetch all nodes: ${error.message}`, "error");
+  } catch (error: unknown) {
+    logMessage(`Failed to fetch all nodes: ${errorMsg(error)}`, "error");
     return [];
   }
 }
@@ -447,9 +469,9 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
     try {
       const registry = await fetchAvailablePackages();
       registryPackages = registry.packages;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logMessage(
-        `Failed to fetch package registry for update check: ${error.message}`,
+        `Failed to fetch package registry for update check: ${errorMsg(error)}`,
         "warn"
       );
     }
@@ -505,8 +527,8 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
 
     const results = await Promise.all(updateChecks);
     return results.filter((entry): entry is PackageUpdateInfo => entry !== null);
-  } catch (error: any) {
-    logMessage(`Failed to check for package updates: ${error.message}`, "warn");
+  } catch (error: unknown) {
+    logMessage(`Failed to check for package updates: ${errorMsg(error)}`, "warn");
     return [];
   }
 }
@@ -622,12 +644,12 @@ async function listInstalledPackagesInternal(): Promise<PackageModel[]> {
   try {
     // Use uv pip list to get all installed packages
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const allPackages = JSON.parse(output);
+    const allPackages = JSON.parse(output) as PipPackage[];
 
     // Filter for nodetool packages
     const nodetoolPackages = allPackages
-      .filter((pkg: any) => pkg.name.startsWith("nodetool-"))
-      .map((pkg: any) => {
+      .filter((pkg) => pkg.name.startsWith("nodetool-"))
+      .map((pkg) => {
         return {
           name: pkg.name,
           description: "", // uv pip list doesn't provide description
@@ -641,8 +663,8 @@ async function listInstalledPackagesInternal(): Promise<PackageModel[]> {
       });
 
     return nodetoolPackages;
-  } catch (error: any) {
-    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+  } catch (error: unknown) {
+    logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
     return [];
   }
 }
@@ -674,8 +696,8 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
       packages: enrichedPackages,
       count: enrichedPackages.length,
     };
-  } catch (error: any) {
-    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+  } catch (error: unknown) {
+    logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
     return { packages: [], count: 0 };
   }
 }
@@ -729,14 +751,14 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       success: true,
       message: `Package ${repoId} v${latestVersion} installed successfully from wheel index`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logMessage(
-      `Failed to install package ${repoId}: ${error.message}`,
+      `Failed to install package ${repoId}: ${errorMsg(error)}`,
       "error"
     );
     return {
       success: false,
-      message: `Failed to install package: ${error.message}`,
+      message: `Failed to install package: ${errorMsg(error)}`,
     };
   }
 }
@@ -758,14 +780,14 @@ export async function uninstallPackage(
       success: true,
       message: `Package ${repoId} uninstalled successfully`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logMessage(
-      `Failed to uninstall package ${repoId}: ${error.message}`,
+      `Failed to uninstall package ${repoId}: ${errorMsg(error)}`,
       "error"
     );
     return {
       success: false,
-      message: `Failed to uninstall package: ${error.message}`,
+      message: `Failed to uninstall package: ${errorMsg(error)}`,
     };
   }
 }
@@ -824,11 +846,11 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       success: true,
       message: `Package ${repoId} updated to v${latestVersion} successfully from wheel index`,
     };
-  } catch (error: any) {
-    logMessage(`Failed to update package ${repoId}: ${error.message}`, "error");
+  } catch (error: unknown) {
+    logMessage(`Failed to update package ${repoId}: ${errorMsg(error)}`, "error");
     return {
       success: false,
-      message: `Failed to update package: ${error.message}`,
+      message: `Failed to update package: ${errorMsg(error)}`,
     };
   }
 }
@@ -896,13 +918,13 @@ export async function checkPackageVersion(
     }
 
     return { needsUpdate: false, currentVersion };
-  } catch (error: any) {
-    if (error.message.includes("package not found")) {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("package not found")) {
       logMessage(`Package ${packageName} not installed, needs installation`);
       return { needsUpdate: true, expectedVersion };
     }
     logMessage(
-      `Failed to check version for ${packageName}: ${error.message}`,
+      `Failed to check version for ${packageName}: ${errorMsg(error)}`,
       "warn"
     );
     return { needsUpdate: false };
@@ -954,9 +976,9 @@ export async function checkExpectedPackageVersions(): Promise<
         });
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logMessage(
-      `Failed to check expected package versions: ${error.message}`,
+      `Failed to check expected package versions: ${errorMsg(error)}`,
       "error"
     );
   }
@@ -1019,12 +1041,13 @@ export async function installExpectedPackages(): Promise<{
       emitBootMessage(successMessage);
 
       packagesUpdated = packagesNeedingUpdate.length;
-    } catch (error: any) {
-      logMessage(`Failed to install packages: ${error.message}`, "error");
+    } catch (error: unknown) {
+      const msg = errorMsg(error);
+      logMessage(`Failed to install packages: ${msg}`, "error");
       for (const pkg of packagesNeedingUpdate) {
         failures.push({
           packageName: pkg.packageName,
-          error: error.message,
+          error: msg,
         });
       }
     }
@@ -1263,9 +1286,9 @@ export async function installRuntimePackage(
     }
 
     return { success: true, message: `${def.name} installed successfully` };
-  } catch (error: any) {
-    logMessage(`Failed to install runtime package ${packageId}: ${error.message}`, "error");
-    return { success: false, message: `Failed to install: ${error.message}` };
+  } catch (error: unknown) {
+    logMessage(`Failed to install runtime package ${packageId}: ${errorMsg(error)}`, "error");
+    return { success: false, message: `Failed to install: ${errorMsg(error)}` };
   } finally {
     runtimeInstalling.delete(packageId);
   }
@@ -1292,8 +1315,8 @@ export async function uninstallRuntimePackage(
     await removeCondaPackageBySpec(condaEnvPath, def.condaPackages, `Removing ${def.name}`);
 
     return { success: true, message: `${def.name} removed successfully` };
-  } catch (error: any) {
-    logMessage(`Failed to uninstall runtime package ${packageId}: ${error.message}`, "error");
-    return { success: false, message: `Failed to uninstall: ${error.message}` };
+  } catch (error: unknown) {
+    logMessage(`Failed to uninstall runtime package ${packageId}: ${errorMsg(error)}`, "error");
+    return { success: false, message: `Failed to uninstall: ${errorMsg(error)}` };
   }
 }

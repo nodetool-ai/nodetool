@@ -225,7 +225,7 @@ describe("FalProvider", () => {
         prompt: "test",
         model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" }
       })
-    ).rejects.toThrow("Unexpected FAL response format");
+    ).rejects.toThrow("Unexpected FAL image response");
   });
 
   it("textToImage throws on failed download", async () => {

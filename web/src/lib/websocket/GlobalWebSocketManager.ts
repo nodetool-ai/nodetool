@@ -8,6 +8,18 @@ import { handleResourceChange } from "../../stores/resourceChangeHandler";
 import { handleSystemStats } from "../../stores/systemStatsHandler";
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 
+/**
+ * Base shape of every message routed through the WebSocket.
+ * Handlers receive the full decoded message and cast to their specific type.
+ */
+export interface WebSocketMessage {
+  type: string;
+  thread_id?: string;
+  workflow_id?: string;
+  job_id?: string;
+  [key: string]: unknown;
+}
+
 // Message handlers can receive any message type - they are responsible for their own type checking
 type MessageHandler = (message: any) => void;
 type GlobalWebSocketEvent =
@@ -104,9 +116,10 @@ class GlobalWebSocketManager extends EventEmitter {
         this.sendToolsManifest();
       });
 
-      this.wsManager.on("message", (data: any) => {
-        this.routeMessage(data);
-        this.emit("message", data);
+      this.wsManager.on("message", (data: unknown) => {
+        const message = data as WebSocketMessage;
+        this.routeMessage(message);
+        this.emit("message", message);
       });
 
       this.wsManager.on("error", (error: Error) => {
@@ -152,11 +165,11 @@ class GlobalWebSocketManager extends EventEmitter {
    * Special handling for resource_change and system_stats messages which don't
    * have routing keys but should update global state.
    */
-  private routeMessage(message: any): void {
+  private routeMessage(message: WebSocketMessage): void {
     // Handle resource_change messages separately
     if (message.type === "resource_change") {
       try {
-        handleResourceChange(message as ResourceChangeUpdate);
+        handleResourceChange(message as unknown as ResourceChangeUpdate);
       } catch (error) {
         log.error("GlobalWebSocketManager: Error handling resource change:", error);
       }
@@ -168,7 +181,7 @@ class GlobalWebSocketManager extends EventEmitter {
     // Handle system_stats messages separately
     if (message.type === "system_stats") {
       try {
-        handleSystemStats(message);
+        handleSystemStats(message as unknown as Parameters<typeof handleSystemStats>[0]);
       } catch (error) {
         log.error("GlobalWebSocketManager: Error handling system stats:", error);
       }

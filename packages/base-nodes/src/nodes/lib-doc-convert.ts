@@ -5,6 +5,8 @@ import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
 import { promisify } from "node:util";
 
 const execFile = promisify(execFileCb);
@@ -179,8 +181,11 @@ async function pdfToText(inputBytes: Buffer): Promise<string> {
     };
   }
   const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  // Point to the worker module so pdfjs can set up its fake worker in Node.js
-  const workerUrl = import.meta.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
+  // Point to the worker module so pdfjs can set up its fake worker in Node.js.
+  // import.meta.resolve is not supported in all runtimes (e.g. Vitest module
+  // runner), so we fall back to createRequire which is universally available.
+  const _require = createRequire(import.meta.url);
+  const workerUrl = pathToFileURL(_require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs")).href;
   pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
   const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(inputBytes), useSystemFonts: true });
   const doc = await loadingTask.promise;
