@@ -12,7 +12,6 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
-  FlatList,
   StyleSheet,
   SafeAreaView,
   ScrollView,

@@ -28,7 +28,7 @@ function isDevMode(): boolean {
 }
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
-import { getServerUrl, getServerPort } from "./utils";
+import { getServerUrl } from "./utils";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
