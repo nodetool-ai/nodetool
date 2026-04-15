@@ -362,6 +362,11 @@ export abstract class BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    /**
+     * Requested output container. Providers that stream raw PCM may ignore
+     * this hint; the caller is responsible for wrapping/encoding the result.
+     */
+    audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     yield* [];
     throw new Error(`${this.provider} does not support textToSpeech`);
@@ -371,12 +376,17 @@ export abstract class BaseProvider {
    * Override this for providers that return fully-encoded audio (FLAC, WAV,
    * MP3) instead of raw PCM samples. Returns null by default, meaning the
    * caller should fall back to the streaming PCM `textToSpeech()` path.
+   *
+   * Providers that honor `audioFormat` should return audio in that container
+   * when possible and fall back to their default when the format is not
+   * supported. The returned `mimeType` reflects the actual bytes produced.
    */
   async textToSpeechEncoded(_args: {
     text: string;
     model: string;
     voice?: string;
     speed?: number;
+    audioFormat?: string;
   }): Promise<EncodedAudioResult | null> {
     return null;
   }

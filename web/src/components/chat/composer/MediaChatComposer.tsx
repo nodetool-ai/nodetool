@@ -237,6 +237,29 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     textareaRef.current?.focus();
   }, []);
 
+  // Close any open model / option dialogs whenever the mode changes. The
+  // image- and video-model dialogs are intentionally shared between the
+  // `image`/`image_edit` and `video`/`image_to_video` chip clusters
+  // respectively (their JSX is mutually exclusive), but switching modes
+  // programmatically while a dialog is open would otherwise leave it in an
+  // orphaned open state pointing at a now-unmounted anchor button.
+  useEffect(() => {
+    setModeAnchor(null);
+    setDurationAnchor(null);
+    setResolutionAnchor(null);
+    setAspectAnchor(null);
+    setVariationsAnchor(null);
+    setVoiceAnchor(null);
+    setSpeedAnchor(null);
+    setAudioFormatAnchor(null);
+    setStrengthAnchor(null);
+    setStepsAnchor(null);
+    setImageModelOpen(false);
+    setVideoModelOpen(false);
+    setLanguageModelOpen(false);
+    setTtsModelOpen(false);
+  }, [mode]);
+
   // Build media_generation payload from current state
   const buildMediaGeneration = useCallback((): MediaGenerationRequest => {
     if (mode === "chat") {

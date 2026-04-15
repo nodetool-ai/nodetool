@@ -178,7 +178,7 @@ export interface ImageEditParams {
   variations: number;
 }
 
-export interface ImageToVideoParams {
+export interface ImageToVideoGenerationParams {
   model: VideoModelSelection | null;
   resolution: VideoResolution;
   aspectRatio: string;
@@ -191,13 +191,13 @@ export interface MediaGenerationState {
   image: ImageGenerationParams;
   imageEdit: ImageEditParams;
   video: VideoGenerationParams;
-  imageToVideo: ImageToVideoParams;
+  imageToVideo: ImageToVideoGenerationParams;
   audio: AudioGenerationParams;
   setMode: (mode: MediaMode) => void;
   setImageParams: (params: Partial<ImageGenerationParams>) => void;
   setImageEditParams: (params: Partial<ImageEditParams>) => void;
   setVideoParams: (params: Partial<VideoGenerationParams>) => void;
-  setImageToVideoParams: (params: Partial<ImageToVideoParams>) => void;
+  setImageToVideoParams: (params: Partial<ImageToVideoGenerationParams>) => void;
   setAudioParams: (params: Partial<AudioGenerationParams>) => void;
 }
 
@@ -231,7 +231,7 @@ const DEFAULT_IMAGE_EDIT_PARAMS: ImageEditParams = {
   variations: 1
 };
 
-const DEFAULT_IMAGE_TO_VIDEO_PARAMS: ImageToVideoParams = {
+const DEFAULT_IMAGE_TO_VIDEO_PARAMS: ImageToVideoGenerationParams = {
   model: null,
   resolution: "1080p",
   aspectRatio: "16:9",

@@ -7,6 +7,7 @@ const log = createLogger("nodetool.runtime.providers.openai");
 import type {
   ASRModel,
   EmbeddingModel,
+  EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
@@ -969,6 +970,7 @@ export class OpenAIProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     if (!args.text) {
       throw new Error("text must not be empty");
@@ -1009,6 +1011,56 @@ export class OpenAIProvider extends BaseProvider {
         : response
     );
     yield { samples: toInt16Samples(bytes) };
+  }
+
+  /**
+   * OpenAI supports several fully-encoded TTS formats directly (mp3, opus,
+   * aac, flac, wav). Use this path when the caller has requested one of them
+   * so we can skip the PCM → WAV wrapping step and honor the user's choice.
+   * For `"pcm"` (and anything unrecognised) we return `null` and let the
+   * streaming PCM path handle it.
+   */
+  override async textToSpeechEncoded(args: {
+    text: string;
+    model: string;
+    voice?: string;
+    speed?: number;
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
+    if (!args.text) {
+      throw new Error("text must not be empty");
+    }
+
+    const fmt = (args.audioFormat ?? "").toLowerCase();
+    const formatToMime: Record<string, string> = {
+      mp3: "audio/mpeg",
+      opus: "audio/ogg",
+      aac: "audio/aac",
+      flac: "audio/flac",
+      wav: "audio/wav"
+    };
+    if (!(fmt in formatToMime)) {
+      return null;
+    }
+
+    const voice = args.voice ?? "alloy";
+    const speed = Math.max(0.25, Math.min(4.0, args.speed ?? 1.0));
+
+    const speechApi = this.getClient().audio.speech as any;
+    const response = await speechApi.create({
+      model: args.model,
+      input: args.text,
+      voice,
+      speed,
+      response_format: fmt
+    });
+
+    const bytes = asUint8Array(
+      typeof response.arrayBuffer === "function"
+        ? await response.arrayBuffer()
+        : response
+    );
+    return { data: bytes, mimeType: formatToMime[fmt] };
   }
 
   async automaticSpeechRecognition(args: {

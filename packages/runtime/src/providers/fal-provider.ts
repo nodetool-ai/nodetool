@@ -143,6 +143,8 @@ export class FalProvider extends BaseProvider {
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) args.aspect_ratio = params.aspectRatio;
     if (params.numFrames) args.num_frames = params.numFrames;
+    if (params.durationSeconds != null)
+      args.duration = params.durationSeconds;
     if (params.guidanceScale != null)
       args.guidance_scale = params.guidanceScale;
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
@@ -170,6 +172,8 @@ export class FalProvider extends BaseProvider {
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) args.aspect_ratio = params.aspectRatio;
     if (params.numFrames) args.num_frames = params.numFrames;
+    if (params.durationSeconds != null)
+      args.duration = params.durationSeconds;
     if (params.guidanceScale != null)
       args.guidance_scale = params.guidanceScale;
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;

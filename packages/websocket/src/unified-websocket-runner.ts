@@ -61,6 +61,64 @@ const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
 
+/**
+ * Return `true` when the given http(s) URL appears to point at a public
+ * destination (not a loopback, link-local, or RFC1918 private address).
+ *
+ * Used before `fetch`ing URLs supplied by chat clients to resolve source
+ * images — without this gate, an authenticated user could coerce the server
+ * into reading internal services via `http://169.254.169.254/...`,
+ * `http://localhost:6379/...`, etc. The check is conservative: unparseable
+ * URLs and literal IP addresses in private ranges are refused. DNS-based
+ * bypass is still possible, so this is a defense-in-depth measure and not a
+ * full SSRF mitigation; intended for complementing network-level egress
+ * filtering.
+ */
+function isSafeExternalUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return false;
+  }
+  // Normalise IPv6 hostnames: WHATWG URL may return them with or without
+  // surrounding brackets depending on the runtime.
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host) return false;
+  if (
+    host === "localhost" ||
+    host === "ip6-localhost" ||
+    host === "ip6-loopback" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return false;
+  }
+  // IPv4 literal check
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = ipv4.slice(1).map((n) => parseInt(n, 10));
+    // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16,
+    // 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 (CGNAT)
+    if (a === 0 || a === 10 || a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+  }
+  // IPv6 literal — refuse loopback / ULA / link-local / unspecified ranges.
+  if (host.includes(":")) {
+    if (host === "::" || host === "::1") return false;
+    if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
+    if (host.startsWith("fe80:")) return false; // link-local
+  }
+  return true;
+}
+
 function sanitizeLargeText(
   text: string,
   maxLength = MAX_ERROR_TEXT_LENGTH
@@ -2761,7 +2819,7 @@ export class UnifiedWebSocketRunner {
           prompt,
           aspectRatio,
           resolution,
-          numFrames: duration ? duration * 24 : null
+          durationSeconds: duration
         };
 
         await this.sendMessage({
@@ -2817,6 +2875,22 @@ export class UnifiedWebSocketRunner {
           typeof mediaGeneration.speed === "number"
             ? (mediaGeneration.speed as number)
             : 1.0;
+        const requestedFormatRaw =
+          typeof mediaGeneration.audio_format === "string"
+            ? (mediaGeneration.audio_format as string).toLowerCase()
+            : null;
+        const supportedFormats = new Set([
+          "mp3",
+          "wav",
+          "pcm",
+          "opus",
+          "flac",
+          "aac"
+        ]);
+        const requestedFormat =
+          requestedFormatRaw && supportedFormats.has(requestedFormatRaw)
+            ? requestedFormatRaw
+            : null;
         await this.sendMessage({
           type: "chunk",
           thread_id: threadId,
@@ -2827,26 +2901,40 @@ export class UnifiedWebSocketRunner {
         });
 
         let assetId: string;
+        let audioMimeType: string;
 
-        // Some providers (e.g. HuggingFace) return fully-encoded audio
-        // (FLAC, WAV, MP3). Try that path first.
+        // Some providers (e.g. HuggingFace, OpenAI) can return fully-encoded
+        // audio. Prefer that path when available and honor the requested
+        // container when the provider supports it.
         const encoded = await provider.textToSpeechEncoded({
           text: prompt,
           model: modelId,
           voice,
-          speed
+          speed,
+          audioFormat: requestedFormat ?? undefined
         });
 
         if (encoded) {
-          const ext =
-            encoded.mimeType === "audio/mpeg"
-              ? "mp3"
-              : encoded.mimeType === "audio/wav"
-                ? "wav"
-                : encoded.mimeType === "audio/ogg"
-                  ? "ogg"
-                  : "flac";
+          const mimeToExt: Record<string, string> = {
+            "audio/mpeg": "mp3",
+            "audio/wav": "wav",
+            "audio/ogg": "ogg",
+            "audio/flac": "flac",
+            "audio/aac": "aac"
+          };
+          const ext = mimeToExt[encoded.mimeType] ?? "flac";
+          if (
+            requestedFormat &&
+            requestedFormat !== ext &&
+            requestedFormat !== "pcm"
+          ) {
+            log.warn(
+              "Requested audio_format not supported by provider; returning native format",
+              { providerId, modelId, requestedFormat, returnedMime: encoded.mimeType }
+            );
+          }
           assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
+          audioMimeType = encoded.mimeType;
         } else {
           // Streaming PCM path (OpenAI, Gemini, etc.)
           const pcmChunks: Uint8Array[] = [];
@@ -2856,7 +2944,8 @@ export class UnifiedWebSocketRunner {
             text: prompt,
             model: modelId,
             voice,
-            speed
+            speed,
+            audioFormat: requestedFormat ?? undefined
           })) {
             if (
               requestSeq !== undefined &&
@@ -2882,40 +2971,55 @@ export class UnifiedWebSocketRunner {
             off += c.byteLength;
           }
 
-          // Wrap raw PCM Int16 in a WAV container so browsers can play it.
-          const sampleRate = chunkSampleRate;
-          const numChannels = 1;
-          const bitsPerSample = 16;
-          const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-          const blockAlign = numChannels * (bitsPerSample / 8);
-          const wavHeader = new ArrayBuffer(44);
-          const dv = new DataView(wavHeader);
-          const writeStr = (pos: number, str: string) => {
-            for (let i = 0; i < str.length; i++)
-              dv.setUint8(pos + i, str.charCodeAt(i));
-          };
-          writeStr(0, "RIFF");
-          dv.setUint32(4, 36 + merged.byteLength, true);
-          writeStr(8, "WAVE");
-          writeStr(12, "fmt ");
-          dv.setUint32(16, 16, true);
-          dv.setUint16(20, 1, true);
-          dv.setUint16(22, numChannels, true);
-          dv.setUint32(24, sampleRate, true);
-          dv.setUint32(28, byteRate, true);
-          dv.setUint16(32, blockAlign, true);
-          dv.setUint16(34, bitsPerSample, true);
-          writeStr(36, "data");
-          dv.setUint32(40, merged.byteLength, true);
+          if (requestedFormat === "pcm") {
+            // Return raw PCM Int16 bytes (no container).
+            assetId = await storeMediaAsset(merged, "audio/pcm", "pcm");
+            audioMimeType = "audio/pcm";
+          } else {
+            if (
+              requestedFormat &&
+              requestedFormat !== "wav" &&
+              requestedFormat !== "pcm"
+            ) {
+              log.warn(
+                "Requested audio_format cannot be produced from streaming PCM; falling back to WAV",
+                { providerId, modelId, requestedFormat }
+              );
+            }
+            // Wrap raw PCM Int16 in a WAV container so browsers can play it.
+            const sampleRate = chunkSampleRate;
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+            const blockAlign = numChannels * (bitsPerSample / 8);
+            const wavHeader = new ArrayBuffer(44);
+            const dv = new DataView(wavHeader);
+            const writeStr = (pos: number, str: string) => {
+              for (let i = 0; i < str.length; i++)
+                dv.setUint8(pos + i, str.charCodeAt(i));
+            };
+            writeStr(0, "RIFF");
+            dv.setUint32(4, 36 + merged.byteLength, true);
+            writeStr(8, "WAVE");
+            writeStr(12, "fmt ");
+            dv.setUint32(16, 16, true);
+            dv.setUint16(20, 1, true);
+            dv.setUint16(22, numChannels, true);
+            dv.setUint32(24, sampleRate, true);
+            dv.setUint32(28, byteRate, true);
+            dv.setUint16(32, blockAlign, true);
+            dv.setUint16(34, bitsPerSample, true);
+            writeStr(36, "data");
+            dv.setUint32(40, merged.byteLength, true);
 
-          const wav = new Uint8Array(44 + merged.byteLength);
-          wav.set(new Uint8Array(wavHeader), 0);
-          wav.set(merged, 44);
+            const wav = new Uint8Array(44 + merged.byteLength);
+            wav.set(new Uint8Array(wavHeader), 0);
+            wav.set(merged, 44);
 
-          assetId = await storeMediaAsset(wav, "audio/wav", "wav");
+            assetId = await storeMediaAsset(wav, "audio/wav", "wav");
+            audioMimeType = "audio/wav";
+          }
         }
-
-        const audioMimeType = encoded ? encoded.mimeType : "audio/wav";
 
         await this.sendMessage({
           type: "chunk",
@@ -3076,7 +3180,7 @@ export class UnifiedWebSocketRunner {
           prompt,
           aspectRatio,
           resolution,
-          numFrames: duration ? duration * 24 : null,
+          durationSeconds: duration,
           numInferenceSteps
         };
         const bytes = await provider.imageToVideo(sourceBytes, params);
@@ -3203,16 +3307,23 @@ export class UnifiedWebSocketRunner {
               }
             }
           } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
-            try {
-              const resp = await fetch(uri);
-              if (resp.ok) {
-                return new Uint8Array(await resp.arrayBuffer());
+            if (!isSafeExternalUrl(uri)) {
+              log.warn(
+                "resolveSourceImageBytes: refusing to fetch non-public URL",
+                { uri }
+              );
+            } else {
+              try {
+                const resp = await fetch(uri);
+                if (resp.ok) {
+                  return new Uint8Array(await resp.arrayBuffer());
+                }
+              } catch (err) {
+                log.warn("resolveSourceImageBytes: fetch failed", {
+                  uri,
+                  error: err instanceof Error ? err.message : String(err)
+                });
               }
-            } catch (err) {
-              log.warn("resolveSourceImageBytes: fetch failed", {
-                uri,
-                error: err instanceof Error ? err.message : String(err)
-              });
             }
           }
         }

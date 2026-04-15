@@ -144,6 +144,8 @@ export interface TextToVideoParams {
   prompt: string;
   negativePrompt?: string | null;
   numFrames?: number | null;
+  /** Requested duration in seconds (provider decides fps). */
+  durationSeconds?: number | null;
   aspectRatio?: string | null;
   resolution?: string | null;
   guidanceScale?: number | null;
@@ -156,6 +158,8 @@ export interface ImageToVideoParams {
   prompt?: string | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
+  /** Requested duration in seconds (provider decides fps). */
+  durationSeconds?: number | null;
   aspectRatio?: string | null;
   resolution?: string | null;
   guidanceScale?: number | null;

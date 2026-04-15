@@ -357,6 +357,8 @@ export class HuggingFaceProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    /** Ignored — HuggingFace models return their native encoding. */
+    audioFormat?: string;
   }): Promise<EncodedAudioResult | null> {
     if (!args.text) {
       throw new Error("text must not be empty");
