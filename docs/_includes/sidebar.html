@@ -1,106 +1,161 @@
-<aside class="sidebar">
+<aside class="sidebar" aria-label="Documentation navigation">
   <div class="sidebar-content">
     <div class="sidebar-header">
       <h3 class="sidebar-title">
-        <span class="title-icon">▸</span>
+        <span class="title-icon" aria-hidden="true">▸</span>
         Documentation
       </h3>
+      <button type="button" class="sidebar-collapse-all" aria-label="Collapse all sections">
+        <span class="sidebar-collapse-label">Collapse all</span>
+      </button>
     </div>
 
     <nav class="sidebar-nav">
-      <div class="nav-section">
-        <h4 class="nav-section-title">🚀 New to NodeTool?</h4>
+      <details class="nav-section" data-section="start" open>
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">New to NodeTool?</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
         <ul class="nav-section-list">
-          <li><a href="{{ '/' | relative_url }}" class="sidebar-link">Home</a></li>
-          <li><a href="{{ '/' | relative_url }}#start-here" class="sidebar-link">Start Here</a></li>
-          <li><a href="{{ '/installation' | relative_url }}" class="sidebar-link">Installation</a></li>
-          <li><a href="{{ '/getting-started' | relative_url }}" class="sidebar-link">Getting Started</a></li>
-          <li><a href="{{ '/key-concepts' | relative_url }}" class="sidebar-link">Key Concepts</a></li>
-          <li><a href="{{ '/glossary' | relative_url }}" class="sidebar-link">Glossary</a></li>
+          <li><a href="{{ '/installation' | relative_url }}" class="sidebar-link" data-nav-path="/installation">Installation</a></li>
+          <li><a href="{{ '/getting-started' | relative_url }}" class="sidebar-link" data-nav-path="/getting-started">Getting Started</a></li>
+          <li><a href="{{ '/key-concepts' | relative_url }}" class="sidebar-link" data-nav-path="/key-concepts">Key Concepts</a></li>
+          <li><a href="{{ '/glossary' | relative_url }}" class="sidebar-link" data-nav-path="/glossary">Glossary</a></li>
+          <li><a href="{{ '/comparisons' | relative_url }}" class="sidebar-link" data-nav-path="/comparisons">How NodeTool Compares</a></li>
         </ul>
-      </div>
+      </details>
 
-      <div class="nav-section">
-        <h4 class="nav-section-title">📖 Learn</h4>
+      <details class="nav-section" data-section="learn" open>
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">Learn</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
         <ul class="nav-section-list">
-          <li><a href="{{ '/app-views' | relative_url }}" class="sidebar-link">App Views Gallery</a></li>
-          <li><a href="{{ '/user-interface' | relative_url }}" class="sidebar-link">User Interface</a></li>
-          <li><a href="{{ '/workflow-editor' | relative_url }}" class="sidebar-link">Workflow Editor</a></li>
-          <li><a href="{{ '/editor-panels' | relative_url }}" class="sidebar-link">Editor Panels</a></li>
-          <li><a href="{{ '/chain-editor' | relative_url }}" class="sidebar-link">Chain Editor</a></li>
-          <li><a href="{{ '/workflow-graph-view' | relative_url }}" class="sidebar-link">Workflow Graph View</a></li>
-          <li><a href="{{ '/templates-gallery' | relative_url }}" class="sidebar-link">Templates Gallery</a></li>
-          <li><a href="{{ '/collections' | relative_url }}" class="sidebar-link">Collections</a></li>
-          <li><a href="{{ '/global-chat' | relative_url }}" class="sidebar-link">Global Chat</a></li>
-          <li><a href="{{ '/image-editor' | relative_url }}" class="sidebar-link">Image Editor</a></li>
-          <li><a href="{{ '/comfyui-integration' | relative_url }}" class="sidebar-link">ComfyUI Integration</a></li>
-          <li><a href="{{ '/vibecoding' | relative_url }}" class="sidebar-link">VibeCoding</a></li>
-          <li><a href="{{ '/mobile-app' | relative_url }}" class="sidebar-link">Mobile App</a></li>
-          <li><a href="{{ '/electron-views' | relative_url }}" class="sidebar-link">Desktop App Views</a></li>
-          <li><a href="{{ '/models-and-providers' | relative_url }}" class="sidebar-link">Models & Providers</a></li>
-          <li><a href="{{ '/global-chat-agents' | relative_url }}" class="sidebar-link">Global Chat & Agents</a></li>
-          <li><a href="{{ '/tips-and-tricks' | relative_url }}" class="sidebar-link">Tips & Tricks</a></li>
+          <li><a href="{{ '/app-views' | relative_url }}" class="sidebar-link" data-nav-path="/app-views">App Views Gallery</a></li>
+          <li><a href="{{ '/user-interface' | relative_url }}" class="sidebar-link" data-nav-path="/user-interface">User Interface</a></li>
+          <li><a href="{{ '/workflow-editor' | relative_url }}" class="sidebar-link" data-nav-path="/workflow-editor">Workflow Editor</a></li>
+          <li><a href="{{ '/editor-panels' | relative_url }}" class="sidebar-link" data-nav-path="/editor-panels">Editor Panels</a></li>
+          <li><a href="{{ '/chain-editor' | relative_url }}" class="sidebar-link" data-nav-path="/chain-editor">Chain Editor</a></li>
+          <li><a href="{{ '/workflow-graph-view' | relative_url }}" class="sidebar-link" data-nav-path="/workflow-graph-view">Workflow Graph View</a></li>
+          <li><a href="{{ '/workflow-debugging' | relative_url }}" class="sidebar-link" data-nav-path="/workflow-debugging">Debugging Workflows</a></li>
+          <li><a href="{{ '/templates-gallery' | relative_url }}" class="sidebar-link" data-nav-path="/templates-gallery">Templates Gallery</a></li>
+          <li><a href="{{ '/collections' | relative_url }}" class="sidebar-link" data-nav-path="/collections">Collections</a></li>
+          <li><a href="{{ '/global-chat' | relative_url }}" class="sidebar-link" data-nav-path="/global-chat">Global Chat</a></li>
+          <li><a href="{{ '/global-chat-agents' | relative_url }}" class="sidebar-link" data-nav-path="/global-chat-agents">Global Chat &amp; Agents</a></li>
+          <li><a href="{{ '/image-editor' | relative_url }}" class="sidebar-link" data-nav-path="/image-editor">Image Editor</a></li>
+          <li><a href="{{ '/comfyui-integration' | relative_url }}" class="sidebar-link" data-nav-path="/comfyui-integration">ComfyUI Integration</a></li>
+          <li><a href="{{ '/vibecoding' | relative_url }}" class="sidebar-link" data-nav-path="/vibecoding">VibeCoding</a></li>
+          <li><a href="{{ '/mobile-app' | relative_url }}" class="sidebar-link" data-nav-path="/mobile-app">Mobile App</a></li>
+          <li><a href="{{ '/electron-views' | relative_url }}" class="sidebar-link" data-nav-path="/electron-views">Desktop App Views</a></li>
+          <li><a href="{{ '/tips-and-tricks' | relative_url }}" class="sidebar-link" data-nav-path="/tips-and-tricks">Tips &amp; Tricks</a></li>
         </ul>
-      </div>
+      </details>
 
-      <div class="nav-section">
-        <h4 class="nav-section-title">📚 Examples</h4>
+      <details class="nav-section" data-section="examples">
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">Examples &amp; Nodes</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
         <ul class="nav-section-list">
-          <li><a href="{{ '/cookbook' | relative_url }}" class="sidebar-link">Cookbook</a></li>
-          <li><a href="{{ '/workflows/' | relative_url }}" class="sidebar-link">Workflow Examples</a></li>
-          <li><a href="{{ '/asset-management' | relative_url }}" class="sidebar-link">Asset Management</a></li>
-          <li><a href="{{ '/models-manager' | relative_url }}" class="sidebar-link">Models Manager</a></li>
-          <li><a href="{{ '/nodes/' | relative_url }}" class="sidebar-link">Node Reference</a></li>
-          <li><a href="{{ '/node-packs' | relative_url }}" class="sidebar-link">Node Packs</a></li>
+          <li><a href="{{ '/cookbook' | relative_url }}" class="sidebar-link" data-nav-path="/cookbook">Cookbook</a></li>
+          <li><a href="{{ '/workflows/' | relative_url }}" class="sidebar-link" data-nav-path="/workflows">Workflow Examples</a></li>
+          <li><a href="{{ '/asset-management' | relative_url }}" class="sidebar-link" data-nav-path="/asset-management">Asset Management</a></li>
+          <li><a href="{{ '/nodes/' | relative_url }}" class="sidebar-link" data-nav-path="/nodes">Node Reference</a></li>
+          <li><a href="{{ '/node-packs' | relative_url }}" class="sidebar-link" data-nav-path="/node-packs">Node Packs</a></li>
         </ul>
-      </div>
+      </details>
 
-      <div class="nav-section">
-        <h4 class="nav-section-title">🔧 Configuration</h4>
+      <details class="nav-section" data-section="models">
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">Models &amp; Providers</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
         <ul class="nav-section-list">
-          <li><a href="{{ '/configuration' | relative_url }}" class="sidebar-link">Configuration</a></li>
-          <li><a href="{{ '/storage' | relative_url }}" class="sidebar-link">Storage</a></li>
-          <li><a href="{{ '/indexing' | relative_url }}" class="sidebar-link">Indexing</a></li>
+          <li><a href="{{ '/models-and-providers' | relative_url }}" class="sidebar-link" data-nav-path="/models-and-providers">Models &amp; Providers</a></li>
+          <li><a href="{{ '/models' | relative_url }}" class="sidebar-link" data-nav-path="/models">Local vs Cloud</a></li>
+          <li><a href="{{ '/providers' | relative_url }}" class="sidebar-link" data-nav-path="/providers">Provider Reference</a></li>
+          <li><a href="{{ '/huggingface' | relative_url }}" class="sidebar-link" data-nav-path="/huggingface">HuggingFace</a></li>
+          <li><a href="{{ '/models-manager' | relative_url }}" class="sidebar-link" data-nav-path="/models-manager">Models Manager</a></li>
         </ul>
-      </div>
+      </details>
 
-      <div class="nav-section">
-        <h4 class="nav-section-title">🚢 Deployment</h4>
+      <details class="nav-section" data-section="config">
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">Configuration</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
         <ul class="nav-section-list">
-          <li><a href="{{ '/deployment' | relative_url }}" class="sidebar-link">Deployment Guide</a></li>
-          <li><a href="{{ '/self-hosted-deployment' | relative_url }}" class="sidebar-link">Self-Hosted Deployment</a></li>
-          <li><a href="{{ '/runpod-deployment' | relative_url }}" class="sidebar-link">RunPod Deployment</a></li>
-          <li><a href="{{ '/gcp-deployment' | relative_url }}" class="sidebar-link">Google Cloud Run</a></li>
-          <li><a href="{{ '/supabase-deployment' | relative_url }}" class="sidebar-link">Supabase Integration</a></li>
-          <li><a href="{{ '/api-reference' | relative_url }}" class="sidebar-link">API Reference</a></li>
-          <li><a href="{{ '/cli' | relative_url }}" class="sidebar-link">CLI</a></li>
-          <li><a href="{{ '/agent-cli' | relative_url }}" class="sidebar-link">Agent CLI</a></li>
-          <li><a href="{{ '/chat-cli' | relative_url }}" class="sidebar-link">Chat CLI</a></li>
-          <li><a href="{{ '/chat-server' | relative_url }}" class="sidebar-link">Chat Server</a></li>
-          <li><a href="{{ '/terminal-websocket' | relative_url }}" class="sidebar-link">Terminal WebSocket</a></li>
+          <li><a href="{{ '/configuration' | relative_url }}" class="sidebar-link" data-nav-path="/configuration">Configuration</a></li>
+          <li><a href="{{ '/storage' | relative_url }}" class="sidebar-link" data-nav-path="/storage">Storage</a></li>
+          <li><a href="{{ '/indexing' | relative_url }}" class="sidebar-link" data-nav-path="/indexing">Indexing</a></li>
+          <li><a href="{{ '/authentication' | relative_url }}" class="sidebar-link" data-nav-path="/authentication">Authentication</a></li>
+          <li><a href="{{ '/security-hardening' | relative_url }}" class="sidebar-link" data-nav-path="/security-hardening">Security Hardening</a></li>
+          <li><a href="{{ '/proxy' | relative_url }}" class="sidebar-link" data-nav-path="/proxy">Proxy</a></li>
+          <li><a href="{{ '/troubleshooting' | relative_url }}" class="sidebar-link" data-nav-path="/troubleshooting">Troubleshooting</a></li>
         </ul>
-      </div>
+      </details>
 
-      <div class="nav-section">
-        <h4 class="nav-section-title">👩‍💻 Developers</h4>
+      <details class="nav-section" data-section="deploy">
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">Deployment</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
         <ul class="nav-section-list">
-          <li><a href="{{ '/developer/' | relative_url }}" class="sidebar-link">Developer Guide</a></li>
-          <li><a href="{{ '/architecture' | relative_url }}" class="sidebar-link">Architecture</a></li>
-          <li><a href="{{ '/agents' | relative_url }}" class="sidebar-link">Agent System</a></li>
-          <li><a href="{{ '/authentication' | relative_url }}" class="sidebar-link">Authentication</a></li>
-          <li><a href="{{ '/workflow-api' | relative_url }}" class="sidebar-link">Workflow API</a></li>
-          <li><a href="{{ '/websocket-api' | relative_url }}" class="sidebar-link">WebSocket API</a></li>
-          <li><a href="{{ '/chat-api' | relative_url }}" class="sidebar-link">Chat API</a></li>
-          <li><a href="{{ '/api-server' | relative_url }}" class="sidebar-link">API Server</a></li>
-          <li><a href="{{ '/execution-strategies' | relative_url }}" class="sidebar-link">Execution Strategies</a></li>
-          <li><a href="{{ '/packages' | relative_url }}" class="sidebar-link">Packages</a></li>
-          <li><a href="{{ '/developer/ts-dsl-guide' | relative_url }}" class="sidebar-link">TypeScript DSL</a></li>
-          <li><a href="{{ '/developer/custom-nodes-guide' | relative_url }}" class="sidebar-link">Custom Nodes Guide</a></li>
-          <li><a href="{{ '/developer/node-patterns' | relative_url }}" class="sidebar-link">Node Patterns</a></li>
-          <li><a href="{{ '/developer/gradio-conversion' | relative_url }}" class="sidebar-link">Gradio Conversion</a></li>
+          <li><a href="{{ '/deployment' | relative_url }}" class="sidebar-link" data-nav-path="/deployment">Deployment Guide</a></li>
+          <li><a href="{{ '/deployment-e2e-guide' | relative_url }}" class="sidebar-link" data-nav-path="/deployment-e2e-guide">End-to-End Guide</a></li>
+          <li><a href="{{ '/self-hosted-deployment' | relative_url }}" class="sidebar-link" data-nav-path="/self-hosted-deployment">Self-Hosted</a></li>
+          <li><a href="{{ '/runpod-deployment' | relative_url }}" class="sidebar-link" data-nav-path="/runpod-deployment">RunPod</a></li>
+          <li><a href="{{ '/gcp-deployment' | relative_url }}" class="sidebar-link" data-nav-path="/gcp-deployment">Google Cloud Run</a></li>
+          <li><a href="{{ '/supabase-deployment' | relative_url }}" class="sidebar-link" data-nav-path="/supabase-deployment">Supabase</a></li>
+          <li><a href="{{ '/docker-resource-management' | relative_url }}" class="sidebar-link" data-nav-path="/docker-resource-management">Docker Resources</a></li>
         </ul>
-      </div>
+      </details>
 
+      <details class="nav-section" data-section="cli">
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">CLI &amp; Servers</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
+        <ul class="nav-section-list">
+          <li><a href="{{ '/cli' | relative_url }}" class="sidebar-link" data-nav-path="/cli">CLI</a></li>
+          <li><a href="{{ '/agent-cli' | relative_url }}" class="sidebar-link" data-nav-path="/agent-cli">Agent CLI</a></li>
+          <li><a href="{{ '/chat-cli' | relative_url }}" class="sidebar-link" data-nav-path="/chat-cli">Chat CLI</a></li>
+          <li><a href="{{ '/chat-server' | relative_url }}" class="sidebar-link" data-nav-path="/chat-server">Chat Server</a></li>
+          <li><a href="{{ '/api-server' | relative_url }}" class="sidebar-link" data-nav-path="/api-server">API Server</a></li>
+          <li><a href="{{ '/terminal-websocket' | relative_url }}" class="sidebar-link" data-nav-path="/terminal-websocket">Terminal WebSocket</a></li>
+        </ul>
+      </details>
+
+      <details class="nav-section" data-section="api">
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">API Reference</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
+        <ul class="nav-section-list">
+          <li><a href="{{ '/api-reference' | relative_url }}" class="sidebar-link" data-nav-path="/api-reference">API Overview</a></li>
+          <li><a href="{{ '/workflow-api' | relative_url }}" class="sidebar-link" data-nav-path="/workflow-api">Workflow API</a></li>
+          <li><a href="{{ '/websocket-api' | relative_url }}" class="sidebar-link" data-nav-path="/websocket-api">WebSocket API</a></li>
+          <li><a href="{{ '/chat-api' | relative_url }}" class="sidebar-link" data-nav-path="/chat-api">Chat API</a></li>
+        </ul>
+      </details>
+
+      <details class="nav-section" data-section="dev">
+        <summary class="nav-section-summary">
+          <h4 class="nav-section-title">Developers</h4>
+          <span class="nav-section-chevron" aria-hidden="true"></span>
+        </summary>
+        <ul class="nav-section-list">
+          <li><a href="{{ '/developer/' | relative_url }}" class="sidebar-link" data-nav-path="/developer">Developer Guide</a></li>
+          <li><a href="{{ '/architecture' | relative_url }}" class="sidebar-link" data-nav-path="/architecture">Architecture</a></li>
+          <li><a href="{{ '/execution-strategies' | relative_url }}" class="sidebar-link" data-nav-path="/execution-strategies">Execution Strategies</a></li>
+          <li><a href="{{ '/packages' | relative_url }}" class="sidebar-link" data-nav-path="/packages">Packages</a></li>
+          <li><a href="{{ '/developer/ts-dsl-guide' | relative_url }}" class="sidebar-link" data-nav-path="/developer/ts-dsl-guide">TypeScript DSL</a></li>
+          <li><a href="{{ '/developer/custom-nodes-guide' | relative_url }}" class="sidebar-link" data-nav-path="/developer/custom-nodes-guide">Custom Nodes Guide</a></li>
+          <li><a href="{{ '/developer/node-patterns' | relative_url }}" class="sidebar-link" data-nav-path="/developer/node-patterns">Node Patterns</a></li>
+          <li><a href="{{ '/developer/node-reference' | relative_url }}" class="sidebar-link" data-nav-path="/developer/node-reference">Node Reference</a></li>
+          <li><a href="{{ '/developer/gradio-conversion' | relative_url }}" class="sidebar-link" data-nav-path="/developer/gradio-conversion">Gradio Conversion</a></li>
+        </ul>
+      </details>
     </nav>
   </div>
 </aside>

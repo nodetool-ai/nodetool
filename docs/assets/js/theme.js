@@ -1,91 +1,208 @@
-// NodeTool Futuristic Theme - Interactive JavaScript
+// NodeTool Documentation Theme - Interactive JavaScript
+// Keeps the cyberpunk aesthetic while improving performance and accessibility.
 
 (function() {
   'use strict';
 
-  // Mobile menu toggle
   const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
   const sidebar = document.querySelector('.sidebar');
   const navList = document.querySelector('.nav-list');
 
+  // --- Mobile menu toggle -----------------------------------------------------
   if (mobileMenuToggle) {
     mobileMenuToggle.addEventListener('click', function() {
-      // Toggle the active class on the button itself for hamburger animation
       mobileMenuToggle.classList.toggle('active');
-      
-      if (sidebar) {
-        sidebar.classList.toggle('active');
-      }
-      if (navList) {
-        navList.classList.toggle('active');
-      }
+      const expanded = mobileMenuToggle.classList.contains('active');
+      mobileMenuToggle.setAttribute('aria-expanded', String(expanded));
+
+      if (sidebar) sidebar.classList.toggle('active');
+      if (navList) navList.classList.toggle('active');
     });
   }
 
-  // Active link highlighting
+  // --- Active link highlighting (exact + parent prefix matching) -------------
+  function normalizePath(path) {
+    if (!path) return '';
+    try {
+      // Resolve relative URLs like "/getting-started" against the current origin
+      const url = new URL(path, window.location.origin);
+      return url.pathname.replace(/\/index\.html?$/, '/').replace(/\/$/, '') || '/';
+    } catch (err) {
+      return path;
+    }
+  }
+
   function setActiveLink() {
-    const currentPath = window.location.pathname;
-    const links = document.querySelectorAll('.sidebar-link, .nav-item');
+    const currentPath = normalizePath(window.location.pathname);
+    const allLinks = document.querySelectorAll('.sidebar-link, .nav-item');
 
-    links.forEach(link => {
-      const linkPath = link.getAttribute('href');
-      if (linkPath && currentPath.includes(linkPath) && linkPath !== '/') {
-        link.classList.add('active');
+    let bestSidebarLink = null;
+    let bestSidebarLength = -1;
+
+    allLinks.forEach(link => {
+      const linkPath = normalizePath(link.getAttribute('href'));
+      if (!linkPath) return;
+
+      const isExact = linkPath === currentPath;
+      // Only treat as parent when the link path is a directory-like prefix
+      const isParent =
+        linkPath !== '/' &&
+        (currentPath === linkPath ||
+         currentPath.startsWith(linkPath + '/'));
+
+      if (isExact || isParent) {
+        if (link.classList.contains('sidebar-link')) {
+          // Choose the longest matching path as the single active sidebar link
+          if (linkPath.length > bestSidebarLength) {
+            bestSidebarLength = linkPath.length;
+            bestSidebarLink = link;
+          }
+        } else {
+          link.classList.add('active');
+        }
       }
     });
+
+    if (bestSidebarLink) {
+      bestSidebarLink.classList.add('active');
+      // Open the containing collapsible section so the active link is visible
+      const parentDetails = bestSidebarLink.closest('details.nav-section');
+      if (parentDetails && !parentDetails.open) {
+        parentDetails.open = true;
+      }
+      // Scroll active link into sidebar viewport on load
+      if (sidebar) {
+        const rect = bestSidebarLink.getBoundingClientRect();
+        const sidebarRect = sidebar.getBoundingClientRect();
+        if (rect.top < sidebarRect.top || rect.bottom > sidebarRect.bottom) {
+          bestSidebarLink.scrollIntoView({ block: 'center' });
+        }
+      }
+    }
   }
 
-  // Sidebar scroll position persistence across page loads
+  // --- Sidebar scroll persistence --------------------------------------------
   const SIDEBAR_SCROLL_KEY = 'nodetool-sidebar-scroll';
   function restoreSidebarScroll() {
     if (!sidebar) return;
     const stored = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
     if (stored !== null) {
-      sidebar.scrollTop = parseInt(stored, 10);
+      const parsed = parseInt(stored, 10);
+      if (!Number.isNaN(parsed)) sidebar.scrollTop = parsed;
     }
   }
 
   function persistSidebarScroll() {
     if (!sidebar) return;
-    sessionStorage.setItem(SIDEBAR_SCROLL_KEY, sidebar.scrollTop);
+    sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(sidebar.scrollTop));
   }
 
-  // Smooth scroll for anchor links
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-      const href = this.getAttribute('href');
-      if (href !== '#') {
-        e.preventDefault();
-        const target = document.querySelector(href);
-        if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }
-      }
-    });
-  });
+  // --- Collapsible sidebar sections ------------------------------------------
+  const COLLAPSED_SECTIONS_KEY = 'nodetool-sidebar-collapsed';
 
-  // Add copy button to code blocks
+  function getCollapsedSet() {
+    try {
+      const raw = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch (err) {
+      return new Set();
+    }
+  }
+
+  function saveCollapsedSet(set) {
+    try {
+      localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify([...set]));
+    } catch (err) {
+      // Ignore quota errors
+    }
+  }
+
+  function initCollapsibleSections() {
+    const sections = document.querySelectorAll('.sidebar details.nav-section');
+    if (!sections.length) return;
+
+    const collapsed = getCollapsedSet();
+
+    sections.forEach(section => {
+      const key = section.dataset.section;
+      if (key && collapsed.has(key)) section.open = false;
+
+      section.addEventListener('toggle', () => {
+        if (!key) return;
+        const current = getCollapsedSet();
+        if (section.open) current.delete(key);
+        else current.add(key);
+        saveCollapsedSet(current);
+      });
+    });
+
+    const collapseAll = document.querySelector('.sidebar-collapse-all');
+    if (collapseAll) {
+      const label = collapseAll.querySelector('.sidebar-collapse-label');
+      function updateLabel() {
+        const anyOpen = [...sections].some(s => s.open);
+        if (label) label.textContent = anyOpen ? 'Collapse all' : 'Expand all';
+      }
+      updateLabel();
+
+      collapseAll.addEventListener('click', () => {
+        const anyOpen = [...sections].some(s => s.open);
+        const next = getCollapsedSet();
+        sections.forEach(section => {
+          section.open = !anyOpen;
+          if (!section.dataset.section) return;
+          if (section.open) next.delete(section.dataset.section);
+          else next.add(section.dataset.section);
+        });
+        saveCollapsedSet(next);
+        updateLabel();
+      });
+
+      sections.forEach(section => section.addEventListener('toggle', updateLabel));
+    }
+  }
+
+  // --- Smooth scroll for in-page anchors -------------------------------------
+  function initSmoothScroll() {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        if (!href || href === '#') return;
+
+        const target = document.querySelector(href);
+        if (!target) return;
+
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Update focus for accessibility so keyboard users land on target
+        if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+        // Update URL hash without adding an extra history entry for every click
+        history.replaceState(null, '', href);
+      });
+    });
+  }
+
+  // --- Copy-code buttons ------------------------------------------------------
   function addCopyButtons() {
     const codeBlocks = document.querySelectorAll('pre code');
 
     codeBlocks.forEach((codeBlock) => {
       const pre = codeBlock.parentElement;
+      if (!pre || pre.querySelector('.copy-button')) return;
+
       const button = document.createElement('button');
       button.className = 'copy-button';
+      button.type = 'button';
       button.textContent = 'Copy';
       button.setAttribute('aria-label', 'Copy code to clipboard');
 
       button.addEventListener('click', async () => {
         const code = codeBlock.textContent;
-
         try {
           await navigator.clipboard.writeText(code);
           button.textContent = 'Copied!';
           button.classList.add('copied');
-
           setTimeout(() => {
             button.textContent = 'Copy';
             button.classList.remove('copied');
@@ -93,6 +210,7 @@
         } catch (err) {
           console.error('Failed to copy code:', err);
           button.textContent = 'Error';
+          setTimeout(() => { button.textContent = 'Copy'; }, 2000);
         }
       });
 
@@ -101,7 +219,7 @@
     });
   }
 
-  // Copy page as Markdown
+  // --- Copy whole page as Markdown -------------------------------------------
   function initCopyPageButton() {
     const button = document.querySelector('.copy-page-button');
     if (!button) return;
@@ -119,168 +237,96 @@
           const response = await fetch(rawUrl);
           if (response.ok) {
             markdown = await response.text();
-            // Strip YAML front matter
             markdown = markdown.replace(/^---[\s\S]*?---\s*/, '');
           }
         }
 
-        // Fallback: extract text content from the page
         if (!markdown) {
           const content = document.querySelector('.page-content');
-          if (content) {
-            markdown = content.innerText;
-          }
+          if (content) markdown = content.innerText;
         }
 
         await navigator.clipboard.writeText(markdown.trim());
-        label.textContent = 'Copied!';
+        if (label) label.textContent = 'Copied!';
         button.classList.add('copied');
 
         setTimeout(() => {
-          label.textContent = 'Copy Page';
+          if (label) label.textContent = 'Copy Page';
           button.classList.remove('copied');
         }, 2000);
       } catch (err) {
         console.error('Failed to copy page:', err);
-        label.textContent = 'Error';
-        setTimeout(() => {
-          label.textContent = 'Copy Page';
-        }, 2000);
+        if (label) label.textContent = 'Error';
+        setTimeout(() => { if (label) label.textContent = 'Copy Page'; }, 2000);
       }
     });
   }
 
-  // Add CSS for copy button dynamically
-  const copyButtonStyles = `
-    .copy-button {
-      position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      padding: 0.4rem 0.8rem;
-      background: var(--color-bg-elevated);
-      color: var(--color-accent-cyan);
-      border: 1px solid var(--color-border);
-      border-radius: 4px;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-      opacity: 0;
+  // --- Reading progress indicator --------------------------------------------
+  function initReadingProgress() {
+    const bar = document.querySelector('.reading-progress-bar');
+    const article = document.querySelector('.doc-page');
+    if (!bar || !article) return;
+
+    let ticking = false;
+
+    function update() {
+      const rect = article.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const total = rect.height - viewportHeight;
+      const progressed = Math.min(Math.max(-rect.top, 0), Math.max(total, 1));
+      const pct = total > 0 ? (progressed / total) * 100 : 0;
+      bar.style.width = pct.toFixed(2) + '%';
+      ticking = false;
     }
 
-    pre:hover .copy-button {
-      opacity: 1;
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(update);
+        ticking = true;
+      }
     }
 
-    .copy-button:hover {
-      background: var(--color-accent-cyan);
-      color: var(--color-bg-primary);
-      border-color: var(--color-accent-cyan);
-      box-shadow: var(--glow-cyan);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    update();
+  }
+
+  // --- Back-to-top button -----------------------------------------------------
+  function initBackToTop() {
+    const btn = document.querySelector('.back-to-top');
+    if (!btn) return;
+
+    function update() {
+      const threshold = window.innerHeight * 0.6;
+      if (window.scrollY > threshold) {
+        btn.hidden = false;
+        btn.classList.add('visible');
+      } else {
+        btn.classList.remove('visible');
+        // Hide after transition for accessibility
+        setTimeout(() => {
+          if (!btn.classList.contains('visible')) btn.hidden = true;
+        }, 220);
+      }
     }
 
-    .copy-button.copied {
-      background: var(--color-accent-green);
-      color: var(--color-bg-primary);
-      border-color: var(--color-accent-green);
-    }
-
-    .copy-page-button {
-      position: absolute;
-      top: 0;
-      right: 0;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.4rem 0.8rem;
-      background: var(--color-bg-elevated);
-      color: var(--color-accent-cyan);
-      border: 1px solid var(--color-border);
-      border-radius: 4px;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-
-    .copy-page-button:hover {
-      background: var(--color-accent-cyan);
-      color: var(--color-bg-primary);
-      border-color: var(--color-accent-cyan);
-      box-shadow: var(--glow-cyan);
-    }
-
-    .copy-page-button:hover svg {
-      stroke: var(--color-bg-primary);
-    }
-
-    .copy-page-button.copied {
-      background: var(--color-accent-green);
-      color: var(--color-bg-primary);
-      border-color: var(--color-accent-green);
-    }
-
-    .copy-page-button.copied svg {
-      stroke: var(--color-bg-primary);
-    }
-  `;
-
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = copyButtonStyles;
-  document.head.appendChild(styleSheet);
-
-  // Intersection Observer for fade-in animations
-  function setupScrollAnimations() {
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('h2, h3, .page-content > p, .page-content > ul, .page-content > ol').forEach(el => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(20px)';
-      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-      observer.observe(el);
+    btn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const focusTarget = document.querySelector('#main-content') || document.body;
+      focusTarget.focus({ preventScroll: true });
     });
 
-    // Add visible class styles
-    const animationStyles = `
-      .visible {
-        opacity: 1 !important;
-        transform: translateY(0) !important;
-      }
-    `;
-
-    const animStyle = document.createElement('style');
-    animStyle.textContent = animationStyles;
-    document.head.appendChild(animStyle);
+    window.addEventListener('scroll', update, { passive: true });
+    update();
   }
 
-  // Cyber glitch effect on logo (subtle)
-  function addLogoGlitch() {
-    const logo = document.querySelector('.logo-text');
-    if (!logo) return;
+  // --- Subtle logo hover effect (no setInterval) -----------------------------
+  // The previous implementation ran a random glitch every 3s which was distracting
+  // and wasted CPU. We now scope the glitch effect to a CSS pseudo-element in
+  // main.scss, triggered on hover. Nothing required here.
 
-    setInterval(() => {
-      if (Math.random() > 0.95) {
-        logo.style.textShadow = '2px 0 var(--color-accent-magenta), -2px 0 var(--color-accent-cyan)';
-        setTimeout(() => {
-          logo.style.textShadow = '';
-        }, 50);
-      }
-    }, 3000);
-  }
-
-  // Debounce utility for input-driven handlers
+  // --- Debounce utility -------------------------------------------------------
   function debounce(fn, delay) {
     let timer;
     return (...args) => {
@@ -289,7 +335,7 @@
     };
   }
 
-  // Client-side search loader + renderer
+  // --- Client-side search -----------------------------------------------------
   function initSearch() {
     const container = document.querySelector('.search-container');
     const input = document.getElementById('site-search');
@@ -302,7 +348,6 @@
     function openSearch() {
       container.classList.add('open');
       if (searchToggle) searchToggle.setAttribute('aria-expanded', 'true');
-      // Defer focus so the element is visible/layout-complete before focusing
       requestAnimationFrame(() => input.focus());
     }
 
@@ -315,11 +360,8 @@
     if (searchToggle) {
       searchToggle.addEventListener('click', (event) => {
         event.stopPropagation();
-        if (container.classList.contains('open')) {
-          closeSearch();
-        } else {
-          openSearch();
-        }
+        if (container.classList.contains('open')) closeSearch();
+        else openSearch();
       });
     }
 
@@ -422,10 +464,7 @@
         li.appendChild(meta);
         li.appendChild(snippet);
 
-        li.addEventListener('click', () => {
-          window.location.href = item.url;
-        });
-
+        li.addEventListener('click', () => { window.location.href = item.url; });
         li.addEventListener('mouseenter', () => setActive(idx));
         resultsList.appendChild(li);
       });
@@ -444,16 +483,10 @@
 
     function runSearch(value) {
       const query = value.trim().toLowerCase();
-      if (!query) {
-        closeResults();
-        return;
-      }
+      if (!query) { closeResults(); return; }
 
       const terms = query.split(/\s+/).filter(Boolean);
-      if (!terms.length) {
-        closeResults();
-        return;
-      }
+      if (!terms.length) { closeResults(); return; }
 
       const results = searchIndex
         .map(item => {
@@ -494,19 +527,13 @@
     const debouncedSearch = debounce(runSearch, 140);
 
     input.addEventListener('input', async (event) => {
-      if (!searchLoaded) {
-        await loadIndex();
-      }
+      if (!searchLoaded) await loadIndex();
       debouncedSearch(event.target.value);
     });
 
     input.addEventListener('focus', async () => {
-      if (!searchLoaded) {
-        await loadIndex();
-      }
-      if (input.value.trim()) {
-        runSearch(input.value);
-      }
+      if (!searchLoaded) await loadIndex();
+      if (input.value.trim()) runSearch(input.value);
     });
 
     input.addEventListener('keydown', (event) => {
@@ -533,34 +560,29 @@
 
       if (event.key === 'Enter') {
         const item = currentResults[activeIndex] || currentResults[0];
-        if (item) {
-          window.location.href = item.url;
-        }
+        if (item) window.location.href = item.url;
       }
 
       if (event.key === 'Escape') {
         closeResults();
         input.blur();
-        if (container.classList.contains('open')) {
-          closeSearch();
-        }
+        if (container.classList.contains('open')) closeSearch();
       }
     });
 
     document.addEventListener('keydown', (event) => {
       const isInputFocused = document.activeElement === input;
-      if (event.key === '/' && !isInputFocused) {
+      // Ignore shortcut when typing in other inputs
+      const tag = document.activeElement && document.activeElement.tagName;
+      const inFormField = tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable);
+
+      if (event.key === '/' && !isInputFocused && !inFormField) {
         event.preventDefault();
-        if (searchToggle && window.getComputedStyle(searchToggle).display !== 'none') {
-          openSearch();
-        } else {
-          input.focus();
-        }
+        if (searchToggle && window.getComputedStyle(searchToggle).display !== 'none') openSearch();
+        else input.focus();
       }
 
-      if (event.key === 'Escape' && !resultsPanel.hidden) {
-        closeResults();
-      }
+      if (event.key === 'Escape' && !resultsPanel.hidden) closeResults();
     });
 
     document.addEventListener('click', (event) => {
@@ -568,14 +590,12 @@
       const clickedToggle = searchToggle && searchToggle.contains(target);
       if (!container.contains(target) && !clickedToggle) {
         closeResults();
-        if (container.classList.contains('open')) {
-          closeSearch();
-        }
+        if (container.classList.contains('open')) closeSearch();
       }
     });
   }
 
-  // Initialize everything when DOM is ready
+  // --- Init ------------------------------------------------------------------
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
@@ -583,11 +603,13 @@
   }
 
   function init() {
+    initCollapsibleSections();
     setActiveLink();
     addCopyButtons();
     initCopyPageButton();
-    setupScrollAnimations();
-    addLogoGlitch();
+    initSmoothScroll();
+    initReadingProgress();
+    initBackToTop();
     restoreSidebarScroll();
     initSearch();
 
@@ -596,23 +618,33 @@
       window.addEventListener('beforeunload', persistSidebarScroll);
     }
 
-    // Close mobile menu when clicking outside
     document.addEventListener('click', function(e) {
       if (sidebar && sidebar.classList.contains('active')) {
-        if (!sidebar.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+        if (!sidebar.contains(e.target) && mobileMenuToggle && !mobileMenuToggle.contains(e.target)) {
           sidebar.classList.remove('active');
         }
       }
-      
-      // Close mobile nav menu when clicking outside
+
       if (navList && navList.classList.contains('active')) {
-        if (!navList.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+        if (!navList.contains(e.target) && mobileMenuToggle && !mobileMenuToggle.contains(e.target)) {
           navList.classList.remove('active');
           mobileMenuToggle.classList.remove('active');
+          mobileMenuToggle.setAttribute('aria-expanded', 'false');
         }
       }
     });
 
-    console.log('%c🚀 NodeTool Documentation Theme Loaded', 'color: #00d9ff; font-size: 14px; font-weight: bold;');
+    // Close mobile sidebar with Escape
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (sidebar && sidebar.classList.contains('active')) sidebar.classList.remove('active');
+      if (navList && navList.classList.contains('active')) {
+        navList.classList.remove('active');
+        if (mobileMenuToggle) {
+          mobileMenuToggle.classList.remove('active');
+          mobileMenuToggle.setAttribute('aria-expanded', 'false');
+        }
+      }
+    });
   }
 })();
