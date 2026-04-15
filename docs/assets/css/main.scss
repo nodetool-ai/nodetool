@@ -178,12 +178,12 @@ h2::after {
 }
 
 h3 {
-  font-size: 1rem;
+  font-size: 1.25rem;
   color: var(--color-accent-blue);
 }
 
 h4 {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--color-text-primary);
 }
 
@@ -194,13 +194,71 @@ p {
 a {
   color: var(--color-accent-cyan);
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), text-shadow var(--transition-fast), transform var(--transition-fast);
   position: relative;
 }
 
-a:hover {
+/* Scope the magenta glow hover to body text links only. */
+.page-content a:hover,
+.persona-tile a:hover,
+.pattern-card a:hover,
+.mode-card a:hover,
+.link-grid a:hover {
   color: var(--color-accent-magenta);
   text-shadow: var(--glow-magenta);
+}
+
+/* Keyboard focus styling — visible ring without disturbing mouse users */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-accent-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip-to-content link (shown when focused) */
+.skip-link {
+  position: absolute;
+  left: 0;
+  top: -48px;
+  z-index: 500;
+  background: var(--color-accent-cyan);
+  color: var(--color-bg-primary);
+  padding: 0.55rem 1.1rem;
+  font-weight: 700;
+  border-radius: 0 0 8px 0;
+  box-shadow: var(--glow-cyan);
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 0;
+  outline: none;
+}
+
+/* Reading progress bar */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: transparent;
+  z-index: 120;
+  pointer-events: none;
+}
+
+.reading-progress-bar {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--color-accent-cyan), var(--color-accent-magenta));
+  box-shadow: 0 0 10px rgba(75, 150, 210, 0.6);
+  transition: width 80ms linear;
 }
 
 code {
@@ -856,6 +914,7 @@ blockquote {
 
 .mobile-menu-toggle.active .hamburger {
   background: transparent;
+  box-shadow: none;
 }
 
 .mobile-menu-toggle.active .hamburger::before {
@@ -935,6 +994,10 @@ blockquote {
 
 .sidebar-header {
   margin-bottom: var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
 }
 
 .sidebar-title {
@@ -944,6 +1007,27 @@ blockquote {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.sidebar-collapse-all {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.sidebar-collapse-all:hover {
+  color: var(--color-accent-cyan);
+  border-color: var(--color-accent-cyan);
+  background: rgba(75, 150, 210, 0.05);
 }
 
 .title-icon {
@@ -964,7 +1048,34 @@ blockquote {
 }
 
 .nav-section {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: border-color var(--transition-fast);
+}
+
+.nav-section[open] {
+  border-color: rgba(75, 150, 210, 0.08);
+}
+
+.nav-section-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: 0.45rem 0.55rem;
+  border-radius: 6px;
+  transition: background var(--transition-fast);
+}
+
+.nav-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-section-summary:hover {
+  background: rgba(75, 150, 210, 0.06);
 }
 
 .nav-section-title {
@@ -973,12 +1084,32 @@ blockquote {
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--color-text-muted);
-  margin-bottom: var(--spacing-sm);
   font-weight: 600;
+  margin: 0;
+}
+
+.nav-section[open] .nav-section-title {
+  color: var(--color-accent-cyan);
+}
+
+.nav-section-chevron {
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--color-text-muted);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform var(--transition-fast);
+}
+
+.nav-section[open] .nav-section-chevron {
+  transform: rotate(90deg);
+  border-left-color: var(--color-accent-cyan);
 }
 
 .nav-section-list {
   list-style: none;
+  margin-top: 0.3rem;
+  padding: 0;
 }
 
 .sidebar-link {
@@ -1479,6 +1610,161 @@ blockquote {
 
 /* Operator - using error color */
 
+/* === Copy Buttons (moved from JS-injected styles) === */
+.copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: var(--color-bg-elevated);
+  color: var(--color-accent-cyan);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  opacity: 0;
+}
+
+pre:hover .copy-button,
+.copy-button:focus-visible {
+  opacity: 1;
+}
+
+.copy-button:hover {
+  background: var(--color-accent-cyan);
+  color: var(--color-bg-primary);
+  border-color: var(--color-accent-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.copy-button.copied {
+  background: var(--color-accent-green);
+  color: var(--color-bg-primary);
+  border-color: var(--color-accent-green);
+  opacity: 1;
+}
+
+.copy-page-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  background: var(--color-bg-elevated);
+  color: var(--color-accent-cyan);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.copy-page-button:hover {
+  background: var(--color-accent-cyan);
+  color: var(--color-bg-primary);
+  border-color: var(--color-accent-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.copy-page-button:hover svg {
+  stroke: var(--color-bg-primary);
+}
+
+.copy-page-button.copied {
+  background: var(--color-accent-green);
+  color: var(--color-bg-primary);
+  border-color: var(--color-accent-green);
+}
+
+.copy-page-button.copied svg {
+  stroke: var(--color-bg-primary);
+}
+
+/* === Back to top === */
+.back-to-top {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-elevated);
+  color: var(--color-accent-cyan);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-fast), color var(--transition-fast);
+  z-index: 110;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.back-to-top.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.back-to-top:hover {
+  background: var(--color-accent-cyan);
+  color: var(--color-bg-primary);
+  box-shadow: var(--glow-cyan);
+}
+
+@media (max-width: 768px) {
+  .back-to-top {
+    bottom: 0.85rem;
+    right: 0.85rem;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* === Page meta (Edit on GitHub, last updated) === */
+.page-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.edit-on-github {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.edit-on-github:hover {
+  color: var(--color-accent-cyan);
+  border-color: var(--color-accent-cyan);
+  background: rgba(75, 150, 210, 0.05);
+  text-shadow: none;
+}
+
+.page-updated {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
 /* === Utility Classes === */
 .text-center {
   text-align: center;
@@ -1498,8 +1784,16 @@ blockquote {
   .site-header,
   .sidebar,
   .footer,
-  .page-navigation {
-    display: none;
+  .site-footer,
+  .page-navigation,
+  .back-to-top,
+  .reading-progress,
+  .skip-link,
+  .copy-button,
+  .copy-page-button,
+  .edit-on-github,
+  .page-meta {
+    display: none !important;
   }
 
   .content {
@@ -1508,5 +1802,20 @@ blockquote {
 
   .cyber-grid {
     display: none;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #000 !important;
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+  }
+
+  a {
+    color: #0066cc !important;
   }
 }
