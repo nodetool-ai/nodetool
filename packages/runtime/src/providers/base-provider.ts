@@ -506,4 +506,16 @@ export abstract class BaseProvider {
       args: this.parseToolCallArgs(args)
     };
   }
+
+  /**
+   * Resolve a potentially relative URI to an absolute URL.
+   * Relative paths (starting with "/") are resolved against the local server.
+   * This handles asset URIs like /api/storage/... stored by the frontend.
+   */
+  protected resolveUri(uri: string): string {
+    if (uri.startsWith("/")) {
+      return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
+    }
+    return uri;
+  }
 }

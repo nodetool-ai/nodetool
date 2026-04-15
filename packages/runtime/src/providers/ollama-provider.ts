@@ -223,10 +223,7 @@ export class OllamaProvider extends BaseProvider {
       return Buffer.from(image.data).toString("base64");
     }
     if (image.uri) {
-      const resolvedUri = image.uri.startsWith("/")
-        ? `http://127.0.0.1:${process.env.PORT ?? 7777}${image.uri}`
-        : image.uri;
-      const response = await this._fetch(resolvedUri);
+      const response = await this._fetch(this.resolveUri(image.uri));
       if (!response.ok) {
         throw new Error(`Failed to fetch image URI: ${response.status}`);
       }
