@@ -430,6 +430,27 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     agentMode
   ]);
 
+  // Handle paste events — extract images from clipboard
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      for (const item of Array.from(items)) {
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        addFiles(imageFiles);
+      }
+    },
+    [addFiles]
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter") {
@@ -721,6 +742,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder={placeholder}
           rows={1}
           spellCheck={false}
@@ -777,6 +799,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 active={languageModelOpen}
                 onClick={() => setLanguageModelOpen(true)}
                 showChevron={false}
+                truncate
               />
               <LanguageModelMenuDialog
                 open={languageModelOpen}
@@ -800,6 +823,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 active={imageModelOpen}
                 onClick={() => setImageModelOpen(true)}
                 showChevron={false}
+                truncate
               />
               <ImageModelMenuDialog
                 open={imageModelOpen}
@@ -869,6 +893,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 label={videoParams.model?.name || "Select Video Model"}
                 active={videoModelOpen}
                 onClick={() => setVideoModelOpen(true)}
+                truncate
                 showChevron={false}
               />
               <VideoModelMenuDialog
@@ -944,6 +969,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 icon={<AutoFixHighIcon fontSize="small" />}
                 label={imageEditParams.model?.name || "Select Edit Model"}
                 active={imageModelOpen}
+                truncate
                 onClick={() => setImageModelOpen(true)}
                 showChevron={false}
               />
@@ -1054,6 +1080,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 active={videoModelOpen}
                 onClick={() => setVideoModelOpen(true)}
                 showChevron={false}
+                truncate
               />
               <VideoModelMenuDialog
                 open={videoModelOpen}
@@ -1143,6 +1170,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 active={ttsModelOpen}
                 onClick={() => setTtsModelOpen(true)}
                 showChevron={false}
+                truncate
               />
               <TTSModelMenuDialog
                 open={ttsModelOpen}

@@ -917,11 +917,17 @@ const applyNodeProgress = (
       );
   }
 
+  // Keep the existing statusMessage for heartbeat ticks (empty chunk, total=0)
+  // so the "Generating image…" label set from the chunk metadata stays visible.
+  const statusMessage =
+    progress.chunk
+      ? progress.chunk
+      : state.statusMessage;
   return {
     update: {
       status: "loading",
       progress: { current: progress.progress, total: progress.total },
-      statusMessage: null
+      statusMessage
     }
   };
 };

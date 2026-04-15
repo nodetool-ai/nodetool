@@ -2690,13 +2690,13 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Persist the user message first — mirrors handleChatMessage behaviour so
-    // the generation request is recorded in the thread history.
-    await this.saveMessageToDb(data);
-
     if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
 
     const provider = await this.resolveProvider(providerId, userId);
+    // Wire up progress forwarding so provider.emitMessage() reaches the client.
+    provider.setMessageEmitter((msg) =>
+      void this.sendMessage(msg as Record<string, unknown>)
+    );
 
     // Store generated media as a proper Asset record and return the
     // asset ID.  The DB message stores only `asset_id` — URLs are
@@ -2762,11 +2762,11 @@ export class UnifiedWebSocketRunner {
           done: false
         });
 
+        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+          return;
+        const imageBytesList = await provider.textToImages(params, variations);
         const imageContents: Array<Record<string, unknown>> = [];
-        for (let i = 0; i < variations; i++) {
-          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-            return;
-          const bytes = await provider.textToImage(params);
+        for (const bytes of imageBytesList) {
           const assetId = await storeMediaAsset(bytes, "image/png", "png");
           imageContents.push({
             type: "image_url",
@@ -3114,14 +3114,15 @@ export class UnifiedWebSocketRunner {
             strength: strength ?? null,
             numInferenceSteps: numInferenceSteps ?? null
           };
+          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+            return;
+          const imageBytesList = await provider.imageToImages(
+            sourceBytes,
+            params,
+            variations
+          );
           const imageContents: Array<Record<string, unknown>> = [];
-          for (let i = 0; i < variations; i++) {
-            if (
-              requestSeq !== undefined &&
-              requestSeq !== this.chatRequestSeq
-            )
-              return;
-            const bytes = await provider.imageToImage(sourceBytes, params);
+          for (const bytes of imageBytesList) {
             const assetId = await storeMediaAsset(bytes, "image/png", "png");
             imageContents.push({
               type: "image_url",

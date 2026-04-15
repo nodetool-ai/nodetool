@@ -350,11 +350,47 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support textToImage`);
   }
 
+  /**
+   * Generate multiple images from a text prompt.
+   *
+   * Default implementation calls textToImage() sequentially as a fallback.
+   * Providers that support native batch generation (e.g. FAL with num_images)
+   * should override this for efficiency.
+   */
+  async textToImages(
+    params: TextToImageParams,
+    numImages: number
+  ): Promise<Uint8Array[]> {
+    const results: Uint8Array[] = [];
+    for (let i = 0; i < numImages; i++) {
+      results.push(await this.textToImage(params));
+    }
+    return results;
+  }
+
   async imageToImage(
     _image: Uint8Array,
     _params: ImageToImageParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToImage`);
+  }
+
+  /**
+   * Generate multiple image-to-image results in one logical call.
+   *
+   * Default implementation calls imageToImage() sequentially as a fallback.
+   * Providers that support native batch generation should override this.
+   */
+  async imageToImages(
+    image: Uint8Array,
+    params: ImageToImageParams,
+    numImages: number
+  ): Promise<Uint8Array[]> {
+    const results: Uint8Array[] = [];
+    for (let i = 0; i < numImages; i++) {
+      results.push(await this.imageToImage(image, params));
+    }
+    return results;
   }
 
   async *textToSpeech(_args: {
