@@ -35,14 +35,12 @@ import {
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { setupAutoUpdater } from "./updater";
-import { setupWorkflowShortcuts } from "./shortcuts";
 import { logMessage, closeLogStream } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
-import { emitBootMessage, emitShowPackageManager } from "./events";
+import { emitBootMessage } from "./events";
 import { showKeychainExplanationIfNeeded } from "./keychainPrompt";
 import { createTray, cleanupTrayEvents } from "./tray";
-import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
@@ -52,7 +50,7 @@ import {
   checkExpectedPackageVersions,
 } from "./packageManager";
 import { IpcChannels } from "./types.d";
-import { readSettings, updateSetting, readSettingsAsync } from "./settings";
+import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 
 /**
