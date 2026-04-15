@@ -208,6 +208,11 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Memoize Emotion CSS object — styles() traverses the theme and builds a large
+  // object; skipping that work on state-driven re-renders (selection, viewer, etc.)
+  // avoids unnecessary hash computation inside Emotion's cache lookup.
+  const gridCss = useMemo(() => styles(theme, gap), [theme, gap]);
+
   // Selection state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
@@ -388,7 +393,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   }, []);
 
   return (
-    <div className="preview-image-grid" css={styles(theme, gap)} ref={containerRef}>
+    <div className="preview-image-grid" css={gridCss} ref={containerRef}>
       {/* Selection mode toggle button */}
       {showSelectionFeatures && (
         <Button
