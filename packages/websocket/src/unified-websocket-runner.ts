@@ -37,7 +37,9 @@ import type {
   ImageModel as ProviderImageModel,
   VideoModel as ProviderVideoModel,
   TextToImageParams,
-  TextToVideoParams
+  TextToVideoParams,
+  ImageToImageParams,
+  ImageToVideoParams
 } from "@nodetool/runtime";
 import {
   FileStorageAdapter,
@@ -58,6 +60,64 @@ import type { NodeMetadata } from "@nodetool/node-sdk";
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
+
+/**
+ * Return `true` when the given http(s) URL appears to point at a public
+ * destination (not a loopback, link-local, or RFC1918 private address).
+ *
+ * Used before `fetch`ing URLs supplied by chat clients to resolve source
+ * images — without this gate, an authenticated user could coerce the server
+ * into reading internal services via `http://169.254.169.254/...`,
+ * `http://localhost:6379/...`, etc. The check is conservative: unparseable
+ * URLs and literal IP addresses in private ranges are refused. DNS-based
+ * bypass is still possible, so this is a defense-in-depth measure and not a
+ * full SSRF mitigation; intended for complementing network-level egress
+ * filtering.
+ */
+function isSafeExternalUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return false;
+  }
+  // Normalise IPv6 hostnames: WHATWG URL may return them with or without
+  // surrounding brackets depending on the runtime.
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host) return false;
+  if (
+    host === "localhost" ||
+    host === "ip6-localhost" ||
+    host === "ip6-loopback" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return false;
+  }
+  // IPv4 literal check
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = ipv4.slice(1).map((n) => parseInt(n, 10));
+    // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16,
+    // 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 (CGNAT)
+    if (a === 0 || a === 10 || a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+  }
+  // IPv6 literal — refuse loopback / ULA / link-local / unspecified ranges.
+  if (host.includes(":")) {
+    if (host === "::" || host === "::1") return false;
+    if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
+    if (host.startsWith("fe80:")) return false; // link-local
+  }
+  return true;
+}
 
 function sanitizeLargeText(
   text: string,
@@ -2759,7 +2819,7 @@ export class UnifiedWebSocketRunner {
           prompt,
           aspectRatio,
           resolution,
-          numFrames: duration ? duration * 24 : null
+          durationSeconds: duration
         };
 
         await this.sendMessage({
@@ -2806,6 +2866,356 @@ export class UnifiedWebSocketRunner {
         return;
       }
 
+      if (mode === "audio") {
+        const voice =
+          typeof mediaGeneration.voice === "string"
+            ? (mediaGeneration.voice as string)
+            : undefined;
+        const speed =
+          typeof mediaGeneration.speed === "number"
+            ? (mediaGeneration.speed as number)
+            : 1.0;
+        const requestedFormatRaw =
+          typeof mediaGeneration.audio_format === "string"
+            ? (mediaGeneration.audio_format as string).toLowerCase()
+            : null;
+        const supportedFormats = new Set([
+          "mp3",
+          "wav",
+          "pcm",
+          "opus",
+          "flac",
+          "aac"
+        ]);
+        const requestedFormat =
+          requestedFormatRaw && supportedFormats.has(requestedFormatRaw)
+            ? requestedFormatRaw
+            : null;
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        let assetId: string;
+        let audioMimeType: string;
+
+        // Some providers (e.g. HuggingFace, OpenAI) can return fully-encoded
+        // audio. Prefer that path when available and honor the requested
+        // container when the provider supports it.
+        const encoded = await provider.textToSpeechEncoded({
+          text: prompt,
+          model: modelId,
+          voice,
+          speed,
+          audioFormat: requestedFormat ?? undefined
+        });
+
+        if (encoded) {
+          const mimeToExt: Record<string, string> = {
+            "audio/mpeg": "mp3",
+            "audio/wav": "wav",
+            "audio/ogg": "ogg",
+            "audio/flac": "flac",
+            "audio/aac": "aac"
+          };
+          const ext = mimeToExt[encoded.mimeType] ?? "flac";
+          if (
+            requestedFormat &&
+            requestedFormat !== ext &&
+            requestedFormat !== "pcm"
+          ) {
+            log.warn(
+              "Requested audio_format not supported by provider; returning native format",
+              { providerId, modelId, requestedFormat, returnedMime: encoded.mimeType }
+            );
+          }
+          assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
+          audioMimeType = encoded.mimeType;
+        } else {
+          // Streaming PCM path (OpenAI, Gemini, etc.)
+          const pcmChunks: Uint8Array[] = [];
+          let totalBytes = 0;
+          let chunkSampleRate = 24000;
+          for await (const chunk of provider.textToSpeech({
+            text: prompt,
+            model: modelId,
+            voice,
+            speed,
+            audioFormat: requestedFormat ?? undefined
+          })) {
+            if (
+              requestSeq !== undefined &&
+              requestSeq !== this.chatRequestSeq
+            )
+              return;
+            if (chunk?.samples) {
+              if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
+              const view = new Uint8Array(
+                chunk.samples.buffer,
+                chunk.samples.byteOffset,
+                chunk.samples.byteLength
+              );
+              const copy = new Uint8Array(view);
+              pcmChunks.push(copy);
+              totalBytes += copy.byteLength;
+            }
+          }
+          const merged = new Uint8Array(totalBytes);
+          let off = 0;
+          for (const c of pcmChunks) {
+            merged.set(c, off);
+            off += c.byteLength;
+          }
+
+          if (requestedFormat === "pcm") {
+            // Return raw PCM Int16 bytes (no container).
+            assetId = await storeMediaAsset(merged, "audio/pcm", "pcm");
+            audioMimeType = "audio/pcm";
+          } else {
+            if (
+              requestedFormat &&
+              requestedFormat !== "wav" &&
+              requestedFormat !== "pcm"
+            ) {
+              log.warn(
+                "Requested audio_format cannot be produced from streaming PCM; falling back to WAV",
+                { providerId, modelId, requestedFormat }
+              );
+            }
+            // Wrap raw PCM Int16 in a WAV container so browsers can play it.
+            const sampleRate = chunkSampleRate;
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+            const blockAlign = numChannels * (bitsPerSample / 8);
+            const wavHeader = new ArrayBuffer(44);
+            const dv = new DataView(wavHeader);
+            const writeStr = (pos: number, str: string) => {
+              for (let i = 0; i < str.length; i++)
+                dv.setUint8(pos + i, str.charCodeAt(i));
+            };
+            writeStr(0, "RIFF");
+            dv.setUint32(4, 36 + merged.byteLength, true);
+            writeStr(8, "WAVE");
+            writeStr(12, "fmt ");
+            dv.setUint32(16, 16, true);
+            dv.setUint16(20, 1, true);
+            dv.setUint16(22, numChannels, true);
+            dv.setUint32(24, sampleRate, true);
+            dv.setUint32(28, byteRate, true);
+            dv.setUint16(32, blockAlign, true);
+            dv.setUint16(34, bitsPerSample, true);
+            writeStr(36, "data");
+            dv.setUint32(40, merged.byteLength, true);
+
+            const wav = new Uint8Array(44 + merged.byteLength);
+            wav.set(new Uint8Array(wavHeader), 0);
+            wav.set(merged, 44);
+
+            assetId = await storeMediaAsset(wav, "audio/wav", "wav");
+            audioMimeType = "audio/wav";
+          }
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "audio",
+              audio: {
+                type: "audio",
+                asset_id: assetId,
+                mimeType: audioMimeType
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      if (mode === "image_edit" || mode === "image_to_video") {
+        // Resolve the source image from either the message content (most
+        // common path: user dropped an image into the composer) or from the
+        // explicit `source_asset_id` echo on the media_generation payload.
+        const sourceBytes = await this.resolveSourceImageBytes(
+          data,
+          mediaGeneration,
+          userId
+        );
+        if (!sourceBytes) {
+          await this.sendMessage({
+            type: "error",
+            message:
+              "A source image is required — drop or attach an image first",
+            thread_id: threadId
+          });
+          return;
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        if (mode === "image_edit") {
+          const variations = Math.max(
+            1,
+            Math.min(Number(mediaGeneration.variations ?? 1), 8)
+          );
+          const targetWidth =
+            typeof mediaGeneration.width === "number"
+              ? (mediaGeneration.width as number)
+              : undefined;
+          const targetHeight =
+            typeof mediaGeneration.height === "number"
+              ? (mediaGeneration.height as number)
+              : undefined;
+          const strength =
+            typeof mediaGeneration.strength === "number"
+              ? (mediaGeneration.strength as number)
+              : undefined;
+          const numInferenceSteps =
+            typeof mediaGeneration.num_inference_steps === "number"
+              ? (mediaGeneration.num_inference_steps as number)
+              : undefined;
+          const editModel: ProviderImageModel = {
+            id: modelId,
+            name: modelId,
+            provider: providerId
+          };
+          const params: ImageToImageParams = {
+            model: editModel,
+            prompt,
+            targetWidth: targetWidth ?? null,
+            targetHeight: targetHeight ?? null,
+            strength: strength ?? null,
+            numInferenceSteps: numInferenceSteps ?? null
+          };
+          const imageContents: Array<Record<string, unknown>> = [];
+          for (let i = 0; i < variations; i++) {
+            if (
+              requestSeq !== undefined &&
+              requestSeq !== this.chatRequestSeq
+            )
+              return;
+            const bytes = await provider.imageToImage(sourceBytes, params);
+            const assetId = await storeMediaAsset(bytes, "image/png", "png");
+            imageContents.push({
+              type: "image_url",
+              image: {
+                type: "image",
+                asset_id: assetId,
+                mimeType: "image/png"
+              }
+            });
+          }
+          await this.sendMessage({
+            type: "chunk",
+            thread_id: threadId,
+            content: "",
+            done: true
+          });
+          const assistantMsgData: Record<string, unknown> = {
+            type: "message",
+            role: "assistant",
+            content: imageContents,
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model: modelId,
+            media_generation: mediaGeneration
+          };
+          await this.saveMessageToDb(assistantMsgData);
+          await this.sendMessage(assistantMsgData);
+          return;
+        }
+
+        // image_to_video
+        const aspectRatio =
+          typeof mediaGeneration.aspect_ratio === "string"
+            ? (mediaGeneration.aspect_ratio as string)
+            : null;
+        const resolution =
+          typeof mediaGeneration.resolution === "string"
+            ? (mediaGeneration.resolution as string)
+            : null;
+        const duration =
+          typeof mediaGeneration.duration === "number"
+            ? (mediaGeneration.duration as number)
+            : null;
+        const numInferenceSteps =
+          typeof mediaGeneration.num_inference_steps === "number"
+            ? (mediaGeneration.num_inference_steps as number)
+            : null;
+        const i2vModel: ProviderVideoModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+        const params: ImageToVideoParams = {
+          model: i2vModel,
+          prompt,
+          aspectRatio,
+          resolution,
+          durationSeconds: duration,
+          numInferenceSteps
+        };
+        const bytes = await provider.imageToVideo(sourceBytes, params);
+        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "video",
+              video: {
+                type: "video",
+                asset_id: assetId,
+                format: "mp4",
+                duration
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
       // Modes not yet implemented on the backend — fall back to an informative
       // error so the client can render the unsupported state cleanly.
       await this.sendMessage({
@@ -2822,6 +3232,113 @@ export class UnifiedWebSocketRunner {
         thread_id: threadId
       });
     }
+  }
+
+  /**
+   * Resolve the source image bytes for image-edit / image-to-video calls.
+   * Searches in priority order:
+   *   1. `media_generation.source_asset_id`  → load from Asset storage
+   *   2. The first `image_url` content block on the user message
+   *      (supports asset_id, http(s) uri, and inline data:base64 payloads)
+   * Returns `null` when no usable source image can be found.
+   */
+  private async resolveSourceImageBytes(
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    userId: string
+  ): Promise<Uint8Array | null> {
+    const tryLoadAsset = async (
+      assetId: string
+    ): Promise<Uint8Array | null> => {
+      if (!assetId) return null;
+      try {
+        const asset = await Asset.find(userId, assetId);
+        if (!asset) return null;
+        const ext = (asset.content_type ?? "image/png").split("/")[1] ?? "png";
+        const { join } = await import("node:path");
+        const { readFile } = await import("node:fs/promises");
+        return new Uint8Array(
+          await readFile(join(getAssetStoragePath(), `${assetId}.${ext}`))
+        );
+      } catch (err) {
+        log.warn("resolveSourceImageBytes: asset load failed", {
+          assetId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+        return null;
+      }
+    };
+
+    const explicitId =
+      typeof mediaGeneration.source_asset_id === "string"
+        ? (mediaGeneration.source_asset_id as string)
+        : null;
+    if (explicitId) {
+      const fromAsset = await tryLoadAsset(explicitId);
+      if (fromAsset) return fromAsset;
+    }
+
+    const content = data.content;
+    if (Array.isArray(content)) {
+      for (const c of content) {
+        if (!c || typeof c !== "object") continue;
+        const block = c as Record<string, unknown>;
+        if (block.type !== "image_url") continue;
+        const image = (block.image ?? {}) as Record<string, unknown>;
+        const assetId =
+          typeof image.asset_id === "string"
+            ? (image.asset_id as string)
+            : null;
+        if (assetId) {
+          const bytes = await tryLoadAsset(assetId);
+          if (bytes) return bytes;
+        }
+        const uri =
+          typeof image.uri === "string" ? (image.uri as string) : null;
+        if (uri) {
+          if (uri.startsWith("data:")) {
+            const commaIdx = uri.indexOf(",");
+            if (commaIdx > -1) {
+              const b64 = uri.slice(commaIdx + 1);
+              try {
+                return new Uint8Array(Buffer.from(b64, "base64"));
+              } catch {
+                /* fall through */
+              }
+            }
+          } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+            if (!isSafeExternalUrl(uri)) {
+              log.warn(
+                "resolveSourceImageBytes: refusing to fetch non-public URL",
+                { uri }
+              );
+            } else {
+              try {
+                const resp = await fetch(uri);
+                if (resp.ok) {
+                  return new Uint8Array(await resp.arrayBuffer());
+                }
+              } catch (err) {
+                log.warn("resolveSourceImageBytes: fetch failed", {
+                  uri,
+                  error: err instanceof Error ? err.message : String(err)
+                });
+              }
+            }
+          }
+        }
+        const data64 =
+          typeof image.data === "string" ? (image.data as string) : null;
+        if (data64) {
+          try {
+            return new Uint8Array(Buffer.from(data64, "base64"));
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+    return null;
   }
 
   private async handleWorkflowMessage(

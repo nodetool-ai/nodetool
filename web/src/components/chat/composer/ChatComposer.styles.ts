@@ -96,31 +96,16 @@ export const createStyles = (theme: Theme) =>
 
     ".file-preview": {
       position: "relative",
-      maxWidth: "24px",
-      maxHeight: "24px",
+      maxWidth: "48px",
+      maxHeight: "48px",
       flexShrink: 0,
 
       // Mobile styles handled via separate CSS file
 
-      ".remove-button": {
-        position: "absolute",
-        top: -4,
-        right: -4,
-        padding: "0px 4px",
-        background: "rgba(0, 0, 0, 0.7)",
-        borderRadius: "50%",
-        cursor: "pointer",
-        color: "white",
-        fontSize: "14px",
-        lineHeight: "1.2",
-        "&:hover": {
-          background: "rgba(0, 0, 0, 0.9)"
-        }
-      },
 
       img: {
-        width: "24px",
-        height: "24px",
+        width: "48px",
+        height: "48px",
         objectFit: "cover",
         borderRadius: "4px"
       },
@@ -129,8 +114,8 @@ export const createStyles = (theme: Theme) =>
         padding: "4px",
         borderRadius: "4px",
         textAlign: "center",
-        width: "24px",
-        height: "24px",
+        width: "48px",
+        height: "48px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",

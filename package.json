@@ -33,6 +33,7 @@
     "electron"
   ],
   "scripts": {
+    "postinstall": "node -e \"try{require('fs').unlinkSync('node_modules/.electron-native-rebuild-stamp')}catch{}\"",
     "build:packages": "tsc --build tsconfig.build.json && node -e \"const fs=require('fs'); fs.cpSync('packages/replicate-nodes/src/replicate-manifest.json','packages/replicate-nodes/dist/replicate-manifest.json'); fs.cpSync('packages/fal-nodes/src/fal-manifest.json','packages/fal-nodes/dist/fal-manifest.json'); fs.cpSync('packages/kie-nodes/src/kie-manifest.json','packages/kie-nodes/dist/kie-manifest.json');\"",
     "build:packages:clean": "tsc --build tsconfig.build.json --clean && npm run build:packages",
     "build:web": "npm run build --workspace=web",

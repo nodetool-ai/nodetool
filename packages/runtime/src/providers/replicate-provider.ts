@@ -558,6 +558,7 @@ export class ReplicateProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    audioFormat?: string;
   }): AsyncGenerator<{ samples: Int16Array }> {
     const input: Record<string, unknown> = { text: args.text };
     if (args.voice) input.voice = args.voice;

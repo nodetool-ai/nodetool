@@ -8,10 +8,15 @@ import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import TvIcon from "@mui/icons-material/Tv";
+import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
+import SpeedIcon from "@mui/icons-material/Speed";
+import TuneIcon from "@mui/icons-material/Tune";
+import LayersIcon from "@mui/icons-material/Layers";
 import { FlexColumn, FlexRow, Text } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
   Message,
+  MessageAudioContent,
   MessageContent,
   MessageImageContent,
   MessageVideoContent
@@ -35,9 +40,13 @@ function isVideoContent(c: MessageContent): c is MessageVideoContent {
   return c.type === "video";
 }
 
+function isAudioContent(c: MessageContent): c is MessageAudioContent {
+  return c.type === "audio";
+}
+
 /**
- * Returns true if the content array is purely image + video media blocks —
- * i.e. the kind of output produced by a media generation turn.
+ * Returns true if the content array is purely image + video + audio media
+ * blocks — i.e. the kind of output produced by a media generation turn.
  */
 export function isMediaOnlyContent(content: unknown): boolean {
   if (!Array.isArray(content) || content.length === 0) {
@@ -47,7 +56,9 @@ export function isMediaOnlyContent(content: unknown): boolean {
     (c) =>
       typeof c === "object" &&
       c !== null &&
-      (isImageContent(c as MessageContent) || isVideoContent(c as MessageContent))
+      (isImageContent(c as MessageContent) ||
+        isVideoContent(c as MessageContent) ||
+        isAudioContent(c as MessageContent))
   );
 }
 
@@ -199,16 +210,45 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               {gen.aspect_ratio}
             </span>
           )}
-          {gen?.mode === "image" && typeof gen.variations === "number" && (
+          {(gen?.mode === "image" || gen?.mode === "image_edit") &&
+            typeof gen.variations === "number" && (
+              <span className="media-meta-chip">
+                <AppsIcon fontSize="small" />
+                {gen.variations}
+              </span>
+            )}
+          {(gen?.mode === "video" || gen?.mode === "image_to_video") &&
+            typeof gen.duration === "number" && (
+              <span className="media-meta-chip">
+                <AccessTimeIcon fontSize="small" />
+                {gen.duration}s
+              </span>
+            )}
+          {gen?.mode === "image_edit" &&
+            typeof gen.strength === "number" && (
+              <span className="media-meta-chip">
+                <TuneIcon fontSize="small" />
+                {gen.strength.toFixed(2)}
+              </span>
+            )}
+          {(gen?.mode === "image_edit" ||
+            gen?.mode === "image_to_video") &&
+            typeof gen.num_inference_steps === "number" && (
+              <span className="media-meta-chip">
+                <LayersIcon fontSize="small" />
+                {gen.num_inference_steps} steps
+              </span>
+            )}
+          {gen?.mode === "audio" && gen.voice && (
             <span className="media-meta-chip">
-              <AppsIcon fontSize="small" />
-              {gen.variations}
+              <RecordVoiceOverIcon fontSize="small" />
+              {gen.voice}
             </span>
           )}
-          {gen?.mode === "video" && typeof gen.duration === "number" && (
+          {gen?.mode === "audio" && typeof gen.speed === "number" && (
             <span className="media-meta-chip">
-              <AccessTimeIcon fontSize="small" />
-              {gen.duration}s
+              <SpeedIcon fontSize="small" />
+              {gen.speed}x
             </span>
           )}
         </FlexRow>
@@ -235,6 +275,19 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                   preload="metadata"
                   playsInline
                   style={{ width: "100%", height: "100%" }}
+                />
+              </div>
+            );
+          }
+          if (isAudioContent(c)) {
+            const src = c.audio?.uri || "";
+            return (
+              <div key={`media-${i}`}>
+                <audio
+                  src={src}
+                  controls
+                  preload="metadata"
+                  style={{ width: "100%", padding: "12px" }}
                 />
               </div>
             );

@@ -176,6 +176,7 @@ export class PythonProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     for await (const audioBytes of this._bridge.providerTTS(
       this._pythonProviderId,

@@ -929,6 +929,8 @@ export class GeminiProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    /** Ignored — Gemini returns raw PCM; backend wraps/encodes to honor. */
+    audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     const { text, model, voice = "Puck" } = args;
 

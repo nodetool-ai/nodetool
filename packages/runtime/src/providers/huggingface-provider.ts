@@ -10,7 +10,7 @@ import type {
   MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
-  StreamingAudioChunk,
+  EncodedAudioResult,
   TextToImageParams,
   TTSModel
 } from "./types.js";
@@ -348,19 +348,25 @@ export class HuggingFaceProvider extends BaseProvider {
     throw new Error("HuggingFace textToImage returned unexpected result type");
   }
 
-  override async *textToSpeech(args: {
+  /**
+   * HuggingFace TTS returns encoded audio (typically FLAC) — not raw PCM.
+   * Use the encoded path so the caller stores the bytes directly.
+   */
+  override async textToSpeechEncoded(args: {
     text: string;
     model: string;
     voice?: string;
     speed?: number;
-  }): AsyncGenerator<StreamingAudioChunk> {
+    /** Ignored — HuggingFace models return their native encoding. */
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
     if (!args.text) {
       throw new Error("text must not be empty");
     }
 
     const client = await this.getClient();
 
-    log.debug("HuggingFace textToSpeech", { model: args.model });
+    log.debug("HuggingFace textToSpeechEncoded", { model: args.model });
 
     const result = await client.textToSpeech({
       model: args.model,
@@ -380,15 +386,18 @@ export class HuggingFaceProvider extends BaseProvider {
       );
     }
 
-    // Assume 16-bit PCM samples
-    const aligned =
-      bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
-    const samples = new Int16Array(
-      aligned.buffer,
-      aligned.byteOffset,
-      aligned.byteLength / 2
-    );
-    yield { samples };
+    // HuggingFace Inference API returns FLAC by default for most TTS models.
+    // Detect format from magic bytes, fall back to FLAC.
+    let mimeType = "audio/flac";
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+      mimeType = "audio/wav";
+    } else if (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) {
+      mimeType = "audio/mpeg";
+    } else if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+      mimeType = "audio/ogg";
+    }
+
+    return { data: bytes, mimeType };
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {

@@ -29,6 +29,9 @@ type FalClient = {
     endpoint: string,
     opts: { input: Record<string, unknown>; logs?: boolean }
   ): Promise<{ data?: Record<string, unknown> }>;
+  storage: {
+    upload(file: Blob): Promise<string>;
+  };
 };
 
 export class FalProvider extends BaseProvider {
@@ -102,12 +105,12 @@ export class FalProvider extends BaseProvider {
     params: ImageToImageParams
   ): Promise<Uint8Array> {
     const client = await this.getClient();
-    const b64 = Buffer.from(image).toString("base64");
-    const imageDataUri = `data:image/png;base64,${b64}`;
+    const blob = new Blob([image], { type: "image/png" });
+    const uploadedUrl = await client.storage.upload(blob);
 
     const args: Record<string, unknown> = {
       prompt: params.prompt,
-      image_url: imageDataUri,
+      image_url: uploadedUrl,
       output_format: "png"
     };
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
@@ -140,6 +143,8 @@ export class FalProvider extends BaseProvider {
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) args.aspect_ratio = params.aspectRatio;
     if (params.numFrames) args.num_frames = params.numFrames;
+    if (params.durationSeconds != null)
+      args.duration = params.durationSeconds;
     if (params.guidanceScale != null)
       args.guidance_scale = params.guidanceScale;
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
@@ -157,16 +162,18 @@ export class FalProvider extends BaseProvider {
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
     const client = await this.getClient();
-    const b64 = Buffer.from(image).toString("base64");
-    const imageDataUri = `data:image/png;base64,${b64}`;
+    const blob = new Blob([image], { type: "image/png" });
+    const imageUrl = await client.storage.upload(blob);
 
     const args: Record<string, unknown> = {
-      image_url: imageDataUri
+      image_url: imageUrl
     };
     if (params.prompt) args.prompt = params.prompt;
     if (params.negativePrompt) args.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) args.aspect_ratio = params.aspectRatio;
     if (params.numFrames) args.num_frames = params.numFrames;
+    if (params.durationSeconds != null)
+      args.duration = params.durationSeconds;
     if (params.guidanceScale != null)
       args.guidance_scale = params.guidanceScale;
     if (params.seed != null && params.seed !== -1) args.seed = params.seed;
