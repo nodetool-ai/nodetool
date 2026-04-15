@@ -329,7 +329,10 @@ export class AnthropicProvider extends BaseProvider {
             base64 = parsed.base64;
             mediaType = part.image.mimeType ?? parsed.mime;
           } else if (uri) {
-            const response = await this._fetch(uri);
+            const resolvedUri = uri.startsWith("/")
+              ? `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`
+              : uri;
+            const response = await this._fetch(resolvedUri);
             if (!response.ok) {
               throw new Error(`Failed to fetch URI: ${response.status}`);
             }

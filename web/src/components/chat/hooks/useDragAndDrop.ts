@@ -21,9 +21,15 @@ async function assetUrlToDataUri(url: string, mimeType: string): Promise<string>
   try {
     const resp = await fetch(url);
     if (!resp.ok) return url;
-    const buf = await resp.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-    return `data:${mimeType};base64,${base64}`;
+    const buf = new Uint8Array(await resp.arrayBuffer());
+    // Use FileReader to safely encode arbitrary-size buffers (btoa + spread fails for large files)
+    return await new Promise<string>((resolve) => {
+      const blob = new Blob([buf], { type: mimeType });
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(url);
+      reader.readAsDataURL(blob);
+    });
   } catch {
     return url;
   }

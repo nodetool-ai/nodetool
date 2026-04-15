@@ -475,6 +475,10 @@ export class OpenAIProvider extends BaseProvider {
     if (uri.startsWith("data:")) {
       return this.normalizeDataUri(uri);
     }
+    // Resolve relative /api/ paths against the local server
+    if (uri.startsWith("/")) {
+      uri = `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
+    }
 
     const response = await this._fetch(uri);
     if (!response.ok) {
