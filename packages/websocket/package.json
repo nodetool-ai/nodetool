@@ -44,7 +44,7 @@
     "@mariozechner/pi-coding-agent": "^0.67.4",
     "@openai/codex-sdk": "^0.118.0",
     "@opencode-ai/sdk": "^1.3.15",
-    "fastify": "^5.2.0",
+    "fastify": "^5.8.5",
     "msgpackr": "^1.11.2",
     "zod": "^4.0.0"
   },
