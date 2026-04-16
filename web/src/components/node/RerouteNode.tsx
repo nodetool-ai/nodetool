@@ -11,6 +11,7 @@ import { Tooltip } from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
+import { shallow } from "zustand/shallow";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -142,7 +143,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
       sourceData: sourceNode.data,
       sourceHandle: incoming.sourceHandle
     };
-  });
+  }, shallow);
 
   const { slug: upstreamSlug, color: upstreamColor } = useMemo(() => {
     const anyType = DATA_TYPES.find((dt) => dt.slug === "any");
