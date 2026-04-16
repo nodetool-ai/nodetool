@@ -31,10 +31,12 @@ import {
   closeOpenCodeServer,
 } from "./opencode-agent.js";
 import {
-  clearMcpToolServerSession,
-  startMcpToolServer,
   stopMcpToolServer,
 } from "./mcp-tool-server.js";
+import {
+  getLocalMcpServerUrl,
+  setMcpFrontendTransport,
+} from "../mcp-server.js";
 import type { AgentTransport } from "./transport.js";
 import type {
   AgentGetSessionMessagesRequest,
@@ -86,6 +88,21 @@ const CLAUDE_DISALLOWED_TOOLS = [
   "Task",
   "TaskOutput",
 ];
+
+function getMissingFrontendTools(
+  manifest: FrontendToolManifest[],
+): string[] {
+  const manifestNames = new Set(
+    manifest
+      .map((tool) => tool.name)
+      .filter(
+        (name): name is string =>
+          typeof name === "string" && name.startsWith("ui_"),
+      ),
+  );
+
+  return Object.keys(uiToolSchemas).filter((name) => !manifestNames.has(name));
+}
 
 function convertSdkMessage(
   msg: { type: string; [key: string]: unknown },
@@ -605,10 +622,10 @@ class AgentRuntime {
 
     log.info(`Sending message to agent session ${sessionId} (streaming)`);
 
-    // Register this transport as the executor for `sessionId`. The MCP URL
-    // returned is session-scoped so simultaneous sessions from different
-    // renderers don't share the same tool-call route.
-    const mcpServerUrl = await startMcpToolServer(transport, sessionId);
+    // Frontend UI tools are proxied through the shared /mcp endpoint using
+    // whichever renderer transport is currently active.
+    setMcpFrontendTransport(transport);
+    const mcpServerUrl = getLocalMcpServerUrl();
 
     let frontendTools: FrontendToolManifest[] = [];
     try {
@@ -618,10 +635,18 @@ class AgentRuntime {
           .map((t) => t.name)
           .join(", ")}]`,
       );
+
+      const missingFrontendTools = getMissingFrontendTools(frontendTools);
+      if (missingFrontendTools.length > 0) {
+        throw new Error(
+          `Renderer frontend tool manifest is incomplete for session ${sessionId}. Missing tools: ${missingFrontendTools.join(", ")}`,
+        );
+      }
     } catch (error) {
       log.warn(
         `Failed to get frontend tools manifest: ${error instanceof Error ? error.message : String(error)}`,
       );
+      throw error;
     }
 
     let messageCount = 0;
@@ -637,14 +662,6 @@ class AgentRuntime {
           !this.activeSessions.has(serialized.session_id)
         ) {
           this.activeSessions.set(serialized.session_id, session);
-          // Mirror the MCP transport mapping under the resolved ID so tool
-          // calls keep working if the SDK starts emitting messages tagged
-          // with the real session ID.
-          startMcpToolServer(transport, serialized.session_id).catch((err) => {
-            log.warn(
-              `Failed to register MCP transport for resolved session ${serialized.session_id}: ${err instanceof Error ? err.message : String(err)}`,
-            );
-          });
         }
         messageCount++;
         transport.streamMessage(sessionId, serialized, false);
@@ -683,7 +700,6 @@ class AgentRuntime {
     for (const [id, s] of this.activeSessions.entries()) {
       if (s === session) {
         this.activeSessions.delete(id);
-        clearMcpToolServerSession(id);
       }
     }
   }

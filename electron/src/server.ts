@@ -1,7 +1,10 @@
 import { dialog, shell, app } from "electron";
+import { spawn } from "child_process";
+import { createRequire } from "module";
 import { logMessage } from "./logger";
 import {
   getLlamaServerPath,
+  getNodePath,
   getPythonPath,
   getProcessEnv,
   PID_FILE_PATH,
@@ -40,9 +43,115 @@ import { Watchdog } from "./watchdog";
 import { readSettings, getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 import { probeHttpOk, waitForHttpOk } from "./httpProbe";
 
+const nodeRequire = createRequire(import.meta.url);
+
 let backendWatchdog: Watchdog | null = null;
 let llamaWatchdog: Watchdog | null = null;
 const LLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "llama-server.pid");
+
+async function fileExists(targetPath: string): Promise<boolean> {
+  try {
+    await fs.access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function runNodeGypRebuild(
+  rootDir: string,
+  packageName: string,
+  electronVersion: string,
+  arch: string
+): Promise<void> {
+  const pkgDir = path.join(rootDir, "node_modules", packageName);
+  const nodeGypCli = path.join(
+    rootDir,
+    "node_modules",
+    "node-gyp",
+    "bin",
+    "node-gyp.js"
+  );
+
+  if (!(await fileExists(pkgDir))) {
+    return;
+  }
+
+  const nodePath = getNodePath();
+  const args = [
+    nodeGypCli,
+    "rebuild",
+    `--target=${electronVersion}`,
+    `--arch=${arch}`,
+    "--dist-url=https://electronjs.org/headers"
+  ];
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(nodePath, args, {
+      cwd: pkgDir,
+      env: getProcessEnv(),
+      stdio: "pipe",
+      windowsHide: true
+    });
+
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += chunk.toString();
+    });
+    child.stderr.on("data", (chunk) => {
+      output += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(
+        new Error(
+          `node-gyp rebuild failed for ${packageName} (exit ${code})\n${output}`
+        )
+      );
+    });
+  });
+}
+
+async function ensureElectronNativeModules(rootDir: string): Promise<void> {
+  if (!isDevMode()) {
+    return;
+  }
+
+  try {
+    nodeRequire("better-sqlite3");
+    nodeRequire("bufferutil");
+    return;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("NODE_MODULE_VERSION")) {
+      throw error;
+    }
+    logMessage(
+      `Detected Electron native-module ABI mismatch. Rebuilding native modules... (${message})`,
+      "warn"
+    );
+  }
+
+  const electronVersion = process.versions.electron;
+  if (!electronVersion) {
+    throw new Error("Electron version is unavailable in the main process");
+  }
+  const arch = process.arch === "arm64" ? "arm64" : "x64";
+  const stampPath = path.join(
+    rootDir,
+    "node_modules",
+    ".electron-native-rebuild-stamp"
+  );
+  const stampValue = `${electronVersion}-${arch}`;
+
+  await runNodeGypRebuild(rootDir, "better-sqlite3", electronVersion, arch);
+  await runNodeGypRebuild(rootDir, "bufferutil", electronVersion, arch);
+  await fs.writeFile(stampPath, stampValue, "utf8");
+}
 
 /** Server Management Module */
 
@@ -402,6 +511,8 @@ async function startServer(): Promise<void> {
   }
 
   const rootDir = path.join(__dirname, "..", "..");
+
+  await ensureElectronNativeModules(rootDir);
 
   // In dev mode, preload tsx/esm as a Node.js startup hook via --import so that
   // TypeScript files can be loaded inside the utilityProcess without calling

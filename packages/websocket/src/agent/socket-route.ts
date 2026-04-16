@@ -11,7 +11,7 @@ import type { WebSocket } from "@fastify/websocket";
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool/config";
 import { getAgentRuntime } from "./agent-runtime.js";
-import { clearMcpToolServerTransport } from "./mcp-tool-server.js";
+import { clearMcpFrontendTransport } from "../mcp-server.js";
 import type { AgentTransport } from "./transport.js";
 import type {
   AgentClientMessage,
@@ -306,7 +306,7 @@ const agentSocketRoute: FastifyPluginAsync = async (app) => {
     socket.on("close", () => {
       log.info("Agent WebSocket client disconnected");
       transport.dispose();
-      clearMcpToolServerTransport(transport);
+      clearMcpFrontendTransport(transport);
     });
 
     socket.on("error", (error: Error) => {

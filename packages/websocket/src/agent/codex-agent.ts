@@ -5,7 +5,12 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  existsSync,
+} from "node:fs";
 import { join } from "node:path";
 import { createLogger } from "@nodetool/config";
 import {
@@ -22,6 +27,8 @@ import type {
 } from "./types.js";
 
 const log = createLogger("nodetool.websocket.agent.codex");
+const NODETOOL_MCP_BEGIN = "# BEGIN NODETOOL MCP";
+const NODETOOL_MCP_END = "# END NODETOOL MCP";
 
 let codexInstance: Codex | null = null;
 
@@ -69,14 +76,14 @@ export class CodexQuerySession {
     this.threadId = options.resumeSessionId ?? null;
   }
 
+  private escapeTomlString(value: string): string {
+    return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+  }
+
   /**
-   * Write a `.mcp.json` to the workspace so the Codex CLI picks up the
-   * NodeTool UI tools MCP server. Codex's MCP config lookup is rooted at
-   * the workspace directory, so this is the only location the SDK reads.
-   *
-   * We log prominently when the file is created or rewritten so users
-   * aren't caught off-guard by an unexpected file in their repo. Projects
-   * should add `.mcp.json` to `.gitignore` if they don't want it tracked.
+   * Write a managed `[mcp_servers.nodetool-ui]` block to the project-scoped
+   * `.codex/config.toml` so Codex discovers the NodeTool MCP server before
+   * the thread starts.
    */
   private async ensureMcpConfig(mcpServerUrl: string | null): Promise<void> {
     if (!mcpServerUrl) {
@@ -84,45 +91,50 @@ export class CodexQuerySession {
       return;
     }
 
-    const configPath = join(this.workspacePath, ".mcp.json");
-
-    if (existsSync(configPath)) {
-      try {
-        const existing = JSON.parse(readFileSync(configPath, "utf8")) as {
-          mcpServers?: { "nodetool-ui"?: { url?: string } };
-        };
-        if (existing?.mcpServers?.["nodetool-ui"]?.url === mcpServerUrl) {
-          return;
-        }
-        log.info(
-          `Updating NodeTool MCP server URL in existing .mcp.json at ${configPath}`,
-        );
-      } catch {
-        log.warn(
-          `Existing .mcp.json at ${configPath} is unreadable — overwriting`,
-        );
-      }
-    } else {
-      log.info(
-        `Creating ${configPath} for Codex MCP integration ` +
-          `(add .mcp.json to .gitignore if this is a git repo)`,
-      );
-    }
-
-    const config = {
-      mcpServers: {
-        "nodetool-ui": {
-          type: "http",
-          url: mcpServerUrl,
-        },
-      },
-    };
+    const codexDir = join(this.workspacePath, ".codex");
+    const configPath = join(codexDir, "config.toml");
+    const managedBlock = [
+      NODETOOL_MCP_BEGIN,
+      "[mcp_servers.nodetool-ui]",
+      `url = "${this.escapeTomlString(mcpServerUrl)}"`,
+      'startup_timeout_sec = 20',
+      'tool_timeout_sec = 60',
+      "enabled = true",
+      "required = true",
+      NODETOOL_MCP_END,
+      "",
+    ].join("\n");
 
     try {
-      writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+      mkdirSync(codexDir, { recursive: true });
+
+      const existing = existsSync(configPath)
+        ? readFileSync(configPath, "utf8")
+        : "";
+
+      const managedPattern = new RegExp(
+        `${NODETOOL_MCP_BEGIN}[\\s\\S]*?${NODETOOL_MCP_END}\\n?`,
+        "m",
+      );
+      const nextConfig = managedPattern.test(existing)
+        ? existing.replace(managedPattern, managedBlock)
+        : existing.trim().length > 0
+          ? `${existing.trimEnd()}\n\n${managedBlock}`
+          : managedBlock;
+
+      if (nextConfig === existing) {
+        return;
+      }
+
+      log.info(
+        existing.length > 0
+          ? `Updating NodeTool MCP server in ${configPath}`
+          : `Creating ${configPath} for Codex MCP integration`,
+      );
+      writeFileSync(configPath, nextConfig, "utf8");
     } catch (error) {
       log.warn(
-        `Failed to write .mcp.json: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to write .codex/config.toml: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -132,6 +144,7 @@ export class CodexQuerySession {
     const threadOptions: ThreadOptions = {
       model: this.model,
       workingDirectory: this.workspacePath,
+      skipGitRepoCheck: true,
       approvalPolicy: "never",
       sandboxMode: "workspace-write",
       ...(this.reasoningEffort && {
@@ -148,18 +161,28 @@ export class CodexQuerySession {
     return codex.startThread(threadOptions);
   }
 
-  private buildPrompt(message: string): string {
+  private buildPrompt(
+    message: string,
+    manifest: FrontendToolManifest[],
+  ): string {
+    const manifestText =
+      manifest.length > 0
+        ? `Available frontend UI tools in this session:\n${manifest
+            .map((tool) => `- ${tool.name}: ${tool.description}`)
+            .join("\n")}\n\n`
+        : "";
+
     if (this.systemPrompt.trim().length > 0) {
-      return `System instructions:\n${this.systemPrompt}\n\nWorkspace: ${this.workspacePath}\n\n${message}`;
+      return `System instructions:\n${this.systemPrompt}\n\nWorkspace: ${this.workspacePath}\n\n${manifestText}${message}`;
     }
-    return message;
+    return `${manifestText}${message}`;
   }
 
   async send(
     message: string,
     _transport: AgentTransport | null,
     sessionId: string,
-    _manifest: FrontendToolManifest[],
+    manifest: FrontendToolManifest[],
     onMessage?: (message: AgentMessage) => void,
     mcpServerUrl?: string | null,
   ): Promise<AgentMessage[]> {
@@ -178,7 +201,7 @@ export class CodexQuerySession {
     try {
       await this.ensureMcpConfig(mcpServerUrl ?? null);
       const thread = this.getThread();
-      const prompt = this.buildPrompt(message);
+      const prompt = this.buildPrompt(message, manifest);
       const { events } = await thread.runStreamed(prompt, {
         signal: this.abortController.signal,
       });

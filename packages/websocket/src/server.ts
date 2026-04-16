@@ -56,6 +56,7 @@ import {
 } from "@nodetool/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
+import { handleMcpHttpRequest } from "./mcp-server.js";
 
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
@@ -582,6 +583,52 @@ await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
 await app.register(agentSocketRoute);
+
+app.all("/mcp", async (req, reply) => {
+  const protocol = httpsOptions ? "https" : "http";
+  const url = `${protocol}://${req.headers.host ?? `127.0.0.1:${port}`}${req.url}`;
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        headers.append(key, item);
+      }
+    } else if (typeof value === "string") {
+      headers.set(key, value);
+    }
+  }
+
+  const requestBody =
+    req.method === "GET" || req.method === "DELETE"
+      ? undefined
+      : Buffer.isBuffer(req.body)
+        ? req.body
+        : typeof req.body === "string"
+          ? req.body
+          : req.body == null
+            ? Buffer.alloc(0)
+            : JSON.stringify(req.body);
+
+  const request = new Request(url, {
+    method: req.method,
+    headers,
+    body: requestBody,
+    duplex: "half"
+  });
+
+  const response = await handleMcpHttpRequest(request, { metadataRoots });
+  if (!response) {
+    reply.status(404).send({ error: "Not found" });
+    return;
+  }
+
+  reply.status(response.status);
+  response.headers.forEach((value, key) => {
+    reply.header(key, value);
+  });
+  const payload = Buffer.from(await response.arrayBuffer());
+  reply.send(payload);
+});
 
 log.info(`Routes registered [${startupMs()}]`);
 
