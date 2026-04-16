@@ -175,7 +175,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   loadModels: async () => {
-    const { provider, workspacePath, model } = get();
+    const { provider, workspacePath } = get();
     set({ modelsLoading: true });
     try {
       const client = getAgentSocketClient();
@@ -184,15 +184,19 @@ const useAgentStore = create<AgentState>((set, get) => ({
         workspacePath: workspacePath ?? undefined
       });
 
-      const selectedModel = models.find((item) => item.id === model);
       const defaultModel =
         models.find((item) => item.isDefault) ?? models[0] ?? null;
 
-      set({
+      // Re-read state at set time. If the user (or another loadModels call)
+      // selected a model while this request was in flight, preserve it as
+      // long as it's still valid under the new provider's catalog.
+      set((state) => ({
         availableModels: models,
-        model: selectedModel ? model : defaultModel?.id ?? model,
+        model: models.some((item) => item.id === state.model)
+          ? state.model
+          : defaultModel?.id ?? state.model,
         modelsLoading: false
-      });
+      }));
     } catch (error) {
       log.error("Failed to load agent models:", error);
       set({ modelsLoading: false });

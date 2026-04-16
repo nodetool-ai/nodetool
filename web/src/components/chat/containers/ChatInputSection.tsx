@@ -4,8 +4,11 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
 import MediaChatComposer from "../composer/MediaChatComposer";
+import ChatComposer from "../composer/ChatComposer";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 import type { MediaGenerationRequest } from "../types/media.types";
+
+export type ChatComposerVariant = "media" | "simple";
 
 const styles = (_theme: Theme) =>
   css({
@@ -59,6 +62,12 @@ type ChatInputSectionProps = {
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
   allowedProviders?: string[];
+  variant?: ChatComposerVariant;
+  /**
+   * Extra node rendered in the composer footer (left of the action
+   * buttons). Only used by the "simple" variant.
+   */
+  composerToolbar?: React.ReactNode;
 };
 
 const ChatInputSection = ({
@@ -70,7 +79,9 @@ const ChatInputSection = ({
   onModelChange,
   agentMode,
   onAgentModeToggle,
-  allowedProviders
+  allowedProviders,
+  variant = "media",
+  composerToolbar
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
   const isStreaming = status === "streaming";
@@ -78,18 +89,30 @@ const ChatInputSection = ({
   return (
     <div className="chat-input-section" css={styles(theme)}>
       <div className="chat-composer-wrapper">
-        <MediaChatComposer
-          isLoading={isLoading}
-          isStreaming={isStreaming}
-          onSendMessage={onSendMessage}
-          onStop={onStop}
-          onNewChat={onNewChat}
-          selectedModel={selectedModel}
-          onModelChange={onModelChange}
-          agentMode={agentMode}
-          onAgentModeToggle={onAgentModeToggle}
-          allowedProviders={allowedProviders}
-        />
+        {variant === "simple" ? (
+          <ChatComposer
+            isLoading={isLoading}
+            isStreaming={isStreaming}
+            onSendMessage={onSendMessage}
+            onStop={onStop}
+            onNewChat={onNewChat}
+            agentMode={agentMode}
+            toolbarNode={composerToolbar}
+          />
+        ) : (
+          <MediaChatComposer
+            isLoading={isLoading}
+            isStreaming={isStreaming}
+            onSendMessage={onSendMessage}
+            onStop={onStop}
+            onNewChat={onNewChat}
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+            agentMode={agentMode}
+            onAgentModeToggle={onAgentModeToggle}
+            allowedProviders={allowedProviders}
+          />
+        )}
       </div>
     </div>
   );

@@ -31,6 +31,12 @@ import {
   closeOpenCodeServer,
 } from "./opencode-agent.js";
 import {
+  PiQuerySession,
+  listPiModels,
+  listPiSessions,
+  getPiSessionMessages,
+} from "./pi-agent.js";
+import {
   stopMcpToolServer,
 } from "./mcp-tool-server.js";
 import {
@@ -526,8 +532,8 @@ class CodexSdkProvider implements AgentSdkProvider {
 class OpenCodeSdkProvider implements AgentSdkProvider {
   readonly name = "opencode";
 
-  async listModels(): Promise<AgentModelDescriptor[]> {
-    return listOpenCodeModels();
+  async listModels(workspacePath?: string): Promise<AgentModelDescriptor[]> {
+    return listOpenCodeModels(workspacePath);
   }
 
   createSession(options: {
@@ -556,10 +562,44 @@ class OpenCodeSdkProvider implements AgentSdkProvider {
   }
 }
 
+class PiSdkProvider implements AgentSdkProvider {
+  readonly name = "pi";
+
+  async listModels(): Promise<AgentModelDescriptor[]> {
+    return listPiModels();
+  }
+
+  createSession(options: {
+    model: string;
+    workspacePath: string;
+    resumeSessionId?: string;
+    systemPrompt?: string;
+    modelParams?: AgentModelParams;
+  }): AgentQuerySession {
+    return new PiQuerySession({
+      ...options,
+      systemPrompt: options.systemPrompt ?? SYSTEM_PROMPT,
+    });
+  }
+
+  async listSessions(
+    options: AgentListSessionsRequest,
+  ): Promise<AgentSessionInfoEntry[]> {
+    return listPiSessions(options);
+  }
+
+  async getSessionMessages(
+    options: AgentGetSessionMessagesRequest,
+  ): Promise<AgentTranscriptMessage[]> {
+    return getPiSessionMessages(options);
+  }
+}
+
 const providers: Record<string, AgentSdkProvider> = {
   claude: new ClaudeSdkProvider(),
   codex: new CodexSdkProvider(),
   opencode: new OpenCodeSdkProvider(),
+  pi: new PiSdkProvider(),
 };
 
 function getProvider(name?: string): AgentSdkProvider {

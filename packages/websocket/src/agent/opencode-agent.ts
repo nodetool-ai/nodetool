@@ -34,6 +34,22 @@ interface OpencodeProviderInfo {
   models: Record<string, OpencodeModelInfo>;
 }
 
+interface OpencodeConfiguredModel {
+  id: string;
+  name: string;
+  capabilities: {
+    reasoning: boolean;
+    toolcall: boolean;
+  };
+}
+
+interface OpencodeConfiguredProvider {
+  id: string;
+  name: string;
+  source: "env" | "config" | "custom" | "api";
+  models: Record<string, OpencodeConfiguredModel>;
+}
+
 interface OpencodeClient {
   provider: {
     list(options?: Record<string, unknown>): Promise<{
@@ -41,6 +57,14 @@ interface OpencodeClient {
         all: Array<OpencodeProviderInfo>;
         default: Record<string, string>;
         connected: Array<string>;
+      };
+    }>;
+  };
+  config: {
+    providers(options?: Record<string, unknown>): Promise<{
+      data?: {
+        providers: Array<OpencodeConfiguredProvider>;
+        default: Record<string, string>;
       };
     }>;
   };
@@ -114,48 +138,101 @@ export function closeOpenCodeServer(): void {
   }
 }
 
-export async function listOpenCodeModels(): Promise<AgentModelDescriptor[]> {
+export async function listOpenCodeModels(
+  workspacePath?: string,
+): Promise<AgentModelDescriptor[]> {
+  const models: AgentModelDescriptor[] = [];
+  const seen = new Set<string>();
+
+  const query = workspacePath ? { query: { directory: workspacePath } } : {};
+
+  let client: OpencodeClient;
   try {
-    const client = await getClient();
-    const result = await client.provider.list();
-    if (!result.data) return [];
-
-    const { all: providerList, default: defaults, connected } = result.data;
-    const connectedSet = new Set(connected);
-    const defaultModelIds = new Set(Object.values(defaults));
-
-    const models: AgentModelDescriptor[] = [];
-    for (const provider of providerList) {
-      if (!connectedSet.has(provider.id)) continue;
-
-      for (const [modelId, modelInfo] of Object.entries(provider.models)) {
-        if (modelInfo.status === "deprecated") continue;
-        if (!modelInfo.tool_call) continue;
-
-        const compositeId = `${provider.id}/${modelId}`;
-        models.push({
-          id: compositeId,
-          label: `${modelInfo.name} (${provider.name})`,
-          provider: "opencode",
-          isDefault: defaultModelIds.has(modelId),
-          supportsMaxTurns: false,
-          supportsReasoningEffort: modelInfo.reasoning,
-        });
-      }
-    }
-
-    if (models.length > 0 && !models.some((m) => m.isDefault)) {
-      models[0].isDefault = true;
-    }
-
-    return models;
+    client = await getClient();
   } catch (error) {
     log.error(
-      "Failed to list OpenCode models",
+      "Failed to start OpenCode server for model listing",
       error instanceof Error ? error : new Error(String(error)),
     );
     return [];
   }
+
+  // Primary source: providers the user has actually configured (env vars,
+  // opencode.json, oauth). These are ready to use without further setup.
+  try {
+    const configured = await client.config.providers(query);
+    if (configured.data?.providers) {
+      const defaultModelIds = new Set(
+        Object.values(configured.data.default ?? {}),
+      );
+      for (const provider of configured.data.providers) {
+        for (const [modelId, modelInfo] of Object.entries(provider.models)) {
+          if (!modelInfo.capabilities?.toolcall) continue;
+          const compositeId = `${provider.id}/${modelId}`;
+          if (seen.has(compositeId)) continue;
+          seen.add(compositeId);
+          models.push({
+            id: compositeId,
+            label: `${modelInfo.name} (${provider.name})`,
+            provider: "opencode",
+            isDefault: defaultModelIds.has(modelId),
+            supportsMaxTurns: false,
+            supportsReasoningEffort:
+              modelInfo.capabilities?.reasoning ?? false,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    log.warn(
+      `config.providers failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  // Supplemental source: the full catalog from provider.list. Appends models
+  // that weren't in the configured set (labelled "not connected") so the
+  // user can discover and configure them. Also used as the sole source if
+  // config.providers returned nothing usable.
+  try {
+    const all = await client.provider.list(query);
+    if (all.data) {
+      const connectedSet = new Set(all.data.connected ?? []);
+      const defaultModelIds = new Set(Object.values(all.data.default ?? {}));
+      for (const provider of all.data.all ?? []) {
+        const isConnected = connectedSet.has(provider.id);
+        for (const [modelId, modelInfo] of Object.entries(provider.models)) {
+          if (modelInfo.status === "deprecated") continue;
+          if (!modelInfo.tool_call) continue;
+          const compositeId = `${provider.id}/${modelId}`;
+          if (seen.has(compositeId)) continue;
+          seen.add(compositeId);
+          const label = isConnected
+            ? `${modelInfo.name} (${provider.name})`
+            : `${modelInfo.name} (${provider.name}, not connected)`;
+          models.push({
+            id: compositeId,
+            label,
+            provider: "opencode",
+            isDefault: isConnected && defaultModelIds.has(modelId),
+            supportsMaxTurns: false,
+            supportsReasoningEffort: modelInfo.reasoning,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    log.error(
+      "provider.list failed",
+      error instanceof Error ? error : new Error(String(error)),
+    );
+  }
+
+  if (models.length > 0 && !models.some((m) => m.isDefault)) {
+    models[0].isDefault = true;
+  }
+
+  log.info(`Listed ${models.length} OpenCode model(s)`);
+  return models;
 }
 
 export async function listOpenCodeSessions(
