@@ -25,7 +25,7 @@ import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
-import TerminalIcon from "@mui/icons-material/Terminal";
+import TimelineIcon from "@mui/icons-material/Timeline";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
@@ -361,7 +361,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleRunAsApp,
     handleEditWorkflow,
     handleToggleNodeMenu,
-    handleToggleTerminal,
+    handleToggleTrace,
     handleToggleMiniMap,
     isWorkflowRunning,
     isPaused,
@@ -426,10 +426,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const shouldHighlightNodeMenu =
     isEmptyWorkflow && workflow?.name === "New Workflow";
 
-  const handleToggleTerminalAndCloseMenu = useCallback(() => {
-    handleToggleTerminal();
+  const handleToggleTraceAndCloseMenu = useCallback(() => {
+    handleToggleTrace();
     handleCloseActionsMenu();
-  }, [handleToggleTerminal, handleCloseActionsMenu]);
+  }, [handleToggleTrace, handleCloseActionsMenu]);
 
   const handleEditWorkflowAndCloseMenu = useCallback(() => {
     handleEditWorkflow();
@@ -612,9 +612,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         }}
       >
         <MenuItemPrimitive
-          label={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
-          icon={<TerminalIcon fontSize="small" />}
-          onClick={handleToggleTerminalAndCloseMenu}
+          label={bottomPanelVisible ? "Hide Trace" : "Show Trace"}
+          icon={<TimelineIcon fontSize="small" />}
+          onClick={handleToggleTraceAndCloseMenu}
         />
         <MenuItemPrimitive
           label="Workflow Settings"
