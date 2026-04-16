@@ -2345,7 +2345,7 @@ export class FormatTextNode extends BaseNode {
       const strValue = String(value ?? "");
       const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
-      result = result.replace(single, strValue);
+      result = result.replace(single, () => strValue);
     }
     return { output: result };
   }
@@ -2381,9 +2381,9 @@ export class TemplateTextNode extends BaseNode {
       const strValue = String(value ?? "");
       const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const jinja = new RegExp(`\\{\\{\\s*${escapedKey}\\s*\\}\\}`, "g");
-      result = result.replace(jinja, strValue);
+      result = result.replace(jinja, () => strValue);
       const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
-      result = result.replace(single, strValue);
+      result = result.replace(single, () => strValue);
     }
     return { output: result };
   }
