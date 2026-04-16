@@ -146,6 +146,8 @@ export const editorControlsComponents: Components<Theme> = {
       root: ({ theme }) => {
         const editor = theme.editor;
         return {
+          // Remove MUI dark-mode elevation gradient overlay for a flat, Linear-like look.
+          backgroundImage: "none",
           [`&.${editorUiClasses.menuPaper}`]: {
             backgroundColor: theme.vars.palette.Paper.overlay,
             border: `1px solid ${theme.vars.palette.divider}`,
