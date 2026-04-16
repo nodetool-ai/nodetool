@@ -1086,7 +1086,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
           });
         } catch (error) {
           log.error("Failed to send stop signal:", error);
-          log.error("Failed to send stop signal:", error);
           set({
             error: "Failed to stop generation",
             status: "error",
