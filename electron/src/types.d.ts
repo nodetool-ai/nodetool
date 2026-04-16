@@ -240,22 +240,6 @@ declare global {
           options?: DialogOpenFolderRequest,
         ) => Promise<DialogOpenResult>;
       };
-
-      // Claude Agent SDK operations
-      agent: {
-        createSession: (options: AgentSessionOptions) => Promise<string>;
-        listModels: (
-          options?: AgentModelsRequest,
-        ) => Promise<AgentModelDescriptor[]>;
-        sendMessage: (
-          sessionId: string,
-          message: string,
-        ) => Promise<AgentMessage[]>;
-        stopExecution: (sessionId: string) => Promise<void>;
-        closeSession: (sessionId: string) => Promise<void>;
-        listSessions: (options?: AgentListSessionsRequest) => Promise<AgentSessionInfoEntry[]>;
-        getSessionMessages: (options: AgentGetSessionMessagesRequest) => Promise<AgentTranscriptMessage[]>;
-      };
     };
 
     // Alias exposed by preload for legacy pages.
@@ -582,26 +566,7 @@ export enum IpcChannels {
   CLIPBOARD_GET_CONTENT_INFO = "clipboard-get-content-info",
   FILE_READ_AS_DATA_URL = "file-read-as-data-url",
   FILE_READ_BUFFER = "file-read-buffer",
-  // Claude Agent SDK channels
-  AGENT_CREATE_SESSION = "agent-create-session",
-  AGENT_LIST_MODELS = "agent-list-models",
-  AGENT_SEND_MESSAGE = "agent-send-message",
-  AGENT_STOP_EXECUTION = "agent-stop-execution",
-  AGENT_CLOSE_SESSION = "agent-close-session",
-  AGENT_LIST_SESSIONS = "agent-list-sessions",
-  AGENT_GET_SESSION_MESSAGES = "agent-get-session-messages",
-  AGENT_START_MCP_SERVER = "agent-start-mcp-server",
-  // Claude Agent SDK streaming event (sent from main to renderer)
-  AGENT_STREAM_MESSAGE = "agent-stream-message",
-  // Frontend tools channels
-  FRONTEND_TOOLS_GET_MANIFEST = "frontend-tools-get-manifest",
-  FRONTEND_TOOLS_CALL = "frontend-tools-call",
-  FRONTEND_TOOLS_ABORT = "frontend-tools-abort",
   LOCALHOST_PROXY_REQUEST = "localhost-proxy-request",
-  FRONTEND_TOOLS_GET_MANIFEST_REQUEST = "frontend-tools-get-manifest-request",
-  FRONTEND_TOOLS_GET_MANIFEST_RESPONSE = "frontend-tools-get-manifest-response",
-  FRONTEND_TOOLS_CALL_REQUEST = "frontend-tools-call-request",
-  FRONTEND_TOOLS_CALL_RESPONSE = "frontend-tools-call-response",
   LOCALHOST_PROXY_WS_OPEN = "localhost-proxy-ws-open",
   LOCALHOST_PROXY_WS_SEND = "localhost-proxy-ws-send",
   LOCALHOST_PROXY_WS_CLOSE = "localhost-proxy-ws-close",
@@ -756,19 +721,6 @@ export interface IpcRequest {
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: void;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
   [IpcChannels.FILE_READ_BUFFER]: string; // filePath
-  // Claude Agent SDK
-  [IpcChannels.AGENT_CREATE_SESSION]: AgentSessionOptions;
-  [IpcChannels.AGENT_LIST_MODELS]: AgentModelsRequest;
-  [IpcChannels.AGENT_SEND_MESSAGE]: AgentSendRequest;
-  [IpcChannels.AGENT_STOP_EXECUTION]: string; // sessionId
-  [IpcChannels.AGENT_CLOSE_SESSION]: string; // sessionId
-  [IpcChannels.AGENT_LIST_SESSIONS]: AgentListSessionsRequest;
-  [IpcChannels.AGENT_GET_SESSION_MESSAGES]: AgentGetSessionMessagesRequest;
-  [IpcChannels.AGENT_START_MCP_SERVER]: void;
-  // Frontend tools
-  [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolsGetManifestRequest;
-  [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallRequest;
-  [IpcChannels.FRONTEND_TOOLS_ABORT]: string; // sessionId
   [IpcChannels.LOCALHOST_PROXY_REQUEST]: LocalhostProxyRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: LocalhostProxyWsSendRequest;
@@ -865,19 +817,6 @@ export interface IpcResponse {
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: ClipboardContentInfo;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
   [IpcChannels.FILE_READ_BUFFER]: { buffer: Buffer; mimeType: string } | null;
-  // Claude Agent SDK
-  [IpcChannels.AGENT_CREATE_SESSION]: string; // sessionId
-  [IpcChannels.AGENT_LIST_MODELS]: AgentModelDescriptor[];
-  [IpcChannels.AGENT_SEND_MESSAGE]: AgentMessage[];
-  [IpcChannels.AGENT_STOP_EXECUTION]: void;
-  [IpcChannels.AGENT_CLOSE_SESSION]: void;
-  [IpcChannels.AGENT_LIST_SESSIONS]: AgentSessionInfoEntry[];
-  [IpcChannels.AGENT_GET_SESSION_MESSAGES]: AgentTranscriptMessage[];
-  [IpcChannels.AGENT_START_MCP_SERVER]: string; // URL
-  // Frontend tools
-  [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolManifest[];
-  [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallResponse;
-  [IpcChannels.FRONTEND_TOOLS_ABORT]: void;
   [IpcChannels.LOCALHOST_PROXY_REQUEST]: LocalhostProxyResponse;
   [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenResponse;
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: void;
@@ -897,14 +836,6 @@ export interface IpcEvents {
   [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
   [IpcChannels.MENU_EVENT]: MenuEventData;
   [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
-  // Claude Agent streaming events
-  [IpcChannels.AGENT_STREAM_MESSAGE]: AgentStreamEvent;
-  // Frontend tools events
-  [IpcChannels.FRONTEND_TOOLS_ABORT]: { sessionId: string };
-  [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST]: FrontendToolsManifestRequestEvent;
-  [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE]: FrontendToolsManifestResponseEvent;
-  [IpcChannels.FRONTEND_TOOLS_CALL_REQUEST]: FrontendToolsCallRequestEvent;
-  [IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE]: FrontendToolsCallResponseEvent;
   [IpcChannels.LOCALHOST_PROXY_WS_EVENT]: LocalhostProxyWsEvent;
 }
 
@@ -1009,168 +940,7 @@ export interface RuntimePackageStatus {
   installing: boolean;
 }
 
-// Claude Agent SDK types
-export interface AgentSessionOptions {
-  provider?: AgentProvider;
-  model: string;
-  workspacePath?: string;
-  resumeSessionId?: string;
-  modelParams?: AgentModelParams;
-}
-
-export type AgentProvider = "claude" | "codex" | "opencode";
-
-export interface AgentModelDescriptor {
-  id: string;
-  label: string;
-  isDefault?: boolean;
-  /** Provider that owns this model */
-  provider?: AgentProvider;
-  /** Supports adjustable reasoning effort (Codex) */
-  supportsReasoningEffort?: boolean;
-  /** Supports max turns setting */
-  supportsMaxTurns?: boolean;
-}
-
-/** Runtime parameters for an agent session */
-export interface AgentModelParams {
-  /** Max agentic turns before stopping */
-  maxTurns?: number;
-  /** Reasoning effort level (Codex only) */
-  reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh";
-}
-
-export interface AgentModelsRequest {
-  provider?: AgentProvider;
-  workspacePath?: string;
-}
-
-export interface AgentSendRequest {
-  sessionId: string;
-  message: string;
-}
-
-export interface AgentListSessionsRequest {
-  dir?: string;
-  limit?: number;
-  offset?: number;
-  /** When set, only query this provider. Otherwise queries all providers. */
-  provider?: AgentProvider;
-}
-
-export interface AgentSessionInfoEntry {
-  sessionId: string;
-  summary: string;
-  lastModified: number;
-  cwd?: string;
-  gitBranch?: string;
-  customTitle?: string;
-  firstPrompt?: string;
-  createdAt?: number;
-  /** Which provider owns this session */
-  provider?: AgentProvider;
-}
-
-export interface AgentGetSessionMessagesRequest {
-  sessionId: string;
-  dir?: string;
-}
-
-export interface AgentTranscriptMessage {
-  type: "user" | "assistant";
-  uuid: string;
-  session_id: string;
-  text: string;
-}
-
-// Frontend tools types
-export interface FrontendToolManifest {
-  name: string;
-  description: string;
-  parameters: JsonSchema;
-}
-
-export interface FrontendToolsGetManifestRequest {
-  sessionId: string;
-}
-
-export interface FrontendToolsCallRequest {
-  sessionId: string;
-  toolCallId: string;
-  name: string;
-  args: unknown;
-}
-
-export interface FrontendToolsCallResponse {
-  result: unknown;
-  isError: boolean;
-  error?: string;
-}
-
-export interface FrontendToolsManifestRequestEvent {
-  requestId: string;
-  sessionId: string;
-}
-
-export interface FrontendToolsManifestResponseEvent {
-  requestId: string;
-  sessionId: string;
-  manifest?: FrontendToolManifest[];
-  error?: string;
-}
-
-export interface FrontendToolsCallRequestEvent {
-  requestId: string;
-  sessionId: string;
-  toolCallId: string;
-  name: string;
-  args: unknown;
-}
-
-export interface FrontendToolsCallResponseEvent {
-  requestId: string;
-  sessionId: string;
-  result?: FrontendToolsCallResponse;
-  error?: string;
-}
-
-/**
- * Serializable representation of an SDK message for IPC transport.
- * Only includes the fields needed for display in the ChatView.
- */
-export interface AgentMessage {
-  type: "assistant" | "user" | "result" | "system" | "status" | "stream_event";
-  uuid: string;
-  session_id: string;
-  /** Text content for assistant and result messages */
-  text?: string;
-  /** Error flag for result messages */
-  is_error?: boolean;
-  /** Error messages for error results */
-  errors?: string[];
-  /** Result subtype */
-  subtype?: string;
-  /** Original message content blocks (for assistant messages) */
-  content?: Array<{ type: string; text?: string }>;
-  /** Tool calls in OpenAI-style format for NodeTool UI compatibility */
-  tool_calls?: Array<{
-    id: string;
-    type: string;
-    function: {
-      name: string;
-      arguments: string;
-    };
-  }>;
-}
-
 declare module "*.png" {
   const value: string;
   export default value;
-}
-
-// Claude Agent streaming event payload
-export interface AgentStreamEvent {
-  sessionId: string;
-  message: AgentMessage;
-  done: boolean; // true when the stream is complete
 }

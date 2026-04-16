@@ -30,7 +30,6 @@ import {
   SystemDirectory,
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
-  AgentSessionOptions,
   LocalhostProxyRequest,
   RuntimePackageId,
 } from "./types.d";
@@ -662,78 +661,10 @@ const api = {
       ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
   },
 
-  // ============================================================================
-  // agent: Claude Agent SDK operations
-  // ============================================================================
-  agent: {
-    /** Create a new Claude Agent session */
-    createSession: (options: AgentSessionOptions) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_CREATE_SESSION, options),
-
-    /** List available models for the selected provider */
-    listModels: (options?: { provider?: "claude" | "codex" | "opencode"; workspacePath?: string }) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_LIST_MODELS, options || {}),
-
-    /** Send a message to an active Claude Agent session */
-    sendMessage: (sessionId: string, message: string) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_SEND_MESSAGE, {
-        sessionId,
-        message,
-      }),
-
-    /** Stop execution of the currently running turn for a session */
-    stopExecution: (sessionId: string) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_STOP_EXECUTION, sessionId),
-
-    /** Close an active Claude Agent session */
-    closeSession: (sessionId: string) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_CLOSE_SESSION, sessionId),
-
-    /** List previous Claude Agent sessions from SDK storage */
-    listSessions: (options?: { dir?: string; limit?: number; offset?: number }) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_LIST_SESSIONS, options || {}),
-
-    /** Load conversation messages from a session transcript */
-    getSessionMessages: (options: { sessionId: string; dir?: string }) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_GET_SESSION_MESSAGES, options),
-
-    /** Start the MCP tool server and return its URL */
-    startMcpServer: () =>
-      ipcRenderer.invoke(IpcChannels.AGENT_START_MCP_SERVER),
-
-    /** Subscribe to streaming messages from the Claude Agent */
-    onStreamMessage: createEventSubscription(
-      IpcChannels.AGENT_STREAM_MESSAGE,
-    ),
-  },
-
-  // ============================================================================
-  // frontendTools: Frontend tools for Claude Agent integration
-  // ============================================================================
-  frontendTools: {
-    /** Get the manifest of available frontend tools */
-    getManifest: (sessionId: string) =>
-      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_GET_MANIFEST, {
-        sessionId,
-      }),
-
-    /** Call a frontend tool and return its result */
-    call: (
-      sessionId: string,
-      toolCallId: string,
-      name: string,
-      args: unknown,
-    ) =>
-      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_CALL, {
-        sessionId,
-        toolCallId,
-        name,
-        args,
-      }),
-
-    /** Subscribe to tool abort events */
-    onAbort: createEventSubscription(IpcChannels.FRONTEND_TOOLS_ABORT),
-  },
+  // The Claude/Codex/OpenCode agent runtime moved out of the Electron main
+  // process and now lives on the NodeTool server. The renderer talks to it
+  // directly over the `/ws/agent` WebSocket — see
+  // `web/src/lib/agent/AgentSocketClient.ts`.
 
   // ============================================================================
   // logging: Renderer -> main logging bridge

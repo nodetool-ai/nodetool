@@ -430,13 +430,8 @@ app.on("ready", async () => {
       }
 
       await initialize();
-
-      // Start the MCP tool server so all agent providers can use UI tools
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        import("./mcpToolServer")
-          .then(({ startMcpToolServer }) => startMcpToolServer(mainWindow!.webContents))
-          .catch((err) => logMessage(`Failed to start MCP tool server: ${err}`, "warn"));
-      }
+      // The MCP tool server now lives on the NodeTool server alongside the
+      // agent runtime. The renderer connects via `/ws/agent`.
     }
   });
 });
@@ -540,15 +535,6 @@ app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   cleanupTrayEvents();
   closeLogStream();
-
-  // Clean up Claude Agent sessions
-  import("./agent")
-    .then(({ closeAllAgentSessions }) => {
-      closeAllAgentSessions();
-    })
-    .catch(() => {
-      // Best-effort cleanup
-    });
 });
 
 export { mainWindow, isAppQuitting };

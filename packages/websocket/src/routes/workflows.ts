@@ -5,6 +5,7 @@ import {
   handleWorkflowsRoot,
   handleWorkflowById,
   handleWorkflowAutosave,
+  handleWorkflowRun,
   handleWorkflowTools,
   handleWorkflowExamples,
   handleWorkflowExamplesSearch,
@@ -96,15 +97,11 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 
   // Workflow sub-resource routes (before /:id catch-all)
-  app.post("/api/workflows/:id/run", async (_req, reply) => {
-    reply
-      .status(501)
-      .send(
-        apiError(
-          ApiErrorCode.SERVICE_UNAVAILABLE,
-          "Workflow execution not available in standalone mode"
-        )
-      );
+  app.post("/api/workflows/:id/run", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleWorkflowRun(request, id, apiOptions)
+    );
   });
 
   app.post("/api/workflows/:id/autosave", async (req, reply) => {

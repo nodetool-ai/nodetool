@@ -36,3 +36,6 @@ export const DOWNLOAD_URL = getWebSocketUrl("/ws/download");
 
 /** WebSocket URL for the terminal endpoint. */
 export const TERMINAL_URL = getWebSocketUrl("/ws/terminal");
+
+/** WebSocket URL for the Claude/Codex/OpenCode agent endpoint. */
+export const AGENT_WS_URL = getWebSocketUrl("/ws/agent");

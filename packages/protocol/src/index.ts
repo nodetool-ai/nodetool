@@ -13,3 +13,4 @@ export {
   type WrappedPrimitive
 } from "./wrap-primitives.js";
 export * from "./toolSchemas.js";
+export * from "./agent-protocol.js";
