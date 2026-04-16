@@ -261,17 +261,17 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
 
           {/* Actions */}
           <FlexRow gap={0.5} align="center">
-            <IconButton size="small" onClick={onMoveUp} disabled={index === 0}>
+            <IconButton size="small" onClick={onMoveUp} disabled={index === 0} aria-label="Move node up">
               <ArrowUpwardIcon sx={{ fontSize: 18 }} />
             </IconButton>
-            <IconButton size="small" onClick={onMoveDown} disabled={index === totalNodes - 1}>
+            <IconButton size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} aria-label="Move node down">
               <ArrowDownwardIcon sx={{ fontSize: 18 }} />
             </IconButton>
             <Box sx={{ flex: 1 }} />
-            <IconButton size="small" onClick={onDuplicate}>
+            <IconButton size="small" onClick={onDuplicate} aria-label="Duplicate node">
               <ContentCopyIcon sx={{ fontSize: 18 }} />
             </IconButton>
-            <IconButton size="small" onClick={onRemove} sx={{ color: theme.vars.palette.error.main }}>
+            <IconButton size="small" onClick={onRemove} sx={{ color: theme.vars.palette.error.main }} aria-label="Remove node">
               <DeleteOutlineIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </FlexRow>
