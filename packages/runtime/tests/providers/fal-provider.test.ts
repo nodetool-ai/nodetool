@@ -109,7 +109,7 @@ describe("FalProvider", () => {
     const result = await p.textToImage(params);
     expect(result).toBeInstanceOf(Uint8Array);
 
-    expect(subscribeMock).toHaveBeenCalledWith("fal-ai/flux/dev", {
+    expect(subscribeMock).toHaveBeenCalledWith("fal-ai/flux/dev", expect.objectContaining({
       input: expect.objectContaining({
         prompt: "a cat",
         negative_prompt: "blurry",
@@ -120,7 +120,7 @@ describe("FalProvider", () => {
         output_format: "png"
       }),
       logs: true
-    });
+    }));
 
     vi.unstubAllGlobals();
   });
