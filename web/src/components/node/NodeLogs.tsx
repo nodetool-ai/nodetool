@@ -4,21 +4,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
 import {
-  Typography,
-  Chip,
   Stack,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Box
+  DialogActions
 } from "@mui/material";
-import useLogsStore from "../../stores/LogStore";
-import { shallow } from "zustand/shallow";
-import { useStoreWithEqualityFn } from "zustand/traditional";
-import isEqual from "lodash/isEqual";
-import { CopyButton } from "../ui_primitives";
+import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
+import isEqual from "fast-deep-equal";
+import { CopyButton, Text, Chip, EditorButton } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 import log from "loglevel";
@@ -62,13 +56,9 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();
     const logsRef = useRef<HTMLDivElement>(null);
-    const logs = useStoreWithEqualityFn(
-      useLogsStore,
-      (state) =>
-        state.logs.filter(
-          (log) => log.workflowId === workflowId && log.nodeId === id
-        ),
-      shallow
+    // O(1) lookup via pre-keyed map instead of filtering the full logs array.
+    const logs = useLogsStore(
+      (state) => state.logsByNode[nodeLogKey(workflowId, id)]
     );
     const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>(
       []
@@ -140,9 +130,9 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
       >
         <DialogTitle className="dialog-title">
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="h6" component="h6">
+            <Text size="normal" weight={600} component="h6">
               Node Logs
-            </Typography>
+            </Text>
             <Chip size="small" label={`${count}`} />
             <CopyButton
               value={logText}
@@ -152,7 +142,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
           </Stack>
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
-          <Box sx={{ p: 2 }}>
+          <div style={{ padding: 16 }}>
             <Chip
               size="small"
               label={`Info`}
@@ -197,7 +187,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               }
               onClick={toggleErrorSeverity}
             />
-          </Box>
+          </div>
           <div style={{ padding: 10 }} ref={logsRef}>
             <LogsTable
               rows={(logs || []).map((l) => ({
@@ -213,7 +203,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
           </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Close</Button>
+          <EditorButton onClick={onClose}>Close</EditorButton>
         </DialogActions>
       </Dialog>
     );
@@ -225,13 +215,9 @@ NodeLogsDialog.displayName = "NodeLogsDialog";
 
 export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const theme = useTheme();
-  const logs = useStoreWithEqualityFn(
-    useLogsStore,
-    (state) =>
-      state.logs.filter(
-        (log) => log.workflowId === workflowId && log.nodeId === id
-      ),
-    shallow
+  // O(1) lookup via pre-keyed map instead of filtering the full logs array.
+  const logs = useLogsStore(
+    (state) => state.logsByNode[nodeLogKey(workflowId, id)]
   );
   const [open, setOpen] = useState(false);
 
@@ -252,7 +238,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   return (
     <div className="node-logs-container" css={styles(theme)}>
       <div className="node-logs">
-        <Button
+        <EditorButton
           className="logs-button"
           size="small"
           variant="contained"
@@ -261,7 +247,7 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
         >
           <span>Logs</span>
           <Chip size="small" label={count} sx={{ ml: 1 }} />
-        </Button>
+        </EditorButton>
       </div>
 
       <NodeLogsDialog

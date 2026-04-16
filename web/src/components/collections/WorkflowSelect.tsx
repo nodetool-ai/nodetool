@@ -1,8 +1,9 @@
-import { Autocomplete, SxProps, TextField, Typography } from "@mui/material";
+import { Autocomplete, SxProps, TextField } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { WorkflowList } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 interface WorkflowSelectProps {
@@ -31,7 +32,7 @@ const WorkflowSelect = (props: WorkflowSelectProps) => {
   );
 
   if (error) {
-    return <Typography>{error.message}</Typography>;
+    return <Text>{error.message}</Text>;
   }
 
   return (

@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 
 import React, { useEffect, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import axios from "axios";
 import { LoadingSpinner, ScrollArea } from "../ui_primitives";
 import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
@@ -47,12 +46,15 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
 
   useEffect(() => {
     if (!asset?.get_url) {return;}
-    axios
-      .get(asset?.get_url, {
-        responseType: "text"
-      })
+    fetch(asset.get_url)
       .then((response) => {
-        setDocument(response.data);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.status}`);
+        }
+        return response.text();
+      })
+      .then((text) => {
+        setDocument(text);
       })
       .catch(log.error);
   }, [asset?.get_url]);

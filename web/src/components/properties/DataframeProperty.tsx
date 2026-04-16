@@ -8,12 +8,12 @@ import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
-import { Button, ButtonGroup, IconButton, Tooltip } from "@mui/material";
+import { Tooltip, ToolbarIconButton, EditorButton, ButtonGroup } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import {
   parseDataframeFile,
   isSupportedDataframeFile
@@ -256,17 +256,13 @@ const DataframeProperty = ({
     >
       <div className="property-header">
         <ButtonGroup className="button-group">
-          <Button className="add-column" onClick={addColumn}>
+          <EditorButton className="add-column" onClick={addColumn}>
             <TableRowsIcon style={{ rotate: "90deg" }} /> Add Column
-          </Button>
+          </EditorButton>
         </ButtonGroup>
         {isHovered && (
           <div className="dataframe-action-buttons">
-            <Tooltip title="Open Editor" placement="bottom">
-              <IconButton size="small" onClick={toggleExpand} aria-label="Open Editor">
-                <OpenInFullIcon />
-              </IconButton>
-            </Tooltip>
+            <ToolbarIconButton tooltip="Open Editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
           </div>
         )}
       </div>

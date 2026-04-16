@@ -3,8 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
-import { Box, Tooltip, Typography, IconButton } from "@mui/material";
+import { Box } from "@mui/material";
+import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -166,17 +168,15 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
   const { favorites, removeFavorite, clearFavorites } = useFavoriteNodesStore(
-    (state) => ({
+    useShallow((state) => ({
       favorites: state.favorites,
       removeFavorite: state.removeFavorite,
       clearFavorites: state.clearFavorites
-    })
+    }))
   );
 
-  const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
-    setDragToCreate: state.setDragToCreate,
-    setHoveredNode: state.setHoveredNode
-  }));
+  const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
+  const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
@@ -299,28 +299,22 @@ const FavoritesTiles = memo(function FavoritesTiles() {
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
-        <Typography variant="h5">
+        <Text size="normal" weight={600}>
           <StarIcon
             fontSize="small"
             sx={{ opacity: 0.8, color: "warning.main" }}
           />
           Favorites
-        </Typography>
-        <Tooltip
-          title="Clear all favorites"
-          placement="top"
-          enterDelay={TOOLTIP_ENTER_DELAY}
-          enterNextDelay={TOOLTIP_ENTER_DELAY}
-        >
-          <IconButton
-            size="small"
-            className="clear-button"
-            onClick={handleClearFavorites}
-            aria-label="Clear all favorites"
-          >
-            <ClearIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        </Text>
+        <ToolbarIconButton
+          icon={<ClearIcon fontSize="small" />}
+          tooltip="Clear all favorites"
+          tooltipPlacement="top"
+          size="small"
+          className="clear-button"
+          onClick={handleClearFavorites}
+          aria-label="Clear all favorites"
+        />
       </div>
       <div className="tiles-container">
         {favorites.map((favorite) => {
@@ -363,16 +357,16 @@ const FavoritesTiles = memo(function FavoritesTiles() {
                   } as CSSProperties
                 }
               >
-                <IconButton
+                <ToolbarIconButton
+                  icon={<StarBorderIcon fontSize="small" />}
+                  tooltip={`Remove ${displayName} from favorites`}
                   size="small"
                   className="unfavorite-btn"
                   onClick={handleUnfavorite}
                   data-node-type={nodeType}
                   aria-label={`Remove ${displayName} from favorites`}
-                >
-                  <StarBorderIcon fontSize="small" />
-                </IconButton>
-                <Typography className="tile-label">{displayName}</Typography>
+                />
+                <Text className="tile-label">{displayName}</Text>
               </div>
             </Tooltip>
           );

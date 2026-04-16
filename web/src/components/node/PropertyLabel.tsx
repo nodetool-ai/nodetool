@@ -2,8 +2,8 @@
 import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
-import isEqual from "lodash/isEqual";
-import Tooltip from "@mui/material/Tooltip";
+import isEqual from "fast-deep-equal";
+import { Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
@@ -24,6 +24,11 @@ interface PropertyLabelProps {
    * Defaults to "normal".
    */
   density?: "compact" | "normal";
+  /**
+   * When true, shows the description as inline text below the label instead
+   * of only in a tooltip. Useful in the Inspector where there is more space.
+   */
+  showDescriptionInline?: boolean;
 }
 
 const PropertyLabel: React.FC<PropertyLabelProps> = ({
@@ -32,7 +37,8 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
   description,
   showTooltip = true,
   isDynamicProperty = false,
-  density = "normal"
+  density = "normal",
+  showDescriptionInline = false
 }) => {
   const theme = useTheme();
   const scope = useEditorScope();
@@ -43,9 +49,11 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     return titleizeString(name);
   }, [name, isDynamicProperty]);
 
-  const labelFontSize =
-    scope === "inspector" ? theme.fontSizeNormal : theme.fontSizeSmall;
-  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1.5);
+  const isInspector = scope === "inspector";
+  const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
+  const labelMarginBottom = density === "compact" ? 0 : theme.spacing(0.25);
+  // Only show inline descriptions when explicitly requested, not automatically in inspector
+  const shouldShowInlineDescription = showDescriptionInline && !isInspector;
 
   return (
     <div
@@ -79,8 +87,8 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     >
       <Tooltip
         title={showTooltip ? description || "" : ""}
-        enterDelay={TOOLTIP_ENTER_DELAY * 2}
-        enterNextDelay={TOOLTIP_ENTER_DELAY}
+        delay={TOOLTIP_ENTER_DELAY * 2}
+        nextDelay={TOOLTIP_ENTER_DELAY}
         placement="left"
         slotProps={{
           tooltip: {
@@ -106,6 +114,21 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           {formattedName}
         </label>
       </Tooltip>
+      {shouldShowInlineDescription && description && (
+        <span
+          css={css({
+            display: "block",
+            fontSize: theme.fontSizeSmaller,
+            color: theme.vars.palette.text.disabled,
+            lineHeight: 1.3,
+            marginTop: "1px",
+            marginBottom: theme.spacing(0.5),
+            userSelect: "none",
+          })}
+        >
+          {description}
+        </span>
+      )}
     </div>
   );
 };

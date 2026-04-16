@@ -131,7 +131,8 @@ export class ListFilesLibNode extends BaseNode {
   static readonly description =
     "list files in a directory matching a pattern.\n    files, list, directory\n\n    Use cases:\n    - Get files for batch processing\n    - Filter files by extension or pattern";
   static readonly metadataOutputTypes = {
-    file: "str"
+    file: "str",
+    files: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -160,7 +161,22 @@ export class ListFilesLibNode extends BaseNode {
   declare include_subdirectories: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const folder = expandUser(String(this.folder ?? "~"));
+    const pattern = String(this.pattern ?? "*");
+    const includeSubdirectories = Boolean(this.include_subdirectories ?? false);
+
+    if (!folder) throw new Error("directory cannot be empty");
+    const rx = wildcardToRegExp(pattern, true);
+    const results: string[] = [];
+    for (const p of await walk(folder, includeSubdirectories)) {
+      if (rx.test(path.basename(p))) {
+        results.push(p);
+      }
+    }
+    return {
+      file: results[0] ?? "",
+      files: results
+    };
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
@@ -170,11 +186,15 @@ export class ListFilesLibNode extends BaseNode {
 
     if (!folder) throw new Error("directory cannot be empty");
     const rx = wildcardToRegExp(pattern, true);
+    const results: string[] = [];
     for (const p of await walk(folder, includeSubdirectories)) {
       if (rx.test(path.basename(p))) {
+        results.push(p);
         yield { file: p };
       }
     }
+
+    yield { files: results };
   }
 }
 

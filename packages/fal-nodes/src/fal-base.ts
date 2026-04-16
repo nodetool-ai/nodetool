@@ -37,12 +37,22 @@ function getClient(apiKey: string): FalClient {
 export async function falSubmit(
   apiKey: string,
   endpoint: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  onProgress?: (message: string) => void
 ): Promise<Record<string, unknown>> {
   const client = getClient(apiKey);
   const result = await client.subscribe(endpoint, {
     input: args,
-    logs: true
+    logs: true,
+    onQueueUpdate: onProgress
+      ? (update: { status: string; logs?: Array<{ message: string }> }) => {
+          if (update.status === "IN_PROGRESS") {
+            for (const entry of update.logs ?? []) {
+              onProgress(entry.message);
+            }
+          }
+        }
+      : undefined
   });
   return (result.data ?? result) as Record<string, unknown>;
 }
@@ -162,6 +172,27 @@ export function isRefSet(ref: unknown): boolean {
   if (!ref || typeof ref !== "object") return false;
   const r = ref as Record<string, unknown>;
   return Boolean(r.data || r.uri || r.asset_id);
+}
+
+// ---------------------------------------------------------------------------
+// Build a proper ImageRef from a FAL image response object
+// ---------------------------------------------------------------------------
+
+export interface FalImageResult {
+  url: string;
+  width?: number;
+  height?: number;
+  content_type?: string;
+}
+
+export function falImageToRef(img: FalImageResult): Record<string, unknown> {
+  return {
+    type: "image",
+    uri: img.url,
+    width: img.width,
+    height: img.height,
+    mimeType: img.content_type
+  };
 }
 
 export function removeNulls(obj: Record<string, unknown>): void {

@@ -144,6 +144,8 @@ export interface TextToVideoParams {
   prompt: string;
   negativePrompt?: string | null;
   numFrames?: number | null;
+  /** Requested duration in seconds (provider decides fps). */
+  durationSeconds?: number | null;
   aspectRatio?: string | null;
   resolution?: string | null;
   guidanceScale?: number | null;
@@ -156,6 +158,8 @@ export interface ImageToVideoParams {
   prompt?: string | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
+  /** Requested duration in seconds (provider decides fps). */
+  durationSeconds?: number | null;
   aspectRatio?: string | null;
   resolution?: string | null;
   guidanceScale?: number | null;
@@ -167,6 +171,17 @@ export type ProviderStreamItem = Chunk | ToolCall;
 
 export interface StreamingAudioChunk {
   samples: Int16Array;
+  /** Sample rate in Hz. Defaults to 24000 when omitted. */
+  sampleRate?: number;
+}
+
+/**
+ * Returned by providers that produce fully-encoded audio (e.g. FLAC, WAV)
+ * rather than raw PCM samples.
+ */
+export interface EncodedAudioResult {
+  data: Uint8Array;
+  mimeType: string;
 }
 
 export interface Model3D {

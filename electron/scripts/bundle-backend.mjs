@@ -47,7 +47,6 @@ const EXTERNAL_PACKAGES = [
   "@img/sharp-*",
   "node-web-audio-api",
   "keytar",
-  "faiss-node",
 
   // Native optional deps (loaded by bundleable packages)
   "msgpackr",
@@ -353,8 +352,8 @@ async function main() {
     sourcemap: "external",
     banner: {
       js: [
-        'import { createRequire } from "node:module";',
-        "const require = createRequire(import.meta.url);",
+        'import { createRequire as __ntCreateRequire } from "node:module";',
+        "const require = __ntCreateRequire(import.meta.url);",
       ].join("\n"),
     },
     plugins: [resolveWorkspaceSubpathPlugin],
@@ -376,6 +375,25 @@ async function main() {
   // --- Copy external packages ---
   console.log("\nCopying external packages to staged backend modules...");
   const copiedCount = await copyExternalPackages();
+
+  // --- Copy manifest JSON files next to server.mjs ---
+  // These packages use `dirname(fileURLToPath(import.meta.url))` at runtime,
+  // which resolves to the bundle directory when bundled, so the manifests
+  // must live alongside server.mjs.
+  const manifests = [
+    ["kie-nodes", "kie-manifest.json"],
+    ["replicate-nodes", "replicate-manifest.json"],
+    ["fal-nodes", "fal-manifest.json"],
+  ];
+  for (const [pkg, file] of manifests) {
+    const src = path.join(ROOT_DIR, "packages", pkg, "dist", file);
+    const dest = path.join(BUNDLE_DIR, file);
+    if (fs.existsSync(src)) {
+      await fsp.copyFile(src, dest);
+    } else {
+      console.warn(`  Warning: manifest not found, skipping: ${src}`);
+    }
+  }
 
   // --- Generate minimal package.json ---
   await fsp.writeFile(

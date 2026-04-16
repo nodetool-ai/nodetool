@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
@@ -97,7 +98,7 @@ const listStyles = (theme: Theme) =>
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      paddingRight: "140px"
+      paddingRight: "0"
     },
     ".date-container": {
       position: "absolute",
@@ -127,7 +128,7 @@ const listStyles = (theme: Theme) =>
     ".duplicate-button svg": {
       transform: "scale(0.7)"
     },
-    // List view (no preview) - actions on the right, no background
+    // List view (no preview) - actions overlay text on hover
     ".actions": {
       position: "absolute",
       top: "50%",
@@ -140,6 +141,8 @@ const listStyles = (theme: Theme) =>
       zIndex: 10,
       opacity: 0,
       transition: "opacity 0.15s ease",
+      background: `linear-gradient(to right, transparent, ${theme.vars.palette.grey[600]} 16px)`,
+      paddingLeft: "20px",
       button: {
         opacity: 1,
         color: theme.vars.palette.grey[100],
@@ -302,7 +305,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
     if (item.type === "header") {
       return (
         <div style={{ ...style, display: "flex" }}>
-          <Typography className="date-header" sx={{ width: "100%" }}>{item.label}</Typography>
+          <Text className="date-header" sx={{ width: "100%" }}>{item.label}</Text>
         </div>
       );
     }

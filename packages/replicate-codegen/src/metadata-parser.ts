@@ -201,7 +201,9 @@ export class MetadataParser {
         fieldType: "input",
         required: !prop.type.optional,
         enumRef,
-        enumValues
+        enumValues,
+        ...(prop.min !== undefined && { min: prop.min }),
+        ...(prop.max !== undefined && { max: prop.max })
       });
     }
 

@@ -7,7 +7,7 @@ import {
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { TemporalState } from "zundo";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { Box } from "@mui/material";
 
 // Extend Window interface for HMR context preservation

@@ -7,6 +7,7 @@ const log = createLogger("nodetool.runtime.providers.openai");
 import type {
   ASRModel,
   EmbeddingModel,
+  EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
@@ -471,11 +472,11 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async uriToBase64(uri: string): Promise<string> {
-    if (uri.startsWith("data:")) {
-      return this.normalizeDataUri(uri);
+    const resolved = await this.resolveUri(uri);
+    if (resolved.startsWith("data:")) {
+      return this.normalizeDataUri(resolved);
     }
-
-    const response = await this._fetch(uri);
+    const response = await this._fetch(resolved);
     if (!response.ok) {
       throw new Error(`Failed to fetch URI: ${response.status}`);
     }
@@ -655,8 +656,6 @@ export class OpenAIProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -667,18 +666,12 @@ export class OpenAIProvider extends BaseProvider {
       model,
       tools = [],
       maxTokens = 16384,
-      responseFormat,
-      jsonSchema,
       temperature,
       topP,
       presencePenalty,
       frequencyPenalty,
       audio
     } = args;
-
-    if (responseFormat && jsonSchema) {
-      throw new Error("responseFormat and jsonSchema are mutually exclusive");
-    }
 
     const messages = this.convertSystemToUserForOModels(args.messages, model);
     const openaiMessages = await Promise.all(
@@ -693,14 +686,8 @@ export class OpenAIProvider extends BaseProvider {
       stream_options: { include_usage: true }
     };
 
-    if (responseFormat) {
-      request.response_format = responseFormat;
-    } else if (jsonSchema) {
-      request.response_format = {
-        type: "json_schema",
-        json_schema: jsonSchema
-      };
-    }
+    const hasTools =
+      tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
@@ -712,7 +699,7 @@ export class OpenAIProvider extends BaseProvider {
       request.modalities = ["text", "audio"];
     }
 
-    if (tools.length > 0 && (await this.hasToolSupport(model))) {
+    if (hasTools) {
       request.tools = this.formatTools(tools);
     }
 
@@ -800,8 +787,6 @@ export class OpenAIProvider extends BaseProvider {
     tools?: ProviderTool[];
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -812,17 +797,11 @@ export class OpenAIProvider extends BaseProvider {
       tools = [],
       toolChoice,
       maxTokens = 16384,
-      responseFormat,
-      jsonSchema,
       temperature,
       topP,
       presencePenalty,
       frequencyPenalty
     } = args;
-
-    if (responseFormat && jsonSchema) {
-      throw new Error("responseFormat and jsonSchema are mutually exclusive");
-    }
 
     const messages = this.convertSystemToUserForOModels(args.messages, model);
     const openaiMessages = await Promise.all(
@@ -836,21 +815,15 @@ export class OpenAIProvider extends BaseProvider {
       max_completion_tokens: maxTokens
     };
 
-    if (responseFormat) {
-      request.response_format = responseFormat;
-    } else if (jsonSchema) {
-      request.response_format = {
-        type: "json_schema",
-        json_schema: jsonSchema
-      };
-    }
+    const hasTools =
+      tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
     if (presencePenalty != null) request.presence_penalty = presencePenalty;
     if (frequencyPenalty != null) request.frequency_penalty = frequencyPenalty;
 
-    if (tools.length > 0 && (await this.hasToolSupport(model))) {
+    if (hasTools) {
       request.tools = this.formatTools(tools);
       if (toolChoice) {
         request.tool_choice =
@@ -997,6 +970,7 @@ export class OpenAIProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     if (!args.text) {
       throw new Error("text must not be empty");
@@ -1039,6 +1013,56 @@ export class OpenAIProvider extends BaseProvider {
     yield { samples: toInt16Samples(bytes) };
   }
 
+  /**
+   * OpenAI supports several fully-encoded TTS formats directly (mp3, opus,
+   * aac, flac, wav). Use this path when the caller has requested one of them
+   * so we can skip the PCM → WAV wrapping step and honor the user's choice.
+   * For `"pcm"` (and anything unrecognised) we return `null` and let the
+   * streaming PCM path handle it.
+   */
+  override async textToSpeechEncoded(args: {
+    text: string;
+    model: string;
+    voice?: string;
+    speed?: number;
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
+    if (!args.text) {
+      throw new Error("text must not be empty");
+    }
+
+    const fmt = (args.audioFormat ?? "").toLowerCase();
+    const formatToMime: Record<string, string> = {
+      mp3: "audio/mpeg",
+      opus: "audio/ogg",
+      aac: "audio/aac",
+      flac: "audio/flac",
+      wav: "audio/wav"
+    };
+    if (!(fmt in formatToMime)) {
+      return null;
+    }
+
+    const voice = args.voice ?? "alloy";
+    const speed = Math.max(0.25, Math.min(4.0, args.speed ?? 1.0));
+
+    const speechApi = this.getClient().audio.speech as any;
+    const response = await speechApi.create({
+      model: args.model,
+      input: args.text,
+      voice,
+      speed,
+      response_format: fmt
+    });
+
+    const bytes = asUint8Array(
+      typeof response.arrayBuffer === "function"
+        ? await response.arrayBuffer()
+        : response
+    );
+    return { data: bytes, mimeType: formatToMime[fmt] };
+  }
+
   async automaticSpeechRecognition(args: {
     audio: Uint8Array;
     model: string;
@@ -1053,7 +1077,7 @@ export class OpenAIProvider extends BaseProvider {
 
     const temperature = Math.max(0, Math.min(1, args.temperature ?? 0));
 
-    const audioPart = new Uint8Array(args.audio) as BlobPart;
+    const audioPart = new Uint8Array(args.audio);
     const fileLike =
       typeof File !== "undefined"
         ? new File([audioPart], "audio.mp3", { type: "audio/mpeg" })

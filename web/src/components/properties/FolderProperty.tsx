@@ -1,12 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { useTheme } from "@mui/material/styles";
 import {
-  Button,
   Popover,
   DialogTitle,
   DialogContent,
   TextField
 } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { AssetList } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -16,9 +16,9 @@ import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import dialogStyles from "../../styles/DialogStyles";
-import isEqual from "lodash/isEqual";
-import { NodeSelect, NodeMenuItem } from "../editor_ui";
-import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
+import isEqual from "fast-deep-equal";
+import Select from "../inputs/Select";
+import { FlexRow, DialogActionButtons } from "../ui_primitives";
 
 const FolderProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
@@ -99,17 +99,22 @@ const FolderProperty = (props: PropertyProps) => {
   );
 
   const handleFolderSelect = useCallback(
-    (
-      event:
-        | React.ChangeEvent<HTMLInputElement>
-        | (Event & { target: { value: unknown; name: string } })
-    ) => {
+    (value: string) => {
       props.onChange({
         type: "folder",
-        asset_id: event.target.value as string
+        asset_id: value
       });
     },
     [props]
+  );
+
+  const folderOptions = useMemo(
+    () =>
+      data?.assets.map((folder) => ({
+        value: folder.id,
+        label: folder.name
+      })) || [],
+    [data?.assets]
   );
 
   const theme = useTheme();
@@ -122,21 +127,14 @@ const FolderProperty = (props: PropertyProps) => {
       />
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5em" }}>
-        <NodeSelect
-          id={id}
-          labelId={id}
-          name=""
+      <FlexRow align="center" gap={0.5}>
+        <Select
+          options={folderOptions}
           value={selectValue}
           onChange={handleFolderSelect}
-        >
-          {data?.assets.map((folder) => (
-            <NodeMenuItem key={folder.id} value={folder.id}>
-              {folder.name}
-            </NodeMenuItem>
-          ))}
-        </NodeSelect>
-        <Button
+          placeholder="Select a folder"
+        />
+        <EditorButton
           onClick={handleOpenMenu}
           sx={{
             border: "none",
@@ -145,8 +143,8 @@ const FolderProperty = (props: PropertyProps) => {
           }}
         >
           <CreateNewFolderIcon sx={{ fontSize: "1.2rem" }} />
-        </Button>
-      </div>
+        </EditorButton>
+      </FlexRow>
       <Popover
         css={dialogStyles(theme)}
         className="dialog"

@@ -62,17 +62,243 @@ function createEnhanceNode(desc: Desc): NodeClass {
           m1: percent / 100,
           m2: threshold
         });
-      } else if (
-        t.endsWith(".Equalize") ||
-        t.endsWith(".AutoContrast") ||
-        t.endsWith(".AdaptiveContrast")
-      ) {
-        img = img.normalize();
+      } else if (t.endsWith(".AutoContrast")) {
+        // Proper autocontrast with cutoff
+        const cutoff = Number((this as any).cutoff ?? 0);
+        const { data: raw, info } = await img
+          .removeAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        const w = info.width;
+        const h = info.height;
+        const totalPixels = w * h;
+        const channels = 3;
+        const cutCount = Math.floor((totalPixels * cutoff) / 100);
+        for (let c = 0; c < channels; c++) {
+          // Build histogram for this channel
+          const hist = new Uint32Array(256);
+          for (let i = c; i < raw.length; i += channels) {
+            hist[raw[i]]++;
+          }
+          // Find low cutoff
+          let lo = 0;
+          let cumLo = 0;
+          while (lo < 255 && cumLo + hist[lo] <= cutCount) {
+            cumLo += hist[lo];
+            lo++;
+          }
+          // Find high cutoff
+          let hi = 255;
+          let cumHi = 0;
+          while (hi > 0 && cumHi + hist[hi] <= cutCount) {
+            cumHi += hist[hi];
+            hi--;
+          }
+          if (lo >= hi) continue;
+          // Linear map remaining range to 0-255
+          const scale = 255.0 / (hi - lo);
+          for (let i = c; i < raw.length; i += channels) {
+            raw[i] = Math.max(
+              0,
+              Math.min(255, Math.round((raw[i] - lo) * scale))
+            );
+          }
+        }
+        const out = await sharp(raw, {
+          raw: { width: w, height: h, channels: channels as 3 }
+        })
+          .png()
+          .toBuffer();
+        return { output: toRef(out, baseObj) };
+      } else if (t.endsWith(".Equalize")) {
+        // Proper histogram equalization
+        const { data: raw, info } = await img
+          .removeAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        const w = info.width;
+        const h = info.height;
+        const totalPixels = w * h;
+        const channels = 3;
+        for (let c = 0; c < channels; c++) {
+          // Build histogram
+          const hist = new Uint32Array(256);
+          for (let i = c; i < raw.length; i += channels) {
+            hist[raw[i]]++;
+          }
+          // Compute CDF
+          const cdf = new Uint32Array(256);
+          cdf[0] = hist[0];
+          for (let j = 1; j < 256; j++) {
+            cdf[j] = cdf[j - 1] + hist[j];
+          }
+          // Find min non-zero CDF value
+          let cdfMin = 0;
+          for (let j = 0; j < 256; j++) {
+            if (cdf[j] > 0) {
+              cdfMin = cdf[j];
+              break;
+            }
+          }
+          // Build lookup table
+          const lut = new Uint8Array(256);
+          const denom = totalPixels - cdfMin;
+          if (denom > 0) {
+            for (let j = 0; j < 256; j++) {
+              lut[j] = Math.round(((cdf[j] - cdfMin) / denom) * 255);
+            }
+          }
+          // Apply LUT
+          for (let i = c; i < raw.length; i += channels) {
+            raw[i] = lut[raw[i]];
+          }
+        }
+        const out = await sharp(raw, {
+          raw: { width: w, height: h, channels: channels as 3 }
+        })
+          .png()
+          .toBuffer();
+        return { output: toRef(out, baseObj) };
+      } else if (t.endsWith(".AdaptiveContrast")) {
+        // CLAHE (Contrast Limited Adaptive Histogram Equalization)
+        const clipLimit = Number((this as any).clip_limit ?? 2);
+        const gridSize = Math.max(
+          1,
+          Math.round(Number((this as any).grid_size ?? 8))
+        );
+        const { data: raw, info } = await img
+          .removeAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        const w = info.width;
+        const h = info.height;
+        const channels = 3;
+        const tileW = Math.ceil(w / gridSize);
+        const tileH = Math.ceil(h / gridSize);
+
+        // Build CDFs for each tile and channel
+        const tileCDFs: Float32Array[][][] = [];
+        for (let ty = 0; ty < gridSize; ty++) {
+          tileCDFs[ty] = [];
+          for (let tx = 0; tx < gridSize; tx++) {
+            tileCDFs[ty][tx] = [];
+            const x0 = tx * tileW;
+            const y0 = ty * tileH;
+            const x1 = Math.min(x0 + tileW, w);
+            const y1 = Math.min(y0 + tileH, h);
+            const tilePixels = (x1 - x0) * (y1 - y0);
+            for (let c = 0; c < channels; c++) {
+              const hist = new Uint32Array(256);
+              for (let y = y0; y < y1; y++) {
+                for (let x = x0; x < x1; x++) {
+                  hist[raw[(y * w + x) * channels + c]]++;
+                }
+              }
+              // Clip histogram and redistribute
+              const limit = Math.max(
+                1,
+                Math.round((clipLimit * tilePixels) / 256)
+              );
+              let excess = 0;
+              for (let j = 0; j < 256; j++) {
+                if (hist[j] > limit) {
+                  excess += hist[j] - limit;
+                  hist[j] = limit;
+                }
+              }
+              const increment = Math.floor(excess / 256);
+              for (let j = 0; j < 256; j++) {
+                hist[j] += increment;
+              }
+              // Compute CDF
+              const cdf = new Float32Array(256);
+              cdf[0] = hist[0];
+              for (let j = 1; j < 256; j++) {
+                cdf[j] = cdf[j - 1] + hist[j];
+              }
+              // Normalize CDF to 0-255
+              const cdfMax = cdf[255];
+              if (cdfMax > 0) {
+                for (let j = 0; j < 256; j++) {
+                  cdf[j] = (cdf[j] / cdfMax) * 255;
+                }
+              }
+              tileCDFs[ty][tx][c] = cdf;
+            }
+          }
+        }
+
+        // Apply with bilinear interpolation between tile CDFs
+        const result = Buffer.alloc(raw.length);
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            // Find tile coordinates
+            const ftx = (x + 0.5) / tileW - 0.5;
+            const fty = (y + 0.5) / tileH - 0.5;
+            const tx0 = Math.max(0, Math.floor(ftx));
+            const ty0 = Math.max(0, Math.floor(fty));
+            const tx1 = Math.min(gridSize - 1, tx0 + 1);
+            const ty1 = Math.min(gridSize - 1, ty0 + 1);
+            const fx = Math.max(0, Math.min(1, ftx - tx0));
+            const fy = Math.max(0, Math.min(1, fty - ty0));
+            for (let c = 0; c < channels; c++) {
+              const val = raw[(y * w + x) * channels + c];
+              const tl = tileCDFs[ty0][tx0][c][val];
+              const tr = tileCDFs[ty0][tx1][c][val];
+              const bl = tileCDFs[ty1][tx0][c][val];
+              const br = tileCDFs[ty1][tx1][c][val];
+              const top = tl * (1 - fx) + tr * fx;
+              const bot = bl * (1 - fx) + br * fx;
+              result[(y * w + x) * channels + c] = Math.round(
+                top * (1 - fy) + bot * fy
+              );
+            }
+          }
+        }
+        const out = await sharp(result, {
+          raw: { width: w, height: h, channels: channels as 3 }
+        })
+          .png()
+          .toBuffer();
+        return { output: toRef(out, baseObj) };
       } else if (t.endsWith(".Detail") || t.endsWith(".EdgeEnhance")) {
         img = img.sharpen({ sigma: 0.5, m1: 0.5, m2: 0.3 });
       } else if (t.endsWith(".RankFilter")) {
-        const size = Number((this as any).size ?? 3);
-        img = img.median(Math.max(1, size));
+        // Proper rank filter with configurable rank
+        const size = Math.max(1, Number((this as any).size ?? 3));
+        const rank = Number((this as any).rank ?? 3);
+        const { data: raw, info } = await img
+          .removeAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        const w = info.width;
+        const h = info.height;
+        const channels = 3;
+        const half = Math.floor(size / 2);
+        const result = Buffer.alloc(raw.length);
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            for (let c = 0; c < channels; c++) {
+              const neighbors: number[] = [];
+              for (let ky = -half; ky <= half; ky++) {
+                for (let kx = -half; kx <= half; kx++) {
+                  const ny = Math.min(h - 1, Math.max(0, y + ky));
+                  const nx = Math.min(w - 1, Math.max(0, x + kx));
+                  neighbors.push(raw[(ny * w + nx) * channels + c]);
+                }
+              }
+              neighbors.sort((a, b) => a - b);
+              const idx = Math.min(rank, neighbors.length - 1);
+              result[(y * w + x) * channels + c] = neighbors[idx];
+            }
+          }
+        }
+        const out = await sharp(result, {
+          raw: { width: w, height: h, channels: channels as 3 }
+        })
+          .png()
+          .toBuffer();
+        return { output: toRef(out, baseObj) };
       }
 
       const out = await img.png().toBuffer();

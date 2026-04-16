@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { ReactElement, ReactNode, memo } from "react";
-import { Tooltip, MenuItem } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { MenuItem } from "@mui/material";
+import { EditorButton, Tooltip } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ContextMenuItemProps {
@@ -102,7 +102,7 @@ const ContextMenuItem = memo(function ContextMenuItem({
         <Tooltip
           css={styles(theme)}
           title={tooltip}
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           placement={"right"}
         >
           <MenuItem>

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
-import { Typography, Box } from "@mui/material";
-import { LoadingSpinner, ScrollArea } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { LoadingSpinner, ScrollArea, Text } from "../ui_primitives";
 import { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -540,7 +540,7 @@ const TemplateGrid = memo(function TemplateGrid() {
         {isError && (
           <ScrollArea className="container" direction="vertical">
             <ErrorOutlineRounded>
-              <Typography>{error?.message}</Typography>
+              <Text>{error?.message}</Text>
             </ErrorOutlineRounded>
           </ScrollArea>
         )}
@@ -572,20 +572,20 @@ const TemplateGrid = memo(function TemplateGrid() {
         {showNoResults && (
           <ScrollArea className="container" direction="vertical">
             <Box className="no-results">
-              <Typography variant="body1" sx={{ marginBottom: "1em" }}>
+              <Text sx={{ marginBottom: "1em" }}>
                 Nothing found for
                 <strong style={{ color: theme.vars.palette.primary.main }}>
                   {" "}
                   &quot;{searchQuery}&quot;
                 </strong>
-              </Typography>
+              </Text>
 
-              <Typography variant="h4" sx={{ margin: "1em 0 0.5em 0" }}>
+              <Text size="big" sx={{ margin: "1em 0 0.5em 0" }}>
                 Help us improve the templates
-              </Typography>
-              <Typography variant="body1" sx={{ marginBottom: "1em" }}>
+              </Text>
+              <Text sx={{ marginBottom: "1em" }}>
                 Let us know what you&apos;re missing!
-              </Typography>
+              </Text>
               <ul
                 style={{
                   listStyleType: "none",

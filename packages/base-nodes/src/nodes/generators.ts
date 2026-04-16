@@ -768,7 +768,7 @@ export class ChartGeneratorNode extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? this.prompt ?? "");
     const data = this.data ?? this.data ?? { rows: [] };
     const rows = Array.isArray((data as { rows?: unknown }).rows)
@@ -777,6 +777,120 @@ export class ChartGeneratorNode extends BaseNode {
     const keys = rows.length > 0 ? Object.keys(rows[0]) : [];
     const xKey = keys[0] ?? "x";
     const yKey = keys[1] ?? xKey;
+
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (hasProviderSupport(context, providerId, modelId)) {
+      const dataSample =
+        rows.length > 0
+          ? `Data columns: ${keys.join(", ")}\nSample rows:\n${JSON.stringify(rows.slice(0, 5), null, 2)}`
+          : "No data provided.";
+      const systemPrompt = `You are a Plotly visualization expert. Given a user's description and optional data, generate a Plotly chart configuration as JSON.
+The JSON must conform to the provided schema. Choose appropriate chart types (bar, line, scatter, pie, histogram, box, heatmap, etc.) based on the user's description.
+Use the data columns provided to set x_column, y_column, and label fields in the series array.
+Set a descriptive title, axis labels, and legend settings.`;
+      const userMessage = `${prompt}\n\n${dataSample}`;
+
+      const chartSchema = {
+        type: "object",
+        additionalProperties: false,
+        required: ["title", "x_label", "y_label", "legend", "data"],
+        properties: {
+          title: { type: "string" },
+          x_label: { type: "string" },
+          y_label: { type: "string" },
+          legend: { type: "boolean" },
+          legend_position: { type: "string" },
+          data: {
+            type: "object",
+            additionalProperties: false,
+            required: ["series"],
+            properties: {
+              series: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  required: ["type", "x_column", "y_column", "label"],
+                  properties: {
+                    type: { type: "string" },
+                    x_column: { type: "string" },
+                    y_column: { type: "string" },
+                    label: { type: "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      };
+
+      const result = await context.runProviderPrediction({
+        provider: providerId,
+        capability: "generate_message",
+        model: modelId,
+        params: {
+          model: modelId,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage }
+          ],
+          max_tokens: Number(this.max_tokens ?? 4096),
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "chart_config",
+              schema: chartSchema
+            }
+          }
+        }
+      });
+
+      const content = asText(
+        (result as { content?: unknown }).content ?? result
+      );
+      try {
+        const parsed = JSON.parse(content) as Record<string, unknown>;
+        return {
+          output: {
+            type: "chart_config",
+            ...parsed,
+            data: {
+              type: "chart_data",
+              ...((parsed.data as Record<string, unknown>) ?? {}),
+              row: null,
+              col: null,
+              col_wrap: null
+            },
+            height: null,
+            aspect: null,
+            x_lim: null,
+            y_lim: null,
+            x_scale: null,
+            y_scale: null,
+            palette: null,
+            hue_order: null,
+            hue_norm: null,
+            sizes: null,
+            size_order: null,
+            size_norm: null,
+            marginal_kws: null,
+            joint_kws: null,
+            diag_kind: null,
+            corner: false,
+            center: null,
+            vmin: null,
+            vmax: null,
+            cmap: null,
+            annot: false,
+            fmt: ".2g",
+            square: false
+          }
+        };
+      } catch {
+        // Fall through to hardcoded fallback
+      }
+    }
+
     return {
       output: {
         type: "chart_config",
@@ -898,10 +1012,51 @@ export class SVGGeneratorNode extends BaseNode {
   })
   declare max_tokens: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? this.prompt ?? "");
     const width = Number((this as any).width ?? 512) || 512;
     const height = Number((this as any).height ?? 512) || 512;
+
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (hasProviderSupport(context, providerId, modelId)) {
+      const systemPrompt = `You are an SVG graphics expert. Generate SVG markup based on the user's description.
+Return one or more complete <svg>...</svg> elements. Each SVG should use the xmlns="http://www.w3.org/2000/svg" attribute.
+Default canvas size is ${width}x${height} unless the user specifies otherwise.
+Output only SVG markup, no explanations or markdown fences.`;
+
+      const messages: Array<{ role: string; content: unknown }> = [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: buildMessageContent(prompt, this.image, this.audio)
+        }
+      ];
+
+      const result = await context.runProviderPrediction({
+        provider: providerId,
+        capability: "generate_message",
+        model: modelId,
+        params: {
+          model: modelId,
+          messages,
+          max_tokens: Number(this.max_tokens ?? 8192)
+        }
+      });
+
+      const content = asText(
+        (result as { content?: unknown }).content ?? result
+      );
+      const svgMatches = Array.from(
+        content.matchAll(/<svg[\s\S]*?<\/svg>/gi)
+      );
+      if (svgMatches.length > 0) {
+        return {
+          output: svgMatches.map((m) => ({ content: m[0] }))
+        };
+      }
+    }
+
+    // Fallback: generate a simple placeholder SVG
     const text = prompt || "SVG";
     const safeText = text
       .replace(/&/g, "&amp;")

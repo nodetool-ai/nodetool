@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, memo } from "react";
-import { Divider, Typography, MenuItem, Menu } from "@mui/material";
+import { MenuItem, Menu } from "@mui/material";
+import { Text, Divider } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -21,7 +22,8 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { useNodes } from "../../contexts/NodeContext";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
+import { shallow } from "zustand/shallow";
 
 interface SelectionContextMenuProps {
   top?: number;
@@ -33,7 +35,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
   const { deleteNode, toggleBypassSelected } = useNodes((state) => ({
     deleteNode: state.deleteNode,
     toggleBypassSelected: state.toggleBypassSelected
-  }));
+  }), shallow);
   const duplicateNodes = useDuplicateNodes();
   const alignNodes = useAlignNodes();
   const surroundWithGroup = useSurroundWithGroup();
@@ -159,15 +161,14 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       }
     >
       <MenuItem disabled>
-        <Typography
+        <Text
           style={{
             margin: ".1em 0",
             padding: "0"
           }}
-          variant="body1"
         >
           SELECTION
-        </Typography>
+        </Text>
       </MenuItem>
 
       <ContextMenuItem
@@ -196,18 +197,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
           </div>
         }
       />
-      {/* <ContextMenuItem
-        onClick={() => handleCollapseAll(false)}
-        label="Collapse"
-        IconComponent={<UnfoldLessIcon />}
-        tooltip=""
-      />
-      <ContextMenuItem
-        onClick={() => handleExpandAll(false)}
-        label="Expand"
-        IconComponent={<UnfoldMoreIcon />}
-        tooltip=""
-      /> */}
       {selectedNodes?.length > 1 && (
         <ContextMenuItem
           onClick={handleAlignNodesFalse}
@@ -296,15 +285,14 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       <Divider />
 
       <MenuItem disabled>
-        <Typography
+        <Text
           style={{
             margin: ".1em 0",
             padding: "0"
           }}
-          variant="body1"
         >
           CONNECTED
-        </Typography>
+        </Text>
       </MenuItem>
 
       <ContextMenuItem

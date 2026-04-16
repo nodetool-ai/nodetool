@@ -32,5 +32,9 @@ export {
   getNodetoolDataDir,
   getDefaultDbPath,
   getDefaultVectorstoreDbPath,
-  getDefaultAssetsPath
+  getDefaultAssetsPath,
+  getAssetFilePath,
+  getAssetDomain,
+  getTempDomain,
+  buildAssetUrl
 } from "./paths.js";

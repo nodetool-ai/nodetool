@@ -1,7 +1,6 @@
 import React, { useCallback } from "react";
 import HelpIcon from "@mui/icons-material/Help";
-import { StateIconButton } from "../../ui_primitives";
-import { Typography } from "@mui/material";
+import { StateIconButton, Text, Caption } from "../../ui_primitives";
 
 interface HelpModeToggleProps {
   helpMode: boolean;
@@ -20,14 +19,14 @@ export const HelpModeToggle: React.FC<HelpModeToggleProps> = ({
 
   const tooltipContent = (
     <div style={{ textAlign: "center" }}>
-      <Typography variant="inherit">
+      <Text>
         {helpMode ? "Help Mode ON" : "Help Mode OFF"}
-      </Typography>
-      <Typography variant="caption" display="block">
+      </Text>
+      <Caption sx={{ display: "block" }}>
         {helpMode
           ? "Disable Nodetool help mode for chat."
           : "Include Nodetool help context for chat."}
-      </Typography>
+      </Caption>
     </div>
   );
 

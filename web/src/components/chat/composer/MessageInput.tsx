@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef, useCallback, memo } from "react";
+import React, { forwardRef, useEffect, useRef, useCallback, memo, useLayoutEffect } from "react";
 
 interface MessageInputProps {
   value: string;
@@ -44,6 +44,14 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
       adjustHeight();
     }, [value, adjustHeight]);
 
+    // Auto-focus on mount
+    useLayoutEffect(() => {
+      const textarea = textareaRef.current;
+      if (textarea && !disabled) {
+        textarea.focus();
+      }
+    }, [textareaRef, disabled]);
+
     const handleChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(event);
     }, [onChange]);
@@ -52,7 +60,7 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
       <textarea
         className="chat-input"
         id="chat-prompt"
-        aria-labelledby="chat-prompt"
+        aria-label={placeholder}
         ref={textareaRef}
         value={value}
         onChange={handleChange}

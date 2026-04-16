@@ -5,7 +5,10 @@ import {
   getNodetoolDataDir,
   getDefaultDbPath,
   getDefaultVectorstoreDbPath,
-  getDefaultAssetsPath
+  getDefaultAssetsPath,
+  getAssetDomain,
+  getTempDomain,
+  buildAssetUrl
 } from "../src/paths.js";
 
 describe("getNodetoolDataDir", () => {
@@ -126,5 +129,112 @@ describe("getDefaultAssetsPath", () => {
     delete process.env.ASSET_FOLDER;
     delete process.env.STORAGE_PATH;
     expect(getDefaultAssetsPath()).toBe(join(getNodetoolDataDir(), "assets"));
+  });
+});
+
+describe("asset domain helpers", () => {
+  const saved: Record<string, string | undefined> = {};
+
+  afterEach(() => {
+    for (const [key, val] of Object.entries(saved)) {
+      if (val === undefined) delete process.env[key];
+      else process.env[key] = val;
+    }
+  });
+
+  function snapshot(): void {
+    saved.ASSET_DOMAIN = process.env.ASSET_DOMAIN;
+    saved.TEMP_DOMAIN = process.env.TEMP_DOMAIN;
+  }
+
+  it("getAssetDomain returns undefined when unset or empty", () => {
+    snapshot();
+    delete process.env.ASSET_DOMAIN;
+    expect(getAssetDomain()).toBeUndefined();
+    process.env.ASSET_DOMAIN = "   ";
+    expect(getAssetDomain()).toBeUndefined();
+  });
+
+  it("getAssetDomain returns trimmed value when set", () => {
+    snapshot();
+    process.env.ASSET_DOMAIN = "  assets.nodetool.ai  ";
+    expect(getAssetDomain()).toBe("assets.nodetool.ai");
+  });
+
+  it("getTempDomain returns trimmed value when set", () => {
+    snapshot();
+    process.env.TEMP_DOMAIN = "temp.nodetool.ai";
+    expect(getTempDomain()).toBe("temp.nodetool.ai");
+  });
+
+  it("buildAssetUrl falls back to /api/storage path when no domain set", () => {
+    snapshot();
+    delete process.env.ASSET_DOMAIN;
+    delete process.env.TEMP_DOMAIN;
+    expect(buildAssetUrl("abc.png")).toBe("/api/storage/abc.png");
+    expect(buildAssetUrl("temp/uuid.png")).toBe("/api/storage/temp/uuid.png");
+  });
+
+  it("buildAssetUrl strips leading slashes from the key", () => {
+    snapshot();
+    delete process.env.ASSET_DOMAIN;
+    delete process.env.TEMP_DOMAIN;
+    expect(buildAssetUrl("/abc.png")).toBe("/api/storage/abc.png");
+    expect(buildAssetUrl("///temp/uuid.png")).toBe(
+      "/api/storage/temp/uuid.png"
+    );
+  });
+
+  it("buildAssetUrl uses ASSET_DOMAIN for permanent assets", () => {
+    snapshot();
+    process.env.ASSET_DOMAIN = "assets.nodetool.ai";
+    delete process.env.TEMP_DOMAIN;
+    expect(buildAssetUrl("abc.png")).toBe("https://assets.nodetool.ai/abc.png");
+  });
+
+  it("buildAssetUrl honours an explicit scheme on ASSET_DOMAIN", () => {
+    snapshot();
+    process.env.ASSET_DOMAIN = "http://localhost:9000/cdn";
+    delete process.env.TEMP_DOMAIN;
+    expect(buildAssetUrl("abc.png")).toBe("http://localhost:9000/cdn/abc.png");
+  });
+
+  it("buildAssetUrl routes temp/ keys to TEMP_DOMAIN and drops the prefix", () => {
+    snapshot();
+    process.env.ASSET_DOMAIN = "assets.nodetool.ai";
+    process.env.TEMP_DOMAIN = "temp.nodetool.ai";
+    expect(buildAssetUrl("temp/uuid.png")).toBe(
+      "https://temp.nodetool.ai/uuid.png"
+    );
+    expect(buildAssetUrl("abc.png")).toBe("https://assets.nodetool.ai/abc.png");
+  });
+
+  it("buildAssetUrl falls back to ASSET_DOMAIN for temp/ when TEMP_DOMAIN is unset", () => {
+    snapshot();
+    process.env.ASSET_DOMAIN = "assets.nodetool.ai";
+    delete process.env.TEMP_DOMAIN;
+    // With no dedicated temp domain, the `temp/` prefix is preserved so the
+    // same bucket can host both kinds of content.
+    expect(buildAssetUrl("temp/uuid.png")).toBe(
+      "https://assets.nodetool.ai/temp/uuid.png"
+    );
+  });
+
+  it("buildAssetUrl uses TEMP_DOMAIN for temp/ even without ASSET_DOMAIN", () => {
+    snapshot();
+    delete process.env.ASSET_DOMAIN;
+    process.env.TEMP_DOMAIN = "temp.nodetool.ai";
+    expect(buildAssetUrl("temp/uuid.png")).toBe(
+      "https://temp.nodetool.ai/uuid.png"
+    );
+    // Permanent assets still fall back to the API path.
+    expect(buildAssetUrl("abc.png")).toBe("/api/storage/abc.png");
+  });
+
+  it("buildAssetUrl trims trailing slashes on the domain", () => {
+    snapshot();
+    process.env.ASSET_DOMAIN = "https://assets.nodetool.ai//";
+    delete process.env.TEMP_DOMAIN;
+    expect(buildAssetUrl("abc.png")).toBe("https://assets.nodetool.ai/abc.png");
   });
 });

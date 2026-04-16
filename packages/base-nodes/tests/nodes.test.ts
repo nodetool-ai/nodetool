@@ -55,8 +55,6 @@ import {
   WaitNode,
   CreateSilenceNode,
   ConcatAudioNode,
-  AudioToNumpyNode,
-  NumpyToAudioNode,
   TextToImageNode,
   ImageToImageNode,
   GetMetadataNode,
@@ -142,12 +140,11 @@ describe("input/output/workspace nodes", () => {
     });
   });
 
-  it("OutputNode emits output_update and normalizes value", async () => {
+  it("OutputNode normalizes value via context", async () => {
     const node = new OutputNode();
     node.assign({ __node_id: "out1", __node_name: "result", name: "result" });
-    const emitted: Array<Record<string, unknown>> = [];
     const context = {
-      emit: (msg: Record<string, unknown>) => emitted.push(msg),
+      emit: () => {},
       normalizeOutputValue: async (value: unknown) =>
         typeof value === "string" ? value.toUpperCase() : value
     } as unknown as ProcessingContext;
@@ -155,14 +152,6 @@ describe("input/output/workspace nodes", () => {
     node.assign({ value: "hello" });
     await expect(node.process(context)).resolves.toEqual({
       output: "HELLO"
-    });
-    expect(emitted).toHaveLength(1);
-    expect(emitted[0]).toMatchObject({
-      type: "output_update",
-      node_id: "out1",
-      node_name: "result",
-      output_name: "result",
-      value: "HELLO"
     });
   });
 
@@ -219,6 +208,37 @@ describe("input/output/workspace nodes", () => {
     const node = new CompareImagesNode();
     node.assign({ image_a: { data: bytes }, image_b: { data: bytes } });
     await expect(node.process()).resolves.toEqual({ score: 1, equal: true });
+  });
+
+  it("CompareImagesNode emits the image comparison preview shape used by the web UI", async () => {
+    const node = new CompareImagesNode();
+    const emitted: Array<Record<string, unknown>> = [];
+    const context = {
+      emit: (msg: Record<string, unknown>) => emitted.push(msg)
+    } as unknown as ProcessingContext;
+
+    node.assign({
+      __node_id: "compare-1",
+      image_a: { uri: "https://example.com/a.png", type: "image" },
+      image_b: { uri: "https://example.com/b.png", type: "image" },
+      label_a: "Before",
+      label_b: "After"
+    });
+
+    await node.process(context);
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]).toMatchObject({
+      type: "preview_update",
+      node_id: "compare-1",
+      value: {
+        type: "image_comparison",
+        image_a: { uri: "https://example.com/a.png", type: "image" },
+        image_b: { uri: "https://example.com/b.png", type: "image" },
+        label_a: "Before",
+        label_b: "After"
+      }
+    });
   });
 
   it("CompareImagesNode returns score < 1 for different bytes of same length", async () => {
@@ -366,42 +386,34 @@ describe("input/output/workspace nodes", () => {
     const _cat = new ConcatAudioNode();
     _cat.assign({ a: silenceA.output, b: silenceB.output });
     const concat = await _cat.process();
-    const _a2n = new AudioToNumpyNode();
-    _a2n.assign({ audio: concat.output });
-    const arr = await _a2n.process();
-    const _n2a = new NumpyToAudioNode();
-    _n2a.assign({ array: arr.output });
-    const audio = await _n2a.process();
-    expect(Array.isArray(arr.output)).toBe(true);
-    expect((audio.output as { data: string }).data.length).toBeGreaterThan(0);
+    const concatOutput = concat.output as { data: string };
+    expect(concatOutput.data.length).toBeGreaterThan(0);
   });
 
   it("image nodes create and transform image refs", async () => {
-    const _gen = new TextToImageNode();
-    _gen.assign({ prompt: "hello-image", width: 320, height: 240 });
-    const generated = await _gen.process();
-    const _tr = new ImageToImageNode();
-    _tr.assign({ image: generated.output, prompt: "style transfer" });
-    const transformed = await _tr.process();
+    // TextToImageNode now requires a provider; test GetMetadata directly
     const _meta = new GetMetadataNode();
-    _meta.assign({ image: transformed.output });
+    // Create a minimal 1x1 PNG image (base64)
+    const png1x1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+    _meta.assign({ image: { type: "image", data: png1x1 } });
     const meta = await _meta.process();
-    expect((transformed.output as { type: string }).type).toBe("image");
-    expect((meta.output as { size_bytes: number }).size_bytes).toBeGreaterThan(
-      0
-    );
+    expect(meta.format).toBe("PNG");
+    expect(meta.width).toBe(1);
+    expect(meta.height).toBe(1);
+    expect(typeof meta.channels).toBe("number");
   });
 
-  it("video nodes create video refs and expose metadata", async () => {
-    const _gen = new TextToVideoNode();
-    _gen.assign({ prompt: "clip-one" });
-    const generated = await _gen.process();
+  it("video nodes return metadata from ffprobe", async () => {
+    // GetVideoInfoNode now uses ffprobe; test empty video returns zeros
     const _info = new GetVideoInfoNode();
-    _info.assign({ video: generated.output });
+    _info.assign({ video: { type: "video", uri: "", data: null } });
     const info = await _info.process();
-    expect((info.output as { size_bytes: number }).size_bytes).toBeGreaterThan(
-      0
-    );
+    expect(info.duration).toBe(0);
+    expect(info.width).toBe(0);
+    expect(info.height).toBe(0);
+    expect(info.fps).toBe(0);
+    expect(info.codec).toBe("");
+    expect(info.has_audio).toBe(false);
   });
 
   it("agent nodes create threads and classify text", async () => {
@@ -509,13 +521,11 @@ describe("control nodes", () => {
     ]);
   });
 
-  it("CollectNode accumulates across invocations", async () => {
+  it("CollectNode.process returns empty (streaming via run())", async () => {
     const node = new CollectNode();
     await node.initialize();
-    node.assign({ input_item: 1 });
-    await expect(node.process()).resolves.toEqual({ output: [1] });
-    node.assign({ input_item: 2 });
-    await expect(node.process()).resolves.toEqual({ output: [1, 2] });
+    // CollectNode.process() is a no-op; real collection is via run()
+    await expect(node.process()).resolves.toEqual({ output: [] });
   });
 
   it("RerouteNode passes through input_value", async () => {
@@ -651,6 +661,7 @@ describe("text nodes", () => {
     });
     const items: Array<Record<string, unknown>> = [];
     for await (const row of load.genProcess()) {
+      if ("texts" in row) continue; // skip final list yield
       items.push(row);
     }
     expect(items.length).toBe(1);

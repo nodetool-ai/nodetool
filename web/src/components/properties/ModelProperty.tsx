@@ -5,7 +5,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import ComfyModelSelect from "./ComfyModelSelect";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
 import EmbeddingModelSelect from "./EmbeddingModelSelect";
@@ -16,6 +16,7 @@ import VideoModelSelect from "./VideoModelSelect";
 import Model3DModelSelect from "./Model3DModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -173,6 +174,19 @@ const ModelProperty = (props: PropertyProps) => {
     return null;
   }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
 
+  if (isConnected) {
+    return (
+      <div className={`model-property ${modelClass} connected`} css={styles(theme)}>
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+        <ConnectedBadge />
+      </div>
+    );
+  }
+
   return (
     <div className={`model-property ${modelClass}`} css={styles(theme)}>
       <PropertyLabel
@@ -180,7 +194,7 @@ const ModelProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      {!isConnected && modelSelectComponent}
+      {modelSelectComponent}
     </div>
   );
 };

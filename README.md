@@ -85,7 +85,7 @@ ______________________________________________________________________
 
 - **[Getting Started](https://docs.nodetool.ai/getting-started)** — Build your first workflow
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available operations and integrations
-- **[Custom Nodes](https://docs.nodetool.ai/development/custom-nodes)** — Extend NodeTool
+- **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
 - **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
 - **[API Reference](https://docs.nodetool.ai/api)** — Programmatic access
 
@@ -136,17 +136,7 @@ make dev
 
 ### Python Nodes (optional)
 
-Python nodes (HuggingFace, MLX, Apple integrations) require a conda environment:
-
-```bash
-conda activate nodetool
-cd ../nodetool-core && pip install -e .
-# Optional: install additional Python node packages
-pip install -e ../nodetool-huggingface
-pip install -e ../nodetool-mlx
-```
-
-The Python worker connects via stdio when a workflow uses Python nodes.
+Python nodes (HuggingFace, MLX, Apple integrations) run via the `PythonStdioBridge`, which spawns a Python worker process that communicates over stdin/stdout. The bridge connects lazily on the first workflow that uses Python nodes — no separate setup is needed for the TypeScript backend.
 
 ### Electron App
 

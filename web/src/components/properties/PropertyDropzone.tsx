@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Tooltip, IconButton } from "@mui/material";
+import { Tooltip, ToolbarIconButton } from "../ui_primitives";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
@@ -13,7 +13,7 @@ import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
@@ -505,15 +505,13 @@ const PropertyDropzone = ({
                       }
                     }}
                   />
-                  <Tooltip title="Replace file">
-                    <IconButton
-                      className="asset-action-button"
-                      onClick={handleReplaceClick}
-                      size="small"
-                    >
-                      <FolderOpenIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  <ToolbarIconButton
+                    tooltip="Replace file"
+                    icon={<FolderOpenIcon fontSize="small" />}
+                    className="asset-action-button"
+                    onClick={handleReplaceClick}
+                    size="small"
+                  />
                 </div>
               )}
             </>

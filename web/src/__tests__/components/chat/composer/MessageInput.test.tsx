@@ -38,7 +38,7 @@ describe("MessageInput", () => {
       expect(textarea).toBeInTheDocument();
       expect(textarea).toHaveAttribute("class", "chat-input");
       expect(textarea).toHaveAttribute("id", "chat-prompt");
-      expect(textarea).toHaveAttribute("aria-labelledby", "chat-prompt");
+      expect(textarea).toHaveAttribute("aria-label", "Type your message...");
     });
 
     it("renders with default placeholder", () => {
@@ -238,11 +238,11 @@ describe("MessageInput", () => {
   });
 
   describe("Accessibility", () => {
-    it("has correct aria-labelledby attribute", () => {
+    it("has correct aria-label attribute", () => {
       renderComponent(baseProps);
 
       const textarea = screen.getByRole("textbox");
-      expect(textarea).toHaveAttribute("aria-labelledby", "chat-prompt");
+      expect(textarea).toHaveAttribute("aria-label", "Type your message...");
     });
 
     it("has correct id attribute", () => {

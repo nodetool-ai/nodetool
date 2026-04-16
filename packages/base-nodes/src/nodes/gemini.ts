@@ -150,7 +150,7 @@ export class EmbeddingNode extends BaseNode {
   static readonly description =
     "Generate vector representations of text for semantic analysis using Google's Gemini API.\n    embeddings, similarity, search, clustering, classification, gemini\n\n    Uses Google's text embedding models to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Anomaly detection\n    - Measuring text similarity and diversity";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -218,6 +218,7 @@ export class ImageGenerationNode extends BaseNode {
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "str",
@@ -337,10 +338,10 @@ export class ImageGenerationNode extends BaseNode {
     }
 
     // Imagen models use the generateImages endpoint
-    const url = `${GEMINI_API_BASE}/models/${model}:predict?key=${apiKey}`;
+    const url = `${GEMINI_API_BASE}/models/${model}:generateImages?key=${apiKey}`;
     const body = {
-      instances: [{ prompt }],
-      parameters: { sampleCount: 1 }
+      prompt,
+      config: { numberOfImages: 1 }
     };
 
     const res = await fetch(url, {
@@ -355,17 +356,22 @@ export class ImageGenerationNode extends BaseNode {
     }
 
     const data = (await res.json()) as Record<string, unknown>;
-    const predictions = data.predictions as
+    const generatedImages = data.generatedImages as
       | Array<Record<string, unknown>>
       | undefined;
-    if (!predictions || predictions.length === 0) {
+    if (!generatedImages || generatedImages.length === 0) {
       throw new Error("No images generated");
     }
 
-    const bytesBase64 = predictions[0].bytesBase64Encoded as string | undefined;
-    if (!bytesBase64) throw new Error("No image bytes in response");
+    const imgObj = generatedImages[0].image as
+      | Record<string, unknown>
+      | undefined;
+    if (!imgObj) throw new Error("No image in response");
 
-    return { output: { type: "image", data: bytesBase64 } };
+    const imageBytes = imgObj.imageBytes as string | undefined;
+    if (!imageBytes) throw new Error("No image bytes in response");
+
+    return { output: { type: "image", data: imageBytes } };
   }
 }
 
@@ -381,6 +387,7 @@ export class TextToVideoGeminiNode extends BaseNode {
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "str",
@@ -449,7 +456,7 @@ export class TextToVideoGeminiNode extends BaseNode {
 
     const operation = (await res.json()) as Record<string, unknown>;
     const videoData = await pollVideoOperation(apiKey, operation);
-    return { output: { data: videoData } };
+    return { output: { type: "video", data: videoData } };
   }
 }
 
@@ -463,6 +470,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "image",
@@ -552,7 +560,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
 
     const operation = (await res.json()) as Record<string, unknown>;
     const videoData = await pollVideoOperation(apiKey, operation);
-    return { output: { data: videoData } };
+    return { output: { type: "video", data: videoData } };
   }
 }
 
@@ -619,6 +627,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
+  static readonly autoSaveAsset = true;
 
   @prop({
     type: "str",
@@ -690,8 +699,18 @@ export class TextToSpeechGeminiNode extends BaseNode {
     const apiKey = getGeminiApiKey(this._secrets);
     const text = String(this.text ?? "");
     const model = String(this.model ?? "gemini-2.5-pro-preview-tts");
-    const voiceName = String(this.voice_name ?? "kore").toLowerCase();
     const stylePrompt = String(this.style_prompt ?? "");
+
+    const VALID_VOICES = [
+      "achernar", "achird", "algenib", "algieba", "alnilam",
+      "aoede", "autonoe", "callirrhoe", "charon", "despina",
+      "enceladus", "erinome", "fenrir", "gacrux", "iapetus",
+      "kore", "laomedeia", "leda", "orus", "puck",
+      "pulcherrima", "rasalgethi", "sadachbia", "sadaltager", "schedar",
+      "sulafat", "umbriel", "vindemiatrix", "zephyr", "zubenelgenubi"
+    ];
+    const rawVoice = String(this.voice_name ?? "kore").toLowerCase();
+    const voiceName = VALID_VOICES.includes(rawVoice) ? rawVoice : "kore";
 
     if (!text) throw new Error("The input text cannot be empty.");
 

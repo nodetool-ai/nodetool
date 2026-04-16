@@ -61,7 +61,7 @@ const { spawn } = jest.requireMock("child_process") as {
   spawn: jest.Mock;
 };
 
-function createMockProcess(exitCode: number) {
+function createMockProcess(exitCode: number, stdoutText?: string) {
   const proc = new EventEmitter() as EventEmitter & {
     stdout: EventEmitter;
     stderr: EventEmitter;
@@ -81,6 +81,9 @@ function createMockProcess(exitCode: number) {
   });
 
   process.nextTick(() => {
+    if (stdoutText !== undefined) {
+      proc.stdout.emit("data", Buffer.from(stdoutText));
+    }
     proc.emit("exit", exitCode);
   });
 
@@ -94,11 +97,22 @@ describe("python environment helpers", () => {
     fsPromises.access.mockResolvedValue(undefined);
   });
 
-  it("accepts an environment only when nodetool.worker is importable", async () => {
-    spawn.mockImplementation(() => createMockProcess(0));
+  it("accepts an environment only when nodetool-core matches app version and nodetool.worker is importable", async () => {
+    spawn
+      .mockImplementationOnce(() => createMockProcess(0, "0.6.3rc42\n"))
+      .mockImplementationOnce(() => createMockProcess(0));
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
-    expect(spawn).toHaveBeenCalledWith(
+    expect(spawn).toHaveBeenNthCalledWith(
+      1,
+      "/conda/bin/python",
+      expect.arrayContaining(["-c"]),
+      expect.objectContaining({
+        stdio: ["ignore", "pipe", "ignore"],
+      })
+    );
+    expect(spawn).toHaveBeenNthCalledWith(
+      2,
       "/conda/bin/python",
       ["-c", "import nodetool.worker"],
       expect.objectContaining({
@@ -107,8 +121,22 @@ describe("python environment helpers", () => {
     );
   });
 
+  it("treats the environment as incomplete when nodetool-core is missing", async () => {
+    spawn.mockImplementationOnce(() => createMockProcess(2));
+
+    await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
+  });
+
+  it("treats the environment as incomplete when nodetool-core version does not match the app", async () => {
+    spawn.mockImplementationOnce(() => createMockProcess(0, "0.6.2\n"));
+
+    await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
+  });
+
   it("treats the environment as incomplete when nodetool.worker import fails", async () => {
-    spawn.mockImplementation(() => createMockProcess(1));
+    spawn
+      .mockImplementationOnce(() => createMockProcess(0, "0.6.3rc42\n"))
+      .mockImplementationOnce(() => createMockProcess(1));
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
   });

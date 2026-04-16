@@ -220,6 +220,22 @@ export {
 } from "./nodes/code.js";
 export { CodeNode } from "./nodes/code-node.js";
 export {
+  DateNowNode,
+  FormatDateNode,
+  DateAddNode,
+  DateDiffNode,
+  DateStartEndNode,
+  LIB_DATETIME_NODES
+} from "./nodes/lib-datetime.js";
+export {
+  ValidateEmailNode,
+  ValidateURLNode,
+  ValidateIPNode,
+  ValidateStringNode,
+  SanitizeStringNode,
+  LIB_VALIDATE_NODES
+} from "./nodes/lib-validate.js";
+export {
   LoadAudioAssetsNode,
   LoadAudioFileNode,
   LoadAudioFolderNode,
@@ -236,10 +252,7 @@ export {
   FadeOutAudioNode,
   RepeatAudioNode,
   AudioMixerNode,
-  AudioToNumpyNode,
-  NumpyToAudioNode,
   TrimAudioNode,
-  ConvertToArrayNode,
   CreateSilenceNode,
   ConcatAudioNode,
   ConcatAudioListNode,
@@ -314,7 +327,6 @@ export {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ResearchAgentNode,
   AGENT_NODES
 } from "./nodes/agents.js";
 export {
@@ -343,47 +355,6 @@ export {
   MODEL3D_NODES
 } from "./nodes/model3d.js";
 export { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
-export {
-  AddArrayNode,
-  SubtractArrayNode,
-  MultiplyArrayNode,
-  DivideArrayNode,
-  ModulusArrayNode,
-  AbsArrayNode,
-  SineArrayNode,
-  CosineArrayNode,
-  ExpArrayNode,
-  LogArrayNode,
-  SqrtArrayNode,
-  PowerArrayNode,
-  SumArrayNode,
-  MeanArrayNode,
-  MinArrayNode,
-  MaxArrayNode,
-  ArgMinArrayNode,
-  ArgMaxArrayNode,
-  SliceArrayNode,
-  IndexArrayNode,
-  TransposeArrayNode,
-  MatMulNode,
-  StackNode,
-  SplitArrayNode,
-  Reshape1DNode,
-  Reshape2DNode,
-  Reshape3DNode,
-  Reshape4DNode,
-  ListToArrayNode,
-  ArrayToListNode,
-  ScalarToArrayNode,
-  ArrayToScalarNode,
-  ConvertToImageNode as NumpyConvertToImageNode,
-  ConvertToAudioNode as NumpyConvertToAudioNode,
-  ConvertToArrayNumpyNode,
-  SaveArrayNode,
-  BinaryOperationNode,
-  PlotArrayNode,
-  LIB_NUMPY_NODES
-} from "./nodes/lib-array-math.js";
 export {
   WorkspaceDirectoryLibNode,
   OpenWorkspaceDirectoryLibNode,
@@ -482,12 +453,36 @@ export {
   LIB_BROWSER_NODES
 } from "./nodes/lib-browser.js";
 export {
+  HttpGetTextNode,
+  HttpGetJsonNode,
+  HttpGetBytesNode,
+  HttpPostNode,
+  HttpPutNode,
+  HttpPatchNode,
+  HttpDeleteNode,
+  LIB_HTTP_NODES
+} from "./nodes/lib-http.js";
+export {
+  GraphQLQueryLibNode,
+  GraphQLQueryWithAuthLibNode,
+  GraphQLIntrospectionLibNode,
+  GraphQLBatchQueryLibNode,
+  LIB_GRAPHQL_NODES
+} from "./nodes/lib-graphql.js";
+export {
   SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
   MoveToArchiveLibNode,
   LIB_MAIL_NODES
 } from "./nodes/lib-mail.js";
+export {
+  TwilioSendSMSLibNode,
+  TwilioSendWhatsAppLibNode,
+  TwilioGetMessagesLibNode,
+  TwilioLookupLibNode,
+  LIB_TWILIO_NODES
+} from "./nodes/lib-twilio.js";
 export {
   ConvertToMarkdownLibNode,
   LIB_MARKITDOWN_NODES
@@ -509,14 +504,6 @@ export {
   ExtractFeedMetadataLibNode,
   LIB_RSS_NODES
 } from "./nodes/lib-rss.js";
-export {
-  OscillatorLibNode,
-  WhiteNoiseLibNode,
-  PinkNoiseLibNode,
-  FM_SynthesisLibNode,
-  EnvelopeLibNode,
-  LIB_SYNTHESIS_NODES
-} from "./nodes/lib-synthesis.js";
 export {
   GainNode_,
   DelayNode_,
@@ -546,6 +533,25 @@ export {
   RPCLibNode,
   LIB_SUPABASE_NODES
 } from "./nodes/lib-supabase.js";
+export {
+  NotionSearchLibNode,
+  NotionGetPageLibNode,
+  NotionGetPageContentLibNode,
+  NotionCreatePageLibNode,
+  NotionUpdatePageLibNode,
+  NotionQueryDatabaseLibNode,
+  LIB_NOTION_NODES
+} from "./nodes/lib-notion.js";
+export {
+  S3ListBucketsLibNode,
+  S3ListObjectsLibNode,
+  S3GetObjectLibNode,
+  S3PutObjectLibNode,
+  S3DeleteObjectLibNode,
+  S3CopyObjectLibNode,
+  S3GetPresignedUrlLibNode,
+  LIB_S3_NODES
+} from "./nodes/lib-s3.js";
 export {
   CreateWorkbookLibNode,
   ExcelToDataFrameLibNode,
@@ -590,22 +596,10 @@ export {
   LIB_PDF_NODES
 } from "./nodes/lib-pdf.js";
 export {
-  STFTNode,
-  MelSpectrogramNode,
-  MFCCNode,
-  ChromaSTFTNode,
-  SpectralCentroidNode,
-  SpectralContrastNode,
-  GriffinLimNode,
-  DetectOnsetsNode,
-  SegmentAudioByOnsetsNode,
-  SaveAudioSegmentsNode,
-  LIB_LIBROSA_SPECTRAL_NODES
-} from "./nodes/lib-audio-spectral.js";
-export { KIE_IMAGE_NODES } from "./nodes/kie-image.js";
-export { KIE_VIDEO_NODES } from "./nodes/kie-video.js";
-export { KIE_AUDIO_NODES } from "./nodes/kie-audio.js";
-export { KieAINode, KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
+  KieAINode,
+  KIE_DYNAMIC_NODES,
+  resolveKieDynamicSchema
+} from "./nodes/kie-dynamic.js";
 export {
   CollectionNode,
   CountNode,
@@ -622,16 +616,6 @@ export {
   HybridSearchNode,
   VECTOR_NODES
 } from "./nodes/vector.js";
-export {
-  CreateIndexFlatL2Node,
-  CreateIndexFlatIPNode,
-  CreateIndexIVFFlatNode,
-  TrainIndexNode,
-  AddVectorsNode,
-  AddWithIdsNode,
-  SearchNode as FaissSearchNode,
-  VECTOR_FAISS_NODES
-} from "./nodes/vector-faiss.js";
 export { GEMINI_NODES } from "./nodes/gemini.js";
 export { APIFY_NODES } from "./nodes/apify.js";
 export { MESSAGING_NODES } from "./nodes/messaging.js";
@@ -641,6 +625,16 @@ export { SEARCH_NODES } from "./nodes/search.js";
 export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 export { TeamAgentNode, TeamLeadNode, TEAM_NODES } from "./nodes/team.js";
+export {
+  SentimentAnalysisLibNode,
+  TokenizeLibNode,
+  StemLibNode,
+  TfIdfLibNode,
+  ClassifyTextLibNode,
+  ExtractEntitiesLibNode,
+  PhoneticMatchLibNode,
+  LIB_NLP_NODES
+} from "./nodes/lib-nlp.js";
 import { CONTROL_NODES } from "./nodes/control.js";
 import { TEXT_EXTRA_NODES } from "./nodes/text-extra.js";
 import { CONSTANT_NODES } from "./nodes/constant.js";
@@ -662,7 +656,6 @@ import { AGENT_NODES } from "./nodes/agents.js";
 import { GENERATOR_NODES } from "./nodes/generators.js";
 import { MODEL3D_NODES } from "./nodes/model3d.js";
 import { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
-import { LIB_NUMPY_NODES } from "./nodes/lib-array-math.js";
 import { LIB_OS_NODES } from "./nodes/lib-os.js";
 import { LIB_MARKDOWN_NODES } from "./nodes/lib-markdown.js";
 import { LIB_SECRET_NODES } from "./nodes/lib-secret.js";
@@ -675,26 +668,25 @@ import { LIB_IMAGE_FILTER_NODES } from "./nodes/lib-image-filter.js";
 import { LIB_IMAGE_DRAW_NODES } from "./nodes/lib-image-draw.js";
 import { LIB_IMAGE_COLOR_GRADING_NODES } from "./nodes/lib-image-color-grading.js";
 import { LIB_RSS_NODES } from "./nodes/lib-rss.js";
-import { LIB_SYNTHESIS_NODES } from "./nodes/lib-synthesis.js";
 import { LIB_AUDIO_DSP_NODES } from "./nodes/lib-audio-dsp.js";
 import { LIB_SQLITE_NODES } from "./nodes/lib-sqlite.js";
 import { LIB_SUPABASE_NODES } from "./nodes/lib-supabase.js";
+import { LIB_S3_NODES } from "./nodes/lib-s3.js";
 import { LIB_EXCEL_NODES } from "./nodes/lib-excel.js";
 import { LIB_DOCX_NODES } from "./nodes/lib-docx.js";
 import { LIB_BEAUTIFULSOUP_NODES } from "./nodes/lib-html-parse.js";
 import { LIB_BROWSER_NODES } from "./nodes/lib-browser.js";
+import { LIB_HTTP_NODES } from "./nodes/lib-http.js";
+import { LIB_GRAPHQL_NODES } from "./nodes/lib-graphql.js";
 import { LIB_MAIL_NODES } from "./nodes/lib-mail.js";
+import { LIB_TWILIO_NODES } from "./nodes/lib-twilio.js";
 import { LIB_MARKITDOWN_NODES } from "./nodes/lib-doc-convert.js";
 import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
 import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
-import { LIB_LIBROSA_SPECTRAL_NODES } from "./nodes/lib-audio-spectral.js";
-import { KIE_IMAGE_NODES } from "./nodes/kie-image.js";
-import { KIE_VIDEO_NODES } from "./nodes/kie-video.js";
-import { KIE_AUDIO_NODES } from "./nodes/kie-audio.js";
+import { LIB_NOTION_NODES } from "./nodes/lib-notion.js";
 import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 import { VECTOR_NODES } from "./nodes/vector.js";
-import { VECTOR_FAISS_NODES } from "./nodes/vector-faiss.js";
 import { GEMINI_NODES } from "./nodes/gemini.js";
 import { APIFY_NODES } from "./nodes/apify.js";
 import { MESSAGING_NODES } from "./nodes/messaging.js";
@@ -704,6 +696,9 @@ import { SEARCH_NODES } from "./nodes/search.js";
 import { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
 import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 import { TEAM_NODES } from "./nodes/team.js";
+import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
+import { LIB_DATETIME_NODES } from "./nodes/lib-datetime.js";
+import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -719,6 +714,8 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...DATA_NODES,
   ...CODE_NODES,
   CodeNode,
+  ...LIB_DATETIME_NODES,
+  ...LIB_VALIDATE_NODES,
   ...AUDIO_NODES,
   ...TRIGGER_NODES,
   ...IMAGE_NODES,
@@ -727,7 +724,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...GENERATOR_NODES,
   ...MODEL3D_NODES,
   ...LIB_COMPAT_PY_NODES,
-  ...LIB_NUMPY_NODES,
   ...LIB_OS_NODES,
   ...LIB_MARKDOWN_NODES,
   ...LIB_SECRET_NODES,
@@ -740,26 +736,25 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_IMAGE_DRAW_NODES,
   ...LIB_IMAGE_COLOR_GRADING_NODES,
   ...LIB_RSS_NODES,
-  ...LIB_SYNTHESIS_NODES,
   ...LIB_AUDIO_DSP_NODES,
   ...LIB_SQLITE_NODES,
   ...LIB_SUPABASE_NODES,
+  ...LIB_S3_NODES,
   ...LIB_EXCEL_NODES,
   ...LIB_DOCX_NODES,
   ...LIB_BEAUTIFULSOUP_NODES,
   ...LIB_BROWSER_NODES,
+  ...LIB_HTTP_NODES,
+  ...LIB_GRAPHQL_NODES,
   ...LIB_MAIL_NODES,
+  ...LIB_TWILIO_NODES,
   ...LIB_MARKITDOWN_NODES,
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
-  ...LIB_LIBROSA_SPECTRAL_NODES,
-  ...KIE_IMAGE_NODES,
-  ...KIE_VIDEO_NODES,
-  ...KIE_AUDIO_NODES,
+  ...LIB_NOTION_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
-  ...VECTOR_FAISS_NODES,
   ...GEMINI_NODES,
   ...APIFY_NODES,
   ...MESSAGING_NODES,
@@ -768,7 +763,8 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
   ...ANTHROPIC_NODES,
-  ...TEAM_NODES
+  ...TEAM_NODES,
+  ...LIB_NLP_NODES
 ];
 
 export function registerBaseNodes(registry: NodeRegistry): void {

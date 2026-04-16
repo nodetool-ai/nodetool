@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
+import { BASE_URL } from "../../../stores/BASE_URL";
 import log from "loglevel";
 
 /**
@@ -29,6 +30,43 @@ interface ImageValue extends TypedValue {
   name?: string;
 }
 
+function toUint8Array(
+  value: unknown
+): Uint8Array<ArrayBuffer> | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  if (value instanceof Uint8Array) {
+    return new Uint8Array(
+      value.buffer.slice(
+        value.byteOffset,
+        value.byteOffset + value.byteLength
+      ) as ArrayBuffer
+    );
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    const view = value as ArrayBufferView<ArrayBufferLike>;
+    return new Uint8Array(
+      view.buffer.slice(
+        view.byteOffset,
+        view.byteOffset + view.byteLength
+      ) as ArrayBuffer
+    );
+  }
+
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value.slice(0));
+  }
+
+  if (Array.isArray(value)) {
+    return new Uint8Array(value);
+  }
+
+  return undefined;
+}
+
 /**
  * Resolves asset URIs to their actual URLs.
  * Converts asset:// URIs to /api/storage/ URLs.
@@ -42,7 +80,13 @@ export function resolveAssetUri(uri: string | undefined | null): string {
   // Handle asset:// scheme - convert to API storage URL
   if (uri.startsWith("asset://")) {
     const assetId = uri.slice("asset://".length);
-    return `/api/storage/${assetId}`;
+    return `${BASE_URL}/api/storage/${assetId}`;
+  }
+
+  // Handle /api/storage/ relative URLs — prefix with BASE_URL for Electron
+  if (uri.startsWith("/api/storage/")) {
+    const resolved = `${BASE_URL}${uri}`;
+    return resolved;
   }
 
   return uri;
@@ -104,9 +148,9 @@ export function useVideoSrc(value: unknown) {
   useEffect(() => {
     const videoValue = value as VideoValue | null;
     if (videoValue?.type === "video" && videoRef.current) {
-      if (videoValue.data) {
-        const arrayBuffer = videoValue.data.buffer.slice(videoValue.data.byteOffset, videoValue.data.byteOffset + videoValue.data.byteLength) as ArrayBuffer;
-        const blob = new Blob([arrayBuffer]);
+      const videoBytes = toUint8Array(videoValue.data);
+      if (videoBytes && videoBytes.byteLength > 0) {
+        const blob = new Blob([videoBytes]);
         const url = URL.createObjectURL(blob);
         videoRef.current.src = url;
         return () => URL.revokeObjectURL(url);

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useRef, useMemo } from "react";
-import { IconButton, Tooltip } from "@mui/material";
+import { ToolbarIconButton } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
@@ -329,19 +329,13 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
         )}
 
         {/* Toggle button */}
-        <Tooltip title={mode === "horizontal" ? "Switch to vertical" : "Switch to horizontal"}>
-          <IconButton
-            className="toggle-button"
-            onClick={toggleMode}
-            size="small"
-          >
-            {mode === "horizontal" ? (
-              <SwapVertIcon fontSize="small" />
-            ) : (
-              <SwapHorizIcon fontSize="small" />
-            )}
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          tooltip={mode === "horizontal" ? "Switch to vertical" : "Switch to horizontal"}
+          icon={mode === "horizontal" ? <SwapVertIcon fontSize="small" /> : <SwapHorizIcon fontSize="small" />}
+          className="toggle-button"
+          onClick={toggleMode}
+          size="small"
+        />
       </div>
     </div>
   );

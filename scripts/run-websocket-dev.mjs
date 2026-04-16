@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { registerChildShutdownHandlers } from "./child-shutdown.mjs";
 
 const mode = process.argv[2] ?? "server";
 const buildMode = process.argv[3] ?? "all";
@@ -37,10 +38,16 @@ if (!(buildMode in buildCommands)) {
 function isPortInUse(hostname, portNumber) {
   return new Promise((resolveCheck) => {
     const socket = net.createConnection({ host: hostname, port: portNumber });
+    socket.setTimeout(2000);
 
     socket.once("connect", () => {
       socket.end();
       resolveCheck(true);
+    });
+
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolveCheck(false);
     });
 
     socket.once("error", (error) => {
@@ -60,7 +67,11 @@ function run(command, args, cwd) {
       cwd,
       stdio: "inherit",
       shell: process.platform === "win32",
+      // On non-Windows, create a new process group so we can kill the tree
+      detached: process.platform !== "win32",
     });
+
+    registerChildShutdownHandlers({ child });
 
     child.on("error", rejectRun);
     child.on("exit", (code) => {

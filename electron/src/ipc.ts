@@ -56,9 +56,8 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
-import { exportDebugBundle } from "./debug";
+
 import WebSocket from "ws";
-import { workspaceDevServer } from "./WorkspaceDevServer";
 
 /**
  * This module handles Inter-Process Communication (IPC) between the Electron main process
@@ -91,8 +90,11 @@ export type IpcOnceHandler<T extends keyof IpcEvents> = (
 
 // Channels that should have their payloads redacted for security
 const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
-const FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS = 15000;
-
+// High-frequency channels that only log on error to reduce noise
+const QUIET_CHANNELS = [
+  "settings-get-close-behavior",
+  "frontend-log",
+];
 const LOCALHOST_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
 const LOCALHOST_PROXY_WS_STATES = new Map<
   string,
@@ -185,62 +187,6 @@ function closeAllLocalhostProxyWsForSender(senderId: number): void {
   }
 }
 
-function requestRendererEvent<T>(
-  event: Electron.IpcMainInvokeEvent,
-  requestChannel: string,
-  responseChannel: string,
-  requestPayload: Record<string, unknown>,
-): Promise<T> {
-  const requestId = randomUUID();
-
-  return new Promise<T>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      ipcMain.removeListener(responseChannel, onResponse);
-      reject(
-        new Error(`Timed out waiting for renderer response on ${responseChannel}`),
-      );
-    }, FRONTEND_TOOLS_RESPONSE_TIMEOUT_MS);
-
-    const onResponse = (
-      responseEvent: Electron.IpcMainEvent,
-      response: { requestId?: string; error?: string; result?: T; manifest?: T },
-    ) => {
-      if (responseEvent.sender !== event.sender) {
-        return;
-      }
-      if (!response || response.requestId !== requestId) {
-        return;
-      }
-
-      clearTimeout(timeout);
-      ipcMain.removeListener(responseChannel, onResponse);
-
-      if (response.error) {
-        reject(new Error(response.error));
-        return;
-      }
-
-      if ("result" in response && response.result !== undefined) {
-        resolve(response.result);
-        return;
-      }
-
-      if ("manifest" in response && response.manifest !== undefined) {
-        resolve(response.manifest);
-        return;
-      }
-
-      reject(new Error(`Renderer response for ${responseChannel} had no payload`));
-    };
-
-    ipcMain.on(responseChannel, onResponse);
-    event.sender.send(requestChannel, {
-      requestId,
-      ...requestPayload,
-    });
-  });
-}
-
 /**
  * Type-safe wrapper for IPC main handlers with logging
  */
@@ -266,24 +212,29 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
     const startTime = Date.now();
     const channelStr = String(channel);
     const isSensitive = SENSITIVE_CHANNELS.includes(channelStr);
+    const isQuiet = QUIET_CHANNELS.includes(channelStr);
 
-    // Log incoming request
-    if (isSensitive) {
-      logMessage(`IPC → ${channelStr} (payload redacted)`);
-    } else {
-      const payloadStr =
-        data !== undefined ? JSON.stringify(data) : "undefined";
-      const truncatedPayload =
-        payloadStr.length > 200
-          ? payloadStr.substring(0, 200) + "..."
-          : payloadStr;
-      logMessage(`IPC → ${channelStr}: ${truncatedPayload}`);
+    // Log incoming request (skip quiet channels)
+    if (!isQuiet) {
+      if (isSensitive) {
+        logMessage(`IPC → ${channelStr} (payload redacted)`);
+      } else {
+        const payloadStr =
+          data !== undefined ? JSON.stringify(data) : "undefined";
+        const truncatedPayload =
+          payloadStr.length > 200
+            ? payloadStr.substring(0, 200) + "..."
+            : payloadStr;
+        logMessage(`IPC → ${channelStr}: ${truncatedPayload}`);
+      }
     }
 
     try {
       const result = await handler(event, data);
-      const duration = Date.now() - startTime;
-      logMessage(`IPC ← ${channelStr} OK (${duration}ms)`);
+      if (!isQuiet) {
+        const duration = Date.now() - startTime;
+        logMessage(`IPC ← ${channelStr} OK (${duration}ms)`);
+      }
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -1091,10 +1042,12 @@ export function initializeIpcHandlers(): void {
           `[localhost-proxy] WS open ${connectionId} ${parsedUrl.toString()}`,
           "info",
         );
-        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-          connectionId,
-          event: "open",
-        });
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+            connectionId,
+            event: "open",
+          });
+        }
       });
 
       socket.on("message", (data) => {
@@ -1104,11 +1057,13 @@ export function initializeIpcHandlers(): void {
             : Array.isArray(data)
               ? Buffer.concat(data).toString("utf8")
               : Buffer.from(data as any).toString("utf8");
-        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-          connectionId,
-          event: "message",
-          data: textData,
-        });
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+            connectionId,
+            event: "message",
+            data: textData,
+          });
+        }
         logMessage(
           `[localhost-proxy] WS message ${connectionId} (${textData.length} bytes)`,
           "info",
@@ -1120,11 +1075,13 @@ export function initializeIpcHandlers(): void {
           `[localhost-proxy] WS error ${connectionId}: ${error.message}`,
           "error",
         );
-        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-          connectionId,
-          event: "error",
-          error: error.message,
-        });
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+            connectionId,
+            event: "error",
+            error: error.message,
+          });
+        }
       });
 
       socket.on("close", (code, reason) => {
@@ -1132,12 +1089,14 @@ export function initializeIpcHandlers(): void {
           `[localhost-proxy] WS close ${connectionId} code=${code} reason=${reason.toString("utf8")}`,
           "info",
         );
-        event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
-          connectionId,
-          event: "close",
-          code,
-          reason: reason.toString("utf8"),
-        });
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(IpcChannels.LOCALHOST_PROXY_WS_EVENT, {
+            connectionId,
+            event: "close",
+            code,
+            reason: reason.toString("utf8"),
+          });
+        }
         cleanupLocalhostProxyWsConnection(connectionId);
       });
 
@@ -1322,14 +1281,6 @@ export function initializeIpcHandlers(): void {
     return await getSystemInfo();
   });
 
-  createIpcMainHandler(
-    IpcChannels.DEBUG_EXPORT_BUNDLE,
-    async (_event, request) => {
-      logMessage("Exporting debug bundle");
-      return await exportDebugBundle(request);
-    },
-  );
-
   // Dialog handlers for native file/folder selection
   createIpcMainHandler(
     IpcChannels.DIALOG_OPEN_FILE,
@@ -1366,283 +1317,7 @@ export function initializeIpcHandlers(): void {
     },
   );
 
-  // Claude Agent SDK handlers
-  createIpcMainHandler(
-    IpcChannels.AGENT_CREATE_SESSION,
-    async (_event, options) => {
-      const { createAgentSession } = await import("./agent");
-      return await createAgentSession(options);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_LIST_MODELS,
-    async (_event, options) => {
-      const { listAgentModels } = await import("./agent");
-      return await listAgentModels(options ?? {});
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_SEND_MESSAGE,
-    async (event, request) => {
-      const { sendAgentMessageStreaming } = await import("./agent");
-      // Use streaming - messages will be sent via IPC events as they arrive
-      await sendAgentMessageStreaming(
-        request.sessionId,
-        request.message,
-        event.sender,
-      );
-      // Return empty array since messages are streamed via events
-      return [];
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_STOP_EXECUTION,
-    async (_event, sessionId) => {
-      const { stopAgentExecution } = await import("./agent");
-      await stopAgentExecution(sessionId);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_CLOSE_SESSION,
-    async (_event, sessionId) => {
-      const { closeAgentSession } = await import("./agent");
-      closeAgentSession(sessionId);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_LIST_SESSIONS,
-    async (_event, options) => {
-      const { listAgentSessions } = await import("./agent");
-      return await listAgentSessions(options ?? {});
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_GET_SESSION_MESSAGES,
-    async (_event, options) => {
-      const { getAgentSessionMessages } = await import("./agent");
-      return await getAgentSessionMessages(options);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.AGENT_START_MCP_SERVER,
-    async (event) => {
-      const { startMcpToolServer } = await import("./mcpToolServer");
-      return await startMcpToolServer(event.sender);
-    },
-  );
-
-  // Frontend tools handlers
-  // Get the frontend tools manifest from the renderer
-  createIpcMainHandler(
-    IpcChannels.FRONTEND_TOOLS_GET_MANIFEST,
-    async (event, request) => {
-      logMessage(`Getting frontend tools manifest for session: ${request.sessionId}`);
-      const result = await requestRendererEvent<IpcResponse[IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]>(
-        event,
-        IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST,
-        IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE,
-        {
-          sessionId: request.sessionId,
-        },
-      );
-      return result;
-    },
-  );
-
-  // Call a frontend tool in the renderer process
-  createIpcMainHandler(
-    IpcChannels.FRONTEND_TOOLS_CALL,
-    async (event, request) => {
-      logMessage(
-        `Calling frontend tool: ${request.name} for session: ${request.sessionId}`
-      );
-      const result = await requestRendererEvent<IpcResponse[IpcChannels.FRONTEND_TOOLS_CALL]>(
-        event,
-        IpcChannels.FRONTEND_TOOLS_CALL_REQUEST,
-        IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE,
-        {
-          sessionId: request.sessionId,
-          toolCallId: request.toolCallId,
-          name: request.name,
-          args: request.args,
-        },
-      );
-      return result;
-    },
-  );
-
-  // Abort any running frontend tool calls for a session
-  createIpcMainHandler(
-    IpcChannels.FRONTEND_TOOLS_ABORT,
-    async (event, sessionId) => {
-      logMessage(`Aborting frontend tools for session: ${sessionId}`);
-      // Notify the renderer to abort any running tool calls
-      event.sender.send(IpcChannels.FRONTEND_TOOLS_ABORT, { sessionId });
-    },
-  );
-
-  // Workspace dev server handlers
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_SERVER_SPAWN,
-    async (_event, { workspacePath, port }) => {
-      return workspaceDevServer.spawn(workspacePath, port);
-    }
-  );
-
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_SERVER_KILL,
-    async (_event, { workspacePath }) => {
-      return workspaceDevServer.kill(workspacePath);
-    }
-  );
-
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_SERVER_RESPAWN,
-    async (_event, { workspacePath, port }) => {
-      return workspaceDevServer.respawn(workspacePath, port);
-    }
-  );
-
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_SERVER_STATUS,
-    async (_event, { workspacePath }) => ({
-      running: workspaceDevServer.isRunning(workspacePath),
-      port: workspaceDevServer.getPort(workspacePath),
-      status: workspaceDevServer.getStatus(workspacePath),
-    })
-  );
-
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_SERVER_LOGS,
-    async (_event, { workspacePath }) => workspaceDevServer.getLogs(workspacePath)
-  );
-
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED,
-    async (_event, { workspacePath }) => {
-      return workspaceDevServer.ensureInstalled(workspacePath);
-    }
-  );
-
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_SERVER_KILL_PORT,
-    async (_event, { port }) => {
-      await new Promise<void>((resolve) => {
-        const cmd =
-          process.platform === "win32"
-            ? `FOR /F "tokens=5" %a IN ('netstat -aon ^| findstr :${port}') DO taskkill /F /PID %a`
-            : `lsof -ti:${port} | xargs kill -9`;
-        const proc = require("child_process").exec(cmd);
-        proc.on("exit", () => resolve());
-        proc.on("error", () => resolve()); // Ignore errors (port may already be free)
-      });
-    }
-  );
-
-  // Workspace file I/O handlers
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_FILE_WRITE,
-    async (_event, { workspacePath, relPath, content }) => {
-      const resolvedBase = path.resolve(workspacePath);
-      const fullPath = path.resolve(workspacePath, relPath);
-      if (!fullPath.startsWith(resolvedBase + path.sep) && fullPath !== resolvedBase) {
-        throw new Error('Path traversal detected');
-      }
-      await fs.mkdir(path.dirname(fullPath), { recursive: true });
-      await fs.writeFile(fullPath, content, 'utf-8');
-    }
-  );
-
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_FILE_READ,
-    async (_event, { workspacePath, relPath }) => {
-      const resolvedBase = path.resolve(workspacePath);
-      const fullPath = path.resolve(workspacePath, relPath);
-      if (!fullPath.startsWith(resolvedBase + path.sep) && fullPath !== resolvedBase) {
-        throw new Error('Path traversal detected');
-      }
-      return fs.readFile(fullPath, 'utf-8');
-    }
-  );
-
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_FILE_LIST,
-    async (_event, { workspacePath, relPath }) => {
-      const resolvedBase = path.resolve(workspacePath);
-      const fullPath = path.resolve(workspacePath, relPath);
-      if (!fullPath.startsWith(resolvedBase + path.sep) && fullPath !== resolvedBase) {
-        throw new Error('Path traversal detected');
-      }
-      const entries = await fs.readdir(fullPath, { withFileTypes: true });
-      const results = [];
-      for (const entry of entries) {
-        if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === '.next') continue;
-        const entryPath = path.join(relPath, entry.name);
-        let size = 0;
-        if (!entry.isDirectory()) {
-          try {
-            const stat = await fs.stat(path.join(fullPath, entry.name));
-            size = stat.size;
-          } catch {}
-        }
-        results.push({
-          name: entry.name,
-          path: entryPath,
-          isDir: entry.isDirectory(),
-          size,
-        });
-      }
-      // Sort: directories first, then alphabetical
-      results.sort((a, b) => {
-        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
-      return results;
-    }
-  );
-
-  // Run `npx tsc --noEmit --pretty false` in the workspace and parse diagnostics
-  createIpcMainHandler(
-    IpcChannels.WORKSPACE_FILE_DIAGNOSTICS,
-    async (_event, { workspacePath }) => {
-      const resolvedBase = path.resolve(workspacePath);
-      const { execFile } = require('child_process') as typeof import('child_process');
-      return new Promise<Array<{ filePath: string; line: number; column: number; message: string; severity: 'error' | 'warning' }>>((resolve) => {
-        // Use npx to run the workspace's local tsc
-        const proc = execFile('npx', ['tsc', '--noEmit', '--pretty', 'false'], {
-          cwd: resolvedBase,
-          timeout: 30000,
-          maxBuffer: 1024 * 1024,
-          env: { ...process.env, FORCE_COLOR: '0' },
-        }, (error, stdout, stderr) => {
-          const output = (stdout || '') + (stderr || '');
-          if (!output.trim()) {
-            resolve([]);
-            return;
-          }
-          // Parse tsc output: file(line,col): error TS1234: message
-          const diagnostics: Array<{ filePath: string; line: number; column: number; message: string; severity: 'error' | 'warning' }> = [];
-          const tscRegex = /^(.+?)\((\d+),(\d+)\):\s*(error|warning)\s+TS\d+:\s*(.+)$/gm;
-          let match;
-          while ((match = tscRegex.exec(output)) !== null) {
-            diagnostics.push({
-              filePath: match[1].replace(/\\/g, '/'),
-              line: parseInt(match[2], 10),
-              column: parseInt(match[3], 10),
-              message: match[5],
-              severity: match[4] as 'error' | 'warning',
-            });
-          }
-          resolve(diagnostics);
-        });
-      });
-    }
-  );
+  // The agent runtime moved out of the Electron main process; agent
+  // sessions now live on the NodeTool server. The renderer talks directly
+  // to the server over the `/ws/agent` WebSocket — no IPC bridge required.
 }

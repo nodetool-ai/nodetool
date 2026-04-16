@@ -3,13 +3,13 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import SearchIcon from "@mui/icons-material/Search";
 import CodeIcon from "@mui/icons-material/Code";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { ToolbarIconButton } from "../ui_primitives";
 
 interface EditorToolbarProps {
   onUndo?: () => void;
@@ -103,64 +103,50 @@ const EditorToolbar = ({
     <Box className="editor-toolbar" css={styles(theme)}>
       {!readOnly && (
         <div className="toolbar-group">
-          <Tooltip title="Undo" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <span>
-              <IconButton
-                className={`toolbar-button ${!canUndo ? "disabled" : ""}`}
-                onClick={onUndo}
-                disabled={!canUndo}
-                size="small"
-              >
-                <UndoIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Redo" enterDelay={TOOLTIP_ENTER_DELAY}>
-            <span>
-              <IconButton
-                className={`toolbar-button ${!canRedo ? "disabled" : ""}`}
-                onClick={onRedo}
-                disabled={!canRedo}
-                size="small"
-              >
-                <RedoIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
+          <ToolbarIconButton
+            icon={<UndoIcon fontSize="small" />}
+            tooltip="Undo"
+            className={`toolbar-button ${!canUndo ? "disabled" : ""}`}
+            onClick={onUndo}
+            disabled={!canUndo}
+            size="small"
+          />
+          <ToolbarIconButton
+            icon={<RedoIcon fontSize="small" />}
+            tooltip="Redo"
+            className={`toolbar-button ${!canRedo ? "disabled" : ""}`}
+            onClick={onRedo}
+            disabled={!canRedo}
+            size="small"
+          />
         </div>
       )}
 
       <div className="toolbar-group">
-        <Tooltip title="Find & Replace" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className="toolbar-button"
-            onClick={onToggleFind}
-            size="small"
-          >
-            <SearchIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<SearchIcon fontSize="small" />}
+          tooltip="Find & Replace"
+          className="toolbar-button"
+          onClick={onToggleFind}
+          size="small"
+        />
       </div>
 
       <div className="toolbar-group">
-        <Tooltip title="Toggle Word Wrap" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className={`toolbar-button ${wordWrapEnabled ? "active" : ""}`}
-            onClick={onToggleWordWrap}
-            size="small"
-          >
-            <WrapTextIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Format as Code Block" enterDelay={TOOLTIP_ENTER_DELAY}>
-          <IconButton
-            className={`toolbar-button ${isCodeBlock ? "active" : ""}`}
-            onClick={onFormatCodeBlock}
-            size="small"
-          >
-            <CodeIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<WrapTextIcon fontSize="small" />}
+          tooltip="Toggle Word Wrap"
+          className={`toolbar-button ${wordWrapEnabled ? "active" : ""}`}
+          onClick={onToggleWordWrap}
+          size="small"
+        />
+        <ToolbarIconButton
+          icon={<CodeIcon fontSize="small" />}
+          tooltip="Format as Code Block"
+          className={`toolbar-button ${isCodeBlock ? "active" : ""}`}
+          onClick={onFormatCodeBlock}
+          size="small"
+        />
       </div>
     </Box>
   );

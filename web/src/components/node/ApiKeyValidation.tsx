@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { Typography, Button } from "@mui/material";
+import { Text, EditorButton } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useApiKeyValidation } from "../../hooks/useApiKeyValidation";
 
@@ -21,20 +21,20 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
 
       return (
         <>
-          <Typography
+          <Text
             className="node-status"
+            size="tiny"
             sx={{
               width: "100%",
               textAlign: "center",
-              fontSize: "var(--fontSizeTiny)",
               textTransform: "uppercase",
               padding: ".5em !important",
               marginBottom: "0"
             }}
           >
             {String(missingAPIKey)} is missing!
-          </Typography>
-          <Button
+          </Text>
+          <EditorButton
             className="api-key-button"
             variant="contained"
             color="primary"
@@ -52,7 +52,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
             }}
           >
             Add key in Settings
-          </Button>
+          </EditorButton>
         </>
       );
     }, [missingAPIKey, handleOpenSettings]);

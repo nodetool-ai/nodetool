@@ -48,5 +48,6 @@ describe("agents index exports", () => {
     // Planning & orchestration
     expect(mod.TaskPlanner).toBeDefined();
     expect(mod.TaskExecutor).toBeDefined();
+    expect(mod.ParallelTaskExecutor).toBeDefined();
   });
 });

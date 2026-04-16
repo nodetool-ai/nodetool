@@ -6,10 +6,9 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText,
-  Typography,
-  Box
+  ListItemText
 } from "@mui/material";
+import { Text, Caption } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ChatIcon from "@mui/icons-material/Chat";
@@ -174,7 +173,7 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   );
 
   return (
-    <Box css={styles(theme)}>
+    <div css={styles(theme)}>
       <Button
         className={`agent-mode-button ${agentMode ? "active" : ""}`}
         onClick={handleClick}
@@ -215,17 +214,14 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
               </ListItemIcon>
               <ListItemText
                 primary={
-                  <Typography variant="body2" fontWeight={500}>
+                  <Text size="small" weight={500}>
                     {option.label}
-                  </Typography>
+                  </Text>
                 }
                 secondary={
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.secondary" }}
-                  >
+                  <Caption>
                     {option.description}
-                  </Typography>
+                  </Caption>
                 }
               />
               {isSelected && (
@@ -237,6 +233,6 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
           );
         })}
       </Menu>
-    </Box>
+    </div>
   );
 };

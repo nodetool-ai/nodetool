@@ -2040,7 +2040,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/workspaces/workflow/{workflow_id}/files": {
+    "/api/workspaces/{workspace_id}/files": {
         parameters: {
             query?: never;
             header?: never;
@@ -2075,7 +2075,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/workspaces/workflow/{workflow_id}/download/{file_path}": {
+    "/api/workspaces/{workspace_id}/download/{file_path}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2107,7 +2107,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/workspaces/workflow/{workflow_id}/upload/{file_path}": {
+    "/api/workspaces/{workspace_id}/upload/{file_path}": {
         parameters: {
             query?: never;
             header?: never;

@@ -5,8 +5,6 @@ import type { Theme } from "@mui/material/styles";
 import {
   DialogContent,
   DialogTitle,
-  Typography,
-  Tooltip,
   Box,
   List,
   ListItem,
@@ -28,6 +26,8 @@ import AddIcon from "@mui/icons-material/Add";
 import FolderIcon from "@mui/icons-material/Folder";
 import CheckIcon from "@mui/icons-material/Check";
 import CancelIcon from "@mui/icons-material/Cancel";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../stores/ApiClient";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
@@ -36,7 +36,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import PanelHeadline from "../ui/PanelHeadline";
-import { Dialog } from "../ui_primitives";
+import { Dialog, Text, Tooltip, FlexRow } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -263,12 +263,23 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
 
   // Update workspace mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: { id: string; name: string }) => {
+    mutationFn: async (data: {
+      id: string;
+      name?: string;
+      is_default?: boolean;
+    }) => {
+      const body: { name?: string; is_default?: boolean } = {};
+      if (data.name !== undefined) {
+        body.name = data.name;
+      }
+      if (data.is_default !== undefined) {
+        body.is_default = data.is_default;
+      }
       const { data: result, error } = await client.PUT(
         "/api/workspaces/{workspace_id}",
         {
           params: { path: { workspace_id: data.id } },
-          body: { name: data.name }
+          body
         }
       );
       if (error) {
@@ -380,6 +391,23 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     setWorkspaceToDelete(null);
   }, []);
 
+  const handleToggleDefault = useCallback(
+    (workspace: WorkspaceResponse) => {
+      if (workspace.is_default) {
+        return; // Already default, don't un-default
+      }
+      updateMutation.mutate({ id: workspace.id, is_default: true });
+    },
+    [updateMutation]
+  );
+
+  const createToggleDefaultHandler = useCallback(
+    (workspace: WorkspaceResponse) => {
+      return () => handleToggleDefault(workspace);
+    },
+    [handleToggleDefault]
+  );
+
   const handleStartEdit = useCallback((workspace: WorkspaceResponse) => {
     setEditingId(workspace.id);
     setEditName(workspace.name);
@@ -463,24 +491,21 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         <DialogContent>
           <div className="workspaces-manager">
             {isLoading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  py: 4
-                }}
+              <FlexRow
+                justify="center"
+                align="center"
+                sx={{ py: 4 }}
               >
                 <CircularProgress size={30} />
-              </Box>
+              </FlexRow>
             ) : error ? (
               <Box className="empty-state">
-                <Typography color="error" sx={{ mb: 1 }}>
+                <Text color="error" sx={{ mb: 1 }}>
                   Unable to load workspaces
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                </Text>
+                <Text size="small" color="secondary" sx={{ mb: 2 }}>
                   Check your connection and try again
-                </Typography>
+                </Text>
                 <Button
                   variant="outlined"
                   onClick={handleRetry}
@@ -528,28 +553,20 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           <ListItemText
                             className="workspace-info"
                             primary={
-                              <Typography className="workspace-name">
+                              <Text className="workspace-name">
                                 {workspace.name}
-                              </Typography>
+                              </Text>
                             }
                             secondaryTypographyProps={{ component: 'div' }}
                             secondary={
                               <>
-                                <Typography
+                                <Text
                                   component="span"
                                   className="workspace-path"
                                 >
                                   {workspace.path}
-                                </Typography>
+                                </Text>
                                 <span className="workspace-badges">
-                                  {workspace.is_default && (
-                                    <Chip
-                                      size="small"
-                                      label="Default"
-                                      color="primary"
-                                      variant="outlined"
-                                    />
-                                  )}
                                   {!workspace.is_accessible && (
                                     <Chip
                                       size="small"
@@ -564,6 +581,32 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           />
                         </div>
                         <ListItemSecondaryAction>
+                          <Tooltip
+                            title={
+                              workspace.is_default
+                                ? "Default workspace"
+                                : "Set as default"
+                            }
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={createToggleDefaultHandler(workspace)}
+                              sx={{
+                                color: workspace.is_default
+                                  ? "warning.main"
+                                  : "text.secondary",
+                                "&:hover": {
+                                  color: "warning.main"
+                                }
+                              }}
+                            >
+                              {workspace.is_default ? (
+                                <StarIcon fontSize="small" />
+                              ) : (
+                                <StarBorderIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip title="Edit">
                             <IconButton
                               size="small"
@@ -589,10 +632,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
             ) : (
               <Box className="empty-state">
                 <FolderIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
-                <Typography>No workspaces configured</Typography>
-                <Typography variant="body2">
+                <Text>No workspaces configured</Text>
+                <Text size="small">
                   Add a workspace to allow agents to access local folders
-                </Typography>
+                </Text>
               </Box>
             )}
 
@@ -636,13 +679,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     }
                     label="Set as default workspace"
                   />
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: 1,
-                      mt: 1
-                    }}
+                  <FlexRow
+                    justify="flex-end"
+                    gap={1}
+                    sx={{ mt: 1 }}
                   >
                     <Button
                       onClick={handleCancelAdd}
@@ -657,7 +697,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     >
                       {createMutation.isPending ? "Adding..." : "Add Workspace"}
                     </Button>
-                  </Box>
+                  </FlexRow>
                 </div>
               ) : (
                 <Button
@@ -688,10 +728,10 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         onConfirm={handleConfirmDelete}
         title="Delete Workspace"
         content={
-          <Typography>
+          <Text>
             Are you sure you want to delete this workspace? This action cannot
             be undone.
-          </Typography>
+          </Text>
         }
         confirmText="Delete"
         cancelText="Cancel"

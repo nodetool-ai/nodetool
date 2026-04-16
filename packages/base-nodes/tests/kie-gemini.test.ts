@@ -239,11 +239,11 @@ describe("EmbeddingNode (Gemini)", () => {
 // ── ImageGenerationNode ────────────────────────────────────────────────────
 
 describe("ImageGenerationNode", () => {
-  it("generates image with Imagen model (predict endpoint)", async () => {
+  it("generates image with Imagen model (generateImages endpoint)", async () => {
     const node = new ImageGenerationNode();
     mockFetch.mockResolvedValueOnce(
       jsonResponse({
-        predictions: [{ bytesBase64Encoded: "base64imagedata" }]
+        generatedImages: [{ image: { imageBytes: "base64imagedata" } }]
       })
     );
 
@@ -417,9 +417,9 @@ describe("ImageGenerationNode", () => {
     );
   });
 
-  it("throws when no predictions from Imagen", async () => {
+  it("throws when no generatedImages from Imagen", async () => {
     const node = new ImageGenerationNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ predictions: [] }));
+    mockFetch.mockResolvedValueOnce(jsonResponse({ generatedImages: [] }));
 
     node.assign({
       prompt: "cat",
@@ -430,9 +430,11 @@ describe("ImageGenerationNode", () => {
     await expect(node.process()).rejects.toThrow("No images generated");
   });
 
-  it("throws when no bytesBase64 in predictions", async () => {
+  it("throws when no imageBytes in generatedImages", async () => {
     const node = new ImageGenerationNode();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ predictions: [{}] }));
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ generatedImages: [{ image: {} }] })
+    );
 
     node.assign({
       prompt: "cat",
@@ -492,7 +494,7 @@ describe("TextToVideoGeminiNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual({ data: "base64videodata" });
+    expect(result.output).toEqual({ type: "video", data: "base64videodata" });
   });
 
   it("polls operation until done", async () => {
@@ -517,7 +519,7 @@ describe("TextToVideoGeminiNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual({ data: "polledvideo" });
+    expect(result.output).toEqual({ type: "video", data: "polledvideo" });
   }, 15000);
 
   it("throws on empty prompt", async () => {
@@ -638,7 +640,7 @@ describe("TextToVideoGeminiNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual({ data: "directvideo" });
+    expect(result.output).toEqual({ type: "video", data: "directvideo" });
   });
 
   it("throws timeout when poll never completes", async () => {
@@ -692,7 +694,7 @@ describe("ImageToVideoGeminiNode", () => {
 
     node.setDynamic("_secrets", secrets._secrets);
     const result = await node.process();
-    expect(result.output).toEqual({ data: "videofromimage" });
+    expect(result.output).toEqual({ type: "video", data: "videofromimage" });
   });
 
   it("throws when image is not set", async () => {

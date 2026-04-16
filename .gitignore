@@ -24,6 +24,7 @@ electron/backend-bundle/
 electron/resources/micromamba
 conda-lock.yml
 # Temporary build files
+*.tsbuildinfo
 .tmp/
 __notebooks/
 package/
@@ -42,6 +43,8 @@ docs.chromadb
 # Cache
 .cache
 .eslintcache
+# tsx temp files (Windows bug: resolves tmpdir as "undefined")
+**/undefined/
 
 # Testing
 /coverage
@@ -68,3 +71,4 @@ key.pem
 __plans__
 .claude/settings.local.json
 .memory
+*.tsbuildinfo

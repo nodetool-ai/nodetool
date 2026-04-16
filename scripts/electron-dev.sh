@@ -19,24 +19,25 @@ if [[ -z "${CONDA_PREFIX:-}" ]]; then
   exit 1
 fi
 
-# Check if any TS workspace package has source changes newer than its dist/
-PACKAGES_STALE=0
-for pkg_dir in packages/*/; do
-  if [[ -d "${pkg_dir}src" ]] && grep -q '"build"' "${pkg_dir}package.json" 2>/dev/null; then
-    if [[ ! -d "${pkg_dir}dist" ]] || \
-       [[ -n "$(find "${pkg_dir}src" -newer "${pkg_dir}dist" -print -quit 2>/dev/null)" ]]; then
-      echo "Package $(basename "${pkg_dir}") has changes."
-      PACKAGES_STALE=1
-    fi
-  fi
-done
-
-if [[ ${PACKAGES_STALE} -eq 1 ]]; then
-  echo "Rebuilding workspace packages (ordered)..."
-  npm run build:packages || { echo "ERROR: Package build failed."; exit 1; }
-  echo "Package build done."
+# Native modules must match Electron's embedded Node ABI.
+# Skip rebuild if already compiled for the correct Electron version.
+ELECTRON_VERSION=$(node -e "process.stdout.write(require('./electron/package.json').devDependencies.electron)")
+ARCH=$(uname -m)
+if [[ "$ARCH" == "arm64" ]]; then
+  GYARCH="arm64"
 else
-  echo "All packages up to date."
+  GYARCH="x64"
+fi
+
+NATIVE_STAMP="node_modules/.electron-native-rebuild-stamp"
+CURRENT_STAMP="${ELECTRON_VERSION}-${GYARCH}"
+if [[ -f "${NATIVE_STAMP}" ]] && [[ "$(cat "${NATIVE_STAMP}")" == "${CURRENT_STAMP}" ]]; then
+  echo "Native modules already built for Electron ${ELECTRON_VERSION} (${GYARCH}), skipping rebuild."
+else
+  echo "Rebuilding native modules for Electron ${ELECTRON_VERSION} (${GYARCH})..."
+  (cd node_modules/better-sqlite3 && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+  (cd node_modules/bufferutil && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+  echo -n "${CURRENT_STAMP}" > "${NATIVE_STAMP}"
 fi
 
 # Start web Vite server
@@ -44,12 +45,11 @@ echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
 npm --prefix web start &
 WEB_SERVER_PID=$!
 
-# Only rebuild electron if source changed since last build (or packages were rebuilt)
+# Only rebuild electron if source changed since last build
 ELECTRON_MARKER="electron/dist-electron/main.js"
 if [[ ! -f "${ELECTRON_MARKER}" ]] || \
-   [[ -n "$(find electron/src electron/vite.config.ts -newer "${ELECTRON_MARKER}" -print -quit 2>/dev/null)" ]] || \
-   [[ ${PACKAGES_STALE} -eq 1 ]]; then
-  echo "Building Electron main/preload bundle..."
+   [[ -n "$(find electron/src electron/vite.config.ts -newer "${ELECTRON_MARKER}" -print -quit 2>/dev/null)" ]]; then
+  echo "Building Electron main/preload bundle (parallel)..."
   npm --prefix electron run vite:build &
   ELECTRON_BUILD_PID=$!
   if ! wait "${ELECTRON_BUILD_PID}"; then

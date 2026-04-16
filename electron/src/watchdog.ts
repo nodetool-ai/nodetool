@@ -4,6 +4,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import net from "net";
 import { logMessage } from "./logger";
+import { probeHttpOk } from "./httpProbe";
 
 interface WatchdogOptionsBase {
   name: string;
@@ -438,26 +439,53 @@ export class Watchdog {
     }
   }
 
+  private _checkInProgress = false;
+  private _consecutiveFailures = 0;
+  private static readonly MAX_CONSECUTIVE_FAILURES = 3;
+
   private startMonitorLoop() {
     if (this.intervalId) clearInterval(this.intervalId);
     this.intervalId = setInterval(async () => {
-      if (this.stopped) return;
-      const pidAlive = await this.isPidAlive();
-      const healthy = await this.isHealthy();
+      if (this.stopped || this._checkInProgress) return;
+      this._checkInProgress = true;
+      try {
+        const pidAlive = await this.isPidAlive();
+        const healthy = await this.isHealthy();
 
-      if (!pidAlive || !healthy) {
-        logMessage(
-          `${this.opts.name} watchdog: detected unhealthy state (pidAlive=${pidAlive}, healthy=${healthy}), restarting...`
-        );
-        try {
-          await this.restart();
-        } catch (error) {
+        if (!pidAlive) {
+          this._consecutiveFailures = 0;
           logMessage(
-            `${this.opts.name} watchdog: restart failed: ${(error as Error).message
-            }`,
-            "error"
+            `${this.opts.name} watchdog: process died (pidAlive=false), restarting...`
+          );
+        } else if (!healthy) {
+          this._consecutiveFailures++;
+          if (this._consecutiveFailures < Watchdog.MAX_CONSECUTIVE_FAILURES) {
+            logMessage(
+              `${this.opts.name} watchdog: health check failed (${this._consecutiveFailures}/${Watchdog.MAX_CONSECUTIVE_FAILURES}), will retry...`
+            );
+            return;
+          }
+          logMessage(
+            `${this.opts.name} watchdog: detected unhealthy state after ${this._consecutiveFailures} consecutive failures, restarting...`
           );
         }
+
+        if (pidAlive && healthy) {
+          this._consecutiveFailures = 0;
+        } else if (!pidAlive || (this._consecutiveFailures >= Watchdog.MAX_CONSECUTIVE_FAILURES)) {
+          this._consecutiveFailures = 0;
+          try {
+            await this.restart();
+          } catch (error) {
+            logMessage(
+              `${this.opts.name} watchdog: restart failed: ${(error as Error).message
+              }`,
+              "error"
+            );
+          }
+        }
+      } finally {
+        this._checkInProgress = false;
       }
     }, this.opts.healthCheckIntervalMs);
   }
@@ -515,19 +543,7 @@ export class Watchdog {
    * Used for ongoing health monitoring.
    */
   private async isHealthy(): Promise<boolean> {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    try {
-      const res = await fetch(this.opts.healthUrl, {
-        method: "GET",
-        signal: controller.signal,
-      });
-      return res.ok;
-    } catch {
-      return false;
-    } finally {
-      clearTimeout(id);
-    }
+    return probeHttpOk(this.opts.healthUrl, { timeoutMs: 15000 });
   }
 
   private async writePidFile(pid: number): Promise<void> {

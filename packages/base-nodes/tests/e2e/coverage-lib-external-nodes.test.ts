@@ -1104,7 +1104,8 @@ describe("lib.supabase (no credentials)", () => {
     await expect(
       (() => {
         const _n = new SelectLibNode();
-        _n.assign({ supabase_url: "", supabase_key: "" });
+        // Credentials are now read from _secrets, not node props
+        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
         return _n.process();
       })()
     ).rejects.toThrow("table_name cannot be empty");
@@ -1128,10 +1129,7 @@ describe("lib.supabase (no credentials)", () => {
     await expect(
       (() => {
         const _n = new SupabaseInsertLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: ""
-        });
+        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
         return _n.process();
       })()
     ).rejects.toThrow("table_name cannot be empty");
@@ -1156,10 +1154,7 @@ describe("lib.supabase (no credentials)", () => {
     await expect(
       (() => {
         const _n = new SupabaseUpdateLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: ""
-        });
+        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
         return _n.process();
       })()
     ).rejects.toThrow("table_name cannot be empty");
@@ -1169,12 +1164,8 @@ describe("lib.supabase (no credentials)", () => {
     await expect(
       (() => {
         const _n = new SupabaseUpdateLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test",
-          values: {}
-        });
+        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
+        _n.assign({ table_name: "test", values: {} });
         return _n.process();
       })()
     ).rejects.toThrow("values cannot be empty");
@@ -1199,10 +1190,7 @@ describe("lib.supabase (no credentials)", () => {
     await expect(
       (() => {
         const _n = new SupabaseDeleteLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: ""
-        });
+        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
         return _n.process();
       })()
     ).rejects.toThrow("table_name cannot be empty");
@@ -1212,12 +1200,8 @@ describe("lib.supabase (no credentials)", () => {
     await expect(
       (() => {
         const _n = new SupabaseDeleteLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test",
-          filters: []
-        });
+        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
+        _n.assign({ table_name: "test", filters: [] });
         return _n.process();
       })()
     ).rejects.toThrow("At least one filter is required");
@@ -1242,10 +1226,7 @@ describe("lib.supabase (no credentials)", () => {
     await expect(
       (() => {
         const _n = new SupabaseUpsertLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: ""
-        });
+        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
         return _n.process();
       })()
     ).rejects.toThrow("table_name cannot be empty");
@@ -1270,10 +1251,7 @@ describe("lib.supabase (no credentials)", () => {
     await expect(
       (() => {
         const _n = new SupabaseRPCLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: ""
-        });
+        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
         return _n.process();
       })()
     ).rejects.toThrow("function cannot be empty");

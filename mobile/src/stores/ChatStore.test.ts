@@ -22,7 +22,7 @@ jest.mock('../services/WebSocketManager', () => ({
 // Mock apiService
 jest.mock('../services/api', () => ({
   apiService: {
-    getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:7777/ws/chat'),
+    getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:7777/ws'),
   },
 }));
 
@@ -77,9 +77,9 @@ describe('ChatStore', () => {
     it('creates WebSocketManager with correct URL', async () => {
       await useChatStore.getState().connect();
       
-      expect(apiService.getWebSocketUrl).toHaveBeenCalledWith('/ws/chat');
+      expect(apiService.getWebSocketUrl).toHaveBeenCalledWith('/ws');
       expect(WebSocketManager).toHaveBeenCalledWith(expect.objectContaining({
-        url: 'ws://localhost:7777/ws/chat',
+        url: 'ws://localhost:7777/ws',
         reconnect: true,
       }));
     });

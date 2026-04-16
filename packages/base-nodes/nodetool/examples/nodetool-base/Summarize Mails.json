@@ -1,0 +1,424 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-04-10T20:22:52.517Z",
+  "updated_at": "2026-04-11T07:19:38.517Z",
+  "name": "Summarize Mails",
+  "tool_name": null,
+  "description": "Before tab switch",
+  "tags": [
+    "email",
+    "start",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "67cad0dc-85f1-43bf-a6aa-2acb22c6d073",
+        "source": "4e9b5ce8-6f78-4b34-af86-bf320a3ef153",
+        "sourceHandle": "text",
+        "target": "99969e30-8836-4072-98da-282e26a6541e",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "887c4629-ec91-4ff5-b813-d4865780c5b8",
+        "source": "b6989435-487c-4585-94b7-934b3fd1b873",
+        "sourceHandle": "emails",
+        "target": "175e0a5e-db65-4947-9502-033a446d6007",
+        "targetHandle": "dict",
+        "ui_properties": {
+          "className": "list"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "46b2e503-1378-49c4-b172-3c58ec16fcea",
+        "source": "175e0a5e-db65-4947-9502-033a446d6007",
+        "sourceHandle": "output",
+        "target": "4e9b5ce8-6f78-4b34-af86-bf320a3ef153",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "any"
+        },
+        "edge_type": "data"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "b6989435-487c-4585-94b7-934b3fd1b873",
+        "type": "lib.mail.GmailSearch",
+        "data": {
+          "from_address": "",
+          "to_address": "",
+          "body": "",
+          "date_filter": "SINCE_ONE_DAY",
+          "keywords": "",
+          "folder": "INBOX",
+          "text": "",
+          "max_results": 20,
+          "subject": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 382
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "d36e64ab-fd19-4083-9e3c-8415f8dbb67a",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": {
+            "root": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Summarize Newsletter",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h1"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Workflow:",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h2"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Gmail Search",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " - Searches Gmail inbox for recent emails with \"AINews\" in the subject, filtering for emails from the past day",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "textFormat": 1,
+                      "value": 1
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Code",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " - Converts the retrieved emails list to a JSON string for further processing",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "textFormat": 1,
+                      "value": 2
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Summarizer",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " - Processes the email content through Gemini 2.5 Flash-Lite to generate a concise, markdown-formatted summary (max 1000 tokens)",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "textFormat": 1,
+                      "value": 3
+                    },
+                    {
+                      "children": [
+                        {
+                          "detail": 0,
+                          "format": 1,
+                          "mode": "normal",
+                          "style": "",
+                          "text": "Output",
+                          "type": "text",
+                          "version": 1
+                        },
+                        {
+                          "detail": 0,
+                          "format": 0,
+                          "mode": "normal",
+                          "style": "",
+                          "text": " - Outputs the final summarized text",
+                          "type": "text",
+                          "version": 1
+                        }
+                      ],
+                      "direction": "ltr",
+                      "format": "",
+                      "indent": 0,
+                      "type": "listitem",
+                      "version": 1,
+                      "textFormat": 1,
+                      "value": 4
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "list",
+                  "version": 1,
+                  "textFormat": 1,
+                  "listType": "number",
+                  "start": 1,
+                  "tag": "ol"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Tip:",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h2"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "For local execution, use a smaller model like Gemma3:1b to avoid memory issues",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": "ltr",
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                }
+              ],
+              "direction": "ltr",
+              "format": "",
+              "indent": 0,
+              "type": "root",
+              "version": 1
+            }
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -407,
+            "y": 427
+          },
+          "zIndex": 0,
+          "width": 365,
+          "height": 409,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "4e9b5ce8-6f78-4b34-af86-bf320a3ef153",
+        "type": "nodetool.agents.Summarizer",
+        "data": {
+          "system_prompt": "\n        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring. \n        Follow these guidelines:\n        1. Identify and include only the most important information.\n        2. Maintain factual accuracy - do not add or modify information.\n        3. Use clear, direct language.\n        4. Aim for approximately {self.max_tokens} tokens.\n        ",
+          "model": {
+            "type": "language_model",
+            "id": "gemini-2.5-flash-lite",
+            "provider": "gemini",
+            "name": "Gemini 2.5 Flash-Lite"
+          },
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "max_tokens": 1000
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 670,
+            "y": 465
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "99969e30-8836-4072-98da-282e26a6541e",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "text",
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 980,
+            "y": 508
+          },
+          "zIndex": 0,
+          "width": 347,
+          "height": 334,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "175e0a5e-db65-4947-9502-033a446d6007",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "return { output: JSON.stringify(dict, null, 2) };",
+          "timeout": 30
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 518
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "dict": ""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        },
+        "sync_mode": "on_any"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "d95a7632566513b52f5e07e4c4de18dd"
+}

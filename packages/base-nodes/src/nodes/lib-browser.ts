@@ -35,27 +35,33 @@ export class WebFetchLibNode extends BaseNode {
     const selector = String(this.selector ?? "body");
     if (!url) throw new Error("URL is required");
 
-    const axios = (await import("axios")).default;
     const cheerio = await import("cheerio");
     const TurndownService = (await import("turndown")).default;
 
-    const response = await axios.get(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
-      responseType: "text",
-      timeout: 30000
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    const responseText = await response.text();
 
     const contentType = String(
-      response.headers["content-type"] ?? ""
+      response.headers.get("content-type") ?? ""
     ).toLowerCase();
     if (
       !contentType.includes("text/html") &&
       !contentType.includes("application/xhtml+xml")
     ) {
-      return { output: String(response.data) };
+      return { output: responseText };
     }
 
-    const $ = cheerio.load(String(response.data));
+    const $ = cheerio.load(responseText);
     const elements = $(selector);
     if (elements.length === 0) {
       throw new Error(`No elements found matching selector: ${selector}`);
@@ -94,14 +100,19 @@ export class DownloadFileLibNode extends BaseNode {
     const url = String(this.url ?? "");
     if (!url) throw new Error("URL is required");
 
-    const axios = (await import("axios")).default;
-    const response = await axios.get(url, {
-      headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
-      responseType: "arraybuffer",
-      timeout: 60000
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT, Accept: "*/*" },
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
-    const data = Buffer.from(response.data).toString("base64");
+    const data = Buffer.from(await response.arrayBuffer()).toString("base64");
     return { output: { __bytes__: data } };
   }
 }
@@ -406,7 +417,8 @@ export class SpiderCrawlLibNode extends BaseNode {
     depth: "int",
     html: "str",
     title: "str",
-    status_code: "int"
+    status_code: "int",
+    pages: "list"
   };
   static readonly exposeAsTool = true;
 
@@ -503,11 +515,34 @@ export class SpiderCrawlLibNode extends BaseNode {
   declare exclude_pattern: any;
 
   async process(): Promise<Record<string, unknown>> {
+    const allPages: Array<Record<string, unknown>> = [];
+    for await (const page of this._crawlPages()) {
+      allPages.push(page);
+    }
+    const first = allPages[0] ?? {
+      url: "",
+      depth: 0,
+      html: null,
+      title: null,
+      status_code: 0
+    };
+    return {
+      url: first.url,
+      depth: first.depth,
+      html: first.html,
+      title: first.title,
+      status_code: first.status_code,
+      pages: allPages
+    };
+  }
+
+  private async *_crawlPages(): AsyncGenerator<Record<string, unknown>> {
     const startUrl = String(this.start_url ?? "");
     const maxDepth = Number(this.max_depth ?? 2);
     const maxPages = Number(this.max_pages ?? 50);
     const sameDomainOnly = Boolean(this.same_domain_only ?? true);
     const includeHtml = Boolean(this.include_html ?? false);
+    const respectRobotsTxt = Boolean(this.respect_robots_txt ?? true);
     const delayMs = Number(this.delay_ms ?? 1000);
     const timeout = Number(this.timeout ?? 30000);
     const urlPattern = String(this.url_pattern ?? "");
@@ -515,7 +550,6 @@ export class SpiderCrawlLibNode extends BaseNode {
 
     if (!startUrl) throw new Error("start_url is required");
 
-    const axios = (await import("axios")).default;
     const cheerio = await import("cheerio");
 
     const startParsed = new URL(startUrl);
@@ -524,11 +558,75 @@ export class SpiderCrawlLibNode extends BaseNode {
     const urlPatternRe = urlPattern ? new RegExp(urlPattern) : null;
     const excludePatternRe = excludePattern ? new RegExp(excludePattern) : null;
 
+    // robots.txt cache and parser
+    const robotsCache = new Map<string, string[]>(); // origin -> disallowed paths
+
+    const fetchRobotsTxt = async (origin: string): Promise<string[]> => {
+      if (robotsCache.has(origin)) return robotsCache.get(origin)!;
+      const disallowed: string[] = [];
+      try {
+        const robotsController = new AbortController();
+        const robotsTimeoutId = setTimeout(
+          () => robotsController.abort(),
+          10000
+        );
+        let res: Response;
+        try {
+          res = await fetch(`${origin}/robots.txt`, {
+            headers: { "User-Agent": USER_AGENT },
+            signal: robotsController.signal
+          });
+        } finally {
+          clearTimeout(robotsTimeoutId);
+        }
+        const resText = await res.text();
+        if (res.ok && typeof resText === "string") {
+          // Parse robots.txt — look for User-agent: * sections
+          const lines = resText.split("\n");
+          let inWildcard = false;
+          for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (/^user-agent\s*:/i.test(line)) {
+              const agent = line.replace(/^user-agent\s*:\s*/i, "").trim();
+              inWildcard = agent === "*";
+            } else if (inWildcard && /^disallow\s*:/i.test(line)) {
+              const path = line.replace(/^disallow\s*:\s*/i, "").trim();
+              if (path) disallowed.push(path);
+            }
+          }
+        }
+      } catch {
+        // robots.txt not available — allow all
+      }
+      robotsCache.set(origin, disallowed);
+      return disallowed;
+    };
+
+    const isAllowedByRobots = async (urlStr: string): Promise<boolean> => {
+      if (!respectRobotsTxt) return true;
+      try {
+        const parsed = new URL(urlStr);
+        const origin = `${parsed.protocol}//${parsed.host}`;
+        const disallowed = await fetchRobotsTxt(origin);
+        const path = parsed.pathname;
+        for (const rule of disallowed) {
+          // Handle wildcard rules with trailing *
+          if (rule.endsWith("*")) {
+            if (path.startsWith(rule.slice(0, -1))) return false;
+          } else if (path.startsWith(rule)) {
+            return false;
+          }
+        }
+        return true;
+      } catch {
+        return true;
+      }
+    };
+
     const visited = new Set<string>();
     const toVisit: Array<{ url: string; depth: number }> = [
       { url: startUrl, depth: 0 }
     ];
-    const results: Array<Record<string, unknown>> = [];
     let pagesCrawled = 0;
 
     while (toVisit.length > 0 && pagesCrawled < maxPages) {
@@ -540,28 +638,42 @@ export class SpiderCrawlLibNode extends BaseNode {
       if (urlPatternRe && !urlPatternRe.test(currentUrl)) continue;
       if (excludePatternRe && excludePatternRe.test(currentUrl)) continue;
 
+      // Check robots.txt before crawling
+      if (!(await isAllowedByRobots(currentUrl))) {
+        visited.add(currentUrl);
+        continue;
+      }
+
       visited.add(currentUrl);
 
       try {
-        const response = await axios.get(currentUrl, {
-          headers: { "User-Agent": USER_AGENT },
-          timeout,
-          responseType: "text",
-          validateStatus: () => true
-        });
+        const crawlController = new AbortController();
+        const crawlTimeoutId = setTimeout(
+          () => crawlController.abort(),
+          timeout
+        );
+        let response: Response;
+        try {
+          response = await fetch(currentUrl, {
+            headers: { "User-Agent": USER_AGENT },
+            signal: crawlController.signal
+          });
+        } finally {
+          clearTimeout(crawlTimeoutId);
+        }
 
         const statusCode = response.status;
-        const htmlContent = String(response.data);
+        const htmlContent = await response.text();
         const $ = cheerio.load(htmlContent);
         const title = $("title").text() || null;
 
-        results.push({
+        yield {
           url: currentUrl,
           depth,
           html: includeHtml ? htmlContent : null,
           title,
           status_code: statusCode
-        });
+        };
         pagesCrawled++;
 
         if (depth < maxDepth) {
@@ -597,17 +709,25 @@ export class SpiderCrawlLibNode extends BaseNode {
           await new Promise((r) => setTimeout(r, delayMs));
         }
       } catch {
-        results.push({
+        yield {
           url: currentUrl,
           depth,
           html: null,
           title: null,
           status_code: 0
-        });
+        };
       }
     }
+  }
 
-    return { output: results };
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const allPages: Array<Record<string, unknown>> = [];
+    for await (const page of this._crawlPages()) {
+      allPages.push(page);
+      yield page;
+    }
+    // Emit collected list as final output
+    yield { pages: allPages };
   }
 }
 

@@ -42,6 +42,7 @@ import {
   WorkflowCreatedUpdate,
   WorkflowUpdatedUpdate
 } from "../core/chat/chatProtocol";
+import type { ChatOutgoingMessage } from "./MediaGenerationStore";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -138,7 +139,7 @@ export interface GlobalChatState {
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
-  sendMessage: (message: Message) => Promise<void>;
+  sendMessage: (message: Message | ChatOutgoingMessage) => Promise<void>;
   resetMessages: () => void;
 
   // Thread actions
@@ -451,7 +452,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         });
       },
 
-      sendMessage: async (message: Message) => {
+      sendMessage: async (message: Message | ChatOutgoingMessage) => {
         const {
           currentThreadId,
           workflowId,
@@ -461,6 +462,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           selectedCollections,
           sendMessageTimeoutId
         } = get();
+        const outgoing = message as ChatOutgoingMessage;
+        const mediaGeneration = outgoing.media_generation ?? null;
 
         // Clear any existing safety timeout
         if (sendMessageTimeoutId !== null) {
@@ -522,23 +525,34 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const messageForCache: Message = {
           ...message,
           thread_id: threadId,
-          agent_mode: agentMode
-        };
+          agent_mode: agentMode,
+          ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
+        } as Message;
 
-        // Build the chat_message command data
+        // Build the chat_message command data. Media-generation messages
+        // use the provider/model chosen in the media composer instead of the
+        // default language model so text-to-image / text-to-video calls are
+        // routed correctly on the server.
+        const isMediaGeneration =
+          !!mediaGeneration && mediaGeneration.mode !== "chat";
         const chatMessageData = {
           ...message,
           workflow_id: message.workflow_id ?? workflowId ?? null,
           thread_id: threadId,
           agent_mode: agentMode,
-          model: selectedModel?.id,
-          provider: selectedModel?.provider,
+          model: isMediaGeneration
+            ? mediaGeneration?.model ?? message.model ?? selectedModel?.id
+            : selectedModel?.id,
+          provider: isMediaGeneration
+            ? mediaGeneration?.provider ?? message.provider ?? selectedModel?.provider
+            : selectedModel?.provider,
           tools:
             message.tools ??
             (selectedTools.length > 0 ? selectedTools : undefined),
           collections:
             message.collections ??
-            (selectedCollections.length > 0 ? selectedCollections : undefined)
+            (selectedCollections.length > 0 ? selectedCollections : undefined),
+          media_generation: mediaGeneration
         };
 
         // Wrap in chat_message command structure as per unified WebSocket API
@@ -573,7 +587,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 sendMessageTimeoutId: null
               });
             }
-          }, 60000);
+          }, 5 * 60 * 1000);
           set({ sendMessageTimeoutId: timeoutId });
         } catch (error) {
           // Clear timeout on error

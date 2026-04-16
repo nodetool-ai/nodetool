@@ -1,8 +1,14 @@
 /**
  * Tests for js-sandbox.ts — sandboxed JavaScript execution.
+ *
+ * The sandbox is intentionally lib-free: only vanilla JS plus a handful of
+ * bridge functions (fetch, workspace, getSecret, uuid, sleep, console).
+ * These tests lock that contract down so future refactors can't accidentally
+ * re-introduce lodash / dayjs / cheerio / csv-parse / validator into the
+ * user-code surface.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import {
   runInSandbox,
   buildSandbox,
@@ -10,8 +16,7 @@ import {
   truncate,
   cleanStack,
   wrapCode,
-  MAX_OUTPUT_SIZE,
-  MAX_LOOP_ITERATIONS
+  MAX_OUTPUT_SIZE
 } from "../src/js-sandbox.js";
 
 // ---------------------------------------------------------------------------
@@ -67,7 +72,14 @@ describe("serializeResult", () => {
     expect(result).toEqual({ a: 1, b: "two" });
   });
 
-  it("falls back to String() for non-serializable values", () => {
+  it("preserves native Uint8Array", () => {
+    const u8 = new Uint8Array([1, 2, 3]);
+    const result = serializeResult(u8);
+    expect(result).toBeInstanceOf(Uint8Array);
+    expect(Array.from(result as Uint8Array)).toEqual([1, 2, 3]);
+  });
+
+  it("falls back to String() for circular values", () => {
     const circular: Record<string, unknown> = {};
     circular.self = circular;
     const result = serializeResult(circular);
@@ -120,7 +132,7 @@ describe("wrapCode", () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildSandbox
+// buildSandbox — shape of the exposed surface
 // ---------------------------------------------------------------------------
 
 describe("buildSandbox", () => {
@@ -131,12 +143,29 @@ describe("buildSandbox", () => {
     expect(getLogs()).toEqual(["hello world"]);
   });
 
-  it("provides sandbox with core JS globals", () => {
+  it("provides console.warn/error/info with prefixes", () => {
+    const { sandbox, getLogs } = buildSandbox();
+    const console = sandbox.console as {
+      warn: (...a: unknown[]) => void;
+      error: (...a: unknown[]) => void;
+      info: (...a: unknown[]) => void;
+    };
+    console.warn("w");
+    console.error("e");
+    console.info("i");
+    expect(getLogs()).toEqual(["[warn] w", "[error] e", "[info] i"]);
+  });
+
+  it("provides core JS globals", () => {
     const { sandbox } = buildSandbox();
     expect(sandbox.JSON).toBe(JSON);
     expect(sandbox.Math).toBe(Math);
     expect(sandbox.Array).toBe(Array);
     expect(sandbox.Promise).toBe(Promise);
+    expect(sandbox.Date).toBe(Date);
+    expect(sandbox.RegExp).toBe(RegExp);
+    expect(sandbox.URL).toBe(globalThis.URL);
+    expect(sandbox.URLSearchParams).toBe(globalThis.URLSearchParams);
   });
 
   it("blocks setTimeout and setInterval", () => {
@@ -145,10 +174,24 @@ describe("buildSandbox", () => {
     expect(sandbox.setInterval).toBeUndefined();
   });
 
-  it("provides lodash and dayjs", () => {
+  it("does NOT expose lodash, dayjs, cheerio, csvParse, or validator", () => {
+    // This is the core invariant: the sandbox must stay lib-free.
     const { sandbox } = buildSandbox();
-    expect(sandbox._).toBeDefined();
-    expect(sandbox.dayjs).toBeDefined();
+    expect(sandbox._).toBeUndefined();
+    expect(sandbox.lodash).toBeUndefined();
+    expect(sandbox.dayjs).toBeUndefined();
+    expect(sandbox.cheerio).toBeUndefined();
+    expect(sandbox.csvParse).toBeUndefined();
+    expect(sandbox.validator).toBeUndefined();
+  });
+
+  it("exposes the bridge functions", () => {
+    const { sandbox } = buildSandbox();
+    expect(typeof sandbox.fetch).toBe("function");
+    expect(typeof sandbox.uuid).toBe("function");
+    expect(typeof sandbox.sleep).toBe("function");
+    expect(typeof sandbox.getSecret).toBe("function");
+    expect(typeof sandbox.workspace).toBe("object");
   });
 
   it("provides workspace stubs without context", () => {
@@ -156,10 +199,16 @@ describe("buildSandbox", () => {
     const ws = sandbox.workspace as { read: (p: string) => Promise<string> };
     expect(ws.read("test")).rejects.toThrow("not available without a context");
   });
+
+  it("getSecret without context returns undefined", async () => {
+    const { sandbox } = buildSandbox();
+    const getSecret = sandbox.getSecret as (n: string) => Promise<unknown>;
+    await expect(getSecret("ANY")).resolves.toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------
-// runInSandbox
+// runInSandbox — functional behaviour
 // ---------------------------------------------------------------------------
 
 describe("runInSandbox", () => {
@@ -175,7 +224,7 @@ describe("runInSandbox", () => {
     expect(result.result).toBe(4);
   });
 
-  it("executes async code", async () => {
+  it("executes async code with top-level await", async () => {
     const result = await runInSandbox({
       code: `
         const x = await Promise.resolve(42);
@@ -213,7 +262,7 @@ describe("runInSandbox", () => {
     expect(result.error).toContain("boom");
   });
 
-  it("injects custom globals", async () => {
+  it("injects custom globals as input variables", async () => {
     const result = await runInSandbox({
       code: "return myInput * 2",
       globals: { myInput: 21 }
@@ -222,12 +271,20 @@ describe("runInSandbox", () => {
     expect(result.result).toBe(42);
   });
 
-  it("can use lodash", async () => {
-    const result = await runInSandbox({
-      code: "return _.sum([1, 2, 3, 4])"
-    });
-    expect(result.success).toBe(true);
-    expect(result.result).toBe(10);
+  it("treats lodash/dayjs references as ReferenceError", async () => {
+    // Lock the invariant: snippets that try to use the removed libs MUST fail
+    // loudly instead of silently returning undefined.
+    const cases = ["_", "dayjs", "cheerio", "csvParse", "validator"];
+    for (const name of cases) {
+      const result = await runInSandbox({ code: `return typeof ${name};` });
+      // vm semantics: bare identifier reference returns "undefined" via typeof
+      // without throwing, but invoking it throws.
+      expect(result.success).toBe(true);
+      expect(result.result).toBe("undefined");
+
+      const call = await runInSandbox({ code: `return ${name}();` });
+      expect(call.success).toBe(false);
+    }
   });
 
   it("can use JSON operations", async () => {
@@ -260,7 +317,27 @@ describe("runInSandbox", () => {
     expect(result.result).toBe(3);
   });
 
-  it("respects timeout", async () => {
+  it("can use native Date", async () => {
+    const result = await runInSandbox({
+      code: `return new Date(1_700_000_000_000).toISOString();`
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("2023-11-14T22:13:20.000Z");
+  });
+
+  it("can use URL and URLSearchParams", async () => {
+    const result = await runInSandbox({
+      code: `
+        const u = new URL("https://example.com/a?x=1");
+        u.searchParams.set("y", "2");
+        return u.toString();
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("https://example.com/a?x=1&y=2");
+  });
+
+  it("respects timeout on infinite loops", async () => {
     const result = await runInSandbox({
       code: "while(true) {}",
       timeoutMs: 100
@@ -269,11 +346,161 @@ describe("runInSandbox", () => {
     expect(result.error).toBeTruthy();
   });
 
+  it("respects timeout on async stalls", async () => {
+    const result = await runInSandbox({
+      code: "await new Promise(() => {});",
+      timeoutMs: 100
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/timeout/i);
+  });
+
   it("serializes complex return values", async () => {
     const result = await runInSandbox({
       code: "return { name: 'test', values: [1, 2, 3] }"
     });
     expect(result.success).toBe(true);
     expect(result.result).toEqual({ name: "test", values: [1, 2, 3] });
+  });
+
+  it("disables eval / Function constructor (codeGeneration)", async () => {
+    const r1 = await runInSandbox({ code: 'return eval("1+1");' });
+    expect(r1.success).toBe(false);
+    const r2 = await runInSandbox({
+      code: 'return new Function("return 1")();'
+    });
+    expect(r2.success).toBe(false);
+  });
+
+  it("uuid() returns a valid v4 UUID", async () => {
+    const result = await runInSandbox({ code: "return uuid();" });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
+  });
+
+  it("sleep(ms) pauses execution and is capped", async () => {
+    const start = Date.now();
+    const result = await runInSandbox({
+      code: "await sleep(20); return Date.now();"
+    });
+    expect(result.success).toBe(true);
+    expect(Date.now() - start).toBeGreaterThanOrEqual(15);
+  });
+
+  it("sleep is capped at 5s so a malicious sleep(60000) still returns fast", async () => {
+    const start = Date.now();
+    const result = await runInSandbox({
+      code: "await sleep(60000); return 'done';",
+      timeoutMs: 10_000
+    });
+    expect(result.success).toBe(true);
+    expect(Date.now() - start).toBeLessThan(6_000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// runInSandbox — fetch bridge
+// ---------------------------------------------------------------------------
+
+describe("runInSandbox fetch bridge", () => {
+  const originalFetch = globalThis.fetch;
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+  afterEach(() => {
+    (globalThis as { fetch: typeof originalFetch }).fetch = originalFetch;
+  });
+
+  it("returns a Response-like object with parsed JSON", async () => {
+    (globalThis as { fetch: unknown }).fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ hello: "world" }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      })
+    );
+    const result = await runInSandbox({
+      code: `
+        const r = await fetch("https://example.com/x");
+        return { ok: r.ok, status: r.status, body: r.body, json: r.json };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatchObject({
+      ok: true,
+      status: 200,
+      json: { hello: "world" }
+    });
+  });
+
+  it("exposes text(), arrayBuffer(), bytes() methods", async () => {
+    (globalThis as { fetch: unknown }).fetch = vi.fn(
+      async () => new Response("abc", { status: 200 })
+    );
+    const result = await runInSandbox({
+      code: `
+        const r = await fetch("https://example.com");
+        const text = await r.text();
+        const bytes = await r.bytes();
+        return { text, firstByte: bytes[0] };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ text: "abc", firstByte: 97 });
+  });
+
+  it("enforces the per-execution fetch cap", async () => {
+    (globalThis as { fetch: unknown }).fetch = vi.fn(
+      async () => new Response("{}", { status: 200 })
+    );
+    const result = await runInSandbox({
+      code: `
+        for (let i = 0; i < 50; i++) {
+          await fetch("https://example.com/" + i);
+        }
+        return "ok";
+      `
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Fetch limit exceeded/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// runInSandbox — context bridge (workspace + getSecret)
+// ---------------------------------------------------------------------------
+
+describe("runInSandbox context bridge", () => {
+  const fakeContext = {
+    getSecret: async (name: string) =>
+      name === "API_KEY" ? "super-secret" : null,
+    resolveWorkspacePath: (p: string) => `/tmp/fake-ws/${p}`
+  } as unknown as import("@nodetool/runtime").ProcessingContext;
+
+  it("getSecret reads from the supplied context", async () => {
+    const result = await runInSandbox({
+      code: `return await getSecret("API_KEY");`,
+      context: fakeContext
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("super-secret");
+  });
+
+  it("getSecret returns undefined for missing keys", async () => {
+    const result = await runInSandbox({
+      code: `return await getSecret("MISSING");`,
+      context: fakeContext
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBeNull(); // undefined serialises to null
+  });
+
+  it("workspace.read throws helpfully when no context is provided", async () => {
+    const result = await runInSandbox({
+      code: `return await workspace.read("file.txt");`
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/workspace\.read is not available/);
   });
 });

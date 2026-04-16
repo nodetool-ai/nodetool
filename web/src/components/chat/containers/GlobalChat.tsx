@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import React, {
   useEffect,
   useRef,
@@ -8,12 +7,23 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { Box, Typography, useMediaQuery } from "@mui/material";
-import { AlertBanner } from "../../ui_primitives";
+import { useMediaQuery, IconButton } from "@mui/material";
+import {
+  AlertBanner,
+  Text,
+  FlexRow,
+  FlexColumn,
+  EditorButton,
+  MobileBottomSheet,
+  ScrollArea
+} from "../../ui_primitives";
+import ForumIcon from "@mui/icons-material/Forum";
+import AddIcon from "@mui/icons-material/Add";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
+import ThreadList from "../thread/ThreadList";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
+import WelcomePlaceholder from "./WelcomePlaceholder";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
@@ -122,6 +132,7 @@ const GlobalChat: React.FC = () => {
     useThreadsQuery();
   const theme = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true); // Sidebar open by default
+  const [mobileConversationsOpen, setMobileConversationsOpen] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
 
   // Reset dismissed state when status or error changes
@@ -305,8 +316,39 @@ const GlobalChat: React.FC = () => {
     (id: string) => {
       switchThread(id);
       navigate(`/chat/${id}`);
+      setMobileConversationsOpen(false);
     },
     [switchThread, navigate]
+  );
+
+  const handleMobileNewChat = useCallback(async () => {
+    await handleNewChat();
+    setMobileConversationsOpen(false);
+  }, [handleNewChat]);
+
+  const handleSuggestionClick = useCallback(
+    (suggestion: string) => {
+      sendMessage({
+        type: "message",
+        name: "",
+        role: "user",
+        provider: selectedModel?.provider,
+        model: selectedModel?.id,
+        content: [{ type: "text", text: suggestion }],
+        tools: selectedTools.length > 0 ? selectedTools : undefined,
+        collections:
+          selectedCollections.length > 0 ? selectedCollections : undefined,
+        agent_mode: agentMode
+      }).catch((err) => {
+        log.error("Failed to send suggestion:", err);
+      });
+    },
+    [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
+  );
+
+  const welcomePlaceholder = useMemo(
+    () => <WelcomePlaceholder onSuggestionClick={handleSuggestionClick} />,
+    [handleSuggestionClick]
   );
 
   const handleDeleteThread = useCallback(
@@ -376,76 +418,45 @@ const GlobalChat: React.FC = () => {
     );
   }, [threads, messageCache]);
 
-  const mainAreaStyles = (_theme: Theme) =>
-    css({
-      position: "relative",
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      minHeight: 0,
-      maxHeight: "100%",
-
-      ".chat-container": {
-        flex: 1,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "row",  // Changed from column to row for sidebar layout
-        minHeight: 0,
-        maxHeight: "100%",
-        position: "relative"
-      }
-
-      // Mobile styles handled via separate CSS file
-    });
-
   // Show loading state if threads are still loading
   if (isLoadingThreads) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{ height: "100vh" }}
       >
-        <Typography>Loading chat...</Typography>
-      </Box>
+        <Text>Loading chat...</Text>
+      </FlexRow>
     );
   }
 
   // Show error state if threads failed to load
   if (threadsError) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center"
-        }}
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{ height: "100vh" }}
       >
         <AlertBanner severity="error">
           Failed to load threads: {threadsError.message}
         </AlertBanner>
-      </Box>
+      </FlexRow>
     );
   }
 
   return (
-    <Box
+    <FlexColumn
       ref={chatContainerRef}
       className="global-chat-container"
+      fullWidth
       sx={{
         flex: 1,
-        width: "100%",
         minWidth: 0,
         height: "100dvh", // Dynamic viewport height
         maxHeight: "100dvh",
         maxWidth: "100vw",
-        display: "flex",
-        flexDirection: "column",
         // No top padding needed since AppHeader is external now
         // Add horizontal padding on desktop to avoid side panes
         paddingLeft: isMobile
@@ -466,68 +477,136 @@ const GlobalChat: React.FC = () => {
       }}
     >
       {/* Main Chat Area */}
-      <Box
-        css={mainAreaStyles(theme)}
+      <FlexColumn
         sx={{ height: "100%", maxHeight: "100%" }}
       >
-        {!alertDismissed &&
-          (error &&
-            <AlertBanner
-              className="global-chat-status-alert"
-              severity="error"
-              onClose={() => setAlertDismissed(true)}
-              sx={{
-                position: "absolute",
-                top: "5rem",
-                left: "50%",
-                transform: "translateX(-50%)",
-                maxWidth: "600px",
-                width: "100%",
-                zIndex: 1001,
-                flexShrink: 0
-              }}
-            >
-              {error}
-            </AlertBanner>
-          )}
+        {!alertDismissed && error && (
+          <AlertBanner
+          className="global-chat-status-alert"
+          severity="error"
+          onClose={() => setAlertDismissed(true)}
+            sx={{
+              position: "absolute",
+              top: "5rem",
+              left: "50%",
+              transform: "translateX(-50%)",
+              maxWidth: "600px",
+              width: "100%",
+              zIndex: 1001,
+              flexShrink: 0
+            }}
+          >
+            <FlexRow gap={1} align="center" wrap>
+              <Text size="small" component="span">
+                {error}
+              </Text>
+              <EditorButton
+                onClick={() => {
+                  setAlertDismissed(true);
+                  connect().catch((err) => {
+                    log.error("Retry connection failed:", err);
+                  });
+                }}
+                variant="outlined"
+                sx={{ ml: "auto", whiteSpace: "nowrap" }}
+              >
+                Retry
+              </EditorButton>
+            </FlexRow>
+          </AlertBanner>
+        )}
 
-        <Box
+        <FlexRow
           className="chat-container"
           sx={{
             position: "relative",
             height: "100%",
-            marginTop: "50px", // Offset for AppHeader
+            marginTop: isMobile ? "48px" : "50px", // Offset for AppHeader
             minHeight: 0,
             flex: 1,
-            display: "flex",
-            flexDirection: "row",
-            overflow: "hidden"
+            overflow: "hidden",
+            maxHeight: "100%"
           }}
         >
-          {/* Chat Sidebar */}
-          <ChatSidebar
-            threads={threadsWithMessages}
-            currentThreadId={currentThreadId}
-            onNewChat={handleNewChat}
-            onSelectThread={handleSelectThread}
-            onDeleteThread={handleDeleteThread}
-            getThreadPreview={getThreadPreview}
-            isOpen={sidebarOpen}
-            onOpenChange={setSidebarOpen}
-          />
+          {/* Chat Sidebar - desktop: inline panel, mobile: bottom sheet */}
+          {!isMobile ? (
+            <ChatSidebar
+              threads={threadsWithMessages}
+              currentThreadId={currentThreadId}
+              onNewChat={handleNewChat}
+              onSelectThread={handleSelectThread}
+              onDeleteThread={handleDeleteThread}
+              getThreadPreview={getThreadPreview}
+              isOpen={sidebarOpen}
+              onOpenChange={setSidebarOpen}
+            />
+          ) : (
+            <>
+              <IconButton
+                onClick={() => setMobileConversationsOpen(true)}
+                aria-label="Open conversations"
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  left: 8,
+                  zIndex: 100,
+                  backgroundColor: theme.vars.palette.background.paper,
+                  border: `1px solid ${theme.vars.palette.divider}`,
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                  borderRadius: "10px",
+                  padding: "8px",
+                  "&:hover": {
+                    backgroundColor: theme.vars.palette.action.hover
+                  },
+                  "& svg": { fontSize: "1.25rem" }
+                }}
+                tabIndex={-1}
+              >
+                <ForumIcon />
+              </IconButton>
+              <MobileBottomSheet
+                open={mobileConversationsOpen}
+                onClose={() => setMobileConversationsOpen(false)}
+                title="Conversations"
+                ariaLabel="Conversations"
+                headerExtras={
+                  <FlexRow align="center" sx={{ px: 1.5 }}>
+                    <IconButton
+                      onClick={handleMobileNewChat}
+                      aria-label="New chat"
+                      size="small"
+                      tabIndex={-1}
+                    >
+                      <AddIcon />
+                    </IconButton>
+                  </FlexRow>
+                }
+              >
+                <ScrollArea fullHeight sx={{ maxHeight: "60vh" }}>
+                  <ThreadList
+                    threads={threadsWithMessages}
+                    currentThreadId={currentThreadId}
+                    onNewThread={handleMobileNewChat}
+                    onSelectThread={handleSelectThread}
+                    onDeleteThread={handleDeleteThread}
+                    getThreadPreview={getThreadPreview}
+                  />
+                </ScrollArea>
+              </MobileBottomSheet>
+            </>
+          )}
 
-          {/* Chat View - adjusts based on sidebar state */}
-          <Box
+          {/* Chat View - full width on mobile */}
+          <FlexColumn
+            fullHeight
             sx={{
               flex: 1,
-              height: "100%",
-              marginLeft: sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
+              marginLeft: !isMobile && sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
               transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              display: "flex",
-              flexDirection: "column",
               minWidth: 0,
               minHeight: 0,
-              overflow: "hidden"
+              overflow: "hidden",
+              maxHeight: "100%"
             }}
           >
             <ChatView
@@ -553,11 +632,12 @@ const GlobalChat: React.FC = () => {
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}
               workflowId={workflowId}
+              noMessagesPlaceholder={welcomePlaceholder}
             />
-          </Box>
-        </Box>
-      </Box>
-    </Box>
+          </FlexColumn>
+        </FlexRow>
+      </FlexColumn>
+    </FlexColumn>
   );
 };
 

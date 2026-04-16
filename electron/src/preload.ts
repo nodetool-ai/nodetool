@@ -30,7 +30,6 @@ import {
   SystemDirectory,
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
-  AgentSessionOptions,
   LocalhostProxyRequest,
   RuntimePackageId,
 } from "./types.d";
@@ -650,19 +649,6 @@ const api = {
   },
 
   // ============================================================================
-  // debug: Debug operations
-  // ============================================================================
-  debug: {
-    /** Export a debug bundle containing logs, environment info, and workflow data */
-    exportBundle: (request: {
-      workflow_id?: string;
-      graph?: Record<string, unknown>;
-      errors?: string[];
-      preferred_save?: "desktop" | "downloads";
-    }) => ipcRenderer.invoke(IpcChannels.DEBUG_EXPORT_BUNDLE, request),
-  },
-
-  // ============================================================================
   // dialog: Native file/folder dialogs
   // ============================================================================
   dialog: {
@@ -675,120 +661,10 @@ const api = {
       ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
   },
 
-  // ============================================================================
-  // workspace: Workspace dev server and file I/O
-  // ============================================================================
-  workspace: {
-    server: {
-      spawn: (workspacePath: string, port: number) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_SPAWN, { workspacePath, port }),
-      kill: (workspacePath: string) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_KILL, { workspacePath }),
-      respawn: (workspacePath: string, port: number) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_RESPAWN, { workspacePath, port }),
-      status: (workspacePath: string) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_STATUS, { workspacePath }),
-      logs: (workspacePath: string) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_LOGS, { workspacePath }),
-      ensureInstalled: (workspacePath: string) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED, { workspacePath }),
-      killPort: (port: number) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_SERVER_KILL_PORT, { port }),
-      onStatusChange: (callback: (event: { workspacePath: string; status: string; port: number | null }) => void) => {
-        const handler = (_event: any, data: { workspacePath: string; status: string; port: number | null }) => callback(data);
-        ipcRenderer.on(IpcChannels.WORKSPACE_SERVER_STATUS_CHANGE, handler);
-        return () => { ipcRenderer.removeListener(IpcChannels.WORKSPACE_SERVER_STATUS_CHANGE, handler); };
-      },
-      onLog: (callback: (event: { workspacePath: string; line: string }) => void) => {
-        const handler = (_event: any, data: { workspacePath: string; line: string }) => callback(data);
-        ipcRenderer.on(IpcChannels.WORKSPACE_SERVER_LOG_STREAM, handler);
-        return () => { ipcRenderer.removeListener(IpcChannels.WORKSPACE_SERVER_LOG_STREAM, handler); };
-      },
-    },
-    file: {
-      write: (workspacePath: string, relPath: string, content: string) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_WRITE, { workspacePath, relPath, content }),
-      read: (workspacePath: string, relPath: string) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_READ, { workspacePath, relPath }),
-      list: (workspacePath: string, relPath: string) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_LIST, { workspacePath, relPath }),
-      diagnostics: (workspacePath: string) =>
-        ipcRenderer.invoke(IpcChannels.WORKSPACE_FILE_DIAGNOSTICS, { workspacePath }),
-    },
-  },
-
-  // ============================================================================
-  // agent: Claude Agent SDK operations
-  // ============================================================================
-  agent: {
-    /** Create a new Claude Agent session */
-    createSession: (options: AgentSessionOptions) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_CREATE_SESSION, options),
-
-    /** List available models for the selected provider */
-    listModels: (options?: { provider?: "claude" | "codex" | "opencode"; workspacePath?: string }) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_LIST_MODELS, options || {}),
-
-    /** Send a message to an active Claude Agent session */
-    sendMessage: (sessionId: string, message: string) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_SEND_MESSAGE, {
-        sessionId,
-        message,
-      }),
-
-    /** Stop execution of the currently running turn for a session */
-    stopExecution: (sessionId: string) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_STOP_EXECUTION, sessionId),
-
-    /** Close an active Claude Agent session */
-    closeSession: (sessionId: string) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_CLOSE_SESSION, sessionId),
-
-    /** List previous Claude Agent sessions from SDK storage */
-    listSessions: (options?: { dir?: string; limit?: number; offset?: number }) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_LIST_SESSIONS, options || {}),
-
-    /** Load conversation messages from a session transcript */
-    getSessionMessages: (options: { sessionId: string; dir?: string }) =>
-      ipcRenderer.invoke(IpcChannels.AGENT_GET_SESSION_MESSAGES, options),
-
-    /** Start the MCP tool server and return its URL */
-    startMcpServer: () =>
-      ipcRenderer.invoke(IpcChannels.AGENT_START_MCP_SERVER),
-
-    /** Subscribe to streaming messages from the Claude Agent */
-    onStreamMessage: createEventSubscription(
-      IpcChannels.AGENT_STREAM_MESSAGE,
-    ),
-  },
-
-  // ============================================================================
-  // frontendTools: Frontend tools for Claude Agent integration
-  // ============================================================================
-  frontendTools: {
-    /** Get the manifest of available frontend tools */
-    getManifest: (sessionId: string) =>
-      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_GET_MANIFEST, {
-        sessionId,
-      }),
-
-    /** Call a frontend tool and return its result */
-    call: (
-      sessionId: string,
-      toolCallId: string,
-      name: string,
-      args: unknown,
-    ) =>
-      ipcRenderer.invoke(IpcChannels.FRONTEND_TOOLS_CALL, {
-        sessionId,
-        toolCallId,
-        name,
-        args,
-      }),
-
-    /** Subscribe to tool abort events */
-    onAbort: createEventSubscription(IpcChannels.FRONTEND_TOOLS_ABORT),
-  },
+  // The Claude/Codex/OpenCode agent runtime moved out of the Electron main
+  // process and now lives on the NodeTool server. The renderer talks to it
+  // directly over the `/ws/agent` WebSocket — see
+  // `web/src/lib/agent/AgentSocketClient.ts`.
 
   // ============================================================================
   // logging: Renderer -> main logging bridge

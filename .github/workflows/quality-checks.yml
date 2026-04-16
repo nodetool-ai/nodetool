@@ -43,24 +43,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
-          cache-dependency-path: web/package-lock.json
 
-      - name: Install web dependencies
-        run: |
-          cd web
-          npm ci
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
-      - name: Install electron dependencies
-        run: |
-          cd electron
-          npm ci
+      - name: Build backend packages
+        run: npm run build:packages
 
       - name: Install mobile dependencies
-        run: |
-          cd mobile
-          npm ci
+        run: cd mobile && npm ci
 
       - name: Run TypeScript type check
         id: typecheck

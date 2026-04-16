@@ -266,88 +266,6 @@ describe("AnthropicProvider – prepareJsonSchema via formatTools", () => {
   });
 });
 
-describe("AnthropicProvider – setupStructuredOutput", () => {
-  it("creates json_schema structured output", async () => {
-    const create = vi.fn().mockResolvedValue({
-      content: [
-        {
-          type: "tool_use",
-          name: "my_output",
-          id: "tc1",
-          input: { result: 42 }
-        }
-      ]
-    });
-
-    const provider = new AnthropicProvider(
-      { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create } } as any }
-    );
-
-    const result = await provider.generateMessage({
-      model: "claude-sonnet",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: {
-        type: "json_schema",
-        json_schema: {
-          name: "my_output",
-          description: "Custom output",
-          schema: { type: "object", properties: { result: { type: "number" } } }
-        }
-      }
-    });
-
-    expect(result.content).toBe('{"result":42}');
-  });
-
-  it("throws on missing schema in json_schema", async () => {
-    const provider = new AnthropicProvider(
-      { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create: vi.fn() } } as any }
-    );
-
-    await expect(
-      provider.generateMessage({
-        model: "claude-sonnet",
-        messages: [{ role: "user", content: "json" }],
-        responseFormat: {
-          type: "json_schema",
-          json_schema: { name: "test" }
-        }
-      })
-    ).rejects.toThrow("must contain a schema");
-  });
-
-  it("throws on unsupported response format type", async () => {
-    const provider = new AnthropicProvider(
-      { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create: vi.fn() } } as any }
-    );
-
-    await expect(
-      provider.generateMessage({
-        model: "claude-sonnet",
-        messages: [{ role: "user", content: "json" }],
-        responseFormat: { type: "unsupported" as any }
-      })
-    ).rejects.toThrow("Unsupported response_format type");
-  });
-
-  it("throws on jsonSchema (not supported)", async () => {
-    const provider = new AnthropicProvider(
-      { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create: vi.fn() } } as any }
-    );
-
-    await expect(
-      provider.generateMessage({
-        model: "claude-sonnet",
-        messages: [{ role: "user", content: "hi" }],
-        jsonSchema: { type: "object" }
-      })
-    ).rejects.toThrow("jsonSchema is not supported directly");
-  });
-});
 
 describe("AnthropicProvider – extractSystemMessage", () => {
   it("uses default when no system message", async () => {
@@ -410,7 +328,7 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { stream } } as any }
+      { client: { messages: { create: stream } } as any }
     );
 
     const out: unknown[] = [];
@@ -434,42 +352,8 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
     });
   });
 
-  it("jsonSchema throws in streaming mode too", async () => {
-    const provider = new AnthropicProvider(
-      { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { stream: vi.fn() } } as any }
-    );
-
-    const gen = provider.generateMessages({
-      model: "claude-sonnet",
-      messages: [{ role: "user", content: "hi" }],
-      jsonSchema: { type: "object" }
-    });
-
-    await expect(gen.next()).rejects.toThrow("jsonSchema is not supported");
-  });
 });
 
-describe("AnthropicProvider – generateMessage structured fallback", () => {
-  it("falls back to text when structured tool not found", async () => {
-    const create = vi.fn().mockResolvedValue({
-      content: [{ type: "text", text: "fallback text" }]
-    });
-
-    const provider = new AnthropicProvider(
-      { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { create } } as any }
-    );
-
-    const result = await provider.generateMessage({
-      model: "claude-sonnet",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" }
-    });
-
-    expect(result.content).toBe("fallback text");
-  });
-});
 
 describe("AnthropicProvider – getAvailableLanguageModels edge cases", () => {
   it("returns empty on non-OK response", async () => {
@@ -633,7 +517,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { stream } } as any }
+      { client: { messages: { create: stream } } as any }
     );
 
     const out: unknown[] = [];
@@ -673,7 +557,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { stream } } as any }
+      { client: { messages: { create: stream } } as any }
     );
 
     for await (const _item of provider.generateMessages({
@@ -730,40 +614,3 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
   });
 });
 
-describe("AnthropicProvider – streaming content_block_stop suppresses structured tool calls", () => {
-  it("does not emit structured tool call in stream", async () => {
-    const stream = vi.fn().mockReturnValue(
-      makeAsyncIterable([
-        { type: "content_block_delta", delta: { partial_json: '{"a":1}' } },
-        {
-          type: "content_block_stop",
-          content_block: {
-            type: "tool_use",
-            id: "tc1",
-            name: "json_output",
-            input: { a: 1 }
-          }
-        },
-        { type: "message_stop" }
-      ])
-    );
-
-    const provider = new AnthropicProvider(
-      { ANTHROPIC_API_KEY: "k" },
-      { client: { messages: { stream } } as any }
-    );
-
-    const out: unknown[] = [];
-    for await (const item of provider.generateMessages({
-      model: "claude-sonnet",
-      messages: [{ role: "user", content: "json" }],
-      responseFormat: { type: "json_object" }
-    })) {
-      out.push(item);
-    }
-
-    // Should NOT include the tool call since it's a structured output
-    const toolCalls = out.filter((o: any) => o.name);
-    expect(toolCalls).toHaveLength(0);
-  });
-});

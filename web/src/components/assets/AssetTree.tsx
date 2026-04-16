@@ -3,15 +3,14 @@ import { css } from "@emotion/react";
 
 import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
 import {
-  CircularProgress,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Collapse,
-  Typography,
   Box
 } from "@mui/material";
+import { Text, LoadingSpinner } from "../ui_primitives";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
@@ -229,9 +228,9 @@ const AssetTree: React.FC<AssetTreeProps> = ({
                     ) : (
                       <ExpandLess />
                     )}
-                    <Typography variant="body2" color="textSecondary">
+                    <Text size="small" color="secondary">
                       ({node.totalAssets - 1} items)
-                    </Typography>
+                    </Text>
                   </>
                 )}
             </ListItemButton>
@@ -251,7 +250,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   }, [closedFolders, createFolderToggleHandler, getFileIcon, theme.vars.palette.grey]);
 
   if (isLoading) {
-    return <CircularProgress />;
+    return <LoadingSpinner />;
   }
 
   return assetTree.length > 0 ? (
@@ -259,7 +258,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
       {renderAssetTree(assetTree)}
     </Box>
   ) : (
-    <Typography variant="body1">No assets found</Typography>
+    <Text>No assets found</Text>
   );
 };
 

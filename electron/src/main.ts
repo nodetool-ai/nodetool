@@ -35,13 +35,12 @@ import {
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
 import { setupAutoUpdater } from "./updater";
-import { setupWorkflowShortcuts } from "./shortcuts";
 import { logMessage, closeLogStream } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
-import { emitBootMessage, emitShowPackageManager } from "./events";
+import { emitBootMessage } from "./events";
+import { showKeychainExplanationIfNeeded } from "./keychainPrompt";
 import { createTray, cleanupTrayEvents } from "./tray";
-import { createWorkflowWindow } from "./workflowWindow";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
@@ -50,9 +49,8 @@ import {
   installExpectedPackages,
   checkExpectedPackageVersions,
 } from "./packageManager";
-import { checkAndUpdateCondaPackages } from "./condaPackageChecker";
 import { IpcChannels } from "./types.d";
-import { readSettings, updateSetting, readSettingsAsync } from "./settings";
+import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 import { workspaceDevServer } from "./WorkspaceDevServer";
 
@@ -284,6 +282,8 @@ async function initialize(): Promise<void> {
 
     if (isDevMode) {
       logMessage("Skipping environment installation and package update checks");
+      // Explain the upcoming keychain prompt before the backend touches keytar.
+      await showKeychainExplanationIfNeeded();
       logMessage("Starting backend server");
       await initializeBackendServer();
       logMessage("initializeBackendServer() completed");
@@ -296,16 +296,16 @@ async function initialize(): Promise<void> {
 
       if (hasPython) {
         // Run package version checks in background before starting server
-        const pipUpdatesPerformed = await checkAndInstallExpectedPackages();
-        if (pipUpdatesPerformed) {
-          await checkAndUpdateCondaPackages();
-        }
+        await checkAndInstallExpectedPackages();
       } else {
         logMessage(
           "Python environment not installed. App will start without Python support. " +
           "Users can install it via the package manager.",
         );
       }
+
+      // Explain the upcoming keychain prompt before the backend touches keytar.
+      await showKeychainExplanationIfNeeded();
 
       // Start the backend server regardless of Python availability
       logMessage("Starting backend server");
@@ -431,13 +431,8 @@ app.on("ready", async () => {
       }
 
       await initialize();
-
-      // Start the MCP tool server so all agent providers can use UI tools
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        import("./mcpToolServer")
-          .then(({ startMcpToolServer }) => startMcpToolServer(mainWindow!.webContents))
-          .catch((err) => logMessage(`Failed to start MCP tool server: ${err}`, "warn"));
-      }
+      // The MCP tool server now lives on the NodeTool server alongside the
+      // agent runtime. The renderer connects via `/ws/agent`.
     }
   });
 });
@@ -542,15 +537,6 @@ app.on("will-quit", () => {
   globalShortcut.unregisterAll();
   cleanupTrayEvents();
   closeLogStream();
-
-  // Clean up Claude Agent sessions
-  import("./agent")
-    .then(({ closeAllAgentSessions }) => {
-      closeAllAgentSessions();
-    })
-    .catch(() => {
-      // Best-effort cleanup
-    });
 });
 
 export { mainWindow, isAppQuitting };

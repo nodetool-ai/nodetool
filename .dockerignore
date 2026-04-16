@@ -1,0 +1,12 @@
+node_modules
+.git
+.deploy
+electron
+mobile
+workflow_runner
+docs
+.github
+*.md
+.env
+cert.pem
+key.pem

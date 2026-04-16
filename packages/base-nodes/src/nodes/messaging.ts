@@ -79,6 +79,17 @@ export class DiscordBotTrigger extends BaseNode {
 
     const botUser = (await resp.json()) as Record<string, unknown>;
 
+    // NOTE: Real-time message listening requires a Discord Gateway WebSocket
+    // connection (wss://gateway.discord.gg), which is not implemented here.
+    // A full implementation would need:
+    // 1. WebSocket connection to the Gateway with heartbeat
+    // 2. Identify/resume handshake with intents (MESSAGE_CONTENT)
+    // 3. Long-lived connection for dispatched MESSAGE_CREATE events
+    // As a simpler alternative, the Discord REST API supports fetching
+    // channel message history via GET /channels/{id}/messages, which could
+    // be used for polling-based triggers.
+    // For now, this node only validates the token and returns bot info.
+
     return {
       status: "configured",
       bot_id: botUser.id,
@@ -300,6 +311,15 @@ export class TelegramBotTrigger extends BaseNode {
     }
 
     const result = data.result as Record<string, unknown>;
+
+    // NOTE: Real-time message listening requires Telegram long polling via
+    // the getUpdates API (https://api.telegram.org/bot<token>/getUpdates)
+    // or a webhook. A full implementation would:
+    // 1. Call getUpdates with offset tracking to receive new messages
+    // 2. Loop with configurable poll_timeout_seconds for long polling
+    // 3. Filter by chat_id, bot messages, edited messages as configured
+    // For now, this node only validates the token and returns bot info.
+
     return {
       status: "configured",
       bot_id: result.id,

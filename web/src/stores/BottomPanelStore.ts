@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type BottomPanelView = "terminal" | "trace";
+export type BottomPanelView = "trace";
 
 interface PanelState {
   panelSize: number;
@@ -39,7 +39,7 @@ const createInitialState = (): PanelState => ({
   minHeight: MIN_DRAG_SIZE,
   maxHeight: MAX_PANEL_SIZE,
   defaultHeight: DEFAULT_PANEL_SIZE,
-  activeView: "terminal"
+  activeView: "trace"
 });
 
 export const useBottomPanelStore = create<ResizePanelState>()(

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Graph Editor - Chain View</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    background: #0F0F0F;
+    color: #F5F5F5;
+    width: 390px;
+    min-height: 844px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 24px 8px; font-size: 15px; font-weight: 600;
+  }
+  .status-bar .time { font-weight: 700; }
+  .status-bar .icons { display: flex; gap: 5px; align-items: center; }
+  .status-bar .icons svg { width: 16px; height: 16px; fill: #F5F5F5; }
+
+  .nav-header {
+    display: flex; align-items: center; padding: 8px 16px 12px; gap: 8px;
+  }
+  .nav-back { display: flex; align-items: center; color: #6DB3F8; font-size: 16px; }
+  .nav-back svg { width: 22px; height: 22px; fill: #6DB3F8; }
+  .nav-title { flex: 1; text-align: center; font-size: 17px; font-weight: 700; margin-right: 48px; }
+
+  .toolbar {
+    display: flex; align-items: center; padding: 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08); background: #161616; gap: 12px;
+  }
+  .workflow-name { flex: 1; font-size: 16px; font-weight: 600; color: #F5F5F5; }
+  .save-btn {
+    display: flex; align-items: center; gap: 4px; padding: 6px 12px;
+    background: rgba(109,179,248,0.12); border-radius: 8px;
+    color: #6DB3F8; font-size: 14px; font-weight: 600; border: none;
+  }
+  .save-btn svg { width: 18px; height: 18px; fill: #6DB3F8; }
+
+  .scroll-content { padding: 8px 16px 120px; }
+
+  /* Add button */
+  .add-btn-wrap {
+    display: flex; flex-direction: column; align-items: center; padding: 2px 0;
+  }
+  .add-line { width: 2px; height: 8px; background: rgba(255,255,255,0.08); }
+  .add-btn {
+    width: 32px; height: 32px; border-radius: 16px; border: 1.5px solid rgba(255,255,255,0.08);
+    background: #1A1A1A; display: flex; align-items: center; justify-content: center;
+  }
+  .add-btn svg { width: 18px; height: 18px; fill: #6DB3F8; }
+
+  /* Connector */
+  .connector {
+    display: flex; flex-direction: column; align-items: center; padding: 2px 0;
+  }
+  .conn-line { width: 2px; flex: 1; min-height: 8px; background: rgba(109,179,248,0.3); }
+  .conn-dot { width: 8px; height: 8px; border-radius: 4px; background: #6DB3F8; }
+  .conn-label {
+    display: flex; align-items: center; gap: 4px; margin-top: 2px;
+    font-size: 11px; color: #666; font-weight: 500;
+  }
+  .conn-label svg { width: 12px; height: 12px; fill: #666; }
+
+  /* Card */
+  .card {
+    border-radius: 14px; border: 1.5px solid rgba(255,255,255,0.08);
+    background: #1A1A1A; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .card.expanded { border-color: rgba(59,130,246,0.3); }
+  .card.expanded-purple { border-color: rgba(139,92,246,0.3); }
+  .card.expanded-green { border-color: rgba(16,185,129,0.3); }
+
+  .card-header {
+    display: flex; align-items: center; padding: 14px; gap: 12px; cursor: pointer;
+  }
+  .step-badge {
+    width: 32px; height: 32px; border-radius: 10px; display: flex;
+    align-items: center; justify-content: center; font-size: 14px; font-weight: 800;
+  }
+  .step-badge.blue { background: rgba(59,130,246,0.13); color: #3B82F6; }
+  .step-badge.purple { background: rgba(139,92,246,0.13); color: #8B5CF6; }
+  .step-badge.green { background: rgba(16,185,129,0.13); color: #10B981; }
+  .step-badge.orange { background: rgba(249,115,22,0.13); color: #F97316; }
+
+  .header-content { flex: 1; }
+  .card-title { font-size: 16px; font-weight: 700; }
+  .subtitle-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .namespace { font-size: 12px; font-weight: 600; }
+  .namespace.blue { color: #3B82F6; }
+  .namespace.purple { color: #8B5CF6; }
+  .namespace.green { color: #10B981; }
+  .namespace.orange { color: #F97316; }
+  .config-summary { font-size: 11px; color: #666; }
+
+  .chevron svg { width: 20px; height: 20px; fill: #9E9E9E; }
+
+  /* Expanded content */
+  .expanded-content { padding: 0 14px 14px; }
+  .description { font-size: 13px; line-height: 18px; color: #9E9E9E; margin-bottom: 12px; }
+
+  /* Input mapping badge */
+  .mapping-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(167,139,250,0.25);
+    background: rgba(167,139,250,0.12); margin-bottom: 12px;
+  }
+  .mapping-badge svg { width: 14px; height: 14px; fill: #A78BFA; }
+  .mapping-badge span { font-size: 13px; font-weight: 600; color: #A78BFA; }
+  .mapping-badge .chevron-sm svg { width: 14px; height: 14px; fill: #A78BFA; }
+
+  /* Properties section */
+  .properties { border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px; }
+  .prop-row { margin-bottom: 16px; }
+  .prop-label-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .prop-label { font-size: 14px; font-weight: 600; }
+  .prop-required { font-size: 14px; font-weight: 700; color: #FF6B6B; }
+  .connected-badge {
+    padding: 1px 6px; border-radius: 4px; background: rgba(167,139,250,0.12);
+    font-size: 10px; font-weight: 700; color: #A78BFA; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .prop-desc { font-size: 12px; line-height: 16px; color: #666; margin-bottom: 4px; }
+
+  .text-input {
+    width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+    background: #1E1E1E; color: #F5F5F5; font-size: 15px; font-family: inherit; min-height: 44px;
+    resize: none;
+  }
+  .text-input::placeholder { color: #666; }
+
+  .number-row { display: flex; align-items: center; gap: 8px; }
+  .number-input {
+    flex: 1; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+    background: #1E1E1E; color: #F5F5F5; font-size: 15px; font-family: inherit; height: 44px;
+  }
+  .range-hint { font-size: 12px; color: #666; }
+
+  .connected-placeholder {
+    padding: 10px; border-radius: 8px; border: 1px dashed rgba(167,139,250,0.3);
+    background: rgba(167,139,250,0.12); font-size: 13px; color: #A78BFA; font-style: italic;
+  }
+
+  /* Enum options */
+  .enum-options { display: flex; flex-wrap: wrap; gap: 6px; }
+  .enum-opt {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+    background: #1E1E1E; font-size: 13px; font-weight: 500; color: #F5F5F5; cursor: pointer;
+  }
+  .enum-opt.selected {
+    background: rgba(109,179,248,0.12); border-color: rgba(109,179,248,0.4); color: #6DB3F8;
+  }
+
+  /* Output selector */
+  .output-selector {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(109,179,248,0.25);
+    background: rgba(109,179,248,0.12); margin-top: 8px;
+  }
+  .output-selector svg { width: 14px; height: 14px; fill: #6DB3F8; }
+  .output-selector .label { font-size: 13px; font-weight: 600; color: #6DB3F8; }
+  .output-selector .type { font-size: 11px; color: rgba(109,179,248,0.6); }
+
+  /* Action bar */
+  .actions {
+    display: flex; align-items: center; padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.04); gap: 4px;
+  }
+  .action-btn {
+    padding: 8px; display: flex; align-items: center; justify-content: center;
+    background: none; border: none; cursor: pointer;
+  }
+  .action-btn svg { width: 18px; height: 18px; fill: #9E9E9E; }
+  .action-btn.disabled svg { fill: #444; }
+  .action-btn.danger svg { fill: #FF6B6B; }
+  .action-spacer { flex: 1; }
+
+  .home-indicator {
+    position: fixed; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.3);
+  }
+
+  /* Switch */
+  .switch-row { display: flex; align-items: center; justify-content: space-between; }
+  .switch {
+    width: 51px; height: 31px; border-radius: 16px; background: rgba(255,255,255,0.08);
+    position: relative; transition: background 0.2s;
+  }
+  .switch.on { background: rgba(109,179,248,0.8); }
+  .switch .thumb {
+    width: 27px; height: 27px; border-radius: 14px; background: #666;
+    position: absolute; top: 2px; left: 2px; transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .switch.on .thumb { left: 22px; background: #fff; }
+</style>
+</head>
+<body>
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="icons">
+      <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+    </div>
+  </div>
+
+  <div class="nav-header">
+    <div class="nav-back"><svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></div>
+    <div class="nav-title">Workflow Editor</div>
+  </div>
+
+  <div class="toolbar">
+    <span class="workflow-name">Image Story Pipeline</span>
+    <button class="save-btn">
+      <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+      Save
+    </button>
+  </div>
+
+  <div class="scroll-content">
+
+    <!-- Add button at top -->
+    <div class="add-btn-wrap">
+      <div class="add-line"></div>
+      <div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
+      <div class="add-line"></div>
+    </div>
+
+    <!-- Node 1: Text Input (collapsed) -->
+    <div class="card">
+      <div class="card-header">
+        <div class="step-badge blue">1</div>
+        <div class="header-content">
+          <div class="card-title">Text Input</div>
+          <div class="subtitle-row">
+            <span class="namespace blue">input</span>
+            <span class="config-summary">1/1 configured</span>
+          </div>
+        </div>
+        <div class="chevron"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Connector -->
+    <div class="add-btn-wrap">
+      <div class="add-line"></div>
+      <div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
+      <div class="add-line"></div>
+    </div>
+    <div class="connector">
+      <div class="conn-line"></div>
+      <div class="conn-dot"></div>
+      <div class="conn-line"></div>
+      <div class="conn-label">
+        <svg viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+        <span>output</span>
+        <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
+        <span>prompt</span>
+      </div>
+    </div>
+
+    <!-- Node 2: GPT-4 (expanded) -->
+    <div class="card expanded-purple">
+      <div class="card-header">
+        <div class="step-badge purple">2</div>
+        <div class="header-content">
+          <div class="card-title">Chat Completion</div>
+          <div class="subtitle-row">
+            <span class="namespace purple">llm</span>
+          </div>
+        </div>
+        <div class="chevron"><svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z"/></svg></div>
+      </div>
+      <div class="expanded-content">
+        <div class="description">Generate text using a large language model with configurable parameters.</div>
+
+        <!-- Input mapping -->
+        <div class="mapping-badge">
+          <svg viewBox="0 0 24 24"><path d="M11 16h10v2H11zm0-8h10v2H11zm-6 0l3.54 3.54-1.41 1.41L3 8.83 4.41 7.41 7.12 10V2h2v8l2.71-2.59L13.24 8.83 9.12 12.95 7.71 11.54 5 8.83zM5 18l3.54-3.54-1.41-1.41L3 17.17 4.41 18.59 7.12 16V24h2v-8l2.71 2.59L13.24 17.17 9.12 13.05 7.71 14.46 5 17.17z"/></svg>
+          <span>Input: prompt</span>
+          <div class="chevron-sm"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+        </div>
+
+        <div class="properties">
+          <!-- Prompt (connected) -->
+          <div class="prop-row">
+            <div class="prop-label-row">
+              <span class="prop-label">Prompt</span>
+              <span class="prop-required">*</span>
+              <span class="connected-badge">connected</span>
+            </div>
+            <div class="connected-placeholder">Value provided by previous node</div>
+          </div>
+
+          <!-- Model -->
+          <div class="prop-row">
+            <div class="prop-label-row">
+              <span class="prop-label">Model</span>
+            </div>
+            <div class="enum-options">
+              <div class="enum-opt">gpt-4o-mini</div>
+              <div class="enum-opt selected">gpt-4o</div>
+              <div class="enum-opt">gpt-4-turbo</div>
+              <div class="enum-opt">claude-3.5</div>
+            </div>
+          </div>
+
+          <!-- Temperature -->
+          <div class="prop-row">
+            <div class="prop-label-row">
+              <span class="prop-label">Temperature</span>
+            </div>
+            <div class="prop-desc">Controls randomness in generation</div>
+            <div class="number-row">
+              <input class="number-input" value="0.7" readonly>
+              <span class="range-hint">0 – 2</span>
+            </div>
+          </div>
+
+          <!-- Max tokens -->
+          <div class="prop-row">
+            <div class="prop-label-row">
+              <span class="prop-label">Max Tokens</span>
+            </div>
+            <div class="number-row">
+              <input class="number-input" value="2048" readonly>
+              <span class="range-hint">1 – 128000</span>
+            </div>
+          </div>
+
+          <!-- System prompt -->
+          <div class="prop-row">
+            <div class="prop-label-row">
+              <span class="prop-label">System Prompt</span>
+            </div>
+            <textarea class="text-input" rows="2" readonly>You are a creative storyteller. Write an engaging short story based on the user's prompt.</textarea>
+          </div>
+        </div>
+
+        <!-- Output selector -->
+        <div class="output-selector">
+          <svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z"/></svg>
+          <span class="label">Output: text</span>
+          <span class="type">str</span>
+          <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+          <button class="action-btn disabled"><svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6 1.41 1.41z"/></svg></button>
+          <button class="action-btn"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></button>
+          <div class="action-spacer"></div>
+          <button class="action-btn"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+          <button class="action-btn danger"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connector -->
+    <div class="add-btn-wrap">
+      <div class="add-line"></div>
+      <div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
+      <div class="add-line"></div>
+    </div>
+    <div class="connector">
+      <div class="conn-line"></div>
+      <div class="conn-dot"></div>
+      <div class="conn-line"></div>
+      <div class="conn-label">
+        <svg viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+        <span>text</span>
+        <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
+        <span>text</span>
+      </div>
+    </div>
+
+    <!-- Node 3: Save Text (collapsed) -->
+    <div class="card">
+      <div class="card-header">
+        <div class="step-badge green">3</div>
+        <div class="header-content">
+          <div class="card-title">Save Text</div>
+          <div class="subtitle-row">
+            <span class="namespace green">output</span>
+            <span class="config-summary">0/2 configured</span>
+          </div>
+        </div>
+        <div class="chevron"><svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Add button at bottom -->
+    <div class="add-btn-wrap">
+      <div class="add-line"></div>
+      <div class="add-btn"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
+      <div class="add-line"></div>
+    </div>
+
+  </div>
+
+  <div class="home-indicator"></div>
+</body>
+</html>

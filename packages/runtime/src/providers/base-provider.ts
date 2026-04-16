@@ -9,6 +9,7 @@ import type {
   ProviderId,
   ProviderStreamItem,
   ProviderTool,
+  EncodedAudioResult,
   StreamingAudioChunk,
   TextToImageParams,
   TextToVideoParams,
@@ -20,7 +21,7 @@ import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { createLogger } from "@nodetool/config";
+import { createLogger, getAssetFilePath } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.provider");
 
@@ -124,8 +125,6 @@ export abstract class BaseProvider {
     /** Force the model to call a specific tool by name, or "any" to require any tool call. */
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -137,6 +136,8 @@ export abstract class BaseProvider {
       name: string,
       args: Record<string, unknown>
     ) => Promise<string>;
+    /** Optional signal to abort the request. */
+    signal?: AbortSignal;
   }): Promise<Message>;
 
   abstract generateMessages(args: {
@@ -146,8 +147,6 @@ export abstract class BaseProvider {
     /** Force the model to call a specific tool by name, or "any" to require any tool call. */
     toolChoice?: string | "any";
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -160,6 +159,8 @@ export abstract class BaseProvider {
       name: string,
       args: Record<string, unknown>
     ) => Promise<string>;
+    /** Optional signal to abort the request. */
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem>;
 
   /** Traced wrapper around generateMessage. Use this instead of calling generateMessage directly. */
@@ -249,7 +250,14 @@ export abstract class BaseProvider {
     args: Parameters<this["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
     const startTime = Date.now();
-    log.debug("LLM call", { provider: this.provider, model: args.model });
+    log.info("LLM call", {
+      provider: this.provider,
+      model: args.model,
+      toolCount: (args as Record<string, unknown>).tools
+        ? ((args as Record<string, unknown>).tools as unknown[]).length
+        : 0,
+      hasOnToolCall: !!(args as Record<string, unknown>).onToolCall
+    });
     const tracer = getTracer();
 
     let fullResponse = "";
@@ -342,6 +350,24 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support textToImage`);
   }
 
+  /**
+   * Generate multiple images from a text prompt.
+   *
+   * Default implementation calls textToImage() sequentially as a fallback.
+   * Providers that support native batch generation (e.g. FAL with num_images)
+   * should override this for efficiency.
+   */
+  async textToImages(
+    params: TextToImageParams,
+    numImages: number
+  ): Promise<Uint8Array[]> {
+    const results: Uint8Array[] = [];
+    for (let i = 0; i < numImages; i++) {
+      results.push(await this.textToImage(params));
+    }
+    return results;
+  }
+
   async imageToImage(
     _image: Uint8Array,
     _params: ImageToImageParams
@@ -349,14 +375,56 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support imageToImage`);
   }
 
+  /**
+   * Generate multiple image-to-image results in one logical call.
+   *
+   * Default implementation calls imageToImage() sequentially as a fallback.
+   * Providers that support native batch generation should override this.
+   */
+  async imageToImages(
+    image: Uint8Array,
+    params: ImageToImageParams,
+    numImages: number
+  ): Promise<Uint8Array[]> {
+    const results: Uint8Array[] = [];
+    for (let i = 0; i < numImages; i++) {
+      results.push(await this.imageToImage(image, params));
+    }
+    return results;
+  }
+
   async *textToSpeech(_args: {
     text: string;
     model: string;
     voice?: string;
     speed?: number;
+    /**
+     * Requested output container. Providers that stream raw PCM may ignore
+     * this hint; the caller is responsible for wrapping/encoding the result.
+     */
+    audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     yield* [];
     throw new Error(`${this.provider} does not support textToSpeech`);
+  }
+
+  /**
+   * Override this for providers that return fully-encoded audio (FLAC, WAV,
+   * MP3) instead of raw PCM samples. Returns null by default, meaning the
+   * caller should fall back to the streaming PCM `textToSpeech()` path.
+   *
+   * Providers that honor `audioFormat` should return audio in that container
+   * when possible and fall back to their default when the format is not
+   * supported. The returned `mimeType` reflects the actual bytes produced.
+   */
+  async textToSpeechEncoded(_args: {
+    text: string;
+    model: string;
+    voice?: string;
+    speed?: number;
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
+    return null;
   }
 
   async automaticSpeechRecognition(_args: {
@@ -438,4 +506,52 @@ export abstract class BaseProvider {
       args: this.parseToolCallArgs(args)
     };
   }
+
+  /**
+   * Resolve a URI to a `data:` URI that providers can consume directly.
+   *
+   * - `file://...`        → read from disk, return `data:<mime>;base64,…`
+   * - `/api/storage/<k>`  → read from getDefaultAssetsPath()/<k> (legacy fallback)
+   * - Everything else     → returned unchanged (http/https/data: pass through)
+   */
+  protected async resolveUri(uri: string): Promise<string> {
+    const { readFile } = await import("node:fs/promises");
+
+    if (uri.startsWith("file://")) {
+      try {
+        const { fileURLToPath } = await import("node:url");
+        const filePath = fileURLToPath(uri);
+        const bytes = await readFile(filePath);
+        const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+        const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
+        return `data:${mime};base64,${bytes.toString("base64")}`;
+      } catch {
+        return uri;
+      }
+    }
+
+    // Legacy: old messages stored with browser-facing /api/storage/ path
+    if (uri.startsWith("/api/storage/")) {
+      const key = uri.slice("/api/storage/".length);
+      try {
+        const bytes = await readFile(getAssetFilePath(key));
+        const ext = key.split(".").pop()?.toLowerCase() ?? "";
+        const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
+        return `data:${mime};base64,${bytes.toString("base64")}`;
+      } catch {
+        // Remote deployment: file not local, fall back to absolute HTTP
+        return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
+      }
+    }
+
+    return uri;
+  }
 }
+
+const EXT_TO_MIME: Record<string, string> = {
+  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+  gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
+  mp4: "video/mp4", webm: "video/webm",
+  mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg",
+  pdf: "application/pdf"
+};

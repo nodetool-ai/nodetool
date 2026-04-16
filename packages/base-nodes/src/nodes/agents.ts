@@ -46,12 +46,6 @@ const CLASSIFIER_SYSTEM_PROMPT = [
 ].join(" ");
 const SUMMARIZER_SYSTEM_PROMPT =
   "You are an expert summarizer. Produce a concise, accurate summary.";
-const RESEARCH_AGENT_SYSTEM_PROMPT = [
-  "You are a research assistant.",
-  "Synthesize a concise answer and key findings from the objective.",
-  "Return JSON only."
-].join(" ");
-
 function asText(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean")
@@ -153,7 +147,6 @@ async function generateProviderMessage(
     messages: Message[];
     model: string;
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
   }
 ): Promise<string> {
   const call =
@@ -162,6 +155,47 @@ async function generateProviderMessage(
       : provider.generateMessage.bind(provider);
   const result = await call(args);
   return messageContentText(result.content);
+}
+
+/**
+ * Call a provider with a result tool to get structured output.
+ * The model is forced to call the tool via toolChoice, and the
+ * parsed args are returned directly.
+ */
+async function generateStructured(
+  provider: BaseProvider,
+  args: {
+    messages: Message[];
+    model: string;
+    maxTokens?: number;
+    toolName: string;
+    toolDescription: string;
+    schema: Record<string, unknown>;
+  }
+): Promise<Record<string, unknown> | null> {
+  const call =
+    typeof provider.generateMessageTraced === "function"
+      ? provider.generateMessageTraced.bind(provider)
+      : provider.generateMessage.bind(provider);
+  const result = await call({
+    messages: args.messages,
+    model: args.model,
+    maxTokens: args.maxTokens,
+    tools: [
+      {
+        name: args.toolName,
+        description: args.toolDescription,
+        inputSchema: args.schema
+      }
+    ],
+    toolChoice: args.toolName
+  });
+  const tc = result.toolCalls?.[0];
+  if (tc && tc.name === args.toolName) {
+    return tc.args as Record<string, unknown>;
+  }
+  // Fallback: try to parse JSON from text content
+  return extractJson(messageContentText(result.content));
 }
 
 function normalizeProviderStreamItem(
@@ -946,50 +980,6 @@ function hasContentType(
     : false;
 }
 
-function parseResearchOutput(
-  raw: string,
-  query: string
-): {
-  text: string;
-  output: string;
-  findings: Array<{ title: string; summary: string; source?: string }>;
-} {
-  const parsed = extractJson(raw);
-  if (parsed) {
-    const summary =
-      typeof parsed.summary === "string"
-        ? parsed.summary
-        : typeof parsed.output === "string"
-          ? parsed.output
-          : "";
-    const findings = Array.isArray(parsed.findings)
-      ? parsed.findings
-          .filter(
-            (item): item is Record<string, unknown> =>
-              !!item && typeof item === "object"
-          )
-          .map((item) => ({
-            title:
-              typeof item.title === "string" && item.title.trim().length > 0
-                ? item.title
-                : query,
-            summary:
-              typeof item.summary === "string" ? item.summary : asText(item),
-            source: typeof item.source === "string" ? item.source : undefined
-          }))
-      : [];
-
-    const text = summary || raw;
-    return { text, output: text, findings };
-  }
-
-  return {
-    text: raw,
-    output: raw,
-    findings: query ? [{ title: query, summary: raw }] : []
-  };
-}
-
 export class SummarizerNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Summarizer";
   static readonly title = "Summarizer";
@@ -1427,28 +1417,24 @@ export class ExtractorNode extends BaseNode {
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
-      const dynamicSchema = getStructuredOutputSchema(this);
-      const responseFormat = dynamicSchema
-        ? {
-            type: "json_schema" as const,
-            json_schema: {
-              name: "extraction_result",
-              schema: dynamicSchema,
-              strict: true
-            }
-          }
-        : { type: "json_object" as const };
-      const raw = await generateProviderMessage(provider, {
+      const schema = getStructuredOutputSchema(this) ?? {
+        type: "object",
+        properties: { output: { type: "string" } },
+        required: ["output"],
+        additionalProperties: true
+      };
+      const result = await generateStructured(provider, {
         model: modelId,
         maxTokens: Number((this as any).max_tokens ?? 1024),
-        responseFormat,
         messages: [
           { role: "system", content: EXTRACTOR_SYSTEM_PROMPT },
           { role: "user", content: text }
-        ]
+        ],
+        toolName: "extraction_result",
+        toolDescription: "Submit the extracted data.",
+        schema
       });
-      const parsed = extractJson(raw);
-      if (parsed) return parsed;
+      if (result) return result;
     }
     const parsed = extractJson(text);
     if (parsed) return parsed;
@@ -1658,35 +1644,30 @@ export class ClassifierNode extends BaseNode {
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (hasProviderSupport(context, providerId, modelId)) {
       const provider = await context.getProvider(providerId);
-      const raw = await generateProviderMessage(provider, {
+      const result = await generateStructured(provider, {
         model: modelId,
         maxTokens: Number((this as any).max_tokens ?? 256),
-        responseFormat: {
-          type: "json_schema",
-          json_schema: {
-            name: "classification_result",
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              required: ["category"],
-              properties: {
-                category: {
-                  type: "string",
-                  enum: categories
-                }
-              }
-            }
-          }
-        },
         messages: [
           { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
           {
             role: "user",
             content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
           }
-        ]
+        ],
+        toolName: "classification_result",
+        toolDescription: "Submit the classification result.",
+        schema: {
+          type: "object",
+          properties: {
+            category: { type: "string", enum: categories }
+          },
+          required: ["category"]
+        }
       });
-      const category = parseCategory(raw, categories);
+      const category = parseCategory(
+        result ? String(result.category ?? "") : "",
+        categories
+      );
       return { output: category, category };
     }
 
@@ -2392,16 +2373,6 @@ export class AgentNode extends BaseNode {
     }
 
     const structuredSchema = getStructuredOutputSchema(this);
-    const responseFormat = structuredSchema
-      ? {
-          type: "json_schema",
-          json_schema: {
-            name: "agent_structured_output",
-            schema: structuredSchema,
-            strict: true
-          }
-        }
-      : undefined;
 
     const messages: Message[] = [
       { role: "system", content: system },
@@ -2419,8 +2390,7 @@ export class AgentNode extends BaseNode {
       toolCount: tools.length,
       messageCount: messages.length,
       hasImage: hasContentType(messages[messages.length - 1], "image"),
-      hasAudio: hasContentType(messages[messages.length - 1], "audio"),
-      responseFormat: responseFormat?.type ?? null
+      hasAudio: hasContentType(messages[messages.length - 1], "audio")
     });
 
     if (threadId) {
@@ -2497,7 +2467,6 @@ export class AgentNode extends BaseNode {
         model: modelId,
         tools: providerTools,
         maxTokens,
-        responseFormat,
         threadId: threadId || undefined,
         onToolCall
       })) {
@@ -2576,7 +2545,6 @@ export class AgentNode extends BaseNode {
           model: modelId,
           tools: providerTools,
           maxTokens,
-          responseFormat,
           threadId: threadId || undefined
         })) {
           if (isChunkItem(item)) {
@@ -2935,241 +2903,10 @@ export class AgentNode extends BaseNode {
   }
 }
 
-export class ResearchAgentNode extends BaseNode {
-  static readonly nodeType = "nodetool.agents.ResearchAgent";
-  static readonly title = "Research Agent";
-  static readonly description =
-    "Autonomous research agent that gathers information from the web and synthesizes findings.\n    research, web-search, data-gathering, agent, automation\n\n    Uses dynamic outputs to define the structure of research results.\n    The agent will:\n    - Search the web for relevant information\n    - Browse and extract content from web pages\n    - Organize findings in the workspace\n    - Return structured results matching your output schema\n\n    Perfect for:\n    - Market research and competitive analysis\n    - Literature reviews and fact-finding\n    - Data collection from multiple sources\n    - Automated research workflows";
-  static readonly basicFields = ["objective", "model", "tools"];
-  static readonly supportsDynamicOutputs = true;
-  static readonly recommendedModels = [
-    {
-      id: "gpt-oss:20b",
-      type: "llama_model",
-      name: "GPT - OSS",
-      repo_id: "gpt-oss:20b",
-      description:
-        "Open-weight GPT-4o derivative handles research workflows with tool calling.",
-      size_on_disk: 34359738368
-    },
-    {
-      id: "qwen3:14b",
-      type: "llama_model",
-      name: "Qwen3 - 14B",
-      repo_id: "qwen3:14b",
-      description:
-        "Qwen3 14B provides strong tool use and synthesis for local research agents.",
-      size_on_disk: 30064771072
-    },
-    {
-      id: "ggml-org/gpt-oss-20b-GGUF:gpt-oss-20b-mxfp4.gguf",
-      type: "llama_cpp_model",
-      name: "GPT-OSS 20B (GGUF)",
-      repo_id: "ggml-org/gpt-oss-20b-GGUF",
-      path: "gpt-oss-20b-mxfp4.gguf",
-      description: "OpenAI's open-weight model for research via llama.cpp.",
-      size_on_disk: 9191230013,
-      tags: [
-        "gguf",
-        "base_model:openai/gpt-oss-20b",
-        "base_model:quantized:openai/gpt-oss-20b",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 156909,
-      likes: 135
-    },
-    {
-      id: "ggml-org/gemma-3-12b-it-GGUF:gemma-3-12b-it-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Gemma 3 12B IT (GGUF)",
-      repo_id: "ggml-org/gemma-3-12b-it-GGUF",
-      path: "gemma-3-12b-it-Q4_K_M.gguf",
-      description: "Google's Gemma 3 12B for research with strong reasoning.",
-      size_on_disk: 7838315315,
-      pipeline_tag: "image-text-to-text",
-      tags: [
-        "gguf",
-        "image-text-to-text",
-        "arxiv:1905.07830",
-        "arxiv:1905.10044",
-        "arxiv:1911.11641",
-        "arxiv:1904.09728",
-        "arxiv:1705.03551",
-        "arxiv:1911.01547",
-        "arxiv:1907.10641",
-        "arxiv:1903.00161",
-        "arxiv:2009.03300",
-        "arxiv:2304.06364",
-        "arxiv:2103.03874",
-        "arxiv:2110.14168",
-        "arxiv:2311.12022",
-        "arxiv:2108.07732",
-        "arxiv:2107.03374",
-        "arxiv:2210.03057",
-        "arxiv:2106.03193",
-        "arxiv:1910.11856",
-        "arxiv:2502.12404",
-        "arxiv:2502.21228",
-        "arxiv:2404.16816",
-        "arxiv:2104.12756",
-        "arxiv:2311.16502",
-        "arxiv:2203.10244",
-        "arxiv:2404.12390",
-        "arxiv:1810.12440",
-        "arxiv:1908.02660",
-        "arxiv:2312.11805",
-        "base_model:google/gemma-3-12b-it",
-        "base_model:quantized:google/gemma-3-12b-it",
-        "license:gemma",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 214667,
-      likes: 30
-    }
-  ];
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Objective",
-    description: "The research objective or question to investigate"
-  })
-  declare objective: any;
-
-  @prop({
-    type: "language_model",
-    default: {
-      type: "language_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      path: null,
-      supported_tasks: []
-    },
-    title: "Model",
-    description: "Model to use for research and synthesis"
-  })
-  declare model: any;
-
-  @prop({
-    type: "str",
-    default:
-      "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Write intermediate findings to the workspace for reference\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n- write_file: Save research findings to files\n- read_file: Read previously saved research files\n- list_directory: List files in the workspace\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Save important findings using write_file\n5. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
-    title: "System Prompt",
-    description: "System prompt guiding the agent's research behavior"
-  })
-  declare system_prompt: any;
-
-  @prop({
-    type: "list[tool_name]",
-    default: [
-      {
-        name: "google_search"
-      },
-      {
-        name: "browser"
-      }
-    ],
-    title: "Tools",
-    description:
-      "Tools to enable for research. Select workspace tools (read_file, write_file, list_directory) to enable file operations."
-  })
-  declare tools: any;
-
-  @prop({
-    type: "int",
-    default: 8192,
-    title: "Max Tokens",
-    description: "Maximum tokens for agent responses",
-    min: 1,
-    max: 100000
-  })
-  declare max_tokens: any;
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const query = asText(
-      (this as any).query ?? (this as any).prompt ?? this.objective ?? ""
-    );
-    const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const dynamicSchema = getStructuredOutputSchema(this);
-      const responseFormat = dynamicSchema
-        ? {
-            type: "json_schema" as const,
-            json_schema: {
-              name: "research_result",
-              schema: dynamicSchema,
-              strict: true
-            }
-          }
-        : {
-            type: "json_schema" as const,
-            json_schema: {
-              name: "research_result",
-              schema: {
-                type: "object",
-                additionalProperties: false,
-                required: ["summary", "findings"],
-                properties: {
-                  summary: { type: "string" },
-                  findings: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      required: ["title", "summary"],
-                      properties: {
-                        title: { type: "string" },
-                        summary: { type: "string" },
-                        source: { type: "string" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          };
-      const raw = await generateProviderMessage(provider, {
-        model: modelId,
-        maxTokens: Number(this.max_tokens ?? this.max_tokens ?? 2048),
-        responseFormat,
-        messages: [
-          { role: "system", content: RESEARCH_AGENT_SYSTEM_PROMPT },
-          { role: "user", content: `Research objective: ${query}` }
-        ]
-      });
-      if (dynamicSchema) {
-        const parsed = extractJson(raw);
-        if (parsed) return parsed;
-      }
-      return parseResearchOutput(raw, query);
-    }
-    const summary = summarize(query, 2);
-    const notes = [
-      `Question: ${query}`,
-      `Summary: ${summary}`,
-      "Confidence: low (offline placeholder implementation)"
-    ];
-    return {
-      output: notes.join("\n"),
-      text: notes.join("\n"),
-      findings: [{ title: query, summary }]
-    };
-  }
-}
-
 export const AGENT_NODES = [
   SummarizerNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
-  AgentNode,
-  ResearchAgentNode
+  AgentNode
 ] as const;

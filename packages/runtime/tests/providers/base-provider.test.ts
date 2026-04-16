@@ -32,8 +32,6 @@ class TestProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -47,8 +45,6 @@ class TestProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;

@@ -24,10 +24,8 @@ import {
   DynamicFalSchemaNode,
   DYNAMIC_FAL_NODE_TYPE
 } from "../node/DynamicFalSchemaNode";
-import {
-  DynamicKieSchemaNode,
-  DYNAMIC_KIE_NODE_TYPE
-} from "../node/DynamicKieSchemaNode";
+import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
+import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
 import {
   DynamicReplicateNode,
   DYNAMIC_REPLICATE_NODE_TYPE
@@ -42,11 +40,10 @@ import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
-import { useFitView } from "../../hooks/useFitView";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";
@@ -56,8 +53,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
-import { CircularProgress } from "@mui/material";
-import { Typography } from "@mui/material";
+import { Text, LoadingSpinner } from "../ui_primitives";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
@@ -69,11 +65,6 @@ import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
 
-const fitViewOptions = {
-  maxZoom: MAX_ZOOM,
-  minZoom: MIN_ZOOM,
-  padding: 0.5
-};
 
 interface ReactFlowWrapperProps {
   workflowId: string;
@@ -120,12 +111,7 @@ const ReactFlowWrapper = ({
     )
   );
 
-  const [isVisible, setIsVisible] = useState(true);
   const [isSelecting] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(!!storedViewport || nodes.length === 0);
-  }, [workflowId, storedViewport, nodes]);
 
   const reactFlowInstance = useReactFlow();
   const pendingNodeType = useNodePlacementStore(
@@ -172,11 +158,9 @@ const ReactFlowWrapper = ({
       left: 0,
       top: 0,
       right: 0,
-      bottom: 0,
-      opacity: isVisible ? 1 : 0,
-      transition: "opacity 50ms 1s ease-out"
+      bottom: 0
     }),
-    [isVisible]
+    []
   );
 
   const reactFlowStyle = useMemo(
@@ -195,7 +179,6 @@ const ReactFlowWrapper = ({
     [theme.vars.palette.c_editor_bg_color]
   );
 
-  const fitView = useFitView();
   useFitNodeEvent();
 
   const { handleMoveEnd, handleOnMoveStart } = useReactFlowEvents();
@@ -292,6 +275,7 @@ const ReactFlowWrapper = ({
       "nodetool.control.Reroute": RerouteNode,
       [DYNAMIC_FAL_NODE_TYPE]: DynamicFalSchemaNode,
       [DYNAMIC_KIE_NODE_TYPE]: DynamicKieSchemaNode,
+      "kie.DynamicKie": DynamicKieSchemaNode,
       [DYNAMIC_REPLICATE_NODE_TYPE]: DynamicReplicateNode,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       default: PlaceholderNode
@@ -489,27 +473,9 @@ const ReactFlowWrapper = ({
 
   useEffect(() => {
     if (shouldFitToScreen) {
-      // Skip fitView if we already have a stored viewport that shows the nodes
-      if (storedViewport && nodes.length > 0) {
-        setShouldFitToScreen(false);
-        return;
-      }
-      fitView({ padding: 0.8 });
       setShouldFitToScreen(false);
     }
-  }, [fitView, shouldFitToScreen, setShouldFitToScreen, storedViewport, nodes.length]);
-
-  useEffect(() => {
-    if (storedViewport) {
-      return;
-    }
-
-    if (nodes.length > 0) {
-      requestAnimationFrame(() => {
-        fitView({ padding: 0.8 });
-      });
-    }
-  }, [nodes.length, fitView, storedViewport]);
+  }, [shouldFitToScreen, setShouldFitToScreen]);
 
   const snapGrid = useMemo(
     () => [settings.gridSnap, settings.gridSnap] as [number, number],
@@ -529,35 +495,28 @@ const ReactFlowWrapper = ({
 
   const conditionalProps = useMemo(() => {
     const props: any = {};
-    if (!storedViewport) {
-      props.fitView = true;
-      props.fitViewOptions = fitViewOptions;
-    }
+    // fitView disabled — viewport is restored from stored state
     if (settings.panControls === "RMB") {
       props.selectionOnDrag = true;
     }
     return props;
-  }, [storedViewport, settings.panControls]);
+  }, [settings.panControls]);
 
   if (isLoading) {
     return (
       <div className="loading-overlay">
-        <CircularProgress /> Loading workflow...
+        <LoadingSpinner /> Loading workflow...
       </div>
     );
   }
   if (error) {
     return (
       <div className="loading-overlay">
-        <Typography variant="body1" color="error">
+        <Text color="error">
           {(error as Error).message}
-        </Typography>
+        </Text>
       </div>
     );
-  }
-
-  if (!active) {
-    return null;
   }
 
   return (

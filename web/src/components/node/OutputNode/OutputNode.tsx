@@ -3,11 +3,12 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
-import { Container, Typography } from "@mui/material";
+import { Container } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import log from "loglevel";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
@@ -17,6 +18,7 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
+import { getOutputNodeSelectionSx } from "../selectionStyles";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeInputs } from "../NodeInputs";
@@ -414,20 +416,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   return (
     <Container
       css={styles(theme)}
-      sx={{
-        display: "flex",
-        border: props.selected
-          ? `3px solid ${theme.vars.palette.primary.main}`
-          : `1px solid ${theme.vars.palette.grey[700]}`,
-        boxShadow: props.selected
-          ? `0 0 0 2px rgb(${theme.vars.palette.primary.mainChannel} / 0.95), 0 0 28px rgb(${theme.vars.palette.primary.mainChannel} / 0.55), 0 8px 20px rgb(${theme.vars.palette.primary.mainChannel} / 0.25)`
-          : "none",
-        backgroundColor: theme.vars.palette.c_node_bg,
-        backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
-        WebkitBackdropFilter: props.selected
-          ? theme.vars.palette.glass.blur
-          : "none"
-      }}
+      sx={getOutputNodeSelectionSx(theme, Boolean(props.selected))}
       className={`output-node nopan node-drag-handle ${hasParent ? "hasParent" : ""
         }`}
     >
@@ -467,9 +456,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
           )}
 
           {result === null || result === undefined && (
-            <Typography className="hint">
+            <Text className="hint">
               Exposes data to App Mode
-            </Typography>
+            </Text>
           )}
           <PreviewActions
             onDownload={handleDownload}

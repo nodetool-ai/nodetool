@@ -1,10 +1,10 @@
 import React, { useMemo, useCallback, memo, useRef } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Handle, Position, useNodeConnections } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { useNodes } from "../../contexts/NodeContext";
@@ -90,6 +90,9 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }
       }
     };
   }, []);
+
+  const connections = useNodeConnections({ handleType: "source", handleId: output.name });
+  const isConnected = connections.length > 0;
 
   const isConnectable = useMemo(() => {
     if (!effectiveConnectType || connectDirection !== "target") {

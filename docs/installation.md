@@ -4,7 +4,7 @@ title: "Installing NodeTool"
 description: "Step-by-step installation guide for Windows, macOS, and Linux."
 ---
 
-NodeTool includes a guided setup that handles dependencies automatically.
+NodeTool launches immediately after installation — no setup wizard required. Python, Conda, and AI engine dependencies are installed on demand through the app when you first need them.
 
 ---
 
@@ -12,9 +12,8 @@ NodeTool includes a guided setup that handles dependencies automatically.
 
 1. Download NodeTool from [nodetool.ai](https://nodetool.ai)
 2. Run the installer
-3. Choose where to install (default is fine)
-4. Wait for setup to complete (~5-10 minutes)
-5. Start building workflows!
+3. Launch NodeTool — the app opens right away
+4. Start building workflows!
 
 ---
 
@@ -50,42 +49,7 @@ Running models locally gives you privacy and offline use, but needs more resourc
 | **Pro (24–32 GB)** | RTX 3090 / 4090 / 5090 | **Full Qwen-Image 2512**, Wan2.1 Video (720p), 70B LLMs (Llama 3.3/4 Q4). |
 | **Ultra (48 GB+)** | Dual 5090s / Mac Ultra | **DeepSeek-V3 (Full Local)**, 4K Video Gen (LTX-2), LoRA training in minutes. |
 
-In 2026, Apple hardware is particularly strong for local AI because of **Unified Memory Architecture (UMA)**. Unlike Windows PCs where you are limited by the VRAM on your graphics card, a Mac can use a large portion of its total RAM for AI models.
-
-With the **M4 chip family** and the **MLX framework**, Macs are now competitive with NVIDIA for "compute-heavy" tasks like Flux and Qwen-Image.
-
-### **2026 Apple Silicon AI Capability Table**
-
-| Chip Model | Min. RAM | Ideal RAM | Can Handle (MLX Optimized) |
-| --- | --- | --- | --- |
-| **M4 (Base)** | 16 GB | 32 GB | **8B LLMs (Llama 4)**, Flux.1 Schnell (8-bit), Sana 4K images. |
-| **M4 Pro** | 24 GB | 64 GB | **Qwen-Image-Edit**, 32B Reasoning models (DeepSeek R1), Flux.1 Dev. |
-| **M4 Max** | 48 GB | 128 GB | **70B Flagship LLMs**, Full-precision Flux, 720p Video (Wan2.1). |
-| **M2/M3 Ultra** | 128 GB | 512 GB | **DeepSeek-V3 (671B)**, 4K Video workflows, massive Batch-processing. |
-
----
-
-### **Specific Task Guide for Mac (2026)**
-
-#### **1. Image Generation (MLX / MFLUX)**
-
-Apple users should use **MLX-based tools** (like `mflux`) rather than standard PyTorch for a 3x speed boost.
-
-* **Flux.1 Dev:** Requires at least **32GB RAM** to run smoothly at 8-bit.
-* **Qwen-Image-Edit:** Now natively supported via MLX. On an M4 Max, it can perform complex "Multi-Image" edits in under 10 seconds.
-* **Sana (4K):** Runs exceptionally well on the base M4 because of its low parameter count but high resolution output.
-
-#### **2. Language Models (LLMs)**
-
-The rule of thumb for Mac: **Your Model Size (GB) + 4GB (System) < Total RAM.**
-
-* **Llama 3.3/4 (70B) @ Q4:** Needs ~42 GB. Runs great on a **64GB M4 Pro/Max**.
-* **DeepSeek-V3 (MoE):** This massive model requires **at least 128GB RAM** (Ultra chips) even when heavily quantized.
-
-#### **3. Video Generation**
-
-* **Wan2.1 (Small):** Can run on **M4 Pro (48GB)**.
-* **CogVideoX:** Best on **M4 Max** due to high memory bandwidth requirements ( GB/s).
+Apple Silicon's Unified Memory lets Macs use much of system RAM for AI models. With MLX, Macs are competitive with NVIDIA for compute-heavy tasks like Flux and Qwen-Image. Rule of thumb: **model size (GB) + 4 GB system overhead < total RAM**.
 
 ---
 
@@ -116,67 +80,36 @@ The rule of thumb for Mac: **Your Model Size (GB) + 4GB (System) < Total RAM.**
 
 ## What Gets Installed
 
-NodeTool automatically sets up everything it needs to run. Here's what happens behind the scenes:
+NodeTool uses an on-demand installation approach — the app itself is lightweight and launches immediately. Additional components are downloaded automatically when you first use a feature that needs them.
 
-### Core Components
+### Core Components (installed with the app)
 
 - **Node.js Runtime** -- Self-contained Node.js installation (does not affect your system Node.js)
-- **AI Engines** -- Tools for running AI models locally:
+- **NodeTool application** -- The visual editor, dashboard, and all core functionality
+
+### On-Demand Components (installed automatically when needed)
+
+- **Python / Conda** -- Installed through the app UI when you first run a workflow that requires Python-based AI models
+- **AI Engines** -- Downloaded when you install or use specific model types:
   - **Ollama** -- For language models
   - **llama.cpp** -- Optimized inference (GPU-accelerated where available)
-- **Dependencies** -- All required libraries and packages
+- **Model-specific dependencies** -- Each model or node pack installs its own requirements
 
-### Why 20 GB?
+### Disk Space
 
 NodeTool itself is small, but AI models can be large:
 
 | Component | Typical Size |
 |-----------|--------------|
 | NodeTool + Node.js runtime | 2-4 GB |
+| Python/Conda environment | ~3-5 GB (installed on demand) |
 | GPT-OSS (recommended LLM) | ~4 GB |
 | Flux (image generation) | ~12 GB |
-| **Total with recommended models** | ~20 GB |
+| **Total with recommended models** | ~25 GB |
 
 You can install fewer models to save space, or use cloud providers instead.
 
----
-
-## Step-by-Step Installation
-
-### 1. Download NodeTool
-
-Visit [nodetool.ai](https://nodetool.ai) and click the download button for your operating system.
-
-### 2. Run the Installer
-
-Launch the downloaded file. NodeTool's setup wizard will guide you through the process.
-
-### 3. Choose Installation Location
-
-You'll be asked where to install NodeTool's environment:
-
-- **Default location** – Recommended for most users
-- **Custom folder** – Choose any location with enough free space
-
 > **Tip**: Use an SSD for faster AI model loading and workflow execution.
-
-### Select Optional Packages
-
-Choose additional features:
-
-- **Cloud AI Services** – OpenAI, Anthropic, Google integrations
-- **Document Processing** – PDF extraction, OCR
-- **Audio/Video Tools** – Media processing nodes
-
-Additional packages can be installed later from Settings → Packages.
-
-### 5. Wait for Download
-
-NodeTool downloads and sets up all components. Typically 5-10 minutes depending on internet connection.
-
-### 6. Launch NodeTool
-
-Once installation completes, NodeTool opens automatically. You're ready to start building!
 
 ---
 
@@ -185,8 +118,10 @@ Once installation completes, NodeTool opens automatically. You're ready to start
 ### First Launch
 
 1. **Firewall prompts**: Approve any requests – NodeTool runs a local server that needs network access
-2. **Model Manager**: Open **Models → Model Manager** to download AI models
-3. **Templates**: Check the Dashboard for ready-to-use workflow templates
+2. **Explore the Dashboard**: Browse ready-to-use workflow templates
+3. **Set up AI access**: Either add cloud API keys in **Settings → Providers**, or install local models from the **Models** panel
+
+> **On-demand setup**: The first time you run a workflow that needs local AI, NodeTool will prompt you to install the required Python environment. This is a one-time download (~3-5 GB) and happens automatically through the app UI.
 
 ### Sign In (Optional)
 
@@ -195,12 +130,12 @@ Once installation completes, NodeTool opens automatically. You're ready to start
 
 ### Install AI Models
 
-To run workflows locally, install some AI models:
+To run workflows with local AI models:
 
-1. Go to **Models → Model Manager**
-2. Install **GPT-OSS** for text generation
-3. Install **Flux** for image generation
-4. Or skip and use cloud providers with your API keys
+1. Open **Models** from the header bar
+2. Browse or search for models (e.g., **Flux** for images, **Llama** for text)
+3. Click to install — NodeTool handles all dependencies automatically
+4. Or skip local models and use cloud providers with your API keys
 
 ---
 
@@ -208,14 +143,15 @@ To run workflows locally, install some AI models:
 
 ### Common Installation Issues
 
-**Installation takes too long**
-- Large models take time to download
-- Check internet connection
-- Try pausing/resuming or restart the installer
+**On-demand Python/Conda setup fails**
+- Check internet connection — the environment download requires ~3-5 GB
+- Restart NodeTool and try again — partial downloads resume automatically
+- Check disk space — you need at least 5 GB free for the Python environment
+- On macOS, ensure you've approved any permission prompts
 
 **Not enough disk space**
 - Free up space or choose a different installation location
-- Use cloud providers instead of local models
+- Use cloud providers instead of local models to skip Python environment setup entirely
 
 **GPU not detected**
 - Update GPU drivers

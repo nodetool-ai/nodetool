@@ -7,9 +7,9 @@ import {
   Fab,
   Box,
   useMediaQuery,
-  Tooltip,
   Menu,
 } from "@mui/material";
+import { Tooltip, FlexRow } from "../ui_primitives";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
@@ -25,10 +25,12 @@ import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
-import TerminalIcon from "@mui/icons-material/Terminal";
+import TimelineIcon from "@mui/icons-material/Timeline";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
+import LinearScaleIcon from "@mui/icons-material/LinearScale";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
@@ -85,7 +87,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = memo(
     );
 
     return (
-      <Tooltip title={title} enterDelay={TOOLTIP_ENTER_DELAY} placement="top">
+      <Tooltip title={title} delay={TOOLTIP_ENTER_DELAY} placement="top">
         {disabled ? (
           <span style={{ display: "inline-flex" }}>{fabElement}</span>
         ) : (
@@ -359,7 +361,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleRunAsApp,
     handleEditWorkflow,
     handleToggleNodeMenu,
-    handleToggleTerminal,
+    handleToggleTrace,
     handleToggleMiniMap,
     isWorkflowRunning,
     isPaused,
@@ -377,11 +379,14 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     isRightPanelVisible,
     rightPanelSize,
     bottomPanelVisible,
-    bottomPanelSize
+    bottomPanelSize,
+    isMobile
   );
 
   const instantUpdate = useSettingsStore((state) => state.settings.instantUpdate);
   const setInstantUpdate = useSettingsStore((state) => state.setInstantUpdate);
+  const editorViewMode = useSettingsStore((state) => state.settings.editorViewMode);
+  const setEditorViewMode = useSettingsStore((state) => state.setEditorViewMode);
 
   const isMiniMapVisible = useMiniMapStore((state) => state.visible);
 
@@ -421,10 +426,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const shouldHighlightNodeMenu =
     isEmptyWorkflow && workflow?.name === "New Workflow";
 
-  const handleToggleTerminalAndCloseMenu = useCallback(() => {
-    handleToggleTerminal();
+  const handleToggleTraceAndCloseMenu = useCallback(() => {
+    handleToggleTrace();
     handleCloseActionsMenu();
-  }, [handleToggleTerminal, handleCloseActionsMenu]);
+  }, [handleToggleTrace, handleCloseActionsMenu]);
 
   const handleEditWorkflowAndCloseMenu = useCallback(() => {
     handleEditWorkflow();
@@ -445,6 +450,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleToggleMiniMap();
     handleCloseAdvancedMenu();
   }, [handleToggleMiniMap, handleCloseAdvancedMenu]);
+
+  const handleToggleViewMode = useCallback(() => {
+    setEditorViewMode(editorViewMode === "graph" ? "chain" : "graph");
+  }, [editorViewMode, setEditorViewMode]);
 
   if (!path.startsWith("/editor")) {
     return null;
@@ -468,25 +477,36 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           />
         )}
 
+        {editorViewMode === "graph" && (
+          <ToolbarButton
+            icon={<AddCircleIcon />}
+            tooltip="Add Node"
+            shortcut="openNodeMenu"
+            variant={shouldHighlightNodeMenu ? "neutral" : "secondary"}
+            className={cn(
+              !shouldHighlightNodeMenu && "node-menu",
+              shouldHighlightNodeMenu && "node-menu-attention"
+            )}
+            onClick={handleToggleNodeMenu}
+            aria-label="Add node"
+          />
+        )}
         <ToolbarButton
-          icon={<AddCircleIcon />}
-          tooltip="Add Node"
-          shortcut="openNodeMenu"
-          variant={shouldHighlightNodeMenu ? "neutral" : "secondary"}
-          className={cn(
-            !shouldHighlightNodeMenu && "node-menu",
-            shouldHighlightNodeMenu && "node-menu-attention"
-          )}
-          onClick={handleToggleNodeMenu}
-          aria-label="Add node"
-        />
-        <ToolbarButton
-          icon={<LayoutIcon />}
-          tooltip="Auto Layout"
+          icon={editorViewMode === "graph" ? <LinearScaleIcon /> : <AccountTreeIcon />}
+          tooltip={editorViewMode === "graph" ? "Chain View" : "Graph View"}
           variant="neutral"
-          onClick={handleAutoLayout}
-          aria-label="Auto layout nodes"
+          onClick={handleToggleViewMode}
+          aria-label="Toggle editor view mode"
         />
+        {editorViewMode === "graph" && (
+          <ToolbarButton
+            icon={<LayoutIcon />}
+            tooltip="Auto Layout"
+            variant="neutral"
+            onClick={handleAutoLayout}
+            aria-label="Auto layout nodes"
+          />
+        )}
         <ToolbarButton
           icon={<SaveIcon />}
           tooltip="Save"
@@ -527,7 +547,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
         {isComfyWorkflow && (
           <Tooltip title={comfyIsConnected ? `ComfyUI: ${comfyBaseUrl}` : "ComfyUI not connected — configure in Settings"}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 1, fontSize: "0.7rem", color: "text.secondary" }}>
+            <FlexRow align="center" gap={0.5} sx={{ mr: 1, fontSize: "0.7rem", color: "text.secondary" }}>
               <Box
                 sx={{
                   width: 8,
@@ -537,7 +557,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
                 }}
               />
               ComfyUI
-            </Box>
+            </FlexRow>
           </Tooltip>
         )}
 
@@ -592,9 +612,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         }}
       >
         <MenuItemPrimitive
-          label={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
-          icon={<TerminalIcon fontSize="small" />}
-          onClick={handleToggleTerminalAndCloseMenu}
+          label={bottomPanelVisible ? "Hide Trace" : "Show Trace"}
+          icon={<TimelineIcon fontSize="small" />}
+          onClick={handleToggleTraceAndCloseMenu}
         />
         <MenuItemPrimitive
           label="Workflow Settings"

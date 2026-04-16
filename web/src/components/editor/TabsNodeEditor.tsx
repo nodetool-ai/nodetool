@@ -13,9 +13,10 @@ import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 
 import TabsBar from "./TabsBar";
+import ChainEditorBridge from "../chain_editor/ChainEditorBridge";
 import FileTabContent from "./FileTabContent";
 import KeyboardProvider from "../KeyboardProvider";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -282,6 +283,8 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
       : undefined
   );
 
+  const nodeStores = useWorkflowManager((state) => state.nodeStores);
+
   // Autosave hook integration
   const getWorkflowForAutosave = useCallback(() => {
     if (!activeNodeStore) {
@@ -446,6 +449,20 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   }, [idsForTabs, openMap, queryResults]);
 
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const editorViewMode = useSettingsStore((s) => s.settings.editorViewMode);
+  const setEditorViewMode = useSettingsStore((s) => s.setEditorViewMode);
+
+  // On mobile, default to chain view (persisted — only runs once)
+  const hasSetMobileDefault = useRef(false);
+  useEffect(() => {
+    if (isMobile && editorViewMode === "graph" && !hasSetMobileDefault.current) {
+      hasSetMobileDefault.current = true;
+      setEditorViewMode("chain");
+    }
+  }, [isMobile, editorViewMode, setEditorViewMode]);
+
+  const showChainView = editorViewMode === "chain";
 
   const activeFileTabId = useFileTabsStore((state) => state.activeFileTabId);
   const openFileTabs = useFileTabsStore((state) => state.openFileTabs);
@@ -463,21 +480,23 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
         css={styles(theme)}
         className="tabs-node-editor"
         style={{
-          top: hideContent ? 0 : 40,
-          height: hideContent ? "100%" : "calc(100% - 40px)"
+          top: hideContent || isMobile ? 0 : 40,
+          height: hideContent || isMobile ? "100%" : "calc(100% - 40px)"
         }}
       >
-        <TabsBar
-          workflows={tabsToRender}
-          currentWorkflowId={currentWorkflowId!}
-        />
+        {!isMobile && (
+          <TabsBar
+            workflows={tabsToRender}
+            currentWorkflowId={currentWorkflowId!}
+          />
+        )}
         {!hideContent && (
           <div
             className="editor-container"
             css={generateCSS}
             style={{ flex: 1, minHeight: 0, minWidth: 0 }}
           >
-            {activeFileTab ? (
+            {activeFileTab && (
               <Box
                 key={`file-${activeFileTab.asset.id}`}
                 sx={{
@@ -493,53 +512,69 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
               >
                 <FileTabContent asset={activeFileTab.asset} />
               </Box>
-            ) : (
-              <Box
-                key={currentWorkflowId}
-                sx={{
-                  overflow: "hidden",
-                  position: "absolute",
-                  width: "100%",
-                  height: "100%",
-                  minHeight: 0,
-                  minWidth: 0,
-                  display: "flex",
-                  flexDirection: "column"
-                }}
-              >
-                {activeNodeStore && (
-                  <NodeContext.Provider value={activeNodeStore}>
-                    <ReactFlowProvider>
-                      <ContextMenuProvider>
-                        <ConnectableNodesProvider>
-                          <KeyboardProvider>
-                            <div className="status-message-container">
-                              <StatusMessage />
-                            </div>
-                            <div
-                              style={{
-                                flex: 1,
-                                minHeight: 0,
-                                position: "relative",
-                                width: "100%",
-                                height: "100%"
-                              }}
-                            >
-                              <NodeEditor
-                                workflowId={currentWorkflowId!}
-                                active={true}
-                              />
-                            </div>
-
-                            <FloatingToolBar />
-                          </KeyboardProvider>
-                        </ConnectableNodesProvider>
-                      </ContextMenuProvider>
-                    </ReactFlowProvider>
-                  </NodeContext.Provider>
-                )}
-              </Box>
             )}
+            {openWorkflows.map((workflow) => {
+              const store = nodeStores[workflow.id];
+              if (!store) return null;
+              const isActive =
+                workflow.id === currentWorkflowId && !activeFileTab;
+              return (
+                <Box
+                  key={workflow.id}
+                  sx={{
+                    overflow: "hidden",
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    minHeight: 0,
+                    minWidth: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    opacity: isActive ? 1 : 0,
+                    pointerEvents: isActive ? "auto" : "none",
+                    zIndex: isActive ? 1 : 0
+                  }}
+                >
+                  <NodeContext.Provider value={store}>
+                    {showChainView ? (
+                      <ReactFlowProvider>
+                        <ChainEditorBridge isActive={isActive} />
+                        {isActive && <FloatingToolBar />}
+                      </ReactFlowProvider>
+                    ) : (
+                      <ReactFlowProvider>
+                        <ContextMenuProvider>
+                          <ConnectableNodesProvider>
+                            <KeyboardProvider>
+                              {isActive && (
+                                <div className="status-message-container">
+                                  <StatusMessage />
+                                </div>
+                              )}
+                              <div
+                                style={{
+                                  flex: 1,
+                                  minHeight: 0,
+                                  position: "relative",
+                                  width: "100%",
+                                  height: "100%"
+                                }}
+                              >
+                                <NodeEditor
+                                  workflowId={workflow.id}
+                                  active={isActive}
+                                />
+                              </div>
+                              {isActive && <FloatingToolBar />}
+                            </KeyboardProvider>
+                          </ConnectableNodesProvider>
+                        </ContextMenuProvider>
+                      </ReactFlowProvider>
+                    )}
+                  </NodeContext.Provider>
+                </Box>
+              );
+            })}
           </div>
         )}
       </div>

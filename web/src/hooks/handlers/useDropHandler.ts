@@ -15,6 +15,7 @@ import {
 } from "../../lib/dragdrop";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -113,7 +114,7 @@ export const useDropHandler = () => {
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
     createNode: state.createNode
-  }));
+  }), shallow);
   const getAsset = useAssetStore((state) => state.get);
   const { user } = useAuth();
   const addNotification = useNotificationStore(

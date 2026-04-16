@@ -14,14 +14,8 @@ export interface BackgroundOutputs {
   output: ImageRef;
 }
 
-export function background(
-  inputs: BackgroundInputs
-): DslNode<BackgroundOutputs, "output"> {
-  return createNode(
-    "lib.image.draw.Background",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function background(inputs: BackgroundInputs): DslNode<BackgroundOutputs, "output"> {
+  return createNode("lib.image.draw.Background", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Gaussian Noise — lib.image.draw.GaussianNoise
@@ -36,14 +30,8 @@ export interface GaussianNoiseOutputs {
   output: ImageRef;
 }
 
-export function gaussianNoise(
-  inputs: GaussianNoiseInputs
-): DslNode<GaussianNoiseOutputs, "output"> {
-  return createNode(
-    "lib.image.draw.GaussianNoise",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function gaussianNoise(inputs: GaussianNoiseInputs): DslNode<GaussianNoiseOutputs, "output"> {
+  return createNode("lib.image.draw.GaussianNoise", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Render Text — lib.image.draw.RenderText
@@ -54,7 +42,7 @@ export interface RenderTextInputs {
   y?: Connectable<number>;
   size?: Connectable<number>;
   color?: Connectable<unknown>;
-  align?: Connectable<unknown>;
+  align?: Connectable<"left" | "center" | "right">;
   image?: Connectable<ImageRef>;
 }
 
@@ -62,12 +50,6 @@ export interface RenderTextOutputs {
   output: ImageRef;
 }
 
-export function renderText(
-  inputs: RenderTextInputs
-): DslNode<RenderTextOutputs, "output"> {
-  return createNode(
-    "lib.image.draw.RenderText",
-    inputs as Record<string, unknown>,
-    { outputNames: ["output"], defaultOutput: "output" }
-  );
+export function renderText(inputs: RenderTextInputs): DslNode<RenderTextOutputs, "output"> {
+  return createNode("lib.image.draw.RenderText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

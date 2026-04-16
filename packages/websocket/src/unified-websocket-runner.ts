@@ -1,8 +1,15 @@
 import { randomUUID } from "node:crypto";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool/security";
 import { getSetting } from "./settings-api.js";
 import { pack, unpack } from "msgpackr";
-import { createLogger, getDefaultAssetsPath } from "@nodetool/config";
+import {
+  createLogger,
+  getDefaultAssetsPath,
+  buildAssetUrl
+} from "@nodetool/config";
+import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
   Graph,
   WorkflowRunner,
@@ -10,6 +17,7 @@ import {
   type NodeTypeResolver
 } from "@nodetool/kernel";
 import {
+  Asset,
   Job,
   Message,
   ModelChangeEvent,
@@ -25,7 +33,13 @@ import type {
   MessageContent,
   BaseProvider,
   ProcessingContext,
-  ToolCall as ProviderToolCall
+  ToolCall as ProviderToolCall,
+  ImageModel as ProviderImageModel,
+  VideoModel as ProviderVideoModel,
+  TextToImageParams,
+  TextToVideoParams,
+  ImageToImageParams,
+  ImageToVideoParams
 } from "@nodetool/runtime";
 import {
   FileStorageAdapter,
@@ -41,10 +55,69 @@ import type {
   WebSocketMode
 } from "@nodetool/protocol";
 import { Tool } from "@nodetool/agents";
+import type { NodeMetadata } from "@nodetool/node-sdk";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
+
+/**
+ * Return `true` when the given http(s) URL appears to point at a public
+ * destination (not a loopback, link-local, or RFC1918 private address).
+ *
+ * Used before `fetch`ing URLs supplied by chat clients to resolve source
+ * images — without this gate, an authenticated user could coerce the server
+ * into reading internal services via `http://169.254.169.254/...`,
+ * `http://localhost:6379/...`, etc. The check is conservative: unparseable
+ * URLs and literal IP addresses in private ranges are refused. DNS-based
+ * bypass is still possible, so this is a defense-in-depth measure and not a
+ * full SSRF mitigation; intended for complementing network-level egress
+ * filtering.
+ */
+function isSafeExternalUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return false;
+  }
+  // Normalise IPv6 hostnames: WHATWG URL may return them with or without
+  // surrounding brackets depending on the runtime.
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host) return false;
+  if (
+    host === "localhost" ||
+    host === "ip6-localhost" ||
+    host === "ip6-loopback" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return false;
+  }
+  // IPv4 literal check
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = ipv4.slice(1).map((n) => parseInt(n, 10));
+    // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16,
+    // 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 (CGNAT)
+    if (a === 0 || a === 10 || a === 127) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+  }
+  // IPv6 literal — refuse loopback / ULA / link-local / unspecified ranges.
+  if (host.includes(":")) {
+    if (host === "::" || host === "::1") return false;
+    if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
+    if (host.startsWith("fe80:")) return false; // link-local
+  }
+  return true;
+}
 
 function sanitizeLargeText(
   text: string,
@@ -121,6 +194,166 @@ function formatSanitizedError(error: unknown): string {
 
 function getAssetStoragePath(): string {
   return getDefaultAssetsPath();
+}
+
+// ---------------------------------------------------------------------------
+// Auto-save assets — persists generated media as Asset records
+// ---------------------------------------------------------------------------
+
+const ASSET_MEDIA_TYPES = new Set(["image", "audio", "video"]);
+
+const ASSET_TYPE_MIME: Record<string, string> = {
+  image: "image/png",
+  audio: "audio/wav",
+  video: "video/mp4"
+};
+
+const ASSET_TYPE_EXT: Record<string, string> = {
+  image: "png",
+  audio: "wav",
+  video: "mp4"
+};
+
+function isAssetLikeValue(
+  value: unknown
+): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.type === "string" &&
+    ASSET_MEDIA_TYPES.has(v.type as string) &&
+    ("data" in v || "uri" in v)
+  );
+}
+
+function decodeAssetBytes(data: unknown): Uint8Array | null {
+  if (data === null || data === undefined) return null;
+  if (data instanceof Uint8Array) return data;
+  if (Buffer.isBuffer(data)) return new Uint8Array(data);
+  if (Array.isArray(data) && data.every((v) => Number.isInteger(v))) {
+    return new Uint8Array(data as number[]);
+  }
+  if (typeof data === "string") {
+    return Uint8Array.from(Buffer.from(data, "base64"));
+  }
+  return null;
+}
+
+async function readBytesFromUri(uri: string): Promise<Uint8Array | null> {
+  if (!uri) return null;
+  try {
+    if (uri.startsWith("file://")) {
+      const { readFile } = await import("node:fs/promises");
+      const { fileURLToPath } = await import("node:url");
+      return new Uint8Array(await readFile(fileURLToPath(uri)));
+    }
+    if (uri.startsWith("data:")) {
+      const commaIdx = uri.indexOf(",");
+      if (commaIdx < 0) return null;
+      return Uint8Array.from(Buffer.from(uri.slice(commaIdx + 1), "base64"));
+    }
+    if (uri.startsWith("http://") || uri.startsWith("https://")) {
+      const resp = await fetch(uri);
+      if (!resp.ok) return null;
+      return new Uint8Array(await resp.arrayBuffer());
+    }
+  } catch {
+    // Failed to read bytes — non-fatal
+  }
+  return null;
+}
+
+/**
+ * Recursively find asset-like values in a result object and persist them as
+ * Asset records in the database + on disk.
+ *
+ * Mutates the result in-place: sets `asset_id` and updates `uri` to
+ * `asset://{id}.{ext}`.
+ */
+async function autoSaveAssets(
+  result: Record<string, unknown>,
+  opts: {
+    userId: string;
+    workflowId: string | null;
+    jobId: string;
+    nodeId: string;
+    storagePath: string;
+  }
+): Promise<void> {
+  const { join } = await import("node:path");
+  const { writeFile, mkdir } = await import("node:fs/promises");
+
+  const queue: Record<string, unknown>[] = [];
+
+  // Collect all asset-like values from the result (may be nested)
+  function collect(value: unknown): void {
+    if (value === null || value === undefined) return;
+    if (Array.isArray(value)) {
+      for (const item of value) collect(item);
+      return;
+    }
+    if (isAssetLikeValue(value)) {
+      queue.push(value);
+      return;
+    }
+    if (typeof value === "object") {
+      for (const v of Object.values(value as Record<string, unknown>)) {
+        collect(v);
+      }
+    }
+  }
+  collect(result);
+
+  for (const assetValue of queue) {
+    // Skip if already saved
+    if (assetValue.asset_id) continue;
+
+    const assetType = String(assetValue.type);
+
+    // Get bytes from inline data or URI
+    let bytes = decodeAssetBytes(assetValue.data);
+    if (!bytes && typeof assetValue.uri === "string") {
+      bytes = await readBytesFromUri(assetValue.uri as string);
+    }
+    if (!bytes) continue;
+
+    // Determine mime/ext, preferring explicit content_type
+    const explicitMime = assetValue.mime_type ?? assetValue.content_type;
+    const contentType =
+      typeof explicitMime === "string" && explicitMime
+        ? explicitMime
+        : (ASSET_TYPE_MIME[assetType] ?? "application/octet-stream");
+
+    const ext = ASSET_TYPE_EXT[assetType] ?? "bin";
+
+    // Create Asset record
+    const asset = new Asset({
+      user_id: opts.userId,
+      workflow_id: opts.workflowId ?? null,
+      node_id: opts.nodeId,
+      job_id: opts.jobId,
+      name: `${assetType}_${opts.nodeId.slice(0, 8)}`,
+      content_type: contentType,
+      parent_id: null
+    });
+
+    const fileName = `${asset.id}.${ext}`;
+    try {
+      await mkdir(opts.storagePath, { recursive: true });
+      await writeFile(join(opts.storagePath, fileName), bytes);
+      asset.size = bytes.length;
+      await asset.save();
+
+      // Mutate the result value in-place
+      assetValue.asset_id = asset.id;
+      assetValue.uri = `asset://${fileName}`;
+    } catch (err) {
+      log.warn("Auto-save asset failed", {
+        nodeId: opts.nodeId,
+        error: String(err)
+      });
+    }
+  }
 }
 
 /**
@@ -217,11 +450,59 @@ function createRuntimeContext(opts: {
     | "workspace"
     | "raw";
 }): RuntimeProcessingContext {
-  return new RuntimeProcessingContext({
+  const storagePath = getAssetStoragePath();
+  const storage = new FileStorageAdapter(storagePath);
+  const ctx = new RuntimeProcessingContext({
     ...opts,
     secretResolver: getSecret,
-    storage: new FileStorageAdapter(getAssetStoragePath())
+    storage,
+    tempUrlResolver: (fileUri: string) => {
+      // Convert file:///path/to/storage/temp/uuid.png → public asset URL.
+      // When ASSET_DOMAIN / TEMP_DOMAIN are configured the result uses those
+      // domains; otherwise it falls back to /api/storage/temp/uuid.png.
+      const prefix = pathToFileURL(storagePath).toString();
+      if (fileUri.startsWith(prefix)) {
+        return buildAssetUrl(fileUri.slice(prefix.length + 1));
+      }
+      return fileUri;
+    }
   });
+
+  const MIME_TO_EXT: Record<string, string> = {
+    "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
+    "image/webp": "webp", "image/bmp": "bmp", "image/svg+xml": "svg",
+    "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav",
+    "audio/ogg": "ogg", "video/mp4": "mp4", "video/webm": "webm",
+    "application/pdf": "pdf", "text/plain": "txt", "text/html": "html",
+    "model/gltf-binary": "glb"
+  };
+
+  ctx.setModelInterfaces({
+    createAsset: async (args) => {
+      const { join } = await import("node:path");
+      const { writeFile, mkdir } = await import("node:fs/promises");
+      const asset = new Asset({
+        user_id: args.userId,
+        workflow_id: args.workflowId ?? null,
+        node_id: args.nodeId ?? null,
+        job_id: args.jobId ?? null,
+        name: args.name,
+        content_type: args.contentType,
+        parent_id: args.parentId ?? null
+      });
+      if (args.content) {
+        const ext = MIME_TO_EXT[args.contentType] ?? "bin";
+        const fileName = `${asset.id}.${ext}`;
+        await mkdir(storagePath, { recursive: true });
+        await writeFile(join(storagePath, fileName), args.content);
+        asset.size = args.content.length;
+      }
+      await asset.save();
+      return asset;
+    }
+  });
+
+  return ctx;
 }
 
 /**
@@ -429,6 +710,8 @@ export interface UnifiedWebSocketRunnerOptions {
   beforeRunJob?: (graph: {
     nodes: Array<Record<string, unknown>>;
   }) => Promise<void>;
+  /** Resolve node metadata by type — used for auto_save_asset detection. */
+  getNodeMetadata?: (nodeType: string) => NodeMetadata | undefined;
 }
 
 export class UnifiedWebSocketRunner {
@@ -446,6 +729,7 @@ export class UnifiedWebSocketRunner {
   private getSystemStats: () => Record<string, unknown>;
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
+  private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
@@ -474,6 +758,51 @@ export class UnifiedWebSocketRunner {
       return texts.length > 0 ? texts.join(" ") : fallback;
     }
     return fallback;
+  }
+
+  /**
+   * Run one final LLM call to present structured agent results as readable
+   * markdown. Falls back to formatted JSON if the call fails.
+   */
+  private async presentStructuredResults(
+    provider: BaseProvider,
+    model: string,
+    objective: string,
+    resultsJson: string,
+    threadId: string
+  ): Promise<string> {
+    const messages: ProviderMessage[] = [
+      {
+        role: "user",
+        content: `You completed the following task:\n"${objective}"\n\nHere are the structured results:\n\`\`\`json\n${resultsJson}\n\`\`\`\n\nPresent these results to the user in clear, well-formatted markdown. Be concise — do not repeat the raw JSON. Focus on readability.`
+      }
+    ];
+
+    try {
+      let content = "";
+      for await (const item of provider.generateMessagesTraced({
+        messages,
+        model
+      })) {
+        if ("type" in item && item.type === "chunk") {
+          const chunk = item as { content?: string };
+          content += chunk.content ?? "";
+          // Stream chunks to client so the user sees the response forming
+          await this.sendMessage({
+            type: "chunk",
+            content: chunk.content ?? "",
+            done: false,
+            thread_id: threadId
+          });
+        }
+      }
+      return content || resultsJson;
+    } catch (err) {
+      log.warn("Failed to present structured results via LLM, using JSON fallback", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+      return resultsJson;
+    }
   }
 
   private inferOutputType(value: unknown): string {
@@ -543,6 +872,7 @@ export class UnifiedWebSocketRunner {
     this.resolveTools = options.resolveTools;
     this.workspaceResolver = options.workspaceResolver;
     this.beforeRunJob = options.beforeRunJob;
+    this.getNodeMetadata = options.getNodeMetadata;
     this.getSystemStats =
       options.getSystemStats ??
       (() => ({
@@ -566,7 +896,10 @@ export class UnifiedWebSocketRunner {
     log.info("Client connected", { userId: this.userId });
 
     this.startHeartbeat();
-    this.startStatsBroadcast();
+    // Only broadcast system stats in development — unnecessary overhead in production
+    if (process.env.NODE_ENV !== "production") {
+      this.startStatsBroadcast();
+    }
     this.registerObserver();
   }
 
@@ -618,6 +951,16 @@ export class UnifiedWebSocketRunner {
       this.websocket.applicationState === "disconnected"
     ) {
       return;
+    }
+
+    // Resolve storage keys in content to browser-accessible URLs before
+    // sending over the wire.  This keeps DB storage URL-agnostic while
+    // delivering ready-to-use URLs to the client.
+    if (Array.isArray(message.content)) {
+      message = {
+        ...message,
+        content: resolveContentUrls(message.content as unknown[])
+      };
     }
 
     const payload =
@@ -779,7 +1122,7 @@ export class UnifiedWebSocketRunner {
       workflowId,
       userId,
       workspaceDir,
-      assetOutputMode: this.mode === "text" ? "data_uri" : "raw"
+      assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
 
     // Expose executor/node-type resolution on the context so that
@@ -1120,10 +1463,12 @@ export class UnifiedWebSocketRunner {
           });
         }
 
-        // Only relay output_update messages for actual output-type nodes.
-        // The kernel emits output_update for all nodes; the WebSocket API
-        // should only forward them for final output nodes (type contains "Output").
-        if (outbound.type === "output_update") {
+        // Skip messages for constant/input nodes — they produce trivial
+        // outputs that don't need to be relayed to the frontend.
+        if (
+          outbound.type === "output_update" ||
+          outbound.type === "node_update"
+        ) {
           const nodeId = String(outbound.node_id ?? "");
           const graphNodes =
             (
@@ -1133,8 +1478,58 @@ export class UnifiedWebSocketRunner {
             ).nodes ?? [];
           const node = graphNodes.find((n) => n.id === nodeId);
           const nodeType = typeof node?.type === "string" ? node.type : "";
-          if (!nodeType.includes("Output")) continue;
-          outputUpdateSeen = true;
+
+          // Skip constant and input nodes entirely
+          if (
+            nodeType.startsWith("nodetool.constant.") ||
+            nodeType.startsWith("nodetool.input.")
+          ) {
+            continue;
+          }
+
+          // Only relay output_update for Output-type nodes
+          if (outbound.type === "output_update") {
+            if (!nodeType.includes("Output")) continue;
+            outputUpdateSeen = true;
+          }
+
+          // Auto-save generated assets before normalization strips inline data
+          if (
+            outbound.type === "node_update" &&
+            outbound.status === "completed" &&
+            outbound.result != null &&
+            this.getNodeMetadata
+          ) {
+            const meta = this.getNodeMetadata(nodeType);
+            if (meta?.auto_save_asset) {
+              try {
+                await autoSaveAssets(
+                  outbound.result as Record<string, unknown>,
+                  {
+                    userId: this.userId ?? "1",
+                    workflowId: active.workflowId,
+                    jobId: active.jobId,
+                    nodeId: String(outbound.node_id ?? ""),
+                    storagePath: getAssetStoragePath()
+                  }
+                );
+              } catch (err) {
+                log.warn("autoSaveAssets error", { error: String(err) });
+              }
+            }
+          }
+
+          // Materialize binary assets to temp URLs before sending over WebSocket
+          if (outbound.type === "node_update" && outbound.result != null) {
+            outbound.result = await active.context.normalizeOutputValue(
+              outbound.result
+            );
+          }
+          if (outbound.type === "output_update" && outbound.value != null) {
+            outbound.value = await active.context.normalizeOutputValue(
+              outbound.value
+            );
+          }
         }
         await this.sendMessage(outbound);
         if (outbound.type === "job_update") {
@@ -1313,12 +1708,12 @@ export class UnifiedWebSocketRunner {
     if (!role || !["user", "assistant", "system", "tool"].includes(role)) {
       return null;
     }
+    const rawContent = Array.isArray(m.content)
+      ? (resolveContentForProvider(m.content as unknown[]) as MessageContent[])
+      : (m.content as string | null);
     return {
       role,
-      content:
-        (Array.isArray(m.content)
-          ? (m.content as MessageContent[])
-          : (m.content as string | null)) ?? "",
+      content: rawContent ?? "",
       toolCallId: typeof m.tool_call_id === "string" ? m.tool_call_id : null,
       toolCalls: Array.isArray(m.tool_calls)
         ? (m.tool_calls as Array<{
@@ -1563,6 +1958,28 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
+    // Route to media generation when the client requests a text-to-image or
+    // text-to-video turn. The composer attaches a `media_generation` field
+    // with mode + params; when mode is a media mode we invoke the provider's
+    // textToImage / textToVideo instead of a regular LLM round and return an
+    // assistant message containing MessageImageContent / MessageVideoContent.
+    const mediaGeneration =
+      data.media_generation && typeof data.media_generation === "object"
+        ? (data.media_generation as Record<string, unknown>)
+        : null;
+    if (
+      mediaGeneration &&
+      typeof mediaGeneration.mode === "string" &&
+      mediaGeneration.mode !== "chat"
+    ) {
+      await this.handleMediaGenerationMessage(
+        data,
+        mediaGeneration,
+        requestSeq
+      );
+      return;
+    }
+
     // Route to agent mode if requested — matches Python's handle_message_impl
     const agentMode = data.agent_mode === true || data.agent_mode === "true";
     if (agentMode) {
@@ -1580,36 +1997,73 @@ export class UnifiedWebSocketRunner {
 
     const provider = await this.resolveProvider(providerId, userId);
 
-    // Build provider-format tool schemas from raw tool data, filtering out entries with no name
+    // Extract tool names from raw tool data — supports both string[] and object[]
     const rawTools = Array.isArray(data.tools) ? data.tools : [];
-    const providerToolSchemas: ProviderTool[] = rawTools
+    const toolNames: string[] = rawTools
       .map((t) => {
+        if (typeof t === "string") return t;
         const tool = t as Record<string, unknown>;
-        return {
-          name: typeof tool.name === "string" ? tool.name : "",
-          description:
-            typeof tool.description === "string" ? tool.description : undefined,
-          inputSchema:
-            typeof tool.inputSchema === "object"
-              ? (tool.inputSchema as Record<string, unknown>)
-              : undefined
-        };
+        return typeof tool.name === "string" ? tool.name : "";
       })
-      .filter((t) => t.name.length > 0);
+      .filter((n) => n.length > 0);
+    log.info("Chat tools from client", {
+      rawToolCount: rawTools.length,
+      rawToolTypes: rawTools.map((t) => typeof t),
+      toolNames
+    });
 
     // Resolve server-side Tool instances for execution
-    const toolNames = providerToolSchemas.map((t) => t.name).filter(Boolean);
     let serverTools: Tool[] = [];
     if (toolNames.length > 0 && this.resolveTools) {
       serverTools = await this.resolveTools(toolNames, userId);
     }
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
+    log.info("Resolved server tools", {
+      requested: toolNames,
+      resolved: serverTools.map((t) => t.name),
+      hasResolveTools: !!this.resolveTools
+    });
+
+    // Build provider-format tool schemas from resolved Tool instances + client tools
+    const providerToolSchemas: ProviderTool[] = serverTools.map((t) =>
+      t.toProviderTool()
+    );
+    // Only include client tools (ui_*) when a workflow is active
+    const clientToolNames = workflowId
+      ? Object.keys(this.clientToolsManifest)
+      : [];
+    if (workflowId) {
+      for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
+        providerToolSchemas.push({
+          name,
+          description:
+            typeof manifest.description === "string"
+              ? manifest.description
+              : undefined,
+          inputSchema:
+            typeof manifest.inputSchema === "object"
+              ? (manifest.inputSchema as Record<string, unknown>)
+              : undefined
+        });
+      }
+    }
+    log.info("Provider tool schemas", {
+      serverToolCount: serverTools.length,
+      clientToolCount: clientToolNames.length,
+      clientTools: clientToolNames,
+      totalSchemas: providerToolSchemas.length,
+      schemaNames: providerToolSchemas.map((t) => t.name)
+    });
 
     // Create a processing context for tool execution
+    const chatWorkspaceDir =
+      workflowId && this.workspaceResolver
+        ? await this.workspaceResolver(workflowId, userId)
+        : tmpdir();
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
-      workspaceDir: null
+      workspaceDir: chatWorkspaceDir
     });
 
     // Prepend system prompt if first message isn't system role — matches Python
@@ -1669,7 +2123,48 @@ export class UnifiedWebSocketRunner {
             shouldIncludeTools && providerToolSchemas.length > 0
               ? providerToolSchemas
               : undefined,
-          threadId
+          threadId,
+          onToolCall:
+            shouldIncludeTools && providerToolSchemas.length > 0
+              ? async (name: string, args: Record<string, unknown>) => {
+                  let toolResult: unknown;
+                  const serverTool = serverToolMap.get(name);
+                  if (serverTool) {
+                    try {
+                      toolResult = await serverTool.process(ctx, args);
+                    } catch (err) {
+                      const errMsg =
+                        err instanceof Error ? err.message : String(err);
+                      toolResult = { error: errMsg };
+                    }
+                  } else if (this.clientToolsManifest[name]) {
+                    // Client-side tool — send to UI via ToolBridge
+                    const callId = `call_${Date.now()}`;
+                    await this.sendMessage({
+                      type: "tool_call",
+                      thread_id: threadId,
+                      tool_call_id: callId,
+                      name,
+                      args
+                    });
+                    const clientResult = await this.toolBridge.createWaiter(
+                      callId,
+                      300_000
+                    );
+                    toolResult =
+                      clientResult.result ?? clientResult.content ?? clientResult;
+                  } else {
+                    toolResult = { error: `Tool "${name}" not available` };
+                  }
+                  const processed = await this.processToolResult(
+                    toolResult,
+                    ctx
+                  );
+                  return typeof processed === "string"
+                    ? processed
+                    : JSON.stringify(processed);
+                }
+              : undefined
         });
 
         // Phase 1: Stream chunks and collect tool calls
@@ -1694,78 +2189,97 @@ export class UnifiedWebSocketRunner {
             // --- Tool call from provider (collect, don't execute yet) ---
             const tc = item as ProviderToolCall;
             log.info("Tool call", { tool: tc.name, args: tc.args });
-
-            // Build assistant Message with tool_calls and send to client immediately
-            const assistantMsgData: Record<string, unknown> = {
-              type: "message",
-              role: "assistant",
-              tool_calls: [
-                { id: tc.id, name: tc.name, args: tc.args, result: null }
-              ],
-              thread_id: threadId,
-              workflow_id: workflowId,
-              provider: providerId,
-              model
-            };
-            await this.saveMessageToDb(assistantMsgData);
-            await this.sendMessage(assistantMsgData);
-
-            // Add assistant message to unprocessed for next provider round
-            unprocessedMessages.push({
-              role: "assistant",
-              content: null,
-              toolCalls: [{ id: tc.id, name: tc.name, args: tc.args }],
-              toolCallId: null,
-              threadId
-            });
-
             pendingToolCalls.push({ tc });
           }
+        }
+
+        // Build ONE assistant message with ALL tool calls (OpenAI requires this)
+        if (pendingToolCalls.length > 0) {
+          const allToolCalls = pendingToolCalls.map(({ tc }) => ({
+            id: tc.id,
+            name: tc.name,
+            args: tc.args,
+            result: null
+          }));
+          const assistantMsgData: Record<string, unknown> = {
+            type: "message",
+            role: "assistant",
+            content: content || null,
+            tool_calls: allToolCalls,
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model
+          };
+          await this.saveMessageToDb(assistantMsgData);
+          await this.sendMessage(assistantMsgData);
+
+          unprocessedMessages.push({
+            role: "assistant",
+            content: content || null,
+            toolCalls: pendingToolCalls.map(({ tc }) => ({
+              id: tc.id,
+              name: tc.name,
+              args: tc.args
+            })),
+            toolCallId: null,
+            threadId
+          });
         }
 
         // Phase 2: Execute all collected tool calls in parallel
         if (pendingToolCalls.length > 0) {
           const executeOne = async ({ tc }: PendingToolCall) => {
-            let toolResult: unknown;
-            const serverTool = serverToolMap.get(tc.name);
-            if (serverTool) {
-              try {
-                toolResult = await serverTool.process(ctx, tc.args);
-              } catch (err) {
-                const errMsg = err instanceof Error ? err.message : String(err);
-                log.error("Tool execution failed", {
-                  tool: tc.name,
-                  error: errMsg
+            try {
+              let toolResult: unknown;
+              const serverTool = serverToolMap.get(tc.name);
+              if (serverTool) {
+                try {
+                  toolResult = await serverTool.process(ctx, tc.args);
+                } catch (err) {
+                  const errMsg =
+                    err instanceof Error ? err.message : String(err);
+                  log.error("Tool execution failed", {
+                    tool: tc.name,
+                    error: errMsg
+                  });
+                  toolResult = { error: errMsg };
+                }
+              } else if (this.clientToolsManifest[tc.name]) {
+                // Client-side tool via ToolBridge
+                await this.sendMessage({
+                  type: "tool_call",
+                  thread_id: threadId,
+                  tool_call_id: tc.id,
+                  name: tc.name,
+                  args: tc.args
                 });
-                toolResult = { error: errMsg };
+                const clientResult = await this.toolBridge.createWaiter(
+                  tc.id,
+                  300_000
+                );
+                toolResult =
+                  clientResult.result ?? clientResult.content ?? clientResult;
+              } else {
+                toolResult = { error: `Tool "${tc.name}" not available` };
               }
-            } else if (this.clientToolsManifest[tc.name]) {
-              // Client-side tool via ToolBridge
-              await this.sendMessage({
-                type: "tool_call",
-                thread_id: threadId,
-                tool_call_id: tc.id,
-                name: tc.name,
-                args: tc.args
-              });
-              const clientResult = await this.toolBridge.createWaiter(
-                tc.id,
-                300_000
+
+              // Process tool result — handle asset-like objects, dates, etc.
+              const processedResult = await this.processToolResult(
+                toolResult,
+                ctx
               );
-              toolResult =
-                clientResult.result ?? clientResult.content ?? clientResult;
-            } else {
-              toolResult = { error: `Tool "${tc.name}" not available` };
+              const toolResultJson = JSON.stringify(processedResult);
+
+              return { tc, toolResultJson };
+            } catch (err) {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              log.error("Tool executeOne failed", {
+                tool: tc.name,
+                error: errMsg
+              });
+              return { tc, toolResultJson: JSON.stringify({ error: errMsg }) };
             }
-
-            // Process tool result — handle asset-like objects, dates, etc.
-            const processedResult = await this.processToolResult(
-              toolResult,
-              ctx
-            );
-            const toolResultJson = JSON.stringify(processedResult);
-
-            return { tc, toolResultJson };
           };
 
           const results = await Promise.all(pendingToolCalls.map(executeOne));
@@ -2105,6 +2619,725 @@ export class UnifiedWebSocketRunner {
    *   6. Collect output_update results
    *   7. Send done chunk + response message with typed content
    */
+  /**
+   * Handle a chat_message with a `media_generation` payload by invoking the
+   * selected provider's textToImage / textToVideo API, storing the resulting
+   * asset(s), and returning them to the client as an assistant `Message`
+   * whose `content` is an array of `MessageImageContent` / `MessageVideoContent`
+   * blocks.
+   *
+   * The generated bytes are persisted via `ctx.storage.store()` so each
+   * output receives a stable URI the client can resolve as a server asset.
+   * The `media_generation` echo on the assistant message lets the UI render
+   * the generation header (model, variation count, resolution, etc.) in the
+   * conversation stream.
+   */
+  private async handleMediaGenerationMessage(
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    requestSeq?: number
+  ): Promise<void> {
+    const threadId =
+      typeof data.thread_id === "string" ? data.thread_id : "";
+    const workflowId =
+      typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const userId = this.userId ?? "1";
+    const mode = String(mediaGeneration.mode ?? "");
+    const providerId = String(
+      mediaGeneration.provider ?? data.provider ?? this.defaultProvider
+    );
+    const modelId = String(
+      mediaGeneration.model ?? data.model ?? this.defaultModel
+    );
+    const prompt = this.extractTextContent(data.content);
+
+    log.info("Media generation", {
+      threadId,
+      mode,
+      provider: providerId,
+      model: modelId,
+      promptLen: prompt.length
+    });
+
+    if (!this.resolveProvider) {
+      await this.sendMessage({
+        type: "error",
+        message: "No provider resolver configured",
+        thread_id: threadId
+      });
+      return;
+    }
+
+    if (!modelId || modelId === "undefined") {
+      await this.sendMessage({
+        type: "error",
+        message: `Please select a ${mode} model before generating`,
+        thread_id: threadId
+      });
+      return;
+    }
+
+    if (!prompt) {
+      await this.sendMessage({
+        type: "error",
+        message: "Please enter a prompt",
+        thread_id: threadId
+      });
+      return;
+    }
+
+    if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
+
+    const provider = await this.resolveProvider(providerId, userId);
+    // Wire up progress forwarding so provider.emitMessage() reaches the client.
+    provider.setMessageEmitter((msg) =>
+      void this.sendMessage(msg as Record<string, unknown>)
+    );
+
+    // Store generated media as a proper Asset record and return the
+    // asset ID.  The DB message stores only `asset_id` — URLs are
+    // resolved at serve time by resolveContentUrls / sendMessage.
+    const storagePath = getAssetStoragePath();
+    const storeMediaAsset = async (
+      bytes: Uint8Array,
+      contentType: string,
+      ext: string
+    ): Promise<string> => {
+      const { join } = await import("node:path");
+      const { writeFile: fsWrite, mkdir: fsMkdir } = await import(
+        "node:fs/promises"
+      );
+      const asset = new Asset({
+        user_id: userId,
+        workflow_id: workflowId ?? null,
+        name: `${mode}_${Date.now()}`,
+        content_type: contentType,
+        parent_id: null
+      });
+      const fileName = `${asset.id}.${ext}`;
+      await fsMkdir(storagePath, { recursive: true });
+      await fsWrite(join(storagePath, fileName), bytes);
+      asset.size = bytes.length;
+      await asset.save();
+      return asset.id;
+    };
+
+    try {
+      if (mode === "image") {
+        const variations = Math.max(
+          1,
+          Math.min(Number(mediaGeneration.variations ?? 1), 8)
+        );
+        const width =
+          typeof mediaGeneration.width === "number"
+            ? mediaGeneration.width
+            : undefined;
+        const height =
+          typeof mediaGeneration.height === "number"
+            ? mediaGeneration.height
+            : undefined;
+        const imageModel: ProviderImageModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+        const params: TextToImageParams = {
+          model: imageModel,
+          prompt,
+          width,
+          height
+        };
+
+        // Surface a progress chunk so the UI can show the request flight
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+          return;
+        const imageBytesList = await provider.textToImages(params, variations);
+        const imageContents: Array<Record<string, unknown>> = [];
+        for (const bytes of imageBytesList) {
+          const assetId = await storeMediaAsset(bytes, "image/png", "png");
+          imageContents.push({
+            type: "image_url",
+            image: { type: "image", asset_id: assetId, mimeType: "image/png" }
+          });
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: imageContents,
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      if (mode === "video") {
+        const aspectRatio =
+          typeof mediaGeneration.aspect_ratio === "string"
+            ? (mediaGeneration.aspect_ratio as string)
+            : null;
+        const resolution =
+          typeof mediaGeneration.resolution === "string"
+            ? (mediaGeneration.resolution as string)
+            : null;
+        const duration =
+          typeof mediaGeneration.duration === "number"
+            ? (mediaGeneration.duration as number)
+            : null;
+        const videoModel: ProviderVideoModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+        const params: TextToVideoParams = {
+          model: videoModel,
+          prompt,
+          aspectRatio,
+          resolution,
+          durationSeconds: duration
+        };
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        const bytes = await provider.textToVideo(params);
+        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "video",
+              video: {
+                type: "video",
+                asset_id: assetId,
+                format: "mp4",
+                duration: duration
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      if (mode === "audio") {
+        const voice =
+          typeof mediaGeneration.voice === "string"
+            ? (mediaGeneration.voice as string)
+            : undefined;
+        const speed =
+          typeof mediaGeneration.speed === "number"
+            ? (mediaGeneration.speed as number)
+            : 1.0;
+        const requestedFormatRaw =
+          typeof mediaGeneration.audio_format === "string"
+            ? (mediaGeneration.audio_format as string).toLowerCase()
+            : null;
+        const supportedFormats = new Set([
+          "mp3",
+          "wav",
+          "pcm",
+          "opus",
+          "flac",
+          "aac"
+        ]);
+        const requestedFormat =
+          requestedFormatRaw && supportedFormats.has(requestedFormatRaw)
+            ? requestedFormatRaw
+            : null;
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        let assetId: string;
+        let audioMimeType: string;
+
+        // Some providers (e.g. HuggingFace, OpenAI) can return fully-encoded
+        // audio. Prefer that path when available and honor the requested
+        // container when the provider supports it.
+        const encoded = await provider.textToSpeechEncoded({
+          text: prompt,
+          model: modelId,
+          voice,
+          speed,
+          audioFormat: requestedFormat ?? undefined
+        });
+
+        if (encoded) {
+          const mimeToExt: Record<string, string> = {
+            "audio/mpeg": "mp3",
+            "audio/wav": "wav",
+            "audio/ogg": "ogg",
+            "audio/flac": "flac",
+            "audio/aac": "aac"
+          };
+          const ext = mimeToExt[encoded.mimeType] ?? "flac";
+          if (
+            requestedFormat &&
+            requestedFormat !== ext &&
+            requestedFormat !== "pcm"
+          ) {
+            log.warn(
+              "Requested audio_format not supported by provider; returning native format",
+              { providerId, modelId, requestedFormat, returnedMime: encoded.mimeType }
+            );
+          }
+          assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
+          audioMimeType = encoded.mimeType;
+        } else {
+          // Streaming PCM path (OpenAI, Gemini, etc.)
+          const pcmChunks: Uint8Array[] = [];
+          let totalBytes = 0;
+          let chunkSampleRate = 24000;
+          for await (const chunk of provider.textToSpeech({
+            text: prompt,
+            model: modelId,
+            voice,
+            speed,
+            audioFormat: requestedFormat ?? undefined
+          })) {
+            if (
+              requestSeq !== undefined &&
+              requestSeq !== this.chatRequestSeq
+            )
+              return;
+            if (chunk?.samples) {
+              if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
+              const view = new Uint8Array(
+                chunk.samples.buffer,
+                chunk.samples.byteOffset,
+                chunk.samples.byteLength
+              );
+              const copy = new Uint8Array(view);
+              pcmChunks.push(copy);
+              totalBytes += copy.byteLength;
+            }
+          }
+          const merged = new Uint8Array(totalBytes);
+          let off = 0;
+          for (const c of pcmChunks) {
+            merged.set(c, off);
+            off += c.byteLength;
+          }
+
+          if (requestedFormat === "pcm") {
+            // Return raw PCM Int16 bytes (no container).
+            assetId = await storeMediaAsset(merged, "audio/pcm", "pcm");
+            audioMimeType = "audio/pcm";
+          } else {
+            if (
+              requestedFormat &&
+              requestedFormat !== "wav" &&
+              requestedFormat !== "pcm"
+            ) {
+              log.warn(
+                "Requested audio_format cannot be produced from streaming PCM; falling back to WAV",
+                { providerId, modelId, requestedFormat }
+              );
+            }
+            // Wrap raw PCM Int16 in a WAV container so browsers can play it.
+            const sampleRate = chunkSampleRate;
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+            const blockAlign = numChannels * (bitsPerSample / 8);
+            const wavHeader = new ArrayBuffer(44);
+            const dv = new DataView(wavHeader);
+            const writeStr = (pos: number, str: string) => {
+              for (let i = 0; i < str.length; i++)
+                dv.setUint8(pos + i, str.charCodeAt(i));
+            };
+            writeStr(0, "RIFF");
+            dv.setUint32(4, 36 + merged.byteLength, true);
+            writeStr(8, "WAVE");
+            writeStr(12, "fmt ");
+            dv.setUint32(16, 16, true);
+            dv.setUint16(20, 1, true);
+            dv.setUint16(22, numChannels, true);
+            dv.setUint32(24, sampleRate, true);
+            dv.setUint32(28, byteRate, true);
+            dv.setUint16(32, blockAlign, true);
+            dv.setUint16(34, bitsPerSample, true);
+            writeStr(36, "data");
+            dv.setUint32(40, merged.byteLength, true);
+
+            const wav = new Uint8Array(44 + merged.byteLength);
+            wav.set(new Uint8Array(wavHeader), 0);
+            wav.set(merged, 44);
+
+            assetId = await storeMediaAsset(wav, "audio/wav", "wav");
+            audioMimeType = "audio/wav";
+          }
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "audio",
+              audio: {
+                type: "audio",
+                asset_id: assetId,
+                mimeType: audioMimeType
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      if (mode === "image_edit" || mode === "image_to_video") {
+        // Resolve the source image from either the message content (most
+        // common path: user dropped an image into the composer) or from the
+        // explicit `source_asset_id` echo on the media_generation payload.
+        const sourceBytes = await this.resolveSourceImageBytes(
+          data,
+          mediaGeneration,
+          userId
+        );
+        if (!sourceBytes) {
+          await this.sendMessage({
+            type: "error",
+            message:
+              "A source image is required — drop or attach an image first",
+            thread_id: threadId
+          });
+          return;
+        }
+
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          content_type: "text",
+          content_metadata: { media_generation: mediaGeneration },
+          done: false
+        });
+
+        if (mode === "image_edit") {
+          const variations = Math.max(
+            1,
+            Math.min(Number(mediaGeneration.variations ?? 1), 8)
+          );
+          const targetWidth =
+            typeof mediaGeneration.width === "number"
+              ? (mediaGeneration.width as number)
+              : undefined;
+          const targetHeight =
+            typeof mediaGeneration.height === "number"
+              ? (mediaGeneration.height as number)
+              : undefined;
+          const strength =
+            typeof mediaGeneration.strength === "number"
+              ? (mediaGeneration.strength as number)
+              : undefined;
+          const numInferenceSteps =
+            typeof mediaGeneration.num_inference_steps === "number"
+              ? (mediaGeneration.num_inference_steps as number)
+              : undefined;
+          const editModel: ProviderImageModel = {
+            id: modelId,
+            name: modelId,
+            provider: providerId
+          };
+          const params: ImageToImageParams = {
+            model: editModel,
+            prompt,
+            targetWidth: targetWidth ?? null,
+            targetHeight: targetHeight ?? null,
+            strength: strength ?? null,
+            numInferenceSteps: numInferenceSteps ?? null
+          };
+          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
+            return;
+          const imageBytesList = await provider.imageToImages(
+            sourceBytes,
+            params,
+            variations
+          );
+          const imageContents: Array<Record<string, unknown>> = [];
+          for (const bytes of imageBytesList) {
+            const assetId = await storeMediaAsset(bytes, "image/png", "png");
+            imageContents.push({
+              type: "image_url",
+              image: {
+                type: "image",
+                asset_id: assetId,
+                mimeType: "image/png"
+              }
+            });
+          }
+          await this.sendMessage({
+            type: "chunk",
+            thread_id: threadId,
+            content: "",
+            done: true
+          });
+          const assistantMsgData: Record<string, unknown> = {
+            type: "message",
+            role: "assistant",
+            content: imageContents,
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model: modelId,
+            media_generation: mediaGeneration
+          };
+          await this.saveMessageToDb(assistantMsgData);
+          await this.sendMessage(assistantMsgData);
+          return;
+        }
+
+        // image_to_video
+        const aspectRatio =
+          typeof mediaGeneration.aspect_ratio === "string"
+            ? (mediaGeneration.aspect_ratio as string)
+            : null;
+        const resolution =
+          typeof mediaGeneration.resolution === "string"
+            ? (mediaGeneration.resolution as string)
+            : null;
+        const duration =
+          typeof mediaGeneration.duration === "number"
+            ? (mediaGeneration.duration as number)
+            : null;
+        const numInferenceSteps =
+          typeof mediaGeneration.num_inference_steps === "number"
+            ? (mediaGeneration.num_inference_steps as number)
+            : null;
+        const i2vModel: ProviderVideoModel = {
+          id: modelId,
+          name: modelId,
+          provider: providerId
+        };
+        const params: ImageToVideoParams = {
+          model: i2vModel,
+          prompt,
+          aspectRatio,
+          resolution,
+          durationSeconds: duration,
+          numInferenceSteps
+        };
+        const bytes = await provider.imageToVideo(sourceBytes, params);
+        const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
+        await this.sendMessage({
+          type: "chunk",
+          thread_id: threadId,
+          content: "",
+          done: true
+        });
+        const assistantMsgData: Record<string, unknown> = {
+          type: "message",
+          role: "assistant",
+          content: [
+            {
+              type: "video",
+              video: {
+                type: "video",
+                asset_id: assetId,
+                format: "mp4",
+                duration
+              }
+            }
+          ],
+          thread_id: threadId,
+          workflow_id: workflowId,
+          provider: providerId,
+          model: modelId,
+          media_generation: mediaGeneration
+        };
+        await this.saveMessageToDb(assistantMsgData);
+        await this.sendMessage(assistantMsgData);
+        return;
+      }
+
+      // Modes not yet implemented on the backend — fall back to an informative
+      // error so the client can render the unsupported state cleanly.
+      await this.sendMessage({
+        type: "error",
+        message: `Media generation mode "${mode}" is not yet supported`,
+        thread_id: threadId
+      });
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      log.error("Media generation error", { threadId, mode, error: errMsg });
+      await this.sendMessage({
+        type: "error",
+        message: `Generation failed: ${errMsg}`,
+        thread_id: threadId
+      });
+    }
+  }
+
+  /**
+   * Resolve the source image bytes for image-edit / image-to-video calls.
+   * Searches in priority order:
+   *   1. `media_generation.source_asset_id`  → load from Asset storage
+   *   2. The first `image_url` content block on the user message
+   *      (supports asset_id, http(s) uri, and inline data:base64 payloads)
+   * Returns `null` when no usable source image can be found.
+   */
+  private async resolveSourceImageBytes(
+    data: Record<string, unknown>,
+    mediaGeneration: Record<string, unknown>,
+    userId: string
+  ): Promise<Uint8Array | null> {
+    const tryLoadAsset = async (
+      assetId: string
+    ): Promise<Uint8Array | null> => {
+      if (!assetId) return null;
+      try {
+        const asset = await Asset.find(userId, assetId);
+        if (!asset) return null;
+        const ext = (asset.content_type ?? "image/png").split("/")[1] ?? "png";
+        const { join } = await import("node:path");
+        const { readFile } = await import("node:fs/promises");
+        return new Uint8Array(
+          await readFile(join(getAssetStoragePath(), `${assetId}.${ext}`))
+        );
+      } catch (err) {
+        log.warn("resolveSourceImageBytes: asset load failed", {
+          assetId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+        return null;
+      }
+    };
+
+    const explicitId =
+      typeof mediaGeneration.source_asset_id === "string"
+        ? (mediaGeneration.source_asset_id as string)
+        : null;
+    if (explicitId) {
+      const fromAsset = await tryLoadAsset(explicitId);
+      if (fromAsset) return fromAsset;
+    }
+
+    const content = data.content;
+    if (Array.isArray(content)) {
+      for (const c of content) {
+        if (!c || typeof c !== "object") continue;
+        const block = c as Record<string, unknown>;
+        if (block.type !== "image_url") continue;
+        const image = (block.image ?? {}) as Record<string, unknown>;
+        const assetId =
+          typeof image.asset_id === "string"
+            ? (image.asset_id as string)
+            : null;
+        if (assetId) {
+          const bytes = await tryLoadAsset(assetId);
+          if (bytes) return bytes;
+        }
+        const uri =
+          typeof image.uri === "string" ? (image.uri as string) : null;
+        if (uri) {
+          if (uri.startsWith("data:")) {
+            const commaIdx = uri.indexOf(",");
+            if (commaIdx > -1) {
+              const b64 = uri.slice(commaIdx + 1);
+              try {
+                return new Uint8Array(Buffer.from(b64, "base64"));
+              } catch {
+                /* fall through */
+              }
+            }
+          } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+            if (!isSafeExternalUrl(uri)) {
+              log.warn(
+                "resolveSourceImageBytes: refusing to fetch non-public URL",
+                { uri }
+              );
+            } else {
+              try {
+                const resp = await fetch(uri);
+                if (resp.ok) {
+                  return new Uint8Array(await resp.arrayBuffer());
+                }
+              } catch (err) {
+                log.warn("resolveSourceImageBytes: fetch failed", {
+                  uri,
+                  error: err instanceof Error ? err.message : String(err)
+                });
+              }
+            }
+          }
+        }
+        const data64 =
+          typeof image.data === "string" ? (image.data as string) : null;
+        if (data64) {
+          try {
+            return new Uint8Array(Buffer.from(data64, "base64"));
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   private async handleWorkflowMessage(
     data: Record<string, unknown>,
     _requestSeq?: number
@@ -2208,7 +3441,7 @@ export class UnifiedWebSocketRunner {
         workflowId,
         userId,
         workspaceDir,
-        assetOutputMode: this.mode === "text" ? "data_uri" : "raw"
+        assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
       });
 
       // Expose executor/node-type resolution for sub-workflow nodes
@@ -2530,10 +3763,14 @@ export class UnifiedWebSocketRunner {
     }
 
     // Create ProcessingContext for agent execution
+    const agentWorkspaceDir =
+      workflowId && this.workspaceResolver
+        ? await this.workspaceResolver(workflowId, userId)
+        : tmpdir();
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
       userId,
-      workspaceDir: null
+      workspaceDir: agentWorkspaceDir
     });
 
     try {
@@ -2746,6 +3983,16 @@ export class UnifiedWebSocketRunner {
       ) {
         const md = (results as Record<string, unknown>).markdown;
         content = typeof md === "string" ? md : String(results);
+      } else if (results != null && typeof results === "object") {
+        // Structured result — run one more LLM call to present it
+        const resultsJson = JSON.stringify(results, null, 2);
+        content = await this.presentStructuredResults(
+          provider,
+          model,
+          objective,
+          resultsJson,
+          threadId
+        );
       } else {
         content = results != null ? String(results) : "";
       }

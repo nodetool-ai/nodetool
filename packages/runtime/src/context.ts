@@ -1430,10 +1430,6 @@ export class ProcessingContext {
           >[0]["tools"],
           toolChoice: params.tool_choice as string | undefined,
           maxTokens: params.max_tokens as number | undefined,
-          responseFormat: params.response_format as
-            | Record<string, unknown>
-            | undefined,
-          jsonSchema: params.json_schema as Record<string, unknown> | undefined,
           temperature: params.temperature as number | undefined,
           topP: params.top_p as number | undefined,
           presencePenalty: params.presence_penalty as number | undefined,
@@ -1534,10 +1530,6 @@ export class ProcessingContext {
             BaseProvider["generateMessages"]
           >[0]["tools"],
           maxTokens: params.max_tokens as number | undefined,
-          responseFormat: params.response_format as
-            | Record<string, unknown>
-            | undefined,
-          jsonSchema: params.json_schema as Record<string, unknown> | undefined,
           temperature: params.temperature as number | undefined,
           topP: params.top_p as number | undefined,
           presencePenalty: params.presence_penalty as number | undefined,
@@ -1580,6 +1572,8 @@ export class ProcessingContext {
    */
   static sanitizeForClient(value: unknown): unknown {
     if (value === null || value === undefined) return value;
+    const binary = ProcessingContext.toClientBytes(value);
+    if (binary) return binary;
     if (Array.isArray(value)) {
       return value.map((v) => ProcessingContext.sanitizeForClient(v));
     }
@@ -1615,6 +1609,18 @@ export class ProcessingContext {
       result[k] = ProcessingContext.sanitizeForClient(v);
     }
     return result;
+  }
+
+  private static toClientBytes(
+    value: unknown
+  ): Record<string, unknown> | null {
+    if (value instanceof Uint8Array) {
+      return { type: "bytes", length: value.length };
+    }
+    if (value instanceof ArrayBuffer) {
+      return { type: "bytes", length: value.byteLength };
+    }
+    return null;
   }
 
   /**
@@ -1756,6 +1762,8 @@ export class ProcessingContext {
     mode: AssetOutputMode = this.assetOutputMode
   ): Promise<unknown> {
     if (value === null || value === undefined) return value;
+    const binary = ProcessingContext.toClientBytes(value);
+    if (binary) return binary;
 
     if (Array.isArray(value)) {
       return Promise.all(

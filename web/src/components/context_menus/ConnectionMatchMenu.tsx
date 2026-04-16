@@ -3,11 +3,10 @@ import {
   Menu,
   MenuItem,
   ListItemText,
-  Typography,
   Box,
   Divider
 } from "@mui/material";
-import { Caption } from "../ui_primitives";
+import { Caption, Text } from "../ui_primitives";
 import { Connection } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 
@@ -69,9 +68,9 @@ const ConnectionMatchMenu: React.FC = () => {
       anchorPosition={{ top: menuPosition.y, left: menuPosition.x }}
     >
       <MenuItem disabled>
-        <Typography variant="body2" fontWeight={600}>
+        <Text size="small" weight={600}>
           Select Connection
-        </Typography>
+        </Text>
       </MenuItem>
       {options.map((option) => [
         <Divider key={`divider-${option.id}`} />,
@@ -86,9 +85,9 @@ const ConnectionMatchMenu: React.FC = () => {
         >
           <ListItemText
             primary={
-              <Typography variant="body2" fontWeight={600}>
+              <Text size="small" weight={600}>
                 {option.label}
-              </Typography>
+              </Text>
             }
             secondary={
               <Box

@@ -1,5 +1,5 @@
 import React, { useState, memo, useCallback } from "react";
-import { Typography } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import { relativeTime } from "../../../utils/formatDateAndTime";
 import { ThreadItemProps } from "../types/thread.types";
 import { DeleteButton } from "../../ui_primitives";
@@ -46,13 +46,13 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
-      <Typography className="thread-title">
+      <Text className="thread-title">
         {thread.title || previewText}
-      </Typography>
+      </Text>
       {showDate && (
-        <Typography className="date">
+        <Text className="date">
           {relativeTime(thread.updatedAt)}
-        </Typography>
+        </Text>
       )}
       <DeleteButton
         onClick={handleDeleteClick}

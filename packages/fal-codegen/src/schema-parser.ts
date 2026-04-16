@@ -273,13 +273,30 @@ export class SchemaParser {
         continue;
       }
 
-      // Check for enum
+      // Check for enum — either top-level or inside anyOf/oneOf variants
       let enumRef: string | undefined;
+      let enumValues: string[] | undefined;
       if ("enum" in (prop as AnyRecord)) {
+        enumValues = (prop as AnyRecord)["enum"] as string[];
+      } else {
+        // Look for enum inside anyOf/oneOf (common FAL pattern:
+        // anyOf: [{$ref: "#/.../ImageSize"}, {type: "string", enum: [...]}])
+        const variants = ((prop as AnyRecord)["anyOf"] ??
+          (prop as AnyRecord)["oneOf"]) as AnyRecord[] | undefined;
+        if (variants) {
+          for (const variant of variants) {
+            if ("enum" in variant) {
+              enumValues = variant["enum"] as string[];
+              break;
+            }
+          }
+        }
+      }
+      if (enumValues) {
         const enumName = this._generateEnumName(name);
         const enumDef: EnumDef = {
           name: enumName,
-          values: ((prop as AnyRecord)["enum"] as string[]).map((v) => [
+          values: enumValues.map((v) => [
             this.toEnumValue(v),
             v
           ]),
@@ -305,19 +322,21 @@ export class SchemaParser {
         enumRef
       );
 
+      const propRec = prop as AnyRecord;
+      const fieldMin = propRec["minimum"] as number | undefined;
+      const fieldMax = propRec["maximum"] as number | undefined;
       fields.push({
         name,
         tsType,
         propType,
         default: defaultVal,
-        description:
-          ((prop as AnyRecord)["description"] as string | undefined) ?? "",
+        description: (propRec["description"] as string | undefined) ?? "",
         fieldType,
         required: required.includes(name),
         enumRef,
-        enumValues: enumRef
-          ? ((prop as AnyRecord)["enum"] as string[] | undefined)
-          : undefined
+        enumValues: enumRef ? enumValues : undefined,
+        ...(fieldMin !== undefined && { min: fieldMin }),
+        ...(fieldMax !== undefined && { max: fieldMax })
       });
     }
 

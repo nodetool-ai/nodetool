@@ -38,6 +38,7 @@ describe("downloadPreviewAssets", () => {
         previewValue: { data: "test" },
       });
     } catch (_e) {
+      // expected
     }
 
     expect(mockCreateAssetFile).toHaveBeenCalledWith({ data: "test" }, "test-node");
@@ -53,6 +54,7 @@ describe("downloadPreviewAssets", () => {
         rawResult: { output: "raw output" },
       });
     } catch (_e) {
+      // expected
     }
 
     expect(mockCreateAssetFile).toHaveBeenCalledWith("raw output", "test-node");
@@ -68,6 +70,7 @@ describe("downloadPreviewAssets", () => {
         rawResult: "raw result string",
       });
     } catch (_e) {
+      // expected
     }
 
     expect(mockCreateAssetFile).toHaveBeenCalledWith("raw result string", "test-node");
@@ -84,6 +87,7 @@ describe("downloadPreviewAssets", () => {
         rawResult: { output: "raw output" },
       });
     } catch (_e) {
+      // expected
     }
 
     expect(mockCreateAssetFile).toHaveBeenCalledWith("preview value", "test-node");
@@ -143,7 +147,7 @@ describe("downloadPreviewAssets", () => {
     });
 
     expect(consoleWarnSpy).toHaveBeenCalled();
-    expect(mockAnchor.href).toBe("/api/storage/123.mp4");
+    expect(mockAnchor.href).toBe("http://localhost:7777/api/storage/123.mp4");
     expect(mockAnchor.download).toBe("123.mp4");
     expect(mockAnchor.click).toHaveBeenCalled();
 

@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').cpSync('src/fal-manifest.json', 'dist/fal-manifest.json')\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
@@ -16,8 +16,8 @@
     "@nodetool/node-sdk": "*"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
   "exports": {
@@ -25,6 +25,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./fal-manifest.json": "./src/fal-manifest.json"
   }
 }

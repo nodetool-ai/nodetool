@@ -230,11 +230,11 @@ describe("ImageGenerationNode", () => {
     await expect(node.process()).rejects.toThrow(/prompt cannot be empty/i);
   });
 
-  it("uses predict endpoint for imagen models", async () => {
+  it("uses generateImages endpoint for imagen models", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        predictions: [{ bytesBase64Encoded: "abc123base64" }]
+        generatedImages: [{ image: { imageBytes: "abc123base64" } }]
       })
     });
 
@@ -246,7 +246,7 @@ describe("ImageGenerationNode", () => {
     const result = await node.process();
 
     const [url] = mockFetch.mock.calls[0];
-    expect(url).toContain(":predict");
+    expect(url).toContain(":generateImages");
     expect((result.output as Record<string, unknown>).data).toBe(
       "abc123base64"
     );

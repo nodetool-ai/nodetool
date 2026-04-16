@@ -330,8 +330,6 @@ export class LlamaProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -341,16 +339,8 @@ export class LlamaProvider extends BaseProvider {
     const {
       model,
       tools = [],
-      maxTokens = 1024,
-      responseFormat,
-      jsonSchema
+      maxTokens = 1024
     } = args;
-
-    if (jsonSchema) {
-      throw new Error(
-        "Llama provider expects responseFormat; jsonSchema is not supported directly"
-      );
-    }
 
     const normalized = await this.normalizeMessagesForLlama(args.messages);
     const openaiMessages = await Promise.all(
@@ -363,7 +353,6 @@ export class LlamaProvider extends BaseProvider {
       max_tokens: maxTokens,
       stream: true
     };
-    if (responseFormat) request.response_format = responseFormat;
     if (tools.length > 0 && (await this.hasToolSupport(model))) {
       request.tools = this.formatTools(tools);
     }
@@ -441,8 +430,6 @@ export class LlamaProvider extends BaseProvider {
     model: string;
     tools?: ProviderTool[];
     maxTokens?: number;
-    responseFormat?: Record<string, unknown>;
-    jsonSchema?: Record<string, unknown>;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;
@@ -451,16 +438,8 @@ export class LlamaProvider extends BaseProvider {
     const {
       model,
       tools = [],
-      maxTokens = 1024,
-      responseFormat,
-      jsonSchema
+      maxTokens = 1024
     } = args;
-
-    if (jsonSchema) {
-      throw new Error(
-        "Llama provider expects responseFormat; jsonSchema is not supported directly"
-      );
-    }
 
     const normalized = await this.normalizeMessagesForLlama(args.messages);
     const openaiMessages = await Promise.all(
@@ -473,7 +452,6 @@ export class LlamaProvider extends BaseProvider {
       max_tokens: maxTokens,
       stream: false
     };
-    if (responseFormat) request.response_format = responseFormat;
     if (tools.length > 0 && (await this.hasToolSupport(model))) {
       request.tools = this.formatTools(tools);
     }

@@ -14,15 +14,17 @@ const dialogStyles = (theme: Theme) =>
       minWidth: "min(320px, calc(100vw - 32px))"
     },
     ".dialog-content": {
-      padding: "0 .5em"
+      padding: "1em 1.25em"
     },
     ".dialog-title": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.grey[100],
+      fontSize: theme.fontSizeBig,
+      fontWeight: 500,
+      color: theme.vars.palette.grey[0],
       wordSpacing: "normal",
-      margin: ".5em 0 0",
-      padding: "1em"
+      margin: 0,
+      padding: "1em 1.25em",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".dialog-title span": {
       borderBottom: `2px solid ${"var(--palette-primary-main)"}`

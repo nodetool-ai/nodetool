@@ -26,10 +26,18 @@ import { PythonProvider } from "./python-provider.js";
 import { ReplicateProvider } from "./replicate-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { FalProvider } from "./fal-provider.js";
+import { KieProvider } from "./kie-provider.js";
 export { BaseProvider };
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
-export type { OnToolCall } from "./claude-agent-provider.js";
+export {
+  ClaudeAgentError,
+  classifyClaudeAgentError
+} from "./claude-agent-provider.js";
+export type {
+  OnToolCall,
+  ClaudeAgentErrorKind
+} from "./claude-agent-provider.js";
 export { GeminiProvider };
 export { LlamaProvider };
 export { OpenAIProvider };
@@ -45,6 +53,7 @@ export { HuggingFaceProvider };
 export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
+export { KieProvider };
 export {
   FakeProvider,
   createFakeToolCall,
@@ -56,6 +65,7 @@ export type { FakeProviderOptions } from "./fake-provider.js";
 export {
   ScriptedProvider,
   planScript,
+  multiTaskPlanScript,
   stepScript,
   textScript,
   toolCallScript,
@@ -65,7 +75,8 @@ export {
 export type {
   ScriptFn,
   ScriptItem,
-  TaskPlanSpec
+  TaskPlanSpec,
+  MultiTaskPlanSpec
 } from "./scripted-provider.js";
 export {
   registerProvider,
@@ -99,6 +110,7 @@ export type {
   ImageToVideoParams,
   ProviderStreamItem,
   StreamingAudioChunk,
+  EncodedAudioResult,
   AudioChunk,
   ASRResult
 } from "./types.js";
@@ -123,6 +135,9 @@ registerBuiltinProvider("replicate", ReplicateProvider, {
 });
 registerBuiltinProvider("fal_ai", FalProvider, {
   FAL_API_KEY: process.env["FAL_API_KEY"]
+});
+registerBuiltinProvider("kie", KieProvider, {
+  KIE_API_KEY: process.env["KIE_API_KEY"]
 });
 registerBuiltinProvider("openrouter", OpenRouterProvider, {
   OPENROUTER_API_KEY: process.env["OPENROUTER_API_KEY"]

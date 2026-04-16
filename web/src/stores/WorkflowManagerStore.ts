@@ -14,8 +14,7 @@ import {
   WorkflowRequest
 } from "./ApiTypes";
 import { client } from "./ApiClient";
-import debounce from "lodash/debounce";
-import omit from "lodash/omit";
+import { debounce, omit } from "../utils/lodashAlternatives";
 import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "./uuidv4";
 import { QueryClient } from "@tanstack/react-query";

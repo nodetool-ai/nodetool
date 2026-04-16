@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useEffect, useRef, useCallback } from "react";
-import { Box, Typography, List, ListItem, ListItemButton } from "@mui/material";
+import { Box, List, ListItem, ListItemButton } from "@mui/material";
+import { Text, Caption } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -406,12 +407,12 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                   data-index={index}
                   onClick={handleResultClick}
                 >
-                  <Typography className="result-name" variant="body2">
+                  <Text className="result-name" size="small">
                     {getNodeDisplayName(result.node)}
-                  </Typography>
-                  <Typography className="result-type" variant="caption">
+                  </Text>
+                  <Caption className="result-type">
                     {formatNodeType(result.node.type ?? "")}
-                  </Typography>
+                  </Caption>
                 </ListItemButton>
               </ListItem>
             ))}
@@ -419,7 +420,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         ) : searchTerm ? (
           <Box className="empty-state">
             <SearchIcon className="empty-icon" />
-            <Typography className="empty-text">No matching nodes</Typography>
+            <Text className="empty-text">No matching nodes</Text>
           </Box>
         ) : null}
       </Box>

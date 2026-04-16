@@ -105,8 +105,8 @@ const CollectionsExplorer = React.lazy(
 const TemplateGrid = React.lazy(
   () => import("./components/workflows/ExampleGrid")
 );
-const VibeCodingRoute = React.lazy(
-  () => import("./components/vibecoding/VibeCodingRoute")
+const ChainEditorPage = React.lazy(
+  () => import("./components/chain_editor/ChainEditorPage")
 );
 const Portal = React.lazy(() => import("./components/portal/Portal"));
 const LayoutTest = React.lazy(() => import("./components/LayoutTest"));
@@ -307,29 +307,6 @@ function getRoutes() {
       )
     },
     {
-      path: "/vibecoding/:workspaceId?",
-      element: (
-        <ProtectedRoute>
-          <>
-            <AppHeader />
-            <div
-              style={{
-                display: "flex",
-                width: "100%",
-                height: "100%"
-              }}
-            >
-              <PanelLeft />
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", marginLeft: 16 }}>
-                <VibeCodingRoute />
-              </div>
-              <PanelBottom />
-            </div>
-          </>
-        </ProtectedRoute>
-      )
-    },
-    {
       path: "/miniapp/:workflowId",
       element: (
         <ProtectedRoute>
@@ -441,6 +418,26 @@ function getRoutes() {
     {
       path: "graph/:workflowId",
       element: <WorkflowGraphView />
+    },
+    {
+      path: "chain/:workflowId?",
+      element: (
+        <ProtectedRoute>
+          <div
+            className="page-enter"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <SkipLinks />
+            <AppHeader />
+            <ChainEditorPage />
+          </div>
+        </ProtectedRoute>
+      )
     }
   ];
 
@@ -512,7 +509,7 @@ const preloadComfyMetadata = async (): Promise<void> => {
       return;
     }
     const objectInfo = (objectInfoModule.default ??
-      objectInfoModule) as ComfyUIObjectInfo;
+      objectInfoModule) as unknown as ComfyUIObjectInfo;
     const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
     const comfyMetadataCount = Object.keys(comfyMetadata).length;
     if (comfyMetadataCount === 0) {

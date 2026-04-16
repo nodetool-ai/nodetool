@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { EditorButton, FlexColumn, FlexRow, LoadingSpinner, Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material";
@@ -170,12 +170,12 @@ const TemplatesPanel: React.FC<TemplatesPanelProps> = ({
                   }}
                 />
                 <div className="example-info">
-                  <Typography className="example-name">{example.name}</Typography>
+                  <Text className="example-name">{example.name}</Text>
                 </div>
                 {example.description && (
-                  <Typography className="example-description-tooltip">
+                  <Text className="example-description-tooltip">
                     {truncateString(example.description, 100)}
-                  </Typography>
+                  </Text>
                 )}
               </Box>
             ))}

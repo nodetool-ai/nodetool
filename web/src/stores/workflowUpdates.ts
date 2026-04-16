@@ -24,11 +24,14 @@ import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
+import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { useNodeResultHistoryStore } from "./NodeResultHistoryStore";
 import { NodeStore } from "./NodeStore";
+import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
+import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 
 export type { NodeStore };
 
@@ -284,11 +287,12 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
-    setOutputResult(workflow.id, update.node_id, update.value, true);
+    const normalizedValue = normalizeOutputUpdateValue(update);
+    setOutputResult(workflow.id, update.node_id, normalizedValue, true);
 
     // Add each streaming output to history for display in ResultOverlay
     addToHistory(workflow.id, update.node_id, {
-      result: update.value,
+      result: normalizedValue,
       timestamp: Date.now(),
       jobId: runner.job_id,
       status: "completed"
@@ -299,9 +303,9 @@ export const handleUpdate = (
       workflowName: workflow.name,
       nodeId: update.node_id,
       nodeName: update.node_name,
-      content: `Output: ${typeof update.value === "string"
-          ? update.value
-          : JSON.stringify(update.value)
+      content: `Output: ${typeof normalizedValue === "string"
+          ? normalizedValue
+          : JSON.stringify(normalizedValue)
         }`,
       severity: "info",
       timestamp: Date.now()
@@ -427,7 +431,7 @@ export const handleUpdate = (
           alert: true,
           content:
             job.message || "Workflow suspended - waiting for external input",
-          timeout: 10000
+          timeout: NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED
         });
         break;
     }
@@ -559,8 +563,9 @@ export const handleUpdate = (
         const nextStatic: Record<string, unknown> = {};
 
         const isDynamicSchemaNode =
-          update.node_type === "fal.dynamic_schema.FalAI" ||
-          update.node_type === "kie.dynamic_schema.KieAI";
+          update.node_type === "fal.DynamicFal" ||
+          update.node_type === DYNAMIC_KIE_NODE_TYPE ||
+          update.node_type === "kie.DynamicKie";
 
         for (const key in update.properties) {
           if (!Object.prototype.hasOwnProperty.call(update.properties, key)) {continue;}

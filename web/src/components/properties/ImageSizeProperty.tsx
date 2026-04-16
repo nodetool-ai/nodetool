@@ -2,8 +2,9 @@ import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
-import isEqual from "lodash/isEqual";
-import { Box, IconButton } from "@mui/material";
+import isEqual from "fast-deep-equal";
+import { FlexColumn, FlexRow, ToolbarIconButton } from "../ui_primitives";
+import { Box } from "@mui/material";
 import { IMAGE_SIZE_PRESETS as PRESETS } from "../../config/constants";
 import Lock from "@mui/icons-material/Lock";
 import LockOpen from "@mui/icons-material/LockOpen";
@@ -12,6 +13,7 @@ import SwapHoriz from "@mui/icons-material/SwapHoriz";
 import { useNodes } from "../../contexts/NodeContext";
 import { ImageSizePresetsMenu } from "./ImageSizePresetsMenu";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import ConnectedBadge from "./ConnectedBadge";
 
 type ImageSizeValue = {
   width: number;
@@ -113,22 +115,25 @@ const ImageSizeProperty = (props: PropertyProps) => {
 
   if (isConnected) {
     return (
-      <PropertyLabel
-        name={property.name}
-        description={property.description}
-        id={id}
-      />
+      <div className="connected">
+        <PropertyLabel
+          name={property.name}
+          description={property.description}
+          id={id}
+        />
+        <ConnectedBadge />
+      </div>
     );
   }
 
   return (
-    <Box className="image-size-property-container" sx={{ display: 'flex', flexDirection: 'column', width: '100%', overflow: "hidden" }}>
+    <FlexColumn className="image-size-property-container" fullWidth sx={{ overflow: "hidden" }}>
       <PropertyLabel
         name={property.name}
         description={property.description}
         id={id}
       />
-      <Box className="image-size-property" sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', mt: 0.5 }}>
+      <FlexRow className="image-size-property" align="center" gap={1} fullWidth sx={{ mt: 0.5 }}>
         <Box className="width-input-container" sx={{ width: '70px', mr: 4 }}>
           <NumberInput 
               id={`${nodeId}-${property.name}-width`}
@@ -160,52 +165,46 @@ const ImageSizeProperty = (props: PropertyProps) => {
         </Box>
 
         <Box className="spacer" sx={{ flex: 1 }} />
-        <Box className="icon-container" sx={{ display: 'flex', alignItems: 'center', gap: 0, mt: -2 }}>  
-          <IconButton 
+        <FlexRow className="icon-container" align="center" gap={0} sx={{ mt: -2 }}>
+          <ToolbarIconButton
+            tooltip="Swap Width and Height"
+            icon={<SwapHoriz sx={{ fontSize: '1.2rem' }} />}
             className="aspect-swap-button"
-            onClick={handleSwap} 
-            size="small" 
-            sx={{ 
+            onClick={handleSwap}
+            size="small"
+            sx={{
                 p: 0.5,
                 color: 'text.secondary',
                 alignSelf: 'center',
             }}
-            title="Swap Width and Height"
-            aria-label="Swap Width and Height"
-          >
-            <SwapHoriz sx={{ fontSize: '1.2rem' }} />
-          </IconButton>
+          />
 
-          <IconButton 
+          <ToolbarIconButton
+            tooltip={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
+            icon={locked ? <Lock sx={{ fontSize: '1rem' }} /> : <LockOpen sx={{ fontSize: '1rem' }} />}
             className="aspect-lock-button"
-            onClick={toggleLock} 
-            size="small" 
-            sx={{ 
+            onClick={toggleLock}
+            size="small"
+            sx={{
                 p: 0.5,
                 color: locked ? 'primary.main' : 'text.secondary',
                 alignSelf: 'center',
             }}
-            title={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
-            aria-label={locked ? "Unlock Aspect Ratio" : "Lock Aspect Ratio"}
-          >
-            {locked ? <Lock sx={{ fontSize: '1rem' }} /> : <LockOpen sx={{ fontSize: '1rem' }} />}
-          </IconButton>
+          />
 
-          <IconButton 
+          <ToolbarIconButton
+            tooltip="Presets"
+            icon={<MoreVert sx={{ fontSize: '1.2rem' }} />}
             className="presets-menu-button"
             onClick={handlePresetClick}
             size="small"
-            sx={{ 
+            sx={{
                 p: 0.5,
                 color: 'text.secondary',
                 alignSelf: 'center',
             }}
-            title="Presets"
-            aria-label="Presets"
-          >
-            <MoreVert sx={{ fontSize: '1.2rem' }} />
-          </IconButton>
-        </Box>
+          />
+        </FlexRow>
 
         <ImageSizePresetsMenu 
           anchorEl={anchorEl}
@@ -215,13 +214,13 @@ const ImageSizeProperty = (props: PropertyProps) => {
           currentWidth={safeValue.width}
           currentHeight={safeValue.height}
         />
-      </Box>
+      </FlexRow>
       {matchedPreset && (
-        <Box 
+        <Box
             className="matched-preset-label"
-            sx={{ 
-                fontSize: 'var(--fontSizeTiny)', 
-                color: 'text.secondary', 
+            sx={{
+                fontSize: 'var(--fontSizeTiny)',
+                color: 'text.secondary',
                 mt: -0.5,
                 lineHeight: 1,
                 userSelect: 'none',
@@ -231,7 +230,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
           {matchedPreset.label} {matchedPreset.aspectRatio}
         </Box>
       )}
-    </Box>
+    </FlexColumn>
   );
 };
 

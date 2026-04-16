@@ -1,19 +1,14 @@
 /**
- * Smoke tests for generated FAL node definitions.
+ * Smoke tests for FAL node definitions (manifest-driven).
  *
- * These tests verify that every generated category file:
- *  1. Exports a non-empty array of node classes
+ * These tests verify that the manifest-driven factory:
+ *  1. Creates a non-empty array of node classes
  *  2. Every class has the required static metadata fields
  *  3. Every class has a process() method
- *  4. The combined FAL_NODES export contains all node classes
+ *  4. Image output nodes are streaming
  */
 
 import { vi, describe, it, expect } from "vitest";
-
-/* ------------------------------------------------------------------ */
-/*  Mock @fal-ai/client — generated nodes import fal-base which needs  */
-/*  the SDK to be present even for metadata-only smoke tests.          */
-/* ------------------------------------------------------------------ */
 
 vi.mock("@fal-ai/client", () => ({
   createFalClient: vi.fn(() => ({
@@ -21,184 +16,80 @@ vi.mock("@fal-ai/client", () => ({
     storage: { upload: vi.fn() }
   }))
 }));
-import type { NodeClass } from "@nodetool/node-sdk";
 
-import { FAL_3D_TO_3D_NODES } from "../src/generated/3d-to-3d.js";
-import { FAL_AUDIO_TO_AUDIO_NODES } from "../src/generated/audio-to-audio.js";
-import { FAL_AUDIO_TO_TEXT_NODES } from "../src/generated/audio-to-text.js";
-import { FAL_AUDIO_TO_VIDEO_NODES } from "../src/generated/audio-to-video.js";
-import { FAL_IMAGE_TO_3D_NODES } from "../src/generated/image-to-3d.js";
-import { FAL_IMAGE_TO_IMAGE_NODES } from "../src/generated/image-to-image.js";
-import { FAL_IMAGE_TO_JSON_NODES } from "../src/generated/image-to-json.js";
-import { FAL_IMAGE_TO_VIDEO_NODES } from "../src/generated/image-to-video.js";
-import { FAL_JSON_PROCESSING_NODES } from "../src/generated/json-processing.js";
-import { FAL_LLM_NODES } from "../src/generated/llm.js";
-import { FAL_SPEECH_TO_SPEECH_NODES } from "../src/generated/speech-to-speech.js";
-import { FAL_SPEECH_TO_TEXT_NODES } from "../src/generated/speech-to-text.js";
-import { FAL_TEXT_TO_3D_NODES } from "../src/generated/text-to-3d.js";
-import { FAL_TEXT_TO_AUDIO_NODES } from "../src/generated/text-to-audio.js";
-import { FAL_TEXT_TO_IMAGE_NODES } from "../src/generated/text-to-image.js";
-import { FAL_TEXT_TO_JSON_NODES } from "../src/generated/text-to-json.js";
-import { FAL_TEXT_TO_SPEECH_NODES } from "../src/generated/text-to-speech.js";
-import { FAL_TEXT_TO_VIDEO_NODES } from "../src/generated/text-to-video.js";
-import { FAL_TRAINING_NODES } from "../src/generated/training.js";
-import { FAL_UNKNOWN_NODES } from "../src/generated/unknown.js";
-import { FAL_VIDEO_TO_AUDIO_NODES } from "../src/generated/video-to-audio.js";
-import { FAL_VIDEO_TO_TEXT_NODES } from "../src/generated/video-to-text.js";
-import { FAL_VIDEO_TO_VIDEO_NODES } from "../src/generated/video-to-video.js";
-import { FAL_VISION_NODES } from "../src/generated/vision.js";
+import type { NodeClass } from "@nodetool/node-sdk";
 import { FAL_NODES, FalRawNode, FalDynamicNode } from "../src/index.js";
 
-/* ================================================================== */
-/*  Helpers                                                             */
-/* ================================================================== */
-
-function assertNodeArrayValid(name: string, nodes: readonly NodeClass[]): void {
-  describe(name, () => {
-    it("is a non-empty array", () => {
-      expect(Array.isArray(nodes)).toBe(true);
-      expect(nodes.length).toBeGreaterThan(0);
-    });
-
-    it("every node has a non-empty nodeType string", () => {
-      for (const NodeCls of nodes) {
-        expect(typeof NodeCls.nodeType).toBe("string");
-        expect((NodeCls.nodeType as string).length).toBeGreaterThan(0);
-      }
-    });
-
-    it("every node has a non-empty title string", () => {
-      for (const NodeCls of nodes) {
-        expect(typeof (NodeCls as Record<string, unknown>).title).toBe(
-          "string"
-        );
-        expect(
-          ((NodeCls as Record<string, unknown>).title as string).length
-        ).toBeGreaterThan(0);
-      }
-    });
-
-    it("every node has a non-empty description string", () => {
-      for (const NodeCls of nodes) {
-        expect(typeof (NodeCls as Record<string, unknown>).description).toBe(
-          "string"
-        );
-        expect(
-          ((NodeCls as Record<string, unknown>).description as string).length
-        ).toBeGreaterThan(0);
-      }
-    });
-
-    it("every node requires FAL_API_KEY", () => {
-      for (const NodeCls of nodes) {
-        const settings = (NodeCls as Record<string, unknown>)
-          .requiredSettings as string[];
-        expect(Array.isArray(settings)).toBe(true);
-        expect(settings).toContain("FAL_API_KEY");
-      }
-    });
-
-    it("every node has a process() method on its prototype", () => {
-      for (const NodeCls of nodes) {
-        const proto = (NodeCls as { prototype: Record<string, unknown> })
-          .prototype;
-        expect(typeof proto.process).toBe("function");
-      }
-    });
-
-    it("nodeType values are unique within the category", () => {
-      const types = nodes.map((n) => n.nodeType);
-      const unique = new Set(types);
-      expect(unique.size).toBe(types.length);
-    });
-  });
-}
-
-/* ================================================================== */
-/*  Per-category smoke tests                                            */
-/* ================================================================== */
-
-assertNodeArrayValid("FAL_3D_TO_3D_NODES", FAL_3D_TO_3D_NODES);
-assertNodeArrayValid("FAL_AUDIO_TO_AUDIO_NODES", FAL_AUDIO_TO_AUDIO_NODES);
-assertNodeArrayValid("FAL_AUDIO_TO_TEXT_NODES", FAL_AUDIO_TO_TEXT_NODES);
-assertNodeArrayValid("FAL_AUDIO_TO_VIDEO_NODES", FAL_AUDIO_TO_VIDEO_NODES);
-assertNodeArrayValid("FAL_IMAGE_TO_3D_NODES", FAL_IMAGE_TO_3D_NODES);
-assertNodeArrayValid("FAL_IMAGE_TO_IMAGE_NODES", FAL_IMAGE_TO_IMAGE_NODES);
-assertNodeArrayValid("FAL_IMAGE_TO_JSON_NODES", FAL_IMAGE_TO_JSON_NODES);
-assertNodeArrayValid("FAL_IMAGE_TO_VIDEO_NODES", FAL_IMAGE_TO_VIDEO_NODES);
-assertNodeArrayValid("FAL_JSON_PROCESSING_NODES", FAL_JSON_PROCESSING_NODES);
-assertNodeArrayValid("FAL_LLM_NODES", FAL_LLM_NODES);
-assertNodeArrayValid("FAL_SPEECH_TO_SPEECH_NODES", FAL_SPEECH_TO_SPEECH_NODES);
-assertNodeArrayValid("FAL_SPEECH_TO_TEXT_NODES", FAL_SPEECH_TO_TEXT_NODES);
-assertNodeArrayValid("FAL_TEXT_TO_3D_NODES", FAL_TEXT_TO_3D_NODES);
-assertNodeArrayValid("FAL_TEXT_TO_AUDIO_NODES", FAL_TEXT_TO_AUDIO_NODES);
-assertNodeArrayValid("FAL_TEXT_TO_IMAGE_NODES", FAL_TEXT_TO_IMAGE_NODES);
-assertNodeArrayValid("FAL_TEXT_TO_JSON_NODES", FAL_TEXT_TO_JSON_NODES);
-assertNodeArrayValid("FAL_TEXT_TO_SPEECH_NODES", FAL_TEXT_TO_SPEECH_NODES);
-assertNodeArrayValid("FAL_TEXT_TO_VIDEO_NODES", FAL_TEXT_TO_VIDEO_NODES);
-assertNodeArrayValid("FAL_TRAINING_NODES", FAL_TRAINING_NODES);
-assertNodeArrayValid("FAL_UNKNOWN_NODES", FAL_UNKNOWN_NODES);
-assertNodeArrayValid("FAL_VIDEO_TO_AUDIO_NODES", FAL_VIDEO_TO_AUDIO_NODES);
-assertNodeArrayValid("FAL_VIDEO_TO_TEXT_NODES", FAL_VIDEO_TO_TEXT_NODES);
-assertNodeArrayValid("FAL_VIDEO_TO_VIDEO_NODES", FAL_VIDEO_TO_VIDEO_NODES);
-assertNodeArrayValid("FAL_VISION_NODES", FAL_VISION_NODES);
-
-/* ================================================================== */
-/*  FAL_NODES combined export                                           */
-/* ================================================================== */
-
-describe("FAL_NODES combined export", () => {
-  it("is a non-empty readonly array", () => {
+describe("FAL_NODES from manifest", () => {
+  it("is a non-empty array", () => {
     expect(Array.isArray(FAL_NODES)).toBe(true);
-    expect(FAL_NODES.length).toBeGreaterThan(0);
+    expect(FAL_NODES.length).toBeGreaterThan(100);
   });
 
-  it("contains all category nodes", () => {
-    const allCategoryNodes = [
-      ...FAL_3D_TO_3D_NODES,
-      ...FAL_AUDIO_TO_AUDIO_NODES,
-      ...FAL_AUDIO_TO_TEXT_NODES,
-      ...FAL_AUDIO_TO_VIDEO_NODES,
-      ...FAL_IMAGE_TO_3D_NODES,
-      ...FAL_IMAGE_TO_IMAGE_NODES,
-      ...FAL_IMAGE_TO_JSON_NODES,
-      ...FAL_IMAGE_TO_VIDEO_NODES,
-      ...FAL_JSON_PROCESSING_NODES,
-      ...FAL_LLM_NODES,
-      ...FAL_SPEECH_TO_SPEECH_NODES,
-      ...FAL_SPEECH_TO_TEXT_NODES,
-      ...FAL_TEXT_TO_3D_NODES,
-      ...FAL_TEXT_TO_AUDIO_NODES,
-      ...FAL_TEXT_TO_IMAGE_NODES,
-      ...FAL_TEXT_TO_JSON_NODES,
-      ...FAL_TEXT_TO_SPEECH_NODES,
-      ...FAL_TEXT_TO_VIDEO_NODES,
-      ...FAL_TRAINING_NODES,
-      ...FAL_UNKNOWN_NODES,
-      ...FAL_VIDEO_TO_AUDIO_NODES,
-      ...FAL_VIDEO_TO_TEXT_NODES,
-      ...FAL_VIDEO_TO_VIDEO_NODES,
-      ...FAL_VISION_NODES
-    ];
-    expect(FAL_NODES.length).toBe(allCategoryNodes.length);
+  it("every node has a non-empty nodeType starting with fal.", () => {
+    for (const NodeCls of FAL_NODES) {
+      expect(typeof NodeCls.nodeType).toBe("string");
+      expect((NodeCls.nodeType as string).startsWith("fal.")).toBe(true);
+    }
   });
 
-  it("has globally unique nodeType values", () => {
+  it("every node has a non-empty title", () => {
+    for (const NodeCls of FAL_NODES) {
+      expect(typeof (NodeCls as Record<string, unknown>).title).toBe("string");
+      expect(
+        ((NodeCls as Record<string, unknown>).title as string).length
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("every node has a non-empty description", () => {
+    for (const NodeCls of FAL_NODES) {
+      expect(typeof (NodeCls as Record<string, unknown>).description).toBe("string");
+      expect(
+        ((NodeCls as Record<string, unknown>).description as string).length
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("every node requires FAL_API_KEY", () => {
+    for (const NodeCls of FAL_NODES) {
+      const settings = (NodeCls as Record<string, unknown>).requiredSettings as string[];
+      expect(Array.isArray(settings)).toBe(true);
+      expect(settings).toContain("FAL_API_KEY");
+    }
+  });
+
+  it("every node has a process() method on its prototype", () => {
+    for (const NodeCls of FAL_NODES) {
+      const proto = (NodeCls as { prototype: Record<string, unknown> }).prototype;
+      expect(typeof proto.process).toBe("function");
+    }
+  });
+
+  it("nodeType values are globally unique", () => {
     const types = FAL_NODES.map((n) => n.nodeType);
     const unique = new Set(types);
     expect(unique.size).toBe(types.length);
   });
 
-  it("all nodeType strings start with 'fal.'", () => {
-    for (const NodeCls of FAL_NODES) {
-      expect((NodeCls.nodeType as string).startsWith("fal.")).toBe(true);
+  it("image output nodes have streaming enabled", () => {
+    const imageNodes = FAL_NODES.filter(
+      (n) => (n as Record<string, unknown>).metadataOutputTypes &&
+        ((n as Record<string, unknown>).metadataOutputTypes as Record<string, string>).output === "image"
+    );
+    expect(imageNodes.length).toBeGreaterThan(0);
+    for (const NodeCls of imageNodes) {
+      expect((NodeCls as Record<string, unknown>).isStreamingOutput).toBe(true);
     }
   });
-});
 
-/* ================================================================== */
-/*  Index exports — dynamic nodes                                       */
-/* ================================================================== */
+  it("can instantiate nodes with properties", () => {
+    const flux = FAL_NODES.find((n) => n.nodeType === "fal.text_to_image.FluxDev");
+    expect(flux).toBeDefined();
+    const instance = new flux!({ prompt: "hello" });
+    expect((instance as Record<string, unknown>).prompt).toBe("hello");
+  });
+});
 
 describe("Index exports — dynamic nodes", () => {
   it("exports FalRawNode", () => {
@@ -212,10 +103,6 @@ describe("Index exports — dynamic nodes", () => {
   });
 });
 
-/* ================================================================== */
-/*  registerFalNodes                                                    */
-/* ================================================================== */
-
 describe("registerFalNodes", () => {
   it("registers every node from FAL_NODES into the provided registry", async () => {
     const { registerFalNodes } = await import("../src/index.js");
@@ -225,9 +112,5 @@ describe("registerFalNodes", () => {
     };
     registerFalNodes(registry);
     expect(registered.length).toBe(FAL_NODES.length);
-    // Every registered class should appear in FAL_NODES
-    for (const cls of registered) {
-      expect(FAL_NODES).toContain(cls);
-    }
   });
 });

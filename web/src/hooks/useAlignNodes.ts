@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { NodeData } from "../stores/NodeData";
 import { useNodes } from "../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 
 /** Configuration options for aligning nodes. */
 type AlignNodesOptions = {
@@ -25,7 +26,7 @@ const useAlignNodes = () => {
     nodes: state.nodes,
     setNodes: state.setNodes,
     getSelectedNodes: state.getSelectedNodes
-  }));
+  }), shallow);
 
   const alignNodes = useCallback(
     ({ arrangeSpacing, collapsed }: AlignNodesOptions) => {

@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
-import { Box, Typography, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
+import { Caption, Tooltip } from "../../ui_primitives";
 import useStatusStore, { hashKey } from "../../../stores/StatusStore";
 import { Workflow } from "../../../stores/ApiTypes";
 
@@ -276,9 +277,9 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
     return (
       <Box css={styles}>
         <div className="mini-graph-container">
-          <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center", display: "block", pt: 8 }}>
+          <Caption color="secondary" sx={{ textAlign: "center", display: "block", pt: 8 }}>
             No nodes to display
-          </Typography>
+          </Caption>
         </div>
       </Box>
     );

@@ -6,7 +6,6 @@ import {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  ResearchAgentNode,
   AGENT_NODES,
   StructuredOutputGeneratorNode,
   DataGeneratorNode,
@@ -37,14 +36,13 @@ function expectMetadataDefaults(NodeCls: any) {
 // ---------------------------------------------------------------------------
 
 describe("AGENT_NODES export", () => {
-  it("contains all 7 agent node classes", () => {
-    expect(AGENT_NODES).toHaveLength(6);
+  it("contains all 5 agent node classes", () => {
+    expect(AGENT_NODES).toHaveLength(5);
     expect(AGENT_NODES).toContain(SummarizerNode);
     expect(AGENT_NODES).toContain(CreateThreadNode);
     expect(AGENT_NODES).toContain(ExtractorNode);
     expect(AGENT_NODES).toContain(ClassifierNode);
     expect(AGENT_NODES).toContain(AgentNode);
-    expect(AGENT_NODES).toContain(ResearchAgentNode);
   });
 });
 
@@ -672,10 +670,7 @@ describe("AgentNode", () => {
       score: { type: "int" }
     };
     const mockProvider = {
-      async *generateMessages({
-        responseFormat
-      }: any): AsyncGenerator<Record<string, unknown>> {
-        expect(responseFormat.type).toBe("json_schema");
+      async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
         yield {
           type: "chunk",
           content: '{"answer":"ready","score":7}',
@@ -694,14 +689,10 @@ describe("AgentNode", () => {
     } as any)) {
       streamed.push(item);
     }
-    expect(streamed[streamed.length - 1]).toEqual({
-      answer: "ready",
-      score: 7
-    });
-    const result = await n.process({
-      getProvider: async () => mockProvider
-    } as any);
-    expect(result).toEqual({ answer: "ready", score: 7 });
+    // The last yield is the final result with structured outputs
+    const last = streamed[streamed.length - 1];
+    expect(last.answer).toBe("ready");
+    expect(last.score).toBe(7);
   });
 
   it("replays locally stored thread messages when model persistence is unavailable", async () => {
@@ -786,78 +777,7 @@ describe("AgentNode", () => {
   });
 });
 
-// ---- ResearchAgentNode ----
-describe("ResearchAgentNode", () => {
-  it("has correct static metadata", () => {
-    expect(ResearchAgentNode.nodeType).toBe("nodetool.agents.ResearchAgent");
-  });
-
-  it("defaults", () => {
-    expectMetadataDefaults(ResearchAgentNode);
-  });
-
-  it("produces research notes from query", async () => {
-    const n = new (ResearchAgentNode as any)();
-    n.assign({ objective: "What is TypeScript?" });
-    const result = await n.process();
-    expect(result.output).toContain("Question: What is TypeScript?");
-    expect(result.output).toContain("Summary:");
-    expect(result.output).toContain("Confidence: low");
-    expect(result.text).toBe(result.output);
-    expect(Array.isArray(result.findings)).toBe(true);
-    expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]).toEqual(
-      expect.objectContaining({
-        title: "What is TypeScript?",
-        summary: expect.any(String)
-      })
-    );
-    expect(result.findings[0].summary.length).toBeGreaterThan(0);
-  });
-
-  it("falls back to prompt when query is empty", async () => {
-    const n = new (ResearchAgentNode as any)();
-    n.assign({ objective: "Fallback prompt." });
-    const result = await n.process();
-    expect(result.output).toContain("Question: Fallback prompt.");
-  });
-
-  it("handles empty inputs", async () => {
-    const n = new (ResearchAgentNode as any)();
-    const result = await n.process();
-    expect(result.output).toContain("Question:");
-  });
-
-  it("uses provider-backed research synthesis when model is connected", async () => {
-    const n = new (ResearchAgentNode as any)();
-    const mockProvider = {
-      generateMessage: async () => ({
-        content:
-          '{"summary":"TypeScript is a typed superset of JavaScript.","findings":[{"title":"Overview","summary":"Adds static typing.","source":"https://example.com"}]}'
-      }),
-      async generateMessageTraced(...a: any[]) {
-        return (this as any).generateMessage(...a);
-      }
-    };
-    n.assign({
-      objective: "What is TypeScript?",
-      model: { provider: "test", id: "m1" }
-    });
-    const result = await n.process({
-      getProvider: async () => mockProvider
-    } as any);
-    expect(result.text).toContain("typed superset");
-    expect(Array.isArray(result.findings)).toBe(true);
-    expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]).toEqual(
-      expect.objectContaining({
-        title: "Overview",
-        summary: "Adds static typing.",
-        source: "https://example.com"
-      })
-    );
-  });
-});
+// ResearchAgentNode has been removed from agents.ts
 
 // ---------------------------------------------------------------------------
 // generators.ts

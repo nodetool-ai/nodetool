@@ -6,10 +6,9 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { IconButton, Tooltip, Typography } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { Tooltip, Text, CloseButton } from "../ui_primitives";
 import DescriptionIcon from "@mui/icons-material/Description";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
@@ -39,7 +38,7 @@ const styles = (theme: Theme) =>
     ".text-item": {
       position: "relative",
       width: "100%",
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      backgroundColor: `rgba(0, 0, 0, 0.2)`,
       borderRadius: "6px",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -76,7 +75,7 @@ const styles = (theme: Theme) =>
     ".remove-button": {
       opacity: 0,
       transition: "opacity 0.2s ease",
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      backgroundColor: `rgba(0, 0, 0, 0.7)`,
       color: theme.vars.palette.grey[100],
       padding: "2px",
       width: "20px",
@@ -100,7 +99,7 @@ const styles = (theme: Theme) =>
       transition: "all 0.2s ease",
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      backgroundColor: `rgba(0, 0, 0, 0.2)`,
       borderRadius: "6px",
       display: "flex",
       alignItems: "center",
@@ -108,7 +107,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       "&:hover": {
         outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-        backgroundColor: "rgba(0, 0, 0, 0.3)"
+        backgroundColor: `rgba(0, 0, 0, 0.3)`
       },
       "&.drag-over": {
         backgroundColor: theme.vars.palette.grey[600],
@@ -475,20 +474,16 @@ const TextListProperty = (props: PropertyProps) => {
             <div key={text.uri} className="text-item">
               <DescriptionIcon className="text-icon" />
               <div className="text-content">
-                <Typography className="text-filename" title={getFilename(text.uri)}>
+                <Text className="text-filename" title={getFilename(text.uri)}>
                   {getFilename(text.uri)}
-                </Typography>
+                </Text>
               </div>
-              <Tooltip title="Remove text file">
-                <IconButton
-                  className="remove-button"
-                  onClick={removeButtonClickHandlers[index]}
-                  size="small"
-                  aria-label="Remove text file"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              <CloseButton
+                className="remove-button"
+                onClick={removeButtonClickHandlers[index]}
+                buttonSize="small"
+                tooltip="Remove text file"
+              />
             </div>
           ))}
         </div>

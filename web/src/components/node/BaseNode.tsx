@@ -16,8 +16,9 @@ import {
   Position,
   ResizeParams
 } from "@xyflow/react";
-import isEqual from "lodash/isEqual";
-import { Button, Container, Tooltip } from "@mui/material";
+import isEqual from "fast-deep-equal";
+import { Container } from "@mui/material";
+import { Tooltip, EditorButton } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
@@ -32,6 +33,8 @@ import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
 import NodeStatus from "./NodeStatus";
 import NodeContent from "./NodeContent";
+import ResultOverlay from "./ResultOverlay";
+import { getBaseNodeSelectionStyles } from "./selectionStyles";
 import NodeToolButtons from "./NodeToolButtons";
 import NodeExecutionTime from "./NodeExecutionTime";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -46,7 +49,6 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
 import { getIsElectronDetails } from "../../utils/browser";
-import { Box } from "@mui/material";
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -58,6 +60,13 @@ import {
 } from "../../stores/graphEdgeToReactFlowEdge";
 import useConnectionStore from "../../stores/ConnectionStore";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import {
+  CODE_NODE_TYPE,
+  isCodeNode,
+  isCodeNodeTitleEditable,
+  resolveCodeNodeTitle,
+  resolveVisibleBasicFields
+} from "./codeNodeUi";
 
 // CONSTANTS
 const BASE_HEIGHT = 0; // Minimum height for the node
@@ -266,67 +275,6 @@ const getHeaderColors = (
   };
 };
 
-// Memoized function to generate node container styles
-const getNodeContainerStyles = (
-  isLoading: boolean,
-  selected: boolean,
-  isFocused: boolean,
-  hasParent: boolean,
-  hasToggleableResult: boolean,
-  baseColor: string | undefined,
-  parentColor: string | null,
-  theme: Theme,
-  minHeight: number
-) => ({
-  display: "flex" as const,
-  // Important for resizable nodes:
-  // ReactFlow applies width/height to the wrapper. Ensure our visual container
-  // stretches to match so vertical resizing is visible.
-  height: "100%",
-  minHeight,
-  border: isLoading ? "none" : `1px solid var(--palette-grey-900)`,
-  ...theme.applyStyles("dark", {
-    border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
-  }),
-  boxShadow: selected
-    ? `0 0 0 1px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
-    : isFocused
-      ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-      : "none",
-  outline: isFocused
-    ? `2px dashed ${theme.vars.palette.warning.main}`
-    : selected
-      ? `3px solid ${baseColor || "#666"}`
-      : "none",
-  outlineOffset: "-2px",
-  backgroundColor:
-    hasParent && !isLoading
-      ? parentColor
-      : selected
-        ? "transparent !important"
-        : theme.vars.palette.c_node_bg,
-  backdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-  WebkitBackdropFilter: selected ? theme.vars.palette.glass.blur : "none",
-  borderRadius: "var(--rounded-node)",
-  // dynamic node color
-  "--node-primary-color": baseColor || "var(--palette-primary-main)",
-  ...(hasToggleableResult
-    ? {
-        // show the corner resize handle on hover
-        "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-          opacity: 0,
-          position: "absolute" as const,
-          right: "-8px",
-          bottom: "-9px",
-          transition: "opacity 0.2s"
-        },
-        "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
-          opacity: 1
-        }
-      }
-    : {})
-});
-
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
@@ -389,20 +337,34 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   const meta = useMemo(() => {
+    const nodeBasicFields = resolveVisibleBasicFields(
+      type,
+      metadata.basic_fields || [],
+      data
+    );
     return {
       nodeNamespace: metadata.namespace || "",
-      nodeBasicFields: metadata.basic_fields || [],
+      nodeBasicFields,
       hasAdvancedFields:
         (metadata.properties?.length ?? 0) >
-        (metadata.basic_fields?.length ?? 0),
+        nodeBasicFields.length,
       showFooter: !specialNamespaces.includes(metadata.namespace || "")
     };
   }, [
+    data,
+    type,
     metadata.basic_fields,
     metadata.namespace,
     metadata.properties?.length,
     specialNamespaces
   ]);
+
+  const displayTitle = useMemo(
+    () => resolveCodeNodeTitle(type, data.title, metadata.title),
+    [data.title, metadata.title, type]
+  );
+  const showCodeBadge = isCodeNode(type);
+  const isCodeTitleEditable = isCodeNodeTitleEditable(type, data);
 
   // Style
   const styleProps = useMemo(
@@ -465,6 +427,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isConstantInputLockedResult =
     nodeType.isConstantNode && hasConnectedInput;
 
+  // Only auto-switch to result view for generative nodes (marked via
+  // `auto_save_asset` by providers like fal, kie, replicate, elevenlabs,
+  // gemini/openai image+audio, etc.). Non-generative nodes with visual
+  // outputs (e.g. pass-through image transforms) keep the inputs view
+  // visible until the user explicitly clicks the results toggle.
+  const isGenerativeNode = Boolean(metadata?.auto_save_asset);
+
   // Manage overlay visibility based on node status, result, and user preference
   useEffect(() => {
     if (suppressResultOverlay) {
@@ -488,23 +457,24 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     ) {
       setShowResultOverlay(true);
     }
-    // When node completes with result, respect user's saved preference
-    // for regular non-output nodes.
+    // When a generative node completes, show the rendered result by default
+    // (unless the user explicitly opted out). Non-generative nodes stay on
+    // their inputs view — users can toggle results manually via the header.
     else if (
       result &&
+      isGenerativeNode &&
       !nodeType.isOutputNode &&
       !nodeType.isConstantNode &&
       status === "completed"
     ) {
-      // Only show result overlay if user has explicitly saved that preference
-      if (data.showResultPreference === true) {
+      if (data.showResultPreference !== false) {
         setShowResultOverlay(true);
       }
-      // Otherwise stay on inputs view (default behavior)
     }
   }, [
     result,
     isConstantInputLockedResult,
+    isGenerativeNode,
     nodeType.isOutputNode,
     nodeType.isConstantNode,
     status,
@@ -539,8 +509,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isOverlayVisible = suppressResultOverlay
     ? false
     : shouldAlwaysShowResult
-    ? result && !isEmptyResult(result)
-    : showResultOverlay && result && !isEmptyResult(result);
+    ? Boolean(result && !isEmptyResult(result))
+    : Boolean(showResultOverlay && result && !isEmptyResult(result));
   const hasToggleableResult =
     !suppressResultOverlay &&
     !shouldAlwaysShowResult &&
@@ -587,21 +557,21 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // Memoize the container sx prop to prevent object recreation on every render
   const containerSx = useMemo(
     () =>
-      getNodeContainerStyles(
-        isLoading,
+      getBaseNodeSelectionStyles({
         selected,
         isFocused,
+        isLoading,
         hasParent,
-        Boolean(hasToggleableResult),
+        hasToggleableResult: Boolean(hasToggleableResult),
         baseColor,
         parentColor,
         theme,
-        styleProps.minHeight
-      ),
+        minHeight: styleProps.minHeight
+      }),
     [
-      isLoading,
       selected,
       isFocused,
+      isLoading,
       hasParent,
       hasToggleableResult,
       baseColor,
@@ -610,10 +580,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       styleProps.minHeight
     ]
   );
-
-  if (!metadata) {
-    throw new Error("Metadata is not loaded for node " + id);
-  }
 
   const onToggleAdvancedFields = useCallback(() => {
     setShowAdvancedFields(!showAdvancedFields);
@@ -667,6 +633,34 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       className={styleProps.className}
       sx={containerSx}
     >
+      {/* Result panel — floats above the node */}
+      {isOverlayVisible && (
+        <div
+          className="result-panel-above"
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            maxHeight: 300,
+            overflow: "auto",
+            borderRadius: "8px",
+            backgroundColor: "var(--palette-grey-900)",
+            border: "1px solid var(--palette-grey-800)",
+            zIndex: 5,
+            boxShadow: "0 -2px 12px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.15)",
+            padding: "8px"
+          }}
+        >
+          <ResultOverlay
+            result={result}
+            nodeId={id}
+            workflowId={workflow_id}
+            nodeName={displayTitle}
+            onShowInputs={nodeType.isOutputNode ? undefined : handleShowInputs}
+          />
+        </div>
+      )}
       <Handle
         type="target"
         id={CONTROL_HANDLE_ID}
@@ -681,6 +675,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         selected={selected}
         data={data}
         backgroundColor={headerColor}
+        title={displayTitle}
         metadataTitle={metadata.title}
         hasParent={hasParent}
         iconType={metadata?.outputs?.[0]?.type?.type}
@@ -690,6 +685,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         showInputsButton={Boolean(isOverlayVisible && hasToggleableResult)}
         onShowResults={handleShowResults}
         onShowInputs={handleShowInputs}
+        isTitleEditable={isCodeTitleEditable}
+        showCodeBadge={showCodeBadge}
+        codeBadgeTooltip="Code node"
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       {!hasError && metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
@@ -707,14 +705,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         nodeType={type}
         name={data.properties?.name as string | undefined}
       />
-      <Box
+      <div
         className="node-content-container"
-        sx={{
+        style={{
           flex: "1 1 auto",
           minHeight: 0,
           width: "100%",
-          overflow: "visible", // Allow handles to render outside bounds
-          clipPath: "inset(0 -20px)" // Clip top/bottom, extend left/right for handles
+          overflow: "visible",
+          clipPath: "inset(0 -60px)"
         }}
       >
         <NodeContent
@@ -736,7 +734,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           onShowInputs={handleShowInputs}
           onShowResults={handleShowResults}
         />
-      </Box>
+      </div>
 
       {/* Default behavior: width-only resize for regular nodes.
           If a node has toggleable result rendering, it uses the Preview-style corner handle instead. */}
@@ -762,37 +760,37 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {isFocused && (
-        <Box
-          sx={{
+        <div
+          style={{
             position: "absolute",
             top: -20,
             left: "50%",
             transform: "translateX(-50%)",
-            bgcolor: theme.vars.palette.warning.main,
+            backgroundColor: theme.vars.palette.warning.main,
             color: theme.vars.palette.warning.contrastText,
-            px: 1,
-            py: 0.25,
-            borderRadius: 1,
+            padding: "2px 8px",
+            borderRadius: 4,
             fontSize: "0.7rem",
             fontWeight: "bold",
-            zIndex: 1000,
-            boxShadow: 2
+            zIndex: 1000
           }}
         >
           FOCUSED
-        </Box>
+        </div>
       )}
 
-      {title && <EditableTitle nodeId={id} title={title} />}
+      {title && type !== CODE_NODE_TYPE && (
+        <EditableTitle nodeId={id} title={title} />
+      )}
 
       {selected && metadata.namespace && (
         <Tooltip
-          enterDelay={TOOLTIP_ENTER_DELAY * 2}
+          delay={TOOLTIP_ENTER_DELAY * 2}
           title="Open Node Menu here"
           placement="bottom"
           arrow
         >
-          <Button
+          <EditorButton
             variant="text"
             className="node-namespace nodrag nopan"
             onClick={handleNamespaceClick}
@@ -819,7 +817,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             }}
           >
             {metadata.namespace}
-          </Button>
+          </EditorButton>
         </Tooltip>
       )}
     </Container>

@@ -1,15 +1,40 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { Box, IconButton, Typography, Divider, Tooltip } from "@mui/material";
+import { Badge } from "@mui/material";
+import { Caption, Tooltip, FlexColumn, Divider, ToolbarIconButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import HistoryIcon from "@mui/icons-material/History";
 import OutputRenderer from "./OutputRenderer";
 import NodeHistoryPanel from "./NodeHistoryPanel";
 import { useNodeResultHistoryStore } from "../../stores/NodeResultHistoryStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { typeFor } from "./output";
+
+/**
+ * Returns a short display label for the result type.
+ */
+function resultTypeLabel(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const type = typeFor(value);
+  const labels: Record<string, string> = {
+    image: "Image",
+    audio: "Audio",
+    video: "Video",
+    string: "Text",
+    number: "Number",
+    boolean: "Boolean",
+    array: "Array",
+    dataframe: "DataFrame",
+    model_3d: "3D Model",
+    html: "HTML",
+    document: "Document",
+    object: "Object"
+  };
+  return labels[type] || type;
+}
 
 interface ResultOverlayProps {
-  result: any;
+  result: unknown;
   nodeId?: string;
   workflowId?: string;
   nodeName?: string;
@@ -47,65 +72,72 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
   const resultsToDisplay = hasSessionHistory ? sessionHistory : [{ result, timestamp: Date.now(), status: "completed", jobId: null }];
 
   return (
-    <Box
+    <FlexColumn
       className="result-overlay node-drag-handle"
+      fullWidth
+      fullHeight
       sx={{
         position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        height: "100%",
         minHeight: "60px",
         minWidth: 0,
         flex: 1
       }}
     >
-      {/* History button - only shows on hover */}
-      {hasSessionHistory && nodeId && workflowId && (
-        <Tooltip enterDelay={TOOLTIP_ENTER_DELAY} title="View History" placement="left">
-          <IconButton
-            size="small"
-            onClick={handleOpenHistory}
+      {/* History button - visible when multiple results exist */}
+      {hasSessionHistory && sessionHistory.length > 1 && nodeId && workflowId && (
+        <ToolbarIconButton
+          title={`View History (${sessionHistory.length})`}
+          size="small"
+          onClick={handleOpenHistory}
+          sx={{
+            position: "absolute",
+            top: 4,
+            right: 8,
+            zIndex: 10,
+            width: 24,
+            height: 24,
+            padding: "4px",
+            borderRadius: "4px",
+            opacity: 0.6,
+            transition: "opacity 0.2s ease",
+            backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
+            color: theme.vars.palette.common.white,
+            "&:hover": {
+              opacity: 1,
+              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
+            },
+            "& svg": {
+              fontSize: 14
+            }
+          }}
+        >
+          <Badge
+            badgeContent={sessionHistory.length}
+            color="primary"
+            max={99}
             sx={{
-              position: "absolute",
-              top: 4,
-              right: 8,
-              zIndex: 10,
-              width: 24,
-              height: 24,
-              padding: "4px",
-              borderRadius: "4px",
-              opacity: 0,
-              transition: "opacity 0.2s ease",
-              backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
-              color: theme.vars.palette.common.white,
-              ".result-overlay:hover &": {
-                opacity: 1
-              },
-              "&:hover": {
-                backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
-              },
-              "& svg": {
-                fontSize: 14
+              "& .MuiBadge-badge": {
+                fontSize: "0.6rem",
+                minWidth: 16,
+                height: 16,
+                padding: "0 3px"
               }
             }}
           >
             <HistoryIcon />
-          </IconButton>
-        </Tooltip>
+          </Badge>
+        </ToolbarIconButton>
       )}
 
       {/* Render accumulated session results */}
-      <Box
+      <FlexColumn
         className="result-overlay-content"
+        fullWidth
+        fullHeight
         sx={{
-          width: "100%",
-          height: "100%",
           minHeight: 0,
           minWidth: 0,
           flex: 1,
-          display: "flex",
-          flexDirection: "column",
           overflow: "auto",
           "& .image-output": {
             width: "100%",
@@ -113,28 +145,45 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
           }
         }}
       >
-        {resultsToDisplay.map((item, index) => (
-          <Box key={`result-${item.timestamp}-${index}`}>
-            {index > 0 && (
-              <Divider sx={{ my: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Result {resultsToDisplay.length - index}
-                </Typography>
-              </Divider>
-            )}
-            <OutputRenderer
-              value={
-                typeof item.result === "object" &&
-                  item.result !== null &&
-                  "output" in item.result &&
-                  item.result.output !== undefined
-                  ? item.result.output
-                  : item.result
-              }
-            />
-          </Box>
-        ))}
-      </Box>
+        {resultsToDisplay.map((item, index) => {
+          const unwrapped =
+            typeof item.result === "object" &&
+            item.result !== null &&
+            "output" in item.result &&
+            (item.result as Record<string, unknown>).output !== undefined
+              ? (item.result as Record<string, unknown>).output
+              : item.result;
+          const typeLabel = index === 0 ? resultTypeLabel(unwrapped) : "";
+          return (
+            <div key={`result-${item.timestamp}-${index}`}>
+              {index === 0 && typeLabel && (
+                <Caption
+                  size="tiny"
+                  sx={{
+                    display: "block",
+                    px: 1,
+                    pt: 0.5,
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    opacity: 0.7
+                  }}
+                >
+                  {typeLabel}
+                </Caption>
+              )}
+              {index > 0 && (
+                <Divider sx={{ my: 1 }}>
+                  <Caption>
+                    Result {resultsToDisplay.length - index}
+                  </Caption>
+                </Divider>
+              )}
+              <OutputRenderer value={unwrapped} />
+            </div>
+          );
+        })}
+      </FlexColumn>
 
       {/* History Dialog */}
       {nodeId && workflowId && (
@@ -146,7 +195,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
           onClose={handleCloseHistory}
         />
       )}
-    </Box>
+    </FlexColumn>
   );
 };
 

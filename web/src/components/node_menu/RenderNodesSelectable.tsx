@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -8,15 +9,14 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 // utils
 import NodeItem from "./NodeItem";
 import {
-  Typography,
-  Tooltip,
   Accordion,
   AccordionSummary,
   AccordionDetails,
   Checkbox,
   Box
 } from "@mui/material";
-import isEqual from "lodash/isEqual";
+import { Tooltip, Text } from "../ui_primitives";
+import isEqual from "fast-deep-equal";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SearchResultGroup } from "../../utils/nodeSearch";
 import { serializeDragData } from "../../lib/dragdrop";
@@ -188,14 +188,15 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
     <Tooltip
       title={tooltips[title] || ""}
       placement="bottom"
-      enterDelay={200}
+      delay={200}
       slotProps={{
         popper: { sx: { zIndex: 2000 } },
         tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
       }}
     >
-      <Typography
-        variant="h6"
+      <Text
+        size="normal"
+        weight={600}
         component="div"
         sx={{
           color: "var(--palette-primary-main)",
@@ -204,7 +205,7 @@ const GroupTitle: React.FC<{ title: string }> = memo(function GroupTitle({
         }}
       >
         {title}
-      </Typography>
+      </Text>
     </Tooltip>
   );
 });
@@ -220,10 +221,12 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   scrollToNamespace,
   onScrollToNamespaceComplete
 }) => {
-  const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
-    groupedSearchResults: state.groupedSearchResults,
-    searchTerm: state.searchTerm
-  }));
+  const { groupedSearchResults, searchTerm } = useNodeMenuStore(
+    useShallow((state) => ({
+      groupedSearchResults: state.groupedSearchResults,
+      searchTerm: state.searchTerm
+    }))
+  );
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
   
@@ -311,9 +314,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     return new Set(selectedNodeTypes);
   }, [selectedNodeTypes]);
 
-  const { selectedPath } = useNodeMenuStore((state) => ({
-    selectedPath: state.selectedPath.join(".")
-  }));
+  const selectedPath = useNodeMenuStore((state) => state.selectedPath.join("."));
 
   const nodesByNamespaceAll = useMemo(() => groupNodes(nodes), [nodes]);
 
@@ -382,7 +383,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                       <Tooltip
                         title="Toggle all in namespace"
                         placement="left"
-                        enterDelay={500}
+                        delay={500}
                         slotProps={{
                           popper: { sx: { zIndex: 2000 } },
                           tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
@@ -410,8 +411,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                           )}
                         </span>
                       </Tooltip>
-                      <Typography
-                        variant="h5"
+                      <Text
+                        size="normal"
+                        weight={600}
                         component="div"
                         className="namespace-text"
                         sx={{
@@ -422,7 +424,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                         {selectedPath.length > 0
                           ? namespace.replaceAll(selectedPath + ".", "")
                           : namespace}
-                      </Typography>
+                      </Text>
                     </Box>
                     <div className="node-items-group">
                       {nodesInNamespace.map((node) => (
@@ -506,7 +508,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                 <Tooltip
                   title="Toggle all in namespace"
                   placement="left"
-                  enterDelay={500}
+                  delay={500}
                   slotProps={{
                     popper: { sx: { zIndex: 2000 } },
                     tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
@@ -534,8 +536,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                     )}
                   </span>
                 </Tooltip>
-                <Typography
-                  variant="h5"
+                <Text
+                  size="normal"
+                  weight={600}
                   component="div"
                   className="namespace-text"
                   onClick={() => toggleNamespaceExpansion(namespace)}
@@ -555,7 +558,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
                     }}
                   />
                   {textForNamespaceHeader}
-                </Typography>
+                </Text>
               </Box>
               {isExpanded && (
                 <div
@@ -605,9 +608,9 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
       ) : (
         <div className="no-selection">
           <div className="explanation">
-            <Typography variant="h5" style={{ marginTop: 0 }}>
+            <Text size="normal" weight={600} style={{ marginTop: 0 }}>
               {showCheckboxes ? "Select Nodes" : "Browse Nodes"}
-            </Typography>
+            </Text>
             <ul>
               {showCheckboxes ? (
                 <>

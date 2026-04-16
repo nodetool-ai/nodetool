@@ -3,11 +3,12 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
-import { Container, Typography } from "@mui/material";
+import { Container } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import log from "loglevel";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
 import useResultsStore from "../../../stores/ResultsStore";
@@ -16,6 +17,7 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
+import { getPreviewNodeSelectionSx } from "../selectionStyles";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeOutputs } from "../NodeOutputs";
@@ -451,17 +453,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   return (
     <Container
       css={styles(theme)}
-      sx={{
-        display: "flex",
-        boxShadow: props.selected
-          ? `0 0 0 2px var(--palette-grey-100)`
-          : "none",
-        backgroundColor: theme.vars.palette.c_node_bg,
-        backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
-        WebkitBackdropFilter: props.selected
-          ? theme.vars.palette.glass.blur
-          : "none"
-      }}
+      sx={getPreviewNodeSelectionSx(theme, Boolean(props.selected))}
       className={`preview-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
       }`}
@@ -490,9 +482,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
             hideLogs={true}
           />
           {!displayResult && (
-            <Typography className="hint">
+            <Text className="hint">
               Displays any data from connected nodes
-            </Typography>
+            </Text>
           )}
           <PreviewActions
             onDownload={handleDownload}

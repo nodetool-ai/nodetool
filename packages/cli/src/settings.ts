@@ -17,7 +17,10 @@ export const DEFAULT_SETTINGS: ChatSettings = {
   enabledTools: [
     "read_file",
     "write_file",
+    "edit_file",
     "list_directory",
+    "glob",
+    "grep",
     "download_file",
     "http_request",
     "http_get",

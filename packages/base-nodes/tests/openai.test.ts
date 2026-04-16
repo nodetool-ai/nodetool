@@ -511,49 +511,10 @@ describe("RealtimeAgentNode", () => {
     expect(RealtimeAgentNode.title).toBe("Realtime Agent");
   });
 
-  it("falls back to transcription + chat + tts", async () => {
+  it("process() returns empty (real logic is in run())", async () => {
     const node = new RealtimeAgentNode();
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ text: "hello from audio" })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [{ message: { content: "assistant reply" } }]
-        })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: async () => new ArrayBuffer(4)
-      });
-
-    node.assign({
-      chunk: {
-        content_type: "audio",
-        content: Buffer.from("wav").toString("base64")
-      }
-    });
-    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
     const result = await node.process();
-    expect(result.text).toBe("assistant reply");
-    expect(result.output).toBe("assistant reply");
-
-    // audio should be an object with a base64 data URI
-    expect(result.audio).toEqual(
-      expect.objectContaining({
-        data: expect.stringContaining("data:audio/mp3;base64,")
-      })
-    );
-
-    // chunk should be a well-formed chunk object
-    expect(result.chunk).toEqual({
-      type: "chunk",
-      content_type: "text",
-      content: "assistant reply",
-      done: true
-    });
+    expect(result).toEqual({});
   });
 });
 
@@ -564,25 +525,10 @@ describe("RealtimeTranscriptionNode", () => {
     );
   });
 
-  it("transcribes audio content", async () => {
+  it("process() returns empty (real logic is in run())", async () => {
     const node = new RealtimeTranscriptionNode();
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ text: "transcribed text" })
-    });
-    (node as any).chunk = { content: Buffer.from("wav").toString("base64") };
-    node.setDynamic("_secrets", { OPENAI_API_KEY: "k" });
     const result = await node.process();
-    expect(result.text).toBe("transcribed text");
-    expect(result.output).toBe("transcribed text");
-
-    // chunk should be a well-formed chunk object
-    expect(result.chunk).toEqual({
-      type: "chunk",
-      content_type: "text",
-      content: "transcribed text",
-      done: true
-    });
+    expect(result).toEqual({});
   });
 });
 

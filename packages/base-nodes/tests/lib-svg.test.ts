@@ -18,10 +18,10 @@ import {
 } from "../src/nodes/lib-svg.js";
 
 describe("SVGToImageLibNode", () => {
-  it("creates an SVG document and returns it as base64 with image metadata", async () => {
+  it("creates an SVG document and returns it as PNG with image metadata", async () => {
     const node = new SVGToImageLibNode();
     node.assign({
-      content: '<rect width="100" height="50" fill="#ff0000" />',
+      elements: [{ name: "rect", attributes: { width: "100", height: "50", fill: "#ff0000" } }],
       width: 100,
       height: 50,
       viewBox: "0 0 100 50",
@@ -29,17 +29,13 @@ describe("SVGToImageLibNode", () => {
     });
 
     const result = await node.process();
+    const output = result.output as Record<string, unknown>;
 
-    expect(result.output.mimeType).toBe("image/svg+xml");
-    expect(result.output.width).toBe(100);
-    expect(result.output.height).toBe(50);
-    expect(result.output.data).toBeDefined();
-
-    const xml = Buffer.from(result.output.data as string, "base64").toString(
-      "utf-8"
-    );
-    expect(xml).toContain("<svg");
-    expect(xml).toContain("<rect");
+    expect(output.mimeType).toBe("image/png");
+    // scale=2 so dimensions are doubled
+    expect(output.width).toBe(200);
+    expect(output.height).toBe(100);
+    expect(output.data).toBeDefined();
   });
 });
 
@@ -274,7 +270,7 @@ describe("DocumentLibNode", () => {
   it("returns a base64-encoded SVG document", async () => {
     const node = new DocumentLibNode();
     node.assign({
-      content: '<rect width="100" height="50" fill="red" />',
+      elements: [{ name: "rect", attributes: { width: "100", height: "50", fill: "red" } }],
       width: 400,
       height: 300,
       viewBox: "0 0 400 300"
@@ -296,7 +292,7 @@ describe("DocumentLibNode", () => {
   it("handles svg_element objects as content", async () => {
     const node = new DocumentLibNode();
     node.assign({
-      content: { name: "circle", attributes: { cx: "50", cy: "50", r: "25" } },
+      elements: [{ name: "circle", attributes: { cx: "50", cy: "50", r: "25" } }],
       width: 100,
       height: 100,
       viewBox: "0 0 100 100"

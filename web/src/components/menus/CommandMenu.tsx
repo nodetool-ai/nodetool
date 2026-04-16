@@ -9,7 +9,7 @@ import useAlignNodes from "../../hooks/useAlignNodes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import React from "react";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
@@ -101,6 +101,8 @@ const styles = () =>
 
 const WorkflowCommands = memo(function WorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
+  // Optimization: use shallow equality to prevent the CommandMenu from
+  // re-rendering 60 times a second on unrelated node position updates
   const {
     nodes,
     edges,
@@ -113,7 +115,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     currentWorkflow: state.workflow,
     workflowJSON: state.workflowJSON,
     autoLayout: state.autoLayout
-  }));
+  }), shallow);
   const run = useWebsocketRunner((state) => state.run);
   const cancel = useWebsocketRunner((state) => state.cancel);
   const { writeClipboard } = useClipboard();

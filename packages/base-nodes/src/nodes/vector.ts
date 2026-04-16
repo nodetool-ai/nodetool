@@ -182,8 +182,10 @@ export class GetDocumentsNode extends BaseNode {
     const offset = Number(this.offset ?? this.offset ?? 0);
 
     const collection = await getCollection(name);
+    // When ids is empty, pass empty array (returns nothing) to match Python behavior.
+    // Passing undefined would return all docs, which differs from Python's empty-list semantics.
     const result = await collection.get({
-      ids: ids.length > 0 ? ids : undefined,
+      ids: ids.length > 0 ? ids : [],
       limit,
       offset
     });
@@ -383,9 +385,9 @@ export class IndexEmbeddingNode extends BaseNode {
   declare collection: any;
 
   @prop({
-    type: "np_array",
+    type: "list",
     default: {
-      type: "np_array",
+      type: "list",
       value: null,
       dtype: "<i8",
       shape: [1]
@@ -1067,7 +1069,7 @@ export class RemoveOverlapNode extends BaseNode {
     );
 
     if (documents.length === 0) {
-      return { output: { documents: [] } };
+      return { documents: [] };
     }
 
     const result: string[] = [documents[0]];
@@ -1092,7 +1094,7 @@ export class RemoveOverlapNode extends BaseNode {
       }
     }
 
-    return { output: { documents: result } };
+    return { documents: result };
   }
 }
 
@@ -1286,13 +1288,11 @@ export class HybridSearchNode extends BaseNode {
     }
 
     return {
-      output: {
-        ids: resultIds,
-        documents: resultDocs,
-        metadatas: resultMetas,
-        distances: resultDistances,
-        scores: resultScores
-      }
+      ids: resultIds,
+      documents: resultDocs,
+      metadatas: resultMetas,
+      distances: resultDistances,
+      scores: resultScores
     };
   }
 }

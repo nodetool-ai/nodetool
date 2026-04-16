@@ -628,6 +628,8 @@ export class ConstantDateTimeNode extends BaseNode {
   declare utc_offset: any;
 
   async process(): Promise<Record<string, unknown>> {
+    const millisecond = Number(this.millisecond ?? this.millisecond ?? 0);
+    const utcOffsetMinutes = Number(this.utc_offset ?? this.utc_offset ?? 0);
     return {
       output: {
         year: Number(this.year ?? this.year ?? 2024),
@@ -636,9 +638,9 @@ export class ConstantDateTimeNode extends BaseNode {
         hour: Number(this.hour ?? this.hour ?? 0),
         minute: Number(this.minute ?? this.minute ?? 0),
         second: Number(this.second ?? this.second ?? 0),
-        millisecond: Number(this.millisecond ?? this.millisecond ?? 0),
+        microsecond: millisecond * 1000,
         tzinfo: String(this.tzinfo ?? this.tzinfo ?? ""),
-        utc_offset: String(this.utc_offset ?? this.utc_offset ?? "")
+        utc_offset: utcOffsetMinutes * 60
       }
     };
   }

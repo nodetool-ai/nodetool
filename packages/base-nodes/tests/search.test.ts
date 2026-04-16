@@ -47,7 +47,8 @@ describe("GoogleSearchNode", () => {
     node.assign({ keyword: "test" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    expect(result.output).toEqual([{ title: "Result 1" }]);
+    expect(result.results).toEqual([{ title: "Result 1" }]);
+    expect(typeof result.text).toBe("string");
   });
 
   it("throws on empty keyword", async () => {
@@ -93,7 +94,8 @@ describe("GoogleNewsNode", () => {
     node.assign({ keyword: "ai" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    expect(result.output).toEqual([{ title: "News 1" }]);
+    expect(result.results).toEqual([{ title: "News 1" }]);
+    expect(typeof result.text).toBe("string");
   });
 
   it("throws on empty keyword", async () => {
@@ -117,7 +119,7 @@ describe("GoogleImagesNode", () => {
     node.assign({ keyword: "cats" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    expect(result.output).toEqual([{ uri: "https://img.com/1.png" }]);
+    expect(result.results).toEqual([{ uri: "https://img.com/1.png" }]);
   });
 
   it("uses reverse image search for image_url", async () => {
@@ -155,11 +157,9 @@ describe("GoogleFinanceNode", () => {
     node.assign({ query: "AAPL:NASDAQ" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    const output = result.output as Record<string, unknown>;
-    expect(output.success).toBe(true);
-    expect(output.results).toEqual(apiData);
-    expect(typeof output.results).toBe("object");
-    expect((output.results as Record<string, unknown>).summary).toEqual({
+    expect(result.results).toEqual(apiData);
+    expect(typeof result.results).toBe("object");
+    expect((result.results as Record<string, unknown>).summary).toEqual({
       price: 150,
       currency: "USD"
     });
@@ -171,25 +171,19 @@ describe("GoogleFinanceNode", () => {
     node.assign({ query: "GOOG:NASDAQ", window: "1y" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    const output = result.output as Record<string, unknown>;
-    expect(output.success).toBe(true);
-    expect(output.results).toEqual({ graph: [1, 2, 3] });
+    expect(result.results).toEqual({ graph: [1, 2, 3] });
     const url = mockFetch.mock.calls[0][0] as string;
     expect(url).toContain("window=1y");
     expect(url).toContain("engine=google_finance");
   });
 
-  it("returns error object with exact message when query empty", async () => {
+  it("throws when query empty", async () => {
     const node = new GoogleFinanceNode();
     node.assign({ query: "" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
-    const result = await node.process();
-    const output = result.output as Record<string, unknown>;
-    expect(output).toEqual({
-      error: "Query is required for Google Finance search."
-    });
-    expect(output.success).toBeUndefined();
-    expect(output.results).toBeUndefined();
+    await expect(node.process()).rejects.toThrow(
+      "Query is required for Google Finance search."
+    );
   });
 
   it("throws when API key missing", async () => {
@@ -210,7 +204,8 @@ describe("GoogleJobsNode", () => {
     node.assign({ query: "software" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    expect(result.output).toEqual([{ title: "Engineer" }]);
+    expect(result.results).toEqual([{ title: "Engineer" }]);
+    expect(typeof result.text).toBe("string");
   });
 
   it("throws on empty query", async () => {
@@ -236,9 +231,8 @@ describe("GoogleLensNode", () => {
     });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    const output = result.output as Record<string, unknown>;
-    expect((output.results as unknown[]).length).toBe(1);
-    expect((output.images as { uri: string }[])[0].uri).toBe(
+    expect((result.results as unknown[]).length).toBe(1);
+    expect((result.images as { uri: string }[])[0].uri).toBe(
       "https://img.com/match.png"
     );
   });
@@ -264,9 +258,10 @@ describe("GoogleMapsNode", () => {
     node.assign({ query: "cafes" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    const output = result.output as Array<Record<string, unknown>>;
-    expect(output[0].place_type).toBe("restaurant");
-    expect(output[0].type).toBeUndefined();
+    const results = result.results as Array<Record<string, unknown>>;
+    expect(results[0].place_type).toBe("restaurant");
+    expect(results[0].type).toBeUndefined();
+    expect(typeof result.text).toBe("string");
   });
 
   it("throws on empty query", async () => {
@@ -288,7 +283,8 @@ describe("GoogleShoppingNode", () => {
     node.assign({ query: "widget" });
     node.setDynamic("_secrets", { SERPAPI_API_KEY: "test-key" });
     const result = await node.process();
-    expect(result.output).toEqual([{ title: "Widget", price: "$10" }]);
+    expect(result.results).toEqual([{ title: "Widget", price: "$10" }]);
+    expect(typeof result.text).toBe("string");
   });
 
   it("builds tbs filter for price and condition", async () => {

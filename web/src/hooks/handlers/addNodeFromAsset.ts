@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import { XYPosition } from "@xyflow/react";
 import { Asset, NodeMetadata } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import axios from "axios";
 import {
   constantForType,
   contentTypeToNodeType
@@ -13,6 +12,7 @@ import log from "loglevel";
 import Papa from "papaparse";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 interface ParsedCSV {
   data: string[][];
   errors: Papa.ParseError[];
@@ -22,7 +22,7 @@ export const useAddNodeFromAsset = () => {
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
     createNode: state.createNode
-  }));
+  }), shallow);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -33,10 +33,12 @@ export const useAddNodeFromAsset = () => {
       if (!asset?.get_url) {
         throw new Error("Asset URL is not available");
       }
-      const response = await axios.get(asset.get_url, {
-        responseType: "arraybuffer"
-      });
-      return new TextDecoder().decode(new Uint8Array(response.data));
+      const response = await fetch(asset.get_url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch asset: ${response.status}`);
+      }
+      const buffer = await response.arrayBuffer();
+      return new TextDecoder().decode(new Uint8Array(buffer));
     },
     []
   );

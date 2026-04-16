@@ -1,26 +1,23 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Menu,
   MenuItem,
-  Typography,
   Box,
   TextField,
   IconButton,
-  InputAdornment,
-  Tooltip
+  InputAdornment
 } from "@mui/material";
 import { css } from "@emotion/react";
 import useConnectableNodesStore, { ConnectableNodesState } from "../../stores/ConnectableNodesStore";
 import { useReactFlow } from "@xyflow/react";
 import { isConnectable, Slugify } from "../../utils/TypeHandler";
 import { NodeMetadata } from "../../stores/ApiTypes";
-import isEqual from "lodash/isEqual";
+
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
-import NodeInfo from "../node_menu/NodeInfo";
 import NodeItem from "../node_menu/NodeItem";
-import { ScrollArea } from "../ui_primitives";
+import { ScrollArea, Text, Caption, FlexRow } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -329,21 +326,18 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     >
       <Box css={fixedHeaderStyles} className="connectable-nodes-header">
         <MenuItem disabled sx={{ opacity: "1 !important", p: 0, mb: 1 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "100%"
-            }}
+          <FlexRow
+            align="center"
+            justify="space-between"
+            fullWidth
           >
-            <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+            <Text size="small" weight={600}>
               Connectable Nodes
-            </Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", bgcolor: "action.selected", px: 1, py: 0.5, borderRadius: 1 }}>
+            </Text>
+            <Caption sx={{ bgcolor: "action.selected", px: 1, py: 0.5, borderRadius: 1 }}>
               {totalCount}
-            </Typography>
-          </Box>
+            </Caption>
+          </FlexRow>
         </MenuItem>
         <MenuItem sx={{ p: 0, "&:hover": { bgcolor: "transparent" }, cursor: "default" }} disableRipple>
           <TextField
@@ -397,62 +391,29 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       <ScrollArea css={scrollableContentStyles} className="connectable-nodes-content" direction="vertical">
         {totalCount === 0 ? (
           <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
-            <Typography variant="body2">
+            <Text size="small">
               No nodes match &quot;{searchTerm}&quot;.
-            </Typography>
+            </Text>
           </Box>
         ) : (
           Object.entries(groupedNodes).map(([namespace, nodes]) => (
             <React.Fragment key={namespace}>
               <MenuItem className="namespace" disabled sx={{ opacity: "1 !important" }}>
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  fontSize={10}
-                  fontWeight={700}
+                <Caption
+                  color="secondary"
+                  sx={{ fontSize: 10, fontWeight: 700 }}
                 >
                   {namespace.toUpperCase()}
-                </Typography>
+                </Caption>
               </MenuItem>
               {nodes.map((nodeMetadata: NodeMetadata) => (
-                <Tooltip
-                  leaveDelay={10}
-                  enterDelay={500}
-                  key={nodeMetadata.node_type}
-                  TransitionProps={{ timeout: 0 }}
-                  placement="right"
-                  disableInteractive
-                  sx={{ padding: "0" }}
-                  slotProps={{
-                    popper: {
-                      sx: { zIndex: theme.zIndex.tooltip + 2, maxWidth: 320 },
-                      modifiers: [
-                        { name: "offset", options: { offset: [0, 8] } },
-                        { name: "preventOverflow", options: { padding: 8 } },
-                        {
-                          name: "flip",
-                          options: { fallbackPlacements: ["left", "right"] }
-                        }
-                      ]
-                    }
-                  }}
-                  title={
-                    <NodeInfo
-                      nodeMetadata={nodeMetadata}
-                      showConnections={false}
-                      menuWidth={240}
-                    />
-                  }
-                >
-                  <div className="node-item-container">
-                    <NodeItem
-                      key={nodeMetadata.node_type}
-                      node={nodeMetadata}
-                      onDragStart={handleDragStart}
-                      onClick={handleNodeClick}
-                    />
-                  </div>
-                </Tooltip>
+                <div className="node-item-container" key={nodeMetadata.node_type}>
+                  <NodeItem
+                    node={nodeMetadata}
+                    onDragStart={handleDragStart}
+                    onClick={handleNodeClick}
+                  />
+                </div>
               ))}
             </React.Fragment>
           ))
@@ -462,4 +423,4 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   );
 });
 
-export default memo(ConnectableNodes, isEqual);
+export default ConnectableNodes;

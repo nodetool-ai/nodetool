@@ -2,15 +2,17 @@
  * Shared sandboxed JavaScript execution engine.
  *
  * Used by both the MiniJSAgentTool (agent tool) and the CodeNode (workflow node).
- * Runs user code in an isolated `vm` context with curated APIs and safety limits.
+ * Runs user code in an isolated `vm` context with a small curated surface:
+ * vanilla JavaScript plus a handful of bridge functions (`fetch`, `workspace`,
+ * `getSecret`, `uuid`, `sleep`, `console`). Library-powered helpers (lodash,
+ * dayjs, cheerio, csv-parse, validator) are intentionally NOT exposed here —
+ * use the dedicated workflow nodes instead (lib.datetime.*, lib.html.*,
+ * lib.data.ParseCSV, lib.validate.*, etc.). Keeping the sandbox lib-free
+ * makes snippet behaviour identical between dev and packaged Electron, and
+ * avoids shipping those packages into the user-code surface.
  */
 
 import * as vm from "node:vm";
-import * as _ from "lodash-es";
-import dayjs from "dayjs";
-import * as cheerio from "cheerio";
-import { parse as csvParse } from "csv-parse/sync";
-import validator from "validator";
 import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
@@ -43,6 +45,31 @@ function formatArg(arg: unknown): string {
   }
 }
 
+/** Check if a value is a typed array from the VM sandbox (constructor name check). */
+function isTypedArray(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const name = (value as object).constructor?.name;
+  return name === "Uint8Array" || name === "Buffer" ||
+    name === "Int8Array" || name === "Uint8ClampedArray" ||
+    name === "Int16Array" || name === "Uint16Array" ||
+    name === "Int32Array" || name === "Uint32Array" ||
+    name === "Float32Array" || name === "Float64Array" ||
+    name === "ArrayBuffer";
+}
+
+/** Convert a VM sandbox typed array to a real Uint8Array. */
+function toNativeUint8Array(value: unknown): Uint8Array {
+  const v = value as { length?: number; byteLength?: number; [i: number]: number };
+  const len = v.length ?? v.byteLength ?? 0;
+  const arr = new Uint8Array(len);
+  for (let i = 0; i < len; i++) arr[i] = v[i] ?? 0;
+  return arr;
+}
+
+/**
+ * Recursively serialize a result, converting VM typed arrays to native ones
+ * and applying size limits.
+ */
 export function serializeResult(result: unknown): unknown {
   if (result === undefined) return null;
   if (result === null) return null;
@@ -56,15 +83,44 @@ export function serializeResult(result: unknown): unknown {
     }
     return result;
   }
-  try {
-    const json = JSON.stringify(result);
-    if (json.length > MAX_OUTPUT_SIZE) {
-      return truncate(json, MAX_OUTPUT_SIZE);
-    }
-    return JSON.parse(json);
-  } catch {
-    return String(result);
+  // Preserve typed arrays as native Uint8Array
+  if (isTypedArray(result)) {
+    return toNativeUint8Array(result);
   }
+  // For objects/arrays, check for typed arrays in values (shallow)
+  if (typeof result === "object") {
+    // Check if any value is a typed array — if so, convert them
+    let hasBinary = false;
+    if (Array.isArray(result)) {
+      hasBinary = result.some(isTypedArray);
+    } else {
+      for (const v of Object.values(result as Record<string, unknown>)) {
+        if (isTypedArray(v)) { hasBinary = true; break; }
+      }
+    }
+    if (hasBinary) {
+      if (Array.isArray(result)) {
+        return result.map(v => isTypedArray(v) ? toNativeUint8Array(v) : v);
+      }
+      const obj = result as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(obj)) {
+        out[k] = isTypedArray(v) ? toNativeUint8Array(v) : v;
+      }
+      return out;
+    }
+    // No binary — use JSON round-trip for safety
+    try {
+      const json = JSON.stringify(result);
+      if (json.length > MAX_OUTPUT_SIZE) {
+        return truncate(json, MAX_OUTPUT_SIZE);
+      }
+      return JSON.parse(json);
+    } catch {
+      return String(result);
+    }
+  }
+  return String(result);
 }
 
 export function cleanStack(stack: string): string {
@@ -150,28 +206,46 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
       }
 
       const response = await fetch(url, fetchOptions);
-      const text = await response.text();
-      const body =
-        text.length > MAX_RESPONSE_BODY_SIZE
-          ? text.slice(0, MAX_RESPONSE_BODY_SIZE) + "...[truncated]"
-          : text;
+      const rawBytes = new Uint8Array(await response.arrayBuffer());
+      const ok = response.ok;
+      const status = response.status;
+      const statusText = response.statusText;
+      const headers = Object.fromEntries(response.headers.entries());
 
-      // Try to parse as JSON
-      let json: unknown = undefined;
-      try {
-        json = JSON.parse(body);
-      } catch {
-        // not JSON, that's fine
-      }
-
-      return {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        body,
-        json
+      // Decode text lazily (only when needed)
+      let cachedText: string | null = null;
+      const getText = (): string => {
+        if (cachedText === null) {
+          const decoded = new TextDecoder().decode(rawBytes);
+          cachedText =
+            decoded.length > MAX_RESPONSE_BODY_SIZE
+              ? decoded.slice(0, MAX_RESPONSE_BODY_SIZE) + "...[truncated]"
+              : decoded;
+        }
+        return cachedText;
       };
+
+      // Build a Response-like object with both legacy fields and methods.
+      // Legacy: .body (string), .json (parsed object or undefined)
+      // Methods: .text(), .json(), .arrayBuffer(), .bytes()
+      let parsedJson: unknown;
+      try { parsedJson = JSON.parse(getText()); } catch { parsedJson = undefined; }
+
+      const result: Record<string, unknown> = {
+        ok,
+        status,
+        statusText,
+        headers,
+        body: getText(),
+        json: parsedJson,
+        text: async () => getText(),
+        arrayBuffer: async () => rawBytes.buffer.slice(
+          rawBytes.byteOffset,
+          rawBytes.byteOffset + rawBytes.byteLength
+        ),
+        bytes: async () => rawBytes
+      };
+      return result;
     } finally {
       clearTimeout(timer);
     }
@@ -266,15 +340,12 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     TextDecoder: globalThis.TextDecoder,
     URL: globalThis.URL,
     URLSearchParams: globalThis.URLSearchParams,
-    // Async
-    setTimeout: undefined, // blocked
-    setInterval: undefined, // blocked
-    // Non-native APIs
-    _,
-    dayjs,
-    cheerio,
-    csvParse,
-    validator,
+    // Async (setTimeout/setInterval blocked — use sleep() instead)
+    setTimeout: undefined,
+    setInterval: undefined,
+    // Bridge functions — the only non-native surface the sandbox exposes.
+    // Anything requiring a third-party library lives in a dedicated
+    // workflow node, not here.
     fetch: sandboxedFetch,
     uuid,
     sleep,

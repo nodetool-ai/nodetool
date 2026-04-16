@@ -17,6 +17,8 @@ export interface FieldDef {
   enumValues?: string[]; // Raw values for @prop values array
   nestedAssetKey?: string; // Key inside nested object for asset URL
   parentField?: string; // If part of a nested structure
+  min?: number;
+  max?: number;
 }
 
 export interface NodeSpec {

@@ -1,5 +1,4 @@
 type ClipboardType = "clipboard" | "selection";
-export type DevServerStatus = 'starting' | 'running' | 'error' | 'stopped';
 export type FrontendLogLevel = "info" | "warn" | "error";
 
 export interface FrontendLogRequest {
@@ -232,13 +231,6 @@ declare global {
         openSettings: () => Promise<void>;
       };
 
-      // Debug operations
-      debug: {
-        exportBundle: (
-          request: DebugBundleRequest,
-        ) => Promise<DebugBundleResponse>;
-      };
-
       // Native dialog operations
       dialog: {
         openFile: (
@@ -247,40 +239,6 @@ declare global {
         openFolder: (
           options?: DialogOpenFolderRequest,
         ) => Promise<DialogOpenResult>;
-      };
-
-      // Workspace dev server and file I/O
-      workspace: {
-        server: {
-          spawn: (workspacePath: string, port: number) => Promise<number>;
-          kill: (workspacePath: string) => Promise<void>;
-          respawn: (workspacePath: string, port: number) => Promise<number>;
-          status: (workspacePath: string) => Promise<{ running: boolean; port: number | null; status: string }>;
-          logs: (workspacePath: string) => Promise<string[]>;
-          ensureInstalled: (workspacePath: string) => Promise<void>;
-          onLog: (callback: (event: { workspacePath: string; line: string }) => void) => () => void;
-        };
-        file: {
-          write: (workspacePath: string, relPath: string, content: string) => Promise<void>;
-          read: (workspacePath: string, relPath: string) => Promise<string>;
-          list: (workspacePath: string, relPath: string) => Promise<Array<{ name: string; path: string; isDir: boolean; size: number }>>;
-        };
-      };
-
-      // Claude Agent SDK operations
-      agent: {
-        createSession: (options: AgentSessionOptions) => Promise<string>;
-        listModels: (
-          options?: AgentModelsRequest,
-        ) => Promise<AgentModelDescriptor[]>;
-        sendMessage: (
-          sessionId: string,
-          message: string,
-        ) => Promise<AgentMessage[]>;
-        stopExecution: (sessionId: string) => Promise<void>;
-        closeSession: (sessionId: string) => Promise<void>;
-        listSessions: (options?: AgentListSessionsRequest) => Promise<AgentSessionInfoEntry[]>;
-        getSessionMessages: (options: AgentGetSessionMessagesRequest) => Promise<AgentTranscriptMessage[]>;
       };
     };
 
@@ -442,7 +400,7 @@ export interface MenuEventData {
 
 export type ModelDirectory = "huggingface" | "ollama";
 
-export type SystemDirectory = "installation" | "logs";
+export type SystemDirectory = "installation" | "logs" | "assets";
 
 export interface FileExplorerResult {
   status: "success" | "error";
@@ -600,8 +558,6 @@ export enum IpcChannels {
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
   // System info channel
   GET_SYSTEM_INFO = "get-system-info",
-  // Debug channels
-  DEBUG_EXPORT_BUNDLE = "debug-export-bundle",
   // Dialog channels
   DIALOG_OPEN_FILE = "dialog-open-file",
   DIALOG_OPEN_FOLDER = "dialog-open-folder",
@@ -610,46 +566,12 @@ export enum IpcChannels {
   CLIPBOARD_GET_CONTENT_INFO = "clipboard-get-content-info",
   FILE_READ_AS_DATA_URL = "file-read-as-data-url",
   FILE_READ_BUFFER = "file-read-buffer",
-  // Claude Agent SDK channels
-  AGENT_CREATE_SESSION = "agent-create-session",
-  AGENT_LIST_MODELS = "agent-list-models",
-  AGENT_SEND_MESSAGE = "agent-send-message",
-  AGENT_STOP_EXECUTION = "agent-stop-execution",
-  AGENT_CLOSE_SESSION = "agent-close-session",
-  AGENT_LIST_SESSIONS = "agent-list-sessions",
-  AGENT_GET_SESSION_MESSAGES = "agent-get-session-messages",
-  AGENT_START_MCP_SERVER = "agent-start-mcp-server",
-  // Claude Agent SDK streaming event (sent from main to renderer)
-  AGENT_STREAM_MESSAGE = "agent-stream-message",
-  // Frontend tools channels
-  FRONTEND_TOOLS_GET_MANIFEST = "frontend-tools-get-manifest",
-  FRONTEND_TOOLS_CALL = "frontend-tools-call",
-  FRONTEND_TOOLS_ABORT = "frontend-tools-abort",
   LOCALHOST_PROXY_REQUEST = "localhost-proxy-request",
-  FRONTEND_TOOLS_GET_MANIFEST_REQUEST = "frontend-tools-get-manifest-request",
-  FRONTEND_TOOLS_GET_MANIFEST_RESPONSE = "frontend-tools-get-manifest-response",
-  FRONTEND_TOOLS_CALL_REQUEST = "frontend-tools-call-request",
-  FRONTEND_TOOLS_CALL_RESPONSE = "frontend-tools-call-response",
   LOCALHOST_PROXY_WS_OPEN = "localhost-proxy-ws-open",
   LOCALHOST_PROXY_WS_SEND = "localhost-proxy-ws-send",
   LOCALHOST_PROXY_WS_CLOSE = "localhost-proxy-ws-close",
   LOCALHOST_PROXY_WS_EVENT = "localhost-proxy-ws-event",
   FRONTEND_LOG = "frontend-log",
-  // Workspace dev server
-  WORKSPACE_SERVER_SPAWN = "workspace-server-spawn",
-  WORKSPACE_SERVER_KILL = "workspace-server-kill",
-  WORKSPACE_SERVER_RESPAWN = "workspace-server-respawn",
-  WORKSPACE_SERVER_STATUS = "workspace-server-status",
-  WORKSPACE_SERVER_LOGS = "workspace-server-logs",
-  WORKSPACE_SERVER_ENSURE_INSTALLED = "workspace-server-ensure-installed",
-  WORKSPACE_SERVER_KILL_PORT = "workspace-server-kill-port",
-  WORKSPACE_SERVER_STATUS_CHANGE = "workspace-server-status-change",
-  // Workspace file I/O
-  WORKSPACE_FILE_WRITE = "workspace-file-write",
-  WORKSPACE_FILE_READ = "workspace-file-read",
-  WORKSPACE_FILE_LIST = "workspace-file-list",
-  WORKSPACE_FILE_DIAGNOSTICS = "workspace-file-diagnostics",
-  WORKSPACE_SERVER_LOG_STREAM = "workspace-server-log-stream",
 }
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
@@ -664,19 +586,6 @@ export interface InstallToLocationData {
 
 export interface FileExplorerPathRequest {
   path: string;
-}
-
-export interface DebugBundleRequest {
-  workflow_id?: string;
-  graph?: Record<string, unknown>;
-  errors?: string[];
-  preferred_save?: "desktop" | "downloads";
-}
-
-export interface DebugBundleResponse {
-  file_path: string;
-  filename: string;
-  message: string;
 }
 
 // Dialog types for native file/folder selection
@@ -804,8 +713,6 @@ export interface IpcRequest {
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
   // System info
   [IpcChannels.GET_SYSTEM_INFO]: void;
-  // Debug
-  [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleRequest;
   // Dialog
   [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenFileRequest;
   [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenFolderRequest;
@@ -814,36 +721,11 @@ export interface IpcRequest {
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: void;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string; // filePath
   [IpcChannels.FILE_READ_BUFFER]: string; // filePath
-  // Claude Agent SDK
-  [IpcChannels.AGENT_CREATE_SESSION]: AgentSessionOptions;
-  [IpcChannels.AGENT_LIST_MODELS]: AgentModelsRequest;
-  [IpcChannels.AGENT_SEND_MESSAGE]: AgentSendRequest;
-  [IpcChannels.AGENT_STOP_EXECUTION]: string; // sessionId
-  [IpcChannels.AGENT_CLOSE_SESSION]: string; // sessionId
-  [IpcChannels.AGENT_LIST_SESSIONS]: AgentListSessionsRequest;
-  [IpcChannels.AGENT_GET_SESSION_MESSAGES]: AgentGetSessionMessagesRequest;
-  [IpcChannels.AGENT_START_MCP_SERVER]: void;
-  // Frontend tools
-  [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolsGetManifestRequest;
-  [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallRequest;
-  [IpcChannels.FRONTEND_TOOLS_ABORT]: string; // sessionId
   [IpcChannels.LOCALHOST_PROXY_REQUEST]: LocalhostProxyRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: LocalhostProxyWsSendRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: LocalhostProxyWsCloseRequest;
   [IpcChannels.FRONTEND_LOG]: FrontendLogRequest;
-  // Workspace dev server
-  [IpcChannels.WORKSPACE_SERVER_SPAWN]: { workspacePath: string; port: number };
-  [IpcChannels.WORKSPACE_SERVER_KILL]: { workspacePath: string };
-  [IpcChannels.WORKSPACE_SERVER_RESPAWN]: { workspacePath: string; port: number };
-  [IpcChannels.WORKSPACE_SERVER_STATUS]: { workspacePath: string };
-  [IpcChannels.WORKSPACE_SERVER_LOGS]: { workspacePath: string };
-  [IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED]: { workspacePath: string };
-  [IpcChannels.WORKSPACE_SERVER_KILL_PORT]: { port: number };
-  [IpcChannels.WORKSPACE_FILE_WRITE]: { workspacePath: string; relPath: string; content: string };
-  [IpcChannels.WORKSPACE_FILE_READ]: { workspacePath: string; relPath: string };
-  [IpcChannels.WORKSPACE_FILE_LIST]: { workspacePath: string; relPath: string };
-  [IpcChannels.WORKSPACE_FILE_DIAGNOSTICS]: { workspacePath: string };
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -927,8 +809,6 @@ export interface IpcResponse {
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;
   // System info
   [IpcChannels.GET_SYSTEM_INFO]: SystemInfo;
-  // Debug
-  [IpcChannels.DEBUG_EXPORT_BUNDLE]: DebugBundleResponse;
   // Dialog
   [IpcChannels.DIALOG_OPEN_FILE]: DialogOpenResult;
   [IpcChannels.DIALOG_OPEN_FOLDER]: DialogOpenResult;
@@ -937,36 +817,11 @@ export interface IpcResponse {
   [IpcChannels.CLIPBOARD_GET_CONTENT_INFO]: ClipboardContentInfo;
   [IpcChannels.FILE_READ_AS_DATA_URL]: string | null;
   [IpcChannels.FILE_READ_BUFFER]: { buffer: Buffer; mimeType: string } | null;
-  // Claude Agent SDK
-  [IpcChannels.AGENT_CREATE_SESSION]: string; // sessionId
-  [IpcChannels.AGENT_LIST_MODELS]: AgentModelDescriptor[];
-  [IpcChannels.AGENT_SEND_MESSAGE]: AgentMessage[];
-  [IpcChannels.AGENT_STOP_EXECUTION]: void;
-  [IpcChannels.AGENT_CLOSE_SESSION]: void;
-  [IpcChannels.AGENT_LIST_SESSIONS]: AgentSessionInfoEntry[];
-  [IpcChannels.AGENT_GET_SESSION_MESSAGES]: AgentTranscriptMessage[];
-  [IpcChannels.AGENT_START_MCP_SERVER]: string; // URL
-  // Frontend tools
-  [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST]: FrontendToolManifest[];
-  [IpcChannels.FRONTEND_TOOLS_CALL]: FrontendToolsCallResponse;
-  [IpcChannels.FRONTEND_TOOLS_ABORT]: void;
   [IpcChannels.LOCALHOST_PROXY_REQUEST]: LocalhostProxyResponse;
   [IpcChannels.LOCALHOST_PROXY_WS_OPEN]: LocalhostProxyWsOpenResponse;
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: void;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: void;
   [IpcChannels.FRONTEND_LOG]: void;
-  // Workspace dev server
-  [IpcChannels.WORKSPACE_SERVER_SPAWN]: number;
-  [IpcChannels.WORKSPACE_SERVER_KILL]: void;
-  [IpcChannels.WORKSPACE_SERVER_RESPAWN]: number;
-  [IpcChannels.WORKSPACE_SERVER_STATUS]: { running: boolean; port: number | null; status: string };
-  [IpcChannels.WORKSPACE_SERVER_LOGS]: string[];
-  [IpcChannels.WORKSPACE_SERVER_ENSURE_INSTALLED]: void;
-  [IpcChannels.WORKSPACE_SERVER_KILL_PORT]: void;
-  [IpcChannels.WORKSPACE_FILE_WRITE]: void;
-  [IpcChannels.WORKSPACE_FILE_READ]: string;
-  [IpcChannels.WORKSPACE_FILE_LIST]: Array<{ name: string; path: string; isDir: boolean; size: number }>;
-  [IpcChannels.WORKSPACE_FILE_DIAGNOSTICS]: Array<{ filePath: string; line: number; column: number; message: string; severity: "error" | "warning" }>;
 }
 
 // Event types for each IPC channel
@@ -981,17 +836,7 @@ export interface IpcEvents {
   [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
   [IpcChannels.MENU_EVENT]: MenuEventData;
   [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
-  // Claude Agent streaming events
-  [IpcChannels.AGENT_STREAM_MESSAGE]: AgentStreamEvent;
-  // Frontend tools events
-  [IpcChannels.FRONTEND_TOOLS_ABORT]: { sessionId: string };
-  [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_REQUEST]: FrontendToolsManifestRequestEvent;
-  [IpcChannels.FRONTEND_TOOLS_GET_MANIFEST_RESPONSE]: FrontendToolsManifestResponseEvent;
-  [IpcChannels.FRONTEND_TOOLS_CALL_REQUEST]: FrontendToolsCallRequestEvent;
-  [IpcChannels.FRONTEND_TOOLS_CALL_RESPONSE]: FrontendToolsCallResponseEvent;
   [IpcChannels.LOCALHOST_PROXY_WS_EVENT]: LocalhostProxyWsEvent;
-  [IpcChannels.WORKSPACE_SERVER_LOG_STREAM]: { workspacePath: string; line: string };
-  [IpcChannels.WORKSPACE_SERVER_STATUS_CHANGE]: { workspacePath: string; status: DevServerStatus; port: number | null };
 }
 
 export type PythonPackages = string[];
@@ -1084,6 +929,7 @@ export type RuntimePackageId =
   | "lua"
   | "ffmpeg"
   | "pandoc"
+  | "pdftotext"
   | "yt-dlp";
 
 export interface RuntimePackageStatus {
@@ -1094,171 +940,7 @@ export interface RuntimePackageStatus {
   installing: boolean;
 }
 
-// Claude Agent SDK types
-export interface AgentSessionOptions {
-  provider?: AgentProvider;
-  model: string;
-  workspacePath?: string;
-  resumeSessionId?: string;
-  systemPrompt?: string;
-  /** When true, skip MCP UI tools and allow standard Claude Code tools (Bash, Read, Write, etc.) */
-  useStandardTools?: boolean;
-  modelParams?: AgentModelParams;
-}
-
-export type AgentProvider = "claude" | "codex" | "opencode";
-
-export interface AgentModelDescriptor {
-  id: string;
-  label: string;
-  isDefault?: boolean;
-  /** Provider that owns this model */
-  provider?: AgentProvider;
-  /** Supports adjustable reasoning effort (Codex) */
-  supportsReasoningEffort?: boolean;
-  /** Supports max turns setting */
-  supportsMaxTurns?: boolean;
-}
-
-/** Runtime parameters for an agent session */
-export interface AgentModelParams {
-  /** Max agentic turns before stopping */
-  maxTurns?: number;
-  /** Reasoning effort level (Codex only) */
-  reasoningEffort?: "minimal" | "low" | "medium" | "high" | "xhigh";
-}
-
-export interface AgentModelsRequest {
-  provider?: AgentProvider;
-  workspacePath?: string;
-}
-
-export interface AgentSendRequest {
-  sessionId: string;
-  message: string;
-}
-
-export interface AgentListSessionsRequest {
-  dir?: string;
-  limit?: number;
-  offset?: number;
-  /** When set, only query this provider. Otherwise queries all providers. */
-  provider?: AgentProvider;
-}
-
-export interface AgentSessionInfoEntry {
-  sessionId: string;
-  summary: string;
-  lastModified: number;
-  cwd?: string;
-  gitBranch?: string;
-  customTitle?: string;
-  firstPrompt?: string;
-  createdAt?: number;
-  /** Which provider owns this session */
-  provider?: AgentProvider;
-}
-
-export interface AgentGetSessionMessagesRequest {
-  sessionId: string;
-  dir?: string;
-}
-
-export interface AgentTranscriptMessage {
-  type: "user" | "assistant";
-  uuid: string;
-  session_id: string;
-  text: string;
-}
-
-// Frontend tools types
-export interface FrontendToolManifest {
-  name: string;
-  description: string;
-  parameters: JsonSchema;
-}
-
-export interface FrontendToolsGetManifestRequest {
-  sessionId: string;
-}
-
-export interface FrontendToolsCallRequest {
-  sessionId: string;
-  toolCallId: string;
-  name: string;
-  args: unknown;
-}
-
-export interface FrontendToolsCallResponse {
-  result: unknown;
-  isError: boolean;
-  error?: string;
-}
-
-export interface FrontendToolsManifestRequestEvent {
-  requestId: string;
-  sessionId: string;
-}
-
-export interface FrontendToolsManifestResponseEvent {
-  requestId: string;
-  sessionId: string;
-  manifest?: FrontendToolManifest[];
-  error?: string;
-}
-
-export interface FrontendToolsCallRequestEvent {
-  requestId: string;
-  sessionId: string;
-  toolCallId: string;
-  name: string;
-  args: unknown;
-}
-
-export interface FrontendToolsCallResponseEvent {
-  requestId: string;
-  sessionId: string;
-  result?: FrontendToolsCallResponse;
-  error?: string;
-}
-
-/**
- * Serializable representation of an SDK message for IPC transport.
- * Only includes the fields needed for display in the ChatView.
- */
-export interface AgentMessage {
-  type: "assistant" | "user" | "result" | "system" | "status" | "stream_event";
-  uuid: string;
-  session_id: string;
-  /** Text content for assistant and result messages */
-  text?: string;
-  /** Error flag for result messages */
-  is_error?: boolean;
-  /** Error messages for error results */
-  errors?: string[];
-  /** Result subtype */
-  subtype?: string;
-  /** Original message content blocks (for assistant messages) */
-  content?: Array<{ type: string; text?: string }>;
-  /** Tool calls in OpenAI-style format for NodeTool UI compatibility */
-  tool_calls?: Array<{
-    id: string;
-    type: string;
-    function: {
-      name: string;
-      arguments: string;
-    };
-  }>;
-}
-
 declare module "*.png" {
   const value: string;
   export default value;
-}
-
-// Claude Agent streaming event payload
-export interface AgentStreamEvent {
-  sessionId: string;
-  message: AgentMessage;
-  done: boolean; // true when the stream is complete
 }

@@ -56,3 +56,70 @@ export function getDefaultAssetsPath(): string {
     join(getNodetoolDataDir(), "assets")
   );
 }
+
+/**
+ * Public domain for permanent assets (set via ASSET_DOMAIN env var).
+ *
+ * When set, asset URLs are built as `https://<domain>/<key>` instead of
+ * `/api/storage/<key>`. Accepts bare hostnames (`assets.nodetool.ai`) or
+ * full origins (`https://assets.nodetool.ai`). Returns `undefined` when not
+ * configured.
+ */
+export function getAssetDomain(): string | undefined {
+  const value = process.env["ASSET_DOMAIN"];
+  return value && value.trim() !== "" ? value.trim() : undefined;
+}
+
+/**
+ * Public domain for temporary assets (set via TEMP_DOMAIN env var).
+ *
+ * Applied to keys with the `temp/` prefix. Accepts bare hostnames or full
+ * origins. Returns `undefined` when not configured, in which case temp URLs
+ * fall back to `ASSET_DOMAIN` (if set) or the `/api/storage/` path.
+ */
+export function getTempDomain(): string | undefined {
+  const value = process.env["TEMP_DOMAIN"];
+  return value && value.trim() !== "" ? value.trim() : undefined;
+}
+
+/**
+ * Return the absolute filesystem path for a storage key.
+ *
+ * Use this on the server side whenever you need to read an asset from disk.
+ * Never pass the result to a browser client — use `buildAssetUrl` for that.
+ */
+export function getAssetFilePath(key: string): string {
+  return join(getDefaultAssetsPath(), key.replace(/^\/+/, ""));
+}
+
+/**
+ * Build a **client-facing** URL for an asset identified by its storage key.
+ *
+ * The key is the storage-relative path (e.g. `abc.png` or `temp/uuid.png`).
+ * When ASSET_DOMAIN / TEMP_DOMAIN are configured, returns an absolute CDN URL.
+ * Otherwise returns `/api/storage/<key>` — a dev-mode path that the browser
+ * can reach via the Vite proxy or the local HTTP server.
+ *
+ * Do NOT use this for server-side file reads. Use `getAssetFilePath` instead.
+ */
+export function buildAssetUrl(key: string): string {
+  const normalized = key.replace(/^\/+/, "");
+  const isTemp = normalized.startsWith("temp/");
+  const domain = isTemp
+    ? (getTempDomain() ?? getAssetDomain())
+    : getAssetDomain();
+
+  if (!domain) {
+    return `/api/storage/${normalized}`;
+  }
+
+  const origin = /^https?:\/\//i.test(domain) ? domain : `https://${domain}`;
+  const trimmedOrigin = origin.replace(/\/+$/, "");
+  // When serving from a dedicated temp domain, the `temp/` prefix is
+  // redundant — the domain itself identifies the bucket.
+  const path =
+    isTemp && getTempDomain() !== undefined
+      ? normalized.slice("temp/".length)
+      : normalized;
+  return `${trimmedOrigin}/${path}`;
+}

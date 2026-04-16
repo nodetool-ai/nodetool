@@ -22,6 +22,14 @@ export interface TextProps extends Omit<TypographyProps, 'variant'> {
   truncate?: boolean;
   /** Line clamp (multiline truncation) */
   lineClamp?: number;
+  /** Polymorphic component type (e.g., "a" for anchor) */
+  component?: React.ElementType;
+  /** URL for anchor usage */
+  href?: string;
+  /** Link target */
+  target?: string;
+  /** Link rel attribute */
+  rel?: string;
 }
 
 /**

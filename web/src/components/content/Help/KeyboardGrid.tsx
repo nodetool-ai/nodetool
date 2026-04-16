@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { Box, Tooltip, ButtonBase } from "@mui/material";
+import { Box, ButtonBase } from "@mui/material";
+import { Tooltip } from "../../ui_primitives";
 import { Shortcut } from "../../../config/shortcuts";
 import { expandShortcutsForOS } from "../../../config/shortcuts";
 import { getShortcutTooltip } from "../../../config/shortcuts";

@@ -17,9 +17,11 @@ import {
   ConnectionMatchMenuPayload,
   ConnectionMatchOption
 } from "../../components/context_menus/ConnectionMatchMenu";
+import { DYNAMIC_KIE_NODE_TYPE } from "../../components/node/DynamicKieSchemaNode";
 import { wouldCreateCycle } from "../../utils/graphCycle";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 const PREVIEW_VALUE_HANDLE = "value";
@@ -51,7 +53,7 @@ export default function useConnectionHandlers() {
   );
   const { updateNodeData } = useNodes((state) => ({
     updateNodeData: state.updateNodeData
-  }));
+  }), shallow);
   const { connecting, startConnecting, endConnecting } = useConnectionStore(
     useShallow((state) => ({
       connecting: state.connecting,
@@ -502,8 +504,9 @@ export default function useConnectionHandlers() {
         if (
           nodeMetadata.is_dynamic &&
           connectDirection === "source" &&
-          node.type !== "fal.dynamic_schema.FalAI" &&
-          node.type !== "kie.dynamic_schema.KieAI"
+          node.type !== "fal.DynamicFal" &&
+          node.type !== DYNAMIC_KIE_NODE_TYPE &&
+          node.type !== "kie.DynamicKie"
         ) {
           // Use the source node's name as the property name
           const sourceNodeName =
@@ -546,12 +549,17 @@ export default function useConnectionHandlers() {
         }
       }
 
-      // targetIsPane: open context menu for output (skip during edge reconnection)
+      // Click on handle without dragging: target is the handle itself
+      const targetIsHandle =
+        htmlTarget.classList.contains("react-flow__handle") ||
+        htmlTarget.closest(".react-flow__handle") !== null;
+
+      // Open context menu when releasing on pane, group, or clicking a handle in place
       const { isReconnecting } = useConnectionStore.getState();
       if (
         !connectionCreated.current &&
         !isReconnecting &&
-        (targetIsPane || targetIsGroup)
+        (targetIsPane || targetIsGroup || targetIsHandle)
       ) {
         if (connectDirection === "source") {
           openContextMenu(

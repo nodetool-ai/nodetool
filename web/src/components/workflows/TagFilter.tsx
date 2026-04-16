@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import { Box, Tooltip } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import { Box } from "@mui/material";
+import { EditorButton, Tooltip } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -46,7 +46,7 @@ const TagFilter = memo(({
       <div className="button-row">
         <Tooltip
           title="Basic examples to get started"
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
           <EditorButton
@@ -62,7 +62,7 @@ const TagFilter = memo(({
             <Tooltip
               key={tag}
               title={`Show ${tag} examples`}
-              enterDelay={TOOLTIP_ENTER_DELAY}
+              delay={TOOLTIP_ENTER_DELAY}
               leaveDelay={TOOLTIP_LEAVE_DELAY}
             >
               <EditorButton
@@ -78,7 +78,7 @@ const TagFilter = memo(({
           ))}
         <Tooltip
           title="Show all example workflows"
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          delay={TOOLTIP_ENTER_DELAY}
           leaveDelay={TOOLTIP_LEAVE_DELAY}
         >
           <EditorButton

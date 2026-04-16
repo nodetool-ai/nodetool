@@ -1,29 +1,30 @@
-import { Box, Typography, List, ListItem, Divider } from "@mui/material";
+import { Box, List, ListItem } from "@mui/material";
+import { Text, FlexColumn, Divider } from "../ui_primitives";
 
 const EmptyCollectionState = () => {
   return (
     <Box sx={{ marginTop: 2, maxWidth: 600 }}>
-      <Typography variant="h2" sx={{ margin: "1em 0 .5em 0" }}>
+      <Text size="bigger" sx={{ margin: "1em 0 .5em 0" }}>
         Vector Collections
-      </Typography>
-      <Typography variant="body1" sx={{ marginBottom: 1 }}>
+      </Text>
+      <Text sx={{ marginBottom: 1 }}>
         Collections organize vector representations of your text and images in a
         local SQLite database.
-      </Typography>
-      <Typography variant="body1" sx={{ marginBottom: 2 }}>
+      </Text>
+      <Text sx={{ marginBottom: 2 }}>
         Creating a collection enables semantic search in your workflows,
         allowing nodes to find and process data based on conceptual meaning
         rather than exact keyword matches.
-      </Typography>
+      </Text>
 
       <Divider sx={{ my: 3 }} />
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <Typography variant="h4">
+      <FlexColumn gap={2}>
+        <Text size="big">
           No collections found. Create one to get started.
-        </Typography>
+        </Text>
 
-        <Typography variant="body1">With a collection, you can:</Typography>
+        <Text>With a collection, you can:</Text>
         <List sx={{ pl: 2, mb: 1 }}>
           <ListItem sx={{ display: "list-item" }}>
             Index text and images as vector embeddings
@@ -38,13 +39,13 @@ const EmptyCollectionState = () => {
             Batch process large sets of documents
           </ListItem>
         </List>
-        <Typography variant="body1">
+        <Text>
           Key nodes include <strong>Index Image</strong> and{" "}
           <strong>Index Text Chunk</strong> for populating data, and{" "}
           <strong>Query Image</strong>, <strong>Query Text</strong>, or{" "}
           <strong>Hybrid Search</strong> for retrieval.
-        </Typography>
-      </Box>
+        </Text>
+      </FlexColumn>
     </Box>
   );
 };

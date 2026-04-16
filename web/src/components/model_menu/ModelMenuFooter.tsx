@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -60,7 +61,7 @@ const ModelMenuFooter: React.FC<ModelMenuFooterProps> = ({
         }
         placement="top"
       >
-        <Typography
+        <Text
           component="div"
           className="count-pill"
           aria-label="model counts"
@@ -83,7 +84,7 @@ const ModelMenuFooter: React.FC<ModelMenuFooterProps> = ({
               <span className="label"> total</span>
             </>
           )}
-        </Typography>
+        </Text>
       </Tooltip>
     </Box>
   );

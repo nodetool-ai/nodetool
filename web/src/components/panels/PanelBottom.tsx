@@ -2,19 +2,17 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton, Tooltip } from "@mui/material";
-import { CloseButton } from "../ui_primitives";
+import { Drawer, IconButton } from "@mui/material";
+import { CloseButton, Tooltip } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo, useCallback } from "react";
-import isEqual from "lodash/isEqual";
-import Terminal from "../terminal/Terminal";
+import isEqual from "fast-deep-equal";
 import TracePanel from "./TracePanel";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 // icons
-import TerminalIcon from "@mui/icons-material/Terminal";
 import TimelineIcon from "@mui/icons-material/Timeline";
 
 const PANEL_HEIGHT_COLLAPSED = "0px";
@@ -99,16 +97,6 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary
       }
     },
-    ".terminal-wrapper": {
-      flex: 1,
-      minHeight: 0,
-      display: "flex",
-      overflow: "auto",
-      width: "100%",
-      ".terminal-container": {
-        width: "100%"
-      }
-    }
   });
 
 const PanelBottom: React.FC = () => {
@@ -124,13 +112,7 @@ const PanelBottom: React.FC = () => {
 
   const activeView = useBottomPanelStore((state) => state.panel.activeView);
 
-  // Add keyboard shortcut for toggle (Ctrl+`)
-  useCombo(["Control", "`"], () => handlePanelToggle("terminal"), false);
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
-
-  const handleTerminalToggle = useCallback(() => {
-    handlePanelToggle("terminal");
-  }, [handlePanelToggle]);
 
   const handleTraceToggle = useCallback(() => {
     handlePanelToggle("trace");
@@ -184,16 +166,7 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <Tooltip title="Terminal (Ctrl+`)" enterDelay={TOOLTIP_ENTER_DELAY}>
-                  <IconButton
-                    size="small"
-                    onClick={handleTerminalToggle}
-                    sx={{ color: activeView === "terminal" ? "primary.main" : "text.secondary" }}
-                  >
-                    <TerminalIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Trace (Ctrl+Shift+T)" enterDelay={TOOLTIP_ENTER_DELAY}>
+                <Tooltip title="Trace (Ctrl+Shift+T)" delay={TOOLTIP_ENTER_DELAY}>
                   <IconButton
                     size="small"
                     onClick={handleTraceToggle}
@@ -208,29 +181,21 @@ const PanelBottom: React.FC = () => {
                   <div className="tooltip-span">
                     <div className="tooltip-title">Hide panel</div>
                     <div className="tooltip-key">
-                      <kbd>Ctrl</kbd> + <kbd>`</kbd>
+                      <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>
                     </div>
                   </div>
                 }
                 placement="top-start"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
               >
                 <CloseButton
-                  onClick={handleTerminalToggle}
+                  onClick={handleTraceToggle}
                   buttonSize="small"
                   tooltip=""
                 />
               </Tooltip>
             </div>
           )}
-          <div
-            className="terminal-wrapper"
-            style={{
-              display: activeView === "terminal" ? "flex" : "none"
-            }}
-          >
-            {isVisible && <Terminal />}
-          </div>
           <div
             className="trace-wrapper"
             style={{

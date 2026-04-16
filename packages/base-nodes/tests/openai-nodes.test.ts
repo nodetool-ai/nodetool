@@ -327,53 +327,18 @@ describe("TranscribeNode", () => {
 describe("RealtimeAgentNode", () => {
   it("returns realtime fallback output", async () => {
     const node = new RealtimeAgentNode();
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValueOnce(
-        jsonResponse({ choices: [{ message: { content: "ok" } }] })
-      )
-      .mockResolvedValueOnce(jsonResponse({})) as any;
-    node.assign({ prompt: "hello" });
-    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    // process() is now a no-op stub; real logic is in run() via WebSocket
     const result = await node.process();
-    expect(result.text).toBe("ok");
-    expect(result.output).toBe("ok");
-
-    // audio should be an object with a base64 data URI (TTS response)
-    expect(result.audio).toEqual(
-      expect.objectContaining({
-        data: expect.stringContaining("data:audio/mp3;base64,")
-      })
-    );
-
-    // chunk should be a well-formed chunk object
-    expect(result.chunk).toEqual({
-      type: "chunk",
-      content_type: "text",
-      content: "ok",
-      done: true
-    });
+    expect(result).toEqual({});
   });
 });
 
 describe("RealtimeTranscriptionNode", () => {
   it("returns transcription fallback output", async () => {
     const node = new RealtimeTranscriptionNode();
-    globalThis.fetch = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse({ text: "heard" })) as any;
-    (node as any).chunk = { content: Buffer.from("wav").toString("base64") };
-    node.setDynamic("_secrets", { OPENAI_API_KEY: "test-key" });
+    // process() is now a no-op stub; real logic is in run() via WebSocket
     const result = await node.process();
-    expect(result.text).toBe("heard");
-    expect(result.output).toBe("heard");
-
-    // chunk should be a well-formed chunk object
-    expect(result.chunk).toEqual({
-      type: "chunk",
-      content_type: "text",
-      content: "heard",
-      done: true
+    expect(result).toEqual({
     });
   });
 });

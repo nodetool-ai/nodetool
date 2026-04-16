@@ -243,14 +243,14 @@ describe("SettingsStore", () => {
     });
 
     test("setMenuOpen opens menu with search filter", () => {
-      useSettingsStore.getState().setMenuOpen(true, 3, "OPENAI_API_KEY");
+      useSettingsStore.getState().setMenuOpen(true, 1, "OPENAI_API_KEY");
       expect(useSettingsStore.getState().isMenuOpen).toBe(true);
-      expect(useSettingsStore.getState().settingsTab).toBe(3);
+      expect(useSettingsStore.getState().settingsTab).toBe(1);
       expect(useSettingsStore.getState().searchFilter).toBe("OPENAI_API_KEY");
     });
 
     test("setMenuOpen clears search filter when not provided", () => {
-      useSettingsStore.getState().setMenuOpen(true, 3, "OPENAI_API_KEY");
+      useSettingsStore.getState().setMenuOpen(true, 1, "OPENAI_API_KEY");
       useSettingsStore.getState().setMenuOpen(true, 0);
       expect(useSettingsStore.getState().searchFilter).toBe("");
     });

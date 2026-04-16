@@ -3,41 +3,31 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback } from "react";
+import { Chip } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
     fontWeight: "400",
-    fontSize: theme.fontSizeNormal,
+    fontSize: theme.fontSizeSmaller,
     color: theme.vars.palette.grey[0],
     whiteSpace: "pre-wrap",
-    marginBottom: "0.5em",
+    marginBottom: "0.25em",
     display: "flex",
     flexDirection: "column",
-    gap: "0.5em",
+    gap: "0.25em",
     ".first-line": {
-      lineHeight: "1.2em"
+      lineHeight: "1.2em",
+      opacity: 0.85
     },
     ".tags-container": {
       display: "flex",
       flexWrap: "wrap",
-      gap: "0.5em"
-    },
-    ".tag": {
-      fontWeight: "600",
-      fontSize: theme.fontSizeTiny,
-      color: theme.vars.palette.grey[1000],
-      backgroundColor: theme.vars.palette.grey[400],
-      borderRadius: "0.5em",
-      padding: "0.2em 0.5em",
-      textTransform: "uppercase",
-      display: "inline-block",
-      "&:hover": {
-        filter: "brightness(1.2)"
-      }
+      gap: "0.25em"
     },
     ".rest-description": {
       lineHeight: "1.2em",
-      whiteSpace: "pre-wrap"
+      whiteSpace: "pre-wrap",
+      opacity: 0.85
     }
   });
 
@@ -93,14 +83,15 @@ const NodeDescription = React.memo(
         {tags.length > 0 && (
           <div className="tags-container">
             {tags.map((tag) => (
-              <span
+              <Chip
                 key={tag}
-                className="tag"
-                onClick={createTagClickHandler(tag)}
-                style={{ cursor: onTagClick ? "pointer" : "default" }}
-              >
-                {tag}
-              </span>
+                label={tag}
+                compact
+                size="small"
+                variant="outlined"
+                onClick={onTagClick ? createTagClickHandler(tag) : undefined}
+                sx={{ cursor: onTagClick ? "pointer" : "default", textTransform: "uppercase" }}
+              />
             ))}
           </div>
         )}

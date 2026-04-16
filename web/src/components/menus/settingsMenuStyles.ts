@@ -50,11 +50,10 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "0em 1em",
+    padding: "0.75em 1.25em",
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    h2: {
-      marginTop: "0",
-      padding: "0.5em 0",
+    "& p, & h2": {
+      margin: 0,
       color: theme.vars.palette.grey[0],
       fontSize: theme.fontSizeBigger,
       lineHeight: "1.5",
@@ -84,8 +83,20 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     padding: "1.5em 0",
     overflowY: "auto"
   },
+  ".settings-sidebar-folder": {
+    display: "flex",
+    flexDirection: "column",
+    "& + &": {
+      marginTop: "0.25em"
+    }
+  },
+  ".settings-sidebar-folder-items": {
+    display: "flex",
+    flexDirection: "column",
+    paddingBottom: "0.25em"
+  },
   ".settings-sidebar-item": {
-    padding: "0.25em 1.5em",
+    padding: "0.25em 1.5em 0.25em 2.75em",
     cursor: "pointer",
     fontSize: theme.fontSizeSmall,
     color: theme.vars.palette.grey[0],
@@ -103,13 +114,44 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     }
   },
   ".settings-sidebar-category": {
-    padding: "1em 1.5em 0.5em",
-    color: "var(--palette-primary-main)",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.4em",
+    padding: "0.6em 1em 0.4em 0.75em",
+    color: theme.vars.palette.grey[0],
     fontSize: theme.fontSizeSmaller,
-    fontWeight: "500",
-    letterSpacing: "0.05em",
+    fontWeight: "600",
+    letterSpacing: "0.04em",
     textTransform: "uppercase",
-    opacity: "0.8"
+    opacity: "0.85",
+    cursor: "pointer",
+    userSelect: "none",
+    transition: "all 0.15s ease",
+    borderRadius: "4px",
+    outline: "none",
+    "&:hover": {
+      opacity: 1,
+      backgroundColor: theme.vars.palette.action.hover
+    },
+    "&:focus-visible": {
+      boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
+    },
+    "&.open .settings-sidebar-chevron": {
+      transform: "rotate(0deg)"
+    },
+    ".settings-sidebar-chevron": {
+      fontSize: "1rem",
+      color: theme.vars.palette.text.secondary,
+      transition: "transform 0.18s ease",
+      transform: "rotate(-90deg)"
+    },
+    ".settings-sidebar-folder-icon": {
+      fontSize: "1.05rem",
+      color: "var(--palette-primary-main)"
+    },
+    ".settings-sidebar-category-label": {
+      flex: 1
+    }
   },
   ".sticky-header": {
     position: "sticky",
@@ -193,11 +235,18 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       "& .MuiInputBase-root": {
         maxWidth: "34em",
         backgroundColor: theme.vars.palette.background.paper,
+        border: `1px solid ${theme.vars.palette.divider}`,
         borderRadius: ".3em",
         margin: "0",
         padding: ".3em 1em",
-        transition: "background-color 0.2s ease",
+        transition: "border-color 0.2s ease, background-color 0.2s ease",
         fontSize: theme.fontSizeNormal,
+        "&:hover": {
+          borderColor: theme.vars.palette.grey[300]
+        },
+        "&.Mui-focused": {
+          borderColor: theme.vars.palette.primary.main
+        },
         "&::before": {
           content: "none"
         }
@@ -211,6 +260,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     },
     ".description": {
       color: theme.vars.palette.grey[50],
+      opacity: 0.5,
       fontSize: theme.fontSizeSmall,
       margin: "0",
       padding: "0",

@@ -49,11 +49,6 @@ const collectionsRoutes: FastifyPluginAsync<RouteOptions> = async (
     });
   });
 
-  // Debug export
-  app.post("/api/debug/export", async (req, reply) => {
-    const { handleDebugExportRequest } = await import("../debug-api.js");
-    await bridge(req, reply, (request) => handleDebugExportRequest(request));
-  });
 
   // Admin endpoints (stubs)
   app.post("/admin/secrets/import", async (_req, reply) => {

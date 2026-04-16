@@ -1,54 +1,24 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { AudioRef } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-
-type AudioRefLike = {
-  uri?: string;
-  data?: Uint8Array | string;
-};
+import {
+  audioBytes,
+  audioBytesAsync,
+  audioRefFromBytes,
+  audioRefFromWav,
+  concatBytes,
+  encodeWav,
+  toBytes,
+  tryDecodeWav,
+  uriToPath,
+  type WavData
+} from "../lib/audio-wav.js";
 
 type ImageLike = {
   data?: Uint8Array | string;
   uri?: string;
 };
-
-function toBytes(value: Uint8Array | string | undefined): Uint8Array {
-  if (!value) return new Uint8Array();
-  if (value instanceof Uint8Array) return value;
-  return Uint8Array.from(Buffer.from(value, "base64"));
-}
-
-function audioBytes(audio: unknown): Uint8Array {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
-  const ref = audio as AudioRefLike;
-  if (ref.data) return toBytes(ref.data);
-  return new Uint8Array();
-}
-
-async function audioBytesAsync(audio: unknown): Promise<Uint8Array> {
-  if (!audio || typeof audio !== "object") return new Uint8Array();
-  const ref = audio as AudioRefLike;
-  if (ref.data) return toBytes(ref.data);
-  if (typeof ref.uri === "string" && ref.uri) {
-    try {
-      if (ref.uri.startsWith("file://")) {
-        return new Uint8Array(await fs.readFile(uriToPath(ref.uri)));
-      }
-      const response = await fetch(ref.uri);
-      return new Uint8Array(await response.arrayBuffer());
-    } catch {
-      return new Uint8Array();
-    }
-  }
-  return new Uint8Array();
-}
-
-function uriToPath(uriOrPath: string): string {
-  if (uriOrPath.startsWith("file://")) return uriOrPath.slice("file://".length);
-  return uriOrPath;
-}
 
 function dateName(name: string): string {
   const now = new Date();
@@ -60,25 +30,6 @@ function dateName(name: string): string {
     .replaceAll("%H", pad(now.getHours()))
     .replaceAll("%M", pad(now.getMinutes()))
     .replaceAll("%S", pad(now.getSeconds()));
-}
-
-function audioRefFromBytes(data: Uint8Array, uri?: string): AudioRef {
-  return {
-    type: "audio",
-    uri: uri ?? "",
-    data: Buffer.from(data).toString("base64")
-  };
-}
-
-function concatBytes(chunks: Uint8Array[]): Uint8Array {
-  const total = chunks.reduce((sum, c) => sum + c.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const c of chunks) {
-    out.set(c, offset);
-    offset += c.length;
-  }
-  return out;
 }
 
 function getModelConfig(props: Record<string, unknown>): {
@@ -114,53 +65,6 @@ function hasProviderSupport(
   );
 }
 
-function parseWavPcm16(
-  bytes: Uint8Array
-): { samples: Int16Array; headerSize: number } | null {
-  if (bytes.length < 44) return null;
-  const header = Buffer.from(bytes);
-  if (
-    header.toString("ascii", 0, 4) !== "RIFF" ||
-    header.toString("ascii", 8, 12) !== "WAVE"
-  ) {
-    return null;
-  }
-  const dataOffset = 44;
-  const pcm = bytes.slice(dataOffset);
-  if (pcm.length % 2 !== 0) return null;
-  return {
-    samples: new Int16Array(
-      pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength)
-    ),
-    headerSize: dataOffset
-  };
-}
-
-function buildWavFromSamples(
-  original: Uint8Array,
-  samples: Int16Array,
-  headerSize = 44
-): Uint8Array {
-  if (original.length >= headerSize) {
-    const out = new Uint8Array(headerSize + samples.byteLength);
-    out.set(original.slice(0, headerSize), 0);
-    out.set(
-      new Uint8Array(samples.buffer, samples.byteOffset, samples.byteLength),
-      headerSize
-    );
-    const view = new DataView(out.buffer);
-    view.setUint32(4, out.length - 8, true);
-    view.setUint32(40, samples.byteLength, true);
-    return out;
-  }
-  return new Uint8Array(
-    samples.buffer.slice(
-      samples.byteOffset,
-      samples.byteOffset + samples.byteLength
-    )
-  );
-}
-
 export class LoadAudioAssetsNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.LoadAudioAssets";
   static readonly title = "Load Audio Assets";
@@ -168,7 +72,8 @@ export class LoadAudioAssetsNode extends BaseNode {
     "Load audio files from an asset folder.\n    load, audio, file, import";
   static readonly metadataOutputTypes = {
     audio: "audio",
-    name: "str"
+    name: "str",
+    audios: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -187,10 +92,18 @@ export class LoadAudioAssetsNode extends BaseNode {
   declare folder: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._loadAudios()) {
+      collected.push(item.audio as Record<string, unknown>);
+    }
+    return {
+      audio: collected[0] ?? {},
+      name: "",
+      audios: collected
+    };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+  private async *_loadAudios(): AsyncGenerator<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
     const entries = await fs.readdir(folder, { withFileTypes: true });
     for (const entry of entries) {
@@ -204,6 +117,15 @@ export class LoadAudioAssetsNode extends BaseNode {
         name: entry.name
       };
     }
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const collected: Record<string, unknown>[] = [];
+    for await (const item of this._loadAudios()) {
+      collected.push(item.audio as Record<string, unknown>);
+      yield item;
+    }
+    yield { audios: collected };
   }
 }
 
@@ -238,7 +160,8 @@ export class LoadAudioFolderNode extends BaseNode {
     "Load all audio files from a folder, optionally including subfolders.\n    audio, load, folder, files";
   static readonly metadataOutputTypes = {
     audio: "audio",
-    path: "str"
+    path: "str",
+    audios: "list"
   };
 
   static readonly isStreamingOutput = true;
@@ -267,7 +190,10 @@ export class LoadAudioFolderNode extends BaseNode {
   declare extensions: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const loader = new LoadAudioAssetsNode();
+    loader.assign({ folder: this.folder ?? "." });
+    const result = await loader.process();
+    return result;
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
@@ -425,10 +351,9 @@ export class NormalizeAudioNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const audio = this.audio;
-    const bytes = await audioBytesAsync(audio);
-    const wav = parseWavPcm16(bytes);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
+    const wav = tryDecodeWav({ data: bytes });
     if (!wav || wav.samples.length === 0) {
       return { output: audioRefFromBytes(bytes) };
     }
@@ -437,17 +362,14 @@ export class NormalizeAudioNode extends BaseNode {
     for (const sample of wav.samples) peak = Math.max(peak, Math.abs(sample));
     if (peak === 0) return { output: audioRefFromBytes(bytes) };
 
-    const gain = 32767 / peak;
-    const normalized = new Int16Array(wav.samples.length);
+    const gain = 1 / peak;
+    const normalized = new Float32Array(wav.samples.length);
     for (let i = 0; i < wav.samples.length; i += 1) {
-      normalized[i] = Math.max(
-        -32768,
-        Math.min(32767, Math.round(wav.samples[i] * gain))
-      );
+      normalized[i] = wav.samples[i] * gain;
     }
     return {
-      output: audioRefFromBytes(
-        buildWavFromSamples(bytes, normalized, wav.headerSize)
+      output: audioRefFromWav(
+        encodeWav(normalized, wav.sampleRate, wav.numChannels)
       )
     };
   }
@@ -1010,100 +932,62 @@ export class AudioMixerNode extends BaseNode {
   declare volume5: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const tracks = [
-      this.track1,
-      this.track2,
-      this.track3,
-      this.track4,
-      this.track5
-    ].filter((t) => t && typeof t === "object");
-    const all = tracks.map((a) => audioBytes(a));
-    if (all.length === 0)
+    const entries = [
+      { track: this.track1, volume: this.volume1 },
+      { track: this.track2, volume: this.volume2 },
+      { track: this.track3, volume: this.volume3 },
+      { track: this.track4, volume: this.volume4 },
+      { track: this.track5, volume: this.volume5 }
+    ];
+    const tracks = entries
+      .filter((e) => e.track && typeof e.track === "object")
+      .map((e) => ({
+        bytes: audioBytes(e.track),
+        volume: Number.isFinite(Number(e.volume)) ? Number(e.volume) : 1
+      }))
+      .filter((t) => t.bytes.length > 0);
+
+    if (tracks.length === 0)
       return { output: audioRefFromBytes(new Uint8Array()) };
-    const len = Math.max(...all.map((x) => x.length));
+
+    // If every track is a valid WAV file, mix in Float32 sample space and
+    // emit a valid WAV so downstream nodes receive a playable file.
+    const parsed = tracks.map((t) => ({
+      wav: tryDecodeWav({ data: t.bytes }),
+      bytes: t.bytes,
+      volume: t.volume
+    }));
+    if (parsed.every((p) => p.wav !== null)) {
+      const wavs = parsed as Array<{
+        wav: WavData;
+        bytes: Uint8Array;
+        volume: number;
+      }>;
+      const len = Math.max(...wavs.map((p) => p.wav.samples.length));
+      const mixed = new Float32Array(len);
+      for (let i = 0; i < len; i += 1) {
+        let total = 0;
+        for (const p of wavs) total += (p.wav.samples[i] ?? 0) * p.volume;
+        mixed[i] = total / wavs.length;
+      }
+      return {
+        output: audioRefFromWav(
+          encodeWav(mixed, wavs[0].wav.sampleRate, wavs[0].wav.numChannels)
+        )
+      };
+    }
+
+    // Fallback: byte-level averaging with volume scaling (preserves
+    // backward-compatible behavior for non-WAV / headerless byte streams).
+    const len = Math.max(...tracks.map((t) => t.bytes.length));
     const out = new Uint8Array(len);
     for (let i = 0; i < len; i += 1) {
       let total = 0;
-      for (const a of all) total += a[i] ?? 0;
-      out[i] = Math.floor(total / all.length);
+      for (const t of tracks) total += (t.bytes[i] ?? 0) * t.volume;
+      const avg = total / tracks.length;
+      out[i] = Math.max(0, Math.min(255, Math.round(avg)));
     }
     return { output: audioRefFromBytes(out) };
-  }
-}
-
-export class AudioToNumpyNode extends BaseNode {
-  static readonly nodeType = "nodetool.audio.AudioToNumpy";
-  static readonly title = "Audio To Numpy";
-  static readonly description =
-    "Convert audio to numpy array for processing.\n    audio, numpy, convert, array";
-  static readonly metadataOutputTypes = {
-    array: "np_array",
-    sample_rate: "int",
-    channels: "int"
-  };
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Audio",
-    description: "The audio to convert to numpy."
-  })
-  declare audio: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const data = audioBytes(this.audio);
-    return { output: Array.from(data) };
-  }
-}
-
-export class NumpyToAudioNode extends BaseNode {
-  static readonly nodeType = "nodetool.audio.NumpyToAudio";
-  static readonly title = "Numpy To Audio";
-  static readonly description =
-    "Convert numpy array to audio.\n    audio, numpy, convert";
-  static readonly metadataOutputTypes = {
-    output: "audio"
-  };
-
-  @prop({
-    type: "np_array",
-    default: {
-      type: "np_array",
-      value: null,
-      dtype: "<i8",
-      shape: [1]
-    },
-    title: "Array",
-    description: "The numpy array to convert to audio."
-  })
-  declare array: any;
-
-  @prop({
-    type: "int",
-    default: 44100,
-    title: "Sample Rate",
-    description: "Sample rate in Hz."
-  })
-  declare sample_rate: any;
-
-  @prop({
-    type: "int",
-    default: 1,
-    title: "Channels",
-    description: "Number of audio channels (1 or 2)."
-  })
-  declare channels: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const values = Array.isArray(this.array) ? (this.array as unknown[]) : [];
-    const bytes = new Uint8Array(values.map((v) => Number(v) & 0xff));
-    return { output: audioRefFromBytes(bytes) };
   }
 }
 
@@ -1158,34 +1042,6 @@ export class TrimAudioNode extends BaseNode {
         data.slice(start, Math.max(start, data.length - end))
       )
     };
-  }
-}
-
-export class ConvertToArrayNode extends BaseNode {
-  static readonly nodeType = "nodetool.audio.ConvertToArray";
-  static readonly title = "Convert To Array";
-  static readonly description =
-    "Converts an audio file to a Array for further processing.\n    audio, conversion, tensor";
-  static readonly metadataOutputTypes = {
-    output: "np_array"
-  };
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Audio",
-    description: "The audio file to convert to a tensor."
-  })
-  declare audio: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    return { output: [this.audio ?? {}] };
   }
 }
 
@@ -1295,6 +1151,7 @@ export class TextToSpeechNode extends BaseNode {
     chunk: "chunk"
   };
   static readonly basicFields = ["model", "text", "voice", "speed"];
+  static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
 
   static readonly isStreamingOutput = true;
@@ -1440,8 +1297,8 @@ export class GetAudioInfoNode extends BaseNode {
   })
   declare audio: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const bytes = await audioBytesAsync(this.audio);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const bytes = await audioBytesAsync(this.audio, context);
     if (bytes.length === 0) {
       return { duration: 0, sample_rate: 0, channels: 0, format: "unknown", size_bytes: 0 };
     }
@@ -1510,10 +1367,7 @@ export const AUDIO_NODES = [
   FadeOutAudioNode,
   RepeatAudioNode,
   AudioMixerNode,
-  AudioToNumpyNode,
-  NumpyToAudioNode,
   TrimAudioNode,
-  ConvertToArrayNode,
   CreateSilenceNode,
   ConcatAudioNode,
   ConcatAudioListNode,

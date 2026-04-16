@@ -349,6 +349,31 @@ The `ClaudeAgentProvider` in `packages/runtime/src/providers/claude-agent-provid
 - Disables Claude Code's built-in tools (Bash, Read, Write, etc.) — only NodeTool tools are available
 - Supports: Claude Sonnet 4, Claude Opus 4, Claude Haiku 4
 
+### Running in Nested Claude Code Sessions (claude.ai/code)
+
+The provider can run inside a Claude Code web session (e.g. `claude.ai/code`), but the following issues must be handled:
+
+**Environment variable cleanup** — A Claude Code web session injects 20+ `CLAUDE_CODE_*` env vars (session IDs, proxy config, auth tokens, worker epochs, etc.) that conflict with spawning a nested Claude Code subprocess. The provider strips these prefixes from the env before calling `sdk.query()`:
+- `CLAUDECODE`, `CLAUDE_CODE`
+- `CLAUDE_CODE_*` (session ID, entrypoint, proxy, OAuth, websocket, diagnostics, etc.)
+- `CLAUDE_SESSION_*`, `CLAUDE_ENABLE_*`, `CLAUDE_AFTER_*`, `CLAUDE_AUTO_*`
+
+**Keep network/API vars** — Do NOT strip `ANTHROPIC_BASE_URL`, `HTTP_PROXY`, `HTTPS_PROXY`, or `NODE_EXTRA_CA_CERTS`. The containerized environment routes API traffic through these; removing them causes request timeouts.
+
+**Root user restriction** — The SDK adds `--dangerously-skip-permissions` which Claude Code refuses when running as root (uid 0). In the `claude.ai/code` container, the main process runs as root but a `claude` user (uid 999) exists. Running the provider subprocess as this user works:
+```bash
+su claude -s /bin/bash -c "node ..."
+```
+The OAuth token at `/home/claude/.claude/remote/.oauth_token` may need `chown claude:claude` to be readable by the non-root user.
+
+**Authentication** — The SDK authenticates via OAuth token (Claude subscription), not `ANTHROPIC_API_KEY`. The web environment stores the token at `/home/claude/.claude/remote/.oauth_token`. The E2E test accepts either `ANTHROPIC_API_KEY` or `CLAUDE_OAUTH_TOKEN` env var as an auth signal.
+
+**E2E tests** — Run as non-root with auth configured:
+```bash
+chown -R claude:claude /home/claude/.claude/
+su claude -s /bin/bash -c "CLAUDE_OAUTH_TOKEN=1 npx vitest run packages/runtime/tests/providers/claude-agent-e2e.test.ts"
+```
+
 ---
 
 ## Related Pages

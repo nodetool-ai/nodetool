@@ -20,6 +20,16 @@ export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
    * Density variant
    */
   density?: "compact" | "normal";
+  /**
+   * MUI button size. When provided, overrides the density-based height.
+   */
+  size?: "small" | "medium" | "large";
+  /**
+   * Link target (for use as an anchor element)
+   */
+  href?: string;
+  target?: string;
+  rel?: string;
 }
 
 /**
@@ -35,7 +45,7 @@ export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
  * </EditorButton>
  */
 export const EditorButton = forwardRef<HTMLButtonElement, EditorButtonProps>(
-  ({ density = "compact", sx, className, ...props }, ref) => {
+  ({ density = "compact", size, href, target, rel, sx, className, ...props }, ref) => {
     const theme = useTheme();
     const scope = useEditorScope();
 
@@ -46,11 +56,12 @@ export const EditorButton = forwardRef<HTMLButtonElement, EditorButtonProps>(
     return (
       <Button
         ref={ref}
-        size="small"
+        size={size ?? "small"}
         className={cn(editorClassNames.nodrag, className)}
+        {...(href ? { href, target, rel, component: "a" as const } : {})}
         sx={{
           fontSize,
-          height,
+          height: size ? undefined : height,
           minWidth: "auto",
           padding: "4px 8px",
           borderRadius: "6px",

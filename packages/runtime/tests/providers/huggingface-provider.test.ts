@@ -318,24 +318,29 @@ describe("HuggingFaceProvider", () => {
     });
   });
 
-  describe("textToSpeech", () => {
-    it("generates speech from text", async () => {
-      const mockClient = makeMockHfClient();
+  describe("textToSpeechEncoded", () => {
+    it("generates encoded audio from text", async () => {
+      // Minimal FLAC header magic bytes ("fLaC") so the provider detects
+      // audio/flac mime from the response.
+      const flacBytes = new Uint8Array([0x66, 0x4c, 0x61, 0x43, 0, 0, 0, 0]);
+      const mockClient = makeMockHfClient({
+        textToSpeech: vi.fn().mockResolvedValue({
+          arrayBuffer: async () => flacBytes.buffer
+        })
+      });
       const provider = new HuggingFaceProvider(
         { HF_TOKEN: "hf_test" },
         { hfClient: mockClient }
       );
 
-      const chunks: unknown[] = [];
-      for await (const chunk of provider.textToSpeech({
+      const result = await provider.textToSpeechEncoded({
         text: "Hello world",
         model: "facebook/mms-tts-eng"
-      })) {
-        chunks.push(chunk);
-      }
+      });
 
-      expect(chunks.length).toBe(1);
-      expect((chunks[0] as any).samples).toBeInstanceOf(Int16Array);
+      expect(result).not.toBeNull();
+      expect(result!.data).toBeInstanceOf(Uint8Array);
+      expect(result!.mimeType).toBe("audio/flac");
       expect(mockClient.textToSpeech).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "facebook/mms-tts-eng",
@@ -344,14 +349,35 @@ describe("HuggingFaceProvider", () => {
       );
     });
 
+    it("detects WAV mime from RIFF magic bytes", async () => {
+      const wavBytes = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0]);
+      const mockClient = makeMockHfClient({
+        textToSpeech: vi.fn().mockResolvedValue({
+          arrayBuffer: async () => wavBytes.buffer
+        })
+      });
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const result = await provider.textToSpeechEncoded({
+        text: "Hello",
+        model: "test"
+      });
+
+      expect(result!.mimeType).toBe("audio/wav");
+    });
+
     it("throws on empty text", async () => {
       const provider = new HuggingFaceProvider(
         { HF_TOKEN: "hf_test" },
         { hfClient: makeMockHfClient() }
       );
 
-      const gen = provider.textToSpeech({ text: "", model: "test" });
-      await expect(gen.next()).rejects.toThrow("text must not be empty");
+      await expect(
+        provider.textToSpeechEncoded({ text: "", model: "test" })
+      ).rejects.toThrow("text must not be empty");
     });
   });
 

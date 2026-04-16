@@ -3,8 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
-import { Box, Tooltip, Typography, IconButton } from "@mui/material";
+import { Box } from "@mui/material";
+import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
 import HistoryIcon from "@mui/icons-material/History";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
@@ -152,15 +154,15 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
-  const { recentNodes, clearRecentNodes } = useRecentNodesStore((state) => ({
-    recentNodes: state.recentNodes,
-    clearRecentNodes: state.clearRecentNodes
-  }));
+  const { recentNodes, clearRecentNodes } = useRecentNodesStore(
+    useShallow((state) => ({
+      recentNodes: state.recentNodes,
+      clearRecentNodes: state.clearRecentNodes
+    }))
+  );
 
-  const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
-    setDragToCreate: state.setDragToCreate,
-    setHoveredNode: state.setHoveredNode
-  }));
+  const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
+  const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
@@ -283,20 +285,19 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
-        <Typography variant="h5">
+        <Text size="normal" weight={600}>
           <HistoryIcon fontSize="small" sx={{ opacity: 0.8 }} />
           Recent Nodes
-        </Typography>
-        <Tooltip title="Clear recent nodes" placement="top">
-          <IconButton
-            size="small"
-            className="clear-button"
-            onClick={handleClearRecent}
-            aria-label="Clear recent nodes"
-          >
-            <ClearIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        </Text>
+        <ToolbarIconButton
+          icon={<ClearIcon fontSize="small" />}
+          tooltip="Clear recent nodes"
+          tooltipPlacement="top"
+          size="small"
+          className="clear-button"
+          onClick={handleClearRecent}
+          aria-label="Clear recent nodes"
+        />
       </div>
       <div className="tiles-container">
         {filteredRecentNodes.map((recentNode) => {
@@ -321,7 +322,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                 </div>
               }
               placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
+              delay={TOOLTIP_ENTER_DELAY}
               enterNextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
@@ -338,7 +339,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                   } as CSSProperties
                 }
               >
-                <Typography className="tile-label">{displayName}</Typography>
+                <Text className="tile-label">{displayName}</Text>
               </div>
             </Tooltip>
           );

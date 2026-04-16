@@ -145,6 +145,56 @@ describe("T-WS-1: Workflow API — autosave + names", () => {
     const body = (await jsonBody(res)) as Record<string, string>;
     expect(Object.keys(body).length).toBe(0);
   });
+
+  it("POST /api/workflows/{id}/run executes a simple workflow", async () => {
+    const created = (await Workflow.create({
+      user_id: "u1",
+      name: "Run Me",
+      access: "private",
+      graph: {
+        nodes: [
+          {
+            id: "const-1",
+            type: "nodetool.constant.Integer",
+            data: { value: 9 }
+          },
+          {
+            id: "out-1",
+            type: "nodetool.output.Output",
+            data: { name: "answer", description: "" }
+          }
+        ],
+        edges: [
+          {
+            id: "edge-1",
+            source: "const-1",
+            sourceHandle: "output",
+            target: "out-1",
+            targetHandle: "value",
+            edge_type: "data"
+          }
+        ]
+      }
+    })) as Workflow;
+
+    const res = await handleApiRequest(
+      new Request(`http://localhost/api/workflows/${created.id}/run`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-user-id": "u1" },
+        body: JSON.stringify({ params: {} })
+      })
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await jsonBody(res)) as {
+      job_id: string;
+      status: string;
+      outputs: Record<string, unknown[]>;
+    };
+    expect(body.job_id).toBeTruthy();
+    expect(body.status).toBe("completed");
+    expect(Object.values(body.outputs).flat()).toContain(9);
+  });
 });
 
 // ── T-WS-2 — Job API ────────────────────────────────────────────────

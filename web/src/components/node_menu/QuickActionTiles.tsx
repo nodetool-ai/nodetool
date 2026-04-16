@@ -8,7 +8,8 @@ import type {
   DragEvent as ReactDragEvent,
   ReactNode
 } from "react";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ImageIcon from "@mui/icons-material/Image";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
@@ -21,7 +22,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode";
 import { DYNAMIC_REPLICATE_NODE_TYPE } from "../node/DynamicReplicateNode";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -390,7 +391,13 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const handleCreateNode = useCreateNode();
 
   const handleDragStart = useCallback(
-    (nodeType: string) => (event: ReactDragEvent<HTMLDivElement>) => {
+    (event: ReactDragEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (!nodeType) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const metadata = getMetadata(nodeType);
       if (!metadata) {
         event.preventDefault();
@@ -426,7 +433,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${label}.`,
-          timeout: 4000
+          timeout: NOTIFICATION_TIMEOUT_MEDIUM
         });
         return;
       }
@@ -446,16 +453,32 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     [getMetadata, setHoveredNode]
   );
 
+  // Use data attributes to avoid creating new function references on each render
+  // This is more efficient than curried handlers which create new closures
   const handleTileClick = useCallback(
-    (definition: QuickActionDefinition) => () => {
-      onTileClick(definition);
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (nodeType) {
+        const metadata = getMetadata(nodeType);
+        if (metadata) {
+          const definition = [...QUICK_ACTION_BUTTONS, ...CONSTANT_NODES].find(
+            (d) => d.nodeType === nodeType
+          );
+          if (definition) {
+            onTileClick(definition);
+          }
+        }
+      }
     },
-    [onTileClick]
+    [getMetadata, onTileClick]
   );
 
   const handleTileMouseEnter = useCallback(
-    (nodeType: string) => () => {
-      onTileMouseEnter(nodeType);
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const nodeType = event.currentTarget.dataset.nodeType;
+      if (nodeType) {
+        onTileMouseEnter(nodeType);
+      }
     },
     [onTileMouseEnter]
   );
@@ -482,7 +505,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   return (
     <Box css={memoizedStyles}>
       <div className="tiles-header">
-        <Typography variant="h5">Quick Actions</Typography>
+        <Text size="normal" weight={600}>Multi-Model Nodes</Text>
       </div>
       <div className="tiles-container">
         {QUICK_ACTION_BUTTONS.map((definition) => {
@@ -509,16 +532,17 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 </div>
               }
               placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              enterNextDelay={TOOLTIP_ENTER_DELAY}
+              delay={TOOLTIP_ENTER_DELAY}
+              nextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile"
                 draggable
-                onDragStart={handleDragStart(nodeType)}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                onClick={handleTileClick(definition)}
-                onMouseEnter={handleTileMouseEnter(nodeType)}
+                onClick={handleTileClick}
+                onMouseEnter={handleTileMouseEnter}
+                data-node-type={nodeType}
                 style={
                   {
                     "--quick-gradient": gradient,
@@ -533,14 +557,14 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 <div className="tile-icon" style={{ color: iconColor }}>
                   {icon}
                 </div>
-                <Typography className="tile-label">{label}</Typography>
+                <Text className="tile-label">{label}</Text>
               </div>
             </Tooltip>
           );
         })}
       </div>
       <div className="tiles-header" style={constantsHeaderStyle}>
-        <Typography variant="h5">Constants</Typography>
+        <Text size="normal" weight={600}>Constants</Text>
       </div>
       <div className="constants-container">
         {CONSTANT_NODES.map((definition) => {
@@ -567,16 +591,17 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 </div>
               }
               placement="top"
-              enterDelay={TOOLTIP_ENTER_DELAY}
-              enterNextDelay={TOOLTIP_ENTER_DELAY}
+              delay={TOOLTIP_ENTER_DELAY}
+              nextDelay={TOOLTIP_ENTER_DELAY}
             >
               <div
                 className="quick-tile constant-tile"
                 draggable
-                onDragStart={handleDragStart(nodeType)}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                onClick={handleTileClick(definition)}
-                onMouseEnter={handleTileMouseEnter(nodeType)}
+                onClick={handleTileClick}
+                onMouseEnter={handleTileMouseEnter}
+                data-node-type={nodeType}
                 style={
                   {
                     "--quick-gradient": gradient,
@@ -591,7 +616,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                 <div className="tile-icon" style={{ color: iconColor }}>
                   {icon}
                 </div>
-                <Typography className="tile-label">{label}</Typography>
+                <Text className="tile-label">{label}</Text>
               </div>
             </Tooltip>
           );

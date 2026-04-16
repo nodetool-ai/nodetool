@@ -51,6 +51,7 @@ header_pages:
   - mobile-app.md
   - cookbook.md
   - workflows/index.md
+  - comfyui-integration.md
   - models-and-providers.md
   - global-chat-agents.md
   - deployment.md

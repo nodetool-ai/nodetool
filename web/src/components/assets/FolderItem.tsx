@@ -4,10 +4,9 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
-import { Typography } from "@mui/material";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
-import { DeleteButton } from "../ui_primitives";
+import { DeleteButton, Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -152,7 +151,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
       <FolderIcon className="folder-icon" />
       {children}
       {isParent && <NorthWest className="parent-icon" />}
-      <Typography className="folder-name">{folder.name}</Typography>
+      <Text className="folder-name">{folder.name}</Text>
       {showDeleteButton && (
         <DeleteButton
           className="asset-delete"

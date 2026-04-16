@@ -7,8 +7,9 @@ import {
   MenuItem,
   CircularProgress,
   Box,
-  Typography
+  Divider
 } from "@mui/material";
+import { Text, Caption, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +17,9 @@ import { client } from "../../stores/ApiClient";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
 import { createErrorMessage } from "../../utils/errorHandling";
 import FolderIcon from "@mui/icons-material/Folder";
+import AddIcon from "@mui/icons-material/Add";
+import StarIcon from "@mui/icons-material/Star";
+import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -76,6 +80,20 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       fontStyle: "italic",
       fontSize: "0.875rem"
+    },
+    ".create-option": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1),
+      color: theme.vars.palette.primary.main,
+      fontSize: "0.875rem",
+      fontWeight: 500
+    },
+    ".default-badge": {
+      color: theme.vars.palette.warning.main,
+      fontSize: "0.85rem",
+      marginLeft: theme.spacing(0.5),
+      verticalAlign: "middle"
     }
   });
 
@@ -99,6 +117,8 @@ interface WorkspaceSelectProps {
   disabled?: boolean;
 }
 
+const CREATE_NEW_VALUE = "__create_new__";
+
 const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
   function WorkspaceSelect({
     value,
@@ -107,6 +127,9 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     disabled = false
   }) {
     const theme = useTheme();
+    const setWorkspaceManagerOpen = useWorkspaceManagerStore(
+      (state) => state.setIsOpen
+    );
 
     const { data: workspaces, isLoading, error } = useQuery({
       queryKey: ["workspaces"],
@@ -116,9 +139,13 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     const handleChange = useCallback(
       (event: { target: { value: string } }) => {
         const newValue = event.target.value;
+        if (newValue === CREATE_NEW_VALUE) {
+          setWorkspaceManagerOpen(true);
+          return;
+        }
         onChange(newValue === "" ? undefined : newValue);
       },
-      [onChange]
+      [onChange, setWorkspaceManagerOpen]
     );
 
     // Find the selected workspace for display
@@ -126,24 +153,24 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
 
     if (isLoading) {
       return (
-        <Box css={styles(theme)} sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
+        <FlexRow css={styles(theme)} gap={1} align="center" sx={{ py: 1 }}>
           <CircularProgress size={18} />
-          <Typography variant="body2" color="text.secondary">
+          <Text size="small" color="secondary">
             Loading...
-          </Typography>
-        </Box>
+          </Text>
+        </FlexRow>
       );
     }
 
     if (error) {
       return (
         <Box css={styles(theme)}>
-          <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+          <Text size="small" color="error" sx={{ mb: 1 }}>
             Unable to load workspaces
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </Text>
+          <Caption color="secondary">
             Check your connection or try again later
-          </Typography>
+          </Caption>
         </Box>
       );
     }
@@ -156,7 +183,12 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
         <div className="workspace-option">
           <FolderIcon className="workspace-icon" />
           <div className="workspace-details">
-            <span className="workspace-name">{selectedWorkspace.name}</span>
+            <span className="workspace-name">
+              {selectedWorkspace.name}
+              {selectedWorkspace.is_default && (
+                <StarIcon className="default-badge" />
+              )}
+            </span>
             <span className="workspace-path">{selectedWorkspace.path}</span>
           </div>
         </div>
@@ -211,6 +243,20 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   fontStyle: "italic",
                   fontSize: "0.875rem"
                 },
+                "& .create-option": {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: theme.vars.palette.primary.main,
+                  fontSize: "0.875rem",
+                  fontWeight: 500
+                },
+                "& .default-badge": {
+                  color: theme.vars.palette.warning.main,
+                  fontSize: "0.85rem",
+                  marginLeft: "4px",
+                  verticalAlign: "middle"
+                },
                 "& .MuiMenuItem-root": {
                   padding: "10px 14px",
                   borderRadius: "4px",
@@ -237,12 +283,24 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
               <div className="workspace-option">
                 <FolderIcon className="workspace-icon" />
                 <div className="workspace-details">
-                  <span className="workspace-name">{workspace.name}</span>
+                  <span className="workspace-name">
+                    {workspace.name}
+                    {workspace.is_default && (
+                      <StarIcon className="default-badge" />
+                    )}
+                  </span>
                   <span className="workspace-path">{workspace.path}</span>
                 </div>
               </div>
             </MenuItem>
           ))}
+          <Divider sx={{ my: 0.5 }} />
+          <MenuItem value={CREATE_NEW_VALUE}>
+            <span className="create-option">
+              <AddIcon fontSize="small" />
+              Create New Workspace
+            </span>
+          </MenuItem>
         </Select>
       </FormControl>
     );

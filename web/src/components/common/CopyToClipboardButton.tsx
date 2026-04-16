@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from "react";
-import { IconButtonProps } from "@mui/material";
+import type { IconButtonProps } from "@mui/material";
 import { CopyButton } from "../ui_primitives";
 import { serializeValue } from "../../utils/serializeValue";
 import { SxProps, Theme, useTheme } from "@mui/material/styles";

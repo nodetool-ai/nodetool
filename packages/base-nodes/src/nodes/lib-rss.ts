@@ -77,7 +77,8 @@ export class FetchRSSFeedLibNode extends BaseNode {
     link: "str",
     published: "datetime",
     summary: "str",
-    author: "str"
+    author: "str",
+    items: "list"
   };
   static readonly exposeAsTool = true;
 
@@ -91,16 +92,31 @@ export class FetchRSSFeedLibNode extends BaseNode {
   declare url: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return {};
+    const url = String(this.url ?? "");
+    const res = await fetch(url);
+    const xml = await res.text();
+    const results = parseFeedItems(xml);
+    return {
+      title: results[0]?.title ?? "",
+      link: results[0]?.link ?? "",
+      published: results[0]?.published ?? {},
+      summary: results[0]?.summary ?? "",
+      author: results[0]?.author ?? "",
+      items: results
+    };
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
     const url = String(this.url ?? "");
     const res = await fetch(url);
     const xml = await res.text();
-    for (const item of parseFeedItems(xml)) {
+    const results = parseFeedItems(xml);
+
+    for (const item of results) {
       yield item;
     }
+
+    yield { items: results };
   }
 }
 

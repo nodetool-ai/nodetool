@@ -1,6 +1,7 @@
 import { memo, useCallback, forwardRef, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Typography, IconButton, Tooltip, Box } from "@mui/material";
+import { Box } from "@mui/material";
+import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
@@ -13,6 +14,7 @@ import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
+import { findSnippetByNodeType } from "../../config/snippetMetadata";
 
 interface NodeItemProps {
   node: NodeMetadata;
@@ -50,6 +52,7 @@ const NodeItem = memo(
         node.outputs.length > 0 ? node.outputs[0].type.type : "";
       const hasRuntimeDeps =
         node.required_runtimes && node.required_runtimes.length > 0;
+      const isSnippet = !!findSnippetByNodeType(node.node_type);
       // Combine multiple store selectors into one with shallow comparison to reduce re-renders
       const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
         useShallow((state) => ({
@@ -82,9 +85,9 @@ const NodeItem = memo(
         }
         return (
           <Box sx={{ maxWidth: 300 }}>
-            <Typography sx={{ fontSize: "0.85rem", fontWeight: 500, mb: 0.5 }}>
+            <Text sx={{ fontSize: "0.85rem", fontWeight: 500, mb: 0.5 }}>
               {parsedDescription.description}
-            </Typography>
+            </Text>
             {parsedDescription.tags.length > 0 && (
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
                 {parsedDescription.tags.map((tag) => (
@@ -109,9 +112,9 @@ const NodeItem = memo(
             )}
             {parsedDescription.useCases.raw && (
               <Box sx={{ mt: 1 }}>
-                <Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
+                <Text sx={{ fontSize: "0.7rem", fontWeight: 600, color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
                   Use cases
-                </Typography>
+                </Text>
                 <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "0.75rem", color: "grey.300" }}>
                   {parsedDescription.useCases.raw.split("\n").map((useCase, index) => (
                     <li key={`${useCase}-${index}`}>{useCase}</li>
@@ -235,7 +238,7 @@ const NodeItem = memo(
               <Tooltip
                 title={tooltipContent}
                 placement="right"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
                 slotProps={{
                   popper: { sx: { zIndex: 9999 } },
                   tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", maxWidth: 350, padding: "16px" } }
@@ -263,8 +266,8 @@ const NodeItem = memo(
                       height: "15px"
                     }}
                   />
-                  <Typography
-                    fontSize="small"
+                  <Text
+                    size="small"
                     sx={{
                       lineHeight: 1.3,
                       whiteSpace: "nowrap",
@@ -277,7 +280,7 @@ const NodeItem = memo(
                       query={searchTerm}
                       matchStyle="primary"
                     />
-                  </Typography>
+                  </Text>
                 </div>
               </Tooltip>
             ) : (
@@ -303,8 +306,8 @@ const NodeItem = memo(
                     height: "15px"
                   }}
                 />
-                <Typography
-                  fontSize="small"
+                <Text
+                  size="small"
                   sx={{
                     lineHeight: 1.3,
                     whiteSpace: "nowrap",
@@ -317,14 +320,14 @@ const NodeItem = memo(
                     query={searchTerm}
                     matchStyle="primary"
                   />
-                </Typography>
+                </Text>
               </div>
             )}
             {hasRuntimeDeps && (
               <Tooltip
                 title={`Requires: ${node.required_runtimes!.join(", ")}`}
                 placement="top"
-                enterDelay={TOOLTIP_ENTER_DELAY}
+                delay={TOOLTIP_ENTER_DELAY}
                 slotProps={{
                   popper: { sx: { zIndex: 2000 } },
                   tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", fontSize: "0.7rem" } }
@@ -349,42 +352,49 @@ const NodeItem = memo(
                 </Box>
               </Tooltip>
             )}
-            {showFavoriteButton && (
-              <Tooltip
-                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                placement="top"
-                enterDelay={TOOLTIP_ENTER_DELAY}
-                slotProps={{
-                  popper: { sx: { zIndex: 2000 } },
-                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100" } }
+            {isSnippet && (
+              <Box
+                component="span"
+                sx={{
+                  fontSize: "0.55rem",
+                  fontWeight: 700,
+                  fontFamily: "monospace",
+                  letterSpacing: "0.03em",
+                  bgcolor: `color-mix(in srgb, ${theme.vars.palette.info.main} 18%, transparent)`,
+                  color: theme.vars.palette.info.main,
+                  px: 0.5,
+                  py: 0.15,
+                  borderRadius: "3px",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
                 }}
               >
-                <IconButton
-                  size="small"
-                  onClick={handleFavoriteClick}
-                  sx={{
-                    padding: "2px",
-                    marginLeft: "auto",
-                    opacity: isFavorite ? 1 : 0.5,
-                    color: isFavorite ? "warning.main" : "text.secondary",
-                    "&:hover": {
-                      backgroundColor: "action.hover",
-                      opacity: 1
-                    }
-                  }}
-                  aria-label={
-                    isFavorite
-                      ? `Remove ${node.title} from favorites`
-                      : `Add ${node.title} to favorites`
+                JS
+              </Box>
+            )}
+            {showFavoriteButton && (
+              <ToolbarIconButton
+                icon={isFavorite ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                tooltip={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                tooltipPlacement="top"
+                size="small"
+                onClick={handleFavoriteClick}
+                sx={{
+                  padding: "2px",
+                  marginLeft: "auto",
+                  opacity: isFavorite ? 1 : 0.5,
+                  color: isFavorite ? "warning.main" : "text.secondary",
+                  "&:hover": {
+                    backgroundColor: "action.hover",
+                    opacity: 1
                   }
-                >
-                  {isFavorite ? (
-                    <StarIcon fontSize="small" />
-                  ) : (
-                    <StarBorderIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Tooltip>
+                }}
+                aria-label={
+                  isFavorite
+                    ? `Remove ${node.title} from favorites`
+                    : `Add ${node.title} to favorites`
+                }
+              />
             )}
           </div>
         </div>

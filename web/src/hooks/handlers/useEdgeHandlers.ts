@@ -3,6 +3,7 @@ import type { Edge } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useConnectionStore from "../../stores/ConnectionStore";
+import { shallow } from "zustand/shallow";
 
 /**
  * Result object containing edge event handlers.
@@ -65,7 +66,7 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
     deleteEdge: state.deleteEdge,
     edgeUpdateSuccessful: state.edgeUpdateSuccessful,
     setEdgeUpdateSuccessful: state.setEdgeUpdateSuccessful
-  }));
+  }), shallow);
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const setIsReconnecting = useConnectionStore(

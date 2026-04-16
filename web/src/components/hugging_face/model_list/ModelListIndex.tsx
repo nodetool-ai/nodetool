@@ -3,7 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, Button } from "@mui/material";
+import { Text } from "../../ui_primitives";
+import SearchOffIcon from "@mui/icons-material/SearchOff";
+import DownloadIcon from "@mui/icons-material/Download";
 import { VariableSizeList as VirtualList } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 
@@ -126,6 +129,7 @@ const ModelListIndex: React.FC = () => {
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const filterStatus = useModelManagerStore((state) => state.filterStatus);
+  const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
   const cachePending = useHfCacheStatusStore((state) => state.pending);
@@ -278,9 +282,9 @@ const ModelListIndex: React.FC = () => {
         }}
       >
         <CircularProgress />
-        <Typography variant="h4" mt={2}>
+        <Text size="big" sx={{ mt: 2 }}>
           Loading models
-        </Typography>
+        </Text>
       </Box>
     );
   }
@@ -312,26 +316,25 @@ const ModelListIndex: React.FC = () => {
           textAlign: "center"
         }}
       >
-        <Typography variant="h4" color="error">
+        <Text size="big" color="error">
           Could not load models
-        </Typography>
-        <Typography
-          variant="body1"
-          color="text.secondary"
+        </Text>
+        <Text
+          color="secondary"
           sx={{ maxWidth: 600 }}
         >
           {errorMessage}
-        </Typography>
+        </Text>
         {isOllamaError && (
           <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
             {isElectron ? (
-              <Typography variant="body2" color="warning.main">
+              <Text size="small" color="warning">
                 Ollama should be running automatically. Please try restarting
                 the application.
-              </Typography>
+              </Text>
             ) : (
-              <Typography
-                variant="body2"
+              <Text
+                size="small"
                 component="a"
                 href="https://ollama.com/download"
                 target="_blank"
@@ -339,7 +342,7 @@ const ModelListIndex: React.FC = () => {
                 sx={{ color: "primary.main", textDecoration: "underline" }}
               >
                 Download Ollama →
-              </Typography>
+              </Text>
             )}
           </Box>
         )}
@@ -368,14 +371,14 @@ const ModelListIndex: React.FC = () => {
             />
           )}
           {modelSearchTerm && selectedModelType === "All" && (
-            <Typography variant="h5" mb={2}>
+            <Text size="normal" weight={600} sx={{ mb: 2 }}>
               Searched models for &quot;{modelSearchTerm}&quot;
-            </Typography>
+            </Text>
           )}
           {selectedModelType !== "All" && (
-            <Typography variant="h2" fontSize="1.25em" mb={2}>
+            <Text size="bigger" sx={{ fontSize: "1.25em", mb: 2 }}>
               {prettifyModelType(selectedModelType)}
-            </Typography>
+            </Text>
           )}
           {flattenedList.length > 0 ? (
             <AutoSizer>
@@ -400,9 +403,9 @@ const ModelListIndex: React.FC = () => {
                     if (item.type === "header") {
                       return (
                         <Box style={style} sx={{ pt: 2, pb: 1 }}>
-                          <Typography variant="h2" fontSize="1.25em">
+                          <Text size="bigger" sx={{ fontSize: "1.25em" }}>
                             {prettifyModelType(item.modelType)}
-                          </Typography>
+                          </Text>
                         </Box>
                       );
                     } else {
@@ -454,11 +457,59 @@ const ModelListIndex: React.FC = () => {
               )}
             </AutoSizer>
           ) : (
-            <Typography variant="body1" sx={{ mt: 2 }}>
-              {modelSearchTerm
-                ? `No models found for "${modelSearchTerm}"`
-                : "No models available"}
-            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "50%",
+                gap: 2,
+                opacity: 0.7
+              }}
+            >
+              {modelSearchTerm ? (
+                <>
+                  <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+                  <Text size="normal" weight={600} color="secondary">
+                    No models found for &quot;{modelSearchTerm}&quot;
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Try a different search term or adjust your filters
+                  </Text>
+                </>
+              ) : filterStatus === "downloaded" ? (
+                <>
+                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+                  <Text size="normal" weight={600} color="secondary">
+                    No downloaded models
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Switch to &quot;All&quot; or &quot;Available&quot; to find
+                    models to download
+                  </Text>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setFilterStatus("all")}
+                    sx={{ mt: 1 }}
+                  >
+                    Show all models
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+                  <Text size="normal" weight={600} color="secondary">
+                    No models available
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Try adjusting the size filter or selecting a different
+                    category
+                  </Text>
+                </>
+              )}
+            </Box>
           )}
 
           <DeleteModelDialog

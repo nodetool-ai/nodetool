@@ -3,7 +3,7 @@
  */
 
 // Types
-export type { Step, Task, AgentMode, SubAgentConfig } from "./types.js";
+export type { Step, Task, TaskPlan, AgentMode, SubAgentConfig } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
@@ -26,6 +26,11 @@ export {
   ListDirectoryTool
 } from "./tools/filesystem-tools.js";
 export { DownloadFileTool, HttpRequestTool } from "./tools/http-tools.js";
+export {
+  EditFileTool,
+  GlobTool,
+  GrepTool
+} from "./tools/claude-code-tools.js";
 export { RunCodeTool } from "./tools/code-tools.js";
 export { MiniJSAgentTool } from "./tools/js-code-tool.js";
 export {
@@ -113,6 +118,22 @@ export { ListProviderModelsTool } from "./tools/model-tools.js";
 export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
+export { CreatePlanTool } from "./tools/create-plan-tool.js";
+export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
+
+// Graph-native planner tools
+export { AddNodeTool } from "./tools/add-node-tool.js";
+export { AddEdgeTool } from "./tools/add-edge-tool.js";
+export { FinishGraphTool } from "./tools/finish-graph-tool.js";
+export {
+  LocalSearchNodesTool
+} from "./tools/local-search-nodes-tool.js";
+export {
+  LocalGetNodeInfoTool
+} from "./tools/local-get-node-info-tool.js";
+export {
+  LocalListNodesTool
+} from "./tools/local-list-nodes-tool.js";
 
 // Shared JS sandbox engine
 export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
@@ -151,6 +172,17 @@ export { TaskPlanner } from "./task-planner.js";
 export type { TaskPlannerOptions } from "./task-planner.js";
 export { TaskExecutor } from "./task-executor.js";
 export type { TaskExecutorOptions } from "./task-executor.js";
+export { ParallelTaskExecutor } from "./parallel-task-executor.js";
+export type { ParallelTaskExecutorOptions } from "./parallel-task-executor.js";
+
+// Graph-native planning & execution
+export { GraphBuilder, AGENT_STEP_NODE_TYPE } from "./graph-builder.js";
+export { GraphPlanner } from "./graph-planner.js";
+export type { GraphPlannerOptions } from "./graph-planner.js";
+export { AgentStepExecutor } from "./agent-step-executor.js";
+export type { AgentStepExecutorOptions } from "./agent-step-executor.js";
+export { AgentWorkflowRunner } from "./agent-workflow-runner.js";
+export type { AgentWorkflowRunnerOptions } from "./agent-workflow-runner.js";
 
 // Multi-agent team system
 export {

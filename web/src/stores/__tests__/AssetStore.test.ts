@@ -35,9 +35,8 @@ jest.mock("../BASE_URL", () => ({
   BASE_URL: "http://localhost:7777"
 }));
 
-import axios from "axios";
-jest.mock("axios");
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
 describe("AssetStore", () => {
   let queryClient: QueryClient;
@@ -418,7 +417,10 @@ describe("AssetStore", () => {
 
       const { authHeader } = await import("../ApiClient");
       (authHeader as jest.Mock).mockResolvedValue({});
-      mockedAxios.get.mockResolvedValue({ data: mockSearchResult } as any);
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockSearchResult
+      });
 
       const { search } = useAssetStore.getState();
       const result = await search({
@@ -426,7 +428,7 @@ describe("AssetStore", () => {
         content_type: "image/jpeg"
       });
 
-      expect((mockedAxios as any).get).toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalled();
       expect(result).toEqual(mockSearchResult);
     });
   });
@@ -498,18 +500,22 @@ describe("AssetStore", () => {
     it("should download assets", async () => {
       const { authHeader } = await import("../ApiClient");
       (authHeader as jest.Mock).mockResolvedValue({});
-      (mockedAxios as any).mockResolvedValue({
-        data: new ArrayBuffer(8),
+      const mockHeaders = new Map([
+        ["content-type", "application/zip"],
+        ["content-disposition", "attachment; filename=assets.zip"]
+      ]);
+      mockFetch.mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(8),
         headers: {
-          "content-type": "application/zip",
-          "content-disposition": "attachment; filename=assets.zip"
+          get: (name: string) => mockHeaders.get(name) ?? null
         }
       });
 
       const { download } = useAssetStore.getState();
       const result = await download(["asset1", "asset2"]);
 
-      expect((mockedAxios as any).mock.calls.length).toBeGreaterThan(0);
+      expect(mockFetch).toHaveBeenCalled();
       expect(result).toBe(true);
     });
   });
@@ -699,39 +705,4 @@ describe("AssetStore", () => {
     });
   });
 
-  describe("utility functions", () => {
-    describe("sort", () => {
-      it("should sort assets by created_at in descending order", () => {
-        const _assets = {
-          asset1: {
-            id: "asset1",
-            name: "asset1.jpg",
-            created_at: "2023-01-01T10:00:00Z"
-          },
-          asset2: {
-            id: "asset2",
-            name: "asset2.jpg",
-            created_at: "2023-01-02T10:00:00Z"
-          },
-          asset3: {
-            id: "asset3",
-            name: "asset3.jpg",
-            created_at: "2023-01-01T15:00:00Z"
-          }
-        };
-
-        // The sort function is internal, so we can't directly test it
-        // But we can verify the behavior through the store methods
-        expect(true).toBe(true); // Placeholder test
-      });
-    });
-
-    describe("buildFolderTree", () => {
-      it("should build folder tree structure", () => {
-        // The buildFolderTree function is internal, so we can't directly test it
-        // But we can verify the behavior through the store methods
-        expect(true).toBe(true); // Placeholder test
-      });
-    });
-  });
 });

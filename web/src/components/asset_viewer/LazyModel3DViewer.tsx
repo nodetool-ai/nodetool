@@ -8,7 +8,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
-import { CircularProgress, Box, Typography } from "@mui/material";
+import { FlexColumn, Text, LoadingSpinner } from "../ui_primitives";
 import type { Asset } from "../../stores/ApiTypes";
 
 // Lazy load the heavy 3D viewer component
@@ -32,22 +32,22 @@ interface LazyModel3DViewerProps {
 const Model3DViewerLoadingFallback: React.FC<{ compact?: boolean }> = ({
   compact
 }) => (
-  <Box
-    display="flex"
-    flexDirection="column"
-    alignItems="center"
-    justifyContent="center"
-    height={compact ? "100%" : "300px"}
-    minHeight={compact ? "60px" : "300px"}
+  <FlexColumn
+    align="center"
+    justify="center"
     gap={compact ? 1 : 2}
+    sx={{
+      height: compact ? "100%" : "300px",
+      minHeight: compact ? "60px" : "300px"
+    }}
   >
-    <CircularProgress size={compact ? 20 : 40} />
+    <LoadingSpinner size={compact ? "small" : "medium"} />
     {!compact && (
-      <Typography variant="body2" color="textSecondary">
+      <Text size="small" color="secondary">
         Loading 3D viewer...
-      </Typography>
+      </Text>
     )}
-  </Box>
+  </FlexColumn>
 );
 
 /**

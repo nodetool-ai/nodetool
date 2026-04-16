@@ -8,8 +8,8 @@ import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
 import { NodeData } from "../../stores/NodeData";
-import debounce from "lodash/debounce";
-import isEqual from "lodash/isEqual";
+import { debounce } from "../../utils/lodashAlternatives";
+import isEqual from "fast-deep-equal";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
@@ -20,7 +20,7 @@ import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
-import { Tooltip } from "@mui/material";
+import { Tooltip } from "../ui_primitives";
 // constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
@@ -190,7 +190,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }
       return lastResult;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.id]); // store is a stable ref that doesn't change
   const { hasChildren, someChildrenBypassed } = useNodes(childrenStatusSelector);
 
@@ -334,8 +333,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     >
       <Tooltip
         placement="top"
-        enterDelay={TOOLTIP_ENTER_DELAY * 5}
-        enterNextDelay={TOOLTIP_ENTER_DELAY * 5}
+        delay={TOOLTIP_ENTER_DELAY * 5}
+        nextDelay={TOOLTIP_ENTER_DELAY * 5}
         title={
           <span>
             <b>SELECT GROUP NODE:</b> <br />

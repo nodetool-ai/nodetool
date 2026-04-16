@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, memo } from "react";
-import { Box, Divider, Typography } from "@mui/material";
+import { Box } from "@mui/material";
+import { Text, Tooltip, Divider } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -41,6 +42,7 @@ type IDockviewPanelWithGroup = IDockviewPanel & {
   group?: { api?: { setSize: (size: { width?: number; height?: number }) => void } } & { setSize?: (size: { width?: number; height?: number }) => void };
 };
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
+import { formatFileSize } from "../../utils/formatUtils";
 import log from "loglevel";
 
 const panelComponents = {
@@ -62,6 +64,44 @@ const FOLDERS_PANEL_WIDTH = 200;
 
 // Panels are provided via separate components in ./panels
 
+/** Displays count and total size of selected assets */
+const SelectedItemsInfo: React.FC<{
+  selectedAssetIds: string[];
+  assets: Asset[];
+}> = memo(({ selectedAssetIds, assets }) => {
+  const totalSize = useMemo(() => {
+    if (selectedAssetIds.length === 0) return 0;
+    const selectedSet = new Set(selectedAssetIds);
+    return assets.reduce((sum, asset) => {
+      if (selectedSet.has(asset.id)) {
+        return sum + (asset.size ?? 0);
+      }
+      return sum;
+    }, 0);
+  }, [selectedAssetIds, assets]);
+
+  if (selectedAssetIds.length === 0) return null;
+
+  return (
+    <div className="header-info">
+      <div className="selected-asset-info">
+        <Text className="selected-info">
+          {selectedAssetIds.length}{" "}
+          {selectedAssetIds.length === 1 ? "item" : "items"} selected
+          {totalSize > 0 && (
+            <Tooltip title="Total size of selected items" disableInteractive>
+              <span style={{ marginLeft: "0.5em", opacity: 0.7 }}>
+                ({formatFileSize(totalSize)})
+              </span>
+            </Tooltip>
+          )}
+        </Text>
+      </div>
+    </div>
+  );
+});
+SelectedItemsInfo.displayName = "SelectedItemsInfo";
+
 interface AssetGridProps {
   maxItemSize?: number;
   itemSpacing?: number;
@@ -69,6 +109,7 @@ interface AssetGridProps {
   sortedAssets?: Asset[];
   initialFoldersPanelWidth?: number;
   isFullscreenAssets?: boolean;
+  isMobile?: boolean;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
@@ -76,7 +117,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   itemSpacing = 5,
   isHorizontal,
   sortedAssets,
-  isFullscreenAssets
+  isFullscreenAssets,
+  isMobile = false
 }) => {
   const { error, folderFilesFiltered } = useAssets();
   // Separate selectors prevent unnecessary re-renders when only one value changes
@@ -164,6 +206,18 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
+
+      if (isMobile) {
+        // On mobile, skip the folders panel — just show files with breadcrumb nav
+        api.addPanel({
+          id: "asset-files",
+          component: "asset-files",
+          title: "Files",
+          params: { isHorizontal, itemSpacing }
+        });
+        return;
+      }
+
       // Add folders panel first with an initial size
       const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
         id: "asset-folders",
@@ -200,25 +254,25 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       };
       applyInitialSize();
     },
-    [isFullscreenAssets, isHorizontal, itemSpacing]
+    [isFullscreenAssets, isHorizontal, itemSpacing, isMobile]
   );
 
   return (
     <Box css={styles(theme)} className="asset-grid-container">
       {error && (
-        <Typography
+        <Text
           className="error-message"
+          color="error"
           sx={{
             position: "absolute",
             top: "1em",
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 1000,
-            color: "var(--palette-error-main)"
+            zIndex: 1000
           }}
         >
           {error.message}
-        </Typography>
+        </Text>
       )}
       {openAsset && (
         <AssetViewer
@@ -228,24 +282,21 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           onClose={() => setOpenAsset(null)}
         />
       )}
-      <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
-      <StorageAnalytics
-        assets={sortedAssets || folderFilesFiltered || []}
-        currentFolder={currentFolder}
-      />
-      <div className="header-info">
-        <div className="selected-asset-info">
-          <Typography variant="body1" className="selected-info">
-            {selectedAssetIds.length > 0 && (
-              <>
-                {selectedAssetIds.length}{" "}
-                {selectedAssetIds.length === 1 ? "item " : "items "}
-                selected
-              </>
-            )}
-          </Typography>
-        </div>
-      </div>
+      {!isMobile && (
+        <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
+      )}
+      {!isMobile && (
+        <StorageAnalytics
+          assets={sortedAssets || folderFilesFiltered || []}
+          currentFolder={currentFolder}
+        />
+      )}
+      {!isMobile && (
+        <SelectedItemsInfo
+          selectedAssetIds={selectedAssetIds}
+          assets={sortedAssets || folderFilesFiltered || []}
+        />
+      )}
       {/* Drag-and-drop enabled region; upload button now in toolbar */}
       <Dropzone onDrop={uploadFiles}>
         <div

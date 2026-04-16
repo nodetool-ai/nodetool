@@ -24,6 +24,22 @@
   margin-top: 2px;
 }
 
+/* Connected property: label left, link icon right, single row */
+.node-property .connected {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+}
+.node-property .connected .property-label {
+  flex: 1;
+  margin: 0;
+}
+.node-property .connected .connected-badge {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .node-editor .node-output {
   padding: 0 1em;
   margin: 1px 0 0;

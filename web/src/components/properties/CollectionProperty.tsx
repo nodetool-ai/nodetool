@@ -4,10 +4,11 @@ import { client } from "../../stores/ApiClient";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useMemo } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
 import Select from "../inputs/Select";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
+import ConnectedBadge from "./ConnectedBadge";
 
 const CollectionProperty = (props: PropertyProps) => {
   const id = `collection-${props.property.name}-${props.propertyIndex}`;
@@ -39,6 +40,19 @@ const CollectionProperty = (props: PropertyProps) => {
     );
   }, [data]);
 
+  if (isConnected) {
+    return (
+      <div className="connected">
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+        <ConnectedBadge />
+      </div>
+    );
+  }
+
   return (
     <>
       <PropertyLabel
@@ -48,17 +62,15 @@ const CollectionProperty = (props: PropertyProps) => {
       />
       {isLoading && <p>Loading...</p>}
       {error && <p>Error: {error.message}</p>}
-      {!isConnected && (
-        <Select
-          value={selectValue}
-          options={options}
-          onChange={(newValue) =>
-            props.onChange({ type: "collection", name: newValue })
-          }
-          placeholder="Select collection..."
-          label={props.property.name}
-        />
-      )}
+      <Select
+        value={selectValue}
+        options={options}
+        onChange={(newValue) =>
+          props.onChange({ type: "collection", name: newValue })
+        }
+        placeholder="Select collection..."
+        label={props.property.name}
+      />
     </>
   );
 };

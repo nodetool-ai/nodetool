@@ -1,9 +1,9 @@
 /**
- * Chat composer component with input field, send button, and file attachments.
- * Handles message composition, file attachments, and sending.
+ * Chat composer component with input field, send button, file attachments,
+ * and a mode selector for chat / image / video generation.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -24,19 +24,36 @@ import { DroppedFile } from '../../types/chat.types';
 import { useTheme } from '../../hooks/useTheme';
 import { useFileHandling } from '../../hooks/useFileHandling';
 import { FilePreview } from './FilePreview';
+import {
+  useMediaGenerationStore,
+  resolveImageSize,
+  IMAGE_ASPECT_RATIOS,
+  IMAGE_RESOLUTIONS,
+  IMAGE_VARIATIONS,
+  VIDEO_ASPECT_RATIOS,
+  VIDEO_RESOLUTIONS,
+  VIDEO_DURATIONS,
+} from '../../stores/MediaGenerationStore';
+import type {
+  MediaMode,
+  MediaGenerationRequest,
+} from '../../stores/MediaGenerationStore';
 
 interface ChatComposerProps {
   status: ChatStatus;
-  onSendMessage: (content: MessageContent[], text: string) => void;
+  onSendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => void;
   onStop?: () => void;
   disabled?: boolean;
-  /** Called when attachment button is pressed - parent should handle file picker */
   onAttachmentPress?: () => void;
-  /** External files that were picked (allows parent to control file picking) */
   externalFiles?: DroppedFile[];
-  /** Callback when external files change (for parent to clear them after send) */
   onExternalFilesChange?: (files: DroppedFile[]) => void;
 }
+
+const MODE_CONFIG: { mode: MediaMode; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { mode: 'chat', icon: 'chatbubble-outline', label: 'Chat' },
+  { mode: 'image', icon: 'image-outline', label: 'Image' },
+  { mode: 'video', icon: 'videocam-outline', label: 'Video' },
+];
 
 export const ChatComposer: React.FC<ChatComposerProps> = ({
   status,
@@ -49,49 +66,80 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 }) => {
   const [text, setText] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
-  const { colors } = useTheme();
+  const [showParamMenu, setShowParamMenu] = useState<string | null>(null);
+  const { colors, shadows } = useTheme();
   const { droppedFiles, addDroppedFiles, removeFile, clearFiles, getFileContents } = useFileHandling();
 
-  // Use external files if provided, otherwise use internal state
+  const mode = useMediaGenerationStore((s) => s.mode);
+  const setMode = useMediaGenerationStore((s) => s.setMode);
+  const imageParams = useMediaGenerationStore((s) => s.image);
+  const setImageParams = useMediaGenerationStore((s) => s.setImageParams);
+  const videoParams = useMediaGenerationStore((s) => s.video);
+  const setVideoParams = useMediaGenerationStore((s) => s.setVideoParams);
+
   const files = externalFiles ?? droppedFiles;
   const hasFiles = files.length > 0;
 
   const isGenerating = status === 'loading' || status === 'streaming';
-  // Never disable - messages are always queued by globalWebSocketManager
+  const isMediaMode = mode === 'image' || mode === 'video';
   const canSend = !disabled && (text.trim().length > 0 || hasFiles);
 
+  const placeholder = useMemo(() => {
+    if (mode === 'image') return 'Describe the image you want to generate...';
+    if (mode === 'video') return 'Describe the video you want to create...';
+    return 'Type a message...';
+  }, [mode]);
+
+  const buildMediaGeneration = useCallback((): MediaGenerationRequest | undefined => {
+    if (mode === 'chat') return undefined;
+    if (mode === 'image') {
+      const { width, height } = resolveImageSize(imageParams.resolution, imageParams.aspectRatio);
+      return {
+        mode: 'image',
+        width,
+        height,
+        aspect_ratio: imageParams.aspectRatio,
+        resolution: imageParams.resolution,
+        variations: imageParams.variations,
+      };
+    }
+    if (mode === 'video') {
+      return {
+        mode: 'video',
+        aspect_ratio: videoParams.aspectRatio,
+        resolution: videoParams.resolution,
+        duration: videoParams.duration,
+      };
+    }
+    return undefined;
+  }, [mode, imageParams, videoParams]);
+
   const handleSend = useCallback(() => {
-    if (!canSend) {return;}
+    if (!canSend) return;
 
     const trimmedText = text.trim();
     const content: MessageContent[] = [];
 
-    // Add file contents first
     if (hasFiles) {
       const fileContents = getFileContents();
       content.push(...fileContents);
     }
 
-    // Add text content if present
     if (trimmedText) {
-      content.push({
-        type: 'text',
-        text: trimmedText,
-      } as MessageContent);
+      content.push({ type: 'text', text: trimmedText } as MessageContent);
     }
 
-    onSendMessage(content, trimmedText);
+    onSendMessage(content, trimmedText, buildMediaGeneration());
     setText('');
-    
-    // Clear files
+
     if (externalFiles && onExternalFilesChange) {
       onExternalFilesChange([]);
     } else {
       clearFiles();
     }
-    
+
     Keyboard.dismiss();
-  }, [canSend, text, hasFiles, getFileContents, onSendMessage, externalFiles, onExternalFilesChange, clearFiles]);
+  }, [canSend, text, hasFiles, getFileContents, onSendMessage, buildMediaGeneration, externalFiles, onExternalFilesChange, clearFiles]);
 
   const handleStop = useCallback(() => {
     onStop?.();
@@ -106,7 +154,6 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   }, [externalFiles, onExternalFilesChange, removeFile]);
 
-  // Helper to add files to the appropriate state
   const addFilesToState = useCallback((newFiles: DroppedFile[]) => {
     if (externalFiles && onExternalFilesChange) {
       onExternalFilesChange([...externalFiles, ...newFiles]);
@@ -115,113 +162,82 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   }, [externalFiles, onExternalFilesChange, addDroppedFiles]);
 
-  // Handle attachment button press
   const handleAttachmentPress = useCallback(() => {
     if (onAttachmentPress) {
-      // Use parent-provided handler
       onAttachmentPress();
     } else {
-      // Show built-in attachment menu
       setShowAttachmentMenu(true);
     }
   }, [onAttachmentPress]);
 
-  // Launch camera to take a photo
   const handleTakePhoto = useCallback(async () => {
     setShowAttachmentMenu(false);
-    
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'Camera access is needed to take photos.');
       return;
     }
-
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets.length > 0) {
       const asset = result.assets[0];
-      const fileName = asset.fileName || `photo_${Date.now()}.jpg`;
-      const droppedFile: DroppedFile = {
-        name: fileName,
+      addFilesToState([{
+        name: asset.fileName || `photo_${Date.now()}.jpg`,
         type: asset.mimeType || 'image/jpeg',
         size: asset.fileSize || 0,
         uri: asset.uri,
-      };
-      addFilesToState([droppedFile]);
+      }]);
     }
   }, [addFilesToState]);
 
-  // Pick image from photo library
   const handlePickImage = useCallback(async () => {
     setShowAttachmentMenu(false);
-    
     await new Promise(resolve => setTimeout(resolve, 300));
-    
     let { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
-    
     if (status !== 'granted') {
       const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
       status = result.status;
     }
-    
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'Photo library access is needed to select photos.');
       return;
     }
-
-    if (Platform.OS === 'ios' && __DEV__) {
-      console.warn('[handlePickImage] ⚠️ iOS Simulator detected! The image picker may hang if:');
-      console.warn('  1. The simulator has no photos - drag images into the Photos app first');
-      console.warn('  2. The Photos app has never been opened in this simulator');
-    }
     try {
-      const pickerOptions: ImagePicker.ImagePickerOptions = {
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images', 'videos'],
         allowsMultipleSelection: true,
         quality: 0.8,
         base64: true,
-      };
-      const result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
-
+      });
       if (!result.canceled && result.assets.length > 0) {
-        const newFiles: DroppedFile[] = result.assets.map((asset, _index) => {
+        const newFiles: DroppedFile[] = result.assets.map((asset: ImagePicker.ImagePickerAsset) => {
           const mimeType = asset.mimeType || 'image/jpeg';
-          const dataUri = asset.base64 
-            ? `data:${mimeType};base64,${asset.base64}`
-            : undefined;
-          
-          const file: DroppedFile = {
+          return {
             name: asset.fileName || `media_${Date.now()}.${mimeType.split('/')[1] || 'jpg'}`,
             type: mimeType,
             size: asset.fileSize || 0,
             uri: asset.uri,
-            dataUri: dataUri, // This is what will be sent to the server
+            dataUri: asset.base64 ? `data:${mimeType};base64,${asset.base64}` : undefined,
           };
-          return file;
         });
         addFilesToState(newFiles);
-      } else {
       }
     } catch (error) {
       console.error('[handlePickImage] Error launching picker:', error);
     }
   }, [addFilesToState]);
 
-  // Pick document files
   const handlePickDocument = useCallback(async () => {
     setShowAttachmentMenu(false);
-    
     const result = await DocumentPicker.getDocumentAsync({
       multiple: true,
       copyToCacheDirectory: true,
     });
-
     if (!result.canceled && result.assets.length > 0) {
-      const newFiles: DroppedFile[] = result.assets.map((asset) => ({
+      const newFiles: DroppedFile[] = result.assets.map((asset: DocumentPicker.DocumentPickerAsset) => ({
         name: asset.name,
         type: asset.mimeType || 'application/octet-stream',
         size: asset.size || 0,
@@ -231,16 +247,150 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     }
   }, [addFilesToState]);
 
-  const getPlaceholder = () => {
-    return 'Type a message...';
-  };
+  const inputContainerBg = (colors.background === '#F8F6F3' || colors.background === '#FFFFFF')
+    ? 'rgba(0,0,0,0.04)'
+    : 'rgba(255, 255, 255, 0.06)';
 
-  const inputContainerBg = (colors.background === '#FAF7F2' || colors.background === '#FFFFFF')
-    ? 'rgba(0,0,0,0.05)'
-    : 'rgba(255, 255, 255, 0.08)';
+  const renderParamChip = (
+    label: string,
+    value: string,
+    paramKey: string,
+  ) => (
+    <TouchableOpacity
+      key={paramKey}
+      style={[
+        styles.paramChip,
+        { backgroundColor: colors.primaryLight, borderColor: colors.border },
+      ]}
+      onPress={() => setShowParamMenu(paramKey)}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.paramChipLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.paramChipValue, { color: colors.text }]}>{value}</Text>
+      <Ionicons name="chevron-down" size={12} color={colors.textTertiary} />
+    </TouchableOpacity>
+  );
+
+  const renderParamPicker = (
+    paramKey: string,
+    title: string,
+    options: { label: string; value: string | number }[],
+    currentValue: string | number,
+    onSelect: (value: string | number) => void,
+  ) => (
+    <Modal
+      visible={showParamMenu === paramKey}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowParamMenu(null)}
+    >
+      <View style={styles.paramModalContainer}>
+        <TouchableOpacity
+          style={styles.paramModalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowParamMenu(null)}
+        />
+        <View style={[styles.paramModalContent, shadows.large, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.paramModalTitle, { color: colors.text }]}>{title}</Text>
+          <ScrollView style={styles.paramModalScroll}>
+            {options.map((opt) => {
+              const isSelected = opt.value === currentValue;
+              return (
+                <TouchableOpacity
+                  key={String(opt.value)}
+                  style={[
+                    styles.paramModalOption,
+                    isSelected && { backgroundColor: colors.primaryLight },
+                  ]}
+                  onPress={() => {
+                    onSelect(opt.value);
+                    setShowParamMenu(null);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.paramModalOptionText,
+                    { color: isSelected ? colors.primary : colors.text },
+                    isSelected && { fontWeight: '600' },
+                  ]}>
+                    {opt.label}
+                  </Text>
+                  {isSelected && (
+                    <Ionicons name="checkmark" size={18} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surfaceHeader, borderTopColor: colors.border }]}>
+    <View style={[styles.container, { backgroundColor: colors.surfaceHeader, borderTopColor: colors.borderLight }]}>
+      {/* Mode selector tabs */}
+      <View style={styles.modeRow}>
+        {MODE_CONFIG.map(({ mode: m, icon, label }) => {
+          const isActive = mode === m;
+          return (
+            <TouchableOpacity
+              key={m}
+              style={[
+                styles.modeTab,
+                isActive && { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+                !isActive && { borderColor: 'transparent' },
+              ]}
+              onPress={() => setMode(m)}
+              activeOpacity={0.7}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`${label} mode`}
+            >
+              <Ionicons
+                name={icon}
+                size={16}
+                color={isActive ? colors.primary : colors.textTertiary}
+              />
+              <Text style={[
+                styles.modeTabText,
+                { color: isActive ? colors.primary : colors.textTertiary },
+                isActive && { fontWeight: '600' },
+              ]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Media parameter chips */}
+      {mode === 'image' && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.paramRow}
+          contentContainerStyle={styles.paramRowContent}
+        >
+          {renderParamChip('Ratio', imageParams.aspectRatio, 'imageAspect')}
+          {renderParamChip('Res', imageParams.resolution, 'imageRes')}
+          {renderParamChip('Count', String(imageParams.variations), 'imageVariations')}
+        </ScrollView>
+      )}
+
+      {mode === 'video' && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.paramRow}
+          contentContainerStyle={styles.paramRowContent}
+        >
+          {renderParamChip('Ratio', videoParams.aspectRatio, 'videoAspect')}
+          {renderParamChip('Res', videoParams.resolution, 'videoRes')}
+          {renderParamChip('Duration', `${videoParams.duration}s`, 'videoDuration')}
+        </ScrollView>
+      )}
+
       {/* File previews */}
       {hasFiles && (
         <ScrollView
@@ -260,7 +410,6 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
       )}
 
       <View style={[styles.inputContainer, { backgroundColor: inputContainerBg }]}>
-        {/* Attachment button - always visible */}
         <TouchableOpacity
           style={styles.attachButton}
           onPress={handleAttachmentPress}
@@ -268,10 +417,10 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           accessibilityLabel="Attach file"
           accessibilityRole="button"
         >
-          <Ionicons 
-            name="attach" 
-            size={24} 
-            color={disabled ? colors.textSecondary : colors.primary} 
+          <Ionicons
+            name="add-circle-outline"
+            size={24}
+            color={disabled ? colors.textTertiary : colors.textSecondary}
           />
         </TouchableOpacity>
 
@@ -279,15 +428,15 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           style={[styles.input, { color: colors.text }]}
           value={text}
           onChangeText={setText}
-          placeholder={getPlaceholder()}
-          placeholderTextColor={colors.textSecondary}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textTertiary}
           multiline
           maxLength={10000}
           editable={!disabled}
           autoCorrect={true}
           autoCapitalize="sentences"
         />
-        
+
         {isGenerating && onStop ? (
           <TouchableOpacity
             style={[styles.button, styles.stopButton]}
@@ -295,13 +444,13 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             activeOpacity={0.7}
             testID="stop-button"
           >
-            <Ionicons name="square" size={16} color="#FFFFFF" />
+            <Ionicons name="square" size={14} color="#FFFFFF" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={[
               styles.button,
-              { backgroundColor: colors.primary },
+              { backgroundColor: isMediaMode ? '#8B5CF6' : colors.primary },
               !canSend && styles.buttonDisabled,
             ]}
             onPress={handleSend}
@@ -309,10 +458,58 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             activeOpacity={0.7}
             testID="send-button"
           >
-            <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
+            {isMediaMode ? (
+              <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+            ) : (
+              <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+            )}
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Parameter picker modals */}
+      {renderParamPicker(
+        'imageAspect',
+        'Aspect Ratio',
+        IMAGE_ASPECT_RATIOS.map((a) => ({ label: a.label, value: a.id })),
+        imageParams.aspectRatio,
+        (v) => setImageParams({ aspectRatio: v as string }),
+      )}
+      {renderParamPicker(
+        'imageRes',
+        'Resolution',
+        IMAGE_RESOLUTIONS.map((r) => ({ label: r, value: r })),
+        imageParams.resolution,
+        (v) => setImageParams({ resolution: v as typeof imageParams.resolution }),
+      )}
+      {renderParamPicker(
+        'imageVariations',
+        'Variations',
+        IMAGE_VARIATIONS.map((n) => ({ label: `${n}`, value: n })),
+        imageParams.variations,
+        (v) => setImageParams({ variations: v as number }),
+      )}
+      {renderParamPicker(
+        'videoAspect',
+        'Aspect Ratio',
+        VIDEO_ASPECT_RATIOS.map((a) => ({ label: a.label, value: a.id })),
+        videoParams.aspectRatio,
+        (v) => setVideoParams({ aspectRatio: v as string }),
+      )}
+      {renderParamPicker(
+        'videoRes',
+        'Resolution',
+        VIDEO_RESOLUTIONS.map((r) => ({ label: r, value: r })),
+        videoParams.resolution,
+        (v) => setVideoParams({ resolution: v as typeof videoParams.resolution }),
+      )}
+      {renderParamPicker(
+        'videoDuration',
+        'Duration',
+        VIDEO_DURATIONS.map((d) => ({ label: `${d} seconds`, value: d })),
+        videoParams.duration,
+        (v) => setVideoParams({ duration: v as number }),
+      )}
 
       {/* Attachment Menu Modal */}
       <Modal
@@ -322,56 +519,58 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         onRequestClose={() => setShowAttachmentMenu(false)}
       >
         <View style={styles.modalContainer}>
-          {/* Backdrop - fills space above menu and closes on tap */}
-          <TouchableOpacity 
-            style={styles.modalBackdrop} 
+          <TouchableOpacity
+            style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => setShowAttachmentMenu(false)}
           />
-          
-          {/* Menu content - stays at bottom */}
-          <View style={[styles.attachmentMenu, { backgroundColor: colors.surface }]}>
+
+          <View style={[styles.attachmentMenu, shadows.large, { backgroundColor: colors.surface }]}>
+            <View style={[styles.menuHandle, { backgroundColor: colors.border }]} />
             <Text style={[styles.attachmentMenuTitle, { color: colors.text }]}>
               Add Attachment
             </Text>
-            
+
             <TouchableOpacity
-              style={styles.attachmentMenuItem}
+              style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
               onPress={handleTakePhoto}
               activeOpacity={0.7}
             >
-              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primary + '20' }]}>
+              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="camera" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
                 Take Photo
               </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.attachmentMenuItem}
+              style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
               onPress={handlePickImage}
               activeOpacity={0.7}
             >
-              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primary + '20' }]}>
+              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="images" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
                 Photo Library
               </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.attachmentMenuItem}
+              style={[styles.attachmentMenuItem, { backgroundColor: colors.primaryLight }]}
               onPress={handlePickDocument}
               activeOpacity={0.7}
             >
-              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primary + '20' }]}>
+              <View style={[styles.attachmentMenuIcon, { backgroundColor: colors.primaryMuted }]}>
                 <Ionicons name="document" size={22} color={colors.primary} />
               </View>
               <Text style={[styles.attachmentMenuText, { color: colors.text }]}>
                 Choose File
               </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -395,7 +594,88 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 8,
+  },
+  modeTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  modeTabText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  paramRow: {
+    marginBottom: 8,
+  },
+  paramRowContent: {
+    gap: 6,
+  },
+  paramChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  paramChipLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  paramChipValue: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  paramModalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paramModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  paramModalContent: {
+    width: 260,
+    maxHeight: 360,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+  },
+  paramModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  paramModalScroll: {
+    maxHeight: 280,
+  },
+  paramModalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginHorizontal: 4,
+    marginVertical: 1,
+  },
+  paramModalOptionText: {
+    fontSize: 15,
+    fontWeight: '400',
   },
   filePreviewContainer: {
     marginBottom: 8,
@@ -406,8 +686,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
-    paddingLeft: 8,
+    borderRadius: 22,
+    paddingLeft: 6,
     paddingRight: 4,
     paddingVertical: 4,
     minHeight: 44,
@@ -427,9 +707,9 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   button: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -437,41 +717,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF453A',
   },
   buttonDisabled: {
-    backgroundColor: 'rgba(128, 128, 128, 0.2)',
+    backgroundColor: 'rgba(128, 128, 128, 0.15)',
     opacity: 0.5,
   },
-  // Attachment menu modal styles
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   attachmentMenu: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
   },
+  menuHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
   attachmentMenuTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 16,
+    letterSpacing: -0.3,
   },
   attachmentMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    marginBottom: 6,
   },
   attachmentMenuIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -479,16 +768,17 @@ const styles = StyleSheet.create({
   attachmentMenuText: {
     fontSize: 16,
     fontWeight: '500',
+    flex: 1,
   },
   attachmentMenuCancel: {
-    marginTop: 12,
+    marginTop: 8,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
   },
   attachmentMenuCancelText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
 

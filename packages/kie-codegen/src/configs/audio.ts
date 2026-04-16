@@ -63,7 +63,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use.",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"]
         },
         {
           name: "negative_tags",
@@ -71,7 +71,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Negative Tags",
           description:
-            "Music styles or traits to exclude from the generated audio."
+            "Music styles or traits to exclude from the generated audio. Max 200 characters (V4 model limit)."
         },
         {
           name: "vocal_gender",
@@ -86,21 +86,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "persona_id",
@@ -199,7 +205,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use (must match source audio).",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"]
         },
         {
           name: "negative_tags",
@@ -221,21 +227,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "persona_id",
@@ -324,7 +336,7 @@ export const audioConfig: ModuleConfig = {
           default: "V4_5PLUS",
           title: "Model",
           description: "Suno model version to use.",
-          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5"]
+          values: ["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"]
         },
         {
           name: "negative_tags",
@@ -332,7 +344,7 @@ export const audioConfig: ModuleConfig = {
           default: "",
           title: "Negative Tags",
           description:
-            "Music styles or traits to exclude from the generated audio."
+            "Music styles or traits to exclude from the generated audio. Max 200 characters (V4 model limit)."
         },
         {
           name: "vocal_gender",
@@ -347,21 +359,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "persona_id",
@@ -456,21 +474,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         }
       ],
       uploads: [
@@ -572,21 +596,27 @@ export const audioConfig: ModuleConfig = {
           type: "float",
           default: 0,
           title: "Style Weight",
-          description: "Strength of adherence to style (0-1)."
+          description: "Strength of adherence to style (0-1).",
+          min: 0,
+          max: 1
         },
         {
           name: "weirdness_constraint",
           type: "float",
           default: 0,
           title: "Weirdness Constraint",
-          description: "Creative deviation control (0-1)."
+          description: "Constrains creative deviation. Higher = more conventional output, lower = more experimental/unusual.",
+          min: 0,
+          max: 1
         },
         {
           name: "audio_weight",
           type: "float",
           default: 0,
           title: "Audio Weight",
-          description: "Balance weight for audio features (0-1)."
+          description: "Balance weight for audio features (0-1).",
+          min: 0,
+          max: 1
         }
       ],
       uploads: [
@@ -705,7 +735,7 @@ export const audioConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "ElevenLabsTextToSpeech",
-      modelId: "elevenlabs/text-to-speech",
+      modelId: "elevenlabs/text-to-speech-turbo-2-5",
       title: "ElevenLabs Text To Speech",
       description:
         "Generate speech using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, tts, text-to-speech, voice, audio, ai, speech synthesis\n\n    Creates natural-sounding speech from text using ElevenLabs' voice models.\n    Supports multiple voices, stability controls, and multilingual output.\n\n    Use cases:\n    - Generate voiceovers for videos and podcasts\n    - Create audiobooks and narrated content\n    - Produce natural-sounding speech for applications\n    - Generate speech in multiple languages and voices",
@@ -834,7 +864,7 @@ export const audioConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "ElevenLabsSoundEffect",
-      modelId: "elevenlabs/sound-effect",
+      modelId: "elevenlabs/sound-effect-v2",
       title: "ElevenLabs Sound Effect",
       description:
         "Generate sound effects using ElevenLabs AI via Kie.ai.\n\n    kie, elevenlabs, sound-effect, sfx, audio, ai\n\n    ElevenLabs Sound Effect V2 generates audio from text descriptions,\n    supporting clips up to 20+ seconds with seamless looping and 48kHz audio.\n\n    Use cases:\n    - Generate custom sound effects for videos\n    - Create ambient sounds for games and applications\n    - Produce foley effects from text descriptions\n    - Generate audio elements for creative projects",
@@ -931,7 +961,7 @@ export const audioConfig: ModuleConfig = {
     // -----------------------------------------------------------------------
     {
       className: "ElevenLabsV3Dialogue",
-      modelId: "elevenlabs/v3-dialogue",
+      modelId: "elevenlabs/text-to-dialogue-v3",
       title: "ElevenLabs V3 Dialogue",
       description:
         "Generate expressive dialogue using ElevenLabs V3 via Kie.ai.\n\n    kie, elevenlabs, v3, dialogue, tts, text-to-speech, multi-speaker, ai\n\n    ElevenLabs Eleven V3 enables expressive multilingual Text to Dialogue\n    with audio tag control, multi-speaker support, and natural delivery.\n\n    Use cases:\n    - Generate dialogue for storytelling applications\n    - Create multi-speaker audio content\n    - Produce expressive voiceovers with audio tags\n    - Generate natural conversation audio",

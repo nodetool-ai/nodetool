@@ -235,7 +235,7 @@ export class Embedding extends BaseNode {
   static readonly description =
     "Generate vector embeddings using Mistral AI.\n    mistral, embeddings, vectors, semantic, similarity, search\n\n    Uses Mistral AI's embedding model to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Measuring text similarity\n\n    Requires a Mistral API key.";
   static readonly metadataOutputTypes = {
-    output: "np_array"
+    output: "list"
   };
   static readonly basicFields = ["input"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];

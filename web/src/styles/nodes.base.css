@@ -20,7 +20,8 @@
   padding: 0;
   border-radius: var(--rounded-node);
   background-color: transparent;
-  transition: background-color 0.05s, box-shadow 0.15s ease-in-out;
+  transition: background-color 0.05s, box-shadow 0.15s ease-in-out,
+    filter 0.2s ease-in-out;
 }
 
 .node-drag-handle {
@@ -32,6 +33,7 @@
   flex-direction: column;
   padding: 0;
   border-radius: var(--rounded-node);
+  overflow: visible;
 }
 
 .react-flow .has-result {
@@ -72,8 +74,15 @@
   right: 0;
   top: 0;
   bottom: 0;
-  display: block;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.output-handle-container .react-flow__handle {
+  pointer-events: auto;
 }
 
 .react-flow__node-toolbar button {

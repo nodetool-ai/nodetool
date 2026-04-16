@@ -7,16 +7,44 @@ import {
 } from "../../../utils/modelFormatting";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import type { ModelSortField, ModelSortDirection } from "../../../stores/ModelManagerStore";
 import { useQuery } from "@tanstack/react-query";
 import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { getHfCacheKey } from "../../../utils/hfCache";
+
+const sortModels = (
+  models: UnifiedModel[],
+  field: ModelSortField,
+  direction: ModelSortDirection
+): UnifiedModel[] => {
+  const sorted = [...models].sort((a, b) => {
+    switch (field) {
+      case "name": {
+        const nameA = (a.name || a.id || "").toLowerCase();
+        const nameB = (b.name || b.id || "").toLowerCase();
+        return nameA.localeCompare(nameB);
+      }
+      case "size":
+        return (a.size_on_disk || 0) - (b.size_on_disk || 0);
+      case "downloads":
+        return (a.downloads || 0) - (b.downloads || 0);
+      case "likes":
+        return (a.likes || 0) - (b.likes || 0);
+      default:
+        return 0;
+    }
+  });
+  return direction === "desc" ? sorted.reverse() : sorted;
+};
 
 export const useModels = () => {
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
   const filterStatus = useModelManagerStore((state) => state.filterStatus);
+  const sortField = useModelManagerStore((state) => state.sortField);
+  const sortDirection = useModelManagerStore((state) => state.sortDirection);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
@@ -97,14 +125,17 @@ export const useModels = () => {
 
       return true;
     };
-    return allModels?.filter(filterModel) || [];
+    const filtered = allModels?.filter(filterModel) || [];
+    return sortModels(filtered, sortField, sortDirection);
   }, [
     allModels,
     modelSearchTerm,
     selectedModelType,
     maxModelSizeGB,
     filterStatus,
-    cacheStatuses
+    cacheStatuses,
+    sortField,
+    sortDirection
   ]);
 
   const modelTypes = useMemo(() => {
@@ -172,6 +203,16 @@ export const useModels = () => {
     return types;
   }, [allModels, modelSearchTerm, maxModelSizeGB, filterStatus, cacheStatuses]);
 
+  const modelCountsByType = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredModels.forEach((model) => {
+      const type = model.type || "unknown";
+      counts[type] = (counts[type] || 0) + 1;
+    });
+    counts["All"] = filteredModels.length;
+    return counts;
+  }, [filteredModels]);
+
   const handleShowInExplorer = async (modelId: string) => {
     if (!modelId) {return;}
 
@@ -196,6 +237,7 @@ export const useModels = () => {
   return {
     modelTypes,
     availableModelTypes,
+    modelCountsByType,
     allModels,
     groupedModels,
     filteredModels,

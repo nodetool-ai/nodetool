@@ -64,14 +64,17 @@ describe("workspace/document parity", () => {
     const listNode = withWorkspace(new ListWorkspaceFilesNode(), workspace);
     Object.assign(listNode, { path: ".", pattern: "*.txt" });
     const files = await collectGen(listNode.genProcess());
-    expect(files.map((item) => item.file).sort()).toEqual([
+    // Last yield is the collected files list
+    const fileItems = files.filter((item) => "file" in item);
+    expect(fileItems.map((item) => item.file).sort()).toEqual([
       "file1.txt",
       "file2.txt"
     ]);
 
     Object.assign(listNode, { path: ".", pattern: "*.txt", recursive: true });
     const recursiveFiles = await collectGen(listNode.genProcess());
-    expect(recursiveFiles.map((item) => item.file).sort()).toEqual([
+    const recursiveFileItems = recursiveFiles.filter((item) => "file" in item);
+    expect(recursiveFileItems.map((item) => item.file).sort()).toEqual([
       "file1.txt",
       "file2.txt",
       path.join("subdir", "nested.txt")
@@ -129,15 +132,18 @@ describe("workspace/document parity", () => {
     const listNode = new ListDocumentsNode();
     Object.assign(listNode, { folder: root, pattern: "*.txt" });
     const direct = await collectGen(listNode.genProcess());
-    expect(direct).toHaveLength(3);
+    // Last yield is the collected documents list
+    const directItems = direct.filter((item) => "document" in item);
+    expect(directItems).toHaveLength(3);
     expect(
-      direct.every((item) => String(item.document?.uri).endsWith(".txt"))
+      directItems.every((item) => String(item.document?.uri).endsWith(".txt"))
     ).toBe(true);
 
     Object.assign(listNode, { folder: root, recursive: true, pattern: "*.md" });
     const recursive = await collectGen(listNode.genProcess());
-    expect(recursive).toHaveLength(1);
-    expect(String(recursive[0]?.document?.uri)).toContain("deep.md");
+    const recursiveItems = recursive.filter((item) => "document" in item);
+    expect(recursiveItems).toHaveLength(1);
+    expect(String(recursiveItems[0]?.document?.uri)).toContain("deep.md");
   });
 
   it("matches Python-style recursive and markdown split metadata", async () => {
@@ -147,13 +153,15 @@ describe("workspace/document parity", () => {
         uri: "test-doc",
         text: "First line\nSecond line\nThird line"
       },
-      chunk_size: 5,
+      chunk_size: 20,
       chunk_overlap: 0,
       separators: ["\n\n", "\n", "."]
     });
     const recursiveChunks = await collectGen(splitRecNode.genProcess());
+    // Last yield is the collected chunks list
+    const recursiveItems = recursiveChunks.filter((item) => !("chunks" in item));
 
-    expect(recursiveChunks).toEqual([
+    expect(recursiveItems).toEqual([
       {
         chunk: "First line",
         text: "First line",
@@ -161,16 +169,16 @@ describe("workspace/document parity", () => {
         start_index: 0
       },
       {
-        chunk: "\nSecond line",
-        text: "\nSecond line",
+        chunk: "Second line",
+        text: "Second line",
         source_id: "test-doc:1",
-        start_index: 10
+        start_index: 11
       },
       {
-        chunk: "\nThird line",
-        text: "\nThird line",
+        chunk: "Third line",
+        text: "Third line",
         source_id: "test-doc:2",
-        start_index: 22
+        start_index: 23
       }
     ]);
 
@@ -187,19 +195,22 @@ describe("workspace/document parity", () => {
       strip_headers: true
     });
     const markdownChunks = await collectGen(splitMdNode.genProcess());
+    const markdownItems = markdownChunks.filter((item) => !("chunks" in item));
 
-    expect(markdownChunks).toEqual([
+    expect(markdownItems).toEqual([
       {
         chunk: "Content 1",
         text: "Content 1",
         source_id: "test-md-doc",
-        start_index: 0
+        start_index: 0,
+        metadata: { "Header 1": "Header 1" }
       },
       {
         chunk: "Content 2",
         text: "Content 2",
         source_id: "test-md-doc",
-        start_index: 0
+        start_index: 1,
+        metadata: { "Header 1": "Header 1", "Header 2": "Header 2" }
       }
     ]);
   });

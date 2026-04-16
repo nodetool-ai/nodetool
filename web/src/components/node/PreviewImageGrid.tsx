@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo, memo } from "
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, Button, IconButton, Checkbox, Tooltip } from "@mui/material";
+import { Checkbox, IconButton, Button, Box } from "@mui/material";
 import CompareIcon from "@mui/icons-material/Compare";
 import ClearIcon from "@mui/icons-material/Clear";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
@@ -13,7 +13,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import { Dialog } from "../ui_primitives";
+import { Dialog, Tooltip, EditorButton, ToolbarIconButton } from "../ui_primitives";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
@@ -208,6 +208,11 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Memoize Emotion CSS object — styles() traverses the theme and builds a large
+  // object; skipping that work on state-driven re-renders (selection, viewer, etc.)
+  // avoids unnecessary hash computation inside Emotion's cache lookup.
+  const gridCss = useMemo(() => styles(theme, gap), [theme, gap]);
+
   // Selection state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
@@ -361,7 +366,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
     // Cleanup all on unmount
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const urlMap = urlMapRef.current;
       if (urlMap && urlMap.size) {
         for (const [key, url] of urlMap.entries()) {
@@ -389,7 +393,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   }, []);
 
   return (
-    <div className="preview-image-grid" css={styles(theme, gap)} ref={containerRef}>
+    <div className="preview-image-grid" css={gridCss} ref={containerRef}>
       {/* Selection mode toggle button */}
       {showSelectionFeatures && (
         <Button
@@ -458,26 +462,24 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                     url={urlMapRef.current.get(img) || ""}
                     className="tile-action-btn"
                   />
-                  <Tooltip title="Download" placement="top">
-                    <IconButton
-                      className="tile-action-btn"
-                      size="small"
-                      onClick={(e) => handleDownloadImage(idx, e)}
-                      aria-label={`Download image ${idx + 1}`}
-                    >
-                      <DownloadIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Open in Viewer (double-click)" placement="top">
-                    <IconButton
-                      className="tile-action-btn"
-                      size="small"
-                      onClick={(e) => handleOpenInViewer(idx, e)}
-                      aria-label={`Open image ${idx + 1} in viewer`}
-                    >
-                      <OpenInNewIcon />
-                    </IconButton>
-                  </Tooltip>
+                  <ToolbarIconButton
+                    tooltip="Download"
+                    tooltipPlacement="top"
+                    icon={<DownloadIcon />}
+                    className="tile-action-btn"
+                    size="small"
+                    onClick={(e) => handleDownloadImage(idx, e)}
+                    ariaLabel={`Download image ${idx + 1}`}
+                  />
+                  <ToolbarIconButton
+                    tooltip="Open in Viewer (double-click)"
+                    tooltipPlacement="top"
+                    icon={<OpenInNewIcon />}
+                    className="tile-action-btn"
+                    size="small"
+                    onClick={(e) => handleOpenInViewer(idx, e)}
+                    ariaLabel={`Open image ${idx + 1} in viewer`}
+                  />
                 </div>
               )}
               {selectionMode && (

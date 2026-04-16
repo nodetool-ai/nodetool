@@ -61,6 +61,7 @@ export interface NodeMetadata {
   is_controlled?: boolean;
   expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
+  auto_save_asset?: boolean;
   model_packs?: unknown[];
 }
 

@@ -2,28 +2,32 @@
  * NodeTool Chat CLI — Ink-based terminal UI.
  *
  * Layout:
- *   ┌── nodetool chat ───────────────────────────────────────┐
- *   │ provider: anthropic • model: claude-... • agent: OFF   │
- *   ├────────────────────────────────────────────────────────┤
- *   │ [Static: past messages rendered with markdown]         │
- *   │                                                        │
- *   │ [Streaming: live token output + spinner]               │
- *   ├────────────────────────────────────────────────────────┤
- *   │ > user input with history                              │
- *   │   ↑↓ history  tab complete  /help for commands         │
- *   └────────────────────────────────────────────────────────┘
+ *   ╭─ nodetool ─────────────────── provider · model ─╮
+ *   │                                                  │
+ *   │  You: message                                    │
+ *   │                                                  │
+ *   │  response with markdown                          │
+ *   │                                                  │
+ *   │  ◆ tool_name result preview                      │
+ *   │                                                  │
+ *   ├──────────────────────────────────────────────────┤
+ *   │ › input                                          │
+ *   ╰──────────────────────────────────────────────────╯
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Text, Static, useApp, useInput } from "ink";
-import TextInput from "ink-text-input";
+import ReadlineInput from "./readline-input.js";
 import Spinner from "ink-spinner";
+import { ExecutionTree } from "./ExecutionTree.js";
+import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
 import { processChat } from "@nodetool/chat";
 import { Agent } from "@nodetool/agents";
 import {
   ReadFileTool, WriteFileTool, ListDirectoryTool,
+  EditFileTool, GlobTool, GrepTool,
   DownloadFileTool, HttpRequestTool,
   GoogleSearchTool, GoogleNewsTool, GoogleImagesTool,
   BrowserTool, ScreenshotTool,
@@ -35,7 +39,7 @@ import {
   DataForSEOSearchTool, DataForSEONewsTool,
   SearchEmailTool, ArchiveEmailTool,
 } from "@nodetool/agents";
-import { createProvider, DEFAULT_MODELS, WebSocketProvider } from "./providers.js";
+import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
 import { saveSettings } from "./settings.js";
@@ -50,6 +54,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "tool" | "system";
   content: string;
   toolName?: string;
+  toolArgs?: Record<string, unknown>;
   rendered?: string; // pre-rendered markdown
 }
 
@@ -77,57 +82,56 @@ const COMMANDS = {
   "/quit":     "Exit the chat",
 } as const;
 
-const COMMAND_NAMES = Object.keys(COMMANDS);
-
 // ---------------------------------------------------------------------------
 // Individual message rendering
 // ---------------------------------------------------------------------------
 
 function UserMessage({ content }: { content: string }) {
-  const width = process.stdout.columns ?? 80;
   return (
-    <Box flexDirection="column">
-      <Box>
-        <Text color="cyan" bold>{">"} </Text>
-        <Text bold>{content}</Text>
-        <Text color="gray" dimColor>{" ".repeat(Math.max(0, width - content.length - 2))}</Text>
-      </Box>
+    <Box marginTop={1}>
+      <Text color="magenta" dimColor bold>{"❯ "}</Text>
+      <Text bold inverse>{" " + content + " "}</Text>
     </Box>
   );
 }
 
 function AssistantMessage({ content, rendered }: { content: string; rendered?: string }) {
   return (
-    <Box flexDirection="column" marginTop={1} marginBottom={1}>
-      <Box>
-        <Text color="green">{"●"} </Text>
-        <Text>{rendered ?? content}</Text>
-      </Box>
+    <Box marginTop={1}>
+      <Text color="green">{"● "}</Text>
+      <Text>{rendered ?? content}</Text>
     </Box>
   );
 }
 
-function ToolMessage({ toolName, content }: { toolName: string; content: string }) {
-  const lines = content.split("\n").slice(0, 5);
+function ToolMessage({ toolName, toolArgs, content }: { toolName: string; toolArgs?: Record<string, unknown>; content: string }) {
+  const argsStr = toolArgs
+    ? Object.entries(toolArgs)
+        .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+        .join(", ")
+    : "";
+  const preview = content.split("\n").slice(0, 3).join(" ").slice(0, 200);
   return (
-    <Box flexDirection="column" marginLeft={2} marginBottom={1}>
-      {lines.map((line, i) => (
-        <Box key={i}>
-          <Text color="gray" dimColor>{i === 0 ? "└ " : "  "}</Text>
-          {i === 0
-            ? <><Text color="white" dimColor>{toolName}  </Text><Text color="gray" dimColor>{line}</Text></>
-            : <Text color="gray" dimColor>{line}</Text>
-          }
+    <Box flexDirection="column" marginTop={1}>
+      <Box>
+        <Text color="green">{"● "}</Text>
+        <Text bold>{toolName}</Text>
+        {argsStr ? <Text color="gray" dimColor>{"("}{argsStr}{")"}</Text> : null}
+      </Box>
+      {preview ? (
+        <Box marginLeft={2}>
+          <Text color="gray" dimColor>{"└ "}</Text>
+          <Text color="gray" dimColor>{preview}</Text>
         </Box>
-      ))}
+      ) : null}
     </Box>
   );
 }
 
 function SystemMessage({ content }: { content: string }) {
   return (
-    <Box marginTop={1} marginBottom={1}>
-      <Text color="gray" dimColor>{content}</Text>
+    <Box>
+      <Text color="gray" dimColor>{"  " + content}</Text>
     </Box>
   );
 }
@@ -136,7 +140,7 @@ function ChatMessageItem({ msg }: { msg: ChatMessage }) {
   switch (msg.role) {
     case "user":      return <UserMessage content={msg.content} />;
     case "assistant": return <AssistantMessage content={msg.content} rendered={msg.rendered} />;
-    case "tool":      return <ToolMessage toolName={msg.toolName ?? "tool"} content={msg.content} />;
+    case "tool":      return <ToolMessage toolName={msg.toolName ?? "tool"} toolArgs={msg.toolArgs} content={msg.content} />;
     case "system":    return <SystemMessage content={msg.content} />;
   }
 }
@@ -145,7 +149,7 @@ function ChatMessageItem({ msg }: { msg: ChatMessage }) {
 // Autocomplete menu
 // ---------------------------------------------------------------------------
 
-const CMD_WIDTH = 18;
+const CMD_WIDTH = 14;
 
 function AutocompleteMenu({
   matches,
@@ -155,15 +159,15 @@ function AutocompleteMenu({
   selectedIndex: number;
 }) {
   return (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginLeft={2}>
       {matches.map(({ cmd, desc }, i) => {
         const selected = i === selectedIndex;
         return (
           <Box key={cmd}>
             <Text color={selected ? "cyan" : "gray"} bold={selected}>
-              {cmd.padEnd(CMD_WIDTH)}
+              {selected ? "› " : "  "}{cmd.padEnd(CMD_WIDTH)}
             </Text>
-            <Text color={selected ? "cyan" : undefined} dimColor={!selected}>
+            <Text color="gray" dimColor>
               {desc}
             </Text>
           </Box>
@@ -180,13 +184,16 @@ function AutocompleteMenu({
 function HelpPanel() {
   return (
     <Box flexDirection="column" marginLeft={2} marginTop={1} marginBottom={1}>
+      <Text color="gray" dimColor bold>Commands</Text>
       {Object.entries(COMMANDS).map(([cmd, desc]) => (
         <Box key={cmd}>
-          <Text color="yellow">{cmd.padEnd(14)}</Text>
+          <Text color="cyan">{("  " + cmd).padEnd(16)}</Text>
           <Text color="gray" dimColor>{desc}</Text>
         </Box>
       ))}
-      <Box marginTop={1}><Text color="gray" dimColor>↑/↓ history · Tab: complete · Ctrl+C: exit</Text></Box>
+      <Box marginTop={1}>
+        <Text color="gray" dimColor>  ↑↓ history  ·  Tab complete  ·  Ctrl+C exit</Text>
+      </Box>
     </Box>
   );
 }
@@ -209,13 +216,7 @@ export function App({
   const [provider, setProvider] = useState(initialProvider);
   const [model, setModel] = useState(initialModel);
   const [agentMode, setAgentMode] = useState(initialAgentMode);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "system",
-      content: `Welcome to nodetool chat. Provider: ${initialProvider} • Model: ${initialModel}. Type /help for commands.`,
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [, setInputHistory] = useState<string[]>([]);
@@ -224,9 +225,32 @@ export function App({
   const [streaming, setStreaming] = useState(false);
   const [streamContent, setStreamContent] = useState("");
   const [streamLabel, setStreamLabel] = useState("");
+  // Buffer messages during streaming to avoid Ink <Static> artifacts
+  const pendingMessagesRef = useRef<ChatMessage[]>([]);
+  const streamingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const execState = useExecutionState();
   const [acIndex, setAcIndex] = useState(0);
+  const [modelList, setModelList] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Fetch available models when provider changes
+  useEffect(() => {
+    let cancelled = false;
+    createProvider(provider).then(async (prov) => {
+      try {
+        const models = await prov.getAvailableLanguageModels();
+        if (!cancelled) {
+          setModelList(models.map((m) => ({ id: m.id, name: m.name })));
+        }
+      } catch {
+        if (!cancelled) setModelList([]);
+      }
+    }).catch(() => {
+      if (!cancelled) setModelList([]);
+    });
+    return () => { cancelled = true; };
+  }, [provider]);
 
   // WebSocket client state (when --url is passed)
   const wsClientRef = useRef<WebSocketChatClient | null>(null);
@@ -238,6 +262,7 @@ export function App({
   const modelRef = useRef(model);
   const agentModeRef = useRef(agentMode);
   const abortRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   // Guard against double-submit: useInput autocomplete Enter + TextInput onSubmit fire for the same keypress
   const submittingRef = useRef(false);
 
@@ -267,19 +292,36 @@ export function App({
   const nextId = useRef(0);
   const genId = () => `msg-${++nextId.current}`;
 
-  // Add a message to the display history
-  const addMessage = useCallback(async (role: ChatMessage["role"], content: string, opts?: { toolName?: string }) => {
+  // Add a message to the display history.
+  // During streaming, tool/system messages are buffered to avoid Ink <Static> artifacts.
+  // User and assistant messages (which mark start/end of a turn) are added immediately.
+  const addMessage = useCallback(async (role: ChatMessage["role"], content: string, opts?: { toolName?: string; toolArgs?: Record<string, unknown> }) => {
     let rendered: string | undefined;
     if (role === "assistant") {
       rendered = await renderMarkdown(content);
     }
-    setMessages(prev => [...prev, {
+    const msg: ChatMessage = {
       id: genId(),
       role,
       content,
       rendered,
       toolName: opts?.toolName,
-    }]);
+      toolArgs: opts?.toolArgs,
+    };
+    if (streamingRef.current && role !== "user" && role !== "assistant") {
+      pendingMessagesRef.current.push(msg);
+    } else {
+      setMessages(prev => [...prev, msg]);
+    }
+  }, []);
+
+  // Flush buffered messages when streaming ends
+  const flushPendingMessages = useCallback(() => {
+    if (pendingMessagesRef.current.length > 0) {
+      const pending = pendingMessagesRef.current;
+      pendingMessagesRef.current = [];
+      setMessages(prev => [...prev, ...pending]);
+    }
   }, []);
 
   // Create tools from enabled list
@@ -288,7 +330,10 @@ export function App({
       // Filesystem
       read_file: new ReadFileTool(),
       write_file: new WriteFileTool(),
+      edit_file: new EditFileTool(),
       list_directory: new ListDirectoryTool(),
+      glob: new GlobTool(),
+      grep: new GrepTool(),
       // HTTP
       download_file: new DownloadFileTool(),
       http_request: new HttpRequestTool(),
@@ -431,6 +476,9 @@ export function App({
     await addMessage("user", trimmed);
 
     abortRef.current = false;
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    streamingRef.current = true;
     setStreaming(true);
     setStreamContent("");
     setStreamLabel("thinking");
@@ -442,6 +490,7 @@ export function App({
       if (agentModeRef.current) {
         // --- Agent mode ---
         setStreamLabel("planning");
+        execState.reset();
         const prov = wsClientRef.current
           ? new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current)
           : await createProvider(providerRef.current);
@@ -454,36 +503,27 @@ export function App({
           tools,
         });
 
-        let assistantContent = "";
+        // Feed all messages into the execution tree state.
+        // Collect task results for the final chat message.
+        const taskResults: string[] = [];
         for await (const msg of agent.execute(ctx)) {
           if (abortRef.current) break;
-          if (msg.type === "chunk") {
-            const chunk = msg as { content?: string };
-            assistantContent += chunk.content ?? "";
-            setStreamContent(assistantContent);
-            setStreamLabel("generating");
-          } else if (msg.type === "tool_call_update") {
-            const tc = msg as { name: string };
-            setStreamLabel(`tool: ${tc.name}`);
-          } else if (msg.type === "task_update") {
-            const tu = msg as { event: string };
-            setStreamLabel(`task: ${tu.event}`);
-          } else if (msg.type === "planning_update") {
-            const pu = msg as { content: string };
-            setStreamLabel(`planning: ${pu.content.slice(0, 40)}`);
-          } else if (msg.type === "step_result") {
+          execState.processMessage(msg);
+
+          if (msg.type === "step_result") {
             const sr = msg as { result: unknown; is_task_result: boolean };
             if (sr.is_task_result) {
               const result = typeof sr.result === "string"
                 ? sr.result
                 : JSON.stringify(sr.result, null, 2);
-              assistantContent = result;
+              if (result) taskResults.push(result);
             }
           }
         }
+        execState.markDone();
 
-        if (assistantContent) {
-          await addMessage("assistant", assistantContent);
+        if (taskResults.length > 0) {
+          await addMessage("assistant", taskResults.join("\n\n---\n\n"));
         }
 
       } else if (wsClientRef.current) {
@@ -491,6 +531,7 @@ export function App({
         const wsClient = wsClientRef.current;
         let assistantContent = "";
         const toolSchemas = tools.map(t => t.toProviderTool());
+        const pendingToolArgs = new Map<string, Record<string, unknown>>();
         for await (const event of wsClient.chat(trimmed, threadId, modelRef.current, providerRef.current, toolSchemas)) {
           if (abortRef.current) break;
           if (event.type === "chunk") {
@@ -498,10 +539,13 @@ export function App({
             setStreamContent(assistantContent);
             setStreamLabel("streaming");
           } else if (event.type === "tool_call") {
+            pendingToolArgs.set(event.id, event.args);
             setStreamLabel(`tool: ${event.name}`);
           } else if (event.type === "tool_result") {
             const preview = event.content.length > 100 ? event.content.slice(0, 100) + "…" : event.content;
-            await addMessage("tool", preview, { toolName: event.name });
+            const args = pendingToolArgs.get(event.id);
+            pendingToolArgs.delete(event.id);
+            await addMessage("tool", preview, { toolName: event.name, toolArgs: args });
             setStreamLabel("thinking");
           } else if (event.type === "error") {
             throw new Error(event.message);
@@ -526,6 +570,7 @@ export function App({
           provider: prov,
           context: ctx,
           tools,
+          signal: abortController.signal,
           callbacks: {
             onChunk: (text) => {
               if (abortRef.current) throw new Error("aborted");
@@ -540,7 +585,7 @@ export function App({
               const preview = typeof result === "string"
                 ? result
                 : JSON.stringify(result).slice(0, 100);
-              addMessage("tool", preview, { toolName: tc.name });
+              addMessage("tool", preview, { toolName: tc.name, toolArgs: tc.args });
             },
           },
         });
@@ -558,22 +603,57 @@ export function App({
         await addMessage("system", `Error: ${msg}`);
       }
     } finally {
+      streamingRef.current = false;
       setStreaming(false);
       setStreamContent("");
       setStreamLabel("");
+      flushPendingMessages();
       submittingRef.current = false;
+      abortControllerRef.current = null;
     }
-  }, [handleCommand, addMessage, workspaceDir, enabledTools]);
+  }, [handleCommand, addMessage, flushPendingMessages, workspaceDir, enabledTools]);
 
   // ---------------------------------------------------------------------------
   // Keyboard: history navigation and tab completion
   // ---------------------------------------------------------------------------
-  // Autocomplete matches — derived from inputValue (close once a space is typed after command)
-  const acMatches = inputValue.startsWith("/") && !streaming && !inputValue.includes(" ")
-    ? Object.entries(COMMANDS)
-        .filter(([cmd]) => cmd.startsWith(inputValue.toLowerCase()))
-        .map(([cmd, desc]) => ({ cmd, desc }))
-    : [];
+  // Autocomplete: commands (/help, /provider, …) and arguments (/provider <name>)
+  type AcMatch = { cmd: string; desc: string; replaceAll?: string };
+  let acMatches: AcMatch[] = [];
+
+  if (!streaming && inputValue.startsWith("/")) {
+    const lower = inputValue.toLowerCase();
+    const spaceIdx = lower.indexOf(" ");
+
+    if (spaceIdx === -1) {
+      // Command completion: /pro → /provider
+      acMatches = Object.entries(COMMANDS)
+        .filter(([cmd]) => cmd.startsWith(lower))
+        .map(([cmd, desc]) => ({ cmd, desc }));
+    } else {
+      // Argument completion for specific commands
+      const cmd = lower.slice(0, spaceIdx);
+      const arg = lower.slice(spaceIdx + 1);
+
+      if (cmd === "/provider") {
+        acMatches = KNOWN_PROVIDERS
+          .filter((p) => p.startsWith(arg))
+          .map((p) => ({
+            cmd: p,
+            desc: DEFAULT_MODELS[p] ?? "",
+            replaceAll: `/provider ${p}`,
+          }));
+      } else if (cmd === "/model") {
+        acMatches = modelList
+          .filter((m) => m.id.toLowerCase().startsWith(arg))
+          .map((m) => ({
+            cmd: m.id,
+            desc: m.name !== m.id ? m.name : "",
+            replaceAll: `/model ${m.id}`,
+          }));
+      }
+    }
+  }
+
   const acOpen = acMatches.length > 0;
 
   useInput((input, key) => {
@@ -581,12 +661,28 @@ export function App({
     if (key.escape || (key.ctrl && input === "c")) {
       if (streaming) {
         abortRef.current = true;
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
         if (wsClientRef.current) {
           wsClientRef.current.stop(agentModeRef.current ? undefined : threadId);
         }
+        // Immediately reset UI — don't wait for async cleanup
+        setStreaming(false);
+        setStreamContent("");
+        setStreamLabel("");
+        submittingRef.current = false;
       } else {
         saveSettings({ provider, model, agentMode }).then(() => exit());
       }
+      return;
+    }
+
+    // During agent streaming, allow tree navigation
+    if (streaming && agentModeRef.current) {
+      if (key.upArrow) { execState.navigate("up"); return; }
+      if (key.downArrow) { execState.navigate("down"); return; }
+      if (key.return || key.rightArrow) { execState.toggleExpand(); return; }
+      if (key.leftArrow) { execState.toggleExpand(); return; }
       return;
     }
 
@@ -604,15 +700,20 @@ export function App({
       }
       if (key.tab) {
         const selected = acMatches[acIndex] ?? acMatches[0];
-        if (selected) setInputValue(selected.cmd + " ");
+        if (selected) setInputValue(selected.replaceAll ?? selected.cmd + " ");
         setAcIndex(0);
         return;
       }
       if (key.return) {
         const selected = acMatches[acIndex] ?? acMatches[0];
         if (selected) {
-          // Complete the command (add space so autocomplete closes), don't submit yet
-          setInputValue(selected.cmd + " ");
+          const completed = selected.replaceAll ?? selected.cmd + " ";
+          // Submit complete commands directly; partial ones go into input for editing
+          if (completed.trimEnd() in COMMANDS) {
+            handleSubmit(completed);
+          } else {
+            setInputValue(completed);
+          }
           setAcIndex(0);
         }
         return;
@@ -656,9 +757,17 @@ export function App({
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+
+  const statusParts = [
+    provider,
+    model,
+    agentMode ? "agent" : null,
+    wsUrl ? "ws" : null,
+  ].filter(Boolean).join("  ");
+
   return (
     <Box flexDirection="column">
-      {/* Past messages — Static never re-renders past content */}
+      {/* Past messages */}
       <Static items={messages}>
         {(msg) => (
           <Box key={msg.id}>
@@ -671,24 +780,36 @@ export function App({
       {showHelp && <HelpPanel />}
 
       {/* Live streaming area */}
-      {streaming && (
-        <Box flexDirection="column" marginTop={1} marginBottom={1}>
-          <Box>
-            <Text color="green">{"●"} </Text>
-            <Text>{streamContent}</Text>
-          </Box>
-          {streamLabel && (
-            <Box marginLeft={2}>
-              <Text color="gray" dimColor><Spinner type="dots" /> {streamLabel}</Text>
-            </Box>
-          )}
-        </Box>
+      {streaming && agentMode && (
+        <ExecutionTree state={execState.state} treeActive={true} />
       )}
+      {streaming && !agentMode && (() => {
+        // Truncate streaming preview to avoid overflowing the terminal's dynamic area.
+        const maxPreviewLines = Math.max((process.stdout.rows ?? 24) - 4, 5);
+        const lines = streamContent ? streamContent.split("\n") : [];
+        const truncated = lines.length > maxPreviewLines
+          ? lines.slice(-maxPreviewLines).join("\n")
+          : streamContent;
+        return (
+          <Box flexDirection="column" marginTop={1}>
+            {truncated ? (
+              <Box>
+                <Text color="green">{"● "}</Text>
+                <Text>{truncated}</Text>
+              </Box>
+            ) : null}
+            <Box>
+              <Text color="gray" dimColor>{"  "}<Spinner type="dots" /> {streamLabel || "thinking"}</Text>
+            </Box>
+          </Box>
+        );
+      })()}
 
       {/* Error display */}
       {error && (
-        <Box marginBottom={1}>
-          <Text color="red">✗ {error}</Text>
+        <Box marginTop={1}>
+          <Text color="red">{"● "}</Text>
+          <Text color="red">{error}</Text>
         </Box>
       )}
 
@@ -700,31 +821,29 @@ export function App({
         />
       )}
 
-      {/* Separator */}
-      <Box>
-        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
-      </Box>
-
-      {/* Input bar */}
-      <Box>
-        <Text color="cyan" bold>{"> "}</Text>
-        {streaming
-          ? <Text color="gray" dimColor>{streamLabel || "thinking…"}</Text>
-          : (
-            <TextInput
+      {/* Input area — hidden during streaming to avoid terminal artifacts */}
+      {!streaming && (
+        <>
+          <Box>
+            <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
+          </Box>
+          <Box>
+            <Text color="magenta" dimColor bold>{"❯ "}</Text>
+            <ReadlineInput
               value={inputValue}
               onChange={setInputValue}
               onSubmit={handleSubmit}
-              placeholder=""
             />
-          )
-        }
-      </Box>
-
-      {/* Bottom status */}
-      <Box>
-        <Text color="gray" dimColor>  {agentMode ? "agent mode · " : ""}{wsUrl ? "ws · " : ""}{provider} · {model}</Text>
-      </Box>
+          </Box>
+          <Box>
+            <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
+          </Box>
+          {/* Status bar */}
+          <Box>
+            <Text color="gray" dimColor>{"  "}{statusParts}</Text>
+          </Box>
+        </>
+      )}
     </Box>
   );
 }

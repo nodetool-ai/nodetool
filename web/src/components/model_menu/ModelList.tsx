@@ -8,10 +8,9 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  ListItemIcon,
-  Tooltip,
-  Typography
+  ListItemIcon
 } from "@mui/material";
+import { Tooltip, Text } from "../ui_primitives";
 import FavoriteStar from "./FavoriteStar";
 import type { ImageModel, LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -309,11 +308,11 @@ function ModelList<TModel extends ModelSelectorModel>({
           }}
         >
           <InfoOutlinedIcon color="warning" fontSize="medium" />
-          <Typography sx={{ fontSize: theme.vars.fontSizeNormal }}>
+          <Text>
             {searchTerm.trim().length === 0
               ? "No models available. Select or enable providers in the left sidebar to see models."
               : `No models found for "${searchTerm}". Try a different term or enable more providers.`}
-          </Typography>
+          </Text>
         </Box>
       ) : (
         <AutoSizer>

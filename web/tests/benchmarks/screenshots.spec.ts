@@ -1,15 +1,16 @@
 /**
  * Documentation Screenshot Capture
  *
- * Takes screenshots of the real NodeTool UI. API calls are handled by a mock
- * HTTP server (started in globalSetup.ts) so no real backend is needed.
+ * Takes screenshots of the real NodeTool UI. API calls are handled by the
+ * real NodeTool backend (started by globalSetup.ts) running with an in-memory
+ * SQLite database pre-seeded with realistic mock data.
  *
  * Usage:
  *   npm run screenshots                    # Capture only missing screenshots
  *   npm run screenshots:force              # Re-capture every screenshot
  *   FORCE_SCREENSHOTS=true npx playwright test tests/benchmarks/screenshots.spec.ts
  *
- * playwright.config.ts auto-starts the Vite dev server pointed at the mock API.
+ * playwright.config.ts auto-starts the Vite dev server and the real backend.
  */
 
 import { test, Page } from "@playwright/test";
@@ -200,7 +201,9 @@ if (process.env.JEST_WORKER_ID) {
     test("Settings dialog", async ({ page }) => {
       test.skip(shouldSkip("settings-dialog.png"), "Already captured");
       await gotoPage(page, "/");
-      await page.keyboard.press("Control+,");
+      // Click the gear icon button whose accessible name is "Settings"
+      // (rendered by SettingsMenu with Tooltip title="Settings")
+      await page.getByRole("button", { name: /^settings$/i }).click();
       await waitForAnimation(page, 600);
       await saveScreenshot(page, "settings-dialog.png");
     });
@@ -208,7 +211,8 @@ if (process.env.JEST_WORKER_ID) {
     test("Settings – API keys tab", async ({ page }) => {
       test.skip(shouldSkip("settings-api-keys.png"), "Already captured");
       await gotoPage(page, "/");
-      await page.keyboard.press("Control+,");
+      // Click the gear icon button whose accessible name is "Settings"
+      await page.getByRole("button", { name: /^settings$/i }).click();
       await waitForAnimation(page, 600);
       const apiKeysTab = page
         .getByRole("tab")

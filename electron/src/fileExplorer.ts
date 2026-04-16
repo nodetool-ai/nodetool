@@ -5,6 +5,7 @@ import { shell } from "electron";
 
 import { logMessage, LOG_FILE } from "./logger";
 import { getCondaEnvPath } from "./config";
+import { getDefaultAssetsPath } from "@nodetool/config";
 import type { FileExplorerResult, ModelDirectory, SystemDirectory } from "./types";
 
 const DEFAULT_HF_SUBDIR = path.join(".cache", "huggingface", "hub");
@@ -304,6 +305,9 @@ export async function openSystemDirectory(
   } else if (target === "logs") {
     dir = await getLogsDir();
     label = "Nodetool logs";
+  } else if (target === "assets") {
+    dir = getDefaultAssetsPath();
+    label = "Nodetool assets";
   } else {
     return {
       status: "error",

@@ -8,7 +8,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
-import { CircularProgress, Box, Typography } from "@mui/material";
+import { FlexColumn, Text, LoadingSpinner } from "../ui_primitives";
 import type { Asset } from "../../stores/ApiTypes";
 
 // Lazy load the heavy PDF viewer component
@@ -27,19 +27,17 @@ interface LazyPDFViewerProps {
  * Loading component shown while PDFViewer loads
  */
 const PDFViewerLoadingFallback: React.FC = () => (
-  <Box
-    display="flex"
-    flexDirection="column"
-    alignItems="center"
-    justifyContent="center"
-    height="300px"
+  <FlexColumn
+    align="center"
+    justify="center"
     gap={2}
+    sx={{ height: "300px" }}
   >
-    <CircularProgress size={40} />
-    <Typography variant="body2" color="textSecondary">
+    <LoadingSpinner size="medium" />
+    <Text size="small" color="secondary">
       Loading PDF viewer...
-    </Typography>
-  </Box>
+    </Text>
+  </FlexColumn>
 );
 
 /**

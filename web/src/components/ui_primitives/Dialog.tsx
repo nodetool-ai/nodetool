@@ -38,7 +38,8 @@ import {
   Dialog as MuiDialog,
   DialogProps as MuiDialogProps,
   DialogTitle,
-  DialogContent
+  DialogContent,
+  DialogActions as MuiDialogActions
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import dialogStyles from "../../styles/DialogStyles";
@@ -101,6 +102,11 @@ export interface DialogProps extends Omit<MuiDialogProps, "title" | "content"> {
    */
   actionButtonsProps?: Partial<DialogActionButtonsProps>;
   /**
+   * Custom action buttons rendered in a DialogActions footer.
+   * Takes precedence over the built-in confirm/cancel buttons.
+   */
+  actions?: ReactNode;
+  /**
    * Minimum width for the dialog
    * @default "400px"
    */
@@ -120,6 +126,7 @@ export const Dialog = memo(
         title,
         content,
         children,
+        actions,
         showActions,
         onConfirm,
         onCancel,
@@ -188,7 +195,10 @@ export const Dialog = memo(
               {dialogContent}
             </DialogContent>
           )}
-          {shouldShowActions && onConfirm && (
+          {actions && (
+            <MuiDialogActions>{actions}</MuiDialogActions>
+          )}
+          {!actions && shouldShowActions && onConfirm && (
             <DialogActionButtons
               onConfirm={onConfirm}
               onCancel={handleCancel}

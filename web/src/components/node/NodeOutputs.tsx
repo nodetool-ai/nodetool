@@ -3,7 +3,6 @@ import { memo, useState, useCallback, useMemo } from "react";
 import DynamicOutputItem from "./DynamicOutputItem";
 import { Property, OutputSlot } from "../../stores/ApiTypes";
 import {
-  Box,
   TextField,
   Dialog,
   DialogTitle,
@@ -11,12 +10,16 @@ import {
   DialogActions,
   Button
 } from "@mui/material";
+import { FlexRow } from "../ui_primitives";
 import MenuItem from "@mui/material/MenuItem";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
 import useDynamicOutput from "../../hooks/nodes/useDynamicOutput";
 import { validateIdentifierName } from "../../utils/identifierValidation";
+
+// Module-level constant — avoids creating a new style object on every render.
+const OUTPUT_WRAPPER_STYLE = { marginBottom: "1em" };
 
 export interface NodeOutputsProps {
   id: string;
@@ -80,6 +83,8 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
     () => [...staticOutputs, ...dynamicOutputsList],
     [staticOutputs, dynamicOutputsList]
   );
+
+  const supportsDynamicOutputs = Boolean(metadata?.supports_dynamic_outputs);
 
   const onStartEdit = useCallback(
     (name: string) => {
@@ -157,7 +162,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
 
   return (
     <>
-      <Box sx={{ mb: "1em" }}>
+      <div style={OUTPUT_WRAPPER_STYLE}>
         {allOutputs.length > 1 || metadata?.supports_dynamic_outputs ? (
           <ul className="multi-outputs">
             {allOutputs.map((output) => (
@@ -166,9 +171,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
                   id={id}
                   output={output}
                   showLabel={true}
-                  supportsDynamicOutputs={Boolean(
-                    metadata?.supports_dynamic_outputs
-                  )}
+                  supportsDynamicOutputs={supportsDynamicOutputs}
                   isStreamingOutput={isStreamingOutput}
                   onStartEdit={onStartEdit}
                   onDelete={handleDeleteOutput}
@@ -183,14 +186,14 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
               id={id}
               output={output}
               showLabel={false}
-              supportsDynamicOutputs={Boolean(metadata?.supports_dynamic_outputs)}
+              supportsDynamicOutputs={supportsDynamicOutputs}
               isStreamingOutput={isStreamingOutput}
               onStartEdit={onStartEdit}
               onDelete={handleDeleteOutput}
             />
           ))
         )}
-      </Box>
+      </div>
 
       <Dialog
         open={showRenameDialog}
@@ -200,7 +203,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
       >
         <DialogTitle>Rename Output</DialogTitle>
         <DialogContent>
-          <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+          <FlexRow gap={2} sx={{ mt: 1 }}>
             <TextField
               autoFocus
               label="Name"
@@ -231,7 +234,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
                 </MenuItem>
               ))}
             </TextField>
-          </Box>
+          </FlexRow>
         </DialogContent>
         <DialogActions>
           <Button

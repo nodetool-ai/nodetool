@@ -1,3 +1,5 @@
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div class="reading-progress" aria-hidden="true"><span class="reading-progress-bar"></span></div>
 <header class="site-header">
   <div class="header-container">
     <div class="logo-section">
@@ -24,6 +26,13 @@
     </nav>
 
     <div class="header-right">
+      <button class="search-toggle" aria-label="Open search" aria-expanded="false" aria-controls="site-search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </button>
+
       <div class="search-container" data-search-index="{{ '/search.json' | relative_url }}">
         <label class="search-input-wrapper">
           <span class="search-icon" aria-hidden="true">

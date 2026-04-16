@@ -4,8 +4,6 @@ import {
   Box,
   Button,
   LinearProgress,
-  Tooltip,
-  Chip,
   Collapse
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -30,7 +28,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import { useGettingStartedStore } from "../../stores/GettingStartedStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
-import { FlexColumn, FlexRow, Card, Text, Caption } from "../ui_primitives";
+import { FlexColumn, FlexRow, Card, Text, Caption, Tooltip, Chip } from "../ui_primitives";
 
 interface GettingStartedPanelProps {
   sortedWorkflows: Workflow[];
@@ -635,7 +633,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                     </Box>
                   )}
                 </FlexColumn>
-                <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                <FlexRow align="center" sx={{ flexShrink: 0 }}>
                   {step.isCompleted ? (
                     <Tooltip title="Completed">
                       <CheckCircleIcon
@@ -649,7 +647,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
                       />
                     </Tooltip>
                   )}
-                </Box>
+                </FlexRow>
               </FlexRow>
             </Card>
           ))}

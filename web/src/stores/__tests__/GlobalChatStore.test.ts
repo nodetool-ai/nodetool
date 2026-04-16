@@ -204,7 +204,8 @@ describe("GlobalChatStore", () => {
           model: "gpt-oss:20b",
           provider: "empty",
           tools: undefined,
-          collections: undefined
+          collections: undefined,
+          media_generation: null
         }
       });
     } finally {
@@ -813,7 +814,8 @@ describe("GlobalChatStore", () => {
           model: "gpt-oss:20b",
           provider: "empty",
           tools: undefined,
-          collections: undefined
+          collections: undefined,
+          media_generation: null
         }
       });
     });
@@ -948,18 +950,6 @@ describe("GlobalChatStore", () => {
       expect(state.wsEventUnsubscribes.length).toBeGreaterThan(0);
       // Status is determined by globalWebSocketManager connection state
       expect(typeof store.getState().status).toBe("string");
-    });
-
-    it("warns when no Supabase session found", async () => {
-      // We're already in localhost mode from the global mock, so skip this test
-      // as the warning only happens in non-localhost mode
-      expect(true).toBe(true);
-    });
-
-    it("handles Supabase session errors", async () => {
-      // We're in localhost mode, so auth errors won't happen
-      // Skip this test as it's not applicable in localhost mode
-      expect(true).toBe(true);
     });
 
     it("includes auth context in connection error messages", async () => {

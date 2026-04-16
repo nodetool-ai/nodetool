@@ -26,7 +26,7 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 /**
  * Union type for all possible cell values in a DataFrame column
@@ -141,6 +141,9 @@ const DataTable: React.FC<DataTableProps> = ({
   const isInternalEditRef = useRef(false);
   // Track timeout for cleanup
   const editTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track what data Tabulator currently holds — prevents redundant replaceData
+  // after initial mount (Tabulator already loaded data via constructor)
+  const tabulatorDataRef = useRef<DictTableRow[] | null>(null);
   
   // Update undo/redo availability
   const updateHistoryState = useCallback(() => {
@@ -284,6 +287,8 @@ const DataTable: React.FC<DataTableProps> = ({
       }, 100);
     };
 
+    tabulatorDataRef.current = data; // track what data is currently in Tabulator
+
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: 200,
       data: data,
@@ -322,38 +327,52 @@ const DataTable: React.FC<DataTableProps> = ({
       tabulatorRef.current = null;
       setIsTableReady(false);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update data when it changes (without recreating tabulator)
-  // Skip replaceData if the change came from Tabulator's own editing (to preserve history)
+  // Skip replaceData if: data already in Tabulator (constructor-loaded), internal edit, or DOM gone
   useEffect(() => {
-    if (isTableReady && tabulatorRef.current && !isInternalEditRef.current) {
-      tabulatorRef.current.replaceData(data);
+    if (!isTableReady || !tabulatorRef.current || !tableRef.current) return;
+    if (tabulatorDataRef.current === data) return; // already loaded, skip redundant call
+    tabulatorDataRef.current = data;
+    try {
+      if (!isInternalEditRef.current) {
+        tabulatorRef.current.replaceData(data);
+      }
+    } catch {
+      // DOM may have been removed during async Tabulator operations
     }
   }, [data, isTableReady]);
 
   // Update columns when they change
   useEffect(() => {
-    if (isTableReady && tabulatorRef.current) {
-      tabulatorRef.current.setColumns(buildColumns());
+    if (isTableReady && tabulatorRef.current && tableRef.current) {
+      try {
+        tabulatorRef.current.setColumns(buildColumns());
+      } catch {
+        // DOM may have been removed during async Tabulator operations
+      }
     }
   }, [buildColumns, dataframe.columns, showSelect, showRowNumbers, isTableReady]);
 
   // Apply search filter
   useEffect(() => {
-    if (isTableReady && tabulatorRef.current) {
-      if (searchFilter && searchFilter.trim()) {
-        // Filter across all columns
-        const cols = dataframeRef.current.columns || [];
-        const filters = cols.map((col) => ({
-          field: col.name,
-          type: "like" as const,
-          value: searchFilter
-        }));
-        tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
-      } else {
-        tabulatorRef.current.clearFilter(true);
+    if (isTableReady && tabulatorRef.current && tableRef.current) {
+      try {
+        if (searchFilter && searchFilter.trim()) {
+          // Filter across all columns
+          const cols = dataframeRef.current.columns || [];
+          const filters = cols.map((col) => ({
+            field: col.name,
+            type: "like" as const,
+            value: searchFilter
+          }));
+          tabulatorRef.current.setFilter([filters] as TabulatorFilterArray);
+        } else {
+          tabulatorRef.current.clearFilter(true);
+        }
+      } catch {
+        // DOM may have been removed during async Tabulator operations
       }
     }
   }, [searchFilter, isTableReady]);

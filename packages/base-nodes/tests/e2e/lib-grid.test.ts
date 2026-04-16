@@ -22,7 +22,7 @@ async function solid(
   })
     .png()
     .toBuffer();
-  return { data: buf.toString("base64") };
+  return { data: new Uint8Array(buf) };
 }
 
 describe("native lib.grid nodes", () => {
@@ -49,8 +49,7 @@ describe("native lib.grid nodes", () => {
     expect(Array.isArray(tiles)).toBe(true);
     expect(tiles).toHaveLength(6);
 
-    const firstBytes = Buffer.from(String(tiles[0].data ?? ""), "base64");
-    const meta = await sharp(firstBytes).metadata();
+    const meta = await sharp(Buffer.from(tiles[0].data as Uint8Array)).metadata();
     expect(meta.width).toBe(2);
     expect(meta.height).toBe(2);
   });
@@ -71,11 +70,7 @@ describe("native lib.grid nodes", () => {
 
     node.assign({ tiles, columns: 2 });
     const out = await node.process();
-    const bytes = Buffer.from(
-      String((out.output as { data: string }).data),
-      "base64"
-    );
-    const meta = await sharp(bytes).metadata();
+    const meta = await sharp(Buffer.from((out.output as { data: Uint8Array }).data)).metadata();
     expect(meta.width).toBe(20);
     expect(meta.height).toBe(20);
   });
@@ -91,11 +86,7 @@ describe("native lib.grid nodes", () => {
 
     node.assign({ tiles, columns: 2 });
     const out = await node.process();
-    const bytes = Buffer.from(
-      String((out.output as { data: string }).data),
-      "base64"
-    );
-    const meta = await sharp(bytes).metadata();
+    const meta = await sharp(Buffer.from((out.output as { data: Uint8Array }).data)).metadata();
     expect(meta.width).toBe(16);
     expect(meta.height).toBe(16);
   });

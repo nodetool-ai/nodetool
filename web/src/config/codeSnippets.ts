@@ -15,9 +15,7 @@ export type SnippetCategory =
   | "Dictionary"
   | "Date & Time"
   | "UUID"
-  | "HTTP"
   | "JSON"
-  | "Data Table"
   | "Streaming";
 
 export interface CodeSnippet {
@@ -38,9 +36,7 @@ export const SNIPPET_CATEGORIES: SnippetCategory[] = [
   "Dictionary",
   "Date & Time",
   "UUID",
-  "HTTP",
   "JSON",
-  "Data Table",
   "Streaming",
 ];
 
@@ -430,7 +426,11 @@ return { output: list.flat(Infinity) };`,
     title: "Chunk",
     description: "Split a list into chunks of a given size",
     category: "List",
-    code: `return { output: _.chunk(list, size) };`,
+    code: `const chunks = [];
+for (let i = 0; i < list.length; i += size) {
+  chunks.push(list.slice(i, i + size));
+}
+return { output: chunks };`,
     tags: ["chunk", "batch", "partition", "group"],
   },
   {
@@ -474,9 +474,14 @@ return { output: result };`,
   {
     id: "list-shuffle",
     title: "Shuffle",
-    description: "Randomly shuffle a list",
+    description: "Randomly shuffle a list (Fisher-Yates)",
     category: "List",
-    code: "return { output: _.shuffle(list) };",
+    code: `const arr = [...list];
+for (let i = arr.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+}
+return { output: arr };`,
     tags: ["shuffle", "random", "randomize"],
   },
   {
@@ -510,7 +515,12 @@ return { output: a.filter(x => !setB.has(x)) };`,
     title: "Group By",
     description: "Group items by a key",
     category: "List",
-    code: "return { output: _.groupBy(items, key) };",
+    code: `const groups = {};
+for (const item of items) {
+  const k = item[key];
+  (groups[k] ||= []).push(item);
+}
+return { output: groups };`,
     tags: ["group", "groupBy", "categorize", "bucket"],
   },
   {
@@ -528,9 +538,13 @@ return { output: a.filter(x => !setB.has(x)) };`,
   {
     id: "dict-get",
     title: "Get Value",
-    description: "Get a value from a dictionary by key (supports dot paths)",
+    description: "Get a value from a dictionary by key (supports dot paths like 'a.b.c')",
     category: "Dictionary",
-    code: "return { output: _.get(dict, key) };",
+    code: `const value = String(key).split(".").reduce(
+  (acc, k) => (acc == null ? acc : acc[k]),
+  dict
+);
+return { output: value };`,
     tags: ["get", "access", "key", "value", "path"],
   },
   {
@@ -594,7 +608,10 @@ return { output: rest };`,
     title: "Pick Keys",
     description: "Select specific keys from a dictionary",
     category: "Dictionary",
-    code: "return { output: _.pick(dict, ['key1', 'key2']) };",
+    code: `const picked = ['key1', 'key2'];
+return { output: Object.fromEntries(
+  Object.entries(dict).filter(([k]) => picked.includes(k))
+) };`,
     tags: ["pick", "select", "subset", "pluck"],
   },
   {
@@ -602,7 +619,10 @@ return { output: rest };`,
     title: "Omit Keys",
     description: "Remove specific keys from a dictionary",
     category: "Dictionary",
-    code: "return { output: _.omit(dict, ['key1', 'key2']) };",
+    code: `const omitted = ['key1', 'key2'];
+return { output: Object.fromEntries(
+  Object.entries(dict).filter(([k]) => !omitted.includes(k))
+) };`,
     tags: ["omit", "exclude", "remove", "without"],
   },
   {
@@ -628,7 +648,9 @@ return { output: maxKey };`,
     title: "Map Values",
     description: "Transform all values in a dictionary",
     category: "Dictionary",
-    code: "return { output: _.mapValues(dict, v => v * 2) };",
+    code: `return { output: Object.fromEntries(
+  Object.entries(dict).map(([k, v]) => [k, v * 2])
+) };`,
     tags: ["map", "transform", "values"],
   },
 
@@ -747,76 +769,7 @@ return { output: re.test(value) };`,
   // ---------------------------------------------------------------------------
   // HTTP
   // ---------------------------------------------------------------------------
-  {
-    id: "http-get",
-    title: "HTTP GET",
-    description: "Fetch data from a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url);
-return { output: res.json ?? res.body };`,
-    tags: ["http", "get", "request", "api", "fetch"],
-  },
-  {
-    id: "http-post",
-    title: "HTTP POST",
-    description: "Send data to a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(data)
-});
-return { output: res.json ?? res.body };`,
-    tags: ["http", "post", "request", "api", "send"],
-  },
-  {
-    id: "http-put",
-    title: "HTTP PUT",
-    description: "Update data at a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url, {
-  method: "PUT",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(data)
-});
-return { output: res.json ?? res.body };`,
-    tags: ["http", "put", "update", "request", "api"],
-  },
-  {
-    id: "http-delete",
-    title: "HTTP DELETE",
-    description: "Delete a resource at a URL",
-    category: "HTTP",
-    code: `const res = await fetch(url, { method: "DELETE" });
-return { output: res.ok };`,
-    tags: ["http", "delete", "remove", "request", "api"],
-  },
-  {
-    id: "http-headers",
-    title: "HTTP with Headers",
-    description: "Make a request with custom headers and auth",
-    category: "HTTP",
-    code: `const apiKey = await getSecret("API_KEY");
-const res = await fetch(url, {
-  headers: {
-    "Authorization": "Bearer " + apiKey,
-    "Content-Type": "application/json"
-  }
-});
-return { output: res.json ?? res.body };`,
-    tags: ["http", "headers", "auth", "bearer", "api", "token"],
-  },
-  {
-    id: "http-parallel",
-    title: "Parallel Requests",
-    description: "Fetch multiple URLs in parallel",
-    category: "HTTP",
-    code: `const results = await Promise.all(
-  urls.map(u => fetch(u).then(r => r.json ?? r.body))
-);
-return { output: results };`,
-    tags: ["parallel", "concurrent", "multiple", "batch", "promise"],
-  },
+  // HTTP snippets removed — use lib.http.* nodes instead (GetText, GetJSON, GetBytes, Post, Put, Patch, Delete)
 
   // ---------------------------------------------------------------------------
   // JSON
@@ -840,9 +793,13 @@ return { output: results };`,
   {
     id: "json-path",
     title: "Get JSON Path",
-    description: "Extract a value using dot-path notation",
+    description: "Extract a value using dot-path notation (e.g. 'user.address.city')",
     category: "JSON",
-    code: `return { output: _.get(data, path) };`,
+    code: `const value = String(path).split(".").reduce(
+  (acc, k) => (acc == null ? acc : acc[k]),
+  data
+);
+return { output: value };`,
     tags: ["json", "path", "dot", "nested", "extract", "get"],
   },
   {
@@ -1221,419 +1178,7 @@ return { output: current.length === 1 ? current[0] : current };`,
     tags: ["json", "jsonpath", "extract", "nested", "wildcard"],
   },
 
-  // ---------------------------------------------------------------------------
-  // Data Table (replaces data.ts dataframe nodes)
-  // ---------------------------------------------------------------------------
-  {
-    id: "data-filter-rows",
-    title: "Filter Rows",
-    description: "Filter rows matching a condition",
-    category: "Data Table",
-    code: `// rows = [{ name: "Alice", age: 30 }, ...]
-return { output: rows.filter(row => row.age > 25) };`,
-    tags: ["filter", "rows", "where", "condition", "dataframe"],
-  },
-  {
-    id: "data-slice-rows",
-    title: "Slice Rows",
-    description: "Get a subset of rows by index range",
-    category: "Data Table",
-    code: `return { output: rows.slice(start, end) };`,
-    tags: ["slice", "rows", "range", "offset", "limit", "paginate"],
-  },
-  {
-    id: "data-select-columns",
-    title: "Select Columns",
-    description: "Keep only specific columns from each row",
-    category: "Data Table",
-    code: `const cols = ["name", "age"];
-return { output: rows.map(row =>
-  Object.fromEntries(cols.map(c => [c, row[c]]))
-) };`,
-    tags: ["select", "columns", "project", "pick", "fields"],
-  },
-  {
-    id: "data-extract-column",
-    title: "Extract Column",
-    description: "Extract a single column as an array of values",
-    category: "Data Table",
-    code: `return { output: rows.map(row => row[column]) };`,
-    tags: ["extract", "column", "pluck", "values", "field"],
-  },
-  {
-    id: "data-add-column",
-    title: "Add Column",
-    description: "Add a computed column to each row",
-    category: "Data Table",
-    code: `return { output: rows.map(row => ({
-  ...row,
-  full_name: row.first + " " + row.last
-})) };`,
-    tags: ["add", "column", "computed", "derived", "transform"],
-  },
-  {
-    id: "data-rename-columns",
-    title: "Rename Columns",
-    description: "Rename column keys in each row",
-    category: "Data Table",
-    code: `const mapping = { old_name: "new_name", old_age: "new_age" };
-return { output: rows.map(row => {
-  const out = {};
-  for (const [k, v] of Object.entries(row)) {
-    out[mapping[k] || k] = v;
-  }
-  return out;
-}) };`,
-    tags: ["rename", "columns", "alias", "mapping"],
-  },
-  {
-    id: "data-sort-by",
-    title: "Sort by Column",
-    description: "Sort rows by a column (ascending or descending)",
-    category: "Data Table",
-    code: `const ascending = true;
-return { output: [...rows].sort((a, b) => {
-  const va = a[column], vb = b[column];
-  const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-  return ascending ? cmp : -cmp;
-}) };`,
-    tags: ["sort", "order", "column", "ascending", "descending"],
-  },
-  {
-    id: "data-deduplicate",
-    title: "Drop Duplicates",
-    description: "Remove duplicate rows by key column",
-    category: "Data Table",
-    code: `const seen = new Set();
-return { output: rows.filter(row => {
-  const key = JSON.stringify(row[column]);
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
-}) };`,
-    tags: ["deduplicate", "unique", "distinct", "drop", "duplicates"],
-  },
-  {
-    id: "data-drop-nulls",
-    title: "Drop Nulls",
-    description: "Remove rows containing null/undefined values",
-    category: "Data Table",
-    code: `return { output: rows.filter(row =>
-  Object.values(row).every(v => v !== null && v !== undefined)
-) };`,
-    tags: ["null", "drop", "clean", "missing", "na"],
-  },
-  {
-    id: "data-fill-nulls",
-    title: "Fill Nulls",
-    description: "Replace null/undefined values with a default",
-    category: "Data Table",
-    code: `const fill = 0; // or "", or "N/A"
-return { output: rows.map(row =>
-  Object.fromEntries(Object.entries(row).map(([k, v]) =>
-    [k, v ?? fill]
-  ))
-) };`,
-    tags: ["fill", "null", "default", "missing", "replace", "na"],
-  },
-  {
-    id: "data-group-aggregate",
-    title: "Group By & Aggregate",
-    description: "Group rows by a column and compute aggregates",
-    category: "Data Table",
-    code: `const groups = {};
-for (const row of rows) {
-  const key = row[groupColumn];
-  if (!groups[key]) groups[key] = [];
-  groups[key].push(row);
-}
-return { output: Object.entries(groups).map(([key, items]) => ({
-  [groupColumn]: key,
-  count: items.length,
-  sum: items.reduce((s, r) => s + (r[valueColumn] || 0), 0),
-  avg: items.reduce((s, r) => s + (r[valueColumn] || 0), 0) / items.length,
-})) };`,
-    tags: ["group", "aggregate", "sum", "count", "average", "groupby"],
-  },
-  {
-    id: "data-pivot",
-    title: "Pivot Table",
-    description: "Pivot rows to create a cross-tabulation",
-    category: "Data Table",
-    code: `const result = {};
-for (const row of rows) {
-  const rKey = row[rowColumn];
-  const cKey = row[colColumn];
-  if (!result[rKey]) result[rKey] = { [rowColumn]: rKey };
-  result[rKey][cKey] = row[valueColumn];
-}
-return { output: Object.values(result) };`,
-    tags: ["pivot", "cross", "tabulate", "reshape", "matrix"],
-  },
-  {
-    id: "data-join",
-    title: "Join Tables",
-    description: "Join two tables on a common key (inner join)",
-    category: "Data Table",
-    code: `const index = {};
-for (const row of right) {
-  index[row[key]] = row;
-}
-return { output: left
-  .filter(row => index[row[key]])
-  .map(row => ({ ...row, ...index[row[key]] }))
-};`,
-    tags: ["join", "merge", "inner", "lookup", "tables"],
-  },
-  {
-    id: "data-merge-append",
-    title: "Merge / Append Rows",
-    description: "Combine two tables by appending rows",
-    category: "Data Table",
-    code: `return { output: [...tableA, ...tableB] };`,
-    tags: ["merge", "append", "concat", "union", "combine"],
-  },
-  {
-    id: "data-csv-parse",
-    title: "Parse CSV",
-    description: "Parse CSV text into rows with auto-detected headers",
-    category: "Data Table",
-    code: `const lines = text.trim().split("\\n");
-const headers = lines[0].split(",").map(h => h.trim());
-const rows = lines.slice(1).map(line => {
-  const vals = line.split(",");
-  return Object.fromEntries(headers.map((h, i) => [h, vals[i]?.trim()]));
-});
-return { output: rows };`,
-    tags: ["csv", "parse", "import", "headers", "table"],
-  },
-  {
-    id: "data-find-row",
-    title: "Find Row",
-    description: "Find the first row matching a condition",
-    category: "Data Table",
-    code: `return { output: rows.find(row => row[column] === value) ?? null };`,
-    tags: ["find", "search", "first", "row", "lookup"],
-  },
-
-  // ---------------------------------------------------------------------------
-  // Date & Time (dayjs-powered)
-  // ---------------------------------------------------------------------------
-  {
-    id: "dayjs-format",
-    title: "Format Date (dayjs)",
-    description: "Parse and format dates with dayjs",
-    category: "Date & Time",
-    code: `return {
-  formatted: dayjs(dateString).format("YYYY-MM-DD HH:mm"),
-  iso: dayjs(dateString).toISOString(),
-  relative: dayjs(dateString).fromNow?.() ?? "N/A"
-};`,
-    tags: ["dayjs", "format", "date", "parse"],
-  },
-  {
-    id: "dayjs-add-subtract",
-    title: "Add / Subtract Time (dayjs)",
-    description: "Add or subtract time from a date",
-    category: "Date & Time",
-    code: `const d = dayjs(dateString);
-return {
-  plus7days: d.add(7, "day").format("YYYY-MM-DD"),
-  minus1month: d.subtract(1, "month").format("YYYY-MM-DD"),
-  plus2hours: d.add(2, "hour").format("YYYY-MM-DD HH:mm")
-};`,
-    tags: ["dayjs", "add", "subtract", "offset", "shift"],
-  },
-  {
-    id: "dayjs-diff",
-    title: "Date Difference (dayjs)",
-    description: "Calculate difference between two dates",
-    category: "Date & Time",
-    code: `const a = dayjs(dateA), b = dayjs(dateB);
-return {
-  days: a.diff(b, "day"),
-  hours: a.diff(b, "hour"),
-  months: a.diff(b, "month")
-};`,
-    tags: ["dayjs", "diff", "difference", "between", "duration"],
-  },
-  {
-    id: "dayjs-compare",
-    title: "Compare Dates (dayjs)",
-    description: "Check if a date is before, after, or same as another",
-    category: "Date & Time",
-    code: `const a = dayjs(dateA), b = dayjs(dateB);
-return {
-  isBefore: a.isBefore(b),
-  isAfter: a.isAfter(b),
-  isSame: a.isSame(b, "day")
-};`,
-    tags: ["dayjs", "compare", "before", "after", "same"],
-  },
-  {
-    id: "dayjs-start-end",
-    title: "Start / End of Period (dayjs)",
-    description: "Get the start or end of a day, week, month, or year",
-    category: "Date & Time",
-    code: `const d = dayjs(dateString);
-return {
-  startOfWeek: d.startOf("week").format("YYYY-MM-DD"),
-  endOfMonth: d.endOf("month").format("YYYY-MM-DD"),
-  startOfYear: d.startOf("year").format("YYYY-MM-DD")
-};`,
-    tags: ["dayjs", "start", "end", "week", "month", "year"],
-  },
-
-  // ---------------------------------------------------------------------------
-  // HTML Parsing (cheerio)
-  // ---------------------------------------------------------------------------
-  {
-    id: "html-extract-links",
-    title: "Extract Links from HTML",
-    description: "Parse HTML and extract all anchor hrefs",
-    category: "Text",
-    code: `const $ = cheerio.load(html);
-const links = $("a").map((i, el) => ({
-  text: $(el).text().trim(),
-  href: $(el).attr("href") || ""
-})).get();
-return { output: links };`,
-    tags: ["html", "cheerio", "links", "anchor", "href", "scrape"],
-  },
-  {
-    id: "html-extract-images",
-    title: "Extract Images from HTML",
-    description: "Parse HTML and extract all image sources",
-    category: "Text",
-    code: `const $ = cheerio.load(html);
-const images = $("img").map((i, el) => ({
-  src: $(el).attr("src") || "",
-  alt: $(el).attr("alt") || ""
-})).get();
-return { output: images };`,
-    tags: ["html", "cheerio", "images", "img", "src", "scrape"],
-  },
-  {
-    id: "html-extract-text",
-    title: "HTML to Text",
-    description: "Strip all HTML tags and get plain text",
-    category: "Text",
-    code: `const $ = cheerio.load(html);
-return { output: $.text().trim() };`,
-    tags: ["html", "cheerio", "text", "strip", "plain"],
-  },
-  {
-    id: "html-extract-table",
-    title: "Extract Table from HTML",
-    description: "Parse an HTML table into rows of objects",
-    category: "Data Table",
-    code: `const $ = cheerio.load(html);
-const headers = $("table th").map((i, el) => $(el).text().trim()).get();
-const rows = $("table tbody tr").map((i, tr) => {
-  const cells = $(tr).find("td").map((j, td) => $(td).text().trim()).get();
-  return Object.fromEntries(headers.map((h, j) => [h, cells[j] ?? ""]));
-}).get();
-return { output: rows };`,
-    tags: ["html", "cheerio", "table", "parse", "scrape", "rows"],
-  },
-  {
-    id: "html-select",
-    title: "CSS Selector Query",
-    description: "Extract content using CSS selectors",
-    category: "Text",
-    code: `const $ = cheerio.load(html);
-const results = $(selector).map((i, el) => $(el).text().trim()).get();
-return { output: results };`,
-    tags: ["html", "cheerio", "css", "selector", "query", "dom"],
-  },
-
-  // ---------------------------------------------------------------------------
-  // CSV (csv-parse)
-  // ---------------------------------------------------------------------------
-  {
-    id: "csv-parse-robust",
-    title: "Parse CSV (robust)",
-    description: "Parse CSV with proper handling of quoted fields, escapes, and headers",
-    category: "Data Table",
-    code: `const rows = csvParse(text, {
-  columns: true,
-  skip_empty_lines: true,
-  trim: true
-});
-return { output: rows };`,
-    tags: ["csv", "parse", "csvParse", "robust", "quoted", "import"],
-  },
-  {
-    id: "csv-parse-custom-delimiter",
-    title: "Parse TSV / Custom Delimiter",
-    description: "Parse tab-separated or other delimited text",
-    category: "Data Table",
-    code: `const rows = csvParse(text, {
-  columns: true,
-  delimiter: "\\t",  // or ";", "|", etc.
-  skip_empty_lines: true,
-  trim: true
-});
-return { output: rows };`,
-    tags: ["csv", "tsv", "parse", "delimiter", "tab", "separated"],
-  },
-
-  // ---------------------------------------------------------------------------
-  // Validation (validator.js)
-  // ---------------------------------------------------------------------------
-  {
-    id: "validate-email",
-    title: "Validate Email",
-    description: "Check if a string is a valid email address",
-    category: "Boolean & Logic",
-    code: `return { output: validator.isEmail(value) };`,
-    tags: ["validate", "email", "check", "validator"],
-  },
-  {
-    id: "validate-url",
-    title: "Validate URL",
-    description: "Check if a string is a valid URL",
-    category: "Boolean & Logic",
-    code: `return { output: validator.isURL(value) };`,
-    tags: ["validate", "url", "check", "validator", "link"],
-  },
-  {
-    id: "validate-ip",
-    title: "Validate IP Address",
-    description: "Check if a string is a valid IPv4 or IPv6 address",
-    category: "Boolean & Logic",
-    code: `return {
-  isIP: validator.isIP(value),
-  isIPv4: validator.isIP(value, 4),
-  isIPv6: validator.isIP(value, 6)
-};`,
-    tags: ["validate", "ip", "address", "ipv4", "ipv6", "network"],
-  },
-  {
-    id: "validate-multiple",
-    title: "Validate String",
-    description: "Common string validations (email, URL, UUID, phone, etc.)",
-    category: "Boolean & Logic",
-    code: `return {
-  isEmail: validator.isEmail(value),
-  isURL: validator.isURL(value),
-  isUUID: validator.isUUID(value),
-  isJSON: validator.isJSON(value),
-  isNumeric: validator.isNumeric(value),
-  isAlpha: validator.isAlpha(value)
-};`,
-    tags: ["validate", "check", "email", "url", "uuid", "json", "number"],
-  },
-  {
-    id: "validate-sanitize",
-    title: "Sanitize Input",
-    description: "Escape and sanitize user input for safety",
-    category: "Text",
-    code: `return {
-  escaped: validator.escape(value),        // HTML entity escape
-  trimmed: validator.trim(value),
-  normalized: validator.normalizeEmail(value) || value
-};`,
-    tags: ["sanitize", "escape", "html", "xss", "clean", "validator"],
-  },
+  // Date & Time, HTML parsing, and validation snippets have been removed —
+  // the corresponding work is done by dedicated nodes (lib.datetime.*,
+  // lib.html.*, lib.validate.*) so the JS sandbox can stay library-free.
 ];

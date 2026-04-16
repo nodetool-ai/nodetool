@@ -21,30 +21,39 @@ import { useTheme } from '../hooks/useTheme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
-export default function ChatScreen({ navigation }: Props) {
-  // Use individual selectors to prevent re-renders when unrelated state changes
+export default function ChatScreen({ navigation, route }: Props) {
   const status = useChatStore(state => state.status);
   const error = useChatStore(state => state.error);
   const statusMessage = useChatStore(state => state.statusMessage);
   const currentThreadId = useChatStore(state => state.currentThreadId);
   const connect = useChatStore(state => state.connect);
   const createNewThread = useChatStore(state => state.createNewThread);
+  const loadThreadFromServer = useChatStore(state => state.loadThreadFromServer);
   const getCurrentMessages = useChatStore(state => state.getCurrentMessages);
   const selectedModel = useChatStore(state => state.selectedModel);
   const sendMessage = useChatStore(state => state.sendMessage);
   const stopGeneration = useChatStore(state => state.stopGeneration);
+  const agentMode = useChatStore(state => state.agentMode);
+  const helpMode = useChatStore(state => state.helpMode);
+  const selectedCollections = useChatStore(state => state.selectedCollections);
+  const setAgentMode = useChatStore(state => state.setAgentMode);
+  const setHelpMode = useChatStore(state => state.setHelpMode);
+  const setSelectedCollections = useChatStore(state => state.setSelectedCollections);
 
   const { colors, mode } = useTheme();
 
   const messages = getCurrentMessages();
+  const requestedThreadId = route.params?.threadId;
 
-  // Connect on mount
   useEffect(() => {
     const initializeChat = async () => {
       try {
         await connect();
-        // Create initial thread if none exists
-        if (!currentThreadId) {
+        if (requestedThreadId) {
+          if (requestedThreadId !== currentThreadId) {
+            await loadThreadFromServer(requestedThreadId);
+          }
+        } else if (!currentThreadId) {
           await createNewThread();
         }
       } catch (err) {
@@ -53,9 +62,8 @@ export default function ChatScreen({ navigation }: Props) {
     };
 
     initializeChat();
-  }, [connect, currentThreadId, createNewThread]);
+  }, [connect, currentThreadId, createNewThread, loadThreadFromServer, requestedThreadId]);
 
-  // Handle new chat
   const handleNewChat = useCallback(async () => {
     try {
       await createNewThread();
@@ -64,32 +72,44 @@ export default function ChatScreen({ navigation }: Props) {
     }
   }, [createNewThread]);
 
-  // Configure header with New Chat button
+  const handleOpenThreads = useCallback(() => {
+    navigation.navigate('Threads');
+  }, [navigation]);
+
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
             onPress={() => navigation.navigate('LanguageModelSelection')}
-            style={[styles.headerButton, { marginRight: 0, flexDirection: 'row', alignItems: 'center' }]}
+            style={[styles.modelButton, { backgroundColor: colors.primaryMuted }]}
             activeOpacity={0.7}
           >
-            <Text style={[styles.headerButtonText, { color: colors.text, marginRight: 2 }]}>
+            <Text style={[styles.modelButtonText, { color: colors.primary }]} numberOfLines={1}>
               {selectedModel ? selectedModel.name : 'Model'}
             </Text>
-            <Ionicons name="chevron-down-outline" size={14} color={colors.text} />
+            <Ionicons name="chevron-down-outline" size={13} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleOpenThreads}
+            style={styles.headerButton}
+            activeOpacity={0.7}
+            accessibilityLabel="View past conversations"
+          >
+            <Ionicons name="time-outline" size={22} color={colors.text} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleNewChat}
             style={styles.headerButton}
             activeOpacity={0.7}
+            accessibilityLabel="Start new conversation"
           >
-            <Ionicons name="add-outline" size={28} color={colors.text} />
+            <Ionicons name="add-circle-outline" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
       ),
     });
-  }, [navigation, handleNewChat, selectedModel, colors.text]);
+  }, [navigation, handleNewChat, handleOpenThreads, selectedModel, colors.text, colors.primary, colors.primaryMuted]);
 
   const handleRefresh = useCallback(async () => {
     try {
@@ -110,6 +130,12 @@ export default function ChatScreen({ navigation }: Props) {
         onRefresh={handleRefresh}
         error={error}
         statusMessage={statusMessage}
+        agentMode={agentMode}
+        helpMode={helpMode}
+        selectedCollections={selectedCollections}
+        onToggleAgentMode={setAgentMode}
+        onToggleHelpMode={setHelpMode}
+        onChangeCollections={setSelectedCollections}
       />
     </SafeAreaView>
   );
@@ -120,11 +146,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  headerButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
+  modelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 4,
+    maxWidth: 160,
+  },
+  modelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 3,
   },
 });

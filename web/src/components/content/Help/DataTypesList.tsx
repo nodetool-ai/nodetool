@@ -2,22 +2,21 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import type { SyntheticEvent } from "react";
 
 import {
-  Typography,
-  Button,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
-} from "@mui/material";
+  CollapsibleSection,
+  FlexColumn,
+  FlexRow,
+  Text
+} from "../../ui_primitives";
 import { DataType, IconForType } from "../../../config/data_types";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 interface DataTypesListProps {
   title: string;
   dataTypes: DataType[];
   expanded: boolean;
-  onChange: (event: React.SyntheticEvent, isExpanded: boolean) => void;
+  onChange: (event: SyntheticEvent, isExpanded: boolean) => void;
 }
 
 const DataTypesList = ({
@@ -35,36 +34,14 @@ const DataTypesList = ({
         padding: "0 .5em 0 0",
         backgroundColor: "transparent"
       },
-      "& .MuiPaper-root": {
-        background: "transparent"
-      },
-      "& .MuiAccordionSummary-root": {
-        backgroundColor: "var(--palette-grey-800)",
-        padding: "0 .5em"
-      },
-      ".help-item": {
-        padding: ".5em 0",
-        borderBottom: "1px solid var(--palette-grey-600)"
-      },
       ".datatype-list": {
         padding: "1em",
         height: "500px",
         overflowY: "auto"
       },
-      ".help-item.datatype": {
-        alignItems: "flex-start"
-      },
-      ".help-item.datatype button": {
-        color: theme.vars.palette.grey[0],
-        borderRadius: "5px",
-        minWidth: "180px",
-        textAlign: "left",
-        border: "0",
-        marginTop: "0",
-        wordBreak: "break-word",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start"
+      ".help-item": {
+        padding: ".5em 0",
+        borderBottom: "1px solid var(--palette-grey-600)"
       },
       h5: {
         color: "var(--palette-grey-200)",
@@ -74,105 +51,78 @@ const DataTypesList = ({
           color: "var(--palette-grey-100)"
         }
       }
-    });
+  });
 
   return (
     <div className="datatypes" css={styles(theme)}>
-      <Accordion
-        expanded={expanded}
-        onChange={onChange}
-        sx={{
-          backgroundColor: "transparent",
-          boxShadow: "none",
-          margin: "0 !important",
-          "&.Mui-expanded": {
-            margin: "0 !important"
-          },
-          "&::before": {
-            display: "none"
-          }
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon sx={{ color: "text.primary" }} />}
-          aria-controls="panel1bh-content"
-          id="panel1bh-header"
-          sx={{
-            minHeight: "unset !important",
-            padding: "0",
-            ".MuiAccordionSummary-content": {
-              margin: "12px 0 !important"
-            }
-          }}
-        >
-          <Typography variant="h5" color="text.secondary">
+      <CollapsibleSection
+        title={
+          <Text size="normal" weight={600} color="secondary">
             {title}
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={{ padding: "0" }}>
-          <div
-            className="datatype-list"
-            style={{ height: "100%", overflowY: "auto" }}
-          >
-            {types.map((type) => (
-              <div
-                key={type.value}
-                className="help-item datatype"
-                style={{
-                  display: "flex",
-                  alignItems: "start"
+          </Text>
+        }
+        open={expanded}
+        onToggle={(nextExpanded) => {
+          onChange({} as SyntheticEvent, nextExpanded);
+        }}
+        compact
+      >
+        <FlexColumn className="datatype-list" sx={{ height: "100%", overflowY: "auto" }}>
+          {types.map((type) => (
+            <FlexRow
+              key={type.value}
+              className="help-item datatype"
+              gap={1}
+              align="flex-start"
+              fullWidth
+              sx={{ padding: ".5em 0", borderBottom: "1px solid var(--palette-grey-600)" }}
+            >
+              <IconForType
+                iconName={type.value}
+                containerStyle={{
+                  fill: type.textColor,
+                  width: "50px",
+                  height: "50px"
+                }}
+                bgStyle={{
+                  backgroundColor: type.color,
+                  width: "50px",
+                  height: "50px",
+                  color: type.textColor,
+                  padding: "8px"
+                }}
+              />
+              <FlexColumn
+                gap={0}
+                sx={{
+                  minWidth: "180px",
+                  wordBreak: "break-word",
+                  color: theme.vars.palette.grey[0]
                 }}
               >
-                <IconForType
-                  iconName={type.value}
-                  containerStyle={{
-                    fill: type.textColor,
-                    width: "50px",
-                    height: "50px"
-                  }}
-                  bgStyle={{
-                    backgroundColor: type.color,
-                    width: "50px",
-                    height: "50px",
-                    color: type.textColor,
-                    padding: "8px"
-                  }}
-                />
-                <Button
-                  disabled={true}
-                  disableRipple={true}
-                  key={`button-${type.value}`}
-                >
-                  {type.namespace && (
-                    <div style={{ fontWeight: "lighter", width: "100%" }}>
-                      {type.namespace}
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      fontWeight: "normal",
-                      width: "100%",
-                      fontSize: "var(--fontSizeBig)"
-                    }}
-                  >
-                    {type.name}
-                  </div>
-                </Button>
-                <Typography
-                  key={`text-${type.value}`}
-                  style={{
-                    borderRight: "0",
-                    color: theme.vars.palette.grey[50],
-                    fontSize: "var(--fontSizeSmall)"
-                  }}
-                >
-                  {type.description}
-                </Typography>
-              </div>
-            ))}
-          </div>
-        </AccordionDetails>
-      </Accordion>
+                {type.namespace && (
+                  <Text size="small" weight={300} sx={{ width: "100%" }}>
+                    {type.namespace}
+                  </Text>
+                )}
+                <Text size="big" weight={400} sx={{ width: "100%" }}>
+                  {type.name}
+                </Text>
+              </FlexColumn>
+              <Text
+                size="small"
+                sx={{
+                  borderRight: "0",
+                  color: theme.vars.palette.grey[50],
+                  flex: 1
+                }}
+              >
+                {type.description}
+              </Text>
+            </FlexRow>
+          ))}
+        </FlexColumn>
+      </CollapsibleSection>
     </div>
   );
 };

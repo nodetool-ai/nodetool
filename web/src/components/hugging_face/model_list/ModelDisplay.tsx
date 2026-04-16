@@ -1,5 +1,6 @@
 import React from "react";
-import { Box, List, Typography } from "@mui/material";
+import { Box, List } from "@mui/material";
+import { Text } from "../../ui_primitives";
 import {
   FixedSizeList as VirtualList,
   ListChildComponentProps
@@ -49,9 +50,9 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
 
   if (models.length === 0) {
     return (
-      <Typography variant="body1" sx={{ mt: 2 }}>
+      <Text sx={{ mt: 2 }}>
         {modelSearchTerm ? `No models found for "${modelSearchTerm}"` : ""}
-      </Typography>
+      </Text>
     );
   }
 

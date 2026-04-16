@@ -19,6 +19,7 @@ import type { NodeMetadata } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
+import { registerKieNodes } from "@nodetool/kie-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { setSecretResolver, PythonStdioBridge } from "@nodetool/runtime";
 import { getSecret, initMasterKey } from "@nodetool/security";
@@ -55,6 +56,7 @@ import {
 } from "@nodetool/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
+import { handleMcpHttpRequest } from "./mcp-server.js";
 
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
@@ -88,6 +90,7 @@ import costsRoutes from "./routes/costs.js";
 import skillsRoutes from "./routes/skills.js";
 import collectionsRoutes from "./routes/collections.js";
 import modelsRoutes from "./routes/models.js";
+import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 
 const log = createLogger("nodetool.websocket.server");
 const startupT0 = performance.now();
@@ -232,6 +235,7 @@ log.info(`Python metadata loaded [${startupMs()}]`);
 registerBaseNodes(registry);
 registerElevenLabsNodes(registry);
 registerFalNodes(registry);
+registerKieNodes(registry);
 registerReplicateNodes(registry);
 log.info(`Node registry ready [${startupMs()}]`);
 
@@ -356,8 +360,9 @@ if (tlsEnabled && tlsCertPath && tlsKeyPath) {
 // ---------------------------------------------------------------------------
 
 const port = Number(process.env["PORT"] ?? 7777);
-// In production (TLS), bind to 0.0.0.0 unless HOST is explicitly set
-const host = process.env["HOST"] ?? (tlsEnabled ? "0.0.0.0" : "127.0.0.1");
+const isProduction = process.env["NODETOOL_ENV"] === "production";
+// In production, bind to all interfaces unless HOST is explicitly set
+const host = process.env["HOST"] ?? (isProduction ? "0.0.0.0" : "127.0.0.1");
 
 // ---------------------------------------------------------------------------
 // Fastify app
@@ -422,6 +427,11 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata"
   ) {
+    return;
+  }
+
+  // Static frontend assets don't require auth (served by fastifyStatic)
+  if (hasStaticApp && req.method === "GET" && !pathname.startsWith("/api") && !pathname.startsWith("/ws") && !pathname.startsWith("/v1")) {
     return;
   }
 
@@ -572,6 +582,53 @@ await app.register(costsRoutes, routeOpts);
 await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
+await app.register(agentSocketRoute);
+
+app.all("/mcp", async (req, reply) => {
+  const protocol = httpsOptions ? "https" : "http";
+  const url = `${protocol}://${req.headers.host ?? `127.0.0.1:${port}`}${req.url}`;
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        headers.append(key, item);
+      }
+    } else if (typeof value === "string") {
+      headers.set(key, value);
+    }
+  }
+
+  const requestBody =
+    req.method === "GET" || req.method === "DELETE"
+      ? undefined
+      : Buffer.isBuffer(req.body)
+        ? req.body
+        : typeof req.body === "string"
+          ? req.body
+          : req.body == null
+            ? Buffer.alloc(0)
+            : JSON.stringify(req.body);
+
+  const request = new Request(url, {
+    method: req.method,
+    headers,
+    body: requestBody,
+    duplex: "half"
+  });
+
+  const response = await handleMcpHttpRequest(request, { metadataRoots });
+  if (!response) {
+    reply.status(404).send({ error: "Not found" });
+    return;
+  }
+
+  reply.status(response.status);
+  response.headers.forEach((value, key) => {
+    reply.header(key, value);
+  });
+  const payload = Buffer.from(await response.arrayBuffer());
+  reply.send(payload);
+});
 
 log.info(`Routes registered [${startupMs()}]`);
 
@@ -655,6 +712,34 @@ app.listen({ port, host }, (err) => {
     `WebSocket endpoint: ${tlsEnabled ? "wss" : "ws"}://${host}:${port}/ws`
   );
 });
+
+// ---------------------------------------------------------------------------
+// Graceful shutdown — ensure child processes (Python worker, etc.) are killed
+// ---------------------------------------------------------------------------
+
+async function shutdown(signal: string): Promise<void> {
+  log.info(`${signal} received — shutting down`);
+  try {
+    getAgentRuntime().closeAllSessions();
+  } catch {
+    // best-effort cleanup
+  }
+  pythonBridge.close();
+  try {
+    await app.close();
+  } catch {
+    // ignore close errors
+  }
+  process.exit(0);
+}
+
+process.on("SIGINT", () => void shutdown("SIGINT"));
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+
+// On Windows, Ctrl+C in some terminals fires SIGBREAK instead of SIGINT
+if (process.platform === "win32") {
+  process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
+}
 
 // Start Python bridge eagerly if Python is installed.
 if (pythonBridge.hasPython()) {

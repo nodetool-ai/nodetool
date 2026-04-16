@@ -1,6 +1,7 @@
 import React from "react";
-import { Alert, AlertTitle, Box, Button, Chip } from "@mui/material";
+import { Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { AlertBanner, Chip, FlexColumn, FlexRow, Text } from "../../ui_primitives";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import {
   useProviderApiKeyValidation,
@@ -54,8 +55,9 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
   }>;
 
   return (
-    <Alert
+    <AlertBanner
       severity="warning"
+      title="API Keys Required"
       sx={{
         mb: 2,
         "& .MuiAlert-message": {
@@ -77,31 +79,19 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
         </Button>
       }
     >
-      <AlertTitle sx={{ fontSize: theme.vars.fontSizeNormal, mb: 1 }}>
-        API Keys Required
-      </AlertTitle>
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        <Box sx={{ fontSize: theme.vars.fontSizeSmaller }}>
+      <FlexColumn gap={1}>
+        <Text sx={{ fontSize: theme.vars.fontSizeSmaller }}>
           The following providers require API keys to use their models:
-        </Box>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 0.75
-          }}
-        >
+        </Text>
+        <FlexColumn gap={0.75}>
           {groups.map((group) => (
-            <Box
+            <FlexRow
               key={group.secretKey}
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 0.5,
-                alignItems: "center"
-              }}
+              wrap
+              gap={0.5}
+              align="center"
             >
-              <Box
+              <Text
                 sx={{
                   fontSize: theme.vars.fontSizeTiny,
                   fontWeight: 500,
@@ -110,7 +100,7 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
                 }}
               >
                 {group.secretDisplayName}:
-              </Box>
+              </Text>
               {group.providers.map((providerName) => (
                 <Chip
                   key={`${group.secretKey}-${providerName}`}
@@ -124,11 +114,11 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
                   }}
                 />
               ))}
-            </Box>
+            </FlexRow>
           ))}
-        </Box>
-      </Box>
-    </Alert>
+        </FlexColumn>
+      </FlexColumn>
+    </AlertBanner>
   );
 };
 

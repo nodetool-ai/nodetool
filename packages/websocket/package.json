@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
     "build:all": "node ../../scripts/build-websocket-workspaces.mjs",
     "build:stale": "node ../../scripts/build-stale-websocket-workspaces.mjs",
     "dev": "node ../../scripts/run-websocket-dev.mjs server",
@@ -19,6 +19,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest",
     "@fastify/cors": "^10.0.2",
     "@fastify/static": "^9.0.0",
     "@fastify/websocket": "^11.0.1",
@@ -30,6 +31,7 @@
     "@nodetool/dsl": "*",
     "@nodetool/elevenlabs-nodes": "*",
     "@nodetool/fal-nodes": "*",
+    "@nodetool/kie-nodes": "*",
     "@nodetool/huggingface": "*",
     "@nodetool/kernel": "*",
     "@nodetool/models": "*",
@@ -39,18 +41,21 @@
     "@nodetool/runtime": "*",
     "@nodetool/security": "*",
     "@nodetool/vectorstore": "*",
+    "@mariozechner/pi-coding-agent": "^0.67.4",
+    "@openai/codex-sdk": "^0.118.0",
+    "@opencode-ai/sdk": "^1.3.15",
     "fastify": "^5.2.0",
     "msgpackr": "^1.11.2",
-    "node-pty": "^1.1.0"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
   "exports": {
     ".": {
-      "development": "./src/index.ts",
+      "nodetool-dev": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"

@@ -6,7 +6,7 @@ import { useTheme } from "@mui/material/styles";
 import { NOTIFICATIONS_LIST_MAX_ITEMS } from "../../config/constants";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 import { CopyButton } from "../ui_primitives";
 
 const styles = (theme: Theme) =>

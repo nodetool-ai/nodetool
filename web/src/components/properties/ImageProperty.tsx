@@ -5,7 +5,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
-import isEqual from "lodash/isEqual";
+import isEqual from "fast-deep-equal";
 
 const ImageProperty = (props: PropertyProps) => {
   const id = `image-${props.property.name}-${props.propertyIndex}`;

@@ -1,34 +1,32 @@
 /** @jsxImportSource @emotion/react */
 // Dialog-based settings menu (replacing MUI Menu)
-import React, { memo } from "react";
-import MenuItem from "@mui/material/MenuItem";
+import React, { memo, useId } from "react";
 import {
-  TextField,
-  Button,
-  Typography,
-  InputLabel,
-  FormControl,
-  Tooltip,
-  Switch,
   Tabs,
   Tab,
   Box
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import Select, { SelectChangeEvent } from "@mui/material/Select";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useAuth from "../../stores/useAuth";
-import { CloseButton } from "../ui_primitives";
+import {
+  CloseButton,
+  SearchInput,
+  TextInput,
+  LabeledSwitch,
+  SelectField,
+  Tooltip,
+  Text,
+  EditorButton
+} from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { client, isLocalhost, isElectron } from "../../stores/ApiClient";
+import { isLocalhost, isElectron } from "../../stores/ApiClient";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
-import { getRemoteSidebarSections as getApiServicesSidebarSections } from "./remoteSidebarUtils";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
-import { getFoldersSidebarSections } from "./foldersSidebarUtils";
 import SecretsMenu from "./SecretsMenu";
 import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
@@ -37,8 +35,6 @@ import DefaultModelsMenu from "./DefaultModelsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
-import { useMutation } from "@tanstack/react-query";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
 import { Dialog } from "../ui_primitives";
@@ -95,12 +91,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     (state) => state.updateAutosaveSettings
   );
   const settings = useSettingsStore((state) => state.settings);
+  const [apiSearchTerm, setApiSearchTerm] = useState("");
+
+  // Generate unique IDs for form controls
+  const baseId = useId();
 
   const [activeSection, setActiveSection] = useState("editor");
-  const [lastExportPath, setLastExportPath] = useState<string | null>(null);
   const [, setSecretsUpdated] = useState({});
   const settingsContentRef = useRef<HTMLDivElement | null>(null);
-  const currentWorkflowId = useWorkflowManager((s) => s.currentWorkflowId);
   const [closeBehavior, setCloseBehavior] = useState<
     "ask" | "quit" | "background"
   >("ask");
@@ -135,6 +133,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const handleTabChange = useCallback(
     (event: React.SyntheticEvent, newValue: number) => {
       setMenuOpen(true, newValue);
+      setApiSearchTerm("");
     },
     [setMenuOpen]
   );
@@ -149,22 +148,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
   // Memoized handlers for settings controls to prevent re-renders
   const handleShowWelcomeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setShowWelcomeOnStartup(e.target.checked);
+    (checked: boolean) => {
+      setShowWelcomeOnStartup(checked);
     },
     [setShowWelcomeOnStartup]
   );
 
   const handleSelectNodesOnDragChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSelectNodesOnDrag(e.target.checked ?? false);
+    (checked: boolean) => {
+      setSelectNodesOnDrag(checked);
     },
     [setSelectNodesOnDrag]
   );
 
   const handleSoundNotificationsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSoundNotifications(e.target.checked ?? true);
+    (checked: boolean) => {
+      setSoundNotifications(checked);
     },
     [setSoundNotifications]
   );
@@ -184,22 +183,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   );
 
   const handlePanControlsChange = useCallback(
-    (e: SelectChangeEvent<string>) => {
-      setPanControls(e.target.value);
+    (value: string) => {
+      setPanControls(value);
     },
     [setPanControls]
   );
 
   const handleSelectionModeChange = useCallback(
-    (e: SelectChangeEvent<string>) => {
-      setSelectionMode(e.target.value);
+    (value: string) => {
+      setSelectionMode(value);
     },
     [setSelectionMode]
   );
 
   const handleTimeFormatChange = useCallback(
-    (e: SelectChangeEvent<string>) => {
-      setTimeFormat(e.target.value === "12h" ? "12h" : "24h");
+    (value: string) => {
+      setTimeFormat(value === "12h" ? "12h" : "24h");
     },
     [setTimeFormat]
   );
@@ -209,8 +208,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   const handleClose = () => {
     setMenuOpen(false);
   };
-
-  const id = isMenuOpen ? "docs" : undefined;
 
   const copyAuthToken = async () => {
     const accessToken = session?.access_token;
@@ -257,7 +254,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
       const containerRect = container.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      const topOffset = settingsTab === 3 ? 96 : 20;
+      const topOffset = 20;
       const top =
         container.scrollTop + targetRect.top - containerRect.top - topOffset;
 
@@ -268,139 +265,64 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     });
   };
 
-  const exportMutation = useMutation({
-    mutationFn: async () => {
-      const payload: {
-        workflow_id?: string;
-        graph?: Record<string, unknown>;
-        errors?: string[];
-        preferred_save?: "desktop" | "downloads";
-      } = {
-        workflow_id: currentWorkflowId || undefined,
-        errors: [],
-        preferred_save: "downloads"
-      };
-
-      // Use Electron's debug API if available (preferred for local debugging)
-      if (isElectron && typeof window.api?.debug?.exportBundle === "function") {
-        return await window.api.debug.exportBundle(payload);
-      }
-
-      // Fallback to Python API (for non-Electron or when Electron API is not available)
-      const { error, data } = await client.POST("/api/debug/export", {
-        body: payload
-      });
-      if (error) {
-        throw new Error(error.detail?.[0]?.msg || "Unknown error");
-      }
-      return data;
-    },
-    onSuccess: (data) => {
-      addNotification({
-        type: "success",
-        content: `Debug bundle saved: ${data.file_path}`,
-        alert: true
-      });
-      setLastExportPath(data.file_path);
-
-      // Show in folder using the new shell API
-      if (typeof window.api?.shell?.showItemInFolder === "function") {
-        window.api.shell.showItemInFolder(data.file_path);
-
-        // Play notification sound if enabled
-        if (
-          settings.soundNotifications &&
-          typeof window.api.shell.beep === "function"
-        ) {
-          window.api.shell.beep();
-        }
-      } else if (typeof window.api?.showItemInFolder === "function") {
-        // Fallback to legacy API
-        window.api.showItemInFolder(data.file_path);
-      } else {
-        addNotification({
-          type: "info",
-          content:
-            "Electron not available to open folder. Please open it manually.",
-          dismissable: true
-        });
-      }
-    },
-    onError: (err: unknown) => {
-      addNotification({
-        type: "error",
-        content: `Export failed: ${err instanceof Error ? err.message : "Unknown error"}`,
-        dismissable: true
-      });
-    }
-  });
-
-  const handleExport = useCallback(() => {
-    if (exportMutation.isPending) {
-      return;
-    }
-    exportMutation.mutate();
-  }, [exportMutation]);
-
-  const handleOpenExportFolder = useCallback(() => {
-    if (!lastExportPath) {
-      return;
-    }
-    const api = window.api;
-    if (api?.shell?.showItemInFolder) {
-      api.shell.showItemInFolder(lastExportPath);
-    } else if (api?.showItemInFolder) {
-      api.showItemInFolder(lastExportPath);
-    }
-  }, [lastExportPath]);
-
+  // Tab 0: General sidebar folders
   const generalSidebarSections = [
     {
-      category: "General",
+      category: "Workspace",
       items: [
         { id: "editor", label: "Editor" },
-        { id: "autosave", label: "Autosave" },
-        { id: "navigation", label: "Navigation" },
-        { id: "grid", label: "Grid & Connections" },
         { id: "appearance", label: "Appearance" }
       ]
+    },
+    {
+      category: "Canvas",
+      items: [{ id: "canvas-navigation", label: "Canvas & Navigation" }]
+    },
+    {
+      category: "AI",
+      items: [{ id: "default-models", label: "Default Models" }]
+    },
+    {
+      category: "History",
+      items: [{ id: "autosave", label: "Autosave" }]
     }
   ];
 
-  if (session?.access_token) {
-    generalSidebarSections.push({
-      category: "API",
-      items: [{ id: "api", label: "Nodetool API" }]
-    });
-  }
+  // Tab 1: API & Keys sidebar folders
+  const apiKeysSidebarSections = [
+    {
+      category: "Credentials",
+      items: [
+        { id: "api-keys", label: "API Keys" },
+        ...(session?.access_token && !isLocalhost
+          ? [{ id: "nodetool-api-token", label: "Nodetool API Token" }]
+          : [])
+      ]
+    },
+    {
+      category: "Configuration",
+      items: [{ id: "api-settings", label: "API Settings" }]
+    },
+    {
+      category: "Storage",
+      items: [{ id: "folders", label: "Folders" }]
+    }
+  ];
 
   // Subscribe to store data for sidebar sections to enable memoization
   const remoteSettings = useRemoteSettingsStore((state) => state.settings);
   const secrets = useSecretsStore((state) => state.secrets);
 
-  // Memoize expensive sidebar computations
-  // These functions perform filter/reduce/map operations on store data
-  const apiServicesSidebarSections = React.useMemo(
-    () => getApiServicesSidebarSections(remoteSettings),
-    [remoteSettings]
-  );
-
-  const foldersSidebarSections = React.useMemo(
-    () => getFoldersSidebarSections(remoteSettings),
-    [remoteSettings]
-  );
-
-  const secretsSidebarSections = React.useMemo(
-    () => getSecretsSidebarSections(secrets),
-    [secrets]
-  );
+  // Keep secrets sidebar sections for potential future use
+  void remoteSettings;
+  void secrets;
 
   const theme = useTheme();
 
   return (
     <div className="settings">
-      <Tooltip title="Settings" enterDelay={TOOLTIP_ENTER_DELAY}>
-        <Button
+      <Tooltip title="Settings" delay={TOOLTIP_ENTER_DELAY}>
+        <EditorButton
           tabIndex={-1}
           className="settings-button command-icon"
           aria-controls={isMenuOpen ? "basic-menu" : undefined}
@@ -410,7 +332,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         >
           <SettingsIcon />
           {buttonText}
-        </Button>
+        </EditorButton>
       </Tooltip>
       <Dialog
         open={isMenuOpen}
@@ -434,7 +356,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       >
         <div css={settingsStyles(theme)}>
           <div className="top">
-            <Typography variant="h2">Settings</Typography>
+            <Text size="bigger">Settings</Text>
             <CloseButton onClick={handleClose} />
           </div>
 
@@ -447,11 +369,8 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                 aria-label="settings tabs"
               >
                 <Tab label="General" id="settings-tab-0" />
-                <Tab label="API Settings" id="settings-tab-1" />
-                <Tab label="Folders" id="settings-tab-2" />
-                <Tab label="API Secrets" id="settings-tab-3" />
-                <Tab label="About" id="settings-tab-4" />
-                <Tab label="Default Models" id="settings-tab-5" />
+                <Tab label="API & Keys" id="settings-tab-1" />
+                <Tab label="About" id="settings-tab-2" />
               </Tabs>
             </div>
 
@@ -463,236 +382,74 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                   settingsTab === 0
                     ? generalSidebarSections
                     : settingsTab === 1
-                      ? apiServicesSidebarSections
+                      ? apiKeysSidebarSections
                       : settingsTab === 2
-                        ? foldersSidebarSections
-                        : settingsTab === 3
-                          ? secretsSidebarSections
-                          : settingsTab === 4
-                            ? getAboutSidebarSections()
-                            : settingsTab === 5
-                              ? [
-                                  {
-                                    category: "Default Models",
-                                    items: [
-                                      {
-                                        id: "default-model-language_model",
-                                        label: "Language Model"
-                                      },
-                                      {
-                                        id: "default-model-image_model",
-                                        label: "Image Model"
-                                      },
-                                      {
-                                        id: "default-model-embedding_model",
-                                        label: "Embedding Model"
-                                      },
-                                      {
-                                        id: "default-model-tts_model",
-                                        label: "Text-to-Speech"
-                                      },
-                                      {
-                                        id: "default-model-asr_model",
-                                        label: "Speech Recognition"
-                                      },
-                                      {
-                                        id: "default-model-video_model",
-                                        label: "Video"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              : []
+                        ? getAboutSidebarSections()
+                        : []
                 }
                 onSectionClick={scrollToSection}
               />
 
               <div className="settings-content" ref={settingsContentRef}>
+                {/* Tab 0: General */}
                 <TabPanel value={settingsTab} index={0}>
                   <div id="editor" className="settings-section">
-                    <Typography
-                      variant="h3"
-                      id="debug-tools"
-                      style={{ margin: 0, borderBottom: "none" }}
-                    >
-                      Debug Tools
-                    </Typography>
                     <div className="settings-item">
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "0.75em"
-                        }}
-                      >
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={() => {
-                            setMenuOpen(false);
-                            window.location.href = "/node-test";
-                          }}
-                        >
-                          Node Integration Tests
-                        </Button>
-                        <Typography className="description">
-                          Run all registered nodes as single-node workflows with
-                          concurrent execution and output preview.
-                        </Typography>
-                        {isLocalhost && (
-                          <>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              onClick={handleExport}
-                              disabled={exportMutation.isPending}
-                            >
-                              Export Debug Bundle
-                            </Button>
-                            <Typography className="description">
-                              Collect logs, environment info, and the last
-                              workflow context into a ZIP in your Downloads
-                              folder.
-                            </Typography>
-                          </>
-                        )}
-                        {lastExportPath && (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "0.5em",
-                              padding: "0.5em",
-                              backgroundColor:
-                                "var(--palette-background-paper)",
-                              borderRadius: "4px",
-                              border: "1px solid var(--palette-divider)"
-                            }}
-                          >
-                            <Typography
-                              variant="caption"
-                              style={{
-                                color: "var(--palette-text-secondary)"
-                              }}
-                            >
-                              Last exported to:
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              style={{
-                                wordBreak: "break-all",
-                                fontSize: "0.8em"
-                              }}
-                            >
-                              {lastExportPath}
-                            </Typography>
-                            {/* Only show Open Folder button in Electron */}
-                            {isElectron && (
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={handleOpenExportFolder}
-                                style={{ alignSelf: "flex-start" }}
-                              >
-                                Open Folder
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="settings-section">
-                    <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={id}>
-                          Show Welcome Screen
-                        </InputLabel>
-                        <Switch
-                          checked={!!settings.showWelcomeOnStartup}
-                          onChange={handleShowWelcomeChange}
-                          inputProps={{ "aria-label": id }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
-                        Show the welcome screen when starting the application.
-                      </Typography>
+                      <LabeledSwitch
+                        label="Show Welcome Screen"
+                        checked={!!settings.showWelcomeOnStartup}
+                        onChange={handleShowWelcomeChange}
+                        description="Show the welcome screen when starting the application."
+                      />
                     </div>
 
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={id}>
-                          Select Nodes On Drag
-                        </InputLabel>
-                        <Switch
-                          sx={{
-                            "&.MuiSwitch-root": {
-                              margin: "16px 0 0"
-                            }
-                          }}
-                          checked={!!settings.selectNodesOnDrag}
-                          onChange={handleSelectNodesOnDragChange}
-                          inputProps={{ "aria-label": id }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
+                      <LabeledSwitch
+                        label="Select Nodes On Drag"
+                        checked={!!settings.selectNodesOnDrag}
+                        onChange={handleSelectNodesOnDragChange}
+                      />
+                      <Text className="description">
                         Mark nodes as selected after changing a node&apos;s
                         position.
                         <br />
                         If disabled, nodes can still be selected by clicking on
                         them.
-                      </Typography>
+                      </Text>
                     </div>
 
                     {isElectron && (
                       <div className="settings-item">
-                        <FormControl>
-                          <InputLabel htmlFor={id}>
-                            Sound Notifications
-                          </InputLabel>
-                          <Switch
-                            sx={{
-                              "&.MuiSwitch-root": {
-                                margin: "16px 0 0"
-                              }
-                            }}
-                            checked={!!settings.soundNotifications}
-                            onChange={handleSoundNotificationsChange}
-                            inputProps={{ "aria-label": id }}
-                          />
-                        </FormControl>
-                        <Typography className="description">
-                          Play a system beep sound when workflows complete,
-                          exports finish, or other important events occur.
-                        </Typography>
+                        <LabeledSwitch
+                          label="Sound Notifications"
+                          checked={!!settings.soundNotifications}
+                          onChange={handleSoundNotificationsChange}
+                          description="Play a system beep sound when workflows complete, exports finish, or other important events occur."
+                        />
                       </div>
                     )}
 
                     {isElectron && (
                       <div className="settings-item">
-                        <FormControl>
-                          <InputLabel htmlFor="close-behavior-select">
-                            On Close Behavior
-                          </InputLabel>
-                          <Select
-                            id="close-behavior-select"
-                            value={closeBehavior}
-                            variant="standard"
-                            onChange={(e) =>
-                              handleCloseBehaviorChange(
-                                e.target.value as "ask" | "quit" | "background"
-                              )
+                        <SelectField
+                          label="On Close Behavior"
+                          value={closeBehavior}
+                          variant="standard"
+                          onChange={(v) =>
+                            handleCloseBehaviorChange(
+                              v as "ask" | "quit" | "background"
+                            )
+                          }
+                          options={[
+                            { value: "ask", label: "Ask Every Time" },
+                            { value: "quit", label: "Quit Application" },
+                            {
+                              value: "background",
+                              label: "Keep Running in Background"
                             }
-                          >
-                            <MenuItem value="ask">Ask Every Time</MenuItem>
-                            <MenuItem value="quit">Quit Application</MenuItem>
-                            <MenuItem value="background">
-                              Keep Running in Background
-                            </MenuItem>
-                          </Select>
-                        </FormControl>
-                        <Typography className="description">
+                          ]}
+                        />
+                        <Text className="description">
                           Choose what happens when you close the main window.
                           <br />
                           <b>Ask Every Time:</b> Shows a dialog with options.
@@ -701,269 +458,225 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                           <br />
                           <b>Background:</b> Keeps the app running in the system
                           tray.
-                        </Typography>
+                        </Text>
                       </div>
                     )}
                   </div>
 
-                  <Typography variant="h3" id="autosave">
-                    Autosave & Version History
-                  </Typography>
+                  <Text size="big" id="canvas-navigation">
+                    Canvas & Navigation
+                  </Text>
                   <div className="settings-section">
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="autosave-enabled">
-                          Enable Autosave
-                        </InputLabel>
-                        <Switch
-                          checked={settings.autosave?.enabled ?? true}
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              enabled: e.target.checked
-                            })
-                          }
-                          inputProps={{ "aria-label": "autosave-enabled" }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
-                        Automatically save your workflow at regular intervals.
-                      </Typography>
-                    </div>
-
-                    <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="autosave-interval">
-                          Autosave Interval (minutes)
-                        </InputLabel>
-                        <Select
-                          id="autosave-interval"
-                          value={settings.autosave?.intervalMinutes ?? 10}
-                          variant="standard"
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              intervalMinutes: Number(e.target.value)
-                            })
-                          }
-                          disabled={!settings.autosave?.enabled}
-                        >
-                          <MenuItem value={1}>1 minute</MenuItem>
-                          <MenuItem value={5}>5 minutes</MenuItem>
-                          <MenuItem value={10}>10 minutes</MenuItem>
-                          <MenuItem value={15}>15 minutes</MenuItem>
-                          <MenuItem value={30}>30 minutes</MenuItem>
-                          <MenuItem value={60}>60 minutes</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Typography className="description">
-                        How often to automatically save your workflow.
-                      </Typography>
-                    </div>
-
-                    <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="save-before-run">
-                          Save Before Running
-                        </InputLabel>
-                        <Switch
-                          checked={settings.autosave?.saveBeforeRun ?? true}
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              saveBeforeRun: e.target.checked
-                            })
-                          }
-                          inputProps={{ "aria-label": "save-before-run" }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
-                        Create a checkpoint version before executing workflow.
-                      </Typography>
-                    </div>
-
-                    <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="save-on-close">
-                          Save on Window Close
-                        </InputLabel>
-                        <Switch
-                          checked={settings.autosave?.saveOnClose ?? true}
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              saveOnClose: e.target.checked
-                            })
-                          }
-                          inputProps={{ "aria-label": "save-on-close" }}
-                        />
-                      </FormControl>
-                      <Typography className="description">
-                        Automatically save when closing the tab or window.
-                      </Typography>
-                    </div>
-
-                    <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor="max-versions">
-                          Max Versions per Workflow
-                        </InputLabel>
-                        <Select
-                          id="max-versions"
-                          value={
-                            settings.autosave?.maxVersionsPerWorkflow ?? 50
-                          }
-                          variant="standard"
-                          onChange={(e) =>
-                            updateAutosaveSettings({
-                              maxVersionsPerWorkflow: Number(e.target.value)
-                            })
-                          }
-                        >
-                          <MenuItem value={10}>10 versions</MenuItem>
-                          <MenuItem value={25}>25 versions</MenuItem>
-                          <MenuItem value={50}>50 versions</MenuItem>
-                          <MenuItem value={100}>100 versions</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Typography className="description">
-                        Maximum number of versions to keep per workflow.
-                      </Typography>
-                    </div>
-                  </div>
-
-                  <Typography variant="h3" id="navigation">
-                    Navigation
-                  </Typography>
-                  <div className="settings-section">
-                    <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={id}>Pan Controls</InputLabel>
-                        <Select
-                          id={id}
-                          labelId={id}
-                          value={settings.panControls}
-                          variant="standard"
-                          onChange={handlePanControlsChange}
-                        >
-                          <MenuItem value={"LMB"}>Pan with LMB</MenuItem>
-                          <MenuItem value={"RMB"}>Pan with RMB</MenuItem>
-                        </Select>
-                      </FormControl>
-
+                      <SelectField
+                        label="Pan Controls"
+                        value={settings.panControls}
+                        variant="standard"
+                        onChange={handlePanControlsChange}
+                        options={[
+                          { value: "LMB", label: "Pan with LMB" },
+                          { value: "RMB", label: "Pan with RMB" }
+                        ]}
+                      />
                       <div className="description">
-                        <Typography>
+                        <Text>
                           Move the canvas by dragging with the left or right
                           mouse button.
-                        </Typography>
-                        <Typography>
+                        </Text>
+                        <Text>
                           With RMB selected, you can also pan with the Middle
                           Mouse Button.
-                        </Typography>
+                        </Text>
                       </div>
                     </div>
 
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={id}>
-                          Node Selection Mode
-                        </InputLabel>
-                        <Select
-                          id={id}
-                          labelId={id}
-                          value={settings.selectionMode}
-                          variant="standard"
-                          onChange={handleSelectionModeChange}
-                        >
-                          <MenuItem value={"full"}>Full</MenuItem>
-                          <MenuItem value={"partial"}>Partial</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Typography className="description">
+                      <SelectField
+                        label="Node Selection Mode"
+                        value={settings.selectionMode}
+                        variant="standard"
+                        onChange={handleSelectionModeChange}
+                        options={[
+                          { value: "full", label: "Full" },
+                          { value: "partial", label: "Partial" }
+                        ]}
+                      />
+                      <Text className="description">
                         When drawing a selection box for node selections:
                         <br />
                         <b>Full:</b> nodes have to be fully enclosed.
                         <br />
                         <b>Partial:</b> intersecting nodes will be selected.
-                      </Typography>
+                      </Text>
                     </div>
-                  </div>
 
-                  <Typography variant="h3" id="grid">
-                    Grid & Connections
-                  </Typography>
-                  <div className="settings-section">
                     <div className="settings-item">
-                      <TextField
+                      <TextInput
                         type="number"
                         autoComplete="off"
-                        inputProps={{
-                          min: 1,
-                          max: 100,
-                          onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                            e.currentTarget.select();
-                          }
-                        }}
+                        slotProps={{ htmlInput: { min: 1, max: 100 } }}
                         id="grid-snap-input"
                         label="Grid Snap Precision"
                         value={settings.gridSnap}
                         onChange={handleGridSnapChange}
                         variant="standard"
+                        size="small"
                       />
-                      <Typography className="description">
+                      <Text className="description">
                         Snap precision for moving nodes on the canvas.
-                      </Typography>
+                      </Text>
                     </div>
 
                     <div className="settings-item">
-                      <TextField
+                      <TextInput
                         type="number"
                         autoComplete="off"
-                        inputProps={{
-                          min: 5,
-                          max: 30,
-                          onClick: (e: React.MouseEvent<HTMLInputElement>) => {
-                            e.currentTarget.select();
-                          }
-                        }}
+                        slotProps={{ htmlInput: { min: 5, max: 30 } }}
                         id="connection-snap-input"
                         label="Connection Snap Range"
                         value={settings.connectionSnap}
                         onChange={handleConnectionSnapChange}
                         variant="standard"
+                        size="small"
                       />
-                      <Typography className="description">
+                      <Text className="description">
                         Snap distance for connecting nodes.
-                      </Typography>
+                      </Text>
                     </div>
                   </div>
 
-                  <Typography variant="h3" id="appearance">
-                    Appearance
-                  </Typography>
+                  <DefaultModelsMenu />
+
+                  <Text size="big" id="autosave">
+                    Autosave & Version History
+                  </Text>
                   <div className="settings-section">
                     <div className="settings-item">
-                      <FormControl>
-                        <InputLabel htmlFor={id}>Time Format</InputLabel>
-                        <Select
-                          id={id}
-                          labelId={id}
-                          value={settings.timeFormat}
-                          variant="standard"
-                          onChange={handleTimeFormatChange}
-                        >
-                          <MenuItem value={"12h"}>12h</MenuItem>
-                          <MenuItem value={"24h"}>24h</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <Typography className="description">
-                        Display time in 12h or 24h format.
-                      </Typography>
+                      <LabeledSwitch
+                        label="Enable Autosave"
+                        checked={settings.autosave?.enabled ?? true}
+                        onChange={(checked) =>
+                          updateAutosaveSettings({ enabled: checked })
+                        }
+                        description="Automatically save your workflow at regular intervals."
+                      />
+                    </div>
+
+                    <div className="settings-item">
+                      <SelectField
+                        label="Autosave Interval (minutes)"
+                        value={settings.autosave?.intervalMinutes ?? 10}
+                        variant="standard"
+                        onChange={(v) =>
+                          updateAutosaveSettings({
+                            intervalMinutes: Number(v)
+                          })
+                        }
+                        options={[
+                          { value: 1, label: "1 minute" },
+                          { value: 5, label: "5 minutes" },
+                          { value: 10, label: "10 minutes" },
+                          { value: 15, label: "15 minutes" },
+                          { value: 30, label: "30 minutes" },
+                          { value: 60, label: "60 minutes" }
+                        ]}
+                        disabled={!settings.autosave?.enabled}
+                        description="How often to automatically save your workflow."
+                      />
+                    </div>
+
+                    <div className="settings-item">
+                      <LabeledSwitch
+                        label="Save Before Running"
+                        checked={settings.autosave?.saveBeforeRun ?? true}
+                        onChange={(checked) =>
+                          updateAutosaveSettings({
+                            saveBeforeRun: checked
+                          })
+                        }
+                        description="Create a checkpoint version before executing workflow."
+                      />
+                    </div>
+
+                    <div className="settings-item">
+                      <LabeledSwitch
+                        label="Save on Window Close"
+                        checked={settings.autosave?.saveOnClose ?? true}
+                        onChange={(checked) =>
+                          updateAutosaveSettings({
+                            saveOnClose: checked
+                          })
+                        }
+                        description="Automatically save when closing the tab or window."
+                      />
+                    </div>
+
+                    <div className="settings-item">
+                      <SelectField
+                        label="Max Versions per Workflow"
+                        value={
+                          settings.autosave?.maxVersionsPerWorkflow ?? 50
+                        }
+                        variant="standard"
+                        onChange={(v) =>
+                          updateAutosaveSettings({
+                            maxVersionsPerWorkflow: Number(v)
+                          })
+                        }
+                        options={[
+                          { value: 10, label: "10 versions" },
+                          { value: 25, label: "25 versions" },
+                          { value: 50, label: "50 versions" },
+                          { value: 100, label: "100 versions" }
+                        ]}
+                        description="Maximum number of versions to keep per workflow."
+                      />
                     </div>
                   </div>
 
-                  {session?.access_token && (
+                  <Text size="big" id="appearance">
+                    Appearance
+                  </Text>
+                  <div className="settings-section">
+                    <div className="settings-item">
+                      <SelectField
+                        label="Time Format"
+                        value={settings.timeFormat}
+                        variant="standard"
+                        onChange={handleTimeFormatChange}
+                        options={[
+                          { value: "12h", label: "12h" },
+                          { value: "24h", label: "24h" }
+                        ]}
+                        description="Display time in 12h or 24h format."
+                      />
+                    </div>
+                  </div>
+                </TabPanel>
+
+                {/* Tab 1: API & Keys */}
+                <TabPanel value={settingsTab} index={1}>
+                  <div style={{ marginBottom: "1.5em" }}>
+                    <SearchInput
+                      placeholder="Search API keys, settings, and folders..."
+                      value={apiSearchTerm}
+                      onChange={setApiSearchTerm}
+                      size="small"
+                      showClear
+                    />
+                  </div>
+
+                  <Text size="big" id="api-keys" sx={{ marginBottom: "0.25em" }}>
+                    API Keys
+                  </Text>
+                  <SecretsMenu searchTerm={apiSearchTerm} />
+
+                  {session?.access_token && !isLocalhost && (
                     <>
-                      <Typography variant="h3" id="api">
+                      <Text size="big" id="nodetool-api-token">
                         Nodetool API
-                      </Typography>
-                      <Typography
+                      </Text>
+                      <Text
                         className="explanation"
                         sx={{ margin: "0 0 1em 0" }}
                       >
@@ -978,69 +691,71 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                         >
                           API documentation on GitHub <br />
                         </a>
-                      </Typography>
-                      {!isLocalhost && (
-                        <div
-                          className="settings-section"
-                          style={{
-                            border:
-                              "1px solid" + theme.vars.palette.warning.main,
-                            borderRight:
-                              "1px solid" + theme.vars.palette.warning.main
+                      </Text>
+                      <div
+                        className="settings-section"
+                        style={{
+                          border:
+                            "1px solid" + theme.vars.palette.warning.main,
+                          borderRight:
+                            "1px solid" + theme.vars.palette.warning.main
+                        }}
+                      >
+                        <Text
+                          sx={{
+                            fontSize: "1rem",
+                            color: theme.palette.text.primary
                           }}
                         >
-                          <FormControl>
-                            <InputLabel>Nodetool API Token</InputLabel>
-                          </FormControl>
-                          <div className="description">
-                            <Typography>
-                              This token is used to authenticate your account
-                              with the Nodetool API.
-                            </Typography>
-                            <div className="secrets">
-                              <WarningIcon
-                                sx={{
-                                  color: (theme) =>
-                                    theme.vars.palette.warning.main
-                                }}
-                              />
-                              <Typography component="span">
-                                Keep this token secure and do not share it
-                                publicly
-                              </Typography>
-                            </div>
+                          Nodetool API Token
+                        </Text>
+                        <div className="description">
+                          <Text>
+                            This token is used to authenticate your account
+                            with the Nodetool API.
+                          </Text>
+                          <div className="secrets">
+                            <WarningIcon
+                              sx={{
+                                color: (theme) =>
+                                  theme.vars.palette.warning.main
+                              }}
+                            />
+                            <Text component="span">
+                              Keep this token secure and do not share it
+                              publicly
+                            </Text>
                           </div>
-                          <Tooltip title="Copy to clipboard">
-                            <Button
-                              style={{ margin: ".5em 0" }}
-                              size="small"
-                              variant="outlined"
-                              startIcon={<ContentCopyIcon />}
-                              onClick={copyAuthToken}
-                            >
-                              Copy Token
-                            </Button>
-                          </Tooltip>
                         </div>
-                      )}
+                        <Tooltip title="Copy to clipboard">
+                          <EditorButton
+                            style={{ margin: ".5em 0" }}
+                            size="small"
+                            variant="outlined"
+                            startIcon={<ContentCopyIcon />}
+                            onClick={copyAuthToken}
+                          >
+                            Copy Token
+                          </EditorButton>
+                        </Tooltip>
+                      </div>
                     </>
                   )}
-                </TabPanel>
 
-                <TabPanel value={settingsTab} index={1}>
+                  <Text size="big" id="api-settings">
+                    API Settings
+                  </Text>
                   <RemoteSettingsMenuComponent />
-                </TabPanel>
-                <TabPanel value={settingsTab} index={2}>
+
+                  <Text size="big" id="folders">
+                    Folders
+                  </Text>
                   <FoldersSettings />
                 </TabPanel>
-                <TabPanel value={settingsTab} index={3}>
-                  <SecretsMenu />
-                </TabPanel>
-                <TabPanel value={settingsTab} index={4}>
+
+                {/* Tab 2: About */}
+                <TabPanel value={settingsTab} index={2}>
                   <AboutMenu />
-                </TabPanel>
-                <TabPanel value={settingsTab} index={5}>
-                  <DefaultModelsMenu />
                 </TabPanel>
               </div>
             </div>

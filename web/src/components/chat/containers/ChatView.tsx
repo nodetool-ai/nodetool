@@ -15,6 +15,10 @@ import {
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
 import ChatInputSection from "./ChatInputSection";
+import type {
+  ChatOutgoingMessage,
+  MediaGenerationRequest
+} from "../types/media.types";
 import log from "loglevel";
 
 const styles = (_theme: Theme) =>
@@ -50,7 +54,7 @@ const styles = (_theme: Theme) =>
     ".chat-composer-wrapper": {
       flex: 1,
       minWidth: 0
-    }
+    },
   });
 
 type ChatViewProps = {
@@ -146,15 +150,23 @@ const ChatView = ({
     async (
       content: MessageContent[],
       prompt: string,
-      messageAgentMode: boolean
+      messageAgentMode: boolean,
+      mediaGeneration?: MediaGenerationRequest
     ) => {
       try {
-        await sendMessage({
+        const outgoing: ChatOutgoingMessage = {
           type: "message",
           name: "",
           role: "user",
-          provider: model?.provider,
-          model: model?.id,
+          provider:
+            mediaGeneration && mediaGeneration.mode !== "chat"
+              ? ((mediaGeneration.provider ??
+                  model?.provider) as ChatOutgoingMessage["provider"])
+              : model?.provider,
+          model:
+            mediaGeneration && mediaGeneration.mode !== "chat"
+              ? mediaGeneration.model ?? model?.id
+              : model?.id,
           content: content,
           tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:
@@ -163,8 +175,13 @@ const ChatView = ({
           help_mode: helpMode,
           graph: graph,
           workflow_id: workflowId ?? undefined,
-          workflow_target: graph ? "workflow" : undefined
-        });
+          workflow_target: graph ? "workflow" : undefined,
+          media_generation:
+            mediaGeneration && mediaGeneration.mode !== "chat"
+              ? mediaGeneration
+              : null
+        };
+        await sendMessage(outgoing);
       } catch (error) {
         log.error("Error sending message:", error);
       }

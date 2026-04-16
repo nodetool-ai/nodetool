@@ -14,6 +14,7 @@ import {
 import { Video, ResizeMode } from 'expo-av';
 import { MessageContent } from '../../types/ApiTypes';
 import { useTheme } from '../../hooks/useTheme';
+import { apiService } from '../../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_MEDIA_WIDTH = SCREEN_WIDTH * 0.7;
@@ -211,9 +212,9 @@ function getMediaUri(
 ): string | undefined {
   if (!media) {return undefined;}
   
-  // If URI exists and is not empty, use it
+  // If URI exists and is not empty, resolve it against the API host
   if (media.uri && media.uri !== '') {
-    return media.uri;
+    return apiService.resolveUrl(media.uri) ?? undefined;
   }
   
   // For binary data, we would need to convert to base64

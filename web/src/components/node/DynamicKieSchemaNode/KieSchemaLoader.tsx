@@ -1,10 +1,13 @@
 import React, { useCallback, useState, memo } from "react";
-import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, IconButton } from "@mui/material";
+import { Tooltip, Caption } from "../../ui_primitives";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { TypeMetadata } from "../../../stores/ApiTypes";
 import { resolveKieSchemaClient } from "../../../utils/kieDynamicSchema";
 import { NodeData } from "../../../stores/NodeData";
+import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
 export const DYNAMIC_KIE_NODE_TYPE = "kie.dynamic_schema.KieAI";
 
@@ -14,7 +17,7 @@ interface KieSchemaLoaderProps {
 }
 
 /**
- * Kie.ai-specific control: "Load schema" button for KieAI dynamic nodes.
+ * Kie.ai-specific control: small icon button to (re)load schema for KieAI dynamic nodes.
  * Parses pasted API docs via backend and updates node dynamic_properties / dynamic_outputs.
  */
 export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
@@ -25,17 +28,26 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
 
     const modelInfo = (
       (data.properties?.model_info as string) ??
+      (data.dynamic_properties?.model_info as string) ??
       (data as NodeData & { model_info?: string }).model_info ??
       ""
     ).trim();
 
     const [autoLoadAttempted, setAutoLoadAttempted] = useState(false);
+    const previousModelInfoRef = React.useRef(modelInfo);
+    const lastAutoLoadedModelInfoRef = React.useRef<string | null>(null);
+    const hasResolvedSchema =
+      !!data.model_id && Object.keys(data.dynamic_inputs ?? {}).length > 0;
 
-    const handleLoad = useCallback(async () => {
+    const handleLoad = useCallback(async (force = false) => {
       if (!modelInfo) {
         setError("Paste kie.ai API documentation first.");
         return;
       }
+      if (!force && lastAutoLoadedModelInfoRef.current === modelInfo) {
+        return;
+      }
+      lastAutoLoadedModelInfoRef.current = modelInfo;
       setError(null);
       setLoading(true);
       try {
@@ -107,53 +119,79 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
     }, [nodeId, modelInfo, updateNodeData]);
 
     React.useEffect(() => {
-      const isResolved = !!data.model_id;
-      if (
-        modelInfo &&
-        !isResolved &&
-        !loading &&
-        !error &&
-        !autoLoadAttempted
-      ) {
+      if (!modelInfo) {
+        previousModelInfoRef.current = modelInfo;
+        lastAutoLoadedModelInfoRef.current = null;
+        setAutoLoadAttempted(false);
+        setError(null);
+        return;
+      }
+
+      if (loading) {
+        return;
+      }
+
+      const modelInfoChanged = previousModelInfoRef.current !== modelInfo;
+      previousModelInfoRef.current = modelInfo;
+
+      if (modelInfoChanged) {
+        lastAutoLoadedModelInfoRef.current = null;
+        setError(null);
         setAutoLoadAttempted(true);
-        handleLoad();
+        void handleLoad();
+        return;
+      }
+
+      if (!hasResolvedSchema && !error && !autoLoadAttempted) {
+        setAutoLoadAttempted(true);
+        void handleLoad();
       }
     }, [
       modelInfo,
-      data.model_id,
+      hasResolvedSchema,
       loading,
       error,
       autoLoadAttempted,
       handleLoad
     ]);
 
-    React.useEffect(() => {
-      setAutoLoadAttempted(false);
-    }, [modelInfo]);
-
     return (
-      <Box sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={loading}
-          onClick={handleLoad}
-          fullWidth
-        >
-          {loading ? (
-            <CircularProgress size={16} color="inherit" />
-          ) : (
-            "Load schema"
-          )}
-        </Button>
+      <Box sx={{ display: "inline-flex", alignItems: "center" }}>
+        <Tooltip title="Reload Schema" arrow delay={TOOLTIP_ENTER_DELAY}>
+          <IconButton
+            size="small"
+            disabled={loading}
+            onClick={() => void handleLoad(true)}
+            sx={{
+              padding: "4px",
+              color: "rgba(255, 255, 255, 0.5)",
+              "&:hover": {
+                color: "rgba(255, 255, 255, 0.9)",
+                backgroundColor: "rgba(255, 255, 255, 0.08)"
+              }
+            }}
+          >
+            {loading ? (
+              <CircularProgress size={14} color="inherit" />
+            ) : (
+              <RefreshIcon sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        </Tooltip>
         {error && (
-          <Typography
-            variant="caption"
+          <Caption
             color="error"
-            sx={{ display: "block", mt: 0.5 }}
+            sx={{
+              position: "absolute",
+              right: 0,
+              top: 0,
+              textAlign: "right",
+              transform: "translateX(120%)",
+              whiteSpace: "nowrap"
+            }}
           >
             {error}
-          </Typography>
+          </Caption>
         )}
       </Box>
     );

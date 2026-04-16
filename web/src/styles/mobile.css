@@ -162,31 +162,13 @@
     display: none !important;
   }
 
-  /* Chat Composer Mobile Styles */
+  /* Chat Composer Mobile Styles
+     Keep compose-message in its default column layout on mobile so the
+     embedded toolbar (model select + agent mode) renders in the footer
+     below the textarea. */
   .mobile .compose-message {
-    display: flex !important;
-    flex-direction: row !important;
-    height: 40px !important;
     gap: 4px !important;
-    padding: 0 !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    overflow: hidden !important;
     contain: layout style !important;
-  }
-
-  .mobile .compose-message .message-input-container {
-    flex: 1 !important;
-    min-width: 0 !important;
-    height: 40px !important;
-    max-height: 40px !important;
-  }
-
-  .mobile .compose-message .action-buttons-container {
-    flex-shrink: 0 !important;
-    height: 40px !important;
-    display: flex !important;
-    align-items: center !important;
   }
 
   /* Chat Thread View Mobile Styles */
@@ -205,8 +187,7 @@
 
   /* Chat Input Section Mobile Styles */
   .mobile .chat-input-section {
-    flex-direction: row !important;
-    padding: 12px 12px 8px 12px !important;
+    padding: 8px 8px 0 8px !important;
   }
 
   /* Show chat composer action buttons on mobile (send/stop/new) */
@@ -221,27 +202,6 @@
     display: none !important;
   }
 
-  /* Ensure composer icon buttons fit the 40px composer height */
-  .mobile .compose-message .MuiIconButton-root {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-    padding: 0 !important;
-  }
-
-  .mobile .chat-input-section .chat-controls {
-    max-width: auto !important;
-    width: auto !important;
-  }
-
-  /* .mobile .chat-input-sectioan .chat-composer-wrapper {
-    width: auto !important;
-    order: 2 !important;
-    min-height: 40px !important;
-    max-height: 40px !important;
-  } */
-
   .mobile .chat-input-section .chat-composer-wrapper .chat-input {
     padding: 0px 12px;
   }
@@ -250,10 +210,9 @@
   .mobile .global-chat-container {
     height: 100dvh !important;
     max-height: 100dvh !important;
-    padding-top: 40px !important; /* Add padding for header */
-    /* Leave space for the left panel/resize handle */
-    margin-left: 40px !important;
-    max-width: calc(100vw - 60px) !important;
+    padding-top: 0 !important;
+    margin-left: 0 !important;
+    max-width: 100vw !important;
     contain: layout style !important;
   }
 
@@ -565,13 +524,13 @@
     align-self: stretch !important;
   }
 
-  /* Chat Composer Mobile Styles */
+  /* Chat Composer Mobile Styles
+     Allow vertical room for the embedded model + agent toolbar in the footer. */
   .mobile .chat-composer .compose-message {
     padding: 6px 8px !important;
     margin-top: 8px !important;
     border-radius: 20px !important;
-    min-height: 40px !important;
-    max-height: 100px !important;
+    min-height: 88px !important;
   }
 
   .mobile .chat-composer .compose-message textarea {
@@ -670,5 +629,50 @@
   .mobile .reactflow-wrapper,
   .mobile .react-flow {
     touch-action: none !important;
+  }
+
+  /* Chat View */
+  .mobile .chat-view {
+    padding: 0 14px 8px 14px !important;
+  }
+  .mobile .chat-view .chat-thread-container {
+    scrollbar-width: none;
+  }
+  .mobile .chat-view .chat-thread-container::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile .chat-view .chat-controls {
+    padding: 0 !important;
+  }
+
+  /* Chat Input Section */
+  .mobile .chat-input-section {
+    width: 100% !important;
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  /* Chat Thread View */
+  .mobile .chat-thread-view-root {
+    padding: 0.5em 0 !important;
+  }
+  .mobile .chat-thread-view-root .scrollable-message-wrapper {
+    padding: 0;
+    scrollbar-width: none;
+  }
+  .mobile .chat-thread-view-root .scrollable-message-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+  .mobile .chat-messages-list {
+    max-width: 100% !important;
+  }
+
+  /* Chat Composer */
+  .mobile .chat-composer .compose-message {
+    min-height: 88px;
+  }
+  .mobile .chat-composer .compose-message textarea {
+    padding: 8px 10px 4px 6px;
+    min-height: 36px;
   }
 }

@@ -8,7 +8,6 @@ import {
   relativeTime,
   getTimestampForFilename
 } from '../formatDateAndTime';
-import { DateTime } from 'luxon';
 
 describe('formatDateAndTime utilities', () => {
   beforeAll(() => {
@@ -60,7 +59,7 @@ describe('formatDateAndTime utilities', () => {
       const str = `${year}-05-15 13:30:00`;
       const expected = 'May 15 | 01:30 PM';
       expect(prettyDate(str, 'verbose')).toBe(expected);
-      
+
       // Different year
       expect(prettyDate('2022-05-15 13:30:00', 'verbose')).toBe('2022 May 15 | 01:30 PM');
     });
@@ -68,11 +67,8 @@ describe('formatDateAndTime utilities', () => {
     test('formats verbose dates in 24h format', () => {
       const year = new Date().getFullYear();
       const str = `${year}-05-15 13:30:00`;
-      const iso = str.replace(' ', 'T');
-      const dt = DateTime.fromISO(iso);
-      const expected = dt.toFormat('d. MMMM  | HH:mm');
-      expect(prettyDate(str, 'verbose', { timeFormat: '24h' })).toBe(expected);
-      
+      expect(prettyDate(str, 'verbose', { timeFormat: '24h' })).toBe('15. May  | 13:30');
+
       // Different year
       expect(prettyDate('2022-05-15 13:30:00', 'verbose', { timeFormat: '24h' })).toBe('15 May 2022 | 13:30');
     });
@@ -94,38 +90,38 @@ describe('formatDateAndTime utilities', () => {
   describe('relativeTime', () => {
     test('computes human readable difference for various time units', () => {
       const now = new Date('2023-01-02T03:04:05Z');
-      
+
       // Seconds
       expect(relativeTime(new Date(now.getTime() - 1000))).toBe('1 sec ago');
       expect(relativeTime(new Date(now.getTime() - 30000))).toBe('30 sec ago');
-      
+
       // Minutes
       expect(relativeTime(new Date(now.getTime() - 60000))).toBe('1 min ago');
       expect(relativeTime(new Date(now.getTime() - 120000))).toBe('2 min ago');
       expect(relativeTime(new Date(now.getTime() - 59 * 60000))).toBe('59 min ago');
-      
+
       // Hours
       expect(relativeTime(new Date(now.getTime() - 3600000))).toBe('1 hour ago');
       expect(relativeTime(new Date(now.getTime() - 7200000))).toBe('2 hours ago');
       expect(relativeTime(new Date(now.getTime() - 23 * 3600000))).toBe('23 hours ago');
-      
+
       // Days
       expect(relativeTime(new Date(now.getTime() - 86400000))).toBe('1 day ago');
       expect(relativeTime(new Date(now.getTime() - 2 * 86400000))).toBe('2 days ago');
       expect(relativeTime(new Date(now.getTime() - 6 * 86400000))).toBe('6 days ago');
-      
+
       // Weeks
       expect(relativeTime(new Date(now.getTime() - 7 * 86400000))).toBe('1 week ago');
       expect(relativeTime(new Date(now.getTime() - 14 * 86400000))).toBe('2 weeks ago');
-      
+
       // Months
       expect(relativeTime(new Date(now.getTime() - 30 * 86400000))).toBe('1 month ago');
       expect(relativeTime(new Date(now.getTime() - 60 * 86400000))).toBe('2 months ago');
-      
+
       // Years
       expect(relativeTime(new Date(now.getTime() - 365 * 86400000))).toBe('1 year ago');
       expect(relativeTime(new Date(now.getTime() - 730 * 86400000))).toBe('2 years ago');
-      
+
       // Just now
       expect(relativeTime(new Date())).toBe('just now');
       expect(relativeTime(new Date(now.getTime() - 500))).toBe('just now');

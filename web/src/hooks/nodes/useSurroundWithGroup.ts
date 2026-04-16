@@ -4,6 +4,7 @@ import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { NodeData } from "../../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
+import { shallow } from "zustand/shallow";
 
 /**
  * Options for surroundWithGroup function.
@@ -34,7 +35,7 @@ export const useSurroundWithGroup = () => {
   const { createNode, setNodes } = useNodes((state) => ({
     createNode: state.createNode,
     setNodes: state.setNodes
-  }));
+  }), shallow);
   const { pause, resume } = useTemporalNodes((state) => ({
     pause: state.pause,
     resume: state.resume

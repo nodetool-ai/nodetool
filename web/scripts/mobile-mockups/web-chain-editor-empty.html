@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Web Chain Editor - Empty State</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    width: 1280px;
+    height: 800px;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* App header */
+  .app-header {
+    height: 48px;
+    background: rgba(16,16,16,0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; }
+  .logo svg { width: 24px; height: 24px; fill: #6690d4; }
+  .logo-text { font-size: 15px; font-weight: 700; color: #fff; }
+  .header-nav { display: flex; gap: 4px; margin-left: 16px; }
+  .header-nav-item {
+    padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    color: #B9B9B4; cursor: pointer;
+  }
+  .header-nav-item.active { background: rgba(102,144,212,0.12); color: #6690d4; }
+  .header-spacer { flex: 1; }
+
+  /* Panel left */
+  .panel-left {
+    width: 240px;
+    background: rgba(16,16,16,0.95);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .panel-section { padding: 12px; }
+  .panel-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    color: #B9B9B4; margin-bottom: 8px;
+  }
+  .panel-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border-radius: 6px; font-size: 13px; color: #B9B9B4; cursor: pointer;
+  }
+  .panel-item:hover { background: rgba(255,255,255,0.04); }
+  .panel-item.active { background: rgba(102,144,212,0.12); color: #6690d4; }
+  .panel-item svg { width: 16px; height: 16px; fill: currentColor; }
+
+  .main-area { display: flex; flex: 1; height: calc(100% - 48px); }
+
+  /* Chain content */
+  .chain-area { flex: 1; display: flex; flex-direction: column; }
+
+  .toolbar {
+    display: flex; align-items: center; padding: 10px 16px; gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(16,16,16,0.95);
+  }
+  .workflow-name {
+    font-size: 15px; font-weight: 600; color: #fff; flex: 1;
+    background: none; border: none; outline: none;
+  }
+  .save-btn {
+    display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+    background: none; color: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .save-btn svg { width: 16px; height: 16px; fill: #fff; }
+
+  .content-scroll {
+    flex: 1; display: flex; justify-content: center; overflow: auto;
+  }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    padding-top: 140px; gap: 12px; max-width: 400px;
+  }
+  .empty-icon {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: rgba(102,144,212,0.08); display: flex;
+    align-items: center; justify-content: center; margin-bottom: 8px;
+  }
+  .empty-icon svg { width: 36px; height: 36px; fill: #6690d4; }
+  .empty-title { font-size: 20px; font-weight: 700; }
+  .empty-subtitle { font-size: 14px; color: #B9B9B4; text-align: center; line-height: 22px; }
+  .hero-btn {
+    display: flex; align-items: center; gap: 8px; padding: 12px 24px;
+    background: #6690d4; border-radius: 8px; color: #fff;
+    font-size: 15px; font-weight: 700; border: none; margin-top: 20px;
+    cursor: pointer; font-family: inherit;
+  }
+  .hero-btn svg { width: 20px; height: 20px; fill: #fff; }
+</style>
+</head>
+<body>
+  <div class="app-header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z"/></svg>
+      <span class="logo-text">NodeTool</span>
+    </div>
+    <div class="header-nav">
+      <div class="header-nav-item">Dashboard</div>
+      <div class="header-nav-item">Editor</div>
+      <div class="header-nav-item active">Chain</div>
+      <div class="header-nav-item">Chat</div>
+    </div>
+    <div class="header-spacer"></div>
+  </div>
+
+  <div class="main-area">
+    <div class="panel-left">
+      <div class="panel-section">
+        <div class="panel-title">Workflows</div>
+        <div class="panel-item">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zM13 9V3.5L18.5 9H13z"/></svg>
+          Image Pipeline
+        </div>
+        <div class="panel-item active">
+          <svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7z"/></svg>
+          Untitled Workflow
+        </div>
+        <div class="panel-item">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6z"/></svg>
+          Data Processor
+        </div>
+      </div>
+    </div>
+
+    <div class="chain-area">
+      <div class="toolbar">
+        <span class="workflow-name">Untitled Workflow</span>
+        <button class="save-btn">
+          <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+          Save
+        </button>
+      </div>
+      <div class="content-scroll">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24"><path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3h7zM7 9H4V5h3v4zm10 6h3v4h-3v-4zm0-10h3v4h-3V5z"/></svg>
+          </div>
+          <div class="empty-title">Build Your Workflow</div>
+          <div class="empty-subtitle">
+            Add nodes to create a processing chain.<br>
+            Each node's output flows into the next.
+          </div>
+          <button class="hero-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Add First Node
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

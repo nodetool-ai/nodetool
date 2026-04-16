@@ -38,6 +38,7 @@ web/src/
 ## Specialized Guides
 
 - **[Components](components/AGENTS.md)** — UI component guidelines, MUI styling
+- **[UI Primitives Strategy](components/ui_primitives/STRATEGY.md)** — **MUST READ for all frontend work.** Primitives-first policy, decision tree for which primitive to use, migration rules, and full catalog of 90+ primitives.
 - **[Stores](stores/AGENTS.md)** — Zustand state management, selectors, persist/temporal middleware
 - **[Contexts](contexts/AGENTS.md)** — React context patterns, provider hierarchy
 - **[Hooks](hooks/AGENTS.md)** — Custom React hook rules, useEffect/useMemo/useCallback guidance
@@ -86,12 +87,16 @@ See the [root AGENTS.md](../../AGENTS.md) for TypeScript, React, Zustand, MUI, a
 
 Key reminders for this package:
 
+- **UI Primitives are mandatory.** Never import raw MUI components (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) in component files. Use the 90+ primitives from `components/ui_primitives/` instead. See the **[Primitives Strategy](components/ui_primitives/STRATEGY.md)** for the decision tree.
+- **Opportunistic migration**: When touching any file for any reason, migrate raw MUI usage to primitives.
 - Use TypeScript with explicit types. No `any`.
 - Use functional components with typed props interfaces.
 - Use Zustand selectors to avoid unnecessary re-renders.
-- Use `sx` prop for one-off MUI styles, `styled()` for reusable styles.
+- Use `sx` prop on primitives for one-off styles. Use `styled()` only inside `ui_primitives/` for defining new primitives.
+- No inline `display: "flex"` — use `FlexRow`/`FlexColumn` layout primitives.
+- No hardcoded hex colors or pixel spacing — use theme values and spacing constants (`SPACING`, `GAP`, `PADDING`).
 - Place tests in `__tests__/` directories next to source files.
-- Follow the import order: React → third-party → stores/contexts → components → utils → styles.
+- Follow the import order: React → third-party → stores/contexts → components → **primitives** → utils → styles.
 - Frontend tools (in `lib/`) must be prefixed with `ui_` (e.g., `ui_add_node`).
 - Use `GlobalWebSocketManager` singleton — never create WebSocket instances directly.
 

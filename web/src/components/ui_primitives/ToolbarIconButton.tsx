@@ -25,15 +25,27 @@ import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { ShortcutHint } from "./ShortcutHint";
 
 export interface ToolbarIconButtonProps
-  extends Omit<IconButtonProps, "children"> {
+  extends Omit<IconButtonProps, "children" | "title"> {
   /**
-   * The icon to display
+   * The icon to display. Falls back to children if not provided.
    */
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   /**
-   * Tooltip text or element
+   * Tooltip text or element. Falls back to title if not provided.
    */
-  tooltip: React.ReactNode;
+  tooltip?: React.ReactNode;
+  /**
+   * Children as fallback for icon prop (legacy pattern)
+   */
+  children?: React.ReactNode;
+  /**
+   * Alias for tooltip (legacy pattern). Use `tooltip` instead.
+   */
+  title?: React.ReactNode;
+  /**
+   * Tooltip enter delay in ms (legacy pattern). Overrides the default delay.
+   */
+  delay?: number;
   /**
    * Tooltip placement
    * @default "bottom"
@@ -76,6 +88,10 @@ export interface ToolbarIconButtonProps
    * @default 0
    */
   tabIndex?: number;
+  /**
+   * Explicit aria-label for accessibility (required when tooltip is not a string)
+   */
+  ariaLabel?: string;
 }
 
 /**
@@ -87,6 +103,9 @@ export const ToolbarIconButton = memo(
       {
         icon,
         tooltip,
+        title,
+        children,
+        delay,
         tooltipPlacement = "bottom",
         nodrag = true,
         variant = "default",
@@ -96,11 +115,14 @@ export const ToolbarIconButton = memo(
         size = "small",
         sx,
         tabIndex = 0,
+        ariaLabel,
         ...props
       },
       ref
     ) => {
       const theme = useTheme();
+      const resolvedTooltip = tooltip ?? title ?? "";
+      const resolvedIcon = icon ?? children;
 
       const variantStyles = useMemo(() => {
         switch (variant) {
@@ -141,21 +163,23 @@ export const ToolbarIconButton = memo(
             gap: 0.5,
           }}
         >
-          <Box>{tooltip}</Box>
+          <Box>{resolvedTooltip}</Box>
           <ShortcutHint shortcut={shortcut} size="small" />
         </Box>
-      ) : tooltip;
+      ) : resolvedTooltip;
+
+      const label = ariaLabel || (typeof resolvedTooltip === "string" ? resolvedTooltip : undefined);
 
       return (
         <Tooltip
           title={tooltipContent}
-          enterDelay={TOOLTIP_ENTER_DELAY}
+          enterDelay={delay ?? TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
           <IconButton
             ref={ref}
-            aria-label={typeof tooltip === "string" ? tooltip : undefined}
+            aria-label={label}
             className={cn(
               "toolbar-icon-button",
               nodrag && editorClassNames.nodrag,
@@ -174,7 +198,7 @@ export const ToolbarIconButton = memo(
             }}
             {...props}
           >
-            {icon}
+            {resolvedIcon}
           </IconButton>
         </Tooltip>
       );

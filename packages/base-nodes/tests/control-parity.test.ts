@@ -149,8 +149,8 @@ describe("control parity: If node", () => {
           is_streaming_output: true,
           properties: { input_list: [0, 1, 2] }
         },
-        { id: "if", type: IfNode.nodeType, properties: { condition: true } },
-        { id: "collect", type: CollectNode.nodeType },
+        { id: "if", type: IfNode.nodeType, is_streaming_output: true, sync_mode: "on_any" as const, properties: { condition: true } },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
         { id: "out", type: OutputNode.nodeType, name: "passed" }
       ],
       [
@@ -297,7 +297,7 @@ describe("control parity: Collect node", () => {
           is_streaming_output: true,
           properties: { input_list: [0, 1, 2] }
         },
-        { id: "collect", type: CollectNode.nodeType },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
         { id: "out", type: OutputNode.nodeType, name: "items" }
       ],
       [
@@ -323,7 +323,7 @@ describe("control parity: Collect node", () => {
   it("emits an empty list for an empty stream", async () => {
     const result = await runWorkflow(
       [
-        { id: "collect", type: CollectNode.nodeType },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
         { id: "out", type: OutputNode.nodeType, name: "items" }
       ],
       [
@@ -337,7 +337,7 @@ describe("control parity: Collect node", () => {
     );
 
     expect(result.status).toBe("completed");
-    expect(result.outputs.items).toEqual([[[]]]);
+    expect(result.outputs.items).toEqual([[]]);
   });
 
   it("resets collected state across separate workflow runs on the same runner", async () => {
@@ -349,7 +349,7 @@ describe("control parity: Collect node", () => {
         is_streaming_output: true,
         properties: { input_list: [0, 1] }
       },
-      { id: "collect", type: CollectNode.nodeType },
+      { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
       { id: "out", type: OutputNode.nodeType, name: "items" }
     ];
     const edges: Edge[] = [
@@ -400,8 +400,8 @@ describe("control parity: Reroute node", () => {
           is_streaming_output: true,
           properties: { input_list: [0, 1, 2] }
         },
-        { id: "reroute", type: RerouteNode.nodeType },
-        { id: "collect", type: CollectNode.nodeType },
+        { id: "reroute", type: RerouteNode.nodeType, is_streaming_output: true, sync_mode: "on_any" as const },
+        { id: "collect", type: CollectNode.nodeType, is_streaming_input: true },
         { id: "out", type: OutputNode.nodeType, name: "items" }
       ],
       [

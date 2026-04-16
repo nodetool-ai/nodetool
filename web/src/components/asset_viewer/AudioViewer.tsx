@@ -5,7 +5,7 @@ import React, { MouseEventHandler, memo } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import AudioPlayer from "../audio/AudioPlayer";
 
-import { Typography } from "@mui/material";
+import { Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -88,7 +88,7 @@ const AudioViewer: React.FC<AudioViewerProps> = memo(function AudioViewer({ asse
       css={styles(theme)}
       onContextMenu={handleRightClick}
     >
-      <Typography variant="body2">{asset?.content_type}</Typography>
+      <Text size="small">{asset?.content_type}</Text>
       <AudioPlayer
         alwaysShowControls={true}
         source={asset?.get_url || url || ""}

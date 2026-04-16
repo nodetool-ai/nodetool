@@ -19,10 +19,7 @@ export interface RectOutputs {
 }
 
 export function rect(inputs: RectInputs): DslNode<RectOutputs, "output"> {
-  return createNode("lib.svg.Rect", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("lib.svg.Rect", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Circle — lib.svg.Circle
@@ -40,10 +37,7 @@ export interface CircleOutputs {
 }
 
 export function circle(inputs: CircleInputs): DslNode<CircleOutputs, "output"> {
-  return createNode("lib.svg.Circle", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("lib.svg.Circle", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Ellipse — lib.svg.Ellipse
@@ -61,13 +55,8 @@ export interface EllipseOutputs {
   output: unknown;
 }
 
-export function ellipse(
-  inputs: EllipseInputs
-): DslNode<EllipseOutputs, "output"> {
-  return createNode("lib.svg.Ellipse", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function ellipse(inputs: EllipseInputs): DslNode<EllipseOutputs, "output"> {
+  return createNode("lib.svg.Ellipse", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Line — lib.svg.Line
@@ -85,10 +74,7 @@ export interface LineOutputs {
 }
 
 export function line(inputs: LineInputs): DslNode<LineOutputs, "output"> {
-  return createNode("lib.svg.Line", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("lib.svg.Line", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Polygon — lib.svg.Polygon
@@ -103,13 +89,8 @@ export interface PolygonOutputs {
   output: unknown;
 }
 
-export function polygon(
-  inputs: PolygonInputs
-): DslNode<PolygonOutputs, "output"> {
-  return createNode("lib.svg.Polygon", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function polygon(inputs: PolygonInputs): DslNode<PolygonOutputs, "output"> {
+  return createNode("lib.svg.Polygon", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Path — lib.svg.Path
@@ -125,10 +106,7 @@ export interface PathOutputs {
 }
 
 export function path(inputs: PathInputs): DslNode<PathOutputs, "output"> {
-  return createNode("lib.svg.Path", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("lib.svg.Path", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Text — lib.svg.Text
@@ -139,7 +117,7 @@ export interface TextInputs {
   font_family?: Connectable<string>;
   font_size?: Connectable<number>;
   fill?: Connectable<unknown>;
-  text_anchor?: Connectable<unknown>;
+  text_anchor?: Connectable<"start" | "middle" | "end">;
 }
 
 export interface TextOutputs {
@@ -147,10 +125,7 @@ export interface TextOutputs {
 }
 
 export function text(inputs: TextInputs): DslNode<TextOutputs, "output"> {
-  return createNode("lib.svg.Text", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+  return createNode("lib.svg.Text", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Gaussian Blur — lib.svg.GaussianBlur
@@ -162,13 +137,8 @@ export interface GaussianBlurOutputs {
   output: unknown;
 }
 
-export function gaussianBlur(
-  inputs: GaussianBlurInputs
-): DslNode<GaussianBlurOutputs, "output"> {
-  return createNode("lib.svg.GaussianBlur", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function gaussianBlur(inputs: GaussianBlurInputs): DslNode<GaussianBlurOutputs, "output"> {
+  return createNode("lib.svg.GaussianBlur", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Drop Shadow — lib.svg.DropShadow
@@ -183,18 +153,13 @@ export interface DropShadowOutputs {
   output: unknown;
 }
 
-export function dropShadow(
-  inputs: DropShadowInputs
-): DslNode<DropShadowOutputs, "output"> {
-  return createNode("lib.svg.DropShadow", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function dropShadow(inputs: DropShadowInputs): DslNode<DropShadowOutputs, "output"> {
+  return createNode("lib.svg.DropShadow", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // SVG Document — lib.svg.Document
 export interface DocumentInputs {
-  content?: Connectable<string | unknown | unknown[]>;
+  elements?: Connectable<unknown[]>;
   width?: Connectable<number>;
   height?: Connectable<number>;
   viewBox?: Connectable<string>;
@@ -204,18 +169,13 @@ export interface DocumentOutputs {
   output: unknown;
 }
 
-export function document(
-  inputs: DocumentInputs
-): DslNode<DocumentOutputs, "output"> {
-  return createNode("lib.svg.Document", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function document(inputs: DocumentInputs): DslNode<DocumentOutputs, "output"> {
+  return createNode("lib.svg.Document", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // SVG to Image — lib.svg.SVGToImage
 export interface SVGToImageInputs {
-  content?: Connectable<string | unknown | unknown[]>;
+  elements?: Connectable<unknown[]>;
   width?: Connectable<number>;
   height?: Connectable<number>;
   viewBox?: Connectable<string>;
@@ -226,18 +186,13 @@ export interface SVGToImageOutputs {
   output: ImageRef;
 }
 
-export function svgToImage(
-  inputs: SVGToImageInputs
-): DslNode<SVGToImageOutputs, "output"> {
-  return createNode("lib.svg.SVGToImage", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function svgToImage(inputs: SVGToImageInputs): DslNode<SVGToImageOutputs, "output"> {
+  return createNode("lib.svg.SVGToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Gradient — lib.svg.Gradient
 export interface GradientInputs {
-  gradient_type?: Connectable<unknown>;
+  gradient_type?: Connectable<"linearGradient" | "radialGradient">;
   x1?: Connectable<number>;
   y1?: Connectable<number>;
   x2?: Connectable<number>;
@@ -250,13 +205,8 @@ export interface GradientOutputs {
   output: unknown;
 }
 
-export function gradient(
-  inputs: GradientInputs
-): DslNode<GradientOutputs, "output"> {
-  return createNode("lib.svg.Gradient", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function gradient(inputs: GradientInputs): DslNode<GradientOutputs, "output"> {
+  return createNode("lib.svg.Gradient", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Transform — lib.svg.Transform
@@ -273,13 +223,8 @@ export interface TransformOutputs {
   output: unknown;
 }
 
-export function transform(
-  inputs: TransformInputs
-): DslNode<TransformOutputs, "output"> {
-  return createNode("lib.svg.Transform", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function transform(inputs: TransformInputs): DslNode<TransformOutputs, "output"> {
+  return createNode("lib.svg.Transform", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Clip Path — lib.svg.ClipPath
@@ -292,11 +237,6 @@ export interface ClipPathOutputs {
   output: unknown;
 }
 
-export function clipPath(
-  inputs: ClipPathInputs
-): DslNode<ClipPathOutputs, "output"> {
-  return createNode("lib.svg.ClipPath", inputs as Record<string, unknown>, {
-    outputNames: ["output"],
-    defaultOutput: "output"
-  });
+export function clipPath(inputs: ClipPathInputs): DslNode<ClipPathOutputs, "output"> {
+  return createNode("lib.svg.ClipPath", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

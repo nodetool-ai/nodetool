@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { StreamingInputs, StreamingOutputs } from "@nodetool/node-sdk";
 
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";
@@ -82,8 +83,8 @@ export class CollectNode extends BaseNode {
   };
 
   static readonly syncMode = "on_any" as const;
+  static readonly isStreamingInput = true;
 
-  private _items: unknown[] = [];
   @prop({
     type: "any",
     default: [],
@@ -92,13 +93,19 @@ export class CollectNode extends BaseNode {
   })
   declare input_item: any;
 
-  async initialize(): Promise<void> {
-    this._items = [];
+  async process(): Promise<Record<string, unknown>> {
+    return { output: [] };
   }
 
-  async process(): Promise<Record<string, unknown>> {
-    this._items.push(this.input_item);
-    return { output: [...this._items] };
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const items: unknown[] = [];
+    for await (const item of inputs.stream("input_item")) {
+      items.push(item);
+    }
+    await outputs.emit("output", items);
   }
 }
 

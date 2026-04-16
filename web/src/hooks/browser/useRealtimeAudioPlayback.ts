@@ -245,7 +245,6 @@ export const useRealtimeAudioPlayback = ({
       // Cleanup: dequeue on unmount or when dependencies change
       audioQueue.dequeue(instanceId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [internalStart, internalStop, wantsToPlay]); // audioQueue is stable, don't include it
 
   const stream = streamDestRef.current ? streamDestRef.current.stream : null;

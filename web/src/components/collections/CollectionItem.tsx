@@ -1,15 +1,13 @@
 import React, { memo, useCallback, useMemo } from "react";
 import {
   ListItem,
-  Typography,
   CircularProgress,
   LinearProgress,
-  Tooltip,
   Button,
   Box
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton } from "../ui_primitives";
+import { DeleteButton, Text, Caption, Tooltip } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -58,7 +56,7 @@ const IndexingProgress = memo(function IndexingProgress({
       />
       <br />
       <CircularProgress size={16} sx={{ ml: 1, verticalAlign: "middle" }} />
-      <Typography variant="caption" sx={{ ml: 1 }}>
+      <Caption sx={{ ml: 1 }}>
         Indexing {indexProgress.current}&nbsp;of&nbsp;
         {indexProgress.total} documents
         {indexProgress.current > 0 && (
@@ -79,7 +77,7 @@ const IndexingProgress = memo(function IndexingProgress({
             })()}
           </>
         )}
-      </Typography>
+      </Caption>
     </>
   );
 });
@@ -228,11 +226,11 @@ const CollectionItem = ({
             zIndex: 1
           }}
         >
-          <Typography
-            variant="h6"
+          <Text
+            size="normal"
+            weight={700}
             sx={{
               color: "primary.main",
-              fontWeight: 700,
               display: "flex",
               alignItems: "center",
               gap: 1.5,
@@ -242,26 +240,23 @@ const CollectionItem = ({
           >
             <UploadFileIcon sx={{ fontSize: "1.5rem" }} />
             Drop files to upload
-          </Typography>
+          </Text>
         </Box>
       )}
       <div style={containerStyle}>
         <Tooltip title={`Collection: ${collection.name}`}>
-          <Typography
-            variant="body1"
+          <Text
+            weight={600}
+            truncate
             sx={{
-              fontWeight: 600,
               color: "primary.main",
               fontSize: "1.1rem",
               flexShrink: 0,
-              maxWidth: "150px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
+              maxWidth: "150px"
             }}
           >
             {collection.name}
-          </Typography>
+          </Text>
         </Tooltip>
         {indexProgress?.collection === collection.name && (
           <IndexingProgress indexProgress={indexProgress} />
@@ -270,22 +265,20 @@ const CollectionItem = ({
 
       <div style={containerStyle}>
         <Tooltip title="Number of documents in this collection">
-          <Typography
-            variant="body2"
+          <Text
+            size="small"
+            color="secondary"
             sx={{
-              color: "text.secondary",
               fontSize: "0.8em",
               flexShrink: 0
             }}
           >
             {collection.count} items
-          </Typography>
+          </Text>
         </Tooltip>
         <Tooltip title="Model used for embedding documents">
-          <Typography
-            variant="caption"
+          <Caption
             sx={{
-              color: "text.secondary",
               fontSize: "0.8em",
               flexShrink: 1,
               overflow: "hidden",
@@ -294,7 +287,7 @@ const CollectionItem = ({
             }}
           >
             {collection.metadata?.embedding_model as React.ReactNode}
-          </Typography>
+          </Caption>
         </Tooltip>
         <div style={{ flexGrow: 1 }} />
         {isEditingWorkflow ? (

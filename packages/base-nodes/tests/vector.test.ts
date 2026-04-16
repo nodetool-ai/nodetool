@@ -252,12 +252,12 @@ describe("GetDocumentsNode", () => {
     });
   });
 
-  it("passes undefined ids when empty array", async () => {
+  it("passes empty array ids when empty array", async () => {
     const node = new GetDocumentsNode();
     node.assign({ collection: { name: "my-col" }, ids: [] });
     await node.process();
     expect(mockCollection.get).toHaveBeenCalledWith({
-      ids: undefined,
+      ids: [],
       limit: 100,
       offset: 0
     });
@@ -1280,14 +1280,14 @@ describe("RemoveOverlapNode", () => {
     const node = new RemoveOverlapNode();
     node.assign({ documents: [] });
     const result = await node.process();
-    expect(result).toEqual({ output: { documents: [] } });
+    expect(result).toEqual({ documents: [] });
   });
 
   it("returns single document unchanged", async () => {
     const node = new RemoveOverlapNode();
     node.assign({ documents: ["hello world"] });
     const result = await node.process();
-    expect(result).toEqual({ output: { documents: ["hello world"] } });
+    expect(result).toEqual({ documents: ["hello world"] });
   });
 
   it("removes overlapping words between consecutive strings", async () => {
@@ -1300,7 +1300,7 @@ describe("RemoveOverlapNode", () => {
       min_overlap_words: 2
     });
     const result = await node.process();
-    const output = result.output as { documents: string[] };
+    const output = result as { documents: string[] };
     expect(output.documents).toEqual([
       "the quick brown fox jumps",
       "over the lazy dog"
@@ -1314,7 +1314,7 @@ describe("RemoveOverlapNode", () => {
       min_overlap_words: 2
     });
     const result = await node.process();
-    const output = result.output as { documents: string[] };
+    const output = result as { documents: string[] };
     // "world" is only 1 word overlap, below min of 2
     expect(output.documents).toEqual(["hello world", "world goodbye"]);
   });
@@ -1326,7 +1326,7 @@ describe("RemoveOverlapNode", () => {
       min_overlap_words: 1
     });
     const result = await node.process();
-    const output = result.output as { documents: string[] };
+    const output = result as { documents: string[] };
     expect(output.documents).toEqual(["hello world", "goodbye"]);
   });
 
@@ -1337,7 +1337,7 @@ describe("RemoveOverlapNode", () => {
       min_overlap_words: 2
     });
     const result = await node.process();
-    const output = result.output as { documents: string[] };
+    const output = result as { documents: string[] };
     expect(output.documents).toEqual(["a b c d", "e f", "g h"]);
   });
 
@@ -1348,7 +1348,7 @@ describe("RemoveOverlapNode", () => {
       min_overlap_words: 2
     });
     const result = await node.process();
-    const output = result.output as { documents: string[] };
+    const output = result as { documents: string[] };
     expect(output.documents).toEqual(["alpha beta", "gamma delta"]);
   });
 
@@ -1359,7 +1359,7 @@ describe("RemoveOverlapNode", () => {
       min_overlap_words: 2
     });
     const result = await node.process();
-    const output = result.output as { documents: string[] };
+    const output = result as { documents: string[] };
     // After removing all overlapping words, newText is empty, so the doc is skipped
     expect(output.documents).toEqual(["a b c"]);
   });
@@ -1371,7 +1371,7 @@ describe("RemoveOverlapNode", () => {
       min_overlap_words: 2
     });
     const result = await node.process();
-    const output = result.output as { documents: string[] };
+    const output = result as { documents: string[] };
     expect(output.documents).toEqual(["hello   world  foo", "bar"]);
   });
 
@@ -1379,7 +1379,7 @@ describe("RemoveOverlapNode", () => {
     const node = new RemoveOverlapNode();
     node.assign({ documents: ["x y z", "y z w"], min_overlap_words: 2 });
     const result = await node.process();
-    const output = result.output as { documents: string[] };
+    const output = result as { documents: string[] };
     expect(output.documents).toEqual(["x y z", "w"]);
   });
 });
@@ -1408,12 +1408,11 @@ describe("HybridSearchNode", () => {
     });
     const result = await node.process();
 
-    const output = result.output as Record<string, unknown>;
-    expect(output.ids).toBeDefined();
-    expect(output.documents).toBeDefined();
-    expect(output.metadatas).toBeDefined();
-    expect(output.distances).toBeDefined();
-    expect(output.scores).toBeDefined();
+    expect(result.ids).toBeDefined();
+    expect(result.documents).toBeDefined();
+    expect(result.metadatas).toBeDefined();
+    expect(result.distances).toBeDefined();
+    expect(result.scores).toBeDefined();
 
     // Should have called query twice: semantic + keyword
     expect(mockCollection.query).toHaveBeenCalledTimes(2);
@@ -1526,7 +1525,7 @@ describe("HybridSearchNode", () => {
     });
     const result = await node.process();
 
-    const output = result.output as {
+    const output = result as {
       ids: string[];
       scores: number[];
     };
@@ -1557,7 +1556,7 @@ describe("HybridSearchNode", () => {
     });
     const result = await node.process();
 
-    const output = result.output as { ids: string[] };
+    const output = result as { ids: string[] };
     expect(output.ids).toHaveLength(2);
   });
 

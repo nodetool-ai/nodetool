@@ -467,15 +467,15 @@ describe("useFloatingToolbarActions", () => {
     });
   });
 
-  describe("handleToggleTerminal", () => {
-    it("toggles terminal panel", () => {
+  describe("handleToggleTrace", () => {
+    it("toggles trace panel", () => {
       const { result } = renderHook(() => useFloatingToolbarActions());
 
       act(() => {
-        result.current.handleToggleTerminal();
+        result.current.handleToggleTrace();
       });
 
-      expect(mockToggleBottomPanel).toHaveBeenCalledWith("terminal");
+      expect(mockToggleBottomPanel).toHaveBeenCalledWith("trace");
     });
   });
 

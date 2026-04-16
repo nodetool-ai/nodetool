@@ -7,19 +7,22 @@ import { useMemo } from "react";
  * @param rightPanelSize - Width of the right panel in pixels
  * @param bottomPanelVisible - Whether the bottom panel is visible
  * @param bottomPanelSize - Height of the bottom panel in pixels
+ * @param isMobile - When true, skip the side-panel horizontal offset (mobile
+ *   renders the right panel as a bottom sheet, not a fixed side panel).
  * @returns CSS style object for toolbar positioning
  */
 export const useFloatingToolbarPosition = (
   isRightPanelVisible: boolean,
   rightPanelSize: number,
   bottomPanelVisible: boolean,
-  bottomPanelSize: number
+  bottomPanelSize: number,
+  isMobile: boolean = false
 ): React.CSSProperties => {
   return useMemo(() => {
     const style: React.CSSProperties = {};
 
-    // Adjust horizontal position when right panel is visible
-    if (isRightPanelVisible) {
+    // Adjust horizontal position when right panel is visible (desktop only).
+    if (isRightPanelVisible && !isMobile) {
       style.left = "auto";
       style.transform = "none";
       style.right = `${Math.max(rightPanelSize + 20, 72)}px`;
@@ -40,5 +43,11 @@ export const useFloatingToolbarPosition = (
     }
 
     return style;
-  }, [isRightPanelVisible, rightPanelSize, bottomPanelVisible, bottomPanelSize]);
+  }, [
+    isRightPanelVisible,
+    rightPanelSize,
+    bottomPanelVisible,
+    bottomPanelSize,
+    isMobile
+  ]);
 };

@@ -95,11 +95,11 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
 
 ### Choose your path
 
-- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Image Editor]({{ '/image-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
+- **I'm new to NodeTool:** [Getting Started]({{ '/getting-started' | relative_url }}), [App Views Gallery]({{ '/app-views' | relative_url }}), [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Image Editor]({{ '/image-editor' | relative_url }}), [Hardware Requirements]({{ '/installation#hardware-requirements-by-task' | relative_url }}), [Example Gallery]({{ '/workflows/' | relative_url }}).
 - **I want to explore:** [Example Workflows]({{ '/workflows/' | relative_url }}), [Workflow Patterns]({{ '/cookbook' | relative_url }}), [Community](https://discord.gg/WmQTWZRcYE).
 - **I need AI models:** [Models & Providers]({{ '/models-and-providers' | relative_url }}), [HuggingFace Integration]({{ '/huggingface' | relative_url }}), [Local vs Cloud]({{ '/models' | relative_url }}).
 - **I'm coming from another tool:** [How NodeTool Compares]({{ '/comparisons' | relative_url }}) – understand where NodeTool fits.
-- **I'm ready to deploy:** [Deployment Guide]({{ '/deployment' | relative_url }}), [Self-Hosted Setup]({{ '/self_hosted' | relative_url }}), [API Access]({{ '/api-reference#headless-mode-running-workflows-via-cliapi' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).
+- **I'm ready to deploy:** [Deployment Guide]({{ '/deployment' | relative_url }}), [Self-Hosted Setup]({{ '/self-hosted-deployment' | relative_url }}), [API Access]({{ '/api-reference#headless-mode-running-workflows-via-cliapi' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).
 - **I'm a developer:** [Developer Guide]({{ '/developer/' | relative_url }}), [Custom Nodes]({{ '/developer/node-reference' | relative_url }}), [CLI Reference]({{ '/cli' | relative_url }}), [API Reference]({{ '/api-reference' | relative_url }}).
 - **Reference & Help:** [Workflow Debugging]({{ '/workflow-debugging' | relative_url }}), [Troubleshooting]({{ '/troubleshooting' | relative_url }}), [Glossary]({{ '/glossary' | relative_url }}), [Node Library]({{ '/node-packs' | relative_url }}).
 
@@ -154,6 +154,7 @@ NodeTool is a visual workflow builder for AI pipelines—connect nodes for image
     <li><a href="{{ '/' | relative_url }}#personal-ai-stack">📱 Personal AI Stack →</a></li>
     <li><a href="{{ '/key-concepts' | relative_url }}">Core concepts →</a></li>
     <li><a href="{{ '/user-interface' | relative_url }}">UI overview →</a></li>
+    <li><a href="{{ '/app-views' | relative_url }}">App views gallery →</a></li>
     <li><a href="{{ '/workflows/' | relative_url }}">Example gallery →</a></li>
     <li><a href="{{ '/cookbook' | relative_url }}">Workflow cookbook →</a></li>
     <li><a href="{{ '/models-and-providers' | relative_url }}">Models & providers →</a></li>

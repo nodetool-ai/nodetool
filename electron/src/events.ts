@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electron";
-import { getMainWindow, serverState } from "./state";
+import { serverState } from "./state";
 import { IpcChannels, UpdateProgressData } from "./types.d";
 import { logMessage } from "./logger";
 

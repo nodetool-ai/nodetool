@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
-import { Button, Box, Tooltip } from "@mui/material";
+import { Button, Box } from "@mui/material";
+import { Tooltip } from "../../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { CopyButton } from "../../ui_primitives";
