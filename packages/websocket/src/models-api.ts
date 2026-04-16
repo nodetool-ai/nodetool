@@ -1112,7 +1112,7 @@ export async function handleModelsApiRequest(
     const body = await parseJsonBody<HFFileRequest[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const { getSecret } = await import("@nodetool/security");
+      const { getSecret } = await import("@nodetool/models");
       const token = (await getSecret("HF_TOKEN", "1")) ?? undefined;
       const infos = await getHuggingfaceFileInfos(body, token);
       return jsonResponse(infos);

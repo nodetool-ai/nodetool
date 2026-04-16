@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Secret } from "@nodetool/models";
-import * as security from "@nodetool/security";
+import * as models from "@nodetool/models";
+const { Secret } = models;
 import * as runtime from "@nodetool/runtime";
 import { handleSettingsRequest } from "../src/settings-api.js";
 
@@ -32,7 +32,7 @@ describe("settings-api", () => {
       .spyOn(Secret, "upsert")
       .mockResolvedValue({} as Awaited<ReturnType<typeof Secret.upsert>>);
     const clearSecretCacheSpy = vi
-      .spyOn(security, "clearSecretCache")
+      .spyOn(models, "clearSecretCache")
       .mockImplementation(() => undefined);
     const clearProviderCacheSpy = vi
       .spyOn(runtime, "clearProviderCache")

@@ -26,7 +26,7 @@ vi.mock("node:readline", () => ({
   }))
 }));
 
-vi.mock("@nodetool/security", () => ({
+vi.mock("@nodetool/models", () => ({
   getSecret: vi.fn(async () => null)
 }));
 

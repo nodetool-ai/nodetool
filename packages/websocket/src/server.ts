@@ -22,8 +22,8 @@ import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerKieNodes } from "@nodetool/kie-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { setSecretResolver, PythonStdioBridge } from "@nodetool/runtime";
-import { getSecret, initMasterKey } from "@nodetool/security";
-import { initDb } from "@nodetool/models";
+import { initMasterKey } from "@nodetool/security";
+import { initDb, getSecret } from "@nodetool/models";
 import {
   Tool,
   GoogleSearchTool,
@@ -90,6 +90,7 @@ import costsRoutes from "./routes/costs.js";
 import skillsRoutes from "./routes/skills.js";
 import collectionsRoutes from "./routes/collections.js";
 import modelsRoutes from "./routes/models.js";
+import mcpConfigRoutes from "./routes/mcp-config.js";
 import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 
 const log = createLogger("nodetool.websocket.server");
@@ -582,53 +583,58 @@ await app.register(costsRoutes, routeOpts);
 await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
-await app.register(agentSocketRoute);
+// MCP endpoints are only available in local/dev mode — not in production.
+if (!isProduction) {
+  await app.register(mcpConfigRoutes);
 
-app.all("/mcp", async (req, reply) => {
-  const protocol = httpsOptions ? "https" : "http";
-  const url = `${protocol}://${req.headers.host ?? `127.0.0.1:${port}`}${req.url}`;
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        headers.append(key, item);
+  app.all("/mcp", async (req, reply) => {
+    const protocol = httpsOptions ? "https" : "http";
+    const url = `${protocol}://${req.headers.host ?? `127.0.0.1:${port}`}${req.url}`;
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          headers.append(key, item);
+        }
+      } else if (typeof value === "string") {
+        headers.set(key, value);
       }
-    } else if (typeof value === "string") {
-      headers.set(key, value);
     }
-  }
 
-  const requestBody =
-    req.method === "GET" || req.method === "DELETE"
-      ? undefined
-      : Buffer.isBuffer(req.body)
-        ? req.body
-        : typeof req.body === "string"
+    const requestBody =
+      req.method === "GET" || req.method === "DELETE"
+        ? undefined
+        : Buffer.isBuffer(req.body)
           ? req.body
-          : req.body == null
-            ? Buffer.alloc(0)
-            : JSON.stringify(req.body);
+          : typeof req.body === "string"
+            ? req.body
+            : req.body == null
+              ? Buffer.alloc(0)
+              : JSON.stringify(req.body);
 
-  const request = new Request(url, {
-    method: req.method,
-    headers,
-    body: requestBody,
-    duplex: "half"
+    const request = new Request(url, {
+      method: req.method,
+      headers,
+      body: requestBody,
+      duplex: "half"
+    });
+
+    const response = await handleMcpHttpRequest(request, { metadataRoots });
+    if (!response) {
+      reply.status(404).send({ error: "Not found" });
+      return;
+    }
+
+    reply.status(response.status);
+    response.headers.forEach((value, key) => {
+      reply.header(key, value);
+    });
+    const payload = Buffer.from(await response.arrayBuffer());
+    reply.send(payload);
   });
+}
 
-  const response = await handleMcpHttpRequest(request, { metadataRoots });
-  if (!response) {
-    reply.status(404).send({ error: "Not found" });
-    return;
-  }
-
-  reply.status(response.status);
-  response.headers.forEach((value, key) => {
-    reply.header(key, value);
-  });
-  const payload = Buffer.from(await response.arrayBuffer());
-  reply.send(payload);
-});
+await app.register(agentSocketRoute);
 
 log.info(`Routes registered [${startupMs()}]`);
 

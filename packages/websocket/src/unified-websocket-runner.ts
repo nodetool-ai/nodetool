@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { getSecret } from "@nodetool/security";
+import { getSecret } from "@nodetool/models";
 import { getSetting } from "./settings-api.js";
 import { pack, unpack } from "msgpackr";
 import {

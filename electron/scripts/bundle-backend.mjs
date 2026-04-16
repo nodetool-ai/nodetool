@@ -94,19 +94,6 @@ const EXTERNAL_PACKAGES = [
 ];
 
 // ---------------------------------------------------------------------------
-// esbuild plugin: resolve workspace subpath imports
-// ---------------------------------------------------------------------------
-
-const resolveWorkspaceSubpathPlugin = {
-  name: "resolve-workspace-subpath",
-  setup(build) {
-    build.onResolve({ filter: /^@nodetool\/models\/secret$/ }, () => ({
-      path: path.resolve(ROOT_DIR, "packages", "models", "dist", "secret.js"),
-    }));
-  },
-};
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -359,7 +346,6 @@ async function main() {
         "const require = __ntCreateRequire(import.meta.url);",
       ].join("\n"),
     },
-    plugins: [resolveWorkspaceSubpathPlugin],
     logLevel: "warning",
   });
 

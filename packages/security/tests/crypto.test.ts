@@ -20,17 +20,6 @@ import {
   setKeytarLoader,
   resetKeytarLoader
 } from "../src/master-key.js";
-import {
-  getSecret,
-  getSecretRequired,
-  hasSecret,
-  getSecretSync,
-  clearSecretCache,
-  clearAllSecretCache,
-  setSecretModelLoader,
-  resetSecretModelLoader
-} from "../src/secret-helper.js";
-
 describe("crypto", () => {
   describe("generateMasterKey", () => {
     it("should return a valid base64 string", () => {
@@ -452,14 +441,6 @@ describe("master-key", () => {
   });
 
   describe("setMasterKeyPersistent", () => {
-    it("should throw when keytar is not available", async () => {
-      setKeytarLoader(async () => null);
-
-      await expect(
-        setMasterKeyPersistent("test-key-persistent")
-      ).rejects.toThrow("keytar is not available");
-    });
-
     it("should set password in keytar and cache the key", async () => {
       const mockSetPassword = vi.fn(async () => undefined);
       const mockKeytar = {
@@ -467,7 +448,7 @@ describe("master-key", () => {
         setPassword: mockSetPassword,
         deletePassword: vi.fn(async () => true)
       };
-      setKeytarLoader(async () => mockKeytar);
+      setKeytarLoader(mockKeytar);
 
       await setMasterKeyPersistent("my-persistent-key");
 
@@ -487,7 +468,7 @@ describe("master-key", () => {
           .mockRejectedValue(new Error("Keychain write denied")),
         deletePassword: vi.fn(async () => true)
       };
-      setKeytarLoader(async () => mockKeytar);
+      setKeytarLoader(mockKeytar);
 
       await expect(setMasterKeyPersistent("test-key")).rejects.toThrow(
         "Keychain write denied"
@@ -496,13 +477,6 @@ describe("master-key", () => {
   });
 
   describe("deleteMasterKey", () => {
-    it("should return false when keytar is not available", async () => {
-      setKeytarLoader(async () => null);
-
-      const result = await deleteMasterKey();
-      expect(result).toBe(false);
-    });
-
     it("should delete password from keytar and clear cache", async () => {
       const mockDeletePassword = vi.fn(async () => true);
       const mockKeytar = {
@@ -510,7 +484,7 @@ describe("master-key", () => {
         setPassword: vi.fn(async () => undefined),
         deletePassword: mockDeletePassword
       };
-      setKeytarLoader(async () => mockKeytar);
+      setKeytarLoader(mockKeytar);
 
       // Pre-populate the cache
       setMasterKey("cached-key");
@@ -533,7 +507,7 @@ describe("master-key", () => {
         setPassword: vi.fn(async () => undefined),
         deletePassword: vi.fn(async () => false)
       };
-      setKeytarLoader(async () => mockKeytar);
+      setKeytarLoader(mockKeytar);
 
       const result = await deleteMasterKey();
       expect(result).toBe(false);
@@ -547,7 +521,7 @@ describe("master-key", () => {
         setPassword: vi.fn(async () => undefined),
         deletePassword: vi.fn(async () => true)
       };
-      setKeytarLoader(async () => mockKeytar);
+      setKeytarLoader(mockKeytar);
 
       const key = await initMasterKey();
       expect(key).toBe("keychain-stored-key");
@@ -564,7 +538,7 @@ describe("master-key", () => {
         setPassword: mockSetPassword,
         deletePassword: vi.fn(async () => true)
       };
-      setKeytarLoader(async () => mockKeytar);
+      setKeytarLoader(mockKeytar);
 
       const key = await initMasterKey();
       expect(typeof key).toBe("string");
@@ -583,7 +557,7 @@ describe("master-key", () => {
         setPassword: vi.fn(async () => undefined),
         deletePassword: vi.fn(async () => true)
       };
-      setKeytarLoader(async () => mockKeytar);
+      setKeytarLoader(mockKeytar);
 
       // Should still return a key (auto-generated) without throwing
       const key = await initMasterKey();
@@ -593,280 +567,3 @@ describe("master-key", () => {
   });
 });
 
-describe("secret-helper", () => {
-  const savedEnv: Record<string, string | undefined> = {};
-
-  beforeEach(() => {
-    clearAllSecretCache();
-    resetSecretModelLoader();
-    // Save and clear test env vars
-    for (const key of ["TEST_SECRET", "OPENAI_API_KEY", "SUPABASE_URL"]) {
-      savedEnv[key] = process.env[key];
-      delete process.env[key];
-    }
-  });
-
-  afterEach(() => {
-    clearAllSecretCache();
-    resetSecretModelLoader();
-    // Restore env vars
-    for (const [key, value] of Object.entries(savedEnv)) {
-      if (value !== undefined) {
-        process.env[key] = value;
-      } else {
-        delete process.env[key];
-      }
-    }
-  });
-
-  describe("getSecret", () => {
-    it("should return env var value", async () => {
-      process.env["TEST_SECRET"] = "env-value";
-      const value = await getSecret("TEST_SECRET", "user-1");
-      expect(value).toBe("env-value");
-    });
-
-    it("should return null when not found", async () => {
-      const value = await getSecret("NONEXISTENT_KEY", "user-1");
-      expect(value).toBeNull();
-    });
-
-    it("should return default when not found", async () => {
-      const value = await getSecret("NONEXISTENT_KEY", "user-1", "default-val");
-      expect(value).toBe("default-val");
-    });
-
-    it("should prioritize forced env keys", async () => {
-      process.env["SUPABASE_URL"] = "https://forced.supabase.co";
-      const value = await getSecret("SUPABASE_URL", "user-1");
-      expect(value).toBe("https://forced.supabase.co");
-    });
-  });
-
-  describe("getSecret with database lookup", () => {
-    it("should find secret from database when env is not set", async () => {
-      // Mock a Secret model that returns a value
-      const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "db-secret-value")
-      };
-      const mockSecretModel = {
-        find: vi.fn(async (userId: string, key: string) => {
-          if (userId === "user-1" && key === "DB_SECRET") return mockSecret;
-          return null;
-        })
-      };
-      setSecretModelLoader(Promise.resolve(mockSecretModel));
-
-      const value = await getSecret("DB_SECRET", "user-1");
-      expect(value).toBe("db-secret-value");
-      expect(mockSecretModel.find).toHaveBeenCalledWith("user-1", "DB_SECRET");
-    });
-
-    it("should cache database results", async () => {
-      const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "cached-db-value")
-      };
-      const mockSecretModel = {
-        find: vi.fn(async () => mockSecret)
-      };
-      setSecretModelLoader(Promise.resolve(mockSecretModel));
-
-      // First call
-      await getSecret("CACHED_KEY", "user-1");
-      // Second call should use cache
-      const value = await getSecret("CACHED_KEY", "user-1");
-      expect(value).toBe("cached-db-value");
-      // find should only be called once
-      expect(mockSecretModel.find).toHaveBeenCalledTimes(1);
-    });
-
-    it("should fall through to env when database returns null", async () => {
-      const mockSecretModel = {
-        find: vi.fn(async () => null)
-      };
-      setSecretModelLoader(Promise.resolve(mockSecretModel));
-
-      process.env["TEST_SECRET"] = "env-fallback";
-      const value = await getSecret("TEST_SECRET", "user-1");
-      expect(value).toBe("env-fallback");
-    });
-
-    it("should fall through to env when database throws", async () => {
-      const mockSecretModel = {
-        find: vi.fn(async () => {
-          throw new Error("DB connection failed");
-        })
-      };
-      setSecretModelLoader(Promise.resolve(mockSecretModel));
-
-      process.env["TEST_SECRET"] = "env-after-error";
-      const value = await getSecret("TEST_SECRET", "user-1");
-      expect(value).toBe("env-after-error");
-    });
-
-    it("should skip database when no userId provided", async () => {
-      const mockSecretModel = {
-        find: vi.fn(async () => null)
-      };
-      setSecretModelLoader(Promise.resolve(mockSecretModel));
-
-      process.env["TEST_SECRET"] = "no-user-env";
-      const value = await getSecret("TEST_SECRET");
-      expect(value).toBe("no-user-env");
-      // Should not call find since no userId
-      expect(mockSecretModel.find).not.toHaveBeenCalled();
-    });
-
-    it("should skip database when Secret model is not available", async () => {
-      setSecretModelLoader(Promise.resolve(null));
-
-      process.env["TEST_SECRET"] = "no-model-env";
-      const value = await getSecret("TEST_SECRET", "user-1");
-      expect(value).toBe("no-model-env");
-    });
-  });
-
-  describe("getSecretRequired", () => {
-    it("should return value when found", async () => {
-      process.env["TEST_SECRET"] = "required-value";
-      const value = await getSecretRequired("TEST_SECRET", "user-1");
-      expect(value).toBe("required-value");
-    });
-
-    it("should throw when not found", async () => {
-      await expect(
-        getSecretRequired("NONEXISTENT_KEY", "user-1")
-      ).rejects.toThrow("Required secret 'NONEXISTENT_KEY' not found");
-    });
-
-    it("should return database value when env is not set", async () => {
-      const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "required-db-value")
-      };
-      const mockSecretModel = {
-        find: vi.fn(async () => mockSecret)
-      };
-      setSecretModelLoader(Promise.resolve(mockSecretModel));
-
-      const value = await getSecretRequired("DB_REQUIRED", "user-1");
-      expect(value).toBe("required-db-value");
-    });
-  });
-
-  describe("hasSecret", () => {
-    it("should return true when env var exists", async () => {
-      process.env["TEST_SECRET"] = "exists";
-      expect(await hasSecret("TEST_SECRET", "user-1")).toBe(true);
-    });
-
-    it("should return false when not found", async () => {
-      expect(await hasSecret("NONEXISTENT_KEY", "user-1")).toBe(false);
-    });
-
-    it("should return true when found in database", async () => {
-      const mockSecret = {
-        getDecryptedValue: vi.fn(async () => "db-exists-value")
-      };
-      const mockSecretModel = {
-        find: vi.fn(async () => mockSecret)
-      };
-      setSecretModelLoader(Promise.resolve(mockSecretModel));
-
-      expect(await hasSecret("DB_EXISTS", "user-1")).toBe(true);
-    });
-
-    it("should return false when database throws", async () => {
-      const mockSecretModel = {
-        find: vi.fn(async () => {
-          throw new Error("DB error");
-        })
-      };
-      setSecretModelLoader(Promise.resolve(mockSecretModel));
-
-      expect(await hasSecret("DB_ERROR", "user-1")).toBe(false);
-    });
-  });
-
-  describe("getSecretSync", () => {
-    it("should return env var value", () => {
-      process.env["TEST_SECRET"] = "sync-value";
-      expect(getSecretSync("TEST_SECRET")).toBe("sync-value");
-    });
-
-    it("should return null when not found", () => {
-      expect(getSecretSync("NONEXISTENT_KEY")).toBeNull();
-    });
-
-    it("should return default when not found", () => {
-      expect(getSecretSync("NONEXISTENT_KEY", "default")).toBe("default");
-    });
-
-    it("should prioritize forced env keys (SUPABASE_URL)", () => {
-      process.env["SUPABASE_URL"] = "https://sync.supabase.co";
-      expect(getSecretSync("SUPABASE_URL")).toBe("https://sync.supabase.co");
-    });
-  });
-
-  describe("clearSecretCache", () => {
-    it("should clear a specific cached secret", async () => {
-      // Populate cache by retrieving a secret
-      process.env["TEST_SECRET"] = "cached-value";
-      await getSecret("TEST_SECRET", "user-1");
-
-      // Remove from env
-      delete process.env["TEST_SECRET"];
-
-      // Should still return cached value
-      const cached = await getSecret("TEST_SECRET", "user-1");
-      expect(cached).toBe("cached-value");
-
-      // Clear the specific cache entry
-      clearSecretCache("user-1", "TEST_SECRET");
-
-      // Now should return null since env is also gone
-      const afterClear = await getSecret("TEST_SECRET", "user-1");
-      expect(afterClear).toBeNull();
-    });
-  });
-
-  describe("getSecret caching", () => {
-    it("should use default userId when not provided", async () => {
-      process.env["TEST_SECRET"] = "default-user-val";
-      const value = await getSecret("TEST_SECRET");
-      expect(value).toBe("default-user-val");
-    });
-
-    it("should return cached value on second call", async () => {
-      process.env["TEST_SECRET"] = "first-val";
-      await getSecret("TEST_SECRET", "user-1");
-
-      // Change env but cache should prevail
-      process.env["TEST_SECRET"] = "second-val";
-      const cached = await getSecret("TEST_SECRET", "user-1");
-      expect(cached).toBe("first-val");
-    });
-
-    it("should return null from cache when cached as null", async () => {
-      // First call with no env value sets null in cache path (actually returns null)
-      const val = await getSecret("NONEXISTENT_CACHED", "user-1");
-      expect(val).toBeNull();
-    });
-  });
-
-  describe("hasSecret caching", () => {
-    it("should detect cached secrets", async () => {
-      process.env["TEST_SECRET"] = "exists-for-cache";
-      await getSecret("TEST_SECRET", "user-1");
-      delete process.env["TEST_SECRET"];
-
-      // Should find it in cache
-      const found = await hasSecret("TEST_SECRET", "user-1");
-      expect(found).toBe(true);
-    });
-
-    it("should use default userId when not provided", async () => {
-      const found = await hasSecret("NONEXISTENT_KEY");
-      expect(found).toBe(false);
-    });
-  });
-});

@@ -22,7 +22,8 @@ import {
   Message,
   Thread,
   Asset,
-  Secret
+  Secret,
+  clearSecretCache
 } from "@nodetool/models";
 import {
   loadPythonPackageMetadata,
@@ -41,7 +42,6 @@ import {
   type NodeExecutor
 } from "@nodetool/runtime";
 import { WorkflowRunner } from "@nodetool/kernel";
-import { clearSecretCache } from "@nodetool/security";
 import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";

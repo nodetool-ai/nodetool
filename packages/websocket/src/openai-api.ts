@@ -13,7 +13,7 @@ import {
   OpenAIProvider,
   AnthropicProvider
 } from "@nodetool/runtime";
-import { getSecret } from "@nodetool/security";
+import { getSecret } from "@nodetool/models";
 import type {
   Message,
   ProviderTool,

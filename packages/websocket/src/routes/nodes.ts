@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
 import { handleNodesDummy, handleNodeMetadata } from "../http-api.js";
-import { getSecret } from "@nodetool/security";
+import { getSecret } from "@nodetool/models";
 import { resolveKieDynamicSchema } from "../../../base-nodes/dist/index.js";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 

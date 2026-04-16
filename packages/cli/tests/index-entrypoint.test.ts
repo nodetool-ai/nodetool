@@ -8,16 +8,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("@nodetool/security", () => ({
+vi.mock("@nodetool/models", () => ({
+  initDb: vi.fn(),
   getSecret: vi.fn(async (key: string) => {
     // Simulates looking up secrets from the DB
     const secrets: Record<string, string> = {};
     return secrets[key] ?? null;
   })
-}));
-
-vi.mock("@nodetool/models", () => ({
-  initDb: vi.fn()
 }));
 
 vi.mock("@nodetool/config", () => ({

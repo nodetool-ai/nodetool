@@ -7,7 +7,7 @@ import {
   resolveProvider,
   type OpenAIApiOptions
 } from "../src/openai-api.js";
-import * as security from "@nodetool/security";
+import * as models from "@nodetool/models";
 import type { BaseProvider } from "@nodetool/runtime";
 import type {
   Message,
@@ -494,7 +494,7 @@ describe("OpenAI-compatible API", () => {
   describe("provider resolution", () => {
     it("uses the authenticated user's secret when resolving providers", async () => {
       const getSecretSpy = vi
-        .spyOn(security, "getSecret")
+        .spyOn(models, "getSecret")
         .mockImplementation(async (key, userId) => `${userId}-${key}`);
 
       const provider = (await resolveProvider(

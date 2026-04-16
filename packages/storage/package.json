@@ -16,6 +16,10 @@
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1029.0",
+    "@supabase/supabase-js": "^2.98.0"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "vitest": "^4.1.2",

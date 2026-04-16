@@ -20,8 +20,7 @@ import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { workflowToDsl } from "@nodetool/dsl";
-import { initDb, Workflow, Secret } from "@nodetool/models";
-import { getSecret } from "@nodetool/security";
+import { initDb, Workflow, Secret, getSecret } from "@nodetool/models";
 import { getDefaultDbPath } from "@nodetool/config";
 import { WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
@@ -777,6 +776,350 @@ settings
     printTable(
       Object.entries(data).map(([variable, value]) => ({ variable, value }))
     );
+  });
+
+// ---------------------------------------------------------------------------
+// mcp
+// ---------------------------------------------------------------------------
+
+const mcp = program
+  .command("mcp")
+  .description("MCP server integration for AI coding assistants");
+
+mcp
+  .command("install")
+  .description(
+    "Install NodeTool MCP server config for Claude Code, Codex, and/or OpenCode"
+  )
+  .option("--url <url>", "MCP server URL", "http://127.0.0.1:7777/mcp")
+  .option("--claude", "Install for Claude Code only")
+  .option("--codex", "Install for Codex only")
+  .option("--opencode", "Install for OpenCode only")
+  .action(
+    async (opts: {
+      url: string;
+      claude?: boolean;
+      codex?: boolean;
+      opencode?: boolean;
+    }) => {
+      const { readFileSync, writeFileSync, existsSync, mkdirSync } =
+        await import("node:fs");
+      const { join } = await import("node:path");
+      const { homedir } = await import("node:os");
+
+      const home = homedir();
+      const mcpUrl = opts.url;
+      const installAll = !opts.claude && !opts.codex && !opts.opencode;
+
+      const results: { target: string; status: string }[] = [];
+
+      // ── Claude Code ──────────────────────────────────────────────
+      if (installAll || opts.claude) {
+        try {
+          const claudeConfigPath = join(home, ".claude.json");
+          let config: Record<string, unknown> = {};
+          if (existsSync(claudeConfigPath)) {
+            config = JSON.parse(readFileSync(claudeConfigPath, "utf8"));
+          }
+
+          // Install globally under projects."~" which applies to all projects
+          const projects = (config["projects"] ?? {}) as Record<
+            string,
+            Record<string, unknown>
+          >;
+          const globalProject = projects[home] ?? {};
+          const mcpServers = (globalProject["mcpServers"] ?? {}) as Record<
+            string,
+            unknown
+          >;
+
+          mcpServers["nodetool"] = {
+            type: "http",
+            url: mcpUrl
+          };
+
+          globalProject["mcpServers"] = mcpServers;
+          projects[home] = globalProject;
+          config["projects"] = projects;
+
+          writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2) + "\n");
+          results.push({ target: "Claude Code", status: `Installed → ${claudeConfigPath}` });
+        } catch (e) {
+          results.push({ target: "Claude Code", status: `Error: ${e}` });
+        }
+      }
+
+      // ── Codex ────────────────────────────────────────────────────
+      if (installAll || opts.codex) {
+        try {
+          const codexDir = join(home, ".codex");
+          const codexConfigPath = join(codexDir, "config.toml");
+          mkdirSync(codexDir, { recursive: true });
+
+          const NODETOOL_MCP_BEGIN = "# BEGIN NODETOOL MCP";
+          const NODETOOL_MCP_END = "# END NODETOOL MCP";
+
+          const mcpBlock = [
+            NODETOOL_MCP_BEGIN,
+            "[mcp_servers.nodetool]",
+            `url = "${mcpUrl}"`,
+            "startup_timeout_sec = 20",
+            "tool_timeout_sec = 60",
+            "enabled = true",
+            "required = true",
+            NODETOOL_MCP_END
+          ].join("\n");
+
+          let content = "";
+          if (existsSync(codexConfigPath)) {
+            content = readFileSync(codexConfigPath, "utf8");
+            const re = new RegExp(
+              `${NODETOOL_MCP_BEGIN}[\\s\\S]*?${NODETOOL_MCP_END}\\n?`
+            );
+            if (re.test(content)) {
+              content = content.replace(re, mcpBlock + "\n");
+            } else {
+              content = content.trimEnd() + "\n\n" + mcpBlock + "\n";
+            }
+          } else {
+            content = mcpBlock + "\n";
+          }
+
+          writeFileSync(codexConfigPath, content);
+          results.push({ target: "Codex", status: `Installed → ${codexConfigPath}` });
+        } catch (e) {
+          results.push({ target: "Codex", status: `Error: ${e}` });
+        }
+      }
+
+      // ── OpenCode ─────────────────────────────────────────────────
+      if (installAll || opts.opencode) {
+        try {
+          const opencodeDir = join(home, ".config", "opencode");
+          const opencodeConfigPath = join(opencodeDir, "opencode.json");
+          mkdirSync(opencodeDir, { recursive: true });
+
+          let config: Record<string, unknown> = {};
+          if (existsSync(opencodeConfigPath)) {
+            config = JSON.parse(readFileSync(opencodeConfigPath, "utf8"));
+          }
+
+          const mcpConfig = (config["mcp"] ?? {}) as Record<string, unknown>;
+          mcpConfig["nodetool"] = {
+            type: "remote",
+            url: mcpUrl
+          };
+          config["mcp"] = mcpConfig;
+
+          writeFileSync(
+            opencodeConfigPath,
+            JSON.stringify(config, null, 2) + "\n"
+          );
+          results.push({ target: "OpenCode", status: `Installed → ${opencodeConfigPath}` });
+        } catch (e) {
+          results.push({ target: "OpenCode", status: `Error: ${e}` });
+        }
+      }
+
+      console.log(`\nNodeTool MCP Server: ${mcpUrl}\n`);
+      printTable(results);
+      console.log(
+        "\nMake sure the NodeTool server is running (nodetool serve) for MCP to work.\n"
+      );
+    }
+  );
+
+mcp
+  .command("uninstall")
+  .description("Remove NodeTool MCP server config from all AI coding assistants")
+  .option("--claude", "Uninstall from Claude Code only")
+  .option("--codex", "Uninstall from Codex only")
+  .option("--opencode", "Uninstall from OpenCode only")
+  .action(
+    async (opts: { claude?: boolean; codex?: boolean; opencode?: boolean }) => {
+      const { readFileSync, writeFileSync, existsSync } = await import(
+        "node:fs"
+      );
+      const { join } = await import("node:path");
+      const { homedir } = await import("node:os");
+
+      const home = homedir();
+      const uninstallAll = !opts.claude && !opts.codex && !opts.opencode;
+      const results: { target: string; status: string }[] = [];
+
+      // ── Claude Code ──────────────────────────────────────────────
+      if (uninstallAll || opts.claude) {
+        try {
+          const claudeConfigPath = join(home, ".claude.json");
+          if (existsSync(claudeConfigPath)) {
+            const config = JSON.parse(readFileSync(claudeConfigPath, "utf8"));
+            const projects = config["projects"] ?? {};
+            const globalProject = projects[home] ?? {};
+            const mcpServers = globalProject["mcpServers"] ?? {};
+            if ("nodetool" in mcpServers) {
+              delete mcpServers["nodetool"];
+              globalProject["mcpServers"] = mcpServers;
+              projects[home] = globalProject;
+              config["projects"] = projects;
+              writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2) + "\n");
+              results.push({ target: "Claude Code", status: "Removed" });
+            } else {
+              results.push({ target: "Claude Code", status: "Not installed" });
+            }
+          } else {
+            results.push({ target: "Claude Code", status: "Config not found" });
+          }
+        } catch (e) {
+          results.push({ target: "Claude Code", status: `Error: ${e}` });
+        }
+      }
+
+      // ── Codex ────────────────────────────────────────────────────
+      if (uninstallAll || opts.codex) {
+        try {
+          const codexConfigPath = join(home, ".codex", "config.toml");
+          if (existsSync(codexConfigPath)) {
+            let content = readFileSync(codexConfigPath, "utf8");
+            const re = /# BEGIN NODETOOL MCP[\s\S]*?# END NODETOOL MCP\n?/;
+            if (re.test(content)) {
+              content = content.replace(re, "").trimEnd() + "\n";
+              writeFileSync(codexConfigPath, content);
+              results.push({ target: "Codex", status: "Removed" });
+            } else {
+              results.push({ target: "Codex", status: "Not installed" });
+            }
+          } else {
+            results.push({ target: "Codex", status: "Config not found" });
+          }
+        } catch (e) {
+          results.push({ target: "Codex", status: `Error: ${e}` });
+        }
+      }
+
+      // ── OpenCode ─────────────────────────────────────────────────
+      if (uninstallAll || opts.opencode) {
+        try {
+          const opencodeConfigPath = join(
+            home,
+            ".config",
+            "opencode",
+            "opencode.json"
+          );
+          if (existsSync(opencodeConfigPath)) {
+            const config = JSON.parse(readFileSync(opencodeConfigPath, "utf8"));
+            const mcpConfig = config["mcp"] ?? {};
+            if ("nodetool" in mcpConfig) {
+              delete mcpConfig["nodetool"];
+              config["mcp"] = mcpConfig;
+              writeFileSync(
+                opencodeConfigPath,
+                JSON.stringify(config, null, 2) + "\n"
+              );
+              results.push({ target: "OpenCode", status: "Removed" });
+            } else {
+              results.push({ target: "OpenCode", status: "Not installed" });
+            }
+          } else {
+            results.push({ target: "OpenCode", status: "Config not found" });
+          }
+        } catch (e) {
+          results.push({ target: "OpenCode", status: `Error: ${e}` });
+        }
+      }
+
+      console.log();
+      printTable(results);
+      console.log();
+    }
+  );
+
+mcp
+  .command("status")
+  .description("Show NodeTool MCP installation status for all AI coding assistants")
+  .action(async () => {
+    const { readFileSync, existsSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { homedir } = await import("node:os");
+
+    const home = homedir();
+    const results: { target: string; status: string; url: string }[] = [];
+
+    // Claude Code
+    try {
+      const claudeConfigPath = join(home, ".claude.json");
+      if (existsSync(claudeConfigPath)) {
+        const config = JSON.parse(readFileSync(claudeConfigPath, "utf8"));
+        const mcpServers =
+          config?.projects?.[home]?.mcpServers ?? {};
+        if (mcpServers["nodetool"]) {
+          results.push({
+            target: "Claude Code",
+            status: "Installed",
+            url: mcpServers["nodetool"].url ?? ""
+          });
+        } else {
+          results.push({ target: "Claude Code", status: "Not installed", url: "" });
+        }
+      } else {
+        results.push({ target: "Claude Code", status: "No config", url: "" });
+      }
+    } catch {
+      results.push({ target: "Claude Code", status: "Error reading config", url: "" });
+    }
+
+    // Codex
+    try {
+      const codexConfigPath = join(home, ".codex", "config.toml");
+      if (existsSync(codexConfigPath)) {
+        const content = readFileSync(codexConfigPath, "utf8");
+        const urlMatch = /# BEGIN NODETOOL MCP[\s\S]*?url\s*=\s*"([^"]*)"/.exec(
+          content
+        );
+        if (urlMatch) {
+          results.push({
+            target: "Codex",
+            status: "Installed",
+            url: urlMatch[1] ?? ""
+          });
+        } else {
+          results.push({ target: "Codex", status: "Not installed", url: "" });
+        }
+      } else {
+        results.push({ target: "Codex", status: "No config", url: "" });
+      }
+    } catch {
+      results.push({ target: "Codex", status: "Error reading config", url: "" });
+    }
+
+    // OpenCode
+    try {
+      const opencodeConfigPath = join(
+        home,
+        ".config",
+        "opencode",
+        "opencode.json"
+      );
+      if (existsSync(opencodeConfigPath)) {
+        const config = JSON.parse(readFileSync(opencodeConfigPath, "utf8"));
+        if (config?.mcp?.nodetool) {
+          results.push({
+            target: "OpenCode",
+            status: "Installed",
+            url: config.mcp.nodetool.url ?? ""
+          });
+        } else {
+          results.push({ target: "OpenCode", status: "Not installed", url: "" });
+        }
+      } else {
+        results.push({ target: "OpenCode", status: "No config", url: "" });
+      }
+    } catch {
+      results.push({ target: "OpenCode", status: "Error reading config", url: "" });
+    }
+
+    console.log("\nNodeTool MCP Integration Status\n");
+    printTable(results);
+    console.log();
   });
 
 // ---------------------------------------------------------------------------

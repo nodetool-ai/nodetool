@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { clearAllSecretCache } from "@nodetool/security";
+import { clearAllSecretCache } from "@nodetool/models";
 import {
   OpenAIEmbeddingFunction,
   OllamaEmbeddingFunction,

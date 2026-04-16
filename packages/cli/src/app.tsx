@@ -43,7 +43,7 @@ import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } fr
 import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
 import { saveSettings } from "./settings.js";
-import { getSecret } from "@nodetool/security";
+import { getSecret } from "@nodetool/models";
 
 // ---------------------------------------------------------------------------
 // Types

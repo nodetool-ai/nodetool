@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from "@nodetool/config";
-import { getSecret } from "@nodetool/security";
+import { getSecret } from "@nodetool/models";
 import type { EmbeddingFunction } from "./sqlite-vec-store.js";
 
 const log = createLogger("nodetool.vectorstore.embedding");

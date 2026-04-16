@@ -8,9 +8,8 @@
 import { readFile, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { Secret, Setting } from "@nodetool/models";
+import { Secret, Setting, clearSecretCache } from "@nodetool/models";
 import { clearProviderCache } from "@nodetool/runtime";
-import { clearSecretCache } from "@nodetool/security";
 import { createLogger } from "@nodetool/config";
 
 const log = createLogger("nodetool.settings-api");

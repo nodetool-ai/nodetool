@@ -20,7 +20,7 @@ import {
   BaseProvider as BaseProviderClass
 } from "@nodetool/runtime";
 import type { Chunk } from "@nodetool/protocol";
-import { getSecret } from "@nodetool/security";
+import { getSecret } from "@nodetool/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
 
 export const KNOWN_PROVIDERS = [
