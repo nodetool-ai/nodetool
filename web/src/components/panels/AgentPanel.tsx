@@ -99,7 +99,7 @@ const placeholderStyles = (theme: Theme) =>
     ".placeholder-icon": {
       width: "40px",
       height: "40px",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -134,7 +134,7 @@ const placeholderStyles = (theme: Theme) =>
       color: theme.vars.palette.error.main,
       backgroundColor: `${theme.vars.palette.error.main}11`,
       border: `1px solid ${theme.vars.palette.error.main}33`,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       padding: "6px 12px",
       maxWidth: "360px"
     },
@@ -684,7 +684,7 @@ const AgentPanel: React.FC = () => {
 
   const toolbarButtonSx = useMemo(
     () => ({
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       border: `1px solid ${theme.vars.palette.divider}`,
       padding: "3px 8px",
       gap: "4px",

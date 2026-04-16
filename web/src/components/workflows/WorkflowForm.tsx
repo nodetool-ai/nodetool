@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.action.hover,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       border: `1px solid ${theme.vars.palette.grey[800]}`
     },
     
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     
     ".MuiOutlinedInput-root": {
       backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       transition: "all 0.2s ease",
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.grey[700],
@@ -112,7 +112,7 @@ const styles = (theme: Theme) =>
         "& .MuiPaper-root": {
           backgroundColor: theme.vars.palette.grey[800],
           color: theme.vars.palette.grey[0],
-          borderRadius: "6px",
+          borderRadius: "var(--rounded-md)",
           border: `1px solid ${theme.vars.palette.grey[700]}`
         },
         "& .MuiAutocomplete-option": {
@@ -156,7 +156,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       textTransform: "none",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[700]
       }
@@ -169,7 +169,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 600,
       textTransform: "none",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       border: "none",
       boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}4d`,
       transition: "all 0.2s ease",

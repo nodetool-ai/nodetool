@@ -112,7 +112,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       height: "23px",
       padding: "0 0.7em",
       fontSize: "0.65rem",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
@@ -142,7 +142,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".more-filters-button": {
       textTransform: "none",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       fontSize: "0.74rem",
       lineHeight: 1.2,
       padding: "5px 10px",

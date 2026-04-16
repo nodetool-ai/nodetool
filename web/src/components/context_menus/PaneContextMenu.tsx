@@ -300,7 +300,7 @@ const PaneContextMenu: React.FC = () => {
           paper: {
             className: "context-menu pane-context-menu",
             sx: {
-              borderRadius: "8px",
+              borderRadius: "var(--rounded-lg)",
               width: "240px"
             }
           }

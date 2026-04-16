@@ -20,7 +20,7 @@ const objectStyles = (theme: Theme) =>
       flexDirection: "column",
       gap: "0.25em",
       padding: "0.5em",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       backgroundColor: theme.vars.palette.action.hover,
       "&:last-child": {
         marginBottom: 0

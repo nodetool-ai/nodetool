@@ -136,7 +136,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     () => ({
       background: "transparent",
       border: "1px solid var(--palette-primary-main)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       color: "inherit",
       padding: "4px 8px",
       fontSize: "inherit",
@@ -295,7 +295,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
               fontWeight: 600,
               textTransform: "none",
               lineHeight: 1.4,
-              borderRadius: "4px"
+              borderRadius: "var(--rounded-sm)"
             }}
           >
             OPEN

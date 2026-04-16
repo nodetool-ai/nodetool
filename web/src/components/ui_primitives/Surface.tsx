@@ -11,7 +11,7 @@ import {
   Paper,
   PaperProps,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, type Theme } from "@mui/material/styles";
 
 export interface SurfaceProps extends Omit<PaperProps, "elevation"> {
   /** Elevation level (0-4). 0 = flat with border, 1-4 = shadow depth */
@@ -26,11 +26,14 @@ export interface SurfaceProps extends Omit<PaperProps, "elevation"> {
   background?: "default" | "paper" | "transparent";
 }
 
-const RADIUS_MAP = {
-  none: 0,
-  small: 4,
-  medium: 8,
-  large: 16,
+const RADIUS_MAP: Record<
+  NonNullable<SurfaceProps["rounded"]>,
+  keyof Theme["rounded"] | "none"
+> = {
+  none: "none",
+  small: "sm",
+  medium: "lg",
+  large: "xxl",
 };
 
 /**
@@ -82,7 +85,10 @@ export const Surface = memo(
           ref={ref}
           elevation={elevation}
           sx={{
-            borderRadius: `${RADIUS_MAP[rounded]}px`,
+            borderRadius:
+              RADIUS_MAP[rounded] === "none"
+                ? 0
+                : theme.rounded[RADIUS_MAP[rounded] as keyof Theme["rounded"]],
             padding:
               typeof padding === "number"
                 ? theme.spacing(padding)

@@ -127,7 +127,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     cursor: "pointer",
     userSelect: "none",
     transition: "all 0.15s ease",
-    borderRadius: "4px",
+    borderRadius: "var(--rounded-sm)",
     outline: "none",
     "&:hover": {
       opacity: 1,
@@ -174,7 +174,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     },
     "&::-webkit-scrollbar-thumb": {
       background: theme.vars.palette.action.disabledBackground,
-      borderRadius: "4px"
+      borderRadius: "var(--rounded-sm)"
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: theme.vars.palette.action.disabled
@@ -183,7 +183,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".settings-section": {
     backgroundColor: theme.vars.palette.background.default,
     backdropFilter: "blur(5px)",
-    borderRadius: "8px",
+    borderRadius: "var(--rounded-lg)",
     padding: "0.5em 1.2em 1.2em 1.2em",
     margin: "1.5em 0 1.5em 0",
     boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
@@ -296,7 +296,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     padding: "0.4em 0.6em",
     marginTop: "0",
     backgroundColor: theme.vars.palette.background.paper,
-    borderRadius: "8px",
+    borderRadius: "var(--rounded-lg)",
     transition: "background-color 0.2s ease",
     "&:hover": {
       backgroundColor: theme.vars.palette.background.default

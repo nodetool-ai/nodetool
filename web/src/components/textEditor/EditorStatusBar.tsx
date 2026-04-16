@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
       ".stat-dot": {
         width: "3px",
         height: "3px",
-        borderRadius: "50%",
+        borderRadius: "var(--rounded-circle)",
         backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.15)`,
         flexShrink: 0
       }
@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.25em",
       padding: "1px 8px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       fontSize: theme.fontSizeTiny,
       fontWeight: 500,
       letterSpacing: "0.03em",

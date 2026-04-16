@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
       margin: "0.4em 0",
       padding: "0.5em 0.8em",
       borderBottom: "1px solid rgba(30, 30, 30, 0.1)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       transition: "background-color 0.2s ease",
       position: "relative",
       "&:hover": {

@@ -160,7 +160,7 @@ const listStyles = (theme: Theme) =>
       right: "4px",
       transform: "none",
       backgroundColor: "rgba(0, 0, 0, 0.35)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "4px 6px",
       backdropFilter: "blur(4px)",
       gap: "4px"
@@ -172,7 +172,7 @@ const listStyles = (theme: Theme) =>
       transform: "none",
       zIndex: 5,
       backgroundColor: "rgba(0, 0, 0, 0.35)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "2px 6px"
     },
     ".date-header": {

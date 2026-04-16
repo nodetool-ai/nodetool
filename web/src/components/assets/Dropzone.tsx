@@ -19,7 +19,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       border: `3px dashed ${theme.vars.palette.primary.main}`,
-      borderRadius: "8px"
+      borderRadius: "var(--rounded-lg)"
     },
     ".dragging-overlay-text": {
       color: theme.vars.palette.primary.main,

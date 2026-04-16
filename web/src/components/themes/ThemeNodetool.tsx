@@ -40,7 +40,19 @@ const ThemeNodetool = createTheme({
   fontSizeTinyer: "0.55rem",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
+  // Canonical border-radius tokens. Prefer these over hardcoded values.
+  // Size scale (xs…xxl) for generic surfaces; semantic aliases below map to
+  // concrete product concepts. Also exposed as `--rounded-<key>` CSS vars via
+  // MuiCssBaseline so plain CSS files can reference them.
   rounded: {
+    xs: "2px",
+    sm: "4px",
+    md: "6px",
+    lg: "8px",
+    xl: "12px",
+    xxl: "16px",
+    pill: "9999px",
+    circle: "50%",
     dialog: "20px",
     node: "8px",
     buttonSmall: "4px",
@@ -89,6 +101,26 @@ const ThemeNodetool = createTheme({
     highest: 100000
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: (theme) => ({
+        // Expose `theme.rounded.*` as `--rounded-*` CSS custom properties on
+        // :root so plain CSS files (and raw style props) can reference them.
+        ":root": {
+          "--rounded-xs": theme.rounded.xs,
+          "--rounded-sm": theme.rounded.sm,
+          "--rounded-md": theme.rounded.md,
+          "--rounded-lg": theme.rounded.lg,
+          "--rounded-xl": theme.rounded.xl,
+          "--rounded-xxl": theme.rounded.xxl,
+          "--rounded-pill": theme.rounded.pill,
+          "--rounded-circle": theme.rounded.circle,
+          "--rounded-dialog": theme.rounded.dialog,
+          "--rounded-node": theme.rounded.node,
+          "--rounded-buttonSmall": theme.rounded.buttonSmall,
+          "--rounded-buttonLarge": theme.rounded.buttonLarge
+        }
+      })
+    },
     MuiTypography: {
       styleOverrides: {
         h1: ({ theme }) => ({
@@ -228,7 +260,7 @@ const ThemeNodetool = createTheme({
           color: theme.vars.palette.grey[50],
           maxWidth: 300,
           fontSize: theme.fontSizeSmall,
-          borderRadius: "8px",
+          borderRadius: theme.rounded.lg,
           padding: "8px 12px",
           boxShadow:
             "0 10px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)"

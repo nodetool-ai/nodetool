@@ -31,7 +31,7 @@ const styles = (theme: Theme, variant: string, size: string) =>
     ".dot": {
       width: size === "small" ? 6 : size === "large" ? 12 : 8,
       height: size === "small" ? 6 : size === "large" ? 12 : 8,
-      borderRadius: "50%",
+      borderRadius: theme.rounded?.circle ?? "50%",
       backgroundColor: theme.vars?.palette?.primary?.main ?? theme.palette.primary.main,
       animation: `${pulse} 1.4s infinite ease-in-out`,
       "&:nth-of-type(1)": { animationDelay: "-0.32s" },

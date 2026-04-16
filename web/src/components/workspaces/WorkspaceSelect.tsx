@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
   css({
     ".workspace-select": {
       backgroundColor: "transparent",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       "& .MuiSelect-select": {
         display: "flex",
         alignItems: "center",
@@ -223,7 +223,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
               sx: {
                 backgroundColor: theme.vars.palette.background.paper,
                 border: `1px solid ${theme.vars.palette.divider}`,
-                borderRadius: "6px",
+                borderRadius: "var(--rounded-md)",
                 mt: 0.5,
                 "& .workspace-option": {
                   display: "flex",
@@ -274,7 +274,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 },
                 "& .MuiMenuItem-root": {
                   padding: "10px 14px",
-                  borderRadius: "4px",
+                  borderRadius: "var(--rounded-sm)",
                   margin: "2px 4px",
                   "&:hover": {
                     backgroundColor: theme.vars.palette.action.hover

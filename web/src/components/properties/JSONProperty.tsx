@@ -128,7 +128,7 @@ const JSONProperty = (props: PropertyProps) => {
           overflow: "hidden",
           backgroundColor: "var(--palette-grey-600)",
           border: "1px solid var(--palette-grey-500)",
-          borderRadius: "4px"
+          borderRadius: "var(--rounded-sm)"
         }
       })}
     >

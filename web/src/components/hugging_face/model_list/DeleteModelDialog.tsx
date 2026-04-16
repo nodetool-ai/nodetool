@@ -186,7 +186,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         },
         paper: {
           sx: {
-            borderRadius: "16px",
+            borderRadius: "var(--rounded-xxl)",
             backgroundImage: "none"
           }
         }

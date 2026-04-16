@@ -65,7 +65,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
     ".media-chip-row .divider-dot": {
       width: 4,
       height: 4,
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       background: theme.vars.palette.grey[700],
       margin: "0 2px"
     },

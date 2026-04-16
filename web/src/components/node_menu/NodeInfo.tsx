@@ -82,7 +82,7 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "4px 8px",
       textTransform: "uppercase",
       display: "inline-block",

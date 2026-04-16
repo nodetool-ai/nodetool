@@ -127,7 +127,7 @@ const ResultPreviewStrip: React.FC<ResultPreviewStripProps> = ({
           mx: 0.5,
           mb: 0.5,
           cursor: "pointer",
-          borderRadius: "6px",
+          borderRadius: "var(--rounded-md)",
           backgroundColor: "rgba(255, 255, 255, 0.04)",
           border: "1px solid rgba(255, 255, 255, 0.08)",
           transition: "all 0.15s ease",

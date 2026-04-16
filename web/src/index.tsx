@@ -643,7 +643,7 @@ const AppWrapper = () => {
                         onClick={() => window.location.reload()}
                         style={{
                           padding: "8px 16px",
-                          borderRadius: "6px",
+                          borderRadius: "var(--rounded-md)",
                           border: "1px solid var(--palette-divider)",
                           backgroundColor: "transparent",
                           color: "var(--palette-text-primary)",

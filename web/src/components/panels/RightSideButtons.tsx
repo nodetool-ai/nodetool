@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
       padding: "0 4px",
       minWidth: "32px",
       height: "32px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       transition: "all 0.2s ease-out",
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)"

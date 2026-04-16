@@ -74,7 +74,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
       size="small"
       className="eyedropper-button"
       sx={(theme: Theme) => ({
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         backgroundColor: theme.vars.palette.grey[800],
         border: `1px solid ${theme.vars.palette.grey[700]}`,
         "&:hover": {

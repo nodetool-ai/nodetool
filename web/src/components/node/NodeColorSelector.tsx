@@ -51,7 +51,7 @@ export const colorSelectDialogStyles = (theme: Theme) =>
     ".color-button": {
       width: "98%",
       height: "2em",
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
       alignItems: "center",
       justifyContent: "start",
       border: "none",

@@ -13,7 +13,7 @@ const styles = (theme: Theme) =>
     ".task-container": {
       marginBottom: "1rem",
       padding: "1rem",
-      borderRadius: "4px"
+      borderRadius: "var(--rounded-sm)"
     },
     ".task-title": {
       fontWeight: "bold",

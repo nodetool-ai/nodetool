@@ -55,7 +55,7 @@ const GhostNode = memo(function GhostNode({
       },
       labelContainer: {
         padding: "6px 12px",
-        borderRadius: "12px",
+        borderRadius: "var(--rounded-xl)",
         background: theme.labelBackground,
         boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
         fontSize: "0.75rem",

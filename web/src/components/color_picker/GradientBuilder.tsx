@@ -28,7 +28,7 @@ const styles = (theme: Theme) =>
     ".gradient-preview": {
       width: "100%",
       height: "60px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       position: "relative",
       overflow: "hidden"
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "24px",
       backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       marginTop: "8px"
     },
     ".stop-marker": {
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       height: "24px",
       transform: "translateX(-50%)",
       cursor: "pointer",
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
       border: `2px solid white`,
       boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
       "&:hover": {
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
       marginTop: "12px",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       fontSize: "11px",
       fontFamily: "monospace",
       wordBreak: "break-all",

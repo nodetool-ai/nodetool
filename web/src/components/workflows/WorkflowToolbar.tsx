@@ -162,7 +162,7 @@ const styles = (theme: Theme) =>
       width: "28px",
       height: "28px",
       minWidth: "28px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       backgroundColor: theme.vars.palette.primary.main,
       border: `1px solid ${theme.vars.palette.divider}`,
       transition: "all 0.2s ease",

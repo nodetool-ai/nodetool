@@ -120,7 +120,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             height: "32px",
             background: theme.vars.palette.action.hover,
             backdropFilter: theme.vars.palette.glass.blur,
-            borderRadius: "8px",
+            borderRadius: "var(--rounded-lg)",
             border: `1px solid ${theme.vars.palette.divider}`,
             "& .MuiToggleButton-root": {
               border: "none",
@@ -172,7 +172,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
               minWidth: 120,
               fontSize: "0.875rem",
               background: theme.vars.palette.action.hover,
-              borderRadius: "8px",
+              borderRadius: "var(--rounded-lg)",
               "& .MuiOutlinedInput-notchedOutline": {
                 borderColor: theme.vars.palette.divider
               },

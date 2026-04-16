@@ -44,7 +44,7 @@ const menuStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       width: "320px",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: theme.shadows[8],
@@ -76,7 +76,7 @@ const scrollableContentStyles = (theme: Theme) =>
       alignItems: "center",
       margin: "2px 0",
       padding: "6px 8px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       cursor: "pointer",
       transition: "background-color 0.2s ease",
       ".node-button": {
@@ -89,7 +89,7 @@ const scrollableContentStyles = (theme: Theme) =>
       },
       ".icon-bg": {
         backgroundColor: "rgba(255,255,255,0.05) !important",
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         padding: "4px",
         display: "flex",
         alignItems: "center",
@@ -106,7 +106,7 @@ const scrollableContentStyles = (theme: Theme) =>
     ".node.focused": {
       color: "var(--palette-primary-main)",
       backgroundColor: "action.selected",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       boxShadow: `inset 0 0 0 1px ${theme.vars.palette.action.selected}`
     },
     ".Mui-disabled": {
@@ -354,7 +354,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             sx={{
                 "& .MuiOutlinedInput-root": {
                     backgroundColor: "action.disabledBackground",
-                    borderRadius: "8px",
+                    borderRadius: "var(--rounded-lg)",
                     "& .MuiOutlinedInput-notchedOutline": { borderColor: "action.selected" },
                     "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "action.focus" },
                     "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: theme.vars.palette.primary.main },

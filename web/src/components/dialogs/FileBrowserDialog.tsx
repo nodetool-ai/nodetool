@@ -98,7 +98,7 @@ const styles = (theme: Theme) =>
     },
     // Tree View Styles
     ".MuiTreeItem-content": {
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "4px 8px",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover

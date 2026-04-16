@@ -34,7 +34,7 @@ const styles = (theme: Theme) =>
     backgroundColor: rerouteBackground(theme, 0.8),
     backdropFilter: theme.vars.palette.glass.blur,
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
-    borderRadius: "50%",
+    borderRadius: "var(--rounded-circle)",
     cursor: "grab",
     transition: "all 0.2s ease",
 
@@ -59,7 +59,7 @@ const titleStyles = (theme: Theme) =>
     backdropFilter: theme.vars.palette.glass.blur,
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
     padding: "2px 6px",
-    borderRadius: "4px",
+    borderRadius: "var(--rounded-sm)",
     border: `1px solid ${theme.vars.palette.divider}`,
     cursor: "default",
     userSelect: "none",

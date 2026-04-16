@@ -33,7 +33,7 @@
   max-height: 5000px;
   padding: 0;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--rounded-lg);
   border: none;
   background-color: var(--palette-grey-700);
   box-shadow: none;

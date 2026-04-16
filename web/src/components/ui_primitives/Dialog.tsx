@@ -175,7 +175,7 @@ export const Dialog = memo(
             },
             paper: {
               style: {
-                borderRadius: "16px",
+                borderRadius: theme.rounded.xxl,
                 background: theme.vars.palette.background.paper,
                 backdropFilter: `${theme.vars.palette.glass.blur} saturate(180%)`,
                 border: `1px solid ${theme.vars.palette.divider}`,

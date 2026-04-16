@@ -20,7 +20,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center"
     },
     ".open-colors-button": {
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       backgroundColor: "transparent",
       border: `1px solid ${theme.vars.palette.grey[600] || "rgba(100, 100, 100, 0.75)"}`,
       padding: 0,
@@ -45,7 +45,7 @@ const colorMatrixStyle = (theme: Theme) =>
     width: "100%",
     maxWidth: "300px",
     ".pick-color-button": {
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       border: `1px solid ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.75)"}`,
       minWidth: "unset",
       minHeight: "unset",
@@ -179,7 +179,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 ? { 'data-color-null': 'true' }
                 : { 'data-color': cellColor })}
               sx={{
-                borderRadius: "50%",
+                borderRadius: "var(--rounded-circle)",
                 cursor: "pointer",
                 "&:hover": {
                   transform: "scale(1.1)"

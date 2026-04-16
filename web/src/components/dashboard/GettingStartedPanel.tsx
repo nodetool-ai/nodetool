@@ -65,10 +65,10 @@ const panelStyles = (theme: Theme) =>
     },
     ".progress-bar": {
       height: "4px",
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
       backgroundColor: theme.vars.palette.grey[800],
       "& .MuiLinearProgress-bar": {
-        borderRadius: "2px",
+        borderRadius: "var(--rounded-xs)",
         backgroundColor: theme.vars.palette.success.main
       }
     },
@@ -93,7 +93,7 @@ const panelStyles = (theme: Theme) =>
       justifyContent: "center",
       width: "36px",
       height: "36px",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       backgroundColor: theme.vars.palette.grey[800],
       flexShrink: 0
     },
@@ -108,7 +108,7 @@ const panelStyles = (theme: Theme) =>
     ".optional-badge": {
       fontSize: "0.7rem",
       padding: "2px 6px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.grey[800],
       color: theme.vars.palette.text.secondary,
       marginLeft: "0.5em"
@@ -143,7 +143,7 @@ const panelStyles = (theme: Theme) =>
       letterSpacing: "0.02em",
       opacity: 0.7,
       backgroundColor: "rgba(255,255,255,0.05)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       "&:hover": {
         opacity: 1,
         backgroundColor: "rgba(255,255,255,0.12)"

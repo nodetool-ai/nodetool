@@ -582,7 +582,7 @@ const WorkflowAssistantChat: React.FC = () => {
             backgroundColor: "var(--palette-error-dark)",
             color: theme.vars.palette.common.white,
             padding: "8px 16px",
-            borderRadius: "4px",
+            borderRadius: "var(--rounded-sm)",
             maxWidth: "90%",
             boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
           }}
