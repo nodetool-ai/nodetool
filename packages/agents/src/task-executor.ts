@@ -233,8 +233,9 @@ export class TaskExecutor {
         for (const [key, value] of Object.entries(
           item as Record<string, unknown>
         )) {
+          const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           instructions = instructions.replace(
-            new RegExp(`\\{${key}\\}`, "g"),
+            new RegExp(`\\{${escapedKey}\\}`, "g"),
             String(value)
           );
         }

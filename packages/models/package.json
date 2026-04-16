@@ -7,13 +7,15 @@
   "exports": {
     ".": {
       "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "default": "./dist/index.js"
     },
     "./secret": {
       "nodetool-dev": "./src/secret.ts",
+      "types": "./dist/secret.d.ts",
       "import": "./dist/secret.js",
-      "types": "./dist/secret.d.ts"
+      "default": "./dist/secret.js"
     }
   },
   "scripts": {

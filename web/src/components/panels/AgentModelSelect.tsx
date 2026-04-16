@@ -27,6 +27,7 @@ interface AgentModelSelectProps {
   disabled?: boolean;
   loading?: boolean;
   placeholder?: string;
+  searchable?: boolean;
 }
 
 const triggerStyles = (theme: Theme, disabled: boolean) => css({
@@ -160,7 +161,8 @@ const AgentModelSelectInner: React.FC<AgentModelSelectProps> = ({
   onChange,
   disabled = false,
   loading = false,
-  placeholder = "Model"
+  placeholder = "Model",
+  searchable = true
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
@@ -190,9 +192,10 @@ const AgentModelSelectInner: React.FC<AgentModelSelectProps> = ({
     // With an empty query, the filtered list equals `options`, so we index
     // into that to highlight the currently selected model.
     setActiveIndex(Math.max(0, options.findIndex((o) => o.id === value)));
+    if (!searchable) return;
     const id = window.setTimeout(() => searchRef.current?.focus(), 0);
     return () => window.clearTimeout(id);
-  }, [open, options, value]);
+  }, [open, options, value, searchable]);
 
   useEffect(() => {
     if (activeIndex >= filtered.length) {
@@ -276,24 +279,26 @@ const AgentModelSelectInner: React.FC<AgentModelSelectProps> = ({
           overflow: "visible"
         }}
       >
-        <div css={popupStyles(theme)}>
-          <div className="search-row">
-            <SearchIcon />
-            <input
-              ref={searchRef}
-              className="search-input"
-              type="text"
-              placeholder="Search models…"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setActiveIndex(0);
-              }}
-              onKeyDown={handleKeyDown}
-              spellCheck={false}
-              autoComplete="off"
-            />
-          </div>
+        <div css={popupStyles(theme)} onKeyDown={searchable ? undefined : handleKeyDown} tabIndex={searchable ? undefined : -1}>
+          {searchable && (
+            <div className="search-row">
+              <SearchIcon />
+              <input
+                ref={searchRef}
+                className="search-input"
+                type="text"
+                placeholder="Search models…"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActiveIndex(0);
+                }}
+                onKeyDown={handleKeyDown}
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </div>
+          )}
           <div className="list" ref={listRef} role="listbox">
             {filtered.length === 0 ? (
               <div className="empty">No models match</div>

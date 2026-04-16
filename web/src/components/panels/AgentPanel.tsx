@@ -35,8 +35,6 @@ import {
   Caption,
   Tooltip,
   SelectField,
-  ToggleGroup,
-  ToggleOption,
   FlexRow,
   Dialog,
   LoadingSpinner
@@ -631,8 +629,8 @@ const AgentPanel: React.FC = () => {
     []
   );
 
-  const handleProviderToggle = useCallback(
-    (_event: React.MouseEvent, value: string | null) => {
+  const handleProviderSelectChange = useCallback(
+    (value: string) => {
       if (
         value === "claude" ||
         value === "codex" ||
@@ -643,6 +641,18 @@ const AgentPanel: React.FC = () => {
       }
     },
     [setProvider]
+  );
+
+  const providerSelectOptions = useMemo<
+    Array<{ id: string; label: string }>
+  >(
+    () => [
+      { id: "claude", label: "Claude" },
+      { id: "codex", label: "Codex" },
+      { id: "opencode", label: "OpenCode" },
+      { id: "pi", label: "Pi" }
+    ],
+    []
   );
 
   // Stable handler for model change in dialog
@@ -717,35 +727,6 @@ const AgentPanel: React.FC = () => {
   return (
     <div css={containerStyles(theme)} className="agent-panel">
       <div css={toolbarStyles(theme)}>
-        <ToggleGroup
-          value={provider}
-          exclusive
-          onChange={handleProviderToggle}
-          compact
-          disabled={hasRunningSession}
-          sx={{
-            height: "26px",
-            "& .MuiToggleButton-root": {
-              fontSize: theme.fontSizeSmaller,
-              fontFamily: theme.fontFamily2,
-              padding: "1px 8px",
-              textTransform: "none",
-              border: `1px solid ${theme.vars.palette.divider}`,
-              color: theme.vars.palette.text.secondary,
-              "&.Mui-selected": {
-                backgroundColor: `${theme.vars.palette.primary.main}18`,
-                color: theme.vars.palette.primary.light,
-                borderColor: theme.vars.palette.primary.main,
-              },
-            },
-          }}
-        >
-          <ToggleOption value="claude">Claude</ToggleOption>
-          <ToggleOption value="codex">Codex</ToggleOption>
-          <ToggleOption value="opencode">OpenCode</ToggleOption>
-          <ToggleOption value="pi">Pi</ToggleOption>
-        </ToggleGroup>
-
         <div style={{ flex: 1 }} />
 
         <Tooltip title="Resume a previous session">
@@ -902,13 +883,22 @@ const AgentPanel: React.FC = () => {
         noMessagesPlaceholder={noMessagesPlaceholder}
         composerVariant="simple"
         composerToolbar={
-          <AgentModelSelect
-            value={model}
-            options={availableModels}
-            onChange={setModel}
-            disabled={hasRunningSession || availableModels.length === 0}
-            loading={modelsLoading}
-          />
+          <FlexRow gap={1} align="center">
+            <AgentModelSelect
+              value={provider}
+              options={providerSelectOptions}
+              onChange={handleProviderSelectChange}
+              disabled={hasRunningSession}
+              searchable={false}
+            />
+            <AgentModelSelect
+              value={model}
+              options={availableModels}
+              onChange={setModel}
+              disabled={hasRunningSession || availableModels.length === 0}
+              loading={modelsLoading}
+            />
+          </FlexRow>
         }
       />
     </div>
