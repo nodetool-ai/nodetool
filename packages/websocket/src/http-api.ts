@@ -24,8 +24,19 @@ import {
   type NodeMetadata,
   NodeRegistry
 } from "@nodetool/node-sdk";
+import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
+import { registerFalNodes } from "@nodetool/fal-nodes";
+import { registerKieNodes } from "@nodetool/kie-nodes";
+import { registerReplicateNodes } from "@nodetool/replicate-nodes";
+import {
+  clearProviderCache,
+  PythonNodeExecutor,
+  PythonStdioBridge,
+  type NodeExecutor
+} from "@nodetool/runtime";
+import { WorkflowRunner } from "@nodetool/kernel";
 import { clearSecretCache } from "@nodetool/security";
-import { clearProviderCache } from "@nodetool/runtime";
 import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
@@ -116,6 +127,7 @@ export interface HttpApiOptions {
 // Lazily created storage handler — recreated if options change
 let _storageHandler: ((request: Request) => Promise<Response>) | null = null;
 let _storageOpts: StorageHandlerOptions | undefined;
+let workflowRuntimePromise: Promise<WorkflowRuntimeEnvironment> | null = null;
 
 function getStorageHandler(
   opts?: StorageHandlerOptions
@@ -125,6 +137,92 @@ function getStorageHandler(
     _storageOpts = opts;
   }
   return _storageHandler;
+}
+
+type WorkflowRuntimeEnvironment = {
+  registry: NodeRegistry;
+  pythonBridge: PythonStdioBridge;
+  ensurePythonBridge: () => Promise<void>;
+  resolveExecutor: (node: {
+    id: string;
+    type: string;
+    [key: string]: unknown;
+  }) => NodeExecutor;
+};
+
+async function getWorkflowRuntimeEnvironment(
+  options: HttpApiOptions = {}
+): Promise<WorkflowRuntimeEnvironment> {
+  if (!workflowRuntimePromise) {
+    workflowRuntimePromise = (async () => {
+      const registry = options.registry ?? new NodeRegistry();
+      if (!options.registry) {
+        registry.loadPythonMetadata({
+          roots: options.metadataRoots,
+          maxDepth: options.metadataMaxDepth ?? 8
+        });
+        registerBaseNodes(registry);
+        registerElevenLabsNodes(registry);
+        registerFalNodes(registry);
+        registerKieNodes(registry);
+        registerReplicateNodes(registry);
+      }
+
+      const pythonBridge = new PythonStdioBridge({
+        workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
+          ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
+          : []
+      });
+
+      let pythonBridgeReady = false;
+      pythonBridge.on("exit", () => {
+        pythonBridgeReady = false;
+      });
+
+      const ensurePythonBridge = async (): Promise<void> => {
+        await pythonBridge.ensureConnected();
+        pythonBridgeReady = true;
+      };
+
+      const resolveExecutor = (node: {
+        id: string;
+        type: string;
+        [key: string]: unknown;
+      }): NodeExecutor => {
+        if (registry.has(node.type)) {
+          return registry.resolve(node);
+        }
+        if (pythonBridgeReady && pythonBridge.hasNodeType(node.type)) {
+          const meta = pythonBridge
+            .getNodeMetadata()
+            .find((n) => n.node_type === node.type);
+          const props = (node.properties ?? node.data ?? {}) as Record<
+            string,
+            unknown
+          >;
+          return new PythonNodeExecutor(
+            pythonBridge,
+            node.type,
+            props,
+            Object.fromEntries(
+              (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
+            ),
+            meta?.required_settings ?? []
+          );
+        }
+        if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+          throw new Error(
+            `Python node "${node.type}" cannot execute: Python worker is not connected.`
+          );
+        }
+        return registry.resolve(node);
+      };
+
+      return { registry, pythonBridge, ensurePythonBridge, resolveExecutor };
+    })();
+  }
+
+  return workflowRuntimePromise;
 }
 
 export interface WorkflowRequestBody {
@@ -190,7 +288,7 @@ async function parseJsonBody<T>(request: Request): Promise<T | null> {
   }
 }
 
-function toWorkflowResponse(workflow: Workflow): JsonObject {
+export function toWorkflowResponse(workflow: Workflow): JsonObject {
   return {
     id: workflow.id,
     access: workflow.access,
@@ -347,6 +445,133 @@ async function updateWorkflow(
     workspace_id: body.workspace_id ?? null,
     html_app: body.html_app ?? null
   })) as Workflow;
+}
+
+export async function handleWorkflowRun(
+  request: Request,
+  workflowId: string,
+  options: HttpApiOptions = {}
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  const workflow = await Workflow.find(userId, workflowId);
+  if (!workflow) {
+    return errorResponse(404, "Workflow not found");
+  }
+
+  const runMode = workflow.run_mode ?? "workflow";
+  if (runMode !== "workflow") {
+    return errorResponse(
+      400,
+      `Workflow run mode \"${runMode}\" is not supported by the standalone backend`
+    );
+  }
+
+  const body = await parseJsonBody<{
+    params?: Record<string, unknown>;
+    background?: boolean;
+  }>(request);
+  const params = body?.params ?? {};
+
+  const graph = workflow.getGraph();
+  const runnableGraph: {
+    nodes: Array<{
+      id: string;
+      type: string;
+      [key: string]: unknown;
+    }>;
+    edges: Array<{
+      id?: string | null;
+      source: string;
+      target: string;
+      sourceHandle: string;
+      targetHandle: string;
+      edge_type?: "data" | "control";
+      [key: string]: unknown;
+    }>;
+  } = {
+    nodes: graph.nodes.map((node) => {
+      const record = node as Record<string, unknown>;
+      return {
+        ...record,
+        id: String(record.id ?? ""),
+        type: String(record.type ?? ""),
+        properties: (record.properties ?? record.data ?? {}) as Record<
+          string,
+          unknown
+        >
+      };
+    }),
+    edges: graph.edges.map((edge) => {
+      const record = edge as Record<string, unknown>;
+      return {
+        ...record,
+        id:
+          typeof record.id === "string" || record.id == null
+            ? (record.id as string | null | undefined)
+            : String(record.id),
+        source: String(record.source ?? ""),
+        target: String(record.target ?? ""),
+        sourceHandle: String(record.sourceHandle ?? ""),
+        targetHandle: String(record.targetHandle ?? ""),
+        edge_type: record.edge_type === "control" ? "control" : "data"
+      };
+    })
+  };
+
+  const runtime = await getWorkflowRuntimeEnvironment(options);
+  const hasPythonNode = runnableGraph.nodes.some((node) => {
+    const nodeType = typeof node.type === "string" ? node.type : "";
+    return (
+      nodeType !== "" &&
+      Boolean(runtime.registry.getMetadata(nodeType)) &&
+      !runtime.registry.has(nodeType)
+    );
+  });
+  if (hasPythonNode) {
+    await runtime.ensurePythonBridge();
+  }
+
+  const job = await Job.create({
+    workflow_id: workflowId,
+    user_id: userId,
+    status: "running",
+    params,
+    graph: runnableGraph
+  });
+
+  const runner = new WorkflowRunner(job.id, {
+    resolveExecutor: (node) =>
+      runtime.resolveExecutor(
+        node as { id: string; type: string; [key: string]: unknown }
+      )
+  });
+  const result = await runner.run(
+    { job_id: job.id, workflow_id: workflowId, params },
+    runnableGraph
+  );
+
+  if (result.status === "completed") {
+    job.markCompleted();
+  } else if (result.status === "cancelled") {
+    job.markCancelled();
+  } else {
+    job.markFailed(result.error ?? "Workflow run failed");
+  }
+  await job.save();
+
+  return jsonResponse({
+    job_id: job.id,
+    workflow_id: workflowId,
+    status: result.status,
+    outputs: result.outputs,
+    error: result.error ?? null,
+    message_count: result.messages.length,
+    background: body?.background ?? false
+  });
 }
 
 // ── Autosave ──────────────────────────────────────────────────────────
@@ -1401,7 +1626,7 @@ export async function handleThreadSummarize(
 
 // ── Job types & helpers ───────────────────────────────────────────
 
-function toJobResponse(job: Job): JsonObject {
+export function toJobResponse(job: Job): JsonObject {
   return {
     id: job.id,
     user_id: job.user_id,
@@ -1707,7 +1932,7 @@ interface AssetUpdateBody {
   data_encoding?: string | null;
 }
 
-function toAssetResponse(asset: Asset): JsonObject {
+export function toAssetResponse(asset: Asset): JsonObject {
   const isFolder = asset.content_type === "folder";
   const fileName = isFolder
     ? null
@@ -2486,12 +2711,7 @@ export async function handleApiRequest(
       const subPath = wfSubMatch[2];
 
       if (subPath === "run") {
-        if (request.method !== "POST")
-          return errorResponse(405, "Method not allowed");
-        return errorResponse(
-          501,
-          "Workflow execution not available in standalone mode"
-        );
+        return handleWorkflowRun(request, workflowId, options);
       }
       if (subPath === "autosave") {
         return handleWorkflowAutosave(request, workflowId, options);

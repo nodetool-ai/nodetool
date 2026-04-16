@@ -169,6 +169,29 @@ export async function handleCollectionRequest(
       return errorResponse(405, "Method not allowed");
     }
 
+    // POST /api/collections/:name/query
+    const queryMatch = pathname.match(/^\/api\/collections\/([^/]+)\/query$/);
+    if (queryMatch) {
+      if (request.method !== "POST") {
+        return errorResponse(405, "Method not allowed");
+      }
+      const body = await parseJsonBody<{
+        query_texts?: string[];
+        n_results?: number;
+      }>(request);
+      if (!body || !Array.isArray(body.query_texts)) {
+        return errorResponse(400, "Invalid JSON body: query_texts is required");
+      }
+      const collection = await store.getCollection({
+        name: decodeURIComponent(queryMatch[1])
+      });
+      const results = await collection.query({
+        queryTexts: body.query_texts,
+        nResults: body.n_results ?? 10
+      });
+      return jsonResponse(results);
+    }
+
     // Routes with /:name
     const nameMatch = pathname.match(/^\/api\/collections\/([^/]+)$/);
     if (!nameMatch) return null;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, Workflow } from "@nodetool/models";
-import { SqliteVecStore, resetDefaultStore } from "@nodetool/vectorstore";
+import { getVecStore, resetDefaultStore } from "@nodetool/vectorstore";
 import { handleCollectionRequest } from "../src/collection-api.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -328,6 +328,37 @@ describe("Collection API (sqlite-vec)", () => {
       {}
     );
     expect(res!.status).toBe(400);
+  });
+
+  it("POST /api/collections/:name/query returns semantic search results", async () => {
+    const createReq = new Request("http://localhost/api/collections", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "query-col" })
+    });
+    await handleCollectionRequest(createReq, "/api/collections", {});
+
+    const store = await getVecStore();
+    const collection = await store.getCollection({ name: "query-col" });
+    await collection.add({
+      ids: ["1", "2"],
+      documents: ["hello world", "goodbye moon"]
+    });
+
+    const req = new Request("http://localhost/api/collections/query-col/query", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query_texts: ["hello"], n_results: 1 })
+    });
+    const res = await handleCollectionRequest(
+      req,
+      "/api/collections/query-col/query",
+      {}
+    );
+    expect(res).not.toBeNull();
+    expect(res!.status).toBe(200);
+    const body = (await jsonBody(res!)) as Record<string, unknown>;
+    expect(body.documents).toBeDefined();
   });
 
   // ── Trailing slash normalization ─────────────────────────────────
