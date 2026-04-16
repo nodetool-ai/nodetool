@@ -109,18 +109,21 @@ describe("FalProvider", () => {
     const result = await p.textToImage(params);
     expect(result).toBeInstanceOf(Uint8Array);
 
-    expect(subscribeMock).toHaveBeenCalledWith("fal-ai/flux/dev", {
-      input: expect.objectContaining({
-        prompt: "a cat",
-        negative_prompt: "blurry",
-        guidance_scale: 7.5,
-        num_inference_steps: 30,
-        image_size: { width: 1024, height: 768 },
-        seed: 42,
-        output_format: "png"
-      }),
-      logs: true
-    });
+    expect(subscribeMock).toHaveBeenCalledWith(
+      "fal-ai/flux/dev",
+      expect.objectContaining({
+        input: expect.objectContaining({
+          prompt: "a cat",
+          negative_prompt: "blurry",
+          guidance_scale: 7.5,
+          num_inference_steps: 30,
+          image_size: { width: 1024, height: 768 },
+          seed: 42,
+          output_format: "png"
+        }),
+        logs: true
+      })
+    );
 
     vi.unstubAllGlobals();
   });

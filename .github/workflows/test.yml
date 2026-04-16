@@ -67,6 +67,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install system libraries for keytar
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
+
       - name: Install all workspace dependencies
         run: npm install
         env:
