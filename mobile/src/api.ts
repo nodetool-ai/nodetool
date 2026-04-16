@@ -4821,6 +4821,11 @@ export interface components {
              */
             supports_dynamic_outputs: boolean;
             /**
+             * Required Settings
+             * @description Settings required by this node
+             */
+            required_settings: string[];
+            /**
              * Model Packs
              * @description Model packs associated with this node
              */

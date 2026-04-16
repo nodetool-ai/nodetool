@@ -204,7 +204,7 @@ class ApiService {
   }): Promise<paths["/api/workflows/{id}"]["put"]["responses"][200]["content"]["application/json"]> {
     const { data, error } = await this.client.PUT('/api/workflows/{id}', {
       params: { path: { id: workflow.id } },
-      body: workflow as paths["/api/workflows/{id}"]["put"]["requestBody"]["content"]["application/json"],
+      body: workflow as unknown as paths["/api/workflows/{id}"]["put"]["requestBody"]["content"]["application/json"],
     });
     if (error) { throw error; }
     return data as paths["/api/workflows/{id}"]["put"]["responses"][200]["content"]["application/json"];
