@@ -139,6 +139,16 @@ describe("text-extra regressions", () => {
       const result = await node.process();
       expect(result.output).toBe("HELLO");
     });
+
+    it("preserves $-sequences in dynamic property values", async () => {
+      const node = new FormatTextNode();
+      Object.assign(node, {
+        template: "price: {price}, code: {code}",
+        _dynamic_properties: { price: "$100", code: "a$&b$$c" }
+      });
+      const result = await node.process();
+      expect(result.output).toBe("price: $100, code: a$&b$$c");
+    });
   });
 
   // 4. HtmlToText
