@@ -4,11 +4,18 @@ import path from "path";
 import { shell } from "electron";
 
 import { logMessage, LOG_FILE } from "./logger";
-import { getCondaEnvPath } from "./config";
-import { getDefaultAssetsPath } from "@nodetool/config";
+import { getCondaEnvPath, getSystemDataPath } from "./config";
 import type { FileExplorerResult, ModelDirectory, SystemDirectory } from "./types";
 
 const DEFAULT_HF_SUBDIR = path.join(".cache", "huggingface", "hub");
+
+function getDefaultAssetsPath(): string {
+  return (
+    process.env.ASSET_FOLDER ??
+    process.env.STORAGE_PATH ??
+    getSystemDataPath("assets")
+  );
+}
 
 function expandUserPath(p?: string | null): string | undefined {
   if (!p) {
