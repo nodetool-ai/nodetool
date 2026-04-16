@@ -26,6 +26,7 @@ import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeS
 import { getWorkflowRunnerStore } from "./WorkflowRunner";
 import log from "loglevel";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
+import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -185,6 +186,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @returns {Workflow} A new workflow object with default values
        */
       newWorkflow: () => {
+        const lastUsedWorkspaceId =
+          useCurrentWorkspaceStore.getState().lastUsedWorkspaceId;
         const data: Workflow = {
           id: uuidv4(),
           name: "New Workflow",
@@ -200,7 +203,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           settings: {
             hide_ui: false
           },
-          run_mode: "workflow"
+          run_mode: "workflow",
+          workspace_id: lastUsedWorkspaceId ?? null
         };
         return data;
       },

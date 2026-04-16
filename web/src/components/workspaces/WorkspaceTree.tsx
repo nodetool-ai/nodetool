@@ -31,6 +31,7 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
+import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
 
@@ -422,28 +423,18 @@ const WorkspaceTree: React.FC = () => {
   const filesWorkspaceIdRef = useRef<string | undefined>(undefined);
   filesWorkspaceIdRef.current = filesWorkspaceId;
   const previousWorkflowId = useRef<string | null | undefined>(undefined);
-  const {
-    currentWorkflowId,
-    openWorkflows,
-    getCurrentWorkflow,
-    updateWorkflow,
-    saveWorkflow
-  } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId,
-    openWorkflows: state.openWorkflows,
-    getCurrentWorkflow: state.getCurrentWorkflow,
-    updateWorkflow: state.updateWorkflow,
-    saveWorkflow: state.saveWorkflow
-  }));
+  const { currentWorkflowId, getCurrentWorkflow } = useWorkflowManager(
+    (state) => ({
+      currentWorkflowId: state.currentWorkflowId,
+      getCurrentWorkflow: state.getCurrentWorkflow
+    })
+  );
 
   const setWorkspaceManagerOpen = useWorkspaceManagerStore((state) => state.setIsOpen);
 
   const currentWorkflow = getCurrentWorkflow();
-  const currentWorkflowMeta = openWorkflows.find(
-    (workflow) => workflow.id === currentWorkflowId
-  );
   const workflowId = currentWorkflowId ?? currentWorkflow?.id;
-  const workspaceId = currentWorkflowMeta?.workspace_id ?? currentWorkflow?.workspace_id;
+  const { workspaceId, setWorkspaceId } = useCurrentWorkspace();
 
   const {
     data: initialFiles,
@@ -459,20 +450,10 @@ const WorkspaceTree: React.FC = () => {
 
   const handleWorkspaceChange = useCallback(
     async (newWorkspaceId: string | undefined) => {
-      if (!currentWorkflow) { return; }
-      const updatedWorkflow = {
-        ...currentWorkflow,
-        workspace_id: newWorkspaceId
-      };
-      updateWorkflow(updatedWorkflow);
-      try {
-        await saveWorkflow(updatedWorkflow);
-        setFilesWorkspaceId(newWorkspaceId);
-      } catch (error) {
-        log.error("Failed to save workspace change:", error);
-      }
+      await setWorkspaceId(newWorkspaceId);
+      setFilesWorkspaceId(newWorkspaceId);
     },
-    [currentWorkflow, updateWorkflow, saveWorkflow]
+    [setWorkspaceId]
   );
 
   useEffect(() => {
