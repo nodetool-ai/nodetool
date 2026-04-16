@@ -355,8 +355,8 @@ async function main() {
     sourcemap: "external",
     banner: {
       js: [
-        'import { createRequire } from "node:module";',
-        "const require = createRequire(import.meta.url);",
+        'import { createRequire as __ntCreateRequire } from "node:module";',
+        "const require = __ntCreateRequire(import.meta.url);",
       ].join("\n"),
     },
     plugins: [resolveWorkspaceSubpathPlugin],
