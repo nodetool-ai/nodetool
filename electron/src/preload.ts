@@ -682,34 +682,11 @@ const api = {
       }),
   },
 
-  // ============================================================================
-  // ipc: Low-level IPC methods for registering handlers
-  // ============================================================================
-  ipc: {
-    /** Invoke a main-process IPC handler */
-    invoke: (channel: string, ...args: unknown[]) =>
-      ipcRenderer.invoke(channel, ...args),
-
-    /** Send an event to the main process */
-    send: (channel: string, ...args: unknown[]) =>
-      ipcRenderer.send(channel, ...args),
-
-    /** Register a listener for IPC send events from the main process */
-    on: (
-      channel: string,
-      listener: (event: Electron.IpcRendererEvent, ...args: unknown[]) => void,
-    ) => {
-      ipcRenderer.on(channel, listener);
-    },
-
-    /** Remove a listener for IPC send events */
-    off: (
-      channel: string,
-      listener: (...args: unknown[]) => void,
-    ) => {
-      ipcRenderer.removeListener(channel, listener);
-    },
-  },
+  // NOTE: We deliberately do NOT expose raw `ipcRenderer.invoke/send/on/off`
+  // here. Exposing an unrestricted `ipc` namespace would defeat the purpose
+  // of contextBridge — a compromised renderer could call any main-process
+  // channel. Every capability must be declared as a named method on this
+  // `api` object with input validation above.
 };
 
 contextBridge.exposeInMainWorld("api", api);

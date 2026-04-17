@@ -18,6 +18,7 @@ import {
   stopServer,
   restartLlamaServer,
 } from "./server";
+import { assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
 import {
   IpcChannels,
@@ -104,6 +105,39 @@ const LOCALHOST_PROXY_WS_STATES = new Map<
   }
 >();
 const LOCALHOST_PROXY_WS_IDS_BY_SENDER = new Map<number, Set<string>>();
+
+/**
+ * Defense-in-depth check for URLs passed to `shell.openExternal` / browser.
+ * The preload already filters schemes, but a compromised renderer could
+ * invoke the IPC channel directly. Only `http:`, `https:`, and `mailto:`
+ * are considered safe to hand to the OS.
+ */
+const SAFE_EXTERNAL_PROTOCOLS = new Set([
+  "http:",
+  "https:",
+  "mailto:",
+]);
+
+function isSafeExternalUrl(urlValue: unknown): boolean {
+  if (typeof urlValue !== "string" || urlValue.length === 0) {
+    return false;
+  }
+  // Allow well-known OS-preference deep links used by our own code paths.
+  // These are expected to come from the main process, not the renderer, so
+  // we accept them here for completeness and log any unexpected call.
+  if (
+    urlValue.startsWith("x-apple.systempreferences:") ||
+    urlValue.startsWith("ms-settings:")
+  ) {
+    return true;
+  }
+  try {
+    const parsed = new URL(urlValue);
+    return SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
 
 function assertLocalhostUrl(
   urlValue: string,
@@ -552,9 +586,19 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.FILE_READ_AS_DATA_URL,
     async (_event, filePath) => {
+      let safePath: string;
       try {
-        const buffer = await fs.readFile(filePath);
-        const ext = path.extname(filePath).toLowerCase().replace(".", "");
+        safePath = assertSafeReadablePath(filePath);
+      } catch (error) {
+        logMessage(
+          `Refusing FILE_READ_AS_DATA_URL for ${String(filePath)}: ${String(error)}`,
+          "warn",
+        );
+        return null;
+      }
+      try {
+        const buffer = await fs.readFile(safePath);
+        const ext = path.extname(safePath).toLowerCase().replace(".", "");
         
         // MIME type lookup map for better maintainability
         const mimeTypeMap: Record<string, string> = {
@@ -603,9 +647,19 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.FILE_READ_BUFFER,
     async (_event, filePath) => {
+      let safePath: string;
       try {
-        const buffer = await fs.readFile(filePath);
-        const ext = path.extname(filePath).toLowerCase().replace(".", "");
+        safePath = assertSafeReadablePath(filePath);
+      } catch (error) {
+        logMessage(
+          `Refusing FILE_READ_BUFFER for ${String(filePath)}: ${String(error)}`,
+          "warn",
+        );
+        return null;
+      }
+      try {
+        const buffer = await fs.readFile(safePath);
+        const ext = path.extname(safePath).toLowerCase().replace(".", "");
 
         // MIME type lookup map for better maintainability
         const mimeTypeMap: Record<string, string> = {
@@ -874,8 +928,15 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.PACKAGE_OPEN_EXTERNAL,
     async (_event, url) => {
+      if (!isSafeExternalUrl(url)) {
+        logMessage(
+          `Refusing PACKAGE_OPEN_EXTERNAL for unsafe URL: ${String(url)}`,
+          "warn",
+        );
+        return;
+      }
       logMessage(`Opening external URL: ${url}`);
-      shell.openExternal(url);
+      void shell.openExternal(url);
     },
   );
 
@@ -1169,14 +1230,31 @@ export function initializeIpcHandlers(): void {
   );
 
   createIpcMainHandler(IpcChannels.SHELL_OPEN_PATH, async (_event, path) => {
-    logMessage(`Opening path: ${path}`);
-    const errorMessage = await shell.openPath(path);
+    let safePath: string;
+    try {
+      safePath = assertSafeReadablePath(path);
+    } catch (error) {
+      logMessage(
+        `Refusing SHELL_OPEN_PATH for ${String(path)}: ${String(error)}`,
+        "warn",
+      );
+      return `Refused: ${String(error)}`;
+    }
+    logMessage(`Opening path: ${safePath}`);
+    const errorMessage = await shell.openPath(safePath);
     return errorMessage;
   });
 
   createIpcMainHandler(
     IpcChannels.SHELL_OPEN_EXTERNAL,
     async (_event, request) => {
+      if (!isSafeExternalUrl(request.url)) {
+        logMessage(
+          `Refusing SHELL_OPEN_EXTERNAL for unsafe URL: ${String(request.url)}`,
+          "warn",
+        );
+        return;
+      }
       logMessage(`Opening external URL: ${request.url}`);
       await shell.openExternal(request.url, request.options);
     },
