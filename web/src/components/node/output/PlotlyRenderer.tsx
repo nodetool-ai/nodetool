@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { Suspense, lazy, memo } from "react";
-import { Box, CircularProgress } from "@mui/material";
+import { Box } from "@mui/material";
+import { LoadingSpinner } from "../../ui_primitives";
 import type { PlotlyConfig } from "../../../stores/ApiTypes";
 import type { Data, Layout, Config, Frame } from "plotly.js";
 
@@ -25,7 +26,7 @@ const PlotlyRenderer: React.FC<PlotlyRendererProps> = ({ config }) => {
           bgcolor: "action.hover",
           borderRadius: 1
         }}>
-          <CircularProgress size={24} />
+          <LoadingSpinner size="small" />
         </Box>
       }>
         <PlotlyPlot

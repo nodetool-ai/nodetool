@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
-import { Typography, Box, Button, ThemeProvider } from "@mui/material";
-import { CopyButton } from "./components/ui_primitives";
+import { Box, Button, ThemeProvider } from "@mui/material";
+import { CopyButton, Text } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -198,11 +198,11 @@ const ErrorBoundary: React.FC = () => {
       <Box css={errorBoundaryStyles(theme)}>
         <Box className="hero">
           <img src="/logo192.png" alt="NodeTool Logo" className="logo" />
-          <Typography className="heading">Something went wrong</Typography>
-          <Typography className="subtext">
+          <Text className="heading">Something went wrong</Text>
+          <Text className="subtext">
             An unexpected error occurred. You can try reloading the page. If
             this keeps happening, please reach out so we can fix it.
-          </Typography>
+          </Text>
         </Box>
 
         <Box className="actions">
@@ -250,9 +250,9 @@ const ErrorBoundary: React.FC = () => {
 
           {showDetails && (
             <>
-              <Typography className="error-summary">
+              <Text className="error-summary">
                 {errorMessage}
-              </Typography>
+              </Text>
               <Box className="stack-wrapper">
                 <CopyButton
                   value={stackTrace}
@@ -260,9 +260,9 @@ const ErrorBoundary: React.FC = () => {
                   buttonSize="medium"
                   sx={{ position: "absolute", top: 6, right: 6, zIndex: 1 }}
                 />
-                <Typography component="pre" className="error-stack-trace">
+                <Text component="pre" className="error-stack-trace">
                   {stackTrace}
-                </Typography>
+                </Text>
               </Box>
             </>
           )}
