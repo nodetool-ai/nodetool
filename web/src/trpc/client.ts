@@ -42,4 +42,10 @@ export function createTRPCHttpClient() {
   });
 }
 
+/**
+ * Singleton vanilla tRPC client for use in Zustand stores and other non-React
+ * contexts. React components should use the `trpc` React-query client instead.
+ */
+export const trpcClient = createTRPCHttpClient();
+
 export type TRPCClientError = TRPCClientErrorLike<AppRouter>;
