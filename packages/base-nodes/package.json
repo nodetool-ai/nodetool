@@ -26,6 +26,7 @@
     "@nodetool/kernel": "*",
     "@nodetool/kie-nodes": "*",
     "@nodetool/node-sdk": "*",
+    "@nodetool/protocol": "*",
     "@nodetool/runtime": "*",
     "@nodetool/vectorstore": "*",
     "@supabase/supabase-js": "^2.98.0",

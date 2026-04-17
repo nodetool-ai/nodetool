@@ -43,6 +43,7 @@ docs.chromadb
 # Cache
 .cache
 .eslintcache
+.turbo/
 # tsx temp files (Windows bug: resolves tmpdir as "undefined")
 **/undefined/
 

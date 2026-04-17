@@ -9,8 +9,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "openapi": "openapi-typescript http://127.0.0.1:7777/openapi.json -o ./src/api.ts",
-    "lint": "eslint src --ext .tsx,.ts,.js,.jsx",
-    "lint:fix": "eslint src --ext .tsx,.ts,.js,.jsx --fix",
+    "lint": "oxlint src",
+    "lint:fix": "oxlint src --fix",
+    "lint:eslint": "eslint src --ext .tsx,.ts,.js,.jsx",
+    "lint:eslint:fix": "eslint src --ext .tsx,.ts,.js,.jsx --fix",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit"
