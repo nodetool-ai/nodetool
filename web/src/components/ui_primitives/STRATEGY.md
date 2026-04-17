@@ -80,7 +80,7 @@ These primitives exist but are barely adopted:
 `EditorMenu` | `EditorMenuItem` | `MenuItemPrimitive` | `ContextMenu` | `Breadcrumbs` | `InfoTooltip` | `Tooltip` | `Popover`
 
 ### Misc
-`Dialog` | `DialogActionButtons` | `ColorSwatch` | `ResponsiveImage` | `ShortcutHint` | `KeyboardShortcutCard` | `ThemeToggleButton` | `Chip` | `Divider` | `SkipLinks` | `ZoomControls`
+`Dialog` | `PositionedDialog` | `DialogActionButtons` | `ColorSwatch` | `ResponsiveImage` | `ShortcutHint` | `KeyboardShortcutCard` | `ThemeToggleButton` | `Chip` | `Divider` | `SkipLinks` | `ZoomControls` | `HoverActionGroup` | `SelectableListItem` | `DropZoneOverlay` | `MetadataListRow`
 
 ## Decision Tree: Which Primitive to Use
 
