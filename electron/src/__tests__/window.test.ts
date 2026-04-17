@@ -160,13 +160,29 @@ describe('Window Module', () => {
     it('should create a new window if no window exists', () => {
       // Setup mock to return no existing window
       (getMainWindow as jest.Mock).mockReturnValue(null);
-      
+
       const result = createWindow();
-      
+
       // Assertions for window creation
       expect(BrowserWindow).toHaveBeenCalled();
       // Just check that BrowserWindow constructor was called, no need to check exact parameters
       // since the implementation might change
+
+      // Migration guard (Electron 35 → 39): the secure webPreferences set
+      // must remain locked. Electron 39 deprecates `nodeIntegration`
+      // permissively but still requires `contextIsolation: true`. Pin
+      // the exact values so a regression at upgrade time is loud.
+      const ctorArgs = (BrowserWindow as any).mock.calls[0][0];
+      expect(ctorArgs.webPreferences).toEqual(
+        expect.objectContaining({
+          contextIsolation: true,
+          nodeIntegration: false,
+          webSecurity: true,
+          devTools: true,
+        }),
+      );
+      expect(typeof ctorArgs.webPreferences.preload).toBe('string');
+      expect(ctorArgs.webPreferences.preload).toMatch(/preload\.js$/);
       
       // Assertions for window configuration
       expect(mockWindow.setBackgroundColor).toHaveBeenCalledWith('#111111');

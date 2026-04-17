@@ -14,6 +14,10 @@ export const app = {
         return '/mock/documents';
       case 'downloads':
         return '/mock/downloads';
+      case 'home':
+        return '/mock/home';
+      case 'exe':
+        return '/mock/exe';
       default:
         return `/mock/${name}`;
     }
@@ -25,13 +29,19 @@ export const app = {
   whenReady: jest.fn().mockResolvedValue(undefined),
   quit: jest.fn(),
   exit: jest.fn(),
+  relaunch: jest.fn(),
+  isReady: jest.fn().mockReturnValue(true),
   isPackaged: false,
+  setAppUserModelId: jest.fn(),
+  setActivationPolicy: jest.fn(),
+  setLoginItemSettings: jest.fn(),
 };
 
 export const ipcMain = {
   on: jest.fn(),
   once: jest.fn(),
   handle: jest.fn(),
+  handleOnce: jest.fn(),
   removeHandler: jest.fn(),
   removeAllListeners: jest.fn(),
 };
@@ -39,8 +49,9 @@ export const ipcMain = {
 export const ipcRenderer = {
   on: jest.fn(),
   once: jest.fn(),
-  invoke: jest.fn(),
+  invoke: jest.fn().mockResolvedValue(undefined),
   send: jest.fn(),
+  removeListener: jest.fn(),
   removeAllListeners: jest.fn(),
 };
 
@@ -73,17 +84,80 @@ export const dialog = {
   showOpenDialog: jest.fn().mockResolvedValue({ canceled: false, filePaths: ['/mock/path/file.txt'] }),
   showSaveDialog: jest.fn().mockResolvedValue({ canceled: false, filePath: '/mock/path/save.txt' }),
   showMessageBox: jest.fn().mockResolvedValue({ response: 0 }),
+  showErrorBox: jest.fn(),
 };
 
 export const shell = {
   openExternal: jest.fn().mockResolvedValue(undefined),
+  openPath: jest.fn().mockResolvedValue(''),
+  showItemInFolder: jest.fn(),
+};
+
+export const systemPreferences = {
+  askForMediaAccess: jest.fn().mockResolvedValue(true),
+  getMediaAccessStatus: jest.fn().mockReturnValue('granted'),
+};
+
+export const session = {
+  defaultSession: {
+    setPermissionRequestHandler: jest.fn(),
+    setPermissionCheckHandler: jest.fn(),
+    fromPartition: jest.fn(),
+    webRequest: {
+      onHeadersReceived: jest.fn(),
+      onBeforeRequest: jest.fn(),
+    },
+    on: jest.fn(),
+  },
+  fromPartition: jest.fn(),
+};
+
+export const protocol = {
+  handle: jest.fn(),
+  registerFileProtocol: jest.fn(),
+  registerStringProtocol: jest.fn(),
+  registerSchemesAsPrivileged: jest.fn(),
+};
+
+export const Notification = jest.fn().mockImplementation(() => ({
+  show: jest.fn(),
+  on: jest.fn(),
+  close: jest.fn(),
+}));
+(Notification as any).isSupported = jest.fn().mockReturnValue(true);
+
+// Return an EventEmitter-backed fake so tests can `emit('spawn')` etc.
+// Each fork() call produces a fresh emitter so lifecycle is isolated.
+import { EventEmitter as _EE } from "events";
+export const utilityProcess = {
+  fork: jest.fn().mockImplementation(() => {
+    const proc: any = Object.assign(new _EE(), {
+      pid: 4242,
+      stdout: new _EE(),
+      stderr: new _EE(),
+      kill: jest.fn().mockReturnValue(true),
+      postMessage: jest.fn(),
+    });
+    // Auto-emit 'spawn' on next tick so tests that don't explicitly
+    // trigger it still unblock the Watchdog startup path.
+    process.nextTick(() => proc.emit("spawn"));
+    return proc;
+  }),
+};
+
+export const contextBridge = {
+  exposeInMainWorld: jest.fn(),
 };
 
 export const Tray = jest.fn().mockImplementation(() => ({
   on: jest.fn(),
   setToolTip: jest.fn(),
   setContextMenu: jest.fn(),
+  setIgnoreDoubleClickEvents: jest.fn(),
+  popUpContextMenu: jest.fn(),
+  setImage: jest.fn(),
   destroy: jest.fn(),
+  isDestroyed: jest.fn().mockReturnValue(false),
 }));
 
 export const Menu = {
