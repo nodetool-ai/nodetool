@@ -8,11 +8,7 @@ import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
-import {
-  createLogger,
-  getDefaultAssetsPath,
-  buildAssetUrl
-} from "@nodetool/config";
+import { createLogger, buildAssetUrl } from "@nodetool/config";
 import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
@@ -48,46 +44,14 @@ import { handleFileRequest } from "./file-api.js";
 const log = createLogger("nodetool.websocket.http");
 
 // ── Content type to file extension mapping ─────────────────────────
-const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
-  "image/webp": "webp",
-  "image/tiff": "tiff",
-  "image/bmp": "bmp",
-  "text/plain": "txt",
-  "text/csv": "csv",
-  "text/html": "html",
-  "application/json": "json",
-  "application/pdf": "pdf",
-  "application/zip": "zip",
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/ogg": "ogg",
-  "audio/aac": "aac",
-  "audio/x-wav": "wav",
-  "audio/x-flac": "flac",
-  "audio/x-m4a": "m4a",
-  "video/mp4": "mp4",
-  "video/mpeg": "mpeg",
-  "video/quicktime": "mov",
-  "video/x-msvideo": "avi",
-  "video/webm": "webm"
-};
-
-function getFileExtension(contentType: string): string {
-  return CONTENT_TYPE_TO_EXTENSION[contentType] ?? "bin";
-}
-
-function getAssetFileName(assetId: string, contentType: string): string {
-  return `${assetId}.${getFileExtension(contentType)}`;
-}
-
-function getAssetStoragePath(opts?: StorageHandlerOptions): string {
-  return opts?.storagePath ?? getDefaultAssetsPath();
-}
+// Asset filename + storage-path helpers live in `./lib/asset-paths.ts` so the
+// tRPC router can import them without dragging in the full http-api module
+// graph. Re-exported here for any remaining REST callers.
+import {
+  getAssetFileName,
+  getAssetStoragePath
+} from "./lib/asset-paths.js";
+export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
 
