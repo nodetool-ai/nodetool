@@ -142,8 +142,10 @@ build-electron:
 	cd electron && npm run build
 
 # Test targets
-test:
-	@echo "Running all tests via turbo..."
+test: test-web test-electron test-mobile
+
+test-all:
+	@echo "Running all workspace tests via turbo..."
 	npx turbo run test
 
 test-web:
