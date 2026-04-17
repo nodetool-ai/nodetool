@@ -21,9 +21,7 @@ import {
   Job,
   Message,
   Thread,
-  Asset,
-  Secret,
-  clearSecretCache
+  Asset
 } from "@nodetool/models";
 import {
   loadPythonPackageMetadata,
@@ -36,7 +34,6 @@ import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerKieNodes } from "@nodetool/kie-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import {
-  clearProviderCache,
   PythonNodeExecutor,
   PythonStdioBridge,
   type NodeExecutor
@@ -49,10 +46,6 @@ import {
   createStorageHandler,
   type StorageHandlerOptions
 } from "./storage-api.js";
-import {
-  getRegisteredSettings,
-  handleSettingsRequest
-} from "./settings-api.js";
 import { handleWorkspaceRequest } from "./workspace-api.js";
 import { handleFileRequest } from "./file-api.js";
 import { handleSkillsRequest, handleFontsRequest } from "./skills-api.js";
@@ -1782,137 +1775,6 @@ export async function handleNodesDummy(request: Request): Promise<Response> {
   });
 }
 
-// ── Secrets types & helpers ────────────────────────────────────────
-
-interface SecretUpdateBody {
-  value: string;
-  description?: string;
-}
-
-async function toSecretResponse(secret: Secret): Promise<JsonObject> {
-  let isUnreadable = false;
-  try {
-    await secret.getDecryptedValue();
-  } catch {
-    isUnreadable = true;
-  }
-
-  return {
-    ...secret.toSafeObject(),
-    is_configured: true,
-    is_unreadable: isUnreadable
-  };
-}
-
-export async function handleSecretsRoot(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const [configuredSecrets] = await Secret.listForUser(userId, 1000);
-  const configuredMap = new Map(configuredSecrets.map((s) => [s.key, s]));
-
-  // Return all registry secrets with is_configured flag
-  const registrySecrets = getRegisteredSettings().filter((d) => d.isSecret);
-  const result = registrySecrets.map((def) => {
-    return { def, configured: configuredMap.get(def.envVar) };
-  });
-
-  const normalizedResults = await Promise.all(
-    result.map(async ({ def, configured }) => {
-      if (configured) {
-        return toSecretResponse(configured);
-      }
-      return {
-        key: def.envVar,
-        user_id: userId,
-        description: def.description ?? "",
-        is_configured: false,
-        is_unreadable: false
-      };
-    })
-  );
-
-  // Also include any DB secrets not in the registry
-  for (const s of configuredSecrets) {
-    if (!registrySecrets.some((d) => d.envVar === s.key)) {
-      normalizedResults.push(await toSecretResponse(s));
-    }
-  }
-
-  return jsonResponse({
-    secrets: normalizedResults,
-    next_key: null
-  });
-}
-
-export async function handleSecretByKey(
-  request: Request,
-  key: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "GET") {
-    const secret = await Secret.find(userId, key);
-    if (!secret) return errorResponse(404, "Secret not found");
-
-    const response = (await toSecretResponse(secret)) as Record<
-      string,
-      unknown
-    >;
-    const url = new URL(request.url);
-    if (url.searchParams.get("decrypt") === "true") {
-      try {
-        response.value = await secret.getDecryptedValue();
-        response.is_unreadable = false;
-      } catch (err) {
-        const detail =
-          err instanceof Error ? err.message : "Failed to decrypt secret";
-        return errorResponse(500, detail);
-      }
-    }
-    return jsonResponse(response);
-  }
-
-  if (request.method === "PUT") {
-    const body = await parseJsonBody<SecretUpdateBody>(request);
-    if (!body || typeof body.value !== "string") {
-      return errorResponse(400, "Invalid JSON body");
-    }
-    try {
-      const secret = await Secret.upsert({
-        userId,
-        key,
-        value: body.value,
-        description: body.description
-      });
-      // Invalidate caches so providers pick up the new key
-      clearSecretCache(userId, key);
-      clearProviderCache();
-      return jsonResponse(await toSecretResponse(secret));
-    } catch (err) {
-      const detail =
-        err instanceof Error ? err.message : "Failed to update secret";
-      return errorResponse(500, detail);
-    }
-  }
-
-  if (request.method === "DELETE") {
-    const deleted = await Secret.deleteSecret(userId, key);
-    if (!deleted) return errorResponse(404, "Secret not found");
-    clearSecretCache(userId, key);
-    clearProviderCache();
-    return jsonResponse({ message: "Secret deleted successfully" });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
 // ── Asset types & helpers ──────────────────────────────────────────
 
 interface AssetCreateBody {
@@ -2389,23 +2251,6 @@ export async function handleApiRequest(
 
   if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {
     return handleNodeMetadata(request, options);
-  }
-
-  if (pathname === "/api/settings") {
-    const res = await handleSettingsRequest(request, pathname, options);
-    if (res) return res;
-  }
-
-  if (pathname === "/api/settings/secrets") {
-    return handleSecretsRoot(request, options);
-  }
-
-  if (pathname.startsWith("/api/settings/secrets/")) {
-    const secretKey = decodeURIComponent(
-      pathname.slice("/api/settings/secrets/".length)
-    );
-    if (!secretKey) return errorResponse(404, "Not found");
-    return handleSecretByKey(request, secretKey, options);
   }
 
   if (pathname === "/api/assets") {
