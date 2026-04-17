@@ -42,7 +42,7 @@ fi
 
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
-npm --prefix web start &
+npm --prefix web run dev &
 WEB_SERVER_PID=$!
 
 # Only rebuild electron if source changed since last build

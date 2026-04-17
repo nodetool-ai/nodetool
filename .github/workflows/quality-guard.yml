@@ -60,21 +60,21 @@ jobs:
           echo "## Pre-Flight Quality Check" >> $GITHUB_STEP_SUMMARY
           FAIL=0
 
-          if make typecheck 2>&1 | tee typecheck.log; then
+          if npm run typecheck 2>&1 | tee typecheck.log; then
             echo "✅ TypeScript: Passed" >> $GITHUB_STEP_SUMMARY
           else
             FAIL=1
             echo "❌ TypeScript: Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if make lint 2>&1 | tee lint.log; then
+          if npm run lint 2>&1 | tee lint.log; then
             echo "✅ ESLint: Passed" >> $GITHUB_STEP_SUMMARY
           else
             FAIL=1
             echo "⚠️ ESLint: Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if make test 2>&1 | tee test.log; then
+          if npm run test 2>&1 | tee test.log; then
             echo "✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
           else
             FAIL=1
@@ -126,7 +126,7 @@ jobs:
 
       - name: Auto-fix lint issues
         if: ${{ inputs.auto-fix }}
-        run: make lint-fix || true
+        run: npm run lint:fix || true
 
       - name: Commit auto-fixes
         if: ${{ inputs.auto-fix }}
@@ -144,19 +144,19 @@ jobs:
           echo "## Final Quality Check" >> $GITHUB_STEP_SUMMARY
           FAIL=0
 
-          if make typecheck; then
+          if npm run typecheck; then
             echo "✅ TypeScript: Passed" >> $GITHUB_STEP_SUMMARY
           else
             FAIL=1; echo "❌ TypeScript: Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if make lint; then
+          if npm run lint; then
             echo "✅ ESLint: Passed" >> $GITHUB_STEP_SUMMARY
           else
             FAIL=1; echo "❌ ESLint: Failed" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if make test; then
+          if npm run test; then
             echo "✅ Tests: Passed" >> $GITHUB_STEP_SUMMARY
           else
             FAIL=1; echo "❌ Tests: Failed" >> $GITHUB_STEP_SUMMARY

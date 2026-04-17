@@ -34,6 +34,7 @@ import {
   globalShortcut,
 } from "electron";
 import { createWindow, forceQuit, handleActivation } from "./window";
+import { hardenWebContents } from "./windowSecurity";
 import { setupAutoUpdater } from "./updater";
 import { logMessage, closeLogStream } from "./logger";
 import { initializeBackendServer, stopServer, serverState } from "./server";
@@ -59,6 +60,40 @@ import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 let isAppQuitting = false;
 let mainWindow: BrowserWindow | null = null;
 let isShowingUnexpectedError = false;
+
+/**
+ * Enforce single-instance semantics — a second launch surfaces the existing
+ * window instead of spawning a duplicate backend server. Skipped under
+ * `NODE_ENV=test` so automated tests can run in isolation without needing
+ * to coordinate a lock, and in dev mode where multiple developers may run
+ * concurrent Electron instances on the same machine.
+ */
+if (process.env.NODE_ENV !== "test" && !isElectronDevMode()) {
+  const gotLock = app.requestSingleInstanceLock();
+  if (!gotLock) {
+    app.quit();
+  } else {
+    app.on("second-instance", () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+        }
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  }
+}
+
+/**
+ * Apply baseline hardening to every WebContents created by the app,
+ * including those spawned dynamically (e.g., devtools, OAuth popups we
+ * did not anticipate). This is the last line of defense behind the
+ * per-window hardening in `window.ts`.
+ */
+app.on("web-contents-created", (_event, contents) => {
+  hardenWebContents(contents);
+});
 
 function shouldForceQuit(error: unknown): boolean {
   // Treat only clearly fatal cases as requiring a full shutdown.
@@ -189,7 +224,7 @@ function assertActivatedCondaEnvironmentForDevMode(): void {
 
   const message =
     "Electron dev mode requires an activated conda environment. " +
-    "Please run `conda activate <env>` before starting `make electron-dev`.";
+    "Please run `conda activate <env>` before starting `npm run electron:dev`.";
   dialog.showErrorBox("Conda Environment Required", message);
   throw new Error(message);
 }

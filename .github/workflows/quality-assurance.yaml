@@ -41,23 +41,23 @@ jobs:
           echo "## Quality Check Results" >> $GITHUB_STEP_SUMMARY
           FAILED=0
 
-          make lint-fix 2>&1 || true
+          npm run lint:fix 2>&1 || true
 
-          if make typecheck 2>&1 | tee typecheck.log; then
+          if npm run typecheck 2>&1 | tee typecheck.log; then
             echo "- typecheck: PASS" >> $GITHUB_STEP_SUMMARY
           else
             FAILED=1
             echo "- typecheck: FAIL" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if make lint 2>&1 | tee lint.log; then
+          if npm run lint 2>&1 | tee lint.log; then
             echo "- lint: PASS" >> $GITHUB_STEP_SUMMARY
           else
             FAILED=1
             echo "- lint: FAIL" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if make test 2>&1 | tee test.log; then
+          if npm run test 2>&1 | tee test.log; then
             echo "- test: PASS" >> $GITHUB_STEP_SUMMARY
           else
             FAILED=1
@@ -83,7 +83,7 @@ jobs:
 
             Read the error logs to understand what's broken, then fix it:
             - `typecheck.log` — TypeScript compilation errors
-            - `lint.log` — ESLint violations (run `make lint-fix` first, then fix the rest manually)
+            - `lint.log` — ESLint violations (run `npm run lint:fix` first, then fix the rest manually)
             - `test.log` — failing test cases
 
             ## Rules
@@ -100,9 +100,9 @@ jobs:
             ## Verification
             After fixing, run all three and confirm exit code 0:
             ```bash
-            make typecheck
-            make lint
-            make test
+            npm run typecheck
+            npm run lint
+            npm run test
             ```
 
             ## Submit
@@ -113,7 +113,7 @@ jobs:
         if: always() && env.QUALITY_FAILED == '1'
         run: |
           echo "## Post-Fix Verification" >> $GITHUB_STEP_SUMMARY
-          if make typecheck && make lint && make test; then
+          if npm run typecheck && npm run lint && npm run test; then
             echo "All checks passing." >> $GITHUB_STEP_SUMMARY
           else
             echo "Checks still failing after fix attempt." >> $GITHUB_STEP_SUMMARY

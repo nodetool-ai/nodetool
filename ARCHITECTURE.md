@@ -119,8 +119,7 @@ nodetool/
 ├── scripts/                # Build, release, and dev helper scripts
 ├── workflow_runner/        # Standalone workflow execution utilities
 ├── examples/               # Example workflows
-├── Makefile                # Top-level build/test/lint commands
-├── package.json            # npm workspace configuration
+├── package.json            # npm workspace configuration (build/test/lint scripts)
 └── tsconfig.base.json      # Shared TypeScript configuration
 ```
 
@@ -782,14 +781,14 @@ Deployments are configured via YAML files and managed through the CLI. The same 
 ### Top-Level Make Targets
 
 ```bash
-make install          # Install all dependencies (web, electron, mobile)
-make build            # Build all packages + web
-make typecheck        # TypeScript type-check all packages
-make lint             # Lint all packages
-make lint-fix         # Auto-fix linting issues
-make test             # Run all tests
-make check            # typecheck + lint + test (quality gate)
-make clean            # Remove dependencies and build artifacts
+npm install          # Install all dependencies (web, electron, mobile)
+npm run build            # Build all packages + web
+npm run typecheck        # TypeScript type-check all packages
+npm run lint             # Lint all packages
+npm run lint:fix         # Auto-fix linting issues
+npm run test             # Run all tests
+npm run check            # typecheck + lint + test (quality gate)
+npm run clean            # Remove dependencies and build artifacts
 ```
 
 ### Package Build Order
@@ -807,8 +806,8 @@ protocol → config → security → storage → auth → code-runners
 ### Development Mode
 
 ```bash
-make dev              # Starts websocket server + web dev server (concurrent)
-make electron         # Builds web, starts Electron desktop app
+npm run dev              # Starts websocket server + web dev server (concurrent)
+npm run electron         # Builds web, starts Electron desktop app
 ```
 
 Vite dev server runs on port 3000 with hot module replacement. API calls are proxied to the backend on port 7777.
@@ -830,7 +829,7 @@ Backend packages use Vitest with per-package `vitest.config.ts` files. The web a
 
 ```bash
 # Run all tests
-make test
+npm run test
 
 # Package-specific
 cd packages/kernel && npx vitest run

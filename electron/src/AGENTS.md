@@ -8,7 +8,7 @@ Desktop application wrapping the NodeTool web UI with native capabilities (local
 
 - **Node.js 24.x required.** Electron 39 embeds a Node 24 fork (ABI 140). Native modules like `better-sqlite3` must be compiled against this ABI. Using a mismatched Node major version will cause `NODE_MODULE_VERSION` mismatch errors at startup.
 - Use `nvm use` from the repo root (reads `.nvmrc`).
-- `make electron-dev` automatically runs `electron-builder install-app-deps` to rebuild native modules before launching.
+- `npm run electron:dev` automatically runs `electron-builder install-app-deps` to rebuild native modules before launching.
 
 ## Build, Lint & Test
 
@@ -30,8 +30,8 @@ npm run test:e2e:headed  # E2E with visible window
 
 ```bash
 # From repo root:
-make electron            # Build web + Electron, then start
-make electron-dev        # Start against web Vite server (requires active conda env)
+npm run electron            # Build web + Electron, then start
+npm run electron:dev        # Start against web Vite server (requires active conda env)
 ```
 
 ### E2E Test Setup

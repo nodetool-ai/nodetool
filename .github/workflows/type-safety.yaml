@@ -56,9 +56,9 @@ jobs:
         continue-on-error: true
         run: |
           TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          make typecheck 2>&1 || TYPECHECK_EXIT=1
-          make lint 2>&1 || LINT_EXIT=1
-          make test 2>&1 || TEST_EXIT=1
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
           echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
           echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
           echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
@@ -108,7 +108,7 @@ jobs:
             ## Verification
             After changes, all checks must still pass:
             ```bash
-            make typecheck && make lint && make test
+            npm run typecheck && npm run lint && npm run test
             ```
 
             ## Submit
@@ -118,9 +118,9 @@ jobs:
         if: always() && env.TYPE_ISSUES == '1'
         run: |
           TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
-          make typecheck 2>&1 || TYPECHECK_EXIT=1
-          make lint 2>&1 || LINT_EXIT=1
-          make test 2>&1 || TEST_EXIT=1
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
 
           if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
             echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1

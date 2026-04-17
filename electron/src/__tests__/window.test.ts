@@ -17,6 +17,7 @@ jest.mock('electron', () => {
       on: jest.fn(),
       once: jest.fn(),
       send: jest.fn(),
+      setWindowOpenHandler: jest.fn(),
       openDevTools: jest.fn(),
       closeDevTools: jest.fn(),
       isDevToolsOpened: jest.fn().mockReturnValue(false),
@@ -77,6 +78,9 @@ jest.mock('electron', () => {
       showMessageBox: jest.fn().mockResolvedValue({ response: 0 }),
       showErrorBox: jest.fn(),
     },
+    shell: {
+      openExternal: jest.fn().mockResolvedValue(undefined),
+    },
     WebContents: jest.fn(),
   };
 });
@@ -122,6 +126,7 @@ describe('Window Module', () => {
       loadFile: jest.fn(),
       webContents: {
         on: jest.fn(),
+        setWindowOpenHandler: jest.fn(),
         openDevTools: jest.fn(),
         closeDevTools: jest.fn(),
         isDevToolsOpened: jest.fn().mockReturnValue(false),
@@ -291,6 +296,7 @@ describe('Window Module', () => {
           preload: expect.stringMatching(/.*[\\/]+src[\\/]+preload\.js$/),
           contextIsolation: true,
           nodeIntegration: false,
+          sandbox: true,
           devTools: true,
           webSecurity: true,
         },
