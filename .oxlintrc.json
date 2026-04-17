@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "no-empty": ["error", { "allowEmptyCatch": true }],
+    "prefer-const": "error",
+    "no-useless-assignment": "warn",
+    "require-yield": "warn",
+    "no-constant-binary-expression": "warn",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-unsafe-function-type": "off",
+    "typescript/no-empty-object-type": "off",
+    "typescript/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ],
+    "no-unused-vars": "off"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/node_modules/**",
+    "**/.turbo/**",
+    "**/generated/**",
+    "**/*.d.ts",
+    "web/**",
+    "electron/**",
+    "mobile/**"
+  ]
+}
