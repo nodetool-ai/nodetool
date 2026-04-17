@@ -3,6 +3,7 @@ export * from "./error-helpers.js";
 export * as collections from "./collections.js";
 export * as costs from "./costs.js";
 export * as fonts from "./fonts.js";
+export * as mcpConfig from "./mcp-config.js";
 export * as settings from "./settings.js";
 export * as skills from "./skills.js";
 export * as users from "./users.js";
