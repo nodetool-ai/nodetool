@@ -7,5 +7,6 @@ export * as mcpConfig from "./mcp-config.js";
 export * as messages from "./messages.js";
 export * as settings from "./settings.js";
 export * as skills from "./skills.js";
+export * as threads from "./threads.js";
 export * as users from "./users.js";
 export * as workspace from "./workspace.js";
