@@ -64,13 +64,6 @@ import fastifyCors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
 
-// Auth: extend FastifyRequest with userId
-declare module "fastify" {
-  interface FastifyRequest {
-    userId: string | null;
-  }
-}
-
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
 import assetsRoutes from "./routes/assets.js";
