@@ -1,9 +1,9 @@
-
 import { useAssetStore } from "../AssetStore";
 import { Asset, AssetList, AssetSearchResult } from "../ApiTypes";
 import { QueryClient } from "@tanstack/react-query";
 
-// Mock dependencies
+// Multipart upload + download stay on REST — keep the openapi-fetch mock for
+// those paths only.
 jest.mock("../ApiClient", () => ({
   client: {
     GET: jest.fn(),
@@ -12,6 +12,23 @@ jest.mock("../ApiClient", () => ({
     DELETE: jest.fn()
   },
   authHeader: jest.fn()
+}));
+
+// JSON reads/writes go through the tRPC client; provide a per-procedure mock.
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    assets: {
+      list: { query: jest.fn() },
+      get: { query: jest.fn() },
+      create: { mutate: jest.fn() },
+      update: { mutate: jest.fn() },
+      delete: { mutate: jest.fn() },
+      children: { query: jest.fn() },
+      recursive: { query: jest.fn() },
+      search: { query: jest.fn() },
+      byFilename: { query: jest.fn() }
+    }
+  }
 }));
 
 jest.mock("../AssetGridStore", () => ({
@@ -29,11 +46,21 @@ jest.mock("../../utils/errorHandling", () => ({
       new Error(
         message || `Error: ${error?.response?.data?.message || error.message}`
       )
-  )
+  ),
+  AppError: Error
 }));
 jest.mock("../BASE_URL", () => ({
   BASE_URL: "http://localhost:7777"
 }));
+
+import { trpcClient } from "../../trpc/client";
+
+const listQuery = trpcClient.assets.list.query as jest.Mock;
+const getQuery = trpcClient.assets.get.query as jest.Mock;
+const updateMutate = trpcClient.assets.update.mutate as jest.Mock;
+const deleteMutate = trpcClient.assets.delete.mutate as jest.Mock;
+const recursiveQuery = trpcClient.assets.recursive.query as jest.Mock;
+const searchQuery = trpcClient.assets.search.query as jest.Mock;
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -49,7 +76,6 @@ describe("AssetStore", () => {
       }
     });
 
-    // Reset store state
     useAssetStore.setState({
       queryClient: null
     });
@@ -66,9 +92,7 @@ describe("AssetStore", () => {
   describe("setQueryClient", () => {
     it("should set the query client", () => {
       const { setQueryClient } = useAssetStore.getState();
-
       setQueryClient(queryClient);
-
       expect(useAssetStore.getState().queryClient).toBe(queryClient);
     });
   });
@@ -90,10 +114,6 @@ describe("AssetStore", () => {
       };
 
       const { add } = useAssetStore.getState();
-      add(mockAsset);
-
-      // Verify asset was added (this would typically update some internal state or call other functions)
-      // Since the add function might be more complex, we verify it doesn't throw
       expect(() => add(mockAsset)).not.toThrow();
     });
   });
@@ -103,26 +123,20 @@ describe("AssetStore", () => {
       const { setQueryClient, invalidateQueries } = useAssetStore.getState();
       setQueryClient(queryClient);
 
-      const mockInvalidateQueries = jest.spyOn(
-        queryClient,
-        "invalidateQueries"
-      );
-
+      const mockInvalidateQueries = jest.spyOn(queryClient, "invalidateQueries");
       const queryKey = ["assets"];
       invalidateQueries(queryKey);
-
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey });
     });
 
     it("should not throw when queryClient is not set", () => {
       const { invalidateQueries } = useAssetStore.getState();
-
       expect(() => invalidateQueries(["assets"])).not.toThrow();
     });
   });
 
   describe("get", () => {
-    it("should fetch an asset by id", async () => {
+    it("should fetch an asset by id via tRPC", async () => {
       const mockAsset: Asset = {
         id: "test-asset-id",
         name: "test-asset.jpg",
@@ -137,25 +151,18 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: mockAsset });
+      getQuery.mockResolvedValueOnce(mockAsset);
 
       const { get } = useAssetStore.getState();
       const result = await get("test-asset-id");
 
-      expect(client.GET).toHaveBeenCalledWith("/api/assets/{id}", {
-        params: { path: { id: "test-asset-id" } }
-      });
+      expect(getQuery).toHaveBeenCalledWith({ id: "test-asset-id" });
       expect(result).toEqual(mockAsset);
     });
 
     it("should handle API errors", async () => {
-      const { client } = await import("../ApiClient");
-      const mockError = new Error("Asset not found");
-      (client.GET as jest.Mock).mockRejectedValue(mockError);
-
+      getQuery.mockRejectedValueOnce(new Error("Asset not found"));
       const { get } = useAssetStore.getState();
-
       await expect(get("invalid-id")).rejects.toThrow("Asset not found");
     });
   });
@@ -165,7 +172,7 @@ describe("AssetStore", () => {
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
     ]);
 
-    it("should create an asset with file upload", async () => {
+    it("should create an asset with file upload (multipart REST)", async () => {
       const mockFile = new File(["test content"], "test.jpg", {
         type: "image/jpeg"
       });
@@ -281,13 +288,7 @@ describe("AssetStore", () => {
       (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
 
       const { createAsset } = useAssetStore.getState();
-      await createAsset(
-        mockFile,
-        "test-workflow",
-        undefined,
-        undefined,
-        "drop"
-      );
+      await createAsset(mockFile, "test-workflow", undefined, undefined, "drop");
 
       const [[, payload]] = (client.POST as jest.Mock).mock.calls;
       const formData = payload.body as FormData;
@@ -341,7 +342,6 @@ describe("AssetStore", () => {
       (client.POST as jest.Mock).mockResolvedValue({ error: mockError });
 
       const { createAsset } = useAssetStore.getState();
-
       await expect(createAsset(mockFile)).rejects.toThrow(
         /Failed to create asset/
       );
@@ -349,7 +349,7 @@ describe("AssetStore", () => {
   });
 
   describe("load", () => {
-    it("should load assets with query parameters", async () => {
+    it("should load assets with query parameters via tRPC", async () => {
       const mockAssetList: AssetList = {
         next: null,
         assets: [
@@ -369,8 +369,7 @@ describe("AssetStore", () => {
         ]
       };
 
-      const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: mockAssetList });
+      listQuery.mockResolvedValueOnce(mockAssetList);
 
       const { load } = useAssetStore.getState();
       const result = await load({
@@ -378,20 +377,13 @@ describe("AssetStore", () => {
         cursor: "test-cursor"
       });
 
-      expect(client.GET).toHaveBeenCalledWith("/api/assets/", {
-        params: {
-          query: {
-            workflow_id: "test-workflow",
-            cursor: "test-cursor"
-          }
-        }
-      });
+      expect(listQuery).toHaveBeenCalledWith({ workflow_id: "test-workflow" });
       expect(result).toEqual(mockAssetList);
     });
   });
 
   describe("search", () => {
-    it("should search assets with query parameters", async () => {
+    it("should search assets via tRPC", async () => {
       const mockSearchResult: AssetSearchResult = {
         total_count: 1,
         is_global_search: false,
@@ -415,12 +407,7 @@ describe("AssetStore", () => {
         ]
       };
 
-      const { authHeader } = await import("../ApiClient");
-      (authHeader as jest.Mock).mockResolvedValue({});
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => mockSearchResult
-      });
+      searchQuery.mockResolvedValueOnce(mockSearchResult);
 
       const { search } = useAssetStore.getState();
       const result = await search({
@@ -428,13 +415,16 @@ describe("AssetStore", () => {
         content_type: "image/jpeg"
       });
 
-      expect(mockFetch).toHaveBeenCalled();
+      expect(searchQuery).toHaveBeenCalledWith({
+        query: "test query",
+        content_type: "image/jpeg"
+      });
       expect(result).toEqual(mockSearchResult);
     });
   });
 
   describe("update", () => {
-    it("should update an asset", async () => {
+    it("should update an asset via tRPC", async () => {
       const mockAsset: Asset = {
         id: "asset1",
         name: "updated.jpg",
@@ -449,15 +439,14 @@ describe("AssetStore", () => {
         metadata: { updated: true }
       };
 
-      const prevAsset = { 
-        id: "asset1", 
+      const prevAsset = {
+        id: "asset1",
         name: "old.jpg",
-        parent_id: "", 
-        content_type: "image/jpeg" 
+        parent_id: "",
+        content_type: "image/jpeg"
       };
-      const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: prevAsset });
-      (client.PUT as jest.Mock).mockResolvedValue({ data: mockAsset });
+      getQuery.mockResolvedValueOnce(prevAsset);
+      updateMutate.mockResolvedValueOnce(mockAsset);
 
       const { update } = useAssetStore.getState();
       const result = await update({
@@ -465,39 +454,30 @@ describe("AssetStore", () => {
         name: "updated.jpg"
       });
 
-      // The update function falls back to previous values for fields not explicitly provided
-      expect(client.PUT).toHaveBeenCalledWith("/api/assets/{id}", {
-        params: { path: { id: "asset1" } },
-        body: {
-          name: "updated.jpg",
-          parent_id: "",
-          content_type: "image/jpeg",
-          metadata: null,
-          data: null,
-          data_encoding: null
-        }
+      expect(updateMutate).toHaveBeenCalledWith({
+        id: "asset1",
+        name: "updated.jpg",
+        parent_id: "",
+        content_type: "image/jpeg"
       });
       expect(result).toEqual(mockAsset);
     });
   });
 
   describe("delete", () => {
-    it("should delete an asset", async () => {
-      const { client } = await import("../ApiClient");
-      (client.DELETE as jest.Mock).mockResolvedValue({ data: { deleted_asset_ids: ["asset1"] } });
+    it("should delete an asset via tRPC", async () => {
+      deleteMutate.mockResolvedValueOnce({ deleted_asset_ids: ["asset1"] });
 
       const { delete: deleteAsset } = useAssetStore.getState();
       const result = await deleteAsset("asset1");
 
-      expect(client.DELETE).toHaveBeenCalledWith("/api/assets/{id}", {
-        params: { path: { id: "asset1" } }
-      });
+      expect(deleteMutate).toHaveBeenCalledWith({ id: "asset1" });
       expect(result).toEqual(["asset1"]);
     });
   });
 
   describe("download", () => {
-    it("should download assets", async () => {
+    it("should download assets (REST binary)", async () => {
       const { authHeader } = await import("../ApiClient");
       (authHeader as jest.Mock).mockResolvedValue({});
       const mockHeaders = new Map([
@@ -521,7 +501,7 @@ describe("AssetStore", () => {
   });
 
   describe("createFolder", () => {
-    it("should create a folder", async () => {
+    it("should create a folder (multipart REST)", async () => {
       const mockFolder: Asset = {
         id: "folder1",
         name: "New Folder",
@@ -578,116 +558,75 @@ describe("AssetStore", () => {
 
   describe("loadFolderTree", () => {
     it("should load folder tree with default sorting", async () => {
-      const _mockFolderTree = {
-        folder1: {
-          id: "folder1",
-          name: "Folder 1",
-          children: []
-        }
-      };
-
-      const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: { assets: [] } });
+      listQuery.mockResolvedValueOnce({ assets: [], next: null });
 
       const { loadFolderTree } = useAssetStore.getState();
       const result = await loadFolderTree();
 
-      // In the current implementation, we fetch folders via /api/assets/ and build the tree
-      expect(client.GET).toHaveBeenCalledWith("/api/assets/", {
-        params: { query: { content_type: "folder" } }
-      });
+      expect(listQuery).toHaveBeenCalledWith({ content_type: "folder" });
       expect(result).toBeTruthy();
     });
 
     it("should load folder tree with custom sorting", async () => {
-      const _mockFolderTree = {
-        folder1: {
-          id: "folder1",
-          name: "Folder 1",
-          children: []
-        }
-      };
-
-      const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: { assets: [] } });
+      listQuery.mockResolvedValueOnce({ assets: [], next: null });
 
       const { loadFolderTree } = useAssetStore.getState();
       const result = await loadFolderTree("updated_at");
 
-      expect(client.GET).toHaveBeenCalledWith("/api/assets/", {
-        params: { query: { content_type: "folder" } }
-      });
+      expect(listQuery).toHaveBeenCalledWith({ content_type: "folder" });
       expect(result).toBeTruthy();
     });
   });
 
   describe("getAllAssetsInFolder", () => {
-    it("should recursively get all assets in a folder using the recursive API", async () => {
+    it("should fetch flat list via recursive tRPC procedure and flatten it", async () => {
       const mockResponse = {
         assets: [
           {
             id: "folder1",
             name: "Folder 1",
-            content_type: "folder",
-            children: [
-              {
-                id: "file1",
-                name: "file1.txt",
-                content_type: "text/plain",
-                children: []
-              }
-            ]
+            content_type: "folder"
+          },
+          {
+            id: "file1",
+            name: "file1.txt",
+            content_type: "text/plain"
           },
           {
             id: "file2",
             name: "file2.txt",
-            content_type: "text/plain",
-            children: []
+            content_type: "text/plain"
           }
         ]
       };
 
-      const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockResolvedValue({ data: mockResponse });
+      recursiveQuery.mockResolvedValueOnce(mockResponse);
 
       const { getAllAssetsInFolder } = useAssetStore.getState();
       const result = await getAllAssetsInFolder("root-folder");
 
-      expect(client.GET).toHaveBeenCalledWith(
-        "/api/assets/{folder_id}/recursive",
-        {
-          params: { path: { folder_id: "root-folder" } }
-        }
-      );
-
-      // Verify flattening logic
-      // Should contain folder1, file1 (child of folder1), and file2
+      expect(recursiveQuery).toHaveBeenCalledWith({ id: "root-folder" });
+      // Flat list → three items, no nesting.
       expect(result).toHaveLength(3);
       const ids = result.map((a) => a.id).sort();
       expect(ids).toEqual(["file1", "file2", "folder1"]);
     });
 
     it("should handle API errors", async () => {
-      const { client } = await import("../ApiClient");
-      // Simulate API error response structure
-      (client.GET as jest.Mock).mockResolvedValue({
-        error: { message: "Failed to fetch" }
-      });
+      recursiveQuery.mockRejectedValueOnce(new Error("Failed to fetch"));
 
       const { getAllAssetsInFolder } = useAssetStore.getState();
       await expect(getAllAssetsInFolder("root-folder")).rejects.toThrow(
-        /Failed to load assets recursively/
+        /Failed to fetch/
       );
     });
   });
 
   describe("error handling", () => {
     it("should handle network errors gracefully", async () => {
-      const { client } = await import("../ApiClient");
-      (client.GET as jest.Mock).mockRejectedValue(new Error("Network error"));
+      getQuery.mockRejectedValueOnce(new Error("Network error"));
 
       const { get } = useAssetStore.getState();
-
       await expect(get("test-id")).rejects.toThrow("Network error");
     });
 
@@ -704,5 +643,4 @@ describe("AssetStore", () => {
       );
     });
   });
-
 });

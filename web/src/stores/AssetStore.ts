@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { client, authHeader } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
+import { trpcClient } from "../trpc/client";
 import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
 import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
@@ -246,12 +247,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves to the asset.
    */
   get: async (id: string) => {
-    const { data, error } = await client.GET("/api/assets/{id}", {
-      params: { path: { id } }
-    });
-    if (error) {
-      throw createErrorMessage(error, "Failed to load asset");
-    }
+    const data = (await trpcClient.assets.get.query({
+      id
+    })) as unknown as Asset;
     get().add(data);
     return data;
   },
@@ -264,18 +262,17 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
   // Adjusting the load function to correctly handle the query
   load: async (query: AssetQuery) => {
-    const { data, error } = await client.GET("/api/assets/", {
-      params: {
-        query: query
-      }
+    const data = await trpcClient.assets.list.query({
+      ...(query.parent_id !== undefined && query.parent_id !== null
+        ? { parent_id: query.parent_id }
+        : {}),
+      ...(query.content_type ? { content_type: query.content_type } : {}),
+      ...(query.workflow_id ? { workflow_id: query.workflow_id } : {})
     });
-    if (error) {
-      throw createErrorMessage(error, "Failed to load assets");
-    }
     for (const asset of data.assets) {
-      get().add(asset);
+      get().add(asset as unknown as Asset);
     }
-    return data;
+    return data as unknown as AssetList;
   },
 
   /**
@@ -283,13 +280,10 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
 
   loadFolderTree: async (sortBy?: string) => {
-    // Fallback implementation: fetch all folders via /api/assets/ and build tree locally
-    const { data, error } = await client.GET("/api/assets/", {
-      params: { query: { content_type: "folder" } }
+    // Fallback implementation: fetch all folders via tRPC and build tree locally
+    const data = await trpcClient.assets.list.query({
+      content_type: "folder"
     });
-    if (error) {
-      throw createErrorMessage(error, "Failed to load folder tree");
-    }
     return buildFolderTree(
       data.assets as unknown as Asset[],
       sortBy === "updated_at" ? "updated_at" : "name"
@@ -335,35 +329,18 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
   search: async (query: AssetSearchQuery): Promise<AssetSearchResult> => {
     try {
-      const headers = await authHeader();
-      const params = new URLSearchParams();
-      params.append("query", query.query);
-      if (query.content_type) {
-        params.append("content_type", query.content_type);
-      }
-      if (query.page_size) {
-        params.append("page_size", query.page_size.toString());
-      }
-      if (query.cursor) {
-        params.append("cursor", query.cursor);
-      }
-
-      const response = await fetch(
-        `${BASE_URL}/api/assets/search?${params.toString()}`,
-        { headers: headers as HeadersInit }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw createErrorMessage(
-          errorData,
-          "Failed to search assets"
-        );
-      }
-
-      return (await response.json()) as AssetSearchResult;
+      const data = await trpcClient.assets.search.query({
+        query: query.query,
+        ...(query.content_type ? { content_type: query.content_type } : {}),
+        ...(query.page_size ? { page_size: query.page_size } : {}),
+        ...(query.cursor ? { cursor: query.cursor } : {})
+      });
+      return data as unknown as AssetSearchResult;
     } catch (error) {
-      if (error instanceof Error && error.message.includes("Failed to search assets")) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Failed to search assets")
+      ) {
         throw error;
       }
       throw new Error("Failed to search assets");
@@ -432,22 +409,13 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    * @returns A promise that resolves when the asset is deleted.
    */
   delete: async (id: string): Promise<string[]> => {
-    const { data, error } = await client.DELETE("/api/assets/{id}", {
-      params: { path: { id } }
-    });
+    const { deleted_asset_ids } = await trpcClient.assets.delete.mutate({ id });
 
-    if (error) {
-      throw createErrorMessage(error, "Failed to delete asset");
-    }
-
-    const response = data as { deleted_asset_ids: string[] };
-    const deletedAssetIds = response.deleted_asset_ids;
-
-    deletedAssetIds.forEach((assetId) => {
+    deleted_asset_ids.forEach((assetId) => {
       get().invalidateQueries(["assets", assetId]);
       get().invalidateQueries(["assets", { parent_id: assetId }]);
     });
-    return deletedAssetIds;
+    return deleted_asset_ids;
   },
 
   /**
@@ -554,22 +522,23 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     // Use provided values or fall back to previous values for required fields.
     // This ensures we don't accidentally clear fields like parent_id when only
     // updating the name.
-    const { error, data } = await client.PUT("/api/assets/{id}", {
-      params: { path: { id: req.id } },
-      body: {
-        name: req.name !== undefined ? req.name : prev.name,
-        parent_id: req.parent_id !== undefined ? req.parent_id : prev.parent_id,
-        content_type:
-          req.content_type !== undefined ? req.content_type : prev.content_type,
-        metadata: req.metadata !== undefined ? req.metadata : null,
-        data: req.data !== undefined ? req.data : null,
-        data_encoding:
-          req.data_encoding !== undefined ? req.data_encoding : null
-      }
-    });
-    if (error) {
-      throw createErrorMessage(error, "Failed to update asset");
-    }
+    const data = (await trpcClient.assets.update.mutate({
+      id: req.id,
+      name: req.name !== undefined ? req.name : prev.name,
+      parent_id:
+        req.parent_id !== undefined
+          ? req.parent_id
+          : (prev.parent_id ?? undefined),
+      content_type:
+        req.content_type !== undefined
+          ? req.content_type
+          : prev.content_type,
+      ...(req.metadata !== undefined ? { metadata: req.metadata } : {}),
+      ...(req.data !== undefined ? { data: req.data } : {}),
+      ...(req.data_encoding !== undefined
+        ? { data_encoding: req.data_encoding }
+        : {})
+    })) as unknown as Asset;
     get().add(data);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
     if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
@@ -620,26 +589,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   },
 
   getAssetsRecursive: async (folderId: string): Promise<AssetTreeNode[]> => {
-    const { data, error } = await client.GET(
-      "/api/assets/{folder_id}/recursive",
-      {
-        params: { path: { folder_id: folderId } }
-      }
-    );
-    if (error) {
-      throw createErrorMessage(error, "Failed to load assets recursively");
-    }
-
-    if (
-      typeof data === "object" &&
-      data !== null &&
-      "assets" in data &&
-      Array.isArray(data.assets)
-    ) {
-      return (data as AssetTreeResponse).assets;
-    } else {
-      log.error("AssetStore: Unexpected data structure received:", data);
-      throw new Error("Unexpected data structure received from server");
-    }
+    const data = await trpcClient.assets.recursive.query({ id: folderId });
+    // The tRPC `recursive` procedure returns a flat array — convert it to the
+    // tree shape expected by downstream code.
+    return (data.assets ?? []) as unknown as AssetTreeNode[];
   }
 }));

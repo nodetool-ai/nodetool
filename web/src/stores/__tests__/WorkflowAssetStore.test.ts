@@ -1,12 +1,23 @@
 import { renderHook, act } from "@testing-library/react";
 import { useWorkflowAssetStore } from "../WorkflowAssetStore";
-import * as ApiClient from "../ApiClient";
 import { Asset } from "../ApiTypes";
 
-// Mock the API client
-jest.mock("../ApiClient");
+// Mock the tRPC client used by the store.
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    assets: {
+      list: { query: jest.fn() }
+    }
+  }
+}));
 
-const mockClient = ApiClient.client as any;
+import { trpcClient } from "../../trpc/client";
+const listQuery = trpcClient.assets.list.query as jest.Mock;
+
+// Legacy test code referenced `mockClient.GET` directly — alias to the tRPC
+// list mock so test bodies below don't need line-by-line rewriting beyond
+// payload-shape adjustments.
+const mockClient = { GET: listQuery };
 
 // Mock loglevel
 jest.mock("loglevel", () => ({
@@ -67,10 +78,7 @@ describe("WorkflowAssetStore", () => {
 
   describe("loadWorkflowAssets", () => {
     it("loads workflow assets successfully", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: { assets: mockAssets },
-        error: null
-      });
+      mockClient.GET.mockResolvedValueOnce({ assets: mockAssets, next: null });
 
       const { result } = renderHook(() => useWorkflowAssetStore());
 
@@ -83,20 +91,11 @@ describe("WorkflowAssetStore", () => {
       expect(result.current.assetsByWorkflow["workflow1"]).toEqual(mockAssets);
       expect(result.current.loadingByWorkflow["workflow1"]).toBe(false);
       expect(result.current.errorsByWorkflow["workflow1"]).toBeNull();
-      expect(mockClient.GET).toHaveBeenCalledWith("/api/assets/", {
-        params: {
-          query: {
-            workflow_id: "workflow1"
-          }
-        }
-      });
+      expect(mockClient.GET).toHaveBeenCalledWith({ workflow_id: "workflow1" });
     });
 
     it("handles empty assets response", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: { assets: [] },
-        error: null
-      });
+      mockClient.GET.mockResolvedValueOnce({ assets: [], next: null });
 
       const { result } = renderHook(() => useWorkflowAssetStore());
 
@@ -110,10 +109,8 @@ describe("WorkflowAssetStore", () => {
     });
 
     it("handles missing assets in response", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: {},
-        error: null
-      });
+      // tRPC returns a well-typed `{assets, next}` — simulate missing assets field by returning empty.
+      mockClient.GET.mockResolvedValueOnce({ assets: [], next: null });
 
       const { result } = renderHook(() => useWorkflowAssetStore());
 
@@ -145,7 +142,7 @@ describe("WorkflowAssetStore", () => {
 
       // Resolve the promise
       await act(async () => {
-        resolvePromise({ data: { assets: mockAssets }, error: null });
+        resolvePromise({ assets: mockAssets, next: null });
         await promise;
       });
 
@@ -154,11 +151,7 @@ describe("WorkflowAssetStore", () => {
     });
 
     it("handles API error", async () => {
-      const errorResponse = { detail: "Failed to fetch assets" };
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: errorResponse
-      });
+      mockClient.GET.mockRejectedValueOnce(new Error("Failed to fetch assets"));
 
       let errorCaught = null;
       try {
@@ -197,10 +190,7 @@ describe("WorkflowAssetStore", () => {
         }
       });
 
-      mockClient.GET.mockResolvedValueOnce({
-        data: { assets: mockAssets },
-        error: null
-      });
+      mockClient.GET.mockResolvedValueOnce({ assets: mockAssets, next: null });
 
       const { result } = renderHook(() => useWorkflowAssetStore());
 
@@ -227,14 +217,8 @@ describe("WorkflowAssetStore", () => {
       ];
 
       mockClient.GET
-        .mockResolvedValueOnce({
-          data: { assets: mockAssets },
-          error: null
-        })
-        .mockResolvedValueOnce({
-          data: { assets: workflow2Assets },
-          error: null
-        });
+        .mockResolvedValueOnce({ assets: mockAssets, next: null })
+        .mockResolvedValueOnce({ assets: workflow2Assets, next: null });
 
       const { result } = renderHook(() => useWorkflowAssetStore());
 
