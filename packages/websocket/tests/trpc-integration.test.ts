@@ -149,3 +149,24 @@ describe("tRPC /trpc/users.list over Fastify", () => {
     await app.close();
   });
 });
+
+describe("tRPC /trpc/workspace.list over Fastify", () => {
+  it("returns the workspaces list shape", async () => {
+    const { Workspace } = await import("@nodetool/models");
+    vi.spyOn(Workspace, "paginate").mockResolvedValue([[], ""]);
+
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: `/trpc/workspace.list?input=${encodeURIComponent(
+        JSON.stringify({ json: { limit: 10 } })
+      )}`
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(data).toEqual({ workspaces: [], next: null });
+    await app.close();
+  });
+});
