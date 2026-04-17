@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
         height: "100%",
         minWidth: "150px",
         maxWidth: "unset",
-        minHeight: "150px",
+        minHeight: "80px",
         borderRadius: "calc(var(--rounded-node) - 1px)",
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
@@ -467,7 +467,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           isConnectable={true}
         />
         <>
-          <NodeResizeHandle minWidth={150} minHeight={150} />
+          <NodeResizeHandle minWidth={150} minHeight={80} />
           <NodeHeader
             id={props.id}
             data={props.data}
