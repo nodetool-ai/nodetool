@@ -9,14 +9,13 @@ import React, {
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { CircularProgress } from "@mui/material";
 
 // Icons
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
 
 // UI Primitives
-import { CloseButton, Tooltip, Text } from "../../ui_primitives";
+import { CloseButton, LoadingSpinner, Tooltip, Text } from "../../ui_primitives";
 
 import { useCombo } from "../../../stores/KeyPressedStore";
 import ImageEditorToolbar from "./ImageEditorToolbar";
@@ -573,7 +572,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
                 disabled={isSaving}
               >
                 {isSaving ? (
-                  <CircularProgress size={16} color="inherit" />
+                  <LoadingSpinner inline size={16} color="inherit" />
                 ) : (
                   <SaveIcon fontSize="small" />
                 )}

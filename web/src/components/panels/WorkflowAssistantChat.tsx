@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
-import { IconButton, Button, Popover } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Button, Popover } from "@mui/material";
+import { ToolbarIconButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import ListIcon from "@mui/icons-material/List";
 import AddIcon from "@mui/icons-material/Add";
@@ -530,11 +530,11 @@ const WorkflowAssistantChat: React.FC = () => {
         }}
       >
         <NewChatButton onNewThread={handleNewChat} />
-        <Tooltip title="Chat History">
-          <IconButton onClick={handleOpenThreadList} size="small">
-            <ListIcon />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<ListIcon />}
+          tooltip="Chat History"
+          onClick={handleOpenThreadList}
+        />
 
         <Popover
           open={isThreadListOpen}
