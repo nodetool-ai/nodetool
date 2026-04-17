@@ -31,9 +31,6 @@
     "**/node_modules/**",
     "**/.turbo/**",
     "**/generated/**",
-    "**/*.d.ts",
-    "web/**",
-    "electron/**",
-    "mobile/**"
+    "**/*.d.ts"
   ]
 }

@@ -1,0 +1,45 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "react-hooks", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "off",
+    "typescript/explicit-module-boundary-types": "off",
+    "typescript/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ],
+    "no-unused-vars": "off",
+    "typescript/no-require-imports": "off",
+    "typescript/ban-ts-comment": "off",
+    "typescript/no-this-alias": "off",
+    "react/jsx-key": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "no-console": "off",
+    "no-empty": "off",
+    "no-debugger": "error",
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "curly": "warn",
+    "no-throw-literal": "error",
+    "no-case-declarations": "off",
+    "no-extra-boolean-cast": "warn"
+  },
+  "ignorePatterns": [
+    "babel.config.js",
+    "jest.config.js",
+    "node_modules/**",
+    ".expo/**",
+    "dist/**",
+    "**/*.d.ts"
+  ]
+}
