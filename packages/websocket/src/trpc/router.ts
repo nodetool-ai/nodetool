@@ -5,6 +5,7 @@ import { costsRouter } from "./routers/costs.js";
 import { settingsRouter } from "./routers/settings.js";
 import { skillsRouter, fontsRouter } from "./routers/skills.js";
 import { usersRouter } from "./routers/users.js";
+import { workspaceRouter } from "./routers/workspace.js";
 
 export const appRouter = router({
   healthz: publicProcedure.output(z.object({ ok: z.literal(true) })).query(() => ({
@@ -15,7 +16,8 @@ export const appRouter = router({
   fonts: fontsRouter,
   settings: settingsRouter,
   skills: skillsRouter,
-  users: usersRouter
+  users: usersRouter,
+  workspace: workspaceRouter
 });
 
 export type AppRouter = typeof appRouter;
