@@ -20,7 +20,7 @@ import { Job } from "../../../stores/ApiTypes";
 import { useWorkflow } from "../../../serverState/useWorkflow";
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { useJobAssets } from "../../../serverState/useJobAssets";
-import { client } from "../../../stores/ApiClient";
+import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import log from "loglevel";
 import AssetGridContent from "../../assets/AssetGridContent";
@@ -145,10 +145,8 @@ const JobItem = ({ job }: { job: Job }) => {
       setCancelling(true);
 
       try {
-        // Cancel via REST API - this reliably reaches the backend
-        await client.POST("/api/jobs/{job_id}/cancel", {
-          params: { path: { job_id: job.id } }
-        });
+        // Cancel via tRPC — reliably reaches the backend
+        await trpcClient.jobs.cancel.mutate({ id: job.id });
 
         // Also update the local runner store state if it has this job
         const runnerStore = getWorkflowRunnerStore(job.workflow_id);

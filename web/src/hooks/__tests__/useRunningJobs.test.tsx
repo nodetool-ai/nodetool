@@ -3,13 +3,21 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { useRunningJobs } from "../useRunningJobs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Job } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
 import useAuth from "../../stores/useAuth";
 
-jest.mock("../../stores/ApiClient");
+// Mock the tRPC client used by the hook.
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    jobs: {
+      list: { query: jest.fn() }
+    }
+  }
+}));
 jest.mock("../../stores/useAuth");
 
-const mockClient = client as jest.Mocked<typeof client>;
+import { trpcClient } from "../../trpc/client";
+
+const listQuery = trpcClient.jobs.list.query as jest.Mock;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -77,10 +85,7 @@ describe("useRunningJobs", () => {
     const activeJobs = mockJobs.filter((j) =>
       j.status && ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
     );
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: activeJobs },
-      error: null,
-    });
+    listQuery.mockResolvedValueOnce({ jobs: activeJobs, next_start_key: null });
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -99,9 +104,9 @@ describe("useRunningJobs", () => {
     const allActiveJobs = mockJobs.filter((j) =>
       ["running", "queued", "starting", "suspended", "paused"].includes(j.status ?? "")
     );
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: allActiveJobs },
-      error: null,
+    listQuery.mockResolvedValueOnce({
+      jobs: allActiveJobs,
+      next_start_key: null
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -116,10 +121,7 @@ describe("useRunningJobs", () => {
   });
 
   it("handles empty job list", async () => {
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: [] },
-      error: null,
-    });
+    listQuery.mockResolvedValueOnce({ jobs: [], next_start_key: null });
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -133,10 +135,7 @@ describe("useRunningJobs", () => {
   });
 
   it("handles API error", async () => {
-    mockClient.GET.mockResolvedValueOnce({
-      data: null,
-      error: { detail: "Unauthorized" },
-    });
+    listQuery.mockRejectedValueOnce(new Error("Unauthorized"));
 
     const { result } = renderHook(() => useRunningJobs(), {
       wrapper: createWrapper(),
@@ -163,9 +162,9 @@ describe("useRunningJobs", () => {
         created_at: "2026-01-22T10:15:00Z",
       },
     ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithSuspended },
-      error: null,
+    listQuery.mockResolvedValueOnce({
+      jobs: jobsWithSuspended,
+      next_start_key: null
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -194,9 +193,9 @@ describe("useRunningJobs", () => {
         created_at: "2026-01-22T10:20:00Z",
       },
     ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithPaused },
-      error: null,
+    listQuery.mockResolvedValueOnce({
+      jobs: jobsWithPaused,
+      next_start_key: null
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -225,9 +224,9 @@ describe("useRunningJobs", () => {
         created_at: "2026-01-22T10:25:00Z",
       },
     ];
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: jobsWithStarting },
-      error: null,
+    listQuery.mockResolvedValueOnce({
+      jobs: jobsWithStarting,
+      next_start_key: null
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
@@ -247,9 +246,9 @@ describe("useRunningJobs", () => {
       j.status && ["running", "queued", "starting", "suspended", "paused"].includes(j.status)
     );
     // The API should filter out failed jobs, so we only return active jobs
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: activeJobs },
-      error: null,
+    listQuery.mockResolvedValueOnce({
+      jobs: activeJobs,
+      next_start_key: null
     });
 
     const { result } = renderHook(() => useRunningJobs(), {
