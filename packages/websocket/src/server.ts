@@ -63,6 +63,12 @@ import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
+import {
+  fastifyTRPCPlugin,
+  type FastifyTRPCPluginOptions
+} from "@trpc/server/adapters/fastify";
+import { appRouter, type AppRouter } from "./trpc/router.js";
+import { createContextFactory } from "./trpc/context.js";
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
@@ -489,6 +495,27 @@ const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
 // ---------------------------------------------------------------------------
 // Register route plugins
 // ---------------------------------------------------------------------------
+
+const createContext = createContextFactory({
+  registry,
+  apiOptions,
+  pythonBridge,
+  getPythonBridgeReady: () => pythonBridgeReady
+});
+
+await app.register(fastifyTRPCPlugin, {
+  prefix: "/trpc",
+  trpcOptions: {
+    router: appRouter,
+    createContext,
+    onError({ path, error }) {
+      log.error(
+        `tRPC error on ${path}`,
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"]
+});
 
 await app.register(websocketPlugin, {
   registry,
