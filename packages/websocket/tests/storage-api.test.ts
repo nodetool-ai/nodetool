@@ -182,11 +182,11 @@ describe("range requests", () => {
 });
 
 // ---------------------------------------------------------------------------
-// PUT / GET / DELETE lifecycle
+// PUT / GET lifecycle (DELETE migrated to tRPC)
 // ---------------------------------------------------------------------------
 
-describe("PUT / GET / DELETE lifecycle", () => {
-  it("uploads, retrieves, and deletes a file", async () => {
+describe("PUT / GET lifecycle", () => {
+  it("uploads and retrieves a file", async () => {
     const handler = makeHandler();
     const data = "test file content";
 
@@ -204,26 +204,14 @@ describe("PUT / GET / DELETE lifecycle", () => {
     expect(getRes.headers.get("Content-Type")).toBe("text/plain");
     const body = await getRes.text();
     expect(body).toBe(data);
-
-    // DELETE
-    const delRes = await handler(
-      makeRequest("/api/storage/lifecycle/test.txt", "DELETE")
-    );
-    expect(delRes.status).toBe(200);
-
-    // GET after delete -> 404
-    const getRes2 = await handler(
-      makeRequest("/api/storage/lifecycle/test.txt")
-    );
-    expect(getRes2.status).toBe(404);
   });
 
-  it("DELETE returns 404 for non-existent file", async () => {
+  it("DELETE returns 405 (moved to tRPC storage.delete)", async () => {
     const handler = makeHandler();
     const res = await handler(
       makeRequest("/api/storage/nonexistent.txt", "DELETE")
     );
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(405);
   });
 });
 

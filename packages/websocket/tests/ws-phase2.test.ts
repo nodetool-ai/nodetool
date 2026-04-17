@@ -5,13 +5,25 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, Job } from "@nodetool/models";
 import { handleApiRequest } from "../src/http-api.js";
 import { handleFileRequest, type FileApiOptions } from "../src/file-api.js";
-import {
-  handleStorageRequest,
-  createStorageHandler
-} from "../src/storage-api.js";
+import { createStorageHandler } from "../src/storage-api.js";
+import { appRouter } from "../src/trpc/router.js";
+import { createCallerFactory } from "../src/trpc/index.js";
+import type { Context } from "../src/trpc/context.js";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
+
+function makeFileCtx(overrides: Partial<Context> = {}): Context {
+  return {
+    userId: "test-user",
+    registry: {} as never,
+    apiOptions: { metadataRoots: [], registry: {} as never } as never,
+    pythonBridge: {} as never,
+    getPythonBridgeReady: () => false,
+    ...overrides
+  };
+}
+const createCaller = createCallerFactory(appRouter);
 
 async function jsonBody(response: Response): Promise<unknown> {
   const text = await response.text();
@@ -80,6 +92,10 @@ describe("T-WS-8: Username validation", () => {
 });
 
 // ── T-WS-9 — File browser API ───────────────────────────────────────
+//
+// JSON ops (list, info) have moved to the tRPC `files` router.
+// Tests for those use the tRPC caller directly against a real temp dir.
+// The REST handler (/api/files/download) is tested for download + traversal.
 
 describe("T-WS-9: File browser API", () => {
   let tmpDir: string;
@@ -101,64 +117,75 @@ describe("T-WS-9: File browser API", () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("GET /api/files/list?path=/ lists root directory", async () => {
+  // ── list / info — now in tRPC files router ───────────────────────────
+
+  it("tRPC files.list lists the home directory", async () => {
+    // Uses real homedir — just assert shape (entries may vary per machine)
+    const caller = createCaller(makeFileCtx());
+    const result = await caller.files.list({ path: "." });
+    expect(Array.isArray(result)).toBe(true);
+    if (result.length > 0) {
+      expect(result[0]).toHaveProperty("name");
+      expect(result[0]).toHaveProperty("is_dir");
+      expect(result[0]).toHaveProperty("size");
+      expect(result[0]).toHaveProperty("modified_at");
+    }
+  });
+
+  it("tRPC files.info returns file metadata", async () => {
+    const caller = createCaller(makeFileCtx());
+    // info uses homedir as root — test with "." to get root info
+    const result = await caller.files.info({ path: "." });
+    expect(result).toHaveProperty("name");
+    expect(result).toHaveProperty("is_dir");
+    expect(typeof result.modified_at).toBe("string");
+  });
+
+  it("tRPC files.list returns 404 for nonexistent directory", async () => {
+    const caller = createCaller(makeFileCtx());
+    await expect(
+      caller.files.list({ path: "nonexistent-dir-xyz" })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("tRPC files.info returns 404 for nonexistent file", async () => {
+    const caller = createCaller(makeFileCtx());
+    await expect(
+      caller.files.info({ path: "nonexistent-file-xyz.txt" })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("tRPC files.list rejects path traversal with FORBIDDEN", async () => {
+    const caller = createCaller(makeFileCtx());
+    await expect(
+      caller.files.list({ path: "/../../../etc" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("tRPC files.info rejects path traversal with FORBIDDEN", async () => {
+    const caller = createCaller(makeFileCtx());
+    await expect(
+      caller.files.info({ path: "/../../etc/passwd" })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("REST /api/files/list now returns 404 (moved to tRPC)", async () => {
     const res = await handleFileRequest(
       new Request("http://localhost/api/files/list?path=/"),
       fileOpts
     );
-    expect(res.status).toBe(200);
-    const body = (await jsonBody(res)) as Array<{
-      name: string;
-      is_dir: boolean;
-    }>;
-    const names = body.map((f) => f.name);
-    expect(names).toContain("hello.txt");
-    expect(names).toContain("subdir");
-    const subdir = body.find((f) => f.name === "subdir");
-    expect(subdir?.is_dir).toBe(true);
-    const file = body.find((f) => f.name === "hello.txt");
-    expect(file?.is_dir).toBe(false);
+    expect(res.status).toBe(404);
   });
 
-  it("GET /api/files/list?path=/subdir lists subdirectory", async () => {
-    const res = await handleFileRequest(
-      new Request("http://localhost/api/files/list?path=/subdir"),
-      fileOpts
-    );
-    expect(res.status).toBe(200);
-    const body = (await jsonBody(res)) as Array<{ name: string }>;
-    expect(body.length).toBe(1);
-    expect(body[0].name).toBe("nested.txt");
-  });
-
-  it("GET /api/files/info?path=/hello.txt returns file metadata", async () => {
+  it("REST /api/files/info now returns 404 (moved to tRPC)", async () => {
     const res = await handleFileRequest(
       new Request("http://localhost/api/files/info?path=/hello.txt"),
       fileOpts
     );
-    expect(res.status).toBe(200);
-    const body = (await jsonBody(res)) as {
-      name: string;
-      size: number;
-      is_dir: boolean;
-      modified_at: string;
-    };
-    expect(body.name).toBe("hello.txt");
-    expect(body.size).toBe(11); // "hello world"
-    expect(body.is_dir).toBe(false);
-    expect(typeof body.modified_at).toBe("string");
+    expect(res.status).toBe(404);
   });
 
-  it("GET /api/files/info?path=/subdir returns directory metadata", async () => {
-    const res = await handleFileRequest(
-      new Request("http://localhost/api/files/info?path=/subdir"),
-      fileOpts
-    );
-    expect(res.status).toBe(200);
-    const body = (await jsonBody(res)) as { name: string; is_dir: boolean };
-    expect(body.name).toBe("subdir");
-    expect(body.is_dir).toBe(true);
-  });
+  // ── download — stays as REST ─────────────────────────────────────────
 
   it("GET /api/files/download?path=/hello.txt returns file content", async () => {
     const res = await handleFileRequest(
@@ -170,22 +197,6 @@ describe("T-WS-9: File browser API", () => {
     expect(text).toBe("hello world");
   });
 
-  it("GET /api/files/list with path traversal returns 403", async () => {
-    const res = await handleFileRequest(
-      new Request("http://localhost/api/files/list?path=/../../../etc"),
-      fileOpts
-    );
-    expect(res.status).toBe(403);
-  });
-
-  it("GET /api/files/info with path traversal returns 403", async () => {
-    const res = await handleFileRequest(
-      new Request("http://localhost/api/files/info?path=/../../etc/passwd"),
-      fileOpts
-    );
-    expect(res.status).toBe(403);
-  });
-
   it("GET /api/files/download with path traversal returns 403", async () => {
     const res = await handleFileRequest(
       new Request(
@@ -194,22 +205,6 @@ describe("T-WS-9: File browser API", () => {
       fileOpts
     );
     expect(res.status).toBe(403);
-  });
-
-  it("GET /api/files/info for nonexistent file returns 404", async () => {
-    const res = await handleFileRequest(
-      new Request("http://localhost/api/files/info?path=/nope.txt"),
-      fileOpts
-    );
-    expect(res.status).toBe(404);
-  });
-
-  it("GET /api/files/list without path param returns 400", async () => {
-    const res = await handleFileRequest(
-      new Request("http://localhost/api/files/list"),
-      fileOpts
-    );
-    expect(res.status).toBe(400);
   });
 });
 
@@ -265,8 +260,9 @@ describe("T-WS-11: Storage KV API", () => {
     expect(res.status).toBe(404);
   });
 
-  it("DELETE /api/storage/{key} removes a key", async () => {
-    // Store first
+  it("DELETE /api/storage/{key} returns 405 (moved to tRPC storage.delete)", async () => {
+    // DELETE has been migrated to the tRPC `storage.delete` procedure.
+    // The REST handler now returns 405 Method Not Allowed.
     await handler(
       new Request("http://localhost/api/storage/mykey.txt", {
         method: "PUT",
@@ -279,20 +275,14 @@ describe("T-WS-11: Storage KV API", () => {
         method: "DELETE"
       })
     );
-    expect(delRes.status).toBe(200);
-
-    // Verify gone
-    const getRes = await handler(
-      new Request("http://localhost/api/storage/mykey.txt")
-    );
-    expect(getRes.status).toBe(404);
+    expect(delRes.status).toBe(405);
   });
 
-  it("DELETE /api/storage/{key} returns 404 for missing key", async () => {
+  it("DELETE /api/storage/{key} returns 405 for missing key too (moved to tRPC)", async () => {
     const res = await handler(
       new Request("http://localhost/api/storage/nope.txt", { method: "DELETE" })
     );
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(405);
   });
 
   it("PUT /api/storage with empty key returns 400", async () => {

@@ -1,3 +1,7 @@
+/**
+ * Binary-only REST routes for the file browser.
+ * JSON ops (list, info) have moved to the tRPC `files` router.
+ */
 import type { FastifyPluginAsync } from "fastify";
 import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
@@ -8,11 +12,7 @@ interface RouteOptions {
 }
 
 const filesRoutes: FastifyPluginAsync<RouteOptions> = async (app, _opts) => {
-  app.all("/api/files", async (req, reply) => {
-    await bridge(req, reply, (request) => handleFileRequest(request));
-  });
-
-  app.all("/api/files/*", async (req, reply) => {
+  app.get("/api/files/download", async (req, reply) => {
     await bridge(req, reply, (request) => handleFileRequest(request));
   });
 };

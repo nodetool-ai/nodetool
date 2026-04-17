@@ -276,3 +276,48 @@ describe("tRPC /trpc/assets.list over Fastify", () => {
     await app.close();
   });
 });
+
+describe("tRPC /trpc/files.list over Fastify", () => {
+  it("returns an array of file entries for the home directory", async () => {
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: `/trpc/files.list?input=${encodeURIComponent(
+        JSON.stringify({ json: { path: "." } })
+      )}`
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(Array.isArray(data)).toBe(true);
+    if (data.length > 0) {
+      expect(data[0]).toHaveProperty("name");
+      expect(data[0]).toHaveProperty("is_dir");
+      expect(data[0]).toHaveProperty("size");
+      expect(data[0]).toHaveProperty("modified_at");
+    }
+    await app.close();
+  });
+});
+
+describe("tRPC /trpc/storage.list over Fastify", () => {
+  it("returns the storage list shape (may be empty if storage dir missing)", async () => {
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: `/trpc/storage.list?input=${encodeURIComponent(
+        JSON.stringify({ json: {} })
+      )}`
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(data).toHaveProperty("entries");
+    expect(data).toHaveProperty("count");
+    expect(Array.isArray(data.entries)).toBe(true);
+    expect(typeof data.count).toBe("number");
+    await app.close();
+  });
+});

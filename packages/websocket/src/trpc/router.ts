@@ -3,11 +3,13 @@ import { router, publicProcedure } from "./index.js";
 import { assetsRouter } from "./routers/assets.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
+import { filesRouter } from "./routers/files.js";
 import { jobsRouter } from "./routers/jobs.js";
 import { mcpConfigRouter } from "./routers/mcp-config.js";
 import { messagesRouter } from "./routers/messages.js";
 import { settingsRouter } from "./routers/settings.js";
 import { skillsRouter, fontsRouter } from "./routers/skills.js";
+import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
 import { usersRouter } from "./routers/users.js";
 import { workspaceRouter } from "./routers/workspace.js";
@@ -19,12 +21,14 @@ export const appRouter = router({
   assets: assetsRouter,
   collections: collectionsRouter,
   costs: costsRouter,
+  files: filesRouter,
   fonts: fontsRouter,
   jobs: jobsRouter,
   mcpConfig: mcpConfigRouter,
   messages: messagesRouter,
   settings: settingsRouter,
   skills: skillsRouter,
+  storage: storageRouter,
   threads: threadsRouter,
   users: usersRouter,
   workspace: workspaceRouter
