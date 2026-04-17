@@ -41,13 +41,13 @@ make electron-dev # Electron dev (auto-rebuilds native modules)
 
 ### Prerequisites
 
-- **Node.js 22.x** (required — see `.nvmrc`). Use `nvm use` to activate.
+- **Node.js 24.x** (required — see `.nvmrc`). Use `nvm use` to activate.
 - npm (comes with Node)
 - Python 3.11+ with conda (optional, for Python nodes)
 
 ```bash
 # First-time setup
-nvm use              # Reads .nvmrc, activates Node 22
+nvm use              # Reads .nvmrc, activates Node 24
 npm install          # Install all workspace dependencies
 npm run build:packages  # Build backend packages
 ```
@@ -75,7 +75,7 @@ packages/           # 24 npm workspace packages (TypeScript backend)
   ...
 
 web/                # React 18 + Vite + MUI + Zustand + ReactFlow
-electron/           # Electron 35 desktop app
+electron/           # Electron 39 desktop app
 mobile/             # React Native / Expo
 ```
 
@@ -128,7 +128,7 @@ make typecheck   # Must pass before committing
 
 ## Common Pitfalls
 
-- **Node.js 22.x is required**. Electron 35 embeds Node 22 — native modules (better-sqlite3) must be compiled against the same ABI. Use `nvm use 22` (see `.nvmrc`). Node 23+ or 24+ will cause `NODE_MODULE_VERSION` mismatch errors in Electron.
+- **Node.js 24.x is required**. Electron 39 embeds Node 24 — native modules (better-sqlite3) must be compiled against the same ABI. Use `nvm use 24` (see `.nvmrc`). Mismatched major versions will cause `NODE_MODULE_VERSION` errors in Electron.
 - **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `make dev`.
 - **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
