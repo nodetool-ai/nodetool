@@ -43,7 +43,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { isLocalhost } from "../../stores/ApiClient";
 import { trpcClient } from "../../trpc/client";
-import { BASE_URL } from "../../stores/BASE_URL";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { getAgentSocketClient } from "../../lib/agent/AgentSocketClient";
@@ -291,11 +290,11 @@ const AgentPanel: React.FC = () => {
   const { data: mcpStatus } = useQuery({
     queryKey: ["mcp-status"],
     queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/api/mcp/status`);
-      if (!res.ok) return null;
-      return res.json() as Promise<{
-        targets: { target: string; installed: boolean }[];
-      }>;
+      try {
+        return await trpcClient.mcpConfig.status.query();
+      } catch {
+        return null;
+      }
     },
     enabled: isLocalhost,
     refetchOnWindowFocus: false,
