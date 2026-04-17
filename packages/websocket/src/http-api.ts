@@ -50,7 +50,6 @@ import { handleWorkspaceRequest } from "./workspace-api.js";
 import { handleFileRequest } from "./file-api.js";
 import { handleSkillsRequest, handleFontsRequest } from "./skills-api.js";
 import { handleUsersRequest } from "./users-api.js";
-import { handleCollectionRequest } from "./collection-api.js";
 
 const log = createLogger("nodetool.websocket.http");
 
@@ -2652,15 +2651,6 @@ export async function handleApiRequest(
     const res = await handleUsersRequest(request, pathname, options);
     if (res) return res;
   }
-
-  if (
-    pathname === "/api/collections" ||
-    pathname.startsWith("/api/collections/")
-  ) {
-    const res = await handleCollectionRequest(request, pathname, options);
-    if (res) return res;
-  }
-
 
   if (pathname === "/admin/secrets/import") {
     if (request.method !== "POST")
