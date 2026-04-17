@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { platform } from "node:os";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 
 const nodeMajor = process.versions.node.split(".")[0];
-if (nodeMajor !== "22") {
-  console.error(`ERROR: Node.js 22.x required (found ${process.version})`);
-  console.error("  Electron 35 embeds Node 22 — native modules must match.");
-  console.error("  Run: nvm use 22");
+if (nodeMajor !== "24") {
+  console.error(`ERROR: Node.js 24.x required (found ${process.version})`);
+  console.error("  Native modules must match Electron's embedded Node ABI.");
+  console.error("  Run: nvm use 24");
   process.exit(1);
 }
 
 const isWindows = platform() === "win32";
 
 if (isWindows) {
-  // Windows: force native rebuild, then hand off to PowerShell script.
-  // The .ps1 does not re-do the rebuild; we do it here to match Makefile behavior.
-  const electronVersion = require("../electron/package.json").devDependencies.electron;
+  // Native modules load inside utilityProcess.fork() — ABI must match the
+  // *installed* Electron, not the range in package.json.
+  const { createRequire } = await import("node:module");
+  const req = createRequire(import.meta.url);
+  const electronVersion = req("../node_modules/electron/package.json").version;
+  console.log(`Rebuilding native modules for Electron ${electronVersion}...`);
   const gyp = (cwd) =>
     spawnSync(
       "npx",
@@ -31,8 +31,6 @@ if (isWindows) {
       ],
       { cwd, stdio: "inherit", shell: true }
     );
-
-  console.log("Rebuilding native modules for Electron ABI (force)...");
   if (gyp("node_modules/better-sqlite3").status !== 0) process.exit(1);
   if (gyp("node_modules/bufferutil").status !== 0) process.exit(1);
 

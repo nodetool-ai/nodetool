@@ -19,7 +19,7 @@ Guidelines for working with code in this repository. These are linter-like rules
 
 ## Prerequisites
 
-- **Node.js 22.x** (required — see `.nvmrc`). Electron 35 embeds Node 22; native modules must match the ABI.
+- **Node.js 24.x** (required — see `.nvmrc`). Electron 39 embeds Node 24; native modules must match the ABI.
 - Use `nvm use` to activate the correct version.
 - If you see `NODE_MODULE_VERSION` errors, run `npm rebuild`.
 
@@ -267,7 +267,7 @@ See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific t
 - **Jest 29.7.0** + React Testing Library 16.1.0, **Playwright** for E2E
 
 ### Electron
-- **Electron 35.7.5**, **React 19.1.0**, **TypeScript 5.3.3**
+- **Electron 39.8.8**, **React 19.1.0**, **TypeScript 5.3.3**
 - **Zustand 5.0.3**, **Vite 6.4.1**
 
 ### Mobile
