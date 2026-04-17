@@ -131,3 +131,21 @@ describe("tRPC /trpc/skills.list over Fastify", () => {
     await app.close();
   });
 });
+
+describe("tRPC /trpc/users.list over Fastify", () => {
+  it("rejects non-admin callers with FORBIDDEN", async () => {
+    const { FileUserManager } = await import("@nodetool/auth");
+    vi.spyOn(FileUserManager.prototype, "listUsers").mockResolvedValue({});
+
+    // buildTestApp sets req.userId = "test-user" — not an admin, so the
+    // router's admin guard should reject with 403.
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: "/trpc/users.list"
+    });
+    expect(res.statusCode).toBe(403);
+    await app.close();
+  });
+});
