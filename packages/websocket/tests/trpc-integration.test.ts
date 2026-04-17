@@ -255,3 +255,24 @@ describe("tRPC /trpc/jobs.list over Fastify", () => {
     await app.close();
   });
 });
+
+describe("tRPC /trpc/assets.list over Fastify", () => {
+  it("returns the assets list shape", async () => {
+    const { Asset } = await import("@nodetool/models");
+    vi.spyOn(Asset, "paginate").mockResolvedValue([[], ""]);
+
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: `/trpc/assets.list?input=${encodeURIComponent(
+        JSON.stringify({ json: { parent_id: "test-user" } })
+      )}`
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(data).toEqual({ assets: [], next: null });
+    await app.close();
+  });
+});
