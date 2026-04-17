@@ -2,6 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure } from "./index.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
+import { jobsRouter } from "./routers/jobs.js";
 import { mcpConfigRouter } from "./routers/mcp-config.js";
 import { messagesRouter } from "./routers/messages.js";
 import { settingsRouter } from "./routers/settings.js";
@@ -17,6 +18,7 @@ export const appRouter = router({
   collections: collectionsRouter,
   costs: costsRouter,
   fonts: fontsRouter,
+  jobs: jobsRouter,
   mcpConfig: mcpConfigRouter,
   messages: messagesRouter,
   settings: settingsRouter,
