@@ -170,3 +170,25 @@ describe("tRPC /trpc/workspace.list over Fastify", () => {
     await app.close();
   });
 });
+
+describe("tRPC /trpc/mcpConfig.status over Fastify", () => {
+  it("returns the MCP target status list", async () => {
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: "/trpc/mcpConfig.status"
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(data).toHaveProperty("targets");
+    expect(data).toHaveProperty("defaultUrl");
+    expect(Array.isArray(data.targets)).toBe(true);
+    expect(data.targets).toHaveLength(3);
+    for (const t of data.targets) {
+      expect(["claude", "codex", "opencode"]).toContain(t.target);
+    }
+    await app.close();
+  });
+});
