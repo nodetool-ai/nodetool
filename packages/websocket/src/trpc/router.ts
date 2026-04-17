@@ -6,6 +6,7 @@ import { mcpConfigRouter } from "./routers/mcp-config.js";
 import { messagesRouter } from "./routers/messages.js";
 import { settingsRouter } from "./routers/settings.js";
 import { skillsRouter, fontsRouter } from "./routers/skills.js";
+import { threadsRouter } from "./routers/threads.js";
 import { usersRouter } from "./routers/users.js";
 import { workspaceRouter } from "./routers/workspace.js";
 
@@ -20,6 +21,7 @@ export const appRouter = router({
   messages: messagesRouter,
   settings: settingsRouter,
   skills: skillsRouter,
+  threads: threadsRouter,
   users: usersRouter,
   workspace: workspaceRouter
 });
