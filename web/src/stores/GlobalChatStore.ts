@@ -26,8 +26,11 @@ import {
   LanguageModel
 } from "./ApiTypes";
 import { isLocalhost } from "./ApiClient";
-import { client } from "./ApiClient";
 import { trpcClient } from "../trpc/client";
+import {
+  isTRPCErrorWithCode,
+  ApiErrorCode
+} from "@nodetool/protocol/api-schemas";
 import log from "loglevel";
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
@@ -621,16 +624,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
       fetchThreads: async () => {
         set({ isLoadingThreads: true });
         try {
-          const { data, error } = await client.GET("/api/threads/");
-          if (error) {
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to fetch threads"
-            );
-          }
+          const data = await trpcClient.threads.list.query({});
 
           const threadsRecord: Record<string, Thread> = {};
-          data?.threads?.forEach((thread) => {
-            threadsRecord[thread.id] = thread;
+          data.threads.forEach((thread) => {
+            threadsRecord[thread.id] = thread as unknown as Thread;
           });
 
           set({ threads: threadsRecord, threadsLoaded: true });
@@ -644,27 +642,23 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       fetchThread: async (threadId: string) => {
         try {
-          const { data, error } = await client.GET("/api/threads/{thread_id}", {
-            params: { path: { thread_id: threadId } }
-          });
-          if (error) {
-            throw new Error(error.detail?.[0]?.msg || "Failed to fetch thread");
-          }
+          const data = await trpcClient.threads.get.query({ id: threadId });
 
           set((state) => ({
             threads: {
               ...state.threads,
-              [threadId]: data
+              [threadId]: data as unknown as Thread
             }
           }));
 
-          return data;
+          return data as unknown as Thread;
         } catch (error: unknown) {
-          const isNotFound =
-            error &&
-            typeof error === "object" &&
-            "status" in error &&
-            error.status === 404;
+          // Surface NOT_FOUND without logging — missing threads are expected
+          // when fetching by stale id.
+          const isNotFound = isTRPCErrorWithCode(
+            error,
+            ApiErrorCode.NOT_FOUND
+          );
           if (!isNotFound) {
             log.error("Failed to fetch thread:", error);
           }
@@ -761,14 +755,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       deleteThread: async (threadId: string) => {
         try {
-          const { error } = await client.DELETE("/api/threads/{thread_id}", {
-            params: { path: { thread_id: threadId } }
-          });
-          if (error) {
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to delete thread"
-            );
-          }
+          await trpcClient.threads.delete.mutate({ id: threadId });
 
           // Update local state
           set((state) => {
@@ -932,11 +919,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         // Best-effort server update
         try {
-          const request: ThreadUpdateRequest = { title };
-          await client.PUT("/api/threads/{thread_id}", {
-            params: { path: { thread_id: threadId } },
-            body: request
-          });
+          await trpcClient.threads.update.mutate({ id: threadId, title });
         } catch (error) {
           log.error("Failed to update thread title:", error);
           // Do not throw to keep optimistic UI
@@ -945,30 +928,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
       summarizeThread: async (
         threadId: string,
-        provider: string,
-        model: string,
-        content: string
+        _provider: string,
+        _model: string,
+        _content: string
       ) => {
-        const request: ThreadSummarizeRequest = {
-          provider,
-          model,
-          content
-        };
+        // Note: the server derives the title from existing thread messages and
+        // ignores provider/model/content. Kept in the signature for backward
+        // compatibility with existing callers.
         try {
-          const { data, error } = await client.POST(
-            "/api/threads/{thread_id}/summarize",
-            {
-              params: { path: { thread_id: threadId } },
-              body: request
-            }
-          );
-
-          if (error) {
-            log.error("Summarize API error:", error);
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to summarize thread"
-            );
-          }
+          const data = await trpcClient.threads.summarize.mutate({
+            id: threadId
+          });
 
           // Update the thread in local state if title was changed
           set((state) => {
@@ -980,7 +950,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                   [threadId]: {
                     ...thread,
                     title: data.title,
-                    updated_at: data.updated_at
+                    updated_at: new Date().toISOString()
                   }
                 }
               };
@@ -1218,16 +1188,7 @@ export const useThreadsQuery = () => {
   const query = useQuery({
     queryKey: ["threads"],
     queryFn: async () => {
-      const { data, error } = await client.GET("/api/threads/", {
-        params: {
-          query: {
-            limit: 100
-          }
-        }
-      });
-      if (error) {
-        throw new Error(error.detail?.[0]?.msg || "Failed to fetch threads");
-      }
+      const data = await trpcClient.threads.list.query({ limit: 100 });
       log.debug("Threads fetched:", data);
       return data;
     },
@@ -1240,7 +1201,7 @@ export const useThreadsQuery = () => {
     if (query.isSuccess && query.data) {
       const threadsRecord: Record<string, Thread> = {};
       query.data.threads.forEach((thread) => {
-        threadsRecord[thread.id] = thread;
+        threadsRecord[thread.id] = thread as unknown as Thread;
       });
 
       useGlobalChatStore.setState({

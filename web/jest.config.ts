@@ -30,6 +30,8 @@ export default {
     "BASE_URL\\.js$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
     "^.*stores/BASE_URL$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
     "^.*stores/BASE_URL.js$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
+    "^.*/trpc/client$": "<rootDir>/src/__mocks__/trpcClientMock.ts",
+    "^.*/trpc/client.js$": "<rootDir>/src/__mocks__/trpcClientMock.ts",
     "^.*lib/supabaseClient$": "<rootDir>/src/__mocks__/supabaseClientMock.ts",
     "^@google/model-viewer$": "<rootDir>/src/__mocks__/modelViewerMock.ts",
     "^react-markdown$": "<rootDir>/src/__mocks__/reactMarkdownMock.tsx",
