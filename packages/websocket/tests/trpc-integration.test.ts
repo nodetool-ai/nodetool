@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import Fastify from "fastify";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
-import { Prediction } from "@nodetool/models";
+import { Prediction, Secret, Setting } from "@nodetool/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createContextFactory } from "../src/trpc/context.js";
 
@@ -60,6 +60,34 @@ describe("tRPC /trpc/costs.list over Fastify", () => {
     const data = body.result?.data?.json ?? body.result?.data;
     expect(data.calls).toEqual([]);
     expect(data.next_start_key).toBeNull();
+    await app.close();
+  });
+});
+
+describe("tRPC /trpc/settings.list over Fastify", () => {
+  it("returns the registered settings with configured values resolved", async () => {
+    // Mock model reads to produce a deterministic (empty-DB) response so the
+    // snapshot is the registry defaults with env/DB values resolved.
+    vi.spyOn(Setting, "listForUser").mockResolvedValue([]);
+    vi.spyOn(Secret, "find").mockResolvedValue(null);
+
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: "/trpc/settings.list"
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(Array.isArray(data.settings)).toBe(true);
+    expect(data.settings.length).toBeGreaterThan(0);
+    // Sanity check a well-known registry entry.
+    const openai = data.settings.find(
+      (s: { env_var: string }) => s.env_var === "OPENAI_API_KEY"
+    );
+    expect(openai).toBeDefined();
+    expect(openai.is_secret).toBe(true);
     await app.close();
   });
 });
