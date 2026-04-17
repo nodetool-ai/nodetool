@@ -112,3 +112,22 @@ describe("tRPC /trpc/collections.list over Fastify", () => {
     await app.close();
   });
 });
+
+describe("tRPC /trpc/skills.list over Fastify", () => {
+  it("returns the skills list shape", async () => {
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: "/trpc/skills.list"
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(data).toHaveProperty("count");
+    expect(data).toHaveProperty("skills");
+    expect(Array.isArray(data.skills)).toBe(true);
+    expect(typeof data.count).toBe("number");
+    await app.close();
+  });
+});
