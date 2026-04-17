@@ -1,16 +1,15 @@
 /**
- * Workspace API handler.
+ * Workspace API — REST handler for the binary file-download endpoint only.
  *
- * Handles all /api/workspaces/* routes.
+ * `GET /api/workspaces/:id/download/:path` stays on REST because tRPC's JSON
+ * link does not carry binary payloads. All CRUD + listFiles (JSON) endpoints
+ * moved to the tRPC `workspace` router.
  */
 
-import { stat, readdir, readFile } from "node:fs/promises";
-import { existsSync, accessSync, constants } from "node:fs";
-import { resolve, join, basename, isAbsolute } from "node:path";
+import { readFile } from "node:fs/promises";
+import { resolve, join, basename } from "node:path";
 import { Workspace } from "@nodetool/models";
 import type { HttpApiOptions } from "./http-api.js";
-
-type JsonObject = Record<string, unknown>;
 
 function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -27,29 +26,6 @@ function getUserId(request: Request, headerName = "x-user-id"): string {
   return (
     request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1"
   );
-}
-
-async function parseJsonBody<T>(request: Request): Promise<T | null> {
-  const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().includes("application/json")) return null;
-  try {
-    return (await request.json()) as T;
-  } catch {
-    return null;
-  }
-}
-
-function toWorkspaceResponse(ws: Workspace): JsonObject {
-  return {
-    id: ws.id,
-    user_id: ws.user_id,
-    name: ws.name,
-    path: ws.path,
-    is_default: ws.is_default,
-    is_accessible: ws.isAccessible(),
-    created_at: ws.created_at,
-    updated_at: ws.updated_at
-  };
 }
 
 function normalizePath(pathname: string): string {
@@ -88,18 +64,10 @@ function guessContentType(filename: string): string {
   return map[ext] ?? "application/octet-stream";
 }
 
-interface WorkspaceCreateBody {
-  name: string;
-  path: string;
-  is_default?: boolean;
-}
-
-interface WorkspaceUpdateBody {
-  name?: string;
-  path?: string;
-  is_default?: boolean;
-}
-
+/**
+ * Handle GET /api/workspaces/:id/download/:path (binary file download).
+ * Returns `null` for any non-matching path so callers can fall through.
+ */
 export async function handleWorkspaceRequest(
   request: Request,
   options: HttpApiOptions
@@ -112,221 +80,44 @@ export async function handleWorkspaceRequest(
   const url = new URL(request.url);
   const pathname = normalizePath(url.pathname);
 
-  if (!pathname.startsWith("/api/workspaces")) return null;
-
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  // GET /api/workspaces/{workspaceId}/files?path=.
-  const workspaceFilesMatch = pathname.match(
-    /^\/api\/workspaces\/([^/]+)\/files$/
-  );
-  if (workspaceFilesMatch) {
-    if (request.method !== "GET")
-      return errorResponse(405, "Method not allowed");
-    const workspaceId = decodeURIComponent(workspaceFilesMatch[1]);
-    const workspace = await Workspace.find(userId, workspaceId);
-    if (!workspace) return errorResponse(404, "Workspace not found");
-
-    const queryPath = url.searchParams.get("path") ?? ".";
-
-    // Reject absolute paths — only relative paths allowed
-    if (queryPath.startsWith("/")) {
-      return errorResponse(400, "Absolute paths not allowed, use relative paths");
-    }
-
-    const workspacePath = resolve(workspace.path);
-    const resolvedPath = resolve(join(workspacePath, queryPath));
-
-    // Path traversal check
-    if (!resolvedPath.startsWith(workspacePath)) {
-      return errorResponse(403, "Path traversal not allowed");
-    }
-
-    try {
-      const entries = await readdir(resolvedPath);
-      const files: JsonObject[] = [];
-      for (const entry of entries) {
-        const entryRelative = join(queryPath === "." ? "" : queryPath, entry);
-        const fullPath = join(resolvedPath, entry);
-        try {
-          const s = await stat(fullPath);
-          files.push({
-            name: entry,
-            path: entryRelative,
-            size: s.size,
-            is_dir: s.isDirectory(),
-            modified_at: s.mtime.toISOString()
-          });
-        } catch {
-          // skip inaccessible entries
-        }
-      }
-      return jsonResponse(files);
-    } catch {
-      return errorResponse(404, "Directory not found");
-    }
-  }
-
-  // GET /api/workspaces/{workspaceId}/download/{relativePath}
-  const workspaceDownloadMatch = pathname.match(
+  const downloadMatch = pathname.match(
     /^\/api\/workspaces\/([^/]+)\/download\/(.+)$/
   );
-  if (workspaceDownloadMatch) {
-    if (request.method !== "GET")
-      return errorResponse(405, "Method not allowed");
-    const wsId = decodeURIComponent(workspaceDownloadMatch[1]);
-    const filePath = decodeURIComponent(workspaceDownloadMatch[2]);
-    const workspace = await Workspace.find(userId, wsId);
-    if (!workspace) return errorResponse(404, "Workspace not found");
+  if (!downloadMatch) return null;
 
-    if (filePath.startsWith("/")) {
-      return errorResponse(400, "Absolute paths not allowed");
-    }
-
-    const workspacePath = resolve(workspace.path);
-    const resolvedFile = resolve(join(workspacePath, filePath));
-
-    // Path traversal check
-    if (!resolvedFile.startsWith(workspacePath)) {
-      return errorResponse(403, "Path traversal not allowed");
-    }
-
-    try {
-      const data = await readFile(resolvedFile);
-      const contentType = guessContentType(basename(resolvedFile));
-      return new Response(data, {
-        status: 200,
-        headers: {
-          "content-type": contentType,
-          "content-disposition": `attachment; filename="${basename(resolvedFile)}"`
-        }
-      });
-    } catch {
-      return errorResponse(404, "File not found");
-    }
-  }
-
-  // GET /api/workspaces/default
-  if (pathname === "/api/workspaces/default") {
-    if (request.method !== "GET")
-      return errorResponse(405, "Method not allowed");
-    const ws = await Workspace.getDefault(userId);
-    return jsonResponse(ws ? toWorkspaceResponse(ws) : null);
-  }
-
-  // GET /api/workspaces  |  POST /api/workspaces
-  if (pathname === "/api/workspaces") {
-    if (request.method === "GET") {
-      const limit = Math.min(
-        Number.parseInt(url.searchParams.get("limit") ?? "50", 10) || 50,
-        500
-      );
-      const [workspaces] = await Workspace.paginate(userId, { limit });
-      return jsonResponse({
-        workspaces: workspaces.map(toWorkspaceResponse),
-        next: null
-      });
-    }
-
-    if (request.method === "POST") {
-      const body = await parseJsonBody<WorkspaceCreateBody>(request);
-      if (
-        !body ||
-        typeof body.name !== "string" ||
-        typeof body.path !== "string"
-      ) {
-        return errorResponse(
-          400,
-          "Invalid JSON body: name and path are required"
-        );
-      }
-
-      // Validate path
-      if (!isAbsolute(body.path)) {
-        return errorResponse(400, "Path must be absolute");
-      }
-      if (!existsSync(body.path)) {
-        return errorResponse(400, "Path does not exist");
-      }
-      try {
-        const s = await stat(body.path);
-        if (!s.isDirectory()) {
-          return errorResponse(400, "Path is not a directory");
-        }
-      } catch {
-        return errorResponse(400, "Cannot access path");
-      }
-      try {
-        accessSync(body.path, constants.W_OK);
-      } catch {
-        return errorResponse(400, "Path is not writable");
-      }
-
-      if (body.is_default) {
-        await Workspace.unsetOtherDefaults(userId);
-      }
-
-      const ws = (await Workspace.create({
-        user_id: userId,
-        name: body.name,
-        path: body.path,
-        is_default: body.is_default ?? false
-      })) as Workspace;
-
-      return jsonResponse(toWorkspaceResponse(ws));
-    }
-
+  if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
 
-  // Routes with /{id}
-  const idMatch = pathname.match(/^\/api\/workspaces\/([^/]+)$/);
-  if (!idMatch) return null;
-  const workspaceId = decodeURIComponent(idMatch[1]);
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  const wsId = decodeURIComponent(downloadMatch[1]);
+  const filePath = decodeURIComponent(downloadMatch[2]);
+  const workspace = await Workspace.find(userId, wsId);
+  if (!workspace) return errorResponse(404, "Workspace not found");
 
-  // GET /api/workspaces/{id}
-  if (request.method === "GET") {
-    const ws = await Workspace.find(userId, workspaceId);
-    if (!ws) return errorResponse(404, "Workspace not found");
-    return jsonResponse(toWorkspaceResponse(ws));
+  if (filePath.startsWith("/")) {
+    return errorResponse(400, "Absolute paths not allowed");
   }
 
-  // PUT /api/workspaces/{id}
-  if (request.method === "PUT") {
-    const ws = await Workspace.find(userId, workspaceId);
-    if (!ws) return errorResponse(404, "Workspace not found");
+  const workspacePath = resolve(workspace.path);
+  const resolvedFile = resolve(join(workspacePath, filePath));
 
-    const body = await parseJsonBody<WorkspaceUpdateBody>(request);
-    if (!body) return errorResponse(400, "Invalid JSON body");
+  // Path traversal check
+  if (!resolvedFile.startsWith(workspacePath)) {
+    return errorResponse(403, "Path traversal not allowed");
+  }
 
-    if (body.name !== undefined) ws.name = body.name;
-    if (body.path !== undefined) ws.path = body.path;
-    if (body.is_default !== undefined) {
-      if (body.is_default) {
-        await Workspace.unsetOtherDefaults(userId);
+  try {
+    const data = await readFile(resolvedFile);
+    const contentType = guessContentType(basename(resolvedFile));
+    return new Response(data, {
+      status: 200,
+      headers: {
+        "content-type": contentType,
+        "content-disposition": `attachment; filename="${basename(resolvedFile)}"`
       }
-      ws.is_default = body.is_default;
-    }
-    await ws.save();
-    return jsonResponse(toWorkspaceResponse(ws));
+    });
+  } catch {
+    return errorResponse(404, "File not found");
   }
-
-  // DELETE /api/workspaces/{id}
-  if (request.method === "DELETE") {
-    const ws = await Workspace.find(userId, workspaceId);
-    if (!ws) return errorResponse(404, "Workspace not found");
-
-    const hasWorkflows = await Workspace.hasLinkedWorkflows(workspaceId);
-    if (hasWorkflows) {
-      return errorResponse(
-        400,
-        "Cannot delete workspace with linked workflows"
-      );
-    }
-
-    await ws.delete();
-    return jsonResponse({ message: "Workspace deleted successfully" });
-  }
-
-  return errorResponse(405, "Method not allowed");
 }

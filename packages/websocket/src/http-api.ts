@@ -46,7 +46,6 @@ import {
   createStorageHandler,
   type StorageHandlerOptions
 } from "./storage-api.js";
-import { handleWorkspaceRequest } from "./workspace-api.js";
 import { handleFileRequest } from "./file-api.js";
 
 const log = createLogger("nodetool.websocket.http");
@@ -2623,14 +2622,6 @@ export async function handleApiRequest(
 
   if (pathname.startsWith("/api/storage/")) {
     return getStorageHandler(options.storage)(request);
-  }
-
-  if (
-    pathname === "/api/workspaces" ||
-    pathname.startsWith("/api/workspaces/")
-  ) {
-    const res = await handleWorkspaceRequest(request, options);
-    if (res) return res;
   }
 
   if (pathname === "/api/files" || pathname.startsWith("/api/files/")) {
