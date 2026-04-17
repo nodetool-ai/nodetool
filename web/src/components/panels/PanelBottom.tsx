@@ -2,8 +2,8 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Drawer, IconButton } from "@mui/material";
-import { CloseButton, Tooltip } from "../ui_primitives";
+import { Drawer } from "@mui/material";
+import { CloseButton, ToolbarIconButton, Tooltip } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { memo, useCallback } from "react";
@@ -166,15 +166,14 @@ const PanelBottom: React.FC = () => {
           {isVisible && (
             <div className="panel-header">
               <div className="left">
-                <Tooltip title="Trace (Ctrl+Shift+T)" delay={TOOLTIP_ENTER_DELAY}>
-                  <IconButton
-                    size="small"
-                    onClick={handleTraceToggle}
-                    sx={{ color: activeView === "trace" ? "primary.main" : "text.secondary" }}
-                  >
-                    <TimelineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <ToolbarIconButton
+                  icon={<TimelineIcon fontSize="small" />}
+                  tooltip="Trace (Ctrl+Shift+T)"
+                  delay={TOOLTIP_ENTER_DELAY}
+                  onClick={handleTraceToggle}
+                  active={activeView === "trace"}
+                  variant={activeView === "trace" ? "primary" : "default"}
+                />
               </div>
               <Tooltip
                 title={

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@nodetool/node-sdk": "*",
+    "@nodetool/runtime": "*",
     "@elevenlabs/elevenlabs-js": "^2.0.0",
     "ws": "^8.18.0"
   },

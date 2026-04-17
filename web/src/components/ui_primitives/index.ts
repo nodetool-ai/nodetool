@@ -324,3 +324,23 @@ export type { SelectFieldProps, SelectOption } from "./SelectField";
 
 // Accessibility
 export { SkipLinks } from "./SkipLinks";
+
+// Phase 5 - Additional primitives
+
+export { PositionedDialog } from "./PositionedDialog";
+export type { PositionedDialogProps } from "./PositionedDialog";
+
+export { HoverActionGroup } from "./HoverActionGroup";
+export type { HoverActionGroupProps } from "./HoverActionGroup";
+
+export { SelectableListItem } from "./SelectableListItem";
+export type {
+  SelectableListItemProps,
+  SelectableListItemState
+} from "./SelectableListItem";
+
+export { DropZoneOverlay } from "./DropZoneOverlay";
+export type { DropZoneOverlayProps } from "./DropZoneOverlay";
+
+export { MetadataListRow } from "./MetadataListRow";
+export type { MetadataListRowProps, MetadataItem } from "./MetadataListRow";

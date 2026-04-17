@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useRef, createRef, memo, useCallback } from "react";
-import { AlertColor, Alert as MUIAlert } from "@mui/material";
-import { EditorButton } from "../ui_primitives";
+import type { AlertColor } from "@mui/material";
+import { AlertBanner, EditorButton } from "../ui_primitives";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
 import {
@@ -120,7 +120,7 @@ const NotificationItem = memo(function NotificationItem({
       onExited={onExited}
     >
       <li ref={nodeRef} style={{ position: "relative" }}>
-        <MUIAlert
+        <AlertBanner
           severity={mapTypeToSeverity(notification.type)}
           onClose={handleClose}
           action={
@@ -136,7 +136,7 @@ const NotificationItem = memo(function NotificationItem({
           }
         >
           {notification.content}
-        </MUIAlert>
+        </AlertBanner>
         {(notification.dismissable || notification.type === "error") && (
           <CopyButton
             value={notification.content}

@@ -322,7 +322,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
               {
                 type: "text" as const,
                 text: JSON.stringify({
-                  error: `Workflow run mode \"${runMode}\" is not supported by the backend MCP runner.`
+                  error: `Workflow run mode "${runMode}" is not supported by the backend MCP runner.`
                 })
               }
             ],

@@ -7,11 +7,10 @@ import {
   InputLabel,
   MenuItem,
   OutlinedInput,
-  IconButton,
   Select,
   SelectChangeEvent
 } from "@mui/material";
-import { Tooltip, Chip } from "../ui_primitives";
+import { Chip, ToolbarIconButton } from "../ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { useTheme } from "@mui/material/styles";
@@ -191,19 +190,18 @@ const LogPanel: React.FC = memo(function LogPanel() {
       <PanelHeadline
         title="Logs"
         actions={
-          <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
-            <IconButton
-              size="small"
-              onClick={handleFullscreenToggle}
-              aria-label="Toggle fullscreen"
-            >
-              {isFullscreen ? (
+          <ToolbarIconButton
+            icon={
+              isFullscreen ? (
                 <FullscreenExitIcon fontSize="small" />
               ) : (
                 <FullscreenIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
+              )
+            }
+            tooltip={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            onClick={handleFullscreenToggle}
+            ariaLabel="Toggle fullscreen"
+          />
         }
       />
       <Box className="filters">

@@ -144,6 +144,10 @@ build-electron:
 # Test targets
 test: test-web test-electron test-mobile
 
+test-all:
+	@echo "Running all workspace tests via turbo..."
+	npx turbo run test
+
 test-web:
 	@echo "Running web tests..."
 	cd web && npm test
@@ -155,6 +159,10 @@ test-electron:
 test-mobile:
 	@echo "Running mobile tests..."
 	cd mobile && npm test
+
+test-packages:
+	@echo "Running backend package tests via turbo..."
+	npx turbo run test --filter="./packages/*"
 
 test-watch:
 	@echo "Running tests in watch mode (web)..."
@@ -174,7 +182,9 @@ test-coverage-mobile:
 	cd mobile && npm run test:coverage
 
 # Linting targets
-lint: lint-web lint-electron
+lint:
+	@echo "Linting all workspaces via oxlint..."
+	npm run lint
 
 lint-web:
 	@echo "Linting web package..."
@@ -184,7 +194,17 @@ lint-electron:
 	@echo "Linting electron package..."
 	cd electron && npm run lint
 
-lint-fix: lint-fix-web lint-fix-electron
+lint-mobile:
+	@echo "Linting mobile package..."
+	cd mobile && npm run lint
+
+lint-packages:
+	@echo "Linting backend packages..."
+	npm run lint:packages
+
+lint-fix:
+	@echo "Fixing lint issues in all workspaces via oxlint..."
+	npm run lint:fix
 
 lint-fix-web:
 	@echo "Fixing web linting issues..."

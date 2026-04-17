@@ -471,7 +471,7 @@ export async function handleWorkflowRun(
   if (runMode !== "workflow") {
     return errorResponse(
       400,
-      `Workflow run mode \"${runMode}\" is not supported by the standalone backend`
+      `Workflow run mode "${runMode}" is not supported by the standalone backend`
     );
   }
 

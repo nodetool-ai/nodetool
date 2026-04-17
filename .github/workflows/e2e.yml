@@ -40,6 +40,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install system libraries for keytar
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
+
       - name: Install dependencies
         run: npm ci
 
