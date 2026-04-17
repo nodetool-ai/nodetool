@@ -1,0 +1,64 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "tsconfig.build.json",
+    "eslint.config.mjs",
+    ".nvmrc",
+    "package-lock.json"
+  ],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "scripts/**",
+        "tsconfig*.json",
+        "package.json",
+        "src/**/*.json"
+      ],
+      "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "__tests__/**",
+        "tests/**",
+        "test/**",
+        "vitest.config.*",
+        "jest.config.*",
+        "tsconfig*.json",
+        "package.json"
+      ],
+      "outputs": [],
+      "env": ["NODETOOL_LOG_LEVEL"]
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json",
+        "eslint.config.*",
+        ".eslintrc*"
+      ],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "tsconfig*.json",
+        "package.json"
+      ],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
