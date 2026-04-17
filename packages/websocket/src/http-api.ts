@@ -13,7 +13,6 @@ import {
   getDefaultAssetsPath,
   buildAssetUrl
 } from "@nodetool/config";
-import { resolveContentUrls } from "./resolve-media-urls.js";
 import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
@@ -1326,126 +1325,6 @@ export async function handleWorkflowById(
   return errorResponse(405, "Method not allowed");
 }
 
-// ── Message types & helpers ────────────────────────────────────────
-
-interface MessageCreateBody {
-  thread_id?: string | null;
-  role: string;
-  name?: string | null;
-  content: string | unknown[] | Record<string, unknown> | null;
-  tool_call_id?: string | null;
-  tool_calls?: unknown[] | null;
-}
-
-function toMessageResponse(msg: Message): JsonObject {
-  return {
-    type: "message",
-    id: msg.id,
-    user_id: msg.user_id,
-    thread_id: msg.thread_id,
-    role: msg.role,
-    name: msg.name ?? null,
-    content: resolveContentUrls(msg.content as string | unknown[] | Record<string, unknown> | null),
-    tool_calls: msg.tool_calls,
-    tool_call_id:
-      (msg as unknown as Record<string, unknown>).tool_call_id ?? null,
-    created_at: msg.created_at,
-    updated_at: msg.updated_at
-  };
-}
-
-export async function handleMessagesRoot(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "POST") {
-    const body = await parseJsonBody<MessageCreateBody>(request);
-    if (!body || typeof body.role !== "string" || body.content === undefined) {
-      return errorResponse(400, "Invalid JSON body");
-    }
-    let threadId = body.thread_id;
-    if (!threadId) {
-      const thread = (await Thread.create({
-        user_id: userId,
-        title: "New Thread"
-      })) as Thread;
-      threadId = thread.id;
-    }
-    const contentStr =
-      typeof body.content === "string"
-        ? body.content
-        : JSON.stringify(body.content ?? null);
-    const msg = (await Message.create({
-      user_id: userId,
-      thread_id: threadId,
-      role: body.role,
-      name: body.name ?? null,
-      content: contentStr,
-      tool_calls: body.tool_calls ?? null
-    })) as Message;
-    return jsonResponse(toMessageResponse(msg));
-  }
-
-  if (request.method === "GET") {
-    const url = new URL(request.url);
-    const threadId = url.searchParams.get("thread_id");
-    if (!threadId) {
-      return errorResponse(400, "thread_id is required");
-    }
-    const limit = parseLimit(url, 100);
-    const cursorParam = url.searchParams.get("cursor") ?? undefined;
-    const reverseParam = url.searchParams.get("reverse");
-    const reverse =
-      reverseParam === "true"
-        ? true
-        : reverseParam === "false"
-          ? false
-          : undefined;
-    const [messages, cursor] = await Message.paginate(threadId, {
-      limit,
-      startKey: cursorParam,
-      reverse
-    });
-    // Verify user ownership
-    for (const msg of messages) {
-      if (msg.user_id !== userId) {
-        return errorResponse(404, "Message not found");
-      }
-    }
-    return jsonResponse({
-      messages: messages.map((m) => toMessageResponse(m)),
-      next: cursor || null
-    });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-export async function handleMessageById(
-  request: Request,
-  messageId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const msg = (await Message.get(messageId)) as Message | null;
-  if (!msg || msg.user_id !== userId) {
-    return errorResponse(404, "Message not found");
-  }
-
-  if (request.method === "GET") {
-    return jsonResponse(toMessageResponse(msg));
-  }
-
-  if (request.method === "DELETE") {
-    await msg.delete();
-    return new Response(null, { status: 204 });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
 // ── Thread types & helpers ────────────────────────────────────────
 
 interface ThreadCreateBody {
@@ -2464,18 +2343,6 @@ export async function handleApiRequest(
     const jobId = decodeURIComponent(pathname.slice("/api/jobs/".length));
     if (!jobId) return errorResponse(404, "Not found");
     return handleJobById(request, jobId, options);
-  }
-
-  if (pathname === "/api/messages") {
-    return handleMessagesRoot(request, options);
-  }
-
-  if (pathname.startsWith("/api/messages/")) {
-    const messageId = decodeURIComponent(
-      pathname.slice("/api/messages/".length)
-    );
-    if (!messageId) return errorResponse(404, "Not found");
-    return handleMessageById(request, messageId, options);
   }
 
   if (pathname === "/api/threads") {
