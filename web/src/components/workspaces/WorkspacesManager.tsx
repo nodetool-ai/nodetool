@@ -10,16 +10,10 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  IconButton,
-  Button,
-  TextField,
-  CircularProgress,
-  Chip,
   FormControlLabel,
   Checkbox
 } from "@mui/material";
 import React, { useCallback, useState, useEffect, memo } from "react";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
@@ -36,7 +30,17 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import PanelHeadline from "../ui/PanelHeadline";
-import { Dialog, Text, Tooltip, FlexRow } from "../ui_primitives";
+import {
+  Chip,
+  CloseButton,
+  Dialog,
+  EditorButton,
+  FlexRow,
+  LoadingSpinner,
+  Text,
+  TextInput,
+  ToolbarIconButton
+} from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -476,15 +480,11 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
           <PanelHeadline
             title="Workspaces Manager"
             actions={
-              <Tooltip title="Close">
-                <IconButton
-                  aria-label="close"
-                  onClick={onClose}
-                  className="close-button"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Tooltip>
+              <CloseButton
+                onClick={onClose}
+                tooltip="Close"
+                className="close-button"
+              />
             }
           />
         </DialogTitle>
@@ -496,7 +496,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                 align="center"
                 sx={{ py: 4 }}
               >
-                <CircularProgress size={30} />
+                <LoadingSpinner size={30} />
               </FlexRow>
             ) : error ? (
               <Box className="empty-state">
@@ -506,12 +506,12 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                 <Text size="small" color="secondary" sx={{ mb: 2 }}>
                   Check your connection and try again
                 </Text>
-                <Button
+                <EditorButton
                   variant="outlined"
                   onClick={handleRetry}
                 >
                   Retry
-                </Button>
+                </EditorButton>
               </Box>
             ) : workspaces && workspaces.length > 0 ? (
               <List className="workspace-list">
@@ -519,7 +519,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                   <ListItem key={workspace.id} className="workspace-item">
                     {editingId === workspace.id ? (
                       <div className="edit-form">
-                        <TextField
+                        <TextInput
                           size="small"
                           value={editName}
                           onChange={handleEditNameChange}
@@ -535,16 +535,17 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                             }
                           }}
                         />
-                        <IconButton
-                          size="small"
+                        <ToolbarIconButton
+                          icon={<CheckIcon />}
+                          tooltip="Save changes"
                           onClick={createUpdateHandler(workspace.id)}
-                          color="primary"
-                        >
-                          <CheckIcon />
-                        </IconButton>
-                        <IconButton size="small" onClick={handleCancelEdit}>
-                          <CancelIcon />
-                        </IconButton>
+                          variant="primary"
+                        />
+                        <ToolbarIconButton
+                          icon={<CancelIcon />}
+                          tooltip="Cancel"
+                          onClick={handleCancelEdit}
+                        />
                       </div>
                     ) : (
                       <>
@@ -581,48 +582,39 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                           />
                         </div>
                         <ListItemSecondaryAction>
-                          <Tooltip
-                            title={
+                          <ToolbarIconButton
+                            icon={
+                              workspace.is_default ? (
+                                <StarIcon fontSize="small" />
+                              ) : (
+                                <StarBorderIcon fontSize="small" />
+                              )
+                            }
+                            tooltip={
                               workspace.is_default
                                 ? "Default workspace"
                                 : "Set as default"
                             }
-                          >
-                            <IconButton
-                              size="small"
-                              onClick={createToggleDefaultHandler(workspace)}
-                              sx={{
-                                color: workspace.is_default
-                                  ? "warning.main"
-                                  : "text.secondary",
-                                "&:hover": {
-                                  color: "warning.main"
-                                }
-                              }}
-                            >
-                              {workspace.is_default ? (
-                                <StarIcon fontSize="small" />
-                              ) : (
-                                <StarBorderIcon fontSize="small" />
-                              )}
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit">
-                            <IconButton
-                              size="small"
-                              onClick={createStartEditHandler(workspace)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              onClick={createDeleteWorkspaceHandler(workspace.id)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                            onClick={createToggleDefaultHandler(workspace)}
+                            sx={{
+                              color: workspace.is_default
+                                ? "warning.main"
+                                : "text.secondary",
+                              "&:hover": {
+                                color: "warning.main"
+                              }
+                            }}
+                          />
+                          <ToolbarIconButton
+                            icon={<EditIcon fontSize="small" />}
+                            tooltip="Edit"
+                            onClick={createStartEditHandler(workspace)}
+                          />
+                          <ToolbarIconButton
+                            icon={<DeleteIcon fontSize="small" />}
+                            tooltip="Delete"
+                            onClick={createDeleteWorkspaceHandler(workspace.id)}
+                          />
                         </ListItemSecondaryAction>
                       </>
                     )}
@@ -643,7 +635,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
             <div className="add-workspace-section">
               {isAdding ? (
                 <div className="add-form">
-                  <TextField
+                  <TextInput
                     size="small"
                     label="Name"
                     value={newName}
@@ -653,7 +645,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     autoFocus
                   />
                   <div className="form-row">
-                    <TextField
+                    <TextInput
                       size="small"
                       label="Path"
                       value={newPath}
@@ -661,13 +653,13 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                       placeholder="/path/to/folder"
                       fullWidth
                     />
-                    <Button
+                    <EditorButton
                       className="browse-button"
                       variant="outlined"
                       onClick={handleBrowse}
                     >
                       Browse
-                    </Button>
+                    </EditorButton>
                   </div>
                   <FormControlLabel
                     control={
@@ -684,29 +676,29 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                     gap={1}
                     sx={{ mt: 1 }}
                   >
-                    <Button
+                    <EditorButton
                       onClick={handleCancelAdd}
                       color="inherit"
                     >
                       Cancel
-                    </Button>
-                    <Button
+                    </EditorButton>
+                    <EditorButton
                       variant="contained"
                       onClick={handleCreate}
                       disabled={createMutation.isPending}
                     >
                       {createMutation.isPending ? "Adding..." : "Add Workspace"}
-                    </Button>
+                    </EditorButton>
                   </FlexRow>
                 </div>
               ) : (
-                <Button
+                <EditorButton
                   startIcon={<AddIcon />}
                   onClick={handleAddWorkspace}
                   fullWidth
                 >
                   Add Workspace
-                </Button>
+                </EditorButton>
               )}
             </div>
           </div>

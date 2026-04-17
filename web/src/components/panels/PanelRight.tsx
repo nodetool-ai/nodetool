@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, IconButton, useMediaQuery } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore, type RightPanelView } from "../../stores/RightPanelStore";
@@ -30,7 +30,7 @@ import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
 import AgentPanel from "./AgentPanel";
-import { MobileBottomSheet, Tooltip } from "../ui_primitives";
+import { MobileBottomSheet, ToolbarIconButton } from "../ui_primitives";
 
 // Icons for mobile tab rail
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -252,30 +252,32 @@ const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
     label: string,
     icon: React.ReactNode
   ) => (
-    <Tooltip title={label} placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-      <IconButton
-        className={`tab-button ${activeView === view ? "active" : ""}`}
-        onClick={() => setView(view)}
-        aria-label={label}
-        tabIndex={-1}
-      >
-        {icon}
-      </IconButton>
-    </Tooltip>
+    <ToolbarIconButton
+      icon={icon}
+      tooltip={label}
+      tooltipPlacement="bottom"
+      delay={TOOLTIP_ENTER_DELAY}
+      className="tab-button"
+      active={activeView === view}
+      onClick={() => setView(view)}
+      ariaLabel={label}
+      tabIndex={-1}
+    />
   );
 
   return (
     <>
-      <IconButton
-        className={`panel-right-mobile-launcher ${isVisible ? "active" : ""}`}
+      <ToolbarIconButton
+        icon={<TuneIcon />}
+        tooltip={isVisible ? "Close panel" : "Open inspector panel"}
+        className="panel-right-mobile-launcher"
+        active={isVisible}
         css={mobileLauncherStyles(theme)}
         onClick={isVisible ? onClose : onOpen}
-        aria-label={isVisible ? "Close panel" : "Open inspector panel"}
+        ariaLabel={isVisible ? "Close panel" : "Open inspector panel"}
         aria-expanded={isVisible}
         tabIndex={-1}
-      >
-        <TuneIcon />
-      </IconButton>
+      />
 
       <MobileBottomSheet
         open={isVisible}

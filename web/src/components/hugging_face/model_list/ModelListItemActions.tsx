@@ -1,7 +1,13 @@
 import React, { memo, useCallback } from "react";
-import { Button, Chip, CircularProgress, Box } from "@mui/material";
+import { Box } from "@mui/material";
 import { Check } from "@mui/icons-material";
-import { DeleteButton, Tooltip } from "../../ui_primitives";
+import {
+  Chip,
+  DeleteButton,
+  EditorButton,
+  LoadingSpinner,
+  Tooltip
+} from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 
 import {
@@ -76,19 +82,19 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
             fontSize: "0.75rem"
           }}
         >
-          <CircularProgress size={12} thickness={5} />
+          <LoadingSpinner inline size={12} thickness={5} color="inherit" />
           Checking cache...
         </Box>
       )}
       {onDownload && !downloaded && !isCheckingCache && (
-        <Button
+        <EditorButton
           className="model-download-button"
           onClick={onDownload}
           variant="outlined"
+          startIcon={<DownloadIcon sx={{ fontSize: "1.25em" }} />}
         >
-          <DownloadIcon sx={{ marginRight: "0.5em", fontSize: "1.25em" }} />
           Download
-        </Button>
+        </EditorButton>
       )}
       {downloaded && (
         <Tooltip

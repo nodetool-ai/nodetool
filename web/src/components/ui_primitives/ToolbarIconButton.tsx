@@ -92,6 +92,16 @@ export interface ToolbarIconButtonProps
    * Explicit aria-label for accessibility (required when tooltip is not a string)
    */
   ariaLabel?: string;
+  /**
+   * Render as an anchor element. When provided, `href`, `target`, and `rel` are forwarded.
+   */
+  component?: React.ElementType;
+  /** Link href (requires `component="a"`) */
+  href?: string;
+  /** Anchor target attribute */
+  target?: string;
+  /** Anchor rel attribute */
+  rel?: string;
 }
 
 /**
