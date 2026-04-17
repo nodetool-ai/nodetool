@@ -32,7 +32,6 @@ import {
   type NodeExecutor
 } from "@nodetool/runtime";
 import { WorkflowRunner } from "@nodetool/kernel";
-import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
 import {
@@ -1587,11 +1586,6 @@ export async function handleApiRequest(
     const response = await handleOAuthRequest(request, pathname, () =>
       getUserId(request, options.userIdHeader ?? "x-user-id")
     );
-    if (response) return response;
-  }
-
-  if (pathname === "/api/models" || pathname.startsWith("/api/models/")) {
-    const response = await handleModelsApiRequest(request);
     if (response) return response;
   }
 

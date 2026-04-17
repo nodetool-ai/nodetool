@@ -1,4 +1,4 @@
-import { BASE_URL } from "../stores/BASE_URL";
+import { trpc } from "../lib/trpc";
 
 export interface HfCacheCheckRequest {
   repo_id: string;
@@ -16,18 +16,6 @@ export interface HfCacheCheckResponse {
 export const checkHfCache = async (
   req: HfCacheCheckRequest
 ): Promise<HfCacheCheckResponse> => {
-  const res = await fetch(`${BASE_URL}/api/models/huggingface/check_cache`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req)
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(
-      `HF cache check failed (${res.status}): ${text || res.statusText}`
-    );
-  }
-  return (await res.json()) as HfCacheCheckResponse;
+  return trpc.models.huggingfaceCheckCache.mutate(req);
 };
 

@@ -8,6 +8,8 @@ export * as fonts from "./fonts.js";
 export * as jobs from "./jobs.js";
 export * as mcpConfig from "./mcp-config.js";
 export * as messages from "./messages.js";
+export * as models from "./models.js";
+export * as nodes from "./nodes.js";
 export * as settings from "./settings.js";
 export * as skills from "./skills.js";
 export * as storage from "./storage.js";

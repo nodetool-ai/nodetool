@@ -7,6 +7,8 @@ import { filesRouter } from "./routers/files.js";
 import { jobsRouter } from "./routers/jobs.js";
 import { mcpConfigRouter } from "./routers/mcp-config.js";
 import { messagesRouter } from "./routers/messages.js";
+import { modelsRouter } from "./routers/models.js";
+import { nodesRouter } from "./routers/nodes.js";
 import { settingsRouter } from "./routers/settings.js";
 import { skillsRouter, fontsRouter } from "./routers/skills.js";
 import { storageRouter } from "./routers/storage.js";
@@ -26,6 +28,8 @@ export const appRouter = router({
   jobs: jobsRouter,
   mcpConfig: mcpConfigRouter,
   messages: messagesRouter,
+  models: modelsRouter,
+  nodes: nodesRouter,
   settings: settingsRouter,
   skills: skillsRouter,
   storage: storageRouter,

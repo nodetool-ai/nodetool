@@ -3,7 +3,7 @@ import isEqual from "fast-deep-equal";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { TTSModel, TTSModelValue } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
+import { trpc } from "../../lib/trpc";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
@@ -17,17 +17,9 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
-  const loadTTSModels = useCallback(async () => {
-    const res = await fetch(`${BASE_URL}/api/models/tts`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch TTS models: ${res.status}`);
-    }
-    return (await res.json()) as TTSModel[];
-  }, []);
-
   const { data: models } = useQuery({
     queryKey: ["tts-models"],
-    queryFn: async () => await loadTTSModels()
+    queryFn: () => trpc.models.tts.query() as Promise<TTSModel[]>
   });
 
   // Extract model ID from value (can be string or TTSModel object)

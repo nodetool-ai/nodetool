@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { client } from "../../../stores/ApiClient";
+import { trpc } from "../../../lib/trpc";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import {
   groupModelsByType,
@@ -57,11 +57,7 @@ export const useModels = () => {
     error
   } = useQuery({
     queryKey: ["allModels"],
-    queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/all", {});
-      if (error) {throw error;}
-      return data;
-    },
+    queryFn: () => trpc.models.all.query(),
     refetchOnWindowFocus: false
   });
 
