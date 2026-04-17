@@ -118,7 +118,6 @@ describe("preload contract", () => {
       "settings",
       "dialog",
       "logging",
-      "ipc",
       "windowControls",
       "localhostProxy",
     ];
