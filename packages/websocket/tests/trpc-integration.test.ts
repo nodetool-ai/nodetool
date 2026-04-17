@@ -234,3 +234,24 @@ describe("tRPC /trpc/threads.list over Fastify", () => {
     await app.close();
   });
 });
+
+describe("tRPC /trpc/jobs.list over Fastify", () => {
+  it("returns the jobs list shape", async () => {
+    const { Job } = await import("@nodetool/models");
+    vi.spyOn(Job, "paginate").mockResolvedValue([[], ""]);
+
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: `/trpc/jobs.list?input=${encodeURIComponent(
+        JSON.stringify({ json: { limit: 10 } })
+      )}`
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(data).toEqual({ jobs: [], next_start_key: null });
+    await app.close();
+  });
+});
