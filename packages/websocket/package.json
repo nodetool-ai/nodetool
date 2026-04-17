@@ -61,6 +61,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./trpc": {
+      "nodetool-dev": "./src/trpc/router.ts",
+      "types": "./src/trpc/router.ts",
+      "import": "./dist/trpc/router.js",
+      "default": "./dist/trpc/router.js"
     }
   }
 }
