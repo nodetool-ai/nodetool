@@ -127,7 +127,7 @@ Custom `errorFormatter` on the server extends `shape.data` with:
 - `apiCode`: a string from the existing `ApiErrorCode` enum (`WORKFLOW_NOT_FOUND`, `ASSET_NOT_FOUND`, `INVALID_INPUT`, etc.) so clients can discriminate between error types that share a TRPCError code.
 - `zodError`: structured field-path errors for input validation failures (auto-populated by tRPC when zod throws).
 
-Procedure bodies throw `TRPCError` directly, or throw a domain error that a helper maps to `TRPCError` with the right `apiCode` attached to `cause`. A small helper `throwApiError(ApiErrorCode.X, "message")` standardises this.
+Procedure bodies call `throwApiError(ApiErrorCode.X, "message", trpcCode?)` — a small helper that constructs a `TRPCError` with the `apiCode` attached to `cause`. The tRPC `errorFormatter` reads `cause.apiCode` and surfaces it on `shape.data.apiCode`. This is a helper-at-call-site pattern (not a middleware) — explicit at the point the error is raised, no magic error-to-code translation layer.
 
 Client helper `isTRPCErrorWithCode(err, ApiErrorCode.X)` for call sites that branch on specific errors.
 
@@ -143,7 +143,7 @@ interface Context {
 }
 ```
 
-- `userId` comes from the Fastify auth hook (`req.userId`).
+- `userId` comes from the Fastify auth hook (`req.userId`) — single source of truth. The existing `getUserId(request, headerName)` helper is retained only for the REST-staying handlers that read it directly; new tRPC procedures read `ctx.userId`.
 - Other fields are the same objects currently passed through `apiOptions`/closures to the REST handlers. The existing construction in `server.ts` is lifted into a `createContextFactory` that closes over them and returns `createContext`.
 
 ### Client integration
@@ -166,19 +166,21 @@ interface Context {
 
 ### AppRouter type export
 
-`packages/websocket/package.json` exposes a subpath for types only:
+`packages/websocket/package.json` exposes a subpath for the router, following the repo's existing export-condition pattern (`nodetool-dev` for source, `types` for declarations, `import`/`default` for built dist):
 
 ```json
 "exports": {
   ".": { ... current ... },
   "./trpc": {
+    "nodetool-dev": "./src/trpc/router.ts",
     "types": "./src/trpc/router.ts",
+    "import": "./dist/trpc/router.js",
     "default": "./dist/trpc/router.js"
   }
 }
 ```
 
-Clients use `import type { AppRouter } from "@nodetool/websocket/trpc"` — type-only import, no runtime coupling.
+Clients use `import type { AppRouter } from "@nodetool/websocket/trpc"` — type-only import, no runtime coupling (TypeScript erases type-only imports at build). The router module is structured so nothing at its top level executes on import; all procedures and sub-routers are declared as values inside the `appRouter` builder, which is tree-shakable.
 
 ## Data flow
 
@@ -199,8 +201,8 @@ client hook (useQuery)
 ## Migration ordering (within the big-bang branch)
 
 1. **Foundation** — add `@trpc/*` deps, create `trpc/` skeleton, `createContext`, `errorFormatter`, Fastify mount, protocol `api-schemas/` skeleton, superjson.
-2. **Pilot one domain** end-to-end — pick `costs` or `settings` (small, low-risk). Server router, protocol schemas, one web hook, one web call site. Verify transport, auth, error formatter, superjson, TanStack Query integration all work. This is the pattern the rest follows.
-3. **Remaining 14 domains** — server-side routers + schemas.
+2. **Pilot domain (`costs`)** end-to-end — smallest server-side surface (`cost-api.ts` is 128 lines). Server router, protocol schemas, one web hook, one web call site. Verify transport, auth, error formatter, superjson, TanStack Query integration all work. This is the pattern the rest follows.
+3. **Remaining 15 domains** — server-side routers + schemas.
 4. **Rewrite `web/src/serverState/`** onto tRPC hooks. Delete `web/src/api.ts`. Remove `openapi-fetch` from `web/`.
 5. **Mobile migration** — mirror web.
 6. **CLI + Electron main migration**.
@@ -226,10 +228,9 @@ Client:
 
 ## Open questions to resolve during implementation planning
 
-- Exact pilot domain pick — `costs` (tiny, isolated) vs `settings` (larger, exercises more patterns).
-- Whether to write `ApiErrorCode` → `TRPCError` mapping as a helper used inside procedure bodies, or a middleware that translates a thrown `ApiErrorException` type.
-- Whether to keep the `getUserId` helper as a compat shim for REST-staying code paths or consolidate into the Fastify auth hook's `req.userId` exclusively.
-- Whether mobile's navigation/screen tests need MSW tRPC mocks or can use real `createCaller` via a test harness.
+- Exact test-mock strategy for mobile screen tests: MSW tRPC adapter vs. `createCaller` harness.
+- Whether to introduce a typed `ApiError` discriminated union as a secondary return type on the client (enabling exhaustive switch on error codes), or stay with the current "throw and branch" style.
+- Whether any currently-under-`/api/*` endpoint that returns streaming JSON (e.g. progressive workflow generation) should move to tRPC with an async iterator return, or stay REST.
 
 ## Risks
 
