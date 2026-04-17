@@ -16,7 +16,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { CollectionCreate } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import EmbeddingModelSelect from "../properties/EmbeddingModelSelect";
@@ -130,13 +130,13 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
 
   const createMutation = useMutation({
     mutationFn: async (body: CollectionCreate) => {
-      const { data, error } = await client.POST("/api/collections/", {
-        body: body
+      return trpcClient.collections.create.mutate({
+        name: body.name,
+        embedding_model: body.embedding_model,
+        ...(body.embedding_provider
+          ? { embedding_provider: body.embedding_provider }
+          : {})
       });
-      if (error) {
-        throw error;
-      }
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collections"] });

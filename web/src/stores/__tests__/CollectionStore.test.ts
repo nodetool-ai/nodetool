@@ -1,19 +1,30 @@
 import log from "loglevel";
 import { act } from "@testing-library/react";
 import { useCollectionStore } from "../CollectionStore";
-import { client } from "../ApiClient";
 
-// Mock the client module
-jest.mock("../ApiClient", () => ({
-  client: {
-    GET: jest.fn(),
-    POST: jest.fn(),
-    DELETE: jest.fn()
+// Mock the tRPC client (list / delete via tRPC).
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    collections: {
+      list: { query: jest.fn() },
+      delete: { mutate: jest.fn() }
+    }
   }
 }));
 
-// Use 'any' to bypass strict typing for mocked API responses
-const mockClient = client as any;
+// Multipart file upload still uses the openapi-fetch client.
+jest.mock("../ApiClient", () => ({
+  client: {
+    POST: jest.fn()
+  }
+}));
+
+import { trpcClient } from "../../trpc/client";
+import { client } from "../ApiClient";
+
+const listQuery = trpcClient.collections.list.query as jest.Mock;
+const deleteMutate = trpcClient.collections.delete.mutate as jest.Mock;
+const mockClient = client as unknown as { POST: jest.Mock };
 
 describe("CollectionStore", () => {
   beforeEach(() => {
@@ -81,7 +92,7 @@ describe("CollectionStore", () => {
 
   describe("setCollections", () => {
     it("sets collections", () => {
-      const collections = { 
+      const collections = {
         collections: [{ name: "test", count: 5, metadata: {} }],
         count: 1
       };
@@ -267,42 +278,41 @@ describe("CollectionStore", () => {
 
   describe("fetchCollections", () => {
     it("fetches collections successfully", async () => {
-      const mockCollections = { collections: [{ name: "test", count: 5 }] };
-      mockClient.GET.mockResolvedValueOnce({ data: mockCollections, error: null });
+      const mockCollections = {
+        collections: [{ name: "test", count: 5, metadata: {}, workflow_name: null }],
+        count: 1
+      };
+      listQuery.mockResolvedValueOnce(mockCollections);
 
       await act(async () => {
         await useCollectionStore.getState().fetchCollections();
       });
 
-      expect(mockClient.GET).toHaveBeenCalledWith("/api/collections/");
+      expect(listQuery).toHaveBeenCalled();
       expect(useCollectionStore.getState().collections).toEqual(mockCollections);
       expect(useCollectionStore.getState().isLoading).toBe(false);
       expect(useCollectionStore.getState().error).toBeNull();
     });
 
     it("sets loading state during fetch", async () => {
-      let resolvePromise: (value: any) => void;
+      let resolvePromise: (value: unknown) => void;
       const pendingPromise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockClient.GET.mockReturnValueOnce(pendingPromise as any);
+      listQuery.mockReturnValueOnce(pendingPromise);
 
       const fetchPromise = useCollectionStore.getState().fetchCollections();
 
-      // isLoading should be true while waiting
       expect(useCollectionStore.getState().isLoading).toBe(true);
 
-      resolvePromise!({ data: { collections: [] }, error: null });
+      resolvePromise!({ collections: [], count: 0 });
       await fetchPromise;
 
       expect(useCollectionStore.getState().isLoading).toBe(false);
     });
 
-    it("handles API error with detail message", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: { detail: [{ msg: "API Error" }] }
-      });
+    it("handles tRPC error", async () => {
+      listQuery.mockRejectedValueOnce(new Error("API Error"));
 
       await act(async () => {
         await useCollectionStore.getState().fetchCollections();
@@ -312,22 +322,8 @@ describe("CollectionStore", () => {
       expect(useCollectionStore.getState().isLoading).toBe(false);
     });
 
-    it("handles API error without detail message", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: {}
-      });
-
-      await act(async () => {
-        await useCollectionStore.getState().fetchCollections();
-      });
-
-      expect(useCollectionStore.getState().error).toBe("Unknown error");
-      expect(useCollectionStore.getState().isLoading).toBe(false);
-    });
-
     it("handles exception during fetch", async () => {
-      mockClient.GET.mockRejectedValueOnce(new Error("Network error"));
+      listQuery.mockRejectedValueOnce(new Error("Network error"));
 
       await act(async () => {
         await useCollectionStore.getState().fetchCollections();
@@ -338,7 +334,7 @@ describe("CollectionStore", () => {
     });
 
     it("handles non-Error exception", async () => {
-      mockClient.GET.mockRejectedValueOnce("String error");
+      listQuery.mockRejectedValueOnce("String error");
 
       await act(async () => {
         await useCollectionStore.getState().fetchCollections();
@@ -351,39 +347,37 @@ describe("CollectionStore", () => {
 
   describe("deleteCollection", () => {
     it("deletes collection and fetches updated list", async () => {
-      mockClient.DELETE.mockResolvedValueOnce({ error: null });
-      mockClient.GET.mockResolvedValueOnce({ data: { collections: [] }, error: null });
+      deleteMutate.mockResolvedValueOnce({ message: "Collection collection1 deleted successfully" });
+      listQuery.mockResolvedValueOnce({ collections: [], count: 0 });
 
       await act(async () => {
         await useCollectionStore.getState().deleteCollection("collection1");
       });
 
-      expect(mockClient.DELETE).toHaveBeenCalledWith("/api/collections/{name}", {
-        params: { path: { name: "collection1" } }
-      });
-      expect(mockClient.GET).toHaveBeenCalled();
+      expect(deleteMutate).toHaveBeenCalledWith({ name: "collection1" });
+      expect(listQuery).toHaveBeenCalled();
     });
 
     it("throws error if delete fails", async () => {
-      mockClient.DELETE.mockResolvedValueOnce({ error: { detail: "Delete failed" } });
+      deleteMutate.mockRejectedValueOnce(new Error("Delete failed"));
 
       await expect(
         useCollectionStore.getState().deleteCollection("collection1")
-      ).rejects.toEqual({ detail: "Delete failed" });
+      ).rejects.toThrow("Delete failed");
     });
   });
 
   describe("confirmDelete", () => {
     it("deletes the target collection and clears target", async () => {
       useCollectionStore.setState({ deleteTarget: "collection1" });
-      mockClient.DELETE.mockResolvedValueOnce({ error: null });
-      mockClient.GET.mockResolvedValueOnce({ data: { collections: [] }, error: null });
+      deleteMutate.mockResolvedValueOnce({ message: "deleted" });
+      listQuery.mockResolvedValueOnce({ collections: [], count: 0 });
 
       await act(async () => {
         await useCollectionStore.getState().confirmDelete();
       });
 
-      expect(mockClient.DELETE).toHaveBeenCalled();
+      expect(deleteMutate).toHaveBeenCalled();
       expect(useCollectionStore.getState().deleteTarget).toBeNull();
     });
 
@@ -394,7 +388,7 @@ describe("CollectionStore", () => {
         await useCollectionStore.getState().confirmDelete();
       });
 
-      expect(mockClient.DELETE).not.toHaveBeenCalled();
+      expect(deleteMutate).not.toHaveBeenCalled();
     });
   });
 
@@ -469,7 +463,7 @@ describe("CollectionStore", () => {
       } as unknown as React.DragEvent<HTMLDivElement>;
 
       mockClient.POST.mockResolvedValueOnce({ data: { path: "/test.txt" }, error: null });
-      mockClient.GET.mockResolvedValue({ data: { collections: [] }, error: null });
+      listQuery.mockResolvedValue({ collections: [], count: 0 });
 
       const handler = useCollectionStore.getState().handleDrop("collection1");
       await act(async () => {
@@ -495,7 +489,7 @@ describe("CollectionStore", () => {
         data: { path: "/test.txt", error: "Parse failed" },
         error: null
       });
-      mockClient.GET.mockResolvedValue({ data: { collections: [] }, error: null });
+      listQuery.mockResolvedValue({ collections: [], count: 0 });
 
       const handler = useCollectionStore.getState().handleDrop("collection1");
       await act(async () => {
@@ -503,7 +497,7 @@ describe("CollectionStore", () => {
       });
 
       expect(useCollectionStore.getState().indexErrors).toHaveLength(1);
-      expect(useCollectionStore.getState().indexErrors[0].file).toBe("test.txt");
+      expect(useCollectionStore.getState().indexErrors[0]?.file).toBe("test.txt");
     });
 
     it("handles API errors during file indexing", async () => {
@@ -519,7 +513,7 @@ describe("CollectionStore", () => {
         data: null,
         error: { detail: [{ msg: "Server error" }] }
       });
-      mockClient.GET.mockResolvedValue({ data: { collections: [] }, error: null });
+      listQuery.mockResolvedValue({ collections: [], count: 0 });
 
       const handler = useCollectionStore.getState().handleDrop("collection1");
       await act(async () => {
@@ -527,7 +521,7 @@ describe("CollectionStore", () => {
       });
 
       expect(useCollectionStore.getState().indexErrors).toHaveLength(1);
-      expect(useCollectionStore.getState().indexErrors[0].error).toBe("Server error");
+      expect(useCollectionStore.getState().indexErrors[0]?.error).toBe("Server error");
     });
 
     it("handles exceptions during file indexing", async () => {
@@ -540,7 +534,7 @@ describe("CollectionStore", () => {
       } as unknown as React.DragEvent<HTMLDivElement>;
 
       mockClient.POST.mockRejectedValueOnce(new Error("Network failure"));
-      mockClient.GET.mockResolvedValue({ data: { collections: [] }, error: null });
+      listQuery.mockResolvedValue({ collections: [], count: 0 });
 
       const consoleErrorSpy = jest.spyOn(log, "error").mockImplementation();
 
@@ -550,7 +544,7 @@ describe("CollectionStore", () => {
       });
 
       expect(useCollectionStore.getState().indexErrors).toHaveLength(1);
-      expect(useCollectionStore.getState().indexErrors[0].error).toBe("Network failure");
+      expect(useCollectionStore.getState().indexErrors[0]?.error).toBe("Network failure");
 
       consoleErrorSpy.mockRestore();
     });

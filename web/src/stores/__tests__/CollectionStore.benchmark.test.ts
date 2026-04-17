@@ -1,19 +1,29 @@
 
 import { act } from "@testing-library/react";
 import { useCollectionStore } from "../CollectionStore";
-import { client } from "../ApiClient";
 
-// Mock the client module
-jest.mock("../ApiClient", () => ({
-  client: {
-    GET: jest.fn(),
-    POST: jest.fn(),
-    DELETE: jest.fn()
+// Mock the tRPC client for list/delete.
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    collections: {
+      list: { query: jest.fn() },
+      delete: { mutate: jest.fn() }
+    }
   }
 }));
 
-// Use 'any' to bypass strict typing for mocked API responses
-const mockClient = client as any;
+// Multipart upload still uses the openapi-fetch client.
+jest.mock("../ApiClient", () => ({
+  client: {
+    POST: jest.fn()
+  }
+}));
+
+import { trpcClient } from "../../trpc/client";
+import { client } from "../ApiClient";
+
+const listQuery = trpcClient.collections.list.query as jest.Mock;
+const mockClient = client as unknown as { POST: jest.Mock };
 
 describe("CollectionStore Benchmark", () => {
   beforeEach(() => {
@@ -44,7 +54,7 @@ describe("CollectionStore Benchmark", () => {
     } as unknown as React.DragEvent<HTMLDivElement>;
 
     mockClient.POST.mockResolvedValue({ data: { path: "/test.txt" }, error: null });
-    mockClient.GET.mockResolvedValue({ data: { collections: [] }, error: null });
+    listQuery.mockResolvedValue({ collections: [], count: 0 });
 
     const handler = useCollectionStore.getState().handleDrop("collection1");
 
@@ -55,7 +65,7 @@ describe("CollectionStore Benchmark", () => {
     // POST is called for every file upload (3 times).
     expect(mockClient.POST).toHaveBeenCalledTimes(3);
 
-    // After optimization, GET should be called only once for the entire batch.
-    expect(mockClient.GET).toHaveBeenCalledTimes(1);
+    // After optimization, collections.list should be called only once for the entire batch.
+    expect(listQuery).toHaveBeenCalledTimes(1);
   });
 });

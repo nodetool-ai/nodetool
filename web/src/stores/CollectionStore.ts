@@ -2,17 +2,8 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { CollectionList as CollectionListType } from "./ApiTypes";
 import { client } from "./ApiClient";
+import { trpcClient } from "../trpc/client";
 import log from "loglevel";
-
-interface ApiErrorDetail {
-  loc: string[];
-  msg: string;
-  type: string;
-}
-
-interface ApiError {
-  detail?: ApiErrorDetail[];
-}
 
 interface IndexResponseData {
   path: string;
@@ -24,7 +15,8 @@ interface IndexError {
   error: string;
 }
 
-// Type for the POST /api/collections/{name}/index endpoint options
+// Type for the POST /api/collections/{name}/index endpoint options.
+// Multipart file upload stays on REST (tRPC does not handle FormData).
 interface CollectionIndexOptions {
   params: {
     path: { name: string };
@@ -62,12 +54,12 @@ interface CollectionStore {
   setIndexProgress: (progress: IndexProgressState | null) => void;
   setIndexErrors: (errors: IndexError[]) => void;
   setSelectedCollections: (collections: string[]) => void;
-  
+
   fetchCollections: () => Promise<void>;
   deleteCollection: (collectionName: string) => Promise<void>;
   confirmDelete: () => Promise<void>;
   cancelDelete: () => void;
-  
+
   handleDragOver: (event: React.DragEvent, collection: string) => void;
   handleDragLeave: (event: React.DragEvent) => void;
   handleDrop: (collectionName: string) => (event: React.DragEvent<HTMLDivElement>) => Promise<void>;
@@ -100,25 +92,21 @@ export const useCollectionStore = create<CollectionStore>()(
       fetchCollections: async () => {
         set({ isLoading: true, error: null });
         try {
-          const { data, error } = await client.GET("/api/collections/");
-          if (error) {
-            throw new Error(error.detail?.[0]?.msg || "Unknown error");
-          }
-          set({ collections: data, isLoading: false });
+          const data = await trpcClient.collections.list.query();
+          set({
+            collections: data as unknown as CollectionListType,
+            isLoading: false
+          });
         } catch (err) {
-          set({ 
-            error: err instanceof Error ? err.message : "Error loading collections", 
-            isLoading: false 
+          set({
+            error: err instanceof Error ? err.message : "Error loading collections",
+            isLoading: false
           });
         }
       },
 
       deleteCollection: async (collectionName: string) => {
-        const { error } = await client.DELETE("/api/collections/{name}", {
-          params: { path: { name: collectionName } }
-        });
-        if (error) {throw error;}
-        
+        await trpcClient.collections.delete.mutate({ name: collectionName });
         await get().fetchCollections();
       },
 
@@ -168,6 +156,7 @@ export const useCollectionStore = create<CollectionStore>()(
           formData.append("file", file);
 
           try {
+            // Multipart file upload — stays on REST (openapi-fetch client).
             const { data, error } = await client.POST(
               "/api/collections/{name}/index",
               {
@@ -178,14 +167,14 @@ export const useCollectionStore = create<CollectionStore>()(
               }
             );
 
-            const apiError = error as ApiError | undefined;
             const responseData = data as IndexResponseData | undefined;
 
             if (error || responseData?.error) {
               errors.push({
                 file: file.name,
                 error:
-                  apiError?.detail?.[0]?.msg ||
+                  (error as { detail?: { msg?: string }[] } | undefined)
+                    ?.detail?.[0]?.msg ||
                   responseData?.error ||
                   "Unknown error"
               });
