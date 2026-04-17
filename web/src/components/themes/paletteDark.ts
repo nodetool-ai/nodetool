@@ -153,24 +153,24 @@ export const paletteDark: PaletteOptions = {
   },
   grey: ((): Record<number, string> => ({
     0: "#fff", // white
-    50: "#F2F2F2",
-    100: "#D6D6D6",
-    200: "#BABABA",
-    300: "#A2A2A2",
-    400: "#8A8A8A",
-    500: "#686868",
-    600: "#404040",
-    700: "#303030",
-    800: "#222222",
-    900: "#0C0C0C",
+    50: "#F2F3F5",
+    100: "#D4D6DB",
+    200: "#B4B7BD",
+    300: "#9CA0A8",
+    400: "#808590",
+    500: "#5C606A",
+    600: "#3A3D44",
+    700: "#27292E",
+    800: "#1B1D21",
+    900: "#0A0B0D",
     1000: "#000" // black
   }))(),
   c_black: "#020202",
-  c_bg_comment: "#0E0E0E",
+  c_bg_comment: "#08090A",
   c_brightest: "#FCFCFC",
   c_white: "#FCFCFC",
-  c_background: "#404040",
-  c_node_menu: "#1C1C1C",
+  c_background: "#3A3D44",
+  c_node_menu: "#17181B",
   c_selection: "#8EACA777",
   c_input: "#2e4a4e",
   c_output: "#3e3448",
@@ -184,23 +184,23 @@ export const paletteDark: PaletteOptions = {
   c_link: "#93C5FD",
   c_link_visited: "#A5B4FC",
   c_scroll_bg: "transparent",
-  c_scroll_hover: "#4A4A4A",
-  c_scroll_thumb: "#444444",
-  c_node_bg: "#1E1E1E",
-  c_node_bg_group: "#242424",
-  c_node_header_bg: "#161616",
-  c_node_header_bg_group: "#2A2A2A",
+  c_scroll_hover: "#3A3D44",
+  c_scroll_thumb: "#27292E",
+  c_node_bg: "#1B1D21",
+  c_node_bg_group: "#22252A",
+  c_node_header_bg: "#141518",
+  c_node_header_bg_group: "#2A2D33",
   c_bg_loop: "#2563EB22",
   c_bg_group: "#A0A0A030",
-  c_editor_bg_color: "#101010",
-  c_editor_grid_color: "#262626",
-  c_editor_axis_color: "#202020",
+  c_editor_bg_color: "#08090A",
+  c_editor_grid_color: "#1F2126",
+  c_editor_axis_color: "#17181B",
   c_selection_rect: "#cdcdcd33",
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",
   c_provider_hf: "#C4B5FD",
-  c_app_header: "#0C0C0C",
-  c_tabs_header: "#141414",
+  c_app_header: "#0A0B0D",
+  c_tabs_header: "#101113",
 
   primary: {
     main: "#6690d4",
@@ -215,13 +215,13 @@ export const paletteDark: PaletteOptions = {
     contrastText: "#0B1220"
   },
   background: {
-    default: "#0E0E0E",
-    paper: "rgba(16, 16, 16, 0.95)"
+    default: "#08090A",
+    paper: "#101113"
   },
   text: {
-    primary: "#FFFFFF",
-    secondary: "#B9B9B4",
-    disabled: "rgba(255, 255, 255, 0.4)"
+    primary: "#F7F8F8",
+    secondary: "#8A8F98",
+    disabled: "rgba(247, 248, 248, 0.38)"
   },
   action: {
     // Icons, enabled interactive elements, "on" state indicators
@@ -250,9 +250,9 @@ export const paletteDark: PaletteOptions = {
     activatedOpacity: 0.24
   },
   Paper: {
-    default: "#161616",
-    paper: "#161616",
-    overlay: "#1E1E1E"
+    default: "#101113",
+    paper: "#101113",
+    overlay: "#17181B"
   },
   divider: "rgba(255, 255, 255, 0.08)",
   glass: {

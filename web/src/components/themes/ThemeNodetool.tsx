@@ -77,7 +77,7 @@ const ThemeNodetool = createTheme({
   },
   spacing: 4,
   shape: {
-    borderRadius: 4
+    borderRadius: 6
   },
   zIndex: {
     // MUI
@@ -125,80 +125,98 @@ const ThemeNodetool = createTheme({
       styleOverrides: {
         h1: ({ theme }) => ({
           cursor: "default",
-          fontSize: "2em",
-          fontWeight: 400,
+          fontSize: "1.75em",
+          fontWeight: 500,
+          letterSpacing: "-0.02em",
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
-          fontFamily: theme.fontFamily2,
-          wordSpacing: "-3px"
+          fontFamily: theme.fontFamily1,
+          lineHeight: 1.2
         }),
         h2: ({ theme }) => ({
           cursor: "default",
-          fontSize: "1.5em",
-          fontWeight: 400,
+          fontSize: "1.375em",
+          fontWeight: 500,
+          letterSpacing: "-0.015em",
           marginTop: theme.spacing(4),
-          marginBottom: theme.spacing(2)
+          marginBottom: theme.spacing(2),
+          fontFamily: theme.fontFamily1,
+          lineHeight: 1.25
         }),
         h3: ({ theme }) => ({
           cursor: "default",
-          fontSize: "1.1em",
-          fontWeight: 400,
+          fontSize: "1.125em",
+          fontWeight: 500,
+          letterSpacing: "-0.01em",
           marginTop: theme.spacing(4),
           marginBottom: theme.spacing(2),
-          fontFamily: theme.fontFamily1
+          fontFamily: theme.fontFamily1,
+          lineHeight: 1.3
         }),
         h4: ({ theme }) => ({
           cursor: "default",
-          fontSize: "0.8em",
-          fontWeight: 300,
-          marginTop: theme.spacing(2),
+          fontSize: "0.9375em",
+          fontWeight: 500,
+          marginTop: theme.spacing(3),
           marginBottom: theme.spacing(1),
-          textTransform: "uppercase",
-          fontFamily: theme.fontFamily2,
-          wordSpacing: "-3px",
-          color: "var(--palette-primary-main)",
-          lineHeight: "1.1em",
+          fontFamily: theme.fontFamily1,
+          color: theme.vars.palette.text.primary,
+          lineHeight: 1.35,
           wordBreak: "break-word"
         }),
         h5: ({ theme }) => ({
           cursor: "default",
-          fontSize: "0.8em",
-          fontWeight: 600,
-          marginTop: theme.spacing(4),
-          marginBottom: theme.spacing(2),
-          textTransform: "uppercase",
-          fontFamily: theme.fontFamily2,
-          wordSpacing: "-3px"
+          fontSize: "0.8125em",
+          fontWeight: 500,
+          letterSpacing: "0.02em",
+          marginTop: theme.spacing(3),
+          marginBottom: theme.spacing(1.5),
+          fontFamily: theme.fontFamily1,
+          color: theme.vars.palette.text.secondary,
+          lineHeight: 1.35
         }),
         h6: ({ theme }) => ({
           cursor: "default",
-          fontSize: "0.8em",
-          marginTop: theme.spacing(4),
-          marginBottom: theme.spacing(2),
-          textTransform: "uppercase"
+          fontSize: "0.75em",
+          fontWeight: 500,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+          marginTop: theme.spacing(3),
+          marginBottom: theme.spacing(1),
+          fontFamily: theme.fontFamily1,
+          color: theme.vars.palette.text.secondary
         }),
         body1: ({ theme }) => ({
           fontSize: "1em",
           fontFamily: theme.fontFamily1,
-          fontWeight: 300,
+          fontWeight: 400,
           wordSpacing: "0",
-          lineHeight: 1.2,
+          lineHeight: 1.45,
           marginTop: theme.spacing(0),
           marginBottom: theme.spacing(0)
         }),
         body2: ({ theme }) => ({
-          fontSize: "1em",
-          lineHeight: 1.2,
-          color: theme.vars.palette.grey[0],
+          fontSize: "0.875em",
+          lineHeight: 1.45,
+          fontWeight: 400,
+          color: theme.vars.palette.text.secondary,
           fontFamily: theme.fontFamily1
         })
       }
     },
     MuiButton: {
       styleOverrides: {
-        root: {
-          minWidth: 36
-        }
+        root: ({ theme }) => ({
+          minWidth: 36,
+          textTransform: "none",
+          fontWeight: 500,
+          letterSpacing: "0.005em",
+          borderRadius: theme.rounded.buttonLarge,
+          boxShadow: "none",
+          "&:hover": {
+            boxShadow: "none"
+          }
+        })
       }
     },
     MuiFormLabel: {
@@ -236,7 +254,7 @@ const ThemeNodetool = createTheme({
     MuiToolbar: {
       styleOverrides: {
         dense: ({ theme }) => ({
-          backgroundColor: theme.vars.palette.grey[800],
+          backgroundColor: theme.vars.palette.background.paper,
           height: "100%",
           display: "flex",
           justifyContent: "space-between"
@@ -246,27 +264,37 @@ const ThemeNodetool = createTheme({
     MuiDialogTitle: {
       styleOverrides: {
         root: ({ theme }) => ({
-          fontFamily: theme.fontFamily2,
-          fontSize: theme.fontSizeBig
+          fontFamily: theme.fontFamily1,
+          fontSize: theme.fontSizeBig,
+          fontWeight: 500,
+          letterSpacing: "-0.01em"
         })
       }
     },
     MuiTooltip: {
       styleOverrides: {
         tooltip: ({ theme }) => ({
-          backgroundColor: "rgba(10, 12, 16, 0.95)", // Very dark, slight transparency
+          backgroundColor: "rgba(12, 13, 16, 0.96)",
           backdropFilter: "blur(8px)",
-          border: `1px solid ${theme.vars.palette.grey[800]}`,
-          color: theme.vars.palette.grey[50],
+          border: `1px solid ${theme.vars.palette.divider}`,
+          color: theme.vars.palette.text.primary,
           maxWidth: 300,
           fontSize: theme.fontSizeSmall,
-          borderRadius: theme.rounded.lg,
-          padding: "8px 12px",
+          fontWeight: 400,
+          borderRadius: theme.rounded.md,
+          padding: "6px 10px",
           boxShadow:
-            "0 10px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)"
+            "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)"
         }),
         arrow: () => ({
-          color: "rgba(10, 12, 16, 0.95)"
+          color: "rgba(12, 13, 16, 0.96)"
+        })
+      }
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderColor: theme.vars.palette.divider
         })
       }
     },

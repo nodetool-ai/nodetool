@@ -146,6 +146,8 @@ export const editorControlsComponents: Components<Theme> = {
       root: ({ theme }) => {
         const editor = theme.editor;
         return {
+          // Remove MUI dark-mode elevation gradient overlay for a flat, Linear-like look.
+          backgroundImage: "none",
           [`&.${editorUiClasses.menuPaper}`]: {
             backgroundColor: theme.vars.palette.Paper.overlay,
             border: `1px solid ${theme.vars.palette.divider}`,
@@ -206,7 +208,7 @@ export const editorControlsComponents: Components<Theme> = {
           "& .MuiSwitch-thumb": {
             width: 12,
             height: 12,
-            borderRadius: 4,
+            borderRadius: theme.rounded.sm,
             margin: 0,
             padding: 0,
             boxShadow: "none",
@@ -214,7 +216,7 @@ export const editorControlsComponents: Components<Theme> = {
           },
 
           "& .MuiSwitch-track": {
-            borderRadius: 4,
+            borderRadius: theme.rounded.sm,
             backgroundColor: theme.vars.palette.grey[600],
             opacity: 1
           },

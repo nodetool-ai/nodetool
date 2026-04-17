@@ -57,7 +57,9 @@ a:visited {
 }
 
 hr {
-  border: 1px solid var(--palette-grey-600);
+  border: 0;
+  border-top: 1px solid var(--palette-divider);
+  margin: 0;
 }
 
 .centered {
@@ -73,18 +75,24 @@ hr {
 
 /* SCROLLBARS */
 ::-webkit-scrollbar {
-  width: 15px !important;
-  height: 15px !important;
+  width: 10px !important;
+  height: 10px !important;
 }
 ::-webkit-scrollbar-track {
   background: var(--c_scroll_bg);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--c_scroll_thumb);
-  border-radius: 0;
+  border-radius: var(--rounded-md);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--c_scroll_hover);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 /* Firefox 64+ */
 * {
