@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
         transform: "translate(-50%, -50%)",
         width: "40px",
         height: "4px",
-        borderRadius: "2px",
+        borderRadius: "var(--rounded-xs)",
         backgroundColor: theme.vars.palette.grey[600],
         opacity: 0.5,
         transition: "all 0.2s ease"

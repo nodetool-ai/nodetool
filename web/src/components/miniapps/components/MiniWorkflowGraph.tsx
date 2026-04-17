@@ -201,7 +201,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
       height: `${containerHeight}px`,
       background: "color-mix(in srgb, var(--palette-background-paper), transparent 60%)",
       backdropFilter: "blur(12px)",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       border: "1px solid var(--palette-divider)",
       overflow: "hidden"
     },
@@ -214,7 +214,7 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
       padding: "3px 8px",
       background: "var(--palette-background-default)",
       border: "1px solid var(--palette-divider)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       fontSize: "10px",
       whiteSpace: "nowrap",
       maxWidth: "90px",

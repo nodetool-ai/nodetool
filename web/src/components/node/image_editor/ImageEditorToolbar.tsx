@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
     },
     ".tool-button": {
       aspectRatio: "1",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       backgroundColor: "transparent",
       border: `1px solid transparent`,
       color: theme.vars.palette.grey[400],
@@ -92,7 +92,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".action-button": {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
       transition: "all 0.15s ease",
@@ -136,7 +136,7 @@ const styles = (theme: Theme) =>
     ".color-preview": {
       width: "32px",
       height: "32px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       border: `2px solid ${theme.vars.palette.grey[700]}`,
       cursor: "pointer",
       transition: "border-color 0.15s ease",
@@ -148,7 +148,7 @@ const styles = (theme: Theme) =>
       flex: 1,
       backgroundColor: theme.vars.palette.grey[800],
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       padding: "6px 10px",
       color: theme.vars.palette.text.primary,
       fontSize: "12px",
@@ -182,7 +182,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       gap: "4px",
       padding: "8px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       fontSize: "12px",
       fontWeight: 500,
       cursor: "pointer",

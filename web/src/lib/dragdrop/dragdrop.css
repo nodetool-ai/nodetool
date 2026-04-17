@@ -16,7 +16,7 @@
   pointer-events: none;
   background-color: rgba(var(--palette-primary-main-channel, 99 102 241), 0.05);
   border: 2px dashed rgba(var(--palette-primary-main-channel, 99 102 241), 0.3);
-  border-radius: 4px;
+  border-radius: var(--rounded-sm);
   z-index: 1000;
 }
 

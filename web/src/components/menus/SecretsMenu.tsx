@@ -367,7 +367,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
         isLoading={updateMutation.isPending}
         sx={{
           "& .MuiPaper-root": {
-            borderRadius: "12px",
+            borderRadius: "var(--rounded-xl)",
             backgroundImage: "none",
           }
         }}

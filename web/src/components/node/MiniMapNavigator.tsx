@@ -160,7 +160,7 @@ const MiniMapNavigator: React.FC = () => {
                 ? theme.vars.palette.grey[900]
                 : theme.vars.palette.grey[100],
               border: `1px solid ${borderColor}`,
-              borderRadius: "8px"
+              borderRadius: "var(--rounded-lg)"
             }}
           />
 
@@ -182,7 +182,7 @@ const MiniMapNavigator: React.FC = () => {
                   padding: "2px",
                   backgroundColor: theme.vars.palette.background.paper,
                   border: `1px solid ${borderColor}`,
-                  borderRadius: "4px",
+                  borderRadius: "var(--rounded-sm)",
                   "&:hover": {
                     backgroundColor: theme.vars.palette.action.hover
                   }
@@ -199,7 +199,7 @@ const MiniMapNavigator: React.FC = () => {
                 padding: "2px",
                 backgroundColor: theme.vars.palette.background.paper,
                 border: `1px solid ${borderColor}`,
-                borderRadius: "4px",
+                borderRadius: "var(--rounded-sm)",
                 "&:hover": {
                   backgroundColor: theme.vars.palette.action.hover
                 }
@@ -228,7 +228,7 @@ const MiniMapNavigator: React.FC = () => {
           paper: {
             sx: {
               minWidth: 180,
-              borderRadius: "8px"
+              borderRadius: "var(--rounded-lg)"
             }
           }
         }}
@@ -304,7 +304,7 @@ const MiniMapNavigator: React.FC = () => {
           paper: {
             sx: {
               minWidth: 180,
-              borderRadius: "8px"
+              borderRadius: "var(--rounded-lg)"
             }
           }
         }}
@@ -336,7 +336,7 @@ const MiniMapNavigator: React.FC = () => {
                   sx={{
                     px: 1,
                     py: 0.5,
-                    borderRadius: "4px",
+                    borderRadius: "var(--rounded-sm)",
                     "&:hover": {
                       backgroundColor: theme.vars.palette.action.hover
                     }
@@ -347,7 +347,7 @@ const MiniMapNavigator: React.FC = () => {
                       width: "12px",
                       height: "12px",
                       backgroundColor: item.color,
-                      borderRadius: "2px",
+                      borderRadius: "var(--rounded-xs)",
                       marginRight: 12,
                       flexShrink: 0
                     }}

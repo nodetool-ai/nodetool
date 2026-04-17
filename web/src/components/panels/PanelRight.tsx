@@ -201,7 +201,7 @@ const mobileTabRailStyles = (theme: Theme) =>
     WebkitOverflowScrolling: "touch",
     "& .tab-button": {
       padding: "6px 10px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       color: theme.vars.palette.text.secondary,
       minWidth: "auto",
       flexShrink: 0,

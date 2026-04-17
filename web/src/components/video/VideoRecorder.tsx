@@ -79,7 +79,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         width: "100%",
         maxHeight: "200px",
         backgroundColor: theme.vars.palette.grey[900],
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         objectFit: "contain"
       },
       ".device-list": {
@@ -96,7 +96,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         "& .custom-select": {
           backgroundColor: theme.vars.palette.grey[700],
           color: theme.vars.palette.grey[100],
-          borderRadius: "4px",
+          borderRadius: "var(--rounded-sm)",
           border: `1px solid ${theme.vars.palette.grey[600]}`
         },
         "& .select-header": {

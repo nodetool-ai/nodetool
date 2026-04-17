@@ -11,7 +11,7 @@ const styles = (theme: Theme) =>
   css({
     ".step-result-container": {
       marginBottom: "0.5rem",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       backgroundColor: `rgba(40, 45, 50, 0.3)`,
       backdropFilter: "blur(4px)",
       border: `1px solid ${theme.vars.palette.success.main}33`,
@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
     ".result-value": {
       marginTop: "0.5rem",
       padding: "1rem",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       backgroundColor: `rgba(0, 0, 0, 0.4)`,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       fontSize: "0.8rem",

@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       appearance: "none",
       color: "var(--palette-text-primary)",
       backgroundColor: "var(--palette-grey-800)",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       transition: "all 0.2s"
     },
     "input[type='text']:focus": {
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       height: "16px",
       border: "2px solid var(--palette-grey-500)",
       borderTop: "2px solid var(--palette-grey-100)",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       animation: "spin 1s linear infinite"
     },
     "@keyframes spin": {

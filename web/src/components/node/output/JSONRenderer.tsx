@@ -28,7 +28,7 @@ const jsonStyles = (theme: Theme) =>
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       padding: ".5em",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.grey[900],
       color: theme.vars.palette.grey[100]
     },

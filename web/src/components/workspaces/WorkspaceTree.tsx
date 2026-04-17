@@ -90,7 +90,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       flex: 1,
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900]
     },
@@ -119,7 +119,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       fontSize: "0.75rem",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       overflow: "hidden",
       whiteSpace: "nowrap"
     },
@@ -163,7 +163,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
 const treeViewStyles = (theme: Theme) => ({
   ".MuiTreeItem-content": {
-    borderRadius: "2px",
+    borderRadius: "var(--rounded-xs)",
     padding: "4px 8px",
     userSelect: "none",
     cursor: "pointer"

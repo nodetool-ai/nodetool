@@ -116,7 +116,7 @@ const styles = (
 
       "& .MuiIconButton-root, .MuiButton-root": {
         padding: "10px",
-        borderRadius: "8px",
+        borderRadius: "var(--rounded-lg)",
         position: "relative",
         transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
         willChange: "transform, box-shadow",
@@ -148,7 +148,7 @@ const styles = (
             right: 0,
             bottom: 0,
             background: `linear-gradient(135deg, ${theme.vars.palette.primary.main}20, transparent)`,
-            borderRadius: "8px"
+            borderRadius: "var(--rounded-lg)"
           },
           "& svg, & .icon-container svg": {
             transform: "scale(1.05)",
@@ -471,7 +471,7 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
     WebkitOverflowScrolling: "touch",
     "& .tab-button": {
       padding: "6px 10px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       color: theme.vars.palette.text.secondary,
       minWidth: "auto",
       "&.active": {

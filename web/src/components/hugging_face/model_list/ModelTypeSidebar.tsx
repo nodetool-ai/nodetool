@@ -59,7 +59,7 @@ const ModelTypeSidebar: React.FC = () => {
               key={type}
               sx={{ 
                 mb: 0.5,
-                borderRadius: "8px",
+                borderRadius: "var(--rounded-lg)",
                 overflow: "hidden"
               }}
               secondaryAction={
@@ -91,7 +91,7 @@ const ModelTypeSidebar: React.FC = () => {
               selected={isSelected}
               onClick={createModelTypeChangeHandler(type)}
               sx={{
-                  borderRadius: "8px",
+                  borderRadius: "var(--rounded-lg)",
                   padding: "8px 12px",
                   transition: "all 0.2s ease",
                   "&.Mui-selected": {

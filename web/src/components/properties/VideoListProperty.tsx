@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       paddingTop: "56.25%", // 16:9 aspect ratio
       backgroundColor: "rgba(0, 0, 0, 0.2)",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: "all 0.2s ease",
@@ -97,7 +97,7 @@ const styles = (theme: Theme) =>
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
       backgroundColor: "rgba(0, 0, 0, 0.2)",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

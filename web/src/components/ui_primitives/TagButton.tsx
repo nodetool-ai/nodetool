@@ -8,7 +8,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 const styles = (theme: Theme, isSelected: boolean) =>
   css({
-    borderRadius: "16px",
+    borderRadius: theme.rounded.xxl,
     textTransform: "none",
     fontWeight: isSelected ? 600 : 400,
     transition: "all 0.2s ease",

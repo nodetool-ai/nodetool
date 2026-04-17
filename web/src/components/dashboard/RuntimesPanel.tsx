@@ -45,7 +45,7 @@ const panelStyles = (theme: Theme) =>
     },
     ".location-bar": {
       padding: "8px 12px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       backgroundColor: `color-mix(in srgb, ${theme.vars.palette.grey[800]} 50%, transparent)`,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
     },

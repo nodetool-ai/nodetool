@@ -15,7 +15,7 @@ const styles = (theme: Theme) =>
     alignItems: "center",
     gap: theme.spacing(0.5),
     ".zoom-button": {
-      borderRadius: "8px",
+      borderRadius: theme.rounded.lg,
       backgroundColor: "transparent",
       color: theme.vars.palette.text.secondary,
       transition: "all 0.15s ease",

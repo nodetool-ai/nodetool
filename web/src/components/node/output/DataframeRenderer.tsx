@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
     ".dataframe-action-buttons .MuiIconButton-root": {
       padding: "0.25em",
       color: theme.vars.palette.primary.main,
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       "&:hover": {
         color: theme.vars.palette.primary.light,
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`

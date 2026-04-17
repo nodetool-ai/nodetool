@@ -257,7 +257,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "8px",
+              borderRadius: "var(--rounded-lg)",
               minWidth: 200
             }
           }

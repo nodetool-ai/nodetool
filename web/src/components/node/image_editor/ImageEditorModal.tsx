@@ -97,7 +97,7 @@ const styles = (theme: Theme) =>
     ".title-badge": {
       fontSize: "11px",
       padding: "2px 8px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText
     },
@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "6px",
       padding: "6px 12px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       fontSize: "13px",
       fontWeight: 500,
       cursor: "pointer",

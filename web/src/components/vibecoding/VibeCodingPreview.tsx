@@ -22,7 +22,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: "column",
       height: "100%",
       backgroundColor: theme.palette.background.default,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       overflow: "hidden"
     },
     ".preview-header": {

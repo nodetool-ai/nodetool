@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
     },
     ".command-menu": {
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: theme.shadows[8],
       overflow: "hidden"
@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "12px",
       padding: "12px 16px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       cursor: "pointer",
       transition: "background-color 0.15s ease",
       "&:hover, &[data-selected=true]": {
@@ -77,7 +77,7 @@ const styles = (theme: Theme) =>
     ".node-icon": {
       width: "32px",
       height: "32px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

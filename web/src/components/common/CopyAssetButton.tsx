@@ -382,7 +382,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
           padding: "4px",
           backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
           color: theme.vars.palette.common.white,
-          borderRadius: "4px",
+          borderRadius: "var(--rounded-sm)",
           "&:hover": {
             backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
           },

@@ -149,7 +149,7 @@ export const ViewModeToggle = memo(
           onChange={handleChange}
           sx={{
             backgroundColor: theme.vars.palette.grey[800],
-            borderRadius: "6px",
+            borderRadius: theme.rounded.md,
             "& .MuiToggleButton-root": {
               border: "none",
               color: theme.vars.palette.grey[400],

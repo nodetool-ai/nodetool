@@ -609,7 +609,7 @@ const iconStyles = (_theme: Theme) => ({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: "4px"
+    borderRadius: "var(--rounded-sm)"
   },
   "& svg": {
     width: "100%",

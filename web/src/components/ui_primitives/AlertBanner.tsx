@@ -56,7 +56,7 @@ export const AlertBanner = forwardRef<HTMLDivElement, AlertBannerProps>(({
       ref={ref}
       variant={variant}
       sx={{
-        borderRadius: "8px",
+        borderRadius: "var(--rounded-lg)",
         ...(compact && {
           py: 0.5,
           px: 1.5,

@@ -69,7 +69,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       width: 2,
       backgroundColor: theme.vars.palette.primary.main,
       opacity: 0.2,
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
     },
 
     // ACTION ICONS — hidden by default, shown on hover
@@ -85,7 +85,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       transition: "opacity 0.15s ease",
       zIndex: 1,
       background: theme.vars.palette.background.paper,
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "2px 4px",
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },

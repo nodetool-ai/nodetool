@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       minWidth: "unset",
       margin: "0",
       padding: "2px 4px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       transition: "all 0.2s ease",
       "&:hover": {
         color: theme.vars.palette.primary.main,

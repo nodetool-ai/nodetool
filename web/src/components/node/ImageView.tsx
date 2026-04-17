@@ -50,7 +50,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     width: "100%",
     height: "100%",
     minHeight: "80px",
-    borderRadius: "4px",
+    borderRadius: "var(--rounded-sm)",
     overflow: "hidden" as const,
     ...alphaSurfaceBg
   }), []);
@@ -72,7 +72,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     padding: "4px",
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     color: "var(--palette-grey-0)",
-    borderRadius: "4px",
+    borderRadius: "var(--rounded-sm)",
     "&:hover": {
       backgroundColor: "rgba(0, 0, 0, 0.85)"
     },
@@ -85,7 +85,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     width: "100%",
     height: "100%",
     objectFit: "contain" as const,
-    borderRadius: "4px",
+    borderRadius: "var(--rounded-sm)",
     cursor: "pointer"
   }), []);
 

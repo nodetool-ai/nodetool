@@ -267,7 +267,7 @@ export const CircularActionButton = memo(
         width: `${size}px`,
         height: `${size}px`,
         padding: 0,
-        borderRadius: "50%",
+        borderRadius: theme.rounded.circle,
         backgroundColor: bgColor,
         color: iconColor,
         transition: "all 0.15s ease",

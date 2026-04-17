@@ -577,7 +577,7 @@ const InputContextMenu: React.FC = () => {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "12px",
+              borderRadius: "var(--rounded-xl)",
               backgroundColor: theme.vars.palette.background.paper,
               border: `1px solid ${theme.vars.palette.divider}`,
               boxShadow: theme.shadows[8],

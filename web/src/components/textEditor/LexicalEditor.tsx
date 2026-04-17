@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
     ".editor-code": {
       backgroundColor: theme.vars.palette.action.disabledBackground,
       padding: "8px 12px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       margin: "8px 0",

@@ -345,7 +345,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
         >
           {diff.addedNodes.length > 0 && (
             <FlexRow align="center" gap={0.25}>
-              <Surface sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.success.main }} />
+              <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.success.main }} />
               <Caption sx={{ fontSize: "0.6rem" }}>
                 {diff.addedNodes.length}
               </Caption>
@@ -353,7 +353,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           )}
           {diff.removedNodes.length > 0 && (
             <FlexRow align="center" gap={0.25}>
-              <Surface sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.error.main }} />
+              <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.error.main }} />
               <Caption sx={{ fontSize: "0.6rem" }}>
                 {diff.removedNodes.length}
               </Caption>
@@ -361,7 +361,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           )}
           {diff.modifiedNodes.length > 0 && (
             <FlexRow align="center" gap={0.25}>
-              <Surface sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: theme.palette.warning.main }} />
+              <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.warning.main }} />
               <Caption sx={{ fontSize: "0.6rem" }}>
                 {diff.modifiedNodes.length}
               </Caption>

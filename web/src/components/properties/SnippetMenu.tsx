@@ -210,7 +210,7 @@ const SnippetMenu = ({
       slotProps={{
         paper: {
           sx: {
-            borderRadius: "12px",
+            borderRadius: "var(--rounded-xl)",
             overflow: "hidden",
             boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           },

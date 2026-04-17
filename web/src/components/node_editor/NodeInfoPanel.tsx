@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
       border: `1px solid ${theme.vars.palette.divider}`,
       overflow: "hidden",
@@ -108,7 +108,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "2px 6px",
       textTransform: "uppercase",
       display: "inline-block",
@@ -143,7 +143,7 @@ const styles = (theme: Theme) =>
       marginTop: "8px",
       padding: "8px 10px",
       backgroundColor: `${theme.vars.palette.error.main}15`,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       borderLeft: `3px solid ${theme.vars.palette.error.main}`
     },
     "& .error-text": {
@@ -161,7 +161,7 @@ const styles = (theme: Theme) =>
       display: "block",
       margin: "0 -4px",
       padding: "2px 8px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: "transparent",
       color: "var(--palette-grey-400)",
       fontSize: "9px",
@@ -186,7 +186,7 @@ const styles = (theme: Theme) =>
       minWidth: "80px",
       fontSize: "12px",
       padding: "6px 10px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       marginTop: "12px",
       "& .MuiButton-startIcon": {
         marginRight: "4px"

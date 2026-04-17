@@ -137,7 +137,7 @@ const styles = (theme: Theme) =>
       maxWidth: "400px",
       "& .MuiOutlinedInput-root": {
         background: theme.vars.palette.action.hover,
-        borderRadius: "12px",
+        borderRadius: "var(--rounded-xl)",
         "& .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.divider
         },

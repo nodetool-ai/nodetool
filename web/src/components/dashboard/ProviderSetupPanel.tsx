@@ -86,7 +86,7 @@ const panelStyles = (theme: Theme) =>
       marginBottom: "12px",
       background: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       transition: "all 0.2s ease"
     },
     ".provider-card:hover": {
@@ -132,7 +132,7 @@ const panelStyles = (theme: Theme) =>
       color: theme.vars.palette.primary.main,
       textDecoration: "none",
       padding: "4px 8px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       background: `${theme.vars.palette.primary.main}15`,
       transition: "all 0.2s",
       "&:hover": {
@@ -163,7 +163,7 @@ const panelStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       background: theme.vars.palette.grey[800],
       padding: "2px 8px",
-      borderRadius: "12px"
+      borderRadius: "var(--rounded-xl)"
     }
   });
 

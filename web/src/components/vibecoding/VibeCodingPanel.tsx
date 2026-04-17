@@ -73,7 +73,7 @@ const createStyles = (theme: Theme) =>
     ".dirty-indicator": {
       width: "8px",
       height: "8px",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       backgroundColor: theme.palette.warning.main
     }
   });

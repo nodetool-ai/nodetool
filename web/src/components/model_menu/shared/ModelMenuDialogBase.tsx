@@ -335,7 +335,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                     sx={{
                       width: 36,
                       height: 36,
-                      borderRadius: "50%",
+                      borderRadius: "var(--rounded-circle)",
                       bgcolor:
                         customView === "favorites"
                           ? "primary.main"
@@ -368,7 +368,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                         justifyContent: "center",
                         width: 28,
                         height: 28,
-                        borderRadius: "4px",
+                        borderRadius: "var(--rounded-sm)",
                         bgcolor: "rgba(0,0,0,0.04)"
                       }}
                     >
@@ -413,7 +413,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                     sx={{
                       width: 36,
                       height: 36,
-                      borderRadius: "50%",
+                      borderRadius: "var(--rounded-circle)",
                       bgcolor:
                         customView === "recent"
                           ? "primary.main"
@@ -446,7 +446,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                         justifyContent: "center",
                         width: 28,
                         height: 28,
-                        borderRadius: "4px",
+                        borderRadius: "var(--rounded-sm)",
                         bgcolor: "rgba(0,0,0,0.04)"
                       }}
                     >

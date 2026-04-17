@@ -60,7 +60,7 @@ const panelStyles = (theme: Theme) =>
       overflowX: "hidden"
     },
     ".quick-start": {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       padding: "0.75em",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       marginBottom: "1em"
@@ -69,7 +69,7 @@ const panelStyles = (theme: Theme) =>
       marginTop: "0.5em"
     },
     ".quick-card": {
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       transition: "transform .15s ease, border-color .15s ease",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       "&:hover": {

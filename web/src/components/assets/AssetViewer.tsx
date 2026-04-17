@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       height: "2em",
       backgroundColor: "rgba(0, 0, 0, 0.8)",
       color: "var(--palette-grey-0)",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       padding: "0.3em"
     },
     ".actions button svg": {

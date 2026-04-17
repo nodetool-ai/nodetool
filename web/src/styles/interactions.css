@@ -16,7 +16,7 @@
 .react-flow .react-flow__nodesselection-rect {
   outline: 1px solid var(--palette-grey-100) !important;
   outline-offset: 0px;
-  border-radius: 2px;
+  border-radius: var(--rounded-xs);
   outline-width: 15px !important;
   outline-color: var(--palette-c_selection_rect) !important;
 }

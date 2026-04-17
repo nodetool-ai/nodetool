@@ -219,7 +219,7 @@ const styles = (theme: Theme) =>
       gap: "0.35em",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.35)`,
       padding: "3px 7px",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
       boxShadow: `inset 0 1px 2px rgba(0,0,0,0.15), 0 1px 0 rgba(255,255,255,0.03)`,
       "& + .toolbar-group": {
@@ -236,7 +236,7 @@ const styles = (theme: Theme) =>
       background: "transparent",
       color: theme.vars.palette.text.secondary,
       border: "none",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       padding: "3px 6px",
       fontSize: "0.75rem",
       fontWeight: 600,

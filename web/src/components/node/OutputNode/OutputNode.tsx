@@ -83,7 +83,7 @@ const styles = (theme: Theme) =>
       },
       ".output-node-content > .content.scrollable::-webkit-scrollbar-thumb": {
         backgroundColor: theme.vars.palette.grey[500],
-        borderRadius: "6px"
+        borderRadius: "var(--rounded-md)"
       },
       ".output-node-content > .content.scrollable::-webkit-scrollbar-track": {
         backgroundColor: "transparent"

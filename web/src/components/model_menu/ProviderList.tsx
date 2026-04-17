@@ -746,7 +746,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     <Box className="model-menu__provider-icon-circle" sx={{
                       width: 36,
                       height: 36,
-                      borderRadius: '50%',
+                      borderRadius: 'var(--rounded-circle)',
                       bgcolor: (selected === p) ? 'primary.main' : (isProviderEnabled(p) ? 'action.selected' : 'transparent'),
                       border: `1px solid ${selected === p ? 'transparent' : theme.vars.palette.divider}`,
                       display: 'flex',
@@ -801,7 +801,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                 width: 28,
                                 height: 28,
                                 flexShrink: 0,
-                                borderRadius: '4px',
+                                borderRadius: 'var(--rounded-sm)',
                                 bgcolor: isDarkMode && !isHFLogo ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
                                 opacity: available ? 1 : 0.5,
                               }}>

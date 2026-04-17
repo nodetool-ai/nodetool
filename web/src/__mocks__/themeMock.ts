@@ -324,4 +324,23 @@ const mockTheme = createTheme({
   borderRadius: 4
 };
 
+// Mirror the `rounded` token set from ThemeNodetool so components that read
+// `theme.rounded.*` work under test.
+const roundedTokens = {
+  xs: "2px",
+  sm: "4px",
+  md: "6px",
+  lg: "8px",
+  xl: "12px",
+  xxl: "16px",
+  pill: "9999px",
+  circle: "50%",
+  dialog: "20px",
+  node: "8px",
+  buttonSmall: "4px",
+  buttonLarge: "6px"
+};
+(mockTheme as any).rounded = roundedTokens;
+(mockTheme as any).vars.rounded = roundedTokens;
+
 export default mockTheme;

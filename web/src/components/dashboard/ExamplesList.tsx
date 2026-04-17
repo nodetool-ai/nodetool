@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
         width: "200px",
         color: theme.vars.palette.grey[0],
         textAlign: "center",
-        borderRadius: "6px",
+        borderRadius: "var(--rounded-md)",
         padding: "5px 0",
         position: "absolute",
         zIndex: 1,
