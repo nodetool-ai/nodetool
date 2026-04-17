@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { Box, CircularProgress, Button } from "@mui/material";
-import { Text } from "../../ui_primitives";
+import { Box, Button } from "@mui/material";
+import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
 import { VariableSizeList as VirtualList } from "react-window";
@@ -281,10 +281,7 @@ const ModelListIndex: React.FC = () => {
           textAlign: "center"
         }}
       >
-        <CircularProgress />
-        <Text size="big" sx={{ mt: 2 }}>
-          Loading models
-        </Text>
+        <LoadingSpinner size="medium" text="Loading models" />
       </Box>
     );
   }
@@ -365,10 +362,9 @@ const ModelListIndex: React.FC = () => {
 
         <Box className="content">
           {isFetching && (
-            <CircularProgress
-              size={20}
-              sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}
-            />
+            <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}>
+              <LoadingSpinner size="small" />
+            </Box>
           )}
           {modelSearchTerm && selectedModelType === "All" && (
             <Text size="normal" weight={600} sx={{ mb: 2 }}>
