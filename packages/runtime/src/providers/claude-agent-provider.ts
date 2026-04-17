@@ -571,6 +571,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
     }
 
+    // Optional override for the Claude Code CLI binary path.
+    // Honors NODETOOL_CLAUDE_CODE_PATH (NodeTool-wide) and
+    // CLAUDE_CODE_PATH (generic). Leave empty to rely on PATH lookup.
+    const claudeCodePath =
+      process.env.NODETOOL_CLAUDE_CODE_PATH || process.env.CLAUDE_CODE_PATH;
+
     let queryHandle: ReturnType<typeof sdk.query>;
     try {
       queryHandle = sdk.query({
@@ -588,7 +594,10 @@ export class ClaudeAgentProvider extends BaseProvider {
           ...(mcpServer
             ? { mcpServers: { [MCP_SERVER_NAME]: mcpServer } }
             : {}),
-          ...(resumeSessionId ? { resume: resumeSessionId } : {})
+          ...(resumeSessionId ? { resume: resumeSessionId } : {}),
+          ...(claudeCodePath
+            ? { pathToClaudeCodeExecutable: claudeCodePath }
+            : {})
         }
       });
     } catch (err) {

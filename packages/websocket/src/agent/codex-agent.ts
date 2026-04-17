@@ -25,17 +25,34 @@ import type {
   AgentModelDescriptor,
   FrontendToolManifest,
 } from "./types.js";
+import { getSetting } from "../settings-api.js";
 
 const log = createLogger("nodetool.websocket.agent.codex");
 const NODETOOL_MCP_BEGIN = "# BEGIN NODETOOL MCP";
 const NODETOOL_MCP_END = "# END NODETOOL MCP";
 
 let codexInstance: Codex | null = null;
+let codexInstanceBinaryPath: string | null = null;
 
-function getCodex(): Codex {
-  if (!codexInstance) {
-    codexInstance = new Codex();
+/**
+ * Lazily construct the Codex SDK client. When the user has set
+ * NODETOOL_CODEX_PATH (via the settings UI or env), we pass it through as
+ * `codexPathOverride` so the SDK spawns that binary instead of the one on
+ * PATH. The instance is re-created if the configured path changes so a
+ * settings update takes effect without a server restart.
+ */
+async function getCodex(): Promise<Codex> {
+  const configuredPath =
+    (await getSetting("NODETOOL_CODEX_PATH")) || null;
+
+  if (codexInstance && codexInstanceBinaryPath === configuredPath) {
+    return codexInstance;
   }
+
+  codexInstance = new Codex(
+    configuredPath ? { codexPathOverride: configuredPath } : undefined,
+  );
+  codexInstanceBinaryPath = configuredPath;
   return codexInstance;
 }
 
@@ -139,8 +156,8 @@ export class CodexQuerySession {
     }
   }
 
-  private getThread(): ReturnType<Codex["startThread"]> {
-    const codex = getCodex();
+  private async getThread(): Promise<ReturnType<Codex["startThread"]>> {
+    const codex = await getCodex();
     const threadOptions: ThreadOptions = {
       model: this.model,
       workingDirectory: this.workspacePath,
@@ -200,7 +217,7 @@ export class CodexQuerySession {
 
     try {
       await this.ensureMcpConfig(mcpServerUrl ?? null);
-      const thread = this.getThread();
+      const thread = await this.getThread();
       const prompt = this.buildPrompt(message, manifest);
       const { events } = await thread.runStreamed(prompt, {
         signal: this.abortController.signal,

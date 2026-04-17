@@ -43,6 +43,7 @@ import {
   getLocalMcpServerUrl,
   setMcpFrontendTransport,
 } from "../mcp-server.js";
+import { getSetting } from "../settings-api.js";
 import type { AgentTransport } from "./transport.js";
 import type {
   AgentGetSessionMessagesRequest,
@@ -273,6 +274,13 @@ class ClaudeAgentSession implements AgentQuerySession {
         ? Object.keys(uiToolSchemas).map((n) => `mcp__nodetool-ui__${n}`)
         : [];
 
+      // Optional override for the Claude Code CLI binary path. Honors the
+      // DB-backed NODETOOL_CLAUDE_CODE_PATH setting first, falling back to
+      // the env var of the same name or the generic CLAUDE_CODE_PATH.
+      const claudeCodePath =
+        (await getSetting("NODETOOL_CLAUDE_CODE_PATH")) ||
+        process.env.CLAUDE_CODE_PATH;
+
       const queryHandle = query({
         prompt: message,
         options: {
@@ -303,6 +311,9 @@ class ClaudeAgentSession implements AgentQuerySession {
             },
           }),
           ...(this.resolvedSessionId && { resume: this.resolvedSessionId }),
+          ...(claudeCodePath && {
+            pathToClaudeCodeExecutable: claudeCodePath,
+          }),
         },
       });
       this.activeQuery = queryHandle;

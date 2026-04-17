@@ -92,6 +92,7 @@ import collectionsRoutes from "./routes/collections.js";
 import modelsRoutes from "./routes/models.js";
 import mcpConfigRoutes from "./routes/mcp-config.js";
 import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
+import { applyDbSettingsToEnv } from "./settings-api.js";
 
 const log = createLogger("nodetool.websocket.server");
 const startupT0 = performance.now();
@@ -115,6 +116,11 @@ try {
   setSecretResolver((key, userId) =>
     getSecret(key, userId).then((v) => v ?? undefined)
   );
+  // Propagate DB-backed non-secret settings (e.g. NODETOOL_CLAUDE_CODE_PATH,
+  // NODETOOL_CODEX_PATH) into process.env so packages below the websocket
+  // layer in the dep graph — which can't reach the DB — still see values
+  // configured via the Settings UI.
+  await applyDbSettingsToEnv();
 } catch (err) {
   log.error(
     "Database setup failed",

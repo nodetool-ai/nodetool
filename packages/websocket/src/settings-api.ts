@@ -101,6 +101,30 @@ export async function getSetting(key: string): Promise<string | null> {
   return null;
 }
 
+/**
+ * Copy all non-secret Setting values from the DB into `process.env` so that
+ * packages which can't reach the DB (e.g. `@nodetool/runtime`, which sits
+ * below `@nodetool/websocket` in the dep graph) still see user-configured
+ * values. Call at server startup and after any settings update.
+ *
+ * Env vars explicitly set by the surrounding shell or Docker/systemd unit
+ * are left untouched — deployment config wins over UI-configured values.
+ */
+export async function applyDbSettingsToEnv(userId = "1"): Promise<void> {
+  await migrateSettingsFromFile(userId);
+  const rows = await Setting.listForUser(userId);
+  const secretKeys = new Set(
+    registry.filter((def) => def.isSecret).map((def) => def.envVar)
+  );
+  for (const row of rows) {
+    if (!row.value || row.value.length === 0) continue;
+    if (secretKeys.has(row.key)) continue;
+    const existing = process.env[row.key];
+    if (existing !== undefined && existing.length > 0) continue;
+    process.env[row.key] = row.value;
+  }
+}
+
 // ── Default settings (ported from nodetool/config/settings.py) ────
 
 function s(
@@ -177,6 +201,19 @@ s(
   "COMFYUI_ADDR",
   "ComfyUI",
   "ComfyUI server address for API/WebSocket access (e.g., 127.0.0.1:8188)."
+);
+
+// Agent Binaries — custom paths for agent CLIs the SDKs spawn.
+// Leave empty to rely on PATH lookup (`claude`, `codex`).
+s(
+  "NODETOOL_CLAUDE_CODE_PATH",
+  "Agent Binaries",
+  "Absolute path to the Claude Code CLI binary (the `claude` command). Leave empty to rely on PATH lookup. Used by the Claude Agent provider and the Claude agent session."
+);
+s(
+  "NODETOOL_CODEX_PATH",
+  "Agent Binaries",
+  "Absolute path to the Codex CLI binary. Leave empty to rely on PATH lookup. Used by the Codex agent session."
 );
 
 // Provider endpoints
@@ -479,7 +516,16 @@ async function handleUpdateSettings(
   // Save non-secret settings to DB
   if (body.settings) {
     for (const [key, value] of Object.entries(body.settings)) {
-      await Setting.upsert({ userId, key, value: String(value ?? "") });
+      const strValue = String(value ?? "");
+      await Setting.upsert({ userId, key, value: strValue });
+      // Propagate to process.env for packages that can't reach the DB.
+      // Empty values clear the override so subsequent getSetting()/env
+      // reads fall back to deployment-level configuration.
+      if (strValue.length > 0) {
+        process.env[key] = strValue;
+      } else {
+        delete process.env[key];
+      }
     }
   }
 
