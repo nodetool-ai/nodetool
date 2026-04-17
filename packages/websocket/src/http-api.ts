@@ -55,7 +55,6 @@ import {
 } from "./settings-api.js";
 import { handleWorkspaceRequest } from "./workspace-api.js";
 import { handleFileRequest } from "./file-api.js";
-import { handleCostRequest } from "./cost-api.js";
 import { handleSkillsRequest, handleFontsRequest } from "./skills-api.js";
 import { handleUsersRequest } from "./users-api.js";
 import { handleCollectionRequest } from "./collection-api.js";
@@ -2794,11 +2793,6 @@ export async function handleApiRequest(
 
   if (pathname === "/api/files" || pathname.startsWith("/api/files/")) {
     return handleFileRequest(request);
-  }
-
-  if (pathname === "/api/costs" || pathname.startsWith("/api/costs/")) {
-    const res = await handleCostRequest(request, options);
-    if (res) return res;
   }
 
   if (pathname === "/api/skills" || pathname.startsWith("/api/skills/")) {
