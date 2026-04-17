@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import Fastify from "fastify";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { Prediction, Secret, Setting } from "@nodetool/models";
+import * as vectorstore from "@nodetool/vectorstore";
 import { appRouter } from "../src/trpc/router.js";
 import { createContextFactory } from "../src/trpc/context.js";
 
@@ -88,6 +89,26 @@ describe("tRPC /trpc/settings.list over Fastify", () => {
     );
     expect(openai).toBeDefined();
     expect(openai.is_secret).toBe(true);
+    await app.close();
+  });
+});
+
+describe("tRPC /trpc/collections.list over Fastify", () => {
+  it("returns the empty list shape when no collections exist", async () => {
+    vi.spyOn(vectorstore, "getVecStore").mockResolvedValue({
+      listCollections: vi.fn().mockResolvedValue([])
+    } as unknown as Awaited<ReturnType<typeof vectorstore.getVecStore>>);
+
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: "/trpc/collections.list"
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(data).toEqual({ collections: [], count: 0 });
     await app.close();
   });
 });
