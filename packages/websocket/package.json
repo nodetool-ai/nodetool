@@ -21,7 +21,7 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "latest",
     "@fastify/cors": "^10.0.2",
-    "@fastify/static": "^9.0.0",
+    "@fastify/static": "^9.1.1",
     "@fastify/websocket": "^11.0.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@nodetool/agents": "*",
