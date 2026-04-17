@@ -41,8 +41,8 @@ import {
 } from "../ui_primitives";
 
 import { useQuery } from "@tanstack/react-query";
-import { client, isLocalhost } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { isLocalhost } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -206,13 +206,8 @@ const mcpWarningStyles = (theme: Theme) =>
 
 
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces/", {
-    params: { query: { limit: 100 } }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workspaces");
-  }
-  return data.workspaces;
+  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
+  return workspaces as WorkspaceResponse[];
 };
 
 /**
