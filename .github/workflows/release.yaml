@@ -136,7 +136,7 @@ jobs:
 
       - name: Upload Web Build to GitHub Release
         if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           files: ${{ steps.create_archive.outputs.archive_name }}
@@ -357,7 +357,7 @@ jobs:
 
       - name: Upload Windows assets to GitHub Release (signed)
         if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'true' && startsWith(github.ref, 'refs/tags/') && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           files: |
@@ -366,7 +366,7 @@ jobs:
 
       - name: Upload Windows assets to GitHub Release (unsigned)
         if: matrix.os == 'windows-latest' && env.SHOULD_SIGN == 'false' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           files: |
@@ -397,7 +397,7 @@ jobs:
 
       - name: Upload macOS assets to GitHub Release
         if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           files: |
@@ -407,7 +407,7 @@ jobs:
 
       - name: Upload Linux assets to GitHub Release
         if: matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           files: |
