@@ -1325,6 +1325,10 @@ export async function handleWorkflowById(
 
 // ── Job types & helpers ───────────────────────────────────────────
 
+/**
+ * Full job response — still exported here because `mcp-server.ts` consumes it
+ * when serving job metadata over MCP. Consider relocating if MCP also migrates.
+ */
 export function toJobResponse(job: Job): JsonObject {
   return {
     id: job.id,
@@ -1337,92 +1341,6 @@ export function toJobResponse(job: Job): JsonObject {
     error: job.error ?? null,
     cost: null
   };
-}
-
-function toBackgroundJobResponse(job: Job): JsonObject {
-  return {
-    job_id: job.id,
-    status: job.status,
-    workflow_id: job.workflow_id,
-    created_at: job.started_at ?? null,
-    is_running: job.status === "running" || job.status === "scheduled",
-    is_completed:
-      job.status === "completed" ||
-      job.status === "failed" ||
-      job.status === "cancelled"
-  };
-}
-
-export async function handleJobsRoot(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const url = new URL(request.url);
-  const limit = parseLimit(url, 100);
-  const workflowId = url.searchParams.get("workflow_id") ?? undefined;
-
-  const [jobs, nextStartKey] = await Job.paginate(userId, {
-    limit,
-    workflowId
-  });
-
-  return jsonResponse({
-    jobs: jobs.map((j) => toJobResponse(j)),
-    next_start_key: nextStartKey || null
-  });
-}
-
-export async function handleJobById(
-  request: Request,
-  jobId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET" && request.method !== "DELETE") {
-    return errorResponse(405, "Method not allowed");
-  }
-
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const job = (await Job.get(jobId)) as Job | null;
-  if (!job || job.user_id !== userId) {
-    return errorResponse(404, "Job not found");
-  }
-
-  if (request.method === "GET") {
-    return jsonResponse(toJobResponse(job));
-  }
-
-  // DELETE
-  await job.delete();
-  return new Response(null, { status: 204 });
-}
-
-export async function handleJobCancel(
-  request: Request,
-  jobId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const job = (await Job.get(jobId)) as Job | null;
-  if (!job || job.user_id !== userId) {
-    return errorResponse(404, "Job not found");
-  }
-
-  job.markCancelled();
-  await job.save();
-
-  return jsonResponse(toBackgroundJobResponse(job));
 }
 
 // ── Trigger job stubs ─────────────────────────────────────────────
@@ -2119,57 +2037,6 @@ export async function handleApiRequest(
     const assetId = decodeURIComponent(pathname.slice("/api/assets/".length));
     if (!assetId) return errorResponse(404, "Not found");
     return handleAssetById(request, assetId, options);
-  }
-
-  if (pathname === "/api/jobs") {
-    return handleJobsRoot(request, options);
-  }
-
-  if (pathname === "/api/jobs/running/all") {
-    const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-    const [jobs] = await Job.paginate(userId, { limit: 500 });
-    const running = jobs.filter(
-      (j) => j.status === "running" || j.status === "scheduled"
-    );
-    return jsonResponse(running.map((j) => toBackgroundJobResponse(j)));
-  }
-
-  if (pathname === "/api/jobs/triggers/running") {
-    return handleTriggersRunning(request);
-  }
-
-  if (pathname.match(/^\/api\/jobs\/triggers\/[^/]+\/start$/)) {
-    const workflowId = decodeURIComponent(
-      pathname.slice(
-        "/api/jobs/triggers/".length,
-        pathname.length - "/start".length
-      )
-    );
-    return handleTriggerStart(request, workflowId);
-  }
-
-  if (pathname.match(/^\/api\/jobs\/triggers\/[^/]+\/stop$/)) {
-    const workflowId = decodeURIComponent(
-      pathname.slice(
-        "/api/jobs/triggers/".length,
-        pathname.length - "/stop".length
-      )
-    );
-    return handleTriggerStop(request, workflowId);
-  }
-
-  if (pathname.match(/^\/api\/jobs\/[^/]+\/cancel$/)) {
-    const jobId = decodeURIComponent(
-      pathname.slice("/api/jobs/".length, pathname.length - "/cancel".length)
-    );
-    if (!jobId) return errorResponse(404, "Not found");
-    return handleJobCancel(request, jobId, options);
-  }
-
-  if (pathname.startsWith("/api/jobs/")) {
-    const jobId = decodeURIComponent(pathname.slice("/api/jobs/".length));
-    if (!jobId) return errorResponse(404, "Not found");
-    return handleJobById(request, jobId, options);
   }
 
   if (pathname === "/api/workflows") {
