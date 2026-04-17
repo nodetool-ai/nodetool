@@ -3,6 +3,7 @@ import { router, publicProcedure } from "./index.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
 import { mcpConfigRouter } from "./routers/mcp-config.js";
+import { messagesRouter } from "./routers/messages.js";
 import { settingsRouter } from "./routers/settings.js";
 import { skillsRouter, fontsRouter } from "./routers/skills.js";
 import { usersRouter } from "./routers/users.js";
@@ -16,6 +17,7 @@ export const appRouter = router({
   costs: costsRouter,
   fonts: fontsRouter,
   mcpConfig: mcpConfigRouter,
+  messages: messagesRouter,
   settings: settingsRouter,
   skills: skillsRouter,
   users: usersRouter,
