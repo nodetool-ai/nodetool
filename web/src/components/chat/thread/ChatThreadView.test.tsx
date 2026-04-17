@@ -6,6 +6,28 @@ import ChatThreadView from "./ChatThreadView";
 import mockTheme from "../../../__mocks__/themeMock";
 import { Message } from "../../../stores/ApiTypes";
 
+// Mock LegendList to render all rows directly in jsdom (no virtualization/layout)
+jest.mock("@legendapp/list/react", () => {
+  const React = require("react");
+  const LegendList = React.forwardRef(
+    (props: any, _ref: any) => {
+      const { data = [], renderItem, keyExtractor } = props;
+      return React.createElement(
+        "div",
+        { "data-testid": "legend-list" },
+        data.map((item: any, index: number) =>
+          React.createElement(
+            "div",
+            { key: keyExtractor ? keyExtractor(item, index) : index },
+            renderItem({ item, index, data, extraData: undefined, type: undefined })
+          )
+        )
+      );
+    }
+  );
+  return { LegendList };
+});
+
 // Mock child components to isolate ChatThreadView logic
 jest.mock("../message/MessageView", () => ({
   MessageView: ({ message }: { message: Message }) => (

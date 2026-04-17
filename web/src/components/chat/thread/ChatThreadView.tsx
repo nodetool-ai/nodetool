@@ -1,17 +1,28 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, {
-  useRef,
-  useEffect,
-  useCallback,
-  useState,
-  useMemo,
+  createContext,
   memo,
-  RefObject
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Message, PlanningUpdate, TaskUpdate, LogUpdate } from "../../../stores/ApiTypes";
+import {
+  LegendList,
+  type LegendListRef,
+  type LegendListRenderItemProps
+} from "@legendapp/list/react";
+import {
+  Message,
+  PlanningUpdate,
+  TaskUpdate,
+  LogUpdate
+} from "../../../stores/ApiTypes";
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
@@ -43,333 +54,224 @@ interface ChatThreadViewProps {
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
   onInsertCode?: (text: string, language?: string) => void;
-  scrollContainer?: HTMLDivElement | null;
 }
 
-const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
-const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
-const SPACER_RECALC_DEBOUNCE_MS = 100;
+type MessageRow = {
+  id: string;
+  kind: "message";
+  message: Message;
+  isLastUser: boolean;
+};
 
-// Dynamic scroll spacer component that adapts to content and viewport
-// Purpose: Provide enough space at the bottom so the last user message can be scrolled to the top
-// Memoized to prevent unnecessary re-renders during scrolling
-interface DynamicScrollSpacerProps {
-  lastUserMessageRef: RefObject<HTMLDivElement | null>;
-  bottomRef: RefObject<HTMLDivElement | null>;
-  scrollHost: HTMLElement | null;
-}
-
-const DynamicScrollSpacer = memo(function DynamicScrollSpacer({
-  lastUserMessageRef,
-  bottomRef,
-  scrollHost
-}: DynamicScrollSpacerProps) {
-  const [spacerHeight, setSpacerHeight] = useState(0);
-  const prevSpacerHeightRef = useRef(0);
-  const spacerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let recalcTimeoutId: number | null = null;
-
-    const calculateOptimalSpacerHeight = () => {
-      if (!scrollHost || !lastUserMessageRef.current || !bottomRef.current) {
-        if (prevSpacerHeightRef.current !== 0) {
-          prevSpacerHeightRef.current = 0;
-          setSpacerHeight(0);
-        }
-        return;
-      }
-
-      const viewportHeight = scrollHost.clientHeight;
-      const lastUserMessage = lastUserMessageRef.current;
-      const bottomElement = bottomRef.current;
-
-      // Get positions relative to the scroll container's content
-      const lastUserMessageRect = lastUserMessage.getBoundingClientRect();
-      const bottomRect = bottomElement.getBoundingClientRect();
-
-      // Calculate height of content from user message top to bottom marker
-      // This is the content that needs to fit when the user message is at the top
-      const contentBelowUserMessage = bottomRect.bottom - lastUserMessageRect.top;
-
-      // Spacer should fill the remaining viewport space so the message can scroll to top
-      // If content below user message is less than viewport, we need a spacer
-      let neededHeight = Math.max(0, viewportHeight - contentBelowUserMessage);
-
-      // Safety cap: never exceed viewport height (which is the max useful spacer)
-      neededHeight = Math.min(neededHeight, viewportHeight);
-
-      // Only update if there's a meaningful change to avoid layout thrashing
-      if (Math.abs(neededHeight - prevSpacerHeightRef.current) > 5) {
-        prevSpacerHeightRef.current = neededHeight;
-        setSpacerHeight(neededHeight);
-      }
-    };
-
-    const scheduleRecalculation = () => {
-      if (recalcTimeoutId !== null) {
-        clearTimeout(recalcTimeoutId);
-      }
-      recalcTimeoutId = window.setTimeout(() => {
-        calculateOptimalSpacerHeight();
-        recalcTimeoutId = null;
-      }, SPACER_RECALC_DEBOUNCE_MS);
-    };
-
-    // Calculate initial height
-    calculateOptimalSpacerHeight();
-
-    // Use MutationObserver to watch for content changes (exclude spacer changes)
-    const mutationObserver = new MutationObserver((mutations) => {
-      // Ignore mutations that only affect the spacer itself
-      const hasNonSpacerMutation = mutations.some(m => {
-        if (m.target === spacerRef.current) { return false; }
-        if (m.type === 'attributes' && m.target === spacerRef.current) { return false; }
-        return true;
-      });
-      if (hasNonSpacerMutation) {
-        scheduleRecalculation();
-      }
-    });
-
-    if (lastUserMessageRef.current) {
-      mutationObserver.observe(lastUserMessageRef.current.parentElement || lastUserMessageRef.current, {
-        childList: true,
-        subtree: true,
-        attributes: false
-      });
+type StatusRow =
+  | { id: "status:loading"; kind: "status-loading" }
+  | {
+      id: "status:progress";
+      kind: "status-progress";
+      progress: number;
+      total: number;
     }
+  | { id: "status:progress-message"; kind: "status-progress-message"; text: string }
+  | { id: "status:planning"; kind: "status-planning"; update: PlanningUpdate }
+  | { id: "status:task"; kind: "status-task"; update: TaskUpdate }
+  | { id: "status:log"; kind: "status-log"; update: LogUpdate };
 
-    // Recalculate on resize
-    const resizeObserver = new ResizeObserver(scheduleRecalculation);
+type Row = MessageRow | StatusRow;
 
-    if (scrollHost) {
-      resizeObserver.observe(scrollHost);
-    }
-
-    return () => {
-      mutationObserver.disconnect();
-      resizeObserver.disconnect();
-      if (recalcTimeoutId !== null) {
-        clearTimeout(recalcTimeoutId);
-      }
-    };
-  }, [scrollHost, lastUserMessageRef, bottomRef]);
-
-  // Memoize the spacer style to avoid creating new objects
-  const spacerStyle = useMemo(() => ({
-    height: `${spacerHeight}px`,
-    flexShrink: 0
-  }), [spacerHeight]);
-
-  return (
-    <div
-      ref={spacerRef}
-      className="scroll-spacer"
-      style={spacerStyle}
-    />
-  );
-});
-
-// Define props for the memoized list component (static message content)
-interface MemoizedMessageListProps {
-  messages: Message[];
+interface TimelineRowContextValue {
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
-  lastUserMessageRef: RefObject<HTMLDivElement | null>;
-  componentStyles: ReturnType<typeof createStyles>;
-  toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
   onInsertCode?: (text: string, language?: string) => void;
-}
-
-const MemoizedMessageList = memo<MemoizedMessageListProps>(
-  ({
-    messages,
-    expandedThoughts,
-    onToggleThought,
-    lastUserMessageRef,
-    componentStyles,
-    toolResultsByCallId,
-    onInsertCode
-  }) => {
-    const executionMessagesById = useMemo(() => {
-      const map = new Map<string, Message[]>();
-      for (const msg of messages) {
-        if (msg.role !== "agent_execution") continue;
-        // Use agent_execution_id if present, otherwise group all ungrouped
-        // execution messages under a synthetic key "__ungrouped__"
-        const key = msg.agent_execution_id || "__ungrouped__";
-        const list = map.get(key) || [];
-        list.push(msg);
-        map.set(key, list);
-      }
-      return map;
-    }, [messages]);
-
-    // Memoize filtered messages and last user message index to avoid recalculations on each render
-    const { filteredMessages, lastUserMessageIndex } = useMemo(() => {
-      const filtered = messages.filter((m) => {
-        // Always hide tool role messages
-        if (m.role === "tool") {
-          return false;
-        }
-
-        // Check if message has any visible content
-        const hasToolCalls = Array.isArray(m.tool_calls) && m.tool_calls.length > 0;
-        const hasExecutionEvent = !!m.execution_event_type || m.role === "agent_execution";
-
-        let hasContent = false;
-        if (typeof m.content === "string") {
-          hasContent = m.content.trim().length > 0;
-        } else if (Array.isArray(m.content)) {
-          hasContent = m.content.some((block: any) => {
-            if (!block || typeof block !== "object") {
-              return false;
-            }
-            if (block.type === "text") {
-              return typeof block.text === "string" && block.text.trim().length > 0;
-            }
-            if (block.type === "image_url" || block.type === "image") {
-              return true;
-            }
-            return true; // Other content types are considered non-empty
-          });
-        } else if (m.content != null) {
-          hasContent = true; // Non-null/non-string/non-array content (e.g. object)
-        }
-
-        // Keep the message if it has any visible element
-        return hasContent || hasToolCalls || hasExecutionEvent;
-      });
-      const lastUserIdx = filtered.reduce(
-        (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
-        -1
-      );
-      return { filteredMessages: filtered, lastUserMessageIndex: lastUserIdx };
-    }, [messages]);
-
-    return (
-      <>
-        {filteredMessages.map((msg, index) => {
-          if (msg.role === "agent_execution") {
-            const key = msg.agent_execution_id || "__ungrouped__";
-            const executionMessages = executionMessagesById.get(key);
-            // Only render the first message per group; the rest are consolidated
-            if (executionMessages && executionMessages[0] !== msg) {
-              return null;
-            }
-          }
-          const isLastUserMessage = index === lastUserMessageIndex;
-          // Use message id as key, with fallback to index-based key for rare cases where id is missing
-          const messageKey = msg.id || `msg-${index}`;
-          const messageElement = (
-            <MessageView
-              key={messageKey}
-              message={msg}
-              expandedThoughts={expandedThoughts}
-              onToggleThought={onToggleThought}
-              onInsertCode={onInsertCode}
-              toolResultsByCallId={toolResultsByCallId}
-              componentStyles={componentStyles}
-              executionMessagesById={executionMessagesById}
-            />
-          );
-          // Wrap the last user message in a div with ref for scroll-to-top behavior
-          if (isLastUserMessage) {
-            return (
-              <div key={`wrapper-${messageKey}`} ref={lastUserMessageRef}>
-                {messageElement}
-              </div>
-            );
-          }
-          return messageElement;
-        })}
-      </>
-    );
-  }
-);
-MemoizedMessageList.displayName = "MemoizedMessageList";
-
-// Define props for the memoized status footer component (dynamic status/progress)
-interface MemoizedStatusFooterProps {
-  status: ChatThreadViewProps["status"];
-  progress: number;
-  total: number;
-  progressMessage: string | null;
-  runningToolCallId?: string | null;
-  runningToolMessage?: string | null;
-  currentPlanningUpdate?: PlanningUpdate | null;
-  currentTaskUpdate?: TaskUpdate | null;
-  currentLogUpdate?: LogUpdate | null;
-  hasAgentExecutionMessages: boolean;
+  toolResultsByCallId: Record<string, { name?: string | null; content: unknown }>;
+  componentStyles: ReturnType<typeof createStyles>;
+  executionMessagesById: Map<string, Message[]>;
   theme: Theme;
 }
 
-const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
-  ({
-    status,
-    progress,
-    total,
-    progressMessage,
-    runningToolCallId,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentLogUpdate,
-    hasAgentExecutionMessages,
-    theme
-  }) => {
-    return (
-      <>
-        {status === "loading" && progress === 0 && !hasAgentExecutionMessages && (
-          <li key="loading-indicator" className="chat-message-list-item">
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 0" }}>
-              <LoadingIndicator />
-              <span style={{
+const TimelineRowCtx = createContext<TimelineRowContextValue | null>(null);
+
+const useTimelineRowCtx = (): TimelineRowContextValue => {
+  const ctx = useContext(TimelineRowCtx);
+  if (!ctx) {
+    throw new Error("TimelineRowCtx missing");
+  }
+  return ctx;
+};
+
+const messageContentLength = (message: Message): number => {
+  const content = message.content;
+  if (typeof content === "string") {
+    return content.length;
+  }
+  if (Array.isArray(content)) {
+    let sum = 0;
+    for (const block of content) {
+      if (block && typeof block === "object") {
+        const maybeText = (block as { text?: unknown }).text;
+        sum += typeof maybeText === "string" ? maybeText.length : 1;
+      }
+    }
+    return sum;
+  }
+  return content == null ? 0 : 1;
+};
+
+const rowSignature = (row: Row): string => {
+  switch (row.kind) {
+    case "message": {
+      const m = row.message;
+      const toolCalls = Array.isArray(m.tool_calls) ? m.tool_calls.length : 0;
+      const streaming =
+        row.message.role === "assistant" && !row.message.created_at ? 1 : 0;
+      return [
+        "m",
+        row.id,
+        m.role,
+        m.created_at ?? "",
+        messageContentLength(m),
+        toolCalls,
+        row.isLastUser ? 1 : 0,
+        streaming
+      ].join("|");
+    }
+    case "status-loading":
+      return "s:loading";
+    case "status-progress":
+      return `s:progress:${row.progress}:${row.total}`;
+    case "status-progress-message":
+      return `s:progress-message:${row.text}`;
+    case "status-planning":
+      return `s:planning:${JSON.stringify(row.update)}`;
+    case "status-task":
+      return `s:task:${JSON.stringify(row.update)}`;
+    case "status-log":
+      return `s:log:${row.update.severity ?? ""}:${row.update.content ?? ""}`;
+  }
+};
+
+const useStableRows = (rows: Row[]): Row[] => {
+  const prevRef = useRef<Map<string, { row: Row; sig: string }>>(new Map());
+  const next = new Map<string, { row: Row; sig: string }>();
+  const out: Row[] = [];
+  for (const row of rows) {
+    const sig = rowSignature(row);
+    const prev = prevRef.current.get(row.id);
+    if (prev && prev.sig === sig) {
+      out.push(prev.row);
+      next.set(row.id, prev);
+    } else {
+      const entry = { row, sig };
+      out.push(row);
+      next.set(row.id, entry);
+    }
+  }
+  prevRef.current = next;
+  return out;
+};
+
+const rowWrapperStyle: React.CSSProperties = {
+  maxWidth: 800,
+  width: "100%",
+  margin: "0 auto",
+  padding: "0 .5em",
+  boxSizing: "border-box"
+};
+
+const MessageRowView: React.FC<{ row: MessageRow }> = ({ row }) => {
+  const ctx = useTimelineRowCtx();
+  if (row.message.role === "agent_execution") {
+    const key = row.message.agent_execution_id || "__ungrouped__";
+    const group = ctx.executionMessagesById.get(key);
+    if (group && group[0] !== row.message) {
+      return null;
+    }
+  }
+  return (
+    <div style={rowWrapperStyle} className="chat-messages-list">
+      <MessageView
+        message={row.message}
+        expandedThoughts={ctx.expandedThoughts}
+        onToggleThought={ctx.onToggleThought}
+        onInsertCode={ctx.onInsertCode}
+        toolResultsByCallId={ctx.toolResultsByCallId}
+        componentStyles={ctx.componentStyles}
+        executionMessagesById={ctx.executionMessagesById}
+      />
+    </div>
+  );
+};
+
+const StatusRowView: React.FC<{ row: StatusRow }> = ({ row }) => {
+  const { theme } = useTimelineRowCtx();
+  let content: React.ReactNode;
+  switch (row.kind) {
+    case "status-loading":
+      content = (
+        <li className="chat-message-list-item">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "4px 0"
+            }}
+          >
+            <LoadingIndicator />
+            <span
+              style={{
                 fontSize: "0.85rem",
                 color: theme.vars.palette.text.secondary,
                 fontStyle: "italic"
-              }}>
-                Thinking...
-              </span>
-            </div>
-          </li>
-        )}
-        {progress > 0 && !hasAgentExecutionMessages && (
-          <li key="progress-indicator" className="chat-message-list-item">
-            <Progress progress={progress} total={total} />
-          </li>
-        )}
-        {/* Hide global progress message if a tool call is running */}
-        {progressMessage && !runningToolCallId && !hasAgentExecutionMessages && (
-          <li
-            key="progress-message"
-            className="node-status chat-message-list-item"
-          >
-            <span
-              css={css`
-                display: inline;
-                animation: ${textPulse} 1.8s ease-in-out infinite;
-              `}
+              }}
             >
-              {progressMessage}
+              Thinking...
             </span>
-          </li>
-        )}
-        {/* Reserve area for future non-animated hints when a tool is running, if needed */}
-        {!hasAgentExecutionMessages && currentPlanningUpdate && (
-          <li key="planning-update" className="chat-message-list-item">
-            <PlanningUpdateDisplay planningUpdate={currentPlanningUpdate} />
-          </li>
-        )}
-        {!hasAgentExecutionMessages && currentTaskUpdate && (
-          <li key="task-update" className="chat-message-list-item">
-            <TaskUpdateDisplay taskUpdate={currentTaskUpdate} />
-          </li>
-        )}
-        {!hasAgentExecutionMessages && currentLogUpdate && (
-          <li key="log-update" className="chat-message-list-item">
-            <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
-              <div style={{
+          </div>
+        </li>
+      );
+      break;
+    case "status-progress":
+      content = (
+        <li className="chat-message-list-item">
+          <Progress progress={row.progress} total={row.total} />
+        </li>
+      );
+      break;
+    case "status-progress-message":
+      content = (
+        <li className="node-status chat-message-list-item">
+          <span
+            css={css`
+              display: inline;
+              animation: ${textPulse} 1.8s ease-in-out infinite;
+            `}
+          >
+            {row.text}
+          </span>
+        </li>
+      );
+      break;
+    case "status-planning":
+      content = (
+        <li className="chat-message-list-item">
+          <PlanningUpdateDisplay planningUpdate={row.update} />
+        </li>
+      );
+      break;
+    case "status-task":
+      content = (
+        <li className="chat-message-list-item">
+          <TaskUpdateDisplay taskUpdate={row.update} />
+        </li>
+      );
+      break;
+    case "status-log": {
+      const severity = row.update.severity || "info";
+      content = (
+        <li className="chat-message-list-item">
+          <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+            <div
+              style={{
                 position: "absolute",
                 left: "4px",
                 top: "10px",
@@ -377,8 +279,10 @@ const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
                 width: "2px",
                 background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
                 borderRadius: "1px"
-              }} />
-              <div style={{
+              }}
+            />
+            <div
+              style={{
                 position: "absolute",
                 left: "-21px",
                 top: "12px",
@@ -389,25 +293,51 @@ const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
                 border: `2px solid ${theme.vars.palette.background.default}`,
                 boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
                 zIndex: 2
-              }} />
-              <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
+              }}
+            />
+            <div
+              className={`log-entry log-severity-${severity}`}
+              style={{
                 fontSize: "0.8rem",
                 padding: "0.5rem 0.75rem",
                 borderRadius: "var(--rounded-lg)",
                 backgroundColor: "rgba(30, 35, 40, 0.4)",
                 border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-                color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
-              }}>
-                {currentLogUpdate.content}
-              </div>
+                color:
+                  severity === "error"
+                    ? theme.vars.palette.error.light
+                    : severity === "warning"
+                      ? theme.vars.palette.warning.light
+                      : "grey.300"
+              }}
+            >
+              {row.update.content}
             </div>
-          </li>
-        )}
-      </>
-    );
+          </div>
+        </li>
+      );
+      break;
+    }
   }
+  return (
+    <div style={rowWrapperStyle} className="chat-messages-list">
+      {content}
+    </div>
+  );
+};
+
+const TimelineRow: React.FC<{ row: Row }> = ({ row }) => {
+  if (row.kind === "message") {
+    return <MessageRowView row={row} />;
+  }
+  return <StatusRowView row={row} />;
+};
+
+const renderRow = ({ item }: LegendListRenderItemProps<Row>): React.ReactNode => (
+  <TimelineRow row={item} />
 );
-MemoizedStatusFooter.displayName = "MemoizedStatusFooter";
+
+const keyExtractor = (row: Row): string => row.id;
 
 const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   messages,
@@ -416,45 +346,52 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   total,
   progressMessage,
   runningToolCallId,
-  runningToolMessage,
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
-  onInsertCode,
-  scrollContainer
+  onInsertCode
 }) => {
   const theme = useTheme();
-  const internalScrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const lastUserMessageRef = useRef<HTMLDivElement>(null);
-  const scrollRafId = useRef<number | null>(null);
+  const listRef = useRef<LegendListRef>(null);
+  const [containerElement, setContainerElement] = useState<HTMLElement | null>(
+    null
+  );
+  const [isAtEnd, setIsAtEnd] = useState(true);
   const [expandedThoughts, setExpandedThoughts] = useState<{
     [key: string]: boolean;
   }>({});
-  const userHasScrolledUpRef = useRef(false);
-  const isNearBottomRef = useRef(true);
-  const lastUserScrollTimeRef = useRef<number>(0);
-  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Track when we've scrolled to a user message - prevents auto-scroll to bottom from overriding.
-  // Lifecycle:
-  // - Set to true: when scrollToLastUserMessage() is called (user submits a message)
-  // - Set to false: when user manually scrolls, or when streaming ends
-  // - Checked: in auto-scroll effect to skip scrollToBottom during streaming
-  const scrolledToUserMessageRef = useRef(false);
-  const [showScrollToBottomButton, setShowScrollToBottomButton] =
-    useState(false);
-  const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
-  const previousStatusRef = useRef(status);
   const previousMessageCountRef = useRef(messages.length);
-
-  const SCROLL_THRESHOLD = 50;
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
+  const listStyles = useMemo(
+    () =>
+      css({
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        padding: ".5em 0",
+        position: "relative",
+        "&::-webkit-scrollbar": {
+          width: "12px !important"
+        },
+        "&::-webkit-scrollbar-track": {
+          background: "transparent !important"
+        },
+        "&::-webkit-scrollbar-thumb": {
+          background: `${theme.vars.palette.action.disabled} !important`,
+          borderRadius: "var(--rounded-sm)"
+        },
+        "&::-webkit-scrollbar-thumb:hover": {
+          background: `${theme.vars.palette.warning.main} !important`
+        }
+      }),
+    [theme]
+  );
+
   const toolResultsByCallId = useMemo(() => {
-    const map: Record<string, { name?: string | null; content: any }> = {};
+    const map: Record<string, { name?: string | null; content: unknown }> = {};
     for (const m of messages) {
-      // Tool result messages carry tool_call_id to link back to the originating tool call
       if (m.role === "tool" && m.tool_call_id) {
         map[String(m.tool_call_id)] = {
           name: m.name ?? undefined,
@@ -465,147 +402,149 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     return map;
   }, [messages]);
 
-  const hasAgentExecutionMessages = useMemo(() => messages.some(
-    (msg) => msg.role === "agent_execution"
-  ), [messages]);
-
-  useEffect(() => {
-    lastUserScrollTimeRef.current = Date.now();
-  }, []);
-
-  useEffect(() => {
-    if (scrollContainer) {
-      setScrollHost(scrollContainer);
-    } else if (internalScrollRef.current) {
-      setScrollHost(internalScrollRef.current);
+  const executionMessagesById = useMemo(() => {
+    const map = new Map<string, Message[]>();
+    for (const msg of messages) {
+      if (msg.role !== "agent_execution") continue;
+      const key = msg.agent_execution_id || "__ungrouped__";
+      const list = map.get(key) || [];
+      list.push(msg);
+      map.set(key, list);
     }
-  }, [scrollContainer]);
+    return map;
+  }, [messages]);
 
-  // Cleanup animation frame on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollRafId.current) {
-        cancelAnimationFrame(scrollRafId.current);
+  const hasAgentExecutionMessages = useMemo(
+    () => messages.some((msg) => msg.role === "agent_execution"),
+    [messages]
+  );
+
+  const { messageRows, lastUserRowIndex } = useMemo(() => {
+    const filtered = messages.filter((m) => {
+      if (m.role === "tool") {
+        return false;
       }
-    };
-  }, []);
+      const hasToolCalls =
+        Array.isArray(m.tool_calls) && m.tool_calls.length > 0;
+      const hasExecutionEvent =
+        !!m.execution_event_type || m.role === "agent_execution";
 
-  const handleScroll = useCallback(() => {
-    lastUserScrollTimeRef.current = Date.now();
-    // User manually scrolling clears the "scrolled to user message" state
-    scrolledToUserMessageRef.current = false;
-
-    if (scrollRafId.current) {
-      return;
-    }
-
-    scrollRafId.current = requestAnimationFrame(() => {
-      scrollRafId.current = null;
-      // Throttling scroll handling to the next animation frame prevents
-      // excessive layout reflows (caused by reading scrollTop/scrollHeight)
-      // during rapid scrolling events.
-      const element = scrollHost;
-      if (!element) { return; }
-
-      const calculatedIsNearBottom =
-        element.scrollHeight - element.scrollTop - element.clientHeight <
-        SCROLL_THRESHOLD;
-
-      const previousUserHasScrolledUp = userHasScrolledUpRef.current;
-      if (!calculatedIsNearBottom && !userHasScrolledUpRef.current) {
-        userHasScrolledUpRef.current = true;
-      } else if (calculatedIsNearBottom && userHasScrolledUpRef.current) {
-        userHasScrolledUpRef.current = false;
-      }
-
-      if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
-        const shouldBeVisible =
-          !isNearBottomRef.current && userHasScrolledUpRef.current;
-        setShowScrollToBottomButton(shouldBeVisible);
-      }
-    });
-  }, [scrollHost]);
-
-  useEffect(() => {
-    if (!scrollHost) {
-      return;
-    }
-    const handleScrollEvent = () => handleScroll();
-    scrollHost.addEventListener("scroll", handleScrollEvent);
-    return () => {
-      scrollHost.removeEventListener("scroll", handleScrollEvent);
-    };
-  }, [scrollHost, handleScroll]);
-
-  const scrollToBottom = useCallback(() => {
-    const el = bottomRef.current;
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-      userHasScrolledUpRef.current = false;
-    }
-  }, []);
-
-  // Scroll to align the last user message at the top of the viewport
-  const scrollToLastUserMessage = useCallback(() => {
-    const el = lastUserMessageRef.current;
-    if (el) {
-      // Calculate the exact position to scroll to for precise top alignment
-      const elementRect = el.getBoundingClientRect();
-      const scrollHostRect = scrollHost?.getBoundingClientRect();
-
-      if (scrollHostRect) {
-        const currentScrollTop = scrollHost?.scrollTop || 0;
-        const targetScrollTop = currentScrollTop + elementRect.top - scrollHostRect.top;
-
-        scrollHost?.scrollTo({
-          top: targetScrollTop,
-          behavior: 'smooth'
-        });
-      } else {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-
-      userHasScrolledUpRef.current = false;
-      // Set flag to prevent auto-scroll to bottom during streaming
-      scrolledToUserMessageRef.current = true;
-    }
-  }, [scrollHost]);
-
-  useEffect(() => {
-    const scrollElement = scrollHost;
-    const bottomElement = bottomRef.current;
-    if (!scrollElement || !bottomElement) { return; }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const wasNearBottom = isNearBottomRef.current;
-        isNearBottomRef.current = entry.isIntersecting;
-
-        if (isNearBottomRef.current !== wasNearBottom) {
-          const shouldBeVisible =
-            !isNearBottomRef.current && userHasScrolledUpRef.current;
-          if (shouldBeVisible !== showScrollToBottomButton) {
-            setShowScrollToBottomButton(shouldBeVisible);
+      let hasContent = false;
+      if (typeof m.content === "string") {
+        hasContent = m.content.trim().length > 0;
+      } else if (Array.isArray(m.content)) {
+        hasContent = m.content.some((block) => {
+          if (!block || typeof block !== "object") {
+            return false;
           }
-        }
-      },
-      { root: scrollElement, threshold: 0.1 }
+          const b = block as { type?: string; text?: unknown };
+          if (b.type === "text") {
+            return typeof b.text === "string" && b.text.trim().length > 0;
+          }
+          if (b.type === "image_url" || b.type === "image") {
+            return true;
+          }
+          return true;
+        });
+      } else if (m.content != null) {
+        hasContent = true;
+      }
+      return hasContent || hasToolCalls || hasExecutionEvent;
+    });
+    const lastUserIdx = filtered.reduce(
+      (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
+      -1
     );
+    const rows: MessageRow[] = filtered.map((msg, index) => ({
+      id: msg.id || `msg-${index}`,
+      kind: "message",
+      message: msg,
+      isLastUser: index === lastUserIdx
+    }));
+    return { messageRows: rows, lastUserRowIndex: lastUserIdx };
+  }, [messages]);
 
-    observer.observe(bottomElement);
-    return () => {
-      observer.disconnect();
-    };
-  }, [scrollHost, showScrollToBottomButton]);
-
-  useEffect(() => {
-    if (previousStatusRef.current === "streaming" && status !== "streaming") {
-      // Don't force scroll to bottom when streaming ends to preserve user position
-      // The auto-scroll logic in the next effect will handle this appropriately
-      scrolledToUserMessageRef.current = false;
+  const rows = useMemo<Row[]>(() => {
+    const out: Row[] = [...messageRows];
+    if (status === "loading" && progress === 0 && !hasAgentExecutionMessages) {
+      out.push({ id: "status:loading", kind: "status-loading" });
     }
-    previousStatusRef.current = status;
-  }, [status]);
+    if (progress > 0 && !hasAgentExecutionMessages) {
+      out.push({
+        id: "status:progress",
+        kind: "status-progress",
+        progress,
+        total
+      });
+    }
+    if (progressMessage && !runningToolCallId && !hasAgentExecutionMessages) {
+      out.push({
+        id: "status:progress-message",
+        kind: "status-progress-message",
+        text: progressMessage
+      });
+    }
+    if (!hasAgentExecutionMessages && currentPlanningUpdate) {
+      out.push({
+        id: "status:planning",
+        kind: "status-planning",
+        update: currentPlanningUpdate
+      });
+    }
+    if (!hasAgentExecutionMessages && currentTaskUpdate) {
+      out.push({
+        id: "status:task",
+        kind: "status-task",
+        update: currentTaskUpdate
+      });
+    }
+    if (!hasAgentExecutionMessages && currentLogUpdate) {
+      out.push({
+        id: "status:log",
+        kind: "status-log",
+        update: currentLogUpdate
+      });
+    }
+    return out;
+  }, [
+    messageRows,
+    status,
+    progress,
+    total,
+    progressMessage,
+    runningToolCallId,
+    hasAgentExecutionMessages,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    currentLogUpdate
+  ]);
+
+  const stableRows = useStableRows(rows);
+
+  const handleToggleThought = useCallback((key: string) => {
+    setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const ctxValue = useMemo<TimelineRowContextValue>(
+    () => ({
+      expandedThoughts,
+      onToggleThought: handleToggleThought,
+      onInsertCode,
+      toolResultsByCallId,
+      componentStyles,
+      executionMessagesById,
+      theme
+    }),
+    [
+      expandedThoughts,
+      handleToggleThought,
+      onInsertCode,
+      toolResultsByCallId,
+      componentStyles,
+      executionMessagesById,
+      theme
+    ]
+  );
 
   useEffect(() => {
     if (messages.length <= previousMessageCountRef.current) {
@@ -613,107 +552,58 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       return;
     }
     previousMessageCountRef.current = messages.length;
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
-    if (lastMessage?.role === "user") {
-      scrollToLastUserMessage();
-
-      // Clear the flag after a short delay to allow the scroll to complete
-      // but still prevent immediate auto-scroll during streaming
-      const scrollFlagTimeoutId = setTimeout(() => {
-        scrolledToUserMessageRef.current = false;
-      }, 1000);
-      return () => clearTimeout(scrollFlagTimeoutId);
+    const last = messages[messages.length - 1] ?? null;
+    if (last?.role === "user" && lastUserRowIndex >= 0) {
+      const rafId = requestAnimationFrame(() => {
+        listRef.current?.scrollToIndex({
+          index: lastUserRowIndex,
+          viewOffset: 0,
+          animated: true
+        });
+      });
+      return () => cancelAnimationFrame(rafId);
     }
-  }, [messages, scrollToLastUserMessage]);
+  }, [messages, lastUserRowIndex]);
 
-  useEffect(() => {
-    if (autoScrollTimeoutRef.current) {
-      clearTimeout(autoScrollTimeoutRef.current);
-    }
+  const handleScroll = useCallback(() => {
+    const state = listRef.current?.getState?.();
+    setIsAtEnd(state?.isAtEnd ?? true);
+  }, []);
 
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
-    if (
-      status === "streaming" ||
-      (lastMessage && lastMessage.role !== "user")
-    ) {
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        const userIsIdle =
-          Date.now() - lastUserScrollTimeRef.current >
-          USER_SCROLL_IDLE_THRESHOLD_MS;
+  const handleScrollToBottom = useCallback(() => {
+    listRef.current?.scrollToEnd({ animated: true });
+  }, []);
 
-        // Only auto-scroll if the user hasn't manually scrolled and we know they're at the bottom
-        // This preserves the user's scroll position when they've scrolled to see a specific message
-        if (
-          !userHasScrolledUpRef.current &&
-          userIsIdle &&
-          isNearBottomRef.current &&
-          // Additional check: only auto-scroll if we didn't just scroll to a user message
-          !scrolledToUserMessageRef.current
-        ) {
-          scrollToBottom();
-        }
-      }, ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS);
-    }
-
-    return () => {
-      if (autoScrollTimeoutRef.current) {
-        clearTimeout(autoScrollTimeoutRef.current);
-      }
-    };
-  }, [messages, status, scrollToBottom]);
-
-  const handleToggleThought = useCallback((key: string) => {
-    setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
+  const setRootRef = useCallback((node: HTMLDivElement | null) => {
+    setContainerElement(node);
   }, []);
 
   return (
     <div
+      ref={setRootRef}
       css={componentStyles.chatThreadViewRoot}
       className="chat-thread-view-root"
     >
-      <div
-        ref={internalScrollRef}
-        css={componentStyles.messageWrapper}
-        className="scrollable-message-wrapper"
-      >
-        <div css={componentStyles.chatMessagesList} className="chat-messages-list">
-          <MemoizedMessageList
-            messages={messages}
-            expandedThoughts={expandedThoughts}
-            onToggleThought={handleToggleThought}
-            lastUserMessageRef={lastUserMessageRef}
-            componentStyles={componentStyles}
-            toolResultsByCallId={toolResultsByCallId}
-            onInsertCode={onInsertCode}
-          />
-          <MemoizedStatusFooter
-            status={status}
-            progress={progress}
-            total={total}
-            progressMessage={progressMessage}
-            runningToolCallId={runningToolCallId}
-            runningToolMessage={runningToolMessage}
-            currentPlanningUpdate={currentPlanningUpdate}
-            currentTaskUpdate={currentTaskUpdate}
-            currentLogUpdate={currentLogUpdate}
-            hasAgentExecutionMessages={hasAgentExecutionMessages}
-            theme={theme}
-          />
-          <div ref={bottomRef} style={{ height: 1 }} />
-          {/* Dynamic spacer that adapts based on viewport and content needs */}
-          <DynamicScrollSpacer
-            lastUserMessageRef={lastUserMessageRef}
-            bottomRef={bottomRef}
-            scrollHost={scrollHost}
-          />
-        </div>
-      </div>
+      <TimelineRowCtx.Provider value={ctxValue}>
+        <LegendList<Row>
+          ref={listRef}
+          data={stableRows}
+          keyExtractor={keyExtractor}
+          renderItem={renderRow}
+          estimatedItemSize={90}
+          initialScrollAtEnd
+          maintainScrollAtEnd
+          maintainScrollAtEndThreshold={0.1}
+          maintainVisibleContentPosition
+          onScroll={handleScroll}
+          css={listStyles}
+          className="scrollable-message-wrapper"
+        />
+      </TimelineRowCtx.Provider>
       <ScrollToBottomButton
-        isVisible={showScrollToBottomButton}
-        onClick={scrollToBottom}
-        containerElement={scrollHost}
+        isVisible={!isAtEnd}
+        onClick={handleScrollToBottom}
+        containerElement={containerElement}
       />
     </div>
   );
