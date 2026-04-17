@@ -85,7 +85,6 @@ import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import modelsRoutes from "./routes/models.js";
-import mcpConfigRoutes from "./routes/mcp-config.js";
 import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 
 const log = createLogger("nodetool.websocket.server");
@@ -596,9 +595,9 @@ await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
 // MCP endpoints are only available in local/dev mode — not in production.
+// The configuration endpoints moved to the tRPC `mcpConfig` router; the
+// `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
 if (!isProduction) {
-  await app.register(mcpConfigRoutes);
-
   app.all("/mcp", async (req, reply) => {
     const protocol = httpsOptions ? "https" : "http";
     const url = `${protocol}://${req.headers.host ?? `127.0.0.1:${port}`}${req.url}`;
