@@ -27,6 +27,7 @@ import {
 } from "./ApiTypes";
 import { isLocalhost } from "./ApiClient";
 import { client } from "./ApiClient";
+import { trpcClient } from "../trpc/client";
 import log from "loglevel";
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
@@ -862,23 +863,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set({ isLoadingMessages: true, error: null });
 
         try {
-          const { data, error } = await client.GET("/api/messages/", {
-            params: {
-              query: {
-                thread_id: threadId,
-                cursor: cursor || undefined,
-                limit: 100
-              }
-            }
+          const data = await trpcClient.messages.list.query({
+            thread_id: threadId,
+            ...(cursor ? { cursor } : {}),
+            limit: 100
           });
 
-          if (error) {
-            throw new Error(
-              error.detail?.[0]?.msg || "Failed to load messages"
-            );
-          }
-
-          const messages = data.messages || [];
+          // The tRPC response shape is a strict subset of the web-side
+          // `Message` openapi type (which includes agent-specific fields
+          // that this endpoint never emits). Cast to the broader type so
+          // downstream store operations compile.
+          const messages = (data.messages ?? []) as unknown as Message[];
           const nextCursor = data.next;
 
           set((state) => {
