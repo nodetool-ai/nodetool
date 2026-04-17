@@ -15,4 +15,5 @@ export * as skills from "./skills.js";
 export * as storage from "./storage.js";
 export * as threads from "./threads.js";
 export * as users from "./users.js";
+export * as workflows from "./workflows.js";
 export * as workspace from "./workspace.js";

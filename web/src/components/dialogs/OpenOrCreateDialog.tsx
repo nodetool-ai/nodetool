@@ -25,9 +25,8 @@ import { useNavigate } from "react-router";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { VERSION } from "../../config/constants";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { trpcClient } from "../../trpc/client";
 import BackToDashboardButton from "../dashboard/BackToDashboardButton";
 import { addBreaks } from "../../utils/sanitize";
 import { sanitizeImageUrl } from "../../utils/urlValidation";
@@ -158,23 +157,14 @@ const OpenOrCreateDialog = () => {
   const setWorkflowOrder = useSettingsStore((state) => state.setWorkflowOrder);
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
 
-  const loadWorkflows = async (cursor?: string, limit?: number) => {
-    cursor = cursor || "";
-    const { data, error } = await client.GET("/api/workflows/", {
-      params: {
-        query: { cursor, limit, columns: "name,id,updated_at,description" }
-      }
-    });
-    if (error) {
-      throw createErrorMessage(error, "Failed to load workflows");
-    }
-    return data;
-  };
   // LOAD WORKFLOWS
   const { data, isLoading, error, isError } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],
     queryFn: async () => {
-      return loadWorkflows("");
+      return trpcClient.workflows.list.query({
+        cursor: "",
+        limit: 100
+      }) as unknown as WorkflowList;
     }
   });
 
