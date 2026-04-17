@@ -27,6 +27,10 @@ describe("PositionedDialog", () => {
       value: 1024,
       configurable: true
     });
+    Object.defineProperty(window, "innerHeight", {
+      value: 768,
+      configurable: true
+    });
   });
 
   it("renders children when open", () => {
@@ -91,5 +95,31 @@ describe("PositionedDialog", () => {
     });
     expect(container.firstChild).toHaveClass("my-backdrop");
     expect(container.querySelector(".my-surface")).toBeInTheDocument();
+  });
+
+  it("clamps top against the top viewport edge", () => {
+    const { container } = renderDialog({
+      anchor: { x: 500, y: 20 },
+      offsetY: 200,
+      edgeMargin: 50
+    });
+    const surface = container.querySelector(".MuiPaper-root") as HTMLElement;
+    // rawTop = 20 - 200 = -180, clamped to edgeMargin = 50
+    expect(surface).toHaveStyle({ top: "50px" });
+  });
+
+  it("shrinks width to fit a narrow viewport", () => {
+    Object.defineProperty(window, "innerWidth", {
+      value: 400,
+      configurable: true
+    });
+    const { container } = renderDialog({
+      anchor: { x: 200, y: 300 },
+      width: 800,
+      edgeMargin: 50
+    });
+    const surface = container.querySelector(".MuiPaper-root") as HTMLElement;
+    // effectiveWidth = min(800, 400 - 100) = 300
+    expect(surface).toHaveStyle({ width: "300px" });
   });
 });

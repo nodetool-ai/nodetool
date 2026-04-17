@@ -7,7 +7,7 @@
  * version/collection/asset/model list items.
  */
 
-import React, { memo, forwardRef } from "react";
+import React, { memo, forwardRef, useCallback } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -89,10 +89,26 @@ export const SelectableListItem = memo(
 
     const interactive = Boolean(onClick) && !disabled;
 
+    const handleKeyDown = useCallback(
+      (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!interactive || !onClick) {
+          return;
+        }
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          // Forward as a synthetic MouseEvent-like by reusing the keyboard
+          // event target; consumers typically ignore MouseEvent specifics.
+          onClick(event as unknown as React.MouseEvent<HTMLDivElement>);
+        }
+      },
+      [interactive, onClick]
+    );
+
     return (
       <Box
         ref={ref}
         onClick={disabled ? undefined : onClick}
+        onKeyDown={interactive ? handleKeyDown : undefined}
         role={role ?? (onClick ? "button" : undefined)}
         tabIndex={interactive ? 0 : undefined}
         aria-disabled={disabled || undefined}

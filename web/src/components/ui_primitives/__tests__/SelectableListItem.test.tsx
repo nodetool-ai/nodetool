@@ -63,4 +63,33 @@ describe("SelectableListItem", () => {
     const { container } = renderItem({ onClick, disabled: true });
     expect(container.firstChild).toHaveAttribute("aria-disabled", "true");
   });
+
+  it("activates on Enter key", () => {
+    const onClick = jest.fn();
+    const { container } = renderItem({ onClick });
+    fireEvent.keyDown(container.firstChild as HTMLElement, { key: "Enter" });
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("activates on Space key", () => {
+    const onClick = jest.fn();
+    const { container } = renderItem({ onClick });
+    fireEvent.keyDown(container.firstChild as HTMLElement, { key: " " });
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores other keys", () => {
+    const onClick = jest.fn();
+    const { container } = renderItem({ onClick });
+    fireEvent.keyDown(container.firstChild as HTMLElement, { key: "a" });
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("does not activate on keyboard when disabled", () => {
+    const onClick = jest.fn();
+    const { container } = renderItem({ onClick, disabled: true });
+    fireEvent.keyDown(container.firstChild as HTMLElement, { key: "Enter" });
+    fireEvent.keyDown(container.firstChild as HTMLElement, { key: " " });
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });

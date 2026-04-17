@@ -21,7 +21,11 @@ export interface MetadataItem {
   label?: React.ReactNode;
   /** Metadata value. */
   value: React.ReactNode;
-  /** Optional tooltip title forwarded by the consumer (wrap externally). */
+  /**
+   * Optional stable identifier used as the React list key when rendering
+   * metadata items. Provide this when possible to avoid falling back to the
+   * array index.
+   */
   key?: string;
 }
 

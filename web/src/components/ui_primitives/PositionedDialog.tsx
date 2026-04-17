@@ -96,12 +96,21 @@ export const PositionedDialog: React.FC<PositionedDialogProps> = memo(
     }
 
     const screenWidth = typeof window !== "undefined" ? window.innerWidth : 0;
-    const rawLeft = anchor.x - width;
+
+    // Shrink the width to fit the viewport when it would overflow.
+    const effectiveWidth = Math.max(
+      0,
+      Math.min(width, screenWidth - edgeMargin * 2)
+    );
+
+    const rawLeft = anchor.x - effectiveWidth;
     const safeLeft = Math.min(
       Math.max(rawLeft, edgeMargin),
-      Math.max(edgeMargin, screenWidth - width - edgeMargin)
+      Math.max(edgeMargin, screenWidth - effectiveWidth - edgeMargin)
     );
-    const top = anchor.y - offsetY;
+
+    const rawTop = anchor.y - offsetY;
+    const safeTop = Math.max(rawTop, edgeMargin);
 
     return (
       <Box
@@ -120,9 +129,10 @@ export const PositionedDialog: React.FC<PositionedDialogProps> = memo(
           sx={{
             position: "absolute",
             left: `${safeLeft}px`,
-            top: `${top}px`,
-            width,
-            maxWidth: "calc(100vw - 32px)",
+            top: `${safeTop}px`,
+            width: effectiveWidth,
+            maxWidth: `calc(100vw - ${edgeMargin * 2}px)`,
+            maxHeight: `calc(100vh - ${edgeMargin * 2}px)`,
             backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.9)`,
             backdropFilter: `blur(${blur}px)`,
             overflow: "hidden",
