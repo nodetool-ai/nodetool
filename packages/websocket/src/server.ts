@@ -84,7 +84,6 @@ import openaiRoutes from "./routes/openai.js";
 import oauthRoutes from "./routes/oauth.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
-import skillsRoutes from "./routes/skills.js";
 import collectionsRoutes from "./routes/collections.js";
 import modelsRoutes from "./routes/models.js";
 import mcpConfigRoutes from "./routes/mcp-config.js";
@@ -596,7 +595,6 @@ await app.register(openaiRoutes, routeOpts);
 await app.register(oauthRoutes, routeOpts);
 await app.register(workspaceRoutes, routeOpts);
 await app.register(filesRoutes, routeOpts);
-await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
 await app.register(modelsRoutes, routeOpts);
 // MCP endpoints are only available in local/dev mode — not in production.

@@ -48,7 +48,6 @@ import {
 } from "./storage-api.js";
 import { handleWorkspaceRequest } from "./workspace-api.js";
 import { handleFileRequest } from "./file-api.js";
-import { handleSkillsRequest, handleFontsRequest } from "./skills-api.js";
 import { handleUsersRequest } from "./users-api.js";
 
 const log = createLogger("nodetool.websocket.http");
@@ -2637,14 +2636,6 @@ export async function handleApiRequest(
 
   if (pathname === "/api/files" || pathname.startsWith("/api/files/")) {
     return handleFileRequest(request);
-  }
-
-  if (pathname === "/api/skills" || pathname.startsWith("/api/skills/")) {
-    return handleSkillsRequest(request);
-  }
-
-  if (pathname === "/api/fonts" || pathname.startsWith("/api/fonts/")) {
-    return handleFontsRequest(request);
   }
 
   if (pathname === "/api/users" || pathname.startsWith("/api/users/")) {
