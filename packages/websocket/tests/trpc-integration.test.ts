@@ -192,3 +192,24 @@ describe("tRPC /trpc/mcpConfig.status over Fastify", () => {
     await app.close();
   });
 });
+
+describe("tRPC /trpc/messages.list over Fastify", () => {
+  it("returns the messages list shape", async () => {
+    const { Message } = await import("@nodetool/models");
+    vi.spyOn(Message, "paginate").mockResolvedValue([[], ""]);
+
+    const app = buildTestApp();
+    await app.ready();
+    const res = await app.inject({
+      method: "GET",
+      url: `/trpc/messages.list?input=${encodeURIComponent(
+        JSON.stringify({ json: { thread_id: "t1", limit: 50 } })
+      )}`
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const data = body.result?.data?.json ?? body.result?.data;
+    expect(data).toEqual({ messages: [], next: null });
+    await app.close();
+  });
+});
