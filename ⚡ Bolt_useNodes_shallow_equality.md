@@ -16,6 +16,6 @@ Zustand's default equality function is strict equality (`===`). When `useNodes` 
 Run `cd web && pnpm test -- performance` to see component render optimization benchmarks. The `componentPerformance.test.tsx` file explicitly tests that memoized selectors prevent 99% of unnecessary re-renders.
 
 ## 🧪 Testing
-- `make typecheck` ✅
-- `make lint` ✅
-- `make test-web` ✅ (all tests pass)
+- `npm run typecheck` ✅
+- `npm run lint` ✅
+- `npm run test:web` ✅ (all tests pass)

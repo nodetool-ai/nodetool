@@ -22,6 +22,6 @@ In a React Profiler (if available), one would see "RowItem" renders count drop f
 ## 🧪 Testing
 - **Unit Test**: Created `web/src/components/common/__tests__/LogsTable.test.tsx` which mocks dependencies (`react-window`, `AutoSizer`, `MUI`) and verifies that rows render correctly, filter correctly, and handle interactions like expansion.
 - **Commands**:
-  - `make test-web` (passed)
+  - `npm run test:web` (passed)
   - `cd web && npm test -- src/components/common/__tests__/LogsTable.test.tsx` (passed)
-- **Type Check**: `make typecheck` (passed)
+- **Type Check**: `npm run typecheck` (passed)

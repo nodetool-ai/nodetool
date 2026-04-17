@@ -28,13 +28,13 @@ Guidelines for working with code in this repository. These are linter-like rules
 ### Make Targets (Recommended)
 
 ```bash
-make install          # Install all dependencies (web, electron, mobile)
-make build            # Build all packages
-make typecheck        # Type check all packages
-make lint             # Lint all packages
-make lint-fix         # Auto-fix linting issues
-make test             # Run all tests
-make check            # Run all checks (typecheck, lint, test)
+npm install          # Install all dependencies (web, electron, mobile)
+npm run build            # Build all packages
+npm run typecheck        # Type check all packages
+npm run lint             # Lint all packages
+npm run lint:fix         # Auto-fix linting issues
+npm run test             # Run all tests
+npm run check            # Run all checks (typecheck, lint, test)
 ```
 
 ### Backend Packages
@@ -78,10 +78,10 @@ npm test                 # Run tests
 ### Development Servers
 
 ```bash
-make dev                 # Backend (tsx --watch) + web Vite server
-make dev-server          # Backend dev server only (tsx --watch, port 7777)
-make electron            # Build web and start Electron app
-make electron-dev        # Electron against Vite server (requires conda env)
+npm run dev                 # Backend (tsx --watch) + web Vite server
+npm run dev:server          # Backend dev server only (tsx --watch, port 7777)
+npm run electron            # Build web and start Electron app
+npm run electron:dev        # Electron against Vite server (requires conda env)
 ```
 
 ### Mandatory Post-Change Verification
@@ -89,9 +89,9 @@ make electron-dev        # Electron against Vite server (requires conda env)
 After **any** code change, run:
 
 ```bash
-make typecheck  # Type check all packages
-make lint       # Lint all packages
-make test       # Run all tests
+npm run typecheck  # Type check all packages
+npm run lint       # Lint all packages
+npm run test       # Run all tests
 ```
 
 All three must pass before the task is complete.
@@ -110,9 +110,9 @@ Before submitting a PR, review for:
 
 ## Common Pitfalls
 
-- **Decorator packages load from `dist/`**: `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes` use decorators. After changing these, run `npm run build:packages` before running `make dev`.
+- **Decorator packages load from `dist/`**: `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes` use decorators. After changing these, run `npm run build:packages` before running `npm run dev`.
 - **Package build order matters**: Always use `npm run build:packages` (builds in dependency order). Don't build individual packages with unbuilt dependencies.
-- **Mobile typecheck needs protocol**: Run `cd packages/protocol && npm run build` before `make typecheck-mobile`.
+- **Mobile typecheck needs protocol**: Run `cd packages/protocol && npm run build` before `npm run typecheck:mobile`.
 - **WebSocket uses MsgPack, not JSON**: Use existing serialization helpers. Don't serialize WebSocket messages as JSON.
 - **Don't create WebSocket instances**: Use `GlobalWebSocketManager` singleton in the frontend.
 - **ES Modules everywhere**: All packages use `"type": "module"`. Compiled imports need `.js` extensions.

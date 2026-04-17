@@ -584,7 +584,7 @@ Docs: [Developer Guide]({{ '/developer/' | relative_url }})
 
 If you're capturing a screenshot from this list:
 
-1. Launch NodeTool locally (`make dev` for web + backend; Electron dev via `make electron-dev`).
+1. Launch NodeTool locally (`npm run dev` for web + backend; Electron dev via `npm run electron:dev`).
 2. Navigate to the view and set up a clean example (no personal data, default theme).
 3. Capture at **1920×1080** minimum — use 2× resolution for retina displays.
 4. Save as PNG with a descriptive hyphenated name under `docs/assets/screenshots/`.

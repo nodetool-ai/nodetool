@@ -224,7 +224,7 @@ function assertActivatedCondaEnvironmentForDevMode(): void {
 
   const message =
     "Electron dev mode requires an activated conda environment. " +
-    "Please run `conda activate <env>` before starting `make electron-dev`.";
+    "Please run `conda activate <env>` before starting `npm run electron:dev`.";
   dialog.showErrorBox("Conda Environment Required", message);
   throw new Error(message);
 }

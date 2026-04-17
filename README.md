@@ -131,7 +131,7 @@ npm install
 npm run build:packages     # Build all TS packages in dependency order
 
 # Run backend (port 7777) and frontend (port 3000)
-make dev
+npm run dev
 ```
 
 ### Python Nodes (optional)
@@ -141,7 +141,7 @@ Python nodes (HuggingFace, MLX, Apple integrations) run via the `PythonStdioBrid
 ### Electron App
 
 ```bash
-make electron
+npm run electron
 ```
 
 The Electron app auto-detects your active Conda environment. Settings are stored in:
@@ -160,12 +160,12 @@ See [mobile/README.md](mobile/README.md) for full setup.
 
 | Command | Description |
 | :--- | :--- |
-| `make install` | Install all dependencies |
-| `make build` | Build all packages + web |
-| `make dev` | Start backend + web dev server |
-| `make electron` | Build and start Electron app |
-| `make check` | Run typecheck + lint + test |
-| `make test` | Run all tests |
+| `npm install` | Install all dependencies |
+| `npm run build` | Build all packages + web |
+| `npm run dev` | Start backend + web dev server |
+| `npm run electron` | Build and start Electron app |
+| `npm run check` | Run typecheck + lint + test |
+| `npm run test` | Run all tests |
 
 ______________________________________________________________________
 

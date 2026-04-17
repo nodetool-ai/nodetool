@@ -22,7 +22,7 @@ TEST_EXIT=0
 
 # TypeScript Type Check
 echo "Running TypeScript type check..." | tee -a "$RESULTS_FILE"
-if make typecheck 2>&1 | tee typecheck.log; then
+if npm run typecheck 2>&1 | tee typecheck.log; then
     echo "✅ TypeScript: PASSED" | tee -a "$RESULTS_FILE"
 else
     TYPECHECK_EXIT=$?
@@ -33,7 +33,7 @@ echo "" | tee -a "$RESULTS_FILE"
 
 # ESLint Check
 echo "Running ESLint..." | tee -a "$RESULTS_FILE"
-if make lint 2>&1 | tee lint.log; then
+if npm run lint 2>&1 | tee lint.log; then
     echo "✅ ESLint: PASSED" | tee -a "$RESULTS_FILE"
 else
     LINT_EXIT=$?
@@ -45,7 +45,7 @@ echo "" | tee -a "$RESULTS_FILE"
 
 # Test Suite
 echo "Running test suite..." | tee -a "$RESULTS_FILE"
-if make test 2>&1 | tee test.log; then
+if npm run test 2>&1 | tee test.log; then
     echo "✅ Tests: PASSED" | tee -a "$RESULTS_FILE"
 else
     TEST_EXIT=$?

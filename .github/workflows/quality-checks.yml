@@ -62,7 +62,7 @@ jobs:
         continue-on-error: ${{ !inputs.fail-fast }}
         run: |
           echo "::group::TypeScript Type Check"
-          make typecheck
+          npm run typecheck
           echo "::endgroup::"
 
       - name: Run ESLint
@@ -70,7 +70,7 @@ jobs:
         continue-on-error: ${{ !inputs.fail-fast }}
         run: |
           echo "::group::ESLint Check"
-          make lint
+          npm run lint
           echo "::endgroup::"
 
       - name: Run Tests
@@ -79,7 +79,7 @@ jobs:
         continue-on-error: ${{ !inputs.fail-fast }}
         run: |
           echo "::group::Test Suite"
-          make test
+          npm run test
           echo "::endgroup::"
 
       - name: Set outputs

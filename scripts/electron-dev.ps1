@@ -57,7 +57,7 @@ Write-Host "Starting web Vite server on $WebDevServerUrl..."
 $WebJob = Start-Job -ScriptBlock {
     param($Url)
     Set-Location web
-    npm start
+    npm run dev
 } -ArgumentList $WebDevServerUrl
 
 $WebServerPid = $WebJob.Id

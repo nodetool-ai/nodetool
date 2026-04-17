@@ -95,7 +95,9 @@
     "zustand": "4.5.7"
   },
   "scripts": {
-    "start": "vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false",
+    "dev": "vite --host 0.0.0.0 --port 3000 --strictPort --clearScreen false",
+    "dev:fast": "npm run dev",
+    "start": "npm run dev",
     "build": "vite build",
     "build:staging": "vite build --mode staging",
     "build:debug": "NODE_OPTIONS=--max-old-space-size=16384 vite build --mode debug --sourcemap --minify false",

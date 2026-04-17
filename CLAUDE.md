@@ -6,12 +6,12 @@ Visual AI workflow platform. TypeScript monorepo with React frontend, Electron d
 
 ```bash
 # After ANY code change, run all three:
-make typecheck   # Type check all packages (web, electron, mobile)
-make lint        # Lint all packages
-make test        # Run all tests (web, electron, mobile)
+npm run typecheck   # Type check all packages (web, electron, mobile)
+npm run lint        # Lint all packages
+npm run test        # Run all tests (web, electron, mobile)
 
 # Combined check (runs all three above):
-make check
+npm run check
 ```
 
 ### Package-Specific Commands
@@ -34,9 +34,9 @@ cd electron && npm run typecheck
 cd electron && npm run lint
 
 # Dev servers
-make dev          # Backend (tsx --watch) + web Vite server
-make dev-server   # Backend only
-make electron-dev # Electron dev (auto-rebuilds native modules)
+npm run dev          # Backend (tsx --watch) + web Vite server
+npm run dev:server   # Backend only
+npm run electron:dev # Electron dev (auto-rebuilds native modules)
 ```
 
 ### Prerequisites
@@ -109,8 +109,8 @@ protocol → config → security → auth → storage
 Before every commit, run lint and typecheck. Do not commit if either fails.
 
 ```bash
-make lint        # Must pass before committing
-make typecheck   # Must pass before committing
+npm run lint        # Must pass before committing
+npm run typecheck   # Must pass before committing
 ```
 
 ## Rules
@@ -129,12 +129,12 @@ make typecheck   # Must pass before committing
 ## Common Pitfalls
 
 - **Node.js 22.x is required**. Electron 35 embeds Node 22 — native modules (better-sqlite3) must be compiled against the same ABI. Use `nvm use 22` (see `.nvmrc`). Node 23+ or 24+ will cause `NODE_MODULE_VERSION` mismatch errors in Electron.
-- **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `make dev`.
+- **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `npm run dev`.
 - **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`.
-- **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors in Electron dev mode, run `make electron-dev` which automatically rebuilds native modules (better-sqlite3, bufferutil) against Electron's ABI via node-gyp. Do NOT use `npm rebuild` or `electron-builder install-app-deps` — these rebuild for system Node, not Electron's embedded Node.
+- **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors in Electron dev mode, run `npm run electron:dev` which automatically rebuilds native modules (better-sqlite3, bufferutil) against Electron's ABI via node-gyp. Do NOT use `npm rebuild` or `electron-builder install-app-deps` — these rebuild for system Node, not Electron's embedded Node.
 - **Claude Agent Provider in nested sessions (e.g. Claude Code web)**: The SDK spawns a subprocess via `node cli.js`. In environments like Claude Code on the web (`claude.ai/code`), you must: (1) strip all `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars — not just `CLAUDECODE`; (2) run as a non-root user — the SDK refuses `--dangerously-skip-permissions` when uid=0; (3) keep `ANTHROPIC_BASE_URL` and `HTTP_PROXY`/`HTTPS_PROXY` vars for API routing. See `docs/AGENTS.md` § Claude Agent SDK for full details.
 
 ## CLI
