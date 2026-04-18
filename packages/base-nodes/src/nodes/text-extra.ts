@@ -2199,10 +2199,11 @@ export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
   static readonly title = "Concatenate Text";
   static readonly description =
-    "Concatenates two text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
+    "Concatenates text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly isDynamic = true;
 
   @prop({ type: "str", default: "", title: "A", description: "First text input." })
   declare a: any;
@@ -2211,7 +2212,10 @@ export class ConcatTextNode extends BaseNode {
   declare b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: String(this.a ?? "") + String(this.b ?? "") };
+    const values = [this.a, this.b, ...this.dynamicProps.values()].map((value) =>
+      String(value ?? "")
+    );
+    return { output: values.join("") };
   }
 }
 

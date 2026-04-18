@@ -18,6 +18,7 @@ export class Add extends BaseNode {
   static readonly nodeType = "nodetool.test.Add";
   static readonly title = "Add";
   static readonly description = "Adds two numbers";
+  static readonly isDynamic = true;
   @prop({ type: "int", default: 0 })
   declare a: any;
 
@@ -25,9 +26,12 @@ export class Add extends BaseNode {
   declare b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const a = (this.a ?? 0) as number;
-    const b = (this.b ?? 0) as number;
-    return { result: a + b };
+    const values = [this.a, this.b, ...this.dynamicProps.values()];
+    const sum = values.reduce((acc: number, value: unknown) => {
+      const num = Number(value ?? 0);
+      return Number.isFinite(num) ? acc + num : acc;
+    }, 0);
+    return { result: sum };
   }
 }
 
@@ -63,7 +67,8 @@ export class Constant extends BaseNode {
 export class StringConcat extends BaseNode {
   static readonly nodeType = "nodetool.test.StringConcat";
   static readonly title = "String Concat";
-  static readonly description = "Concatenates two strings";
+  static readonly description = "Concatenates strings";
+  static readonly isDynamic = true;
   @prop({ type: "str", default: "" })
   declare a: any;
 
@@ -74,10 +79,11 @@ export class StringConcat extends BaseNode {
   declare separator: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const a = String(this.a ?? "");
-    const b = String(this.b ?? "");
     const sep = String(this.separator ?? "");
-    return { result: a + sep + b };
+    const values = [this.a, this.b, ...this.dynamicProps.values()].map(
+      (value) => String(value ?? "")
+    );
+    return { result: values.join(sep) };
   }
 }
 

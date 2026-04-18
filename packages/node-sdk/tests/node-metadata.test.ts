@@ -31,6 +31,7 @@ describe("getNodeMetadata", () => {
     expect(meta.node_type).toBe("nodetool.test.Add");
     expect(meta.namespace).toBe("nodetool.test");
     expect(meta.is_streaming_output).toBe(false);
+    expect(meta.is_dynamic).toBe(true);
   });
 
   it("extracts properties with defaults", () => {
@@ -206,16 +207,15 @@ describe("getNodeMetadata — additional coverage", () => {
     expect(configProp!.default).toEqual({ key: "value" });
   });
 
-  // ── is_dynamic is always false ────────────────────────────────────────
+  // ── is_dynamic defaults to false when node classes do not opt in ───────
 
-  it("is_dynamic is always false for multiple node types", () => {
+  it("is_dynamic is false for non-dynamic node types", () => {
     const nodeClasses = [
-      Add,
       Passthrough,
       StreamingCounter,
       Constant,
-      StringConcat,
-      ThresholdProcessor
+      ThresholdProcessor,
+      Multiply
     ];
     for (const cls of nodeClasses) {
       const meta = getNodeMetadata(cls);

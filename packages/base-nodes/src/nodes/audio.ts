@@ -1073,11 +1073,12 @@ export class ConcatAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.Concat";
   static readonly title = "Concat";
   static readonly description =
-    "Concatenates two audio files together.\n    audio, edit, join, +";
+    "Concatenates audio files together.\n    audio, edit, join, +";
   static readonly metadataOutputTypes = {
     output: "audio"
   };
   static readonly exposeAsTool = true;
+  static readonly isDynamic = true;
 
   @prop({
     type: "audio",
@@ -1108,9 +1109,10 @@ export class ConcatAudioNode extends BaseNode {
   declare b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const a = audioBytes(this.a);
-    const b = audioBytes(this.b);
-    return { output: audioRefFromBytes(concatBytes([a, b])) };
+    const parts = [this.a, this.b, ...this.dynamicProps.values()].map((value) =>
+      audioBytes(value)
+    );
+    return { output: audioRefFromBytes(concatBytes(parts)) };
   }
 }
 
