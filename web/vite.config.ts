@@ -34,6 +34,11 @@ export default defineConfig(async ({ mode }) => {
       ws: true,
       changeOrigin: true
     },
+    "/trpc": {
+      target: apiTarget,
+      changeOrigin: true,
+      secure: false
+    },
     "/storage": {
       target: apiTarget,
       changeOrigin: true,
@@ -49,6 +54,12 @@ export default defineConfig(async ({ mode }) => {
       proxy: proxyConfig
     },
     optimizeDeps: {
+      include: [
+        "superjson",
+        "@trpc/client",
+        "@trpc/react-query",
+        "@trpc/server"
+      ],
       exclude: [
         "@tanstack/react-query",
         "monaco-editor",
@@ -57,8 +68,11 @@ export default defineConfig(async ({ mode }) => {
       ]
     },
     resolve: {
+      // Use the `nodetool-dev` export condition so @nodetool/* packages
+      // resolve to their `src/*.ts` sources instead of built `dist/*.js`.
+      // This is the repo-wide convention declared in each package's exports.
+      conditions: ["nodetool-dev", "import", "module", "browser", "default"],
       alias: {
-        "@nodetool/protocol": resolve(configDir, "../packages/protocol/src/index.ts"),
         "monaco-editor": resolve(rootNodeModules, "monaco-editor"),
       },
     },
