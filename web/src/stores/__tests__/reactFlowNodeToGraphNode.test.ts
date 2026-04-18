@@ -706,5 +706,16 @@ describe("reactFlowNodeToGraphNode", () => {
 
       expect((result.ui_properties as any)?.height).toBe(300);
     });
+
+    it("preserves smaller measured height for Preview nodes", () => {
+      const node = createMockReactFlowNode({
+        type: "nodetool.workflows.base_node.Preview",
+        measured: { width: 400, height: 80 },
+      });
+
+      const result = reactFlowNodeToGraphNode(node);
+
+      expect((result.ui_properties as any)?.height).toBe(80);
+    });
   });
 });
