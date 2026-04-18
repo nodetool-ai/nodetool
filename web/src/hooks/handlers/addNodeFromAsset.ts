@@ -74,7 +74,7 @@ export const useAddNodeFromAsset = () => {
       if (asset === undefined) {
         return;
       }
-      const assetType = contentTypeToNodeType(asset.content_type);
+      const assetType = contentTypeToNodeType(asset.content_type, asset.name);
       const nodeType = constantForType(assetType || "");
       if (nodeType === null) {
         addNotification({
