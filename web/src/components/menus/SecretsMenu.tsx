@@ -23,6 +23,13 @@ interface SecretsMenuProps {
   searchTerm?: string;
 }
 
+const apiKeySectionHeaderSx = {
+  opacity: 0.7,
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.04em",
+  marginBottom: "0.25em"
+};
+
 const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) => {
   const theme = useTheme();
   const queryClient = useQueryClient();
@@ -207,12 +214,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                 {secretsByStatus.configured.length > 0 && (
                   <FlexColumn className="settings-section">
                     <Caption
-                      sx={{
-                        opacity: 0.7,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                        marginBottom: "0.25em"
-                      }}
+                      sx={apiKeySectionHeaderSx}
                     >
                       Set API Keys
                     </Caption>
@@ -301,12 +303,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                 {secretsByStatus.unconfigured.length > 0 && (
                   <FlexColumn className="settings-section">
                     <Caption
-                      sx={{
-                        opacity: 0.7,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                        marginBottom: "0.25em"
-                      }}
+                      sx={apiKeySectionHeaderSx}
                     >
                       Unset API Keys
                     </Caption>
