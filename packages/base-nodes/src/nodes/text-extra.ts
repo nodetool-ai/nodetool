@@ -2446,9 +2446,17 @@ export class ToStringNode extends BaseNode {
     const v = this.value;
     const mode = String(this.mode ?? "str");
     const toJsonString = (value: unknown): string => {
+      if (value === undefined) {
+        return "";
+      }
       try {
-        return JSON.stringify(value) ?? "";
-      } catch {
+        const json = JSON.stringify(value);
+        if (json === undefined) {
+          return "";
+        }
+        return json;
+      } catch (_error) {
+        // JSON.stringify can fail for non-serializable values (e.g. circular objects).
         return String(value);
       }
     };

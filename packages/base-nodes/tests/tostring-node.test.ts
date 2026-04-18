@@ -9,11 +9,18 @@ describe("ToStringNode generic conversion", () => {
     expect(result.output).toBe("");
   });
 
+  it("returns 'null' for null in repr mode", async () => {
+    const node = new ToStringNode();
+    node.assign({ value: null, mode: "repr" });
+    const result = await node.process();
+    expect(result.output).toBe("null");
+  });
+
   it("handles circular objects without throwing and returns a string", async () => {
     const node = new ToStringNode();
-    const circular: Record<string, unknown> = {};
-    circular.self = circular;
-    node.assign({ value: circular, mode: "str" });
+    const circularObject: Record<string, unknown> = {};
+    circularObject.self = circularObject;
+    node.assign({ value: circularObject, mode: "str" });
     const result = await node.process();
     expect(typeof result.output).toBe("string");
     expect(result.output).toBe("[object Object]");
