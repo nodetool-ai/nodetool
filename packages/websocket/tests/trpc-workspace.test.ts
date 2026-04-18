@@ -28,21 +28,21 @@ vi.mock("node:fs/promises", async (orig) => {
   return {
     ...actual,
     stat: vi.fn(),
-    readdir: vi.fn()
+    readdir: vi.fn(),
+    access: vi.fn()
   };
 });
 vi.mock("node:fs", async (orig) => {
   const actual = await orig<typeof import("node:fs")>();
   return {
     ...actual,
-    existsSync: vi.fn(),
-    accessSync: vi.fn()
+    existsSync: vi.fn()
   };
 });
 
 import { Workspace } from "@nodetool/models";
-import { stat, readdir } from "node:fs/promises";
-import { existsSync, accessSync } from "node:fs";
+import { stat, readdir, access } from "node:fs/promises";
+import { existsSync } from "node:fs";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -189,7 +189,7 @@ describe("workspace router", () => {
       (stat as ReturnType<typeof vi.fn>).mockResolvedValue({
         isDirectory: () => true
       });
-      (accessSync as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+      (access as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
       const ws = makeWorkspace({
         id: "new-ws",
         name: "New",
@@ -216,7 +216,7 @@ describe("workspace router", () => {
       (stat as ReturnType<typeof vi.fn>).mockResolvedValue({
         isDirectory: () => true
       });
-      (accessSync as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+      (access as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
       (Workspace.create as ReturnType<typeof vi.fn>).mockResolvedValue(
         makeWorkspace({ is_default: true })
       );
@@ -261,9 +261,9 @@ describe("workspace router", () => {
       (stat as ReturnType<typeof vi.fn>).mockResolvedValue({
         isDirectory: () => true
       });
-      (accessSync as ReturnType<typeof vi.fn>).mockImplementation(() => {
-        throw new Error("EACCES");
-      });
+      (access as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("EACCES")
+      );
       const caller = createCaller(makeCtx());
       await expect(
         caller.workspace.create({ name: "x", path: "/read/only" })

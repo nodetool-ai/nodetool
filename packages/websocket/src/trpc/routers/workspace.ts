@@ -9,9 +9,9 @@
  * `NODETOOL_ENV=production` env var.
  */
 
-import { stat, readdir } from "node:fs/promises";
-import { existsSync, accessSync, constants } from "node:fs";
-import { resolve, join, isAbsolute } from "node:path";
+import { stat, readdir, access } from "node:fs/promises";
+import { existsSync, constants } from "node:fs";
+import { resolve, relative, join, isAbsolute } from "node:path";
 import { Workspace } from "@nodetool/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -125,7 +125,7 @@ export const workspaceRouter = router({
         throwApiError(ApiErrorCode.INVALID_INPUT, "Cannot access path");
       }
       try {
-        accessSync(input.path, constants.W_OK);
+        await access(input.path, constants.W_OK);
       } catch {
         throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not writable");
       }
@@ -209,8 +209,11 @@ export const workspaceRouter = router({
       const workspacePath = resolve(workspace.path);
       const resolvedPath = resolve(join(workspacePath, queryPath));
 
-      // Path traversal check
-      if (!resolvedPath.startsWith(workspacePath)) {
+      // Path traversal check — boundary-safe: a sibling like `/tmp/ws-evil`
+      // would pass a naive `startsWith("/tmp/ws")`, so use `path.relative`
+      // and require the result to be empty or a non-`..` relative path.
+      const rel = relative(workspacePath, resolvedPath);
+      if (rel.startsWith("..") || isAbsolute(rel)) {
         throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
       }
 

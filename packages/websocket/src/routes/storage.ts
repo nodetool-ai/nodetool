@@ -15,15 +15,9 @@ const storageRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
   const storageHandler = createStorageHandler(apiOptions.storage);
 
-  app.head("/api/storage/*", async (req, reply) => {
-    await bridge(req, reply, (request) => storageHandler(request));
-  });
-
-  app.get("/api/storage/*", async (req, reply) => {
-    await bridge(req, reply, (request) => storageHandler(request));
-  });
-
-  app.put("/api/storage/*", async (req, reply) => {
+  // Register all methods so unsupported verbs (DELETE, POST, …) reach the
+  // handler and get a proper 405 instead of Fastify's default 404.
+  app.all("/api/storage/*", async (req, reply) => {
     await bridge(req, reply, (request) => storageHandler(request));
   });
 };

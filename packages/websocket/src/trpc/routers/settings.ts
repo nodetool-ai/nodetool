@@ -146,6 +146,11 @@ export const settingsRouter = router({
   list: protectedProcedure.output(listOutput).query(async ({ ctx }) => {
     const userSettings = await Setting.listForUser(ctx.userId);
     const settingsMap = new Map(userSettings.map((s) => [s.key, s.value]));
+
+    // Fetch all secrets once and build a lookup map to avoid N+1 queries.
+    const [userSecrets] = await Secret.listForUser(ctx.userId, 1000);
+    const secretsMap = new Map(userSecrets.map((s) => [s.key, s]));
+
     const result: SettingWithValue[] = [];
 
     // Non-secret settings: read from DB then env.
@@ -166,7 +171,7 @@ export const settingsRouter = router({
     // Secrets: "****" if configured (DB or env), null otherwise.
     for (const def of getRegisteredSettings()) {
       if (!def.isSecret) continue;
-      const secret = await Secret.find(ctx.userId, def.envVar);
+      const hasSecret = secretsMap.has(def.envVar);
       const hasEnvVar = Boolean(process.env[def.envVar]);
       result.push({
         package_name: def.packageName,
@@ -174,7 +179,7 @@ export const settingsRouter = router({
         group: def.group,
         description: def.description,
         enum: null,
-        value: secret || hasEnvVar ? "****" : null,
+        value: hasSecret || hasEnvVar ? "****" : null,
         is_secret: true
       });
     }

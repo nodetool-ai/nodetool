@@ -59,11 +59,13 @@ export async function getProvider(
     throw new Error(`No provider registered for "${providerId}"`);
   }
 
-  // Re-resolve any undefined/empty values via secret resolver (DB → env)
-  // or direct env var lookup as final fallback
+  // Re-resolve any unset values via secret resolver (DB → env) or direct env
+  // var lookup as final fallback. Only treat empty string / null / undefined
+  // as "needs resolution" so that valid falsy defaults (`0`, `false`) on
+  // numeric/boolean kwargs are preserved.
   const kwargs = { ...registration.kwargs };
   for (const [key, value] of Object.entries(kwargs)) {
-    if (!value) {
+    if (value === "" || value == null) {
       if (_secretResolver) {
         const resolved = await _secretResolver(key, userId);
         if (resolved) {
@@ -123,14 +125,19 @@ export async function isProviderConfigured(
   }
 
   // A kwarg is "required at runtime" when the registration declares the key
-  // with a falsy value — registerProvider() uses empty strings to mark
-  // credentials that must be resolved from the DB or environment. Non-empty
-  // registration values are defaults the constructor can use directly.
-  // Keys starting with "_" are treated as runtime injections (e.g. `_bridge`,
-  // `_id` for Python providers) and excluded from the required-credentials
-  // check since they can't be resolved via secret resolver or env vars.
+  // with an empty-string / null / undefined value — registerProvider() uses
+  // empty strings to mark credentials that must be resolved from the DB or
+  // environment. Non-empty registration values (including valid falsy
+  // defaults like `0` or `false`) are defaults the constructor can use
+  // directly. Keys starting with "_" are runtime injections (e.g.
+  // `_bridge`, `_id` for Python providers) and excluded from the
+  // required-credentials check since they can't be resolved via secret
+  // resolver or env vars.
   const required = Object.entries(reg.kwargs)
-    .filter(([key, value]) => !value && !key.startsWith("_"))
+    .filter(
+      ([key, value]) =>
+        (value === "" || value == null) && !key.startsWith("_")
+    )
     .map(([key]) => key);
 
   if (required.length === 0) {

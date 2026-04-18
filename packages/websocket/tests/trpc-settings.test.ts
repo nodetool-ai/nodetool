@@ -107,7 +107,9 @@ describe("settings router", () => {
   describe("list", () => {
     it("returns an array of settings under `settings`", async () => {
       (Setting.listForUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-      (Secret.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (Secret.listForUser as ReturnType<typeof vi.fn>).mockResolvedValue([
+        []
+      ]);
 
       const caller = createCaller(makeCtx());
       const result = await caller.settings.list();

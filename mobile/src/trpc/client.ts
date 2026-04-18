@@ -15,9 +15,12 @@ import { getApiHost } from '../services/apiHost';
 import { useAuthStore } from '../stores/AuthStore';
 
 /**
- * Build a tRPC client using the current API host and session token.
- * Calling this is cheap — each returned client uses the live host/token values
- * at request time through the `url` and `headers` factories.
+ * Build a tRPC client bound to the current API host.
+ *
+ * The host URL is captured at client-creation time (httpBatchLink resolves
+ * `url` once when the link is built), so callers must recreate the client
+ * whenever `getApiHost()` changes — the auth token, by contrast, is read
+ * per-request via the async `headers` factory.
  */
 export function createMobileTRPCClient() {
   return createTRPCClient<AppRouter>({
