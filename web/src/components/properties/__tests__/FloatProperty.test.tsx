@@ -5,6 +5,15 @@ import mockTheme from "../../../__mocks__/themeMock";
 import FloatProperty from "../FloatProperty";
 import useMetadataStore from "../../../stores/MetadataStore";
 
+jest.mock("../../../contexts/NodeContext", () => {
+  const actual = jest.requireActual("../../../contexts/NodeContext");
+  return {
+    ...actual,
+    useTemporalNodes: (selector: (state: { pause: () => void; resume: () => void }) => unknown) =>
+      selector({ pause: jest.fn(), resume: jest.fn() })
+  };
+});
+
 const renderWithTheme = (component: React.ReactNode) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };

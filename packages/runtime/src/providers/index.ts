@@ -135,7 +135,7 @@ registerBuiltinProvider("mistral", MistralProvider, {
   MISTRAL_API_KEY: process.env["MISTRAL_API_KEY"]
 });
 registerBuiltinProvider("moonshot", MoonshotProvider, {
-  MOONSHOT_API_KEY: process.env["MOONSHOT_API_KEY"]
+  KIMI_API_KEY: process.env["KIMI_API_KEY"]
 });
 registerBuiltinProvider("minimax", MinimaxProvider, {
   MINIMAX_API_KEY: process.env["MINIMAX_API_KEY"]

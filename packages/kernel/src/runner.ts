@@ -740,9 +740,16 @@ export class WorkflowRunner {
       this._incrementEdgeCounter(edge);
     }
 
-    // Emit output_update for each produced output handle
+    // Emit output_update for each produced output handle.
+    // Skip constant and input nodes: the client already holds their value
+    // as a property (or supplied it as a runtime param), so re-sending it
+    // (often a large image/audio payload) is redundant.
     const sourceNode = this._graph.findNode(sourceNodeId);
-    if (sourceNode) {
+    if (
+      sourceNode &&
+      !sourceNode.type.startsWith("nodetool.constant.") &&
+      !sourceNode.type.startsWith("nodetool.input.")
+    ) {
       const declaredOutputs = sourceNode.outputs ?? {};
       for (const [handle, value] of Object.entries(outputs)) {
         if (value === undefined) continue;

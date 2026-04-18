@@ -17,16 +17,16 @@ interface MoonshotProviderOptions {
  */
 export class MoonshotProvider extends AnthropicProvider {
   static override requiredSecrets(): string[] {
-    return ["MOONSHOT_API_KEY"];
+    return ["KIMI_API_KEY"];
   }
 
   constructor(
-    secrets: { MOONSHOT_API_KEY?: string },
+    secrets: { KIMI_API_KEY?: string },
     options: MoonshotProviderOptions = {}
   ) {
-    const apiKey = secrets.MOONSHOT_API_KEY;
+    const apiKey = secrets.KIMI_API_KEY;
     if (!apiKey || !apiKey.trim()) {
-      throw new Error("MOONSHOT_API_KEY is not configured");
+      throw new Error("KIMI_API_KEY is not configured");
     }
 
     super(
@@ -49,7 +49,7 @@ export class MoonshotProvider extends AnthropicProvider {
 
   override getContainerEnv(): Record<string, string> {
     return {
-      MOONSHOT_API_KEY: this.apiKey,
+      KIMI_API_KEY: this.apiKey,
       ANTHROPIC_BASE_URL: MOONSHOT_BASE_URL
     };
   }
@@ -59,11 +59,7 @@ export class MoonshotProvider extends AnthropicProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const knownModels = [
-      "kimi-k2-turbo-preview",
-      "kimi-k2-0905-preview",
-      "kimi-k2-0711-preview"
-    ];
+    const knownModels = ["kimi-k2.5"];
     return knownModels.map((id) => ({ id, name: id, provider: "moonshot" }));
   }
 }
