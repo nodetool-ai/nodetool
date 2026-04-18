@@ -23,8 +23,10 @@ export const messageResponse = z.object({
   model: z.string().nullable().optional(),
   cost: z.number().nullable().optional(),
   workflow_id: z.string().nullable().optional(),
-  agent_mode: z.boolean().nullable().optional(),
-  help_mode: z.boolean().nullable().optional(),
+  // agent_mode and help_mode are write-only routing flags the composer sets
+  // on the outgoing user message; nothing on the UI reads them back from a
+  // persisted message, so they're excluded from the echo to keep payloads
+  // lean. The DB columns stay for forward compatibility.
   agent_execution_id: z.string().nullable().optional(),
   execution_event_type: z.string().nullable().optional(),
   workflow_target: z.string().nullable().optional(),
