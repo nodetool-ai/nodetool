@@ -325,8 +325,13 @@ export async function handleNodeMetadata(
     }
   }
 
-  const limit = parseLimit(url, 100);
-  nodes = nodes.slice(0, limit);
+  const limitRaw = url.searchParams.get("limit");
+  if (limitRaw) {
+    const parsed = Number.parseInt(limitRaw, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      nodes = nodes.slice(0, parsed);
+    }
+  }
 
   // Default to slim summary to keep response size bounded. Full metadata is
   // opt-in via `fields=full` or a specific node_type lookup.
