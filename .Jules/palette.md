@@ -34,3 +34,6 @@
 ## 2026-03-27 - Adding ARIA labels to CircularActionButton and DeleteButton with complex Tooltips
 **Learning:** Similar to `ToolbarIconButton` and `StateIconButton`, `CircularActionButton` and `DeleteButton` try to automatically extract an `aria-label` from their `tooltip` prop. If the `tooltip` prop receives a ReactNode, the `aria-label` becomes `undefined` or falls back to generic text, leaving the icon button inaccessible to screen readers or lacking specific context.
 **Action:** When using `CircularActionButton` or `DeleteButton` with a ReactNode tooltip, always explicitly provide the `ariaLabel` prop with a descriptive string. I've updated these components to explicitly support the `ariaLabel` prop.
+## 2025-02-12 - Added missing `aria-label`s to `IconButton` components
+**Learning:** Found that custom/complex components wrapped in MUI `IconButton` often drop context needed for screen readers if only icon nodes are provided as children, creating empty access labels for crucial UI actions.
+**Action:** When creating action buttons consisting strictly of an icon, ensure to explicitly pass an `aria-label` attribute on the bounding `IconButton` component to preserve accessibility.
