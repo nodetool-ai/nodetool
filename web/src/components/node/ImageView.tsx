@@ -117,22 +117,16 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     }
   });
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!imageUrl) { return; }
 
-    const link = document.createElement("a");
-    link.href = imageUrl;
-
     let filename = `image-${Date.now()}.png`;
-
     try {
-      // Check for extension in URL (Asset URL or other)
       const urlPath = imageUrl.split('?')[0];
       const lastSegment = urlPath.split('/').pop();
-      if (lastSegment && lastSegment.includes('.')) {
+      if (lastSegment && lastSegment.includes('.') && !imageUrl.startsWith("blob:") && !imageUrl.startsWith("data:")) {
         filename = decodeURIComponent(lastSegment);
       } else if (imageUrl.startsWith("data:image/")) {
-        // Handle data URIs
         const mime = imageUrl.substring(5, imageUrl.indexOf(";"));
         const ext = mime.split("/")[1];
         if (ext) {
@@ -140,14 +134,35 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         }
       }
     } catch (_e) {
-      // Failed to parse image filename from URL; use default timestamp-based name
       log.warn("ImageView: could not determine filename from URL, using default");
     }
 
+    // Fetch through a fresh blob so cross-origin /api/* URLs still honor `download`,
+    // and so a revoked/stale blob URL in imageUrl can't produce a truncated file.
+    let downloadUrl = imageUrl;
+    let createdUrl: string | null = null;
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      createdUrl = URL.createObjectURL(blob);
+      downloadUrl = createdUrl;
+    } catch (err) {
+      log.warn("ImageView: fetch for download failed, using raw URL", err);
+    }
+
+    const link = document.createElement("a");
+    link.href = downloadUrl;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    if (createdUrl) {
+      setTimeout(() => URL.revokeObjectURL(createdUrl), 0);
+    }
   }, [imageUrl]);
 
   const handleOpenInViewer = useCallback(() => {
