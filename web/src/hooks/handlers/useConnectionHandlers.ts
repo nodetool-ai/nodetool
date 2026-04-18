@@ -68,7 +68,8 @@ export default function useConnectionHandlers() {
       onConnect: state.onConnect,
       edges: state.edges,
       setConnectionAttempted: state.setConnectionAttempted
-    })
+    }),
+    shallow
   );
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const { openContextMenu } = useContextMenu();

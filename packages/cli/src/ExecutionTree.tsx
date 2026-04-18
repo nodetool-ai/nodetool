@@ -22,6 +22,7 @@ import type { ExecutionState, TaskState, StepState } from "./useExecutionState.j
 // ---------------------------------------------------------------------------
 
 const ICONS = {
+  planned: "◇",
   waiting: "○",
   running: "◐",
   completed: "✓",
@@ -30,6 +31,7 @@ const ICONS = {
 } as const;
 
 const STATUS_COLORS = {
+  planned: "cyan",
   waiting: "gray",
   running: "yellow",
   completed: "green",
@@ -217,37 +219,43 @@ export function ExecutionTree({
 }) {
   if (state.phase === "idle") return null;
 
-  if (state.phase === "planning") {
-    return (
-      <Box flexDirection="column" marginTop={1}>
-        <PlanningPhase content={state.planningContent} />
-      </Box>
-    );
-  }
-
-  // executing or done
   const maxRows = Math.max((process.stdout.rows ?? 24) - 4, 8);
+  const completedCount = state.tasks.filter(
+    (t) => t.status === "completed"
+  ).length;
+  const plannedCount = state.tasks.filter(
+    (t) => t.status === "planned"
+  ).length;
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Box>
-        <Text color="cyan">{ICONS.plan} </Text>
-        <Text color="cyan" bold>Plan</Text>
-        <Text color="gray" dimColor>
-          {" "}({state.tasks.filter((t) => t.status === "completed").length}/{state.tasks.length} tasks)
-        </Text>
-      </Box>
-      <Box flexDirection="column">
-        {state.tasks.slice(0, maxRows).map((task, i) => (
-          <TaskNode
-            key={task.id}
-            task={task}
-            isLast={i === state.tasks.length - 1}
-            isSelected={i === state.selectedIndex}
-            treeActive={treeActive}
-          />
-        ))}
-      </Box>
+      {state.phase === "planning" ? (
+        <PlanningPhase content={state.planningContent} />
+      ) : null}
+      {state.tasks.length > 0 ? (
+        <>
+          <Box>
+            <Text color="cyan">{ICONS.plan} </Text>
+            <Text color="cyan" bold>Plan</Text>
+            <Text color="gray" dimColor>
+              {" "}
+              ({completedCount}/{state.tasks.length} tasks
+              {plannedCount > 0 ? `, ${plannedCount} planning` : ""})
+            </Text>
+          </Box>
+          <Box flexDirection="column">
+            {state.tasks.slice(0, maxRows).map((task, i) => (
+              <TaskNode
+                key={task.id}
+                task={task}
+                isLast={i === state.tasks.length - 1}
+                isSelected={i === state.selectedIndex}
+                treeActive={treeActive}
+              />
+            ))}
+          </Box>
+        </>
+      ) : null}
     </Box>
   );
 }

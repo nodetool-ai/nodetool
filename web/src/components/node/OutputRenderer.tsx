@@ -107,50 +107,48 @@ const withOccurrenceSuffix = (
   return n === 0 ? base : `${base}-${n}`;
 };
 
-const stableKeyForOutputValue = (v: any): string => {
+const stableKeyForOutputValue = (v: unknown): string => {
   if (v === null) {
     return "null";
   }
   if (v === undefined) {
     return "undefined";
   }
-  const t = typeof v;
-  if (t === "string") {
+  if (typeof v === "string") {
     return `str:${hashStringBounded(v)}`;
   }
-  if (t === "number" || t === "boolean" || t === "bigint") {
-    return `${t}:${String(v)}`;
+  if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") {
+    return `${typeof v}:${String(v)}`;
   }
   if (v instanceof Uint8Array) {
     return `u8:${hashBytesBounded(v)}`;
   }
   if (Array.isArray(v)) {
-    // Often byte arrays or lists of primitives
     return `arr:${hashBytesBounded(v)}`;
   }
-  if (t === "object") {
-    const id = (v as Record<string, unknown>).id;
+  if (typeof v === "object") {
+    const obj = v as Record<string, unknown>;
+    const id = obj.id;
     if (typeof id === "string" || typeof id === "number") {
       return `id:${String(id)}`;
     }
-    const uri = (v as Record<string, unknown>).uri;
+    const uri = obj.uri;
     if (typeof uri === "string" && uri) {
       return `uri:${uri}`;
     }
-    const type = (v as Record<string, unknown>).type;
-    const name = (v as Record<string, unknown>).name;
+    const type = obj.type;
+    const name = obj.name;
     if (typeof type === "string" && typeof name === "string") {
       return `type-name:${type}:${name}`;
     }
     if (typeof type === "string") {
       return `type:${type}:${hashStringBounded(
-        JSON.stringify(Object.keys(v).slice(0, 50))
+        JSON.stringify(Object.keys(obj).slice(0, 50))
       )}`;
     }
     try {
       return `json:${hashStringBounded(JSON.stringify(v))}`;
     } catch {
-      // JSON.stringify failed, return generic type
       return "object";
     }
   }

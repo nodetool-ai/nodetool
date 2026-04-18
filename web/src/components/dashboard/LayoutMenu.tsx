@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   Button,
   Menu,
@@ -27,19 +28,15 @@ const LayoutMenu: React.FC<LayoutMenuProps> = ({ dockviewApi }) => {
   const [isSaveDialogOpen, setSaveDialogOpen] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState("");
 
-  // Combine multiple store subscriptions into a single selector to reduce re-renders
   const { layouts, activeLayoutId, addLayout, setActiveLayoutId, updateActiveLayout } =
     useLayoutStore(
-      useCallback(
-        (state) => ({
-          layouts: state.layouts,
-          activeLayoutId: state.activeLayoutId,
-          addLayout: state.addLayout,
-          setActiveLayoutId: state.setActiveLayoutId,
-          updateActiveLayout: state.updateActiveLayout
-        }),
-        []
-      )
+      useShallow((state) => ({
+        layouts: state.layouts,
+        activeLayoutId: state.activeLayoutId,
+        addLayout: state.addLayout,
+        setActiveLayoutId: state.setActiveLayoutId,
+        updateActiveLayout: state.updateActiveLayout
+      }))
     );
 
   const open = Boolean(anchorEl);

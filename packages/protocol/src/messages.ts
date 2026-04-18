@@ -16,6 +16,8 @@
 // ---------------------------------------------------------------------------
 
 export enum TaskUpdateEvent {
+  TaskPlanned = "task_planned",
+  TaskRemoved = "task_removed",
   TaskCreated = "task_created",
   StepStarted = "step_started",
   EnteredConclusionStage = "entered_conclusion_stage",
