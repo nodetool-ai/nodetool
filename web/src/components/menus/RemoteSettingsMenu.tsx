@@ -36,7 +36,8 @@ const SETTING_LINKS: Record<string, string> = {
   ELEVENLABS_API_KEY: "https://elevenlabs.io/subscription",
   FAL_API_KEY: "https://fal.ai/dashboard/keys",
   SERPAPI_API_KEY: "https://serpapi.com/manage-api-key",
-  DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard"
+  DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard",
+  MOONSHOT_API_KEY: "https://platform.moonshot.ai/console/api-keys"
 };
 
 const SETTING_BUTTON_TITLES: Record<string, string> = {
@@ -51,7 +52,8 @@ const SETTING_BUTTON_TITLES: Record<string, string> = {
   ELEVENLABS_API_KEY: "Get ElevenLabs API Key",
   FAL_API_KEY: "Get Fal API Key",
   SERPAPI_API_KEY: "Get SerpAPI API Key",
-  DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials"
+  DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials",
+  MOONSHOT_API_KEY: "Get Moonshot API Key"
 };
 
 const SETTING_TOOLTIPS: Record<string, string> = {
@@ -66,7 +68,8 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   ELEVENLABS_API_KEY: "Go to ElevenLabs subscription page",
   FAL_API_KEY: "Go to Fal.ai dashboard",
   SERPAPI_API_KEY: "Go to SerpAPI key management page",
-  DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard"
+  DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard",
+  MOONSHOT_API_KEY: "Go to Moonshot (Kimi) platform API keys page"
 };
 
 interface SettingItemProps {

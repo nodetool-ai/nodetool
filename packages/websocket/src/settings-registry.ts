@@ -254,6 +254,11 @@ sec(
   "Mistral API key for accessing Mistral AI models"
 );
 sec(
+  "MOONSHOT_API_KEY",
+  "Moonshot",
+  "Moonshot (Kimi) API key for accessing Kimi models via the Claude-compatible endpoint"
+);
+sec(
   "MINIMAX_API_KEY",
   "MiniMax",
   "MiniMax API key for accessing MiniMax AI models"

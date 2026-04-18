@@ -15,6 +15,7 @@ import { OpenAIProvider } from "./openai-provider.js";
 import { OllamaProvider } from "./ollama-provider.js";
 import { GroqProvider } from "./groq-provider.js";
 import { MistralProvider } from "./mistral-provider.js";
+import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import { CerebrasProvider } from "./cerebras-provider.js";
@@ -44,6 +45,7 @@ export { OpenAIProvider };
 export { OllamaProvider };
 export { GroqProvider };
 export { MistralProvider };
+export { MoonshotProvider };
 export { OpenRouterProvider };
 export { TogetherProvider };
 export { CerebrasProvider };
@@ -129,6 +131,9 @@ registerBuiltinProvider("groq", GroqProvider, {
 });
 registerBuiltinProvider("mistral", MistralProvider, {
   MISTRAL_API_KEY: process.env["MISTRAL_API_KEY"]
+});
+registerBuiltinProvider("moonshot", MoonshotProvider, {
+  MOONSHOT_API_KEY: process.env["MOONSHOT_API_KEY"]
 });
 registerBuiltinProvider("replicate", ReplicateProvider, {
   REPLICATE_API_TOKEN: process.env["REPLICATE_API_TOKEN"]

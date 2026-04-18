@@ -126,6 +126,12 @@ describe("providerDisplay", () => {
       expect(formatGenericProviderName("zai")).toBe("Z.AI");
     });
 
+    it("should handle special case for Moonshot (Kimi)", () => {
+      expect(formatGenericProviderName("moonshot")).toBe("Moonshot AI");
+      expect(formatGenericProviderName("Moonshot")).toBe("Moonshot AI");
+      expect(formatGenericProviderName("kimi")).toBe("Moonshot AI");
+    });
+
     it("should add spaces before capitals", () => {
       expect(formatGenericProviderName("OpenAI")).toBe("Open Ai");
       expect(formatGenericProviderName("BlackForestLabs")).toBe("Black Forest Labs");
@@ -181,6 +187,8 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("zai")).toBe("https://z.ai");
       expect(getProviderUrl("zai-org")).toBe("https://z.ai");
       expect(getProviderUrl("Z.AI")).toBe("https://z.ai");
+      expect(getProviderUrl("moonshot")).toBe("https://platform.moonshot.ai");
+      expect(getProviderUrl("kimi")).toBe("https://platform.moonshot.ai");
     });
 
     it("should return null for unknown providers", () => {
