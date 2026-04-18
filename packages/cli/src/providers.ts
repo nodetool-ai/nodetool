@@ -16,6 +16,7 @@ import {
   GeminiProvider,
   MistralProvider,
   GroqProvider,
+  MoonshotProvider,
   ClaudeAgentProvider,
   BaseProvider as BaseProviderClass
 } from "@nodetool/runtime";
@@ -30,6 +31,7 @@ export const KNOWN_PROVIDERS = [
   "gemini",
   "mistral",
   "groq",
+  "moonshot",
   "claude_agent"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
@@ -42,6 +44,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   gemini: "gemini-2.0-flash",
   mistral: "mistral-large-latest",
   groq: "llama-3.3-70b-versatile",
+  moonshot: "kimi-k2-turbo-preview",
   claude_agent: "claude-opus-4-6"
 };
 
@@ -78,6 +81,10 @@ export async function createProvider(
       return new GroqProvider({
         GROQ_API_KEY: await resolveKey("GROQ_API_KEY")
       });
+    case "moonshot":
+      return new MoonshotProvider({
+        MOONSHOT_API_KEY: await resolveKey("MOONSHOT_API_KEY")
+      });
     case "claude_agent":
       return new ClaudeAgentProvider();
     default:
@@ -95,6 +102,7 @@ export function availableProviders(): string[] {
   if (process.env["GEMINI_API_KEY"]) available.push("gemini");
   if (process.env["MISTRAL_API_KEY"]) available.push("mistral");
   if (process.env["GROQ_API_KEY"]) available.push("groq");
+  if (process.env["MOONSHOT_API_KEY"]) available.push("moonshot");
   available.push("ollama"); // always available (local)
   return available;
 }
