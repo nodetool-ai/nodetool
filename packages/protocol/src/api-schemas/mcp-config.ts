@@ -32,14 +32,22 @@ export const installInput = z.object({
 export type InstallInput = z.infer<typeof installInput>;
 
 // Each result element has either success=true+configPath OR success=false+error.
-// We use a discriminated union so the client gets narrowing.
-export const installResult = z.object({
-  target: mcpTarget,
-  label: z.string(),
-  success: z.boolean(),
-  configPath: z.string().optional(),
-  error: z.string().optional()
-});
+// Modeled as a real discriminated union so clients get exhaustive narrowing
+// on `result.success` (true → configPath, false → error).
+export const installResult = z.discriminatedUnion("success", [
+  z.object({
+    target: mcpTarget,
+    label: z.string(),
+    success: z.literal(true),
+    configPath: z.string()
+  }),
+  z.object({
+    target: mcpTarget,
+    label: z.string(),
+    success: z.literal(false),
+    error: z.string()
+  })
+]);
 export type InstallResult = z.infer<typeof installResult>;
 
 export const installOutput = z.object({

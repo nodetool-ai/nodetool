@@ -12,7 +12,9 @@ interface RouteOptions {
 }
 
 const filesRoutes: FastifyPluginAsync<RouteOptions> = async (app, _opts) => {
-  app.get("/api/files/download", async (req, reply) => {
+  // Register all methods so unsupported verbs reach the handler and get the
+  // explicit 405 response instead of Fastify's default 404.
+  app.all("/api/files/download", async (req, reply) => {
     await bridge(req, reply, (request) => handleFileRequest(request));
   });
 };

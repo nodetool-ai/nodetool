@@ -70,7 +70,7 @@ describe("tRPC /trpc/settings.list over Fastify", () => {
     // Mock model reads to produce a deterministic (empty-DB) response so the
     // snapshot is the registry defaults with env/DB values resolved.
     vi.spyOn(Setting, "listForUser").mockResolvedValue([]);
-    vi.spyOn(Secret, "find").mockResolvedValue(null);
+    vi.spyOn(Secret, "listForUser").mockResolvedValue([[], ""]);
 
     const app = buildTestApp();
     await app.ready();
