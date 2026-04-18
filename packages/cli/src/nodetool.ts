@@ -19,6 +19,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import superjson from "superjson";
+import type { AppRouter } from "@nodetool/websocket/trpc";
 import { workflowToDsl } from "@nodetool/dsl";
 import { initDb, Workflow, Secret, getSecret } from "@nodetool/models";
 import { getDefaultDbPath } from "@nodetool/config";
@@ -46,33 +49,26 @@ async function setupDb(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// HTTP API helper
+// API clients
 // ---------------------------------------------------------------------------
 
-async function apiGet(apiUrl: string, path: string): Promise<unknown> {
-  const res = await fetch(`${apiUrl}${path}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
+function createApiClient(apiUrl: string) {
+  return createTRPCClient<AppRouter>({
+    links: [
+      httpBatchLink({
+        url: `${apiUrl}/trpc`,
+        transformer: superjson
+      })
+    ]
+  });
 }
 
+// REST GET (text) — used for the DSL export endpoint which stays REST
+// because it returns a TypeScript source string rather than JSON.
 async function apiGetText(apiUrl: string, path: string): Promise<string> {
   const res = await fetch(`${apiUrl}${path}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
   return res.text();
-}
-
-async function apiPost(
-  apiUrl: string,
-  path: string,
-  body: unknown
-): Promise<unknown> {
-  const res = await fetch(`${apiUrl}${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
 }
 
 // ---------------------------------------------------------------------------
@@ -269,11 +265,11 @@ workflows
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const data = (await apiGet(
-        opts.apiUrl,
-        `/api/workflows?limit=${opts.limit}`
-      )) as { workflows?: unknown[] };
-      const rows = (data.workflows ?? []) as Record<string, unknown>[];
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.workflows.list.query({
+        limit: Number.parseInt(opts.limit, 10)
+      });
+      const rows = data.workflows as Record<string, unknown>[];
       if (opts.json) {
         asJson(rows);
         return;
@@ -302,12 +298,13 @@ workflows
   .option("--json", "Output as JSON")
   .action(async (workflowId, opts) => {
     try {
-      const data = await apiGet(opts.apiUrl, `/api/workflows/${workflowId}`);
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.workflows.get.query({ id: workflowId });
       if (opts.json) {
         asJson(data);
         return;
       }
-      const w = data as Record<string, unknown>;
+      const w = data as unknown as Record<string, unknown>;
       printTable([
         {
           id: w["id"],
@@ -515,12 +512,12 @@ jobs
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const qs = new URLSearchParams({ limit: opts.limit });
-      if (opts.workflowId) qs.set("workflow_id", opts.workflowId);
-      const data = (await apiGet(opts.apiUrl, `/api/jobs?${qs}`)) as {
-        jobs?: unknown[];
-      };
-      const rows = (data.jobs ?? []) as Record<string, unknown>[];
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.jobs.list.query({
+        limit: Number.parseInt(opts.limit, 10),
+        ...(opts.workflowId ? { workflow_id: opts.workflowId } : {})
+      });
+      const rows = data.jobs as Record<string, unknown>[];
       if (opts.json) {
         asJson(rows);
         return;
@@ -550,12 +547,13 @@ jobs
   .option("--json", "Output as JSON")
   .action(async (jobId, opts) => {
     try {
-      const data = await apiGet(opts.apiUrl, `/api/jobs/${jobId}`);
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.jobs.get.query({ id: jobId });
       if (opts.json) {
         asJson(data);
         return;
       }
-      const j = data as Record<string, unknown>;
+      const j = data as unknown as Record<string, unknown>;
       printTable([
         {
           id: j["id"],
@@ -590,13 +588,20 @@ assets
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const qs = new URLSearchParams({ limit: opts.limit });
-      if (opts.query) qs.set("query", opts.query);
-      if (opts.contentType) qs.set("content_type", opts.contentType);
-      const data = (await apiGet(opts.apiUrl, `/api/assets?${qs}`)) as {
-        assets?: unknown[];
-      };
-      const rows = (data.assets ?? []) as Record<string, unknown>[];
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.assets.list.query({
+        page_size: Number.parseInt(opts.limit, 10),
+        ...(opts.contentType ? { content_type: opts.contentType } : {})
+      });
+      // Note: --query isn't forwarded because assets.list has no server-side
+      // search; keep local filtering until the tRPC schema exposes one.
+      let rows = data.assets as Record<string, unknown>[];
+      if (opts.query) {
+        const q = String(opts.query).toLowerCase();
+        rows = rows.filter((r) =>
+          String(r["name"] ?? "").toLowerCase().includes(q)
+        );
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -626,12 +631,13 @@ assets
   .option("--json", "Output as JSON")
   .action(async (assetId, opts) => {
     try {
-      const data = await apiGet(opts.apiUrl, `/api/assets/${assetId}`);
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.assets.get.query({ id: assetId });
       if (opts.json) {
         asJson(data);
         return;
       }
-      const a = data as Record<string, unknown>;
+      const a = data as unknown as Record<string, unknown>;
       printTable([
         {
           id: a["id"],
