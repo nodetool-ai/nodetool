@@ -4354,7 +4354,7 @@ export class UnifiedWebSocketRunner {
       }).catch((err) => {
         log.warn("Failed to send system stats", { error: String(err) });
       });
-    }, 1_000);
+    }, 30_000);
   }
 
   private stopStatsBroadcast(): void {
