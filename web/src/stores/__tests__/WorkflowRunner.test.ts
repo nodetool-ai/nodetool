@@ -263,7 +263,7 @@ describe("WorkflowRunner", () => {
     });
 
     it("only starts one run when called consecutively", async () => {
-      let resolveConnection: (() => void) | null = null;
+      let resolveConnection!: () => void;
       (globalWebSocketManager.ensureConnection as jest.Mock).mockImplementation(
         () =>
           new Promise<void>((resolve) => {
@@ -275,7 +275,7 @@ describe("WorkflowRunner", () => {
       await Promise.resolve();
       const secondRunPromise = store.getState().run({}, testWorkflow, [], []);
 
-      resolveConnection?.();
+      resolveConnection();
       await Promise.all([firstRunPromise, secondRunPromise]);
 
       expect(globalWebSocketManager.ensureConnection).toHaveBeenCalledTimes(1);
