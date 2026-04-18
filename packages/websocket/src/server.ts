@@ -365,7 +365,14 @@ const app: FastifyInstance = (Fastify as any)({
   trustProxy: true,
   bodyLimit: 100 * 1024 * 1024, // 100 MB
   logger: false,
-  ignoreTrailingSlash: true,
+  // tRPC's httpBatchLink encodes all batched procedure names into a single
+  // URL path segment joined with commas (e.g. `/trpc/foo,bar,baz`). Fastify's
+  // default `maxParamLength` of 100 rejects larger batches with a 404 — bump
+  // it so batches up to ~50 procedures route correctly.
+  routerOptions: {
+    ignoreTrailingSlash: true,
+    maxParamLength: 2000
+  },
   genReqId: (req: {
     headers: Record<string, string | string[] | undefined>;
   }) => {
@@ -423,7 +430,14 @@ app.addHook("onRequest", async (req, reply) => {
   }
 
   // Static frontend assets don't require auth (served by fastifyStatic)
-  if (hasStaticApp && req.method === "GET" && !pathname.startsWith("/api") && !pathname.startsWith("/ws") && !pathname.startsWith("/v1")) {
+  if (
+    hasStaticApp &&
+    req.method === "GET" &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/ws") &&
+    !pathname.startsWith("/v1") &&
+    !pathname.startsWith("/trpc")
+  ) {
     return;
   }
 
@@ -672,6 +686,7 @@ app.setNotFoundHandler((req, reply) => {
     !pathname.startsWith("/ws") &&
     !pathname.startsWith("/v1") &&
     !pathname.startsWith("/oauth") &&
+    !pathname.startsWith("/trpc") &&
     !pathname.includes(".")
   ) {
     return reply.sendFile("index.html");

@@ -1,11 +1,15 @@
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
+import { createLogger } from "@nodetool/config";
 import {
+  BaseProvider,
   getProvider,
   isProviderConfigured,
   listRegisteredProviderIds,
   type ProviderId
 } from "@nodetool/runtime";
+
+const log = createLogger("nodetool.websocket.trpc.models");
 import {
   readCachedHfModels,
   searchCachedHfModels,
@@ -23,14 +27,35 @@ import { getSecret } from "@nodetool/models";
 
 // ── Local schemas (mirrored in packages/protocol/src/api-schemas/models.ts) ──
 
+// Mirrors UnifiedModel in @nodetool/protocol. Any field omitted here is
+// stripped by the tRPC output validator — which is exactly how the `provider`
+// field silently disappeared and broke the client-side provider filter.
 const unifiedModelSchema = z.object({
   id: z.string(),
   type: z.string().nullish(),
   name: z.string(),
+  provider: z.string().nullish(),
   repo_id: z.string().nullish(),
   path: z.string().nullish(),
+  artifact_family: z.string().nullish(),
+  artifact_component: z.string().nullish(),
+  artifact_confidence: z.number().nullish(),
+  artifact_evidence: z.array(z.string()).nullish(),
+  cache_path: z.string().nullish(),
+  allow_patterns: z.array(z.string()).nullish(),
+  ignore_patterns: z.array(z.string()).nullish(),
+  description: z.string().nullish(),
+  readme: z.string().nullish(),
   downloaded: z.boolean().nullish(),
-  tags: z.array(z.string()).nullish()
+  size_on_disk: z.number().nullish(),
+  pipeline_tag: z.string().nullish(),
+  tags: z.array(z.string()).nullish(),
+  has_model_index: z.boolean().nullish(),
+  downloads: z.number().nullish(),
+  likes: z.number().nullish(),
+  supported_tasks: z.array(z.string()).nullish(),
+  trending_score: z.number().nullish(),
+  image: z.string().nullish()
 });
 
 const modelsListOutput = z.array(unifiedModelSchema);
@@ -457,11 +482,33 @@ async function instantiateProvider(
   provider: ProviderId,
   userId: string
 ): Promise<ProviderInstance | null> {
-  if (!(await isProviderConfigured(provider, userId))) return null;
+  if (!(await isProviderConfigured(provider, userId))) {
+    log.debug("Provider not configured", { provider, userId });
+    return null;
+  }
   try {
     return await getProvider(provider, userId);
-  } catch {
+  } catch (error) {
+    log.warn("Provider instantiation failed", { provider, error });
     return null;
+  }
+}
+
+/**
+ * Run `fn`, log and return `fallback` on error. Unmasks silent provider
+ * failures so the server log shows why a `*ByProvider` query came back empty.
+ */
+async function safeProviderCall<T>(
+  label: string,
+  context: Record<string, unknown>,
+  fn: () => Promise<T>,
+  fallback: T
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    log.warn(`${label} failed`, { ...context, error });
+    return fallback;
   }
 }
 
@@ -541,6 +588,7 @@ function toUnifiedLanguageModel(model: {
     id: model.id,
     type: "language_model",
     name: model.name,
+    provider: model.provider,
     repo_id: null,
     path: model.id,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
@@ -556,6 +604,7 @@ function toUnifiedModel(
     id: model.id,
     type,
     name: model.name,
+    provider: model.provider,
     repo_id: null,
     path: model.id,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
@@ -634,6 +683,44 @@ async function checkHfCache(body: {
   };
 }
 
+// A provider's capability set is derived from which BaseProvider methods it
+// overrides. Without this, `useImageModelProviders`, `useTTSProviders`, etc.
+// filter to zero providers and the corresponding Select components show empty.
+function providerCapabilities(instance: ProviderInstance): string[] {
+  const capabilities = ["generate_message", "generate_messages"];
+  if (
+    instance.getAvailableImageModels !==
+    BaseProvider.prototype.getAvailableImageModels
+  ) {
+    capabilities.push("text_to_image", "image_to_image");
+  }
+  if (
+    instance.getAvailableVideoModels !==
+    BaseProvider.prototype.getAvailableVideoModels
+  ) {
+    capabilities.push("text_to_video", "image_to_video");
+  }
+  if (
+    instance.getAvailableTTSModels !==
+    BaseProvider.prototype.getAvailableTTSModels
+  ) {
+    capabilities.push("text_to_speech");
+  }
+  if (
+    instance.getAvailableASRModels !==
+    BaseProvider.prototype.getAvailableASRModels
+  ) {
+    capabilities.push("automatic_speech_recognition");
+  }
+  if (
+    instance.getAvailableEmbeddingModels !==
+    BaseProvider.prototype.getAvailableEmbeddingModels
+  ) {
+    capabilities.push("generate_embedding");
+  }
+  return capabilities;
+}
+
 // ── Router ─────────────────────────────────────────────────────────
 
 export const modelsRouter = router({
@@ -648,7 +735,10 @@ export const modelsRouter = router({
       for (const providerId of await getAvailableProviderIds(userId)) {
         const instance = await instantiateProvider(providerId, userId);
         if (!instance) continue;
-        infos.push({ provider: providerId, capabilities: ["generate_message", "generate_messages"] });
+        infos.push({
+          provider: providerId,
+          capabilities: providerCapabilities(instance)
+        });
       }
       return infos;
     }),
@@ -798,16 +888,19 @@ export const modelsRouter = router({
    */
   ollama: protectedProcedure
     .output(ollamaModelsOutput)
-    .query(async ({ ctx }) => {
-      try {
-        const instance = await instantiateProvider("ollama", ctx.userId);
-        if (!instance) return [];
-        const models = await instance.getAvailableLanguageModels();
-        return models.map(toOllamaModel);
-      } catch {
-        return [];
-      }
-    }),
+    .query(async ({ ctx }) =>
+      safeProviderCall(
+        "ollama models",
+        { provider: "ollama", userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider("ollama", ctx.userId);
+          if (!instance) return [];
+          const models = await instance.getAvailableLanguageModels();
+          return models.map(toOllamaModel);
+        },
+        []
+      )
+    ),
 
   /**
    * LLM models by provider.
@@ -815,19 +908,22 @@ export const modelsRouter = router({
   llmByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        const instance = await instantiateProvider(
-          input.provider as ProviderId,
-          ctx.userId
-        );
-        if (!instance) return [];
-        const models = await instance.getAvailableLanguageModels();
-        return models.map(toUnifiedLanguageModel);
-      } catch {
-        return [];
-      }
-    }),
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "llmByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableLanguageModels();
+          return models.map(toUnifiedLanguageModel);
+        },
+        []
+      )
+    ),
 
   /**
    * Image models by provider.
@@ -835,19 +931,22 @@ export const modelsRouter = router({
   imageByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        const instance = await instantiateProvider(
-          input.provider as ProviderId,
-          ctx.userId
-        );
-        if (!instance) return [];
-        const models = await instance.getAvailableImageModels();
-        return models.map((m) => toUnifiedModel(m, "image_model"));
-      } catch {
-        return [];
-      }
-    }),
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "imageByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableImageModels();
+          return models.map((m) => toUnifiedModel(m, "image_model"));
+        },
+        []
+      )
+    ),
 
   /**
    * All TTS models across all providers.
@@ -855,16 +954,19 @@ export const modelsRouter = router({
   tts: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
-      availableIds.map(async (providerId) => {
-        try {
-          const instance = await instantiateProvider(providerId, ctx.userId);
-          if (!instance) return [];
-          const models = await instance.getAvailableTTSModels();
-          return models.map((m) => toUnifiedModel(m, "tts_model"));
-        } catch {
-          return [];
-        }
-      })
+      availableIds.map((providerId) =>
+        safeProviderCall(
+          "tts (aggregate)",
+          { provider: providerId, userId: ctx.userId },
+          async () => {
+            const instance = await instantiateProvider(providerId, ctx.userId);
+            if (!instance) return [] as UnifiedModel[];
+            const models = await instance.getAvailableTTSModels();
+            return models.map((m) => toUnifiedModel(m, "tts_model"));
+          },
+          [] as UnifiedModel[]
+        )
+      )
     );
     return results.flat();
   }),
@@ -875,19 +977,22 @@ export const modelsRouter = router({
   ttsByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        const instance = await instantiateProvider(
-          input.provider as ProviderId,
-          ctx.userId
-        );
-        if (!instance) return [];
-        const models = await instance.getAvailableTTSModels();
-        return models.map((m) => toUnifiedModel(m, "tts_model"));
-      } catch {
-        return [];
-      }
-    }),
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "ttsByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableTTSModels();
+          return models.map((m) => toUnifiedModel(m, "tts_model"));
+        },
+        []
+      )
+    ),
 
   /**
    * All ASR models across all providers.
@@ -895,16 +1000,19 @@ export const modelsRouter = router({
   asr: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
-      availableIds.map(async (providerId) => {
-        try {
-          const instance = await instantiateProvider(providerId, ctx.userId);
-          if (!instance) return [];
-          const models = await instance.getAvailableASRModels();
-          return models.map((m) => toUnifiedModel(m, "asr_model"));
-        } catch {
-          return [];
-        }
-      })
+      availableIds.map((providerId) =>
+        safeProviderCall(
+          "asr (aggregate)",
+          { provider: providerId, userId: ctx.userId },
+          async () => {
+            const instance = await instantiateProvider(providerId, ctx.userId);
+            if (!instance) return [] as UnifiedModel[];
+            const models = await instance.getAvailableASRModels();
+            return models.map((m) => toUnifiedModel(m, "asr_model"));
+          },
+          [] as UnifiedModel[]
+        )
+      )
     );
     return results.flat();
   }),
@@ -915,19 +1023,22 @@ export const modelsRouter = router({
   asrByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        const instance = await instantiateProvider(
-          input.provider as ProviderId,
-          ctx.userId
-        );
-        if (!instance) return [];
-        const models = await instance.getAvailableASRModels();
-        return models.map((m) => toUnifiedModel(m, "asr_model"));
-      } catch {
-        return [];
-      }
-    }),
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "asrByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableASRModels();
+          return models.map((m) => toUnifiedModel(m, "asr_model"));
+        },
+        []
+      )
+    ),
 
   /**
    * All video models across all providers.
@@ -935,16 +1046,19 @@ export const modelsRouter = router({
   video: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
-      availableIds.map(async (providerId) => {
-        try {
-          const instance = await instantiateProvider(providerId, ctx.userId);
-          if (!instance) return [];
-          const models = await instance.getAvailableVideoModels();
-          return models.map((m) => toUnifiedModel(m, "video_model"));
-        } catch {
-          return [];
-        }
-      })
+      availableIds.map((providerId) =>
+        safeProviderCall(
+          "video (aggregate)",
+          { provider: providerId, userId: ctx.userId },
+          async () => {
+            const instance = await instantiateProvider(providerId, ctx.userId);
+            if (!instance) return [] as UnifiedModel[];
+            const models = await instance.getAvailableVideoModels();
+            return models.map((m) => toUnifiedModel(m, "video_model"));
+          },
+          [] as UnifiedModel[]
+        )
+      )
     );
     return results.flat();
   }),
@@ -955,19 +1069,22 @@ export const modelsRouter = router({
   videoByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        const instance = await instantiateProvider(
-          input.provider as ProviderId,
-          ctx.userId
-        );
-        if (!instance) return [];
-        const models = await instance.getAvailableVideoModels();
-        return models.map((m) => toUnifiedModel(m, "video_model"));
-      } catch {
-        return [];
-      }
-    }),
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "videoByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableVideoModels();
+          return models.map((m) => toUnifiedModel(m, "video_model"));
+        },
+        []
+      )
+    ),
 
   /**
    * Embedding models by provider.
@@ -975,19 +1092,22 @@ export const modelsRouter = router({
   embeddingByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) => {
-      try {
-        const instance = await instantiateProvider(
-          input.provider as ProviderId,
-          ctx.userId
-        );
-        if (!instance) return [];
-        const models = await instance.getAvailableEmbeddingModels();
-        return models.map((m) => toUnifiedModel(m, "embedding_model"));
-      } catch {
-        return [];
-      }
-    }),
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "embeddingByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableEmbeddingModels();
+          return models.map((m) => toUnifiedModel(m, "embedding_model"));
+        },
+        []
+      )
+    ),
 
   /**
    * Ollama model info (stub).

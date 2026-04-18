@@ -40,9 +40,7 @@ interface ThrowApiErrorCause extends Error {
   apiCode: ApiErrorCode;
 }
 
-const TRPC_CODE_BY_API_CODE: Partial<
-  Record<ApiErrorCode, TRPCError["code"]>
-> = {
+const TRPC_CODE_BY_API_CODE: Record<ApiErrorCode, TRPCError["code"]> = {
   [ApiErrorCode.NOT_FOUND]: "NOT_FOUND",
   [ApiErrorCode.WORKFLOW_NOT_FOUND]: "NOT_FOUND",
   [ApiErrorCode.ASSET_NOT_FOUND]: "NOT_FOUND",

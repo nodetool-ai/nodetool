@@ -764,7 +764,7 @@ describe("workflows router", () => {
         const ver = makeVersion({
           id: "ver-1",
           version: 1,
-          graph: { nodes: [{ id: "n1" }], edges: [] }
+          graph: { nodes: [{ id: "n1", type: "test.Node" }], edges: [] }
         });
         (WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
 
