@@ -169,13 +169,11 @@ const useStableRows = (rows: Row[]): Row[] => {
   return out;
 };
 
-const rowWrapperStyle: React.CSSProperties = {
-  maxWidth: 800,
+const rowWrapperStyle = css({
   width: "100%",
-  margin: "0 auto",
   padding: "0 .5em",
   boxSizing: "border-box"
-};
+});
 
 const MessageRowView: React.FC<{ row: MessageRow }> = ({ row }) => {
   const ctx = useTimelineRowCtx();
@@ -187,7 +185,10 @@ const MessageRowView: React.FC<{ row: MessageRow }> = ({ row }) => {
     }
   }
   return (
-    <div style={rowWrapperStyle} className="chat-messages-list">
+    <div
+      css={[rowWrapperStyle, ctx.componentStyles.chatMessagesList]}
+      className="chat-messages-list"
+    >
       <MessageView
         message={row.message}
         expandedThoughts={ctx.expandedThoughts}
@@ -202,7 +203,7 @@ const MessageRowView: React.FC<{ row: MessageRow }> = ({ row }) => {
 };
 
 const StatusRowView: React.FC<{ row: StatusRow }> = ({ row }) => {
-  const { theme } = useTimelineRowCtx();
+  const { theme, componentStyles } = useTimelineRowCtx();
   let content: React.ReactNode;
   switch (row.kind) {
     case "status-loading":
@@ -320,7 +321,10 @@ const StatusRowView: React.FC<{ row: StatusRow }> = ({ row }) => {
     }
   }
   return (
-    <div style={rowWrapperStyle} className="chat-messages-list">
+    <div
+      css={[rowWrapperStyle, componentStyles.chatMessagesList]}
+      className="chat-messages-list"
+    >
       {content}
     </div>
   );
@@ -369,6 +373,9 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       css({
         flex: 1,
         minHeight: 0,
+        width: "100%",
+        maxWidth: 800,
+        alignSelf: "center",
         overflowY: "auto",
         padding: ".5em 0",
         position: "relative",
@@ -553,17 +560,13 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     }
     previousMessageCountRef.current = messages.length;
     const last = messages[messages.length - 1] ?? null;
-    if (last?.role === "user" && lastUserRowIndex >= 0) {
-      const rafId = requestAnimationFrame(() => {
-        listRef.current?.scrollToIndex({
-          index: lastUserRowIndex,
-          viewOffset: 0,
-          animated: true
-        });
+    if (last?.role === "user") {
+      const raf = requestAnimationFrame(() => {
+        listRef.current?.scrollToEnd({ animated: true });
       });
-      return () => cancelAnimationFrame(rafId);
+      return () => cancelAnimationFrame(raf);
     }
-  }, [messages, lastUserRowIndex]);
+  }, [messages]);
 
   const handleScroll = useCallback(() => {
     const state = listRef.current?.getState?.();
@@ -592,8 +595,9 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
           renderItem={renderRow}
           estimatedItemSize={90}
           initialScrollAtEnd
+          alignItemsAtEnd
           maintainScrollAtEnd
-          maintainScrollAtEndThreshold={0.1}
+          maintainScrollAtEndThreshold={0.2}
           maintainVisibleContentPosition
           onScroll={handleScroll}
           css={listStyles}

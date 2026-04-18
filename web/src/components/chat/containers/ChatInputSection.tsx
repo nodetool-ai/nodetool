@@ -12,8 +12,8 @@ export type ChatComposerVariant = "media" | "simple";
 
 const styles = (_theme: Theme) =>
   css({
-    width: "90%",
-    maxWidth: "1000px",
+    width: "100%",
+    maxWidth: 800,
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
