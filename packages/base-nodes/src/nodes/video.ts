@@ -1056,7 +1056,11 @@ export class ConcatVideoNode extends BaseNode {
   declare video_b: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const inputValues = [this.video_a, this.video_b, ...this.dynamicProps.values()];
+    const inputValues = [
+      this.video_a,
+      this.video_b,
+      ...Array.from(this.dynamicProps.values())
+    ];
     const parts: Uint8Array[] = [];
     for (const input of inputValues) {
       const bytes = await videoBytesAsync(input, context);
@@ -1076,7 +1080,7 @@ export class ConcatVideoNode extends BaseNode {
     const outputPath = path.join(concatDir, "output.mp4");
     try {
       const listEntries = inputs
-        .map((input) => `file '${input.path.replace(/'/g, "'\\''")}'`)
+        .map((input) => `file '${input.path}'`)
         .join("\n");
       await fs.writeFile(
         listPath,

@@ -30,12 +30,12 @@ describe("dynamic concat inputs", () => {
     const node = new ConcatTextNode();
     node.assign({
       a: "hello",
-      b: " ",
+      b: ", ",
       c: "dynamic",
       d: " world"
     });
 
     const result = await node.process();
-    expect(result.output).toBe("hello dynamic world");
+    expect(result.output).toBe("hello, dynamic world");
   });
 });

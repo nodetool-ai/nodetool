@@ -26,10 +26,9 @@ export class Add extends BaseNode {
   declare b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const values = [this.a, this.b, ...this.dynamicProps.values()];
+    const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())];
     const sum = values.reduce((acc: number, value: unknown) => {
-      const num = Number(value ?? 0);
-      return Number.isFinite(num) ? acc + num : acc;
+      return acc + Number(value ?? 0);
     }, 0);
     return { result: sum };
   }
@@ -80,7 +79,7 @@ export class StringConcat extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const sep = String(this.separator ?? "");
-    const values = [this.a, this.b, ...this.dynamicProps.values()].map(
+    const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
       (value) => String(value ?? "")
     );
     return { result: values.join(sep) };

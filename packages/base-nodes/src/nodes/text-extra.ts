@@ -2212,8 +2212,8 @@ export class ConcatTextNode extends BaseNode {
   declare b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const values = [this.a, this.b, ...this.dynamicProps.values()].map((value) =>
-      String(value ?? "")
+    const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
+      (value) => String(value ?? "")
     );
     return { output: values.join("") };
   }
