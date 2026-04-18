@@ -20,30 +20,30 @@ jobs:
       attestations: write
 
     steps:
-      - name: Free disk space
-        run: |
-          echo "=== Before cleanup ==="
-          df -h
-          # Remove large pre-installed packages
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          # Remove additional large directories
-          sudo rm -rf /usr/share/swift
-          sudo rm -rf /usr/local/graalvm
-          sudo rm -rf /usr/local/.ghcup
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo rm -rf /usr/local/share/powershell
-          sudo rm -rf /usr/share/miniconda
-          # Clean up Docker images
-          docker system prune -af || echo "Warning: Docker cleanup failed with exit code $?"
-          # Clean apt cache
-          sudo apt-get clean
-          sudo rm -rf /var/lib/apt/lists/*
-          echo "=== After cleanup ==="
-          df -h
+      # - name: Free disk space
+      #   run: |
+      #     echo "=== Before cleanup ==="
+      #     df -h
+      #     # Remove large pre-installed packages
+      #     sudo rm -rf /usr/share/dotnet
+      #     sudo rm -rf /usr/local/lib/android
+      #     sudo rm -rf /opt/ghc
+      #     sudo rm -rf "/usr/local/share/boost"
+      #     sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      #     # Remove additional large directories
+      #     sudo rm -rf /usr/share/swift
+      #     sudo rm -rf /usr/local/graalvm
+      #     sudo rm -rf /usr/local/.ghcup
+      #     sudo rm -rf /opt/hostedtoolcache/CodeQL
+      #     sudo rm -rf /usr/local/share/powershell
+      #     sudo rm -rf /usr/share/miniconda
+      #     # Clean up Docker images
+      #     docker system prune -af || echo "Warning: Docker cleanup failed with exit code $?"
+      #     # Clean apt cache
+      #     sudo apt-get clean
+      #     sudo rm -rf /var/lib/apt/lists/*
+      #     echo "=== After cleanup ==="
+      #     df -h
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -56,8 +56,8 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
