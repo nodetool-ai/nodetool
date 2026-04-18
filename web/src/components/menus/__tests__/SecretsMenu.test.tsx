@@ -175,6 +175,36 @@ describe("SecretsMenu", () => {
 
       expect(mockSecretsStore.fetchSecrets).toHaveBeenCalled();
     });
+
+    it("should separate set and unset API keys with headers and a divider", async () => {
+      setupSecrets([
+        {
+          key: "OPENAI_API_KEY",
+          description: "OpenAI API key",
+          is_configured: true,
+          updated_at: new Date().toISOString()
+        },
+        {
+          key: "GROQ_API_KEY",
+          description: "Groq API key",
+          is_configured: false,
+          updated_at: null
+        }
+      ]);
+
+      render(<SecretsMenu />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("Set API Keys")).toBeInTheDocument();
+        expect(screen.getByText("Unset API Keys")).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByRole("separator", {
+          name: "Configured and unconfigured API keys separator"
+        })
+      ).toBeInTheDocument();
+    });
   });
 
 

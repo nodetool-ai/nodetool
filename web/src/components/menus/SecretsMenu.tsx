@@ -3,7 +3,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { EditButton } from "../ui_primitives/EditButton";
 import WarningIcon from "@mui/icons-material/Warning";
 import { Box } from "@mui/material";
-import { FlexColumn, FlexRow, TextInput, Text, Caption, Tooltip, Dialog, ToolbarIconButton } from "../ui_primitives";
+import { FlexColumn, FlexRow, TextInput, Text, Caption, Tooltip, Dialog, ToolbarIconButton, Divider } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
@@ -206,6 +206,16 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                 {/* All secrets — configured first, then unconfigured */}
                 {secretsByStatus.configured.length > 0 && (
                   <FlexColumn className="settings-section">
+                    <Caption
+                      sx={{
+                        opacity: 0.7,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        marginBottom: "0.25em"
+                      }}
+                    >
+                      Set API Keys
+                    </Caption>
                     {secretsByStatus.configured.map((secret: SecretResponse) => (
                       <FlexRow
                         key={secret.key}
@@ -278,9 +288,28 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                   </FlexColumn>
                 )}
 
+                {secretsByStatus.configured.length > 0 &&
+                  secretsByStatus.unconfigured.length > 0 && (
+                    <Divider
+                      spacing="compact"
+                      color="subtle"
+                      aria-label="Configured and unconfigured API keys separator"
+                    />
+                  )}
+
                 {/* Unconfigured Secrets Section */}
                 {secretsByStatus.unconfigured.length > 0 && (
                   <FlexColumn className="settings-section">
+                    <Caption
+                      sx={{
+                        opacity: 0.7,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                        marginBottom: "0.25em"
+                      }}
+                    >
+                      Unset API Keys
+                    </Caption>
                     {secretsByStatus.unconfigured.map((secret: SecretResponse) => (
                       <FlexRow
                         key={secret.key}
