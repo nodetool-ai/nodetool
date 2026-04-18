@@ -2,17 +2,32 @@
  * Shared sandboxed JavaScript execution engine.
  *
  * Used by both the MiniJSAgentTool (agent tool) and the CodeNode (workflow node).
- * Runs user code in an isolated `vm` context with a small curated surface:
- * vanilla JavaScript plus a handful of bridge functions (`fetch`, `workspace`,
- * `getSecret`, `uuid`, `sleep`, `console`). Library-powered helpers (lodash,
- * dayjs, cheerio, csv-parse, validator) are intentionally NOT exposed here —
- * use the dedicated workflow nodes instead (lib.datetime.*, lib.html.*,
- * lib.data.ParseCSV, lib.validate.*, etc.). Keeping the sandbox lib-free
- * makes snippet behaviour identical between dev and packaged Electron, and
- * avoids shipping those packages into the user-code surface.
+ * Runs user code in an isolated QuickJS WebAssembly context — the guest has its
+ * own heap inside the WASM instance, so there is a real memory/CPU boundary
+ * between host and guest (unlike Node's `node:vm`, which shares the V8 heap).
+ *
+ * The exposed surface is a small curated one: vanilla JavaScript plus a handful
+ * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
+ * `console`). Library-powered helpers (lodash, dayjs, cheerio, csv-parse,
+ * validator) are intentionally NOT exposed here — use the dedicated workflow
+ * nodes instead (lib.datetime.*, lib.html.*, lib.data.ParseCSV,
+ * lib.validate.*, etc.). Keeping the sandbox lib-free makes snippet behaviour
+ * identical between dev and packaged Electron, and avoids shipping those
+ * packages into the user-code surface.
  */
 
-import * as vm from "node:vm";
+import {
+  addSerializer,
+  expose,
+  loadQuickJs
+} from "@sebastianwessel/quickjs";
+// The variant package uses a `default` export. With `esModuleInterop` this
+// typechecks as a namespace, so reach through `.default` explicitly.
+import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
+const quickJsVariant = (quickJsVariantModule as unknown as {
+  default: Parameters<typeof loadQuickJs>[0];
+}).default;
+import { Scope } from "quickjs-emscripten-core";
 import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
@@ -24,6 +39,88 @@ export const MAX_OUTPUT_SIZE = 100_000;
 export const MAX_LOOP_ITERATIONS = 10_000;
 export const MAX_FETCH_CALLS = 20;
 export const MAX_RESPONSE_BODY_SIZE = 1_000_000;
+/** Guest heap cap. QuickJS aborts if the guest tries to allocate beyond this. */
+export const GUEST_MEMORY_LIMIT = 64 * 1024 * 1024;
+/** Guest stack cap — protects against deeply recursive code. */
+export const GUEST_STACK_LIMIT = 512 * 1024;
+
+// ---------------------------------------------------------------------------
+// Engine bootstrap — one WASM module shared by every invocation.
+// ---------------------------------------------------------------------------
+
+let enginePromise: ReturnType<typeof loadQuickJs> | null = null;
+let serializersRegistered = false;
+
+function registerTypedArraySerializers(): void {
+  if (serializersRegistered) return;
+  serializersRegistered = true;
+
+  // Map every typed-array class to a native Uint8Array on the host side.
+  // The guest returns `new Uint8Array([...])` (or friends); without this,
+  // the library's generic object serializer produces a plain object with
+  // numeric keys, which downstream code (CodeNode's normalizeOutput) would
+  // miss when detecting binary values.
+  const typedArrayNames = [
+    "Uint8Array",
+    "Int8Array",
+    "Uint8ClampedArray",
+    "Int16Array",
+    "Uint16Array",
+    "Int32Array",
+    "Uint32Array",
+    "Float32Array",
+    "Float64Array"
+  ];
+  for (const name of typedArrayNames) {
+    addSerializer(name, (ctx, handle) => {
+      const bufferHandle = ctx.getProp(handle, "buffer");
+      try {
+        const ab = ctx.getArrayBuffer(bufferHandle);
+        return Uint8Array.from(ab.value);
+      } finally {
+        bufferHandle.dispose();
+      }
+    });
+  }
+}
+
+function getEngine(): ReturnType<typeof loadQuickJs> {
+  registerTypedArraySerializers();
+  if (!enginePromise) {
+    enginePromise = loadQuickJs(quickJsVariant);
+  }
+  return enginePromise;
+}
+
+/**
+ * Marker key placed on an object to signal a sandboxed error. A host async
+ * function that would normally `throw` instead resolves with one of these
+ * objects; a prelude inside the guest rewraps them as real guest-side errors.
+ *
+ * This indirection exists because the current `@sebastianwessel/quickjs`
+ * runtime leaks handles whenever a host-backed guest Promise is *rejected*,
+ * tripping an internal assertion (`list_empty(&rt->gc_obj_list)`) in
+ * quickjs-ng when the runtime is freed. Routing failures through a resolved
+ * tagged value sidesteps the leak while preserving the guest-visible
+ * behaviour (the user still gets a thrown Error with name + message).
+ */
+const SANDBOX_ERROR_MARKER = "__nodetool_sandbox_error__";
+
+function neverReject<Args extends unknown[], R>(
+  fn: (...args: Args) => Promise<R>
+): (...args: Args) => Promise<R | Record<string, unknown>> {
+  return async (...args: Args) => {
+    try {
+      return await fn(...args);
+    } catch (e) {
+      return {
+        [SANDBOX_ERROR_MARKER]: true,
+        name: e instanceof Error ? e.name : "Error",
+        message: e instanceof Error ? e.message : String(e)
+      };
+    }
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,7 +142,6 @@ function formatArg(arg: unknown): string {
   }
 }
 
-/** Check if a value is a typed array from the VM sandbox (constructor name check). */
 function isTypedArray(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const name = (value as object).constructor?.name;
@@ -57,7 +153,6 @@ function isTypedArray(value: unknown): boolean {
     name === "ArrayBuffer";
 }
 
-/** Convert a VM sandbox typed array to a real Uint8Array. */
 function toNativeUint8Array(value: unknown): Uint8Array {
   const v = value as { length?: number; byteLength?: number; [i: number]: number };
   const len = v.length ?? v.byteLength ?? 0;
@@ -67,8 +162,8 @@ function toNativeUint8Array(value: unknown): Uint8Array {
 }
 
 /**
- * Recursively serialize a result, converting VM typed arrays to native ones
- * and applying size limits.
+ * Recursively serialize a value returned from the sandbox, converting typed
+ * arrays to native Uint8Array and enforcing output size limits.
  */
 export function serializeResult(result: unknown): unknown {
   if (result === undefined) return null;
@@ -83,13 +178,10 @@ export function serializeResult(result: unknown): unknown {
     }
     return result;
   }
-  // Preserve typed arrays as native Uint8Array
   if (isTypedArray(result)) {
     return toNativeUint8Array(result);
   }
-  // For objects/arrays, check for typed arrays in values (shallow)
   if (typeof result === "object") {
-    // Check if any value is a typed array — if so, convert them
     let hasBinary = false;
     if (Array.isArray(result)) {
       hasBinary = result.some(isTypedArray);
@@ -109,7 +201,6 @@ export function serializeResult(result: unknown): unknown {
       }
       return out;
     }
-    // No binary — use JSON round-trip for safety
     try {
       const json = JSON.stringify(result);
       if (json.length > MAX_OUTPUT_SIZE) {
@@ -123,21 +214,33 @@ export function serializeResult(result: unknown): unknown {
   return String(result);
 }
 
+/**
+ * Trim engine/library frames from a stack trace so the user sees only their
+ * own code. Keeps QuickJS frames (`user-code`, `<evalScript>`, `<anonymous>`)
+ * and legacy Node frames (`evalmachine`, `agent-js`).
+ */
 export function cleanStack(stack: string): string {
   return stack
     .split("\n")
-    .filter(
-      (line) =>
+    .filter((line) => {
+      if (
+        line.includes("user-code") ||
+        line.includes("<evalScript>") ||
         line.includes("agent-js") ||
-        line.includes("evalmachine") ||
-        (!line.includes("node:") && !line.includes("node_modules"))
-    )
+        line.includes("evalmachine")
+      ) {
+        return true;
+      }
+      if (line.includes("node:") || line.includes("node_modules")) return false;
+      return true;
+    })
     .slice(0, 5)
     .join("\n");
 }
 
 // ---------------------------------------------------------------------------
-// Sandbox builder
+// Sandbox builder — returns the record of host-side bindings that will be
+// exposed in the guest.
 // ---------------------------------------------------------------------------
 
 export interface SandboxResult {
@@ -146,7 +249,9 @@ export interface SandboxResult {
 }
 
 /**
- * Build a sandboxed global context with curated APIs.
+ * Build a sandbox descriptor: a record of host-side bindings plus a `getLogs`
+ * closure that retrieves captured console output. `runInSandbox` feeds this
+ * record into a QuickJS context via `expose()`.
  *
  * @param context  Optional ProcessingContext — when provided, enables
  *                 `workspace.*` and `getSecret()` APIs.
@@ -155,7 +260,6 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
   const logs: string[] = [];
   let fetchCount = 0;
 
-  // Console replacement that captures output
   const console = {
     log: (...args: unknown[]) => {
       logs.push(args.map(formatArg).join(" "));
@@ -171,7 +275,6 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     }
   };
 
-  // Sandboxed fetch with limits
   const sandboxedFetch = async (
     url: string,
     options?: Record<string, unknown>
@@ -212,7 +315,6 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
       const statusText = response.statusText;
       const headers = Object.fromEntries(response.headers.entries());
 
-      // Decode text lazily (only when needed)
       let cachedText: string | null = null;
       const getText = (): string => {
         if (cachedText === null) {
@@ -225,13 +327,10 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         return cachedText;
       };
 
-      // Build a Response-like object with both legacy fields and methods.
-      // Legacy: .body (string), .json (parsed object or undefined)
-      // Methods: .text(), .json(), .arrayBuffer(), .bytes()
       let parsedJson: unknown;
       try { parsedJson = JSON.parse(getText()); } catch { parsedJson = undefined; }
 
-      const result: Record<string, unknown> = {
+      return {
         ok,
         status,
         statusText,
@@ -245,16 +344,13 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         ),
         bytes: async () => rawBytes
       };
-      return result;
     } finally {
       clearTimeout(timer);
     }
   };
 
-  // uuid helper — not available natively without crypto.randomUUID
   const uuid = () => crypto.randomUUID();
 
-  // Secret accessor (requires context)
   const getSecret = context
     ? async (name: string): Promise<string | undefined> => {
         return (await context.getSecret(name)) ?? undefined;
@@ -263,7 +359,6 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         return undefined;
       };
 
-  // Workspace file ops (requires context)
   const workspace = context
     ? {
         read: async (path: string): Promise<string> => {
@@ -296,14 +391,15 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         }
       };
 
-  // Sleep helper
   const sleep = (ms: number): Promise<void> => {
     const capped = Math.min(ms, 5000);
     return new Promise((resolve) => setTimeout(resolve, capped));
   };
 
   const sandbox: Record<string, unknown> = {
-    // Core JS globals (safe subset)
+    // Core JS globals are native in QuickJS; we still reflect them in the
+    // descriptor so callers that inspect `sandbox.JSON` / `sandbox.Math`
+    // (tests, debug tooling) see the expected references.
     console,
     JSON,
     Math,
@@ -340,18 +436,15 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     TextDecoder: globalThis.TextDecoder,
     URL: globalThis.URL,
     URLSearchParams: globalThis.URLSearchParams,
-    // Async (setTimeout/setInterval blocked — use sleep() instead)
+    // Async primitives blocked — use sleep() instead.
     setTimeout: undefined,
     setInterval: undefined,
     // Bridge functions — the only non-native surface the sandbox exposes.
-    // Anything requiring a third-party library lives in a dedicated
-    // workflow node, not here.
     fetch: sandboxedFetch,
     uuid,
     sleep,
     getSecret,
     workspace,
-    // Loop safety counter
     __maxIter: MAX_LOOP_ITERATIONS
   };
 
@@ -363,12 +456,14 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Wrap user code in an async IIFE so top-level await works.
+ * Wrap user code as the default export of an ES module with a top-level-awaited
+ * async IIFE body, so `return <value>` inside the snippet becomes the module's
+ * default export and `await` at the top level works.
  */
 export function wrapCode(code: string): string {
-  return `(async () => {
+  return `export default await (async () => {
 ${code}
-})()`;
+})();`;
 }
 
 export interface RunSandboxOptions {
@@ -390,11 +485,60 @@ export interface RunSandboxResult {
   logs?: string[];
 }
 
+const IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+
+/** Overwrite the contents of `target` with the contents of `source` in place. */
+function replaceInPlace(target: unknown, source: unknown): void {
+  if (Array.isArray(target)) {
+    target.length = 0;
+    if (Array.isArray(source)) {
+      for (let i = 0; i < source.length; i++) target[i] = source[i];
+    }
+    return;
+  }
+  if (target && typeof target === "object") {
+    const t = target as Record<string, unknown>;
+    for (const key of Object.keys(t)) delete t[key];
+    if (source && typeof source === "object" && !Array.isArray(source)) {
+      const s = source as Record<string, unknown>;
+      for (const [k, v] of Object.entries(s)) t[k] = v;
+    }
+  }
+}
+
+/** Names that should never be reassigned via `globals` — core sandbox APIs. */
+const RESERVED_SANDBOX_NAMES = new Set([
+  "console",
+  "fetch",
+  "uuid",
+  "sleep",
+  "getSecret",
+  "workspace",
+  "__maxIter"
+]);
+
 /**
- * Execute JavaScript code in a sandboxed `vm` context.
+ * Names injected as bridge bindings into the QuickJS guest. The rest of the
+ * `buildSandbox` record (JSON, Math, Date, URL, etc.) is deliberately NOT
+ * marshaled — QuickJS already provides native implementations, and re-exposing
+ * host versions creates thousands of handles that slow execution and leak on
+ * teardown.
+ */
+const EXPOSED_BRIDGE_NAMES = [
+  "console",
+  "fetch",
+  "uuid",
+  "sleep",
+  "getSecret",
+  "workspace",
+  "__maxIter"
+] as const;
+
+/**
+ * Execute JavaScript code inside a QuickJS WebAssembly sandbox.
  *
- * Returns a structured result with success/failure, the return value,
- * captured console logs, and any error information.
+ * The runtime enforces hard memory and CPU limits via QuickJS's own interrupt
+ * handler / memory limiter, so runaway user code can't exhaust host resources.
  */
 export async function runInSandbox(
   options: RunSandboxOptions
@@ -407,56 +551,157 @@ export async function runInSandbox(
 
   const { sandbox, getLogs } = buildSandbox(context);
 
-  // Inject extra globals (e.g. dynamic inputs from Code node)
+  // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of
+  // the core surface, but must not clobber the bridge functions themselves.
+  const userGlobals: Record<string, unknown> = {};
   if (globals) {
     for (const [key, value] of Object.entries(globals)) {
-      sandbox[key] = value;
+      if (RESERVED_SANDBOX_NAMES.has(key)) continue;
+      if (!IDENTIFIER_RE.test(key)) continue;
+      userGlobals[key] = value;
     }
   }
+  // Identify object-typed globals whose contents should be synced back to the
+  // host after the guest runs. Primitives are passed by value and need no sync.
+  const syncTargetNames = Object.entries(userGlobals)
+    .filter(([, v]) => v !== null && typeof v === "object")
+    .map(([k]) => k);
 
   try {
-    const vmContext = vm.createContext(sandbox, {
-      codeGeneration: { strings: false, wasm: false }
-    });
+    const { runSandboxed } = await getEngine();
 
-    const wrapped = wrapCode(code);
-    const script = new vm.Script(wrapped, {
-      filename: "agent-js"
-    });
-
-    const promise = script.runInContext(vmContext, {
-      timeout: timeoutMs
-    });
-
-    let result: unknown;
-    if (promise && typeof (promise as Promise<unknown>).then === "function") {
-      let timerId: ReturnType<typeof setTimeout> | undefined;
-      try {
-        result = await Promise.race([
-          promise as Promise<unknown>,
-          new Promise((_, reject) => {
-            timerId = setTimeout(
-              () => reject(new Error("Async execution timeout")),
-              timeoutMs
-            );
-          })
-        ]);
-      } finally {
-        if (timerId !== undefined) clearTimeout(timerId);
+    const evalResponse = await runSandboxed(async ({ ctx, evalCode }) => {
+      const bridges: Record<string, unknown> = {};
+      for (const name of EXPOSED_BRIDGE_NAMES) {
+        bridges[name] = sandbox[name];
       }
-    } else {
-      result = promise;
-    }
+      // Wrap every async bridge in a never-reject adapter (see
+      // SANDBOX_ERROR_MARKER above). The guest prelude rewraps them back into
+      // throwing functions before user code runs.
+      bridges.fetch = neverReject(bridges.fetch as never);
+      bridges.sleep = neverReject(bridges.sleep as never);
+      bridges.getSecret = neverReject(bridges.getSecret as never);
+      const ws = bridges.workspace as {
+        read: (p: string) => Promise<string>;
+        write: (p: string, c: string) => Promise<void>;
+        list: (p: string) => Promise<string[]>;
+      };
+      bridges.workspace = {
+        read: neverReject(ws.read),
+        write: neverReject(ws.write),
+        list: neverReject(ws.list)
+      };
+      Object.assign(bridges, userGlobals);
+
+      // `expose` manages its own internal Scope; the second arg is unused.
+      const disposable = new Scope();
+      try {
+        expose(ctx, disposable, bridges);
+      } finally {
+        disposable.dispose();
+      }
+
+      // Block dynamic code generation and re-wrap the never-reject bridges as
+      // throwing guest-side functions. Direct eval in QuickJS can't be neutered
+      // by overwriting `globalThis.eval` (QuickJS still resolves the builtin),
+      // but a plain `delete` removes the binding entirely so any reference
+      // throws ReferenceError — same for `Function`.
+      await evalCode(
+        `const __marker = "${SANDBOX_ERROR_MARKER}";
+const __wrap = (fn) => async (...args) => {
+  const r = await fn(...args);
+  if (r && r[__marker]) {
+    const e = new Error(r.message);
+    e.name = r.name;
+    throw e;
+  }
+  return r;
+};
+globalThis.fetch = __wrap(globalThis.fetch);
+globalThis.sleep = __wrap(globalThis.sleep);
+globalThis.getSecret = __wrap(globalThis.getSecret);
+const __ws = globalThis.workspace;
+globalThis.workspace = {
+  read: __wrap(__ws.read),
+  write: __wrap(__ws.write),
+  list: __wrap(__ws.list)
+};
+delete globalThis.eval;
+delete globalThis.Function;
+export default true;`,
+        "sandbox-init"
+      );
+
+      const userResult = await evalCode(wrapCode(code), "user-code");
+
+      // Sync mutable globals back to the host. node:vm shared the host heap,
+      // so `state.counter++` in user code mutated the caller's object directly.
+      // With QuickJS the guest heap is isolated, so after user code runs we
+      // extract the current values of the object-typed user globals and
+      // replace the contents of the host-side objects in place. CodeNode
+      // relies on this to make its `state` object persist across invocations.
+      if (userResult.ok && syncTargetNames.length > 0) {
+        const extractor = `export default {${syncTargetNames
+          .map(
+            (n) =>
+              `${n}: (typeof ${n} !== 'undefined' && ${n} !== null) ? ${n} : null`
+          )
+          .join(", ")}};`;
+        const syncResp = await evalCode(extractor, "sandbox-sync");
+        if (syncResp.ok && syncResp.data && typeof syncResp.data === "object") {
+          const extracted = syncResp.data as Record<string, unknown>;
+          for (const name of syncTargetNames) {
+            const hostValue = userGlobals[name] as unknown;
+            const guestValue = extracted[name];
+            if (
+              hostValue !== null &&
+              typeof hostValue === "object" &&
+              guestValue !== null &&
+              typeof guestValue === "object"
+            ) {
+              replaceInPlace(hostValue, guestValue);
+            }
+          }
+        }
+      }
+
+      return userResult;
+    }, {
+      executionTimeout: timeoutMs,
+      memoryLimit: GUEST_MEMORY_LIMIT,
+      maxStackSize: GUEST_STACK_LIMIT
+    });
 
     const logs = getLogs();
-    const serialized = serializeResult(result);
+
+    if (!evalResponse.ok) {
+      // Include the error name alongside the message when the name carries
+      // useful signal (e.g. `ExecutionTimeout` for the library's wall-clock
+      // abort). `Error` is redundant, so omit it.
+      const name = evalResponse.error.name;
+      const message = evalResponse.error.message;
+      const combined =
+        name && name !== "Error" && !message.toLowerCase().includes(name.toLowerCase())
+          ? `${name}: ${message}`
+          : message || name;
+      return {
+        success: false,
+        error: combined,
+        stack: evalResponse.error.stack
+          ? cleanStack(evalResponse.error.stack)
+          : undefined,
+        logs: logs.length > 0 ? logs : undefined
+      };
+    }
 
     return {
       success: true,
-      result: serialized,
+      result: serializeResult(evalResponse.data),
       logs: logs.length > 0 ? logs : undefined
     };
   } catch (e: unknown) {
+    // Host-side failures (engine load error, marshaling bug, etc.). Guest-side
+    // errors go through evalResponse.ok=false above.
     const logs = getLogs();
     const errorMessage = e instanceof Error ? e.message : String(e);
     const errorStack =
