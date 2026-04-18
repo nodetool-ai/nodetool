@@ -430,7 +430,7 @@ class ToolAgentNode extends BaseNode {
     const contentParts = assetParts.map((part) => {
       if (part.type === "image") {
         return {
-          type: "image" as const,
+          type: "image_url" as const,
           image: { data: part.image.data, mimeType: part.image.mimeType }
         };
       }
