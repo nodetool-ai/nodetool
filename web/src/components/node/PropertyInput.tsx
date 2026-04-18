@@ -647,7 +647,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const [editedName, setEditedName] = React.useState(property.name);
   const { handleDeleteProperty, handleUpdatePropertyName } = useDynamicProperty(
     id,
-    (data?.dynamic_properties as Record<string, any>) || {}
+    (data?.dynamic_properties as Record<string, unknown>) || {}
   );
 
   const handleNameSubmit = useCallback(

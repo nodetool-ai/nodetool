@@ -84,11 +84,10 @@ const findExternalInputEdges = (
 const collectCachedValuesForSubgraph = (
   externalEdges: Edge[],
   workflowId: string,
-  getResult: (workflowId: string, nodeId: string) => any,
+  getResult: (workflowId: string, nodeId: string) => unknown,
   findNode: (nodeId: string) => Node<NodeData> | undefined
-): Map<string, Record<string, any>> => {
-  // Map of nodeId -> { propertyName: value }
-  const nodePropertyOverrides = new Map<string, Record<string, any>>();
+): Map<string, Record<string, unknown>> => {
+  const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
 
   for (const edge of externalEdges) {
     const sourceNodeId = edge.source;
@@ -133,7 +132,7 @@ const collectCachedValuesForSubgraph = (
  */
 const applyPropertyOverrides = (
   subgraphNodes: Node<NodeData>[],
-  propertyOverrides: Map<string, Record<string, any>>
+  propertyOverrides: Map<string, Record<string, unknown>>
 ): Node<NodeData>[] => {
   return subgraphNodes.map((node) => {
     const overrides = propertyOverrides.get(node.id);
