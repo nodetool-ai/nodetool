@@ -51,6 +51,14 @@ interface ChatThreadViewProps {
 
 const SCROLL_THRESHOLD = 50;
 const ESTIMATED_MESSAGE_HEIGHT = 200;
+const STREAM_FLOOR_PX_PER_SEC = 40;
+const STREAM_CATCHUP_PER_SEC = 4;
+const STREAM_MAX_PX_PER_SEC = 800;
+const STREAM_RUNWAY_CSS = "8vh";
+const STREAM_FADE_PX = 160;
+// Fixed-viewport fade band positioned just above the runway, so new tokens
+// emerging at the streaming frontier pass through the fade as they glide up.
+const STREAM_FADE_MASK = `linear-gradient(to bottom, black 0, black calc(100% - ${STREAM_RUNWAY_CSS} - ${STREAM_FADE_PX}px), transparent calc(100% - ${STREAM_RUNWAY_CSS}), transparent 100%)`;
 
 interface StatusFooterProps {
   status: ChatThreadViewProps["status"];
@@ -210,6 +218,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     useState(false);
   const userHasScrolledUpRef = useRef(false);
   const previousMessageCountRef = useRef(messages.length);
+  const lastScrollTopRef = useRef(0);
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
@@ -304,12 +313,34 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     initialRect: { width: 0, height: 800 }
   });
 
+  // The RAF loop drives scroll during streaming. Suppress the virtualizer's
+  // own per-resize scroll adjustment for the last (growing) item — otherwise
+  // every measured token bump adds an instantaneous scrollTop delta on top
+  // of our smooth catch-up, which reads as visible jitter.
+  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = (
+    item,
+    _delta,
+    instance
+  ) => {
+    if (item.index === filteredMessages.length - 1) return false;
+    return item.start < (instance.scrollOffset ?? 0);
+  };
+
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const prev = lastScrollTopRef.current;
+    const curr = el.scrollTop;
+    lastScrollTopRef.current = curr;
+
+    // Only a decrease in scrollTop indicates the user scrolled up.
+    // A growing distance-to-bottom from content expansion or programmatic
+    // catch-up must not flip this flag.
+    if (curr < prev - 1) userHasScrolledUpRef.current = true;
+
     const nearBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
-    userHasScrolledUpRef.current = !nearBottom;
+      el.scrollHeight - curr - el.clientHeight < SCROLL_THRESHOLD;
+    if (nearBottom) userHasScrolledUpRef.current = false;
     setShowScrollToBottomButton(!nearBottom);
   }, []);
 
@@ -324,7 +355,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    el.scrollTo({ top: el.scrollHeight });
+    lastScrollTopRef.current = el.scrollTop;
     userHasScrolledUpRef.current = false;
     setShowScrollToBottomButton(false);
   }, []);
@@ -339,33 +371,71 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     const last = messages[messages.length - 1];
     if (last?.role === "user" && lastUserMessageIndex >= 0) {
       virtualizer.scrollToIndex(lastUserMessageIndex, { align: "start" });
+      const el = scrollRef.current;
+      if (el) lastScrollTopRef.current = el.scrollTop;
       userHasScrolledUpRef.current = false;
       setShowScrollToBottomButton(false);
       return;
     }
 
-    if (!userHasScrolledUpRef.current) {
+    // During streaming, the RAF loop below drives the scroll at a constant
+    // speed — do NOT jump to bottom here or we'll race with it.
+    if (status !== "streaming" && !userHasScrolledUpRef.current) {
       const el = scrollRef.current;
-      if (el) el.scrollTo({ top: el.scrollHeight });
+      if (el) {
+        el.scrollTo({ top: el.scrollHeight });
+        lastScrollTopRef.current = el.scrollTop;
+      }
     }
-  }, [messages, lastUserMessageIndex, virtualizer]);
+  }, [messages, lastUserMessageIndex, virtualizer, status]);
 
-  // Follow streaming output when user is at bottom.
-  const totalSizeForEffect = virtualizer.getTotalSize();
+  // Follow streaming output at a constant speed with proportional catch-up.
+  // The runway spacer below keeps the frontier in the lower viewport so new
+  // tokens appear to rise into view rather than pin to the bottom edge.
   useEffect(() => {
     if (status !== "streaming") return;
-    if (userHasScrolledUpRef.current) return;
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight });
-  }, [status, totalSizeForEffect]);
+
+    let rafId: number | null = null;
+    let lastTime: number | null = null;
+    let cancelled = false;
+
+    const tick = (time: number) => {
+      if (cancelled) return;
+      const dt = lastTime == null ? 16 : Math.min(50, time - lastTime);
+      lastTime = time;
+
+      if (!userHasScrolledUpRef.current) {
+        const target = el.scrollHeight - el.clientHeight;
+        const gap = target - el.scrollTop;
+        if (gap > 0.5) {
+          const velocity = Math.min(
+            STREAM_MAX_PX_PER_SEC,
+            Math.max(STREAM_FLOOR_PX_PER_SEC, gap * STREAM_CATCHUP_PER_SEC)
+          );
+          const delta = Math.min(gap, velocity * (dt / 1000));
+          el.scrollTop = el.scrollTop + delta;
+        }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      if (rafId != null) cancelAnimationFrame(rafId);
+    };
+  }, [status]);
 
   const handleToggleThought = useCallback((key: string) => {
     setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
   const virtualItems = virtualizer.getVirtualItems();
-  const totalSize = totalSizeForEffect;
+  const totalSize = virtualizer.getTotalSize();
 
   return (
     <div
@@ -376,6 +446,14 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         ref={handleScrollRef}
         css={componentStyles.messageWrapper}
         className="scrollable-message-wrapper"
+        style={
+          status === "streaming"
+            ? {
+                WebkitMaskImage: STREAM_FADE_MASK,
+                maskImage: STREAM_FADE_MASK
+              }
+            : undefined
+        }
       >
         <div
           css={componentStyles.chatMessagesList}
@@ -419,6 +497,18 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
               );
             })}
           </div>
+
+          {status === "streaming" && (
+            <div
+              aria-hidden="true"
+              className="streaming-runway"
+              style={{
+                height: STREAM_RUNWAY_CSS,
+                pointerEvents: "none",
+                flexShrink: 0
+              }}
+            />
+          )}
 
           <StatusFooter
             status={status}
