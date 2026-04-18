@@ -22,7 +22,7 @@ export function createContextFactory(
   deps: ContextFactoryInput
 ): (opts: { req: FastifyRequest }) => Context {
   return ({ req }) => ({
-    userId: req.userId,
+    userId: (req as FastifyRequest & { userId?: string | null }).userId ?? null,
     registry: deps.registry,
     apiOptions: deps.apiOptions,
     pythonBridge: deps.pythonBridge,

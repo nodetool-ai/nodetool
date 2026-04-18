@@ -48,11 +48,10 @@ describe("promoteBackendNodeModules", () => {
     await expect(
       fs.promises.access(path.join(resourcesDir, "backend", "_modules"))
     ).rejects.toThrow();
-    await expect(
-      fs.promises.readFile(
-        path.join(resourcesDir, "backend", "node_modules", "openai", "package.json"),
-        "utf8"
-      )
-    ).resolves.toContain('"name":"openai"');
+    const packageJson = fs.readFileSync(
+      path.join(resourcesDir, "backend", "node_modules", "openai", "package.json"),
+      "utf8"
+    );
+    expect(packageJson).toContain('"name":"openai"');
   });
 });

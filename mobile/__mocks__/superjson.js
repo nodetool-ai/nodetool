@@ -3,6 +3,6 @@ module.exports = {
     return { json: value, meta: undefined };
   },
   deserialize(value) {
-    return value;
+    return value.json;
   },
 };
