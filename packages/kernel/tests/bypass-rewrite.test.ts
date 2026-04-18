@@ -158,6 +158,36 @@ describe("rewriteBypassedNodes", () => {
     });
   });
 
+  it("prefers input compatible with bypass output type when downstream is untyped", () => {
+    // Text(out: string)  \
+    // Img(out: image)     > B(bypassed, prompt: string, image: image, out: image) --> C(in: any)
+    // Even though C accepts anything, bypass should route Img through "out:image".
+    const nodes: NodeDescriptor[] = [
+      makeNode("Text", { outputs: { out: "string" } }),
+      makeNode("Img", { outputs: { out: "image" } }),
+      bypassed("B", {
+        outputs: { out: "image" },
+        propertyTypes: { prompt: "string", image: "image" }
+      }),
+      makeNode("C", { propertyTypes: { in: "any" } })
+    ];
+    const edges: Edge[] = [
+      { source: "Text", sourceHandle: "out", target: "B", targetHandle: "prompt" },
+      { source: "Img", sourceHandle: "out", target: "B", targetHandle: "image" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
+    ];
+
+    const result = rewriteBypassedNodes({ nodes, edges });
+
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({
+      source: "Img",
+      sourceHandle: "out",
+      target: "C",
+      targetHandle: "in"
+    });
+  });
+
   it("prefers a name-matched incoming handle when multiple types match", () => {
     // A(out: any) --> text --> B(bypassed)
     // D(out: any) --> other --> B(bypassed) -- text --> C
