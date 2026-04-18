@@ -2,10 +2,10 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { createLogger } from "@nodetool/config";
 import {
-  BaseProvider,
   getProvider,
   isProviderConfigured,
   listRegisteredProviderIds,
+  providerCapabilities,
   type ProviderId
 } from "@nodetool/runtime";
 
@@ -681,44 +681,6 @@ async function checkHfCache(body: {
     total_files: files.length,
     missing
   };
-}
-
-// A provider's capability set is derived from which BaseProvider methods it
-// overrides. Without this, `useImageModelProviders`, `useTTSProviders`, etc.
-// filter to zero providers and the corresponding Select components show empty.
-function providerCapabilities(instance: ProviderInstance): string[] {
-  const capabilities = ["generate_message", "generate_messages"];
-  if (
-    instance.getAvailableImageModels !==
-    BaseProvider.prototype.getAvailableImageModels
-  ) {
-    capabilities.push("text_to_image", "image_to_image");
-  }
-  if (
-    instance.getAvailableVideoModels !==
-    BaseProvider.prototype.getAvailableVideoModels
-  ) {
-    capabilities.push("text_to_video", "image_to_video");
-  }
-  if (
-    instance.getAvailableTTSModels !==
-    BaseProvider.prototype.getAvailableTTSModels
-  ) {
-    capabilities.push("text_to_speech");
-  }
-  if (
-    instance.getAvailableASRModels !==
-    BaseProvider.prototype.getAvailableASRModels
-  ) {
-    capabilities.push("automatic_speech_recognition");
-  }
-  if (
-    instance.getAvailableEmbeddingModels !==
-    BaseProvider.prototype.getAvailableEmbeddingModels
-  ) {
-    capabilities.push("generate_embedding");
-  }
-  return capabilities;
 }
 
 // ── Router ─────────────────────────────────────────────────────────
