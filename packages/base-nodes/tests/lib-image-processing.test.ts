@@ -371,15 +371,35 @@ describe("lib-image-draw nodes", () => {
     await assertPixelsChanged(img1, output);
   });
 
-  it("Composite — composites foreground over background", async () => {
+  it("Composite — uses mask to composite foreground over background", async () => {
     const bg = await makeTestImage(4, 4, 0, 255, 0);
     const fg = await makeTestImage(4, 4, 255, 0, 0);
-    const output = await runNode(LIB_IMAGE_DRAW_NODES, ".Composite", {
+    const blackMask = await makeTestImage(4, 4, 0, 0, 0);
+    const whiteMask = await makeTestImage(4, 4, 255, 255, 255);
+
+    const outputWithBlackMask = await runNode(LIB_IMAGE_DRAW_NODES, ".Composite", {
       image1: bg,
       image2: fg,
-      mask: bg
+      mask: blackMask
     });
-    assertValidImage(output);
+    const outputWithWhiteMask = await runNode(LIB_IMAGE_DRAW_NODES, ".Composite", {
+      image1: bg,
+      image2: fg,
+      mask: whiteMask
+    });
+
+    assertValidImage(outputWithBlackMask);
+    assertValidImage(outputWithWhiteMask);
+
+    const { raw: blackMaskRaw } = await decodeOutput(outputWithBlackMask);
+    const { raw: whiteMaskRaw } = await decodeOutput(outputWithWhiteMask);
+
+    // Black mask should keep background-like output (green), white mask
+    // should produce foreground-like output (red).
+    expect(blackMaskRaw[1]).toBeGreaterThan(blackMaskRaw[0]);
+    expect(blackMaskRaw[1]).toBeGreaterThan(blackMaskRaw[2]);
+    expect(whiteMaskRaw[0]).toBeGreaterThan(whiteMaskRaw[1]);
+    expect(whiteMaskRaw[0]).toBeGreaterThan(whiteMaskRaw[2]);
   });
 });
 
