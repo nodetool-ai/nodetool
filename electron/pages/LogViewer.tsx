@@ -214,9 +214,7 @@ const LogViewer: React.FC = () => {
   }, [filteredLogs.length, logs.length, selectedIndices.size, copied]);
 
   return (
-    <>
-      <h1>Server Logs</h1>
-      <div className="container">
+    <div className="container">
         <div className="controls-container">
           <div className="search-container">
             <input
@@ -280,7 +278,6 @@ const LogViewer: React.FC = () => {
                 onClick={(e) => handleLogClick(index, e)}
                 title="Click to select • Shift+Click for range • Cmd/Ctrl+Click to toggle • Drag to select range"
               >
-                <span className="log-index">{index + 1}</span>
                 <span className="log-text">{log}</span>
               </div>
             ))
@@ -292,8 +289,7 @@ const LogViewer: React.FC = () => {
           <span>{statusBarText}</span>
           <span>{autoScroll ? "Auto-scroll: ON" : "Auto-scroll: OFF"}</span>
         </div>
-      </div>
-    </>
+    </div>
   );
 };
 
