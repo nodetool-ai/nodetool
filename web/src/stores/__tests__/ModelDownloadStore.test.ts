@@ -2,6 +2,19 @@ jest.mock("../BASE_URL", () => ({
   BASE_URL: "http://localhost:7777",
   DOWNLOAD_URL: "ws://localhost:7777/hf/download"
 }));
+
+const mockPullOllamaModel = jest.fn();
+
+jest.mock("../../lib/trpc", () => ({
+  trpc: {
+    models: {
+      pullOllamaModel: {
+        mutate: (...args: unknown[]) => mockPullOllamaModel(...args)
+      }
+    }
+  }
+}));
+
 import { useModelDownloadStore } from "../ModelDownloadStore";
 
 const originalDownloadState = useModelDownloadStore.getState();
@@ -146,20 +159,17 @@ describe("ModelDownloadStore", () => {
     ).rejects.toThrow("allowPatterns is not supported when path is provided");
   });
 
-  test("startDownload for llama_model triggers fetch call", async () => {
-    const fetchMock = jest.fn().mockResolvedValue({
-      ok: true,
-      body: {
-        getReader: () => ({ read: jest.fn().mockResolvedValue({ done: true }) })
-      }
-    } as any);
-    (global as any).fetch = fetchMock;
+  test("startDownload for llama_model triggers tRPC mutation", async () => {
+    mockPullOllamaModel.mockResolvedValueOnce({
+      status: "completed",
+      message: "ok"
+    });
 
     await useModelDownloadStore
       .getState()
       .startDownload("llama", "llama_model");
 
-    expect(fetchMock).toHaveBeenCalled();
+    expect(mockPullOllamaModel).toHaveBeenCalledWith({ model: "llama" });
     const download = useModelDownloadStore.getState().downloads["llama"];
     expect(download).toBeDefined();
   });

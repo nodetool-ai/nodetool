@@ -42,8 +42,8 @@ jobs:
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
-      - name: Build @nodetool/protocol
-        run: cd packages/protocol && npm run build
+      - name: Build backend packages
+        run: npm run build:packages
 
       - name: Run TypeScript type check
         run: cd web && npm run typecheck

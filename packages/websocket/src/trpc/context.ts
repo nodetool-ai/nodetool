@@ -1,4 +1,3 @@
-/// <reference path="../types/fastify.d.ts" />
 import type { FastifyRequest } from "fastify";
 import type { NodeRegistry } from "@nodetool/node-sdk";
 import type { PythonStdioBridge } from "@nodetool/runtime";

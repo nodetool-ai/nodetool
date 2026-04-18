@@ -66,11 +66,6 @@ describe("FileStore", () => {
     });
 
     it("throws error on API failure", async () => {
-      mockClient.mockResolvedValueOnce({
-        data: null,
-        error: { detail: [{ msg: "Access denied" }] }
-      });
-
       mockClient.mockRejectedValueOnce(new Error("Access denied"));
 
       await expect(useFileStore.getState().listFiles("/restricted")).rejects.toThrow(
@@ -228,12 +223,9 @@ describe("FileStore", () => {
 
     it("respects MAX_TREE_DEPTH limit", async () => {
       // Setup nested directories (5 levels deep, but max is 4)
-      const createDirResponse = (depth: number) => ({
-        data: [
-          { name: `dir${depth}`, path: `/home/${"dir".repeat(depth)}`, is_dir: true }
-        ],
-        error: null
-      });
+      const createDirResponse = (depth: number) => [
+        { name: `dir${depth}`, path: `/home/${"dir".repeat(depth)}`, is_dir: true }
+      ];
 
       mockClient
         .mockResolvedValueOnce(createDirResponse(1))
@@ -251,10 +243,7 @@ describe("FileStore", () => {
     });
 
     it("throws error on API failure when not aborted", async () => {
-      mockClient.mockResolvedValueOnce({
-        data: null,
-        error: { detail: [{ msg: "Permission denied" }] }
-      });
+      mockClient.mockRejectedValueOnce(new Error("Permission denied"));
 
       await expect(useFileStore.getState().fetchFileTree("/restricted")).rejects.toThrow(
         "Permission denied"
@@ -272,10 +261,9 @@ describe("FileStore", () => {
     });
 
     it("creates tree items with correct structure", async () => {
-      mockClient.mockResolvedValue({
-        data: [{ name: "test.txt", path: "/home/test.txt", is_dir: false }],
-        error: null
-      });
+      mockClient.mockResolvedValue([
+        { name: "test.txt", path: "/home/test.txt", is_dir: false }
+      ]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("/home");
@@ -290,14 +278,10 @@ describe("FileStore", () => {
 
     it("directories include children array", async () => {
       mockClient
-        .mockResolvedValueOnce({
-          data: [{ name: "folder", path: "/home/folder", is_dir: true }],
-          error: null
-        })
-        .mockResolvedValueOnce({
-          data: [],
-          error: null
-        });
+        .mockResolvedValueOnce([
+          { name: "folder", path: "/home/folder", is_dir: true }
+        ])
+        .mockResolvedValueOnce([]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("/home");
@@ -312,18 +296,12 @@ describe("FileStore", () => {
   describe("tree structure", () => {
     it("places directories before files", async () => {
       mockClient
-        .mockResolvedValueOnce({
-          data: [
-            { name: "zzz-file.txt", path: "/home/zzz-file.txt", is_dir: false },
-            { name: "aaa-folder", path: "/home/aaa-folder", is_dir: true },
-            { name: "aaa-file.txt", path: "/home/aaa-file.txt", is_dir: false }
-          ],
-          error: null
-        })
-        .mockResolvedValueOnce({
-          data: [],
-          error: null
-        });
+        .mockResolvedValueOnce([
+          { name: "zzz-file.txt", path: "/home/zzz-file.txt", is_dir: false },
+          { name: "aaa-folder", path: "/home/aaa-folder", is_dir: true },
+          { name: "aaa-file.txt", path: "/home/aaa-file.txt", is_dir: false }
+        ])
+        .mockResolvedValueOnce([]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("/home");
@@ -337,14 +315,10 @@ describe("FileStore", () => {
 
     it("handles empty directories", async () => {
       mockClient
-        .mockResolvedValueOnce({
-          data: [{ name: "empty-folder", path: "/home/empty-folder", is_dir: true }],
-          error: null
-        })
-        .mockResolvedValueOnce({
-          data: [],
-          error: null
-        });
+        .mockResolvedValueOnce([
+          { name: "empty-folder", path: "/home/empty-folder", is_dir: true }
+        ])
+        .mockResolvedValueOnce([]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("/home");
@@ -357,22 +331,18 @@ describe("FileStore", () => {
 
     it("handles deeply nested structure", async () => {
       mockClient
-        .mockResolvedValueOnce({
-          data: [{ name: "level1", path: "/home/level1", is_dir: true }],
-          error: null
-        })
-        .mockResolvedValueOnce({
-          data: [{ name: "level2", path: "/home/level1/level2", is_dir: true }],
-          error: null
-        })
-        .mockResolvedValueOnce({
-          data: [{ name: "level3", path: "/home/level1/level2/level3", is_dir: true }],
-          error: null
-        })
-        .mockResolvedValueOnce({
-          data: [{ name: "deep-file.txt", path: "/home/level1/level2/level3/deep-file.txt", is_dir: false }],
-          error: null
-        });
+        .mockResolvedValueOnce([
+          { name: "level1", path: "/home/level1", is_dir: true }
+        ])
+        .mockResolvedValueOnce([
+          { name: "level2", path: "/home/level1/level2", is_dir: true }
+        ])
+        .mockResolvedValueOnce([
+          { name: "level3", path: "/home/level1/level2/level3", is_dir: true }
+        ])
+        .mockResolvedValueOnce([
+          { name: "deep-file.txt", path: "/home/level1/level2/level3/deep-file.txt", is_dir: false }
+        ]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("/home");

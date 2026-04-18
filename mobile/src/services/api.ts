@@ -92,6 +92,22 @@ export interface ThreadUpdateRequest {
   title: string;
 }
 
+export interface WorkflowGraphInput {
+  nodes: Array<{
+    id: string;
+    type: string;
+    [key: string]: unknown;
+  }>;
+  edges: Array<{
+    source: string;
+    sourceHandle: string;
+    target: string;
+    targetHandle: string;
+    id?: string | null;
+    [key: string]: unknown;
+  }>;
+}
+
 function normalizeWorkflow(workflow: Record<string, unknown>): AppWorkflow {
   return {
     ...workflow,
@@ -255,7 +271,7 @@ class ApiService {
     id: string;
     name: string;
     description: string;
-    graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+    graph: WorkflowGraphInput;
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
@@ -271,7 +287,7 @@ class ApiService {
   async createWorkflow(workflow: {
     name: string;
     description: string;
-    graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+    graph: WorkflowGraphInput;
     access?: string;
   }) {
     const trpc = createMobileTRPCClient();
