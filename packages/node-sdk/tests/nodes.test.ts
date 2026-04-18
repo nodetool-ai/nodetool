@@ -36,6 +36,13 @@ describe("Add", () => {
     const result = await node.process();
     expect(result.result).toBe(0);
   });
+
+  it("adds dynamic inputs", async () => {
+    const node = new Add();
+    node.assign({ a: 3, b: 7, c: 2, d: 8 });
+    const result = await node.process();
+    expect(result.result).toBe(20);
+  });
 });
 
 describe("Multiply", () => {
@@ -81,6 +88,13 @@ describe("StringConcat", () => {
     node.assign({ separator: " ", a: "hello", b: "world" });
     const result = await node.process();
     expect(result.result).toBe("hello world");
+  });
+
+  it("concatenates dynamic inputs", async () => {
+    const node = new StringConcat();
+    node.assign({ separator: "-", a: "a", b: "b", c: "c", d: "d" });
+    const result = await node.process();
+    expect(result.result).toBe("a-b-c-d");
   });
 });
 
