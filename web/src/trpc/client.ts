@@ -8,8 +8,8 @@ import {
 import superjson from "superjson";
 import type { AppRouter } from "@nodetool/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
+import { isLocalhost } from "../lib/env";
 import { supabase } from "../lib/supabaseClient";
-import { isLocalhost } from "../stores/ApiClient";
 
 export const trpc = createTRPCReact<AppRouter>();
 

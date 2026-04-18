@@ -11,7 +11,7 @@ import SettingsMenu from "../menus/SettingsMenu";
 import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
-import { isProduction } from "../../stores/ApiClient";
+import { isProduction } from "../../lib/env";
 import { ThemeToggleButton } from "../ui_primitives/ThemeToggleButton";
 import { HelpButton } from "../ui_primitives";
 

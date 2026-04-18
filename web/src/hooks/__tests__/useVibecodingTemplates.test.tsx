@@ -2,11 +2,13 @@ import React from "react";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useVibecodingTemplates } from "../useVibecodingTemplates";
-import { authHeader } from "../../stores/ApiClient";
+import { authHeader } from "../../lib/auth";
 import { BASE_URL } from "../../stores/BASE_URL";
 
 // Mock the dependencies
-jest.mock("../../stores/ApiClient");
+jest.mock("../../lib/auth", () => ({
+  authHeader: jest.fn()
+}));
 jest.mock("../../stores/BASE_URL", () => ({ BASE_URL: "http://localhost:8000" }));
 
 const mockAuthHeader = authHeader as jest.MockedFunction<typeof authHeader>;

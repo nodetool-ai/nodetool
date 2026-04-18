@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import { useRunningJobs } from "./useRunningJobs";
-import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
-import { client } from "../stores/ApiClient";
 import log from "loglevel";
+import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
+import { trpcClient } from "../trpc/client";
+import { useRunningJobs } from "./useRunningJobs";
 import { Job, RunStateInfo } from "../stores/ApiTypes";
 
 /**
@@ -35,19 +35,13 @@ export const useJobReconnection = () => {
             try {
               log.debug("JobReconnection: processing job", job);
               // Fetch the workflow for this job
-              const { data: workflow, error } = await client.GET(
-                "/api/workflows/{id}",
-                {
-                  params: {
-                    path: { id: job.workflow_id }
-                  }
-                }
-              );
+              const workflow = await trpcClient.workflows.get.query({
+                id: job.workflow_id
+              });
 
-              if (error || !workflow) {
+              if (!workflow) {
                 log.error(
-                  `Failed to fetch workflow ${job.workflow_id} for job ${job.id}:`,
-                  error
+                  `Failed to fetch workflow ${job.workflow_id} for job ${job.id}`
                 );
                 return;
               }
@@ -69,7 +63,10 @@ export const useJobReconnection = () => {
               }
 
               // Reconnect with workflow context and initial state
-              await runnerStore.getState().reconnectWithWorkflow(job.id, workflow);
+              await runnerStore.getState().reconnectWithWorkflow(
+                job.id,
+                workflow as never
+              );
 
               // Set proper state after reconnection based on run_state
               if (initialState && initialState !== "running") {

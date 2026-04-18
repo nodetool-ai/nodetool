@@ -1,16 +1,14 @@
-import { useAssetStore } from "../AssetStore";
-import { Asset, AssetList, AssetSearchResult } from "../ApiTypes";
 import { QueryClient } from "@tanstack/react-query";
+import { authHeader } from "../../lib/auth";
+import { restFetch } from "../../lib/rest-fetch";
+import { Asset, AssetList, AssetSearchResult } from "../ApiTypes";
+import { useAssetStore } from "../AssetStore";
 
-// Multipart upload + download stay on REST — keep the openapi-fetch mock for
-// those paths only.
-jest.mock("../ApiClient", () => ({
-  client: {
-    GET: jest.fn(),
-    POST: jest.fn(),
-    PUT: jest.fn(),
-    DELETE: jest.fn()
-  },
+jest.mock("../../lib/rest-fetch", () => ({
+  restFetch: jest.fn()
+}));
+
+jest.mock("../../lib/auth", () => ({
   authHeader: jest.fn()
 }));
 
@@ -54,6 +52,9 @@ jest.mock("../BASE_URL", () => ({
 }));
 
 import { trpcClient } from "../../trpc/client";
+
+const mockRestFetch = restFetch as jest.Mock;
+const mockAuthHeader = authHeader as jest.Mock;
 
 const listQuery = trpcClient.assets.list.query as jest.Mock;
 const getQuery = trpcClient.assets.get.query as jest.Mock;
@@ -190,15 +191,15 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      const { client } = await import("../ApiClient");
-      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
+      mockRestFetch.mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockAsset)
+      });
 
       const { createAsset } = useAssetStore.getState();
       const result = await createAsset(mockFile, "test-workflow");
 
-      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
-        body: expect.any(FormData)
-      });
+      expect(mockRestFetch).toHaveBeenCalledWith("/api/assets/", expect.objectContaining({ method: "POST", body: expect.any(FormData) }));
       expect(result).toEqual(mockAsset);
     });
 
@@ -220,8 +221,10 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      const { client } = await import("../ApiClient");
-      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
+      mockRestFetch.mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockAsset)
+      });
 
       const { createAsset } = useAssetStore.getState();
       const result = await createAsset(
@@ -232,9 +235,7 @@ describe("AssetStore", () => {
         "clipboard"
       );
 
-      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
-        body: expect.any(FormData)
-      });
+      expect(mockRestFetch).toHaveBeenCalledWith("/api/assets/", expect.objectContaining({ method: "POST", body: expect.any(FormData) }));
       expect(result).toEqual(mockAsset);
     });
 
@@ -243,13 +244,12 @@ describe("AssetStore", () => {
         type: "image/png"
       });
 
-      const { client } = await import("../ApiClient");
       const { createAsset } = useAssetStore.getState();
 
       await expect(
         createAsset(mockFile, "test-workflow", undefined, undefined, "clipboard")
       ).rejects.toThrow("Clipboard content is not a valid image");
-      expect(client.POST).not.toHaveBeenCalled();
+      expect(mockRestFetch).not.toHaveBeenCalled();
     });
 
     it("blocks invalid clipboard image bytes and does not send request", async () => {
@@ -257,13 +257,12 @@ describe("AssetStore", () => {
         type: "image/jpeg"
       });
 
-      const { client } = await import("../ApiClient");
       const { createAsset } = useAssetStore.getState();
 
       await expect(
         createAsset(mockFile, "test-workflow", undefined, undefined, "clipboard")
       ).rejects.toThrow("Clipboard content is not a valid image");
-      expect(client.POST).not.toHaveBeenCalled();
+      expect(mockRestFetch).not.toHaveBeenCalled();
     });
 
     it("downgrades invalid dropped image bytes to octet-stream", async () => {
@@ -284,13 +283,15 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      const { client } = await import("../ApiClient");
-      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
+      mockRestFetch.mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockAsset)
+      });
 
       const { createAsset } = useAssetStore.getState();
       await createAsset(mockFile, "test-workflow", undefined, undefined, "drop");
 
-      const [[, payload]] = (client.POST as jest.Mock).mock.calls;
+      const [[, payload]] = mockRestFetch.mock.calls;
       const formData = payload.body as FormData;
       const json = JSON.parse(formData.get("json") as string);
 
@@ -315,8 +316,10 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      const { client } = await import("../ApiClient");
-      (client.POST as jest.Mock).mockResolvedValue({ data: mockAsset });
+      mockRestFetch.mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockAsset)
+      });
 
       const mockOnUploadProgress = jest.fn();
       const { createAsset } = useAssetStore.getState();
@@ -338,8 +341,10 @@ describe("AssetStore", () => {
       });
       const mockError = new Error("Upload failed");
 
-      const { client } = await import("../ApiClient");
-      (client.POST as jest.Mock).mockResolvedValue({ error: mockError });
+      mockRestFetch.mockResolvedValue({
+        ok: false,
+        json: jest.fn().mockResolvedValue(mockError)
+      });
 
       const { createAsset } = useAssetStore.getState();
       await expect(createAsset(mockFile)).rejects.toThrow(
@@ -478,8 +483,7 @@ describe("AssetStore", () => {
 
   describe("download", () => {
     it("should download assets (REST binary)", async () => {
-      const { authHeader } = await import("../ApiClient");
-      (authHeader as jest.Mock).mockResolvedValue({});
+      mockAuthHeader.mockResolvedValue({});
       const mockHeaders = new Map([
         ["content-type", "application/zip"],
         ["content-disposition", "attachment; filename=assets.zip"]
@@ -516,15 +520,15 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      const { client } = await import("../ApiClient");
-      (client.POST as jest.Mock).mockResolvedValue({ data: mockFolder });
+      mockRestFetch.mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockFolder)
+      });
 
       const { createFolder } = useAssetStore.getState();
       const result = await createFolder("parent1", "New Folder");
 
-      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
-        body: expect.any(FormData)
-      });
+      expect(mockRestFetch).toHaveBeenCalledWith("/api/assets/", expect.objectContaining({ method: "POST", body: expect.any(FormData) }));
       expect(result).toEqual(mockFolder);
     });
 
@@ -543,15 +547,15 @@ describe("AssetStore", () => {
         metadata: {}
       };
 
-      const { client } = await import("../ApiClient");
-      (client.POST as jest.Mock).mockResolvedValue({ data: mockFolder });
+      mockRestFetch.mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue(mockFolder)
+      });
 
       const { createFolder } = useAssetStore.getState();
       const result = await createFolder(null, "Root Folder");
 
-      expect(client.POST).toHaveBeenCalledWith("/api/assets/", {
-        body: expect.any(FormData)
-      });
+      expect(mockRestFetch).toHaveBeenCalledWith("/api/assets/", expect.objectContaining({ method: "POST", body: expect.any(FormData) }));
       expect(result).toEqual(mockFolder);
     });
   });
@@ -632,9 +636,9 @@ describe("AssetStore", () => {
 
     it("should handle API response errors", async () => {
       const mockFile = new File(["test"], "test.jpg");
-      const { client } = await import("../ApiClient");
-      (client.POST as jest.Mock).mockResolvedValue({
-        error: { detail: "Asset not found" }
+      mockRestFetch.mockResolvedValue({
+        ok: false,
+        json: jest.fn().mockResolvedValue({ detail: "Asset not found" })
       });
 
       const { createAsset } = useAssetStore.getState();

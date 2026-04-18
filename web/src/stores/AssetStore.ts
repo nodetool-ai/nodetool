@@ -1,7 +1,8 @@
 /** AssetStore manages file assets and folder organization. */
 
 import { create } from "zustand";
-import { client, authHeader } from "./ApiClient";
+import { authHeader } from "../lib/auth";
+import { restFetch } from "../lib/rest-fetch";
 import { BASE_URL } from "./BASE_URL";
 import { trpcClient } from "../trpc/client";
 import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
@@ -14,7 +15,6 @@ import {
   UploadValidationError,
   UploadSource
 } from "../utils/imageUploadValidation";
-import type { components } from "../api";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -77,12 +77,15 @@ const uploadAsset = async (
   emitUploadProgress(onUploadProgress, 0, total);
 
   try {
-    const { data, error } = await client.POST("/api/assets/", {
-      body: formData as unknown as components["schemas"]["Body_create_api_assets__post"]
+    const response = await restFetch("/api/assets/", {
+      method: "POST",
+      body: formData
     });
 
-    if (error) {
-      throw error;
+    const data = (await response.json().catch(() => null)) as Asset | unknown;
+
+    if (!response.ok) {
+      throw data;
     }
 
     emitUploadProgress(onUploadProgress, total, total);

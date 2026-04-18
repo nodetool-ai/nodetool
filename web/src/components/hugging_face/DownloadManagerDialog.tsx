@@ -22,7 +22,7 @@ import {
   openHuggingfacePath,
   openOllamaPath
 } from "../../utils/fileExplorer";
-import { isLocalhost, isProduction } from "../../stores/ApiClient";
+import { isLocalhost, isProduction } from "../../lib/env";
 import { isElectron } from "../../utils/browser";
 
 const styles = (theme: Theme) =>

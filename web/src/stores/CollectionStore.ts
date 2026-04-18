@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { restFetch } from "../lib/rest-fetch";
 import { CollectionList as CollectionListType } from "./ApiTypes";
-import { client } from "./ApiClient";
 import { trpcClient } from "../trpc/client";
 import log from "loglevel";
 
@@ -13,17 +13,6 @@ interface IndexResponseData {
 interface IndexError {
   file: string;
   error: string;
-}
-
-// Type for the POST /api/collections/{name}/index endpoint options.
-// Multipart file upload stays on REST (tRPC does not handle FormData).
-interface CollectionIndexOptions {
-  params: {
-    path: { name: string };
-  };
-  body: {
-    file: string;
-  };
 }
 
 interface IndexProgressState {
@@ -156,24 +145,25 @@ export const useCollectionStore = create<CollectionStore>()(
           formData.append("file", file);
 
           try {
-            // Multipart file upload — stays on REST (openapi-fetch client).
-            const { data, error } = await client.POST(
-              "/api/collections/{name}/index",
+            const response = await restFetch(
+              `/api/collections/${encodeURIComponent(collectionName)}/index`,
               {
-                params: {
-                  path: { name: collectionName }
-                },
-                body: formData as unknown as CollectionIndexOptions["body"]
+                method: "POST",
+                body: formData
               }
             );
 
+            const data = (await response.json().catch(() => null)) as
+              | IndexResponseData
+              | { detail?: { msg?: string }[] }
+              | null;
             const responseData = data as IndexResponseData | undefined;
 
-            if (error || responseData?.error) {
+            if (!response.ok || responseData?.error) {
               errors.push({
                 file: file.name,
                 error:
-                  (error as { detail?: { msg?: string }[] } | undefined)
+                  (data as { detail?: { msg?: string }[] } | undefined)
                     ?.detail?.[0]?.msg ||
                   responseData?.error ||
                   "Unknown error"

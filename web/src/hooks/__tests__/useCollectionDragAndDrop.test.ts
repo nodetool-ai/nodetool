@@ -1,11 +1,9 @@
 import { renderHook, act } from "@testing-library/react";
-import { client } from "../../stores/ApiClient";
+import { restFetch } from "../../lib/rest-fetch";
 import { useCollectionDragAndDrop } from "../useCollectionDragAndDrop";
 
-jest.mock("../../stores/ApiClient", () => ({
-  client: {
-    POST: jest.fn()
-  }
+jest.mock("../../lib/rest-fetch", () => ({
+  restFetch: jest.fn()
 }));
 
 jest.mock("loglevel", () => ({
@@ -114,9 +112,9 @@ describe("useCollectionDragAndDrop", () => {
         new File(["content"], "file2.txt", { type: "text/plain" })
       ];
 
-      (client.POST as jest.Mock).mockResolvedValue({
-        data: { path: "test-collection", error: null },
-        error: null
+      (restFetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ path: "test-collection", error: null })
       });
 
       const { result } = renderHook(() => useCollectionDragAndDrop());
@@ -130,16 +128,20 @@ describe("useCollectionDragAndDrop", () => {
         await result.current.handleDrop("test-collection")(mockEvent as any);
       });
 
-      expect(client.POST).toHaveBeenCalledTimes(2);
+      expect(restFetch).toHaveBeenCalledTimes(2);
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ["collections"] });
     });
 
     it("handles API errors for individual files", async () => {
       const mockFile = new File(["content"], "error-file.txt", { type: "text/plain" });
 
-      (client.POST as jest.Mock).mockResolvedValue({
-        data: { path: "test-collection", error: "File processing failed" },
-        error: { detail: [{ msg: "Processing error", loc: ["body"], type: "error" }] }
+      (restFetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: jest.fn().mockResolvedValue({
+          detail: [{ msg: "Processing error", loc: ["body"], type: "error" }],
+          path: "test-collection",
+          error: "File processing failed"
+        })
       });
 
       const { result } = renderHook(() => useCollectionDragAndDrop());
@@ -160,7 +162,7 @@ describe("useCollectionDragAndDrop", () => {
     it("handles exceptions during file processing", async () => {
       const mockFile = new File(["content"], "crash-file.txt", { type: "text/plain" });
 
-      (client.POST as jest.Mock).mockRejectedValue(new Error("Network error"));
+      (restFetch as jest.Mock).mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useCollectionDragAndDrop());
 
@@ -180,9 +182,9 @@ describe("useCollectionDragAndDrop", () => {
     it("clears previous errors before processing new files", async () => {
       const mockFile = new File(["content"], "new-file.txt", { type: "text/plain" });
 
-      (client.POST as jest.Mock).mockResolvedValue({
-        data: { path: "test-collection", error: null },
-        error: null
+      (restFetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ path: "test-collection", error: null })
       });
 
       const { result } = renderHook(() => useCollectionDragAndDrop());

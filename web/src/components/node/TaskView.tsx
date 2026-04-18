@@ -43,10 +43,10 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
             {task.description}
           </Text>
         )}
-        {task.steps.length > 0 && (
+        {task.steps && task.steps.length > 0 && (
           <>
             <List disablePadding>
-              {task.steps.map((step) => (
+              {task.steps?.map((step) => (
                 <StepView key={step.id} step={step} />
               ))}
             </List>

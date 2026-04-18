@@ -22,7 +22,7 @@ import { useQuery } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
 import { Workflow, UnifiedModel } from "../../stores/ApiTypes";
 import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../stores/ApiClient";
+import { isProduction } from "../../lib/env";
 import { trpc } from "../../lib/trpc";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";

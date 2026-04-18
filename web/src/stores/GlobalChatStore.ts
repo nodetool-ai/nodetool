@@ -25,7 +25,7 @@ import {
   ThreadSummarizeRequest,
   LanguageModel
 } from "./ApiTypes";
-import { isLocalhost } from "./ApiClient";
+import { isLocalhost } from "../lib/env";
 import { trpcClient } from "../trpc/client";
 import {
   isTRPCErrorWithCode,

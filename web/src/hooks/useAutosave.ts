@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useVersionHistoryStore } from "../stores/VersionHistoryStore";
 import { useNotificationStore } from "../stores/NotificationStore";
-import { Workflow } from "../stores/ApiTypes";
+import { Node, Edge, Workflow } from "../stores/ApiTypes";
 import { workflowVersionsQueryKey } from "../serverState/useWorkflowVersions";
 import { v4 as uuidv4 } from "uuid";
 import log from "loglevel";
@@ -60,7 +60,7 @@ export async function triggerAutosaveForWorkflow(
       description: options?.description,
       force: options?.force ?? false,
       client_id: "system",
-      graph: graph as { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] },
+      graph: graph as { nodes: Node[]; edges: Edge[] },
       max_versions: options?.maxVersions ?? 50
     });
   } catch (error) {
@@ -113,8 +113,8 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
       }
 
       const graph = (options?.graph ?? { nodes: [], edges: [] }) as {
-        nodes: Record<string, unknown>[];
-        edges: Record<string, unknown>[];
+        nodes: Node[];
+        edges: Edge[];
       };
       const result = await trpcClient.workflows.autosave.mutate({
         id: workflowId,

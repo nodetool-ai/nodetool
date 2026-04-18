@@ -19,7 +19,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   },
 }));
 
-jest.mock("../ApiClient", () => ({
+jest.mock("../../lib/env", () => ({
   isLocalhost: true,
 }));
 

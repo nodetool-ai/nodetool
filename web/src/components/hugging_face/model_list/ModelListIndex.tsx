@@ -20,7 +20,7 @@ import ModelListItem from "./ModelListItem";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
-import { isElectron } from "../../../stores/ApiClient";
+import { isElectron } from "../../../lib/env";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import {
   buildHfCacheRequest,

@@ -41,7 +41,7 @@ import {
 } from "../ui_primitives";
 
 import { useQuery } from "@tanstack/react-query";
-import { isLocalhost } from "../../stores/ApiClient";
+import { isLocalhost } from "../../lib/env";
 import { trpcClient } from "../../trpc/client";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";

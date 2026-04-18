@@ -1,6 +1,6 @@
 import log from "loglevel";
+import { authHeader } from "../lib/auth";
 import type { Chunk } from "../stores/ApiTypes";
-import { authHeader } from "../stores/ApiClient";
 import { trpcClient } from "../trpc/client";
 import { isTRPCErrorWithCode, ApiErrorCode } from "@nodetool/protocol/api-schemas";
 import { resolveAssetUri } from "../components/node/output/hooks";

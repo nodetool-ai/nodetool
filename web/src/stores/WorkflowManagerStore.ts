@@ -13,7 +13,6 @@ import {
   WorkflowList,
   WorkflowRequest
 } from "./ApiTypes";
-import { client } from "./ApiClient";
 import { trpcClient } from "../trpc/client";
 import { debounce, omit } from "../utils/lodashAlternatives";
 import { createErrorMessage } from "../utils/errorHandling";

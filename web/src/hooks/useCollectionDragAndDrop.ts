@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
 import log from "loglevel";
+import { restFetch } from "../lib/rest-fetch";
 
 // Define a type for the expected error structure from the API
 interface ApiErrorDetail {
@@ -85,26 +85,23 @@ export const useCollectionDragAndDrop = () => {
           formData.append("file", file);
 
           try {
-            // Prepare options object with proper types for FormData
-            // The API client expects specific body types, but FormData needs special handling
-            const requestOptions = {
-              params: {
-                path: { name: collectionName }
-              },
-              body: formData as unknown as { file: string }
-              // Content-Type is set automatically for FormData
-            };
-
-            const { data, error } = await client.POST(
-              "/api/collections/{name}/index",
-              requestOptions
-            );
+            const resolvedPath = `/api/collections/${encodeURIComponent(
+              collectionName
+            )}/index`;
+            const response = await restFetch(resolvedPath, {
+              method: "POST",
+              body: formData
+            });
+            const data = (await response.json().catch(() => null)) as
+              | IndexResponseData
+              | ApiError
+              | null;
 
             // Type assertion for error structure
-            const apiError = error as ApiError | undefined;
+            const apiError = !response.ok ? (data as ApiError | undefined) : undefined;
             const responseData = data as IndexResponseData | undefined;
 
-            if (error || responseData?.error) {
+            if (!response.ok || responseData?.error) {
               errors.push({
                 file: file.name,
                 error:

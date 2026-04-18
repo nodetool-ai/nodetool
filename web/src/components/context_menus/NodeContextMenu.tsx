@@ -18,7 +18,7 @@ import QueueIcon from "@mui/icons-material/Queue";
 import SouthIcon from "@mui/icons-material/South";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
-import { isDevelopment } from "../../stores/ApiClient";
+import { isDevelopment } from "../../lib/env";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useNodes } from "../../contexts/NodeContext";
 

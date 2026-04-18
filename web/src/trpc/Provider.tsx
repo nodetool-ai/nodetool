@@ -3,10 +3,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, loggerLink } from "@trpc/client";
 import superjson from "superjson";
 import { trpc } from "./client";
+import { isLocalhost } from "../lib/env";
+import { supabase } from "../lib/supabaseClient";
 import { queryClient } from "../queryClient";
 import { BASE_URL } from "../stores/BASE_URL";
-import { supabase } from "../lib/supabaseClient";
-import { isLocalhost } from "../stores/ApiClient";
 
 async function authHeaders(): Promise<Record<string, string>> {
   if (isLocalhost) return {};

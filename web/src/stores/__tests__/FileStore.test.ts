@@ -1,11 +1,12 @@
 import { act } from "@testing-library/react";
+import { trpcClient } from "../../trpc/client";
 import { useFileStore } from "../FileStore";
-import { client } from "../ApiClient";
 
-// Mock the client module
-jest.mock("../ApiClient", () => ({
-  client: {
-    GET: jest.fn()
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    files: {
+      list: { query: jest.fn() }
+    }
   }
 }));
 
@@ -20,7 +21,7 @@ jest.mock("../../utils/errorHandling", () => ({
 }));
 
 // Use 'any' to bypass strict typing for mocked API responses
-const mockClient = client as any;
+const mockClient = trpcClient.files.list.query as any;
 
 describe("FileStore", () => {
   beforeEach(() => {
@@ -56,21 +57,21 @@ describe("FileStore", () => {
         { name: "file1.txt", path: "/home/file1.txt", is_dir: false },
         { name: "folder1", path: "/home/folder1", is_dir: true }
       ];
-      mockClient.GET.mockResolvedValueOnce({ data: mockFiles, error: null });
+      mockClient.mockResolvedValueOnce(mockFiles);
 
       const result = await useFileStore.getState().listFiles("/home");
 
-      expect(mockClient.GET).toHaveBeenCalledWith("/api/files/list", {
-        params: { query: { path: "/home" } }
-      });
+      expect(mockClient).toHaveBeenCalledWith({ path: "/home" });
       expect(result).toEqual(mockFiles);
     });
 
     it("throws error on API failure", async () => {
-      mockClient.GET.mockResolvedValueOnce({
+      mockClient.mockResolvedValueOnce({
         data: null,
         error: { detail: [{ msg: "Access denied" }] }
       });
+
+      mockClient.mockRejectedValueOnce(new Error("Access denied"));
 
       await expect(useFileStore.getState().listFiles("/restricted")).rejects.toThrow(
         "Access denied"
@@ -79,13 +80,11 @@ describe("FileStore", () => {
 
     it("works without path parameter", async () => {
       const mockFiles = [{ name: "file.txt", path: "/file.txt", is_dir: false }];
-      mockClient.GET.mockResolvedValueOnce({ data: mockFiles, error: null });
+      mockClient.mockResolvedValueOnce(mockFiles);
 
       const result = await useFileStore.getState().listFiles();
 
-      expect(mockClient.GET).toHaveBeenCalledWith("/api/files/list", {
-        params: { query: { path: undefined } }
-      });
+      expect(mockClient).toHaveBeenCalledWith({ path: "." });
       expect(result).toEqual(mockFiles);
     });
   });
@@ -129,7 +128,7 @@ describe("FileStore", () => {
         { name: "file1.txt", path: "/home/file1.txt", is_dir: false },
         { name: "file2.txt", path: "/home/file2.txt", is_dir: false }
       ];
-      mockClient.GET.mockResolvedValue({ data: mockFiles, error: null });
+      mockClient.mockResolvedValue(mockFiles);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("~");
@@ -143,18 +142,12 @@ describe("FileStore", () => {
 
     it("handles directories with children", async () => {
       // First call returns root files
-      mockClient.GET.mockResolvedValueOnce({
-        data: [
+      mockClient.mockResolvedValueOnce([
           { name: "folder1", path: "/home/folder1", is_dir: true },
           { name: "file1.txt", path: "/home/file1.txt", is_dir: false }
-        ],
-        error: null
-      });
+        ]);
       // Second call returns folder1 contents
-      mockClient.GET.mockResolvedValueOnce({
-        data: [{ name: "nested.txt", path: "/home/folder1/nested.txt", is_dir: false }],
-        error: null
-      });
+      mockClient.mockResolvedValueOnce([{ name: "nested.txt", path: "/home/folder1/nested.txt", is_dir: false }]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("/home");
@@ -173,32 +166,27 @@ describe("FileStore", () => {
       const pendingPromise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockClient.GET.mockReturnValueOnce(pendingPromise as any);
+      mockClient.mockReturnValueOnce(pendingPromise as any);
 
       const fetchPromise = useFileStore.getState().fetchFileTree("~");
 
       expect(useFileStore.getState().isLoadingTree).toBe(true);
       expect(useFileStore.getState().fileTreeAbortController).not.toBeNull();
 
-      resolvePromise!({ data: [], error: null });
+      resolvePromise!([]);
       await fetchPromise;
 
       expect(useFileStore.getState().isLoadingTree).toBe(false);
     });
 
     it("uses default path when none provided", async () => {
-      mockClient.GET.mockResolvedValue({ data: [], error: null });
+      mockClient.mockResolvedValue([]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree();
       });
 
-      expect(mockClient.GET).toHaveBeenCalledWith(
-        "/api/files/list",
-        expect.objectContaining({
-          params: { query: { path: "~" } }
-        })
-      );
+      expect(mockClient).toHaveBeenCalledWith({ path: "~" });
     });
 
     it("cancels previous fetch when called again", async () => {
@@ -212,7 +200,7 @@ describe("FileStore", () => {
         isLoadingTree: true
       });
 
-      mockClient.GET.mockResolvedValue({ data: [], error: null });
+      mockClient.mockResolvedValue([]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("~");
@@ -222,7 +210,7 @@ describe("FileStore", () => {
     });
 
     it("returns empty array if aborted", async () => {
-      mockClient.GET.mockRejectedValueOnce(new DOMException("Aborted", "AbortError"));
+      mockClient.mockRejectedValueOnce(new DOMException("Aborted", "AbortError"));
 
       // Manually simulate abort state
       let result: any;
@@ -247,7 +235,7 @@ describe("FileStore", () => {
         error: null
       });
 
-      mockClient.GET
+      mockClient
         .mockResolvedValueOnce(createDirResponse(1))
         .mockResolvedValueOnce(createDirResponse(2))
         .mockResolvedValueOnce(createDirResponse(3))
@@ -259,11 +247,11 @@ describe("FileStore", () => {
       });
 
       // Should stop at depth 4 (0-indexed), so 5 calls total (root + 4 levels)
-      expect(mockClient.GET).toHaveBeenCalledTimes(5);
+      expect(mockClient).toHaveBeenCalledTimes(5);
     });
 
     it("throws error on API failure when not aborted", async () => {
-      mockClient.GET.mockResolvedValueOnce({
+      mockClient.mockResolvedValueOnce({
         data: null,
         error: { detail: [{ msg: "Permission denied" }] }
       });
@@ -274,7 +262,7 @@ describe("FileStore", () => {
     });
 
     it("clears abort controller after successful fetch", async () => {
-      mockClient.GET.mockResolvedValue({ data: [], error: null });
+      mockClient.mockResolvedValue([]);
 
       await act(async () => {
         await useFileStore.getState().fetchFileTree("~");
@@ -284,7 +272,7 @@ describe("FileStore", () => {
     });
 
     it("creates tree items with correct structure", async () => {
-      mockClient.GET.mockResolvedValue({
+      mockClient.mockResolvedValue({
         data: [{ name: "test.txt", path: "/home/test.txt", is_dir: false }],
         error: null
       });
@@ -301,7 +289,7 @@ describe("FileStore", () => {
     });
 
     it("directories include children array", async () => {
-      mockClient.GET
+      mockClient
         .mockResolvedValueOnce({
           data: [{ name: "folder", path: "/home/folder", is_dir: true }],
           error: null
@@ -323,7 +311,7 @@ describe("FileStore", () => {
 
   describe("tree structure", () => {
     it("places directories before files", async () => {
-      mockClient.GET
+      mockClient
         .mockResolvedValueOnce({
           data: [
             { name: "zzz-file.txt", path: "/home/zzz-file.txt", is_dir: false },
@@ -348,7 +336,7 @@ describe("FileStore", () => {
     });
 
     it("handles empty directories", async () => {
-      mockClient.GET
+      mockClient
         .mockResolvedValueOnce({
           data: [{ name: "empty-folder", path: "/home/empty-folder", is_dir: true }],
           error: null
@@ -368,7 +356,7 @@ describe("FileStore", () => {
     });
 
     it("handles deeply nested structure", async () => {
-      mockClient.GET
+      mockClient
         .mockResolvedValueOnce({
           data: [{ name: "level1", path: "/home/level1", is_dir: true }],
           error: null

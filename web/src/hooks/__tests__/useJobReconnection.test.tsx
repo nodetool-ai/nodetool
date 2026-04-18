@@ -2,11 +2,42 @@ import React from "react";
 import { renderHook, waitFor, cleanup } from "@testing-library/react";
 import { useJobReconnection } from "../useJobReconnection";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
+import { trpcClient } from "../../trpc/client";
 
-jest.mock("../../stores/ApiClient");
 jest.mock("../../stores/WorkflowRunner");
+jest.mock("../../lib/trpc", () => ({
+  trpc: {
+    models: {
+      huggingfaceList: { query: jest.fn() },
+      ollama: { query: jest.fn() },
+      providers: { query: jest.fn() }
+    }
+  }
+}));
+jest.mock("../../lib/env", () => ({
+  isLocalhost: true,
+  isDevelopment: true,
+  isProduction: false,
+  isElectron: false,
+  setForceLocalhost: jest.fn()
+}));
+jest.mock("../../lib/auth", () => ({
+  authHeader: jest.fn(async () => ({}))
+}));
+jest.mock("../../lib/supabaseClient", () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn().mockResolvedValue({ data: { session: null } })
+    }
+  }
+}));
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    jobs: { list: { query: jest.fn() } },
+    workflows: { get: { query: jest.fn() } }
+  }
+}));
 
 // Mock useAuth as a Zustand-like store that applies selectors
 let mockAuthState: Record<string, unknown> = {};
@@ -18,7 +49,8 @@ jest.mock("../../stores/useAuth", () => ({
   useAuth: (...args: unknown[]) => mockUseAuthImpl(args[0] as (state: Record<string, unknown>) => unknown),
 }));
 
-const mockClient = client as jest.Mocked<typeof client>;
+const mockJobsListQuery = trpcClient.jobs.list.query as unknown as jest.Mock;
+const mockWorkflowGetQuery = trpcClient.workflows.get.query as unknown as jest.Mock;
 const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.MockedFunction<
   typeof getWorkflowRunnerStore
 >;
@@ -77,10 +109,7 @@ describe("useJobReconnection", () => {
   });
 
   it("returns running jobs and reconnecting status", async () => {
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: mockJobs },
-      error: null,
-    });
+    mockJobsListQuery.mockResolvedValueOnce({ jobs: mockJobs } as never);
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -95,15 +124,8 @@ describe("useJobReconnection", () => {
   });
 
   it("reconnects to running jobs on mount", async () => {
-    mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: mockJobs },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      });
+    mockJobsListQuery.mockResolvedValueOnce({ jobs: mockJobs } as never);
+    mockWorkflowGetQuery.mockResolvedValueOnce(mockWorkflow as never);
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -113,10 +135,8 @@ describe("useJobReconnection", () => {
       expect(result.current.runningJobs).toBeDefined();
     });
 
-    expect(mockClient.GET).toHaveBeenCalledTimes(2);
-    expect(mockClient.GET).toHaveBeenCalledWith("/api/workflows/{id}", {
-      params: { path: { id: "workflow-1" } },
-    });
+    expect(mockJobsListQuery).toHaveBeenCalled();
+    expect(mockWorkflowGetQuery).toHaveBeenCalledWith({ id: "workflow-1" });
 
     // Check reconnection called
     const store = getWorkflowRunnerStore("workflow-1");
@@ -126,15 +146,8 @@ describe("useJobReconnection", () => {
   });
 
   it("handles workflow fetch error", async () => {
-    mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: mockJobs },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: null,
-        error: { detail: "Workflow not found" },
-      });
+    mockJobsListQuery.mockResolvedValueOnce({ jobs: mockJobs } as never);
+    mockWorkflowGetQuery.mockRejectedValueOnce(new Error("Workflow not found"));
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -144,14 +157,12 @@ describe("useJobReconnection", () => {
       expect(result.current.runningJobs).toBeDefined();
     });
 
-    expect(mockClient.GET).toHaveBeenCalledTimes(2);
+    expect(mockJobsListQuery).toHaveBeenCalled();
+    expect(mockWorkflowGetQuery).toHaveBeenCalledWith({ id: "workflow-1" });
   });
 
   it("does not reconnect when no running jobs", async () => {
-    mockClient.GET.mockResolvedValueOnce({
-      data: { jobs: [] },
-      error: null,
-    });
+    mockJobsListQuery.mockResolvedValueOnce({ jobs: [] } as never);
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -162,7 +173,7 @@ describe("useJobReconnection", () => {
     });
 
     expect(result.current.isReconnecting).toBe(false);
-    expect(mockClient.GET).toHaveBeenCalledTimes(1);
+    expect(mockJobsListQuery).toHaveBeenCalledTimes(1);
   });
 
   it("handles suspended jobs with correct initial state", async () => {
@@ -180,15 +191,8 @@ describe("useJobReconnection", () => {
       },
     ];
 
-    mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: suspendedJob },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      });
+    mockJobsListQuery.mockResolvedValueOnce({ jobs: suspendedJob } as never);
+    mockWorkflowGetQuery.mockResolvedValueOnce(mockWorkflow as never);
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -221,15 +225,8 @@ describe("useJobReconnection", () => {
       },
     ];
 
-    mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: pausedJob },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      });
+    mockJobsListQuery.mockResolvedValueOnce({ jobs: pausedJob } as never);
+    mockWorkflowGetQuery.mockResolvedValueOnce(mockWorkflow as never);
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -251,15 +248,8 @@ describe("useJobReconnection", () => {
   });
 
   it("only reconnects once on multiple renders", async () => {
-    mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: mockJobs },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      });
+    mockJobsListQuery.mockResolvedValueOnce({ jobs: mockJobs } as never);
+    mockWorkflowGetQuery.mockResolvedValueOnce(mockWorkflow as never);
 
     const { result, rerender } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -269,13 +259,13 @@ describe("useJobReconnection", () => {
       expect(result.current.runningJobs).toBeDefined();
     });
 
-    const callCount = mockClient.GET.mock.calls.length;
+    const callCount = mockWorkflowGetQuery.mock.calls.length;
 
     rerender({});
 
     await waitFor(() => {});
 
-    expect(mockClient.GET.mock.calls.length).toBe(callCount);
+    expect(mockWorkflowGetQuery.mock.calls.length).toBe(callCount);
   });
 
   it("does not reconnect when not authenticated", () => {
@@ -319,19 +309,10 @@ describe("useJobReconnection", () => {
       edges: [],
     };
 
-    mockClient.GET
-      .mockResolvedValueOnce({
-        data: { jobs: multipleJobs },
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: mockWorkflow,
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        data: workflow2,
-        error: null,
-      });
+    mockJobsListQuery.mockResolvedValueOnce({ jobs: multipleJobs } as never);
+    mockWorkflowGetQuery
+      .mockResolvedValueOnce(mockWorkflow as never)
+      .mockResolvedValueOnce(workflow2 as never);
 
     const { result } = renderHook(() => useJobReconnection(), {
       wrapper: createWrapper(),
@@ -342,7 +323,8 @@ describe("useJobReconnection", () => {
     });
 
     expect(result.current.runningJobs).toHaveLength(2);
-    expect(mockClient.GET).toHaveBeenCalledTimes(3);
+    expect(mockJobsListQuery).toHaveBeenCalledTimes(1);
+    expect(mockWorkflowGetQuery).toHaveBeenCalledTimes(2);
 
     // Verify both reconnected
     const store = getWorkflowRunnerStore("workflow-1"); // mock returns same object for both calls in implementation
