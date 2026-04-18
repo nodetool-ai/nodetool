@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 
 type Direction = "upstream" | "downstream" | "both";
 
@@ -43,7 +44,8 @@ export const useSelectConnected = (
       edges: state.edges,
       getSelectedNodes: state.getSelectedNodes,
       setSelectedNodes: state.setSelectedNodes
-    })
+    }),
+    shallow
   );
 
   const getConnectedNodeIds = useCallback((): string[] => {

@@ -2,6 +2,7 @@
 import { css } from "@emotion/react";
 
 import { useEffect, useRef, useState, useCallback, memo, useMemo } from "react";
+import { shallow } from "zustand/shallow";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
@@ -242,16 +243,17 @@ const AssetActions = ({
     (state) => state.addNotification
   );
   const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore(
-    (state) => [state.settings, state.setAssetItemSize, state.setAssetsOrder]
+    (state) => [state.settings, state.setAssetItemSize, state.setAssetsOrder] as const,
+    shallow
   );
-  const [sizeFilter, setSizeFilter] = useAssetGridStore((state) => [
-    state.sizeFilter,
-    state.setSizeFilter
-  ]);
-  const [viewMode, setViewMode] = useAssetGridStore((state) => [
-    state.viewMode,
-    state.setViewMode
-  ]);
+  const [sizeFilter, setSizeFilter] = useAssetGridStore(
+    (state) => [state.sizeFilter, state.setSizeFilter] as const,
+    shallow
+  );
+  const [viewMode, setViewMode] = useAssetGridStore(
+    (state) => [state.viewMode, state.setViewMode] as const,
+    shallow
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOrderChange = useCallback((_event: unknown, newOrder: "name" | "date" | "size" | null) => {
