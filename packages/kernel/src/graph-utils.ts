@@ -243,8 +243,8 @@ export function rewriteBypassedNodes(data: GraphData): GraphData {
         // outgoing source handle (name-based pairing), then fall back to
         // the first incoming edge whose source output type is compatible
         // with the downstream target's input type.
-        const downstreamCompatible: Edge[] = [];
-        const outputCompatible: Edge[] = [];
+        const candidatesCompatibleWithDownstream: Edge[] = [];
+        const candidatesCompatibleWithBypassOutput: Edge[] = [];
         for (const inEdge of incomingData) {
           const sourceNode = nodeById.get(inEdge.source);
           const sourceOutputType = getOutputTypeString(
@@ -253,14 +253,16 @@ export function rewriteBypassedNodes(data: GraphData): GraphData {
           );
           if (!typesCompatible(sourceOutputType, targetInputType)) continue;
 
-          downstreamCompatible.push(inEdge);
+          candidatesCompatibleWithDownstream.push(inEdge);
           if (typesCompatible(sourceOutputType, bypassOutputType)) {
-            outputCompatible.push(inEdge);
+            candidatesCompatibleWithBypassOutput.push(inEdge);
           }
         }
 
         const preferredCandidates =
-          outputCompatible.length > 0 ? outputCompatible : downstreamCompatible;
+          candidatesCompatibleWithBypassOutput.length > 0
+            ? candidatesCompatibleWithBypassOutput
+            : candidatesCompatibleWithDownstream;
 
         const candidates: Edge[] = [];
         for (const candidate of preferredCandidates) {
