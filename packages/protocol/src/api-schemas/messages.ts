@@ -19,6 +19,19 @@ export const messageResponse = z.object({
   ]),
   tool_calls: z.array(z.unknown()).nullable(),
   tool_call_id: z.string().nullable(),
+  provider: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  cost: z.number().nullable().optional(),
+  workflow_id: z.string().nullable().optional(),
+  agent_mode: z.boolean().nullable().optional(),
+  help_mode: z.boolean().nullable().optional(),
+  agent_execution_id: z.string().nullable().optional(),
+  execution_event_type: z.string().nullable().optional(),
+  workflow_target: z.string().nullable().optional(),
+  // Media-generation metadata persisted on assistant messages produced by the
+  // media composer. Echoed back on `messages.list` so the chat view can render
+  // the header chips (model, resolution, variations, …) from MediaOutputGroup.
+  media_generation: z.record(z.string(), z.unknown()).nullable().optional(),
   created_at: z.string(),
   updated_at: z.string()
 });

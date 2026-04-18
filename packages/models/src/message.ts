@@ -34,6 +34,7 @@ export class Message extends DBModel {
   declare agent_execution_id: string | null;
   declare execution_event_type: string | null;
   declare workflow_target: string | null;
+  declare media_generation: Record<string, unknown> | null;
   declare created_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -57,6 +58,7 @@ export class Message extends DBModel {
     this.agent_execution_id ??= null;
     this.execution_event_type ??= null;
     this.workflow_target ??= null;
+    this.media_generation ??= null;
     this.created_at ??= now;
 
     // Drizzle handles JSON<->text via jsonText custom type, but handle

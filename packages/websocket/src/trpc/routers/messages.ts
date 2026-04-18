@@ -42,6 +42,16 @@ function toMessageResponse(msg: MessageModel): MessageResponse {
     ),
     tool_calls: msg.tool_calls,
     tool_call_id: msg.tool_call_id ?? null,
+    provider: msg.provider ?? null,
+    model: msg.model ?? null,
+    cost: msg.cost ?? null,
+    workflow_id: msg.workflow_id ?? null,
+    agent_mode: msg.agent_mode ?? null,
+    help_mode: msg.help_mode ?? null,
+    agent_execution_id: msg.agent_execution_id ?? null,
+    execution_event_type: msg.execution_event_type ?? null,
+    workflow_target: msg.workflow_target ?? null,
+    media_generation: msg.media_generation ?? null,
     created_at: msg.created_at,
     updated_at: (msg as unknown as { updated_at?: string }).updated_at ??
       msg.created_at
