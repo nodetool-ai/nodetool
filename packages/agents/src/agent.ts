@@ -29,6 +29,7 @@ import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
+import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 
 // ---------------------------------------------------------------------------
 // Skill types and helpers
@@ -188,11 +189,24 @@ export interface AgentOptions {
   maxSteps?: number;
   maxStepIterations?: number;
   outputSchema?: Record<string, unknown>;
+  /**
+   * Format for the agent's final result.
+   * - "structured" (default): honors `outputSchema`; finish_step returns JSON.
+   * - "markdown" / "text" / "html": final result is a string in that format.
+   *   `outputSchema` is ignored.
+   */
+  outputFormat?: "structured" | "markdown" | "text" | "html";
   /** Pre-defined task to execute, skipping the planning phase. */
   task?: Task;
   skills?: string[];
   skillDirs?: string[];
 }
+
+const OUTPUT_FORMAT_DIRECTIVES: Record<"markdown" | "text" | "html", string> = {
+  markdown: "Final result: markdown prose.",
+  text: "Final result: plain text.",
+  html: "Final result: HTML fragment."
+};
 
 export class Agent extends BaseAgent {
   private readonly description: string;
@@ -201,6 +215,7 @@ export class Agent extends BaseAgent {
   private readonly maxSteps: number;
   private readonly maxStepIterations: number;
   private readonly outputSchema?: Record<string, unknown>;
+  private readonly outputFormat: "structured" | "markdown" | "text" | "html";
   private readonly workspace?: string;
   private readonly requestedSkills?: string[];
   private readonly skillDirs: string[];
@@ -209,6 +224,7 @@ export class Agent extends BaseAgent {
   taskPlan: TaskPlan | null = null;
 
   constructor(opts: AgentOptions) {
+    rejectAgenticProvider(opts.provider, "Agent");
     super({
       name: opts.name,
       objective: opts.objective,
@@ -224,7 +240,10 @@ export class Agent extends BaseAgent {
     this.reasoningModel = opts.reasoningModel ?? opts.model;
     this.maxSteps = opts.maxSteps ?? 10;
     this.maxStepIterations = opts.maxStepIterations ?? 5;
-    this.outputSchema = opts.outputSchema;
+    this.outputFormat = opts.outputFormat ?? "structured";
+    // Non-structured formats imply a string result; outputSchema is ignored.
+    this.outputSchema =
+      this.outputFormat === "structured" ? opts.outputSchema : undefined;
     this.workspace = opts.workspace;
     this.requestedSkills = opts.skills;
     this.skillDirs = opts.skillDirs ?? [];
@@ -380,10 +399,14 @@ export class Agent extends BaseAgent {
    * Merge user system prompt with skill system prompt.
    */
   private mergeSystemPrompt(skillPrompt: string | null): string | undefined {
-    if (this.systemPrompt && skillPrompt) {
-      return `${this.systemPrompt}\n\n${skillPrompt}`;
+    const parts: string[] = [];
+    if (this.systemPrompt) parts.push(this.systemPrompt);
+    if (skillPrompt) parts.push(skillPrompt);
+    if (this.outputFormat !== "structured") {
+      parts.push(OUTPUT_FORMAT_DIRECTIVES[this.outputFormat]);
     }
-    return this.systemPrompt || skillPrompt || undefined;
+    if (parts.length === 0) return undefined;
+    return parts.join("\n\n");
   }
 
   async *execute(

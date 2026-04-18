@@ -220,10 +220,56 @@ export function autoScript(opts: {
   result?: unknown;
   text?: string;
 }): ScriptFn {
-  return (_messages, tools) => {
+  return (messages, tools) => {
     const toolNames = new Set(tools.map((t) => t.name));
+
+    // Incremental planner: add_task + finish_plan
+    if (
+      toolNames.has("add_task") &&
+      toolNames.has("finish_plan") &&
+      (opts.multiTaskPlan || opts.plan)
+    ) {
+      const planSpec: MultiTaskPlanSpec = opts.multiTaskPlan ?? {
+        title: opts.plan!.title,
+        tasks: [
+          {
+            id: "task_1",
+            title: opts.plan!.title,
+            depends_on: [],
+            steps: opts.plan!.steps
+          }
+        ]
+      };
+
+      // Count add_task tool results already in history to decide next step.
+      let addedCount = 0;
+      for (const m of messages) {
+        if (m.role !== "tool") continue;
+        const content = typeof m.content === "string" ? m.content : "";
+        if (content.includes('"status":"task_added"')) addedCount++;
+      }
+
+      if (addedCount < planSpec.tasks.length) {
+        const task = planSpec.tasks[addedCount];
+        return [
+          {
+            type: "tool_call",
+            name: "add_task",
+            args: task as unknown as Record<string, unknown>
+          }
+        ];
+      }
+      return [
+        {
+          type: "tool_call",
+          name: "finish_plan",
+          args: { title: planSpec.title }
+        }
+      ];
+    }
+
     if (toolNames.has("create_plan") && (opts.multiTaskPlan || opts.plan)) {
-      // Use explicit multi-task plan or auto-wrap single-task plan
+      // Legacy one-shot multi-task plan tool.
       const planArgs = opts.multiTaskPlan ?? {
         title: opts.plan!.title,
         tasks: [

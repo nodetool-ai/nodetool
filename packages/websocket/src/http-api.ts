@@ -328,23 +328,69 @@ export async function handleNodeMetadata(
     return errorResponse(405, "Method not allowed");
   }
 
-  // If a registry is provided, use unified metadata from TS + Python
+  const url = new URL(request.url);
+  const nodeType = url.searchParams.get("node_type");
+  const namespace = url.searchParams.get("namespace");
+  const queryParam = url.searchParams.get("query");
+  const fields = url.searchParams.get("fields") ?? "summary";
+
+  let nodes: NodeMetadata[];
   if (options.registry) {
-    const nodes = options.registry.listMetadata();
-    return jsonResponse(
-      nodes.sort((a, b) => a.node_type.localeCompare(b.node_type))
-    );
+    nodes = options.registry.listMetadata();
+  } else {
+    const loaded = loadPythonPackageMetadata({
+      roots: options.metadataRoots,
+      maxDepth: options.metadataMaxDepth
+    });
+    nodes = [...loaded.nodesByType.values()];
+  }
+  nodes.sort((a, b) => a.node_type.localeCompare(b.node_type));
+
+  // Exact node_type lookup returns the full metadata for that one node.
+  if (nodeType) {
+    const match = nodes.find((n) => n.node_type === nodeType);
+    if (!match) return errorResponse(404, `Node type not found: ${nodeType}`);
+    return jsonResponse(match);
   }
 
-  // Fallback: Python-only metadata
-  const loaded = loadPythonPackageMetadata({
-    roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth
-  });
-  const nodes: NodeMetadata[] = [...loaded.nodesByType.values()].sort((a, b) =>
-    a.node_type.localeCompare(b.node_type)
+  if (namespace) {
+    nodes = nodes.filter((n) => n.namespace?.startsWith(namespace));
+  }
+
+  if (queryParam) {
+    const terms = queryParam
+      .split(",")
+      .map((t) => t.trim().toLowerCase())
+      .filter((t) => t.length > 0);
+    if (terms.length > 0) {
+      const scored = nodes.map((n) => {
+        const haystack =
+          `${n.title ?? ""} ${n.description ?? ""} ${n.node_type} ${n.namespace ?? ""}`.toLowerCase();
+        let score = 0;
+        for (const term of terms) if (haystack.includes(term)) score++;
+        return { node: n, score };
+      });
+      nodes = scored
+        .filter((s) => s.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((s) => s.node);
+    }
+  }
+
+  const limit = parseLimit(url, 100);
+  nodes = nodes.slice(0, limit);
+
+  // Default to slim summary to keep response size bounded. Full metadata is
+  // opt-in via `fields=full` or a specific node_type lookup.
+  if (fields === "full") return jsonResponse(nodes);
+  return jsonResponse(
+    nodes.map((n) => ({
+      node_type: n.node_type,
+      title: n.title,
+      description: n.description,
+      namespace: n.namespace
+    }))
   );
-  return jsonResponse(nodes);
 }
 
 export function parseLimit(url: URL, defaultLimit = 100): number {

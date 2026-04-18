@@ -357,7 +357,8 @@ export class ListNodesTool extends Tool {
     params: Record<string, unknown>
   ): Promise<unknown> {
     return apiGet(context, "/api/nodes/metadata", {
-      namespace: params["namespace"] as string | undefined
+      namespace: params["namespace"] as string | undefined,
+      limit: Number(params["limit"] ?? 200)
     });
   }
 
@@ -401,7 +402,8 @@ export class SearchNodesTool extends Tool {
   ): Promise<unknown> {
     const queryArr = params["query"] as string[];
     return apiGet(context, "/api/nodes/metadata", {
-      query: queryArr.join(",")
+      query: queryArr.join(","),
+      limit: Number(params["n_results"] ?? 10)
     });
   }
 

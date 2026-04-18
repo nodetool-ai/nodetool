@@ -233,7 +233,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         objective: trimmed,
         provider: prov,
         model: opts.model,
-        tools: []
+        tools: [],
+        outputFormat: "markdown",
+        maxStepIterations: 20
       });
 
       const ctx = new ProcessingContext({

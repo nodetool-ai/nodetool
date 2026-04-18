@@ -21,7 +21,12 @@ import { TaskUpdateEvent } from "@nodetool/protocol";
 // ---------------------------------------------------------------------------
 
 export type StepStatus = "waiting" | "running" | "completed" | "failed";
-export type TaskStatus = "waiting" | "running" | "completed" | "failed";
+export type TaskStatus =
+  | "planned"
+  | "waiting"
+  | "running"
+  | "completed"
+  | "failed";
 
 export interface StepState {
   id: string;
@@ -94,6 +99,39 @@ export function useExecutionState() {
           setState((prev) => {
             const tasks = [...prev.tasks];
 
+            if (tu.event === TaskUpdateEvent.TaskPlanned) {
+              const existingIdx = tasks.findIndex(
+                (t) => t.id === tu.task.id
+              );
+              const steps: StepState[] = (tu.task.steps ?? []).map((s) => ({
+                id: s.id ?? "",
+                name: s.instructions?.slice(0, 60) ?? s.id ?? "",
+                status: "waiting" as StepStatus,
+                output: "",
+              }));
+              const plannedTask: TaskState = {
+                id: tu.task.id ?? "",
+                name: tu.task.title ?? tu.task.name ?? tu.task.id ?? "",
+                status: "planned",
+                steps,
+                expanded: true,
+              };
+              if (existingIdx === -1) {
+                tasks.push(plannedTask);
+              } else {
+                tasks[existingIdx] = {
+                  ...plannedTask,
+                  startedAt: tasks[existingIdx].startedAt,
+                };
+              }
+              return { ...prev, phase: "planning", tasks };
+            }
+
+            if (tu.event === TaskUpdateEvent.TaskRemoved) {
+              const filtered = tasks.filter((t) => t.id !== tu.task.id);
+              return { ...prev, tasks: filtered };
+            }
+
             if (tu.event === TaskUpdateEvent.TaskCreated) {
               const existingIdx = tasks.findIndex(
                 (t) => t.id === tu.task.id
@@ -113,6 +151,12 @@ export function useExecutionState() {
                   steps,
                   expanded: true,
                 });
+              } else {
+                tasks[existingIdx] = {
+                  ...tasks[existingIdx],
+                  status: "running",
+                  startedAt: Date.now(),
+                };
               }
               return { ...prev, phase: "executing", tasks };
             }

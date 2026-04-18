@@ -192,29 +192,30 @@ describe("MultiModeAgent", () => {
 
   describe("plan mode", () => {
     it("runs planning then execution phases", async () => {
-      // Provider responses:
-      // 1. Planner call: returns create_plan tool call
-      // 2. Step executor: returns chunk + finish_step
+      // Planner now issues one add_task per task followed by finish_plan.
       const provider = createMockProvider([
-        // Planner response
+        // add_task(task_1)
         [
           { type: "chunk", content: "Planning..." },
           {
-            id: "tc_plan",
-            name: "create_plan",
+            id: "tc_add_1",
+            name: "add_task",
             args: {
-              title: "Test Plan",
-              tasks: [
-                {
-                  id: "task_1",
-                  title: "Test Task",
-                  depends_on: [],
-                  steps: [
-                    { id: "s1", instructions: "Do the thing", depends_on: [] }
-                  ]
-                }
+              id: "task_1",
+              title: "Test Task",
+              depends_on: [],
+              steps: [
+                { id: "s1", instructions: "Do the thing", depends_on: [] }
               ]
             }
+          }
+        ],
+        // finish_plan
+        [
+          {
+            id: "tc_finish_plan",
+            name: "finish_plan",
+            args: { title: "Test Plan" }
           }
         ],
         // Step s1 execution
