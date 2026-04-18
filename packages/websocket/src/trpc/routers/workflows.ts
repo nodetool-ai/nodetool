@@ -31,6 +31,7 @@ import { PythonNodeExecutor } from "@nodetool/runtime";
 import { WorkflowRunner } from "@nodetool/kernel";
 import type { NodeDescriptor } from "@nodetool/protocol";
 import { loadPythonPackageMetadata } from "@nodetool/node-sdk";
+import { createLogger } from "@nodetool/config";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -68,9 +69,30 @@ import {
   versionDeleteInput,
   versionDeleteOutput,
   workflowResponse,
+  graph as graphSchema,
   type WorkflowResponse,
   type VersionResponse
 } from "@nodetool/protocol/api-schemas/workflows.js";
+
+const log = createLogger("nodetool.websocket.trpc.workflows");
+
+/**
+ * Validate a workflow graph against the wire schema. Returns the graph if it
+ * passes, or null if invalid — so list endpoints can still return the rest of
+ * the workflow row instead of failing the entire response.
+ */
+function safeGraph(
+  workflowId: string,
+  raw: unknown
+): WorkflowResponse["graph"] {
+  if (raw == null) return null;
+  const parsed = graphSchema.safeParse(raw);
+  if (parsed.success) return parsed.data;
+  log.warn(
+    `Workflow ${workflowId} has an invalid graph; returning null. Issues: ${JSON.stringify(parsed.error.issues)}`
+  );
+  return null;
+}
 
 // ── Rate-limit tracking for autosave ───────────────────────────────────────
 const lastAutosaveTime = new Map<string, number>();
@@ -90,7 +112,7 @@ function toWorkflowResponse(workflow: WorkflowModel): WorkflowResponse {
     tags: workflow.tags ?? [],
     thumbnail: workflow.thumbnail ?? null,
     thumbnail_url: workflow.thumbnail_url ?? null,
-    graph: (workflow.graph as WorkflowResponse["graph"]) ?? null,
+    graph: safeGraph(workflow.id, workflow.graph),
     input_schema: null,
     output_schema: null,
     settings:

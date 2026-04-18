@@ -519,6 +519,15 @@ await app.register(fastifyTRPCPlugin, {
         `tRPC error on ${path}`,
         error instanceof Error ? error : new Error(String(error))
       );
+      // Surface inner ZodError details (output validation failures) so callers
+      // can diagnose the offending fields instead of seeing only "Output
+      // validation failed".
+      const cause = (error as { cause?: unknown }).cause;
+      if (cause && typeof cause === "object" && "issues" in cause) {
+        log.error(
+          `tRPC error cause on ${path}: ${JSON.stringify((cause as { issues: unknown }).issues)}`
+        );
+      }
     }
   } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"]
 });
