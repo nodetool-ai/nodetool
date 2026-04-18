@@ -23,9 +23,6 @@ export default {
     "\\.svg\\?react$": "<rootDir>/src/__mocks__/svgReactMock.ts",
     "^.*components/themes/ThemeNodetool$":
       "<rootDir>/src/__mocks__/themeMock.ts",
-    ApiClient$: "<rootDir>/src/__mocks__/apiClientMock.ts",
-    "ApiClient\\.js$": "<rootDir>/src/__mocks__/apiClientMock.ts",
-    "^.*stores/ApiClient$": "<rootDir>/src/__mocks__/apiClientMock.ts",
     BASE_URL$: "<rootDir>/src/__mocks__/baseUrlMock.ts",
     "BASE_URL\\.js$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
     "^.*stores/BASE_URL$": "<rootDir>/src/__mocks__/baseUrlMock.ts",
