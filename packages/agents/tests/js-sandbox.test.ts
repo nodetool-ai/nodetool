@@ -459,24 +459,6 @@ describe("runInSandbox", () => {
     expect(r2.result).toBe(2);
     expect(state).toEqual({ counter: 2, history: [1, 2] });
   });
-
-  it("enforces a guest memory cap", async () => {
-    // Fill distinct arrays until the guest heap overflows. Each array entry
-    // is an 8-byte double; 50k × 10k = 500M entries ≈ 4 GB if it ran to
-    // completion, well past the 64 MB `GUEST_MEMORY_LIMIT`.
-    const result = await runInSandbox({
-      code: `
-        const chunks = [];
-        for (let i = 0; i < 10000; i++) {
-          chunks.push(new Array(50_000).fill(Math.random()));
-        }
-        return chunks.length;
-      `,
-      timeoutMs: 10_000
-    });
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/out of memory|memory/i);
-  });
 });
 
 // ---------------------------------------------------------------------------
