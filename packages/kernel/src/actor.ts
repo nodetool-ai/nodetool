@@ -174,7 +174,15 @@ export class NodeActor {
       nodeId: this.node.id,
       type: this.node.type
     });
-    this._emitNodeStatus("completed", this._latestResult ?? {});
+    // Skip attaching result for constant/input nodes: the client already
+    // holds these values as properties, so echoing them back is redundant.
+    const skipResult =
+      this.node.type.startsWith("nodetool.constant.") ||
+      this.node.type.startsWith("nodetool.input.");
+    this._emitNodeStatus(
+      "completed",
+      skipResult ? undefined : (this._latestResult ?? {})
+    );
     return { outputs: this._latestResult ?? {} };
   }
 
