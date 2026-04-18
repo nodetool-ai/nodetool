@@ -12,6 +12,9 @@ import {
   LIB_IMAGE_FILTER_NODES
 } from "../src/index.js";
 
+const RGB_CHANNEL_NEAR_ZERO_THRESHOLD = 5;
+const RGB_CHANNEL_NEAR_MAX_THRESHOLD = 250;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -394,12 +397,14 @@ describe("lib-image-draw nodes", () => {
     const { raw: blackMaskRaw } = await decodeOutput(outputWithBlackMask);
     const { raw: whiteMaskRaw } = await decodeOutput(outputWithWhiteMask);
 
-    // Black mask should keep background-like output (green), white mask
-    // should produce foreground-like output (red).
-    expect(blackMaskRaw[1]).toBeGreaterThan(blackMaskRaw[0]);
-    expect(blackMaskRaw[1]).toBeGreaterThan(blackMaskRaw[2]);
-    expect(whiteMaskRaw[0]).toBeGreaterThan(whiteMaskRaw[1]);
-    expect(whiteMaskRaw[0]).toBeGreaterThan(whiteMaskRaw[2]);
+    // Black mask should keep background (green), white mask should keep
+    // foreground (red).
+    expect(blackMaskRaw[0]).toBeLessThanOrEqual(RGB_CHANNEL_NEAR_ZERO_THRESHOLD);
+    expect(blackMaskRaw[1]).toBeGreaterThanOrEqual(RGB_CHANNEL_NEAR_MAX_THRESHOLD);
+    expect(blackMaskRaw[2]).toBeLessThanOrEqual(RGB_CHANNEL_NEAR_ZERO_THRESHOLD);
+    expect(whiteMaskRaw[0]).toBeGreaterThanOrEqual(RGB_CHANNEL_NEAR_MAX_THRESHOLD);
+    expect(whiteMaskRaw[1]).toBeLessThanOrEqual(RGB_CHANNEL_NEAR_ZERO_THRESHOLD);
+    expect(whiteMaskRaw[2]).toBeLessThanOrEqual(RGB_CHANNEL_NEAR_ZERO_THRESHOLD);
   });
 });
 
