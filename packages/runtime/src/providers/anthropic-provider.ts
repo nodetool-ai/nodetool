@@ -33,7 +33,7 @@ function isTextContent(content: MessageContent): content is MessageTextContent {
 function isImageContent(
   content: MessageContent
 ): content is MessageImageContent {
-  return content.type === "image";
+  return content.type === "image_url";
 }
 
 function bytesToBase64(data: Uint8Array | string | undefined): string {

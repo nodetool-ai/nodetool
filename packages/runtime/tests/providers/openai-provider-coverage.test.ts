@@ -316,7 +316,7 @@ describe("OpenAIProvider – convertMessage edge cases", () => {
       role: "user",
       content: [
         {
-          type: "image",
+          type: "image_url",
           image: { data: new Uint8Array([1, 2, 3]) }
         }
       ]
@@ -971,7 +971,7 @@ describe("OpenAIProvider – asUint8Array edge cases", () => {
     // This exercises the Array.isArray branch of asUint8Array via image data
     const result = await provider.convertMessage({
       role: "user",
-      content: [{ type: "image", image: { data: [1, 2, 3] as any } }]
+      content: [{ type: "image_url", image: { data: [1, 2, 3] as any } }]
     });
     expect((result as any).content[0].type).toBe("image_url");
   });
@@ -997,7 +997,7 @@ describe("OpenAIProvider – image content with no uri (data only)", () => {
       role: "user",
       content: [
         {
-          type: "image",
+          type: "image_url",
           image: { data: new Uint8Array([1, 2, 3]), mimeType: "image/png" }
         }
       ]

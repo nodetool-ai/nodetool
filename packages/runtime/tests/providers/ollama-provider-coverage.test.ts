@@ -133,7 +133,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
       role: "user",
       content: [
         {
-          type: "image",
+          type: "image_url",
           image: { data: `data:image/png;base64,${base64}` }
         }
       ]
@@ -152,7 +152,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
       role: "user",
       content: [
         {
-          type: "image",
+          type: "image_url",
           image: { uri: `data:image/png;base64,${base64}` }
         }
       ]
@@ -168,7 +168,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
 
     const result = await provider.convertMessage({
       role: "user",
-      content: [{ type: "image", image: { data: "AQID" } }]
+      content: [{ type: "image_url", image: { data: "AQID" } }]
     });
     expect((result as any).images[0]).toBe("AQID");
   });
@@ -192,7 +192,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image", image: { uri: "https://example.com/img.png" } }
+        { type: "image_url", image: { uri: "https://example.com/img.png" } }
       ]
     });
     expect((result as any).images[0]).toBeTruthy();
@@ -210,7 +210,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
       provider.convertMessage({
         role: "user",
         content: [
-          { type: "image", image: { uri: "https://example.com/missing.png" } }
+          { type: "image_url", image: { uri: "https://example.com/missing.png" } }
         ]
       })
     ).rejects.toThrow("Failed to fetch image URI");
@@ -225,7 +225,7 @@ describe("OllamaProvider – imageToBase64 paths", () => {
     await expect(
       provider.convertMessage({
         role: "user",
-        content: [{ type: "image", image: {} }]
+        content: [{ type: "image_url", image: {} }]
       })
     ).rejects.toThrow("Invalid image payload");
   });
@@ -471,7 +471,7 @@ describe("OllamaProvider – parseDataUri non-base64 path", () => {
       role: "user",
       content: [
         {
-          type: "image",
+          type: "image_url",
           image: { data: "data:image/png,hello%20world" }
         }
       ]
@@ -489,7 +489,7 @@ describe("OllamaProvider – parseDataUri non-base64 path", () => {
       role: "user",
       content: [
         {
-          type: "image",
+          type: "image_url",
           image: { uri: "data:image/png,hello%20world" }
         }
       ]

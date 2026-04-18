@@ -94,7 +94,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
       role: "user",
       content: [
         {
-          type: "image",
+          type: "image_url",
           image: { uri: `data:image/png;base64,${base64}` }
         }
       ]
@@ -109,7 +109,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image", image: { data: "AQID" } } // base64 raw string
+        { type: "image_url", image: { data: "AQID" } } // base64 raw string
       ]
     });
     expect((result as any).content[0].source.data).toBe("AQID");
@@ -120,7 +120,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image", image: { data: `data:image/jpeg;base64,${base64}` } }
+        { type: "image_url", image: { data: `data:image/jpeg;base64,${base64}` } }
       ]
     });
     expect((result as any).content[0].source.data).toBe(base64);
@@ -131,7 +131,7 @@ describe("AnthropicProvider – convertMessage branches", () => {
     await expect(
       provider.convertMessage({
         role: "user",
-        content: [{ type: "image", image: {} }]
+        content: [{ type: "image_url", image: {} }]
       })
     ).rejects.toThrow("Invalid image reference");
   });
@@ -391,7 +391,7 @@ describe("AnthropicProvider – parseDataUri non-base64 path", () => {
       role: "user",
       content: [
         {
-          type: "image",
+          type: "image_url",
           image: { uri: "data:image/png,hello%20world" }
         }
       ]
@@ -410,7 +410,7 @@ describe("AnthropicProvider – bytesToBase64 with Uint8Array", () => {
 
     const result = await provider.convertMessage({
       role: "user",
-      content: [{ type: "image", image: { data: new Uint8Array([1, 2, 3]) } }]
+      content: [{ type: "image_url", image: { data: new Uint8Array([1, 2, 3]) } }]
     });
     expect((result as any).content[0].source.data).toBeTruthy();
   });
@@ -432,7 +432,7 @@ describe("AnthropicProvider – image fetch from remote URI", () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
-        { type: "image", image: { uri: "https://example.com/img.jpg" } }
+        { type: "image_url", image: { uri: "https://example.com/img.jpg" } }
       ]
     });
     expect((result as any).content[0].source.media_type).toBe("image/jpeg");
@@ -451,7 +451,7 @@ describe("AnthropicProvider – image fetch from remote URI", () => {
       provider.convertMessage({
         role: "user",
         content: [
-          { type: "image", image: { uri: "https://example.com/missing.jpg" } }
+          { type: "image_url", image: { uri: "https://example.com/missing.jpg" } }
         ]
       })
     ).rejects.toThrow("Failed to fetch URI");

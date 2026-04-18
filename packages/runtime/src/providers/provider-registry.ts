@@ -1,4 +1,7 @@
+import { createLogger } from "@nodetool/config";
 import type { BaseProvider } from "./base-provider.js";
+
+const log = createLogger("nodetool.runtime.provider-registry");
 
 interface ProviderRegistration {
   cls: new (...args: any[]) => BaseProvider;
@@ -113,14 +116,43 @@ export async function isProviderConfigured(
   providerId: string,
   userId = "1"
 ): Promise<boolean> {
-  const secretKey = getProviderSecretKey(providerId);
-  if (!secretKey) return true; // Local provider, always available
-
-  // Check via secret resolver (DB → env)
-  if (_secretResolver) {
-    const val = await _secretResolver(secretKey, userId);
-    if (val) return true;
+  const reg = _PROVIDER_REGISTRY.get(providerId);
+  if (!reg) {
+    log.debug("isProviderConfigured: not registered", { providerId });
+    return false;
   }
-  // Direct env check
-  return Boolean(process.env[secretKey]);
+
+  // A kwarg is "required at runtime" when the registration declares the key
+  // with a falsy value — registerProvider() uses empty strings to mark
+  // credentials that must be resolved from the DB or environment. Non-empty
+  // registration values are defaults the constructor can use directly.
+  // Keys starting with "_" are treated as runtime injections (e.g. `_bridge`,
+  // `_id` for Python providers) and excluded from the required-credentials
+  // check since they can't be resolved via secret resolver or env vars.
+  const required = Object.entries(reg.kwargs)
+    .filter(([key, value]) => !value && !key.startsWith("_"))
+    .map(([key]) => key);
+
+  if (required.length === 0) {
+    log.debug("isProviderConfigured: no required kwargs", { providerId });
+    return true;
+  }
+
+  for (const key of required) {
+    let value: string | null | undefined = null;
+    if (_secretResolver) {
+      value = await _secretResolver(key, userId);
+    }
+    if (!value) value = process.env[key];
+    if (!value) {
+      log.debug("isProviderConfigured: missing credential", {
+        providerId,
+        userId,
+        key,
+        hasResolver: Boolean(_secretResolver)
+      });
+      return false;
+    }
+  }
+  return true;
 }

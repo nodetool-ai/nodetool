@@ -72,7 +72,7 @@ describe("OllamaProvider", () => {
       role: "user",
       content: [
         { type: "text", text: "Describe this image" },
-        { type: "image", image: { data: Uint8Array.from([1, 2, 3]) } }
+        { type: "image_url", image: { data: Uint8Array.from([1, 2, 3]) } }
       ]
     };
 

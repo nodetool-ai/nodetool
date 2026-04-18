@@ -79,7 +79,7 @@ export interface MessageTextContent {
 }
 
 export interface MessageImageContent {
-  type: "image";
+  type: "image_url";
   image: {
     uri?: string;
     data?: Uint8Array | string;
