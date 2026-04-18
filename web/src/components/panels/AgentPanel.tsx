@@ -3,13 +3,13 @@ import { css } from "@emotion/react";
 import React, { useCallback, useMemo, memo, useEffect, useState } from "react";
 import {
   Button,
-  Select,
-  MenuItem,
   Menu,
+  MenuItem,
   IconButton,
   DialogTitle,
   DialogContent
 } from "@mui/material";
+import { AgentModelSelect } from "./AgentModelSelect";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -27,6 +27,7 @@ const PROVIDER_LABELS: Record<AgentProvider, string> = {
   claude: "Claude",
   codex: "Codex",
   opencode: "OpenCode",
+  pi: "Pi",
 };
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 import {
@@ -34,16 +35,17 @@ import {
   Caption,
   Tooltip,
   SelectField,
-  ToggleGroup,
-  ToggleOption,
   FlexRow,
   Dialog,
   LoadingSpinner
 } from "../ui_primitives";
 
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { isLocalhost } from "../../lib/env";
+import { trpcClient } from "../../trpc/client";
+import { useSettingsStore } from "../../stores/SettingsStore";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { getAgentSocketClient } from "../../lib/agent/AgentSocketClient";
 import log from "loglevel";
 
 const containerStyles = (_theme: Theme) =>
@@ -96,7 +98,7 @@ const placeholderStyles = (theme: Theme) =>
     ".placeholder-icon": {
       width: "40px",
       height: "40px",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -131,7 +133,7 @@ const placeholderStyles = (theme: Theme) =>
       color: theme.vars.palette.error.main,
       backgroundColor: `${theme.vars.palette.error.main}11`,
       border: `1px solid ${theme.vars.palette.error.main}33`,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       padding: "6px 12px",
       maxWidth: "360px"
     },
@@ -178,29 +180,33 @@ const toolbarStyles = (theme: Theme) =>
     flexShrink: 0
   });
 
-const modelSelectStyles = (theme: Theme) =>
+const mcpWarningStyles = (theme: Theme) =>
   css({
-    height: "26px",
-    minWidth: "90px",
-    maxWidth: "180px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "4px 8px",
     fontSize: theme.fontSizeSmaller,
     fontFamily: theme.fontFamily2,
-    "& .MuiSelect-select": {
-      padding: "1px 22px 1px 6px"
+    color: theme.vars.palette.warning.main,
+    backgroundColor: `${theme.vars.palette.warning.main}0c`,
+    borderBottom: `1px solid ${theme.vars.palette.warning.main}33`,
+    flexShrink: 0,
+    cursor: "pointer",
+    transition: "background-color 0.15s ease",
+    "&:hover": {
+      backgroundColor: `${theme.vars.palette.warning.main}18`
     },
-    "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: theme.vars.palette.divider
+    "& svg": {
+      fontSize: "14px",
+      flexShrink: 0
     }
   });
 
+
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces/", {
-    params: { query: { limit: 100 } }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workspaces");
-  }
-  return data.workspaces;
+  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
+  return workspaces as WorkspaceResponse[];
 };
 
 /**
@@ -280,6 +286,29 @@ const AgentPanel: React.FC = () => {
     queryKey: ["workspaces"],
     queryFn: fetchWorkspaces
   });
+
+  const { data: mcpStatus } = useQuery({
+    queryKey: ["mcp-status"],
+    queryFn: async () => {
+      try {
+        return await trpcClient.mcpConfig.status.query();
+      } catch {
+        return null;
+      }
+    },
+    enabled: isLocalhost,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000
+  });
+
+  const mcpInstalledForProvider = useMemo(() => {
+    if (!mcpStatus?.targets) return true;
+    const entry = mcpStatus.targets.find((t) => t.target === provider);
+    return entry?.installed ?? true;
+  }, [mcpStatus, provider]);
+
+  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+
   const hasRunningSession = Boolean(sessionId);
 
   useEffect(() => {
@@ -299,14 +328,14 @@ const AgentPanel: React.FC = () => {
   }, [workspaces, workspaceId, setWorkspaceContext]);
 
   useEffect(() => {
-    if (!newSessionDialogOpen || !window.api?.agent || !draftWorkspacePath) {
+    if (!newSessionDialogOpen || !draftWorkspacePath) {
       setDraftModels([]);
       setDraftModelsLoading(false);
       return;
     }
     let cancelled = false;
     setDraftModelsLoading(true);
-    window.api.agent
+    getAgentSocketClient()
       .listModels({
         provider: draftProvider,
         workspacePath: draftWorkspacePath
@@ -391,6 +420,11 @@ const AgentPanel: React.FC = () => {
         return "loading" as const;
       case "streaming":
         return "streaming" as const;
+      case "stopping":
+        // While the server acknowledges the stop we still treat the chat as
+        // busy so the user can't fire a new prompt before the agent actually
+        // halts.
+        return "loading" as const;
       case "error":
         return "error" as const;
       default:
@@ -577,27 +611,42 @@ const AgentPanel: React.FC = () => {
   // Stable handler for provider change in dialog
   const handleDraftProviderChange = useCallback(
     (value: string) => {
-      if (value === "claude" || value === "codex" || value === "opencode") {
+      if (
+        value === "claude" ||
+        value === "codex" ||
+        value === "opencode" ||
+        value === "pi"
+      ) {
         setDraftProvider(value);
       }
     },
     []
   );
 
-  const handleProviderToggle = useCallback(
-    (_event: React.MouseEvent, value: string | null) => {
-      if (value === "claude" || value === "codex" || value === "opencode") {
+  const handleProviderSelectChange = useCallback(
+    (value: string) => {
+      if (
+        value === "claude" ||
+        value === "codex" ||
+        value === "opencode" ||
+        value === "pi"
+      ) {
         setProvider(value);
       }
     },
     [setProvider]
   );
 
-  const handleHeaderModelChange = useCallback(
-    (event: { target: { value: string } }) => {
-      setModel(event.target.value);
-    },
-    [setModel]
+  const providerSelectOptions = useMemo<
+    Array<{ id: string; label: string }>
+  >(
+    () => [
+      { id: "claude", label: "Claude" },
+      { id: "codex", label: "Codex" },
+      { id: "opencode", label: "OpenCode" },
+      { id: "pi", label: "Pi" }
+    ],
+    []
   );
 
   // Stable handler for model change in dialog
@@ -629,7 +678,7 @@ const AgentPanel: React.FC = () => {
 
   const toolbarButtonSx = useMemo(
     () => ({
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       border: `1px solid ${theme.vars.palette.divider}`,
       padding: "3px 8px",
       gap: "4px",
@@ -650,7 +699,8 @@ const AgentPanel: React.FC = () => {
     () => [
       { value: "claude", label: "Claude" },
       { value: "codex", label: "Codex" },
-      { value: "opencode", label: "OpenCode" }
+      { value: "opencode", label: "OpenCode" },
+      { value: "pi", label: "Pi" }
     ],
     []
   );
@@ -671,54 +721,6 @@ const AgentPanel: React.FC = () => {
   return (
     <div css={containerStyles(theme)} className="agent-panel">
       <div css={toolbarStyles(theme)}>
-        <ToggleGroup
-          value={provider}
-          exclusive
-          onChange={handleProviderToggle}
-          compact
-          disabled={hasRunningSession}
-          sx={{
-            height: "26px",
-            "& .MuiToggleButton-root": {
-              fontSize: theme.fontSizeSmaller,
-              fontFamily: theme.fontFamily2,
-              padding: "1px 8px",
-              textTransform: "none",
-              border: `1px solid ${theme.vars.palette.divider}`,
-              color: theme.vars.palette.text.secondary,
-              "&.Mui-selected": {
-                backgroundColor: `${theme.vars.palette.primary.main}18`,
-                color: theme.vars.palette.primary.light,
-                borderColor: theme.vars.palette.primary.main,
-              },
-            },
-          }}
-        >
-          <ToggleOption value="claude">Claude</ToggleOption>
-          <ToggleOption value="codex">Codex</ToggleOption>
-          <ToggleOption value="opencode">OpenCode</ToggleOption>
-        </ToggleGroup>
-
-        <Select
-          value={availableModels.some((m) => m.id === model) ? model : ""}
-          onChange={handleHeaderModelChange}
-          size="small"
-          disabled={hasRunningSession || modelsLoading || availableModels.length === 0}
-          displayEmpty
-          variant="outlined"
-          css={modelSelectStyles(theme)}
-        >
-          {availableModels.map((entry) => (
-            <MenuItem
-              key={entry.id}
-              value={entry.id}
-              sx={{ fontSize: theme.fontSizeSmaller, fontFamily: theme.fontFamily2 }}
-            >
-              {entry.label}
-            </MenuItem>
-          ))}
-        </Select>
-
         <div style={{ flex: 1 }} />
 
         <Tooltip title="Resume a previous session">
@@ -776,6 +778,26 @@ const AgentPanel: React.FC = () => {
           ))}
         </Menu>
       </div>
+
+      {isLocalhost && !mcpInstalledForProvider && (
+        <div
+          css={mcpWarningStyles(theme)}
+          onClick={() => setMenuOpen(true, 1)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") setMenuOpen(true, 1);
+          }}
+        >
+          <WarningAmberIcon />
+          <span>
+            MCP not installed for {PROVIDER_LABELS[provider]}.{" "}
+            <span style={{ textDecoration: "underline" }}>
+              Configure in Settings
+            </span>
+          </span>
+        </div>
+      )}
 
       <Dialog
         open={newSessionDialogOpen}
@@ -853,6 +875,25 @@ const AgentPanel: React.FC = () => {
         onStop={handleStop}
         onNewChat={handleNewChat}
         noMessagesPlaceholder={noMessagesPlaceholder}
+        composerVariant="simple"
+        composerToolbar={
+          <FlexRow gap={1} align="center">
+            <AgentModelSelect
+              value={provider}
+              options={providerSelectOptions}
+              onChange={handleProviderSelectChange}
+              disabled={hasRunningSession}
+              searchable={false}
+            />
+            <AgentModelSelect
+              value={model}
+              options={availableModels}
+              onChange={setModel}
+              disabled={hasRunningSession || availableModels.length === 0}
+              loading={modelsLoading}
+            />
+          </FlexRow>
+        }
       />
     </div>
   );

@@ -1021,6 +1021,7 @@ export class ConcatVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly isDynamic = true;
 
   @prop({
     type: "video",
@@ -1055,24 +1056,35 @@ export class ConcatVideoNode extends BaseNode {
   declare video_b: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const a = await videoBytesAsync(this.video_a, context);
-    const b = await videoBytesAsync(this.video_b, context);
-    if (a.length === 0) return { output: videoRef(b) };
-    if (b.length === 0) return { output: videoRef(a) };
+    const inputValues = [
+      this.video_a,
+      this.video_b,
+      ...Array.from(this.dynamicProps.values())
+    ];
+    const parts: Uint8Array[] = [];
+    for (const input of inputValues) {
+      const bytes = await videoBytesAsync(input, context);
+      if (bytes.length > 0) {
+        parts.push(bytes);
+      }
+    }
 
-    const inputA = await withTempFile(".mp4", a);
-    const inputB = await withTempFile(".mp4", b);
+    if (parts.length === 0) return { output: videoRef(new Uint8Array()) };
+    if (parts.length === 1) return { output: videoRef(parts[0]) };
+
+    const inputs = await Promise.all(parts.map((bytes) => withTempFile(".mp4", bytes)));
     const concatDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "nodetool-concat-")
     );
     const listPath = path.join(concatDir, "list.txt");
     const outputPath = path.join(concatDir, "output.mp4");
     try {
+      const listEntries = inputs
+        .map((input) => `file '${input.path}'`)
+        .join("\n");
       await fs.writeFile(
         listPath,
-        `file '${inputA.path}'
-file '${inputB.path}'
-`
+        `${listEntries}\n`
       );
       await execFile(
         "ffmpeg",
@@ -1082,10 +1094,11 @@ file '${inputB.path}'
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
     } catch {
-      return { output: videoRef(bytesConcat([a, b])) };
+      return { output: videoRef(bytesConcat(parts)) };
     } finally {
-      await inputA.cleanup();
-      await inputB.cleanup();
+      for (const input of inputs) {
+        await input.cleanup();
+      }
       await fs.rm(concatDir, { recursive: true, force: true });
     }
   }

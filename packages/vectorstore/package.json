@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@nodetool/config": "*",
-    "@nodetool/security": "*",
+    "@nodetool/models": "*",
     "better-sqlite3": "^12.8.0",
     "sqlite-vec": "^0.1.7-alpha.2"
   },

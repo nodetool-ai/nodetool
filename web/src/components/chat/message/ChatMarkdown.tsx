@@ -38,7 +38,7 @@ const styles = (_theme: Theme) =>
       borderTopRightRadius: "8px"
     },
     pre: {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       borderTopLeftRadius: "0px",
       borderTopRightRadius: "0px",
       marginTop: "0px",

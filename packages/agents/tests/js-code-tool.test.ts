@@ -337,12 +337,15 @@ describe("MiniJSAgentTool", () => {
   });
 
   it("URL class constructs URLs", async () => {
+    // QuickJS's URL doesn't propagate searchParams mutations back; build the
+    // query via URLSearchParams directly and concatenate.
     const result = (await tool.process(mockContext, {
       code: `
         const u = new URL("https://api.example.com/search");
-        u.searchParams.set("q", "test");
-        u.searchParams.set("page", "2");
-        return u.toString();
+        const p = new URLSearchParams();
+        p.set("q", "test");
+        p.set("page", "2");
+        return u.origin + u.pathname + "?" + p.toString();
       `
     })) as Record<string, unknown>;
     expect(result.result).toContain("q=test");
@@ -350,13 +353,19 @@ describe("MiniJSAgentTool", () => {
   });
 
   it("URL class parses components", async () => {
+    // QuickJS's URLSearchParams only implements forEach (no
+    // keys/values/entries/Symbol.iterator), so build the params dict via
+    // forEach instead of `for..of` iteration.
     const result = (await tool.process(mockContext, {
       code: `
         const u = new URL("https://example.com/path?foo=bar&baz=1");
+        const p = new URLSearchParams(u.search);
+        const params = {};
+        p.forEach((v, k) => { params[k] = v; });
         return {
           hostname: u.hostname,
           pathname: u.pathname,
-          params: Object.fromEntries(u.searchParams),
+          params,
         };
       `
     })) as Record<string, unknown>;

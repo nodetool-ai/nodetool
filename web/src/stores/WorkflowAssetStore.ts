@@ -14,7 +14,7 @@
 
 import { create } from "zustand";
 import { Asset } from "./ApiTypes";
-import { client } from "./ApiClient";
+import { trpcClient } from "../trpc/client";
 import log from "loglevel";
 
 interface WorkflowAssetState {
@@ -71,19 +71,10 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
       });
 
       try {
-        const { data, error } = await client.GET("/api/assets/", {
-          params: {
-            query: {
-              workflow_id: workflowId
-            }
-          }
+        const data = await trpcClient.assets.list.query({
+          workflow_id: workflowId
         });
-
-        if (error) {
-          throw error;
-        }
-
-        const assets = data?.assets || [];
+        const assets = (data.assets ?? []) as unknown as Asset[];
 
         // Update state
         set({

@@ -1,15 +1,11 @@
 /**
- * AgentStore - Zustand store for managing Claude Agent SDK sessions.
+ * AgentStore - Zustand store for managing Claude/Codex/OpenCode agent sessions.
  *
- * This store manages the state for the Claude Agent panel, including:
- * - Session lifecycle (create, send, stream, close)
- * - Message history (converted to NodeTool Message format)
- * - Connection status
- *
- * The Claude Agent SDK requires a Node.js runtime (it spawns child processes),
- * so actual SDK calls are proxied through Electron's IPC bridge when running
- * in the desktop app. The store provides a consistent interface regardless
- * of the runtime environment.
+ * The agent runtime now runs on the NodeTool server (see
+ * `packages/websocket/src/agent/`). This store is a thin client that talks
+ * to the server over `/ws/agent` via {@link AgentSocketClient}. The same
+ * code path is used in both the web app and the Electron renderer — there
+ * is no longer any Electron IPC bridge for the agent.
  */
 
 import { create } from "zustand";
@@ -19,20 +15,18 @@ import {
   nodeToolMessageToText
 } from "../utils/agentMessageAdapter";
 
-// Initialize the IPC bridge for frontend tools
-// This registers handlers that allow the Claude Agent to call frontend tools
+// Initialize the WebSocket bridge for frontend tools — registers handlers
+// that allow the server-side agent to call frontend tools via the renderer.
 import "../lib/tools/frontendToolsIpc";
 import log from "loglevel";
+import { getAgentSocketClient } from "../lib/agent/AgentSocketClient";
+import type {
+  AgentMessage as ProtocolAgentMessage,
+  AgentProvider,
+  AgentModelDescriptor
+} from "../lib/agent/agentTypes";
 
-export type AgentProvider = "claude" | "codex" | "opencode";
-export interface AgentModelDescriptor {
-  id: string;
-  label: string;
-  isDefault?: boolean;
-  provider?: AgentProvider;
-  supportsReasoningEffort?: boolean;
-  supportsMaxTurns?: boolean;
-}
+export type { AgentProvider, AgentModelDescriptor } from "../lib/agent/agentTypes";
 
 export type AgentStatus =
   | "disconnected"
@@ -40,6 +34,7 @@ export type AgentStatus =
   | "connected"
   | "loading"
   | "streaming"
+  | "stopping"
   | "error";
 
 export interface AgentSessionHistoryEntry {
@@ -58,11 +53,11 @@ interface AgentState {
   status: AgentStatus;
   /** All messages in the current session */
   messages: Message[];
-  /** Current session ID from the Claude Agent SDK */
+  /** Current session ID from the agent runtime */
   sessionId: string | null;
   /** Error message if status is 'error' */
   error: string | null;
-  /** Whether the environment supports the Claude Agent SDK (requires Electron) */
+  /** Always true now — the agent runs on the server, not in Electron */
   isAvailable: boolean;
   /** Model to use for the session */
   model: string;
@@ -86,7 +81,7 @@ interface AgentState {
   sessionMessages: Record<string, Message[]>;
 
   // Actions
-  /** Initialize a new Claude Agent session */
+  /** Initialize a new agent session */
   createSession: (options?: {
     preserveMessages?: boolean;
     preserveStatus?: boolean;
@@ -115,39 +110,8 @@ interface AgentState {
   setProvider: (provider: AgentProvider) => void;
   /** Load models for current provider/workspace */
   loadModels: () => Promise<void>;
-  /** Load previous sessions from the Claude Agent SDK */
+  /** Load previous sessions from the agent runtime */
   loadSessions: () => Promise<void>;
-}
-
-/**
- * Check if the Claude Agent SDK IPC bridge is available (Electron environment).
- */
-function isAgentAvailable(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.api !== undefined &&
-    window.api.agent !== undefined
-  );
-}
-
-interface AgentResponseMessage {
-  type: "assistant" | "user" | "result" | "system" | "status" | "stream_event";
-  uuid: string;
-  session_id: string;
-  text?: string;
-  is_error?: boolean;
-  errors?: string[];
-  subtype?: string;
-  content?: Array<{ type: string; text?: string }>;
-  /** Tool calls in OpenAI-style format for NodeTool UI compatibility */
-  tool_calls?: Array<{
-    id: string;
-    type: string;
-    function: {
-      name: string;
-      arguments: string;
-    };
-  }>;
 }
 
 function upsertSessionHistory(
@@ -163,9 +127,7 @@ function replaceSessionHistoryId(
   fromId: string,
   toId: string
 ): AgentSessionHistoryEntry[] {
-  if (fromId === toId) {
-    return history;
-  }
+  if (fromId === toId) return history;
   let replacement: AgentSessionHistoryEntry | null = null;
   const filtered = history.filter((entry) => {
     if (entry.id === toId) {
@@ -182,9 +144,7 @@ function replaceSessionHistoryId(
     }
     return true;
   });
-  if (!replacement) {
-    return history;
-  }
+  if (!replacement) return history;
   return [replacement, ...filtered].slice(0, 50);
 }
 
@@ -193,8 +153,8 @@ const useAgentStore = create<AgentState>((set, get) => ({
   messages: [],
   sessionId: null,
   error: null,
-  isAvailable: isAgentAvailable(),
-  model: "claude-sonnet-4-20250514",
+  isAvailable: true,
+  model: "claude-sonnet-4-6",
   availableModels: [],
   modelsLoading: false,
   provider: "claude",
@@ -211,32 +171,32 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
   setProvider: (provider: AgentProvider) => {
     set({ provider });
-    // Reload models for the new provider
     void get().loadModels();
   },
 
   loadModels: async () => {
-    const { provider, workspacePath, model } = get();
-    if (!isAgentAvailable()) {
-      return;
-    }
-
+    const { provider, workspacePath } = get();
     set({ modelsLoading: true });
     try {
-      const models = await window.api.agent!.listModels({
+      const client = getAgentSocketClient();
+      const models = await client.listModels({
         provider,
         workspacePath: workspacePath ?? undefined
       });
 
-      const selectedModel = models.find((item) => item.id === model);
       const defaultModel =
         models.find((item) => item.isDefault) ?? models[0] ?? null;
 
-      set({
+      // Re-read state at set time. If the user (or another loadModels call)
+      // selected a model while this request was in flight, preserve it as
+      // long as it's still valid under the new provider's catalog.
+      set((state) => ({
         availableModels: models,
-        model: selectedModel ? model : defaultModel?.id ?? model,
+        model: models.some((item) => item.id === state.model)
+          ? state.model
+          : defaultModel?.id ?? state.model,
         modelsLoading: false
-      });
+      }));
     } catch (error) {
       log.error("Failed to load agent models:", error);
       set({ modelsLoading: false });
@@ -248,26 +208,17 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   createSession: async (options) => {
-    const { model, provider, streamUnsubscribe, workspacePath, workspaceId } = get();
+    const { model, provider, streamUnsubscribe, workspacePath, workspaceId } =
+      get();
     const preserveMessages = options?.preserveMessages ?? false;
     const preserveStatus = options?.preserveStatus ?? false;
     const selectedWorkspacePath = options?.workspacePath ?? workspacePath;
     const selectedWorkspaceId = options?.workspaceId ?? workspaceId;
     const resumeSessionId = options?.resumeSessionId;
 
-    // Clean up any existing subscription
     if (streamUnsubscribe) {
       streamUnsubscribe();
       set({ streamUnsubscribe: null });
-    }
-
-    if (!isAgentAvailable()) {
-      set({
-        error:
-          "Agent sessions require the NodeTool desktop app (Electron). Please use the desktop application to access this feature.",
-        status: "error"
-      });
-      return;
     }
 
     if (!selectedWorkspacePath) {
@@ -284,7 +235,8 @@ const useAgentStore = create<AgentState>((set, get) => ({
         error: null
       }));
 
-      const sessionId = await window.api.agent!.createSession({
+      const client = getAgentSocketClient();
+      const sessionId = await client.createSession({
         provider,
         model,
         workspacePath: selectedWorkspacePath,
@@ -304,99 +256,104 @@ const useAgentStore = create<AgentState>((set, get) => ({
         })
       }));
 
-      // Subscribe to streaming messages for this session
-      const unsubscribe = window.api.agent!.onStreamMessage(
-        (event) => {
-          const { sessionId: eventSessionId, message, done } = event;
-          const activeSessionId = get().sessionId;
+      const onStream = (event: {
+        sessionId: string;
+        message: ProtocolAgentMessage;
+        done: boolean;
+      }): void => {
+        const { sessionId: eventSessionId, message, done } = event;
+        const activeSessionId = get().sessionId;
 
-          // Only process messages for the current session
-          if (eventSessionId !== sessionId && eventSessionId !== activeSessionId) {
-            return;
-          }
-
-          if (done) {
-            // Streaming complete
-            set({ status: "connected", hasAssistantInCurrentTurn: false });
-            return;
-          }
-
-          // Skip system messages that are just markers
-          if (message.type === "system") {
-            return;
-          }
-
-          // Convert and add the message to state
-          const converted = agentMessageToNodeToolMessage(
-            message as AgentResponseMessage
-          );
-          if (converted) {
-            const isSuccessResult =
-              message.type === "result" && message.subtype === "success";
-            if (isSuccessResult && get().hasAssistantInCurrentTurn) {
-              return;
-            }
-
-            set((state) => ({
-              ...(() => {
-                if (message.session_id && state.sessionId && message.session_id !== state.sessionId) {
-                  return {
-                    sessionId: message.session_id,
-                    sessionHistory: replaceSessionHistoryId(
-                      state.sessionHistory,
-                      state.sessionId,
-                      message.session_id
-                    )
-                  };
-                }
-                return {};
-              })(),
-              messages: (() => {
-                const existingIndex = state.messages.findLastIndex(
-                  (existingMessage) => existingMessage.id === converted.id
-                );
-                if (existingIndex === -1) {
-                  return [...state.messages, converted];
-                }
-                const updatedMessages = [...state.messages];
-                updatedMessages[existingIndex] = converted;
-                return updatedMessages;
-              })(),
-              sessionMessages: (() => {
-                const activeKey =
-                  (message.session_id && message.session_id.length > 0
-                    ? message.session_id
-                    : state.sessionId) ?? sessionId;
-                if (!activeKey) {
-                  return state.sessionMessages;
-                }
-                const existingIndex = state.messages.findLastIndex(
-                  (existingMessage) => existingMessage.id === converted.id
-                );
-                const updatedMessages =
-                  existingIndex === -1
-                    ? [...state.messages, converted]
-                    : (() => {
-                        const next = [...state.messages];
-                        next[existingIndex] = converted;
-                        return next;
-                      })();
-                const nextSessionMessages = {
-                  ...state.sessionMessages,
-                  [activeKey]: updatedMessages
-                };
-                if (message.session_id && state.sessionId && message.session_id !== state.sessionId) {
-                  nextSessionMessages[state.sessionId] = updatedMessages;
-                }
-                return nextSessionMessages;
-              })(),
-              status: "streaming",
-              hasAssistantInCurrentTurn:
-                state.hasAssistantInCurrentTurn || message.type === "assistant"
-            }));
-          }
+        if (
+          eventSessionId !== sessionId &&
+          eventSessionId !== activeSessionId
+        ) {
+          return;
         }
-      );
+
+        if (done) {
+          set({ status: "connected", hasAssistantInCurrentTurn: false });
+          return;
+        }
+
+        if (message.type === "system") return;
+
+        const converted = agentMessageToNodeToolMessage(message);
+        if (!converted) return;
+
+        const isSuccessResult =
+          message.type === "result" && message.subtype === "success";
+        if (isSuccessResult && get().hasAssistantInCurrentTurn) return;
+
+        set((state) => ({
+          ...(() => {
+            if (
+              message.session_id &&
+              state.sessionId &&
+              message.session_id !== state.sessionId
+            ) {
+              return {
+                sessionId: message.session_id,
+                sessionHistory: replaceSessionHistoryId(
+                  state.sessionHistory,
+                  state.sessionId,
+                  message.session_id
+                )
+              };
+            }
+            return {};
+          })(),
+          messages: (() => {
+            const existingIndex = state.messages.findLastIndex(
+              (existingMessage) => existingMessage.id === converted.id
+            );
+            if (existingIndex === -1) {
+              return [...state.messages, converted];
+            }
+            const updatedMessages = [...state.messages];
+            updatedMessages[existingIndex] = converted;
+            return updatedMessages;
+          })(),
+          sessionMessages: (() => {
+            const activeKey =
+              (message.session_id && message.session_id.length > 0
+                ? message.session_id
+                : state.sessionId) ?? sessionId;
+            if (!activeKey) return state.sessionMessages;
+            const existingIndex = state.messages.findLastIndex(
+              (existingMessage) => existingMessage.id === converted.id
+            );
+            const updatedMessages =
+              existingIndex === -1
+                ? [...state.messages, converted]
+                : (() => {
+                    const next = [...state.messages];
+                    next[existingIndex] = converted;
+                    return next;
+                  })();
+            const nextSessionMessages = {
+              ...state.sessionMessages,
+              [activeKey]: updatedMessages
+            };
+            if (
+              message.session_id &&
+              state.sessionId &&
+              message.session_id !== state.sessionId
+            ) {
+              nextSessionMessages[state.sessionId] = updatedMessages;
+            }
+            return nextSessionMessages;
+          })(),
+          status: "streaming",
+          hasAssistantInCurrentTurn:
+            state.hasAssistantInCurrentTurn || message.type === "assistant"
+        }));
+      };
+
+      client.on("stream", onStream);
+      const unsubscribe = (): void => {
+        client.off("stream", onStream);
+      };
 
       set((state) => ({
         status: preserveStatus ? state.status : "connected",
@@ -404,12 +361,14 @@ const useAgentStore = create<AgentState>((set, get) => ({
         messages: preserveMessages ? state.messages : [],
         streamUnsubscribe: unsubscribe,
         workspacePath: selectedWorkspacePath,
-      workspaceId: selectedWorkspaceId ?? null
-    }));
+        workspaceId: selectedWorkspaceId ?? null
+      }));
     } catch (error) {
       set({
         status: "error",
-        error: `Failed to create session: ${error instanceof Error ? error.message : String(error)}`
+        error: `Failed to create session: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       });
     }
   },
@@ -418,9 +377,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
     const { sessionId, workspacePath } = get();
     const text = nodeToolMessageToText(message);
 
-    if (!text.trim()) {
-      return;
-    }
+    if (!text.trim()) return;
 
     if (!workspacePath) {
       set({
@@ -430,7 +387,6 @@ const useAgentStore = create<AgentState>((set, get) => ({
       return;
     }
 
-    // Add user message to local state immediately
     const userMessage: Message = {
       type: "message",
       id: crypto.randomUUID(),
@@ -444,75 +400,76 @@ const useAgentStore = create<AgentState>((set, get) => ({
         messages: nextMessages,
         status: "loading",
         hasAssistantInCurrentTurn: false,
-        sessionMessages:
-          state.sessionId
-            ? {
-                ...state.sessionMessages,
-                [state.sessionId]: nextMessages
-              }
-            : state.sessionMessages
+        sessionMessages: state.sessionId
+          ? { ...state.sessionMessages, [state.sessionId]: nextMessages }
+          : state.sessionMessages
       };
     });
 
-    if (!isAgentAvailable()) {
-      set({
-        error:
-          "Agent sessions require the NodeTool desktop app (Electron).",
-        status: "error"
-      });
-      return;
-    }
-
     try {
-      // If no session exists yet, create one first
       let currentSessionId = sessionId;
       if (!currentSessionId) {
-        // Call createSession directly to set up streaming and get the sessionId
         await get().createSession({
           preserveMessages: true,
           preserveStatus: true
         });
-        // Get the new sessionId from state
         currentSessionId = get().sessionId!;
         set({ status: "loading" });
-        // Continue to send the message below
       }
 
-      // Send message - responses will be streamed via the event listener
-      await window.api.agent!.sendMessage(
-        currentSessionId,
-        text
-      );
-      // Messages will be added via the streaming event handler
+      const client = getAgentSocketClient();
+      await client.sendMessage(currentSessionId, text);
     } catch (error) {
       set({
         status: "error",
-        error: `Failed to send message: ${error instanceof Error ? error.message : String(error)}`
+        error: `Failed to send message: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       });
     }
   },
 
   stopGeneration: () => {
-    const { sessionId } = get();
-    if (sessionId && isAgentAvailable()) {
-      window.api.agent!.stopExecution(sessionId).catch((err: unknown) => {
-        log.error("Failed to stop Claude Agent execution:", err);
-      });
+    const { sessionId, status: priorStatus } = get();
+    if (!sessionId) {
+      // Nothing running — just normalize to disconnected so the UI doesn't
+      // get stuck in whatever state it was in.
+      set({ status: "disconnected", hasAssistantInCurrentTurn: false });
+      return;
     }
-    set({ status: "connected", hasAssistantInCurrentTurn: false });
+
+    // Show a "stopping" state while the server acknowledges the stop. If it
+    // fails, revert to the previous status so the UI doesn't lie to the user
+    // about the agent being idle when it's still running.
+    set({ status: "stopping" });
+
+    const client = getAgentSocketClient();
+    client
+      .stopExecution(sessionId)
+      .then(() => {
+        set({ status: "connected", hasAssistantInCurrentTurn: false });
+      })
+      .catch((err: unknown) => {
+        log.error("Failed to stop agent execution:", err);
+        set({
+          status: priorStatus,
+          error:
+            err instanceof Error
+              ? `Failed to stop: ${err.message}`
+              : "Failed to stop agent execution"
+        });
+      });
   },
 
   newChat: () => {
     const { sessionId, streamUnsubscribe, messages } = get();
 
-    // Clean up streaming subscription
-    if (streamUnsubscribe) {
-      streamUnsubscribe();
-    }
+    if (streamUnsubscribe) streamUnsubscribe();
 
-    if (sessionId && isAgentAvailable()) {
-      window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close Claude Agent session:", err);
+    if (sessionId) {
+      const client = getAgentSocketClient();
+      client.closeSession(sessionId).catch((err: unknown) => {
+        log.error("Failed to close agent session:", err);
       });
     }
     set({
@@ -522,13 +479,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
       error: null,
       streamUnsubscribe: null,
       hasAssistantInCurrentTurn: false,
-      sessionMessages:
-        sessionId
-          ? {
-              ...get().sessionMessages,
-              [sessionId]: messages
-            }
-          : get().sessionMessages
+      sessionMessages: sessionId
+        ? { ...get().sessionMessages, [sessionId]: messages }
+        : get().sessionMessages
     });
   },
 
@@ -538,9 +491,10 @@ const useAgentStore = create<AgentState>((set, get) => ({
       streamUnsubscribe();
       set({ streamUnsubscribe: null });
     }
-    if (sessionId && isAgentAvailable()) {
-      await window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close Claude Agent session:", err);
+    if (sessionId) {
+      const client = getAgentSocketClient();
+      await client.closeSession(sessionId).catch((err: unknown) => {
+        log.error("Failed to close agent session:", err);
       });
     }
     set({
@@ -549,19 +503,21 @@ const useAgentStore = create<AgentState>((set, get) => ({
       status: "disconnected",
       error: null,
       hasAssistantInCurrentTurn: false,
-      sessionMessages:
-        sessionId
-          ? {
-              ...get().sessionMessages,
-              [sessionId]: messages
-            }
-          : get().sessionMessages
+      sessionMessages: sessionId
+        ? { ...get().sessionMessages, [sessionId]: messages }
+        : get().sessionMessages
     });
     await get().createSession();
   },
 
   resumeSession: async (targetSessionId: string) => {
-    const { sessionHistory, sessionId, streamUnsubscribe, messages, sessionMessages } = get();
+    const {
+      sessionHistory,
+      sessionId,
+      streamUnsubscribe,
+      messages,
+      sessionMessages
+    } = get();
     const target = sessionHistory.find((entry) => entry.id === targetSessionId);
     if (!target) {
       set({
@@ -574,19 +530,20 @@ const useAgentStore = create<AgentState>((set, get) => ({
       streamUnsubscribe();
       set({ streamUnsubscribe: null });
     }
-    if (sessionId && isAgentAvailable()) {
-      await window.api.agent!.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close Claude Agent session:", err);
+    if (sessionId) {
+      const client = getAgentSocketClient();
+      await client.closeSession(sessionId).catch((err: unknown) => {
+        log.error("Failed to close agent session:", err);
       });
     }
 
-    // Load transcript from SDK if not already cached in memory
     let cachedMessages = sessionMessages[targetSessionId];
-    if ((!cachedMessages || cachedMessages.length === 0) && window.api?.agent?.getSessionMessages) {
+    if (!cachedMessages || cachedMessages.length === 0) {
       try {
-        const transcript = await window.api.agent.getSessionMessages({
+        const client = getAgentSocketClient();
+        const transcript = await client.getSessionMessages({
           sessionId: targetSessionId,
-          dir: target.workspacePath || undefined,
+          dir: target.workspacePath || undefined
         });
         cachedMessages = transcript.map((m) => ({
           type: "message" as const,
@@ -596,7 +553,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
           created_at: new Date().toISOString(),
           thread_id: m.session_id,
           provider: "anthropic",
-          model: "claude-agent",
+          model: "claude-agent"
         }));
       } catch (err) {
         log.error("Failed to load session transcript:", err);
@@ -612,13 +569,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
       hasAssistantInCurrentTurn: false,
       workspacePath: target.workspacePath,
       workspaceId: target.workspaceId ?? null,
-      sessionMessages:
-        sessionId
-          ? {
-              ...sessionMessages,
-              [sessionId]: messages
-            }
-          : sessionMessages
+      sessionMessages: sessionId
+        ? { ...sessionMessages, [sessionId]: messages }
+        : sessionMessages
     });
     set({ provider: target.provider, model: target.model });
     await get().createSession({
@@ -630,12 +583,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   loadSessions: async () => {
-    if (!isAgentAvailable() || !window.api.agent?.listSessions) {
-      return;
-    }
-
     try {
-      const sdkSessions = await window.api.agent.listSessions({ limit: 50 });
+      const client = getAgentSocketClient();
+      const sdkSessions = await client.listSessions({ limit: 50 });
       const { sessionHistory } = get();
 
       const entries: AgentSessionHistoryEntry[] = sdkSessions.map((s) => ({
@@ -647,19 +597,18 @@ const useAgentStore = create<AgentState>((set, get) => ({
           ? new Date(s.createdAt).toISOString()
           : new Date(s.lastModified).toISOString(),
         lastUsedAt: new Date(s.lastModified).toISOString(),
-        summary: s.customTitle || s.summary || s.firstPrompt,
+        summary: s.customTitle || s.summary || s.firstPrompt
       }));
 
-      // Merge: keep any in-memory entries that are active, add SDK entries
       const activeIds = new Set(sessionHistory.map((e) => e.id));
       const merged = [
         ...sessionHistory,
-        ...entries.filter((e) => !activeIds.has(e.id)),
+        ...entries.filter((e) => !activeIds.has(e.id))
       ].slice(0, 50);
 
       set({ sessionHistory: merged });
     } catch (error) {
-      log.error("Failed to load sessions from SDK:", error);
+      log.error("Failed to load agent sessions:", error);
     }
   }
 }));

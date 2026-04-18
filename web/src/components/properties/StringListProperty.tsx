@@ -25,7 +25,7 @@ const StringListProperty = (props: PropertyProps) => {
       padding: "2px 6px",
       minHeight: "32px",
       backgroundColor: "action.disabledBackground",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       border: "1px solid var(--palette-grey-700)",
       color: "var(--palette-grey-100)",
       fontSize: "var(--fontSizeSmall)",

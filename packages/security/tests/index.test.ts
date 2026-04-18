@@ -25,15 +25,5 @@ describe("security index exports", () => {
     expect(mod.isUsingAwsKey).toBeDefined();
     expect(mod.setKeytarLoader).toBeDefined();
     expect(mod.resetKeytarLoader).toBeDefined();
-
-    // secret-helper
-    expect(mod.getSecret).toBeDefined();
-    expect(mod.getSecretRequired).toBeDefined();
-    expect(mod.hasSecret).toBeDefined();
-    expect(mod.getSecretSync).toBeDefined();
-    expect(mod.clearSecretCache).toBeDefined();
-    expect(mod.clearAllSecretCache).toBeDefined();
-    expect(mod.resetSecretModelLoader).toBeDefined();
-    expect(mod.setSecretModelLoader).toBeDefined();
   });
 });

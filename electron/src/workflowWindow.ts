@@ -2,6 +2,7 @@ import { BrowserWindow, app, Menu, screen } from "electron";
 import { getServerPort } from "./utils";
 import path from "path";
 import { getWebDevServerUrl } from "./devMode";
+import { hardenWebContents } from "./windowSecurity";
 
 // Map to store workflow windows
 const workflowWindows = new Map<number, BrowserWindow>();
@@ -29,11 +30,15 @@ function createWorkflowWindow(workflowId: string): BrowserWindow {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      devTools: !app.isPackaged,
+      webSecurity: true,
       preload: path.join(__dirname, "preload-workflow.js"),
     },
   });
 
   workflowWindow.setBackgroundColor("#111111");
+  hardenWebContents(workflowWindow.webContents);
 
   const windowId = workflowWindow.id;
   workflowWindows.set(windowId, workflowWindow);
@@ -63,8 +68,14 @@ function createMiniAppWindow(workflowId: string, workflowName?: string): Browser
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      devTools: !app.isPackaged,
+      webSecurity: true,
+      preload: path.join(__dirname, "preload-workflow.js"),
     },
   });
+
+  hardenWebContents(miniAppWindow.webContents);
 
   const windowId = miniAppWindow.id;
   workflowWindows.set(windowId, miniAppWindow);
@@ -111,8 +122,14 @@ function createChatWindow(): BrowserWindow {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      devTools: !app.isPackaged,
+      webSecurity: true,
+      preload: path.join(__dirname, "preload-workflow.js"),
     },
   });
+
+  hardenWebContents(chatWindow.webContents);
 
   chatWindow.on("closed", () => {
     chatWindow = null;

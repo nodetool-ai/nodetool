@@ -76,7 +76,7 @@ const PropertyDropzone = ({
         outline: `1px dashed ${theme.vars.palette.grey[600]}`,
         margin: "5px 0",
         backgroundColor: "rgba(0, 0, 0, 0.2)",
-        borderRadius: "6px",
+        borderRadius: "var(--rounded-md)",
 
         "&:hover": {
           outline: `1px dashed ${theme.vars.palette.grey[400]}`,
@@ -114,7 +114,7 @@ const PropertyDropzone = ({
       },
       ".dropzone .image-preview-surface": {
         ...alphaSurfaceBg,
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         overflow: "hidden"
       },
       ".dropzone img": {
@@ -123,7 +123,7 @@ const PropertyDropzone = ({
         maxHeight: "200px",
         objectFit: "contain",
         display: "block",
-        borderRadius: "4px"
+        borderRadius: "var(--rounded-sm)"
       },
       ".prop-drop": {
         fontSize: theme.fontSizeTiny,

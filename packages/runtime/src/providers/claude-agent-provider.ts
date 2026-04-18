@@ -218,18 +218,18 @@ export function classifyClaudeAgentError(error: unknown): ClaudeAgentError {
 
 const CLAUDE_AGENT_MODELS: LanguageModel[] = [
   {
-    id: "claude-sonnet-4-20250514",
-    name: "Claude Sonnet 4",
+    id: "claude-opus-4-7",
+    name: "Claude Opus 4.7",
     provider: "claude_agent"
   },
   {
-    id: "claude-opus-4-20250514",
-    name: "Claude Opus 4",
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6",
     provider: "claude_agent"
   },
   {
-    id: "claude-haiku-4-20250514",
-    name: "Claude Haiku 4",
+    id: "claude-haiku-4-5",
+    name: "Claude Haiku 4.5",
     provider: "claude_agent"
   }
 ];

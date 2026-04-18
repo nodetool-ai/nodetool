@@ -40,7 +40,7 @@ const namespacePanelStyles = (theme: Theme) =>
       maxHeight: "calc(min(750px, 80vh))",
       paddingRight: "0.75em",
       paddingLeft: "0.65em",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.action.hover,
       boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)"
@@ -49,7 +49,7 @@ const namespacePanelStyles = (theme: Theme) =>
     "& .namespace-list::-webkit-scrollbar-track": { background: "transparent" },
     "& .namespace-list::-webkit-scrollbar-thumb": {
       backgroundColor: theme.vars.palette.action.disabledBackground,
-      borderRadius: "8px"
+      borderRadius: "var(--rounded-lg)"
     },
     "& .namespace-list::-webkit-scrollbar-thumb:hover": {
       backgroundColor: theme.vars.palette.action.disabled

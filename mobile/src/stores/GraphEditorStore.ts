@@ -9,7 +9,7 @@
  */
 
 import { create } from "zustand";
-import { apiService } from "../services/api";
+import { apiService, type WorkflowGraphInput } from "../services/api";
 import type { NodeMetadata, Workflow } from "../types/ApiTypes";
 import type {
   ChainNode,
@@ -491,10 +491,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           id: workflowId,
           name: workflowName,
           description: "",
-          graph: graph as unknown as {
-            nodes: Array<Record<string, unknown>>;
-            edges: Array<Record<string, unknown>>;
-          },
+          graph: graph as unknown as WorkflowGraphInput,
           access: "private",
         });
         return result as unknown as Workflow;
@@ -502,10 +499,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
         const result = await apiService.createWorkflow({
           name: workflowName,
           description: "",
-          graph: graph as unknown as {
-            nodes: Array<Record<string, unknown>>;
-            edges: Array<Record<string, unknown>>;
-          },
+          graph: graph as unknown as WorkflowGraphInput,
           access: "private",
         });
         const newId = (result as unknown as Workflow).id;

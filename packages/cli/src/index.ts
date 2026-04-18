@@ -17,8 +17,7 @@ import React from "react";
 import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
-import { initDb } from "@nodetool/models";
-import { getSecret } from "@nodetool/security";
+import { initDb, getSecret } from "@nodetool/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool/config";
 
 // Configure logging: in interactive mode, suppress non-error logs to a file

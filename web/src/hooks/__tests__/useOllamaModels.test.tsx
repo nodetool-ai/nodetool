@@ -1,13 +1,18 @@
 import React from "react";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { trpc } from "../../lib/trpc";
 import { useOllamaModels } from "../useOllamaModels";
-import { client } from "../../stores/ApiClient";
 
-// Mock the API client
-jest.mock("../../stores/ApiClient");
+jest.mock("../../lib/trpc", () => ({
+  trpc: {
+    models: {
+      ollama: { query: jest.fn() }
+    }
+  }
+}));
 
-const mockClient = client as jest.Mocked<typeof client>;
+const mockQuery = trpc.models.ollama.query as jest.Mock;
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
@@ -51,10 +56,7 @@ describe("useOllamaModels", () => {
 
   describe("fetching models", () => {
     it("fetches and returns Ollama models successfully", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockOllamaModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockOllamaModels as never);
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -66,14 +68,11 @@ describe("useOllamaModels", () => {
 
       expect(result.current.ollamaModels).toEqual(mockOllamaModels);
       expect(result.current.ollamaError).toBeNull();
-      expect(mockClient.GET).toHaveBeenCalledWith("/api/models/ollama", {});
+      expect(mockQuery).toHaveBeenCalled();
     });
 
     it("returns undefined when no models available", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: [],
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce([] as never);
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -88,11 +87,7 @@ describe("useOllamaModels", () => {
     });
 
     it("handles API error", async () => {
-      const errorResponse = { detail: "Failed to fetch Ollama models" };
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: errorResponse,
-      });
+      mockQuery.mockRejectedValueOnce(new Error("Failed to fetch Ollama models"));
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -107,7 +102,7 @@ describe("useOllamaModels", () => {
     });
 
     it("handles network error", async () => {
-      mockClient.GET.mockRejectedValueOnce(new Error("Network error"));
+      mockQuery.mockRejectedValueOnce(new Error("Network error"));
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -122,10 +117,7 @@ describe("useOllamaModels", () => {
     });
 
     it("does not refetch on window focus", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockOllamaModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockOllamaModels as never);
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -135,7 +127,7 @@ describe("useOllamaModels", () => {
         expect(result.current.ollamaLoading).toBe(false);
       });
 
-      expect(mockClient.GET).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
 
       // Simulate window focus
       window.dispatchEvent(new Event("focus"));
@@ -144,7 +136,7 @@ describe("useOllamaModels", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should still only be called once due to refetchOnWindowFocus: false
-      expect(mockClient.GET).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -154,7 +146,7 @@ describe("useOllamaModels", () => {
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockClient.GET.mockReturnValueOnce(promise);
+      mockQuery.mockReturnValueOnce(promise);
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -166,7 +158,7 @@ describe("useOllamaModels", () => {
 
       // Resolve the promise
       await waitFor(() => {
-        resolvePromise({ data: mockOllamaModels, error: null });
+        resolvePromise(mockOllamaModels);
       });
 
       await waitFor(() => {
@@ -177,10 +169,7 @@ describe("useOllamaModels", () => {
     });
 
     it("provides isFetching state for background refreshes", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockOllamaModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockOllamaModels as never);
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -196,10 +185,7 @@ describe("useOllamaModels", () => {
 
   describe("return values", () => {
     it("returns all expected properties", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockOllamaModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockOllamaModels as never);
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -216,10 +202,7 @@ describe("useOllamaModels", () => {
     });
 
     it("maintains stable references when data doesn't change", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockOllamaModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockOllamaModels as never);
 
       const { result, rerender } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -241,11 +224,7 @@ describe("useOllamaModels", () => {
 
   describe("error handling", () => {
     it("provides error details when API call fails", async () => {
-      const errorDetail = { detail: "Ollama service not available" };
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: errorDetail,
-      });
+      mockQuery.mockRejectedValueOnce(new Error("Ollama service not available"));
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -260,10 +239,7 @@ describe("useOllamaModels", () => {
     });
 
     it("handles empty error response", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: {},
-      });
+      mockQuery.mockRejectedValueOnce(new Error("Unknown error"));
 
       const { result } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -279,10 +255,7 @@ describe("useOllamaModels", () => {
 
   describe("caching behavior", () => {
     it("uses query key for caching", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockOllamaModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockOllamaModels as never);
 
       const { result: result1 } = renderHook(() => useOllamaModels(), {
         wrapper: createWrapper(),
@@ -293,7 +266,7 @@ describe("useOllamaModels", () => {
       });
 
       // First hook should fetch
-      expect(mockClient.GET).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
 
       // Create a new QueryClient for a truly independent test
       const queryClient2 = new QueryClient({
@@ -309,10 +282,7 @@ describe("useOllamaModels", () => {
         return <QueryClientProvider client={queryClient2}>{children}</QueryClientProvider>;
       };
 
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockOllamaModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockOllamaModels as never);
 
       const { result: result2 } = renderHook(() => useOllamaModels(), {
         wrapper: TestWrapper2,
@@ -323,7 +293,7 @@ describe("useOllamaModels", () => {
       });
 
       // Second hook in different context should also fetch
-      expect(mockClient.GET).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalledTimes(2);
     });
   });
 });

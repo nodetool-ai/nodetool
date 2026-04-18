@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
         height: "100%",
         minWidth: "150px",
         maxWidth: "unset",
-        minHeight: "150px",
+        minHeight: "80px",
         borderRadius: "calc(var(--rounded-node) - 1px)",
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
@@ -97,7 +97,7 @@ const styles = (theme: Theme) =>
       },
       ".preview-node-content > .content.scrollable::-webkit-scrollbar-thumb": {
         backgroundColor: theme.vars.palette.grey[500],
-        borderRadius: "6px"
+        borderRadius: "var(--rounded-md)"
       },
       ".preview-node-content > .content.scrollable::-webkit-scrollbar-track": {
         backgroundColor: "transparent"
@@ -193,25 +193,25 @@ const styles = (theme: Theme) =>
     tableStyles(theme)
   ]);
 
-const getOutputFromResult = (result: any) => {
+const getOutputFromResult = (result: unknown): unknown => {
   if (result === null || result === undefined) {
     return null;
   }
 
   if (Array.isArray(result)) {
-    const outputs = result.map((item: any) => {
+    const outputs = result.map((item: unknown) => {
       if (
         item &&
         typeof item === "object" &&
         "output" in item &&
-        item.output !== undefined
+        (item as Record<string, unknown>).output !== undefined
       ) {
-        return item.output;
+        return (item as Record<string, unknown>).output;
       }
       return item;
     });
 
-    if (outputs.every((output: any) => typeof output === "string")) {
+    if (outputs.every((output): output is string => typeof output === "string")) {
       return outputs.join("\n");
     }
     return outputs;
@@ -221,9 +221,9 @@ const getOutputFromResult = (result: any) => {
     typeof result === "object" &&
     result !== null &&
     "output" in result &&
-    result.output !== undefined
+    (result as Record<string, unknown>).output !== undefined
   ) {
-    return result.output;
+    return (result as Record<string, unknown>).output;
   }
 
   return result;
@@ -242,14 +242,14 @@ const isEditorGraphSnapshot = (value: unknown): boolean => {
   return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
 };
 
-const getCopySource = (value: any): any => {
+const getCopySource = (value: unknown): unknown => {
   if (value === null || value === undefined) {
     return value;
   }
 
   if (Array.isArray(value)) {
     const flattened = value.map((item) => getCopySource(item));
-    if (flattened.every((entry) => typeof entry === "string")) {
+    if (flattened.every((entry): entry is string => typeof entry === "string")) {
       return flattened.join("\n");
     }
     return flattened;
@@ -259,28 +259,28 @@ const getCopySource = (value: any): any => {
     typeof value === "object" &&
     value !== null &&
     "type" in value &&
-    value.type === "text" &&
-    typeof value.data === "string"
+    (value as Record<string, unknown>).type === "text" &&
+    typeof (value as Record<string, unknown>).data === "string"
   ) {
-    return value.data;
+    return (value as Record<string, unknown>).data;
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "output" in value &&
-    value.output !== undefined
+    (value as Record<string, unknown>).output !== undefined
   ) {
-    return getCopySource(value.output);
+    return getCopySource((value as Record<string, unknown>).output);
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "value" in value &&
-    value.value !== undefined
+    (value as Record<string, unknown>).value !== undefined
   ) {
-    return getCopySource(value.value);
+    return getCopySource((value as Record<string, unknown>).value);
   }
 
   return value;
@@ -431,9 +431,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     if (displayResult === null || displayResult === undefined) {
       return false;
     }
-    const checkType = (item: any): boolean => {
+    const checkType = (item: unknown): boolean => {
       if (item && typeof item === "object" && "type" in item) {
-        const t = item.type;
+        const t = (item as Record<string, unknown>).type;
         return t === "image" || t === "video";
       }
       return false;
@@ -467,7 +467,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           isConnectable={true}
         />
         <>
-          <NodeResizeHandle minWidth={150} minHeight={150} />
+          <NodeResizeHandle minWidth={150} minHeight={80} />
           <NodeHeader
             id={props.id}
             data={props.data}

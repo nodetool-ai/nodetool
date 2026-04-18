@@ -19,7 +19,7 @@ const styles = (theme: Theme) =>
     flexWrap: "wrap",
     minHeight: "44px",
     padding: "8px 12px",
-    borderRadius: "12px",
+    borderRadius: "var(--rounded-xl)",
     background: `linear-gradient(135deg, 
       ${theme.vars.palette.grey[900]}ee 0%, 
       ${theme.vars.palette.grey[800]}cc 50%, 
@@ -58,7 +58,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "4px",
       padding: "2px 4px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       transition: "background-color 0.2s ease",
 
       "&:hover": {
@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
     ".toolbar-group-primary": {
       background: `${theme.vars.palette.grey[800]}50`,
       padding: "4px 8px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       border: `1px solid ${theme.vars.palette.grey[700]}40`,
       transition: "background-color 0.2s ease, border-color 0.2s ease",
 

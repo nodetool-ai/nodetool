@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       fontSize: "0.8125rem",
       fontWeight: 500,
       padding: "4px 10px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       minWidth: "auto",
       gap: "4px",
       color: theme.vars.palette.grey[300],
@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
 const menuStyles = (theme: Theme) =>
   css({
     ".MuiPaper-root": {
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       minWidth: "240px",
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[700]}80`,
@@ -98,7 +98,7 @@ const menuStyles = (theme: Theme) =>
       padding: "4px"
     },
     ".MuiMenuItem-root": {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       margin: "2px 0",
       padding: "8px 12px",
       gap: "10px",

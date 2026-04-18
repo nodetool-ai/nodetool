@@ -40,7 +40,7 @@ const styles = (theme: Theme) =>
   css({
     padding: "0 8px 16px 8px",
     ".menu-item": {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       margin: "2px 0",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover

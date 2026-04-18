@@ -25,7 +25,7 @@ import MobilePaneMenu from "../menus/MobilePaneMenu";
 import LayoutIcon from "@mui/icons-material/ViewModule";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
-import TerminalIcon from "@mui/icons-material/Terminal";
+import TimelineIcon from "@mui/icons-material/Timeline";
 import DownloadIcon from "@mui/icons-material/Download";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import EditIcon from "@mui/icons-material/Edit";
@@ -142,7 +142,7 @@ const styles = (theme: Theme) =>
     gap: "8px",
     padding: "8px 12px",
     backgroundColor: theme.vars.palette.grey[900],
-    borderRadius: "16px",
+    borderRadius: "var(--rounded-xxl)",
     border: `1px solid ${theme.vars.palette.grey[700]}`,
     boxShadow: `0 4px 20px ${theme.vars.palette.common.black}1A`,
 
@@ -150,7 +150,7 @@ const styles = (theme: Theme) =>
       width: "44px",
       height: "44px",
       position: "relative",
-      borderRadius: "16px",
+      borderRadius: "var(--rounded-xxl)",
       border: "none",
       boxShadow: "none",
       transition: "all 0.15s ease-out",
@@ -171,20 +171,20 @@ const styles = (theme: Theme) =>
     ".floating-action-button.primary": {
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      borderRadius: "16px",
+      borderRadius: "var(--rounded-xxl)",
       boxShadow: `0 4px 16px ${theme.vars.palette.success.main}50, 0 0 20px ${theme.vars.palette.success.main}30`,
       position: "relative",
       overflow: "visible",
       transition: "all 0.3s ease",
       "&:hover": {
-        borderRadius: "50%",
+        borderRadius: "var(--rounded-circle)",
         backgroundColor: theme.vars.palette.primary.light,
         boxShadow: `0 6px 20px ${theme.vars.palette.primary.main}60, 0 0 28px ${theme.vars.palette.success.main}40`
       },
       "&.running": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100],
-        borderRadius: "50%",
+        borderRadius: "var(--rounded-circle)",
         boxShadow: `0 2px 8px ${theme.vars.palette.common.black}30`,
         opacity: 1,
         "&::after": {
@@ -361,7 +361,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     handleRunAsApp,
     handleEditWorkflow,
     handleToggleNodeMenu,
-    handleToggleTerminal,
+    handleToggleTrace,
     handleToggleMiniMap,
     isWorkflowRunning,
     isPaused,
@@ -426,10 +426,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const shouldHighlightNodeMenu =
     isEmptyWorkflow && workflow?.name === "New Workflow";
 
-  const handleToggleTerminalAndCloseMenu = useCallback(() => {
-    handleToggleTerminal();
+  const handleToggleTraceAndCloseMenu = useCallback(() => {
+    handleToggleTrace();
     handleCloseActionsMenu();
-  }, [handleToggleTerminal, handleCloseActionsMenu]);
+  }, [handleToggleTrace, handleCloseActionsMenu]);
 
   const handleEditWorkflowAndCloseMenu = useCallback(() => {
     handleEditWorkflow();
@@ -552,7 +552,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
                 sx={{
                   width: 8,
                   height: 8,
-                  borderRadius: "50%",
+                  borderRadius: "var(--rounded-circle)",
                   bgcolor: comfyIsConnected ? "success.main" : "grey.500",
                 }}
               />
@@ -612,9 +612,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         }}
       >
         <MenuItemPrimitive
-          label={bottomPanelVisible ? "Hide Terminal" : "Show Terminal"}
-          icon={<TerminalIcon fontSize="small" />}
-          onClick={handleToggleTerminalAndCloseMenu}
+          label={bottomPanelVisible ? "Hide Trace" : "Show Trace"}
+          icon={<TimelineIcon fontSize="small" />}
+          onClick={handleToggleTraceAndCloseMenu}
         />
         <MenuItemPrimitive
           label="Workflow Settings"

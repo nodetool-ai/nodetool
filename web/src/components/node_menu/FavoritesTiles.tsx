@@ -65,7 +65,7 @@ const tileStyles = (theme: Theme) =>
       },
       "&::-webkit-scrollbar-thumb": {
         backgroundColor: theme.vars.palette.action.disabledBackground,
-        borderRadius: "8px"
+        borderRadius: "var(--rounded-lg)"
       },
       "&::-webkit-scrollbar-thumb:hover": {
         backgroundColor: theme.vars.palette.action.disabled
@@ -77,7 +77,7 @@ const tileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "12px 8px",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",

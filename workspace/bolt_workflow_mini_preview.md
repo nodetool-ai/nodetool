@@ -17,4 +17,4 @@ Verified using a synthetic performance test comparing O(N*E) and O(N+E) approach
 
 ## 🧪 Testing
 - **Visual:** Manually verified `WorkflowMiniPreview` accurately constructs graph previews locally.
-- **Automated:** Executed `cd web && pnpm test -- performance` ensuring existing hooks and UI rendering remained intact. Run `make typecheck` and `make lint` avoiding typescript regressions.
+- **Automated:** Executed `cd web && pnpm test -- performance` ensuring existing hooks and UI rendering remained intact. Run `npm run typecheck` and `npm run lint` avoiding typescript regressions.

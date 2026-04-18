@@ -18,7 +18,7 @@ const searchErrorBoundaryStyles = (theme: Theme) =>
     textAlign: "center",
     background: theme.vars.palette.c_gray0,
     border: `1px solid ${theme.vars.palette.c_gray1}`,
-    borderRadius: "8px",
+    borderRadius: "var(--rounded-lg)",
     margin: "1rem",
     padding: "2rem",
 

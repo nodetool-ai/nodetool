@@ -1,0 +1,41 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "off",
+    "typescript/explicit-module-boundary-types": "off",
+    "typescript/no-unused-vars": "off",
+    "no-unused-vars": "off",
+    "no-console": "off"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "out/**",
+    "dist-electron/**",
+    "dist-web/**",
+    "backend-bundle/**",
+    "coverage/**",
+    "vite.config.ts",
+    "jest.config.ts",
+    "scripts/**/*.mjs",
+    "src/main.tsx",
+    "**/*.d.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["**/*.cjs"],
+      "rules": {
+        "typescript/no-require-imports": "off"
+      }
+    },
+    {
+      "files": ["**/__tests__/**/*.ts", "**/*.test.ts"],
+      "rules": {
+        "typescript/no-require-imports": "off"
+      }
+    }
+  ]
+}

@@ -20,7 +20,7 @@ import {
   openInExplorer
 } from "../../utils/fileExplorer";
 import { isElectron } from "../../utils/browser";
-import { isLocalhost } from "../../stores/ApiClient";
+import { isLocalhost } from "../../lib/env";
 import { NavButton, NodeTextField, ToolbarIconButton } from "../ui_primitives";
 import { SettingWithValue } from "../../stores/RemoteSettingStore";
 

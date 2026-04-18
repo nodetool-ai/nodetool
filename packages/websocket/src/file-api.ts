@@ -1,7 +1,8 @@
 /**
- * File browser API — T-WS-9.
+ * File browser API — T-WS-9 (binary download only).
  *
- * Provides read-only filesystem browsing within a sandboxed root directory.
+ * JSON operations (list, info) have been migrated to the tRPC `files` router.
+ * This module retains only the binary download endpoint.
  */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
@@ -12,15 +13,11 @@ export interface FileApiOptions {
   rootDir?: string;
 }
 
-function jsonResponse(data: unknown, init?: ResponseInit): Response {
-  return new Response(JSON.stringify(data), {
-    status: init?.status ?? 200,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) }
-  });
-}
-
 function errorResponse(status: number, detail: string): Response {
-  return jsonResponse({ detail }, { status });
+  return new Response(JSON.stringify({ detail }), {
+    status,
+    headers: { "content-type": "application/json" }
+  });
 }
 
 /**
@@ -28,12 +25,10 @@ function errorResponse(status: number, detail: string): Response {
  * Returns the resolved absolute path, or null if the path escapes the sandbox.
  */
 function resolveSandboxed(rootDir: string, userPath: string): string | null {
-  // Normalize the user path — join with root and resolve
   const resolved = path.resolve(
     rootDir,
     userPath.startsWith("/") ? "." + userPath : userPath
   );
-  // Ensure the resolved path is within or equal to rootDir
   const normalizedRoot = path.resolve(rootDir);
   if (
     !resolved.startsWith(normalizedRoot + path.sep) &&
@@ -42,61 +37,6 @@ function resolveSandboxed(rootDir: string, userPath: string): string | null {
     return null;
   }
   return resolved;
-}
-
-async function handleList(url: URL, rootDir: string): Promise<Response> {
-  const userPath = url.searchParams.get("path");
-  if (!userPath) return errorResponse(400, "path parameter is required");
-
-  const resolved = resolveSandboxed(rootDir, userPath);
-  if (!resolved) return errorResponse(403, "Path traversal not allowed");
-
-  try {
-    const entries = await fs.readdir(resolved, { withFileTypes: true });
-    const results = await Promise.all(
-      entries.map(async (entry) => {
-        const fullPath = path.join(resolved, entry.name);
-        let size = 0;
-        let modifiedAt = "";
-        try {
-          const stat = await fs.stat(fullPath);
-          size = stat.size;
-          modifiedAt = stat.mtime.toISOString();
-        } catch {
-          // stat may fail for broken symlinks etc.
-        }
-        return {
-          name: entry.name,
-          size,
-          is_dir: entry.isDirectory(),
-          modified_at: modifiedAt
-        };
-      })
-    );
-    return jsonResponse(results);
-  } catch {
-    return errorResponse(404, "Directory not found");
-  }
-}
-
-async function handleInfo(url: URL, rootDir: string): Promise<Response> {
-  const userPath = url.searchParams.get("path");
-  if (!userPath) return errorResponse(400, "path parameter is required");
-
-  const resolved = resolveSandboxed(rootDir, userPath);
-  if (!resolved) return errorResponse(403, "Path traversal not allowed");
-
-  try {
-    const stat = await fs.stat(resolved);
-    return jsonResponse({
-      name: path.basename(resolved),
-      size: stat.size,
-      is_dir: stat.isDirectory(),
-      modified_at: stat.mtime.toISOString()
-    });
-  } catch {
-    return errorResponse(404, "File not found");
-  }
 }
 
 async function handleDownload(url: URL, rootDir: string): Promise<Response> {
@@ -125,8 +65,10 @@ async function handleDownload(url: URL, rootDir: string): Promise<Response> {
 }
 
 /**
- * Handle file browser API requests.
- * Routes: /api/files/list, /api/files/info, /api/files/download
+ * Handle file browser binary download requests.
+ * Route: /api/files/download
+ *
+ * JSON ops (list, info) have moved to the tRPC `files` router.
  */
 export async function handleFileRequest(
   request: Request,
@@ -145,12 +87,6 @@ export async function handleFileRequest(
   const url = new URL(request.url);
   const pathname = url.pathname.replace(/\/+$/, "");
 
-  if (pathname === "/api/files/list") {
-    return handleList(url, rootDir);
-  }
-  if (pathname === "/api/files/info") {
-    return handleInfo(url, rootDir);
-  }
   if (pathname === "/api/files/download") {
     return handleDownload(url, rootDir);
   }

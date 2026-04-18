@@ -23,7 +23,7 @@ import isEqual from "fast-deep-equal";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
-import { isLocalhost } from "../../stores/ApiClient";
+import { isLocalhost } from "../../lib/env";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { executeComfyWorkflow } from "../../utils/comfyExecutor";
 import { shallow } from "zustand/shallow";
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       backgroundColor: `${theme.vars.palette.grey[800]}ee`,
       color: "var(--palette-primary-main)",
       border: `2px solid ${theme.vars.palette.grey[500]}`,
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
@@ -97,7 +97,7 @@ const styles = (theme: Theme) =>
       backgroundColor: `${theme.vars.palette.grey[800]}ee`,
       color: "var(--palette-primary-main)",
       border: `2px solid ${theme.vars.palette.grey[500]}`,
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       backdropFilter: "blur(10px)",
       "&:hover": {
@@ -177,7 +177,7 @@ const styles = (theme: Theme) =>
       padding: "4px",
       color: theme.vars.palette.grey[100],
       position: "relative",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[600]
       },
@@ -334,7 +334,7 @@ const styles = (theme: Theme) =>
       transform: "translate(-50%, -50%)",
       width: "100%",
       height: "100%",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       animation: "dashboardPulse 2s infinite"
     }
   });

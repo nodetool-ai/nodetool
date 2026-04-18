@@ -6,10 +6,10 @@
 
 ```bash
 # Use Make targets when possible (from repo root)
-make build            # Build all packages
-make test             # Run all tests
-make clean            # Remove build artifacts and dependencies
-make clean-build      # Remove build artifacts only
+npm run build            # Build all packages
+npm run test             # Run all tests
+npm run clean            # Remove build artifacts and dependencies
+npm run clean:build      # Remove build artifacts only
 ```
 
 ## Rules for Build Scripts

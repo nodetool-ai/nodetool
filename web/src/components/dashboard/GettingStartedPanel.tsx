@@ -22,7 +22,8 @@ import { useQuery } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
 import { Workflow, UnifiedModel } from "../../stores/ApiTypes";
 import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction, client } from "../../stores/ApiClient";
+import { isProduction } from "../../lib/env";
+import { trpc } from "../../lib/trpc";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
@@ -65,10 +66,10 @@ const panelStyles = (theme: Theme) =>
     },
     ".progress-bar": {
       height: "4px",
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
       backgroundColor: theme.vars.palette.grey[800],
       "& .MuiLinearProgress-bar": {
-        borderRadius: "2px",
+        borderRadius: "var(--rounded-xs)",
         backgroundColor: theme.vars.palette.success.main
       }
     },
@@ -93,7 +94,7 @@ const panelStyles = (theme: Theme) =>
       justifyContent: "center",
       width: "36px",
       height: "36px",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       backgroundColor: theme.vars.palette.grey[800],
       flexShrink: 0
     },
@@ -108,7 +109,7 @@ const panelStyles = (theme: Theme) =>
     ".optional-badge": {
       fontSize: "0.7rem",
       padding: "2px 6px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.grey[800],
       color: theme.vars.palette.text.secondary,
       marginLeft: "0.5em"
@@ -143,7 +144,7 @@ const panelStyles = (theme: Theme) =>
       letterSpacing: "0.02em",
       opacity: 0.7,
       backgroundColor: "rgba(255,255,255,0.05)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       "&:hover": {
         opacity: 1,
         backgroundColor: "rgba(255,255,255,0.12)"
@@ -323,18 +324,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   // Check for local models (Ollama)
   const { data: ollamaModels } = useQuery({
     queryKey: ["ollamaModels"],
-    queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/ollama", {});
-      if (error) {
-        throw error;
-      }
-      // Handle potential response structures (array or object with models property)
-      if (Array.isArray(data)) { return data; }
-
-      const responseData = data as { models?: unknown[] };
-      if (responseData?.models && Array.isArray(responseData.models)) { return responseData.models; }
-      return [];
-    },
+    queryFn: () => trpc.models.ollama.query(),
     enabled: shouldShowLocalModels,
     retry: false,
     refetchOnWindowFocus: false,

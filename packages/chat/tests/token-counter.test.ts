@@ -38,7 +38,7 @@ describe("countMessageTokens", () => {
       role: "user",
       content: [
         { type: "text", text: "hello world" },
-        { type: "image", image: { uri: "http://example.com/img.png" } }
+        { type: "image_url", image: { uri: "http://example.com/img.png" } }
       ]
     };
     const count = countMessageTokens(msg);

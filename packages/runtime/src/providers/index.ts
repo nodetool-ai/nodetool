@@ -8,7 +8,6 @@ export {
   calculateImageCost
 } from "./cost-calculator.js";
 export type { PricingTier, UsageInfo } from "./cost-calculator.js";
-import { BaseProvider } from "./base-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
@@ -27,7 +26,8 @@ import { ReplicateProvider } from "./replicate-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { KieProvider } from "./kie-provider.js";
-export { BaseProvider };
+export { BaseProvider, providerCapabilities } from "./base-provider.js";
+export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
 export {
@@ -151,8 +151,11 @@ registerBuiltinProvider("cerebras", CerebrasProvider, {
 
 // Local-only providers — require local servers/CLIs, skip in production
 if (process.env["NODETOOL_ENV"] !== "production") {
+  // Ollama defaults to the standard local daemon port so the provider is
+  // usable out-of-the-box. Users running a remote instance override via env.
   registerBuiltinProvider("ollama", OllamaProvider, {
-    OLLAMA_API_URL: process.env["OLLAMA_API_URL"]
+    OLLAMA_API_URL:
+      process.env["OLLAMA_API_URL"] ?? "http://127.0.0.1:11434"
   });
   registerBuiltinProvider("lmstudio", LMStudioProvider, {});
   registerBuiltinProvider("claude_agent", ClaudeAgentProvider, {});

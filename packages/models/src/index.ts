@@ -53,6 +53,14 @@ export { Message } from "./message.js";
 export { Thread } from "./thread.js";
 
 export { Secret } from "./secret.js";
+export {
+  getSecret,
+  getSecretRequired,
+  hasSecret,
+  getSecretSync,
+  clearSecretCache,
+  clearAllSecretCache
+} from "./secret-helper.js";
 
 export { Setting } from "./setting.js";
 

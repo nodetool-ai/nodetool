@@ -46,7 +46,7 @@ jobs:
           df -h
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Cache UV packages
         uses: actions/cache@v4

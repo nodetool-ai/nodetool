@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { trpc } from "../lib/trpc";
 import type { EmbeddingModel } from "../stores/ApiTypes";
 import { useEmbeddingProviders } from "./useProviders";
 
@@ -40,14 +40,9 @@ export const useEmbeddingModelsByProvider = (options?: {
       queryKey: ["embedding-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/embedding/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
+        const data = await trpc.models.embeddingByProvider.query({
+          provider: providerValue
         });
-        if (error) {throw error;}
         return {
           provider: providerValue,
           models: (data || []) as EmbeddingModel[]

@@ -11,27 +11,138 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { z } from "zod";
 import { Workflow, Job, Asset } from "@nodetool/models";
 import {
-  loadPythonPackageMetadata,
-  type NodeMetadata
-} from "@nodetool/node-sdk";
+  toAssetResponse,
+  toJobResponse,
+  toWorkflowResponse
+} from "./http-api.js";
+import { uiToolSchemas } from "@nodetool/protocol";
+import { NodeRegistry, type NodeMetadata } from "@nodetool/node-sdk";
+import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
+import { registerFalNodes } from "@nodetool/fal-nodes";
+import { registerKieNodes } from "@nodetool/kie-nodes";
+import { registerReplicateNodes } from "@nodetool/replicate-nodes";
+import {
+  PythonNodeExecutor,
+  PythonStdioBridge,
+  type NodeExecutor
+} from "@nodetool/runtime";
+import { WorkflowRunner } from "@nodetool/kernel";
+import type { AgentTransport } from "./agent/transport.js";
 
 export interface McpServerOptions {
   metadataRoots?: string[];
   metadataMaxDepth?: number;
+  registry?: NodeRegistry;
 }
 
-let cachedMetadata: { nodesByType: Map<string, NodeMetadata> } | null = null;
+const GLOBAL_FRONTEND_SESSION_ID = "global-mcp";
+let activeFrontendTransport: AgentTransport | null = null;
 
-function getNodeMetadata(
+let runtimeEnvironmentPromise: Promise<RuntimeEnvironment> | null = null;
+
+async function getUnifiedNodeMetadata(
   options?: McpServerOptions
-): Map<string, NodeMetadata> {
-  if (!cachedMetadata) {
-    cachedMetadata = loadPythonPackageMetadata({
-      roots: options?.metadataRoots,
-      maxDepth: options?.metadataMaxDepth
-    });
+): Promise<NodeMetadata[]> {
+  if (options?.registry) {
+    return options.registry
+      .listMetadata()
+      .sort((a, b) => a.node_type.localeCompare(b.node_type));
   }
-  return cachedMetadata.nodesByType;
+  const runtime = await getRuntimeEnvironment(options);
+  return runtime.registry
+    .listMetadata()
+    .sort((a, b) => a.node_type.localeCompare(b.node_type));
+}
+
+type RuntimeEnvironment = {
+  registry: NodeRegistry;
+  pythonBridge: PythonStdioBridge;
+  ensurePythonBridge: () => Promise<void>;
+  resolveExecutor: (node: {
+    id: string;
+    type: string;
+    [key: string]: unknown;
+  }) => NodeExecutor;
+};
+
+function getRuntimeEnvironment(
+  options?: McpServerOptions
+): Promise<RuntimeEnvironment> {
+  if (!runtimeEnvironmentPromise) {
+    runtimeEnvironmentPromise = (async () => {
+      const registry = new NodeRegistry();
+      registry.loadPythonMetadata({
+        roots: options?.metadataRoots,
+        maxDepth: options?.metadataMaxDepth ?? 8
+      });
+      registerBaseNodes(registry);
+      registerElevenLabsNodes(registry);
+      registerFalNodes(registry);
+      registerKieNodes(registry);
+      registerReplicateNodes(registry);
+
+      const pythonBridge = new PythonStdioBridge({
+        workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
+          ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
+          : []
+      });
+
+      let pythonBridgeReady = false;
+      pythonBridge.on("exit", () => {
+        pythonBridgeReady = false;
+      });
+
+      const ensurePythonBridge = async (): Promise<void> => {
+        await pythonBridge.ensureConnected();
+        pythonBridgeReady = true;
+      };
+
+      const resolveExecutor = (node: {
+        id: string;
+        type: string;
+        [key: string]: unknown;
+      }): NodeExecutor => {
+        if (registry.has(node.type)) {
+          return registry.resolve(node);
+        }
+        if (pythonBridgeReady && pythonBridge.hasNodeType(node.type)) {
+          const meta = pythonBridge
+            .getNodeMetadata()
+            .find((n) => n.node_type === node.type);
+          const nodeRec = node as Record<string, unknown>;
+          const props = (nodeRec.properties ?? nodeRec.data ?? {}) as Record<
+            string,
+            unknown
+          >;
+          return new PythonNodeExecutor(
+            pythonBridge,
+            node.type,
+            props,
+            Object.fromEntries(
+              (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
+            ),
+            meta?.required_settings ?? []
+          );
+        }
+        if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+          throw new Error(
+            `Python node "${node.type}" cannot execute: Python worker is not connected.`
+          );
+        }
+        return registry.resolve(node);
+      };
+
+      return {
+        registry,
+        pythonBridge,
+        ensurePythonBridge,
+        resolveExecutor
+      };
+    })();
+  }
+
+  return runtimeEnvironmentPromise;
 }
 
 /**
@@ -42,6 +153,56 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     name: "NodeTool API Server",
     version: "1.0.0"
   });
+
+  for (const [toolName, schema] of Object.entries(uiToolSchemas)) {
+    server.tool(toolName, schema.description, schema.parameters, async (args) => {
+      const transport = activeFrontendTransport;
+      if (!transport || !transport.isAlive) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                error:
+                  "No active NodeTool renderer is connected for frontend UI tools."
+              })
+            }
+          ],
+          isError: true
+        };
+      }
+
+      try {
+        const result = await transport.executeTool(
+          GLOBAL_FRONTEND_SESSION_ID,
+          `mcp-ui-${toolName}-${crypto.randomUUID()}`,
+          toolName,
+          args
+        );
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text:
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result ?? null)
+            }
+          ]
+        };
+      } catch (err: unknown) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
+        };
+      }
+    });
+  }
 
   // ── Workflow tools ──────────────────────────────────────────────
 
@@ -58,12 +219,15 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ limit, user_id }) => {
       try {
-        const [workflows] = await Workflow.paginate(user_id, { limit });
+        const [workflows, next] = await Workflow.paginate(user_id, { limit });
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(workflows.map((w) => w.toDict()))
+              text: JSON.stringify({
+                workflows: workflows.map((workflow) => toWorkflowResponse(workflow)),
+                next: next || null
+              })
             }
           ]
         };
@@ -104,7 +268,169 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         }
         return {
           content: [
-            { type: "text" as const, text: JSON.stringify(workflow.toDict()) }
+            {
+              type: "text" as const,
+              text: JSON.stringify(toWorkflowResponse(workflow))
+            }
+          ]
+        };
+      } catch (err: unknown) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: String(err) })
+            }
+          ],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.tool(
+    "run_workflow",
+    "Run a workflow on the backend, optionally passing parameters.",
+    {
+      workflow_id: z.string().describe("Workflow id to target."),
+      params: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .default({})
+        .describe("Optional workflow run parameters."),
+      user_id: z.string().optional().default("1").describe("User ID")
+    },
+    async ({ workflow_id, params, user_id }) => {
+      try {
+        const workflow = await Workflow.find(user_id, workflow_id);
+        if (!workflow) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({ error: "Workflow not found" })
+              }
+            ],
+            isError: true
+          };
+        }
+
+        const runMode = workflow.run_mode ?? "workflow";
+        if (runMode !== "workflow") {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({
+                  error: `Workflow run mode "${runMode}" is not supported by the backend MCP runner.`
+                })
+              }
+            ],
+            isError: true
+          };
+        }
+
+        const graph = workflow.getGraph();
+        const runnableGraph: {
+          nodes: Array<{
+            id: string;
+            type: string;
+            [key: string]: unknown;
+          }>;
+          edges: Array<{
+            id?: string | null;
+            source: string;
+            target: string;
+            sourceHandle: string;
+            targetHandle: string;
+            edge_type?: "data" | "control";
+            [key: string]: unknown;
+          }>;
+        } = {
+          nodes: graph.nodes.map((node) => {
+            const record = node as Record<string, unknown>;
+            return {
+              ...record,
+              id: String(record.id ?? ""),
+              type: String(record.type ?? ""),
+              properties: (record.properties ?? record.data ?? {}) as Record<
+                string,
+                unknown
+              >
+            };
+          }),
+          edges: graph.edges.map((edge) => {
+            const record = edge as Record<string, unknown>;
+            return {
+              ...record,
+              id:
+                typeof record.id === "string" || record.id == null
+                  ? (record.id as string | null | undefined)
+                  : String(record.id),
+              source: String(record.source ?? ""),
+              target: String(record.target ?? ""),
+              sourceHandle: String(record.sourceHandle ?? ""),
+              targetHandle: String(record.targetHandle ?? ""),
+              edge_type:
+                record.edge_type === "control" ? "control" : "data"
+            };
+          })
+        };
+        const runtime = await getRuntimeEnvironment(options);
+        const hasPythonNode = runnableGraph.nodes.some((node) => {
+          const nodeType = typeof node.type === "string" ? node.type : "";
+          return (
+            nodeType !== "" &&
+            Boolean(runtime.registry.getMetadata(nodeType)) &&
+            !runtime.registry.has(nodeType)
+          );
+        });
+        if (hasPythonNode) {
+          await runtime.ensurePythonBridge();
+        }
+
+        const job = await Job.create({
+          workflow_id,
+          user_id,
+          status: "running",
+          params,
+          graph: runnableGraph
+        });
+
+        const runner = new WorkflowRunner(job.id, {
+          resolveExecutor: (node) =>
+            runtime.resolveExecutor(
+              node as { id: string; type: string; [key: string]: unknown }
+            )
+        });
+        const result = await runner.run(
+          { job_id: job.id, workflow_id, params },
+          runnableGraph
+        );
+
+        if (result.status === "completed") {
+          job.markCompleted();
+        } else if (result.status === "cancelled") {
+          job.markCancelled();
+        } else {
+          job.markFailed(result.error ?? "Workflow run failed");
+        }
+        await job.save();
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                job_id: job.id,
+                workflow_id,
+                status: result.status,
+                outputs: result.outputs,
+                error: result.error ?? null,
+                message_count: result.messages.length,
+                background: false
+              })
+            }
           ]
         };
       } catch (err: unknown) {
@@ -138,15 +464,22 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ parent_id, content_type, limit, user_id }) => {
       try {
-        const opts: Record<string, unknown> = { limit };
-        if (parent_id) opts.parent_id = parent_id;
-        if (content_type) opts.content_type = content_type;
-        const [assets] = await Asset.paginate(user_id, opts);
+        const opts: {
+          limit: number;
+          parentId?: string;
+          contentType?: string;
+        } = { limit };
+        if (parent_id) opts.parentId = parent_id;
+        if (content_type) opts.contentType = content_type;
+        const [assets, next] = await Asset.paginate(user_id, opts);
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(assets.map((a) => a.toDict()))
+              text: JSON.stringify({
+                assets: assets.map((asset) => toAssetResponse(asset)),
+                next: next || null
+              })
             }
           ]
         };
@@ -187,7 +520,10 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         }
         return {
           content: [
-            { type: "text" as const, text: JSON.stringify(asset.toDict()) }
+            {
+              type: "text" as const,
+              text: JSON.stringify(toAssetResponse(asset))
+            }
           ]
         };
       } catch (err: unknown) {
@@ -219,8 +555,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ namespace, limit }) => {
       try {
-        const nodesByType = getNodeMetadata(options);
-        let nodes = [...nodesByType.values()];
+        let nodes = await getUnifiedNodeMetadata(options);
         if (namespace) {
           nodes = nodes.filter((n) => n.namespace.startsWith(namespace));
         }
@@ -257,8 +592,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ query, n_results }) => {
       try {
-        const nodesByType = getNodeMetadata(options);
-        const nodes = [...nodesByType.values()];
+        const nodes = await getUnifiedNodeMetadata(options);
         const lowerQuery = query.map((q) => q.toLowerCase());
 
         const scored = nodes.map((n) => {
@@ -307,8 +641,8 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ node_type }) => {
       try {
-        const nodesByType = getNodeMetadata(options);
-        const node = nodesByType.get(node_type);
+        const nodes = await getUnifiedNodeMetadata(options);
+        const node = nodes.find((candidate) => candidate.node_type === node_type);
         if (!node) {
           return {
             content: [
@@ -353,14 +687,20 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ workflow_id, limit, user_id }) => {
       try {
-        const opts: Record<string, unknown> = { limit };
-        if (workflow_id) opts.workflow_id = workflow_id;
-        const [jobs] = await Job.paginate(user_id, opts);
+        const opts: {
+          limit: number;
+          workflowId?: string;
+        } = { limit };
+        if (workflow_id) opts.workflowId = workflow_id;
+        const [jobs, nextStartKey] = await Job.paginate(user_id, opts);
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(jobs.map((j) => j.toDict()))
+              text: JSON.stringify({
+                jobs: jobs.map((job) => toJobResponse(job)),
+                next_start_key: nextStartKey || null
+              })
             }
           ]
         };
@@ -401,7 +741,10 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         }
         return {
           content: [
-            { type: "text" as const, text: JSON.stringify(job.toDict()) }
+            {
+              type: "text" as const,
+              text: JSON.stringify(toJobResponse(job))
+            }
           ]
         };
       } catch (err: unknown) {
@@ -435,15 +778,29 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         const { getVecStore } = await import("@nodetool/vectorstore");
         const store = await getVecStore();
         const collections = await store.listCollections();
-        const result = collections.slice(0, limit).map((c) => ({
-          name: c.name,
-          metadata: c.metadata
-        }));
+        const result = await Promise.all(
+          collections.slice(0, limit).map(async (c) => {
+            const count = await c.count();
+            const metadata = c.metadata ?? {};
+            let workflowName: string | null = null;
+            const workflowId = metadata.workflow as string | undefined;
+            if (workflowId) {
+              const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+              if (workflow) workflowName = workflow.name;
+            }
+            return {
+              name: c.name,
+              count,
+              metadata,
+              workflow_name: workflowName
+            };
+          })
+        );
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({ collections: result })
+              text: JSON.stringify({ collections: result, count: result.length })
             }
           ]
         };
@@ -475,7 +832,14 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         const count = await collection.count();
         return {
           content: [
-            { type: "text" as const, text: JSON.stringify({ name, count }) }
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                name: collection.name,
+                metadata: collection.metadata,
+                count
+              })
+            }
           ]
         };
       } catch {
@@ -544,6 +908,25 @@ const sessionTransports = new Map<
   WebStandardStreamableHTTPServerTransport
 >();
 
+export function setMcpFrontendTransport(transport: AgentTransport): void {
+  activeFrontendTransport = transport;
+}
+
+export function clearMcpFrontendTransport(transport: AgentTransport): void {
+  if (activeFrontendTransport === transport) {
+    activeFrontendTransport = null;
+  }
+}
+
+export function getLocalMcpServerUrl(): string {
+  const port = Number(process.env["PORT"] ?? 7777);
+  const tlsEnabled = Boolean(
+    process.env["TLS_CERT"] && process.env["TLS_KEY"]
+  );
+  const protocol = tlsEnabled ? "https" : "http";
+  return `${protocol}://127.0.0.1:${port}/mcp`;
+}
+
 /**
  * Handle an MCP HTTP request at the /mcp path.
  * Uses WebStandardStreamableHTTPServerTransport for stateful sessions.
@@ -567,6 +950,7 @@ export async function handleMcpHttpRequest(
 
     // New session — create transport and server
     const transport = new WebStandardStreamableHTTPServerTransport({
+      enableJsonResponse: true,
       sessionIdGenerator: () => crypto.randomUUID(),
       onsessioninitialized: (id) => {
         sessionTransports.set(id, transport);

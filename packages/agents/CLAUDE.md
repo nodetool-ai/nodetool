@@ -1,5 +1,43 @@
 # Agents Package
 
+## JavaScript Sandbox (`src/js-sandbox.ts`)
+
+User-authored JS from `MiniJSAgentTool` and `nodetool.code.Code` runs in a
+**QuickJS WebAssembly sandbox** via `@sebastianwessel/quickjs`. The guest lives
+in its own WASM heap, so runaway or malicious code can't corrupt the host V8
+heap the way it could under the previous `node:vm` implementation.
+
+Hard limits enforced by the runtime:
+
+| Limit | Value | Configured by |
+|-------|-------|---------------|
+| Execution time | `timeoutMs` (default 30 s) | `setInterruptHandler` (CPU budget) + wall-clock race |
+| Guest heap | `GUEST_MEMORY_LIMIT` = 64 MB | `runtime.setMemoryLimit` |
+| Call stack | `GUEST_STACK_LIMIT` = 512 KB | `runtime.setMaxStackSize` |
+| Fetch calls | `MAX_FETCH_CALLS` = 20 per run | counter inside bridge |
+| Fetch body | `MAX_RESPONSE_BODY_SIZE` = 1 MB | truncation inside bridge |
+| Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation |
+
+Exposed guest surface: `console`, `fetch`, `uuid`, `sleep`, `getSecret`,
+`workspace.{read,write,list}` (requires a `ProcessingContext`), and any
+caller-supplied `globals`. `eval` and `Function` are deleted at init so the
+user cannot re-enter dynamic code generation. Core JS (`JSON`, `Math`, `Date`,
+`Map`, `URL`, `TextEncoder`, etc.) is QuickJS's native implementation, not a
+host-bridged version.
+
+**State sync-back**: object-typed globals are deep-replaced on the host after
+the guest runs, so `CodeNode`'s `state` object persists across invocations.
+Primitive globals pass by value (no sync).
+
+**Known QuickJS limitations**:
+- `url.searchParams.set(...)` doesn't propagate back to the parent URL. Build
+  the query via `URLSearchParams` directly.
+- Host async functions must never reject — `js-sandbox.ts` wraps them in a
+  `neverReject` adapter that returns a tagged error object, which a guest
+  prelude rewraps into a real `throw`. Working around a known handle leak in
+  `@sebastianwessel/quickjs@3.0.1` (tracked as `list_empty(&rt->gc_obj_list)`
+  assertion on runtime dispose).
+
 ## Running Agents from CLI
 
 ### Interactive Chat

@@ -8,8 +8,17 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAutosave, UseAutosaveOptions } from "../useAutosave";
 import { Workflow } from "../../stores/ApiTypes";
 
-// Mock fetch globally
-global.fetch = jest.fn();
+// Mock tRPC client (import.meta.env.DEV not available in Jest)
+const mockAutosaveMutate = jest.fn();
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    workflows: {
+      autosave: {
+        mutate: (...args: unknown[]) => mockAutosaveMutate(...args)
+      }
+    }
+  }
+}));
 
 // Create a wrapper with QueryClientProvider
 const createTestWrapper = (): React.FC<{ children: React.ReactNode }> => {
@@ -54,7 +63,7 @@ describe("useAutosave", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
-    
+
     useSettingsStore.setState({
       settings: {
         ...useSettingsStore.getState().settings,
@@ -79,13 +88,10 @@ describe("useAutosave", () => {
       addNotification: jest.fn()
     });
 
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        version: { id: "v1", version: 1, created_at: new Date().toISOString() },
-        message: "Saved",
-        skipped: false
-      })
+    mockAutosaveMutate.mockResolvedValue({
+      version: { id: "v1", version: 1, workflow_id: "test-workflow", save_type: "autosave", created_at: new Date().toISOString() },
+      message: "Saved",
+      skipped: false
     });
   });
 
@@ -96,13 +102,13 @@ describe("useAutosave", () => {
   describe("initial state", () => {
     it("returns initial lastAutosaveTime as 0", () => {
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       expect(result.current.lastAutosaveTime).toBe(0);
     });
 
     it("returns triggerAutosave and saveBeforeRun functions", () => {
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       expect(typeof result.current.triggerAutosave).toBe("function");
       expect(typeof result.current.saveBeforeRun).toBe("function");
     });
@@ -126,32 +132,32 @@ describe("useAutosave", () => {
       });
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       act(() => {
         result.current.triggerAutosave();
       });
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockAutosaveMutate).not.toHaveBeenCalled();
     });
 
     it("does nothing when workflowId is null", () => {
       const { result } = renderHook(() => useAutosave(createMockOptions({ workflowId: null })), { wrapper: createTestWrapper() });
-      
+
       act(() => {
         result.current.triggerAutosave();
       });
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockAutosaveMutate).not.toHaveBeenCalled();
     });
 
     it("does nothing when workflow is not dirty", () => {
       const { result } = renderHook(() => useAutosave(createMockOptions({ isDirty: () => false })), { wrapper: createTestWrapper() });
-      
+
       act(() => {
         result.current.triggerAutosave();
       });
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockAutosaveMutate).not.toHaveBeenCalled();
     });
 
     it("does not save empty workflows", () => {
@@ -161,26 +167,25 @@ describe("useAutosave", () => {
       };
 
       const { result } = renderHook(() => useAutosave(createMockOptions({ getWorkflow: () => emptyWorkflow })), { wrapper: createTestWrapper() });
-      
+
       act(() => {
         result.current.triggerAutosave();
       });
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockAutosaveMutate).not.toHaveBeenCalled();
     });
 
-    it("calls autosave endpoint when conditions are met", async () => {
+    it("calls autosave via tRPC when conditions are met", async () => {
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       await act(async () => {
         await result.current.triggerAutosave();
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/workflows/test-workflow/autosave",
+      expect(mockAutosaveMutate).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" }
+          id: "test-workflow",
+          save_type: "autosave"
         })
       );
     });
@@ -193,7 +198,7 @@ describe("useAutosave", () => {
       });
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       await act(async () => {
         await result.current.triggerAutosave();
       });
@@ -206,7 +211,7 @@ describe("useAutosave", () => {
       useNotificationStore.setState({ addNotification });
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       await act(async () => {
         await result.current.triggerAutosave();
       });
@@ -221,20 +226,17 @@ describe("useAutosave", () => {
     });
 
     it("handles skipped response", async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          version: null,
-          message: "skipped",
-          skipped: true
-        })
+      mockAutosaveMutate.mockResolvedValue({
+        version: null,
+        message: "skipped",
+        skipped: true
       });
 
       const addNotification = jest.fn();
       useNotificationStore.setState({ addNotification });
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       await act(async () => {
         await result.current.triggerAutosave();
       });
@@ -242,12 +244,12 @@ describe("useAutosave", () => {
       expect(addNotification).not.toHaveBeenCalled();
     });
 
-    it("handles fetch errors gracefully", async () => {
+    it("handles errors gracefully", async () => {
       const consoleSpy = jest.spyOn(log, "error").mockImplementation();
-      (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
+      mockAutosaveMutate.mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       await act(async () => {
         await result.current.triggerAutosave();
       });
@@ -275,34 +277,27 @@ describe("useAutosave", () => {
       });
 
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       act(() => {
         result.current.saveBeforeRun();
       });
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockAutosaveMutate).not.toHaveBeenCalled();
     });
 
-    it("calls checkpoint endpoint when enabled", async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          version: { id: "v1", version: 1, created_at: new Date().toISOString() },
-          message: "Saved",
-          skipped: false
-        })
-      });
-
+    it("calls checkpoint via tRPC when enabled", async () => {
       const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
-      
+
       await result.current.saveBeforeRun();
 
-      expect(global.fetch).toHaveBeenCalled();
-      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
-      const fetchBody = JSON.parse(fetchCall[1].body as string);
-      expect(fetchBody.save_type).toBe("checkpoint");
-      expect(fetchBody.description).toBe("Before execution");
-      expect(fetchBody.force).toBe(true);
+      expect(mockAutosaveMutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "test-workflow",
+          save_type: "checkpoint",
+          description: "Before execution",
+          force: true
+        })
+      );
     });
 
     it("does not save empty workflows", async () => {
@@ -312,12 +307,12 @@ describe("useAutosave", () => {
       };
 
       const { result } = renderHook(() => useAutosave(createMockOptions({ getWorkflow: () => emptyWorkflow })), { wrapper: createTestWrapper() });
-      
+
       await act(async () => {
         await result.current.saveBeforeRun();
       });
 
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockAutosaveMutate).not.toHaveBeenCalled();
     });
   });
 

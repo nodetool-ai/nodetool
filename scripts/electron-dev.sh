@@ -19,30 +19,31 @@ if [[ -z "${CONDA_PREFIX:-}" ]]; then
   exit 1
 fi
 
-# Native modules must match Electron's embedded Node ABI.
-# Skip rebuild if already compiled for the correct Electron version.
-ELECTRON_VERSION=$(node -e "process.stdout.write(require('./electron/package.json').devDependencies.electron)")
+# Native modules are loaded inside Electron's utilityProcess.fork(), whose ABI
+# matches the installed Electron's embedded Node. Rebuild against Electron
+# headers. Use the *installed* Electron version (not the range in package.json)
+# so a stale node_modules can't silently build for the wrong ABI.
+ELECTRON_VERSION=$(node -p "require('./node_modules/electron/package.json').version")
 ARCH=$(uname -m)
 if [[ "$ARCH" == "arm64" ]]; then
   GYARCH="arm64"
 else
   GYARCH="x64"
 fi
-
 NATIVE_STAMP="node_modules/.electron-native-rebuild-stamp"
-CURRENT_STAMP="${ELECTRON_VERSION}-${GYARCH}"
-if [[ -f "${NATIVE_STAMP}" ]] && [[ "$(cat "${NATIVE_STAMP}")" == "${CURRENT_STAMP}" ]]; then
+STAMP_VALUE="electron-${ELECTRON_VERSION}-${GYARCH}"
+if [[ -f "${NATIVE_STAMP}" ]] && [[ "$(cat "${NATIVE_STAMP}")" == "${STAMP_VALUE}" ]]; then
   echo "Native modules already built for Electron ${ELECTRON_VERSION} (${GYARCH}), skipping rebuild."
 else
   echo "Rebuilding native modules for Electron ${ELECTRON_VERSION} (${GYARCH})..."
-  (cd node_modules/better-sqlite3 && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
-  (cd node_modules/bufferutil && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
-  echo -n "${CURRENT_STAMP}" > "${NATIVE_STAMP}"
+  (cd node_modules/better-sqlite3 && rm -rf build && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+  (cd node_modules/bufferutil     && rm -rf build && npx node-gyp rebuild --target="$ELECTRON_VERSION" --arch="$GYARCH" --dist-url=https://electronjs.org/headers)
+  echo -n "${STAMP_VALUE}" > "${NATIVE_STAMP}"
 fi
 
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."
-npm --prefix web start &
+npm --prefix web run dev &
 WEB_SERVER_PID=$!
 
 # Only rebuild electron if source changed since last build

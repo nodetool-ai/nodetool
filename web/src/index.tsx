@@ -41,14 +41,14 @@ import "./styles/mobile.css";
 import "dockview/dist/styles/dockview.css";
 import "./styles/dockview.css";
 import "./lib/dragdrop/dragdrop.css";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./queryClient";
+import { TRPCProvider } from "./trpc/Provider";
 import { useAssetStore } from "./stores/AssetStore";
 import Login from "./components/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
+import { isLocalhost } from "./lib/env";
 import { useSettingsStore } from "./stores/SettingsStore";
-import { isLocalhost } from "./stores/ApiClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
@@ -587,7 +587,7 @@ const AppWrapper = () => {
 
   return (
     <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
+      <TRPCProvider>
         <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <CssBaseline />
@@ -643,7 +643,7 @@ const AppWrapper = () => {
                         onClick={() => window.location.reload()}
                         style={{
                           padding: "8px 16px",
-                          borderRadius: "6px",
+                          borderRadius: "var(--rounded-md)",
                           border: "1px solid var(--palette-divider)",
                           backgroundColor: "transparent",
                           color: "var(--palette-text-primary)",
@@ -695,7 +695,7 @@ const AppWrapper = () => {
             </MenuProvider>
           </MobileClassProvider>
         </ThemeProvider>
-      </QueryClientProvider>
+      </TRPCProvider>
     </React.StrictMode>
   );
 };

@@ -20,7 +20,7 @@ export function removeBase64Images(
   content: MessageContent[]
 ): MessageContent[] {
   return content.filter((item) => {
-    if (item.type !== "image") return true;
+    if (item.type !== "image_url") return true;
     return !isBase64Image(item as MessageImageContent);
   });
 }

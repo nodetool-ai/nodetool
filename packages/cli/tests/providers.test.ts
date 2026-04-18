@@ -6,7 +6,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("@nodetool/security", () => ({
+vi.mock("@nodetool/models", () => ({
   getSecret: vi.fn(async (key: string) => process.env[key] ?? null)
 }));
 

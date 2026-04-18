@@ -16,10 +16,7 @@ vi.mock("@nodetool/models", () => ({
     listForUser: vi.fn(async () => [[], 0]),
     upsert: vi.fn(async () => {}),
     get: vi.fn(async () => null)
-  }
-}));
-
-vi.mock("@nodetool/security", () => ({
+  },
   getSecret: vi.fn(async () => null)
 }));
 

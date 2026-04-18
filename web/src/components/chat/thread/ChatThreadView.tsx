@@ -384,7 +384,7 @@ const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
                 top: "12px",
                 width: "10px",
                 height: "10px",
-                borderRadius: "50%",
+                borderRadius: "var(--rounded-circle)",
                 backgroundColor: theme.vars.palette.primary.main,
                 border: `2px solid ${theme.vars.palette.background.default}`,
                 boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
@@ -393,7 +393,7 @@ const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
               <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
                 fontSize: "0.8rem",
                 padding: "0.5rem 0.75rem",
-                borderRadius: "8px",
+                borderRadius: "var(--rounded-lg)",
                 backgroundColor: "rgba(30, 35, 40, 0.4)",
                 border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
                 color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",

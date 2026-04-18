@@ -11,7 +11,7 @@ import SettingsMenu from "../menus/SettingsMenu";
 import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
-import { isProduction } from "../../stores/ApiClient";
+import { isProduction } from "../../lib/env";
 import { ThemeToggleButton } from "../ui_primitives/ThemeToggleButton";
 import { HelpButton } from "../ui_primitives";
 
@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
       padding: "0 4px",
       minWidth: "32px",
       height: "32px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       transition: "all 0.2s ease-out",
       "&:hover": {
         backgroundColor: "rgba(255, 255, 255, 0.05)"

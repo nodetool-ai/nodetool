@@ -15,4 +15,4 @@ Verify by checking the React Profiler while dragging a node that has multiple ou
 
 ## 🧪 Testing
 - The modified code has been type-checked correctly. Unrelated type errors were present in the codebase.
-- Tests were run via `make test-web`. Existing unrelated test failures in `Model3DViewer` were present in the main branch prior to changes. No tests related to `NodeOutputs` broke.
+- Tests were run via `npm run test:web`. Existing unrelated test failures in `Model3DViewer` were present in the main branch prior to changes. No tests related to `NodeOutputs` broke.

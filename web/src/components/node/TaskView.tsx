@@ -3,8 +3,8 @@ import React from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Paper, List } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { List } from "@mui/material";
+import { Text, Card } from "../ui_primitives";
 import { Task } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -13,7 +13,7 @@ const styles = (theme: Theme) =>
     ".task-container": {
       marginBottom: "1rem",
       padding: "1rem",
-      borderRadius: "4px"
+      borderRadius: "var(--rounded-sm)"
     },
     ".task-title": {
       fontWeight: "bold",
@@ -34,7 +34,7 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
   const theme = useTheme();
   return (
     <div css={styles(theme)} className="noscroll">
-      <Paper className="task-container" elevation={1}>
+      <Card className="task-container" variant="elevated" elevation={1}>
         <Text size="normal" weight={600} className="task-title">
           Task: {task.title}
         </Text>
@@ -43,16 +43,16 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
             {task.description}
           </Text>
         )}
-        {task.steps.length > 0 && (
+        {task.steps && task.steps.length > 0 && (
           <>
             <List disablePadding>
-              {task.steps.map((step) => (
+              {task.steps?.map((step) => (
                 <StepView key={step.id} step={step} />
               ))}
             </List>
           </>
         )}
-      </Paper>
+      </Card>
     </div>
   );
 };

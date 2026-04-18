@@ -11,7 +11,7 @@ const modelListItemStyles = (theme: Theme) =>
       maxHeight: "calc(100% - 0.75em)",
       overflow: "hidden",
       borderLeft: "3px solid transparent",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       transition: "background-color 0.15s ease, border-color 0.15s ease",
 
       "&:hover": {
@@ -148,7 +148,7 @@ const modelListItemStyles = (theme: Theme) =>
         fontWeight: 500,
         marginLeft: "0.5em",
         padding: ".3em .8em",
-        borderRadius: "12px",
+        borderRadius: "var(--rounded-xl)",
         height: "auto",
         border: `1px solid ${theme.vars.palette.divider}`,
         transition: "all 0.2s",

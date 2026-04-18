@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { trpc } from "../lib/trpc";
 import type {
   LanguageModel,
   ImageModel,
@@ -9,7 +9,6 @@ import type {
   VideoModel,
   UnifiedModel
 } from "../stores/ApiTypes";
-import { BASE_URL } from "../stores/BASE_URL";
 import {
   useLanguageModelProviders,
   useImageModelProviders,
@@ -17,18 +16,17 @@ import {
   useASRProviders,
   useVideoProviders
 } from "./useProviders";
-import log from "loglevel";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
  *
- * Backend contract (nodetool-core/nodetool/api/model.py):
- * - GET /api/models/llm/{provider}     → LanguageModel[]
- * - GET /api/models/image/{provider}   → ImageModel[]
- * - GET /api/models/tts/{provider}     → TTSModel[]
- * - GET /api/models/asr/{provider}     → ASRModel[]
- * - GET /api/models/video/{provider}   → VideoModel[]
- * - GET /api/models/huggingface/type/{model_type} → UnifiedModel[] filtered server-side by hf.* type
+ * Backend contract (tRPC models router):
+ * - trpc.models.llmByProvider({ provider })     → LanguageModel[]
+ * - trpc.models.imageByProvider({ provider })   → ImageModel[]
+ * - trpc.models.ttsByProvider({ provider })     → TTSModel[]
+ * - trpc.models.asrByProvider({ provider })     → ASRModel[]
+ * - trpc.models.videoByProvider({ provider })   → VideoModel[]
+ * - trpc.models.huggingfaceByType({ model_type }) → UnifiedModel[] filtered by hf.* type
  *
  * Providers are enumerated via use*Providers hooks and fanned out into parallel
  * queries to minimize latency. Each hook returns aggregated models along with
@@ -58,14 +56,7 @@ export const useLanguageModelsByProvider = (options?: {
       queryKey: ["language-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/llm/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
-        });
-        if (error) {throw error;}
+        const data = await trpc.models.llmByProvider.query({ provider: providerValue });
         return {
           provider: providerValue,
           models: (data || []) as LanguageModel[]
@@ -139,23 +130,12 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
       queryFn: async () => {
         try {
           const providerValue = provider.provider;
-          const { data, error } = await client.GET("/api/models/image/{provider}", {
-            params: {
-              path: {
-                provider: providerValue
-              }
-            }
-          });
-          if (error) {
-            log.error(`Error fetching image models for provider ${providerValue}:`, error);
-            throw error;
-          }
+          const data = await trpc.models.imageByProvider.query({ provider: providerValue });
           return {
             provider: providerValue,
             models: (data || []) as ImageModel[]
           };
-        } catch (err) {
-          log.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
+        } catch {
           // Return empty array for this provider instead of failing completely
           return {
             provider: provider.provider,
@@ -213,14 +193,7 @@ export const useTTSModelsByProvider = () => {
       queryKey: ["tts-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/tts/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
-        });
-        if (error) {throw error;}
+        const data = await trpc.models.ttsByProvider.query({ provider: providerValue });
         return {
           provider: providerValue,
           models: (data || []) as TTSModel[]
@@ -268,14 +241,7 @@ export const useASRModelsByProvider = () => {
       queryKey: ["asr-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/asr/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
-        });
-        if (error) {throw error;}
+        const data = await trpc.models.asrByProvider.query({ provider: providerValue });
         return {
           provider: providerValue,
           models: (data || []) as ASRModel[]
@@ -323,14 +289,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
       queryKey: ["video-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/video/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
-        });
-        if (error) {throw error;}
+        const data = await trpc.models.videoByProvider.query({ provider: providerValue });
         return {
           provider: providerValue,
           models: (data || []) as VideoModel[]
@@ -433,27 +392,10 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
 
 const fetchHfModelsByType = async (
   modelType: string,
-  task?: "text_to_image" | "image_to_image"
+  _task?: "text_to_image" | "image_to_image"
 ): Promise<UnifiedModel[]> => {
-  const params = new URLSearchParams();
-  if (task) {
-    params.append("task", task);
-  }
-
   const normalizedType = modelType.startsWith("hf.") ? modelType : `hf.${modelType}`;
-  const encodedType = encodeURIComponent(normalizedType);
-  const url = `${BASE_URL}/api/models/huggingface/type/${encodedType}${
-    params.toString() ? `?${params.toString()}` : ""
-  }`;
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(
-      `Failed to fetch HuggingFace models for type ${normalizedType}: ${res.status} ${res.statusText} ${text}`
-    );
-  }
-  return (await res.json()) as UnifiedModel[];
+  return trpc.models.huggingfaceByType.query({ model_type: normalizedType }) as Promise<UnifiedModel[]>;
 };
 
 const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {

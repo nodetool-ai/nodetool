@@ -23,7 +23,7 @@ import {
   EditorButton
 } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { isLocalhost, isElectron } from "../../stores/ApiClient";
+import { isLocalhost, isElectron } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
@@ -32,6 +32,7 @@ import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
+import MCPSettingsMenu from "./MCPSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -303,6 +304,14 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
       category: "Configuration",
       items: [{ id: "api-settings", label: "API Settings" }]
     },
+    ...(isLocalhost
+      ? [
+          {
+            category: "Integrations",
+            items: [{ id: "mcp-integration", label: "MCP Servers" }]
+          }
+        ]
+      : []),
     {
       category: "Storage",
       items: [{ id: "folders", label: "Folders" }]
@@ -746,6 +755,15 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                     API Settings
                   </Text>
                   <RemoteSettingsMenuComponent />
+
+                  {isLocalhost && (
+                    <>
+                      <Text size="big" id="mcp-integration">
+                        MCP Integration
+                      </Text>
+                      <MCPSettingsMenu />
+                    </>
+                  )}
 
                   <Text size="big" id="folders">
                     Folders

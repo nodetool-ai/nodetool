@@ -27,7 +27,25 @@ export const DEFAULT_SETTINGS: ChatSettings = {
     "browser",
     "screenshot",
     "run_code",
-    "calculator"
+    "calculator",
+    // NodeTool MCP tools
+    "list_workflows",
+    "get_workflow",
+    "create_workflow",
+    "run_workflow",
+    "validate_workflow",
+    "get_example_workflow",
+    "export_workflow_digraph",
+    "list_nodes",
+    "search_nodes",
+    "get_node_info",
+    "list_jobs",
+    "get_job",
+    "get_job_logs",
+    "start_background_job",
+    "list_assets",
+    "get_asset",
+    "list_models"
   ],
   workspace: process.cwd()
 };

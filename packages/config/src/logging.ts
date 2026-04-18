@@ -99,6 +99,22 @@ function timestamp(): string {
   return `${hh}:${mm}:${ss}`;
 }
 
+// JSON.stringify replacer that unwraps Error instances — their own fields
+// (`message`, `stack`, `name`) are non-enumerable, so the default serializer
+// produces "{}". Without this, nested errors like `{ provider, error }` lose
+// all diagnostic information in the log output.
+function jsonReplacer(_key: string, value: unknown): unknown {
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: value.message,
+      ...(value.stack ? { stack: value.stack } : {}),
+      ...(value.cause !== undefined ? { cause: value.cause } : {})
+    };
+  }
+  return value;
+}
+
 function formatArgs(args: unknown[]): string {
   if (args.length === 0) return "";
   return (
@@ -106,7 +122,13 @@ function formatArgs(args: unknown[]): string {
     args
       .map((a) => {
         if (a instanceof Error) return a.stack ?? a.message;
-        if (typeof a === "object" && a !== null) return JSON.stringify(a);
+        if (typeof a === "object" && a !== null) {
+          try {
+            return JSON.stringify(a, jsonReplacer);
+          } catch {
+            return String(a);
+          }
+        }
         return String(a);
       })
       .join(" ")

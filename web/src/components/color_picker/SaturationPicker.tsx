@@ -11,7 +11,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       width: "100%",
       aspectRatio: "1",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       cursor: "crosshair",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`
@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       width: "16px",
       height: "16px",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       border: "2px solid white",
       boxShadow: "0 0 0 1px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.3)",
       transform: "translate(-50%, -50%)",

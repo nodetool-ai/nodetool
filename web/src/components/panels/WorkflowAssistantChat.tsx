@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
-import { IconButton, Button, Popover } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { useShallow } from "zustand/react/shallow";
+import { Button, Popover } from "@mui/material";
+import { ToolbarIconButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import ListIcon from "@mui/icons-material/List";
 import AddIcon from "@mui/icons-material/Add";
@@ -104,31 +105,28 @@ const WorkflowAssistantChat: React.FC = () => {
     setSelectedTools,
     setSelectedCollections
   } = useGlobalChatStore(
-    useMemo(
-      () => (state) => ({
-        status: state.status,
-        sendMessage: state.sendMessage,
-        progress: state.progress,
-        statusMessage: state.statusMessage,
-        error: state.error,
-        stopGeneration: state.stopGeneration,
-        getCurrentMessagesSync: state.getCurrentMessagesSync,
-        createNewThread: state.createNewThread,
-        currentThreadId: state.currentThreadId,
-        threads: state.threads,
-        switchThread: state.switchThread,
-        deleteThread: state.deleteThread,
-        messageCache: state.messageCache,
-        currentRunningToolCallId: state.currentRunningToolCallId,
-        currentToolMessage: state.currentToolMessage,
-        selectedModel: state.selectedModel,
-        setSelectedModel: state.setSelectedModel,
-        setAgentMode: state.setAgentMode,
-        setSelectedTools: state.setSelectedTools,
-        setSelectedCollections: state.setSelectedCollections
-      }),
-      []
-    )
+    useShallow((state) => ({
+      status: state.status,
+      sendMessage: state.sendMessage,
+      progress: state.progress,
+      statusMessage: state.statusMessage,
+      error: state.error,
+      stopGeneration: state.stopGeneration,
+      getCurrentMessagesSync: state.getCurrentMessagesSync,
+      createNewThread: state.createNewThread,
+      currentThreadId: state.currentThreadId,
+      threads: state.threads,
+      switchThread: state.switchThread,
+      deleteThread: state.deleteThread,
+      messageCache: state.messageCache,
+      currentRunningToolCallId: state.currentRunningToolCallId,
+      currentToolMessage: state.currentToolMessage,
+      selectedModel: state.selectedModel,
+      setSelectedModel: state.setSelectedModel,
+      setAgentMode: state.setAgentMode,
+      setSelectedTools: state.setSelectedTools,
+      setSelectedCollections: state.setSelectedCollections
+    }))
   );
 
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
@@ -530,11 +528,11 @@ const WorkflowAssistantChat: React.FC = () => {
         }}
       >
         <NewChatButton onNewThread={handleNewChat} />
-        <Tooltip title="Chat History">
-          <IconButton onClick={handleOpenThreadList} size="small">
-            <ListIcon />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<ListIcon />}
+          tooltip="Chat History"
+          onClick={handleOpenThreadList}
+        />
 
         <Popover
           open={isThreadListOpen}
@@ -582,7 +580,7 @@ const WorkflowAssistantChat: React.FC = () => {
             backgroundColor: "var(--palette-error-dark)",
             color: theme.vars.palette.common.white,
             padding: "8px 16px",
-            borderRadius: "4px",
+            borderRadius: "var(--rounded-sm)",
             maxWidth: "90%",
             boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
           }}

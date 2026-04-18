@@ -89,7 +89,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
                 style={{
                   padding: "6px 10px",
                   fontSize: "var(--fontSizeSmaller)",
-                  borderRadius: "4px",
+                  borderRadius: "var(--rounded-sm)",
                   border: "1px solid var(--palette-grey-700)",
                   background: "var(--palette-grey-700)",
                   color: "var(--palette-grey-50)",

@@ -21,9 +21,8 @@ import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
-import { client } from "../../stores/ApiClient";
-import { FileInfo } from "../../stores/ApiTypes";
-import { createErrorMessage } from "../../utils/errorHandling";
+import { trpcClient } from "../../trpc/client";
+import type { FileInfo } from "../../stores/ApiTypes";
 import log from "loglevel";
 
 import {
@@ -98,7 +97,7 @@ const styles = (theme: Theme) =>
     },
     // Tree View Styles
     ".MuiTreeItem-content": {
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "4px 8px",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
@@ -111,14 +110,8 @@ const styles = (theme: Theme) =>
 
 // --- Helper Functions ---
 
-const fetchFileList = async (path: string) => {
-  const { data, error } = await client.GET("/api/files/list", {
-    params: { query: { path } }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to list files");
-  }
-  return data || [];
+const fetchFileList = async (path: string): Promise<FileInfo[]> => {
+  return trpcClient.files.list.query({ path });
 };
 
 const formatBytes = (bytes: number, decimals = 2) => {

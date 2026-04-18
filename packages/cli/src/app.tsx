@@ -38,12 +38,13 @@ import {
   OpenAIWebSearchTool, OpenAIImageGenerationTool, OpenAITextToSpeechTool,
   DataForSEOSearchTool, DataForSEONewsTool,
   SearchEmailTool, ArchiveEmailTool,
+  getAllMcpTools,
 } from "@nodetool/agents";
 import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
 import { saveSettings } from "./settings.js";
-import { getSecret } from "@nodetool/security";
+import { getSecret } from "@nodetool/models";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -366,6 +367,10 @@ export function App({
       search_email: new SearchEmailTool(),
       archive_email: new ArchiveEmailTool(),
     };
+    // NodeTool MCP tools (workflows, nodes, jobs, assets, models).
+    for (const tool of getAllMcpTools()) {
+      toolMap[tool.name] = tool;
+    }
     return enabledTools
       .filter(name => name in toolMap)
       .map(name => toolMap[name] as import("@nodetool/agents").Tool);
@@ -501,6 +506,8 @@ export function App({
           provider: prov,
           model: modelRef.current,
           tools,
+          outputFormat: "markdown",
+          maxStepIterations: 20,
         });
 
         // Feed all messages into the execution tree state.

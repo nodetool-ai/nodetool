@@ -3,10 +3,10 @@ import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import {
-  BaseProvider,
   getProvider,
   isProviderConfigured,
   listRegisteredProviderIds,
+  providerCapabilities,
   type ASRModel,
   type EmbeddingModel,
   type ImageModel,
@@ -15,6 +15,7 @@ import {
   type TTSModel,
   type VideoModel
 } from "@nodetool/runtime";
+import type { BaseProvider } from "@nodetool/runtime";
 import type { PythonStdioBridge } from "@nodetool/runtime";
 import {
   readCachedHfModels,
@@ -444,41 +445,6 @@ async function instantiateProvider(
   } catch {
     return null;
   }
-}
-
-function providerCapabilities(provider: BaseProvider): string[] {
-  const capabilities = ["generate_message", "generate_messages"];
-  if (
-    provider.getAvailableImageModels !==
-    BaseProvider.prototype.getAvailableImageModels
-  ) {
-    capabilities.push("text_to_image", "image_to_image");
-  }
-  if (
-    provider.getAvailableVideoModels !==
-    BaseProvider.prototype.getAvailableVideoModels
-  ) {
-    capabilities.push("text_to_video", "image_to_video");
-  }
-  if (
-    provider.getAvailableTTSModels !==
-    BaseProvider.prototype.getAvailableTTSModels
-  ) {
-    capabilities.push("text_to_speech");
-  }
-  if (
-    provider.getAvailableASRModels !==
-    BaseProvider.prototype.getAvailableASRModels
-  ) {
-    capabilities.push("automatic_speech_recognition");
-  }
-  if (
-    provider.getAvailableEmbeddingModels !==
-    BaseProvider.prototype.getAvailableEmbeddingModels
-  ) {
-    capabilities.push("generate_embedding");
-  }
-  return capabilities;
 }
 
 async function getProvidersInfo(userId = "1"): Promise<ProviderInfo[]> {
@@ -1112,7 +1078,7 @@ export async function handleModelsApiRequest(
     const body = await parseJsonBody<HFFileRequest[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const { getSecret } = await import("@nodetool/security");
+      const { getSecret } = await import("@nodetool/models");
       const token = (await getSecret("HF_TOKEN", "1")) ?? undefined;
       const infos = await getHuggingfaceFileInfos(body, token);
       return jsonResponse(infos);

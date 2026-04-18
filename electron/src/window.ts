@@ -1,16 +1,27 @@
-import { BrowserWindow, session, dialog, WebContents } from "electron";
+import { app, BrowserWindow, session, dialog, WebContents } from "electron";
 import { setMainWindow, getMainWindow, serverState } from "./state";
 import path from "path";
 import { logMessage } from "./logger";
 import { isAppQuitting } from "./main";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
+import { hardenWebContents } from "./windowSecurity";
 
-/** Shared secure webPreferences for all windows */
+/**
+ * Shared secure webPreferences for all windows.
+ *
+ * `sandbox: true` runs the renderer in an OS-level sandbox. The preload
+ * script must only use `contextBridge` and `ipcRenderer` APIs (no Node built-ins),
+ * which is already the case for our preloads.
+ *
+ * `devTools` is only enabled for unpackaged (dev) builds — production builds
+ * must not expose a console that can introspect `window.api` internals.
+ */
 const secureWebPreferences: Electron.WebPreferences = {
   preload: path.join(__dirname, "preload.js"),
   contextIsolation: true,
   nodeIntegration: false,
-  devTools: true,
+  sandbox: true,
+  devTools: !app.isPackaged,
   webSecurity: true,
 };
 
@@ -64,6 +75,7 @@ function createWindow(): BrowserWindow {
   }
 
   registerDevToolsShortcut(window);
+  hardenWebContents(window.webContents);
 
   // Handle window close
   window.on("close", (event) => {
@@ -103,6 +115,7 @@ function createPackageManagerWindow(nodeSearch?: string): BrowserWindow {
   }
 
   registerDevToolsShortcut(window);
+  hardenWebContents(window.webContents);
   initializePermissionHandlers();
 
   return window;
@@ -123,6 +136,7 @@ function createLogViewerWindow(): BrowserWindow {
   window.loadFile(path.join("dist-web", "pages", "logs.html"));
 
   registerDevToolsShortcut(window);
+  hardenWebContents(window.webContents);
   initializePermissionHandlers();
 
   return window;
@@ -143,6 +157,7 @@ function createSettingsWindow(): BrowserWindow {
   window.loadFile(path.join("dist-web", "pages", "settings.html"));
 
   registerDevToolsShortcut(window);
+  hardenWebContents(window.webContents);
   initializePermissionHandlers();
 
   return window;

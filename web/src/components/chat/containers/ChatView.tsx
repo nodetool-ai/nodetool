@@ -14,7 +14,7 @@ import {
   LanguageModel
 } from "../../../stores/ApiTypes";
 import ChatThreadView from "../thread/ChatThreadView";
-import ChatInputSection from "./ChatInputSection";
+import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
@@ -102,6 +102,20 @@ type ChatViewProps = {
   onInsertCode?: (text: string, language?: string) => void;
   allowedProviders?: string[];
   workflowId?: string | null;
+  /**
+   * Controls which composer is rendered below the thread.
+   * - "media" (default): full-featured MediaChatComposer with mode, model,
+   *   and media-generation parameter chips.
+   * - "simple": plain ChatComposer with just the textarea and action
+   *   buttons — used by the Agent panel where provider/model live in a
+   *   dedicated toolbar.
+   */
+  composerVariant?: ChatComposerVariant;
+  /**
+   * Extra node rendered in the composer footer (left of the action
+   * buttons). Only used when composerVariant is "simple".
+   */
+  composerToolbar?: React.ReactNode;
 };
 
 const ChatView = ({
@@ -132,7 +146,9 @@ const ChatView = ({
   runningToolCallId,
   runningToolMessage,
   allowedProviders,
-  workflowId
+  workflowId,
+  composerVariant,
+  composerToolbar
 }: ChatViewProps) => {
   const theme = useTheme();
   const chatThreadContainerRef = useRef<HTMLDivElement | null>(null);
@@ -238,6 +254,8 @@ const ChatView = ({
         agentMode={agentMode}
         onAgentModeToggle={onAgentModeToggle}
         allowedProviders={allowedProviders}
+        variant={composerVariant}
+        composerToolbar={composerToolbar}
       />
     </div>
   );

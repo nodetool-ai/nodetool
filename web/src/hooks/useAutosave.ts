@@ -13,10 +13,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useVersionHistoryStore } from "../stores/VersionHistoryStore";
 import { useNotificationStore } from "../stores/NotificationStore";
-import { Workflow } from "../stores/ApiTypes";
+import { Node, Edge, Workflow } from "../stores/ApiTypes";
 import { workflowVersionsQueryKey } from "../serverState/useWorkflowVersions";
 import { v4 as uuidv4 } from "uuid";
 import log from "loglevel";
+import { trpcClient } from "../trpc/client";
 
 export interface UseAutosaveOptions {
   workflowId: string | null;
@@ -34,7 +35,9 @@ interface AutosaveResponse {
   version: {
     id: string;
     version: number;
-    created_at: string;
+    workflow_id: string;
+    save_type: string;
+    created_at?: string | null;
   } | null;
   message: string;
   skipped: boolean;
@@ -51,17 +54,14 @@ export async function triggerAutosaveForWorkflow(
   options?: { description?: string; force?: boolean; maxVersions?: number }
 ): Promise<void> {
   try {
-    await fetch(`/api/workflows/${workflowId}/autosave`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        save_type: saveType,
-        description: options?.description,
-        force: options?.force ?? false,
-        client_id: "system",
-        graph,
-        max_versions: options?.maxVersions ?? 50
-      })
+    await trpcClient.workflows.autosave.mutate({
+      id: workflowId,
+      save_type: saveType,
+      description: options?.description,
+      force: options?.force ?? false,
+      client_id: "system",
+      graph: graph as { nodes: Node[]; edges: Edge[] },
+      max_versions: options?.maxVersions ?? 50
     });
   } catch (error) {
     log.error(`Autosave (${saveType}) failed:`, error);
@@ -112,24 +112,21 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
         return { version: null, message: "no workflow", skipped: true };
       }
 
-      const response = await fetch(`/api/workflows/${workflowId}/autosave`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          save_type: saveType,
-          description: options?.description,
-          force: options?.force ?? false,
-          client_id: clientIdRef.current,
-          graph: options?.graph,
-          max_versions: autosaveSettings?.maxVersionsPerWorkflow ?? 50
-        })
+      const graph = (options?.graph ?? { nodes: [], edges: [] }) as {
+        nodes: Node[];
+        edges: Edge[];
+      };
+      const result = await trpcClient.workflows.autosave.mutate({
+        id: workflowId,
+        save_type: saveType,
+        description: options?.description,
+        force: options?.force ?? false,
+        client_id: clientIdRef.current,
+        graph,
+        max_versions: autosaveSettings?.maxVersionsPerWorkflow ?? 50
       });
 
-      if (!response.ok) {
-        throw new Error(`Autosave failed: ${response.statusText}`);
-      }
-
-      return response.json();
+      return result as AutosaveResponse;
     },
     [workflowId, autosaveSettings?.maxVersionsPerWorkflow]
   );

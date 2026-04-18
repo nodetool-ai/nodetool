@@ -107,12 +107,12 @@ export const createStyles = (theme: Theme) =>
         width: "48px",
         height: "48px",
         objectFit: "cover",
-        borderRadius: "4px"
+        borderRadius: "var(--rounded-sm)"
       },
 
       ".file-icon-wrapper": {
         padding: "4px",
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         textAlign: "center",
         width: "48px",
         height: "48px",

@@ -143,7 +143,7 @@ export const assetGridStyles = (theme: Theme) => {
       position: "relative",
       backgroundColor: "transparent",
       transition: "background-color 0.15s ease",
-      borderRadius: "2px"
+      borderRadius: "var(--rounded-xs)"
     },
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
       {

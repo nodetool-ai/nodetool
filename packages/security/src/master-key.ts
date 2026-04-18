@@ -16,6 +16,11 @@
  * New secrets must be created via the appropriate runtime's endpoints.
  */
 
+import keytarDefault from "keytar";
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand
+} from "@aws-sdk/client-secrets-manager";
 import { generateMasterKey } from "./crypto.js";
 import { createLogger } from "@nodetool/config";
 
@@ -37,59 +42,30 @@ interface KeytarModule {
   deletePassword(service: string, account: string): Promise<boolean>;
 }
 
-/** Optional override for the keytar loader (used in tests). */
-let _keytarLoader: (() => Promise<KeytarModule | null>) | null = null;
+/** Active keytar implementation (can be overridden in tests). */
+let _keytar: KeytarModule = keytarDefault;
 
 /**
- * Try to import keytar. Returns null if not available.
+ * Replace the keytar implementation (for testing / dependency injection).
  */
-async function tryLoadKeytar(): Promise<KeytarModule | null> {
-  if (_keytarLoader !== null) {
-    return _keytarLoader();
-  }
-  try {
-    // Dynamic import with variable to prevent TS from resolving the module
-    const moduleName = "keytar";
-    return (await import(/* webpackIgnore: true */ moduleName)) as KeytarModule;
-  } catch {
-    return null;
-  }
+export function setKeytarLoader(keytarImpl: KeytarModule): void {
+  _keytar = keytarImpl;
 }
 
 /**
- * Set a custom keytar loader (for testing / dependency injection).
- *
- * @param loader - A function returning a KeytarModule or null.
- */
-export function setKeytarLoader(
-  loader: () => Promise<KeytarModule | null>
-): void {
-  _keytarLoader = loader;
-}
-
-/**
- * Reset the keytar loader to the default dynamic import (for testing).
+ * Restore the default keytar implementation (for testing).
  */
 export function resetKeytarLoader(): void {
-  _keytarLoader = null;
+  _keytar = keytarDefault;
 }
 
 /**
  * Retrieve master key from AWS Secrets Manager.
  *
  * Only attempted if AWS_SECRETS_MASTER_KEY_NAME environment variable is set.
- *
- * @param secretName - The name of the secret in AWS Secrets Manager.
- * @returns The master key if found, null otherwise.
  */
 async function getFromAwsSecrets(secretName: string): Promise<string | null> {
   try {
-    // Dynamic import with variable to prevent TS from resolving the module
-    const awsModule = "@aws-sdk/client-secrets-manager";
-    const { SecretsManagerClient, GetSecretValueCommand } = await import(
-      /* webpackIgnore: true */ awsModule
-    );
-
     const region = process.env["AWS_REGION"] ?? "us-east-1";
     const client = new SecretsManagerClient({ region });
 
@@ -106,7 +82,6 @@ async function getFromAwsSecrets(secretName: string): Promise<string | null> {
     return null;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    // Log but don't throw -- caller will fall back to next source
     log.warn("Master key source failed, trying next", {
       source: "aws",
       error: message
@@ -188,42 +163,33 @@ export async function initMasterKey(): Promise<string> {
   }
 
   // 3. Try system keychain via keytar
-  const keytar = await tryLoadKeytar();
-  if (keytar) {
-    try {
-      const storedKey = await keytar.getPassword(
-        KEYRING_SERVICE,
-        KEYRING_ACCOUNT
-      );
-      if (storedKey) {
-        log.debug("Master key source", { source: "keychain" });
-        cachedMasterKey = storedKey;
-        return storedKey;
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      log.warn("Master key source failed, trying next", {
-        source: "keychain",
-        error: message
-      });
+  try {
+    const storedKey = await _keytar.getPassword(
+      KEYRING_SERVICE,
+      KEYRING_ACCOUNT
+    );
+    if (storedKey) {
+      log.debug("Master key source", { source: "keychain" });
+      cachedMasterKey = storedKey;
+      return storedKey;
     }
-
-    // 4. Auto-generate and persist to keychain
-    const newKey = generateMasterKey();
-    try {
-      await keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, newKey);
-      log.info("Master key generated and stored");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      log.warn("Failed to persist master key to keychain", { error: message });
-    }
-    cachedMasterKey = newKey;
-    return newKey;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.warn("Master key source failed, trying next", {
+      source: "keychain",
+      error: message
+    });
   }
 
-  // No keytar available -- auto-generate without persistence
-  log.debug("Master key source", { source: "generated" });
+  // 4. Auto-generate and persist to keychain
   const newKey = generateMasterKey();
+  try {
+    await _keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, newKey);
+    log.info("Master key generated and stored");
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.warn("Failed to persist master key to keychain", { error: message });
+  }
   cachedMasterKey = newKey;
   return newKey;
 }
@@ -251,17 +217,10 @@ export function setMasterKey(masterKey: string): void {
  * Set the master key and persist it to the system keychain.
  *
  * @param masterKey - The master key to set (base64-encoded string).
- * @throws {Error} If keytar is not available or keychain write fails.
+ * @throws {Error} If keychain write fails.
  */
 export async function setMasterKeyPersistent(masterKey: string): Promise<void> {
-  const keytar = await tryLoadKeytar();
-  if (!keytar) {
-    throw new Error(
-      "keytar is not available. Install keytar to use keychain storage, " +
-        "or set SECRETS_MASTER_KEY environment variable."
-    );
-  }
-  await keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, masterKey);
+  await _keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, masterKey);
   cachedMasterKey = masterKey;
 }
 
@@ -270,15 +229,14 @@ export async function setMasterKeyPersistent(masterKey: string): Promise<void> {
  *
  * WARNING: This will make all encrypted secrets inaccessible!
  *
- * @returns True if the key was deleted, false if keytar is not available.
+ * @returns True if the key was deleted, false otherwise.
  * @throws {Error} If keychain deletion fails.
  */
 export async function deleteMasterKey(): Promise<boolean> {
-  const keytar = await tryLoadKeytar();
-  if (!keytar) {
-    return false;
-  }
-  const deleted = await keytar.deletePassword(KEYRING_SERVICE, KEYRING_ACCOUNT);
+  const deleted = await _keytar.deletePassword(
+    KEYRING_SERVICE,
+    KEYRING_ACCOUNT
+  );
   cachedMasterKey = null;
   return deleted;
 }

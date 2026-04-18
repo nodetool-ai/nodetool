@@ -640,9 +640,9 @@ export async function calculateLayout(
 After making any code changes, you MUST run the following commands to ensure code quality:
 
 ```bash
-make typecheck  # Type check all packages
-make lint       # Lint all packages
-make test       # Run all tests
+npm run typecheck  # Type check all packages
+npm run lint       # Lint all packages
+npm run test       # Run all tests
 ```
 
 **Keep it green** - All three commands must pass with exit code 0 before considering the task complete.
@@ -676,18 +676,18 @@ This review helps catch issues before they reach production and ensures your cha
 
 ```bash
 # Quality Checks (run after every change)
-make typecheck        # Type check all packages
-make lint             # Lint all packages
-make test             # Run all tests
-make check            # Run all checks (typecheck, lint, test)
+npm run typecheck        # Type check all packages
+npm run lint             # Lint all packages
+npm run test             # Run all tests
+npm run check            # Run all checks (typecheck, lint, test)
 
 # Fix issues
-make lint-fix         # Auto-fix linting issues
-make format           # Alias for lint-fix
+npm run lint:fix         # Auto-fix linting issues
+npm run format           # Alias for lint-fix
 
 # Development
-make electron         # Build web and start electron app
-make build            # Build all packages
+npm run electron         # Build web and start electron app
+npm run build            # Build all packages
 ```
 
 ## Quick Reference Commands (Individual Packages)

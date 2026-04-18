@@ -141,7 +141,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            borderRadius: "4px",
+            borderRadius: "var(--rounded-sm)",
           }}
           onClick={() => handleSelect(node)}
           onMouseEnter={(e) => {

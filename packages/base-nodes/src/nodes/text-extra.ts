@@ -2199,10 +2199,11 @@ export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
   static readonly title = "Concatenate Text";
   static readonly description =
-    "Concatenates two text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
+    "Concatenates text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly isDynamic = true;
 
   @prop({ type: "str", default: "", title: "A", description: "First text input." })
   declare a: any;
@@ -2211,7 +2212,10 @@ export class ConcatTextNode extends BaseNode {
   declare b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: String(this.a ?? "") + String(this.b ?? "") };
+    const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
+      (value) => String(value ?? "")
+    );
+    return { output: values.join("") };
   }
 }
 
@@ -2343,8 +2347,9 @@ export class FormatTextNode extends BaseNode {
     // Handle {variable} syntax (no filters)
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");
-      const single = new RegExp(`(?<!\\{)\\{${key}\\}(?!\\})`, "g");
-      result = result.replace(single, strValue);
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
+      result = result.replace(single, () => strValue);
     }
     return { output: result };
   }
@@ -2378,10 +2383,11 @@ export class TemplateTextNode extends BaseNode {
 
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");
-      const jinja = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
-      result = result.replace(jinja, strValue);
-      const single = new RegExp(`(?<!\\{)\\{${key}\\}(?!\\})`, "g");
-      result = result.replace(single, strValue);
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const jinja = new RegExp(`\\{\\{\\s*${escapedKey}\\s*\\}\\}`, "g");
+      result = result.replace(jinja, () => strValue);
+      const single = new RegExp(`(?<!\\{)\\{${escapedKey}\\}(?!\\})`, "g");
+      result = result.replace(single, () => strValue);
     }
     return { output: result };
   }
@@ -2439,11 +2445,27 @@ export class ToStringNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const v = this.value;
     const mode = String(this.mode ?? "str");
+    const toJsonString = (value: unknown): string => {
+      if (value === undefined) {
+        return "";
+      }
+      try {
+        const json = JSON.stringify(value);
+        if (json === undefined) {
+          return "";
+        }
+        return json;
+      } catch (_error) {
+        // JSON.stringify can fail for non-serializable values (e.g. circular objects).
+        return String(value);
+      }
+    };
+
     if (mode === "repr") {
-      return { output: JSON.stringify(v) };
+      return { output: toJsonString(v) };
     }
     if (v === null || v === undefined) return { output: "" };
-    if (typeof v === "object") return { output: JSON.stringify(v) };
+    if (typeof v === "object") return { output: toJsonString(v) };
     return { output: String(v) };
   }
 }

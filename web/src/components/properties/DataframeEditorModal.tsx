@@ -156,7 +156,7 @@ const styles = (theme: Theme) =>
       minWidth: "32px",
       padding: 0,
       border: "none",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[300],
       cursor: "pointer",
@@ -315,7 +315,7 @@ const styles = (theme: Theme) =>
         height: "2.25em",
         fontSize: "0.85rem",
         backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
-        borderRadius: "6px"
+        borderRadius: "var(--rounded-md)"
       },
       "& .MuiInputBase-input": {
         padding: "0.35em 0.5em"
@@ -345,7 +345,7 @@ const styles = (theme: Theme) =>
       margin: 0,
       gap: "0.35em",
       padding: "0.5em 1.25em 0.5em 0.75em",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       transition: "all 0.2s",
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[600],

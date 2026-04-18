@@ -116,7 +116,7 @@ const styles = (theme: Theme) =>
       bottom: "75px",
       background: theme.vars.palette.background.paper,
       padding: "0.2em",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       zIndex: 1
     },
     ".vertical-slider": {

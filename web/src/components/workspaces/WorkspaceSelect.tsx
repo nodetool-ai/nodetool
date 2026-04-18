@@ -13,9 +13,8 @@ import { Text, Caption, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
-import { createErrorMessage } from "../../utils/errorHandling";
 import FolderIcon from "@mui/icons-material/Folder";
 import AddIcon from "@mui/icons-material/Add";
 import StarIcon from "@mui/icons-material/Star";
@@ -24,23 +23,26 @@ import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
 const styles = (theme: Theme) =>
   css({
     ".workspace-select": {
-      backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "6px",
+      backgroundColor: "transparent",
+      borderRadius: "var(--rounded-md)",
       "& .MuiSelect-select": {
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(1.5),
         padding: "10px 14px"
       },
+      "&.compact .MuiSelect-select": {
+        padding: "4px 10px"
+      },
       "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey[600],
+        borderColor: theme.vars.palette.divider,
         transition: "border-color 0.2s ease"
       },
       "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.primary.main
+        borderColor: theme.vars.palette.grey[600]
       },
       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.primary.main,
+        borderColor: theme.vars.palette.grey[600],
         borderWidth: "1px"
       }
     },
@@ -51,9 +53,10 @@ const styles = (theme: Theme) =>
       width: "100%"
     },
     ".workspace-icon": {
-      color: theme.vars.palette.primary.light,
+      color: theme.vars.palette.text.secondary,
       fontSize: "1.25rem",
-      flexShrink: 0
+      flexShrink: 0,
+      opacity: 0.7
     },
     ".workspace-details": {
       display: "flex",
@@ -62,22 +65,22 @@ const styles = (theme: Theme) =>
     },
     ".workspace-name": {
       fontSize: "0.875rem",
-      fontWeight: 500,
-      color: theme.vars.palette.text.primary,
+      fontWeight: 400,
+      color: theme.vars.palette.text.secondary,
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis"
     },
     ".workspace-path": {
       fontSize: "0.7rem",
-      color: theme.vars.palette.text.secondary,
+      color: theme.vars.palette.text.disabled,
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
       fontFamily: "monospace"
     },
     ".none-option": {
-      color: theme.vars.palette.text.secondary,
+      color: theme.vars.palette.text.disabled,
       fontStyle: "italic",
       fontSize: "0.875rem"
     },
@@ -85,27 +88,23 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      color: theme.vars.palette.primary.main,
+      color: theme.vars.palette.text.secondary,
       fontSize: "0.875rem",
-      fontWeight: 500
+      fontWeight: 400
     },
     ".default-badge": {
-      color: theme.vars.palette.warning.main,
+      color: theme.vars.palette.text.disabled,
       fontSize: "0.85rem",
       marginLeft: theme.spacing(0.5),
-      verticalAlign: "middle"
+      verticalAlign: "middle",
+      opacity: 0.6
     }
   });
 
 // Fetch workspaces
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces/", {
-    params: { query: { limit: 100 } }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workspaces");
-  }
-  return data.workspaces;
+  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
+  return workspaces as WorkspaceResponse[];
 };
 
 interface WorkspaceSelectProps {
@@ -115,6 +114,11 @@ interface WorkspaceSelectProps {
   helperText?: string;
   fullWidth?: boolean;
   disabled?: boolean;
+  /**
+   * Compact rendering for use in dense UI (e.g. the app header).
+   * Shows only the workspace name (no path line) and tighter padding.
+   */
+  compact?: boolean;
 }
 
 const CREATE_NEW_VALUE = "__create_new__";
@@ -124,7 +128,8 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     value,
     onChange,
     fullWidth = true,
-    disabled = false
+    disabled = false,
+    compact = false
   }) {
     const theme = useTheme();
     const setWorkspaceManagerOpen = useWorkspaceManagerStore(
@@ -189,7 +194,9 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 <StarIcon className="default-badge" />
               )}
             </span>
-            <span className="workspace-path">{selectedWorkspace.path}</span>
+            {!compact && (
+              <span className="workspace-path">{selectedWorkspace.path}</span>
+            )}
           </div>
         </div>
       );
@@ -198,7 +205,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     return (
       <FormControl fullWidth={fullWidth} css={styles(theme)}>
         <Select
-          className="workspace-select"
+          className={`workspace-select${compact ? " compact" : ""}`}
           value={value || ""}
           onChange={handleChange}
           disabled={disabled}
@@ -208,9 +215,9 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           MenuProps={{
             PaperProps: {
               sx: {
-                backgroundColor: theme.vars.palette.grey[800],
-                border: `1px solid ${theme.vars.palette.grey[600]}`,
-                borderRadius: "6px",
+                backgroundColor: theme.vars.palette.background.paper,
+                border: `1px solid ${theme.vars.palette.divider}`,
+                borderRadius: "var(--rounded-md)",
                 mt: 0.5,
                 "& .workspace-option": {
                   display: "flex",
@@ -219,9 +226,10 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   width: "100%"
                 },
                 "& .workspace-icon": {
-                  color: theme.vars.palette.primary.light,
+                  color: theme.vars.palette.text.secondary,
                   fontSize: "1.25rem",
-                  flexShrink: 0
+                  flexShrink: 0,
+                  opacity: 0.7
                 },
                 "& .workspace-details": {
                   display: "flex",
@@ -230,16 +238,16 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                 },
                 "& .workspace-name": {
                   fontSize: "0.875rem",
-                  fontWeight: 500,
-                  color: theme.vars.palette.text.primary
+                  fontWeight: 400,
+                  color: theme.vars.palette.text.secondary
                 },
                 "& .workspace-path": {
                   fontSize: "0.7rem",
-                  color: theme.vars.palette.text.secondary,
+                  color: theme.vars.palette.text.disabled,
                   fontFamily: "monospace"
                 },
                 "& .none-option": {
-                  color: theme.vars.palette.text.secondary,
+                  color: theme.vars.palette.text.disabled,
                   fontStyle: "italic",
                   fontSize: "0.875rem"
                 },
@@ -247,27 +255,28 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
-                  color: theme.vars.palette.primary.main,
+                  color: theme.vars.palette.text.secondary,
                   fontSize: "0.875rem",
-                  fontWeight: 500
+                  fontWeight: 400
                 },
                 "& .default-badge": {
-                  color: theme.vars.palette.warning.main,
+                  color: theme.vars.palette.text.disabled,
                   fontSize: "0.85rem",
                   marginLeft: "4px",
-                  verticalAlign: "middle"
+                  verticalAlign: "middle",
+                  opacity: 0.6
                 },
                 "& .MuiMenuItem-root": {
                   padding: "10px 14px",
-                  borderRadius: "4px",
+                  borderRadius: "var(--rounded-sm)",
                   margin: "2px 4px",
                   "&:hover": {
-                    backgroundColor: theme.vars.palette.grey[700]
+                    backgroundColor: theme.vars.palette.action.hover
                   },
                   "&.Mui-selected": {
-                    backgroundColor: `${theme.vars.palette.primary.main}22`,
+                    backgroundColor: theme.vars.palette.action.selected,
                     "&:hover": {
-                      backgroundColor: `${theme.vars.palette.primary.main}33`
+                      backgroundColor: theme.vars.palette.action.hover
                     }
                   }
                 }

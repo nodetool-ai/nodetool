@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@fal-ai/client": "^1.9.4",
-    "@nodetool/node-sdk": "*"
+    "@nodetool/node-sdk": "*",
+    "@nodetool/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

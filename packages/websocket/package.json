@@ -19,8 +19,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest",
     "@fastify/cors": "^10.0.2",
-    "@fastify/static": "^9.0.0",
+    "@fastify/static": "^9.1.1",
     "@fastify/websocket": "^11.0.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@nodetool/agents": "*",
@@ -40,9 +41,14 @@
     "@nodetool/runtime": "*",
     "@nodetool/security": "*",
     "@nodetool/vectorstore": "*",
-    "fastify": "^5.2.0",
+    "@mariozechner/pi-coding-agent": "^0.67.4",
+    "@openai/codex-sdk": "^0.118.0",
+    "@opencode-ai/sdk": "^1.3.15",
+    "fastify": "^5.8.5",
+    "@trpc/server": "^11.0.0",
     "msgpackr": "^1.11.2",
-    "node-pty": "^1.1.0"
+    "superjson": "^2.2.2",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -55,6 +61,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./trpc": {
+      "nodetool-dev": "./src/trpc/router.ts",
+      "types": "./dist/trpc/router.d.ts",
+      "import": "./dist/trpc/router.js",
+      "default": "./dist/trpc/router.js"
     }
   }
 }

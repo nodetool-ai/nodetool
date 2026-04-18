@@ -64,7 +64,7 @@ export const EditorButton = forwardRef<HTMLButtonElement, EditorButtonProps>(
           height: size ? undefined : height,
           minWidth: "auto",
           padding: "4px 8px",
-          borderRadius: "6px",
+          borderRadius: "var(--rounded-md)",
           textTransform: "none",
           ...sx
         }}

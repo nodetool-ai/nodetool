@@ -1,99 +1,42 @@
 import type { FastifyPluginAsync } from "fastify";
 import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
-import { handleNodesDummy, handleNodeMetadata } from "../http-api.js";
-import { getSecret } from "@nodetool/security";
-import { resolveKieDynamicSchema } from "../../../base-nodes/dist/index.js";
+import { handleNodeMetadata } from "../http-api.js";
+import { resolveKieDynamicSchema } from "@nodetool/base-nodes";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
 }
 
-function extractKieModelInfo(body: unknown): unknown {
-  if (Buffer.isBuffer(body)) {
-    const text = body.toString("utf8").trim();
-    if (!text) {
-      return undefined;
-    }
-    try {
-      return extractKieModelInfo(JSON.parse(text));
-    } catch {
-      return text;
-    }
-  }
-
-  if (typeof body === "string") {
-    try {
-      const parsed = JSON.parse(body) as unknown;
-      return extractKieModelInfo(parsed);
-    } catch {
-      return body;
-    }
-  }
-
-  if (!body || typeof body !== "object") {
-    return undefined;
-  }
-
-  const record = body as Record<string, unknown>;
-  return (
-    record.model_info ??
-    record.modelInfo ??
-    extractKieModelInfo(record.properties) ??
-    extractKieModelInfo(record.body)
-  );
-}
-
 const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
 
-  app.get("/api/nodes/replicate_status", async (_req, reply) => {
-    const replicateKey = await getSecret("REPLICATE_API_TOKEN", "1");
-    reply.send({ configured: Boolean(replicateKey) });
-  });
-
-  app.get("/api/users/validate_username", async (req, reply) => {
-    const username = (req.query as Record<string, string>)["username"]?.trim();
-    if (username === undefined) {
-      reply
-        .status(400)
-        .send(
-          apiError(
-            ApiErrorCode.MISSING_REQUIRED_FIELD,
-            "username parameter is required"
-          )
-        );
-      return;
-    }
-    if (!username) {
-      reply
-        .status(400)
-        .send(apiError(ApiErrorCode.INVALID_INPUT, "username cannot be empty"));
-      return;
-    }
-    const valid = /^[a-zA-Z0-9_-]{3,32}$/.test(username);
-    reply.send({ valid, available: true });
-  });
-
-  app.get("/api/nodes/dummy", async (req, reply) => {
-    await bridge(req, reply, (request) => handleNodesDummy(request));
-  });
-
+  /**
+   * /api/nodes/metadata — stays as REST (public, consumed at client boot).
+   * Must NOT require authentication — the frontend calls this before auth.
+   */
   app.get("/api/nodes/metadata", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleNodeMetadata(request, apiOptions)
     );
   });
 
+  /**
+   * Legacy alias for /api/nodes/metadata.
+   */
   app.get("/api/node/metadata", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleNodeMetadata(request, apiOptions)
     );
   });
 
+  /**
+   * KIE dynamic schema resolution — stays as REST (fast, stateless, no auth needed).
+   */
   app.post("/api/kie/resolve-dynamic-schema", async (req, reply) => {
-    const modelInfo = extractKieModelInfo(req.body);
+    const body = req.body as Record<string, unknown> | undefined;
+    const modelInfo = extractKieModelInfo(body);
 
     if (typeof modelInfo !== "string" || !modelInfo.trim()) {
       reply
@@ -172,5 +115,40 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     }
   });
 };
+
+function extractKieModelInfo(body: unknown): unknown {
+  if (Buffer.isBuffer(body)) {
+    const text = body.toString("utf8").trim();
+    if (!text) {
+      return undefined;
+    }
+    try {
+      return extractKieModelInfo(JSON.parse(text));
+    } catch {
+      return text;
+    }
+  }
+
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body) as unknown;
+      return extractKieModelInfo(parsed);
+    } catch {
+      return body;
+    }
+  }
+
+  if (!body || typeof body !== "object") {
+    return undefined;
+  }
+
+  const record = body as Record<string, unknown>;
+  return (
+    record.model_info ??
+    record.modelInfo ??
+    extractKieModelInfo(record.properties) ??
+    extractKieModelInfo(record.body)
+  );
+}
 
 export default nodesRoutes;

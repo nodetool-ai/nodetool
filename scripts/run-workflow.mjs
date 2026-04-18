@@ -307,7 +307,6 @@ async function main() {
     const elevenLabsNodesPath = path.resolve(tsRoot, "packages/elevenlabs-nodes/dist/index.js");
     const runtimePath = path.resolve(tsRoot, "packages/runtime/dist/index.js");
     const falNodesPath = path.resolve(tsRoot, "packages/fal-nodes/dist/index.js");
-    const securityPath = path.resolve(tsRoot, "packages/security/dist/index.js");
     const modelsPath = path.resolve(tsRoot, "packages/models/dist/index.js");
 
     ({ WorkflowRunner } = await import(pathToFileURL(kernelPath).href));
@@ -323,8 +322,7 @@ async function main() {
       PythonBridge,
       PythonNodeExecutor,
     } = await import(pathToFileURL(runtimePath).href));
-    ({ getSecret } = await import(pathToFileURL(securityPath).href));
-    ({ SQLiteAdapterFactory, setGlobalAdapterResolver, Secret } = await import(pathToFileURL(modelsPath).href));
+    ({ SQLiteAdapterFactory, setGlobalAdapterResolver, Secret, getSecret } = await import(pathToFileURL(modelsPath).href));
     try {
       ({ registerFalNodes } = await import(pathToFileURL(falNodesPath).href));
     } catch {

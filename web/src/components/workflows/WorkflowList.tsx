@@ -12,10 +12,9 @@ import {
   WorkflowAttributes,
   WorkflowList as WorkflowListType
 } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
 import isEqual from "fast-deep-equal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { trpcClient } from "../../trpc/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
@@ -69,16 +68,10 @@ const styles = (theme: Theme) =>
   });
 
 const loadWorkflows = async (cursor?: string, limit?: number) => {
-  cursor = cursor || "";
-  const { data, error } = await client.GET("/api/workflows/", {
-    params: {
-      query: { cursor, limit, columns: "name,id,updated_at,description,tags,graph" }
-    }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workflows");
-  }
-  return data;
+  return trpcClient.workflows.list.query({
+    cursor: cursor ?? "",
+    limit: limit ?? 100
+  }) as unknown as WorkflowListType;
 };
 
 const WorkflowList = () => {
@@ -248,9 +241,9 @@ const WorkflowList = () => {
   const handleRename = useCallback(
     async (workflow: Workflow, newName: string) => {
       try {
-        await client.PUT("/api/workflows/{id}", {
-          params: { path: { id: workflow.id } },
-          body: { ...workflow, name: newName }
+        await trpcClient.workflows.update.mutate({
+          id: workflow.id,
+          name: newName
         });
         // Update the cache optimistically
         queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {

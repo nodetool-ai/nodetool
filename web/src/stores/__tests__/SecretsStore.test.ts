@@ -1,16 +1,31 @@
 import { renderHook, act } from "@testing-library/react";
 import useSecretsStore from "../SecretsStore";
-import * as ApiClient from "../ApiClient";
 
-// Mock the API client
-jest.mock("../ApiClient");
+// Mock the tRPC client used by the store. Only the leaf methods invoked by
+// the store need to exist; we replace them with Jest mock fns per-test.
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    settings: {
+      secrets: {
+        list: { query: jest.fn() },
+        get: { query: jest.fn() },
+        upsert: { mutate: jest.fn() },
+        delete: { mutate: jest.fn() }
+      }
+    }
+  }
+}));
 
-const mockClient = ApiClient.client as any;
+import { trpcClient } from "../../trpc/client";
+// Cast so we can read the Jest mock APIs on the nested procedures without
+// sprinkling `as any` in every test.
+const listQuery = trpcClient.settings.secrets.list.query as jest.Mock;
+const upsertMutate = trpcClient.settings.secrets.upsert.mutate as jest.Mock;
+const deleteMutate = trpcClient.settings.secrets.delete.mutate as jest.Mock;
 
 describe("SecretsStore", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset store state
     useSecretsStore.setState({
       secrets: [],
       isLoading: false,
@@ -39,12 +54,9 @@ describe("SecretsStore", () => {
           updated_at: "2024-01-02T00:00:00Z",
           is_configured: false
         }
-      ] as any[];
+      ];
 
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { secrets: mockSecrets, next_key: null }
-      });
+      listQuery.mockResolvedValueOnce({ secrets: mockSecrets, next_key: null });
 
       const { result } = renderHook(() => useSecretsStore());
 
@@ -57,21 +69,11 @@ describe("SecretsStore", () => {
       expect(result.current.secrets).toEqual(mockSecrets);
       expect(result.current.isLoading).toBe(false);
       expect(result.current.error).toBeNull();
-      expect(mockClient.GET).toHaveBeenCalledWith("/api/settings/secrets", {
-        params: {
-          query: {
-            limit: 100
-          }
-        }
-      });
+      expect(listQuery).toHaveBeenCalled();
     });
 
-    it("should handle fetch with custom limit", async () => {
-      const mockSecrets: any[] = [];
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { secrets: mockSecrets, next_key: "next_page_key" }
-      });
+    it("should handle fetch with custom limit (limit ignored by tRPC)", async () => {
+      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
 
       const { result } = renderHook(() => useSecretsStore());
 
@@ -79,22 +81,12 @@ describe("SecretsStore", () => {
         await result.current.fetchSecrets(50);
       });
 
-      expect(mockClient.GET).toHaveBeenCalledWith("/api/settings/secrets", {
-        params: {
-          query: {
-            limit: 50
-          }
-        }
-      });
+      // The tRPC procedure does not accept a limit — we just verify it was called.
+      expect(listQuery).toHaveBeenCalled();
     });
 
     it("should handle fetch error", async () => {
-      const errorResponse = {
-        error: { detail: "Failed to fetch secrets" },
-        data: null
-      };
-
-      mockClient.GET.mockResolvedValueOnce(errorResponse);
+      listQuery.mockRejectedValueOnce(new Error("Failed to fetch secrets"));
 
       const { result } = renderHook(() => useSecretsStore());
 
@@ -113,48 +105,39 @@ describe("SecretsStore", () => {
 
   describe("updateSecret", () => {
     it("should update a secret successfully", async () => {
-      mockClient.PUT.mockResolvedValueOnce({
-        error: null,
-        data: {}
+      upsertMutate.mockResolvedValueOnce({
+        key: "OPENAI_API_KEY",
+        is_configured: true,
+        is_unreadable: false
       });
-
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { secrets: [], next_key: null }
-      });
+      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
 
       const { result } = renderHook(() => useSecretsStore());
 
       await act(async () => {
-        await result.current.updateSecret("OPENAI_API_KEY", "new_value", "Updated description");
+        await result.current.updateSecret(
+          "OPENAI_API_KEY",
+          "new_value",
+          "Updated description"
+        );
       });
 
-      expect(mockClient.PUT).toHaveBeenCalledWith("/api/settings/secrets/{key}", {
-        params: {
-          path: {
-            key: "OPENAI_API_KEY"
-          }
-        },
-        body: {
-          value: "new_value",
-          description: "Updated description"
-        }
+      expect(upsertMutate).toHaveBeenCalledWith({
+        key: "OPENAI_API_KEY",
+        value: "new_value",
+        description: "Updated description"
       });
-
-      // Should fetch secrets after update
-      expect(mockClient.GET).toHaveBeenCalled();
+      // Should refresh secrets after update
+      expect(listQuery).toHaveBeenCalled();
     });
 
     it("should update secret without description", async () => {
-      mockClient.PUT.mockResolvedValueOnce({
-        error: null,
-        data: {}
+      upsertMutate.mockResolvedValueOnce({
+        key: "ANTHROPIC_API_KEY",
+        is_configured: true,
+        is_unreadable: false
       });
-
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { secrets: [], next_key: null }
-      });
+      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
 
       const { result } = renderHook(() => useSecretsStore());
 
@@ -162,24 +145,14 @@ describe("SecretsStore", () => {
         await result.current.updateSecret("ANTHROPIC_API_KEY", "new_value");
       });
 
-      expect(mockClient.PUT).toHaveBeenCalledWith("/api/settings/secrets/{key}", {
-        params: {
-          path: {
-            key: "ANTHROPIC_API_KEY"
-          }
-        },
-        body: {
-          value: "new_value",
-          description: undefined
-        }
+      expect(upsertMutate).toHaveBeenCalledWith({
+        key: "ANTHROPIC_API_KEY",
+        value: "new_value"
       });
     });
 
     it("should handle update error", async () => {
-      mockClient.PUT.mockResolvedValueOnce({
-        error: { detail: "Secret not found" },
-        data: null
-      });
+      upsertMutate.mockRejectedValueOnce(new Error("Secret not found"));
 
       const { result } = renderHook(() => useSecretsStore());
 
@@ -197,7 +170,6 @@ describe("SecretsStore", () => {
 
   describe("deleteSecret", () => {
     it("should delete a secret successfully", async () => {
-      // Set initial state
       useSecretsStore.setState({
         secrets: [
           {
@@ -208,19 +180,12 @@ describe("SecretsStore", () => {
             created_at: "2024-01-01T00:00:00Z",
             updated_at: "2024-01-01T00:00:00Z",
             is_configured: true
-          } as any
+          }
         ]
       });
 
-      mockClient.DELETE.mockResolvedValueOnce({
-        error: null,
-        data: { message: "Secret deleted" }
-      });
-
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { secrets: [], next_key: null }
-      });
+      deleteMutate.mockResolvedValueOnce({ message: "Secret deleted" });
+      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
 
       const { result } = renderHook(() => useSecretsStore());
 
@@ -228,23 +193,13 @@ describe("SecretsStore", () => {
         await result.current.deleteSecret("OPENAI_API_KEY");
       });
 
-      expect(mockClient.DELETE).toHaveBeenCalledWith("/api/settings/secrets/{key}", {
-        params: {
-          path: {
-            key: "OPENAI_API_KEY"
-          }
-        }
-      });
-
-      // Should fetch secrets after deletion
-      expect(mockClient.GET).toHaveBeenCalled();
+      expect(deleteMutate).toHaveBeenCalledWith({ key: "OPENAI_API_KEY" });
+      // Should refresh secrets after deletion
+      expect(listQuery).toHaveBeenCalled();
     });
 
     it("should handle deletion error", async () => {
-      mockClient.DELETE.mockResolvedValueOnce({
-        error: { detail: "Secret not found" },
-        data: null
-      });
+      deleteMutate.mockRejectedValueOnce(new Error("Secret not found"));
 
       const { result } = renderHook(() => useSecretsStore());
 
@@ -272,10 +227,7 @@ describe("SecretsStore", () => {
     it("should clear error state when performing new operation", async () => {
       useSecretsStore.setState({ error: "Previous error" });
 
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { secrets: [], next_key: null }
-      });
+      listQuery.mockResolvedValueOnce({ secrets: [], next_key: null });
 
       const { result } = renderHook(() => useSecretsStore());
 
@@ -301,10 +253,7 @@ describe("SecretsStore", () => {
 
       useSecretsStore.setState({ secrets: initialSecrets });
 
-      mockClient.PUT.mockResolvedValueOnce({
-        error: { detail: "Failed to update" },
-        data: null
-      });
+      upsertMutate.mockRejectedValueOnce(new Error("Failed to update"));
 
       const { result } = renderHook(() => useSecretsStore());
 

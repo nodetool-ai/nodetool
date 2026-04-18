@@ -16,7 +16,7 @@ import {
 } from "@tanstack/react-query";
 import WorkflowSelect from "./WorkflowSelect";
 import { useState } from "react";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
 
 interface CollectionItemProps {
@@ -98,24 +98,10 @@ const CollectionItem = ({
 
   const updateMutation = useMutation({
     mutationFn: async (workflowId: string) => {
-      const { data, error } = await client.PUT("/api/collections/{name}", {
-        params: {
-          path: {
-            name: collection.name
-          }
-        },
-        body: {
-          metadata: {
-            workflow: workflowId
-          }
-        }
+      return trpcClient.collections.update.mutate({
+        name: collection.name,
+        metadata: { workflow: workflowId }
       });
-
-      if (error) {
-        throw new Error(error.detail?.[0]?.msg || "Unknown error");
-      }
-
-      return data;
     },
     onSuccess: () => {
       addNotification({

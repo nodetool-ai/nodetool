@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       marginRight: "0.75em",
       width: "40px",
       height: "40px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
         right: 0,
         bottom: 0,
         border: `1px solid ${theme.vars.palette.grey[500]}22`,
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         pointerEvents: "none"
       }
     },
@@ -235,7 +235,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     height: "20px",
     border: "2px solid " + "var(--palette-grey-500)",
     borderTop: "2px solid var(--palette-grey-100)",
-    borderRadius: "50%",
+    borderRadius: "var(--rounded-circle)",
     animation: "spin 1s linear infinite"
   }), []);
 

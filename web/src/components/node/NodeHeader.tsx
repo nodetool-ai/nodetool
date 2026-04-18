@@ -55,7 +55,7 @@ const toggleIconButtonStyles = {
   backgroundColor: "rgba(255, 255, 255, 0.05)",
   color: "var(--palette-text-primary)",
   border: "1px solid rgba(255, 255, 255, 0.1)",
-  borderRadius: "50%",
+  borderRadius: "var(--rounded-circle)",
   "&:hover": {
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderColor: "var(--palette-primary-main)"
@@ -143,7 +143,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           width: "28px",
           minWidth: "28px",
           height: "28px",
-          borderRadius: "6px",
+          borderRadius: "var(--rounded-md)",
           display: "grid",
           placeItems: "center",
           boxShadow: "0 0 3px rgba(0, 0, 0, 0.1)",

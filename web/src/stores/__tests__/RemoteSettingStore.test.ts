@@ -1,10 +1,18 @@
 import { renderHook, act } from "@testing-library/react";
 import useRemoteSettingsStore from "../RemoteSettingStore";
-import * as ApiClient from "../ApiClient";
 
-jest.mock("../ApiClient");
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    settings: {
+      list: { query: jest.fn() },
+      update: { mutate: jest.fn() }
+    }
+  }
+}));
 
-const mockClient = ApiClient.client as any;
+import { trpcClient } from "../../trpc/client";
+const listQuery = trpcClient.settings.list.query as jest.Mock;
+const updateMutate = trpcClient.settings.update.mutate as jest.Mock;
 
 describe("RemoteSettingStore", () => {
   beforeEach(() => {
@@ -49,10 +57,7 @@ describe("RemoteSettingStore", () => {
         }
       ];
 
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { settings: mockData }
-      });
+      listQuery.mockResolvedValueOnce({ settings: mockData });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -65,9 +70,11 @@ describe("RemoteSettingStore", () => {
       expect(settings).toEqual(mockData);
       expect(result.current.settings).toEqual(mockData);
 
-      // But settingsByGroup should group them correctly
+      // settingsByGroup should group them correctly
       expect(result.current.settingsByGroup.size).toBe(2);
-      expect(result.current.settingsByGroup.get("API Services")).toEqual([mockData[0]]);
+      expect(result.current.settingsByGroup.get("API Services")).toEqual([
+        mockData[0]
+      ]);
       expect(result.current.settingsByGroup.get("Configuration")).toEqual([
         mockData[1],
         mockData[2]
@@ -87,10 +94,7 @@ describe("RemoteSettingStore", () => {
         }
       ];
 
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { settings: mockData }
-      });
+      listQuery.mockResolvedValueOnce({ settings: mockData });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -99,7 +103,7 @@ describe("RemoteSettingStore", () => {
       });
 
       // Store should not have a 'secrets' field
-      expect((result.current as any).secrets).toBeUndefined();
+      expect((result.current as unknown as { secrets?: unknown }).secrets).toBeUndefined();
     });
 
     it("should group settings by group field", async () => {
@@ -133,10 +137,7 @@ describe("RemoteSettingStore", () => {
         }
       ];
 
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { settings: mockData }
-      });
+      listQuery.mockResolvedValueOnce({ settings: mockData });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -149,10 +150,7 @@ describe("RemoteSettingStore", () => {
     });
 
     it("should handle fetch error", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        error: { detail: "Failed to fetch" },
-        data: null
-      });
+      listQuery.mockRejectedValueOnce(new Error("Failed to fetch"));
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -166,10 +164,7 @@ describe("RemoteSettingStore", () => {
 
   describe("updateSettings", () => {
     it("should update non-secret settings only", async () => {
-      mockClient.PUT.mockResolvedValueOnce({
-        error: null,
-        data: { message: "Settings updated" }
-      });
+      updateMutate.mockResolvedValueOnce({ message: "Settings updated" });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -182,42 +177,31 @@ describe("RemoteSettingStore", () => {
         await result.current.updateSettings(settingsToUpdate);
       });
 
-      expect(mockClient.PUT).toHaveBeenCalledWith("/api/settings/", {
-        body: {
-          settings: settingsToUpdate,
-          secrets: {} // Empty secrets dict
-        }
+      expect(updateMutate).toHaveBeenCalledWith({
+        settings: settingsToUpdate,
+        secrets: {} // Empty secrets dict (default)
       });
     });
 
     it("should accept settings parameter only", async () => {
-      mockClient.PUT.mockResolvedValueOnce({
-        error: null,
-        data: { message: "Settings updated" }
-      });
+      updateMutate.mockResolvedValueOnce({ message: "Settings updated" });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
-      const settingsToUpdate = {
-        SETTING1: "value1"
-      };
+      const settingsToUpdate = { SETTING1: "value1" };
 
       await act(async () => {
         await result.current.updateSettings(settingsToUpdate);
       });
 
-      // Verify the old API call that included secrets parameter would fail
-      const callArgs = mockClient.PUT.mock.calls[0][1];
-      expect(callArgs.body).toHaveProperty("settings");
-      expect(callArgs.body).toHaveProperty("secrets");
-      expect(callArgs.body.secrets).toEqual({});
+      const callArgs = updateMutate.mock.calls[0][0];
+      expect(callArgs).toHaveProperty("settings");
+      expect(callArgs).toHaveProperty("secrets");
+      expect(callArgs.secrets).toEqual({});
     });
 
     it("should handle update error", async () => {
-      mockClient.PUT.mockResolvedValueOnce({
-        error: { detail: "Update failed" },
-        data: null
-      });
+      updateMutate.mockRejectedValueOnce(new Error("Update failed"));
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -229,10 +213,7 @@ describe("RemoteSettingStore", () => {
     });
 
     it("should set isLoading correctly", async () => {
-      mockClient.PUT.mockResolvedValueOnce({
-        error: null,
-        data: { message: "Settings updated" }
-      });
+      updateMutate.mockResolvedValueOnce({ message: "Settings updated" });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 
@@ -387,10 +368,7 @@ describe("RemoteSettingStore", () => {
         }
       ];
 
-      mockClient.GET.mockResolvedValueOnce({
-        error: null,
-        data: { settings: mockData }
-      });
+      listQuery.mockResolvedValueOnce({ settings: mockData });
 
       const { result } = renderHook(() => useRemoteSettingsStore());
 

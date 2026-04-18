@@ -21,15 +21,4 @@ export {
   resetKeytarLoader
 } from "./master-key.js";
 
-export {
-  getSecret,
-  getSecretRequired,
-  hasSecret,
-  getSecretSync,
-  clearSecretCache,
-  clearAllSecretCache,
-  resetSecretModelLoader,
-  setSecretModelLoader
-} from "./secret-helper.js";
-
 export { runStartupChecks, type StartupCheckResult } from "./startup-checks.js";

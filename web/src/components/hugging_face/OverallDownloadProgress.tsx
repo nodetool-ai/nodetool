@@ -79,7 +79,7 @@ const OverallDownloadProgress: React.FC = () => {
           gap: "6px",
           padding: "0 4px",
           height: "32px",
-          borderRadius: "6px",
+          borderRadius: "var(--rounded-md)",
           transition: "all 0.2s ease-out",
           "&:hover": {
             backgroundColor: "var(--palette-action-selected)"
@@ -121,7 +121,7 @@ const OverallDownloadProgress: React.FC = () => {
               sx={{
                 width: "60px",
                 height: "4px",
-                borderRadius: "2px",
+                borderRadius: "var(--rounded-xs)",
                 overflow: "hidden",
                 background: "var(--palette-grey-600)"
               }}

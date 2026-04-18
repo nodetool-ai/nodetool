@@ -449,7 +449,7 @@ const StandaloneChat: React.FC = () => {
                 style={{
                   width: 8,
                   height: 8,
-                  borderRadius: "50%",
+                  borderRadius: "var(--rounded-circle)",
                   backgroundColor: "currentColor"
                 }}
               />

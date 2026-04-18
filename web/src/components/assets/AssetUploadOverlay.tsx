@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
       outline: `2px solid ${theme.vars.palette.grey[900]}`,
       boxShadow: "0px 0px 10px 0px rgba(0, 0, 0, 0.01)",
       padding: "1em",
-      borderRadius: "8px"
+      borderRadius: "var(--rounded-lg)"
     },
     ul: {
       padding: "0 1em"

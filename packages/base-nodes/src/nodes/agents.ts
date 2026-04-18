@@ -360,7 +360,7 @@ function normalizeMessageContent(value: unknown): Message["content"] {
         record.image ?? record.image_url ?? record.imageUrl
       );
       if (image)
-        parts.push({ type: "image", image } satisfies MessageImageContent);
+        parts.push({ type: "image_url", image } satisfies MessageImageContent);
       continue;
     }
     if (kind === "audio") {
@@ -445,7 +445,7 @@ function buildUserMessage(
   const content: MessageContent[] = [{ type: "text", text: prompt }];
   const imageRef = normalizeBinaryRef(image);
   if (imageRef) {
-    content.push({ type: "image", image: imageRef });
+    content.push({ type: "image_url", image: imageRef });
   }
   const audioRef = normalizeBinaryRef(audio);
   if (audioRef) {
@@ -2389,7 +2389,7 @@ export class AgentNode extends BaseNode {
       historyCount: history.length,
       toolCount: tools.length,
       messageCount: messages.length,
-      hasImage: hasContentType(messages[messages.length - 1], "image"),
+      hasImage: hasContentType(messages[messages.length - 1], "image_url"),
       hasAudio: hasContentType(messages[messages.length - 1], "audio")
     });
 

@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
       margin: 0,
       gap: "0.25em",
       padding: ".1em 1em 0 .5em",
-      borderRadius: "4px"
+      borderRadius: "var(--rounded-sm)"
     },
     "button:hover": {
       color: theme.vars.palette.grey[0]

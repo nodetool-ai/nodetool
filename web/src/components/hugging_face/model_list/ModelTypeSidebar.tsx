@@ -1,13 +1,11 @@
 import React, { useCallback } from "react";
 import {
-  Chip,
-  IconButton,
   List,
   ListItem,
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Tooltip } from "../../ui_primitives";
+import { Chip, ToolbarIconButton } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/data_types";
 import { prettifyModelType } from "../../../utils/modelFormatting";
@@ -59,30 +57,27 @@ const ModelTypeSidebar: React.FC = () => {
               key={type}
               sx={{ 
                 mb: 0.5,
-                borderRadius: "8px",
+                borderRadius: "var(--rounded-lg)",
                 overflow: "hidden"
               }}
               secondaryAction={
                 href ? (
-                  <Tooltip title="View on Hugging Face">
-                    <IconButton
-                      edge="end"
-                      component="a"
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      onClick={handleLinkClick}
-                      aria-label={`View ${prettifyModelType(type)} models on Hugging Face`}
-                      sx={{
-                        color: isSelected ? theme.vars.palette.text.primary : "inherit",
-                        opacity: 0.7,
-                        "&:hover": { opacity: 1 }
-                      }}
-                    >
-                      <OpenInNewIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  <ToolbarIconButton
+                    icon={<OpenInNewIcon fontSize="small" />}
+                    tooltip="View on Hugging Face"
+                    edge="end"
+                    component="a"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleLinkClick}
+                    ariaLabel={`View ${prettifyModelType(type)} models on Hugging Face`}
+                    sx={{
+                      color: isSelected ? theme.vars.palette.text.primary : "inherit",
+                      opacity: 0.7,
+                      "&:hover": { opacity: 1 }
+                    }}
+                  />
                 ) : undefined
               }
             >
@@ -91,7 +86,7 @@ const ModelTypeSidebar: React.FC = () => {
               selected={isSelected}
               onClick={createModelTypeChangeHandler(type)}
               sx={{
-                  borderRadius: "8px",
+                  borderRadius: "var(--rounded-lg)",
                   padding: "8px 12px",
                   transition: "all 0.2s ease",
                   "&.Mui-selected": {

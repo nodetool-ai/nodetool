@@ -155,6 +155,22 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
     return false;
   }
 
+  const expectedCoreVersion = convertToPep440Version(app.getVersion());
+  const installedCoreVersion = await getInstalledPythonPackageVersion(
+    pythonExecutablePath,
+    "nodetool-core",
+  );
+
+  if (installedCoreVersion !== expectedCoreVersion) {
+    logMessage(
+      installedCoreVersion
+        ? `Python package version mismatch for nodetool-core at ${pythonExecutablePath}: expected ${expectedCoreVersion}, found ${installedCoreVersion}`
+        : `Python package nodetool-core is missing at ${pythonExecutablePath}; expected version ${expectedCoreVersion}`,
+      "error",
+    );
+    return false;
+  }
+
   const workerImportable = await canImportNodeToolWorker(pythonExecutablePath);
   if (!workerImportable) {
     logMessage(
@@ -164,6 +180,65 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
   }
 
   return workerImportable;
+}
+
+async function getInstalledPythonPackageVersion(
+  pythonExecutablePath: string,
+  packageName: string,
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    const stdoutChunks: Buffer[] = [];
+    const proc = spawn(
+      pythonExecutablePath,
+      [
+        "-c",
+        [
+          "from importlib.metadata import PackageNotFoundError, version",
+          `package_name = ${JSON.stringify(packageName)}`,
+          "try:",
+          "    print(version(package_name))",
+          "except PackageNotFoundError:",
+          "    raise SystemExit(2)",
+        ].join("\n"),
+      ],
+      {
+        stdio: ["ignore", "pipe", "ignore"],
+        env: getProcessEnv(),
+        windowsHide: true,
+      }
+    );
+
+    proc.stdout?.on("data", (chunk: Buffer) => {
+      stdoutChunks.push(chunk);
+    });
+
+    proc.on("exit", (code) => {
+      if (code === 0) {
+        const version = Buffer.concat(stdoutChunks).toString().trim();
+        resolve(version || null);
+        return;
+      }
+      if (code === 2) {
+        resolve(null);
+        return;
+      }
+      logMessage(
+        `Failed to determine installed Python package version for ${packageName} at ${pythonExecutablePath} (exit ${code})`,
+        "error",
+      );
+      resolve(null);
+    });
+
+    proc.on("error", (error) => {
+      logMessage(
+        `Failed to run Python package version check for ${packageName}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        "error",
+      );
+      resolve(null);
+    });
+  });
 }
 
 async function canImportNodeToolWorker(

@@ -1,10 +1,8 @@
 import { memo } from "react";
-import { IconButton, SxProps } from "@mui/material";
-import { Tooltip, Divider } from "../ui_primitives";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { SxProps } from "@mui/material";
+import { Divider, ToolbarIconButton } from "../ui_primitives";
 import { getShortcutTooltip } from "../../config/shortcuts";
 
-// Memoized styles to prevent object creation on each render
 const spacerStyle = { flexGrow: 1 } as const;
 const dividerSx: SxProps = { my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" };
 
@@ -46,129 +44,74 @@ function VerticalToolbar({
     activeView,
     panelVisible
 }: VerticalToolbarProps) {
+    const isActive = (view: VerticalToolbarProps["activeView"]) =>
+        activeView === view && panelVisible;
+
     return (
         <div className="vertical-toolbar">
-            {/* Workflow Tools Section */}
-            {/* Inspector Button */}
-            <Tooltip
-                title={getShortcutTooltip("toggleInspector")}
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleInspectorToggle}
-                    aria-label="Toggle Inspector panel (I)"
-                    className={
-                        activeView === "inspector" && panelVisible
-                            ? "inspector active"
-                            : "inspector"
-                    }
-                >
-                    <CenterFocusWeakIcon />
-                </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+                icon={<CenterFocusWeakIcon />}
+                tooltip={getShortcutTooltip("toggleInspector")}
+                tooltipPlacement="left-start"
+                onClick={handleInspectorToggle}
+                ariaLabel="Toggle Inspector panel (I)"
+                className="inspector"
+                active={isActive("inspector")}
+            />
 
-            {/* Assistant Button */}
-            <Tooltip
-                title={getShortcutTooltip("toggleOperator")}
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleAssistantToggle}
-                    aria-label="Toggle Operator panel (O)"
-                    className={
-                        activeView === "assistant" && panelVisible
-                            ? "assistant active"
-                            : "assistant"
-                    }
-                >
-                    <SvgFileIcon
-                        iconName="assistant"
-                        svgProp={{ width: 18, height: 18 }}
-                    />
-                </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+                icon={<SvgFileIcon iconName="assistant" svgProp={{ width: 18, height: 18 }} />}
+                tooltip={getShortcutTooltip("toggleOperator")}
+                tooltipPlacement="left-start"
+                onClick={handleAssistantToggle}
+                ariaLabel="Toggle Operator panel (O)"
+                className="assistant"
+                active={isActive("assistant")}
+            />
 
-            {/* Agent Button */}
-            <Tooltip
-                title="Agent"
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleAgentToggle}
-                    aria-label="Toggle Agent panel"
-                    className={
-                        activeView === "agent" && panelVisible
-                            ? "agent active"
-                            : "agent"
-                    }
-                >
-                    <SmartToyIcon />
-                </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+                icon={<SmartToyIcon />}
+                tooltip="Agent"
+                tooltipPlacement="left-start"
+                onClick={handleAgentToggle}
+                ariaLabel="Toggle Agent panel"
+                className="agent"
+                active={isActive("agent")}
+            />
 
-            {/* Workspace Button */}
-            <Tooltip
-                title="Workspace"
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleWorkspaceToggle}
-                    aria-label="Toggle Workspace panel"
-                    className={
-                        activeView === "workspace" && panelVisible
-                            ? "workspace active"
-                            : "workspace"
-                    }
-                >
-                    <FolderIcon />
-                </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+                icon={<FolderIcon />}
+                tooltip="Workspace"
+                tooltipPlacement="left-start"
+                onClick={handleWorkspaceToggle}
+                ariaLabel="Toggle Workspace panel"
+                className="workspace"
+                active={isActive("workspace")}
+            />
 
-            {/* Versions Button */}
-            <Tooltip
-                title="Version History"
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleVersionsToggle}
-                    aria-label="Toggle Version History panel"
-                    className={
-                        activeView === "versions" && panelVisible
-                            ? "versions active"
-                            : "versions"
-                    }
-                >
-                    <HistoryIcon />
-                </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+                icon={<HistoryIcon />}
+                tooltip="Version History"
+                tooltipPlacement="left-start"
+                onClick={handleVersionsToggle}
+                ariaLabel="Toggle Version History panel"
+                className="versions"
+                active={isActive("versions")}
+            />
 
-            {/* Workflow Settings Button */}
-            <Tooltip
-                title={getShortcutTooltip("toggleWorkflowSettings")}
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleWorkflowToggle}
-                    aria-label="Toggle Workflow Settings panel (W)"
-                    className={
-                        activeView === "workflow" && panelVisible
-                            ? "workflow active"
-                            : "workflow"
-                    }
-                >
-                    <SettingsIcon />
-                </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+                icon={<SettingsIcon />}
+                tooltip={getShortcutTooltip("toggleWorkflowSettings")}
+                tooltipPlacement="left-start"
+                onClick={handleWorkflowToggle}
+                ariaLabel="Toggle Workflow Settings panel (W)"
+                className="workflow"
+                active={isActive("workflow")}
+            />
 
-            {/* Workflow Assets Button */}
-            <Tooltip
-                title={
+            <ToolbarIconButton
+                icon={<FolderSpecialIcon />}
+                tooltip={
                     <div className="tooltip-span">
                         <div className="tooltip-title">Workflow Assets</div>
                         <div className="tooltip-key">
@@ -176,32 +119,20 @@ function VerticalToolbar({
                         </div>
                     </div>
                 }
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleWorkflowAssetsToggle}
-                    aria-label="Toggle Workflow Assets panel (3)"
-                    className={
-                        activeView === "workflowAssets" && panelVisible
-                            ? "workflowAssets active"
-                            : "workflowAssets"
-                    }
-                >
-                    <FolderSpecialIcon />
-                </IconButton>
-            </Tooltip>
+                tooltipPlacement="left-start"
+                onClick={handleWorkflowAssetsToggle}
+                ariaLabel="Toggle Workflow Assets panel (3)"
+                className="workflowAssets"
+                active={isActive("workflowAssets")}
+            />
 
-            {/* Spacer to push runtime section to bottom */}
             <div style={spacerStyle} />
 
-            {/* Divider between workflow tools and runtime section */}
             <Divider sx={dividerSx} />
 
-            {/* Runtime Section - Logs and Jobs */}
-            {/* Logs Button */}
-            <Tooltip
-                title={
+            <ToolbarIconButton
+                icon={<ArticleIcon />}
+                tooltip={
                     <div className="tooltip-span">
                         <div className="tooltip-title">Logs</div>
                         <div className="tooltip-key">
@@ -209,39 +140,25 @@ function VerticalToolbar({
                         </div>
                     </div>
                 }
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleLogsToggle}
-                    aria-label="Toggle Logs panel (L)"
-                    className={
-                        activeView === "logs" && panelVisible ? "logs active" : "logs"
-                    }
-                >
-                    <ArticleIcon />
-                </IconButton>
-            </Tooltip>
+                tooltipPlacement="left-start"
+                onClick={handleLogsToggle}
+                ariaLabel="Toggle Logs panel (L)"
+                className="logs"
+                active={isActive("logs")}
+            />
 
-            {/* Jobs Button */}
-            <Tooltip
-                title="Jobs"
-                placement="left-start"
-                delay={TOOLTIP_ENTER_DELAY}
-            >
-                <IconButton
-                    onClick={handleJobsToggle}
-                    aria-label="Toggle Jobs panel"
-                    className={
-                        activeView === "jobs" && panelVisible ? "jobs active" : "jobs"
-                    }
-                >
-                    <WorkHistoryIcon />
-                </IconButton>
-            </Tooltip>
+            <ToolbarIconButton
+                icon={<WorkHistoryIcon />}
+                tooltip="Jobs"
+                tooltipPlacement="left-start"
+                onClick={handleJobsToggle}
+                ariaLabel="Toggle Jobs panel"
+                className="jobs"
+                active={isActive("jobs")}
+            />
         </div>
     );
-};
+}
 
 VerticalToolbar.displayName = "VerticalToolbar";
 

@@ -11,8 +11,8 @@
  * Subscription setup is handled by WorkflowManagerContext when workflows are loaded.
  */
 import { create, StoreApi, UseBoundStore } from "zustand";
+import { isLocalhost } from "../lib/env";
 import { NodeData } from "./NodeData";
-import { isLocalhost } from "./ApiClient";
 import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
 import { useComfyUIStore } from "./ComfyUIStore";

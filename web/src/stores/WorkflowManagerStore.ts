@@ -13,7 +13,7 @@ import {
   WorkflowList,
   WorkflowRequest
 } from "./ApiTypes";
-import { client } from "./ApiClient";
+import { trpcClient } from "../trpc/client";
 import { debounce, omit } from "../utils/lodashAlternatives";
 import { createErrorMessage } from "../utils/errorHandling";
 import { uuidv4 } from "./uuidv4";
@@ -26,6 +26,7 @@ import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeS
 import { getWorkflowRunnerStore } from "./WorkflowRunner";
 import log from "loglevel";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
+import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
@@ -185,6 +186,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @returns {Workflow} A new workflow object with default values
        */
       newWorkflow: () => {
+        const lastUsedWorkspaceId =
+          useCurrentWorkspaceStore.getState().lastUsedWorkspaceId;
         const data: Workflow = {
           id: uuidv4(),
           name: "New Workflow",
@@ -200,7 +203,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           settings: {
             hide_ui: false
           },
-          run_mode: "workflow"
+          run_mode: "workflow",
+          workspace_id: lastUsedWorkspaceId ?? null
         };
         return data;
       },
@@ -215,23 +219,37 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          */
         saveWorkflow: async (workflow: Workflow) => {
 
-          const { data, error } = await client.PUT("/api/workflows/{id}", {
-            params: { path: { id: workflow.id } },
-            body: workflow
-          });
-          if (error || !data) {
-            throw createErrorMessage(error, "Failed to save workflow");
+          let data: Workflow;
+          try {
+            const graph = workflow.graph ?? { nodes: [], edges: [] };
+            data = (await trpcClient.workflows.update.mutate({
+              id: workflow.id,
+              name: workflow.name,
+              access: workflow.access ?? "private",
+              graph: graph as Parameters<typeof trpcClient.workflows.update.mutate>[0]["graph"],
+              tool_name: workflow.tool_name,
+              description: workflow.description,
+              tags: workflow.tags,
+              package_name: workflow.package_name,
+              thumbnail: workflow.thumbnail,
+              thumbnail_url: workflow.thumbnail_url,
+              settings: workflow.settings as Record<string, unknown> | null | undefined,
+              run_mode: workflow.run_mode,
+              workspace_id: workflow.workspace_id,
+              html_app: workflow.html_app
+            })) as Workflow;
+          } catch (err) {
+            throw createErrorMessage(err, "Failed to save workflow");
           }
 
-          const versionResponse = await client.POST("/api/workflows/{id}/versions", {
-            params: { path: { id: workflow.id } },
-            body: {
+          try {
+            await trpcClient.workflows.versions.create.mutate({
+              id: workflow.id,
               name: workflow.name,
               description: `Manual save: ${new Date().toISOString()}`
-            }
-          });
-          if (versionResponse.error) {
-            log.warn("[saveWorkflow] Failed to create version:", versionResponse.error);
+            });
+          } catch (err) {
+            log.warn("[saveWorkflow] Failed to create version:", err);
           }
 
           const persistedWorkflow: Workflow = {
@@ -296,17 +314,28 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         fromExamplePackage?: string,
         fromExampleName?: string
       ) => {
-        const { data, error } = await client.POST("/api/workflows/", {
-          body: workflow,
-          params: {
-            query: {
-              from_example_package: fromExamplePackage,
-              from_example_name: fromExampleName
-            }
-          }
-        });
-        if (error) {
-          throw createErrorMessage(error, "Failed to create workflow");
+        let data: Workflow;
+        try {
+          const graph = workflow.graph ?? { nodes: [], edges: [] };
+          data = (await trpcClient.workflows.create.mutate({
+            name: workflow.name,
+            access: workflow.access ?? "private",
+            graph: graph as Parameters<typeof trpcClient.workflows.create.mutate>[0]["graph"],
+            tool_name: workflow.tool_name,
+            description: workflow.description,
+            tags: workflow.tags,
+            package_name: workflow.package_name,
+            thumbnail: workflow.thumbnail,
+            thumbnail_url: workflow.thumbnail_url,
+            settings: workflow.settings as Record<string, unknown> | null | undefined,
+            run_mode: workflow.run_mode,
+            workspace_id: workflow.workspace_id,
+            html_app: workflow.html_app,
+            from_example_package: fromExamplePackage,
+            from_example_name: fromExampleName
+          })) as Workflow;
+        } catch (err) {
+          throw createErrorMessage(err, "Failed to create workflow");
         }
         if (data.tags === undefined) {
           data.tags = [];
@@ -334,15 +363,16 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @returns {Promise<WorkflowList>} The loaded workflows data
        * @throws {Error} If the API call fails
        */
-      load: async (cursor?: string, limit?: number, columns?: string) => {
-        cursor = cursor || "";
-        const { data, error } = await client.GET("/api/workflows/", {
-          params: { query: { cursor, limit, columns } }
-        });
-        if (error) {
-          throw createErrorMessage(error, "Failed to load workflows");
+      load: async (cursor?: string, limit?: number, _columns?: string) => {
+        try {
+          const data = await trpcClient.workflows.list.query({
+            limit: limit ?? 100,
+            cursor: cursor || undefined
+          });
+          return data as WorkflowList;
+        } catch (err) {
+          throw createErrorMessage(err, "Failed to load workflows");
         }
-        return data;
       },
 
       /**
@@ -358,46 +388,30 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       // Loads public workflows available from the API.
-      loadPublic: async (cursor?: string) => {
-        cursor = cursor || "";
-        const { data, error } = await client.GET("/api/workflows/public", {
-          params: { query: { cursor } }
-        });
-        if (error) {
-          throw error;
-        }
-        return data;
+      loadPublic: async (_cursor?: string) => {
+        const data = await trpcClient.workflows.public.list.query({ limit: 100 });
+        return data as unknown as WorkflowList;
       },
 
       // Loads template workflows.
       loadTemplates: async () => {
-        const { data, error } = await client.GET("/api/workflows/examples", {});
-        if (error) {
-          throw createErrorMessage(error, "Failed to load templates");
+        try {
+          const data = await trpcClient.workflows.examples.query({});
+          return data as unknown as WorkflowList;
+        } catch (err) {
+          throw createErrorMessage(err, "Failed to load templates");
         }
-        return data;
       },
 
       // Searches template workflows using the backend search API.
       searchTemplates: async (query: string) => {
-        const { data, error } = await client.GET(
-          "/api/workflows/examples/search",
-          {
-            params: {
-              query: {
-                query
-              }
-            }
-          }
-        );
-        if (error) {
-          log.error(
-            "[WorkflowManagerStore] searchTemplates error:",
-            error
-          );
-          throw createErrorMessage(error, "Failed to search templates");
+        try {
+          const data = await trpcClient.workflows.examples.query({ query });
+          return data as unknown as WorkflowList;
+        } catch (err) {
+          log.error("[WorkflowManagerStore] searchTemplates error:", err);
+          throw createErrorMessage(err, "Failed to search templates");
         }
-        return data;
       },
 
       /**
@@ -434,11 +448,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @throws {Error} If the deletion fails
        */
       delete: async (workflow: Workflow) => {
-        const { error } = await client.DELETE("/api/workflows/{id}", {
-          params: { path: { id: workflow.id } }
-        });
-        if (error) {
-          throw createErrorMessage(error, "Failed to delete workflow");
+        try {
+          await trpcClient.workflows.delete.mutate({ id: workflow.id });
+        } catch (err) {
+          throw createErrorMessage(err, "Failed to delete workflow");
         }
         if (window.api) {
           window.api.onDeleteWorkflow(workflow);
@@ -459,27 +472,17 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (!workflow) {
           throw new Error("Workflow not found");
         }
-        const { data, error } = await client.PUT(
-          "/api/workflows/examples/{id}",
-          {
-            params: { path: { id: workflow.id } },
-            body: {
-              name: workflow.name,
-              description: workflow.description,
-              tags: workflow.tags,
-              package_name: packageName,
-              path: workflow.path,
-              access: "public",
-              graph: workflow.graph
-            }
-          }
-        );
-
-        if (error) {
-          throw createErrorMessage(error, "Failed to save example");
-        }
-
-        return data;
+        const data = await trpcClient.workflows.update.mutate({
+          id: workflow.id,
+          name: workflow.name,
+          description: workflow.description,
+          tags: workflow.tags,
+          package_name: packageName,
+          path: workflow.path,
+          access: "public",
+          graph: workflow.graph as never
+        });
+        return data as unknown as Workflow;
       },
 
       // ---------------------------------------------------------------------------------

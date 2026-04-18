@@ -142,7 +142,7 @@ export const NavButton = memo(
         backgroundColor: active
           ? theme.vars.palette.grey[800]
           : "transparent",
-        borderRadius: "8px",
+        borderRadius: theme.rounded.lg,
         transition: "all 0.2s ease-in-out",
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[700],

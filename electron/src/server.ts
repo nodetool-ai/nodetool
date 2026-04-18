@@ -1,4 +1,5 @@
 import { dialog, shell, app } from "electron";
+import { spawn } from "child_process";
 import { logMessage } from "./logger";
 import {
   getLlamaServerPath,

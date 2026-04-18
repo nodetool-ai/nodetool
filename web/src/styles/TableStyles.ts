@@ -35,7 +35,7 @@ export const tableStyles = (theme: Theme) =>
       },
       "&::-webkit-scrollbar-thumb": {
         background: theme.vars.palette.grey[600],
-        borderRadius: "4px"
+        borderRadius: "var(--rounded-sm)"
       },
       "&::-webkit-scrollbar-thumb:hover": {
         background: theme.vars.palette.grey[500]
@@ -143,7 +143,7 @@ export const tableStyles = (theme: Theme) =>
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       backgroundColor: theme.vars.palette.common.white
     },
     ".datetime": {
@@ -154,7 +154,7 @@ export const tableStyles = (theme: Theme) =>
         padding: 0,
         top: "0",
         right: ".5em",
-        borderRadius: "8px",
+        borderRadius: "var(--rounded-lg)",
         backgroundColor: theme.vars.palette.common.white,
         "&:hover svg": {
           color: theme.vars.palette.primary.main

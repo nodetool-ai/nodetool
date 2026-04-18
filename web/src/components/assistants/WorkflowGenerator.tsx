@@ -1,13 +1,13 @@
 import React, { useState, useCallback, memo } from "react";
-import { Box, Paper, InputAdornment } from "@mui/material";
+import { Box, InputAdornment } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import { client } from "../../stores/ApiClient";
+import { restFetch } from "../../lib/rest-fetch";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { createErrorMessage } from "../../utils/errorHandling";
-import { NodeTextField, ToolbarIconButton } from "../ui_primitives";
+import { Card, NodeTextField, ToolbarIconButton } from "../ui_primitives";
 import type { Graph } from "../../stores/ApiTypes";
 import log from "loglevel";
 import { shallow } from "zustand/shallow";
@@ -35,14 +35,20 @@ const WorkflowGenerator: React.FC = memo(() => {
       setIsLoading(true);
       try {
         // The create-smart endpoint returns a Graph with nodes and edges
-        const { data, error } = await client.POST(
-          "/api/workflows/create-smart" as any,
-          { body: { prompt: prompt.trim() } }
-        );
+        const response = await restFetch("/api/workflows/create-smart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt.trim() })
+        });
 
-        if (error) {
+        const data = (await response.json().catch(() => null)) as
+          | Graph
+          | { detail?: unknown }
+          | null;
+
+        if (!response.ok) {
           const errorMsg = createErrorMessage(
-            error,
+            data,
             "Failed to create workflow"
           );
           throw new Error(
@@ -88,12 +94,12 @@ const WorkflowGenerator: React.FC = memo(() => {
         zIndex: 1000
       }}
     >
-      <Paper
+      <Card
+        variant="elevated"
         elevation={3}
+        padding="normal"
         sx={{
           borderRadius: 3,
-          padding: 2,
-          backgroundColor: "background.paper",
           backdropFilter: "blur(16px)",
           boxShadow: "0 4px 24px -1px rgba(0, 0, 0, 0.2)"
         }}
@@ -128,7 +134,7 @@ const WorkflowGenerator: React.FC = memo(() => {
             }}
           />
         </form>
-      </Paper>
+      </Card>
     </Box>
   );
 });

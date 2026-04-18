@@ -232,7 +232,7 @@ export const PlaybackButton = memo(
             sx={{
               ...sizeStyles,
               ...colorStyles,
-              borderRadius: "50%",
+              borderRadius: "var(--rounded-circle)",
               transition: "all 0.2s ease-in-out",
               ...sx
             }}

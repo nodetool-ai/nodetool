@@ -11,6 +11,8 @@ import Logo from "../Logo";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { FlexRow, Tooltip } from "../ui_primitives";
+import WorkspaceSelect from "../workspaces/WorkspaceSelect";
+import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import log from "loglevel";
 
 const styles = (theme: Theme) =>
@@ -41,7 +43,7 @@ const styles = (theme: Theme) =>
       height: "28px",
       padding: "4px",
       color: theme.vars.palette.text.primary,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       fontSize: theme.typography.body2.fontSize,
       transition: "all 0.2s ease-out",
       "&:hover": {
@@ -70,12 +72,12 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "2px",
       border: "1px solid var(--palette-grey-800)",
-      borderRadius: "1em",
+      borderRadius: "var(--rounded-md)",
       height: "1.6em",
     },
     ".mode-pill": {
       padding: "5px 14px",
-      borderRadius: "16px",
+      borderRadius: "var(--rounded-sm)",
       fontWeight: 500,
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
@@ -250,6 +252,7 @@ const TemplatesButton = memo(function TemplatesButton({
         size="small"
         sx={{
           height: "1.75em",
+          borderRadius: "var(--rounded-md)",
           color: "var(--palette-text-default)",
           border: "1px solid transparent",
           "&:hover": {
@@ -271,6 +274,25 @@ const TemplatesButton = memo(function TemplatesButton({
       >
         <span className="nav-button-text">Templates</span>
       </Button>
+    </Tooltip>
+  );
+});
+
+const HeaderWorkspaceSelector = memo(function HeaderWorkspaceSelector() {
+  const { workspaceId, setWorkspaceId } = useCurrentWorkspace();
+  return (
+    <Tooltip
+      title="Current workspace"
+      delay={TOOLTIP_ENTER_DELAY}
+      placement="bottom"
+    >
+      <Box sx={{ width: 200 }}>
+        <WorkspaceSelect
+          value={workspaceId}
+          onChange={setWorkspaceId}
+          compact
+        />
+      </Box>
     </Tooltip>
   );
 });
@@ -306,6 +328,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
         <div className="buttons-right">
+          <HeaderWorkspaceSelector />
           <TemplatesButton isActive={path.startsWith("/templates")} />
           <RightSideButtons />
         </div>

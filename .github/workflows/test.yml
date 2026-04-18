@@ -42,8 +42,8 @@ jobs:
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
-      - name: Build @nodetool/protocol
-        run: cd packages/protocol && npm run build
+      - name: Build backend packages
+        run: npm run build:packages
 
       - name: Run TypeScript type check
         run: cd web && npm run typecheck
@@ -66,6 +66,9 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "22"
+
+      - name: Install system libraries for keytar
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0
 
       - name: Install all workspace dependencies
         run: npm install

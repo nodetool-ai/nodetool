@@ -25,7 +25,7 @@ import { processChat } from "@nodetool/chat";
 import { Agent } from "@nodetool/agents";
 import { createProvider, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
-import { getSecret } from "@nodetool/security";
+import { getSecret } from "@nodetool/models";
 
 export interface StdinModeOptions {
   provider: string;
@@ -233,7 +233,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         objective: trimmed,
         provider: prov,
         model: opts.model,
-        tools: []
+        tools: [],
+        outputFormat: "markdown",
+        maxStepIterations: 20
       });
 
       const ctx = new ProcessingContext({

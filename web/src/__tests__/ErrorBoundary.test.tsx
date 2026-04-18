@@ -21,11 +21,19 @@ jest.mock("@mui/material", () => ({
   )
 }));
 
-// Mock CopyButton primitive
+// Mock ui_primitives used by ErrorBoundary
 jest.mock("../components/ui_primitives", () => ({
   CopyButton: ({ value }: { value: string }) => (
     <button data-testid="copy-button">Copy: {String(value).substring(0, 20)}</button>
-  )
+  ),
+  Text: ({ children, className, component, ...props }: any) => {
+    const Tag = component || "p";
+    return (
+      <Tag className={className} {...props}>
+        {children}
+      </Tag>
+    );
+  }
 }));
 
 describe("ErrorBoundary", () => {

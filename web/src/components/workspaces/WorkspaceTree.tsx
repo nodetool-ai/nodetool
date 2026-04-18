@@ -5,7 +5,7 @@ import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import log from "loglevel";
 import { FileInfo } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
+import { trpcClient } from "../../trpc/client";
 import {
   Box,
   Button,
@@ -31,6 +31,7 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
+import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
 
@@ -89,7 +90,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       flex: 1,
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900]
     },
@@ -118,7 +119,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       fontSize: "0.75rem",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       overflow: "hidden",
       whiteSpace: "nowrap"
     },
@@ -162,7 +163,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
 const treeViewStyles = (theme: Theme) => ({
   ".MuiTreeItem-content": {
-    borderRadius: "2px",
+    borderRadius: "var(--rounded-xs)",
     padding: "4px 8px",
     userSelect: "none",
     cursor: "pointer"
@@ -354,16 +355,11 @@ const fetchWorkspaceFiles = async (
   workspaceId: string,
   path: string = "."
 ): Promise<TreeViewItem[]> => {
-  const params = new URLSearchParams({ path });
-  const res = await fetch(
-    `${BASE_URL}/api/workspaces/${encodeURIComponent(workspaceId)}/files?${params}`
-  );
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Failed to list workspace files (${res.status})`);
-  }
-  const data: FileInfo[] = await res.json();
-  return data.map((file) => fileToTreeItem(file));
+  const data = await trpcClient.workspace.listFiles.query({
+    id: workspaceId,
+    path
+  });
+  return (data as FileInfo[]).map((file) => fileToTreeItem(file));
 };
 
 
@@ -422,28 +418,18 @@ const WorkspaceTree: React.FC = () => {
   const filesWorkspaceIdRef = useRef<string | undefined>(undefined);
   filesWorkspaceIdRef.current = filesWorkspaceId;
   const previousWorkflowId = useRef<string | null | undefined>(undefined);
-  const {
-    currentWorkflowId,
-    openWorkflows,
-    getCurrentWorkflow,
-    updateWorkflow,
-    saveWorkflow
-  } = useWorkflowManager((state) => ({
-    currentWorkflowId: state.currentWorkflowId,
-    openWorkflows: state.openWorkflows,
-    getCurrentWorkflow: state.getCurrentWorkflow,
-    updateWorkflow: state.updateWorkflow,
-    saveWorkflow: state.saveWorkflow
-  }));
+  const { currentWorkflowId, getCurrentWorkflow } = useWorkflowManager(
+    (state) => ({
+      currentWorkflowId: state.currentWorkflowId,
+      getCurrentWorkflow: state.getCurrentWorkflow
+    })
+  );
 
   const setWorkspaceManagerOpen = useWorkspaceManagerStore((state) => state.setIsOpen);
 
   const currentWorkflow = getCurrentWorkflow();
-  const currentWorkflowMeta = openWorkflows.find(
-    (workflow) => workflow.id === currentWorkflowId
-  );
   const workflowId = currentWorkflowId ?? currentWorkflow?.id;
-  const workspaceId = currentWorkflowMeta?.workspace_id ?? currentWorkflow?.workspace_id;
+  const { workspaceId, setWorkspaceId } = useCurrentWorkspace();
 
   const {
     data: initialFiles,
@@ -459,20 +445,10 @@ const WorkspaceTree: React.FC = () => {
 
   const handleWorkspaceChange = useCallback(
     async (newWorkspaceId: string | undefined) => {
-      if (!currentWorkflow) { return; }
-      const updatedWorkflow = {
-        ...currentWorkflow,
-        workspace_id: newWorkspaceId
-      };
-      updateWorkflow(updatedWorkflow);
-      try {
-        await saveWorkflow(updatedWorkflow);
-        setFilesWorkspaceId(newWorkspaceId);
-      } catch (error) {
-        log.error("Failed to save workspace change:", error);
-      }
+      await setWorkspaceId(newWorkspaceId);
+      setFilesWorkspaceId(newWorkspaceId);
     },
-    [currentWorkflow, updateWorkflow, saveWorkflow]
+    [setWorkspaceId]
   );
 
   useEffect(() => {

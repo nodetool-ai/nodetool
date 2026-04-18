@@ -66,6 +66,6 @@ jobs:
 
             ## If you make code changes
             1. Keep changes minimal and focused on what was asked
-            2. Run `make typecheck && make lint && make test` — all must pass
+            2. Run `npm run typecheck && npm run lint && npm run test` — all must pass
             3. Create a PR linking back to the issue/PR where `/oc` was invoked
             4. Do not refactor or "improve" code beyond what was requested

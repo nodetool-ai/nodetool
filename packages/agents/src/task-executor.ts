@@ -233,13 +233,16 @@ export class TaskExecutor {
         for (const [key, value] of Object.entries(
           item as Record<string, unknown>
         )) {
+          const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const strValue = String(value);
           instructions = instructions.replace(
-            new RegExp(`\\{${key}\\}`, "g"),
-            String(value)
+            new RegExp(`\\{${escapedKey}\\}`, "g"),
+            () => strValue
           );
         }
       } else {
-        instructions = instructions.replace(/\{item\}/g, String(item));
+        const strItem = String(item);
+        instructions = instructions.replace(/\{item\}/g, () => strItem);
       }
 
       const hash = this.shortHash(item);
