@@ -100,6 +100,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
     onChange,
     onChangeComplete
   } = props;
+  const stepLabelTarget = props.name?.trim() || "value";
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef(state);
@@ -293,8 +294,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
       setInputIsFocused(false);
       setState((prevState) => ({
         ...prevState,
-        localValue: nextValue.toString(),
-        isDefault: nextValue === inputValue
+        localValue: nextValue.toString()
       }));
 
       onChange(null, nextValue);
@@ -302,7 +302,16 @@ const NumberInput: React.FC<InputProps> = (props) => {
         onChangeComplete(nextValue);
       }
     },
-    [max, min, onChange, onChangeComplete, inputValue, state.localValue]
+    [
+      max,
+      min,
+      onChange,
+      onChangeComplete,
+      inputValue,
+      state.localValue,
+      setState,
+      setInputIsFocused
+    ]
   );
 
   useEffect(() => {
@@ -405,7 +414,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
               <button
                 type="button"
                 className="step-button"
-                aria-label={`Decrease ${props.name}`}
+                aria-label={`Decrease ${stepLabelTarget}`}
                 onMouseDown={handleStepMouseDown}
                 onClick={handleStepChange(-1)}
               >
@@ -414,7 +423,7 @@ const NumberInput: React.FC<InputProps> = (props) => {
               <button
                 type="button"
                 className="step-button"
-                aria-label={`Increase ${props.name}`}
+                aria-label={`Increase ${stepLabelTarget}`}
                 onMouseDown={handleStepMouseDown}
                 onClick={handleStepChange(1)}
               >

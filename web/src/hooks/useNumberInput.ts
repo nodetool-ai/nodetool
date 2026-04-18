@@ -190,7 +190,6 @@ export const useDragHandling = (
         setInputIsFocused(true);
       } else {
         p.onDragEnd?.();
-        dragCallbackTriggeredRef.current = false;
         // Call onChangeComplete when user finishes dragging (only if they actually dragged)
         if (p.onChangeComplete) {
           p.onChangeComplete(finalValue);
