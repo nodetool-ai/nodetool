@@ -64,6 +64,7 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("fal")) {return "FAL_API_KEY";}
   if (p.includes("aime")) {return "AIME_API_KEY";}
   if (p.includes("moonshot") || p.includes("kimi")) {return "MOONSHOT_API_KEY";}
+  if (p.includes("minimax")) {return "MINIMAX_API_KEY";}
   return null;
 };
 
@@ -73,6 +74,7 @@ export const ALL_PROVIDERS = [
   "claude_agent",
   "gemini",
   "moonshot",
+  "minimax",
   "replicate",
   "ollama",
   "llama_cpp",
