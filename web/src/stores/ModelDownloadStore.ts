@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { DOWNLOAD_URL } from "./BASE_URL";
-import { BASE_URL } from "./BASE_URL";
 import { QueryClient } from "@tanstack/react-query";
+import { trpc } from "../lib/trpc";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
 import log from "loglevel";
 
@@ -374,73 +374,20 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     const additionalProps: Partial<Download> = {
       modelType: modelType
     };
-    let abortController: AbortController | undefined;
-
-    if (modelType === "llama_model") {
-      abortController = new AbortController();
-      additionalProps.abortController = abortController;
-    }
 
     get().addDownload(id, additionalProps);
 
     if (modelType === "llama_model") {
       try {
-        const response = await fetch(
-          `${BASE_URL}/api/models/pull_ollama_model?model_name=${encodeURIComponent(id)}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            signal: abortController?.signal
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = (await reader?.read()) || {
-            done: true,
-            value: undefined
-          };
-          if (done) {break;}
-
-          buffer += decoder.decode(value, { stream: true });
-          let newlineIndex;
-          while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-            const line = buffer.slice(0, newlineIndex);
-            buffer = buffer.slice(newlineIndex + 1);
-            const data = JSON.parse(line);
-            get().updateDownload(id, {
-              status: data.status === "success" ? "completed" : "running",
-              message: data.status,
-              downloadedBytes: data.completed || 0,
-              totalBytes: data.total || 0
-            });
-          }
-        }
-
-        get().updateDownload(id, { status: "completed" });
-        const queryClient = get().queryClient;
-        queryClient?.invalidateQueries({ queryKey: ["allModels"] });
-        queryClient?.invalidateQueries({ queryKey: ["image-models"] });
-      } catch (error) {
-        const aborted =
-          (error instanceof DOMException && error.name === "AbortError") ||
-          (error as { name?: string }).name === "AbortError";
-        if (aborted) {
-          get().updateDownload(id, { status: "cancelled" });
-        } else {
-          get().updateDownload(id, { status: "error" });
-        }
-      } finally {
-        get().updateDownload(id, { abortController: undefined });
+        // Streaming Ollama model pulls are not available in the TS standalone server.
+        // The tRPC endpoint returns an unavailable stub; direct Ollama API should be used instead.
+        const result = await trpc.models.pullOllamaModel.mutate({ model: id });
+        get().updateDownload(id, {
+          status: result.status === "unavailable" ? "error" : "completed",
+          message: result.message
+        });
+      } catch {
+        get().updateDownload(id, { status: "error" });
       }
     } else {
       const ws = await get().connectWebSocket();

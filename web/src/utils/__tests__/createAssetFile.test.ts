@@ -1,5 +1,15 @@
 import { createAssetFile } from "../createAssetFile";
-import { client } from "../../stores/ApiClient";
+
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    assets: {
+      get: { query: jest.fn() }
+    }
+  }
+}));
+
+import { trpcClient } from "../../trpc/client";
+const assetGetQuery = trpcClient.assets.get.query as jest.Mock;
 
 const readFileAsText = async (file: File): Promise<string> => {
   if (typeof file.text === "function") {
@@ -121,13 +131,11 @@ describe("createAssetFile", () => {
   });
 
   it("resolves asset refs through asset metadata instead of fetching asset:// directly", async () => {
-    jest.spyOn(client, "GET").mockResolvedValue({
-      data: {
-        id: "asset-1",
-        name: "fal-video.mp4",
-        get_url: "/api/storage/asset-1.mp4"
-      }
-    } as any);
+    assetGetQuery.mockResolvedValueOnce({
+      id: "asset-1",
+      name: "fal-video.mp4",
+      get_url: "/api/storage/asset-1.mp4"
+    });
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
@@ -142,9 +150,7 @@ describe("createAssetFile", () => {
       "node"
     );
 
-    expect(client.GET).toHaveBeenCalledWith("/api/assets/{id}", {
-      params: { path: { id: "asset-1" } }
-    });
+    expect(assetGetQuery).toHaveBeenCalledWith({ id: "asset-1" });
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/storage/asset-1.mp4"),
       expect.objectContaining({ mode: "cors" })

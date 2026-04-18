@@ -5,7 +5,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { trpcClient } from "../trpc/client";
 import { Asset } from "../stores/ApiTypes";
 import log from "loglevel";
 
@@ -14,19 +14,8 @@ import log from "loglevel";
  */
 export const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
   try {
-    const { data, error } = await client.GET("/api/assets/", {
-      params: {
-        query: {
-          node_id: nodeId
-        }
-      }
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    return data?.assets || [];
+    const data = await trpcClient.assets.list.query({ node_id: nodeId });
+    return (data.assets ?? []) as unknown as Asset[];
   } catch (error) {
     log.error("Failed to fetch node assets:", error);
     throw error;

@@ -1010,7 +1010,11 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(IpcChannels.FRONTEND_LOG, async (_event, data) => {
     const source = data.source?.trim() ? `[${data.source.trim()}] ` : "";
-    logMessage(`${source}${data.message}`, data.level);
+    const message =
+      data.message.length > 80
+        ? data.message.slice(0, 80) + "…"
+        : data.message;
+    logMessage(`${source}${message}`, data.level);
   });
 
   createIpcMainHandler(

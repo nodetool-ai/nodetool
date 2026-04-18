@@ -25,6 +25,72 @@ import { createLogger, getAssetFilePath } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.provider");
 
+/**
+ * Capability names a provider can expose. These correspond to the `capability`
+ * strings consumed by client-side filters like `useImageModelProviders`,
+ * `useTTSProviders`, etc.
+ */
+export type ProviderCapability =
+  | "generate_message"
+  | "generate_messages"
+  | "text_to_image"
+  | "image_to_image"
+  | "text_to_video"
+  | "image_to_video"
+  | "text_to_speech"
+  | "automatic_speech_recognition"
+  | "generate_embedding";
+
+/**
+ * Derive a provider's capability set by checking which optional `getAvailable*`
+ * methods it overrides on its prototype. Every provider can always generate
+ * messages; image/video/TTS/ASR/embedding are advertised only when the concrete
+ * class overrides the matching base method.
+ *
+ * Shared by `packages/websocket/src/models-api.ts` (REST leftover) and the
+ * `models` tRPC router so both report identical capabilities for the same
+ * provider instance.
+ */
+export function providerCapabilities(
+  instance: BaseProvider
+): ProviderCapability[] {
+  const capabilities: ProviderCapability[] = [
+    "generate_message",
+    "generate_messages"
+  ];
+  if (
+    instance.getAvailableImageModels !==
+    BaseProvider.prototype.getAvailableImageModels
+  ) {
+    capabilities.push("text_to_image", "image_to_image");
+  }
+  if (
+    instance.getAvailableVideoModels !==
+    BaseProvider.prototype.getAvailableVideoModels
+  ) {
+    capabilities.push("text_to_video", "image_to_video");
+  }
+  if (
+    instance.getAvailableTTSModels !==
+    BaseProvider.prototype.getAvailableTTSModels
+  ) {
+    capabilities.push("text_to_speech");
+  }
+  if (
+    instance.getAvailableASRModels !==
+    BaseProvider.prototype.getAvailableASRModels
+  ) {
+    capabilities.push("automatic_speech_recognition");
+  }
+  if (
+    instance.getAvailableEmbeddingModels !==
+    BaseProvider.prototype.getAvailableEmbeddingModels
+  ) {
+    capabilities.push("generate_embedding");
+  }
+  return capabilities;
+}
+
 export abstract class BaseProvider {
   readonly provider: ProviderId;
   private _cost = 0;

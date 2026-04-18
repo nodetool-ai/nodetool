@@ -10,7 +10,7 @@ import InstallDesktopIcon from "@mui/icons-material/InstallDesktop";
 import { Text, FlexRow, FlexColumn, NavButton } from "../ui_primitives";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { BASE_URL } from "../../stores/BASE_URL";
+import { trpcClient } from "../../trpc/client";
 
 interface TargetStatus {
   target: string;
@@ -25,34 +25,26 @@ interface McpStatusResponse {
   defaultUrl: string;
 }
 
+type McpTarget = "claude" | "codex" | "opencode";
+
 async function fetchMcpStatus(): Promise<McpStatusResponse> {
-  const res = await fetch(`${BASE_URL}/api/mcp/status`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  return trpcClient.mcpConfig.status.query();
 }
 
 async function installMcp(
   targets: string[]
 ): Promise<{ results: { target: string; label: string; success: boolean }[] }> {
-  const res = await fetch(`${BASE_URL}/api/mcp/install`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ targets })
+  return trpcClient.mcpConfig.install.mutate({
+    targets: targets as McpTarget[]
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
 }
 
 async function uninstallMcp(
   targets: string[]
 ): Promise<{ results: { target: string; label: string; removed: boolean }[] }> {
-  const res = await fetch(`${BASE_URL}/api/mcp/uninstall`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ targets })
+  return trpcClient.mcpConfig.uninstall.mutate({
+    targets: targets as McpTarget[]
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
 }
 
 const MCPSettingsMenu = () => {

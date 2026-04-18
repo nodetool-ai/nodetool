@@ -53,7 +53,7 @@ import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { isProduction } from "../../stores/ApiClient";
+import { isProduction } from "../../lib/env";
 import {
   CONTROL_HANDLE_ID,
   isAgentNodeType

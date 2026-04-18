@@ -8,22 +8,13 @@ import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
-import {
-  createLogger,
-  getDefaultAssetsPath,
-  buildAssetUrl
-} from "@nodetool/config";
-import { resolveContentUrls } from "./resolve-media-urls.js";
+import { createLogger, buildAssetUrl } from "@nodetool/config";
 import { workflowToDsl } from "@nodetool/dsl";
 import {
   Workflow,
   WorkflowVersion,
   Job,
-  Message,
-  Thread,
-  Asset,
-  Secret,
-  clearSecretCache
+  Asset
 } from "@nodetool/models";
 import {
   loadPythonPackageMetadata,
@@ -36,73 +27,30 @@ import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerKieNodes } from "@nodetool/kie-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import {
-  clearProviderCache,
   PythonNodeExecutor,
   PythonStdioBridge,
   type NodeExecutor
 } from "@nodetool/runtime";
 import { WorkflowRunner } from "@nodetool/kernel";
-import { handleModelsApiRequest } from "./models-api.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
 import {
   createStorageHandler,
   type StorageHandlerOptions
 } from "./storage-api.js";
-import {
-  getRegisteredSettings,
-  handleSettingsRequest
-} from "./settings-api.js";
-import { handleWorkspaceRequest } from "./workspace-api.js";
 import { handleFileRequest } from "./file-api.js";
-import { handleCostRequest } from "./cost-api.js";
-import { handleSkillsRequest, handleFontsRequest } from "./skills-api.js";
-import { handleUsersRequest } from "./users-api.js";
-import { handleCollectionRequest } from "./collection-api.js";
 
 const log = createLogger("nodetool.websocket.http");
 
 // ── Content type to file extension mapping ─────────────────────────
-const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
-  "image/webp": "webp",
-  "image/tiff": "tiff",
-  "image/bmp": "bmp",
-  "text/plain": "txt",
-  "text/csv": "csv",
-  "text/html": "html",
-  "application/json": "json",
-  "application/pdf": "pdf",
-  "application/zip": "zip",
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/ogg": "ogg",
-  "audio/aac": "aac",
-  "audio/x-wav": "wav",
-  "audio/x-flac": "flac",
-  "audio/x-m4a": "m4a",
-  "video/mp4": "mp4",
-  "video/mpeg": "mpeg",
-  "video/quicktime": "mov",
-  "video/x-msvideo": "avi",
-  "video/webm": "webm"
-};
-
-function getFileExtension(contentType: string): string {
-  return CONTENT_TYPE_TO_EXTENSION[contentType] ?? "bin";
-}
-
-function getAssetFileName(assetId: string, contentType: string): string {
-  return `${assetId}.${getFileExtension(contentType)}`;
-}
-
-function getAssetStoragePath(opts?: StorageHandlerOptions): string {
-  return opts?.storagePath ?? getDefaultAssetsPath();
-}
+// Asset filename + storage-path helpers live in `./lib/asset-paths.ts` so the
+// tRPC router can import them without dragging in the full http-api module
+// graph. Re-exported here for any remaining REST callers.
+import {
+  getAssetFileName,
+  getAssetStoragePath
+} from "./lib/asset-paths.js";
+export { getAssetFileName, getAssetStoragePath };
 
 type JsonObject = Record<string, unknown>;
 
@@ -377,8 +325,13 @@ export async function handleNodeMetadata(
     }
   }
 
-  const limit = parseLimit(url, 100);
-  nodes = nodes.slice(0, limit);
+  const limitRaw = url.searchParams.get("limit");
+  if (limitRaw) {
+    const parsed = Number.parseInt(limitRaw, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      nodes = nodes.slice(0, parsed);
+    }
+  }
 
   // Default to slim summary to keep response size bounded. Full metadata is
   // opt-in via `fields=full` or a specific node_type lookup.
@@ -1384,299 +1337,12 @@ export async function handleWorkflowById(
   return errorResponse(405, "Method not allowed");
 }
 
-// ── Message types & helpers ────────────────────────────────────────
-
-interface MessageCreateBody {
-  thread_id?: string | null;
-  role: string;
-  name?: string | null;
-  content: string | unknown[] | Record<string, unknown> | null;
-  tool_call_id?: string | null;
-  tool_calls?: unknown[] | null;
-}
-
-function toMessageResponse(msg: Message): JsonObject {
-  return {
-    type: "message",
-    id: msg.id,
-    user_id: msg.user_id,
-    thread_id: msg.thread_id,
-    role: msg.role,
-    name: msg.name ?? null,
-    content: resolveContentUrls(msg.content as string | unknown[] | Record<string, unknown> | null),
-    tool_calls: msg.tool_calls,
-    tool_call_id:
-      (msg as unknown as Record<string, unknown>).tool_call_id ?? null,
-    created_at: msg.created_at,
-    updated_at: msg.updated_at
-  };
-}
-
-export async function handleMessagesRoot(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "POST") {
-    const body = await parseJsonBody<MessageCreateBody>(request);
-    if (!body || typeof body.role !== "string" || body.content === undefined) {
-      return errorResponse(400, "Invalid JSON body");
-    }
-    let threadId = body.thread_id;
-    if (!threadId) {
-      const thread = (await Thread.create({
-        user_id: userId,
-        title: "New Thread"
-      })) as Thread;
-      threadId = thread.id;
-    }
-    const contentStr =
-      typeof body.content === "string"
-        ? body.content
-        : JSON.stringify(body.content ?? null);
-    const msg = (await Message.create({
-      user_id: userId,
-      thread_id: threadId,
-      role: body.role,
-      name: body.name ?? null,
-      content: contentStr,
-      tool_calls: body.tool_calls ?? null
-    })) as Message;
-    return jsonResponse(toMessageResponse(msg));
-  }
-
-  if (request.method === "GET") {
-    const url = new URL(request.url);
-    const threadId = url.searchParams.get("thread_id");
-    if (!threadId) {
-      return errorResponse(400, "thread_id is required");
-    }
-    const limit = parseLimit(url, 100);
-    const cursorParam = url.searchParams.get("cursor") ?? undefined;
-    const reverseParam = url.searchParams.get("reverse");
-    const reverse =
-      reverseParam === "true"
-        ? true
-        : reverseParam === "false"
-          ? false
-          : undefined;
-    const [messages, cursor] = await Message.paginate(threadId, {
-      limit,
-      startKey: cursorParam,
-      reverse
-    });
-    // Verify user ownership
-    for (const msg of messages) {
-      if (msg.user_id !== userId) {
-        return errorResponse(404, "Message not found");
-      }
-    }
-    return jsonResponse({
-      messages: messages.map((m) => toMessageResponse(m)),
-      next: cursor || null
-    });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-export async function handleMessageById(
-  request: Request,
-  messageId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const msg = (await Message.get(messageId)) as Message | null;
-  if (!msg || msg.user_id !== userId) {
-    return errorResponse(404, "Message not found");
-  }
-
-  if (request.method === "GET") {
-    return jsonResponse(toMessageResponse(msg));
-  }
-
-  if (request.method === "DELETE") {
-    await msg.delete();
-    return new Response(null, { status: 204 });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-// ── Thread types & helpers ────────────────────────────────────────
-
-interface ThreadCreateBody {
-  title?: string | null;
-}
-
-interface ThreadUpdateBody {
-  title: string;
-}
-
-function toThreadResponse(thread: Thread): JsonObject {
-  return {
-    id: thread.id,
-    user_id: thread.user_id,
-    title: thread.title,
-    created_at: thread.created_at,
-    updated_at: thread.updated_at,
-    etag: thread.getEtag()
-  };
-}
-
-export async function handleThreadsRoot(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "POST") {
-    const body = await parseJsonBody<ThreadCreateBody>(request);
-    const title = body?.title ?? "New Thread";
-    const thread = (await Thread.create({
-      user_id: userId,
-      title
-    })) as Thread;
-    return jsonResponse(toThreadResponse(thread));
-  }
-
-  if (request.method === "GET") {
-    const url = new URL(request.url);
-    const limit = parseLimit(url, 10);
-    const cursorParam = url.searchParams.get("cursor") ?? undefined;
-    const reverseParam = url.searchParams.get("reverse");
-    const reverse =
-      reverseParam === "true"
-        ? true
-        : reverseParam === "false"
-          ? false
-          : undefined;
-    const [threads, nextCursor] = await Thread.paginate(userId, {
-      limit,
-      startKey: cursorParam,
-      reverse
-    });
-    return jsonResponse({
-      threads: threads.map((t) => toThreadResponse(t)),
-      next: nextCursor || null
-    });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-export async function handleThreadById(
-  request: Request,
-  threadId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "GET") {
-    const thread = await Thread.find(userId, threadId);
-    if (!thread) return errorResponse(404, "Thread not found");
-    return jsonResponse(toThreadResponse(thread));
-  }
-
-  if (request.method === "PUT") {
-    const body = await parseJsonBody<ThreadUpdateBody>(request);
-    if (!body || typeof body.title !== "string") {
-      return errorResponse(400, "Invalid JSON body");
-    }
-    const thread = await Thread.find(userId, threadId);
-    if (!thread) return errorResponse(404, "Thread not found");
-    thread.title = body.title;
-    await thread.save();
-    return jsonResponse(toThreadResponse(thread));
-  }
-
-  if (request.method === "DELETE") {
-    const thread = await Thread.find(userId, threadId);
-    if (!thread) return errorResponse(404, "Thread not found");
-    // Delete all messages in the thread
-    while (true) {
-      const [messages] = await Message.paginate(threadId, { limit: 100 });
-      if (!messages.length) break;
-      for (const msg of messages) {
-        await msg.delete();
-      }
-      if (messages.length < 100) break;
-    }
-    await thread.delete();
-    return new Response(null, { status: 204 });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-// ── Thread summarize ─────────────────────────────────────────────────
-
-/** Maximum length of a derived thread title before truncation. */
-const THREAD_TITLE_MAX_LEN = 60;
-/** Length of visible text when a title is truncated (max - "...".length). */
-const THREAD_TITLE_TRUNC_LEN = THREAD_TITLE_MAX_LEN - 3;
-
-/**
- * Generate a brief title/summary for a thread from its messages.
- * The Python backend uses an LLM for this; the TS standalone mode derives
- * a title from the first user message instead.
- */
-async function deriveThreadTitle(threadId: string): Promise<string> {
-  const [messages] = await Message.paginate(threadId, { limit: 10 });
-  for (const msg of messages) {
-    const content = msg.content;
-    if (typeof content === "string" && content.trim().length > 0) {
-      const text = content.trim().replace(/\s+/g, " ");
-      return text.length > THREAD_TITLE_MAX_LEN
-        ? text.slice(0, THREAD_TITLE_TRUNC_LEN) + "..."
-        : text;
-    }
-    if (Array.isArray(content)) {
-      for (const part of content) {
-        if (
-          part !== null &&
-          typeof part === "object" &&
-          "type" in part &&
-          (part as Record<string, unknown>).type === "text" &&
-          "text" in part &&
-          typeof (part as Record<string, unknown>).text === "string"
-        ) {
-          const text = ((part as Record<string, unknown>).text as string)
-            .trim()
-            .replace(/\s+/g, " ");
-          if (text.length > 0) {
-            return text.length > THREAD_TITLE_MAX_LEN
-              ? text.slice(0, THREAD_TITLE_TRUNC_LEN) + "..."
-              : text;
-          }
-        }
-      }
-    }
-  }
-  return "New Thread";
-}
-
-export async function handleThreadSummarize(
-  request: Request,
-  threadId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const thread = await Thread.find(userId, threadId);
-  if (!thread) return errorResponse(404, "Thread not found");
-
-  const title = await deriveThreadTitle(threadId);
-  thread.title = title;
-  await thread.save();
-  return jsonResponse({ title });
-}
-
 // ── Job types & helpers ───────────────────────────────────────────
 
+/**
+ * Full job response — still exported here because `mcp-server.ts` consumes it
+ * when serving job metadata over MCP. Consider relocating if MCP also migrates.
+ */
 export function toJobResponse(job: Job): JsonObject {
   return {
     id: job.id,
@@ -1689,92 +1355,6 @@ export function toJobResponse(job: Job): JsonObject {
     error: job.error ?? null,
     cost: null
   };
-}
-
-function toBackgroundJobResponse(job: Job): JsonObject {
-  return {
-    job_id: job.id,
-    status: job.status,
-    workflow_id: job.workflow_id,
-    created_at: job.started_at ?? null,
-    is_running: job.status === "running" || job.status === "scheduled",
-    is_completed:
-      job.status === "completed" ||
-      job.status === "failed" ||
-      job.status === "cancelled"
-  };
-}
-
-export async function handleJobsRoot(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const url = new URL(request.url);
-  const limit = parseLimit(url, 100);
-  const workflowId = url.searchParams.get("workflow_id") ?? undefined;
-
-  const [jobs, nextStartKey] = await Job.paginate(userId, {
-    limit,
-    workflowId
-  });
-
-  return jsonResponse({
-    jobs: jobs.map((j) => toJobResponse(j)),
-    next_start_key: nextStartKey || null
-  });
-}
-
-export async function handleJobById(
-  request: Request,
-  jobId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET" && request.method !== "DELETE") {
-    return errorResponse(405, "Method not allowed");
-  }
-
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const job = (await Job.get(jobId)) as Job | null;
-  if (!job || job.user_id !== userId) {
-    return errorResponse(404, "Job not found");
-  }
-
-  if (request.method === "GET") {
-    return jsonResponse(toJobResponse(job));
-  }
-
-  // DELETE
-  await job.delete();
-  return new Response(null, { status: 204 });
-}
-
-export async function handleJobCancel(
-  request: Request,
-  jobId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const job = (await Job.get(jobId)) as Job | null;
-  if (!job || job.user_id !== userId) {
-    return errorResponse(404, "Job not found");
-  }
-
-  job.markCancelled();
-  await job.save();
-
-  return jsonResponse(toBackgroundJobResponse(job));
 }
 
 // ── Trigger job stubs ─────────────────────────────────────────────
@@ -1829,137 +1409,6 @@ export async function handleNodesDummy(request: Request): Promise<Response> {
   });
 }
 
-// ── Secrets types & helpers ────────────────────────────────────────
-
-interface SecretUpdateBody {
-  value: string;
-  description?: string;
-}
-
-async function toSecretResponse(secret: Secret): Promise<JsonObject> {
-  let isUnreadable = false;
-  try {
-    await secret.getDecryptedValue();
-  } catch {
-    isUnreadable = true;
-  }
-
-  return {
-    ...secret.toSafeObject(),
-    is_configured: true,
-    is_unreadable: isUnreadable
-  };
-}
-
-export async function handleSecretsRoot(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  const [configuredSecrets] = await Secret.listForUser(userId, 1000);
-  const configuredMap = new Map(configuredSecrets.map((s) => [s.key, s]));
-
-  // Return all registry secrets with is_configured flag
-  const registrySecrets = getRegisteredSettings().filter((d) => d.isSecret);
-  const result = registrySecrets.map((def) => {
-    return { def, configured: configuredMap.get(def.envVar) };
-  });
-
-  const normalizedResults = await Promise.all(
-    result.map(async ({ def, configured }) => {
-      if (configured) {
-        return toSecretResponse(configured);
-      }
-      return {
-        key: def.envVar,
-        user_id: userId,
-        description: def.description ?? "",
-        is_configured: false,
-        is_unreadable: false
-      };
-    })
-  );
-
-  // Also include any DB secrets not in the registry
-  for (const s of configuredSecrets) {
-    if (!registrySecrets.some((d) => d.envVar === s.key)) {
-      normalizedResults.push(await toSecretResponse(s));
-    }
-  }
-
-  return jsonResponse({
-    secrets: normalizedResults,
-    next_key: null
-  });
-}
-
-export async function handleSecretByKey(
-  request: Request,
-  key: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "GET") {
-    const secret = await Secret.find(userId, key);
-    if (!secret) return errorResponse(404, "Secret not found");
-
-    const response = (await toSecretResponse(secret)) as Record<
-      string,
-      unknown
-    >;
-    const url = new URL(request.url);
-    if (url.searchParams.get("decrypt") === "true") {
-      try {
-        response.value = await secret.getDecryptedValue();
-        response.is_unreadable = false;
-      } catch (err) {
-        const detail =
-          err instanceof Error ? err.message : "Failed to decrypt secret";
-        return errorResponse(500, detail);
-      }
-    }
-    return jsonResponse(response);
-  }
-
-  if (request.method === "PUT") {
-    const body = await parseJsonBody<SecretUpdateBody>(request);
-    if (!body || typeof body.value !== "string") {
-      return errorResponse(400, "Invalid JSON body");
-    }
-    try {
-      const secret = await Secret.upsert({
-        userId,
-        key,
-        value: body.value,
-        description: body.description
-      });
-      // Invalidate caches so providers pick up the new key
-      clearSecretCache(userId, key);
-      clearProviderCache();
-      return jsonResponse(await toSecretResponse(secret));
-    } catch (err) {
-      const detail =
-        err instanceof Error ? err.message : "Failed to update secret";
-      return errorResponse(500, detail);
-    }
-  }
-
-  if (request.method === "DELETE") {
-    const deleted = await Secret.deleteSecret(userId, key);
-    if (!deleted) return errorResponse(404, "Secret not found");
-    clearSecretCache(userId, key);
-    clearProviderCache();
-    return jsonResponse({ message: "Secret deleted successfully" });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
 // ── Asset types & helpers ──────────────────────────────────────────
 
 interface AssetCreateBody {
@@ -1971,16 +1420,6 @@ interface AssetCreateBody {
   job_id?: string | null;
   metadata?: Record<string, unknown> | null;
   size?: number | null;
-}
-
-interface AssetUpdateBody {
-  name?: string;
-  content_type?: string;
-  parent_id?: string;
-  metadata?: Record<string, unknown>;
-  size?: number;
-  data?: string | null;
-  data_encoding?: string | null;
 }
 
 export function toAssetResponse(asset: Asset): JsonObject {
@@ -2018,84 +1457,15 @@ export function toAssetResponse(asset: Asset): JsonObject {
   };
 }
 
-async function deleteFolderRecursive(
-  userId: string,
-  folderId: string
-): Promise<string[]> {
-  const deletedIds: string[] = [];
-  const children = await Asset.getChildren(userId, folderId, 10000);
-  for (const child of children) {
-    if (child.content_type === "folder") {
-      const subDeleted = await deleteFolderRecursive(userId, child.id);
-      deletedIds.push(...subDeleted);
-    } else {
-      await child.delete();
-      deletedIds.push(child.id);
-    }
-  }
-  const folder = await Asset.find(userId, folderId);
-  if (folder) {
-    await folder.delete();
-    deletedIds.push(folderId);
-  }
-  return deletedIds;
-}
-
-async function getAllAssetsRecursive(
-  userId: string,
-  folderId: string
-): Promise<Asset[]> {
-  const collected: Asset[] = [];
-  const children = await Asset.getChildren(userId, folderId, 10000);
-  for (const child of children) {
-    collected.push(child);
-    if (child.content_type === "folder") {
-      const subAssets = await getAllAssetsRecursive(userId, child.id);
-      collected.push(...subAssets);
-    }
-  }
-  return collected;
-}
-
+/**
+ * Handle multipart file upload at POST /api/assets. JSON-only creation has
+ * moved to the tRPC `assets.create` procedure.
+ */
 export async function handleAssetsRoot(
   request: Request,
   options: HttpApiOptions
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "GET") {
-    const url = new URL(request.url);
-    const parentId = url.searchParams.get("parent_id") ?? undefined;
-    const contentType =
-      url.searchParams.get("content_type")?.trim() ?? undefined;
-    const workflowId = url.searchParams.get("workflow_id") ?? undefined;
-    const nodeId = url.searchParams.get("node_id") ?? undefined;
-    const jobId = url.searchParams.get("job_id") ?? undefined;
-    const pageSizeRaw = url.searchParams.get("page_size");
-    const pageSize = pageSizeRaw
-      ? Math.min(Math.max(Number.parseInt(pageSizeRaw, 10) || 10000, 1), 10000)
-      : 10000;
-
-    // Default to home folder if no filters specified
-    const effectiveParentId =
-      parentId === undefined && !contentType && !workflowId && !nodeId && !jobId
-        ? userId
-        : parentId;
-
-    const [assets, cursor] = await Asset.paginate(userId, {
-      parentId: effectiveParentId,
-      contentType,
-      workflowId,
-      nodeId,
-      jobId,
-      limit: pageSize
-    });
-
-    return jsonResponse({
-      assets: assets.map((a) => toAssetResponse(a)),
-      next: cursor || null
-    });
-  }
 
   if (request.method === "POST") {
     const contentType = request.headers.get("content-type") ?? "";
@@ -2177,149 +1547,6 @@ export async function handleAssetsRoot(
   }
 
   return errorResponse(405, "Method not allowed");
-}
-
-export async function handleAssetById(
-  request: Request,
-  assetId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-
-  if (request.method === "GET") {
-    // Special case: home folder
-    if (assetId === userId) {
-      return jsonResponse({
-        id: userId,
-        user_id: userId,
-        workflow_id: null,
-        parent_id: "",
-        name: "Home",
-        content_type: "folder",
-        size: null,
-        metadata: null,
-        created_at: "",
-        get_url: null,
-        thumb_url: null,
-        duration: null,
-        node_id: null,
-        job_id: null
-      });
-    }
-
-    const asset = await Asset.find(userId, assetId);
-    if (!asset) return errorResponse(404, "Asset not found");
-    return jsonResponse(toAssetResponse(asset));
-  }
-
-  if (request.method === "PUT") {
-    const asset = await Asset.find(userId, assetId);
-    if (!asset) return errorResponse(404, "Asset not found");
-
-    const body = await parseJsonBody<AssetUpdateBody>(request);
-    if (!body) return errorResponse(400, "Invalid JSON body");
-
-    if (body.name !== undefined) asset.name = body.name;
-    if (body.content_type !== undefined) asset.content_type = body.content_type;
-    if (body.parent_id !== undefined) asset.parent_id = body.parent_id;
-    if (body.metadata !== undefined) asset.metadata = body.metadata;
-    if (body.size !== undefined) asset.size = body.size;
-
-    if (body.data != null) {
-      let buf: Buffer;
-      if (body.data_encoding === "base64") {
-        buf = Buffer.from(body.data, "base64");
-      } else {
-        buf = Buffer.from(body.data, "utf-8");
-      }
-      asset.size = buf.byteLength;
-
-      // Write data to storage directory
-      const storagePath = getAssetStoragePath(options.storage);
-      const fileName = getAssetFileName(asset.id, asset.content_type);
-      const filePath = nodePath.join(storagePath, fileName);
-      await mkdir(storagePath, { recursive: true });
-      await writeFile(filePath, buf);
-    }
-
-    await asset.save();
-    return jsonResponse(toAssetResponse(asset));
-  }
-
-  if (request.method === "DELETE") {
-    const asset = await Asset.find(userId, assetId);
-    if (!asset) return errorResponse(404, "Asset not found");
-
-    let deletedAssetIds: string[];
-    if (asset.content_type === "folder") {
-      deletedAssetIds = await deleteFolderRecursive(userId, assetId);
-    } else {
-      await asset.delete();
-      deletedAssetIds = [assetId];
-    }
-    return jsonResponse({ deleted_asset_ids: deletedAssetIds });
-  }
-
-  return errorResponse(405, "Method not allowed");
-}
-
-export async function handleAssetsSearch(
-  request: Request,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const url = new URL(request.url);
-  const query = (url.searchParams.get("query") ?? "").trim();
-  if (query.length < 2) {
-    return errorResponse(400, "Query must be at least 2 characters");
-  }
-  const pageSizeRaw = url.searchParams.get("page_size");
-  const pageSize = pageSizeRaw
-    ? Math.min(Math.max(Number.parseInt(pageSizeRaw, 10) || 200, 1), 10000)
-    : 200;
-  const cursor = url.searchParams.get("cursor") ?? undefined;
-
-  // Search by name using a broad paginate and filter client-side (no FTS in memory adapter)
-  const [allAssets, nextCursor] = await Asset.paginate(userId, {
-    limit: pageSize
-  });
-  const lowerQuery = query.toLowerCase();
-  const matched = allAssets.filter((a) =>
-    a.name.toLowerCase().includes(lowerQuery)
-  );
-  void cursor; // cursor not yet wired into paginate for search
-  return jsonResponse({
-    assets: matched.map((a) => toAssetResponse(a)),
-    next_cursor: nextCursor || null,
-    total_count: matched.length,
-    is_global_search: !url.searchParams.has("workflow_id")
-  });
-}
-
-export async function handleAssetRecursive(
-  request: Request,
-  folderId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const assets = await getAllAssetsRecursive(userId, folderId);
-  return jsonResponse({ assets: assets.map((a) => toAssetResponse(a)) });
-}
-
-export async function handleAssetByFilename(
-  request: Request,
-  filename: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
-  if (!filename) return errorResponse(400, "filename is required");
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const [assets] = await Asset.paginate(userId, { limit: 10000 });
-  const asset = assets.find((a) => a.name === filename) ?? null;
-  if (!asset) return errorResponse(404, "Asset not found");
-  return jsonResponse(toAssetResponse(asset));
 }
 
 export async function handleAssetThumbnail(
@@ -2413,11 +1640,6 @@ export async function handleApiRequest(
     if (response) return response;
   }
 
-  if (pathname === "/api/models" || pathname.startsWith("/api/models/")) {
-    const response = await handleModelsApiRequest(request);
-    if (response) return response;
-  }
-
   if (pathname === "/api/users/validate_username") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
@@ -2436,272 +1658,6 @@ export async function handleApiRequest(
 
   if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {
     return handleNodeMetadata(request, options);
-  }
-
-  if (pathname === "/api/settings") {
-    const res = await handleSettingsRequest(request, pathname, options);
-    if (res) return res;
-  }
-
-  if (pathname === "/api/settings/secrets") {
-    return handleSecretsRoot(request, options);
-  }
-
-  if (pathname.startsWith("/api/settings/secrets/")) {
-    const secretKey = decodeURIComponent(
-      pathname.slice("/api/settings/secrets/".length)
-    );
-    if (!secretKey) return errorResponse(404, "Not found");
-    return handleSecretByKey(request, secretKey, options);
-  }
-
-  if (pathname === "/api/assets") {
-    return handleAssetsRoot(request, options);
-  }
-
-  // Asset sub-routes — must be matched before the generic /{id} catch-all
-  if (pathname === "/api/assets/search") {
-    return handleAssetsSearch(request, options);
-  }
-
-  if (pathname === "/api/assets/packages") {
-    return jsonResponse({ assets: [], next: null });
-  }
-
-  if (pathname === "/api/assets/download") {
-    if (request.method !== "POST")
-      return errorResponse(405, "Method not allowed");
-    return errorResponse(501, "ZIP download not available in standalone mode");
-  }
-
-  if (
-    pathname === "/api/assets/by-filename" ||
-    pathname.startsWith("/api/assets/by-filename/")
-  ) {
-    const filename = decodeURIComponent(
-      pathname.slice("/api/assets/by-filename/".length)
-    );
-    return handleAssetByFilename(request, filename, options);
-  }
-
-  if (pathname.startsWith("/api/assets/packages/")) {
-    // /api/assets/packages/{package_name} or /api/assets/packages/{package_name}/{asset_name}
-    const rest = pathname.slice("/api/assets/packages/".length);
-    const slashIdx = rest.indexOf("/");
-    if (slashIdx !== -1) {
-      // Serve a specific package asset file
-      const packageName = decodeURIComponent(rest.slice(0, slashIdx));
-      const assetName = decodeURIComponent(rest.slice(slashIdx + 1));
-      if (!packageName || !assetName) return errorResponse(404, "Not found");
-      const { createReadStream, statSync, existsSync: fsExistsSync } = await import("node:fs");
-      const { extname } = await import("node:path");
-      const mimeTypes: Record<string, string> = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".gif": "image/gif",
-        ".webp": "image/webp",
-        ".svg": "image/svg+xml",
-        ".mp3": "audio/mpeg",
-        ".mp4": "video/mp4",
-        ".webm": "video/webm",
-        ".json": "application/json",
-        ".txt": "text/plain"
-      };
-
-      // Determine the asset file path. First try Python package metadata;
-      // fall back to deriving from examplesDir when no Python metadata is available.
-      let assetPath: string | null = null;
-
-      const loaded = loadPythonPackageMetadata({
-        roots: options.metadataRoots,
-        maxDepth: options.metadataMaxDepth
-      });
-      const pkg = loaded.packages.find((p) => p.name === packageName);
-      if (pkg?.sourceFolder) {
-        assetPath = `${pkg.sourceFolder}/nodetool/assets/${packageName}/${assetName}`;
-      } else if (options.examplesDir) {
-        // examplesDir = .../nodetool/examples/<collection-name>
-        // assets live at .../nodetool/assets/<packageName>/<assetName>
-        const nodeToolDir = nodePath.dirname(nodePath.dirname(options.examplesDir));
-        const candidate = nodePath.join(nodeToolDir, "assets", packageName, assetName);
-        if (fsExistsSync(candidate)) assetPath = candidate;
-      }
-
-      if (!assetPath) {
-        return errorResponse(
-          404,
-          `Asset '${assetName}' not found in package '${packageName}'`
-        );
-      }
-
-      let stat: { size: number };
-      try {
-        stat = statSync(assetPath);
-      } catch {
-        return errorResponse(
-          404,
-          `Asset '${assetName}' not found in package '${packageName}'`
-        );
-      }
-      const contentType =
-        mimeTypes[extname(assetName).toLowerCase()] ??
-        "application/octet-stream";
-      const stream = createReadStream(assetPath);
-      // Convert Node.js stream to Web ReadableStream
-      const webStream = new ReadableStream({
-        start(controller) {
-          stream.on("data", (chunk) => controller.enqueue(chunk));
-          stream.on("end", () => controller.close());
-          stream.on("error", (err) => controller.error(err));
-        },
-        cancel() {
-          stream.destroy();
-        }
-      });
-      return new Response(webStream, {
-        status: 200,
-        headers: {
-          "content-type": contentType,
-          "content-length": String(stat.size),
-          "cache-control": "public, max-age=31536000, immutable",
-          etag: `"${packageName}-${assetName}"`
-        }
-      });
-    }
-    return jsonResponse({ assets: [], next: null });
-  }
-
-  if (pathname.startsWith("/api/assets/") && pathname.endsWith("/children")) {
-    const inner = pathname.slice(
-      "/api/assets/".length,
-      pathname.length - "/children".length
-    );
-    if (inner && !inner.includes("/")) {
-      if (request.method !== "GET")
-        return errorResponse(405, "Method not allowed");
-      const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-      const url = new URL(request.url);
-      const limit = parseLimit(url, 100);
-      const [assets] = await Asset.paginate(userId, {
-        parentId: decodeURIComponent(inner),
-        limit
-      });
-      return jsonResponse({
-        assets: assets.map((a) => toAssetResponse(a)),
-        next: null
-      });
-    }
-  }
-
-  if (pathname.startsWith("/api/assets/") && pathname.endsWith("/recursive")) {
-    // /api/assets/{id}/recursive
-    const inner = pathname.slice(
-      "/api/assets/".length,
-      pathname.length - "/recursive".length
-    );
-    if (inner && !inner.includes("/")) {
-      return handleAssetRecursive(request, decodeURIComponent(inner), options);
-    }
-  }
-
-  if (pathname.startsWith("/api/assets/") && pathname.endsWith("/thumbnail")) {
-    const inner = pathname.slice(
-      "/api/assets/".length,
-      pathname.length - "/thumbnail".length
-    );
-    if (inner && !inner.includes("/")) {
-      return handleAssetThumbnail(request, decodeURIComponent(inner), options);
-    }
-  }
-
-  if (pathname.startsWith("/api/assets/")) {
-    const assetId = decodeURIComponent(pathname.slice("/api/assets/".length));
-    if (!assetId) return errorResponse(404, "Not found");
-    return handleAssetById(request, assetId, options);
-  }
-
-  if (pathname === "/api/jobs") {
-    return handleJobsRoot(request, options);
-  }
-
-  if (pathname === "/api/jobs/running/all") {
-    const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-    const [jobs] = await Job.paginate(userId, { limit: 500 });
-    const running = jobs.filter(
-      (j) => j.status === "running" || j.status === "scheduled"
-    );
-    return jsonResponse(running.map((j) => toBackgroundJobResponse(j)));
-  }
-
-  if (pathname === "/api/jobs/triggers/running") {
-    return handleTriggersRunning(request);
-  }
-
-  if (pathname.match(/^\/api\/jobs\/triggers\/[^/]+\/start$/)) {
-    const workflowId = decodeURIComponent(
-      pathname.slice(
-        "/api/jobs/triggers/".length,
-        pathname.length - "/start".length
-      )
-    );
-    return handleTriggerStart(request, workflowId);
-  }
-
-  if (pathname.match(/^\/api\/jobs\/triggers\/[^/]+\/stop$/)) {
-    const workflowId = decodeURIComponent(
-      pathname.slice(
-        "/api/jobs/triggers/".length,
-        pathname.length - "/stop".length
-      )
-    );
-    return handleTriggerStop(request, workflowId);
-  }
-
-  if (pathname.match(/^\/api\/jobs\/[^/]+\/cancel$/)) {
-    const jobId = decodeURIComponent(
-      pathname.slice("/api/jobs/".length, pathname.length - "/cancel".length)
-    );
-    if (!jobId) return errorResponse(404, "Not found");
-    return handleJobCancel(request, jobId, options);
-  }
-
-  if (pathname.startsWith("/api/jobs/")) {
-    const jobId = decodeURIComponent(pathname.slice("/api/jobs/".length));
-    if (!jobId) return errorResponse(404, "Not found");
-    return handleJobById(request, jobId, options);
-  }
-
-  if (pathname === "/api/messages") {
-    return handleMessagesRoot(request, options);
-  }
-
-  if (pathname.startsWith("/api/messages/")) {
-    const messageId = decodeURIComponent(
-      pathname.slice("/api/messages/".length)
-    );
-    if (!messageId) return errorResponse(404, "Not found");
-    return handleMessageById(request, messageId, options);
-  }
-
-  if (pathname === "/api/threads") {
-    return handleThreadsRoot(request, options);
-  }
-
-  if (pathname.match(/^\/api\/threads\/[^/]+\/summarize$/)) {
-    const threadId = decodeURIComponent(
-      pathname.slice(
-        "/api/threads/".length,
-        pathname.length - "/summarize".length
-      )
-    );
-    return handleThreadSummarize(request, threadId, options);
-  }
-
-  if (pathname.startsWith("/api/threads/")) {
-    const threadId = decodeURIComponent(pathname.slice("/api/threads/".length));
-    if (!threadId) return errorResponse(404, "Not found");
-    return handleThreadById(request, threadId, options);
   }
 
   if (pathname === "/api/workflows") {
@@ -2830,44 +1786,9 @@ export async function handleApiRequest(
     return getStorageHandler(options.storage)(request);
   }
 
-  if (
-    pathname === "/api/workspaces" ||
-    pathname.startsWith("/api/workspaces/")
-  ) {
-    const res = await handleWorkspaceRequest(request, options);
-    if (res) return res;
-  }
-
   if (pathname === "/api/files" || pathname.startsWith("/api/files/")) {
     return handleFileRequest(request);
   }
-
-  if (pathname === "/api/costs" || pathname.startsWith("/api/costs/")) {
-    const res = await handleCostRequest(request, options);
-    if (res) return res;
-  }
-
-  if (pathname === "/api/skills" || pathname.startsWith("/api/skills/")) {
-    return handleSkillsRequest(request);
-  }
-
-  if (pathname === "/api/fonts" || pathname.startsWith("/api/fonts/")) {
-    return handleFontsRequest(request);
-  }
-
-  if (pathname === "/api/users" || pathname.startsWith("/api/users/")) {
-    const res = await handleUsersRequest(request, pathname, options);
-    if (res) return res;
-  }
-
-  if (
-    pathname === "/api/collections" ||
-    pathname.startsWith("/api/collections/")
-  ) {
-    const res = await handleCollectionRequest(request, pathname, options);
-    if (res) return res;
-  }
-
 
   if (pathname === "/admin/secrets/import") {
     if (request.method !== "POST")

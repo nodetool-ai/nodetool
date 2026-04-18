@@ -282,6 +282,7 @@ export interface Prediction {
   created_at?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
+  [key: string]: unknown;
 }
 
 export interface LLMCallUpdate {

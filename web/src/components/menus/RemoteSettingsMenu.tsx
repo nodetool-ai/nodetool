@@ -20,7 +20,8 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ExternalLink from "../common/ExternalLink";
-import { isElectron, client } from "../../stores/ApiClient";
+import { isElectron } from "../../lib/env";
+import { restFetch } from "../../lib/rest-fetch";
 import log from "loglevel";
 
 const SETTING_LINKS: Record<string, string> = {
@@ -172,11 +173,11 @@ const RemoteSettings = () => {
   const { data: hfTokenData, isError: isHfTokenError } = useQuery({
     queryKey: ["hf-oauth-token"],
     queryFn: async () => {
-      const { data, error } = await client.GET("/api/oauth/hf/tokens");
-      if (error) {
+      const response = await restFetch("/api/oauth/hf/tokens");
+      if (!response.ok) {
         throw new Error("Failed to fetch HuggingFace token");
       }
-      return data;
+      return (await response.json()) as HfTokenResponse;
     },
     refetchInterval: (query) => {
       // Handle both v4 (data) and v5 (Query object)
@@ -304,9 +305,12 @@ const RemoteSettings = () => {
     setHfOAuthLoading(true);
 
     try {
-      const { data, error } = await client.GET("/api/oauth/hf/start");
+      const response = await restFetch("/api/oauth/hf/start");
+      const data = (await response.json().catch(() => null)) as
+        | { auth_url?: string }
+        | null;
 
-      if (error || !data?.auth_url) {
+      if (!response.ok || !data?.auth_url) {
         throw new Error("Failed to start OAuth flow");
       }
 

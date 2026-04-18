@@ -286,7 +286,7 @@ export class OllamaProvider extends BaseProvider {
     const text = asTextParts(parts);
     const images = await Promise.all(
       parts
-        .filter((part): part is MessageImageContent => part.type === "image")
+        .filter((part): part is MessageImageContent => part.type === "image_url")
         .map((part) => this.imageToBase64(part.image))
     );
 

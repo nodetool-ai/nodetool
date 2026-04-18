@@ -24,6 +24,18 @@
       "types": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./api-schemas": {
+      "nodetool-dev": "./src/api-schemas/index.ts",
+      "types": "./src/api-schemas/index.ts",
+      "import": "./dist/api-schemas/index.js",
+      "default": "./dist/api-schemas/index.js"
+    },
+    "./api-schemas/*.js": {
+      "nodetool-dev": "./src/api-schemas/*.ts",
+      "types": "./src/api-schemas/*.ts",
+      "import": "./dist/api-schemas/*.js",
+      "default": "./dist/api-schemas/*.js"
     }
   }
 }

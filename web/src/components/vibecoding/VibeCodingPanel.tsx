@@ -20,7 +20,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { CloseButton } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import VibeCodingChat from "./VibeCodingChat";
 import VibeCodingPreview from "./VibeCodingPreview";
 import type { Theme } from "@mui/material/styles";
@@ -140,13 +140,11 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
 
     setIsSaving(true);
     try {
-      await client.PUT("/api/workflows/{id}", {
-        params: { path: { id: workflow.id } },
-        body: {
-          name: workflow.name,
-          access: workflow.access,
-          html_app: session.currentHtml
-        }
+      await trpcClient.workflows.update.mutate({
+        id: workflow.id,
+        name: workflow.name,
+        access: workflow.access,
+        html_app: session.currentHtml
       });
       setSavedHtml(workflow.id, session.currentHtml);
       setSnackbar({
@@ -172,13 +170,11 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
   const handleClearApp = useCallback(async () => {
     setIsSaving(true);
     try {
-      await client.PUT("/api/workflows/{id}", {
-        params: { path: { id: workflow.id } },
-        body: {
-          name: workflow.name,
-          access: workflow.access,
-          html_app: null
-        }
+      await trpcClient.workflows.update.mutate({
+        id: workflow.id,
+        name: workflow.name,
+        access: workflow.access,
+        html_app: null
       });
       setSavedHtml(workflow.id, null);
       setCurrentHtml(workflow.id, null);

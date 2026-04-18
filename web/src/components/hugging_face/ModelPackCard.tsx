@@ -151,7 +151,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
               {pack.description}
             </Text>
             <Box display="flex" gap={1} flexWrap="wrap">
-              {pack.tags.slice(0, 4).map((tag) => (
+              {pack.tags?.slice(0, 4).map((tag) => (
                 <Chip
                   key={tag}
                   label={tag}

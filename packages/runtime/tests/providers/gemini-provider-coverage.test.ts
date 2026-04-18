@@ -56,7 +56,7 @@ describe("GeminiProvider – convertMessages with images", () => {
         role: "user",
         content: [
           { type: "text", text: "describe" },
-          { type: "image", image: { data: new Uint8Array([1, 2, 3]) } }
+          { type: "image_url", image: { data: new Uint8Array([1, 2, 3]) } }
         ]
       }
     ]);
@@ -75,7 +75,7 @@ describe("GeminiProvider – convertMessages with images", () => {
     const result = await provider.convertMessages([
       {
         role: "user",
-        content: [{ type: "image", image: { data: "base64string" } }]
+        content: [{ type: "image_url", image: { data: "base64string" } }]
       }
     ]);
 
@@ -91,7 +91,7 @@ describe("GeminiProvider – convertMessages with images", () => {
         role: "user",
         content: [
           {
-            type: "image",
+            type: "image_url",
             image: { uri: `data:image/png;base64,${base64}` }
           }
         ]
@@ -120,7 +120,7 @@ describe("GeminiProvider – convertMessages with images", () => {
       {
         role: "user",
         content: [
-          { type: "image", image: { uri: "https://example.com/img.jpg" } }
+          { type: "image_url", image: { uri: "https://example.com/img.jpg" } }
         ]
       }
     ]);
@@ -134,7 +134,7 @@ describe("GeminiProvider – convertMessages with images", () => {
     const result = await provider.convertMessages([
       {
         role: "user",
-        content: [{ type: "image", image: {} }]
+        content: [{ type: "image_url", image: {} }]
       }
     ]);
 

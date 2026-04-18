@@ -20,7 +20,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../../config/constants";
-import { isProduction } from "../../../stores/ApiClient";
+import { isProduction } from "../../../lib/env";
 import { isElectron } from "../../../utils/browser";
 
 interface ModelListItemActionsProps {

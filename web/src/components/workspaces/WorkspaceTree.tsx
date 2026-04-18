@@ -5,7 +5,7 @@ import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import log from "loglevel";
 import { FileInfo } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
+import { trpcClient } from "../../trpc/client";
 import {
   Box,
   Button,
@@ -355,16 +355,11 @@ const fetchWorkspaceFiles = async (
   workspaceId: string,
   path: string = "."
 ): Promise<TreeViewItem[]> => {
-  const params = new URLSearchParams({ path });
-  const res = await fetch(
-    `${BASE_URL}/api/workspaces/${encodeURIComponent(workspaceId)}/files?${params}`
-  );
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Failed to list workspace files (${res.status})`);
-  }
-  const data: FileInfo[] = await res.json();
-  return data.map((file) => fileToTreeItem(file));
+  const data = await trpcClient.workspace.listFiles.query({
+    id: workspaceId,
+    path
+  });
+  return (data as FileInfo[]).map((file) => fileToTreeItem(file));
 };
 
 

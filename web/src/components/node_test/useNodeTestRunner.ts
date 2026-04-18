@@ -5,7 +5,7 @@ import { applyDefaultModels } from "../../utils/applyDefaultModels";
 import { applyTestAssets } from "../../utils/testAssets";
 import { uuidv4 } from "../../stores/uuidv4";
 import { BASE_URL } from "../../stores/BASE_URL";
-import { isLocalhost } from "../../stores/ApiClient";
+import { isLocalhost } from "../../lib/env";
 import { supabase } from "../../lib/supabaseClient";
 
 export type NodeTestStatus =

@@ -7,10 +7,8 @@ jest.mock("../../../stores/KeyPressedStore", () => ({
     getState: jest.fn()
   }
 }));
-jest.mock("../../../stores/ApiClient", () => ({
-  BASE_URL: "http://localhost",
-  authHeader: () => ({}),
-  client: { get: jest.fn() }
+jest.mock("../../../lib/auth", () => ({
+  authHeader: () => ({})
 }));
 jest.mock("../../../stores/AssetStore", () => ({
   useAssetStore: {

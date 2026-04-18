@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
-import { client } from "../../../stores/ApiClient";
+import { trpcClient } from "../../../trpc/client";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../../stores/MiniAppsStore";
 import { graphNodeToReactFlowNode } from "../../../stores/graphNodeToReactFlowNode";
@@ -52,11 +52,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
     queryKey: ["workflows-list"],
     queryFn: async () => {
       if (!workflowId) {
-        const { data, error } = await client.GET("/api/workflows/", {
-          params: { query: { limit: 100 } }
-        });
-        if (error) {throw error;}
-        return data;
+        return trpcClient.workflows.list.query({ limit: 100 });
       }
       return null;
     },

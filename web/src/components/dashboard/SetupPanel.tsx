@@ -5,7 +5,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../stores/ApiClient";
+import { isProduction } from "../../lib/env";
 import { FlexColumn, Card, Text } from "../ui_primitives";
 
 const panelStyles = (theme: Theme) =>

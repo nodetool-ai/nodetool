@@ -12,7 +12,7 @@ jest.mock("../../../stores/BASE_URL", () => ({
   UNIFIED_WS_URL: "ws://localhost:1234/ws"
 }));
 
-jest.mock("../../../stores/ApiClient", () => ({
+jest.mock("../../env", () => ({
   isLocalhost: true
 }));
 

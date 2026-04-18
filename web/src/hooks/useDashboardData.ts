@@ -1,25 +1,15 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { WorkflowList, Workflow } from "../stores/ApiTypes";
-import { client } from "../stores/ApiClient";
-import { createErrorMessage } from "../utils/errorHandling";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
+import { trpcClient } from "../trpc/client";
 
 const loadWorkflows = async () => {
-  const { data, error } = await client.GET("/api/workflows/", {
-    params: {
-      query: {
-        cursor: "",
-        limit: 20,
-        columns: "name,id,updated_at,description,thumbnail_url"
-      }
-    }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workflows");
-  }
-  return data;
+  return trpcClient.workflows.list.query({
+    cursor: "",
+    limit: 20
+  }) as unknown as WorkflowList;
 };
 
 /**

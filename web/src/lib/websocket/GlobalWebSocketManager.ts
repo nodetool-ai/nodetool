@@ -1,12 +1,12 @@
 import { EventEmitter } from "eventemitter3";
-import { WebSocketManager } from "./WebSocketManager";
-import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
-import { isLocalhost } from "../../stores/ApiClient";
 import log from "loglevel";
-import { FrontendToolRegistry } from "../tools/frontendTools";
+import { isLocalhost } from "../env";
+import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { handleResourceChange } from "../../stores/resourceChangeHandler";
 import { handleSystemStats } from "../../stores/systemStatsHandler";
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
+import { WebSocketManager } from "./WebSocketManager";
+import { FrontendToolRegistry } from "../tools/frontendTools";
 
 /**
  * Base shape of every message routed through the WebSocket.

@@ -14,6 +14,9 @@ interface PlotlyRendererProps {
 }
 
 const PlotlyRenderer: React.FC<PlotlyRendererProps> = ({ config }) => {
+  if (!config.config) {
+    return <div>Invalid Plotly config</div>;
+  }
   return (
     <div className="render-content" style={{ width: "100%", height: "100%" }}>
       <Suspense fallback={

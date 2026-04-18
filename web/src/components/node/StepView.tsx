@@ -83,7 +83,7 @@ interface StepViewProps {
 const StepView: React.FC<StepViewProps> = ({ step }) => {
   const theme = useTheme();
   // Simple heuristic for running state: has start time but not completed
-  const isRunning = step.start_time > 0 && !step.completed;
+  const isRunning = (step.start_time ?? 0) > 0 && !step.completed;
 
   return (
     <div css={styles(theme)}>

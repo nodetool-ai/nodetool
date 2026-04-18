@@ -4,14 +4,11 @@ import isEqual from "fast-deep-equal";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import Select from "../inputs/Select";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 
 const fetchFonts = async (): Promise<string[]> => {
-  const response = await client.GET("/api/fonts/", {});
-  if (!response.data) {
-    throw new Error("Failed to load fonts");
-  }
-  return response.data.fonts || [];
+  const { fonts } = await trpcClient.fonts.list.query();
+  return fonts;
 };
 
 const FontProperty: React.FC<PropertyProps> = ({

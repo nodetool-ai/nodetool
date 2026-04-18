@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
+import { isProduction } from "../lib/env";
 import useMetadataStore from "../stores/MetadataStore";
-import { isProduction } from "../stores/ApiClient";
 import { useSecrets } from "./useSecrets";
 import {
   getProviderKindForNamespace,

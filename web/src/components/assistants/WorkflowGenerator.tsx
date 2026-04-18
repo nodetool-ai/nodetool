@@ -1,7 +1,7 @@
 import React, { useState, useCallback, memo } from "react";
 import { Box, InputAdornment } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import { client } from "../../stores/ApiClient";
+import { restFetch } from "../../lib/rest-fetch";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import { useNodes } from "../../contexts/NodeContext";
@@ -35,14 +35,20 @@ const WorkflowGenerator: React.FC = memo(() => {
       setIsLoading(true);
       try {
         // The create-smart endpoint returns a Graph with nodes and edges
-        const { data, error } = await client.POST(
-          "/api/workflows/create-smart" as any,
-          { body: { prompt: prompt.trim() } }
-        );
+        const response = await restFetch("/api/workflows/create-smart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt.trim() })
+        });
 
-        if (error) {
+        const data = (await response.json().catch(() => null)) as
+          | Graph
+          | { detail?: unknown }
+          | null;
+
+        if (!response.ok) {
           const errorMsg = createErrorMessage(
-            error,
+            data,
             "Failed to create workflow"
           );
           throw new Error(

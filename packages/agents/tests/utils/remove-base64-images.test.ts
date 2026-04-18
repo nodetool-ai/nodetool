@@ -16,21 +16,21 @@ function textItem(text: string): MessageContent {
 
 function imageUrl(url: string): MessageContent {
   return {
-    type: "image",
+    type: "image_url",
     image: { uri: url }
   } as unknown as MessageContent;
 }
 
 function imageBase64DataUri(dataUri: string): MessageContent {
   return {
-    type: "image",
+    type: "image_url",
     image: { uri: dataUri }
   } as unknown as MessageContent;
 }
 
 function imageWithData(data: Uint8Array): MessageContent {
   return {
-    type: "image",
+    type: "image_url",
     image: { data }
   } as unknown as MessageContent;
 }

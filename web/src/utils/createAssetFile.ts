@@ -1,7 +1,8 @@
 import log from "loglevel";
+import { authHeader } from "../lib/auth";
 import type { Chunk } from "../stores/ApiTypes";
-import { authHeader } from "../stores/ApiClient";
-import { client } from "../stores/ApiClient";
+import { trpcClient } from "../trpc/client";
+import { isTRPCErrorWithCode, ApiErrorCode } from "@nodetool/protocol/api-schemas";
 import { resolveAssetUri } from "../components/node/output/hooks";
 
 interface AssetFileResult {
@@ -446,17 +447,11 @@ const createSingleAssetFile = async (
 
   if (shouldDownloadAsset) {
     try {
-      const assetResponse = await client.GET("/api/assets/{id}", {
-        params: { path: { id: typedOutput?.asset_id ?? "" } }
+      const assetResponse = await trpcClient.assets.get.query({
+        id: typedOutput?.asset_id ?? ""
       });
-      if (assetResponse.error) {
-        const detail =
-          assetResponse.error.detail?.[0]?.msg ||
-          JSON.stringify(assetResponse.error);
-        throw new Error(detail || "Failed to fetch asset metadata");
-      }
-      const downloadUrl = assetResponse.data?.get_url;
-      desiredFilename = assetResponse.data?.name || desiredFilename;
+      const downloadUrl = assetResponse.get_url;
+      desiredFilename = assetResponse.name || desiredFilename;
       if (downloadUrl) {
         data = await fetchBinaryFromUri(downloadUrl);
       } else if (outputUri) {
@@ -465,7 +460,10 @@ const createSingleAssetFile = async (
         log.warn("[createAssetFile] asset metadata missing get_url");
       }
     } catch (err) {
-      log.warn("[createAssetFile] Failed to download asset via API", err);
+      // NOT_FOUND is expected if the asset was already deleted; surface others normally.
+      if (!isTRPCErrorWithCode(err, ApiErrorCode.NOT_FOUND)) {
+        log.warn("[createAssetFile] Failed to download asset via API", err);
+      }
       data = originalData ?? new Uint8Array();
     }
   } else if (shouldFetchFromUri) {

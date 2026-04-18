@@ -1,16 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { trpcClient } from "../trpc/client";
 import { WorkflowTool } from "../stores/ApiTypes";
 
 export const useWorkflowTools = () => {
   const { data, error, isLoading } = useQuery({
     queryKey: ["workflow-tools"],
     queryFn: async (): Promise<WorkflowTool[]> => {
-      const { data, error } = await client.GET("/api/workflows/tools");
-      if (error) {
-        throw new Error(JSON.stringify(error));
-      }
-      return (data?.workflows as WorkflowTool[]) || [];
+      const result = await trpcClient.workflows.tools.query({ limit: 100 });
+      return (result?.workflows as WorkflowTool[]) ?? [];
     },
     refetchInterval: 1000 * 60 * 5 // 5 minutes
   });

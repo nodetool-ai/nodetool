@@ -4,7 +4,7 @@ import HuggingFaceModelMenuDialog from "../model_menu/HuggingFaceModelMenuDialog
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ImageModel, UnifiedModel, HuggingFaceModelValue, HuggingFaceModelValueInput } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelsByProvider } from "../../hooks/useModelsByProvider";
-import { BASE_URL } from "../../stores/BASE_URL";
+import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
@@ -14,14 +14,14 @@ interface HuggingFaceModelSelectProps {
   value: HuggingFaceModelValueInput;
 }
 
-type EndpointSuffix = "image/text-to-image" | "image/image-to-image" | null;
+type RecommendedTask = "text_to_image" | "image_to_image" | null;
 
-// Map modelType to endpoint for fetching recommended models
-const mapModelTypeToEndpoint = (modelType: string): EndpointSuffix => {
+// Map modelType to tRPC recommended task
+const mapModelTypeToTask = (modelType: string): RecommendedTask => {
   if (modelType.startsWith("hf.text_to_image")) {
-    return "image/text-to-image";
+    return "text_to_image";
   } else if (modelType.startsWith("hf.image_to_image")) {
-    return "image/image-to-image";
+    return "image_to_image";
   }
   return null;
 };
@@ -45,25 +45,23 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     return undefined;
   }, [modelType]);
 
-  // Map to endpoint for recommended models API
-  const endpoint = useMemo(
-    () => mapModelTypeToEndpoint(modelType),
+  // Map to tRPC recommended task
+  const recommendedTask = useMemo(
+    () => mapModelTypeToTask(modelType),
     [modelType]
   );
 
-  // Fetch recommended models from API
+  // Fetch recommended models via tRPC
   const { data: recommendedModels = [] } = useQuery<UnifiedModel[]>({
-    queryKey: ["recommended-task-models", endpoint],
-    enabled: !!endpoint,
+    queryKey: ["recommended-task-models", recommendedTask],
+    enabled: !!recommendedTask,
     queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/api/models/recommended/${endpoint}`);
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(
-          `Failed to fetch recommended models for ${endpoint}: ${res.status} ${text}`
-        );
+      if (recommendedTask === "text_to_image") {
+        return trpc.models.recommendedImageTextToImage.query() as Promise<UnifiedModel[]>;
+      } else if (recommendedTask === "image_to_image") {
+        return trpc.models.recommendedImageImageToImage.query() as Promise<UnifiedModel[]>;
       }
-      return (await res.json()) as UnifiedModel[];
+      return [];
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
