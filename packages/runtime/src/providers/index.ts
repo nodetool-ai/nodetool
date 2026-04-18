@@ -14,6 +14,7 @@ import { LlamaProvider } from "./llama-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { OllamaProvider } from "./ollama-provider.js";
 import { GroqProvider } from "./groq-provider.js";
+import { MinimaxProvider } from "./minimax-provider.js";
 import { MistralProvider } from "./mistral-provider.js";
 import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
@@ -44,6 +45,7 @@ export { LlamaProvider };
 export { OpenAIProvider };
 export { OllamaProvider };
 export { GroqProvider };
+export { MinimaxProvider };
 export { MistralProvider };
 export { MoonshotProvider };
 export { OpenRouterProvider };
@@ -134,6 +136,9 @@ registerBuiltinProvider("mistral", MistralProvider, {
 });
 registerBuiltinProvider("moonshot", MoonshotProvider, {
   KIMI_API_KEY: process.env["KIMI_API_KEY"]
+});
+registerBuiltinProvider("minimax", MinimaxProvider, {
+  MINIMAX_API_KEY: process.env["MINIMAX_API_KEY"]
 });
 registerBuiltinProvider("replicate", ReplicateProvider, {
   REPLICATE_API_TOKEN: process.env["REPLICATE_API_TOKEN"]
