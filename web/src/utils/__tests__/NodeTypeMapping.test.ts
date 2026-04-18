@@ -19,8 +19,13 @@ describe('NodeTypeMapping utilities', () => {
       expect(contentTypeToNodeType('folder')).toBe('folder');
     });
 
+    test('maps octet-stream GLB by filename extension', () => {
+      expect(contentTypeToNodeType('application/octet-stream', 'mesh.glb')).toBe('model_3d');
+    });
+
     test('returns null for unknown content type', () => {
       expect(contentTypeToNodeType('application/unknown')).toBeNull();
+      expect(contentTypeToNodeType('application/octet-stream', 'archive.bin')).toBeNull();
     });
   });
 

@@ -1,13 +1,34 @@
 import { TypeName } from "../stores/ApiTypes";
 
+const model3dFileExtensions = new Set(["glb", "gltf", "obj", "fbx", "stl", "ply"]);
+
+const getFileExtension = (filename?: string): string | null => {
+  if (!filename) {
+    return null;
+  }
+
+  const extension = filename.split(".").pop()?.toLowerCase();
+  return extension || null;
+};
+
 /**
  * Maps content types (MIME types) to internal node types
  */
-export const contentTypeToNodeType = (contentType: string): TypeName | null => {
+export const contentTypeToNodeType = (
+  contentType: string,
+  filename?: string
+): TypeName | null => {
   const normalizedContentType = contentType.toLowerCase().split(";")[0].trim();
 
   if (normalizedContentType.startsWith("model/")) {
     return "model_3d";
+  }
+
+  if (normalizedContentType === "application/octet-stream") {
+    const extension = getFileExtension(filename);
+    if (extension && model3dFileExtensions.has(extension)) {
+      return "model_3d";
+    }
   }
 
   switch (normalizedContentType) {
