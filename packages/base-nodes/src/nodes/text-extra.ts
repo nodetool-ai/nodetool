@@ -2445,11 +2445,27 @@ export class ToStringNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const v = this.value;
     const mode = String(this.mode ?? "str");
+    const toJsonString = (value: unknown): string => {
+      if (value === undefined) {
+        return "";
+      }
+      try {
+        const json = JSON.stringify(value);
+        if (json === undefined) {
+          return "";
+        }
+        return json;
+      } catch (_error) {
+        // JSON.stringify can fail for non-serializable values (e.g. circular objects).
+        return String(value);
+      }
+    };
+
     if (mode === "repr") {
-      return { output: JSON.stringify(v) };
+      return { output: toJsonString(v) };
     }
     if (v === null || v === undefined) return { output: "" };
-    if (typeof v === "object") return { output: JSON.stringify(v) };
+    if (typeof v === "object") return { output: toJsonString(v) };
     return { output: String(v) };
   }
 }
