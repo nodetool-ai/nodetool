@@ -1,9 +1,36 @@
 import { z } from "zod";
 
 // ── Graph shapes ─────────────────────────────────────────────────────────────
+// Validate the required fields of Node/Edge while allowing extra properties
+// to pass through (matches the `[key: string]: unknown` index signatures on
+// `Node` and `Edge` in api-types.ts / graph.ts). This rejects malformed input
+// (strings, nulls, objects missing `id`/`type`) at the tRPC boundary while
+// remaining permissive about unknown fields added by clients or Python.
 
-export const graphNode = z.record(z.string(), z.unknown());
-export const graphEdge = z.record(z.string(), z.unknown());
+export const graphNode = z
+  .object({
+    id: z.string(),
+    type: z.string(),
+    parent_id: z.string().nullable().optional(),
+    data: z.unknown().optional(),
+    ui_properties: z.unknown().optional(),
+    dynamic_properties: z.record(z.string(), z.unknown()).optional(),
+    dynamic_outputs: z.record(z.string(), z.unknown()).optional(),
+    sync_mode: z.string().optional()
+  })
+  .passthrough();
+
+export const graphEdge = z
+  .object({
+    id: z.string().nullable().optional(),
+    source: z.string(),
+    sourceHandle: z.string(),
+    target: z.string(),
+    targetHandle: z.string(),
+    ui_properties: z.record(z.string(), z.string()).nullable().optional(),
+    edge_type: z.string().optional()
+  })
+  .passthrough();
 
 export const graph = z.object({
   nodes: z.array(graphNode),
@@ -43,7 +70,7 @@ export type WorkflowResponse = z.infer<typeof workflowResponse>;
 // ── list (GET /api/workflows) ─────────────────────────────────────────────────
 
 export const listInput = z.object({
-  limit: z.number().int().min(1).max(500).default(100),
+  limit: z.number().int().min(1).default(100),
   run_mode: z.string().optional(),
   cursor: z.string().optional()
 });
@@ -175,7 +202,7 @@ export type AutosaveOutput = z.infer<typeof autosaveOutput>;
 // ── tools (GET /api/workflows/tools) ─────────────────────────────────────────
 
 export const toolsInput = z.object({
-  limit: z.number().int().min(1).max(500).default(100)
+  limit: z.number().int().min(1).default(100)
 });
 export type ToolsInput = z.infer<typeof toolsInput>;
 
@@ -207,7 +234,7 @@ export type ExamplesOutput = z.infer<typeof examplesOutput>;
 // ── public workflows ─────────────────────────────────────────────────────────
 
 export const publicListInput = z.object({
-  limit: z.number().int().min(1).max(500).default(100)
+  limit: z.number().int().min(1).default(100)
 });
 export type PublicListInput = z.infer<typeof publicListInput>;
 
@@ -267,7 +294,7 @@ export type VersionResponse = z.infer<typeof versionResponse>;
 // versions list
 export const versionsListInput = z.object({
   id: z.string().min(1),
-  limit: z.number().int().min(1).max(500).default(100)
+  limit: z.number().int().min(1).default(100)
 });
 export type VersionsListInput = z.infer<typeof versionsListInput>;
 

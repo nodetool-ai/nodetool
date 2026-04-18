@@ -2,14 +2,35 @@ import { z } from "zod";
 
 // ── Shared model schema ─────────────────────────────────────────────
 
+// Mirrors UnifiedModel in @nodetool/protocol/api-types. Keep fields in sync
+// with the TS interface; zod strips unknown fields on both input and output
+// validation, so an omitted property silently disappears from wire traffic.
 export const unifiedModel = z.object({
   id: z.string(),
   type: z.string().nullish(),
   name: z.string(),
+  provider: z.string().nullish(),
   repo_id: z.string().nullish(),
   path: z.string().nullish(),
+  artifact_family: z.string().nullish(),
+  artifact_component: z.string().nullish(),
+  artifact_confidence: z.number().nullish(),
+  artifact_evidence: z.array(z.string()).nullish(),
+  cache_path: z.string().nullish(),
+  allow_patterns: z.array(z.string()).nullish(),
+  ignore_patterns: z.array(z.string()).nullish(),
+  description: z.string().nullish(),
+  readme: z.string().nullish(),
   downloaded: z.boolean().nullish(),
-  tags: z.array(z.string()).nullish()
+  size_on_disk: z.number().nullish(),
+  pipeline_tag: z.string().nullish(),
+  tags: z.array(z.string()).nullish(),
+  has_model_index: z.boolean().nullish(),
+  downloads: z.number().nullish(),
+  likes: z.number().nullish(),
+  supported_tasks: z.array(z.string()).nullish(),
+  trending_score: z.number().nullish(),
+  image: z.string().nullish()
 });
 
 // ── Provider info ───────────────────────────────────────────────────
