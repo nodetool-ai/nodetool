@@ -209,5 +209,69 @@ describe("useNumberInput", () => {
 
       expect(onChangeComplete).toHaveBeenCalledWith(55);
     });
+
+    it("calls onDragStart once when drag threshold is exceeded", () => {
+      const onDragStart = jest.fn();
+      const props = createMockProps({ onDragStart });
+      const state = createMockState({ isDragging: true, dragStartX: 100, lastClientX: 100 });
+      const setState = () => {};
+      const inputIsFocused = true;
+      const setInputIsFocused = jest.fn();
+      const containerRef = createContainerRef();
+      const dragStateRef = createDragStateRef();
+      dragStateRef.current.isDragging = true;
+      dragStateRef.current.dragStartX = 100;
+      dragStateRef.current.lastClientX = 100;
+      const setSpeedFactorState = () => {};
+
+      const { result } = renderHook(() =>
+        useDragHandling(
+          props,
+          state,
+          setState,
+          inputIsFocused,
+          setInputIsFocused,
+          containerRef,
+          dragStateRef,
+          setSpeedFactorState
+        )
+      );
+
+      result.current.handleMouseMove(new MouseEvent("mousemove", { clientX: 120, clientY: 120 }));
+      result.current.handleMouseMove(new MouseEvent("mousemove", { clientX: 130, clientY: 120 }));
+
+      expect(onDragStart).toHaveBeenCalledTimes(1);
+    });
+
+    it("calls onDragEnd when drag threshold was exceeded and mouse is released", () => {
+      const onDragEnd = jest.fn();
+      const props = createMockProps({ onDragEnd });
+      const state = createMockState({ isDragging: true });
+      const setState = () => {};
+      const inputIsFocused = false;
+      const setInputIsFocused = jest.fn();
+      const containerRef = createContainerRef();
+      const dragStateRef = createDragStateRef();
+      dragStateRef.current.isDragging = true;
+      dragStateRef.current.hasExceededDragThreshold = true;
+      const setSpeedFactorState = () => {};
+
+      const { result } = renderHook(() =>
+        useDragHandling(
+          props,
+          state,
+          setState,
+          inputIsFocused,
+          setInputIsFocused,
+          containerRef,
+          dragStateRef,
+          setSpeedFactorState
+        )
+      );
+
+      result.current.handleMouseUp();
+
+      expect(onDragEnd).toHaveBeenCalledTimes(1);
+    });
   });
 });

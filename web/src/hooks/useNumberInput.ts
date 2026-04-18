@@ -41,6 +41,7 @@ export const useDragHandling = (
 ) => {
   const { calculateStep, calculateDecimalPlaces } = useValueCalculation();
   const propsRef = useRef(props);
+  const dragCallbackTriggeredRef = useRef(false);
   propsRef.current = props;
 
   const handleMouseMove = useCallback(
@@ -58,6 +59,10 @@ export const useDragHandling = (
       ) {
         dragStateRef.current.hasExceededDragThreshold = true;
         setInputIsFocused(false);
+        if (!dragCallbackTriggeredRef.current) {
+          dragCallbackTriggeredRef.current = true;
+          p.onDragStart?.();
+        }
       }
 
       // Ignore tiny drags that haven't crossed the threshold yet
@@ -184,11 +189,14 @@ export const useDragHandling = (
       if (!dragStateRef.current.hasExceededDragThreshold) {
         setInputIsFocused(true);
       } else {
+        p.onDragEnd?.();
+        dragCallbackTriggeredRef.current = false;
         // Call onChangeComplete when user finishes dragging (only if they actually dragged)
         if (p.onChangeComplete) {
           p.onChangeComplete(finalValue);
         }
       }
+      dragCallbackTriggeredRef.current = false;
     }
   }, [setInputIsFocused, dragStateRef, setState]);
 

@@ -35,6 +35,14 @@ export interface InputProps {
    * Useful for triggering actions only when the user has committed their change.
    */
   onChangeComplete?: (value: number) => void;
+  /**
+   * Called when drag interaction starts after threshold has been exceeded.
+   */
+  onDragStart?: () => void;
+  /**
+   * Called when drag interaction ends after a real drag interaction.
+   */
+  onDragEnd?: () => void;
   id: string;
   size?: "small" | "medium";
   color?: "primary" | "secondary";
@@ -85,6 +93,13 @@ const NumberInput: React.FC<InputProps> = (props) => {
   const [inputIsFocused, setInputIsFocused] = useState(false);
   const [speedFactorState, setSpeedFactorState] = useState(1);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const {
+    min,
+    max,
+    value: inputValue,
+    onChange,
+    onChangeComplete
+  } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef(state);
@@ -253,6 +268,43 @@ const NumberInput: React.FC<InputProps> = (props) => {
     [handleBlur]
   );
 
+  const handleStepMouseDown = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleStepChange = useCallback(
+    (delta: number) => (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const localNumericValue = Math.round(Number(state.localValue));
+      const currentValue = Number.isFinite(localNumericValue)
+        ? localNumericValue
+        : (Number.isFinite(inputValue) ? Math.round(inputValue) : 0);
+      let nextValue = currentValue + delta;
+
+      if (typeof min === "number") {
+        nextValue = Math.max(min, nextValue);
+      }
+      if (typeof max === "number") {
+        nextValue = Math.min(max, nextValue);
+      }
+
+      setInputIsFocused(false);
+      setState((prevState) => ({
+        ...prevState,
+        localValue: nextValue.toString(),
+        isDefault: nextValue === inputValue
+      }));
+
+      onChange(null, nextValue);
+      if (onChangeComplete) {
+        onChangeComplete(nextValue);
+      }
+    },
+    [max, min, onChange, onChangeComplete, inputValue, state.localValue]
+  );
+
   useEffect(() => {
     // Sync with external value changes, but only when not dragging or focused.
     if (!inputIsFocused && !state.isDragging) {
@@ -348,6 +400,28 @@ const NumberInput: React.FC<InputProps> = (props) => {
               decimalPlaces={state.decimalPlaces}
             />
           )}
+          {props.inputType === "int" && !inputIsFocused && (
+            <div className="number-stepper nodrag">
+              <button
+                type="button"
+                className="step-button"
+                aria-label={`Decrease ${props.name}`}
+                onMouseDown={handleStepMouseDown}
+                onClick={handleStepChange(-1)}
+              >
+                -
+              </button>
+              <button
+                type="button"
+                className="step-button"
+                aria-label={`Increase ${props.name}`}
+                onMouseDown={handleStepMouseDown}
+                onClick={handleStepChange(1)}
+              >
+                +
+              </button>
+            </div>
+          )}
         </div>
       </div>
       {sliderVisible &&
@@ -380,6 +454,8 @@ export default memo(NumberInput, (prevProps, nextProps) => {
     prevProps.showSlider === nextProps.showSlider &&
     prevProps.changed === nextProps.changed &&
     prevProps.onChange === nextProps.onChange &&
-    prevProps.onChangeComplete === nextProps.onChangeComplete
+    prevProps.onChangeComplete === nextProps.onChangeComplete &&
+    prevProps.onDragStart === nextProps.onDragStart &&
+    prevProps.onDragEnd === nextProps.onDragEnd
   );
 });
