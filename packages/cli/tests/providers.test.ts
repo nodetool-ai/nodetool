@@ -82,7 +82,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("MOONSHOT_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     expect(availableProviders()).toEqual(["ollama"]);
   });
@@ -93,7 +93,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("MOONSHOT_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers).toContain("anthropic");
@@ -106,7 +106,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("MOONSHOT_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers).toContain("openai");
@@ -118,7 +118,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "c");
     vi.stubEnv("MISTRAL_API_KEY", "d");
     vi.stubEnv("GROQ_API_KEY", "e");
-    vi.stubEnv("MOONSHOT_API_KEY", "f");
+    vi.stubEnv("KIMI_API_KEY", "f");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers).toContain("anthropic");
@@ -136,7 +136,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("MOONSHOT_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers[providers.length - 1]).toBe("ollama");
@@ -148,7 +148,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "test-gemini");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("MOONSHOT_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     expect(availableProviders()).toEqual(["anthropic", "gemini", "ollama"]);
   });
@@ -252,7 +252,7 @@ describe("createProvider", () => {
   });
 
   it("creates a MoonshotProvider for 'moonshot'", async () => {
-    vi.stubEnv("MOONSHOT_API_KEY", "test-moonshot");
+    vi.stubEnv("KIMI_API_KEY", "test-moonshot");
     const { createProvider } = await import("../src/providers.js");
     const provider = await createProvider("moonshot");
     expect((provider as unknown as { id: string }).id).toBe("moonshot");
