@@ -4,7 +4,7 @@ import { shallow } from "zustand/shallow";
 
 export const useDynamicProperty = (
   nodeId: string,
-  dynamicProperties: Record<string, any>
+  dynamicProperties: Record<string, unknown>
 ) => {
   const { updateNodeData } = useNodes((state) => ({
     updateNodeData: state.updateNodeData
