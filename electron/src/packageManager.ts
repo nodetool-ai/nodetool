@@ -26,6 +26,21 @@ interface RegistryPackageItem {
   latest_version?: string;
 }
 
+const PACKAGE_DESCRIPTION_OVERRIDES: Record<string, string> = {
+  "nodetool-ai/nodetool-core":
+    "Essential NodeTool core nodes and shared runtime components. Install this package in every NodeTool environment.",
+  "nunchaku-tech/nunchaku":
+    "Accelerates FLUX and Qwen image models with Nunchaku quantization kernels. Install this only if you plan to run Nunchaku-optimized HuggingFace models.",
+};
+
+export function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" | "description">): string {
+  const override = PACKAGE_DESCRIPTION_OVERRIDES[pkg.repo_id.toLowerCase()];
+  if (override) {
+    return override;
+  }
+  return typeof pkg.description === "string" ? pkg.description.trim() : "";
+}
+
 // TODO: Package manager needs to be rewritten for npm packages.
 // This is a temporary stub — uv/pip is no longer installed in the conda env.
 function getUVPath(): string {
@@ -118,7 +133,7 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
           const registryData = JSON.parse(data) as { packages?: RegistryPackageItem[] };
           const packages = (registryData.packages || []).map((pkg) => ({
             name: pkg.name,
-            description: pkg.description ?? "",
+            description: getPackageDescription(pkg),
             repo_id: pkg.repo_id,
             namespaces: pkg.namespaces,
             version:
