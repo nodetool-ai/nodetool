@@ -36,7 +36,11 @@ import {
   MouseDragInput,
   MouseScrollInput,
   KeyPressInput,
-  KeyTypeInput
+  KeyTypeInput,
+  InfoSearchWebInput,
+  MessageNotifyUserInput,
+  MessageAskUserInput,
+  IdleInput
 } from "@nodetool/sandbox/schemas";
 import {
   fileRead,
@@ -76,6 +80,13 @@ import {
   keyType,
   cursorPosition
 } from "./tools/desktop.js";
+import { infoSearchWeb } from "./tools/search.js";
+import {
+  messageNotifyUser,
+  messageAskUser,
+  idle
+} from "./tools/message.js";
+import { replay, subscribe } from "./event-bus.js";
 
 export const SANDBOX_AGENT_VERSION = "0.1.0";
 
@@ -133,6 +144,50 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   route(app, "/desktop/key/press", KeyPressInput, keyPress);
   route(app, "/desktop/key/type", KeyTypeInput, keyType);
   app.get("/desktop/cursor-position", async () => cursorPosition());
+
+  // --- Search ------------------------------------------------------------
+  route(app, "/search/web", InfoSearchWebInput, infoSearchWeb);
+
+  // --- Messaging ---------------------------------------------------------
+  route(app, "/message/notify", MessageNotifyUserInput, messageNotifyUser);
+  route(app, "/message/ask", MessageAskUserInput, messageAskUser);
+  route(app, "/idle", IdleInput, idle);
+
+  // --- Event stream (SSE) ------------------------------------------------
+  app.get("/events", async (req, reply) => {
+    reply.raw.writeHead(200, {
+      "content-type": "text/event-stream",
+      "cache-control": "no-cache, no-transform",
+      connection: "keep-alive",
+      "x-accel-buffering": "no"
+    });
+
+    // Replay buffered events so reconnecting clients catch up.
+    for (const ev of replay()) {
+      reply.raw.write(`data: ${JSON.stringify(ev)}\n\n`);
+    }
+
+    const unsubscribe = subscribe((ev) => {
+      reply.raw.write(`data: ${JSON.stringify(ev)}\n\n`);
+    });
+
+    // Heartbeat comments keep intermediaries from closing the pipe.
+    const heartbeat = setInterval(() => {
+      reply.raw.write(": heartbeat\n\n");
+    }, 15_000);
+
+    const close = (): void => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      try {
+        reply.raw.end();
+      } catch {
+        // ignore
+      }
+    };
+    req.raw.on("close", close);
+    req.raw.on("error", close);
+  });
 
   app.setErrorHandler((err: unknown, _req, reply) => {
     const status =

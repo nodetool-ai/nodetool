@@ -70,6 +70,15 @@ import {
   KeyTypeInput,
   KeyTypeOutput,
   CursorPositionOutput,
+  InfoSearchWebInput,
+  InfoSearchWebOutput,
+  MessageNotifyUserInput,
+  MessageNotifyUserOutput,
+  MessageAskUserInput,
+  MessageAskUserOutput,
+  IdleInput,
+  IdleOutput,
+  SandboxEvent,
   HealthOutput
 } from "./schemas/index.js";
 
@@ -367,6 +376,99 @@ export class ToolClient {
     return this.get("/desktop/cursor-position", CursorPositionOutput);
   }
 
+  // --- Search ------------------------------------------------------------
+
+  async infoSearchWeb(
+    input: InfoSearchWebInput
+  ): Promise<InfoSearchWebOutput> {
+    return this.post(
+      "/search/web",
+      input,
+      InfoSearchWebInput,
+      InfoSearchWebOutput
+    );
+  }
+
+  // --- Messaging ---------------------------------------------------------
+
+  async messageNotifyUser(
+    input: MessageNotifyUserInput
+  ): Promise<MessageNotifyUserOutput> {
+    return this.post(
+      "/message/notify",
+      input,
+      MessageNotifyUserInput,
+      MessageNotifyUserOutput
+    );
+  }
+
+  async messageAskUser(
+    input: MessageAskUserInput
+  ): Promise<MessageAskUserOutput> {
+    return this.post(
+      "/message/ask",
+      input,
+      MessageAskUserInput,
+      MessageAskUserOutput
+    );
+  }
+
+  async idle(input: IdleInput = {}): Promise<IdleOutput> {
+    return this.post("/idle", input, IdleInput, IdleOutput);
+  }
+
+  /**
+   * Consume the server-sent event stream from /events.
+   *
+   * Yields each SandboxEvent as it's pushed by the sandbox. Cancel by
+   * passing an AbortSignal; the async iterator will return cleanly on
+   * abort. If the server closes the stream, the iterator returns.
+   */
+  async *events(options?: { signal?: AbortSignal }): AsyncGenerator<
+    SandboxEvent,
+    void
+  > {
+    const res = await this.fetchImpl(`${this.baseUrl}/events`, {
+      method: "GET",
+      headers: { accept: "text/event-stream" },
+      signal: options?.signal
+    });
+    if (!res.ok || !res.body) {
+      throw new ToolInvocationError(
+        res.status,
+        null,
+        `failed to open event stream: ${res.status}`
+      );
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        buffer += decoder.decode(value, { stream: true });
+        // SSE frames are separated by a blank line.
+        let idx = buffer.indexOf("\n\n");
+        while (idx !== -1) {
+          const frame = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const event = parseSseFrame(frame);
+          if (event) yield event;
+          idx = buffer.indexOf("\n\n");
+        }
+      }
+    } finally {
+      try {
+        reader.cancel();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   // --- Internals ---------------------------------------------------------
 
   private async get<TOut>(
@@ -429,5 +531,24 @@ export class ToolClient {
       throw new ToolInvocationError(res.status, body, msg);
     }
     return outSchema.parse(body);
+  }
+}
+
+function parseSseFrame(frame: string): SandboxEvent | null {
+  // Per SSE spec: lines prefixed with "data:" are concatenated (newline-
+  // joined); we only use the data field.
+  const dataLines: string[] = [];
+  for (const line of frame.split("\n")) {
+    if (line.startsWith("data:")) {
+      dataLines.push(line.slice(5).trimStart());
+    }
+  }
+  if (dataLines.length === 0) return null;
+  const raw = dataLines.join("\n");
+  try {
+    const parsed = SandboxEvent.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
   }
 }

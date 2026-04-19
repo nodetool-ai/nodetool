@@ -25,4 +25,7 @@ export {
 export { ToolClient, ToolInvocationError } from "./ToolClient.js";
 export type { ToolClientOptions } from "./ToolClient.js";
 
+export { SessionStore } from "./session/index.js";
+export type { SessionStoreOptions } from "./session/index.js";
+
 export * from "./schemas/index.js";
