@@ -32,7 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Non-root user for the agent's workload. Passwordless sudo is NOT granted;
 # sudo-gated tools should fail unless the operator explicitly enables it.
-RUN useradd -m -s /bin/bash -u 1000 ubuntu \
+RUN userdel node 2>/dev/null || true \
+    && useradd -m -s /bin/bash -u 1000 ubuntu \
     && mkdir -p /workspace \
     && chown ubuntu:ubuntu /workspace
 
@@ -43,6 +44,7 @@ FROM base AS build
 WORKDIR /build
 # The build context should be the repo root (docker build -f packages/sandbox-agent/docker/Dockerfile .)
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json ./
 COPY tsconfig.build.json ./
 COPY scripts/ ./scripts/
 COPY packages/config ./packages/config
