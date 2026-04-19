@@ -13,7 +13,7 @@ const handleApiError = async (response: Response): Promise<void> => {
   }
 };
 
-export const fetchWorkflowVersions = async (
+const fetchWorkflowVersions = async (
   workflowId: string,
   cursor?: number | null,
   limit: number = 100
@@ -32,19 +32,7 @@ export const fetchWorkflowVersions = async (
   return result as Promise<WorkflowVersionList>;
 };
 
-export const fetchWorkflowVersion = async (
-  workflowId: string,
-  version: number
-): Promise<WorkflowVersion> => {
-  const response = await fetch(
-    `${API_BASE}/${workflowId}/versions/${version}`
-  );
-  await handleApiError(response);
-  const result = await response.json();
-  return result as Promise<WorkflowVersion>;
-};
-
-export const createWorkflowVersion = async (
+const createWorkflowVersion = async (
   workflowId: string,
   request: CreateWorkflowVersionRequest
 ): Promise<WorkflowVersion> => {
@@ -57,7 +45,7 @@ export const createWorkflowVersion = async (
   return response.json() as Promise<WorkflowVersion>;
 };
 
-export const restoreWorkflowVersion = async (
+const restoreWorkflowVersion = async (
   workflowId: string,
   version: number
 ): Promise<void> => {
@@ -68,7 +56,7 @@ export const restoreWorkflowVersion = async (
   await handleApiError(response);
 };
 
-export const deleteWorkflowVersion = async (
+const deleteWorkflowVersion = async (
   workflowId: string,
   versionId: string
 ): Promise<void> => {

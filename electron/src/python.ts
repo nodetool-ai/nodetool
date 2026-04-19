@@ -8,7 +8,7 @@ import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
-import { getTorchIndexUrl, getTorchIndexUrlAsync } from "./torchPlatformCache";
+import { getTorchIndexUrl } from "./torchPlatformCache";
 
 /**
  * Python environment manager for the Electron shell.
@@ -286,86 +286,6 @@ function normalizePythonPackageName(packageName: string): string {
   }
   const [, resolvedName = ""] = trimmed.split("/", 2);
   return resolvedName || trimmed;
-}
-
-/**
- * Update the Python environment packages using wheel-based package index
- */
-async function updateCondaEnvironment(
-  packages: string[]
-): Promise<void> {
-  try {
-    emitBootMessage(`Updating python packages...`);
-
-    const uvExecutable = getUVPath();
-    const PACKAGE_INDEX_URL =
-      "https://nodetool-ai.github.io/nodetool-registry/simple/";
-
-    // Get version from package.json via Electron's app.getVersion()
-    const appVersion = app.getVersion();
-    const pipVersion = convertToPep440Version(appVersion);
-    logMessage(`Pinning packages to version: ${pipVersion} (from ${appVersion})`);
-
-    // Convert repo IDs to package names for wheel installation, pinned to app version
-    const corePackages = [
-      `nodetool-core==${pipVersion}`,
-    ];
-
-    // Convert additional packages from repo format to package names, pinned to app version
-    const additionalPackages = packages.map((repoId) => {
-      if (!repoId) {
-        return repoId;
-      }
-
-      const trimmed = repoId.trim();
-      if (!trimmed) {
-        return trimmed;
-      }
-
-      let packageName: string;
-      if (!trimmed.includes("/")) {
-        packageName = trimmed;
-      } else {
-        const [, name = ""] = trimmed.split("/", 2);
-        packageName = name || trimmed;
-      }
-
-      // Pin to the same version as the app
-      return `${packageName}==${pipVersion}`;
-    });
-
-    const allPackages = [...corePackages, ...additionalPackages];
-
-    // Get the torch platform index URL (e.g., cu128 for CUDA 12.8)
-    const torchIndexUrl = await getTorchIndexUrlAsync();
-
-    const installCommand: string[] = [
-      uvExecutable,
-      "pip",
-      "install",
-      "--extra-index-url",
-      PACKAGE_INDEX_URL,
-      // Add PyTorch index URL for the detected GPU platform
-      ...(torchIndexUrl ? ["--extra-index-url", torchIndexUrl] : []),
-      "--index-strategy",
-      "unsafe-best-match",
-      "--system",
-      ...allPackages,
-    ];
-
-    if (torchIndexUrl) {
-      logMessage(`Using torch index URL: ${torchIndexUrl}`);
-    }
-    logMessage(`Running command: ${installCommand.join(" ")}`);
-    await runCommand(installCommand);
-
-    logMessage(
-      "Python packages update completed successfully from wheel index",
-    );
-  } catch (error: any) {
-    logMessage(`Failed to update Pip packages: ${error.message}`, "error");
-    throw error;
-  }
 }
 
 async function installRequiredPythonPackages(
