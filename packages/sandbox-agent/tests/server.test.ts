@@ -88,4 +88,33 @@ describe("buildServer / health", () => {
       resetSecretMap();
     }
   });
+
+  it("rejects non-loopback callers for internal control routes", async () => {
+    const app = buildServer();
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/internal/set-secret-map",
+        remoteAddress: "10.1.2.3",
+        payload: { map: { OPENAI_API_KEY: "sk-test" } }
+      });
+      expect(res.statusCode).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("rejects invalid secret map entries", async () => {
+    const app = buildServer();
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/internal/set-secret-map",
+        payload: { map: { OPENAI_API_KEY: "" } }
+      });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await app.close();
+    }
+  });
 });

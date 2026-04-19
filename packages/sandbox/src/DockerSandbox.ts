@@ -16,6 +16,7 @@
 
 import { createConnection, type Socket as NetSocket } from "node:net";
 import Dockerode from "dockerode";
+import { createLogger } from "@nodetool/config";
 import type {
   Sandbox,
   SandboxOptions,
@@ -32,6 +33,7 @@ export const VNC_WS_PORT = 6080;
  *  Covers the common dev-server defaults: Next.js (3000), Flask (5000),
  *  Django (8000), generic (8080). */
 export const USER_SERVICE_PORTS = [3000, 5000, 8000, 8080] as const;
+const log = createLogger("nodetool.sandbox.docker");
 
 export interface DockerSandboxProviderOptions {
   /** Host IP bound for published ports. Default: 127.0.0.1. */
@@ -207,19 +209,31 @@ export class DockerSandboxProvider implements SandboxProvider {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ map: userServiceMap })
-        }).catch(() => {
-          // best-effort; expose_port will simply return an empty URL
+        }).catch((error: unknown) => {
+          log.warn("failed to configure expose_port map", {
+            error: error instanceof Error ? error.message : String(error),
+            sessionId: options.sessionId
+          });
         });
       }
 
       if (options.secretMap && Object.keys(options.secretMap).length > 0) {
-        await fetch(`${toolUrl}/internal/set-secret-map`, {
+        const response = await fetch(`${toolUrl}/internal/set-secret-map`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ map: options.secretMap })
-        }).catch(() => {
-          // best-effort; secret_get will return null for missing keys
+        }).catch((error: unknown) => {
+          throw new Error(
+            `failed to configure secret map: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
         });
+        if (!response.ok) {
+          throw new Error(
+            `failed to configure secret map: ${response.status} ${response.statusText}`
+          );
+        }
       }
 
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;

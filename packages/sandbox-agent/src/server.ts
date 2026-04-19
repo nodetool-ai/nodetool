@@ -165,6 +165,10 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
 
   // Internal control plane (host → server). Not an agent-facing tool.
   app.post("/internal/set-port-map", async (req, reply) => {
+    if (!isLoopbackRequest(req.ip)) {
+      reply.status(403).send({ error: "forbidden" });
+      return;
+    }
     const body = req.body as { map?: Record<string, string> } | undefined;
     if (!body || typeof body.map !== "object" || body.map === null) {
       reply.status(400).send({ error: "missing map" });
@@ -174,9 +178,24 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
     reply.send({ ok: true });
   });
   app.post("/internal/set-secret-map", async (req, reply) => {
+    if (!isLoopbackRequest(req.ip)) {
+      reply.status(403).send({ error: "forbidden" });
+      return;
+    }
     const body = req.body as { map?: Record<string, string> } | undefined;
     if (!body || typeof body.map !== "object" || body.map === null) {
       reply.status(400).send({ error: "missing map" });
+      return;
+    }
+    const invalidEntry = Object.entries(body.map).find(
+      ([name, value]) =>
+        typeof name !== "string" ||
+        name.length === 0 ||
+        typeof value !== "string" ||
+        value.length === 0
+    );
+    if (invalidEntry) {
+      reply.status(400).send({ error: "invalid secret map entry" });
       return;
     }
     setSecretMap(body.map);
@@ -238,6 +257,11 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   });
 
   return app;
+}
+
+function isLoopbackRequest(ip: string | undefined): boolean {
+  if (!ip) return false;
+  return ip === "127.0.0.1" || ip === "::1" || ip.startsWith("::ffff:127.");
 }
 
 import type { ZodType } from "zod";
