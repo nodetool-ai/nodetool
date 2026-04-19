@@ -253,18 +253,21 @@ describe("WorkflowRunner", () => {
   });
 
   describe("run", () => {
-    it("ignores run requests while already connecting", async () => {
-      store.setState({ state: "connecting" });
+    it.each(["connecting", "running", "paused", "suspended"] as const)(
+      "ignores run requests while state is %s",
+      async (state) => {
+        store.setState({ state });
 
-      await store.getState().run({}, testWorkflow, [], []);
+        await store.getState().run({}, testWorkflow, [], []);
 
-      expect(globalWebSocketManager.ensureConnection).not.toHaveBeenCalled();
-      expect(globalWebSocketManager.send).not.toHaveBeenCalled();
-    });
+        expect(globalWebSocketManager.ensureConnection).not.toHaveBeenCalled();
+        expect(globalWebSocketManager.send).not.toHaveBeenCalled();
+      }
+    );
 
     it("only starts one run when called consecutively", async () => {
       let resolveConnection!: () => void;
-      (globalWebSocketManager.ensureConnection as jest.Mock).mockImplementation(
+      (globalWebSocketManager.ensureConnection as jest.Mock).mockImplementationOnce(
         () =>
           new Promise<void>((resolve) => {
             resolveConnection = resolve;
@@ -272,7 +275,7 @@ describe("WorkflowRunner", () => {
       );
 
       const firstRunPromise = store.getState().run({}, testWorkflow, [], []);
-      await Promise.resolve();
+      expect(store.getState().state).toBe("connecting");
       const secondRunPromise = store.getState().run({}, testWorkflow, [], []);
 
       resolveConnection();
@@ -286,6 +289,16 @@ describe("WorkflowRunner", () => {
           command: "run_job",
         })
       );
+    });
+
+    it("allows starting a new run after state returns to idle", async () => {
+      await store.getState().run({}, testWorkflow, [], []);
+      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(1);
+
+      store.setState({ state: "idle" });
+
+      await store.getState().run({}, testWorkflow, [], []);
+      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(2);
     });
   });
 });

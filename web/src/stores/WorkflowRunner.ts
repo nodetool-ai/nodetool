@@ -266,8 +266,9 @@ export const createWorkflowRunnerStore = (
       const currentState = get().state;
       if (
         currentState === "connecting" ||
-        currentState === "connected" ||
-        currentState === "running"
+        currentState === "running" ||
+        currentState === "paused" ||
+        currentState === "suspended"
       ) {
         log.warn(
           `WorkflowRunner[${workflowId}]: Ignoring run request while workflow is busy`,
