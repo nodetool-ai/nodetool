@@ -19,6 +19,14 @@ import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
 import { initDb, getSecret } from "@nodetool/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool/config";
+import {
+  DockerSandboxProvider,
+  SessionStore,
+  type Sandbox
+} from "@nodetool/sandbox";
+import { createSandboxTools } from "@nodetool/sandbox-tools";
+import { randomUUID } from "node:crypto";
+import type { Tool } from "@nodetool/agents";
 
 // Configure logging: in interactive mode, suppress non-error logs to a file
 // so they don't interfere with the Ink TUI. Env vars can still override.
@@ -61,6 +69,14 @@ program
     "-u, --url <url>",
     "NodeTool server WebSocket URL (e.g. ws://localhost:7777/ws)"
   )
+  .option(
+    "--sandbox",
+    "Provision an isolated Docker sandbox and expose its tools (file, shell, browser, desktop, search, messaging) to the agent"
+  )
+  .option(
+    "--sandbox-image <image>",
+    "Override the sandbox Docker image (default: nodetool/sandbox-agent:latest)"
+  )
   .helpOption("-h, --help", "Show help")
   .version("0.1.0")
   .parse();
@@ -72,6 +88,8 @@ const opts = program.opts<{
   workspace?: string;
   tools?: string;
   url?: string;
+  sandbox?: boolean;
+  sandboxImage?: string;
 }>();
 
 // Initialize database
@@ -130,15 +148,65 @@ await Promise.all([
   autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
 ]);
 
+// --- Sandbox provisioning (optional) ---------------------------------------
+//
+// When `--sandbox` is set we bring up a DockerSandbox for this CLI process,
+// wrap its ToolClient with the agent adapter, and pass the resulting Tool
+// array into the App as `extraTools`. The sandbox is released on exit.
+
+let sandboxStore: SessionStore | null = null;
+let sandboxHandle: Sandbox | null = null;
+let sandboxExtraTools: Tool[] | undefined;
+
+if (opts.sandbox) {
+  const provider_ = new DockerSandboxProvider(
+    opts.sandboxImage ? { defaultImage: opts.sandboxImage } : {}
+  );
+  sandboxStore = new SessionStore({ provider: provider_ });
+  const sessionId = `cli-${randomUUID().slice(0, 8)}`;
+  try {
+    sandboxHandle = await sandboxStore.acquire(sessionId, {
+      workspaceDir: workspace
+    });
+    sandboxExtraTools = createSandboxTools(sandboxHandle.client);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Failed to provision sandbox: ${err instanceof Error ? err.message : String(err)}`
+    );
+    process.exit(1);
+  }
+
+  const cleanup = async (): Promise<void> => {
+    try {
+      if (sandboxStore) await sandboxStore.close();
+    } catch {
+      // ignore
+    }
+  };
+  process.on("SIGINT", () => void cleanup().finally(() => process.exit(130)));
+  process.on("SIGTERM", () => void cleanup().finally(() => process.exit(143)));
+  process.on("exit", () => {
+    // Best-effort synchronous cleanup; `release` is async so we just
+    // kick it off and trust Docker to reap containers on daemon shutdown.
+    if (sandboxHandle) void sandboxHandle.release();
+  });
+}
+
 // Stdin mode: activated when stdin is piped (not a TTY)
 if (!process.stdin.isTTY) {
-  await runStdinMode({
-    provider,
-    model,
-    workspaceDir: workspace,
-    agentMode,
-    wsUrl: opts.url
-  });
+  try {
+    await runStdinMode({
+      provider,
+      model,
+      workspaceDir: workspace,
+      agentMode,
+      wsUrl: opts.url,
+      extraTools: sandboxExtraTools
+    });
+  } finally {
+    if (sandboxStore) await sandboxStore.close();
+  }
   process.exit(0);
 }
 
@@ -149,10 +217,12 @@ const { waitUntilExit } = render(
     initialAgentMode: agentMode,
     enabledTools,
     workspaceDir: workspace,
-    wsUrl: opts.url
+    wsUrl: opts.url,
+    extraTools: sandboxExtraTools
   }),
   { exitOnCtrlC: false }
 );
 
 await waitUntilExit();
+if (sandboxStore) await sandboxStore.close();
 process.exit(0);

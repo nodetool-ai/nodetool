@@ -37,6 +37,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./tool": {
+      "nodetool-dev": "./src/tools/base-tool.ts",
+      "types": "./dist/tools/base-tool.d.ts",
+      "import": "./dist/tools/base-tool.js",
+      "default": "./dist/tools/base-tool.js"
     }
   }
 }

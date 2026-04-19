@@ -29,6 +29,9 @@
     "packages/elevenlabs-nodes",
     "packages/kie-codegen",
     "packages/kie-nodes",
+    "packages/sandbox",
+    "packages/sandbox-agent",
+    "packages/sandbox-tools",
     "web",
     "electron"
   ],
