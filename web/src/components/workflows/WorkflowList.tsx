@@ -84,6 +84,7 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [toolsExpanded, setToolsExpanded] = useState(false);
   const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
   const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
@@ -309,6 +310,8 @@ const WorkflowList = () => {
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}
+            compact={!toolsExpanded}
+            onExpand={() => setToolsExpanded(true)}
           />
         </FlexRow>
         <div className="status">
