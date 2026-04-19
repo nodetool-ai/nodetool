@@ -2,6 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { StepExecutor } from "../src/step-executor.js";
 import type { Step, Task } from "../src/types.js";
 import type { ProcessingMessage } from "@nodetool/protocol";
+import { mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 /**
  * Minimal mock provider that returns a single assistant message
@@ -54,7 +57,7 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>) {
 /**
  * Minimal mock context with storeStepResult and loadStepResult.
  */
-function createMockContext() {
+function createMockContext(overrides: Record<string, unknown> = {}) {
   const store = new Map<string, unknown>();
   return {
     storeStepResult: vi.fn(async (key: string, value: unknown) => {
@@ -66,7 +69,8 @@ function createMockContext() {
     }),
     set: vi.fn(),
     get: vi.fn(),
-    _store: store
+    _store: store,
+    ...overrides
   } as any;
 }
 
@@ -1002,6 +1006,161 @@ describe("StepExecutor", () => {
     const sources = executor.getSources();
     // Should only appear once
     expect(sources.filter((s) => s === "https://dup.com")).toHaveLength(1);
+  });
+
+  it("persists download outputs to assets via sandboxToAsset", async () => {
+    const step: Step = {
+      id: "step_download_asset",
+      instructions: "Download then finish",
+      completed: false,
+      dependsOn: [],
+      outputSchema: JSON.stringify({ type: "object", properties: {} }),
+      logs: []
+    };
+    const task: Task = {
+      id: "task_download_asset",
+      title: "Download asset bridge",
+      steps: [step]
+    };
+
+    let callCount = 0;
+    const provider = {
+      ...createMockProvider(),
+      generateMessages: async function* () {
+        callCount += 1;
+        if (callCount === 1) {
+          yield {
+            id: "tc_download",
+            name: "download_file",
+            args: {
+              url: "https://example.com/file.txt",
+              output_file: "downloads/file.txt"
+            }
+          };
+          return;
+        }
+        yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
+      }
+    } as any;
+
+    const downloadTool = {
+      name: "download_file",
+      description: "Download a file",
+      inputSchema: { type: "object" as const, properties: {}, required: [] },
+      process: vi.fn().mockResolvedValue({
+        success: true,
+        output_file: "downloads/file.txt"
+      }),
+      userMessage: () => "Downloading",
+      toProviderTool: () => ({
+        name: "download_file",
+        description: "Download a file",
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
+    };
+
+    const sandboxToAsset = vi.fn().mockResolvedValue({
+      type: "asset",
+      uri: "asset://persisted-download",
+      asset_id: "persisted-download"
+    });
+    const context = createMockContext({ sandboxToAsset });
+
+    const executor = new StepExecutor({
+      task,
+      step,
+      context,
+      provider,
+      model: "test-model",
+      tools: [downloadTool as any]
+    });
+
+    for await (const _ of executor.execute()) {
+      /* drain */
+    }
+
+    expect(sandboxToAsset).toHaveBeenCalledWith("downloads/file.txt");
+    expect(executor.getSources()).toContain("asset://persisted-download");
+  });
+
+  it("persists generated binary artifacts to assets via sandboxToAsset", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-step-artifacts-"));
+    try {
+      const step: Step = {
+        id: "step_binary_artifact",
+        instructions: "Generate an image then finish",
+        completed: false,
+        dependsOn: [],
+        outputSchema: JSON.stringify({ type: "object", properties: {} }),
+        logs: []
+      };
+      const task: Task = {
+        id: "task_binary_artifact",
+        title: "Binary artifact bridge",
+        steps: [step]
+      };
+
+      let callCount = 0;
+      const provider = {
+        ...createMockProvider(),
+        generateMessages: async function* () {
+          callCount += 1;
+          if (callCount === 1) {
+            yield {
+              id: "tc_js",
+              name: "js",
+              args: { code: "return 'ok'" }
+            };
+            return;
+          }
+          yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
+        }
+      } as any;
+
+      const jsTool = {
+        name: "js",
+        description: "Run sandboxed JS",
+        inputSchema: { type: "object" as const, properties: {}, required: [] },
+        process: vi.fn().mockResolvedValue({
+          success: true,
+          image: `data:image/png;base64,${Buffer.from("img").toString("base64")}`
+        }),
+        userMessage: () => "Running js",
+        toProviderTool: () => ({
+          name: "js",
+          description: "Run sandboxed JS",
+          inputSchema: { type: "object", properties: {}, required: [] }
+        })
+      };
+
+      const sandboxToAsset = vi.fn().mockResolvedValue({
+        type: "image",
+        uri: "asset://persisted-artifact",
+        asset_id: "persisted-artifact"
+      });
+      const context = createMockContext({ sandboxToAsset, workspaceDir: root });
+
+      const executor = new StepExecutor({
+        task,
+        step,
+        context,
+        provider,
+        model: "test-model",
+        tools: [jsTool as any]
+      });
+
+      for await (const _ of executor.execute()) {
+        /* drain */
+      }
+
+      expect(sandboxToAsset).toHaveBeenCalled();
+      const firstArg = sandboxToAsset.mock.calls[0]?.[0];
+      expect(typeof firstArg).toBe("string");
+      expect(String(firstArg)).toContain("/artifacts/artifact_");
+      expect(executor.getSources()).toContain("asset://persisted-artifact");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("getSources returns empty array initially", () => {

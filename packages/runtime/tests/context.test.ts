@@ -22,7 +22,7 @@ import type {
 } from "../src/providers/types.js";
 import { registerProvider } from "../src/providers/provider-registry.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -642,6 +642,81 @@ describe("ProcessingContext – asset helper methods", () => {
     };
     expect(normalized.image.uri.startsWith("https://temp.local/")).toBe(true);
     expect(normalized.image.data).toBeUndefined();
+  });
+
+  it("sandboxToAsset persists a workspace file and returns an AssetRef", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-sandbox-to-asset-"));
+    try {
+      const createdAssets: Array<Record<string, unknown>> = [];
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        userId: "u1",
+        workflowId: "w1",
+        workspaceDir: root,
+        modelInterfaces: {
+          createAsset: async (args) => {
+            createdAssets.push({
+              name: args.name,
+              contentType: args.contentType,
+              size: args.content.byteLength
+            });
+            return { id: "asset-123" };
+          }
+        }
+      });
+
+      const relPath = "downloads/report.txt";
+      await mkdir(join(root, "downloads"), { recursive: true });
+      await writeFile(join(root, relPath), "hello sandbox", "utf8");
+      const ref = await ctx.sandboxToAsset(relPath);
+
+      expect(ref).toEqual({
+        type: "text",
+        uri: "asset://asset-123",
+        asset_id: "asset-123"
+      });
+      expect(createdAssets).toHaveLength(1);
+      expect(createdAssets[0]).toMatchObject({
+        name: "report.txt",
+        contentType: "text/plain",
+        size: 13
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("assetToSandbox downloads asset bytes and writes into workspace", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-asset-to-sandbox-"));
+    try {
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        userId: "u1",
+        workspaceDir: root,
+        fetchFn: async (input: string | URL | Request) => {
+          const url = String(input);
+          if (url.endsWith("/api/assets/asset-42")) {
+            return new Response(
+              JSON.stringify({ id: "asset-42", get_url: "/api/storage/asset-42" }),
+              { status: 200, headers: { "content-type": "application/json" } }
+            );
+          }
+          if (url.endsWith("/api/storage/asset-42")) {
+            return new Response(new TextEncoder().encode("downloaded"), {
+              status: 200,
+              headers: { "content-type": "text/plain" }
+            });
+          }
+          return new Response("not found", { status: 404 });
+        }
+      });
+
+      const filePath = await ctx.assetToSandbox("asset-42", "imports/a.txt");
+      expect(filePath).toBe(join(root, "imports/a.txt"));
+      await expect(readFile(filePath, "utf8")).resolves.toBe("downloaded");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 
