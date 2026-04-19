@@ -279,10 +279,6 @@ async function canImportNodeToolWorker(
   });
 }
 
-function convertToPep440Version(npmVersion: string): string {
-  return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
-}
-
 function normalizePythonPackageName(packageName: string): string {
   const trimmed = packageName.trim();
   if (!trimmed) {
@@ -301,13 +297,14 @@ async function installRequiredPythonPackages(
   emitBootMessage("Installing Nodetool Python packages...");
 
   const uvExecutable = getUVPath();
-  const appVersion = app.getVersion();
-  const pinnedVersion = convertToPep440Version(appVersion);
 
   // nodetool-core is pinned by lower bound only (matched to the bridge
-  // protocol version). Other nodetool-* node packages are still pinned
-  // to the exact app version so node implementations stay coherent with
-  // the bundled JS runtime.
+  // protocol version). Additional nodetool-* node packages are installed
+  // unpinned: their own pyproject.toml declares the nodetool-core range
+  // they need, so uv resolves a coherent set automatically. This keeps
+  // node packages on an independent release cadence from the Electron
+  // app — if a user opts into nodetool-huggingface, they get the latest
+  // published version that is compatible with the resolved nodetool-core.
   const corePackageSpecs = REQUIRED_PYTHON_PACKAGES.map(
     normalizePythonPackageName,
   )
@@ -315,13 +312,12 @@ async function installRequiredPythonPackages(
     .map((pkg) =>
       pkg === "nodetool-core"
         ? `${pkg}>=${MIN_NODETOOL_CORE_VERSION}`
-        : `${pkg}==${pinnedVersion}`,
+        : pkg,
     );
 
   const additionalSpecs = additionalPackages
     .map(normalizePythonPackageName)
-    .filter(Boolean)
-    .map((pkg) => `${pkg}==${pinnedVersion}`);
+    .filter(Boolean);
 
   const packageSpecs = Array.from(
     new Set([...corePackageSpecs, ...additionalSpecs]),

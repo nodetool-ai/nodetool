@@ -150,7 +150,7 @@ describe("python environment helpers", () => {
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
   });
 
-  it("installs nodetool-core with a >= pin (decoupled from app version) and other packages exact-pinned", async () => {
+  it("installs nodetool-core with >=MIN pin and additional node packages unpinned (uv resolves via pyproject)", async () => {
     spawn.mockImplementation(() => createMockProcess(0));
 
     await installRequiredPythonPackages(["nodetool-ai/nodetool-huggingface"]);
@@ -163,11 +163,16 @@ describe("python environment helpers", () => {
         "--prerelease=allow",
         "--system",
         "nodetool-core>=0.7.0rc8",
-        "nodetool-huggingface==0.6.3rc42",
+        "nodetool-huggingface",
       ]),
       expect.objectContaining({
         stdio: "pipe",
       })
+    );
+
+    const argv = spawn.mock.calls[0][1] as string[];
+    expect(argv).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/^nodetool-huggingface==/)])
     );
   });
 });
