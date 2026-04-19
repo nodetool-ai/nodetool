@@ -26,6 +26,8 @@
     { "path": "packages/deploy" },
     { "path": "packages/chat" },
     { "path": "packages/websocket" },
-    { "path": "packages/cli" }
+    { "path": "packages/cli" },
+    { "path": "packages/sandbox" },
+    { "path": "packages/sandbox-agent" }
   ]
 }
