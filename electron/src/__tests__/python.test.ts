@@ -54,6 +54,10 @@ jest.mock("../torchPlatformCache", () => ({
   getTorchIndexUrl: jest.fn().mockReturnValue(null),
 }));
 
+jest.mock("@nodetool/runtime", () => ({
+  MIN_NODETOOL_CORE_VERSION: "0.7.0rc8",
+}));
+
 const { promises: fsPromises } = jest.requireMock("fs") as {
   promises: { access: jest.Mock };
 };
@@ -97,9 +101,9 @@ describe("python environment helpers", () => {
     fsPromises.access.mockResolvedValue(undefined);
   });
 
-  it("accepts an environment only when nodetool-core matches app version and nodetool.worker is importable", async () => {
+  it("accepts an environment when nodetool-core is installed and nodetool.worker is importable", async () => {
     spawn
-      .mockImplementationOnce(() => createMockProcess(0, "0.6.3rc42\n"))
+      .mockImplementationOnce(() => createMockProcess(0, "0.7.0rc8\n"))
       .mockImplementationOnce(() => createMockProcess(0));
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
@@ -121,14 +125,19 @@ describe("python environment helpers", () => {
     );
   });
 
-  it("treats the environment as incomplete when nodetool-core is missing", async () => {
-    spawn.mockImplementationOnce(() => createMockProcess(2));
+  it("accepts an older nodetool-core install (runtime protocol check handles compatibility)", async () => {
+    // App version 0.6.3-rc.42 in mock, installed core 0.6.3rc40 — mismatched
+    // but still considered installed. The runtime bridge handshake decides
+    // whether the protocol is actually compatible.
+    spawn
+      .mockImplementationOnce(() => createMockProcess(0, "0.6.3rc40\n"))
+      .mockImplementationOnce(() => createMockProcess(0));
 
-    await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
+    await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
   });
 
-  it("treats the environment as incomplete when nodetool-core version does not match the app", async () => {
-    spawn.mockImplementationOnce(() => createMockProcess(0, "0.6.2\n"));
+  it("treats the environment as incomplete when nodetool-core is missing", async () => {
+    spawn.mockImplementationOnce(() => createMockProcess(2));
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
   });
@@ -141,7 +150,7 @@ describe("python environment helpers", () => {
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
   });
 
-  it("installs the required Nodetool Python wheels pinned to the app version", async () => {
+  it("installs nodetool-core with a >= pin (decoupled from app version) and other packages exact-pinned", async () => {
     spawn.mockImplementation(() => createMockProcess(0));
 
     await installRequiredPythonPackages(["nodetool-ai/nodetool-huggingface"]);
@@ -153,7 +162,7 @@ describe("python environment helpers", () => {
         "install",
         "--prerelease=allow",
         "--system",
-        "nodetool-core==0.6.3rc42",
+        "nodetool-core>=0.7.0rc8",
         "nodetool-huggingface==0.6.3rc42",
       ]),
       expect.objectContaining({

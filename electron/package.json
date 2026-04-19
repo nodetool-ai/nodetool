@@ -63,6 +63,7 @@
     "@eslint/compat": "^2.0.4",
     "@msgpack/msgpack": "^3.0.0-beta2",
     "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*",
     "@nodetool/websocket": "*",
     "@openai/codex-sdk": "^0.120.0",
     "@trpc/client": "^11.0.0",
