@@ -84,16 +84,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 gap={0.5}
                 sx={{
                     position: "absolute",
-                    top: 16,
-                    left: 16,
+                    top: 18,
+                    left: 18,
                     zIndex: 100,
                     display: isOpen ? "none" : "flex",
-                    p: 1,
+                    p: 0.75,
                     borderRadius: 3,
-                    backgroundColor: theme.vars.palette.background.paper,
-                    backdropFilter: "blur(12px)",
-                    border: `1px solid ${theme.vars.palette.divider}`,
-                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                    backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.86)`,
+                    backdropFilter: "blur(16px)",
+                    border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
+                    boxShadow: "0 14px 30px rgb(0 0 0 / 0.18)",
                     transition: "all 0.3s ease"
                 }}
             >
@@ -132,25 +132,36 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     left: 0,
                     width: SIDEBAR_WIDTH,
                     zIndex: 100,
-                    backgroundColor: theme.vars.palette.background.default,
-                    borderRight: `1px solid ${theme.vars.palette.divider}`,
-                    boxShadow: "4px 0 24px rgba(0, 0, 0, 0.05)",
+                    backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.94)`,
+                    backdropFilter: "blur(20px)",
+                    borderRight: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
+                    boxShadow: "14px 0 40px rgb(0 0 0 / 0.14)",
                     transform: isOpen ? "translateX(0)" : `translateX(-${SIDEBAR_WIDTH}px)`,
                     transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     overflow: "hidden"
                 }}
             >
+                <div
+                    aria-hidden="true"
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        pointerEvents: "none",
+                        background: "linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 22%)"
+                    }}
+                />
                 {/* Header with collapse button */}
                 <FlexRow
                     align="center"
                     justify="space-between"
                     sx={{
-                        p: 1,
-                        minHeight: 48,
-                        borderBottom: `1px solid ${theme.vars.palette.divider}`
+                        p: 1.25,
+                        minHeight: 52,
+                        borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.05)`,
+                        backgroundColor: "transparent"
                     }}
                 >
-                    <Text size="small" weight={600} sx={{ pl: 1, color: theme.vars.palette.text.secondary }}>
+                    <Text size="small" weight={600} sx={{ pl: 1, color: theme.vars.palette.text.secondary, letterSpacing: "0.01em" }}>
                         Conversations
                     </Text>
                     <ToolbarIconButton
@@ -167,12 +178,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     />
                 </FlexRow>
                 {/* Search with New Chat button */}
-                <FlexRow gap={1} align="center" sx={{ px: 2, py: 1.5 }}>
+                <FlexRow
+                    gap={0.75}
+                    align="center"
+                    sx={{
+                        px: 1,
+                        pt: 1,
+                        pb: 1.25,
+                        mx: 0.75,
+                        mt: 0.75,
+                        mb: 0.5,
+                        borderRadius: 2.5,
+                        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.025)`,
+                        border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.045)`
+                    }}
+                >
                     <FlexRow
                         align="center"
                         sx={{
                             flex: 1,
-                            minWidth: 0
+                            minWidth: 0,
+                            pl: 0.25
                         }}
                     >
                         <SearchInput
@@ -188,16 +214,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         tooltip="New chat"
                         icon={<AddIcon sx={{ fontSize: "1.2rem" }} />}
                         sx={{
-                            backgroundColor: theme.vars.palette.grey[800],
-                            color: theme.vars.palette.common.white,
-                            border: `1px solid ${theme.vars.palette.grey[700]}`,
-                            borderRadius: 2,
+                            backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.14)`,
+                            color: theme.vars.palette.primary.light,
+                            border: `1px solid rgb(${theme.vars.palette.primary.mainChannel} / 0.22)`,
+                            borderRadius: 2.5,
                             width: 36,
                             height: 36,
                             transition: "all 0.2s ease",
+                            boxShadow: "0 8px 18px rgb(0 0 0 / 0.12)",
                             "&:hover": {
-                                backgroundColor: theme.vars.palette.grey[700],
-                                borderColor: theme.vars.palette.grey[600]
+                                backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.2)`,
+                                borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.32)`
                             }
                         }}
                     />

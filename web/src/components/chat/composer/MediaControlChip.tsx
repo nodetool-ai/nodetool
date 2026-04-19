@@ -125,7 +125,7 @@ const MediaControlChip = memo(
               weight={500}
               sx={{
                 color: "inherit",
-                lineHeight: 1,
+                lineHeight: 1.2,
                 ...(truncate && {
                   overflow: "hidden",
                   textOverflow: "ellipsis",

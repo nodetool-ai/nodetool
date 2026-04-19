@@ -7,7 +7,7 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { useMediaQuery, IconButton } from "@mui/material";
+import { useMediaQuery } from "@mui/material";
 import {
   AlertBanner,
   Text,
@@ -15,7 +15,8 @@ import {
   FlexColumn,
   EditorButton,
   MobileBottomSheet,
-  ScrollArea
+  ScrollArea,
+  ToolbarIconButton
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
@@ -472,7 +473,7 @@ const GlobalChat: React.FC = () => {
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",
-        background: theme.vars.palette.background.default
+        background: `radial-gradient(circle at top, rgb(${theme.vars.palette.primary.mainChannel} / 0.08), transparent 32%), ${theme.vars.palette.background.default}`
         // Mobile styles handled via separate CSS file
       }}
     >
@@ -525,7 +526,9 @@ const GlobalChat: React.FC = () => {
             minHeight: 0,
             flex: 1,
             overflow: "hidden",
-            maxHeight: "100%"
+            maxHeight: "100%",
+            px: isMobile ? 0 : 1.5,
+            pb: isMobile ? 0 : 1.5
           }}
         >
           {/* Chat Sidebar - desktop: inline panel, mobile: bottom sheet */}
@@ -542,28 +545,29 @@ const GlobalChat: React.FC = () => {
             />
           ) : (
             <>
-              <IconButton
+              <ToolbarIconButton
                 onClick={() => setMobileConversationsOpen(true)}
-                aria-label="Open conversations"
+                title="Open conversations"
+                tabIndex={-1}
                 sx={{
                   position: "absolute",
                   top: 8,
                   left: 8,
                   zIndex: 100,
-                  backgroundColor: theme.vars.palette.background.paper,
-                  border: `1px solid ${theme.vars.palette.divider}`,
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                  borderRadius: "10px",
+                  backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.9)`,
+                  backdropFilter: "blur(14px)",
+                  border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
+                  boxShadow: "0 10px 24px rgb(0 0 0 / 0.18)",
+                  borderRadius: 2.5,
                   padding: "8px",
                   "&:hover": {
-                    backgroundColor: theme.vars.palette.action.hover
+                    backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.98)`
                   },
                   "& svg": { fontSize: "1.25rem" }
                 }}
-                tabIndex={-1}
               >
                 <ForumIcon />
-              </IconButton>
+              </ToolbarIconButton>
               <MobileBottomSheet
                 open={mobileConversationsOpen}
                 onClose={() => setMobileConversationsOpen(false)}
@@ -571,14 +575,22 @@ const GlobalChat: React.FC = () => {
                 ariaLabel="Conversations"
                 headerExtras={
                   <FlexRow align="center" sx={{ px: 1.5 }}>
-                    <IconButton
+                    <ToolbarIconButton
                       onClick={handleMobileNewChat}
-                      aria-label="New chat"
+                      title="New chat"
                       size="small"
                       tabIndex={-1}
+                      sx={{
+                        borderRadius: 2,
+                        backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+                        color: "primary.main",
+                        "&:hover": {
+                          backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.18)`
+                        }
+                      }}
                     >
                       <AddIcon />
-                    </IconButton>
+                    </ToolbarIconButton>
                   </FlexRow>
                 }
               >

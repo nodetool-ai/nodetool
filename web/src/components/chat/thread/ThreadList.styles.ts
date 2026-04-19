@@ -13,7 +13,7 @@ export const createStyles = (theme: Theme) =>
       minHeight: "100px",
       flex: 1,
       overflow: "auto",
-      padding: `${theme.spacing(0.5)} ${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(0.75)} ${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
       margin: 0,
       listStyle: "none",
       scrollbarWidth: "thin",
@@ -46,18 +46,22 @@ export const createStyles = (theme: Theme) =>
 
     ".thread-item": {
       position: "relative",
-      padding: "0.4em 0.75em",
+      padding: "0.6em 0.8em",
       fontSize: theme.fontSizeSmall,
       width: "calc(100% - 12px)",
-      borderLeft: `3px solid transparent`,
+      borderLeft: `2px solid transparent`,
       cursor: "pointer",
       transition:
-        "background 0.18s ease, opacity 0.25s ease-out, transform 0.25s ease-out, max-height 0.25s ease-out, border-color 0.2s ease",
-      borderRadius: 6,
+        "background 0.18s ease, opacity 0.25s ease-out, transform 0.25s ease-out, max-height 0.25s ease-out, border-color 0.2s ease, box-shadow 0.2s ease",
+      borderRadius: 10,
       overflow: "hidden",
       outline: "none",
+      backgroundColor: "transparent",
 
       "&:hover": {
+        backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
+        transform: "translateY(-1px)",
+        boxShadow: "0 6px 14px rgb(0 0 0 / 0.10)",
         ".delete-button": { opacity: 1 }
       },
 
@@ -67,8 +71,9 @@ export const createStyles = (theme: Theme) =>
       },
 
       "&.selected": {
-        backgroundColor: theme.vars.palette.grey[800],
-        borderLeft: `3px solid ${"var(--palette-primary-main)"}`
+        background: `linear-gradient(135deg, rgb(${theme.vars.palette.primary.mainChannel} / 0.16), rgb(${theme.vars.palette.common.whiteChannel} / 0.03))`,
+        borderLeft: `2px solid ${"var(--palette-primary-main)"}`,
+        boxShadow: `0 8px 18px rgb(0 0 0 / 0.14), 0 0 0 1px rgb(${theme.vars.palette.primary.mainChannel} / 0.08) inset`
       },
 
       "&.deleting": {
@@ -89,7 +94,7 @@ export const createStyles = (theme: Theme) =>
     ".thread-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
-      lineHeight: 1.3,
+      lineHeight: 1.35,
       color: theme.vars.palette.grey[0],
       margin: 0,
       display: "-webkit-box",
@@ -104,7 +109,7 @@ export const createStyles = (theme: Theme) =>
       fontSize: theme.fontSizeTiny,
       lineHeight: 1.2,
       color: theme.vars.palette.grey[300],
-      margin: 0
+      margin: "0.25em 0 0"
     },
 
     // DeleteButton renders: Tooltip > span > IconButton.delete-button

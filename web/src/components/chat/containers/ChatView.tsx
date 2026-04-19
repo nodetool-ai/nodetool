@@ -21,7 +21,7 @@ import type {
 } from "../types/media.types";
 import log from "loglevel";
 
-const styles = (_theme: Theme) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
@@ -32,14 +32,24 @@ const styles = (_theme: Theme) =>
       flexDirection: "column",
       overflow: "hidden",
       minHeight: 0,
-      padding: "0 20px 20px 20px",
+      padding: "0 20px 20px 20px"
+    },
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+      background: `radial-gradient(circle at top center, rgb(${theme.vars.palette.common.whiteChannel} / 0.035), transparent 38%)`
     },
     ".chat-thread-container": {
       flex: 1,
       minHeight: 0,
       display: "flex",
       flexDirection: "column",
-      paddingBottom: "16px"
+      paddingBottom: "20px",
+      width: "100%",
+      maxWidth: "1180px",
+      alignSelf: "center"
     },
     ".chat-controls": {
       padding: "0 16px 0 0",
@@ -51,8 +61,11 @@ const styles = (_theme: Theme) =>
     },
     ".chat-composer-wrapper": {
       flex: 1,
-      minWidth: 0
-    },
+      minWidth: 0,
+      width: "100%",
+      maxWidth: "1180px",
+      alignSelf: "center"
+    }
   });
 
 type ChatViewProps = {
