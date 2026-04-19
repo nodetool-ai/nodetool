@@ -119,8 +119,7 @@ describe("FalProvider", () => {
         seed: 42,
         output_format: "png"
       }),
-      logs: true,
-      onQueueUpdate: expect.any(Function)
+      logs: true
     });
 
     vi.unstubAllGlobals();
