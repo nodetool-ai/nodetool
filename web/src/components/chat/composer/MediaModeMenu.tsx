@@ -13,6 +13,7 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import TuneIcon from "@mui/icons-material/Tune";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import PsychologyIcon from "@mui/icons-material/Psychology";
 import CheckIcon from "@mui/icons-material/Check";
 import {
   Caption,
@@ -27,11 +28,14 @@ interface MediaModeMenuProps {
   open: boolean;
   onClose: () => void;
   value: MediaMode;
-  onChange: (mode: MediaMode) => void;
+  agentMode: boolean;
+  onChange: (mode: MediaMode, agentMode: boolean) => void;
 }
 
+type ModeItemId = MediaMode | "agent";
+
 interface ModeItem {
-  id: MediaMode;
+  id: ModeItemId;
   label: string;
   icon: React.ReactNode;
   enabled: boolean;
@@ -42,6 +46,12 @@ const MODES: ModeItem[] = [
     id: "chat",
     label: "Chat",
     icon: <ChatBubbleOutlineIcon fontSize="small" />,
+    enabled: true
+  },
+  {
+    id: "agent",
+    label: "Agent",
+    icon: <PsychologyIcon fontSize="small" />,
     enabled: true
   },
   {
@@ -149,6 +159,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   open,
   onClose,
   value,
+  agentMode,
   onChange
 }) => {
   const theme = useTheme();
@@ -170,7 +181,12 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
           Mode
         </Caption>
         {MODES.map((m) => {
-          const selected = m.id === value;
+          const selected =
+            m.id === "agent"
+              ? value === "chat" && agentMode
+              : m.id === "chat"
+                ? value === "chat" && !agentMode
+                : m.id === value;
           return (
             <div
               key={m.id}
@@ -182,7 +198,11 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
                 if (!m.enabled) {
                   return;
                 }
-                onChange(m.id);
+                if (m.id === "agent") {
+                  onChange("chat", true);
+                } else {
+                  onChange(m.id, false);
+                }
                 onClose();
               }}
             >
