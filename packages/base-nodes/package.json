@@ -28,6 +28,7 @@
     "@nodetool/node-sdk": "*",
     "@nodetool/protocol": "*",
     "@nodetool/runtime": "*",
+    "@nodetool/sandbox": "*",
     "@nodetool/vectorstore": "*",
     "@supabase/supabase-js": "^2.98.0",
     "@types/natural": "^5.1.5",
