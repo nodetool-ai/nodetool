@@ -795,7 +795,11 @@ export class StepExecutor {
 
     const candidates: Array<{ label: string; path: string }> = [];
     const maybeAdd = (label: string, value: unknown): void => {
-      if (typeof value === "string" && value.trim().length > 0) {
+      if (
+        typeof value === "string" &&
+        value.trim().length > 0 &&
+        !value.startsWith("data:")
+      ) {
         candidates.push({ label, path: value });
       }
     };

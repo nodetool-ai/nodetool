@@ -1424,7 +1424,7 @@ export class ProcessingContext {
 
   async sandboxToAsset(path: string): Promise<AssetRef> {
     const filePath = this.resolveSandboxFilePath(path);
-    const bytes = new Uint8Array(await readFile(filePath));
+    const bytes = await readFile(filePath);
     const contentType = ProcessingContext.guessMimeFromPath(filePath);
     const created = (await this.createAsset({
       name: basename(filePath),
