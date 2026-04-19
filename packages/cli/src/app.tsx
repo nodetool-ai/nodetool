@@ -66,6 +66,11 @@ interface AppProps {
   enabledTools: string[];
   workspaceDir: string;
   wsUrl?: string;
+  /**
+   * Pre-built tools appended to the tool list returned from buildTools().
+   * Used by --sandbox to inject the 37 sandbox-tools adapter instances.
+   */
+  extraTools?: import("@nodetool/agents").Tool[];
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +215,7 @@ export function App({
   enabledTools,
   workspaceDir,
   wsUrl,
+  extraTools,
 }: AppProps) {
   const { exit } = useApp();
 
@@ -371,9 +377,12 @@ export function App({
     for (const tool of getAllMcpTools()) {
       toolMap[tool.name] = tool;
     }
-    return enabledTools
+    const enabled = enabledTools
       .filter(name => name in toolMap)
       .map(name => toolMap[name] as import("@nodetool/agents").Tool);
+    return extraTools && extraTools.length > 0
+      ? [...enabled, ...extraTools]
+      : enabled;
   }
 
   // ---------------------------------------------------------------------------

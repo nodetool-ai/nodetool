@@ -78,6 +78,8 @@ import {
   MessageAskUserOutput,
   IdleInput,
   IdleOutput,
+  ExposePortInput,
+  ExposePortOutput,
   SandboxEvent,
   HealthOutput
 } from "./schemas/index.js";
@@ -415,6 +417,17 @@ export class ToolClient {
 
   async idle(input: IdleInput = {}): Promise<IdleOutput> {
     return this.post("/idle", input, IdleInput, IdleOutput);
+  }
+
+  // --- Deploy ------------------------------------------------------------
+
+  async exposePort(input: ExposePortInput): Promise<ExposePortOutput> {
+    return this.post(
+      "/deploy/expose-port",
+      input,
+      ExposePortInput,
+      ExposePortOutput
+    );
   }
 
   /**

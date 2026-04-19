@@ -59,6 +59,12 @@
       "path": "../runtime"
     },
     {
+      "path": "../sandbox"
+    },
+    {
+      "path": "../sandbox-tools"
+    },
+    {
       "path": "../security"
     }
   ]

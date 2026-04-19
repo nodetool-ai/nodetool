@@ -28,6 +28,7 @@
     { "path": "packages/websocket" },
     { "path": "packages/cli" },
     { "path": "packages/sandbox" },
-    { "path": "packages/sandbox-agent" }
+    { "path": "packages/sandbox-agent" },
+    { "path": "packages/sandbox-tools" }
   ]
 }

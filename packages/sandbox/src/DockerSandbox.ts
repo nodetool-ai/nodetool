@@ -27,6 +27,11 @@ import { ToolClient } from "./ToolClient.js";
 export const DEFAULT_SANDBOX_IMAGE = "nodetool/sandbox-agent:latest";
 export const TOOL_SERVER_PORT = 7788;
 export const VNC_WS_PORT = 6080;
+/** User-service ports pre-published at container create time. Each is
+ *  bound to an ephemeral host port and reachable via `expose_port`.
+ *  Covers the common dev-server defaults: Next.js (3000), Flask (5000),
+ *  Django (8000), generic (8080). */
+export const USER_SERVICE_PORTS = [3000, 5000, 8000, 8080] as const;
 
 export interface DockerSandboxProviderOptions {
   /** Host IP bound for published ports. Default: 127.0.0.1. */
@@ -37,6 +42,9 @@ export interface DockerSandboxProviderOptions {
   readyTimeoutSeconds?: number;
   /** Pull image if absent locally. Default: true. */
   autoPull?: boolean;
+  /** Container ports to publish for user services (agent-hosted dev
+   *  servers, generated sites). Defaults to USER_SERVICE_PORTS. */
+  userServicePorts?: readonly number[];
 }
 
 export class DockerSandbox implements Sandbox {
@@ -88,6 +96,7 @@ export class DockerSandboxProvider implements SandboxProvider {
   private readonly defaultImage: string;
   private readonly readyTimeoutSeconds: number;
   private readonly autoPull: boolean;
+  private readonly userServicePorts: readonly number[];
 
   constructor(options: DockerSandboxProviderOptions = {}) {
     this.docker = new Dockerode();
@@ -95,6 +104,7 @@ export class DockerSandboxProvider implements SandboxProvider {
     this.defaultImage = options.defaultImage ?? DEFAULT_SANDBOX_IMAGE;
     this.readyTimeoutSeconds = options.readyTimeoutSeconds ?? 30;
     this.autoPull = options.autoPull ?? true;
+    this.userServicePorts = options.userServicePorts ?? USER_SERVICE_PORTS;
   }
 
   async acquire(options: SandboxOptions): Promise<Sandbox> {
@@ -112,11 +122,29 @@ export class DockerSandboxProvider implements SandboxProvider {
       `NODETOOL_SESSION_ID=${options.sessionId}`,
       `NODETOOL_TOOL_PORT=${TOOL_SERVER_PORT}`,
       `NODETOOL_VNC_PORT=${VNC_WS_PORT}`,
+      `NODETOOL_USER_SERVICE_PORTS=${this.userServicePorts.join(",")}`,
       ...Object.entries(options.env ?? {}).map(([k, v]) => `${k}=${v}`)
     ];
 
     const toolPortKey = `${TOOL_SERVER_PORT}/tcp`;
     const vncPortKey = `${VNC_WS_PORT}/tcp`;
+
+    const exposedPorts: Record<string, Record<string, never>> = {
+      [toolPortKey]: {},
+      [vncPortKey]: {}
+    };
+    const portBindings: Record<
+      string,
+      Array<{ HostIp: string; HostPort: string }>
+    > = {
+      [toolPortKey]: [{ HostIp: this.hostIp, HostPort: "" }],
+      [vncPortKey]: [{ HostIp: this.hostIp, HostPort: "" }]
+    };
+    for (const p of this.userServicePorts) {
+      const key = `${p}/tcp`;
+      exposedPorts[key] = {};
+      portBindings[key] = [{ HostIp: this.hostIp, HostPort: "" }];
+    }
 
     const container = await this.docker.createContainer({
       name: containerName,
@@ -125,19 +153,13 @@ export class DockerSandboxProvider implements SandboxProvider {
       WorkingDir: "/home/ubuntu",
       OpenStdin: false,
       Tty: false,
-      ExposedPorts: {
-        [toolPortKey]: {},
-        [vncPortKey]: {}
-      },
+      ExposedPorts: exposedPorts,
       HostConfig: {
         Binds: binds.length > 0 ? binds : undefined,
         Memory: parseMemLimit(options.memLimit ?? "2g"),
         NanoCpus: options.nanoCpus ?? 2_000_000_000,
         SecurityOpt: ["no-new-privileges"],
-        PortBindings: {
-          [toolPortKey]: [{ HostIp: this.hostIp, HostPort: "" }],
-          [vncPortKey]: [{ HostIp: this.hostIp, HostPort: "" }]
-        }
+        PortBindings: portBindings
       }
     });
 
@@ -152,6 +174,18 @@ export class DockerSandboxProvider implements SandboxProvider {
       const vncUrl =
         vncPort !== null ? `ws://${this.hostIp}:${vncPort}` : undefined;
 
+      // Resolve user-service host ports so the in-container expose_port
+      // tool can map container_port → public URL.
+      const userServiceMap: Record<string, string> = {};
+      for (const p of this.userServicePorts) {
+        const host = await waitForHostPort(container, `${p}/tcp`).catch(
+          () => null
+        );
+        if (host !== null) {
+          userServiceMap[String(p)] = `http://${this.hostIp}:${host}`;
+        }
+      }
+
       const ready = await waitForTcp(
         this.hostIp,
         toolPort,
@@ -164,6 +198,18 @@ export class DockerSandboxProvider implements SandboxProvider {
       }
 
       const client = new ToolClient({ baseUrl: toolUrl });
+
+      // Publish the resolved map to the in-container server so the
+      // expose_port tool can answer with real public URLs.
+      if (Object.keys(userServiceMap).length > 0) {
+        await fetch(`${toolUrl}/internal/set-port-map`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ map: userServiceMap })
+        }).catch(() => {
+          // best-effort; expose_port will simply return an empty URL
+        });
+      }
 
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
       const limit = options.timeoutSeconds ?? 3600;

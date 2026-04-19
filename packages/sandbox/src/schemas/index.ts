@@ -15,4 +15,5 @@ export * from "./browser.js";
 export * from "./desktop.js";
 export * from "./search.js";
 export * from "./message.js";
+export * from "./deploy.js";
 export * from "./health.js";

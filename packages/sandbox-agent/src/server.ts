@@ -40,7 +40,8 @@ import {
   InfoSearchWebInput,
   MessageNotifyUserInput,
   MessageAskUserInput,
-  IdleInput
+  IdleInput,
+  ExposePortInput
 } from "@nodetool/sandbox/schemas";
 import {
   fileRead,
@@ -86,7 +87,9 @@ import {
   messageAskUser,
   idle
 } from "./tools/message.js";
+import { exposePort } from "./tools/deploy.js";
 import { replay, subscribe } from "./event-bus.js";
+import { setPortMap } from "./port-map.js";
 
 export const SANDBOX_AGENT_VERSION = "0.1.0";
 
@@ -152,6 +155,20 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   route(app, "/message/notify", MessageNotifyUserInput, messageNotifyUser);
   route(app, "/message/ask", MessageAskUserInput, messageAskUser);
   route(app, "/idle", IdleInput, idle);
+
+  // --- Deploy ------------------------------------------------------------
+  route(app, "/deploy/expose-port", ExposePortInput, exposePort);
+
+  // Internal control plane (host → server). Not an agent-facing tool.
+  app.post("/internal/set-port-map", async (req, reply) => {
+    const body = req.body as { map?: Record<string, string> } | undefined;
+    if (!body || typeof body.map !== "object" || body.map === null) {
+      reply.status(400).send({ error: "missing map" });
+      return;
+    }
+    setPortMap(body.map);
+    reply.send({ ok: true });
+  });
 
   // --- Event stream (SSE) ------------------------------------------------
   app.get("/events", async (req, reply) => {
