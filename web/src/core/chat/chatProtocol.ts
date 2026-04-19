@@ -722,6 +722,13 @@ const applyAssistantMessage = (
   messages: Message[],
   msg: Message
 ) => {
+  const isCurrentThreadMessage = threadId === state.currentThreadId;
+  const shouldResetStatusOnAssistantMessage =
+    isCurrentThreadMessage &&
+    (state.status === "loading" ||
+      state.status === "streaming" ||
+      state.status === "stopping");
+
   const normalizeTextForComparison = (text: string) =>
     text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
 
@@ -857,7 +864,18 @@ const applyAssistantMessage = (
       },
       threads: state.threads[threadId]
         ? updateThreadTimestamp(threadId, state.threads)
-        : state.threads
+        : state.threads,
+      ...(shouldResetStatusOnAssistantMessage
+        ? {
+            status: "connected" as const,
+            progress: { current: 0, total: 0 },
+            statusMessage: null,
+            currentPlanningUpdate: null,
+            currentTaskUpdate: null,
+            currentTaskUpdateThreadId: null,
+            currentLogUpdate: null
+          }
+        : {})
     },
     postAction
   };
@@ -1132,7 +1150,20 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data as ToolCallUpdate);
   } else if (data.type === "message") {
-    applyReducer(applyMessage, data as Message);
+    const messageData = data as Message;
+    const currentThreadId = get().currentThreadId;
+    const messageThreadId = messageData.thread_id ?? currentThreadId;
+    if (
+      messageData.role === "assistant" &&
+      messageThreadId === currentThreadId
+    ) {
+      const timeoutId = get().sendMessageTimeoutId;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        set({ sendMessageTimeoutId: null });
+      }
+    }
+    applyReducer(applyMessage, messageData);
   } else if (data.type === "node_progress") {
     applyReducer(applyNodeProgress, data as NodeProgress);
   } else if (data.type === "tool_call") {
