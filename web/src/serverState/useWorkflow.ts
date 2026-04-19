@@ -38,34 +38,4 @@ export const useWorkflow = <T = Workflow>(id: string | null | undefined, options
   return { ...query, setWorkflowCache, prefetchWorkflow };
 };
 
-type WorkflowMeta = {
-  id: string;
-  name: string;
-  description: string;
-  updated_at: string;
-  created_at: string;
-  tags: string[] | null;
-};
-
-export const useWorkflowMeta = (id: string | null | undefined) => {
-  return useWorkflow<WorkflowMeta>(id, {
-    select: (data) => ({
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      updated_at: data.updated_at ?? "",
-      created_at: data.created_at ?? "",
-      tags: data.tags ?? null
-    })
-  });
-};
-
-export const useWorkflowFromCache = (id: string | null | undefined): Workflow | undefined => {
-  const queryClient = useQueryClient();
-
-  if (!id) {return undefined;}
-
-  return queryClient.getQueryData(workflowQueryKey(id));
-};
-
 export default useWorkflow;

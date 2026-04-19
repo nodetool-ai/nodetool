@@ -12,7 +12,7 @@ import log from "loglevel";
 /**
  * Fetch assets for a specific node.
  */
-export const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
+const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
   try {
     const data = await trpcClient.assets.list.query({ node_id: nodeId });
     return (data.assets ?? []) as unknown as Asset[];
