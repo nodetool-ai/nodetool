@@ -27,7 +27,12 @@ function getSandboxStore(): SessionStore {
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
     return {};
   }
   return value as Record<string, unknown>;
@@ -210,7 +215,7 @@ export class SandboxShellNode extends BaseNode {
     description:
       "Reuse a sandbox session by ID. Leave empty to create a transient session ID."
   })
-  declare session_id: any;
+  declare session_id: string;
 
   @prop({
     type: "str",
@@ -218,7 +223,7 @@ export class SandboxShellNode extends BaseNode {
     title: "Workspace Dir",
     description: "Optional sandbox workspace directory."
   })
-  declare workspace_dir: any;
+  declare workspace_dir: string;
 
   @prop({
     type: "str",
@@ -226,7 +231,7 @@ export class SandboxShellNode extends BaseNode {
     title: "Command",
     description: "Shell command to execute in the sandbox."
   })
-  declare command: any;
+  declare command: string;
 
   @prop({
     type: "str",
@@ -234,7 +239,7 @@ export class SandboxShellNode extends BaseNode {
     title: "Command ID",
     description: "Optional command process ID for later shell view/wait calls."
   })
-  declare command_id: any;
+  declare command_id: string;
 
   @prop({
     type: "float",
@@ -243,7 +248,7 @@ export class SandboxShellNode extends BaseNode {
     description:
       "If greater than 0, wait this long for output after launching command."
   })
-  declare wait_seconds: any;
+  declare wait_seconds: number;
 
   async process(): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
@@ -251,7 +256,8 @@ export class SandboxShellNode extends BaseNode {
     const command = String(this.command ?? "").trim();
     const waitSeconds = Number(this.wait_seconds ?? 1);
     const commandId =
-      String(this.command_id ?? "").trim() || `cmd-${Date.now()}`;
+      String(this.command_id ?? "").trim() ||
+      `cmd-${randomUUID().slice(0, 8)}`;
 
     if (command.length === 0) {
       throw new Error("Command is required");
@@ -294,7 +300,7 @@ export class SandboxBrowserNode extends BaseNode {
     title: "Session ID",
     description: "Sandbox session ID."
   })
-  declare session_id: any;
+  declare session_id: string;
 
   @prop({
     type: "str",
@@ -302,7 +308,7 @@ export class SandboxBrowserNode extends BaseNode {
     title: "Workspace Dir",
     description: "Optional sandbox workspace directory."
   })
-  declare workspace_dir: any;
+  declare workspace_dir: string;
 
   @prop({
     type: "enum",
@@ -323,7 +329,7 @@ export class SandboxBrowserNode extends BaseNode {
       "console_view"
     ]
   })
-  declare action: any;
+  declare action: string;
 
   @prop({
     type: "dict",
@@ -331,7 +337,7 @@ export class SandboxBrowserNode extends BaseNode {
     title: "Params",
     description: "Action parameters validated by the sandbox browser tool."
   })
-  declare params: any;
+  declare params: Record<string, unknown>;
 
   async process(): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
@@ -425,7 +431,7 @@ export class SandboxFileNode extends BaseNode {
     title: "Session ID",
     description: "Sandbox session ID."
   })
-  declare session_id: any;
+  declare session_id: string;
 
   @prop({
     type: "str",
@@ -433,7 +439,7 @@ export class SandboxFileNode extends BaseNode {
     title: "Workspace Dir",
     description: "Optional sandbox workspace directory."
   })
-  declare workspace_dir: any;
+  declare workspace_dir: string;
 
   @prop({
     type: "enum",
@@ -442,7 +448,7 @@ export class SandboxFileNode extends BaseNode {
     description: "File action to execute.",
     values: ["read", "write", "str_replace", "find_in_content", "find_by_name"]
   })
-  declare action: any;
+  declare action: string;
 
   @prop({
     type: "dict",
@@ -450,7 +456,7 @@ export class SandboxFileNode extends BaseNode {
     title: "Params",
     description: "Action parameters validated by the sandbox file tool."
   })
-  declare params: any;
+  declare params: Record<string, unknown>;
 
   async process(): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
@@ -521,7 +527,7 @@ export class SandboxAgentNode extends BaseNode {
     title: "Model",
     description: "Model used by the sandbox agent."
   })
-  declare model: any;
+  declare model: LanguageModelLike;
 
   @prop({
     type: "str",
@@ -529,7 +535,7 @@ export class SandboxAgentNode extends BaseNode {
     title: "Prompt",
     description: "Prompt describing what the sandbox agent should do."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -537,7 +543,7 @@ export class SandboxAgentNode extends BaseNode {
     title: "System Prompt",
     description: "Optional system prompt."
   })
-  declare system_prompt: any;
+  declare system_prompt: string;
 
   @prop({
     type: "str",
@@ -545,7 +551,7 @@ export class SandboxAgentNode extends BaseNode {
     title: "Session ID",
     description: "Sandbox session ID."
   })
-  declare session_id: any;
+  declare session_id: string;
 
   @prop({
     type: "str",
@@ -553,7 +559,7 @@ export class SandboxAgentNode extends BaseNode {
     title: "Workspace Dir",
     description: "Optional sandbox workspace directory."
   })
-  declare workspace_dir: any;
+  declare workspace_dir: string;
 
   @prop({
     type: "int",
@@ -563,7 +569,7 @@ export class SandboxAgentNode extends BaseNode {
     min: 1,
     max: 100
   })
-  declare max_iterations: any;
+  declare max_iterations: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = String(this.prompt ?? "").trim();

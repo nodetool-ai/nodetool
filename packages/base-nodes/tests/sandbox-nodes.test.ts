@@ -7,6 +7,12 @@ import {
   SandboxShellNode
 } from "../src/nodes/sandbox.js";
 
+type RunAgentLoopArgs = {
+  providerId?: string;
+  modelId?: string;
+  tools?: unknown[];
+};
+
 const mocks = vi.hoisted(() => {
   const client = {
     shellExec: vi.fn(async () => ({ id: "cmd-1", started: true })),
@@ -151,14 +157,19 @@ describe("sandbox nodes", () => {
     });
 
     const context = {
-      getProvider: async () => ({})
+      getProvider: async () => ({
+        id: "openai",
+        generateMessage: async () => ({ content: [{ type: "text", text: "ok" }] })
+      })
     } as unknown as ProcessingContext;
     const result = await node.process(context);
 
     expect(mocks.runAgentLoop).toHaveBeenCalledTimes(1);
-    const args = mocks.runAgentLoop.mock.calls[0][0] as Record<string, unknown>;
+    const args = mocks.runAgentLoop.mock.calls[0][0] as RunAgentLoopArgs;
+    expect(args.providerId).toBe("openai");
+    expect(args.modelId).toBe("gpt-5");
     expect(Array.isArray(args.tools)).toBe(true);
-    expect((args.tools as unknown[]).length).toBeGreaterThan(1);
+    expect(args.tools?.length).toBeGreaterThan(1);
     expect(result).toEqual({ session_id: "s4", text: "done" });
   });
 });
