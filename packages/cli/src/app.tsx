@@ -542,26 +542,42 @@ export function App({
         });
 
         // Feed all messages into the execution tree state.
-        // Collect task results for the final chat message.
-        const taskResults: string[] = [];
+        let synthesisContent = "";
         for await (const msg of agent.execute(ctx)) {
           if (abortRef.current) break;
           execState.processMessage(msg);
 
-          if (msg.type === "step_result") {
-            const sr = msg as { result: unknown; is_task_result: boolean };
-            if (sr.is_task_result) {
-              const result = typeof sr.result === "string"
-                ? sr.result
-                : JSON.stringify(sr.result, null, 2);
-              if (result) taskResults.push(result);
+          // Stream the agent's final synthesis so the user sees the answer
+          // forming in real time. Other chunks (step thinking, planner
+          // commentary) are noise in the chat pane and stay in the tree.
+          if (msg.type === "chunk") {
+            const ch = msg as { content?: string; node_id?: string };
+            if (ch.node_id === "agent_synthesizer" && ch.content) {
+              synthesisContent += ch.content;
+              setStreamContent(synthesisContent);
+              setStreamLabel("finalizing");
             }
           }
         }
         execState.markDone();
+        setStreamContent("");
 
-        if (taskResults.length > 0) {
-          await addMessage("assistant", taskResults.join("\n\n---\n\n"));
+        const finalResults = agent.getResults();
+        const finalText =
+          typeof finalResults === "string"
+            ? finalResults
+            : finalResults &&
+                typeof finalResults === "object" &&
+                "markdown" in (finalResults as Record<string, unknown>) &&
+                typeof (finalResults as Record<string, unknown>).markdown ===
+                  "string"
+              ? ((finalResults as Record<string, unknown>).markdown as string)
+              : finalResults != null
+                ? JSON.stringify(finalResults, null, 2)
+                : "";
+
+        if (finalText) {
+          await addMessage("assistant", finalText);
         }
 
       } else if (wsClientRef.current && !extraTools?.length) {

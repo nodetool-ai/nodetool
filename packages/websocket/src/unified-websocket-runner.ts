@@ -3748,8 +3748,21 @@ export class UnifiedWebSocketRunner {
       BrowserTool,
       GoogleSearchTool,
       getAllMcpTools,
+      LocalMcpBackend,
+      FindModelTool,
+      getProviderModalityTools,
       resolveTool
     } = await import("@nodetool/agents");
+
+    // Factory that lets provider-backed tools (image/audio/video/embed
+    // generation, find_model, MCP list_models) look up API keys from the
+    // active user's encrypted DB via `context.getSecret`, matching the CLI
+    // wiring. Without this the chat UI agent has no way to invoke
+    // fal_text_to_image / openai_text_to_image / etc.
+    const providerFactory = async (pid: string, ctx: ProcessingContext) => {
+      const uid = ctx.userId ?? userId;
+      return this.resolveProvider!(pid, uid);
+    };
 
     let selectedTools: Tool[] = [];
     const rawToolNames = Array.isArray(data.tools)
@@ -3766,13 +3779,17 @@ export class UnifiedWebSocketRunner {
         tools: selectedTools.map((t) => t.name)
       });
     } else {
-      // No tools specified — use defaults + MCP tools for omnipotent mode
+      // No tools specified — use defaults + MCP tools + provider modality
+      // tools. Matches CLI's chat wiring so the web UI agent can invoke
+      // image/audio/video generation and model discovery.
       selectedTools = [
         new ReadFileTool(),
         new WriteFileTool(),
         new BrowserTool(),
         new GoogleSearchTool(),
-        ...getAllMcpTools()
+        new FindModelTool({ providerFactory }),
+        ...getProviderModalityTools({ providerFactory }),
+        ...getAllMcpTools(new LocalMcpBackend({ providerFactory }))
       ];
       log.debug("Using default + MCP tools for agent", {
         count: selectedTools.length
@@ -3819,6 +3836,16 @@ export class UnifiedWebSocketRunner {
       workspaceDir: agentWorkspaceDir
     });
 
+    const maxStepIterations =
+      typeof data.max_step_iterations === "number" &&
+      data.max_step_iterations > 0
+        ? Math.floor(data.max_step_iterations)
+        : 20;
+    const maxSteps =
+      typeof data.max_steps === "number" && data.max_steps > 0
+        ? Math.floor(data.max_steps)
+        : undefined;
+
     try {
       const agent = new Agent({
         name: "Assistant",
@@ -3826,6 +3853,8 @@ export class UnifiedWebSocketRunner {
         provider,
         model,
         tools: selectedTools,
+        maxStepIterations,
+        ...(maxSteps !== undefined ? { maxSteps } : {}),
         outputSchema: {
           type: "object",
           properties: {
@@ -3861,12 +3890,16 @@ export class UnifiedWebSocketRunner {
             thread_id: chunk.thread_id ?? threadId
           });
         } else if (msgType === "tool_call_update") {
-          // Forward tool call updates
+          // Forward tool call updates live AND persist them as an
+          // agent_execution message so that reopening a thread preserves the
+          // full per-step debug trace (which tools were called, with what args).
           const tc = item as {
             name: string;
             args: Record<string, unknown>;
             tool_call_id?: string;
             step_id?: string;
+            node_id?: string;
+            message?: string;
           };
           await this.sendMessage({
             type: "tool_call_update",
@@ -3874,11 +3907,33 @@ export class UnifiedWebSocketRunner {
             workflow_id: workflowId,
             tool_call_id: tc.tool_call_id ?? null,
             name: tc.name,
-            message: `Calling ${tc.name}...`,
+            message: tc.message ?? `Calling ${tc.name}...`,
             args: tc.args,
             step_id: tc.step_id ?? null,
+            node_id: tc.node_id ?? null,
             agent_execution_id: agentExecutionId
           });
+          const persisted: Record<string, unknown> = {
+            type: "message",
+            role: "agent_execution",
+            execution_event_type: "tool_call_update",
+            agent_execution_id: agentExecutionId,
+            content: {
+              type: "tool_call_update",
+              tool_call_id: tc.tool_call_id ?? null,
+              name: tc.name,
+              message: tc.message ?? `Calling ${tc.name}...`,
+              args: tc.args ?? {},
+              step_id: tc.step_id ?? null,
+              node_id: tc.node_id ?? null
+            },
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model,
+            agent_mode: true
+          };
+          await this.saveMessageToDb(persisted);
         } else if (msgType === "task_update") {
           // Send task update as agent_execution message — persisted by _run_processor pattern
           const tu = item as { task?: unknown; step?: unknown; event?: string };

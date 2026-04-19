@@ -22,7 +22,6 @@ import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
 import { createStyles } from "./ChatThreadView.styles";
-import { textPulse } from "../styles/animations";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 
@@ -60,6 +59,34 @@ const STREAM_FADE_PX = 160;
 // emerging at the streaming frontier pass through the fade as they glide up.
 const STREAM_FADE_MASK = `linear-gradient(to bottom, black 0, black calc(100% - ${STREAM_RUNWAY_CSS} - ${STREAM_FADE_PX}px), transparent calc(100% - ${STREAM_RUNWAY_CSS}), transparent 100%)`;
 
+function formatElapsed(seconds: number): string {
+  if (seconds < 1) return "0s";
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+}
+
+function useElapsedTime(active: boolean): number {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!active) {
+      setElapsed(0);
+      return;
+    }
+    startRef.current = Date.now();
+    setElapsed(0);
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active]);
+
+  return elapsed;
+}
+
 interface StatusFooterProps {
   status: ChatThreadViewProps["status"];
   progress: number;
@@ -86,48 +113,52 @@ const StatusFooter = memo<StatusFooterProps>(
     hasAgentExecutionMessages,
     theme
   }) => {
+    const isBusy = status === "loading" || status === "streaming";
+    const elapsed = useElapsedTime(isBusy);
     return (
       <>
-        {status === "loading" &&
-          progress === 0 &&
-          !hasAgentExecutionMessages && (
-            <div className="chat-message-list-item">
-              <div
+        {isBusy && !hasAgentExecutionMessages && (
+          <div className="chat-message-list-item">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px 0"
+              }}
+            >
+              {status === "loading" && progress === 0 ? (
+                <LoadingIndicator />
+              ) : null}
+              <span
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "4px 0"
+                  fontSize: "0.85rem",
+                  color: theme.vars.palette.text.secondary,
+                  fontStyle: "italic"
                 }}
               >
-                <LoadingIndicator />
-                <span
-                  style={{
-                    fontSize: "0.85rem",
-                    color: theme.vars.palette.text.secondary,
-                    fontStyle: "italic"
-                  }}
-                >
-                  Thinking...
-                </span>
-              </div>
+                {progressMessage && !runningToolCallId
+                  ? progressMessage
+                  : status === "streaming"
+                    ? "Responding…"
+                    : "Thinking…"}
+              </span>
+              <span
+                style={{
+                  fontSize: "0.8rem",
+                  color: theme.vars.palette.text.disabled,
+                  fontVariantNumeric: "tabular-nums",
+                  marginLeft: "auto"
+                }}
+              >
+                {formatElapsed(elapsed)}
+              </span>
             </div>
-          )}
+          </div>
+        )}
         {progress > 0 && !hasAgentExecutionMessages && (
           <div className="chat-message-list-item">
             <Progress progress={progress} total={total} />
-          </div>
-        )}
-        {progressMessage && !runningToolCallId && !hasAgentExecutionMessages && (
-          <div className="node-status chat-message-list-item">
-            <span
-              css={css`
-                display: inline;
-                animation: ${textPulse} 1.8s ease-in-out infinite;
-              `}
-            >
-              {progressMessage}
-            </span>
           </div>
         )}
         {!hasAgentExecutionMessages && currentPlanningUpdate && (
