@@ -240,7 +240,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   }, [messages]);
 
   const toolResultsByCallId = useMemo(() => {
-    const map: Record<string, { name?: string | null; content: any }> = {};
+    const map: Record<string, { name?: string | null; content: Message["content"] }> = {};
     for (const m of messages) {
       if (m.role === "tool" && m.tool_call_id) {
         map[String(m.tool_call_id)] = {
@@ -271,14 +271,14 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       if (typeof m.content === "string") {
         hasContent = m.content.trim().length > 0;
       } else if (Array.isArray(m.content)) {
-        hasContent = m.content.some((block: any) => {
+        hasContent = m.content.some((block) => {
           if (!block || typeof block !== "object") return false;
           if (block.type === "text") {
             return (
               typeof block.text === "string" && block.text.trim().length > 0
             );
           }
-          if (block.type === "image_url" || block.type === "image") return true;
+          if (block.type === "image_url") return true;
           return true;
         });
       } else if (m.content != null) {
