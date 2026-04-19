@@ -34,7 +34,6 @@ postgres_data/
 .expo
 
 .bin
-.claude
 .vite
 .venv
 node_modules
@@ -70,6 +69,5 @@ key.pem
 .codegen-cache/
 .codegpt
 __plans__
-.claude/settings.local.json
 .memory
 *.tsbuildinfo
