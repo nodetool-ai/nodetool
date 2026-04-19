@@ -32,4 +32,32 @@ describe("buildServer / health", () => {
       await app.close();
     }
   });
+
+  it("rejects browser_click without index or full coords", async () => {
+    const app = buildServer();
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/browser/click",
+        payload: { coordinate_x: 10 }
+      });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("rejects mouse_drag missing required coords", async () => {
+    const app = buildServer();
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/desktop/mouse/drag",
+        payload: { from_x: 0, from_y: 0 }
+      });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await app.close();
+    }
+  });
 });

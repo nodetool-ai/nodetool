@@ -19,10 +19,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl wget git sudo tmux \
       python3 python3-pip python3-venv \
-      xvfb fluxbox x11vnc websockify \
+      xvfb fluxbox x11vnc websockify novnc \
       xdotool scrot imagemagick tesseract-ocr \
       ffmpeg pandoc weasyprint \
       chromium fonts-liberation fonts-noto-color-emoji \
+      libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+      libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+      libgbm1 libpango-1.0-0 libcairo2 libasound2 \
       build-essential \
     && rm -rf /var/lib/apt/lists/*
 
@@ -83,6 +86,13 @@ RUN set -eux; \
 
 COPY packages/sandbox-agent/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
+# Install Playwright's own Chromium build under a shared dir so the ubuntu
+# user can launch it. The distro chromium is left in place for apps that
+# shell out to `chromium` directly.
+RUN npx --yes playwright@1.49.0 install chromium \
+    && chown -R ubuntu:ubuntu /opt/pw-browsers
 
 USER ubuntu
 WORKDIR /home/ubuntu

@@ -11,4 +11,6 @@
 
 export * from "./file.js";
 export * from "./shell.js";
+export * from "./browser.js";
+export * from "./desktop.js";
 export * from "./health.js";

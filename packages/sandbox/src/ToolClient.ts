@@ -31,6 +31,45 @@ import {
   ShellWriteToProcessOutput,
   ShellKillProcessInput,
   ShellKillProcessOutput,
+  BrowserViewInput,
+  BrowserViewOutput,
+  BrowserNavigateInput,
+  BrowserNavigateOutput,
+  BrowserRestartInput,
+  BrowserRestartOutput,
+  BrowserClickInput,
+  BrowserClickOutput,
+  BrowserInputTextInput,
+  BrowserInputTextOutput,
+  BrowserMoveMouseInput,
+  BrowserMoveMouseOutput,
+  BrowserPressKeyInput,
+  BrowserPressKeyOutput,
+  BrowserSelectOptionInput,
+  BrowserSelectOptionOutput,
+  BrowserScrollInput,
+  BrowserScrollOutput,
+  BrowserConsoleExecInput,
+  BrowserConsoleExecOutput,
+  BrowserConsoleViewInput,
+  BrowserConsoleViewOutput,
+  ScreenCaptureInput,
+  ScreenCaptureOutput,
+  ScreenFindInput,
+  ScreenFindOutput,
+  MouseMoveInput,
+  MouseMoveOutput,
+  MouseClickInput,
+  MouseClickOutput,
+  MouseDragInput,
+  MouseDragOutput,
+  MouseScrollInput,
+  MouseScrollOutput,
+  KeyPressInput,
+  KeyPressOutput,
+  KeyTypeInput,
+  KeyTypeOutput,
+  CursorPositionOutput,
   HealthOutput
 } from "./schemas/index.js";
 
@@ -149,6 +188,183 @@ export class ToolClient {
       ShellKillProcessInput,
       ShellKillProcessOutput
     );
+  }
+
+  // --- Browser tools -----------------------------------------------------
+
+  async browserView(input: BrowserViewInput = {}): Promise<BrowserViewOutput> {
+    return this.post("/browser/view", input, BrowserViewInput, BrowserViewOutput);
+  }
+
+  async browserNavigate(
+    input: BrowserNavigateInput
+  ): Promise<BrowserNavigateOutput> {
+    return this.post(
+      "/browser/navigate",
+      input,
+      BrowserNavigateInput,
+      BrowserNavigateOutput
+    );
+  }
+
+  async browserRestart(
+    input: BrowserRestartInput = {}
+  ): Promise<BrowserRestartOutput> {
+    return this.post(
+      "/browser/restart",
+      input,
+      BrowserRestartInput,
+      BrowserRestartOutput
+    );
+  }
+
+  async browserClick(input: BrowserClickInput): Promise<BrowserClickOutput> {
+    return this.post(
+      "/browser/click",
+      input,
+      BrowserClickInput,
+      BrowserClickOutput
+    );
+  }
+
+  async browserInput(
+    input: BrowserInputTextInput
+  ): Promise<BrowserInputTextOutput> {
+    return this.post(
+      "/browser/input",
+      input,
+      BrowserInputTextInput,
+      BrowserInputTextOutput
+    );
+  }
+
+  async browserMoveMouse(
+    input: BrowserMoveMouseInput
+  ): Promise<BrowserMoveMouseOutput> {
+    return this.post(
+      "/browser/move-mouse",
+      input,
+      BrowserMoveMouseInput,
+      BrowserMoveMouseOutput
+    );
+  }
+
+  async browserPressKey(
+    input: BrowserPressKeyInput
+  ): Promise<BrowserPressKeyOutput> {
+    return this.post(
+      "/browser/press-key",
+      input,
+      BrowserPressKeyInput,
+      BrowserPressKeyOutput
+    );
+  }
+
+  async browserSelectOption(
+    input: BrowserSelectOptionInput
+  ): Promise<BrowserSelectOptionOutput> {
+    return this.post(
+      "/browser/select-option",
+      input,
+      BrowserSelectOptionInput,
+      BrowserSelectOptionOutput
+    );
+  }
+
+  async browserScroll(input: BrowserScrollInput): Promise<BrowserScrollOutput> {
+    return this.post(
+      "/browser/scroll",
+      input,
+      BrowserScrollInput,
+      BrowserScrollOutput
+    );
+  }
+
+  async browserConsoleExec(
+    input: BrowserConsoleExecInput
+  ): Promise<BrowserConsoleExecOutput> {
+    return this.post(
+      "/browser/console-exec",
+      input,
+      BrowserConsoleExecInput,
+      BrowserConsoleExecOutput
+    );
+  }
+
+  async browserConsoleView(
+    input: BrowserConsoleViewInput = {}
+  ): Promise<BrowserConsoleViewOutput> {
+    return this.post(
+      "/browser/console-view",
+      input,
+      BrowserConsoleViewInput,
+      BrowserConsoleViewOutput
+    );
+  }
+
+  // --- Desktop tools -----------------------------------------------------
+
+  async screenCapture(
+    input: ScreenCaptureInput = {}
+  ): Promise<ScreenCaptureOutput> {
+    return this.post(
+      "/desktop/capture",
+      input,
+      ScreenCaptureInput,
+      ScreenCaptureOutput
+    );
+  }
+
+  async screenFind(input: ScreenFindInput): Promise<ScreenFindOutput> {
+    return this.post("/desktop/find", input, ScreenFindInput, ScreenFindOutput);
+  }
+
+  async mouseMove(input: MouseMoveInput): Promise<MouseMoveOutput> {
+    return this.post(
+      "/desktop/mouse/move",
+      input,
+      MouseMoveInput,
+      MouseMoveOutput
+    );
+  }
+
+  async mouseClick(input: MouseClickInput): Promise<MouseClickOutput> {
+    return this.post(
+      "/desktop/mouse/click",
+      input,
+      MouseClickInput,
+      MouseClickOutput
+    );
+  }
+
+  async mouseDrag(input: MouseDragInput): Promise<MouseDragOutput> {
+    return this.post(
+      "/desktop/mouse/drag",
+      input,
+      MouseDragInput,
+      MouseDragOutput
+    );
+  }
+
+  async mouseScroll(input: MouseScrollInput): Promise<MouseScrollOutput> {
+    return this.post(
+      "/desktop/mouse/scroll",
+      input,
+      MouseScrollInput,
+      MouseScrollOutput
+    );
+  }
+
+  async keyPress(input: KeyPressInput): Promise<KeyPressOutput> {
+    return this.post("/desktop/key/press", input, KeyPressInput, KeyPressOutput);
+  }
+
+  async keyType(input: KeyTypeInput): Promise<KeyTypeOutput> {
+    return this.post("/desktop/key/type", input, KeyTypeInput, KeyTypeOutput);
+  }
+
+  async cursorPosition(): Promise<CursorPositionOutput> {
+    return this.get("/desktop/cursor-position", CursorPositionOutput);
   }
 
   // --- Internals ---------------------------------------------------------

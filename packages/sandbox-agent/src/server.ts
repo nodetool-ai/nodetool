@@ -17,7 +17,26 @@ import {
   ShellViewInput,
   ShellWaitInput,
   ShellWriteToProcessInput,
-  ShellKillProcessInput
+  ShellKillProcessInput,
+  BrowserViewInput,
+  BrowserNavigateInput,
+  BrowserRestartInput,
+  BrowserClickInput,
+  BrowserInputTextInput,
+  BrowserMoveMouseInput,
+  BrowserPressKeyInput,
+  BrowserSelectOptionInput,
+  BrowserScrollInput,
+  BrowserConsoleExecInput,
+  BrowserConsoleViewInput,
+  ScreenCaptureInput,
+  ScreenFindInput,
+  MouseMoveInput,
+  MouseClickInput,
+  MouseDragInput,
+  MouseScrollInput,
+  KeyPressInput,
+  KeyTypeInput
 } from "@nodetool/sandbox/schemas";
 import {
   fileRead,
@@ -33,6 +52,30 @@ import {
   shellWriteToProcess,
   shellKillProcess
 } from "./tools/shell.js";
+import {
+  browserView,
+  browserNavigate,
+  browserRestart,
+  browserClick,
+  browserInput,
+  browserMoveMouse,
+  browserPressKey,
+  browserSelectOption,
+  browserScroll,
+  browserConsoleExec,
+  browserConsoleView
+} from "./tools/browser.js";
+import {
+  screenCapture,
+  screenFind,
+  mouseMove,
+  mouseClick,
+  mouseDrag,
+  mouseScroll,
+  keyPress,
+  keyType,
+  cursorPosition
+} from "./tools/desktop.js";
 
 export const SANDBOX_AGENT_VERSION = "0.1.0";
 
@@ -42,7 +85,7 @@ export interface BuildServerOptions {
 }
 
 export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, bodyLimit: 32 * 1024 * 1024 });
   const startedAt = options.startedAt ?? Date.now();
   const workspace = options.workspace ?? "/workspace";
 
@@ -53,17 +96,43 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
     workspace
   }));
 
+  // --- File tools --------------------------------------------------------
   route(app, "/file/read", FileReadInput, fileRead);
   route(app, "/file/write", FileWriteInput, fileWrite);
   route(app, "/file/str-replace", FileStrReplaceInput, fileStrReplace);
   route(app, "/file/find-in-content", FileFindInContentInput, fileFindInContent);
   route(app, "/file/find-by-name", FileFindByNameInput, fileFindByName);
 
+  // --- Shell tools -------------------------------------------------------
   route(app, "/shell/exec", ShellExecInput, shellExec);
   route(app, "/shell/view", ShellViewInput, shellView);
   route(app, "/shell/wait", ShellWaitInput, shellWait);
   route(app, "/shell/write", ShellWriteToProcessInput, shellWriteToProcess);
   route(app, "/shell/kill", ShellKillProcessInput, shellKillProcess);
+
+  // --- Browser tools -----------------------------------------------------
+  route(app, "/browser/view", BrowserViewInput, browserView);
+  route(app, "/browser/navigate", BrowserNavigateInput, browserNavigate);
+  route(app, "/browser/restart", BrowserRestartInput, browserRestart);
+  route(app, "/browser/click", BrowserClickInput, browserClick);
+  route(app, "/browser/input", BrowserInputTextInput, browserInput);
+  route(app, "/browser/move-mouse", BrowserMoveMouseInput, browserMoveMouse);
+  route(app, "/browser/press-key", BrowserPressKeyInput, browserPressKey);
+  route(app, "/browser/select-option", BrowserSelectOptionInput, browserSelectOption);
+  route(app, "/browser/scroll", BrowserScrollInput, browserScroll);
+  route(app, "/browser/console-exec", BrowserConsoleExecInput, browserConsoleExec);
+  route(app, "/browser/console-view", BrowserConsoleViewInput, browserConsoleView);
+
+  // --- Desktop tools -----------------------------------------------------
+  route(app, "/desktop/capture", ScreenCaptureInput, screenCapture);
+  route(app, "/desktop/find", ScreenFindInput, screenFind);
+  route(app, "/desktop/mouse/move", MouseMoveInput, mouseMove);
+  route(app, "/desktop/mouse/click", MouseClickInput, mouseClick);
+  route(app, "/desktop/mouse/drag", MouseDragInput, mouseDrag);
+  route(app, "/desktop/mouse/scroll", MouseScrollInput, mouseScroll);
+  route(app, "/desktop/key/press", KeyPressInput, keyPress);
+  route(app, "/desktop/key/type", KeyTypeInput, keyType);
+  app.get("/desktop/cursor-position", async () => cursorPosition());
 
   app.setErrorHandler((err: unknown, _req, reply) => {
     const status =
