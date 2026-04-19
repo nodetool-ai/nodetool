@@ -723,7 +723,7 @@ const applyAssistantMessage = (
   msg: Message
 ) => {
   const isCurrentThreadMessage = threadId === state.currentThreadId;
-  const shouldResetRuntimeStatus =
+  const shouldResetStatusOnAssistantMessage =
     isCurrentThreadMessage &&
     (state.status === "loading" ||
       state.status === "streaming" ||
@@ -865,7 +865,7 @@ const applyAssistantMessage = (
       threads: state.threads[threadId]
         ? updateThreadTimestamp(threadId, state.threads)
         : state.threads,
-      ...(shouldResetRuntimeStatus
+      ...(shouldResetStatusOnAssistantMessage
         ? {
             status: "connected" as const,
             progress: { current: 0, total: 0 },
@@ -1155,7 +1155,6 @@ export async function handleChatWebSocketMessage(
     const messageThreadId = messageData.thread_id ?? currentThreadId;
     if (
       messageData.role === "assistant" &&
-      messageThreadId &&
       messageThreadId === currentThreadId
     ) {
       const timeoutId = get().sendMessageTimeoutId;
