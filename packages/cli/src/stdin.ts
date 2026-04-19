@@ -276,8 +276,8 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       if (taskResult !== null) {
         process.stdout.write(taskResult);
       }
-    } else if (wsClient) {
-      // --- Regular chat via WebSocket ---
+    } else if (wsClient && !opts.extraTools?.length) {
+      // --- Regular chat via WebSocket (server handles everything) ---
       for await (const event of wsClient.chat(
         trimmed,
         threadId,
@@ -311,6 +311,27 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           break;
         }
       }
+    } else if (wsClient && opts.extraTools?.length) {
+      // --- Regular chat via WebSocket inference + local sandbox tool execution ---
+      const prov = new WebSocketProvider(wsClient, opts.model, opts.provider);
+      await processChat({
+        userInput: trimmed,
+        messages: chatHistory,
+        model: opts.model,
+        provider: prov,
+        context: new ProcessingContext({
+          jobId: crypto.randomUUID(),
+          userId: "1",
+          workspaceDir: opts.workspaceDir,
+          secretResolver: getSecret
+        }),
+        tools: opts.extraTools,
+        callbacks: {
+          onChunk: (text) => {
+            process.stdout.write(text);
+          }
+        }
+      });
     } else {
       // --- Regular chat via direct provider ---
       await processChat({

@@ -377,8 +377,30 @@ export function App({
     for (const tool of getAllMcpTools()) {
       toolMap[tool.name] = tool;
     }
+    // When sandbox tools are present, exclude host tools that have sandbox
+    // equivalents so the agent is forced to execute inside the sandbox.
+    const sandboxMode = extraTools && extraTools.length > 0;
+    const hostToolsToExclude = sandboxMode
+      ? new Set([
+          "read_file",
+          "write_file",
+          "edit_file",
+          "list_directory",
+          "glob",
+          "grep",
+          "run_code",
+          "browser",
+          "screenshot",
+          "google_search",
+          "google_news",
+          "google_images",
+          "dataseo_search",
+          "dataseo_news"
+        ])
+      : null;
+
     const enabled = enabledTools
-      .filter(name => name in toolMap)
+      .filter(name => name in toolMap && !(hostToolsToExclude?.has(name)))
       .map(name => toolMap[name] as import("@nodetool/agents").Tool);
     return extraTools && extraTools.length > 0
       ? [...enabled, ...extraTools]
@@ -542,8 +564,8 @@ export function App({
           await addMessage("assistant", taskResults.join("\n\n---\n\n"));
         }
 
-      } else if (wsClientRef.current) {
-        // --- Regular chat via WebSocket ---
+      } else if (wsClientRef.current && !extraTools?.length) {
+        // --- Regular chat via WebSocket (server handles everything) ---
         const wsClient = wsClientRef.current;
         let assistantContent = "";
         const toolSchemas = tools.map(t => t.toProviderTool());
@@ -569,6 +591,45 @@ export function App({
             break;
           }
         }
+        if (assistantContent) {
+          await addMessage("assistant", assistantContent);
+        }
+
+      } else if (wsClientRef.current && extraTools?.length) {
+        // --- Regular chat via WebSocket inference + local sandbox tool execution ---
+        const prov = new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current);
+        let assistantContent = "";
+        const updatedHistory = [...chatHistoryRef.current];
+
+        await processChat({
+          userInput: trimmed,
+          messages: updatedHistory,
+          model: modelRef.current,
+          provider: prov,
+          context: ctx,
+          tools,
+          signal: abortController.signal,
+          callbacks: {
+            onChunk: (text) => {
+              if (abortRef.current) throw new Error("aborted");
+              assistantContent += text;
+              setStreamContent(assistantContent);
+              setStreamLabel("streaming");
+            },
+            onToolCall: (tc: ToolCall) => {
+              setStreamLabel(`tool: ${tc.name}`);
+            },
+            onToolResult: (tc: ToolCall, result: unknown) => {
+              const preview = typeof result === "string"
+                ? result
+                : JSON.stringify(result).slice(0, 100);
+              addMessage("tool", preview, { toolName: tc.name, toolArgs: tc.args });
+            },
+          },
+        });
+
+        setChatHistory(updatedHistory);
+
         if (assistantContent) {
           await addMessage("assistant", assistantContent);
         }
