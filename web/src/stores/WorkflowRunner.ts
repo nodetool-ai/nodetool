@@ -263,6 +263,20 @@ export const createWorkflowRunnerStore = (
       resource_limits?: Record<string, unknown>,
       subgraphNodeIds?: Set<string>
     ) => {
+      const currentState = get().state;
+      if (
+        currentState === "connecting" ||
+        currentState === "running" ||
+        currentState === "paused" ||
+        currentState === "suspended"
+      ) {
+        log.warn(
+          `WorkflowRunner[${workflowId}]: Ignoring run request while workflow is busy`,
+          { currentState }
+        );
+        return;
+      }
+
       log.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
       await get().ensureConnection();
