@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { Box } from "@mui/material";
+import TuneIcon from "@mui/icons-material/Tune";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import SearchErrorBoundary from "../SearchErrorBoundary";
@@ -11,6 +12,7 @@ import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useAssets from "../../serverState/useAssets";
+import { ToolbarIconButton, UploadButton } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 
 const styles = (theme: Theme) =>
@@ -57,6 +59,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
   const { folderFiles } = useAssets();
   const { handleSelectAllAssets, handleDeselectAssets } =
     useAssetSelection(folderFiles);
+  const [expanded, setExpanded] = useState(false);
 
   const onLocalSearchChange = useCallback(
     (newSearchTerm: string) => {
@@ -66,6 +69,35 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
   );
 
   const theme = useTheme();
+
+  if (!expanded) {
+    return (
+      <Box
+        className="asset-menu asset-menu-compact"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.25,
+          px: 0.5,
+          py: 0.25
+        }}
+      >
+        <ToolbarIconButton
+          icon={<TuneIcon />}
+          tooltip="Show filters"
+          onClick={() => setExpanded(true)}
+          tooltipPlacement="top"
+          nodrag={false}
+        />
+        <UploadButton
+          onFileSelect={(files) => onUploadFiles?.(files)}
+          iconVariant="file"
+          tooltip="Upload files"
+          multiple
+        />
+      </Box>
+    );
+  }
 
   return (
     <Box

@@ -72,9 +72,9 @@ export const assetGridStyles = (theme: Theme) => {
     ".folder-item": {
       position: "relative",
       alignItems: "center",
-      padding: 0,
+      padding: "2px 6px",
       marginLeft: 0,
-      borderRadius: ".5em"
+      borderRadius: 5
     },
     ".folder-icon": {
       marginRight: "0.1em",
@@ -83,18 +83,15 @@ export const assetGridStyles = (theme: Theme) => {
       backgroundColor: "transparent"
     },
     ".folder-name": {
-      fontSize: theme.fontSizeNormal,
+      fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.grey[100],
       verticalAlign: "middle"
     },
-    ".folder-item.selected ": {
-      padding: 0,
-      margin: 0,
-      width: "100%",
-      backgroundColor: theme.vars.palette.grey[800],
+    ".folder-item.selected": {
+      backgroundColor: "rgba(255,255,255,0.08)",
       "& .folder-name": {
         color: theme.vars.palette.grey[0],
-        fontWeight: "600"
+        fontWeight: 500
       },
       "& .folder-icon": {
         color: theme.vars.palette.c_folder
@@ -102,6 +99,16 @@ export const assetGridStyles = (theme: Theme) => {
     },
     ".root-folder": {
       paddingLeft: "4px"
+    },
+    ".root-folder .folder-name": {
+      fontSize: theme.fontSizeSmall,
+      textTransform: "uppercase",
+      letterSpacing: "0.08em",
+      color: theme.vars.palette.grey[400],
+      fontWeight: 500
+    },
+    ".root-folder.selected .folder-name, .root-folder .folder-item.selected .folder-name": {
+      color: theme.vars.palette.grey[200]
     },
     ".file-info": {
       display: "flex",
