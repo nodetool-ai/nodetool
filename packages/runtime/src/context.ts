@@ -1323,7 +1323,7 @@ export class ProcessingContext {
     if (!primary) {
       return [];
     }
-    const withoutExt = primary.replace(/\.[A-Za-z0-9]+$/, "");
+    const withoutExt = primary.replace(/\.[^.]+$/, "");
     return Array.from(new Set([primary, withoutExt].filter(Boolean)));
   }
 
@@ -1332,6 +1332,7 @@ export class ProcessingContext {
     const uriCandidates = new Set<string>();
     const idCandidates = this.parseAssetIdCandidates(assetId);
     const trimmed = assetId.trim();
+    const resolutionAttempts: string[] = [];
 
     if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {
       uriCandidates.add(trimmed);
@@ -1346,10 +1347,17 @@ export class ProcessingContext {
     let bytes: Uint8Array | null = null;
     if (this.storage) {
       for (const uri of uriCandidates) {
-        const retrieved = await this.storage.retrieve(uri);
-        if (retrieved) {
-          bytes = retrieved;
-          break;
+        try {
+          const retrieved = await this.storage.retrieve(uri);
+          if (retrieved) {
+            bytes = retrieved;
+            break;
+          }
+          resolutionAttempts.push(`storage miss: ${uri}`);
+        } catch (error) {
+          resolutionAttempts.push(
+            `storage error: ${uri} (${error instanceof Error ? error.message : String(error)})`
+          );
         }
       }
     }
@@ -1375,23 +1383,34 @@ export class ProcessingContext {
             bytes = await this.downloadFile(downloadUrl, {
               retry: { maxRetries: 1, backoffMs: 200 }
             });
+            resolutionAttempts.push(`downloaded: ${downloadUrl}`);
             break;
           }
           if (typeof uri === "string" && this.storage) {
             const retrieved = await this.storage.retrieve(uri);
             if (retrieved) {
               bytes = retrieved;
+              resolutionAttempts.push(`storage hit via metadata: ${uri}`);
               break;
             }
+            resolutionAttempts.push(`storage miss via metadata: ${uri}`);
           }
-        } catch {
-          // Ignore per-candidate resolution failures and continue trying.
+        } catch (error) {
+          resolutionAttempts.push(
+            `api lookup error for ${candidate}: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       }
     }
 
     if (!bytes) {
-      throw new Error(`Unable to resolve asset '${assetId}' to sandbox bytes`);
+      const details =
+        resolutionAttempts.length > 0
+          ? ` Attempts: ${resolutionAttempts.join("; ")}`
+          : "";
+      throw new Error(
+        `Unable to resolve asset '${assetId}' to sandbox bytes.${details}`
+      );
     }
 
     await mkdir(dirname(outputPath), { recursive: true });
@@ -1414,10 +1433,10 @@ export class ProcessingContext {
     })) as Record<string, unknown>;
 
     const type = ProcessingContext.assetTypeForMime(contentType);
-    const id = typeof created.id === "string" ? created.id : null;
+    const assetId = typeof created.id === "string" ? created.id : null;
     const uri =
-      id !== null
-        ? `asset://${id}`
+      assetId !== null
+        ? `asset://${assetId}`
         : typeof created.uri === "string"
           ? created.uri
           : pathToFileURL(filePath).toString();
@@ -1425,7 +1444,7 @@ export class ProcessingContext {
     return {
       type,
       uri,
-      asset_id: id
+      asset_id: assetId
     };
   }
 

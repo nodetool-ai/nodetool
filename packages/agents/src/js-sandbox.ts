@@ -8,7 +8,8 @@
  *
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
  * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
- * `assetToSandbox`, `sandboxToAsset`, `console`). Library-powered helpers (lodash, dayjs, cheerio, csv-parse,
+ * `assetToSandbox`, `sandboxToAsset`, `console`). Library-powered helpers
+ * (lodash, dayjs, cheerio, csv-parse,
  * validator) are intentionally NOT exposed here — use the dedicated workflow
  * nodes instead (lib.datetime.*, lib.html.*, lib.data.ParseCSV,
  * lib.validate.*, etc.). Keeping the sandbox lib-free makes snippet behaviour

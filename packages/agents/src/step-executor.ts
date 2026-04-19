@@ -780,12 +780,6 @@ export class StepExecutor {
     toolArgs: Record<string, unknown> | undefined,
     toolResult: unknown
   ): Promise<unknown> {
-    const sandboxToAsset = (this.context as unknown as {
-      sandboxToAsset?: (path: string) => Promise<unknown>;
-    }).sandboxToAsset;
-    if (typeof sandboxToAsset !== "function") {
-      return toolResult;
-    }
     if (
       typeof toolResult !== "object" ||
       toolResult === null ||
@@ -819,21 +813,19 @@ export class StepExecutor {
     const refs: Record<string, unknown> = {};
     for (const candidate of candidates) {
       try {
-        const ref = await sandboxToAsset(candidate.path);
+        const ref = await this.context.sandboxToAsset(candidate.path);
         refs[candidate.label] = ref;
-        if (typeof ref === "object" && ref !== null) {
-          const uri = (ref as Record<string, unknown>).uri;
-          if (typeof uri === "string" && uri && !this.sourcesSet.has(uri)) {
-            this.sources.push(uri);
-            this.sourcesSet.add(uri);
-          }
+        const uri = ref.uri;
+        if (typeof uri === "string" && uri && !this.sourcesSet.has(uri)) {
+          this.sources.push(uri);
+          this.sourcesSet.add(uri);
         }
       } catch (error) {
         log.warn("Failed to persist sandbox output as asset", {
           stepId: this.step.id,
           toolName,
           path: candidate.path,
-          error: String(error)
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     }
