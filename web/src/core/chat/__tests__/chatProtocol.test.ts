@@ -230,8 +230,9 @@ describe("chatProtocol", () => {
 
   it("resets loading status when a non-stream assistant message arrives", async () => {
     jest.useFakeTimers();
+    const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
 
-    const timeoutId = setTimeout(() => {}, 5000);
+    const timeoutId = setTimeout(() => undefined, 5000);
     let capturedState: any = {
       status: "loading",
       currentThreadId: "thread-1",
@@ -278,6 +279,7 @@ describe("chatProtocol", () => {
     );
 
     expect(capturedState.status).toBe("connected");
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(timeoutId);
     expect(capturedState.sendMessageTimeoutId).toBeNull();
     expect(capturedState.progress).toEqual({ current: 0, total: 0 });
     expect(capturedState.statusMessage).toBeNull();
@@ -287,7 +289,7 @@ describe("chatProtocol", () => {
     expect(capturedState.currentLogUpdate).toBeNull();
     expect(capturedState.messageCache["thread-1"]).toHaveLength(2);
 
-    clearTimeout(timeoutId);
+    clearTimeoutSpy.mockRestore();
     jest.useRealTimers();
   });
 
