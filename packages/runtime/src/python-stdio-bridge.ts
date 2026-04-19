@@ -18,6 +18,10 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
+import {
+  BRIDGE_PROTOCOL_VERSION,
+  MIN_NODETOOL_CORE_VERSION
+} from "./bridge-protocol.js";
 import type {
   PythonNodeMetadata,
   ExecuteResult,
@@ -261,7 +265,40 @@ export class PythonStdioBridge extends EventEmitter {
     if (type === "discover" && requestId) {
       const pending = this._pending.get(requestId);
       if (pending) {
-        const data = msg.data as { nodes: PythonNodeMetadata[] };
+        const data = msg.data as {
+          nodes: PythonNodeMetadata[];
+          protocol_version?: number;
+        };
+        // Reject the discover promise if the worker's protocol is older
+        // than what this build of the JS runtime requires. Workers that
+        // pre-date the protocol_version field are treated as version 1
+        // (the initial protocol release) — they speak the same wire
+        // format as v1, they just don't announce it.
+        const workerVersion =
+          typeof data.protocol_version === "number"
+            ? data.protocol_version
+            : 1;
+        if (workerVersion < BRIDGE_PROTOCOL_VERSION) {
+          this._pending.delete(requestId);
+          pending.reject(
+            new Error(
+              `The installed nodetool-core speaks bridge protocol v${workerVersion}, ` +
+                `but this Nodetool build requires v${BRIDGE_PROTOCOL_VERSION}. ` +
+                `Please reinstall the Python environment from Settings → Packages ` +
+                `(Reinstall environment) — it will fetch nodetool-core>=${MIN_NODETOOL_CORE_VERSION}.`
+            )
+          );
+          return;
+        }
+        if (workerVersion > BRIDGE_PROTOCOL_VERSION) {
+          // Forward-compat: a newer worker is expected to keep speaking
+          // older protocols, so we proceed with a warning.
+          this.emit(
+            "stderr",
+            `[python-bridge] Worker protocol v${workerVersion} is newer than ` +
+              `JS runtime v${BRIDGE_PROTOCOL_VERSION}; assuming backward compatibility.\n`
+          );
+        }
         this._nodeMetadata = data.nodes;
         pending.resolve({ outputs: {}, blobs: {} });
       }

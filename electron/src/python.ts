@@ -9,6 +9,7 @@ import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
 import { getTorchIndexUrl } from "./torchPlatformCache";
+import { MIN_NODETOOL_CORE_VERSION } from "@nodetool/runtime";
 
 /**
  * Python environment manager for the Electron shell.
@@ -155,21 +156,27 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
     return false;
   }
 
-  const expectedCoreVersion = convertToPep440Version(app.getVersion());
+  // Only verify nodetool-core is installed at all. The actual JS↔Python
+  // protocol compatibility check happens at runtime via the bridge's
+  // `discover` handshake (see packages/runtime/src/bridge-protocol.ts).
+  // This decouples the Electron app version from the nodetool-core
+  // release cadence — most app builds do NOT need a fresh core release.
   const installedCoreVersion = await getInstalledPythonPackageVersion(
     pythonExecutablePath,
     "nodetool-core",
   );
 
-  if (installedCoreVersion !== expectedCoreVersion) {
+  if (!installedCoreVersion) {
     logMessage(
-      installedCoreVersion
-        ? `Python package version mismatch for nodetool-core at ${pythonExecutablePath}: expected ${expectedCoreVersion}, found ${installedCoreVersion}`
-        : `Python package nodetool-core is missing at ${pythonExecutablePath}; expected version ${expectedCoreVersion}`,
+      `Python package nodetool-core is missing at ${pythonExecutablePath} ` +
+        `(installer pins nodetool-core>=${MIN_NODETOOL_CORE_VERSION})`,
       "error",
     );
     return false;
   }
+  logMessage(
+    `nodetool-core ${installedCoreVersion} is installed at ${pythonExecutablePath}`,
+  );
 
   const workerImportable = await canImportNodeToolWorker(pythonExecutablePath);
   if (!workerImportable) {
@@ -272,10 +279,6 @@ async function canImportNodeToolWorker(
   });
 }
 
-function convertToPep440Version(npmVersion: string): string {
-  return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
-}
-
 function normalizePythonPackageName(packageName: string): string {
   const trimmed = packageName.trim();
   if (!trimmed) {
@@ -294,15 +297,30 @@ async function installRequiredPythonPackages(
   emitBootMessage("Installing Nodetool Python packages...");
 
   const uvExecutable = getUVPath();
-  const appVersion = app.getVersion();
-  const pinnedVersion = convertToPep440Version(appVersion);
+
+  // nodetool-core is pinned by lower bound only (matched to the bridge
+  // protocol version). Additional nodetool-* node packages are installed
+  // unpinned: their own pyproject.toml declares the nodetool-core range
+  // they need, so uv resolves a coherent set automatically. This keeps
+  // node packages on an independent release cadence from the Electron
+  // app — if a user opts into nodetool-huggingface, they get the latest
+  // published version that is compatible with the resolved nodetool-core.
+  const corePackageSpecs = REQUIRED_PYTHON_PACKAGES.map(
+    normalizePythonPackageName,
+  )
+    .filter(Boolean)
+    .map((pkg) =>
+      pkg === "nodetool-core"
+        ? `${pkg}>=${MIN_NODETOOL_CORE_VERSION}`
+        : pkg,
+    );
+
+  const additionalSpecs = additionalPackages
+    .map(normalizePythonPackageName)
+    .filter(Boolean);
+
   const packageSpecs = Array.from(
-    new Set(
-      [...REQUIRED_PYTHON_PACKAGES, ...additionalPackages]
-        .map(normalizePythonPackageName)
-        .filter(Boolean)
-        .map((pkg) => `${pkg}==${pinnedVersion}`)
-    )
+    new Set([...corePackageSpecs, ...additionalSpecs]),
   );
 
   const installCommand: string[] = [
@@ -326,7 +344,7 @@ async function installRequiredPythonPackages(
   }
 
   logMessage(
-    `Installing required Python packages pinned to ${pinnedVersion}: ${packageSpecs.join(", ")}`
+    `Installing required Python packages: ${packageSpecs.join(", ")}`,
   );
   await runCommand(installCommand);
 }
