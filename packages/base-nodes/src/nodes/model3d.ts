@@ -1,7 +1,9 @@
 import { NodeIO } from "@gltf-transform/core";
+import { simplify, weld } from "@gltf-transform/functions";
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { MeshoptSimplifier } from "meshoptimizer";
 
 type Model3DRefLike = {
   uri?: string;
@@ -152,6 +154,30 @@ async function convertGlbToGltf(bytes: Uint8Array): Promise<Uint8Array> {
   embedJsonResourceUris(json.buffers, resources);
   embedJsonResourceUris(json.images, resources);
   return new TextEncoder().encode(JSON.stringify(json));
+}
+
+async function decimateGlb(
+  bytes: Uint8Array,
+  targetRatio: number
+): Promise<Uint8Array> {
+  const document = await gltfIo.readBinary(bytes);
+  const ratio = Math.max(0.01, Math.min(1, targetRatio));
+
+  if (ratio >= 1) {
+    return bytes;
+  }
+
+  await MeshoptSimplifier.ready;
+  await document.transform(
+    weld({}),
+    simplify({
+      simplifier: MeshoptSimplifier,
+      ratio,
+      error: 0.01
+    })
+  );
+
+  return gltfIo.writeBinary(document);
 }
 
 // === GLB parsing and vertex manipulation ===
@@ -1019,14 +1045,20 @@ export class DecimateNode extends BaseNode {
     const model = (this.model ?? {}) as Model3DRefLike;
     const bytes = modelBytes(model);
     const ratio = Number(this.target_ratio ?? 0.5);
-    const keep = Math.max(
-      1,
-      Math.floor(bytes.length * Math.max(0, Math.min(1, ratio)))
-    );
+
+    if (modelFormat(model) !== "glb") {
+      throw new Error("Unsupported model decimation: only GLB is supported.");
+    }
+
+    if (!parseGlb(bytes)) {
+      throw new Error("Unsupported model decimation: expected valid GLB bytes.");
+    }
+
+    const decimatedBytes = await decimateGlb(bytes, ratio);
     return {
-      output: modelRef(bytes.slice(0, keep), {
+      output: modelRef(decimatedBytes, {
         uri: model.uri ?? "",
-        format: model.format ?? "glb"
+        format: "glb"
       })
     };
   }

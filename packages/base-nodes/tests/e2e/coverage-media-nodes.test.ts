@@ -214,6 +214,98 @@ function triangleGlbBase64(): string {
   return Buffer.from(glb).toString("base64");
 }
 
+function gridGlbBase64(gridSize = 8): string {
+  const positions: number[] = [];
+  for (let y = 0; y <= gridSize; y++) {
+    for (let x = 0; x <= gridSize; x++) {
+      positions.push(x / gridSize, y / gridSize, 0);
+    }
+  }
+
+  const indices: number[] = [];
+  const rowStride = gridSize + 1;
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      const a = y * rowStride + x;
+      const b = a + 1;
+      const c = a + rowStride;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const positionsBytes = new Uint8Array(new Float32Array(positions).buffer);
+  const indicesBytes = new Uint8Array(new Uint32Array(indices).buffer);
+  const totalBinaryLength =
+    positionsBytes.byteLength + indicesBytes.byteLength + pad4(indicesBytes.byteLength);
+
+  const json = {
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    scene: 0,
+    nodes: [{ mesh: 0 }],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            indices: 1
+          }
+        ]
+      }
+    ],
+    buffers: [{ byteLength: totalBinaryLength }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positionsBytes.byteLength },
+      {
+        buffer: 0,
+        byteOffset: positionsBytes.byteLength,
+        byteLength: indicesBytes.byteLength
+      }
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: positions.length / 3,
+        type: "VEC3",
+        min: [0, 0, 0],
+        max: [1, 1, 0]
+      },
+      {
+        bufferView: 1,
+        componentType: 5125,
+        count: indices.length,
+        type: "SCALAR"
+      }
+    ]
+  };
+
+  const jsonRaw = new TextEncoder().encode(JSON.stringify(json));
+  const jsonBytes = new Uint8Array(jsonRaw.byteLength + pad4(jsonRaw.byteLength));
+  jsonBytes.set(jsonRaw);
+  jsonBytes.fill(0x20, jsonRaw.byteLength);
+
+  const binary = new Uint8Array(totalBinaryLength);
+  binary.set(positionsBytes, 0);
+  binary.set(indicesBytes, positionsBytes.byteLength);
+
+  const totalLength = 12 + 8 + jsonBytes.byteLength + 8 + binary.byteLength;
+  const glb = new Uint8Array(totalLength);
+  const view = new DataView(glb.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, totalLength, true);
+  view.setUint32(12, jsonBytes.byteLength, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  glb.set(jsonBytes, 20);
+  const binaryChunkOffset = 20 + jsonBytes.byteLength;
+  view.setUint32(binaryChunkOffset, binary.byteLength, true);
+  view.setUint32(binaryChunkOffset + 4, 0x004e4942, true);
+  glb.set(binary, binaryChunkOffset + 8);
+  return Buffer.from(glb).toString("base64");
+}
+
 const tmpDir = `/tmp/nodetool-media-test-${Date.now()}`;
 
 // --------------- AUDIO NODES ---------------
@@ -1690,37 +1782,44 @@ describe("model3d nodes — full coverage", () => {
     expect(output.data.length).toBeGreaterThan(0);
   });
 
-  it("DecimateNode reduces model size", async () => {
-    const data = Buffer.from(new Array(100).fill(42)).toString("base64");
+  it("DecimateNode reduces face count for a real GLB", async () => {
+    const data = gridGlbBase64(8);
+    const beforeNode = new GetModel3DMetadataNode();
+    beforeNode.assign({ model: { data, format: "glb" } });
+    const before = (await beforeNode.process()).output as { face_count: number };
+
     const _n = new DecimateNode();
-    _n.assign({ model: { data }, target_ratio: 0.5 });
+    _n.assign({ model: { data, format: "glb" }, target_ratio: 0.5 });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData.length).toBe(50);
+    const afterNode = new GetModel3DMetadataNode();
+    afterNode.assign({ model: result.output });
+    const after = (await afterNode.process()).output as { face_count: number };
+    expect(after.face_count).toBeLessThan(before.face_count);
+    expect(after.face_count).toBeGreaterThan(0);
   });
 
-  it("DecimateNode clamps ratio to [0, 1]", async () => {
-    const data = Buffer.from(new Array(100).fill(42)).toString("base64");
+  it("DecimateNode clamps ratio to [0, 1] for GLB input", async () => {
+    const data = gridGlbBase64(8);
+    const beforeNode = new GetModel3DMetadataNode();
+    beforeNode.assign({ model: { data, format: "glb" } });
+    const before = (await beforeNode.process()).output as { face_count: number };
+
     const _n = new DecimateNode();
-    _n.assign({ model: { data }, target_ratio: 2.0 });
+    _n.assign({ model: { data, format: "glb" }, target_ratio: 2.0 });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData.length).toBe(100);
+    const afterNode = new GetModel3DMetadataNode();
+    afterNode.assign({ model: result.output });
+    const after = (await afterNode.process()).output as { face_count: number };
+    expect(after.face_count).toBe(before.face_count);
 
     const _n2 = new DecimateNode();
-    _n2.assign({ model: { data }, target_ratio: 0 });
+    _n2.assign({ model: { data, format: "glb" }, target_ratio: 0 });
     const result2 = await _n2.process();
-    const outData2 = Buffer.from(
-      (result2.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData2.length).toBe(1); // max(1, ...)
+    const afterNode2 = new GetModel3DMetadataNode();
+    afterNode2.assign({ model: result2.output });
+    const after2 = (await afterNode2.process()).output as { face_count: number };
+    expect(after2.face_count).toBeGreaterThan(0);
+    expect(after2.face_count).toBeLessThanOrEqual(before.face_count);
   });
 
   it("Boolean3DNode union concatenates", async () => {
