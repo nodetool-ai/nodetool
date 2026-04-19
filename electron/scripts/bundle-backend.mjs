@@ -60,7 +60,6 @@ const EXTERNAL_PACKAGES = [
   "playwright-core",
   "pdfjs-dist",
   "@napi-rs/canvas",
-  "canvas",
   "chart.js",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
@@ -81,6 +80,14 @@ const EXTERNAL_PACKAGES = [
   "openai",
   "ssh2",
   "cpu-features",
+];
+
+// Packages that esbuild should treat as external (to avoid bundling .node binaries)
+// but that should NOT be copied to _modules/ — they are loaded optionally at runtime
+// with a try/catch fallback (e.g. linkedom falls back to its canvas shim if canvas
+// is unavailable). Copying these would trigger a node-gyp rebuild on Linux CI.
+const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
+  "canvas",
 ];
 
 // ---------------------------------------------------------------------------
@@ -327,7 +334,7 @@ async function main() {
     format: "esm",
     target: "node20",
     outfile: path.join(BUNDLE_DIR, "server.mjs"),
-    external: EXTERNAL_PACKAGES,
+    external: [...EXTERNAL_PACKAGES, ...ESBUILD_ONLY_EXTERNAL_PACKAGES],
     metafile: true,
     sourcemap: "external",
     banner: {
