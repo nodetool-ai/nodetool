@@ -29,12 +29,10 @@ describe("EditorToolbar", () => {
   it("has proper ARIA labels for accessibility", () => {
     renderWithTheme({ readOnly: false });
 
-    // Material-UI Tooltip sets aria-label on the wrapper, while we explicitly set it on the button
-    // This query matches both elements, so we use getAllByLabelText
-    expect(screen.getAllByLabelText("Undo")[0]).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Redo")[0]).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Find & Replace")[0]).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Toggle Word Wrap")[0]).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Format as Code Block")[0]).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Redo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Find & Replace" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Toggle Word Wrap" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Format as Code Block" })).toBeInTheDocument();
   });
 });
