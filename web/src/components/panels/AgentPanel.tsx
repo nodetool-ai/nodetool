@@ -310,6 +310,11 @@ const AgentPanel: React.FC = () => {
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
 
   const hasRunningSession = Boolean(sessionId);
+  const hasBusySession =
+    status === "connecting" ||
+    status === "loading" ||
+    status === "streaming" ||
+    status === "stopping";
 
   useEffect(() => {
     useAgentStore.getState().loadSessions();
@@ -889,7 +894,7 @@ const AgentPanel: React.FC = () => {
               value={model}
               options={availableModels}
               onChange={setModel}
-              disabled={hasRunningSession || availableModels.length === 0}
+              disabled={hasBusySession || availableModels.length === 0}
               loading={modelsLoading}
             />
           </FlexRow>

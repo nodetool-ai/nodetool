@@ -228,4 +228,56 @@ describe("AgentStore", () => {
     expect(closeSessionMock).not.toHaveBeenCalled();
     expect(useAgentStore.getState().sessionId).toBe("session-1");
   });
+
+  it("reloads models when workspace context changes", async () => {
+    const useAgentStore = await loadStore();
+    fakeClient.listModels.mockResolvedValueOnce([
+      {
+        id: "claude-opus-4-6",
+        label: "Claude Opus 4.6",
+        provider: "claude",
+        isDefault: true
+      }
+    ]);
+
+    useAgentStore
+      .getState()
+      .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(fakeClient.listModels).toHaveBeenCalledWith({
+      provider: "claude",
+      workspacePath: "/tmp/workspace-1"
+    });
+    expect(useAgentStore.getState().model).toBe("claude-opus-4-6");
+  });
+
+  it("does not reload models when workspace context is unchanged", async () => {
+    const useAgentStore = await loadStore();
+    fakeClient.listModels.mockResolvedValue([
+      {
+        id: "claude-sonnet-4-6",
+        label: "Claude Sonnet 4.6",
+        provider: "claude",
+        isDefault: true
+      }
+    ]);
+
+    useAgentStore
+      .getState()
+      .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    fakeClient.listModels.mockClear();
+
+    useAgentStore
+      .getState()
+      .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
+    await Promise.resolve();
+
+    expect(fakeClient.listModels).not.toHaveBeenCalled();
+  });
 });

@@ -204,7 +204,16 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   setWorkspaceContext: (workspaceId, workspacePath) => {
+    const previousState = get();
+    const workspaceChanged =
+      previousState.workspaceId !== workspaceId ||
+      previousState.workspacePath !== workspacePath;
+
     set({ workspaceId, workspacePath });
+
+    if (workspaceChanged) {
+      void get().loadModels();
+    }
   },
 
   createSession: async (options) => {
