@@ -9,7 +9,10 @@ import useGlobalChatStore from "../stores/GlobalChatStore";
 import { graphNodeToReactFlowNode } from "../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../stores/graphEdgeToReactFlowEdge";
 import { Node as GraphNode, Edge as GraphEdge } from "../stores/ApiTypes";
+import type { WorkflowCreatedUpdate, WorkflowUpdatedUpdate } from "../core/chat/chatProtocol";
 import log from "loglevel";
+
+type WorkflowGraphUpdate = WorkflowCreatedUpdate | WorkflowUpdatedUpdate;
 
 /**
  * Hook that subscribes to workflow graph updates from the GlobalChatStore
@@ -21,8 +24,7 @@ export const useWorkflowGraphUpdater = () => {
     getNodeStore: state.getNodeStore,
   }));
 
-  // Keep track of the last processed update to avoid duplicate processing
-  const lastProcessedUpdate = useRef<any>(null);
+  const lastProcessedUpdate = useRef<WorkflowGraphUpdate | null>(null);
 
   useEffect(() => {
     let layoutTimeout: ReturnType<typeof setTimeout> | null = null;

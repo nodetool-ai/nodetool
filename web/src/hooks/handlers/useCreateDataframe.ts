@@ -1,10 +1,12 @@
 // - create DataFrame nodes from CSV files
 
 import { useCallback } from "react";
-import { XYPosition } from "@xyflow/react";
+import { Node, XYPosition } from "@xyflow/react";
 import Papa from "papaparse";
 import log from "loglevel";
 import useMetadataStore from "../../stores/MetadataStore";
+import { NodeMetadata } from "../../stores/ApiTypes";
+import { NodeData } from "../../stores/NodeData";
 
 interface ParsedCSV {
   data: string[][];
@@ -12,7 +14,10 @@ interface ParsedCSV {
   meta: Papa.ParseMeta;
 }
 
-export const useCreateDataframe = (createNode: any, addNode: any) => {
+export const useCreateDataframe = (
+  createNode: (metadata: NodeMetadata, position: XYPosition) => Node<NodeData>,
+  addNode: (node: Node<NodeData>) => void
+) => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   return useCallback(
     (files: File[], position: XYPosition) => {
