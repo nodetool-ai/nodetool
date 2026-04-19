@@ -38,3 +38,7 @@
 ## 2024-04-14 - Zustand useNodes Compound Selectors Performance
 **Learning:** Using `useNodes` with object literal returns (e.g. `useNodes((state) => ({ x: state.x, y: state.y }))`) defaults to strict equality (`===`), causing continuous re-renders whenever the underlying arrays are updated (e.g., at 60fps during ReactFlow dragging). Even if the returned values inside the object don't change, the new object literal reference forces a re-render.
 **Action:** Always provide `shallow` from `zustand/shallow` as the second argument to `useNodes` when returning new object literals containing shallowly comparable elements to eliminate unnecessary `O(N)` re-renders. Added `shallow` equality to all instances of compound selectors in `useNodes` across the codebase.
+
+## 2024-05-24 - NodeStore `getSelectedNodes` `O(N)` Selection Optimization
+**Learning:** The `getSelectedNodes` function in the Zustand store currently filters the nodes array on every call (`get().nodes.filter((node) => node.selected)`). While `getSelectedNodeCount` is properly cached with an internal reference cache, `getSelectedNodes` is not. Since `getSelectedNodes` is an `O(N)` operation and is heavily called via `useNodes((state) => state.getSelectedNodes())` in several components, evaluating it without a reference cache on a 60fps loop during dragging creates performance issues, just like `getSelectedNodeCount` would.
+**Action:** Implement the same lightweight internal reference caching strategy for `getSelectedNodes` that is used for `getSelectedNodeCount`.
