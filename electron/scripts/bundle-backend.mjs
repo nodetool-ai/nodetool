@@ -60,6 +60,7 @@ const EXTERNAL_PACKAGES = [
   "playwright-core",
   "pdfjs-dist",
   "@napi-rs/canvas",
+  "canvas",
   "chart.js",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
