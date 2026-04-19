@@ -17,6 +17,7 @@ import {
   MistralProvider,
   GroqProvider,
   MoonshotProvider,
+  AkiProvider,
   ClaudeAgentProvider,
   BaseProvider as BaseProviderClass
 } from "@nodetool/runtime";
@@ -32,6 +33,7 @@ export const KNOWN_PROVIDERS = [
   "mistral",
   "groq",
   "moonshot",
+  "aki",
   "claude_agent"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
@@ -45,6 +47,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   mistral: "mistral-large-latest",
   groq: "llama-3.3-70b-versatile",
   moonshot: "kimi-k2.5",
+  aki: "llama3_chat",
   claude_agent: "claude-opus-4-6"
 };
 
@@ -85,6 +88,10 @@ export async function createProvider(
       return new MoonshotProvider({
         KIMI_API_KEY: await resolveKey("KIMI_API_KEY")
       });
+    case "aki":
+      return new AkiProvider({
+        AKI_API_KEY: await resolveKey("AKI_API_KEY")
+      });
     case "claude_agent":
       return new ClaudeAgentProvider();
     default:
@@ -103,6 +110,7 @@ export function availableProviders(): string[] {
   if (process.env["MISTRAL_API_KEY"]) available.push("mistral");
   if (process.env["GROQ_API_KEY"]) available.push("groq");
   if (process.env["KIMI_API_KEY"]) available.push("moonshot");
+  if (process.env["AKI_API_KEY"]) available.push("aki");
   available.push("ollama"); // always available (local)
   return available;
 }
