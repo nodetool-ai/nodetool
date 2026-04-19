@@ -75,6 +75,29 @@ const MAX_NODE_WIDTH = 600;
 const GROUP_COLOR_OPACITY = 0.55;
 const MIN_NODE_HEIGHT = 100;
 
+const RESULT_PANEL_STYLE: React.CSSProperties = {
+  position: "absolute",
+  bottom: "calc(100% + 8px)",
+  left: 0,
+  right: 0,
+  maxHeight: 300,
+  overflow: "auto",
+  borderRadius: "var(--rounded-lg)",
+  backgroundColor: "var(--palette-grey-900)",
+  border: "1px solid var(--palette-grey-800)",
+  zIndex: 5,
+  boxShadow: "0 -2px 12px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.15)",
+  padding: "8px"
+};
+
+const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
+  flex: "1 1 auto",
+  minHeight: 0,
+  width: "100%",
+  overflow: "visible",
+  clipPath: "inset(0 -60px)"
+};
+
 const resizer = (
   <div className="node-resizer">
     <div className="resizer">
@@ -284,6 +307,22 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const isFocused = useNodeFocusStore(
     (state: ReturnType<typeof useNodeFocusStore.getState>) =>
       state.focusedNodeId === id
+  );
+  const focusedIndicatorStyle = useMemo<React.CSSProperties>(
+    () => ({
+      position: "absolute",
+      top: -20,
+      left: "50%",
+      transform: "translateX(-50%)",
+      backgroundColor: theme.vars.palette.warning.main,
+      color: theme.vars.palette.warning.contrastText,
+      padding: "2px 8px",
+      borderRadius: 4,
+      fontSize: "0.7rem",
+      fontWeight: "bold",
+      zIndex: 1000
+    }),
+    [theme.vars.palette.warning.main, theme.vars.palette.warning.contrastText]
   );
   const updateNodeData = useNodes(
     (state: NodeStoreState) => state.updateNodeData
@@ -637,20 +676,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {isOverlayVisible && (
         <div
           className="result-panel-above"
-          style={{
-            position: "absolute",
-            bottom: "calc(100% + 8px)",
-            left: 0,
-            right: 0,
-            maxHeight: 300,
-            overflow: "auto",
-            borderRadius: "var(--rounded-lg)",
-            backgroundColor: "var(--palette-grey-900)",
-            border: "1px solid var(--palette-grey-800)",
-            zIndex: 5,
-            boxShadow: "0 -2px 12px rgba(0,0,0,0.25), 0 4px 24px rgba(0,0,0,0.15)",
-            padding: "8px"
-          }}
+          style={RESULT_PANEL_STYLE}
         >
           <ResultOverlay
             result={result}
@@ -707,13 +733,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       />
       <div
         className="node-content-container"
-        style={{
-          flex: "1 1 auto",
-          minHeight: 0,
-          width: "100%",
-          overflow: "visible",
-          clipPath: "inset(0 -60px)"
-        }}
+        style={NODE_CONTENT_CONTAINER_STYLE}
       >
         <NodeContent
           id={id}
@@ -760,21 +780,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
 
       {isFocused && (
-        <div
-          style={{
-            position: "absolute",
-            top: -20,
-            left: "50%",
-            transform: "translateX(-50%)",
-            backgroundColor: theme.vars.palette.warning.main,
-            color: theme.vars.palette.warning.contrastText,
-            padding: "2px 8px",
-            borderRadius: 4,
-            fontSize: "0.7rem",
-            fontWeight: "bold",
-            zIndex: 1000
-          }}
-        >
+        <div style={focusedIndicatorStyle}>
           FOCUSED
         </div>
       )}

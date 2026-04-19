@@ -22,6 +22,9 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import log from "loglevel";
 
+const ALLOWED_PROVIDERS = ["OpenAI", "MiniMax", "Anthropic", "Google", "Gemini"];
+const EMPTY_COLLECTIONS: string[] = [];
+
 const containerStyles = css({
   flex: 1,
   display: "flex",
@@ -250,7 +253,7 @@ const WorkflowAssistantChat: React.FC = () => {
   }, [currentWorkflowId, getWorkflow]);
 
   const { models: approvedModels } = useLanguageModelsByProvider({
-    allowedProviders: ["OpenAI", "MiniMax", "Anthropic", "Google", "Gemini"]
+    allowedProviders: ALLOWED_PROVIDERS
   });
 
   useEffect(() => {
@@ -445,74 +448,81 @@ const WorkflowAssistantChat: React.FC = () => {
     return status;
   };
 
-  // Create ThreadInfo-compatible data for ThreadList
-  const threadsWithMessages: Record<string, ThreadInfo> = Object.fromEntries(
-    Object.entries(threads).map(([id, thread]) => [
-      id,
-      {
-        id: thread.id,
-        title: thread.title ?? undefined,
-        updatedAt: thread.updated_at,
-        messages: messageCache[id] || []
-      }
-    ])
+  const threadsWithMessages: Record<string, ThreadInfo> = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(threads).map(([id, thread]) => [
+          id,
+          {
+            id: thread.id,
+            title: thread.title ?? undefined,
+            updatedAt: thread.updated_at,
+            messages: messageCache[id] || []
+          }
+        ])
+      ),
+    [threads, messageCache]
   );
 
-  const WorkflowChatWelcome: React.FC = () => (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "1.5em"
-      }}
-    >
-      <SvgFileIcon
-        wrapperStyle=" color: 'var(--c_hl)' "
-        iconName="chat"
-        svgProp={{
-          width: 44,
-          height: 44,
-          opacity: 0.8,
-          color: "var(--palette-primary-main)"
-        }}
-      />
-      <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
-        WORKFLOW CHAT
-      </h2>
-      <p>
-        Chat with your workflow. Set <code>run_mode</code> to <code>chat</code> in workflow
-        settings.
-      </p>
-      <p
+  const workflowChatWelcome = useMemo(
+    () => (
+      <div
         style={{
-          fontSize: "0.85em",
-          color: "var(--palette-grey-400)",
-          marginTop: "1em",
-          maxWidth: "320px"
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          padding: "1.5em"
         }}
       >
-        Messages are sent to your workflow&apos;s MessageInput/MessageListInput nodes.
-      </p>
-      {!hasMessageInput && (
-        <Button
-          onClick={handleAddMessageInput}
-          size="small"
-          variant="outlined"
-          color="primary"
-          startIcon={<AddIcon />}
-          sx={{
-            marginTop: "1.5em",
-            textTransform: "none"
+        <SvgFileIcon
+          wrapperStyle=" color: 'var(--c_hl)' "
+          iconName="chat"
+          svgProp={{
+            width: 44,
+            height: 44,
+            opacity: 0.8,
+            color: "var(--palette-primary-main)"
+          }}
+        />
+        <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
+          WORKFLOW CHAT
+        </h2>
+        <p>
+          Chat with your workflow. Set <code>run_mode</code> to{" "}
+          <code>chat</code> in workflow settings.
+        </p>
+        <p
+          style={{
+            fontSize: "0.85em",
+            color: "var(--palette-grey-400)",
+            marginTop: "1em",
+            maxWidth: "320px"
           }}
         >
-          Add Message Input
-        </Button>
-      )}
-    </div>
+          Messages are sent to your workflow&apos;s
+          MessageInput/MessageListInput nodes.
+        </p>
+        {!hasMessageInput && (
+          <Button
+            onClick={handleAddMessageInput}
+            size="small"
+            variant="outlined"
+            color="primary"
+            startIcon={<AddIcon />}
+            sx={{
+              marginTop: "1.5em",
+              textTransform: "none"
+            }}
+          >
+            Add Message Input
+          </Button>
+        )}
+      </div>
+    ),
+    [hasMessageInput, handleAddMessageInput]
   );
 
   return (
@@ -597,18 +607,12 @@ const WorkflowAssistantChat: React.FC = () => {
         sendMessage={handleSendMessage}
         progressMessage={statusMessage}
         model={selectedModel}
-        selectedCollections={[]}
+        selectedCollections={EMPTY_COLLECTIONS}
         onModelChange={setSelectedModel}
         onStop={stopGeneration}
         onNewChat={handleNewChat}
-        noMessagesPlaceholder={<WorkflowChatWelcome />}
-        allowedProviders={[
-          "OpenAI",
-          "MiniMax",
-          "Anthropic",
-          "Google",
-          "Gemini"
-        ]}
+        noMessagesPlaceholder={workflowChatWelcome}
+        allowedProviders={ALLOWED_PROVIDERS}
         runningToolCallId={currentRunningToolCallId}
         runningToolMessage={currentToolMessage}
         workflowId={currentWorkflowId ?? null}

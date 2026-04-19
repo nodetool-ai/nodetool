@@ -68,18 +68,17 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
   const theme = useTheme();
 
   const { totalSize, fileCount, folderCount } = useMemo(() => {
-    const total = assets.reduce((sum, asset) => {
-      const assetSize = asset.size as number | undefined;
-      return sum + (assetSize || 0);
-    }, 0);
-
-    const files = assets.filter(
-      (asset) => asset.content_type !== "folder"
-    ).length;
-    const folders = assets.filter(
-      (asset) => asset.content_type === "folder"
-    ).length;
-
+    let total = 0;
+    let files = 0;
+    let folders = 0;
+    for (const asset of assets) {
+      total += (asset.size as number | undefined) || 0;
+      if (asset.content_type === "folder") {
+        folders++;
+      } else {
+        files++;
+      }
+    }
     return { totalSize: total, fileCount: files, folderCount: folders };
   }, [assets]);
 
