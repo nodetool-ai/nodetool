@@ -546,7 +546,7 @@ describe("AgentNode", () => {
       "Hi"
     );
     expect(capturedMessages[capturedMessages.length - 1].content[1].type).toBe(
-      "image"
+      "image_url"
     );
     expect(capturedMessages[capturedMessages.length - 1].content[2].type).toBe(
       "audio"
