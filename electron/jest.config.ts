@@ -29,7 +29,6 @@ export default {
   collectCoverageFrom: [
     'src/**/*.{js,ts}',
     '!src/**/*.d.ts',
-    '!src/index.ts',
     '!src/preload*.ts',
   ],
   coveragePathIgnorePatterns: [
