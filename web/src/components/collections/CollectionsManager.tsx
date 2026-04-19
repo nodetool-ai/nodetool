@@ -2,14 +2,10 @@
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  DialogContent,
-  DialogTitle
-} from "@mui/material";
+import { DialogContent } from "@mui/material";
 import React, { memo } from "react";
 import CollectionList from "./CollectionList";
-import PanelHeadline from "../ui/PanelHeadline";
-import { Dialog, CloseButton } from "../ui_primitives";
+import { Dialog } from "../ui_primitives";
 
 const fadeIn = keyframes`
   from {
@@ -34,7 +30,7 @@ const styles = (_theme: Theme) =>
     ".collections-content": {
       flex: 1,
       overflow: "auto",
-      padding: "0 1em"
+      padding: "0 1.5em"
     },
   });
 
@@ -53,17 +49,10 @@ const CollectionsManager: React.FC<CollectionsManagerProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
+      title="Collections"
       fullWidth
       maxWidth="lg"
     >
-      <DialogTitle className="dialog-title" css={styles(theme)}>
-        <PanelHeadline
-          title="Collections"
-          actions={
-            <CloseButton onClick={onClose} nodrag={false} />
-          }
-        />
-      </DialogTitle>
       <DialogContent sx={{ p: 0, overflow: "hidden" }}>
         <div css={styles(theme)}>
           <div className="collections-manager">

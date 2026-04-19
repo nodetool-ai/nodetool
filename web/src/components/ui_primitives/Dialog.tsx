@@ -44,6 +44,8 @@ import {
 import { useTheme } from "@mui/material/styles";
 import dialogStyles from "../../styles/DialogStyles";
 import { DialogActionButtons, DialogActionButtonsProps } from "./DialogActionButtons";
+import { CloseButton } from "./CloseButton";
+import PanelHeadline from "../ui/PanelHeadline";
 
 export interface DialogProps extends Omit<MuiDialogProps, "title" | "content"> {
   /**
@@ -111,6 +113,15 @@ export interface DialogProps extends Omit<MuiDialogProps, "title" | "content"> {
    * @default "400px"
    */
   minWidth?: string | number;
+  /**
+   * Show a close (X) button in the title bar.
+   * Defaults to true when both `title` and `onClose` are provided.
+   */
+  showCloseButton?: boolean;
+  /**
+   * Extra content rendered in the title bar next to the close button.
+   */
+  titleActions?: ReactNode;
 }
 
 /**
@@ -139,6 +150,8 @@ export const Dialog = memo(
         actionButtonsProps,
         minWidth,
         className,
+        showCloseButton,
+        titleActions,
         ...dialogProps
       },
       ref
@@ -157,6 +170,21 @@ export const Dialog = memo(
       };
 
       const dialogContent = content || children;
+      const shouldShowCloseButton =
+        showCloseButton ?? (!!title && !!onClose);
+      const closeAction = shouldShowCloseButton && onClose ? (
+        <CloseButton
+          onClick={() => onClose({}, "escapeKeyDown")}
+          tooltip="Close"
+        />
+      ) : null;
+      const headerActions = (titleActions || closeAction) ? (
+        <>
+          {titleActions}
+          {closeAction}
+        </>
+      ) : null;
+      const titleIsString = typeof title === "string";
 
       return (
         <MuiDialog
@@ -187,7 +215,14 @@ export const Dialog = memo(
         >
           {title && (
             <DialogTitle className="dialog-title" id="dialog-title">
-              {title}
+              {titleIsString ? (
+                <PanelHeadline
+                  title={title as string}
+                  actions={headerActions}
+                />
+              ) : (
+                title
+              )}
             </DialogTitle>
           )}
           {dialogContent && (

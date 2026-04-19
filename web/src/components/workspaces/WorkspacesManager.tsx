@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   DialogContent,
-  DialogTitle,
   Box,
   List,
   ListItem,
@@ -28,10 +27,8 @@ import { WorkspaceResponse } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
-import PanelHeadline from "../ui/PanelHeadline";
 import {
   Chip,
-  CloseButton,
   Dialog,
   EditorButton,
   FlexRow,
@@ -110,27 +107,6 @@ const styles = (theme: Theme) =>
       marginTop: "8px",
       minWidth: "auto",
       padding: "6px 12px"
-    },
-    ".dialog-title": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      margin: 0,
-      padding: theme.spacing(2, 3),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backdropFilter: "blur(10px)",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    },
-    ".close-button": {
-      color: theme.vars.palette.text.secondary,
-      transition: "color 0.2s",
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: theme.vars.palette.action.hover
-      }
     },
     ".empty-state": {
       display: "flex",
@@ -446,20 +422,9 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         className="workspaces-manager-dialog"
         open={open}
         onClose={onClose}
+        title="Workspaces Manager"
         minWidth={600}
       >
-        <DialogTitle className="dialog-title">
-          <PanelHeadline
-            title="Workspaces Manager"
-            actions={
-              <CloseButton
-                onClick={onClose}
-                tooltip="Close"
-                className="close-button"
-              />
-            }
-          />
-        </DialogTitle>
         <DialogContent>
           <div className="workspaces-manager">
             {isLoading ? (
