@@ -23,6 +23,7 @@ import type { Message } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
 import { processChat } from "@nodetool/chat";
 import { Agent } from "@nodetool/agents";
+import type { Tool } from "@nodetool/agents/tool";
 import { createProvider, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
 import { getSecret } from "@nodetool/models";
@@ -33,6 +34,8 @@ export interface StdinModeOptions {
   workspaceDir: string;
   agentMode?: boolean;
   wsUrl?: string;
+  /** Pre-built tools (e.g. from --sandbox) appended to the Agent's tool list. */
+  extraTools?: Tool[];
 }
 
 interface SlashCommand {
@@ -233,7 +236,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         objective: trimmed,
         provider: prov,
         model: opts.model,
-        tools: [],
+        tools: opts.extraTools ?? [],
         outputFormat: "markdown",
         maxStepIterations: 20
       });
@@ -321,7 +324,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           workspaceDir: opts.workspaceDir,
           secretResolver: getSecret
         }),
-        tools: [],
+        tools: opts.extraTools ?? [],
         callbacks: {
           onChunk: (text) => {
             process.stdout.write(text);

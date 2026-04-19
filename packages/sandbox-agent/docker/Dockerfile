@@ -1,7 +1,8 @@
 # ------------------------------------------------------------------------------
 # nodetool/sandbox-agent — isolated agent computer
 #
-# Ubuntu 22.04 + Node 24 + Chromium + Xvfb/fluxbox + x11vnc + websockify.
+# Debian Bookworm (via node:24-bookworm-slim) + Node 24 + Chromium +
+# Xvfb/fluxbox + x11vnc + websockify.
 # The in-container tool server (@nodetool/sandbox-agent) listens on :7788
 # and exposes file/shell/browser/desktop tools over HTTP.
 # ------------------------------------------------------------------------------

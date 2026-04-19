@@ -159,6 +159,7 @@ export class DockerSandboxProvider implements SandboxProvider {
         Memory: parseMemLimit(options.memLimit ?? "2g"),
         NanoCpus: options.nanoCpus ?? 2_000_000_000,
         SecurityOpt: ["no-new-privileges"],
+        CapDrop: ["ALL"],
         PortBindings: portBindings
       }
     });

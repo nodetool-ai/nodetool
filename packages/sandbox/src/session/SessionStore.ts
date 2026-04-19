@@ -10,15 +10,23 @@
  *                         is near-instant for the common fresh-session case
  *
  * Pause/resume: if a sandbox has been idle longer than `idlePauseSeconds`
- * but not yet past the TTL, it's docker-paused to reclaim RAM. The next
- * touch() auto-resumes it.
+ * but not yet past the TTL, it's docker-paused to reclaim RAM by the
+ * sweeper. A paused sandbox is auto-resumed on the next `acquire()` for
+ * that session id (not on `touch()` — touch only resets the timer).
  *
  * Warm pool: a separate queue of pre-acquired sandboxes with generated
- * ("warm-XXXX") session ids. When acquire() is called without matching an
- * existing session, the store takes from the warm pool (renaming the id)
- * and asynchronously tops the pool back up to target size.
+ * session ids. When `acquire()` is called for a fresh id AND no per-call
+ * options are supplied, the store takes from the warm pool and registers
+ * the sandbox under the caller's id (the sandbox's own `sessionId`
+ * property is NOT renamed; it keeps its warm-* generated id). The pool
+ * is bypassed when `acquire(id, options)` is given a non-empty `options`
+ * object, since the warm sandbox was created only with `defaults` and
+ * per-call settings like `workspaceDir`, `env`, or `memLimit` cannot be
+ * retrofitted onto an already-running container. The pool is
+ * asynchronously topped up after each take.
  */
 
+import { randomBytes } from "node:crypto";
 import type {
   Sandbox,
   SandboxOptions,
@@ -81,7 +89,9 @@ export class SessionStore {
 
   /**
    * Return an existing sandbox for the id, or allocate a new one. New
-   * sandboxes may come from the warm pool for near-zero latency.
+   * sandboxes may come from the warm pool for near-zero latency when the
+   * caller doesn't request per-call options — see the class doc-comment
+   * for why per-call options bypass the warm pool.
    */
   async acquire(
     sessionId: string,
@@ -99,7 +109,11 @@ export class SessionStore {
       return existing.sandbox;
     }
 
-    const warm = this.warmPool.shift();
+    // Warm-pool sandboxes were created with only `defaults`; we can't
+    // retrofit per-call `workspaceDir` / `env` / `memLimit` / `image`
+    // onto an already-running container. Bypass the pool in that case.
+    const hasPerCallOptions = Object.keys(options).length > 0;
+    const warm = hasPerCallOptions ? undefined : this.warmPool.shift();
     let sandbox: Sandbox;
     if (warm) {
       sandbox = warm;
@@ -212,7 +226,7 @@ export class SessionStore {
     this.warming = true;
     try {
       while (!this.closed && this.warmPool.length < this.warmPoolSize) {
-        const id = `warm-${Math.random().toString(36).slice(2, 10)}`;
+        const id = `warm-${randomBytes(6).toString("hex")}`;
         try {
           const sandbox = await this.provider.acquire({
             ...this.defaults,

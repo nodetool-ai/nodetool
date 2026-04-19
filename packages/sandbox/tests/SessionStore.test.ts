@@ -161,6 +161,33 @@ describe("SessionStore", () => {
     }
   });
 
+  it("bypasses the warm pool when per-call options are provided", async () => {
+    const { provider, created } = makeProvider();
+    const store = new SessionStore({
+      provider,
+      sweepIntervalMs: 60_000,
+      warmPoolSize: 1
+    });
+    try {
+      for (let i = 0; i < 50 && store.warmCount() < 1; i++) {
+        await new Promise((r) => setTimeout(r, 5));
+      }
+      expect(store.warmCount()).toBe(1);
+
+      // Per-call options must NOT be silently dropped by taking a warm
+      // sandbox that was created with defaults.
+      const sb = await store.acquire("with-opts", {
+        workspaceDir: "/mnt/work"
+      });
+      expect(sb.sessionId).toBe("with-opts");
+      expect(store.warmCount()).toBe(1);
+      // The last created record is the with-opts sandbox, provisioned fresh.
+      expect(created[created.length - 1].sessionId).toBe("with-opts");
+    } finally {
+      await store.close();
+    }
+  });
+
   it("close() releases every active and warm sandbox", async () => {
     const { provider, created } = makeProvider();
     const store = new SessionStore({

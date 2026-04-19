@@ -201,7 +201,8 @@ if (!process.stdin.isTTY) {
       model,
       workspaceDir: workspace,
       agentMode,
-      wsUrl: opts.url
+      wsUrl: opts.url,
+      extraTools: sandboxExtraTools
     });
   } finally {
     if (sandboxStore) await sandboxStore.close();
