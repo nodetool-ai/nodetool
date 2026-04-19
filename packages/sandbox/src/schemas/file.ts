@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const FileReadInput = z.object({
   file: z.string().min(1),
-  start_line: z.number().int().nonnegative().optional(),
-  end_line: z.number().int().nonnegative().optional(),
+  start_line: z.number().int().positive().optional(),
+  end_line: z.number().int().positive().optional(),
   sudo: z.boolean().optional()
 });
 export type FileReadInput = z.infer<typeof FileReadInput>;

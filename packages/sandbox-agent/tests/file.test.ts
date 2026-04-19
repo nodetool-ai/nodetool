@@ -63,7 +63,7 @@ describe("fileWrite / fileRead", () => {
   it("supports start_line/end_line slicing", async () => {
     const f = join(root, "lines.txt");
     await fileWrite({ file: f, content: "a\nb\nc\nd\ne" });
-    const r = await fileRead({ file: f, start_line: 1, end_line: 4 });
+    const r = await fileRead({ file: f, start_line: 2, end_line: 4 });
     expect(r.content).toBe("b\nc\nd");
     expect(r.total_lines).toBe(5);
   });

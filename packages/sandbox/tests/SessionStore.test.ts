@@ -154,7 +154,7 @@ describe("SessionStore", () => {
       expect(warmIds.every((id) => id.startsWith("warm-"))).toBe(true);
 
       const sb = await store.acquire("real-1");
-      expect(sb.sessionId).toMatch(/^warm-/);
+      expect(sb.sessionId).toBe("real-1");
       expect(store.warmCount()).toBeGreaterThanOrEqual(1);
     } finally {
       await store.close();

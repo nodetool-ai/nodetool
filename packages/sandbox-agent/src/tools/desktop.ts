@@ -70,7 +70,7 @@ export async function screenCapture(
           width: input.region.width,
           height: input.region.height
         }
-      : await readPngDimensions(buf);
+      : await readImageDimensions(buf, format);
     return { image_b64: b64, format, width, height };
   } finally {
     await fs.unlink(tmpFile).catch(() => {});
@@ -255,6 +255,52 @@ async function readPngDimensions(
     width: buf.readUInt32BE(16),
     height: buf.readUInt32BE(20)
   };
+}
+
+function readJpegDimensions(buf: Buffer): { width: number; height: number } {
+  if (buf.length < 2 || buf[0] !== 0xff || buf[1] !== 0xd8) {
+    return { width: 0, height: 0 };
+  }
+  let offset = 2;
+  while (offset < buf.length - 1) {
+    if (buf[offset] !== 0xff) {
+      offset++;
+      continue;
+    }
+    const marker = buf[offset + 1];
+    if (marker === 0xd8) {
+      offset += 2;
+      continue;
+    }
+    if (marker === 0xd9) break;
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd9)) {
+      offset += 2;
+      continue;
+    }
+    if (buf.length < offset + 4) break;
+    const length = buf.readUInt16BE(offset + 2);
+    if (
+      (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) &&
+      buf.length >= offset + 10
+    ) {
+      return {
+        height: buf.readUInt16BE(offset + 5),
+        width: buf.readUInt16BE(offset + 7)
+      };
+    }
+    offset += 2 + length;
+  }
+  return { width: 0, height: 0 };
+}
+
+async function readImageDimensions(
+  buf: Buffer,
+  format: string
+): Promise<{ width: number; height: number }> {
+  if (format === "jpeg") {
+    return readJpegDimensions(buf);
+  }
+  return readPngDimensions(buf);
 }
 
 /** @internal exported for tests */

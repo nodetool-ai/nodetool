@@ -19,7 +19,7 @@ describe("schemas / file", () => {
   it("accepts line ranges", () => {
     const parsed = FileReadInput.parse({
       file: "/tmp/x.txt",
-      start_line: 0,
+      start_line: 1,
       end_line: 10
     });
     expect(parsed.end_line).toBe(10);

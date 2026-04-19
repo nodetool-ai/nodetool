@@ -32,9 +32,11 @@ export async function fileRead(input: FileReadInput): Promise<FileReadOutput> {
   const lines = text.split("\n");
   const total = lines.length;
 
-  const start = input.start_line ?? 0;
-  const end = input.end_line ?? total;
-  const slice = lines.slice(start, end).join("\n");
+  const requestedStartLine = input.start_line ?? 1;
+  const requestedEndLine = input.end_line ?? total;
+  const startIdx = Math.max(0, requestedStartLine - 1);
+  const endIdx = Math.min(total, requestedEndLine);
+  const slice = lines.slice(startIdx, endIdx).join("\n");
 
   return {
     content: slice,
@@ -195,7 +197,7 @@ function runWithStdin(
 
 function runFind(root: string, glob: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const child: ChildProcess = spawn("find", [root, "-name", glob], {
+    const child: ChildProcess = spawn("find", ["--", root, "-name", glob], {
       stdio: ["ignore", "pipe", "pipe"]
     });
     const out: Buffer[] = [];

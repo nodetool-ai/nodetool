@@ -116,7 +116,11 @@ export class SessionStore {
     const warm = hasPerCallOptions ? undefined : this.warmPool.shift();
     let sandbox: Sandbox;
     if (warm) {
-      sandbox = warm;
+      // Warm sandboxes keep their generated id internally. Wrap so the
+      // caller sees the requested sessionId (SandboxProvider contract).
+      const wrapper = Object.create(warm);
+      wrapper.sessionId = sessionId;
+      sandbox = wrapper as Sandbox;
       // Trigger async refill without blocking the caller.
       void this.refillWarmPool();
     } else {

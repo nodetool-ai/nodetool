@@ -112,7 +112,7 @@ export class DockerSandboxProvider implements SandboxProvider {
     const image = options.image ?? this.defaultImage;
     await this.ensureImage(image);
 
-    const containerName = `nodetool-sandbox-${options.sessionId}`;
+    const containerName = `nodetool-sandbox-${options.sessionId.replace(/[^a-zA-Z0-9_.-]/g, "-")}`;
     const binds: string[] = [];
     if (options.workspaceDir) {
       binds.push(`${options.workspaceDir}:/workspace:rw`);
