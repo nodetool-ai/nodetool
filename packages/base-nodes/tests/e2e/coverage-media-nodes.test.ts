@@ -131,6 +131,89 @@ function modelRef(data?: string): Record<string, unknown> {
   return { type: "model3d", uri: "", data: d, format: "glb" };
 }
 
+function pad4(length: number): number {
+  return (4 - (length % 4)) % 4;
+}
+
+function triangleGlbBase64(): string {
+  const positions = new Float32Array([
+    0, 0, 0,
+    1, 0, 0,
+    0, 2, 0
+  ]);
+  const indices = new Uint16Array([0, 1, 2]);
+  const positionsBytes = new Uint8Array(positions.buffer);
+  const indicesBytes = new Uint8Array(indices.buffer);
+  const totalBinaryLength =
+    positionsBytes.byteLength + indicesBytes.byteLength + pad4(indicesBytes.byteLength);
+
+  const json = {
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    scene: 0,
+    nodes: [{ mesh: 0 }],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            indices: 1
+          }
+        ]
+      }
+    ],
+    buffers: [{ byteLength: totalBinaryLength }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positionsBytes.byteLength },
+      {
+        buffer: 0,
+        byteOffset: positionsBytes.byteLength,
+        byteLength: indicesBytes.byteLength
+      }
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: "VEC3",
+        min: [0, 0, 0],
+        max: [1, 2, 0]
+      },
+      {
+        bufferView: 1,
+        componentType: 5123,
+        count: 3,
+        type: "SCALAR"
+      }
+    ]
+  };
+
+  const jsonRaw = new TextEncoder().encode(JSON.stringify(json));
+  const jsonBytes = new Uint8Array(jsonRaw.byteLength + pad4(jsonRaw.byteLength));
+  jsonBytes.set(jsonRaw);
+  jsonBytes.fill(0x20, jsonRaw.byteLength);
+
+  const binary = new Uint8Array(totalBinaryLength);
+  binary.set(positionsBytes, 0);
+  binary.set(indicesBytes, positionsBytes.byteLength);
+
+  const totalLength = 12 + 8 + jsonBytes.byteLength + 8 + binary.byteLength;
+  const glb = new Uint8Array(totalLength);
+  const view = new DataView(glb.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, totalLength, true);
+  view.setUint32(12, jsonBytes.byteLength, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  glb.set(jsonBytes, 20);
+  const binaryChunkOffset = 20 + jsonBytes.byteLength;
+  view.setUint32(binaryChunkOffset, binary.byteLength, true);
+  view.setUint32(binaryChunkOffset + 4, 0x004e4942, true);
+  glb.set(binary, binaryChunkOffset + 8);
+  return Buffer.from(glb).toString("base64");
+}
+
 const tmpDir = `/tmp/nodetool-media-test-${Date.now()}`;
 
 // --------------- AUDIO NODES ---------------
@@ -1553,31 +1636,37 @@ describe("model3d nodes — full coverage", () => {
     expect(output.uri).toMatch(/model_\d{8}\.glb/);
   });
 
-  it("FormatConverterNode changes output format", async () => {
-    const ref = modelRef();
+  it("FormatConverterNode converts GLB to textual glTF", async () => {
+    const ref = modelRef(triangleGlbBase64());
     const _n = new FormatConverterNode();
     _n.assign({
       model: ref,
-      output_format: "obj"
+      output_format: "gltf"
     });
     const result = await _n.process();
-    const output = result.output as { format: string };
-    expect(output.format).toBe("obj");
+    const output = result.output as { format: string; data: string };
+    expect(output.format).toBe("gltf");
+    const json = JSON.parse(Buffer.from(output.data, "base64").toString("utf8")) as {
+      asset?: { version?: string };
+    };
+    expect(json.asset?.version).toBe("2.0");
   });
 
   it("GetModel3DMetadataNode returns metadata", async () => {
-    const data = Buffer.from(new Array(320).fill(0)).toString("base64");
+    const data = triangleGlbBase64();
     const _n = new GetModel3DMetadataNode();
     _n.assign({
-      model: { data, format: "stl", uri: "file://test.stl" }
+      model: { data, format: "glb", uri: "file://test.glb" }
     });
     const result = await _n.process();
     const meta = result.output as Record<string, unknown>;
-    expect(meta.format).toBe("stl");
-    expect(meta.uri).toBe("file://test.stl");
-    expect(meta.size_bytes).toBe(320);
-    expect(meta.vertices).toBe(10); // 320/32
-    expect(meta.faces).toBe(3); // floor(10/3)
+    expect(meta.format).toBe("glb");
+    expect(meta.uri).toBe("file://test.glb");
+    expect(meta.size_bytes).toBeGreaterThan(0);
+    expect(meta.vertex_count).toBe(3);
+    expect(meta.face_count).toBe(1);
+    expect(meta.mesh_count).toBe(1);
+    expect(meta.primitive_count).toBe(1);
   });
 
   it("GetModel3DMetadataNode uses explicit vertices/faces", async () => {

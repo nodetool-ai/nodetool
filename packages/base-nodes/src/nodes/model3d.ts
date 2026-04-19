@@ -1,3 +1,4 @@
+import { NodeIO } from "@gltf-transform/core";
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -11,6 +12,27 @@ type Model3DRefLike = {
 };
 
 type ImageRefLike = { data?: Uint8Array | string; uri?: string };
+type JsonResources = Record<string, Uint8Array>;
+type JsonResourceRef = { uri?: string };
+type Model3DMetadata = {
+  uri: string;
+  format: string;
+  size_bytes: number;
+  vertices: number;
+  faces: number;
+  vertex_count: number;
+  face_count: number;
+  mesh_count: number;
+  primitive_count: number;
+  bounds_min: number[];
+  bounds_max: number[];
+  is_watertight: boolean;
+  center_of_mass: number[] | null;
+  volume: number | null;
+  surface_area: number | null;
+};
+
+const gltfIo = new NodeIO();
 
 function toBytes(data: Uint8Array | string | undefined): Uint8Array {
   if (!data) return new Uint8Array();
@@ -64,6 +86,72 @@ function concatBytes(parts: Uint8Array[]): Uint8Array {
     offset += part.length;
   }
   return out;
+}
+
+function replaceExtension(uriOrPath: string, format: string): string {
+  if (!uriOrPath) return "";
+  const isFileUri = uriOrPath.startsWith("file://");
+  const rawPath = isFileUri ? filePath(uriOrPath) : uriOrPath;
+  const ext = path.extname(rawPath);
+  const nextPath = ext
+    ? `${rawPath.slice(0, -ext.length)}.${format}`
+    : `${rawPath}.${format}`;
+  return isFileUri ? `file://${nextPath}` : nextPath;
+}
+
+function modelFormat(model: Model3DRefLike): string {
+  const explicit = String(model.format ?? "").toLowerCase();
+  if (explicit) return explicit;
+  const uri = model.uri ?? "";
+  return uri ? extFormat(uri) : "glb";
+}
+
+function mimeTypeForResource(uri: string): string {
+  const ext = path.extname(uri).replace(".", "").toLowerCase();
+  switch (ext) {
+    case "png":
+      return "image/png";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "webp":
+      return "image/webp";
+    case "ktx2":
+      return "image/ktx2";
+    case "bin":
+    default:
+      return "application/octet-stream";
+  }
+}
+
+function bytesToDataUri(bytes: Uint8Array, uri: string): string {
+  const mimeType = mimeTypeForResource(uri);
+  return `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
+}
+
+function embedJsonResourceUris(
+  refs: JsonResourceRef[] | undefined,
+  resources: JsonResources
+): void {
+  for (const ref of refs ?? []) {
+    if (!ref.uri) continue;
+    const resource = resources[ref.uri];
+    if (!resource) continue;
+    ref.uri = bytesToDataUri(resource, ref.uri);
+  }
+}
+
+async function convertGlbToGltf(bytes: Uint8Array): Promise<Uint8Array> {
+  const document = await gltfIo.readBinary(bytes);
+  const jsonDocument = await gltfIo.writeJSON(document);
+  const json = JSON.parse(JSON.stringify(jsonDocument.json)) as GltfJson & {
+    buffers?: JsonResourceRef[];
+    images?: JsonResourceRef[];
+  };
+  const resources = jsonDocument.resources as JsonResources;
+  embedJsonResourceUris(json.buffers, resources);
+  embedJsonResourceUris(json.images, resources);
+  return new TextEncoder().encode(JSON.stringify(json));
 }
 
 // === GLB parsing and vertex manipulation ===
@@ -263,6 +351,118 @@ function glbGetIndexAccessor(
   const bv = json.bufferViews?.[acc.bufferView];
   if (!bv) return null;
   return { acc, bv };
+}
+
+function analyzeGlbMetadata(
+  model: Model3DRefLike,
+  bytes: Uint8Array
+): Model3DMetadata {
+  const glb = parseGlb(bytes);
+  if (!glb) {
+    throw new Error("Expected valid GLB bytes.");
+  }
+
+  let vertexCount = 0;
+  let faceCount = 0;
+  let primitiveCount = 0;
+  const meshCount = glb.json.meshes?.length ?? 0;
+
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+  let hasBounds = false;
+
+  for (const mesh of glb.json.meshes ?? []) {
+    for (const primitive of mesh.primitives) {
+      primitiveCount += 1;
+
+      const posIndex = primitive.attributes["POSITION"];
+      if (posIndex !== undefined) {
+        const accessorRef = glbGetVec3Accessor(glb.json, posIndex);
+        if (accessorRef) {
+          vertexCount += accessorRef.acc.count;
+
+          const accMin = accessorRef.acc.min;
+          const accMax = accessorRef.acc.max;
+          if (accMin && accMax && accMin.length >= 3 && accMax.length >= 3) {
+            for (let i = 0; i < 3; i++) {
+              if (accMin[i] < min[i]) min[i] = accMin[i];
+              if (accMax[i] > max[i]) max[i] = accMax[i];
+            }
+            hasBounds = true;
+          } else {
+            const positions = glbReadVec3(glb.bin, accessorRef.acc, accessorRef.bv);
+            for (let i = 0; i < positions.length; i += 3) {
+              for (let j = 0; j < 3; j++) {
+                if (positions[i + j] < min[j]) min[j] = positions[i + j];
+                if (positions[i + j] > max[j]) max[j] = positions[i + j];
+              }
+            }
+            hasBounds = positions.length > 0 || hasBounds;
+          }
+        }
+      }
+
+      const mode = primitive.mode ?? 4;
+      if (mode !== 4) continue;
+
+      if (primitive.indices !== undefined) {
+        const indexRef = glbGetIndexAccessor(glb.json, primitive.indices);
+        if (indexRef) {
+          faceCount += Math.floor(indexRef.acc.count / 3);
+          continue;
+        }
+      }
+
+      const positionAccessor =
+        posIndex !== undefined ? glbGetVec3Accessor(glb.json, posIndex) : null;
+      if (positionAccessor) {
+        faceCount += Math.floor(positionAccessor.acc.count / 3);
+      }
+    }
+  }
+
+  return {
+    uri: model.uri ?? "",
+    format: "glb",
+    size_bytes: bytes.length,
+    vertices: vertexCount,
+    faces: faceCount,
+    vertex_count: vertexCount,
+    face_count: faceCount,
+    mesh_count: meshCount,
+    primitive_count: primitiveCount,
+    bounds_min: hasBounds ? min : [],
+    bounds_max: hasBounds ? max : [],
+    is_watertight: false,
+    center_of_mass: null,
+    volume: null,
+    surface_area: null
+  };
+}
+
+function fallbackMetadata(
+  model: Model3DRefLike,
+  bytes: Uint8Array
+): Model3DMetadata {
+  const vertices = model.vertices ?? Math.floor(bytes.length / 32);
+  const faces = model.faces ?? Math.floor(vertices / 3);
+  return {
+    uri: model.uri ?? "",
+    format: modelFormat(model),
+    size_bytes: bytes.length,
+    vertices,
+    faces,
+    vertex_count: vertices,
+    face_count: faces,
+    mesh_count: 0,
+    primitive_count: 0,
+    bounds_min: [],
+    bounds_max: [],
+    is_watertight: false,
+    center_of_mass: null,
+    volume: null,
+    surface_area: null
+  };
 }
 
 /** Passthrough result for non-GLB models */
@@ -494,10 +694,34 @@ export class FormatConverterNode extends ModelTransformNode {
   async process(): Promise<Record<string, unknown>> {
     const model = this.getModel();
     const bytes = modelBytes(model);
-    const outputFormat = String(this.output_format ?? "glb");
+    const inputFormat = modelFormat(model);
+    const outputFormat = String(this.output_format ?? "glb").toLowerCase();
+
+    if (outputFormat === inputFormat) {
+      return {
+        output: modelRef(bytes, {
+          uri: replaceExtension(model.uri ?? "", outputFormat),
+          format: outputFormat
+        })
+      };
+    }
+
+    if (inputFormat !== "glb") {
+      throw new Error(
+        `Unsupported model conversion: ${inputFormat} -> ${outputFormat}.`
+      );
+    }
+
+    if (outputFormat !== "gltf") {
+      throw new Error(
+        `Unsupported model conversion: ${inputFormat} -> ${outputFormat}.`
+      );
+    }
+
+    const convertedBytes = await convertGlbToGltf(bytes);
     return {
-      output: modelRef(bytes, {
-        uri: model.uri ?? "",
+      output: modelRef(convertedBytes, {
+        uri: replaceExtension(model.uri ?? "", outputFormat),
         format: outputFormat
       })
     };
@@ -511,8 +735,13 @@ export class GetModel3DMetadataNode extends BaseNode {
     "Get metadata about a 3D model.\n    3d, mesh, model, metadata, info, properties\n\n    Use cases:\n    - Get vertex and face counts for processing decisions\n    - Analyze model properties\n    - Gather information for model cataloging";
   static readonly metadataOutputTypes = {
     format: "str",
+    size_bytes: "int",
+    vertices: "int",
+    faces: "int",
     vertex_count: "int",
     face_count: "int",
+    mesh_count: "int",
+    primitive_count: "int",
     is_watertight: "bool",
     bounds_min: "list[float]",
     bounds_max: "list[float]",
@@ -541,16 +770,12 @@ export class GetModel3DMetadataNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const model = (this.model ?? {}) as Model3DRefLike;
     const bytes = modelBytes(model);
-    const vertices = model.vertices ?? Math.floor(bytes.length / 32);
-    const faces = model.faces ?? Math.floor(vertices / 3);
+    const metadata =
+      modelFormat(model) === "glb" && parseGlb(bytes)
+        ? analyzeGlbMetadata(model, bytes)
+        : fallbackMetadata(model, bytes);
     return {
-      output: {
-        uri: model.uri ?? "",
-        format: model.format ?? "glb",
-        size_bytes: bytes.length,
-        vertices,
-        faces
-      }
+      output: metadata
     };
   }
 }
