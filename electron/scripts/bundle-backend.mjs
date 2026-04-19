@@ -58,11 +58,7 @@ const EXTERNAL_PACKAGES = [
   // Large optional packages (dynamic await import())
   "playwright",
   "playwright-core",
-  "tesseract.js",
-  "tesseract.js-core",
   "pdfjs-dist",
-  "chartjs-node-canvas",
-  "canvas",
   "@napi-rs/canvas",
   "chart.js",
 
@@ -76,16 +72,9 @@ const EXTERNAL_PACKAGES = [
   "@opentelemetry/sdk-trace-base",
   "@opentelemetry/exporter-trace-otlp-proto",
   "@opentelemetry/semantic-conventions",
-  "@traceloop/node-server-sdk",
 
   // MCP SDK (deep-path imports like /server/mcp.js)
   "@modelcontextprotocol/sdk",
-
-  // CJS packages with __dirname-relative file reads at runtime
-  "jsdom",
-
-  // Sandboxed code execution (native addon, optional)
-  "isolated-vm",
 
   // CJS require() packages
   "openai",
