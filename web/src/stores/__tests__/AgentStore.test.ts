@@ -1,5 +1,6 @@
 import type { Message } from "../ApiTypes";
 import { EventEmitter } from "eventemitter3";
+import { waitFor } from "@testing-library/react";
 
 describe("AgentStore", () => {
   const createSessionMock = jest.fn<
@@ -244,14 +245,13 @@ describe("AgentStore", () => {
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
 
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(fakeClient.listModels).toHaveBeenCalledWith({
-      provider: "claude",
-      workspacePath: "/tmp/workspace-1"
+    await waitFor(() => {
+      expect(fakeClient.listModels).toHaveBeenCalledWith({
+        provider: "claude",
+        workspacePath: "/tmp/workspace-1"
+      });
+      expect(useAgentStore.getState().model).toBe("claude-opus-4-6");
     });
-    expect(useAgentStore.getState().model).toBe("claude-opus-4-6");
   });
 
   it("does not reload models when workspace context is unchanged", async () => {
@@ -268,16 +268,19 @@ describe("AgentStore", () => {
     useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
-    await Promise.resolve();
-    await Promise.resolve();
+
+    await waitFor(() => {
+      expect(fakeClient.listModels).toHaveBeenCalledTimes(1);
+    });
 
     fakeClient.listModels.mockClear();
 
     useAgentStore
       .getState()
       .setWorkspaceContext("workspace-1", "/tmp/workspace-1");
-    await Promise.resolve();
 
-    expect(fakeClient.listModels).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(fakeClient.listModels).not.toHaveBeenCalled();
+    });
   });
 });
