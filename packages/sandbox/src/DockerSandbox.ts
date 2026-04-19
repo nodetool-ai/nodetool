@@ -212,6 +212,16 @@ export class DockerSandboxProvider implements SandboxProvider {
         });
       }
 
+      if (options.secretMap && Object.keys(options.secretMap).length > 0) {
+        await fetch(`${toolUrl}/internal/set-secret-map`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ map: options.secretMap })
+        }).catch(() => {
+          // best-effort; secret_get will return null for missing keys
+        });
+      }
+
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
       const limit = options.timeoutSeconds ?? 3600;
       if (limit > 0) {

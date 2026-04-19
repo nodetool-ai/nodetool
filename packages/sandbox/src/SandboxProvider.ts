@@ -30,6 +30,8 @@ export interface SandboxOptions {
   image?: string;
   /** Extra env vars injected into the container. */
   env?: Record<string, string>;
+  /** Named secrets resolvable via the sandbox tool server (not exported as env). */
+  secretMap?: Record<string, string>;
 }
 
 export interface SandboxEndpoint {

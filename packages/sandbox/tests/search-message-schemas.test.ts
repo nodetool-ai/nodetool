@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   InfoSearchWebInput,
   SearchResult,
+  SecretGetInput,
+  SecretGetOutput,
   MessageNotifyUserInput,
   MessageAskUserInput,
   SandboxEvent,
@@ -40,6 +42,19 @@ describe("search + messaging schemas", () => {
       published_at: null
     });
     expect(r.published_at).toBeNull();
+  });
+
+  it("requires a non-empty secret name", () => {
+    expect(() => SecretGetInput.parse({ name: "" })).toThrow();
+    expect(() => SecretGetInput.parse({ name: "OPENAI_API_KEY" })).not.toThrow();
+  });
+
+  it("allows null when a secret is not available", () => {
+    const parsed = SecretGetOutput.parse({
+      name: "OPENAI_API_KEY",
+      value: null
+    });
+    expect(parsed.value).toBeNull();
   });
 
   it("accepts attachments on notify_user", () => {

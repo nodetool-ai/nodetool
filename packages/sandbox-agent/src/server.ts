@@ -38,6 +38,7 @@ import {
   KeyPressInput,
   KeyTypeInput,
   InfoSearchWebInput,
+  SecretGetInput,
   MessageNotifyUserInput,
   MessageAskUserInput,
   IdleInput,
@@ -82,6 +83,7 @@ import {
   cursorPosition
 } from "./tools/desktop.js";
 import { infoSearchWeb } from "./tools/search.js";
+import { secretGet } from "./tools/secrets.js";
 import {
   messageNotifyUser,
   messageAskUser,
@@ -90,6 +92,7 @@ import {
 import { exposePort } from "./tools/deploy.js";
 import { replay, subscribe } from "./event-bus.js";
 import { setPortMap } from "./port-map.js";
+import { setSecretMap } from "./secret-map.js";
 
 export const SANDBOX_AGENT_VERSION = "0.1.0";
 
@@ -150,6 +153,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
 
   // --- Search ------------------------------------------------------------
   route(app, "/search/web", InfoSearchWebInput, infoSearchWeb);
+  route(app, "/secrets/get", SecretGetInput, secretGet);
 
   // --- Messaging ---------------------------------------------------------
   route(app, "/message/notify", MessageNotifyUserInput, messageNotifyUser);
@@ -167,6 +171,15 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
       return;
     }
     setPortMap(body.map);
+    reply.send({ ok: true });
+  });
+  app.post("/internal/set-secret-map", async (req, reply) => {
+    const body = req.body as { map?: Record<string, string> } | undefined;
+    if (!body || typeof body.map !== "object" || body.map === null) {
+      reply.status(400).send({ error: "missing map" });
+      return;
+    }
+    setSecretMap(body.map);
     reply.send({ ok: true });
   });
 

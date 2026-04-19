@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildServer, SANDBOX_AGENT_VERSION } from "../src/server.js";
+import { _resetForTests as resetSecretMap } from "../src/secret-map.js";
 
 describe("buildServer / health", () => {
   it("responds on /health with ok", async () => {
@@ -58,6 +59,33 @@ describe("buildServer / health", () => {
       expect(res.statusCode).toBe(400);
     } finally {
       await app.close();
+    }
+  });
+
+  it("supports internal secret map updates and secret reads", async () => {
+    resetSecretMap();
+    const app = buildServer();
+    try {
+      const setRes = await app.inject({
+        method: "POST",
+        url: "/internal/set-secret-map",
+        payload: { map: { OPENAI_API_KEY: "sk-test" } }
+      });
+      expect(setRes.statusCode).toBe(200);
+
+      const getRes = await app.inject({
+        method: "POST",
+        url: "/secrets/get",
+        payload: { name: "OPENAI_API_KEY" }
+      });
+      expect(getRes.statusCode).toBe(200);
+      expect(getRes.json()).toEqual({
+        name: "OPENAI_API_KEY",
+        value: "sk-test"
+      });
+    } finally {
+      await app.close();
+      resetSecretMap();
     }
   });
 });

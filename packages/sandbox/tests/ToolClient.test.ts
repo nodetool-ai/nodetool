@@ -93,4 +93,22 @@ describe("ToolClient", () => {
     });
     await expect(client.fileRead({ file: "/tmp/x" })).rejects.toThrow();
   });
+
+  it("posts to /secrets/get and returns nullable values", async () => {
+    const client = new ToolClient({
+      baseUrl: "http://sbx:7788",
+      fetch: makeFetch((url, init) => {
+        expect(String(url)).toBe("http://sbx:7788/secrets/get");
+        expect((init?.method ?? "GET").toUpperCase()).toBe("POST");
+        expect(JSON.parse(String(init?.body))).toEqual({ name: "OPENAI_API_KEY" });
+        return new Response(
+          JSON.stringify({ name: "OPENAI_API_KEY", value: null }),
+          { status: 200 }
+        );
+      })
+    });
+
+    const out = await client.secretGet({ name: "OPENAI_API_KEY" });
+    expect(out).toEqual({ name: "OPENAI_API_KEY", value: null });
+  });
 });

@@ -38,6 +38,7 @@ import {
   KeyPressInput,
   KeyTypeInput,
   InfoSearchWebInput,
+  SecretGetInput,
   MessageNotifyUserInput,
   MessageAskUserInput,
   IdleInput,
@@ -301,6 +302,14 @@ function defs(): SandboxToolDefinition<unknown, unknown>[] {
       inputSchema: InfoSearchWebInput,
       invoke: (c, i) => c.infoSearchWeb(i),
       renderStatus: (i) => `Searching: ${i.query}`
+    },
+    {
+      name: "secrets_get",
+      description:
+        "Read one named secret configured by the host for this sandbox session.",
+      inputSchema: SecretGetInput,
+      invoke: (c, i) => c.secretGet(i),
+      renderStatus: (i) => `Reading secret ${i.name}`
     },
 
     // --- Messaging ------------------------------------------------------

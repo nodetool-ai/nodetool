@@ -72,6 +72,8 @@ import {
   CursorPositionOutput,
   InfoSearchWebInput,
   InfoSearchWebOutput,
+  SecretGetInput,
+  SecretGetOutput,
   MessageNotifyUserInput,
   MessageNotifyUserOutput,
   MessageAskUserInput,
@@ -389,6 +391,10 @@ export class ToolClient {
       InfoSearchWebInput,
       InfoSearchWebOutput
     );
+  }
+
+  async secretGet(input: SecretGetInput): Promise<SecretGetOutput> {
+    return this.post("/secrets/get", input, SecretGetInput, SecretGetOutput);
   }
 
   // --- Messaging ---------------------------------------------------------

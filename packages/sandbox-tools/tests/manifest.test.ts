@@ -59,6 +59,7 @@ describe("createSandboxTools", () => {
     expect(names).toContain("browser_navigate");
     expect(names).toContain("screen_capture");
     expect(names).toContain("info_search_web");
+    expect(names).toContain("secrets_get");
     expect(names).toContain("message_notify_user");
     expect(names).toContain("idle");
     expect(names).toContain("expose_port");
