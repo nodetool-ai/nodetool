@@ -1085,6 +1085,38 @@ export class UnifiedWebSocketRunner {
     throw new Error("workflow_id or graph is required");
   }
 
+  /**
+   * Surface a clean terminal job_update when pre-run setup fails (typically
+   * because the Python bridge could not start). Without this the error would
+   * bubble up to handleCommand and be sent as a generic `invalid_command`
+   * envelope, which the UI does not associate with the job — the workflow
+   * appears to spin forever instead of failing.
+   */
+  private async emitBeforeRunFailure(
+    jobId: string,
+    workflowId: string | null,
+    err: unknown
+  ): Promise<void> {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    this.logError("beforeRunJob failed", err);
+    await this.sendMessage({
+      type: "job_update",
+      status: "failed",
+      job_id: jobId,
+      workflow_id: workflowId,
+      error: errorMessage
+    });
+    try {
+      const job = (await Job.get(jobId)) as Job | null;
+      if (job) {
+        job.markFailed(errorMessage);
+        await job.save();
+      }
+    } catch (persistErr) {
+      this.logError("beforeRunJob failure persistence failed", persistErr);
+    }
+  }
+
   async runJob(req: RunJobRequest): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
@@ -1097,7 +1129,12 @@ export class UnifiedWebSocketRunner {
     // Route ComfyUI workflows to the dedicated comfy executor
     if (isComfyGraph(rawGraph)) {
       if (this.beforeRunJob) {
-        await this.beforeRunJob(rawGraph);
+        try {
+          await this.beforeRunJob(rawGraph);
+        } catch (err) {
+          await this.emitBeforeRunFailure(jobId, workflowId, err);
+          return;
+        }
       }
       await this.runComfyJob(
         jobId,
@@ -1113,7 +1150,12 @@ export class UnifiedWebSocketRunner {
     const graph = await this.hydrateGraph(rawGraph);
 
     if (this.beforeRunJob) {
-      await this.beforeRunJob(graph);
+      try {
+        await this.beforeRunJob(graph);
+      } catch (err) {
+        await this.emitBeforeRunFailure(jobId, workflowId, err);
+        return;
+      }
     }
 
     const workspaceDir =

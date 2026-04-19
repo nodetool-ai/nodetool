@@ -182,6 +182,22 @@ export class PythonStdioBridge extends EventEmitter {
 
         if (!ready) {
           const detail = stderrOutput.trim();
+          // The most common cause of this failure in shipped builds is that
+          // the JS side was published ahead of the matching nodetool-core
+          // Python wheel, so the older worker doesn't know `--stdio`. Give
+          // users an actionable message instead of raw argparse output.
+          if (/unrecognized arguments:.*--stdio/.test(detail)) {
+            settleError(
+              new Error(
+                "The bundled Python environment is outdated and does not " +
+                  "support the new stdio worker protocol. Please reinstall " +
+                  "the Python environment from Settings → Packages " +
+                  "(Reinstall environment) to update nodetool-core. " +
+                  `Worker source: ${candidate.source} (${candidate.command}).`
+              )
+            );
+            return;
+          }
           settleError(
             new Error(
               detail ||
