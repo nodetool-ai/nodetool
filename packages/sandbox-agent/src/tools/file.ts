@@ -93,7 +93,14 @@ export async function fileFindInContent(
   const raw = await readMaybeSudo(input.file, input.sudo ?? false);
   const text = raw.toString("utf-8");
   const lines = text.split("\n");
-  const re = new RegExp(input.regex);
+  let re: RegExp;
+  try {
+    re = new RegExp(input.regex);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid regex for fileFindInContent: ${message}`);
+  }
   const matches: FileMatch[] = [];
   for (let i = 0; i < lines.length; i++) {
     const m = re.exec(lines[i]);
