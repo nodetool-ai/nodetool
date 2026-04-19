@@ -1263,7 +1263,7 @@ export class ProcessingContext {
 
   private resolveSandboxFilePath(path: string): string {
     if (this.workspaceDir == null || this.workspaceDir === "") {
-      throw new Error("workspace_dir is required for sandbox file operations");
+      throw new Error("workspaceDir is required for sandbox file operations");
     }
     const workspaceRoot = resolve(this.workspaceDir);
     const normalizedPath = path.replaceAll("\\", "/");
