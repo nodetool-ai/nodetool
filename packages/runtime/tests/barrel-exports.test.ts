@@ -23,6 +23,7 @@ describe("runtime barrel exports", () => {
     expect(mod.GeminiProvider).toBeDefined();
     expect(mod.LlamaProvider).toBeDefined();
     expect(mod.OllamaProvider).toBeDefined();
+    expect(mod.AkiProvider).toBeDefined();
     expect(mod.FakeProvider).toBeDefined();
   });
 
@@ -64,6 +65,7 @@ describe("providers barrel exports", () => {
     expect(mod.GeminiProvider).toBeDefined();
     expect(mod.LlamaProvider).toBeDefined();
     expect(mod.OllamaProvider).toBeDefined();
+    expect(mod.AkiProvider).toBeDefined();
     expect(mod.FakeProvider).toBeDefined();
   });
 });

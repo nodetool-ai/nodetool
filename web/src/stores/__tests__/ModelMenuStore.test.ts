@@ -49,6 +49,19 @@ describe("ModelMenuStore", () => {
       expect(requiredSecretForProvider("kimi")).toBe("KIMI_API_KEY");
     });
 
+    it("returns AKI_API_KEY for valid AKI provider variants", () => {
+      expect(requiredSecretForProvider("aki")).toBe("AKI_API_KEY");
+      expect(requiredSecretForProvider("aki.io")).toBe("AKI_API_KEY");
+      expect(requiredSecretForProvider("https://api.aki.io/v1")).toBe(
+        "AKI_API_KEY"
+      );
+    });
+
+    it("does not match arbitrary hosts containing aki.io", () => {
+      expect(requiredSecretForProvider("https://aki.io.evil.example")).toBeNull();
+      expect(requiredSecretForProvider("https://evil.example/aki.io/path")).toBeNull();
+    });
+
     it("returns null for providers without required secrets", () => {
       expect(requiredSecretForProvider("ollama")).toBeNull();
       expect(requiredSecretForProvider("local")).toBeNull();

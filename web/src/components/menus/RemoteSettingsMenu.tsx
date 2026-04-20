@@ -37,7 +37,8 @@ const SETTING_LINKS: Record<string, string> = {
   FAL_API_KEY: "https://fal.ai/dashboard/keys",
   SERPAPI_API_KEY: "https://serpapi.com/manage-api-key",
   DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard",
-  KIMI_API_KEY: "https://platform.moonshot.ai/console/api-keys"
+  KIMI_API_KEY: "https://platform.moonshot.ai/console/api-keys",
+  AKI_API_KEY: "https://aki.io"
 };
 
 const SETTING_BUTTON_TITLES: Record<string, string> = {
@@ -53,7 +54,8 @@ const SETTING_BUTTON_TITLES: Record<string, string> = {
   FAL_API_KEY: "Get Fal API Key",
   SERPAPI_API_KEY: "Get SerpAPI API Key",
   DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials",
-  KIMI_API_KEY: "Get Moonshot API Key"
+  KIMI_API_KEY: "Get Moonshot API Key",
+  AKI_API_KEY: "Get AKI.IO API Key"
 };
 
 const SETTING_TOOLTIPS: Record<string, string> = {
@@ -69,7 +71,8 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   FAL_API_KEY: "Go to Fal.ai dashboard",
   SERPAPI_API_KEY: "Go to SerpAPI key management page",
   DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard",
-  KIMI_API_KEY: "Go to Moonshot (Kimi) platform API keys page"
+  KIMI_API_KEY: "Go to Moonshot (Kimi) platform API keys page",
+  AKI_API_KEY: "Go to AKI.IO to sign up and get your API key"
 };
 
 interface SettingItemProps {

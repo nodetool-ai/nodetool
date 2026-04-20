@@ -264,6 +264,11 @@ sec(
   "MiniMax API key for accessing MiniMax AI models"
 );
 sec(
+  "AKI_API_KEY",
+  "AKI",
+  "AKI.IO API key for accessing the AKI AI Model Hub"
+);
+sec(
   "GEMINI_API_KEY",
   "Gemini",
   "Gemini API key for accessing Google's Gemini AI models"

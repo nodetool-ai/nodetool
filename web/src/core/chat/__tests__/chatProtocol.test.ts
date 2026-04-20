@@ -228,6 +228,72 @@ describe("chatProtocol", () => {
     expect(set).not.toHaveBeenCalled();
   });
 
+  it("applies chunks using chunk.thread_id when currentThreadId points to a different thread", async () => {
+    let capturedState: any = {
+      status: "connected",
+      currentThreadId: "thread-current",
+      threads: {
+        "thread-current": {
+          id: "thread-current",
+          title: "Current",
+          updated_at: new Date().toISOString()
+        },
+        "thread-stream": {
+          id: "thread-stream",
+          title: undefined,
+          updated_at: new Date().toISOString()
+        }
+      },
+      messageCache: {
+        "thread-current": [
+          { role: "user", type: "message", content: "Current thread" }
+        ],
+        "thread-stream": [
+          { role: "user", type: "message", content: "Hello stream" }
+        ]
+      },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    };
+
+    const set = jest.fn((updater) => {
+      capturedState = {
+        ...capturedState,
+        ...(typeof updater === "function" ? updater(capturedState) : updater)
+      };
+    });
+
+    const get = () => capturedState;
+
+    await handleChatWebSocketMessage(
+      {
+        type: "chunk",
+        thread_id: "thread-stream",
+        content: "Hi from stream",
+        done: true
+      } as any,
+      set,
+      get
+    );
+
+    expect(capturedState.messageCache["thread-stream"]).toEqual([
+      { role: "user", type: "message", content: "Hello stream" },
+      expect.objectContaining({
+        role: "assistant",
+        type: "message",
+        content: "Hi from stream"
+      })
+    ]);
+    expect(capturedState.messageCache["thread-current"]).toEqual([
+      { role: "user", type: "message", content: "Current thread" }
+    ]);
+    expect(capturedState.updateThreadTitle).toHaveBeenCalledWith(
+      "thread-stream",
+      "Hello stream"
+    );
+  });
+
   it("resets loading status when a non-stream assistant message arrives", async () => {
     jest.useFakeTimers();
     const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
