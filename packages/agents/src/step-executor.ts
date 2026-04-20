@@ -48,16 +48,15 @@ const MAX_JSON_PARSE_FAILURES = 6;
 
 const PROMPT_NO_HUMAN_FEEDBACK = `# Hard Constraint: No Human Feedback
 - Do NOT ask clarifying questions or request user input.
-- If something is ambiguous or missing, choose the simplest reasonable assumption and proceed.`;
+- If something is ambiguous or missing, choose the simplest reasonable assumption, record it in your reasoning, and proceed.`;
 
-const PROMPT_SCHEMA_STRICT = `- Never invent fields: the final result must match the schema exactly (no extra keys; include all required keys).
-
-Output style:
-- Keep non-tool messages concise.
-- Do not reveal chain-of-thought or internal reasoning traces.`;
+const PROMPT_SCHEMA_STRICT = `# Output Discipline
+- Never invent fields: the final result must match the schema exactly (no extra keys; include all required keys).
+- Do not reveal chain-of-thought or internal reasoning traces in assistant text.
+- Keep non-tool messages concise and factual.`;
 
 const PROMPT_OUTPUT_SCHEMA = `# Output Schema
-- The final result must match this schema:
+The final result must match this JSON schema exactly:
 \`\`\`json
 {{ output_schema_json }}
 \`\`\``;
@@ -65,6 +64,7 @@ const PROMPT_OUTPUT_SCHEMA = `# Output Schema
 const PROMPT_TOOL_USE = `# Tool Use
 - Use tools only when they materially improve correctness or are required.
 - Avoid exploratory or repeated tool calls that are unlikely to change the outcome.
+- Before each tool call, emit a one-sentence rationale describing what you're doing and why.
 
 ## File Tools
 - Use \`read_file\` to read files. Do not use \`run_code\` with cat/head/tail.
@@ -72,12 +72,17 @@ const PROMPT_TOOL_USE = `# Tool Use
 - Use \`write_file\` only for creating new files or complete rewrites.
 - Use \`glob\` to find files by name pattern (e.g. "**/*.ts"). Do not use \`run_code\` with find or ls.
 - Use \`grep\` to search file contents with regex. Do not use \`run_code\` with grep or rg.
-- Use \`run_code\` with language="bash" only for system commands and operations that require shell execution.`;
+- Use \`run_code\` with language="bash" only for system commands and operations that require shell execution.
+
+## Web Tools
+- Use \`browser\` to fetch and read the content of a web page. It returns cleaned, readable text extracted from HTML. This is the right choice for reading articles, documentation, or any page content.
+- Use \`http_request\` for API calls, POST/PUT/PATCH requests, or when you need raw response headers and body. Do not use it for reading page content — use \`browser\` instead.
+- Use \`download_file\` to save a file (binary or text) from a URL to disk.`;
 
 const PROMPT_FINISH_STEP = `# Completion (Tool Call Only)
 - When done, CALL \`finish_step\` exactly once with:
   {"result": <result>}
-- Do NOT output the final result in assistant text.
+- Do NOT output the final result in assistant text — only use the tool.
 - Stop immediately after calling \`finish_step\`.`;
 
 // ---------------------------------------------------------------------------
@@ -85,7 +90,7 @@ const PROMPT_FINISH_STEP = `# Completion (Tool Call Only)
 // ---------------------------------------------------------------------------
 
 const DEFAULT_EXECUTION_SYSTEM_PROMPT = `# Role
-You are executing EXACTLY one step within a larger plan. Complete this step end-to-end.
+You are executing EXACTLY one step within a larger plan. Complete this step end-to-end without asking for clarification.
 
 # Objective
 {{ step_content }}
@@ -104,12 +109,13 @@ ${PROMPT_TOOL_USE}
 ${PROMPT_FINISH_STEP}`;
 
 const DEFAULT_FINISH_TASK_SYSTEM_PROMPT = `# Role
-You are completing the final aggregation task, synthesizing results from prior steps into a single deliverable.
+You are completing the final aggregation task, synthesizing results from prior steps into a single coherent deliverable.
 
 ${PROMPT_NO_HUMAN_FEEDBACK}
 
 # Scope & Discipline
-- Focus on synthesis and aggregation only (do not do additional research).
+- Focus on synthesis and aggregation only. Do NOT do additional research or data gathering.
+- Preserve every concrete artifact from upstream results (image URLs, file paths, tables, key facts) — never drop or paraphrase them away.
 - Use upstream step results already present in context; do not ask for them again.
 ${PROMPT_SCHEMA_STRICT}
 
@@ -120,7 +126,7 @@ ${PROMPT_TOOL_USE}
 ${PROMPT_FINISH_STEP}`;
 
 const DEFAULT_UNSTRUCTURED_SYSTEM_PROMPT = `# Role
-You are executing a task. Your job is to complete it end-to-end.
+You are executing a task. Your job is to complete it end-to-end without asking for clarification.
 
 # Objective
 {{ step_content }}
@@ -130,13 +136,15 @@ ${PROMPT_NO_HUMAN_FEEDBACK}
 # Operating Mode
 - Use tools as needed to achieve the objective.
 - When you have the final answer or have completed the task, provide the result as your final response.
+- Do not reveal chain-of-thought or internal reasoning traces.
 
-# Tool Usage Guidelines
-## Communication Pattern (Tool Preambles)
+# Communication Pattern (Tool Preambles)
 Before making tool calls, provide clear progress updates:
 1. First assistant message: Restate the objective in one sentence, then list a short numbered plan (1-3 steps).
 2. Before each tool call: Emit a one-sentence message describing what you're doing and why.
-3. After tool results: Provide a brief update only if the result changes your plan.`;
+3. After tool results: Provide a brief update only if the result changes your plan.
+
+${PROMPT_TOOL_USE}`;
 
 // ---------------------------------------------------------------------------
 // Schema validation helpers

@@ -135,26 +135,27 @@ export class AgentExecutor {
   private createSystemPrompt(objective: string): string {
     return `You are an AI agent executing a focused objective. Produce a result of type '${this.outputType}'.
 
-Operating mode (persistence):
+## Operating Mode
 - Keep going until the objective is completed; do not hand back early.
 - Resolve ambiguity by making reasonable assumptions and record them in \`metadata.notes\`.
 - Prefer tool calls and concrete actions over clarifying questions.
+- Do not reveal chain-of-thought; output only tool calls and required fields.
 
-Tool preambles:
+## Communication Pattern (Tool Preambles)
 - First assistant message: restate the objective in one sentence and list a 1-3 step plan.
 - Before each tool call, add a one-sentence rationale describing what and why.
 - After tool results, update the plan only if it materially changes.
 
-Execution protocol:
+## Execution Protocol
 1. Focus on the objective: ${objective}
-2. Use the provided input values efficiently
-3. Perform the minimal steps required to generate the result
-4. Ensure the final result matches the expected output type: ${this.outputType}
-5. Call 'finish_task' exactly once at the end with final \`result\` and \`metadata\` (title, description, sources, notes)
+2. Use the provided input values efficiently.
+3. Perform the minimal steps required to generate the result.
+4. Ensure the final result matches the expected output type: ${this.outputType}.
+5. Call \`finish_task\` exactly once at the end with final \`result\` and \`metadata\` (title, description, sources, notes).
 
-Safety and privacy:
-- Do not reveal chain-of-thought; output only tool calls and required fields.
-- Prefer deterministic, structured outputs over prose.`;
+## Output Discipline
+- Prefer deterministic, structured outputs over prose.
+- Do not include multi-paragraph docstrings, multi-line comment blocks, or planning documents unless explicitly requested.`;
   }
 
   /**
@@ -295,9 +296,15 @@ Safety and privacy:
       if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
       try {
         const result = await tool.process(this.context, args);
-        return typeof result === "string"
-          ? result
-          : JSON.stringify(result ?? null);
+        const raw =
+          typeof result === "string" ? result : JSON.stringify(result ?? null);
+        if (raw.length > 25_000) {
+          return (
+            raw.slice(0, 25_000) +
+            `\n...[truncated ${raw.length - 25_000} chars]`
+          );
+        }
+        return raw;
       } catch (e) {
         return JSON.stringify({ error: String(e) });
       }

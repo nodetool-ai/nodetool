@@ -6,4 +6,4 @@
 export const DEFAULT_TOKEN_LIMIT = 128_000;
 
 /** Maximum characters to retain from a single tool result. */
-export const MAX_TOOL_RESULT_CHARS = 20_000;
+export const MAX_TOOL_RESULT_CHARS = 25_000;

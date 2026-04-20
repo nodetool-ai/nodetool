@@ -36,23 +36,18 @@ import {
   OpenAITextToSpeechTool,
   BrowserTool,
   ScreenshotTool,
-  ReadFileTool,
-  WriteFileTool,
-  ListDirectoryTool,
-  DownloadFileTool,
   HttpRequestTool,
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
   CalculatorTool,
+  RunCodeTool,
+  StatisticsTool,
+  GeometryTool,
+  ConversionTool,
   SearchEmailTool,
   ArchiveEmailTool,
   AddLabelToEmailTool,
   DataForSEOSearchTool,
   DataForSEONewsTool,
-  DataForSEOImagesTool,
-  SaveAssetTool,
-  ReadAssetTool
+  DataForSEOImagesTool
 } from "@nodetool/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -269,23 +264,18 @@ const builtinToolClasses: (new () => Tool)[] = [
   OpenAITextToSpeechTool,
   BrowserTool,
   ScreenshotTool,
-  ReadFileTool,
-  WriteFileTool,
-  ListDirectoryTool,
-  DownloadFileTool,
   HttpRequestTool,
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
   CalculatorTool,
+  RunCodeTool,
+  StatisticsTool,
+  GeometryTool,
+  ConversionTool,
   SearchEmailTool,
   ArchiveEmailTool,
   AddLabelToEmailTool,
   DataForSEOSearchTool,
   DataForSEONewsTool,
-  DataForSEOImagesTool,
-  SaveAssetTool,
-  ReadAssetTool
+  DataForSEOImagesTool
 ];
 
 // Lazy tool class map — defers instantiation until first access.

@@ -536,7 +536,8 @@ export class TeamExecutor {
       "- Only work on tasks you've claimed.",
       "- Complete tasks promptly and mark them done.",
       "- Communicate blockers early — send a message or fail the task.",
-      "- Be concise in messages. Focus on actionable information."
+      "- Be concise in messages. Focus on actionable information.",
+      "- Do not reveal chain-of-thought or internal deliberation in messages."
     ].join("\n");
   }
 
@@ -555,13 +556,15 @@ export class TeamExecutor {
               "1. Decompose the objective into concrete tasks on the board.",
               "2. Set priorities and dependencies appropriately.",
               "3. Monitor progress and create follow-up tasks as needed.",
-              "4. Do NOT do implementation work yourself — delegate to specialists."
+              "4. Do NOT do implementation work yourself — delegate to specialists.",
+              "5. Be concise in plans and messages; focus on actionable information."
             ].join("\n")
           : [
               "## Your Role: Specialist",
               "The coordinator will create tasks on the board.",
               "Claim tasks matching your skills and complete them.",
-              "Message the coordinator if you're blocked or need clarification."
+              "Message the coordinator if you're blocked or need clarification.",
+              "Do not create tasks unless the coordinator asks you to."
             ].join("\n");
 
       case "autonomous":
@@ -569,7 +572,8 @@ export class TeamExecutor {
           "## Strategy: Autonomous",
           "There is no assigned coordinator. Self-organize with your teammates.",
           "Check the board for work, create tasks as needed, and communicate via messages.",
-          "Claim tasks that match your skills. If the board is empty, create tasks to advance the objective."
+          "Claim tasks that match your skills. If the board is empty, create tasks to advance the objective.",
+          "Be concise in messages; focus on actionable information."
         ].join("\n");
 
       case "hybrid":
@@ -577,12 +581,14 @@ export class TeamExecutor {
           ? [
               "## Your Role: Lead (Hybrid)",
               "Create the initial task plan, but team members can also create subtasks.",
-              "Focus on high-level coordination. Review completed work."
+              "Focus on high-level coordination. Review completed work.",
+              "Be concise in plans and messages; focus on actionable information."
             ].join("\n")
           : [
               "## Your Role: Team Member (Hybrid)",
               "The lead creates the initial plan, but you can create subtasks too.",
-              "Claim tasks, complete them, and create follow-up tasks as needed."
+              "Claim tasks, complete them, and create follow-up tasks as needed.",
+              "Be concise in messages; focus on actionable information."
             ].join("\n");
     }
   }
