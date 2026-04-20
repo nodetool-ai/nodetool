@@ -6,6 +6,8 @@ import { pathToFileURL } from "node:url";
 import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
 import { dateName, extFormat, filePath, modelBytes, modelRef } from "./utils.js";
 
+const MAX_NON_OVERWRITE_ATTEMPTS = 1000;
+
 export class LoadModel3DFileNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.LoadModel3DFile";
   static readonly title = "Load Model 3D File";
@@ -87,7 +89,7 @@ export class SaveModel3DFileNode extends BaseNode {
         ? path.resolve(folder, filename)
         : await (async (): Promise<string> => {
             const parsed = path.parse(path.resolve(folder, filename));
-            for (let i = 0; ; i++) {
+            for (let i = 0; i < MAX_NON_OVERWRITE_ATTEMPTS; i++) {
               const candidate =
                 i === 0
                   ? path.join(parsed.dir, parsed.base)
@@ -101,6 +103,9 @@ export class SaveModel3DFileNode extends BaseNode {
                 }
               }
             }
+            throw new Error(
+              `Could not find an available filename for "${parsed.base}" after ${MAX_NON_OVERWRITE_ATTEMPTS} attempts`
+            );
           })();
     if (overwrite) {
       await fs.writeFile(targetPath, bytes);
