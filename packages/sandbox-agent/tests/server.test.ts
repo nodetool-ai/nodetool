@@ -73,12 +73,14 @@ describe("buildServer / health", () => {
   });
 
   it("supports internal secret map updates and secret reads", async () => {
+    process.env.NODETOOL_INTERNAL_TOKEN = "test-token";
     resetSecretMap();
     const app = buildServer();
     try {
       const setRes = await app.inject({
         method: "POST",
         url: "/internal/set-secret-map",
+        headers: { "x-nodetool-internal-token": "test-token" },
         payload: { map: { OPENAI_API_KEY: "sk-test" } }
       });
       expect(setRes.statusCode).toBe(200);
@@ -131,14 +133,31 @@ describe("buildServer / health", () => {
   });
 
   it("rejects invalid secret map entries", async () => {
+    process.env.NODETOOL_INTERNAL_TOKEN = "test-token";
     const app = buildServer();
     try {
       const res = await app.inject({
         method: "POST",
         url: "/internal/set-secret-map",
+        headers: { "x-nodetool-internal-token": "test-token" },
         payload: { map: { OPENAI_API_KEY: "" } }
       });
       expect(res.statusCode).toBe(400);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("rejects internal control routes when token is not configured", async () => {
+    delete process.env.NODETOOL_INTERNAL_TOKEN;
+    const app = buildServer();
+    try {
+      const res = await app.inject({
+        method: "POST",
+        url: "/internal/set-port-map",
+        payload: { map: { "8080": "http://127.0.0.1:1234" } }
+      });
+      expect(res.statusCode).toBe(403);
     } finally {
       await app.close();
     }

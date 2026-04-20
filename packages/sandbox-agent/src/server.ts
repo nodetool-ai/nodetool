@@ -7,6 +7,7 @@
  */
 
 import Fastify, { type FastifyInstance } from "fastify";
+import { timingSafeEqual } from "node:crypto";
 import {
   FileReadInput,
   FileWriteInput,
@@ -260,14 +261,24 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   return app;
 }
 
-function isInternalAuthorized(req: { headers: Record<string, unknown> }): boolean {
+function isInternalAuthorized(
+  req: import("fastify").FastifyRequest
+): boolean {
   const expected = process.env.NODETOOL_INTERNAL_TOKEN;
   if (!expected) {
-    return true;
+    return false;
   }
   const raw = req.headers[INTERNAL_TOKEN_HEADER];
   const value = Array.isArray(raw) ? raw[0] : raw;
-  return typeof value === "string" && value === expected;
+  if (typeof value !== "string") {
+    return false;
+  }
+  const expectedBytes = Buffer.from(expected, "utf8");
+  const valueBytes = Buffer.from(value, "utf8");
+  if (expectedBytes.length !== valueBytes.length) {
+    return false;
+  }
+  return timingSafeEqual(expectedBytes, valueBytes);
 }
 
 import type { ZodType } from "zod";
