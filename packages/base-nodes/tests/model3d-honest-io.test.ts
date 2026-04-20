@@ -3,11 +3,14 @@ import {
   Boolean3DNode,
   CenterMeshNode,
   DecimateNode,
+  ExtractLargestComponentNode,
   FlipNormalsNode,
   FormatConverterNode,
   GetModel3DMetadataNode,
   MergeMeshesNode,
+  NormalizeModel3DNode,
   RecalculateNormalsNode,
+  RepairMeshNode,
   Transform3DNode
 } from "../src/nodes/model3d.js";
 
@@ -95,6 +98,71 @@ function createBoxGlb(
     1, 2, 6, 1, 6, 5
   ];
   return createIndexedGlb(positions, indices, [...min], [...max]);
+}
+
+function createDisconnectedComponentsGlb(): Uint8Array {
+  const boxPositions = [
+    0, 0, 0,
+    1, 0, 0,
+    1, 1, 0,
+    0, 1, 0,
+    0, 0, 1,
+    1, 0, 1,
+    1, 1, 1,
+    0, 1, 1
+  ];
+  const boxIndices = [
+    0, 2, 1, 0, 3, 2,
+    4, 5, 6, 4, 6, 7,
+    0, 1, 5, 0, 5, 4,
+    3, 7, 6, 3, 6, 2,
+    0, 4, 7, 0, 7, 3,
+    1, 2, 6, 1, 6, 5
+  ];
+
+  const trianglePositions = [
+    5, 0, 0,
+    6, 0, 0,
+    5, 1, 0
+  ];
+  const triangleIndices = [8, 9, 10];
+
+  return createIndexedGlb(
+    [...boxPositions, ...trianglePositions],
+    [...boxIndices, ...triangleIndices],
+    [0, 0, 0],
+    [6, 1, 1]
+  );
+}
+
+function createNearDuplicateSharedEdgeGlb(): Uint8Array {
+  return createIndexedGlb(
+    [
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      1.00001, 0, 0,
+      1, 1, 0,
+      0, 0.99999, 0
+    ],
+    [0, 1, 2, 3, 4, 5],
+    [0, 0, 0],
+    [1.00001, 1, 0]
+  );
+}
+
+function createDegenerateFaceGlb(): Uint8Array {
+  return createIndexedGlb(
+    [
+      0, 0, 0,
+      1, 0, 0,
+      0, 1, 0,
+      2, 0, 0
+    ],
+    [0, 1, 2, 1, 3, 3],
+    [0, 0, 0],
+    [2, 1, 0]
+  );
 }
 
 function createIndexedGlb(
@@ -514,6 +582,118 @@ describe("model3d honest I/O", () => {
       0, 0, 1
     ]);
     expect(indices).toEqual([0, 2, 1]);
+  });
+
+  it("NormalizeModel3DNode centers, scales, and grounds a GLB using honest geometry", async () => {
+    const node = new NormalizeModel3DNode();
+    node.assign({
+      model: modelRef(createBoxGlb([2, 3, 4], [4, 7, 8])),
+      center_mode: "bounds",
+      axis_preset: "keep",
+      scale_to_size: true,
+      target_size: 2,
+      place_on_ground: true,
+      ground_axis: "y"
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expectBoundsClose(output.bounds_min, [-0.5, 0, -1]);
+    expectBoundsClose(output.bounds_max, [0.5, 2, 1]);
+  });
+
+  it("NormalizeModel3DNode applies explicit axis normalization before other cleanup", async () => {
+    const node = new NormalizeModel3DNode();
+    node.assign({
+      model: modelRef(createBoxGlb([0, 0, 0], [1, 2, 3])),
+      center_mode: "none",
+      axis_preset: "z_to_y",
+      scale_to_size: false,
+      target_size: 1,
+      place_on_ground: false,
+      ground_axis: "y"
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expectBoundsClose(output.bounds_min, [0, 0, -2]);
+    expectBoundsClose(output.bounds_max, [1, 3, 0]);
+  });
+
+  it("ExtractLargestComponentNode keeps the largest disconnected triangle component", async () => {
+    const node = new ExtractLargestComponentNode();
+    node.assign({
+      model: modelRef(createDisconnectedComponentsGlb())
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expect(output.face_count).toBe(12);
+    expectBoundsClose(output.bounds_min, [0, 0, 0]);
+    expectBoundsClose(output.bounds_max, [1, 1, 1]);
+  });
+
+  it("RepairMeshNode merges near-duplicate vertices before rebuilding the mesh", async () => {
+    const node = new RepairMeshNode();
+    node.assign({
+      model: modelRef(createNearDuplicateSharedEdgeGlb())
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      vertex_count: number;
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expect(output.vertex_count).toBe(4);
+    expect(output.face_count).toBe(2);
+    expectBoundsClose(output.bounds_min, [0, 0, 0]);
+    expectBoundsClose(output.bounds_max, [1, 1, 0]);
+  });
+
+  it("RepairMeshNode removes degenerate faces and compacts away unused vertices", async () => {
+    const node = new RepairMeshNode();
+    node.assign({
+      model: modelRef(createDegenerateFaceGlb())
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      vertex_count: number;
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expect(output.vertex_count).toBe(3);
+    expect(output.face_count).toBe(1);
+    expectBoundsClose(output.bounds_min, [0, 0, 0]);
+    expectBoundsClose(output.bounds_max, [1, 1, 0]);
   });
 
   it("MergeMeshesNode performs an honest GLB scene merge", async () => {

@@ -11,8 +11,11 @@ import {
 } from "./glb.js";
 import {
   centerGlb,
+  extractLargestComponentGlb,
   flipNormalsGlb,
+  normalizeGlb,
   recalculateNormalsGlb,
+  repairGlb,
   transformGlb
 } from "./mesh-ops.js";
 import {
@@ -687,6 +690,196 @@ export class FlipNormalsNode extends ModelTransformNode {
   }
 }
 
+export class NormalizeModel3DNode extends ModelTransformNode {
+  static readonly nodeType = "nodetool.model3d.NormalizeModel3D";
+  static readonly title = "Normalize Model 3D";
+  static readonly description =
+    "Normalize a 3D model with explicit axis cleanup, centering, optional uniform scaling, and optional ground placement.\n    3d, mesh, model, normalize, center, scale, orient, ground\n\n    Current limits:\n    - First honest pass supports GLB geometry cleanup only\n    - Axis normalization is explicit (`keep`, `z_to_y`, `y_to_z`), not auto-detected\n\n    Use cases:\n    - Standardize imported GLB orientation\n    - Fit meshes into a predictable size box\n    - Center models before downstream processing\n    - Place meshes onto a chosen ground axis";
+  static readonly metadataOutputTypes = {
+    output: "model_3d"
+  };
+
+  @prop({
+    type: "model_3d",
+    default: DEFAULT_MODEL_3D,
+    title: "Model",
+    description: "The 3D model to normalize"
+  })
+  declare model: any;
+
+  @prop({
+    type: "enum",
+    default: "bounds",
+    title: "Center Mode",
+    description: "How to center the model before optional scaling",
+    values: ["bounds", "centroid", "none"]
+  })
+  declare center_mode: any;
+
+  @prop({
+    type: "enum",
+    default: "keep",
+    title: "Axis Preset",
+    description: "Explicit orientation normalization preset",
+    values: ["keep", "z_to_y", "y_to_z"]
+  })
+  declare axis_preset: any;
+
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Scale To Size",
+    description: "Scale the model uniformly so its longest bounds dimension matches the target size"
+  })
+  declare scale_to_size: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Target Size",
+    description: "Longest bounds dimension after optional uniform scaling",
+    min: 0.0001
+  })
+  declare target_size: any;
+
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Place On Ground",
+    description: "Translate the mesh so the chosen ground axis minimum becomes zero"
+  })
+  declare place_on_ground: any;
+
+  @prop({
+    type: "enum",
+    default: "y",
+    title: "Ground Axis",
+    description: "Axis treated as the up/ground direction for placement",
+    values: ["y", "z"]
+  })
+  declare ground_axis: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const model = this.getModel();
+    const bytes = modelBytes(model);
+    const normalized = normalizeGlb(bytes, {
+      centerMode: String(this.center_mode ?? "bounds") as
+        | "bounds"
+        | "centroid"
+        | "none",
+      axisPreset: String(this.axis_preset ?? "keep") as
+        | "keep"
+        | "z_to_y"
+        | "y_to_z",
+      scaleToSize: Boolean(this.scale_to_size ?? true),
+      targetSize: Number(this.target_size ?? 1),
+      placeOnGround: Boolean(this.place_on_ground ?? true),
+      groundAxis: String(this.ground_axis ?? "y") as "y" | "z"
+    });
+    if (!normalized) return passthroughModel(model);
+
+    return {
+      output: modelRef(normalized, {
+        uri: model.uri ?? "",
+        format: "glb"
+      })
+    };
+  }
+}
+
+export class ExtractLargestComponentNode extends ModelTransformNode {
+  static readonly nodeType = "nodetool.model3d.ExtractLargestComponent";
+  static readonly title = "Extract Largest Component";
+  static readonly description =
+    "Keep only the largest disconnected triangle component of a 3D mesh.\n    3d, mesh, model, cleanup, component, connected, floater, islands\n\n    Current limits:\n    - First honest pass supports GLB triangle geometry only\n    - Output rebuilds triangle geometry and does not preserve all original attributes/material setup\n\n    Use cases:\n    - Remove disconnected floaters from AI-generated meshes\n    - Keep the primary object from noisy geometry\n    - Clean up multi-island outputs before downstream processing";
+  static readonly metadataOutputTypes = {
+    output: "model_3d"
+  };
+
+  @prop({
+    type: "model_3d",
+    default: DEFAULT_MODEL_3D,
+    title: "Model",
+    description: "The 3D model to clean up"
+  })
+  declare model: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const model = this.getModel();
+    const bytes = modelBytes(model);
+    const extracted = extractLargestComponentGlb(bytes);
+    if (!extracted) return passthroughModel(model);
+
+    return {
+      output: modelRef(extracted, {
+        uri: model.uri ?? "",
+        format: "glb"
+      })
+    };
+  }
+}
+
+export class RepairMeshNode extends ModelTransformNode {
+  static readonly nodeType = "nodetool.model3d.RepairMesh";
+  static readonly title = "Repair Mesh";
+  static readonly description =
+    "Apply conservative mesh cleanup passes to remove obviously broken GLB triangle geometry.\n    3d, mesh, model, repair, cleanup, weld, degenerate, duplicate\n\n    Current limits:\n    - First honest pass supports GLB triangle geometry only\n    - Repair is intentionally conservative: near-duplicate vertex merge plus degenerate-face removal\n    - Output rebuilds triangle geometry and does not preserve all original attributes/material setup\n\n    Use cases:\n    - Clean up noisy AI-generated meshes before export\n    - Weld tiny duplicate seams in simple geometry\n    - Remove zero-area or collapsed triangles";
+  static readonly metadataOutputTypes = {
+    output: "model_3d"
+  };
+
+  @prop({
+    type: "model_3d",
+    default: DEFAULT_MODEL_3D,
+    title: "Model",
+    description: "The 3D model to repair"
+  })
+  declare model: any;
+
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Merge Duplicate Vertices",
+    description: "Merge exact or near-duplicate vertices before other cleanup"
+  })
+  declare merge_duplicate_vertices: any;
+
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Remove Degenerate Faces",
+    description: "Drop triangles with repeated vertices or near-zero area"
+  })
+  declare remove_degenerate_faces: any;
+
+  @prop({
+    type: "float",
+    default: 0.0001,
+    title: "Position Tolerance",
+    description: "Tolerance used for near-duplicate vertex welding and degenerate checks",
+    min: 0
+  })
+  declare position_tolerance: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    const model = this.getModel();
+    const bytes = modelBytes(model);
+    const repaired = repairGlb(bytes, {
+      mergeDuplicateVertices: Boolean(this.merge_duplicate_vertices ?? true),
+      removeDegenerateFaces: Boolean(this.remove_degenerate_faces ?? true),
+      positionTolerance: Number(this.position_tolerance ?? 0.0001)
+    });
+    if (!repaired) return passthroughModel(model);
+
+    return {
+      output: modelRef(repaired, {
+        uri: model.uri ?? "",
+        format: "glb"
+      })
+    };
+  }
+}
+
 export class MergeMeshesNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.MergeMeshes";
   static readonly title = "Merge Meshes";
@@ -881,6 +1074,9 @@ export const MODEL3D_NODES = [
   RecalculateNormalsNode,
   CenterMeshNode,
   FlipNormalsNode,
+  NormalizeModel3DNode,
+  ExtractLargestComponentNode,
+  RepairMeshNode,
   MergeMeshesNode,
   TextTo3DNode,
   ImageTo3DNode
