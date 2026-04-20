@@ -237,6 +237,7 @@ const AgentPanel: React.FC = () => {
   const [creatingSession, setCreatingSession] = useState(false);
   const [isSwitchingModel, setIsSwitchingModel] = useState(false);
   const modelSwitchRequestRef = useRef(0);
+  const isSwitchingModelRef = useRef(false);
   const [resumeAnchorEl, setResumeAnchorEl] = useState<HTMLElement | null>(null);
 
   const {
@@ -426,12 +427,16 @@ const AgentPanel: React.FC = () => {
       if (nextModel === model) {
         return;
       }
+      if (isSwitchingModelRef.current) {
+        return;
+      }
 
       const previousModel = model;
       setModel(nextModel);
 
       if (hasRunningSession) {
         const requestId = ++modelSwitchRequestRef.current;
+        isSwitchingModelRef.current = true;
         setIsSwitchingModel(true);
 
         try {
@@ -441,6 +446,7 @@ const AgentPanel: React.FC = () => {
           setModel(previousModel);
         } finally {
           if (requestId === modelSwitchRequestRef.current) {
+            isSwitchingModelRef.current = false;
             setIsSwitchingModel(false);
           }
         }

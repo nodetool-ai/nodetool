@@ -199,6 +199,14 @@ const useAgentStore = create<AgentState>((set, get) => ({
           state.provider === provider && state.workspacePath === workspacePath;
 
         if (!isLatestRequest || !contextUnchanged) {
+          log.debug("Ignoring stale agent model load response", {
+            requestId,
+            latestModelsLoadRequestId,
+            requestedProvider: provider,
+            requestedWorkspacePath: workspacePath,
+            currentProvider: state.provider,
+            currentWorkspacePath: state.workspacePath
+          });
           return state;
         }
 
@@ -214,6 +222,10 @@ const useAgentStore = create<AgentState>((set, get) => ({
       log.error("Failed to load agent models:", error);
       set((state) => {
         if (requestId !== latestModelsLoadRequestId) {
+          log.debug("Ignoring stale agent model load error", {
+            requestId,
+            latestModelsLoadRequestId
+          });
           return state;
         }
 
