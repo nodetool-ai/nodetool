@@ -3748,21 +3748,8 @@ export class UnifiedWebSocketRunner {
       BrowserTool,
       GoogleSearchTool,
       getAllMcpTools,
-      LocalMcpBackend,
-      FindModelTool,
-      getProviderModalityTools,
       resolveTool
     } = await import("@nodetool/agents");
-
-    // Factory that lets provider-backed tools (image/audio/video/embed
-    // generation, find_model, MCP list_models) look up API keys from the
-    // active user's encrypted DB via `context.getSecret`, matching the CLI
-    // wiring. Without this the chat UI agent has no way to invoke
-    // fal_text_to_image / openai_text_to_image / etc.
-    const providerFactory = async (pid: string, ctx: ProcessingContext) => {
-      const uid = ctx.userId ?? userId;
-      return this.resolveProvider!(pid, uid);
-    };
 
     let selectedTools: Tool[] = [];
     const rawToolNames = Array.isArray(data.tools)
@@ -3779,17 +3766,15 @@ export class UnifiedWebSocketRunner {
         tools: selectedTools.map((t) => t.name)
       });
     } else {
-      // No tools specified — use defaults + MCP tools + provider modality
-      // tools. Matches CLI's chat wiring so the web UI agent can invoke
-      // image/audio/video generation and model discovery.
+      // No tools specified — use the current built-in defaults plus NodeTool's
+      // MCP-style backend tools. Additional server-side or client-bridged
+      // tools are merged below when explicitly requested/available.
       selectedTools = [
         new ReadFileTool(),
         new WriteFileTool(),
         new BrowserTool(),
         new GoogleSearchTool(),
-        new FindModelTool({ providerFactory }),
-        ...getProviderModalityTools({ providerFactory }),
-        ...getAllMcpTools(new LocalMcpBackend({ providerFactory }))
+        ...getAllMcpTools()
       ];
       log.debug("Using default + MCP tools for agent", {
         count: selectedTools.length
