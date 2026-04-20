@@ -28,6 +28,8 @@ import { ReplicateProvider } from "./replicate-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { KieProvider } from "./kie-provider.js";
+import { MeshyProvider } from "./meshy-provider.js";
+import { RodinProvider } from "./rodin-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
@@ -58,6 +60,8 @@ export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
+export { MeshyProvider };
+export { RodinProvider };
 export {
   FakeProvider,
   createFakeToolCall,
@@ -108,6 +112,9 @@ export type {
   MessageTextContent,
   MessageImageContent,
   MessageAudioContent,
+  Model3D,
+  TextTo3DParams,
+  ImageTo3DParams,
   TextToImageParams,
   ImageToImageParams,
   TextToVideoParams,
@@ -148,6 +155,12 @@ registerBuiltinProvider("fal_ai", FalProvider, {
 });
 registerBuiltinProvider("kie", KieProvider, {
   KIE_API_KEY: process.env["KIE_API_KEY"]
+});
+registerBuiltinProvider("meshy", MeshyProvider, {
+  MESHY_API_KEY: process.env["MESHY_API_KEY"]
+});
+registerBuiltinProvider("rodin", RodinProvider, {
+  RODIN_API_KEY: process.env["RODIN_API_KEY"]
 });
 registerBuiltinProvider("openrouter", OpenRouterProvider, {
   OPENROUTER_API_KEY: process.env["OPENROUTER_API_KEY"]
