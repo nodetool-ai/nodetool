@@ -342,9 +342,9 @@ const applyNodeUpdate = (
 };
 
 const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
-  const threadId = state.currentThreadId;
+  const threadId = chunk.thread_id ?? state.currentThreadId;
   if (!threadId) {
-    log.warn("applyChunk: No currentThreadId, dropping chunk");
+    log.warn("applyChunk: No thread_id or currentThreadId, dropping chunk");
     return noopUpdate;
   }
 
