@@ -184,11 +184,23 @@ export interface EncodedAudioResult {
   mimeType: string;
 }
 
+/**
+ * Describes an AI **generation model** that produces 3D assets (e.g. Meshy's
+ * `meshy-4`, Rodin's `rodin-regular`). This is the model **used to generate**
+ * a 3D asset, not the asset itself — the asset is represented by `Model3DRef`
+ * elsewhere in the codebase.
+ *
+ * Mirrors the `<MediaType>Model` pattern (`ImageModel`, `VideoModel`,
+ * `TTSModel`, `ASRModel`, `EmbeddingModel`).
+ */
 export interface Model3D {
   id: string;
   name: string;
   provider: ProviderId;
+  /** Capability hints, e.g. `["text_to_3d"]`, `["image_to_3d"]`, or both. */
   supportedTasks?: string[];
+  /** File formats the model can emit, e.g. `["glb", "obj", "fbx"]`. */
+  outputFormats?: string[];
 }
 
 export interface TextTo3DParams {
