@@ -9,21 +9,74 @@
  * Docs: https://aki.io/docs
  */
 
-import { AkiClient } from "@aki-io/aki-io";
+import { readFileSync } from "node:fs";
+import { AkiClient, decodeBinary } from "@aki-io/aki-io";
 import type {
   AkiClientConfig,
   ApiRequestParams,
+  ApiResponse,
   ChatMessage
 } from "@aki-io/aki-io";
+import { createLogger } from "@nodetool/config";
 import type { Chunk } from "@nodetool/protocol";
 import { BaseProvider } from "./base-provider.js";
 import type {
-  LanguageModel,
   ImageModel,
+  ImageToImageParams,
+  LanguageModel,
   Message,
   ProviderStreamItem,
-  ProviderTool
+  ProviderTool,
+  TextToImageParams
 } from "./types.js";
+
+const log = createLogger("nodetool.runtime.providers.aki");
+
+interface AkiManifestEntry {
+  endpointId: string;
+  title: string;
+  outputType: string;
+  supportedTasks?: string[];
+}
+
+function isAkiManifestEntry(value: unknown): value is AkiManifestEntry {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    typeof (value as AkiManifestEntry).endpointId === "string" &&
+    typeof (value as AkiManifestEntry).title === "string" &&
+    typeof (value as AkiManifestEntry).outputType === "string"
+  );
+}
+
+const AKI_MANIFEST_URL = new URL("./aki-manifest.json", import.meta.url);
+
+const AKI_FALLBACK_IMAGE_MODELS: ImageModel[] = [
+  {
+    id: "sdxl_img",
+    name: "SDXL",
+    provider: "aki",
+    supportedTasks: ["text_to_image"]
+  },
+  {
+    id: "flux-text2img",
+    name: "FLUX Text to Image",
+    provider: "aki",
+    supportedTasks: ["text_to_image"]
+  },
+  {
+    id: "flux-img2img",
+    name: "FLUX Image to Image",
+    provider: "aki",
+    supportedTasks: ["image_to_image"]
+  }
+];
+
+const AKI_FALLBACK_LANGUAGE_MODELS: LanguageModel[] = [
+  { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
+];
+
+let akiManifestCache: AkiManifestEntry[] | null = null;
 
 interface AkiProviderOptions {
   clientFactory?: (config: AkiClientConfig) => AkiClient;
@@ -33,10 +86,74 @@ function uint8ToBase64(data: Uint8Array): string {
   return Buffer.from(data).toString("base64");
 }
 
+function loadAkiManifest(): AkiManifestEntry[] {
+  if (akiManifestCache) {
+    return akiManifestCache;
+  }
+
+  try {
+    const raw = Buffer.from(readFileSync(AKI_MANIFEST_URL)).toString("utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      akiManifestCache = [];
+      return akiManifestCache;
+    }
+    akiManifestCache = parsed.filter(isAkiManifestEntry);
+    return akiManifestCache;
+  } catch (error) {
+    log.warn("Failed to load AKI manifest, falling back to defaults", error);
+    akiManifestCache = [];
+    return akiManifestCache;
+  }
+}
+
+function manifestLanguageModels(): LanguageModel[] {
+  const models = loadAkiManifest()
+    .filter((entry) => entry.outputType === "text")
+    .map((entry) => ({
+      id: entry.endpointId,
+      name: entry.title,
+      provider: "aki" as const
+    }));
+
+  return models.length > 0 ? models : AKI_FALLBACK_LANGUAGE_MODELS;
+}
+
+function manifestImageModels(): ImageModel[] {
+  const models = loadAkiManifest()
+    .filter((entry) => entry.outputType === "image")
+    .map((entry) => ({
+      id: entry.endpointId,
+      name: entry.title,
+      provider: "aki" as const,
+      supportedTasks:
+        entry.supportedTasks && entry.supportedTasks.length > 0
+          ? entry.supportedTasks
+          : undefined
+    }));
+
+  return models.length > 0 ? models : AKI_FALLBACK_IMAGE_MODELS;
+}
+
+function responseImageToBytes(images: ApiResponse["images"]): Uint8Array | null {
+  const firstValue: unknown = Array.isArray(images) ? images[0] : images;
+  if (!firstValue) {
+    return null;
+  }
+  if (firstValue instanceof Uint8Array) {
+    return firstValue;
+  }
+  if (Buffer.isBuffer(firstValue)) {
+    return new Uint8Array(firstValue);
+  }
+  if (typeof firstValue === "string") {
+    const [, decoded] = decodeBinary(firstValue);
+    return decoded ? new Uint8Array(decoded) : null;
+  }
+  return null;
+}
+
 export class AkiProvider extends BaseProvider {
-  private static readonly DEFAULT_LANGUAGE_MODELS: LanguageModel[] = [
-    { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
-  ];
 
   static override requiredSecrets(): string[] {
     return ["AKI_API_KEY"];
@@ -72,6 +189,7 @@ export class AkiProvider extends BaseProvider {
     const config: AkiClientConfig = {
       endpointName,
       apiKey: this.apiKey,
+      outputBinaryFormat: "byteString",
       raiseExceptions: true,
       returnToolCallDict: true
     };
@@ -211,72 +329,98 @@ export class AkiProvider extends BaseProvider {
     yield { type: "chunk", content: "", done: true } as Chunk;
   }
 
-  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    // getEndpointList ignores the endpointName, but AkiClient requires one.
-    const client = this.makeClient("llama3_chat");
-    try {
-      const endpoints = await client.getEndpointList();
-      const list = endpoints
-        .filter(
-          (id): id is string =>
-            typeof id === "string" &&
-            id.trim().length > 0 &&
-            !AkiProvider.isImageEndpoint(id)
-        )
-        .map((id) => {
-          const normalizedId = id.trim();
-          return { id: normalizedId, name: normalizedId, provider: "aki" };
-        });
-      if (list.length > 0) {
-        return list;
-      }
-    } catch {
-      // Endpoint discovery can fail transiently; fall through to static default.
+  private buildImageRequest(
+    prompt: string,
+    params:
+      | TextToImageParams
+      | ImageToImageParams,
+    image?: Uint8Array
+  ): ApiRequestParams {
+    const request: ApiRequestParams = {
+      prompt_input: prompt
+    };
+    if (image) {
+      request.image = uint8ToBase64(image);
     }
-    return AkiProvider.DEFAULT_LANGUAGE_MODELS;
+
+    const width =
+      "width" in params
+        ? params.width
+        : (params as ImageToImageParams).targetWidth;
+    const height =
+      "height" in params
+        ? params.height
+        : (params as ImageToImageParams).targetHeight;
+    if (width != null) {request.width = width;}
+    if (height != null) {request.height = height;}
+    if (params.negativePrompt) {request.negative_prompt = params.negativePrompt;}
+    if (params.guidanceScale != null) {request.guidance_scale = params.guidanceScale;}
+    if (params.numInferenceSteps != null) {
+      request.num_inference_steps = params.numInferenceSteps;
+    }
+    if (params.seed != null && params.seed !== -1) {request.seed = params.seed;}
+    if (params.scheduler) {request.scheduler = params.scheduler;}
+    if ("safetyCheck" in params && params.safetyCheck != null) {
+      request.safety_check = params.safetyCheck;
+    }
+    if (params.quality) {request.quality = params.quality;}
+    if ("strength" in params && params.strength != null) {
+      request.strength = params.strength;
+    }
+    return request;
+  }
+
+  private async runImageRequest(
+    modelId: string,
+    request: ApiRequestParams
+  ): Promise<Uint8Array> {
+    const client = this.makeClient(modelId);
+    const response = await client.doApiRequest(request);
+    if (!response.success) {
+      throw new Error(
+        response.error ??
+          `Aki image request failed (code ${response.error_code ?? "unknown"})`
+      );
+    }
+
+    const bytes = responseImageToBytes(response.images);
+    if (!bytes) {
+      throw new Error("AKI image generation returned no image data");
+    }
+    return bytes;
+  }
+
+  override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
+    const prompt = params.prompt.trim();
+    if (!prompt) {
+      throw new Error("Prompt is required");
+    }
+
+    const request = this.buildImageRequest(prompt, params);
+    return this.runImageRequest(params.model.id, request);
+  }
+
+  override async imageToImage(
+    image: Uint8Array,
+    params: ImageToImageParams
+  ): Promise<Uint8Array> {
+    const prompt = params.prompt.trim();
+    if (!prompt) {
+      throw new Error("Prompt is required");
+    }
+    if (!image.length) {
+      throw new Error("Image is required");
+    }
+
+    const request = this.buildImageRequest(prompt, params, image);
+    return this.runImageRequest(params.model.id, request);
+  }
+
+  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    return manifestLanguageModels();
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    // getEndpointList ignores the endpointName, but AkiClient requires one.
-    const client = this.makeClient("llama3_chat");
-    try {
-      const endpoints = await client.getEndpointList();
-      return endpoints
-        .filter(
-          (id): id is string =>
-            typeof id === "string" &&
-            id.trim().length > 0 &&
-            AkiProvider.isImageEndpoint(id)
-        )
-        .map((id) => {
-          const normalizedId = id.trim();
-          return {
-            id: normalizedId,
-            name: normalizedId,
-            provider: "aki",
-            supportedTasks: ["text_to_image"]
-          };
-        });
-    } catch {
-      // If endpoint discovery fails, avoid breaking image-model consumers.
-      return [];
-    }
-  }
-
-  private static isImageEndpoint(endpointId: string): boolean {
-    // AKI endpoint names typically encode modality in the suffix, e.g.
-    // `llama3_chat` (language) vs `sdxl_img` / `flux-text2img` (image).
-    // Keep this suffix list aligned with AKI endpoint naming conventions.
-    const normalized = endpointId.trim().toLowerCase();
-    // Drop empty tokens from leading/trailing delimiters like "model_".
-    const parts = normalized.split(/[_-]+/).filter(Boolean);
-    const tail = parts.length > 0 ? parts[parts.length - 1] : "";
-    return (
-      tail === "img" ||
-      tail === "image" ||
-      tail === "txt2img" ||
-      tail === "text2img" ||
-      tail === "img2img"
-    );
+    return manifestImageModels();
   }
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { encodeBinary } from "@aki-io/aki-io";
 import { AkiProvider } from "../../src/providers/aki-provider.js";
 
 type DoApiRequest = ReturnType<typeof vi.fn>;
@@ -185,25 +186,8 @@ describe("AkiProvider", () => {
     await expect(run()).rejects.toThrow("quota exceeded");
   });
 
-  it("getAvailableLanguageModels excludes image endpoints from SDK list", async () => {
-    const getEndpointList = vi
-      .fn()
-      .mockResolvedValue(["llama3_chat", "sdxl_img"]);
-    const { factory } = makeFactory({ getEndpointList });
-    const provider = new AkiProvider(
-      { AKI_API_KEY: "k" },
-      { clientFactory: factory as unknown as never }
-    );
-
-    const models = await provider.getAvailableLanguageModels();
-    expect(models).toEqual([
-      { id: "llama3_chat", name: "llama3_chat", provider: "aki" }
-    ]);
-  });
-
-  it("getAvailableLanguageModels falls back to default when SDK fails", async () => {
-    const getEndpointList = vi.fn().mockRejectedValue(new Error("boom"));
-    const { factory } = makeFactory({ getEndpointList });
+  it("getAvailableLanguageModels loads text endpoints from the manifest", async () => {
+    const { factory } = makeFactory({});
     const provider = new AkiProvider(
       { AKI_API_KEY: "k" },
       { clientFactory: factory as unknown as never }
@@ -215,11 +199,8 @@ describe("AkiProvider", () => {
     ]);
   });
 
-  it("getAvailableImageModels returns image endpoints from SDK list", async () => {
-    const getEndpointList = vi
-      .fn()
-      .mockResolvedValue(["llama3_chat", "sdxl_img", "flux-text2img"]);
-    const { factory } = makeFactory({ getEndpointList });
+  it("getAvailableImageModels loads image endpoints from the manifest", async () => {
+    const { factory } = makeFactory({});
     const provider = new AkiProvider(
       { AKI_API_KEY: "k" },
       { clientFactory: factory as unknown as never }
@@ -229,30 +210,27 @@ describe("AkiProvider", () => {
     expect(models).toEqual([
       {
         id: "sdxl_img",
-        name: "sdxl_img",
+        name: "SDXL",
         provider: "aki",
         supportedTasks: ["text_to_image"]
       },
       {
         id: "flux-text2img",
-        name: "flux-text2img",
+        name: "FLUX Text to Image",
         provider: "aki",
         supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-img2img",
+        name: "FLUX Image to Image",
+        provider: "aki",
+        supportedTasks: ["image_to_image"]
       }
     ]);
   });
 
-  it("classifies endpoint naming patterns across language/image model lists", async () => {
-    const getEndpointList = vi.fn().mockResolvedValue([
-      "llama3_chat",
-      "sdxl_img",
-      "flux-text2img",
-      "mysteryendpoint",
-      "",
-      "  ",
-      "SDXL_IMAGE"
-    ]);
-    const { factory } = makeFactory({ getEndpointList });
+  it("separates language and image models from the manifest", async () => {
+    const { factory } = makeFactory({});
     const provider = new AkiProvider(
       { AKI_API_KEY: "k" },
       { clientFactory: factory as unknown as never }
@@ -262,27 +240,26 @@ describe("AkiProvider", () => {
     const imageModels = await provider.getAvailableImageModels();
 
     expect(languageModels).toEqual([
-      { id: "llama3_chat", name: "llama3_chat", provider: "aki" },
-      { id: "mysteryendpoint", name: "mysteryendpoint", provider: "aki" }
+      { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
     ]);
     expect(imageModels).toEqual([
       {
         id: "sdxl_img",
-        name: "sdxl_img",
+        name: "SDXL",
         provider: "aki",
         supportedTasks: ["text_to_image"]
       },
       {
         id: "flux-text2img",
-        name: "flux-text2img",
+        name: "FLUX Text to Image",
         provider: "aki",
         supportedTasks: ["text_to_image"]
       },
       {
-        id: "SDXL_IMAGE",
-        name: "SDXL_IMAGE",
+        id: "flux-img2img",
+        name: "FLUX Image to Image",
         provider: "aki",
-        supportedTasks: ["text_to_image"]
+        supportedTasks: ["image_to_image"]
       }
     ]);
     expect(languageModels.some((model) => model.id.trim().length === 0)).toBe(
@@ -290,6 +267,78 @@ describe("AkiProvider", () => {
     );
     expect(imageModels.some((model) => model.id.trim().length === 0)).toBe(
       false
+    );
+  });
+
+  it("textToImage decodes image bytes from the AKI response", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      images: encodeBinary(Uint8Array.from([1, 2, 3]), "png")
+    });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const result = await provider.textToImage({
+      model: {
+        id: "sdxl_img",
+        name: "SDXL",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      prompt: "a castle",
+      width: 1024,
+      height: 1024,
+      negativePrompt: "low quality"
+    });
+
+    expect(result).toEqual(Uint8Array.from([1, 2, 3]));
+    expect(doApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt_input: "a castle",
+        width: 1024,
+        height: 1024,
+        negative_prompt: "low quality"
+      })
+    );
+  });
+
+  it("imageToImage sends the encoded image and decodes image bytes", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      images: encodeBinary(Uint8Array.from([4, 5, 6]), "png")
+    });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const inputImage = Uint8Array.from([9, 8, 7]);
+    const result = await provider.imageToImage(inputImage, {
+      model: {
+        id: "flux-img2img",
+        name: "FLUX Image to Image",
+        provider: "aki",
+        supportedTasks: ["image_to_image"]
+      },
+      prompt: "make it cinematic",
+      targetWidth: 512,
+      targetHeight: 768,
+      strength: 0.7
+    });
+
+    expect(result).toEqual(Uint8Array.from([4, 5, 6]));
+    expect(doApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt_input: "make it cinematic",
+        image: Buffer.from(inputImage).toString("base64"),
+        width: 512,
+        height: 768,
+        strength: 0.7
+      })
     );
   });
 
