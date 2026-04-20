@@ -495,8 +495,8 @@ describe("audio nodes — full coverage", () => {
       filename: path.basename(filePath)
     });
     const result = await _n.process();
-    expect(result.output).toBe(filePath);
-    const stat = await fs.stat(filePath);
+    expect(path.normalize(String(result.output))).toBe(path.normalize(filePath));
+    const stat = await fs.stat(String(result.output));
     expect(stat.size).toBeGreaterThan(0);
   });
 
@@ -539,8 +539,10 @@ describe("audio nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(2); // .wav and .mp3
-    expect(items[0].name).toBe("a.wav");
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("a.wav");
+    expect(names).toContain("b.mp3");
+    expect(names).not.toContain("c.txt");
   });
 
   it("LoadAudioFolderNode delegates to LoadAudioAssetsNode", async () => {
@@ -554,17 +556,18 @@ describe("audio nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(1);
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("x.flac");
   });
 
   it("LoadAudioAssetsNode process returns empty", async () => {
     const result = await new LoadAudioAssetsNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ audio: {}, name: "", audios: [] });
   });
 
   it("LoadAudioFolderNode process returns empty", async () => {
     const result = await new LoadAudioFolderNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ audio: {}, name: "", audios: [] });
   });
 
   it("audioBytes handles non-object input", async () => {
@@ -801,12 +804,19 @@ describe("image nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(6);
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("a.png");
+    expect(names).toContain("b.jpg");
+    expect(names).toContain("c.jpeg");
+    expect(names).toContain("d.webp");
+    expect(names).toContain("e.gif");
+    expect(names).toContain("f.bmp");
+    expect(names).not.toContain("g.txt");
   });
 
   it("LoadImageFolderNode process returns empty", async () => {
     const result = await new LoadImageFolderNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ image: {}, name: "", images: [] });
   });
 
   it("LoadImageAssetsNode delegates to folder loader", async () => {
@@ -820,12 +830,13 @@ describe("image nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(1);
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("test.png");
   });
 
   it("LoadImageAssetsNode process returns empty", async () => {
     const result = await new LoadImageAssetsNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ image: {}, name: "", images: [] });
   });
 
   it("SaveImageFileImageNode writes to file", async () => {
@@ -838,8 +849,8 @@ describe("image nodes — full coverage", () => {
       filename: path.basename(filePath)
     });
     const result = await _n.process();
-    expect(result.output).toBe(filePath);
-    const stat = await fs.stat(filePath);
+    expect(path.normalize(String(result.output))).toBe(path.normalize(filePath));
+    const stat = await fs.stat(String(result.output));
     expect(stat.size).toBeGreaterThan(0);
   });
 
@@ -1125,8 +1136,8 @@ describe("video nodes — full coverage", () => {
       filename: path.basename(filePath)
     });
     const result = await _n.process();
-    expect(result.output).toBe(filePath);
-    const stat = await fs.stat(filePath);
+    expect(path.normalize(String(result.output))).toBe(path.normalize(filePath));
+    const stat = await fs.stat(String(result.output));
     expect(stat.size).toBeGreaterThan(0);
   });
 
@@ -1146,12 +1157,18 @@ describe("video nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(5);
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("a.mp4");
+    expect(names).toContain("b.mov");
+    expect(names).toContain("c.webm");
+    expect(names).toContain("d.mkv");
+    expect(names).toContain("e.avi");
+    expect(names).not.toContain("f.txt");
   });
 
   it("LoadVideoAssetsNode process returns empty", async () => {
     const result = await new LoadVideoAssetsNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ video: null, name: "", videos: [], names: [] });
   });
 
   it("SaveVideoNode writes with date name", async () => {

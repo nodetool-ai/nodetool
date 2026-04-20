@@ -72,7 +72,14 @@ export async function audioBytesAsync(
 
 /** Strip a `file://` scheme from a URI, returning a plain filesystem path. */
 export function uriToPath(uriOrPath: string): string {
-  if (uriOrPath.startsWith("file://")) return uriOrPath.slice("file://".length);
+  if (uriOrPath.startsWith("file://")) {
+    try {
+      return new URL(uriOrPath).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    } catch {
+      // Fallback for non-standard URIs like file://C:\path
+      return uriOrPath.slice("file://".length);
+    }
+  }
   return uriOrPath;
 }
 

@@ -43,7 +43,14 @@ function imageBytes(image: unknown): Uint8Array {
 }
 
 function filePath(uriOrPath: string): string {
-  if (uriOrPath.startsWith("file://")) return uriOrPath.slice("file://".length);
+  if (uriOrPath.startsWith("file://")) {
+    try {
+      return new URL(uriOrPath).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    } catch {
+      // Fallback for non-standard URIs like file://C:\path
+      return uriOrPath.slice("file://".length);
+    }
+  }
   return uriOrPath;
 }
 
@@ -583,8 +590,21 @@ export class LoadVideoAssetsNode extends BaseNode {
     video: unknown;
     name: string;
   }> {
-    const folder = String(this.folder ?? ".");
-    const entries = await fs.readdir(folder, { withFileTypes: true });
+    const raw = this.folder;
+    const folder =
+      typeof raw === "string" && raw.length > 0
+        ? raw
+        : typeof raw === "object" && raw !== null && typeof (raw as Record<string, unknown>).uri === "string" && ((raw as Record<string, unknown>).uri as string).length > 0
+          ? ((raw as Record<string, unknown>).uri as string).replace(/^file:\/\//, "")
+          : "";
+    if (!folder) return;
+    let entries;
+    try {
+      entries = await fs.readdir(folder, { withFileTypes: true });
+    } catch {
+      // folder does not exist or is not accessible
+      return;
+    }
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       const ext = path.extname(entry.name).toLowerCase();
