@@ -23,7 +23,11 @@ async function writeWithSuffixWhenNeeded(
       return candidate;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
-        throw error;
+        const message =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to write model file "${candidate}": ${message}`
+        );
       }
     }
   }
