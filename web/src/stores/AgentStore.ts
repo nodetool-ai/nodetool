@@ -149,6 +149,8 @@ function replaceSessionHistoryId(
 }
 
 const useAgentStore = create<AgentState>((set, get) => {
+  // Internal request sequencing for loadModels race protection. Kept out of
+  // Zustand state to avoid unnecessary renders for non-UI bookkeeping.
   let latestModelsLoadRequestId = 0;
 
   return {
