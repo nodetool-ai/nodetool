@@ -5,6 +5,10 @@ import {
   ImageTo3DNode,
   TextTo3DNode
 } from "../src/nodes/model3d/generation.js";
+import {
+  DEFAULT_IMAGE_TO_3D_MODEL,
+  DEFAULT_TEXT_TO_3D_MODEL
+} from "../src/nodes/model3d/defaults.js";
 
 function makeContextWithProvider(provider: {
   textTo3D?: ReturnType<typeof vi.fn>;
@@ -122,6 +126,20 @@ describe("TextTo3DNode", () => {
     await expect(node.process(ctx)).rejects.toThrow(
       /does not support output format "obj"/
     );
+  });
+
+  it("allows provider-supported non-glb formats with the default model selection", async () => {
+    const textTo3D = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
+    const ctx = makeContextWithProvider({ textTo3D });
+    const node = new TextTo3DNode();
+    node.assign({
+      model: DEFAULT_TEXT_TO_3D_MODEL,
+      prompt: "x",
+      output_format: "obj"
+    });
+
+    await expect(node.process(ctx)).resolves.toHaveProperty("output");
+    expect(textTo3D.mock.calls[0]![0].outputFormat).toBe("obj");
   });
 
   it("throws when model has no provider", async () => {
@@ -291,6 +309,20 @@ describe("ImageTo3DNode", () => {
     await expect(node.process(ctx)).rejects.toThrow(
       /does not support output format "obj"/
     );
+  });
+
+  it("allows provider-supported non-glb formats with the default image model selection", async () => {
+    const imageTo3D = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
+    const ctx = makeContextWithProvider({ imageTo3D });
+    const node = new ImageTo3DNode();
+    node.assign({
+      model: DEFAULT_IMAGE_TO_3D_MODEL,
+      image: { type: "image", data: Buffer.from([0xff, 0xd8, 0xff]).toString("base64") },
+      output_format: "obj"
+    });
+
+    await expect(node.process(ctx)).resolves.toHaveProperty("output");
+    expect(imageTo3D.mock.calls[0]![1].outputFormat).toBe("obj");
   });
 
   it("resolves storage uri via context.storage", async () => {
