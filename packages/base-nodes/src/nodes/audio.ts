@@ -107,9 +107,11 @@ export class LoadAudioAssetsNode extends BaseNode {
     const raw = this.folder;
     const folder =
       typeof raw === "string" && raw.length > 0
-        ? raw
+        ? raw.startsWith("file:")
+          ? uriToPath(raw)
+          : raw
         : typeof raw === "object" && raw !== null && typeof raw.uri === "string" && raw.uri.length > 0
-          ? raw.uri.replace(/^file:\/\//, "")
+          ? uriToPath(raw.uri)
           : "";
     if (!folder) return;
     let entries;
