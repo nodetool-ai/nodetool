@@ -14,6 +14,10 @@ type LanguageModelLike = {
   id?: string;
 };
 
+const DEFAULT_SCOPE_USER = "no-user";
+const DEFAULT_SCOPE_WORKFLOW = "no-workflow";
+const DEFAULT_SCOPE_JOB = "no-job";
+
 type BrowserAction =
   | "view"
   | "navigate"
@@ -390,25 +394,37 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function asString(value: unknown): string {
-  return String(value ?? "").trim();
+  if (value === null || value === undefined) {
+    return "";
+  }
+  return String(value);
 }
 
+function asTrimmedString(value: unknown): string {
+  return asString(value).trim();
+}
+
+/**
+ * Build a stable context scope used to isolate sandbox sessions per workflow run.
+ * Format: "<userId>:<workflowId>:<jobId>" with explicit fallback tokens.
+ */
 function getContextScope(context?: ProcessingContext): string {
   if (!context) {
-    return "default";
+    return `${DEFAULT_SCOPE_USER}:${DEFAULT_SCOPE_WORKFLOW}:${DEFAULT_SCOPE_JOB}`;
   }
-  const userId = asString(context.userId) || "default";
-  const workflowId = asString(context.workflowId) || "workflow";
-  const jobId = asString(context.jobId) || "job";
+  const userId = asTrimmedString(context.userId) || DEFAULT_SCOPE_USER;
+  const workflowId =
+    asTrimmedString(context.workflowId) || DEFAULT_SCOPE_WORKFLOW;
+  const jobId = asTrimmedString(context.jobId) || DEFAULT_SCOPE_JOB;
   return `${userId}:${workflowId}:${jobId}`;
 }
 
 function resolveSessionId(value: unknown): string {
-  const sessionId = asString(value);
+  const sessionId = asTrimmedString(value);
   if (sessionId.length > 0) {
     return sessionId;
   }
-  return `workflow-${randomUUID().slice(0, 8)}`;
+  return `session-${randomUUID().slice(0, 8)}`;
 }
 
 function toEffectiveSessionId(
@@ -503,12 +519,14 @@ export class SandboxShellNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
     const effectiveSessionId = toEffectiveSessionId(sessionId, context);
-    const workspaceDir = asString(this.workspace_dir);
+    const workspaceDir = asTrimmedString(this.workspace_dir);
     const command = asString(this.command);
+    const normalizedCommand = asTrimmedString(this.command);
     const waitSeconds = Number(this.wait_seconds ?? 1);
-    const commandId = asString(this.command_id) || `cmd-${randomUUID().slice(0, 8)}`;
+    const commandId =
+      asTrimmedString(this.command_id) || `cmd-${randomUUID().slice(0, 8)}`;
 
-    if (command.length === 0) {
+    if (normalizedCommand.length === 0) {
       throw new Error("Command is required");
     }
 
@@ -591,8 +609,8 @@ export class SandboxBrowserNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
     const effectiveSessionId = toEffectiveSessionId(sessionId, context);
-    const workspaceDir = asString(this.workspace_dir);
-    const action = asString(this.action || "view") as BrowserAction;
+    const workspaceDir = asTrimmedString(this.workspace_dir);
+    const action = asTrimmedString(this.action || "view") as BrowserAction;
     const params = asRecord(this.params);
     const client = await getClient(effectiveSessionId, workspaceDir);
 
@@ -656,8 +674,8 @@ export class SandboxFileNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
     const effectiveSessionId = toEffectiveSessionId(sessionId, context);
-    const workspaceDir = asString(this.workspace_dir);
-    const action = asString(this.action || "read") as FileAction;
+    const workspaceDir = asTrimmedString(this.workspace_dir);
+    const action = asTrimmedString(this.action || "read") as FileAction;
     const params = asRecord(this.params);
     const client = await getClient(effectiveSessionId, workspaceDir);
 
@@ -752,15 +770,15 @@ export class SandboxAgentNode extends BaseNode {
     }
 
     const model = (this.model ?? {}) as LanguageModelLike;
-    const providerId = String(model.provider ?? "").trim();
-    const modelId = String(model.id ?? "").trim();
+    const providerId = asTrimmedString(model.provider);
+    const modelId = asTrimmedString(model.id);
     if (providerId.length === 0 || modelId.length === 0) {
       throw new Error("Select a model for SandboxAgent.");
     }
 
     const sessionId = resolveSessionId(this.session_id);
     const effectiveSessionId = toEffectiveSessionId(sessionId, context);
-    const workspaceDir = asString(this.workspace_dir);
+    const workspaceDir = asTrimmedString(this.workspace_dir);
     const maxIterations = Number(this.max_iterations ?? 12);
     const client = await getClient(effectiveSessionId, workspaceDir);
     const tools = createAgentTools(client);
