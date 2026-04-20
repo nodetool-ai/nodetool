@@ -1786,9 +1786,12 @@ export class SaveTextFileNode extends BaseNode {
       throw new Error("folder cannot be empty");
     }
     await fs.mkdir(folder, { recursive: true });
-    const path = join(folder, name);
-    await fs.writeFile(path, text, "utf-8");
-    return { output: { uri: path, data: text } };
+    const fsPath = join(folder, name);
+    await fs.writeFile(fsPath, text, "utf-8");
+    // The output `uri` is a portable, URI-style path (forward slashes) so
+    // downstream nodes and the web UI never have to special-case Windows.
+    const uri = fsPath.replace(/\\/g, "/");
+    return { output: { uri, data: text } };
   }
 }
 

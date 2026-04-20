@@ -18,7 +18,7 @@ export function ensureWorkspacePath(
       "Absolute paths are not allowed. Use relative paths within workspace."
     );
   }
-  if (relativePath.split(path.sep).includes("..")) {
+  if (relativePath.split(/[\\/]/).includes("..")) {
     throw new Error("Parent directory traversal (..) is not allowed");
   }
   const full = path.resolve(workspaceDir, relativePath);
