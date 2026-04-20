@@ -43,14 +43,9 @@ Do these before any structural changes. Each bug is a correctness issue.
 ### 1b. `TextTo3DNode` and `ImageTo3DNode`
 
 - [x] **Interim fix landed:** both nodes now `throw new Error("Not implemented: configure a Meshy or Rodin provider …")` in `generation.ts`. Tests assert the throw.
-- [ ] **Real fix:** wire up Meshy + Rodin providers as TS implementations.
-  Tracked in **`PLAN-Model3DProviders.md`** (sibling file). That plan ports
-  the historical `nodetool-core` Python `MeshyProvider` / `RodinProvider`
-  (~840 LOC, removed by the strip-to-TS commit) into
-  `packages/runtime/src/providers/`, extends `BaseProvider` with
-  `text_to_3d` / `image_to_3d` capability methods, and replaces the
-  `NotImplemented` `process()` bodies with real provider calls. Flip this
-  checkbox once **PR-4** in that plan lands.
+- [x] **Real fix:** `MeshyProvider` and `RodinProvider` landed and registered.
+  `TextTo3DNode` / `ImageTo3DNode` delegate to the registered provider via
+  `context.getProvider(model.provider)`. See `PLAN-Model3DProviders.md` PR-4.
 
 ### 1c. `FormatConverterNode` enum
 

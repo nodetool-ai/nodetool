@@ -112,6 +112,12 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
     (handles base64 strings, `Uint8Array`, `data:` URIs, storage URIs,
     `file://` URIs and HTTP/HTTPS URLs).
   - Returned bytes are wrapped with `glbOutput()` from `./base.js`.
+  - **Texture support added:** `TextTo3DParams.enableTextures?: boolean` wires
+    through to a Meshy-specific preview→refine two-step flow that embeds PBR
+    textures into the output GLB. `TextTo3DNode` gains an `enable_textures`
+    bool prop (default `true`). `enableTextures` defaults to `undefined` in the
+    interface — Rodin and imageTo3D providers ignore it, all existing tests
+    pass unchanged. 2 new refine-path tests added to `meshy-provider.test.ts`.
 
 ---
 
@@ -149,19 +155,16 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
 
 ## Cost tracking
 
-- [ ] **#8 – Add Meshy / Rodin pricing entries** *(deferred — see note)*
-  In `packages/runtime/src/providers/cost-calculator.ts`, add per-task pricing
-  for the four Meshy models and the Rodin models. Source from each provider's
-  pricing page; cite the URL in a comment so future bumps are easy.
-  - Meshy pricing: <https://www.meshy.ai/pricing> (per-task credits).
-  - Rodin pricing: <https://hyperhuman.deemos.com/api/pricing>.
-  - These are not language-model-style token costs; treat them as flat
-    per-call costs keyed by model id.
-  - **Note:** the existing `CostCalculator` `PricingTier` schema only models
-    token / character / minute / image / video costs. Adding flat per-task
-    pricing requires either a new `CostType.TASK_BASED` tier or a parallel
-    lookup table. Pull this into its own follow-up so the providers can ship
-    without blocking on a schema bump.
+- [x] **#8 – Add Meshy / Rodin pricing entries**
+  - `CostType.TASK_BASED` added to the enum; `perTask` field added to
+    `PricingTier`; `taskCount` field added to `UsageInfo`.
+  - 9 pricing tiers added: Meshy-4 and Meshy-3-turbo (preview / textured /
+    image variants) + Rodin Gen-1, Gen-1 Turbo, Sketch.
+  - `calculateModel3DCost(modelId, provider)` convenience function added.
+  - Model-to-tier mappings: `meshy:<model-id>` and `rodin:<model-id>`.
+  - Pricing source URLs cited in comments (TODO: verify against live pages
+    at https://www.meshy.ai/pricing and https://hyperhuman.deemos.com/rodin).
+  - 38 existing cost-calculator tests pass unchanged.
 
 ---
 
@@ -224,7 +227,7 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   a valid GLB that loads in `Model3DViewer.tsx`. *(manual smoke; needs key)*
 - [ ] With `RODIN_API_KEY` set, same for Rodin. *(manual smoke; needs key)*
 - [x] `providerCapabilities(meshy)` returns `["text_to_3d", "image_to_3d", ...]`.
-- [ ] Bug 1b in `PLAN-Model3DNodesRefactor.md` is checked off with a link to
-  the PR-4 commit. *(do this on the next commit)*
+- [x] Bug 1b in `PLAN-Model3DNodesRefactor.md` is checked off — nodes delegate
+  to the registered provider given a `ProcessingContext`.
 - [x] No regressions in the existing `KieProvider` / `FalProvider` paths —
   their tests are unchanged and pass.
