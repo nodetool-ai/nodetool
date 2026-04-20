@@ -805,7 +805,10 @@ export class StepExecutor {
     };
 
     if (toolName === "download_file" || toolName === "take_screenshot") {
-      maybeAdd("output_file", result.output_file ?? toolArgs?.["output_file"]);
+      maybeAdd("output_file", result.output_file);
+      if (result.success === true) {
+        maybeAdd("output_file", toolArgs?.["output_file"]);
+      }
     }
     maybeAdd("image", result.image);
     maybeAdd("audio", result.audio);
