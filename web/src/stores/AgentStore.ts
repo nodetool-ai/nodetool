@@ -148,9 +148,10 @@ function replaceSessionHistoryId(
   return [replacement, ...filtered].slice(0, 50);
 }
 
-let latestModelsLoadRequestId = 0;
+const useAgentStore = create<AgentState>((set, get) => {
+  let latestModelsLoadRequestId = 0;
 
-const useAgentStore = create<AgentState>((set, get) => ({
+  return {
   status: "disconnected",
   messages: [],
   sessionId: null,
@@ -660,6 +661,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
       log.error("Failed to load agent sessions:", error);
     }
   }
-}));
+  };
+});
 
 export default useAgentStore;
