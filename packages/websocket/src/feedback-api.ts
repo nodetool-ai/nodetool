@@ -129,7 +129,7 @@ export async function handleFeedbackRequest(
       destinations: normalizeDestinations(formData.get("destinations")),
       workflowJson: workflowJson || undefined,
       attachments: await normalizeAttachments(formData),
-      userId: request.headers.get("x-user-id")
+      userId: undefined
     };
 
     const result = await dependencies.submitFeedback(submission);
