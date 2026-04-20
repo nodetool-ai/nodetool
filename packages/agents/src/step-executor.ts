@@ -795,12 +795,23 @@ export class StepExecutor {
 
     const candidates: Array<{ label: string; path: string }> = [];
     const candidateKeys = new Set<string>();
+    const isExternalUri = (value: string): boolean => {
+      const lower = value.toLowerCase();
+      return (
+        lower.startsWith("http://") ||
+        lower.startsWith("https://") ||
+        lower.startsWith("asset://") ||
+        lower.startsWith("memory://") ||
+        lower.startsWith("s3://") ||
+        lower.startsWith("file://")
+      );
+    };
     const maybeAdd = (label: string, value: unknown): void => {
       if (
         typeof value === "string" &&
         value.trim().length > 0 &&
         !value.startsWith("data:") &&
-        !value.includes("://")
+        !isExternalUri(value)
       ) {
         const key = `${label}:${value}`;
         if (!candidateKeys.has(key)) {

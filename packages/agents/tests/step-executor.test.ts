@@ -999,8 +999,8 @@ describe("StepExecutor", () => {
       tools: [browserTool as any]
     });
 
-    for await (const _ of executor.execute()) {
-      /* drain */
+    for await (const message of executor.execute()) {
+      void message;
     }
 
     const sources = executor.getSources();
@@ -1075,8 +1075,8 @@ describe("StepExecutor", () => {
       tools: [downloadTool as any]
     });
 
-    for await (const _ of executor.execute()) {
-      /* drain */
+    for await (const message of executor.execute()) {
+      void message;
     }
 
     expect(sandboxToAsset).toHaveBeenCalledWith("downloads/file.txt");
@@ -1149,8 +1149,8 @@ describe("StepExecutor", () => {
         tools: [jsTool as any]
       });
 
-      for await (const _ of executor.execute()) {
-        /* drain */
+      for await (const message of executor.execute()) {
+        void message;
       }
 
       expect(sandboxToAsset).toHaveBeenCalled();
@@ -1227,8 +1227,8 @@ describe("StepExecutor", () => {
       tools: [imageTool as any]
     });
 
-    for await (const _ of executor.execute()) {
-      /* drain */
+    for await (const message of executor.execute()) {
+      void message;
     }
 
     expect(sandboxToAsset).toHaveBeenCalledWith("generated/image.png");
@@ -1298,8 +1298,8 @@ describe("StepExecutor", () => {
       tools: [screenshotTool as any]
     });
 
-    for await (const _ of executor.execute()) {
-      /* drain */
+    for await (const message of executor.execute()) {
+      void message;
     }
 
     expect(sandboxToAsset).not.toHaveBeenCalled();
