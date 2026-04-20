@@ -41,8 +41,11 @@ export function parseGlb(
 
 export function buildGlb(json: GltfJson, bin: Uint8Array): Uint8Array {
   const jsonStr = JSON.stringify(json);
-  const pad = (4 - (jsonStr.length % 4)) % 4;
-  const jsonBytes = new TextEncoder().encode(jsonStr + " ".repeat(pad));
+  const encodedJsonBytes = new TextEncoder().encode(jsonStr);
+  const jsonPad = (4 - (encodedJsonBytes.length % 4)) % 4;
+  const jsonBytes = new Uint8Array(encodedJsonBytes.length + jsonPad);
+  jsonBytes.set(encodedJsonBytes);
+  jsonBytes.fill(0x20, encodedJsonBytes.length);
   const binPad = (4 - (bin.length % 4)) % 4;
   const total = 12 + 8 + jsonBytes.length + 8 + bin.length + binPad;
   const out = new Uint8Array(total);
