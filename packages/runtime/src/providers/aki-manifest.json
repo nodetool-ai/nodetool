@@ -8,18 +8,27 @@
     "endpointId": "sdxl_img",
     "title": "SDXL",
     "outputType": "image",
-    "supportedTasks": ["text_to_image"]
+    "supportedTasks": ["text_to_image"],
+    "paramNames": {
+      "prompt_input": "prompt"
+    }
   },
   {
     "endpointId": "flux-text2img",
     "title": "FLUX Text to Image",
     "outputType": "image",
-    "supportedTasks": ["text_to_image"]
+    "supportedTasks": ["text_to_image"],
+    "paramNames": {
+      "prompt_input": "prompt"
+    }
   },
   {
     "endpointId": "flux-img2img",
     "title": "FLUX Image to Image",
     "outputType": "image",
-    "supportedTasks": ["image_to_image"]
+    "supportedTasks": ["image_to_image"],
+    "paramNames": {
+      "prompt_input": "prompt"
+    }
   }
 ]

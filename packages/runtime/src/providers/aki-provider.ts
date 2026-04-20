@@ -37,6 +37,15 @@ interface AkiManifestEntry {
   title: string;
   outputType: string;
   supportedTasks?: string[];
+  paramNames?: Record<string, string>;
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    Object.values(value).every((v) => typeof v === "string")
+  );
 }
 
 function isAkiManifestEntry(value: unknown): value is AkiManifestEntry {
@@ -45,7 +54,9 @@ function isAkiManifestEntry(value: unknown): value is AkiManifestEntry {
     typeof value === "object" &&
     typeof (value as AkiManifestEntry).endpointId === "string" &&
     typeof (value as AkiManifestEntry).title === "string" &&
-    typeof (value as AkiManifestEntry).outputType === "string"
+    typeof (value as AkiManifestEntry).outputType === "string" &&
+    ((value as AkiManifestEntry).paramNames === undefined ||
+      isStringRecord((value as AkiManifestEntry).paramNames))
   );
 }
 
@@ -75,8 +86,6 @@ const AKI_FALLBACK_IMAGE_MODELS: ImageModel[] = [
 const AKI_FALLBACK_LANGUAGE_MODELS: LanguageModel[] = [
   { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
 ];
-const AKI_DISCOVERY_ENDPOINT = "llama3_chat";
-
 let akiManifestCache: AkiManifestEntry[] | null = null;
 
 interface AkiProviderOptions {
@@ -100,19 +109,6 @@ function dataUriToBase64(uri: string): string {
   return Buffer.from(decodeURIComponent(payload), "utf8").toString("base64");
 }
 
-function isLikelyImageEndpoint(endpointId: string): boolean {
-  const normalized = endpointId.trim().toLowerCase();
-  const parts = normalized.split(/[_-]+/).filter(Boolean);
-  const tail = parts.length > 0 ? parts[parts.length - 1] : "";
-  return (
-    tail === "img" ||
-    tail === "image" ||
-    tail === "txt2img" ||
-    tail === "text2img" ||
-    tail === "img2img"
-  );
-}
-
 function loadAkiManifest(): AkiManifestEntry[] {
   if (akiManifestCache) {
     return akiManifestCache;
@@ -132,6 +128,10 @@ function loadAkiManifest(): AkiManifestEntry[] {
     akiManifestCache = [];
     return akiManifestCache;
   }
+}
+
+function getManifestEntry(endpointId: string): AkiManifestEntry | undefined {
+  return loadAkiManifest().find((entry) => entry.endpointId === endpointId);
 }
 
 function manifestLanguageModels(): LanguageModel[] {
@@ -162,12 +162,40 @@ function manifestImageModels(): ImageModel[] {
   return models.length > 0 ? models : AKI_FALLBACK_IMAGE_MODELS;
 }
 
-function getManifestEntryMap(): Map<string, AkiManifestEntry> {
-  const map = new Map<string, AkiManifestEntry>();
-  for (const entry of loadAkiManifest()) {
-    map.set(entry.endpointId, entry);
+function remapRequestParams(
+  endpointId: string,
+  request: ApiRequestParams
+): ApiRequestParams {
+  const paramNames = getManifestEntry(endpointId)?.paramNames;
+  if (!paramNames || Object.keys(paramNames).length === 0) {
+    return request;
   }
-  return map;
+
+  const remapped: ApiRequestParams = {};
+  for (const [key, value] of Object.entries(request)) {
+    remapped[paramNames[key] ?? key] = value;
+  }
+  return remapped;
+}
+
+function withPromptParam(request: ApiRequestParams): ApiRequestParams {
+  if (!("prompt_input" in request)) {
+    return request;
+  }
+
+  const remapped = { ...request };
+  remapped.prompt = remapped.prompt_input;
+  delete remapped.prompt_input;
+  return remapped;
+}
+
+function shouldRetryWithPromptParam(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("invalid input parameter(s): prompt_input") &&
+    normalized.includes("missing required argument: prompt")
+  );
 }
 
 function responseImageToBytes(images: ApiResponse["images"]): Uint8Array | null {
@@ -321,21 +349,6 @@ export class AkiProvider extends BaseProvider {
     return resolved;
   }
 
-  private async listDiscoveredEndpoints(): Promise<string[]> {
-    // SDK requires an endpoint to construct the client, even for listing.
-    const client = this.makeClient(AKI_DISCOVERY_ENDPOINT);
-    try {
-      const endpoints = await client.getEndpointList();
-      return endpoints.filter(
-        (id): id is string => typeof id === "string" && id.trim().length > 0
-      );
-    } catch (error) {
-      log.debug("AKI endpoint discovery failed", { error });
-      // Discovery is optional; caller falls back to manifest/default model lists.
-      return [];
-    }
-  }
-
   async generateMessage(args: {
     messages: Message[];
     model: string;
@@ -468,7 +481,22 @@ export class AkiProvider extends BaseProvider {
     request: ApiRequestParams
   ): Promise<Uint8Array> {
     const client = this.makeClient(modelId);
-    const response = await client.doApiRequest(request);
+
+    let response: ApiResponse;
+    const initialRequest = remapRequestParams(modelId, request);
+    try {
+      response = await client.doApiRequest(initialRequest);
+    } catch (error) {
+      if (!shouldRetryWithPromptParam(error)) {
+        throw error;
+      }
+
+      log.info("Retrying AKI image request with prompt param alias", {
+        modelId
+      });
+      response = await client.doApiRequest(withPromptParam(initialRequest));
+    }
+
     if (!response.success) {
       throw new Error(
         response.error ??
@@ -510,58 +538,10 @@ export class AkiProvider extends BaseProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const endpoints = await this.listDiscoveredEndpoints();
-    const manifestById = getManifestEntryMap();
-    const models = endpoints
-      .filter((id) => {
-        const entry = manifestById.get(id);
-        if (entry?.outputType === "image") {
-          return false;
-        }
-        if (entry?.outputType === "text") {
-          return true;
-        }
-        return !isLikelyImageEndpoint(id);
-      })
-      .map((id) => {
-        const entry = manifestById.get(id);
-        return {
-          id,
-          name: entry?.title ?? id,
-          provider: "aki" as const
-        };
-      });
-
-    return models.length > 0 ? models : manifestLanguageModels();
+    return manifestLanguageModels();
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    const endpoints = await this.listDiscoveredEndpoints();
-    const manifestById = getManifestEntryMap();
-    const models = endpoints
-      .filter((id) => {
-        const entry = manifestById.get(id);
-        if (entry?.outputType === "image") {
-          return true;
-        }
-        if (entry?.outputType === "text") {
-          return false;
-        }
-        return isLikelyImageEndpoint(id);
-      })
-      .map((id) => {
-        const entry = manifestById.get(id);
-        return {
-          id,
-          name: entry?.title ?? id,
-          provider: "aki" as const,
-          supportedTasks:
-            entry?.supportedTasks && entry.supportedTasks.length > 0
-              ? entry.supportedTasks
-              : undefined
-        };
-      });
-
-    return models.length > 0 ? models : manifestImageModels();
+    return manifestImageModels();
   }
 }

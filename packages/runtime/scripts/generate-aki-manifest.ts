@@ -9,6 +9,7 @@ interface ManifestEntry {
   title: string;
   outputType: string;
   supportedTasks?: string[];
+  paramNames?: Record<string, string>;
 }
 
 function outputTypeFromDetails(endpointId: string, details: EndpointDetails | Record<string, unknown>): string {
@@ -34,6 +35,29 @@ function outputTypeFromDetails(endpointId: string, details: EndpointDetails | Re
     return "image";
   }
   return "text";
+}
+
+function inferParamNames(
+  details: EndpointDetails | Record<string, unknown>
+): Record<string, string> | undefined {
+  const inputs = (details as Partial<EndpointDetails>).parameter_description?.input ?? {};
+  const keys = new Set(Object.keys(inputs).map((key) => key.toLowerCase()));
+  const paramNames: Record<string, string> = {};
+
+  if (!keys.has("prompt_input") && keys.has("prompt")) {
+    paramNames.prompt_input = "prompt";
+  }
+  if (!keys.has("negative_prompt") && keys.has("negativeprompt")) {
+    paramNames.negative_prompt = "negativePrompt";
+  }
+  if (!keys.has("num_inference_steps") && keys.has("steps")) {
+    paramNames.num_inference_steps = "steps";
+  }
+  if (!keys.has("guidance_scale") && keys.has("guidance")) {
+    paramNames.guidance_scale = "guidance";
+  }
+
+  return Object.keys(paramNames).length > 0 ? paramNames : undefined;
 }
 
 function supportedTasksFromDetails(
@@ -102,7 +126,8 @@ async function main() {
           ? (details as Partial<EndpointDetails>).title!
           : endpointId,
       outputType,
-      supportedTasks: supportedTasksFromDetails(endpointId, outputType, details)
+      supportedTasks: supportedTasksFromDetails(endpointId, outputType, details),
+      paramNames: inferParamNames(details)
     });
   }
 

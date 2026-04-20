@@ -310,11 +310,12 @@ describe("AkiProvider", () => {
     );
   });
 
-  it("uses SDK endpoint discovery when available and classifies modalities", async () => {
-    const getEndpointList = vi
-      .fn()
-      .mockResolvedValue(["llama3_chat", "sdxl_img", "custom_chat"]);
-    const { factory } = makeFactory({ getEndpointList });
+  it("does not mix image endpoints into language models", async () => {
+    const { factory } = makeFactory({
+      getEndpointList: vi
+        .fn()
+        .mockResolvedValue(["llama3_chat", "sdxl_img", "custom_chat"])
+    });
     const provider = new AkiProvider(
       { AKI_API_KEY: "k" },
       { clientFactory: factory as unknown as never }
@@ -324,8 +325,7 @@ describe("AkiProvider", () => {
     const imageModels = await provider.getAvailableImageModels();
 
     expect(languageModels).toEqual([
-      { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" },
-      { id: "custom_chat", name: "custom_chat", provider: "aki" }
+      { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
     ]);
     expect(imageModels).toEqual([
       {
@@ -333,6 +333,18 @@ describe("AkiProvider", () => {
         name: "SDXL",
         provider: "aki",
         supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-text2img",
+        name: "FLUX Text to Image",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-img2img",
+        name: "FLUX Image to Image",
+        provider: "aki",
+        supportedTasks: ["image_to_image"]
       }
     ]);
   });
@@ -364,7 +376,7 @@ describe("AkiProvider", () => {
     expect(result).toEqual(Uint8Array.from([1, 2, 3]));
     expect(doApiRequest).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt_input: "a castle",
+        prompt: "a castle",
         width: 1024,
         height: 1024,
         negative_prompt: "low quality"
@@ -400,12 +412,51 @@ describe("AkiProvider", () => {
     expect(result).toEqual(Uint8Array.from([4, 5, 6]));
     expect(doApiRequest).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt_input: "make it cinematic",
+        prompt: "make it cinematic",
         image: Buffer.from(inputImage).toString("base64"),
         width: 512,
         height: 768,
         strength: 0.7
       })
+    );
+  });
+
+  it("retries image requests with prompt when AKI rejects prompt_input", async () => {
+    const doApiRequest = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new Error(
+          "api request at https://aki.io/api/ failed!\nHTTP status code: 400\nError message: Invalid input parameter(s): prompt_input;Missing required argument: prompt"
+        )
+      )
+      .mockResolvedValueOnce({
+        success: true,
+        images: encodeBinary(Uint8Array.from([7, 8, 9]), "png")
+      });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const result = await provider.textToImage({
+      model: {
+        id: "qwen_image",
+        name: "Qwen Image",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      prompt: "a neon city"
+    });
+
+    expect(result).toEqual(Uint8Array.from([7, 8, 9]));
+    expect(doApiRequest).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ prompt_input: "a neon city" })
+    );
+    expect(doApiRequest).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ prompt: "a neon city" })
     );
   });
 
