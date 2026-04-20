@@ -1,6 +1,7 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
 import { dateName, extFormat, filePath, modelBytes, modelRef } from "./utils.js";
@@ -83,7 +84,7 @@ export class SaveModel3DFileNode extends BaseNode {
     await fs.writeFile(full, bytes);
     return {
       output: modelRef(bytes, {
-        uri: `file://${full}`,
+        uri: pathToFileURL(full).toString(),
         format: extFormat(full)
       })
     };
@@ -133,7 +134,7 @@ export class SaveModel3DNode extends BaseNode {
     await fs.writeFile(full, bytes);
     return {
       output: modelRef(bytes, {
-        uri: `file://${full}`,
+        uri: pathToFileURL(full).toString(),
         format: extFormat(full)
       })
     };
