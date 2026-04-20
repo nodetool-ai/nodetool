@@ -60,6 +60,7 @@ const isAkiProviderIdentifier = (provider: string): boolean => {
     const host = new URL(candidate).hostname.toLowerCase();
     return host === "aki.io" || host.endsWith(".aki.io");
   } catch {
+    // Not a valid URL-like provider identifier, treat as non-AKI.
     return false;
   }
 };

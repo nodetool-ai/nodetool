@@ -242,6 +242,57 @@ describe("AkiProvider", () => {
     ]);
   });
 
+  it("classifies endpoint naming patterns across language/image model lists", async () => {
+    const getEndpointList = vi.fn().mockResolvedValue([
+      "llama3_chat",
+      "sdxl_img",
+      "flux-text2img",
+      "mysteryendpoint",
+      "",
+      "  ",
+      "SDXL_IMAGE"
+    ]);
+    const { factory } = makeFactory({ getEndpointList });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const languageModels = await provider.getAvailableLanguageModels();
+    const imageModels = await provider.getAvailableImageModels();
+
+    expect(languageModels).toEqual([
+      { id: "llama3_chat", name: "llama3_chat", provider: "aki" },
+      { id: "mysteryendpoint", name: "mysteryendpoint", provider: "aki" }
+    ]);
+    expect(imageModels).toEqual([
+      {
+        id: "sdxl_img",
+        name: "sdxl_img",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-text2img",
+        name: "flux-text2img",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "SDXL_IMAGE",
+        name: "SDXL_IMAGE",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      }
+    ]);
+    expect(languageModels.some((model) => model.id.trim().length === 0)).toBe(
+      false
+    );
+    expect(imageModels.some((model) => model.id.trim().length === 0)).toBe(
+      false
+    );
+  });
+
   it("collapses multi-part content and attaches the last image", async () => {
     const doApiRequest = vi
       .fn()

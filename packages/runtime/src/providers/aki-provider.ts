@@ -220,15 +220,18 @@ export class AkiProvider extends BaseProvider {
         .filter(
           (id): id is string =>
             typeof id === "string" &&
-            id.length > 0 &&
+            id.trim().length > 0 &&
             !AkiProvider.isImageEndpoint(id)
         )
-        .map((id) => ({ id, name: id, provider: "aki" }));
+        .map((id) => {
+          const normalizedId = id.trim();
+          return { id: normalizedId, name: normalizedId, provider: "aki" };
+        });
       if (list.length > 0) {
         return list;
       }
     } catch {
-      /* fall through to static default */
+      // Endpoint discovery can fail transiently; fall through to static default.
     }
     return AkiProvider.DEFAULT_LANGUAGE_MODELS;
   }
@@ -242,24 +245,32 @@ export class AkiProvider extends BaseProvider {
         .filter(
           (id): id is string =>
             typeof id === "string" &&
-            id.length > 0 &&
+            id.trim().length > 0 &&
             AkiProvider.isImageEndpoint(id)
         )
-        .map((id) => ({
-          id,
-          name: id,
-          provider: "aki",
-          supportedTasks: ["text_to_image"]
-        }));
+        .map((id) => {
+          const normalizedId = id.trim();
+          return {
+            id: normalizedId,
+            name: normalizedId,
+            provider: "aki",
+            supportedTasks: ["text_to_image"]
+          };
+        });
     } catch {
+      // If endpoint discovery fails, avoid breaking image-model consumers.
       return [];
     }
   }
 
   private static isImageEndpoint(endpointId: string): boolean {
+    // AKI endpoint names typically encode modality in the suffix, e.g.
+    // `llama3_chat` (language) vs `sdxl_img` / `flux-text2img` (image).
+    // Keep this suffix list aligned with AKI endpoint naming conventions.
     const normalized = endpointId.trim().toLowerCase();
-    const parts = normalized.split(/[_-]+/);
-    const tail = parts[parts.length - 1] ?? "";
+    // Drop empty tokens from leading/trailing delimiters like "model_".
+    const parts = normalized.split(/[_-]+/).filter(Boolean);
+    const tail = parts.length > 0 ? parts[parts.length - 1] : "";
     return (
       tail === "img" ||
       tail === "image" ||
