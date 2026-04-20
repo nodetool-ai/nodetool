@@ -661,7 +661,10 @@ export class JoinWorkspacePathsNode extends BaseNode {
     if (parts.length === 0) {
       throw new Error("paths cannot be empty");
     }
-    const joined = path.join(...parts.map((p) => String(p)));
+    // Workspace-relative paths are part of the workflow contract and must
+    // be portable across operating systems. Always emit POSIX separators
+    // and use the OS-native form only for the worktree validation below.
+    const joined = path.posix.join(...parts.map((p) => String(p)));
     ensureWorkspacePath(workspace, joined);
     return { output: joined };
   }

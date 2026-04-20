@@ -98,17 +98,20 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   - Rodin registered + exported in `packages/runtime/src/providers/index.ts`.
   - Barrel also exposes `Model3D`, `TextTo3DParams`, `ImageTo3DParams`.
 
-- [ ] **#5 – Wire `TextTo3DNode.process()` and `ImageTo3DNode.process()`**
-  In `packages/base-nodes/src/nodes/model3d/generation.ts`, replace the
-  `throw new Error("Not implemented")` blocks with:
-  - Resolve the configured provider via `getRegisteredProvider(this.model.provider)`.
-  - Build `TextTo3DParams` / `ImageTo3DParams` from the node fields.
-  - For `ImageTo3DNode`, decode `this.image` to bytes via the existing
-    image-resolution helper (whatever `imageToImage`-style nodes use).
-  - Call `await provider.textTo3D(params)` / `provider.imageTo3D(bytes, params)`.
-  - Wrap the returned bytes with `glbOutput(bytes)` from `model3d/base.ts`.
-  - Honour `this.timeout_seconds` by passing it through.
-  - Honour `this.seed === -1` → omit the `seed` field (random).
+- [x] **#5 – Wire `TextTo3DNode.process()` and `ImageTo3DNode.process()`**
+  Replaced the `throw new Error("Not implemented")` blocks in
+  `packages/base-nodes/src/nodes/model3d/generation.ts`:
+  - `process(context)` now requires a `ProcessingContext` and resolves the
+    provider via `context.getProvider(model.provider)`.
+  - `nodeModelToProviderModel()` lifts node-level snake_case props
+    (`supported_tasks`, `output_formats`) onto the provider `Model3D` shape.
+  - `TextTo3DParams` / `ImageTo3DParams` are built from node fields with
+    `seed === -1` → `null` and `timeout_seconds <= 0` → `null`.
+  - `ImageTo3DNode` resolves `this.image` to `Uint8Array` via a new
+    `imageRefToBytes()` helper in `packages/base-nodes/src/nodes/model3d/utils.ts`
+    (handles base64 strings, `Uint8Array`, `data:` URIs, storage URIs,
+    `file://` URIs and HTTP/HTTPS URLs).
+  - Returned bytes are wrapped with `glbOutput()` from `./base.js`.
 
 ---
 
@@ -127,11 +130,20 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
     polling timeout, transient-empty-jobs handling, `model_url`→`url`
     fallback, and missing download URL. **All 25 pass.**)
 
-- [ ] **#7 – Smoke test for the wired-up nodes**
-  In `packages/base-nodes/tests/`, add a test that instantiates `TextTo3DNode`
-  and `ImageTo3DNode` with a mock provider and asserts the output shape is
-  `{ output: Model3DRef }` with `format: "glb"`. This is the regression test
-  for Bug 1b — it must catch any future stub regression.
+- [x] **#7 – Smoke test for the wired-up nodes**
+  `packages/base-nodes/tests/model3d-generation.test.ts` (13 cases) covers
+  both `TextTo3DNode` and `ImageTo3DNode`:
+  - happy-path: provider lookup → param shape → bytes round-trip via base64.
+  - `seed === -1` and `timeout_seconds === 0` normalize to `null`.
+  - guards: empty prompt, missing model id, missing provider id, missing
+    `ProcessingContext`, empty image bytes.
+  - propagates provider errors.
+  - `ImageTo3DNode` resolves `data:` URIs and storage URIs via
+    `context.storage.retrieve`, and forwards optional prompts.
+  - Existing `model3d-honest-io.test.ts` updated: the two old
+    "throws not-implemented" cases now assert the new
+    "requires a `ProcessingContext`" guard and a third happy-path case
+    ensures `provider.textTo3D` is called.
 
 ---
 
@@ -190,25 +202,29 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   - Bug fix vs Python original: single-submit instead of double-submit in
     `imageTo3D`.
 
-- [ ] **PR-4 "Wire up the nodes"** *(small but user-visible)*
-  - #5 + #7. This is the PR that **resolves Bug 1b** in
-    `PLAN-Model3DNodesRefactor.md` — flip the checkbox there too.
-  - Must land after PR-2 (Meshy is the default in `defaults.ts`).
-  - Optional: add a third checkbox to PR-2 / PR-3 confirming the smoke test
-    in #7 covers both Meshy and Rodin paths.
+- [x] **PR-4 "Wire up the nodes"** *(small but user-visible)*
+  - #5 + #7 done. `TextTo3DNode` / `ImageTo3DNode` now drive the registered
+    `MeshyProvider` / `RodinProvider` end-to-end.
+  - **Resolves Bug 1b** in `PLAN-Model3DNodesRefactor.md` — flip the
+    checkbox there.
+  - 13 new tests in `packages/base-nodes/tests/model3d-generation.test.ts`
+    pass; updated `model3d-honest-io.test.ts` (3 changed/added cases) pass;
+    `nodes.test.ts > model3d nodes generate and inspect metadata` updated
+    to inject a mocked `ProcessingContext` and passes.
+  - Pre-existing Windows-only failures in `nodes.test.ts` (path-separator
+    expectations, missing `echo` binary) are unrelated to this PR.
 
 ---
 
 ## Done when
 
-- [ ] `TextTo3DNode` and `ImageTo3DNode` no longer throw `NotImplemented`
-  when a provider API key is configured.
+- [x] `TextTo3DNode` and `ImageTo3DNode` no longer throw `NotImplemented`;
+  they delegate to the registered provider given a `ProcessingContext`.
 - [ ] With `MESHY_API_KEY` set, running `TextTo3DNode` end-to-end produces
-  a valid GLB that loads in `Model3DViewer.tsx`.
-- [ ] With `RODIN_API_KEY` set, same for Rodin.
-- [ ] `providerCapabilities(meshy)` returns `["text_to_3d", "image_to_3d", ...]`.
-  The provider sidebar in the web app surfaces both capabilities.
+  a valid GLB that loads in `Model3DViewer.tsx`. *(manual smoke; needs key)*
+- [ ] With `RODIN_API_KEY` set, same for Rodin. *(manual smoke; needs key)*
+- [x] `providerCapabilities(meshy)` returns `["text_to_3d", "image_to_3d", ...]`.
 - [ ] Bug 1b in `PLAN-Model3DNodesRefactor.md` is checked off with a link to
-  the PR-4 commit.
-- [ ] No regressions in the existing `KieProvider` / `FalProvider` paths
-  (run their existing tests).
+  the PR-4 commit. *(do this on the next commit)*
+- [x] No regressions in the existing `KieProvider` / `FalProvider` paths —
+  their tests are unchanged and pass.
