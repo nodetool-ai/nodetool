@@ -1,11 +1,10 @@
 /**
- * Coverage tests for lib-browser, lib-mail, lib-supabase, lib-compat, lib-ocr, lib-markitdown.
+ * Coverage tests for lib-browser, lib-mail, lib-supabase, lib-ocr, lib-markitdown.
  *
  * Strategy:
  * - lib-browser: Real playwright against a local HTTP server for Browser, Screenshot, BrowserNavigation.
  * - lib-mail: SendEmail with invalid config → error. Gmail stubs throw.
  * - lib-supabase: All nodes throw when no credentials provided.
- * - lib-compat: LIB_COMPAT_PY_NODES is empty (all descriptors removed). Verify the array is empty.
  * - lib-ocr: Test error path (no image data/uri). Test with a small sharp-generated PNG.
  * - lib-markitdown: Test HTML conversion, plain text pass-through, error on missing data/uri,
  *   file URI reading, and docx branch (error path).
@@ -26,8 +25,7 @@ import {
   AddLabelLibNode,
   MoveToArchiveLibNode,
   SelectLibNode,
-  ConvertToMarkdownLibNode,
-  LIB_COMPAT_PY_NODES
+  ConvertToMarkdownLibNode
 } from "../../src/index.js";
 
 import {
@@ -1301,17 +1299,6 @@ describe("lib.supabase (no credentials)", () => {
         return _n.process();
       })()
     ).rejects.toThrow("Supabase URL and key are required");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// lib-compat
-// ---------------------------------------------------------------------------
-
-describe("lib-compat", () => {
-  it("LIB_COMPAT_PY_NODES is an empty array (all descriptors removed)", () => {
-    expect(Array.isArray(LIB_COMPAT_PY_NODES)).toBe(true);
-    expect(LIB_COMPAT_PY_NODES.length).toBe(0);
   });
 });
 
