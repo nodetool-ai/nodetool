@@ -10,6 +10,7 @@ describe("AppHeaderStore", () => {
     const { result } = renderHook(() => useAppHeaderStore());
     expect(result.current.helpOpen).toBe(false);
     expect(result.current.helpIndex).toBe(0);
+    expect(result.current.feedbackOpen).toBe(false);
   });
 
   it("sets help open state", () => {
@@ -74,6 +75,37 @@ describe("AppHeaderStore", () => {
     });
 
     expect(result.current.helpOpen).toBe(false);
+  });
+
+  it("sets feedback open state", () => {
+    const { result } = renderHook(() => useAppHeaderStore());
+
+    act(() => {
+      result.current.setFeedbackOpen(true);
+    });
+
+    expect(result.current.feedbackOpen).toBe(true);
+  });
+
+  it("handleOpenFeedback sets feedbackOpen to true", () => {
+    const { result } = renderHook(() => useAppHeaderStore());
+
+    act(() => {
+      result.current.handleOpenFeedback();
+    });
+
+    expect(result.current.feedbackOpen).toBe(true);
+  });
+
+  it("handleCloseFeedback sets feedbackOpen to false", () => {
+    const { result } = renderHook(() => useAppHeaderStore());
+
+    act(() => {
+      result.current.handleOpenFeedback();
+      result.current.handleCloseFeedback();
+    });
+
+    expect(result.current.feedbackOpen).toBe(false);
   });
 
   it("can toggle help open state", () => {

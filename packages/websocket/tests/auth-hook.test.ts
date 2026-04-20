@@ -34,7 +34,13 @@ async function buildApp(opts: {
 
   app.addHook("onRequest", async (req, reply) => {
     const pathname = req.url.split("?")[0];
-    if (pathname === "/health" || req.url.startsWith("/api/oauth/")) return;
+    if (
+      pathname === "/health" ||
+      pathname === "/api/feedback" ||
+      req.url.startsWith("/api/oauth/")
+    ) {
+      return;
+    }
 
     const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
     const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
@@ -72,6 +78,7 @@ async function buildApp(opts: {
   });
 
   app.get("/health", async () => ({ ok: true }));
+  app.post("/api/feedback", async () => ({ ok: true }));
   app.get("/api/oauth/callback", async () => ({ oauth: true }));
   app.get("/api/protected", async (req) => ({ userId: req.userId }));
 
@@ -97,6 +104,11 @@ describe("auth hook — dev mode (no Supabase)", () => {
 
   it("allows /api/oauth/* without auth", async () => {
     const res = await app.inject({ method: "GET", url: "/api/oauth/callback" });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("allows /api/feedback without auth", async () => {
+    const res = await app.inject({ method: "POST", url: "/api/feedback" });
     expect(res.statusCode).toBe(200);
   });
 
@@ -127,6 +139,11 @@ describe("auth hook — Supabase mode", () => {
 
   it("allows /health without token", async () => {
     const res = await app.inject({ method: "GET", url: "/health" });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("allows /api/feedback without token", async () => {
+    const res = await app.inject({ method: "POST", url: "/api/feedback" });
     expect(res.statusCode).toBe(200);
   });
 
