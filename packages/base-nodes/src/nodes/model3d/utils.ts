@@ -87,8 +87,11 @@ export function modelRef(
   extras: Record<string, unknown> = {}
 ): Record<string, unknown> {
   return {
-    data: Buffer.from(data).toString("base64"),
-    ...extras
+    ...extras,
+    type: "model_3d",
+    asset_id: null,
+    metadata: null,
+    data: Buffer.from(data).toString("base64")
   };
 }
 
