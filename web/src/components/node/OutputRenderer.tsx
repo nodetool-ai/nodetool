@@ -621,7 +621,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (value[0] === undefined || value[0] === null) {
             return null;
           }
-          if (typeof value[0] === "string" && value.every((v: any) => typeof v === "string")) {
+          if (typeof value[0] === "string" && value.every((v: unknown) => typeof v === "string")) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -747,7 +747,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               const seen = new Map<string, number>();
               return (
                 <Container>
-                  {value.map((v: any) => (
+                  {value.map((v: unknown) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(v),
@@ -761,7 +761,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               );
             }
             const columnType = (
-              v: any
+              v: unknown
             ): "string" | "float" | "int" | "datetime" | "object" => {
               if (typeof v === "string") {
                 return "string";
@@ -774,7 +774,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             const df: DataframeRef = {
               type: "dataframe" as const,
               uri: "",
-              data: value.map((v: any) => Object.values(v)),
+              data: value.map((v: Record<string, unknown>) => Object.values(v)),
               columns: Object.entries(value[0]).map((i) => ({
                 name: i[0],
                 data_type: columnType(i[1]),
@@ -789,7 +789,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <Container>
             {(() => {
               const seen = new Map<string, number>();
-              return value.map((v: any) => (
+              return value.map((v: unknown) => (
                 <OutputRenderer
                   key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
                   value={v}
@@ -802,7 +802,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "segmentation_result":
         return (
           <div>
-            {Object.entries(value).map((v: any) => (
+            {Object.entries(value).map((v: [string, unknown]) => (
               <OutputRenderer
                 key={v[0]}
                 value={v[1]}
