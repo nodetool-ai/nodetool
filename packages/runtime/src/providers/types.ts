@@ -210,6 +210,8 @@ export interface TextTo3DParams {
   artStyle?: string | null;
   outputFormat?: string;
   seed?: number | null;
+  /** Per-call timeout. Providers translate this into max polling attempts. */
+  timeoutSeconds?: number | null;
 }
 
 export interface ImageTo3DParams {
@@ -217,4 +219,6 @@ export interface ImageTo3DParams {
   prompt?: string | null;
   outputFormat?: string;
   seed?: number | null;
+  /** Per-call timeout. Providers translate this into max polling attempts. */
+  timeoutSeconds?: number | null;
 }

@@ -55,16 +55,16 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
 
 ## Quick-win priority
 
-- [ ] **#1 – Extend `BaseProvider` with 3D capabilities**
-  Add to `packages/runtime/src/providers/base-provider.ts`:
-  - `"text_to_3d"` and `"image_to_3d"` to the `ProviderCapability` union.
-  - Capability detection in `providerCapabilities()` for the new methods.
-  - `getAvailable3DModels(): Promise<Model3D[]>` returning `[]` by default.
-  - `textTo3D(params: TextTo3DParams): Promise<Uint8Array>` defaulting to
-    `throw new Error("${this.provider} does not support textTo3D")`.
-  - `imageTo3D(image: Uint8Array, params: ImageTo3DParams): Promise<Uint8Array>`
-    defaulting to throw.
-  - Update `Model3D` JSDoc + add `outputFormats?: string[]` to the interface.
+- [x] **#1 – Extend `BaseProvider` with 3D capabilities** *(landed `703d2f2cf`)*
+  - `"text_to_3d"` and `"image_to_3d"` added to the `ProviderCapability` union.
+  - Capability detection in `providerCapabilities()` keys off
+    `getAvailable3DModels` (presence of 3D models implies both task types;
+    individual `textTo3D` / `imageTo3D` calls throw if not implemented).
+  - `getAvailable3DModels(): Promise<Model3D[]>` returns `[]` by default.
+  - `textTo3D()` and `imageTo3D()` default to
+    `throw new Error("<provider> does not support …")`.
+  - `Model3D` interface gained JSDoc + `outputFormats?: string[]` field.
+  - Verified: `npx tsc --noEmit -p packages/runtime/tsconfig.json` clean.
 
 - [ ] **#2 – Port `MeshyProvider`** (`packages/runtime/src/providers/meshy-provider.ts`)
   Direct port of `nodetool-core@25e60910:src/nodetool/providers/meshy_provider.py`:
@@ -160,11 +160,9 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
 
 ## PR slicing
 
-- [ ] **PR-1 "Provider abstraction"** *(small, mechanical, no behavior change)*
-  - #1 only. Keeps the existing `Throw NotImplemented` nodes intact.
-  - Verifies the new methods compile and the capability detection works
-    against `KieProvider` (which still doesn't override → still no
-    `text_to_3d` capability).
+- [x] **PR-1 "Provider abstraction"** *(landed `703d2f2cf`)*
+  - #1 done. No behavior change: `KieProvider` and friends still report no
+    `text_to_3d` capability since they don't override `getAvailable3DModels`.
 
 - [ ] **PR-2 "Meshy provider"** *(medium)*
   - #2 + #4 (Meshy half) + #6 (Meshy tests) + #8 (Meshy pricing).
