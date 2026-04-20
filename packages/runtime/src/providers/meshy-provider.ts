@@ -145,15 +145,27 @@ export class MeshyProvider extends BaseProvider {
     if (!this.apiKey) throw new Error("Meshy API key is not configured");
 
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
-    const taskId = await this.submitTextTo3D(params);
-    log.debug(`Meshy text-to-3D task submitted: ${taskId}`);
+    const previewTaskId = await this.submitTextTo3D(params);
+    log.debug(`Meshy text-to-3D preview task submitted: ${previewTaskId}`);
 
-    const result = await this.pollTaskStatus(
-      taskId,
+    const previewResult = await this.pollTaskStatus(
+      previewTaskId,
       "/v2/text-to-3d",
       maxAttempts
     );
-    return this.downloadResultMesh(result, params.outputFormat);
+
+    if (params.enableTextures) {
+      const refineTaskId = await this.submitRefine(previewTaskId);
+      log.debug(`Meshy text-to-3D refine task submitted: ${refineTaskId}`);
+      const refineResult = await this.pollTaskStatus(
+        refineTaskId,
+        "/v2/text-to-3d",
+        maxAttempts
+      );
+      return this.downloadResultMesh(refineResult, params.outputFormat);
+    }
+
+    return this.downloadResultMesh(previewResult, params.outputFormat);
   }
 
   override async imageTo3D(
@@ -212,6 +224,13 @@ export class MeshyProvider extends BaseProvider {
 
   private async submitImageTo3D(imageUrl: string): Promise<string> {
     return this.submitTask("/v1/image-to-3d", { image_url: imageUrl });
+  }
+
+  private async submitRefine(previewTaskId: string): Promise<string> {
+    return this.submitTask("/v2/text-to-3d", {
+      mode: "refine",
+      preview_task_id: previewTaskId
+    });
   }
 
   private async submitTask(

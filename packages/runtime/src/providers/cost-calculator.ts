@@ -22,7 +22,9 @@ export enum CostType {
   CHARACTER_BASED = "character_based",
   DURATION_BASED = "duration_based",
   IMAGE_BASED = "image_based",
-  VIDEO_BASED = "video_based"
+  VIDEO_BASED = "video_based",
+  /** Flat per-task cost, e.g. 3D generation APIs billed per submitted job. */
+  TASK_BASED = "task_based"
 }
 
 export interface PricingTier {
@@ -34,6 +36,8 @@ export interface PricingTier {
   perMinute?: number;
   perImage?: number;
   perSecondVideo?: number;
+  /** Cost per submitted task (CostType.TASK_BASED). In nodetool credits (1 credit = $0.01). */
+  perTask?: number;
 }
 
 /**
@@ -212,7 +216,25 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     costType: CostType.TOKEN_BASED,
     inputPer1kTokens: 0.000375,
     outputPer1kTokens: 0.0015
-  }
+  },
+
+  // --- 3D generation (TASK_BASED) ---
+  // Pricing sources:
+  //   Meshy:  https://www.meshy.ai/pricing  (verify on each pricing change)
+  //   Rodin:  https://hyperhuman.deemos.com/rodin  (verify on each pricing change)
+  // All values are in nodetool credits (1 credit = $0.01 USD), including 50% premium.
+  // "Preview" = shape-only (fast); "Textured" = preview + refine (PBR textures embedded).
+  //
+  // TODO: verify exact per-task costs against the live pricing pages above.
+  meshy4TextPreviewTier: { costType: CostType.TASK_BASED, perTask: 63 },   // ~$0.42/task
+  meshy4TextTexturedTier: { costType: CostType.TASK_BASED, perTask: 221 }, // ~$0.42 preview + ~$1.05 refine = $1.47/task
+  meshy4ImageTier: { costType: CostType.TASK_BASED, perTask: 63 },         // ~$0.42/task
+  meshy3TurboTextPreviewTier: { costType: CostType.TASK_BASED, perTask: 32 },   // ~$0.21/task
+  meshy3TurboTextTexturedTier: { costType: CostType.TASK_BASED, perTask: 111 }, // ~$0.21 + ~$0.53 = $0.74/task
+  meshy3TurboImageTier: { costType: CostType.TASK_BASED, perTask: 32 },    // ~$0.21/task
+  rodinGen1Tier: { costType: CostType.TASK_BASED, perTask: 120 },          // ~$0.80/task
+  rodinGen1TurboTier: { costType: CostType.TASK_BASED, perTask: 75 },      // ~$0.50/task
+  rodinSketchTier: { costType: CostType.TASK_BASED, perTask: 45 }          // ~$0.30/task
 };
 
 /**
@@ -291,7 +313,19 @@ export const MODEL_TO_TIER: Record<string, string> = {
   "anthropic:claude-3-sonnet-20240229": "claude3Sonnet",
   "anthropic:claude-3-sonnet-latest": "claude3Sonnet",
   "anthropic:claude-3-haiku-20240307": "claude3Haiku",
-  "anthropic:claude-3-haiku-latest": "claude3Haiku"
+  "anthropic:claude-3-haiku-latest": "claude3Haiku",
+
+  // Meshy 3D generation — text tier is textured (preview + refine); image is single-step
+  "meshy:meshy-4": "meshy4TextTexturedTier",
+  "meshy:meshy-4-preview": "meshy4TextPreviewTier",
+  "meshy:meshy-4-image": "meshy4ImageTier",
+  "meshy:meshy-3-turbo": "meshy3TurboTextTexturedTier",
+  "meshy:meshy-3-turbo-preview": "meshy3TurboTextPreviewTier",
+  "meshy:meshy-3-turbo-image": "meshy3TurboImageTier",
+  // Rodin 3D generation
+  "rodin:rodin-gen-1": "rodinGen1Tier",
+  "rodin:rodin-gen-1-turbo": "rodinGen1TurboTier",
+  "rodin:rodin-sketch": "rodinSketchTier"
 };
 
 export interface UsageInfo {
@@ -303,6 +337,8 @@ export interface UsageInfo {
   durationSeconds?: number;
   imageCount?: number;
   videoSeconds?: number;
+  /** Number of tasks submitted (for CostType.TASK_BASED providers). */
+  taskCount?: number;
 }
 
 import { createLogger } from "@nodetool/config";
@@ -420,6 +456,9 @@ export class CostCalculator {
       return imageCount * (tier.perImage ?? 0);
     } else if (tier.costType === CostType.VIDEO_BASED) {
       return videoSeconds * (tier.perSecondVideo ?? 0);
+    } else if (tier.costType === CostType.TASK_BASED) {
+      const taskCount = usage.taskCount ?? 1;
+      return taskCount * (tier.perTask ?? 0);
     }
 
     return 0.0;
@@ -475,6 +514,19 @@ export function calculateWhisperCost(
   provider: string = "openai"
 ): number {
   const usage: UsageInfo = { durationSeconds };
+  return CostCalculator.calculate(modelId, usage, provider);
+}
+
+/**
+ * Calculate 3D model generation cost.
+ * Pass `taskCount` > 1 only if multiple tasks were submitted (rare).
+ */
+export function calculateModel3DCost(
+  modelId: string,
+  provider: string,
+  taskCount: number = 1
+): number {
+  const usage: UsageInfo = { taskCount };
   return CostCalculator.calculate(modelId, usage, provider);
 }
 

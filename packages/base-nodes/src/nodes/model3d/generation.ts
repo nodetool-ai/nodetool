@@ -59,7 +59,7 @@ export class TextTo3DNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
-  static readonly basicFields = ["model", "prompt", "output_format", "seed"];
+  static readonly basicFields = ["model", "prompt", "enable_textures", "output_format", "seed"];
   static readonly exposeAsTool = true;
 
   @prop({
@@ -81,6 +81,9 @@ export class TextTo3DNode extends BaseNode {
 
   @prop({ type: "enum", default: "glb", title: "Output Format", description: "Output format for the 3D model", values: ["glb", "gltf", "obj", "stl", "ply"] })
   declare output_format: any;
+
+  @prop({ type: "bool", default: true, title: "Enable Textures", description: "Generate PBR textures after shape generation (Meshy only; adds a second API call)" })
+  declare enable_textures: any;
 
   @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducibility (-1 for random)", min: -1 })
   declare seed: any;
@@ -107,7 +110,8 @@ export class TextTo3DNode extends BaseNode {
       artStyle: this.art_style || null,
       outputFormat: String(this.output_format ?? "glb"),
       seed: normalizeSeed(this.seed),
-      timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds)
+      timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds),
+      enableTextures: this.enable_textures === true
     };
 
     const bytes = await provider.textTo3D(params);

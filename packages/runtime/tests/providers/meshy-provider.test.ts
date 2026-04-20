@@ -318,6 +318,53 @@ describe("MeshyProvider", () => {
     expect(submittedBody.image_url).toMatch(/^data:image\/jpeg;base64,/);
   });
 
+  // --- texture refine step ---
+
+  it("textTo3D runs preview then refine when enableTextures is true", async () => {
+    const refinedBytes = new Uint8Array([0x01, 0x02, 0x03]);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ result: "preview-task" }))        // preview submit
+      .mockResolvedValueOnce(jsonResponse({ status: "SUCCEEDED", model_urls: { glb: "https://meshy.example/preview.glb" } })) // preview poll
+      .mockResolvedValueOnce(jsonResponse({ result: "refine-task" }))         // refine submit
+      .mockResolvedValueOnce(jsonResponse({ status: "SUCCEEDED", model_urls: { glb: "https://meshy.example/refined.glb" } })) // refine poll
+      .mockResolvedValueOnce(binaryResponse(refinedBytes));                   // download refined
+
+    const p = createProvider();
+    const out = await p.textTo3D({
+      model: MESHY_3D_MODELS[0]!,
+      prompt: "A dragon",
+      enableTextures: true
+    });
+    expect(out).toEqual(refinedBytes);
+
+    // Verify refine submit payload
+    const refineSubmitBody = JSON.parse(fetchMock.mock.calls[2]![1].body);
+    expect(refineSubmitBody).toMatchObject({
+      mode: "refine",
+      preview_task_id: "preview-task"
+    });
+    // 5 total fetches: preview submit, preview poll, refine submit, refine poll, download
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+  });
+
+  it("textTo3D skips refine when enableTextures is false", async () => {
+    const previewBytes = new Uint8Array([0xaa, 0xbb]);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ result: "preview-task" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "SUCCEEDED", model_urls: { glb: "https://meshy.example/p.glb" } }))
+      .mockResolvedValueOnce(binaryResponse(previewBytes));
+
+    const p = createProvider();
+    const out = await p.textTo3D({
+      model: MESHY_3D_MODELS[0]!,
+      prompt: "x",
+      enableTextures: false
+    });
+    expect(out).toEqual(previewBytes);
+    // Only 3 fetches: submit, poll, download — no refine
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   // --- format negotiation ---
 
   it("falls back to glb URL when requested format is missing in response", async () => {

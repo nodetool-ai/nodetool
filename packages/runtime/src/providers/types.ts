@@ -212,6 +212,13 @@ export interface TextTo3DParams {
   seed?: number | null;
   /** Per-call timeout. Providers translate this into max polling attempts. */
   timeoutSeconds?: number | null;
+  /**
+   * When `true`, providers that support a separate texture/refine pass will
+   * run it after shape generation, embedding PBR textures into the output GLB.
+   * Defaults to `undefined` (= no refine) to preserve backward compatibility.
+   * Meshy text-to-3D supports this; Rodin and image-to-3D providers ignore it.
+   */
+  enableTextures?: boolean;
 }
 
 export interface ImageTo3DParams {
