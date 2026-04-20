@@ -76,6 +76,32 @@ describe("PythonNodeExecutor", () => {
     );
   });
 
+  it("converts lower-case protocol media output types to stored asset refs", async () => {
+    const audioBytes = new Uint8Array([82, 73, 70, 70]); // RIFF magic
+    const bridge = createMockBridge({
+      outputs: { chunk: { type: "chunk", content: "", done: true, content_type: "audio" } },
+      blobs: { audio: audioBytes }
+    });
+
+    const ctx = createMockContext();
+    vi.mocked(ctx.storage!.store).mockResolvedValue("file:///tmp/output.wav");
+
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "test.AudioNode",
+      {},
+      { audio: "audio", chunk: "chunk" },
+      []
+    );
+
+    const result = await executor.process({}, ctx);
+    expect(ctx.storage!.store).toHaveBeenCalled();
+    expect(result.audio).toEqual({
+      uri: "file:///tmp/output.wav",
+      type: "audio"
+    });
+  });
+
   it("extracts media-ref lists into blob arrays", async () => {
     const bridge = createMockBridge({
       outputs: { output: "ok" },

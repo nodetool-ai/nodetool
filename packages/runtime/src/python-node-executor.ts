@@ -23,28 +23,39 @@ import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 /** Media ref types that need blob conversion. */
-const MEDIA_REF_TYPES = new Set([
-  "ImageRef",
-  "AudioRef",
-  "VideoRef",
-  "Model3DRef"
-]);
+const MEDIA_TYPE_ALIASES: Record<string, string> = {
+  ImageRef: "image",
+  AudioRef: "audio",
+  VideoRef: "video",
+  Model3DRef: "model_3d",
+  image: "image",
+  audio: "audio",
+  video: "video",
+  model_3d: "model_3d"
+};
 
 /** File extensions by ref type. */
 const EXTENSION_MAP: Record<string, string> = {
-  ImageRef: ".png",
-  AudioRef: ".wav",
-  VideoRef: ".mp4",
-  Model3DRef: ".glb"
+  image: ".png",
+  audio: ".wav",
+  video: ".mp4",
+  model_3d: ".glb"
 };
 
 /** MIME types by ref type. */
 const MIME_MAP: Record<string, string> = {
-  ImageRef: "image/png",
-  AudioRef: "audio/wav",
-  VideoRef: "video/mp4",
-  Model3DRef: "model/gltf-binary"
+  image: "image/png",
+  audio: "audio/wav",
+  video: "video/mp4",
+  model_3d: "model/gltf-binary"
 };
+
+function normalizeMediaOutputType(outputType: string | undefined): string | null {
+  if (!outputType) {
+    return null;
+  }
+  return MEDIA_TYPE_ALIASES[outputType] ?? null;
+}
 
 function isMediaRef(value: unknown): value is { uri: string; type?: string } {
   return (
@@ -239,17 +250,17 @@ export class PythonNodeExecutor {
     // 5. Convert output blobs to stored assets
     const outputs: Record<string, unknown> = { ...result.outputs };
     for (const [name, blobData] of Object.entries(result.blobs)) {
-      const outputType = this.outputTypes[name] ?? "AssetRef";
-      if (MEDIA_REF_TYPES.has(outputType) && context?.storage) {
-        const ext = EXTENSION_MAP[outputType] ?? "";
-        const contentType = MIME_MAP[outputType];
+      const mediaType = normalizeMediaOutputType(this.outputTypes[name]);
+      if (mediaType && context?.storage) {
+        const ext = EXTENSION_MAP[mediaType] ?? "";
+        const contentType = MIME_MAP[mediaType];
         const storageKey = `python-bridge/${randomUUID()}${ext}`;
         const uri = await context.storage.store(
           storageKey,
           blobData,
           contentType
         );
-        outputs[name] = { uri, type: outputType };
+        outputs[name] = { uri, type: mediaType };
       } else {
         outputs[name] = blobData;
       }
