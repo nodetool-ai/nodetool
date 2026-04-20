@@ -794,21 +794,25 @@ export class StepExecutor {
     }
 
     const candidates: Array<{ label: string; path: string }> = [];
+    const candidateKeys = new Set<string>();
     const maybeAdd = (label: string, value: unknown): void => {
       if (
         typeof value === "string" &&
         value.trim().length > 0 &&
-        !value.startsWith("data:")
+        !value.startsWith("data:") &&
+        !value.includes("://")
       ) {
-        candidates.push({ label, path: value });
+        const key = `${label}:${value}`;
+        if (!candidateKeys.has(key)) {
+          candidates.push({ label, path: value });
+          candidateKeys.add(key);
+        }
       }
     };
 
-    if (toolName === "download_file" || toolName === "take_screenshot") {
-      maybeAdd("output_file", result.output_file);
-      if (result.success === true) {
-        maybeAdd("output_file", toolArgs?.["output_file"]);
-      }
+    maybeAdd("output_file", result.output_file);
+    if (result.success === true) {
+      maybeAdd("output_file", toolArgs?.["output_file"]);
     }
     maybeAdd("image", result.image);
     maybeAdd("audio", result.audio);

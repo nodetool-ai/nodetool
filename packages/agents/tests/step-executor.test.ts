@@ -1163,6 +1163,148 @@ describe("StepExecutor", () => {
     }
   });
 
+  it("persists generic successful tool output_file paths as assets", async () => {
+    const step: Step = {
+      id: "step_generic_output_file",
+      instructions: "Generate an output file then finish",
+      completed: false,
+      dependsOn: [],
+      outputSchema: JSON.stringify({ type: "object", properties: {} }),
+      logs: []
+    };
+    const task: Task = {
+      id: "task_generic_output_file",
+      title: "Generic output file persistence",
+      steps: [step]
+    };
+
+    let callCount = 0;
+    const provider = {
+      ...createMockProvider(),
+      generateMessages: async function* () {
+        callCount += 1;
+        if (callCount === 1) {
+          yield {
+            id: "tc_img",
+            name: "openai_image_generation",
+            args: { prompt: "cat" }
+          };
+          return;
+        }
+        yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
+      }
+    } as any;
+
+    const imageTool = {
+      name: "openai_image_generation",
+      description: "Generate image",
+      inputSchema: { type: "object" as const, properties: {}, required: [] },
+      process: vi.fn().mockResolvedValue({
+        success: true,
+        output_file: "generated/image.png"
+      }),
+      userMessage: () => "Generating image",
+      toProviderTool: () => ({
+        name: "openai_image_generation",
+        description: "Generate image",
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
+    };
+
+    const sandboxToAsset = vi.fn().mockResolvedValue({
+      type: "image",
+      uri: "asset://persisted-generic-output",
+      asset_id: "persisted-generic-output"
+    });
+    const context = createMockContext({ sandboxToAsset });
+
+    const executor = new StepExecutor({
+      task,
+      step,
+      context,
+      provider,
+      model: "test-model",
+      tools: [imageTool as any]
+    });
+
+    for await (const _ of executor.execute()) {
+      /* drain */
+    }
+
+    expect(sandboxToAsset).toHaveBeenCalledWith("generated/image.png");
+    expect(executor.getSources()).toContain("asset://persisted-generic-output");
+  });
+
+  it("does not persist output_file from args when tool result is not successful", async () => {
+    const step: Step = {
+      id: "step_noisy_output_file",
+      instructions: "Fail screenshot then finish",
+      completed: false,
+      dependsOn: [],
+      outputSchema: JSON.stringify({ type: "object", properties: {} }),
+      logs: []
+    };
+    const task: Task = {
+      id: "task_noisy_output_file",
+      title: "Avoid noisy output_file persistence",
+      steps: [step]
+    };
+
+    let callCount = 0;
+    const provider = {
+      ...createMockProvider(),
+      generateMessages: async function* () {
+        callCount += 1;
+        if (callCount === 1) {
+          yield {
+            id: "tc_screenshot",
+            name: "take_screenshot",
+            args: { url: "https://example.com", output_file: "shots/a.png" }
+          };
+          return;
+        }
+        yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
+      }
+    } as any;
+
+    const screenshotTool = {
+      name: "take_screenshot",
+      description: "Take screenshot",
+      inputSchema: { type: "object" as const, properties: {}, required: [] },
+      process: vi.fn().mockResolvedValue({
+        error: "browser service unavailable"
+      }),
+      userMessage: () => "Taking screenshot",
+      toProviderTool: () => ({
+        name: "take_screenshot",
+        description: "Take screenshot",
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
+    };
+
+    const sandboxToAsset = vi.fn().mockResolvedValue({
+      type: "image",
+      uri: "asset://should-not-be-called",
+      asset_id: "should-not-be-called"
+    });
+    const context = createMockContext({ sandboxToAsset });
+
+    const executor = new StepExecutor({
+      task,
+      step,
+      context,
+      provider,
+      model: "test-model",
+      tools: [screenshotTool as any]
+    });
+
+    for await (const _ of executor.execute()) {
+      /* drain */
+    }
+
+    expect(sandboxToAsset).not.toHaveBeenCalled();
+  });
+
   it("getSources returns empty array initially", () => {
     const step: Step = {
       id: "step_sources",

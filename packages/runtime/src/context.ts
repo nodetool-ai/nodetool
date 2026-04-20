@@ -1363,11 +1363,14 @@ export class ProcessingContext {
     }
 
     if (!bytes) {
-      const baseUrl = (
+      let baseUrl = (
         this.environment.NODETOOL_API_URL ??
         process.env.NODETOOL_API_URL ??
         "http://localhost:7777"
-      ).replace(/\/+$/, "");
+      );
+      while (baseUrl.endsWith("/")) {
+        baseUrl = baseUrl.slice(0, -1);
+      }
       for (const candidate of idCandidates) {
         try {
           const metaResponse = await this.httpGet(
