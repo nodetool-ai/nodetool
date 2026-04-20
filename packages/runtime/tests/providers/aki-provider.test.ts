@@ -185,7 +185,7 @@ describe("AkiProvider", () => {
     await expect(run()).rejects.toThrow("quota exceeded");
   });
 
-  it("getAvailableLanguageModels returns endpoints from the SDK", async () => {
+  it("getAvailableLanguageModels excludes image endpoints from SDK list", async () => {
     const getEndpointList = vi
       .fn()
       .mockResolvedValue(["llama3_chat", "sdxl_img"]);
@@ -197,8 +197,7 @@ describe("AkiProvider", () => {
 
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
-      { id: "llama3_chat", name: "llama3_chat", provider: "aki" },
-      { id: "sdxl_img", name: "sdxl_img", provider: "aki" }
+      { id: "llama3_chat", name: "llama3_chat", provider: "aki" }
     ]);
   });
 
@@ -213,6 +212,33 @@ describe("AkiProvider", () => {
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
       { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
+    ]);
+  });
+
+  it("getAvailableImageModels returns image endpoints from SDK list", async () => {
+    const getEndpointList = vi
+      .fn()
+      .mockResolvedValue(["llama3_chat", "sdxl_img", "flux-text2img"]);
+    const { factory } = makeFactory({ getEndpointList });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const models = await provider.getAvailableImageModels();
+    expect(models).toEqual([
+      {
+        id: "sdxl_img",
+        name: "sdxl_img",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-text2img",
+        name: "flux-text2img",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      }
     ]);
   });
 

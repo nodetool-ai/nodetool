@@ -19,6 +19,7 @@ import type { Chunk } from "@nodetool/protocol";
 import { BaseProvider } from "./base-provider.js";
 import type {
   LanguageModel,
+  ImageModel,
   Message,
   ProviderStreamItem,
   ProviderTool
@@ -33,6 +34,10 @@ function uint8ToBase64(data: Uint8Array): string {
 }
 
 export class AkiProvider extends BaseProvider {
+  private static readonly DEFAULT_LANGUAGE_MODELS: LanguageModel[] = [
+    { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
+  ];
+
   static override requiredSecrets(): string[] {
     return ["AKI_API_KEY"];
   }
@@ -212,12 +217,55 @@ export class AkiProvider extends BaseProvider {
     try {
       const endpoints = await client.getEndpointList();
       const list = endpoints
-        .filter((id): id is string => typeof id === "string" && id.length > 0)
+        .filter(
+          (id): id is string =>
+            typeof id === "string" &&
+            id.length > 0 &&
+            !AkiProvider.isImageEndpoint(id)
+        )
         .map((id) => ({ id, name: id, provider: "aki" }));
-      if (list.length > 0) return list;
+      if (list.length > 0) {
+        return list;
+      }
     } catch {
       /* fall through to static default */
     }
-    return [{ id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }];
+    return AkiProvider.DEFAULT_LANGUAGE_MODELS;
+  }
+
+  override async getAvailableImageModels(): Promise<ImageModel[]> {
+    // getEndpointList ignores the endpointName, but AkiClient requires one.
+    const client = this.makeClient("llama3_chat");
+    try {
+      const endpoints = await client.getEndpointList();
+      return endpoints
+        .filter(
+          (id): id is string =>
+            typeof id === "string" &&
+            id.length > 0 &&
+            AkiProvider.isImageEndpoint(id)
+        )
+        .map((id) => ({
+          id,
+          name: id,
+          provider: "aki",
+          supportedTasks: ["text_to_image"]
+        }));
+    } catch {
+      return [];
+    }
+  }
+
+  private static isImageEndpoint(endpointId: string): boolean {
+    const normalized = endpointId.trim().toLowerCase();
+    const parts = normalized.split(/[_-]+/);
+    const tail = parts[parts.length - 1] ?? "";
+    return (
+      tail === "img" ||
+      tail === "image" ||
+      tail === "txt2img" ||
+      tail === "text2img" ||
+      tail === "img2img"
+    );
   }
 }

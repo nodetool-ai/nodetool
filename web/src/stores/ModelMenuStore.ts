@@ -47,6 +47,23 @@ export interface ModelMenuState<
   setAllModels: (models: TModel[]) => void;
 }
 
+const isAkiProviderIdentifier = (provider: string): boolean => {
+  const normalized = provider.trim().toLowerCase();
+  if (normalized === "aki" || normalized === "aki.io") {
+    return true;
+  }
+
+  try {
+    const candidate = normalized.includes("://")
+      ? normalized
+      : `https://${normalized}`;
+    const host = new URL(candidate).hostname.toLowerCase();
+    return host === "aki.io" || host.endsWith(".aki.io");
+  } catch {
+    return false;
+  }
+};
+
 export const requiredSecretForProvider = (provider?: string): string | null => {
   const p = (provider || "").toLowerCase();
   if (p.includes("openai")) {return "OPENAI_API_KEY";}
@@ -65,7 +82,7 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("aime")) {return "AIME_API_KEY";}
   if (p.includes("moonshot") || p.includes("kimi")) {return "KIMI_API_KEY";}
   if (p.includes("minimax")) {return "MINIMAX_API_KEY";}
-  if (p === "aki" || p.includes("aki.io")) {return "AKI_API_KEY";}
+  if (isAkiProviderIdentifier(p)) {return "AKI_API_KEY";}
   return null;
 };
 
