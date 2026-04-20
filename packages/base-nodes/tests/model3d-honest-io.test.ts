@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  Boolean3DNode,
   DecimateNode,
   FormatConverterNode,
-  GetModel3DMetadataNode
+  GetModel3DMetadataNode,
+  MergeMeshesNode
 } from "../src/nodes/model3d.js";
 
 function pad4(length: number): number {
@@ -10,88 +12,16 @@ function pad4(length: number): number {
 }
 
 function createTriangleGlb(): Uint8Array {
-  const positions = new Float32Array([
-    0, 0, 0,
-    1, 0, 0,
-    0, 2, 0
-  ]);
-  const indices = new Uint16Array([0, 1, 2]);
-
-  const positionsBytes = new Uint8Array(positions.buffer);
-  const indicesBytes = new Uint8Array(indices.buffer);
-  const indexPadding = pad4(indicesBytes.byteLength);
-
-  const positionByteLength = positionsBytes.byteLength;
-  const indexByteOffset = positionByteLength;
-  const indexByteLength = indicesBytes.byteLength;
-  const totalBinaryLength = positionByteLength + indexByteLength + indexPadding;
-
-  const json = {
-    asset: { version: "2.0" },
-    scenes: [{ nodes: [0] }],
-    scene: 0,
-    nodes: [{ mesh: 0 }],
-    meshes: [
-      {
-        primitives: [
-          {
-            attributes: { POSITION: 0 },
-            indices: 1
-          }
-        ]
-      }
+  return createIndexedGlb(
+    [
+      0, 0, 0,
+      1, 0, 0,
+      0, 2, 0
     ],
-    buffers: [{ byteLength: totalBinaryLength }],
-    bufferViews: [
-      { buffer: 0, byteOffset: 0, byteLength: positionByteLength },
-      { buffer: 0, byteOffset: indexByteOffset, byteLength: indexByteLength }
-    ],
-    accessors: [
-      {
-        bufferView: 0,
-        componentType: 5126,
-        count: 3,
-        type: "VEC3",
-        min: [0, 0, 0],
-        max: [1, 2, 0]
-      },
-      {
-        bufferView: 1,
-        componentType: 5123,
-        count: 3,
-        type: "SCALAR"
-      }
-    ]
-  };
-
-  const jsonBytesRaw = new TextEncoder().encode(JSON.stringify(json));
-  const jsonPadding = pad4(jsonBytesRaw.byteLength);
-  const jsonBytes = new Uint8Array(jsonBytesRaw.byteLength + jsonPadding);
-  jsonBytes.set(jsonBytesRaw);
-  jsonBytes.fill(0x20, jsonBytesRaw.byteLength);
-
-  const binaryBytes = new Uint8Array(totalBinaryLength);
-  binaryBytes.set(positionsBytes, 0);
-  binaryBytes.set(indicesBytes, indexByteOffset);
-
-  const totalLength = 12 + 8 + jsonBytes.byteLength + 8 + binaryBytes.byteLength;
-  const glb = new Uint8Array(totalLength);
-  const view = new DataView(glb.buffer);
-
-  view.setUint32(0, 0x46546c67, true);
-  view.setUint32(4, 2, true);
-  view.setUint32(8, totalLength, true);
-
-  view.setUint32(12, jsonBytes.byteLength, true);
-  view.setUint32(16, 0x4e4f534a, true);
-  glb.set(jsonBytes, 20);
-
-  const binaryChunkOffset = 20 + jsonBytes.byteLength;
-  view.setUint32(binaryChunkOffset, binaryBytes.byteLength, true);
-  view.setUint32(binaryChunkOffset + 4, 0x004e4942, true);
-  glb.set(binaryBytes, binaryChunkOffset + 8);
-
-  return glb;
+    [0, 1, 2],
+    [0, 0, 0],
+    [1, 2, 0]
+  );
 }
 
 function createGridGlb(gridSize = 8): Uint8Array {
@@ -115,6 +45,42 @@ function createGridGlb(gridSize = 8): Uint8Array {
     }
   }
 
+  return createIndexedGlb(positions, indices, [0, 0, 0], [1, 1, 0]);
+}
+
+function createBoxGlb(
+  min: [number, number, number],
+  max: [number, number, number]
+): Uint8Array {
+  const [minX, minY, minZ] = min;
+  const [maxX, maxY, maxZ] = max;
+  const positions = [
+    minX, minY, minZ,
+    maxX, minY, minZ,
+    maxX, maxY, minZ,
+    minX, maxY, minZ,
+    minX, minY, maxZ,
+    maxX, minY, maxZ,
+    maxX, maxY, maxZ,
+    minX, maxY, maxZ
+  ];
+  const indices = [
+    0, 2, 1, 0, 3, 2,
+    4, 5, 6, 4, 6, 7,
+    0, 1, 5, 0, 5, 4,
+    3, 7, 6, 3, 6, 2,
+    0, 4, 7, 0, 7, 3,
+    1, 2, 6, 1, 6, 5
+  ];
+  return createIndexedGlb(positions, indices, [...min], [...max]);
+}
+
+function createIndexedGlb(
+  positions: number[],
+  indices: number[],
+  min: number[],
+  max: number[]
+): Uint8Array {
   const positionsArray = new Float32Array(positions);
   const indicesArray = new Uint32Array(indices);
   const positionsBytes = new Uint8Array(positionsArray.buffer);
@@ -152,8 +118,8 @@ function createGridGlb(gridSize = 8): Uint8Array {
         componentType: 5126,
         count: positions.length / 3,
         type: "VEC3",
-        min: [0, 0, 0],
-        max: [1, 1, 0]
+        min,
+        max
       },
       {
         bufferView: 1,
@@ -197,6 +163,16 @@ function modelRef(bytes: Uint8Array): Record<string, unknown> {
     format: "glb",
     data: Buffer.from(bytes).toString("base64")
   };
+}
+
+function expectBoundsClose(
+  actual: number[],
+  expected: [number, number, number]
+): void {
+  expect(actual).toHaveLength(3);
+  for (let i = 0; i < 3; i++) {
+    expect(actual[i]).toBeCloseTo(expected[i], 5);
+  }
 }
 
 describe("model3d honest I/O", () => {
@@ -289,6 +265,116 @@ describe("model3d honest I/O", () => {
         data: Buffer.from("o mesh\nv 0 0 0\n").toString("base64")
       },
       target_ratio: 0.5
+    });
+
+    await expect(node.process()).rejects.toThrow(/unsupported/i);
+  });
+
+  it("MergeMeshesNode performs an honest GLB scene merge", async () => {
+    const node = new MergeMeshesNode();
+    node.assign({
+      models: [modelRef(createTriangleGlb()), modelRef(createBoxGlb([2, 0, 0], [3, 1, 1]))]
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      format: string;
+      mesh_count: number;
+      primitive_count: number;
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expect(output.format).toBe("glb");
+    expect(output.mesh_count).toBe(2);
+    expect(output.primitive_count).toBe(2);
+    expect(output.face_count).toBeGreaterThanOrEqual(13);
+    expectBoundsClose(output.bounds_min, [0, 0, 0]);
+    expectBoundsClose(output.bounds_max, [3, 2, 1]);
+  });
+
+  it("Boolean3DNode performs geometry-aware union", async () => {
+    const node = new Boolean3DNode();
+    node.assign({
+      model_a: modelRef(createBoxGlb([0, 0, 0], [1, 1, 1])),
+      model_b: modelRef(createBoxGlb([0.5, 0, 0], [1.5, 1, 1])),
+      operation: "union"
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      format: string;
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expect(output.format).toBe("glb");
+    expect(output.face_count).toBeGreaterThan(0);
+    expectBoundsClose(output.bounds_min, [0, 0, 0]);
+    expectBoundsClose(output.bounds_max, [1.5, 1, 1]);
+  });
+
+  it("Boolean3DNode performs geometry-aware difference", async () => {
+    const node = new Boolean3DNode();
+    node.assign({
+      model_a: modelRef(createBoxGlb([0, 0, 0], [1, 1, 1])),
+      model_b: modelRef(createBoxGlb([0.5, 0, 0], [1.5, 1, 1])),
+      operation: "difference"
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expect(output.face_count).toBeGreaterThan(0);
+    expectBoundsClose(output.bounds_min, [0, 0, 0]);
+    expectBoundsClose(output.bounds_max, [0.5, 1, 1]);
+  });
+
+  it("Boolean3DNode performs geometry-aware intersection", async () => {
+    const node = new Boolean3DNode();
+    node.assign({
+      model_a: modelRef(createBoxGlb([0, 0, 0], [1, 1, 1])),
+      model_b: modelRef(createBoxGlb([0.5, 0, 0], [1.5, 1, 1])),
+      operation: "intersection"
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expect(output.face_count).toBeGreaterThan(0);
+    expectBoundsClose(output.bounds_min, [0.5, 0, 0]);
+    expectBoundsClose(output.bounds_max, [1, 1, 1]);
+  });
+
+  it("Boolean3DNode rejects non-GLB input in the first honest pass", async () => {
+    const node = new Boolean3DNode();
+    node.assign({
+      model_a: {
+        type: "model3d",
+        uri: "file://mesh-a.obj",
+        format: "obj",
+        data: Buffer.from("o meshA\n").toString("base64")
+      },
+      model_b: modelRef(createBoxGlb([0, 0, 0], [1, 1, 1])),
+      operation: "union"
     });
 
     await expect(node.process()).rejects.toThrow(/unsupported/i);

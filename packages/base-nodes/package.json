@@ -42,6 +42,7 @@
     "html-to-text": "^9.0.5",
     "linkedom": "^0.18.9",
     "mammoth": "^1.11.0",
+    "manifold-3d": "^3.4.1",
     "meshoptimizer": "^1.1.1",
     "natural": "^8.1.1",
     "node-web-audio-api": "^1.0.8",

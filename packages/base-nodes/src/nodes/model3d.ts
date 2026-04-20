@@ -1,8 +1,14 @@
 import { NodeIO } from "@gltf-transform/core";
-import { simplify, weld } from "@gltf-transform/functions";
+import {
+  mergeDocuments,
+  simplify,
+  unpartition,
+  weld
+} from "@gltf-transform/functions";
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import ManifoldModule from "manifold-3d";
 import { MeshoptSimplifier } from "meshoptimizer";
 
 type Model3DRefLike = {
@@ -33,8 +39,27 @@ type Model3DMetadata = {
   volume: number | null;
   surface_area: number | null;
 };
+type ManifoldMeshLike = {
+  numProp: number;
+  triVerts: Uint32Array;
+  vertProperties: Float32Array;
+};
+type ManifoldInstance = {
+  add(other: ManifoldInstance): ManifoldInstance;
+  subtract(other: ManifoldInstance): ManifoldInstance;
+  intersect(other: ManifoldInstance): ManifoldInstance;
+  getMesh(): ManifoldMeshLike;
+  delete(): void;
+};
+type ManifoldApi = {
+  setup(): void;
+  Manifold: {
+    ofMesh(mesh: ManifoldMeshLike): ManifoldInstance;
+  };
+};
 
 const gltfIo = new NodeIO();
+let manifoldPromise: Promise<ManifoldApi> | null = null;
 
 function toBytes(data: Uint8Array | string | undefined): Uint8Array {
   if (!data) return new Uint8Array();
@@ -77,6 +102,10 @@ function dateName(name: string): string {
 function extFormat(filename: string): string {
   const ext = path.extname(filename).replace(".", "").toLowerCase();
   return ext || "glb";
+}
+
+function pad4(length: number): number {
+  return (4 - (length % 4)) % 4;
 }
 
 function concatBytes(parts: Uint8Array[]): Uint8Array {
@@ -178,6 +207,16 @@ async function decimateGlb(
   );
 
   return gltfIo.writeBinary(document);
+}
+
+async function getManifoldApi(): Promise<ManifoldApi> {
+  if (!manifoldPromise) {
+    manifoldPromise = (ManifoldModule() as Promise<ManifoldApi>).then((wasm) => {
+      wasm.setup();
+      return wasm;
+    });
+  }
+  return manifoldPromise;
 }
 
 // === GLB parsing and vertex manipulation ===
@@ -489,6 +528,207 @@ function fallbackMetadata(
     volume: null,
     surface_area: null
   };
+}
+
+function requireGlbBytes(model: Model3DRefLike, bytes: Uint8Array, purpose: string): Uint8Array {
+  if (modelFormat(model) !== "glb") {
+    throw new Error(`Unsupported model ${purpose}: only GLB is supported.`);
+  }
+  if (!parseGlb(bytes)) {
+    throw new Error(`Unsupported model ${purpose}: expected valid GLB bytes.`);
+  }
+  return bytes;
+}
+
+function extractTriangleMeshForBoolean(bytes: Uint8Array): ManifoldMeshLike {
+  const glb = parseGlb(bytes);
+  if (!glb) {
+    throw new Error("Unsupported model boolean: expected valid GLB bytes.");
+  }
+
+  const positions: number[] = [];
+  const indices: number[] = [];
+  let vertexOffset = 0;
+
+  for (const mesh of glb.json.meshes ?? []) {
+    for (const primitive of mesh.primitives) {
+      const mode = primitive.mode ?? 4;
+      if (mode !== 4) {
+        throw new Error(
+          "Unsupported model boolean: only triangle primitives are supported."
+        );
+      }
+
+      const positionIndex = primitive.attributes["POSITION"];
+      if (positionIndex === undefined) {
+        throw new Error(
+          "Unsupported model boolean: POSITION accessor is required."
+        );
+      }
+
+      const positionAccessor = glbGetVec3Accessor(glb.json, positionIndex);
+      if (!positionAccessor) {
+        throw new Error(
+          "Unsupported model boolean: only float VEC3 positions are supported."
+        );
+      }
+
+      const primitivePositions = glbReadVec3(
+        glb.bin,
+        positionAccessor.acc,
+        positionAccessor.bv
+      );
+      positions.push(...primitivePositions);
+
+      let primitiveIndices: Uint32Array;
+      if (primitive.indices !== undefined) {
+        const indexAccessor = glbGetIndexAccessor(glb.json, primitive.indices);
+        if (!indexAccessor) {
+          throw new Error(
+            "Unsupported model boolean: indexed triangle accessors are required."
+          );
+        }
+        const read = glbReadIndices(glb.bin, indexAccessor.acc, indexAccessor.bv);
+        if (!read) {
+          throw new Error(
+            "Unsupported model boolean: only unsigned integer indices are supported."
+          );
+        }
+        primitiveIndices = read;
+      } else {
+        primitiveIndices = new Uint32Array(positionAccessor.acc.count);
+        for (let i = 0; i < positionAccessor.acc.count; i++) {
+          primitiveIndices[i] = i;
+        }
+      }
+
+      for (const index of primitiveIndices) {
+        indices.push(index + vertexOffset);
+      }
+      vertexOffset += positionAccessor.acc.count;
+    }
+  }
+
+  return {
+    numProp: 3,
+    triVerts: Uint32Array.from(indices),
+    vertProperties: Float32Array.from(positions)
+  };
+}
+
+function buildGlbFromTriangleMesh(mesh: ManifoldMeshLike): Uint8Array {
+  const vertexCount = Math.floor(mesh.vertProperties.length / mesh.numProp);
+  if (vertexCount === 0 || mesh.triVerts.length === 0) {
+    throw new Error("Boolean operation produced an empty mesh.");
+  }
+
+  const positions = new Float32Array(vertexCount * 3);
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+
+  for (let i = 0; i < vertexCount; i++) {
+    const base = i * mesh.numProp;
+    for (let axis = 0; axis < 3; axis++) {
+      const value = mesh.vertProperties[base + axis];
+      positions[i * 3 + axis] = value;
+      if (value < min[axis]) min[axis] = value;
+      if (value > max[axis]) max[axis] = value;
+    }
+  }
+
+  const positionBytes = new Uint8Array(positions.buffer);
+  const indexBytes = new Uint8Array(mesh.triVerts.buffer);
+  const totalBinaryLength =
+    positionBytes.byteLength + indexBytes.byteLength + pad4(indexBytes.byteLength);
+
+  const json: GltfJson = {
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    scene: 0,
+    nodes: [{ mesh: 0 }],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            indices: 1
+          }
+        ]
+      }
+    ],
+    buffers: [{ byteLength: totalBinaryLength }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positionBytes.byteLength },
+      {
+        buffer: 0,
+        byteOffset: positionBytes.byteLength,
+        byteLength: indexBytes.byteLength
+      }
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: COMP_FLOAT,
+        count: vertexCount,
+        type: "VEC3",
+        min,
+        max
+      },
+      {
+        bufferView: 1,
+        componentType: COMP_UNSIGNED_INT,
+        count: mesh.triVerts.length,
+        type: "SCALAR"
+      }
+    ]
+  };
+
+  const binary = new Uint8Array(totalBinaryLength);
+  binary.set(positionBytes, 0);
+  binary.set(indexBytes, positionBytes.byteLength);
+  return buildGlb(json, binary);
+}
+
+async function booleanGlb(
+  bytesA: Uint8Array,
+  bytesB: Uint8Array,
+  operation: string
+): Promise<Uint8Array> {
+  const wasm = await getManifoldApi();
+  const manifoldA = wasm.Manifold.ofMesh(extractTriangleMeshForBoolean(bytesA));
+  const manifoldB = wasm.Manifold.ofMesh(extractTriangleMeshForBoolean(bytesB));
+
+  let result: ManifoldInstance | null = null;
+  try {
+    if (operation === "difference") {
+      result = manifoldA.subtract(manifoldB);
+    } else if (operation === "intersection") {
+      result = manifoldA.intersect(manifoldB);
+    } else {
+      result = manifoldA.add(manifoldB);
+    }
+
+    const mesh = result.getMesh();
+    return buildGlbFromTriangleMesh(mesh);
+  } finally {
+    manifoldA.delete();
+    manifoldB.delete();
+    result?.delete();
+  }
+}
+
+async function mergeGlbModels(models: Model3DRefLike[]): Promise<Uint8Array> {
+  const [first, ...rest] = models;
+  if (!first) return new Uint8Array(0);
+
+  const target = await gltfIo.readBinary(modelBytes(first));
+  for (const model of rest) {
+    const source = await gltfIo.readBinary(modelBytes(model));
+    mergeDocuments(target, source);
+  }
+
+  await target.transform(unpartition());
+  return gltfIo.writeBinary(target);
 }
 
 /** Passthrough result for non-GLB models */
@@ -1009,7 +1249,7 @@ export class DecimateNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.Decimate";
   static readonly title = "Decimate";
   static readonly description =
-    "Reduce polygon count while preserving shape using Quadric Error Metrics.\n    3d, mesh, model, decimate, simplify, reduce, polygon, optimize, LOD\n\n    Use cases:\n    - Create level-of-detail (LOD) versions\n    - Optimize models for real-time rendering\n    - Reduce file size for web deployment\n    - Prepare models for mobile/VR applications";
+    "Reduce polygon count while preserving shape using meshoptimizer-backed simplification.\n    3d, mesh, model, decimate, simplify, reduce, polygon, optimize, LOD\n\n    Current limits:\n    - First honest pass supports GLB input only\n\n    Use cases:\n    - Create level-of-detail (LOD) versions\n    - Optimize models for real-time rendering\n    - Reduce file size for web deployment\n    - Prepare models for mobile/VR applications";
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
@@ -1046,13 +1286,7 @@ export class DecimateNode extends BaseNode {
     const bytes = modelBytes(model);
     const ratio = Number(this.target_ratio ?? 0.5);
 
-    if (modelFormat(model) !== "glb") {
-      throw new Error("Unsupported model decimation: only GLB is supported.");
-    }
-
-    if (!parseGlb(bytes)) {
-      throw new Error("Unsupported model decimation: expected valid GLB bytes.");
-    }
+    requireGlbBytes(model, bytes, "decimation");
 
     const decimatedBytes = await decimateGlb(bytes, ratio);
     return {
@@ -1068,7 +1302,7 @@ export class Boolean3DNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.Boolean3D";
   static readonly title = "Boolean 3D";
   static readonly description =
-    "Perform boolean operations on 3D meshes.\n    3d, mesh, model, boolean, union, difference, intersection, combine, subtract\n\n    Use cases:\n    - Combine multiple objects (union)\n    - Cut holes in objects (difference)\n    - Find overlapping regions (intersection)\n    - Hard-surface modeling operations\n    - 3D printing preparation";
+    "Perform boolean operations on 3D meshes.\n    3d, mesh, model, boolean, union, difference, intersection, combine, subtract\n\n    Current limits:\n    - First honest pass supports GLB triangle meshes only\n    - Boolean output preserves geometry, not full material/attribute fidelity\n\n    Use cases:\n    - Combine multiple objects (union)\n    - Cut holes in objects (difference)\n    - Find overlapping regions (intersection)\n    - Hard-surface modeling operations\n    - 3D printing preparation";
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
@@ -1117,26 +1351,13 @@ export class Boolean3DNode extends BaseNode {
   declare operation: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const a = modelBytes(this.model_a);
-    const b = modelBytes(this.model_b);
+    const modelA = (this.model_a ?? {}) as Model3DRefLike;
+    const modelB = (this.model_b ?? {}) as Model3DRefLike;
+    const a = requireGlbBytes(modelA, modelBytes(modelA), "boolean");
+    const b = requireGlbBytes(modelB, modelBytes(modelB), "boolean");
     const operation = String(this.operation ?? "union").toLowerCase();
-
-    if (operation === "difference") {
-      const len = Math.max(a.length, b.length);
-      const out = new Uint8Array(len);
-      for (let i = 0; i < len; i += 1)
-        out[i] = Math.max(0, (a[i] ?? 0) - (b[i] ?? 0));
-      return { output: modelRef(out, { format: "glb" }) };
-    }
-
-    if (operation === "intersection") {
-      const len = Math.min(a.length, b.length);
-      const out = new Uint8Array(len);
-      for (let i = 0; i < len; i += 1) out[i] = Math.min(a[i] ?? 0, b[i] ?? 0);
-      return { output: modelRef(out, { format: "glb" }) };
-    }
-
-    return { output: modelRef(concatBytes([a, b]), { format: "glb" }) };
+    const out = await booleanGlb(a, b, operation);
+    return { output: modelRef(out, { format: "glb" }) };
   }
 }
 
@@ -1506,7 +1727,7 @@ export class MergeMeshesNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.MergeMeshes";
   static readonly title = "Merge Meshes";
   static readonly description =
-    "Merge multiple meshes into a single mesh.\n    3d, mesh, model, merge, combine, concatenate\n\n    Use cases:\n    - Combine multiple parts into one model\n    - Merge imported components\n    - Prepare models for boolean operations";
+    "Merge multiple meshes into a single GLB scene.\n    3d, mesh, model, merge, combine, concatenate\n\n    Current limits:\n    - First honest pass supports GLB input only\n    - This node performs scene merge, not boolean union\n\n    Use cases:\n    - Combine multiple parts into one model\n    - Merge imported components\n    - Prepare models for downstream processing";
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
@@ -1521,8 +1742,17 @@ export class MergeMeshesNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const values = Array.isArray(this.models) ? (this.models as unknown[]) : [];
-    const all = values.map((v) => modelBytes(v));
-    return { output: modelRef(concatBytes(all), { format: "glb" }) };
+    if (values.length === 0) {
+      return { output: modelRef(new Uint8Array(0), { format: "glb" }) };
+    }
+
+    const models = values.map((value) => value as Model3DRefLike);
+    for (const model of models) {
+      requireGlbBytes(model, modelBytes(model), "merge");
+    }
+
+    const merged = await mergeGlbModels(models);
+    return { output: modelRef(merged, { format: "glb" }) };
   }
 }
 

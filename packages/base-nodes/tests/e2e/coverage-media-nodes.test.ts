@@ -306,6 +306,109 @@ function gridGlbBase64(gridSize = 8): string {
   return Buffer.from(glb).toString("base64");
 }
 
+function boxGlbBase64(
+  min: [number, number, number],
+  max: [number, number, number]
+): string {
+  const [minX, minY, minZ] = min;
+  const [maxX, maxY, maxZ] = max;
+  const positions = [
+    minX, minY, minZ,
+    maxX, minY, minZ,
+    maxX, maxY, minZ,
+    minX, maxY, minZ,
+    minX, minY, maxZ,
+    maxX, minY, maxZ,
+    maxX, maxY, maxZ,
+    minX, maxY, maxZ
+  ];
+  const indices = [
+    0, 2, 1, 0, 3, 2,
+    4, 5, 6, 4, 6, 7,
+    0, 1, 5, 0, 5, 4,
+    3, 7, 6, 3, 6, 2,
+    0, 4, 7, 0, 7, 3,
+    1, 2, 6, 1, 6, 5
+  ];
+  const positionsBytes = new Uint8Array(new Float32Array(positions).buffer);
+  const indicesBytes = new Uint8Array(new Uint32Array(indices).buffer);
+  const totalBinaryLength =
+    positionsBytes.byteLength + indicesBytes.byteLength + pad4(indicesBytes.byteLength);
+
+  const json = {
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    scene: 0,
+    nodes: [{ mesh: 0 }],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            indices: 1
+          }
+        ]
+      }
+    ],
+    buffers: [{ byteLength: totalBinaryLength }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positionsBytes.byteLength },
+      {
+        buffer: 0,
+        byteOffset: positionsBytes.byteLength,
+        byteLength: indicesBytes.byteLength
+      }
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: positions.length / 3,
+        type: "VEC3",
+        min: [...min],
+        max: [...max]
+      },
+      {
+        bufferView: 1,
+        componentType: 5125,
+        count: indices.length,
+        type: "SCALAR"
+      }
+    ]
+  };
+
+  const jsonRaw = new TextEncoder().encode(JSON.stringify(json));
+  const jsonBytes = new Uint8Array(jsonRaw.byteLength + pad4(jsonRaw.byteLength));
+  jsonBytes.set(jsonRaw);
+  jsonBytes.fill(0x20, jsonRaw.byteLength);
+
+  const binary = new Uint8Array(totalBinaryLength);
+  binary.set(positionsBytes, 0);
+  binary.set(indicesBytes, positionsBytes.byteLength);
+
+  const totalLength = 12 + 8 + jsonBytes.byteLength + 8 + binary.byteLength;
+  const glb = new Uint8Array(totalLength);
+  const view = new DataView(glb.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, totalLength, true);
+  view.setUint32(12, jsonBytes.byteLength, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  glb.set(jsonBytes, 20);
+  const binaryChunkOffset = 20 + jsonBytes.byteLength;
+  view.setUint32(binaryChunkOffset, binary.byteLength, true);
+  view.setUint32(binaryChunkOffset + 4, 0x004e4942, true);
+  glb.set(binary, binaryChunkOffset + 8);
+  return Buffer.from(glb).toString("base64");
+}
+
+function expectBoundsClose(actual: number[], expected: [number, number, number]): void {
+  expect(actual).toHaveLength(3);
+  for (let i = 0; i < 3; i++) {
+    expect(actual[i]).toBeCloseTo(expected[i], 5);
+  }
+}
+
 const tmpDir = `/tmp/nodetool-media-test-${Date.now()}`;
 
 // --------------- AUDIO NODES ---------------
@@ -1822,22 +1925,27 @@ describe("model3d nodes — full coverage", () => {
     expect(after2.face_count).toBeLessThanOrEqual(before.face_count);
   });
 
-  it("Boolean3DNode union concatenates", async () => {
-    const a = { data: Buffer.from([1, 2]).toString("base64") };
-    const b = { data: Buffer.from([3, 4]).toString("base64") };
+  it("Boolean3DNode performs geometry-aware union", async () => {
+    const a = { data: boxGlbBase64([0, 0, 0], [1, 1, 1]), format: "glb" };
+    const b = { data: boxGlbBase64([0.5, 0, 0], [1.5, 1, 1]), format: "glb" };
     const _n = new Boolean3DNode();
     _n.assign({ model_a: a, model_b: b, operation: "union" });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
+    const metaNode = new GetModel3DMetadataNode();
+    metaNode.assign({ model: result.output });
+    const meta = (await metaNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+    expect(meta.face_count).toBeGreaterThan(0);
+    expectBoundsClose(meta.bounds_min, [0, 0, 0]);
+    expectBoundsClose(meta.bounds_max, [1.5, 1, 1]);
   });
 
-  it("Boolean3DNode difference subtracts", async () => {
-    const a = { data: Buffer.from([10, 20]).toString("base64") };
-    const b = { data: Buffer.from([3, 30]).toString("base64") };
+  it("Boolean3DNode performs geometry-aware difference", async () => {
+    const a = { data: boxGlbBase64([0, 0, 0], [1, 1, 1]), format: "glb" };
+    const b = { data: boxGlbBase64([0.5, 0, 0], [1.5, 1, 1]), format: "glb" };
     const _n = new Boolean3DNode();
     _n.assign({
       model_a: a,
@@ -1845,17 +1953,21 @@ describe("model3d nodes — full coverage", () => {
       operation: "difference"
     });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData[0]).toBe(7); // 10 - 3
-    expect(outData[1]).toBe(0); // max(0, 20-30)
+    const metaNode = new GetModel3DMetadataNode();
+    metaNode.assign({ model: result.output });
+    const meta = (await metaNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+    expect(meta.face_count).toBeGreaterThan(0);
+    expectBoundsClose(meta.bounds_min, [0, 0, 0]);
+    expectBoundsClose(meta.bounds_max, [0.5, 1, 1]);
   });
 
-  it("Boolean3DNode intersection takes min", async () => {
-    const a = { data: Buffer.from([10, 20, 30]).toString("base64") };
-    const b = { data: Buffer.from([15, 5]).toString("base64") };
+  it("Boolean3DNode performs geometry-aware intersection", async () => {
+    const a = { data: boxGlbBase64([0, 0, 0], [1, 1, 1]), format: "glb" };
+    const b = { data: boxGlbBase64([0.5, 0, 0], [1.5, 1, 1]), format: "glb" };
     const _n = new Boolean3DNode();
     _n.assign({
       model_a: a,
@@ -1863,13 +1975,16 @@ describe("model3d nodes — full coverage", () => {
       operation: "intersection"
     });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData.length).toBe(2); // min length
-    expect(outData[0]).toBe(10);
-    expect(outData[1]).toBe(5);
+    const metaNode = new GetModel3DMetadataNode();
+    metaNode.assign({ model: result.output });
+    const meta = (await metaNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+    expect(meta.face_count).toBeGreaterThan(0);
+    expectBoundsClose(meta.bounds_min, [0.5, 0, 0]);
+    expectBoundsClose(meta.bounds_max, [1, 1, 1]);
   });
 
   it("RecalculateNormalsNode passes through", async () => {
@@ -1896,17 +2011,26 @@ describe("model3d nodes — full coverage", () => {
     expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
-  it("MergeMeshesNode merges list of models", async () => {
-    const a = { data: Buffer.from([1, 2]).toString("base64") };
-    const b = { data: Buffer.from([3]).toString("base64") };
+  it("MergeMeshesNode performs an honest GLB scene merge", async () => {
+    const a = { data: triangleGlbBase64(), format: "glb" };
+    const b = { data: boxGlbBase64([2, 0, 0], [3, 1, 1]), format: "glb" };
     const _n = new MergeMeshesNode();
     _n.assign({ models: [a, b] });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(Array.from(outData)).toEqual([1, 2, 3]);
+    const metaNode = new GetModel3DMetadataNode();
+    metaNode.assign({ model: result.output });
+    const meta = (await metaNode.process()).output as {
+      mesh_count: number;
+      primitive_count: number;
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+    expect(meta.mesh_count).toBe(2);
+    expect(meta.primitive_count).toBe(2);
+    expect(meta.face_count).toBeGreaterThanOrEqual(13);
+    expectBoundsClose(meta.bounds_min, [0, 0, 0]);
+    expectBoundsClose(meta.bounds_max, [3, 2, 1]);
   });
 
   it("MergeMeshesNode handles empty list", async () => {
