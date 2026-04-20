@@ -1834,6 +1834,43 @@ describe("model3d nodes — full coverage", () => {
     expect(stat.size).toBeGreaterThan(0);
   });
 
+  it("SaveModel3DFileNode applies date placeholders in filename", async () => {
+    const dir = `${tmpDir}/save-model-file-datename`;
+    const ref = modelRef();
+    const _n = new SaveModel3DFileNode();
+    _n.assign({
+      model: ref,
+      folder: dir,
+      filename: "out_%Y%m%d.glb"
+    });
+    const result = await _n.process();
+    const output = result.output as { uri: string; format: string };
+    expect(output.uri).toMatch(/out_\d{8}\.glb/);
+    expect(output.format).toBe("glb");
+  });
+
+  it("SaveModel3DFileNode does not overwrite existing file when overwrite=false", async () => {
+    const dir = `${tmpDir}/save-model-file-no-overwrite`;
+    await fs.mkdir(dir, { recursive: true });
+    const originalPath = path.join(dir, "out.glb");
+    await fs.writeFile(originalPath, Buffer.from("old-content"));
+
+    const _n = new SaveModel3DFileNode();
+    _n.assign({
+      model: modelRef(Buffer.from("new-content").toString("base64")),
+      folder: dir,
+      filename: "out.glb",
+      overwrite: false
+    });
+    const result = await _n.process();
+    const output = result.output as { uri: string };
+    expect(output.uri).toContain("out-1.glb");
+    expect(await fs.readFile(originalPath, "utf8")).toBe("old-content");
+    expect(await fs.readFile(path.join(dir, "out-1.glb"), "utf8")).toBe(
+      "new-content"
+    );
+  });
+
   it("SaveModel3DNode writes with timestamped name", async () => {
     const dir = `${tmpDir}/save-model-date`;
     const ref = modelRef();
@@ -2065,7 +2102,12 @@ describe("model3d nodes — full coverage", () => {
     const data = Buffer.from([10, 20, 30]).toString("base64");
     const _n = new ImageTo3DNode();
     _n.assign({ image: { data } });
-    const result = await _n.process();
+    const ctx = {
+      getProvider: async () => ({
+        imageTo3D: async (imageBytes: Uint8Array) => imageBytes
+      })
+    } as any;
+    const result = await _n.process(ctx);
     const output = result.output as { data: string; format: string };
     expect(output.format).toBe("glb");
     const outData = Buffer.from(output.data, "base64");
@@ -2075,12 +2117,14 @@ describe("model3d nodes — full coverage", () => {
   it("ImageTo3DNode handles empty image", async () => {
     const _n = new ImageTo3DNode();
     _n.assign({ image: {} });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
+    const ctx = {
+      getProvider: async () => ({
+        imageTo3D: async () => new Uint8Array()
+      })
+    } as any;
+    await expect(_n.process(ctx)).rejects.toThrow(
+      /Image input has no data or uri|Image input is empty/
     );
-    expect(outData.length).toBe(0);
   });
 
   it("ModelTransformNode handles non-object model", async () => {
@@ -2192,7 +2236,12 @@ describe("model3d nodes — full coverage", () => {
   it("TextTo3DNode generates model from text", async () => {
     const _n = new TextTo3DNode();
     _n.assign({ prompt: "sphere" });
-    const result = await _n.process();
+    const ctx = {
+      getProvider: async () => ({
+        textTo3D: async () => Uint8Array.from(Buffer.from("sphere", "utf8"))
+      })
+    } as any;
+    const result = await _n.process(ctx);
     const output = result.output as { data: string; format: string };
     expect(output.format).toBe("glb");
     expect(output.data).toBeDefined();

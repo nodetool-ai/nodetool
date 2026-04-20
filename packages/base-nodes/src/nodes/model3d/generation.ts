@@ -14,6 +14,8 @@ import {
 import { glbOutput } from "./base.js";
 import { imageRefToBytes } from "./utils.js";
 
+const SUPPORTED_OUTPUT_FORMATS = ["glb", "obj", "fbx", "usdz"] as const;
+
 /**
  * Build the {@link Model3D} object expected by the runtime providers from the
  * `model_3d_model`-shaped value carried by the node prop. The node prop uses
@@ -51,6 +53,30 @@ function normalizeSeed(v: unknown): number | null {
   return v;
 }
 
+function normalizeOutputFormat(
+  value: unknown,
+  model: Model3D,
+  nodeType: "TextTo3DNode" | "ImageTo3DNode"
+): string {
+  const format = String(value ?? "glb")
+    .trim()
+    .toLowerCase();
+  if (!(SUPPORTED_OUTPUT_FORMATS as readonly string[]).includes(format)) {
+    throw new Error(
+      `${nodeType} output_format must be one of: ${SUPPORTED_OUTPUT_FORMATS.join(", ")}`
+    );
+  }
+  const modelFormats = (model.outputFormats ?? [])
+    .map((f) => String(f).trim().toLowerCase())
+    .filter((f) => f.length > 0);
+  if (modelFormats.length > 0 && !modelFormats.includes(format)) {
+    throw new Error(
+      `Model "${model.id}" does not support output format "${format}". Supported formats: ${modelFormats.join(", ")}`
+    );
+  }
+  return format;
+}
+
 export class TextTo3DNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.TextTo3D";
   static readonly title = "Text To 3D";
@@ -79,7 +105,7 @@ export class TextTo3DNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Art Style", description: "Art style for the model (e.g., 'realistic', 'cartoon', 'low-poly')" })
   declare art_style: any;
 
-  @prop({ type: "enum", default: "glb", title: "Output Format", description: "Output format for the 3D model", values: ["glb", "gltf", "obj", "stl", "ply"] })
+  @prop({ type: "enum", default: "glb", title: "Output Format", description: "Output format for the 3D model", values: [...SUPPORTED_OUTPUT_FORMATS] })
   declare output_format: any;
 
   @prop({ type: "bool", default: true, title: "Enable Textures", description: "Generate PBR textures after shape generation (Meshy only; adds a second API call)" })
@@ -108,7 +134,7 @@ export class TextTo3DNode extends BaseNode {
       prompt: this.prompt,
       negativePrompt: this.negative_prompt || null,
       artStyle: this.art_style || null,
-      outputFormat: String(this.output_format ?? "glb"),
+      outputFormat: normalizeOutputFormat(this.output_format, model, "TextTo3DNode"),
       seed: normalizeSeed(this.seed),
       timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds),
       enableTextures: this.enable_textures === true
@@ -144,7 +170,7 @@ export class ImageTo3DNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Prompt", description: "Optional text prompt to guide the 3D generation" })
   declare prompt: any;
 
-  @prop({ type: "enum", default: "glb", title: "Output Format", description: "Output format for the 3D model", values: ["glb", "gltf", "obj", "stl", "ply"] })
+  @prop({ type: "enum", default: "glb", title: "Output Format", description: "Output format for the 3D model", values: [...SUPPORTED_OUTPUT_FORMATS] })
   declare output_format: any;
 
   @prop({ type: "int", default: -1, title: "Seed", description: "Random seed for reproducibility (-1 for random)", min: -1 })
@@ -169,7 +195,7 @@ export class ImageTo3DNode extends BaseNode {
     const params: ImageTo3DParams = {
       model,
       prompt: this.prompt ? String(this.prompt) : null,
-      outputFormat: String(this.output_format ?? "glb"),
+      outputFormat: normalizeOutputFormat(this.output_format, model, "ImageTo3DNode"),
       seed: normalizeSeed(this.seed),
       timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds)
     };

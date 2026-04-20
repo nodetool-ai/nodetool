@@ -6,7 +6,7 @@ import { booleanGlb } from "./boolean-ops.js";
 import { decimateGlb, mergeGlbModels } from "./document-ops.js";
 import { requireGlbBytes } from "./glb.js";
 import type { Model3DRefLike } from "./types.js";
-import { modelBytes, modelRef } from "./utils.js";
+import { modelBytes } from "./utils.js";
 
 export class DecimateNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.Decimate";

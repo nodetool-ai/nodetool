@@ -3,7 +3,6 @@ import { prop } from "@nodetool/node-sdk";
 import { GlbTransformNode } from "./base.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { centerGlb, normalizeGlb, transformGlb } from "./mesh-ops.js";
-import { modelBytes, passthroughModel, modelRef } from "./utils.js";
 
 export class Transform3DNode extends GlbTransformNode {
   static readonly nodeType = "nodetool.model3d.Transform3D";

@@ -93,6 +93,37 @@ describe("TextTo3DNode", () => {
     await expect(node.process(ctx)).rejects.toThrow(/Prompt is required/);
   });
 
+  it("throws when output_format is not supported by providers", async () => {
+    const ctx = makeContextWithProvider({ textTo3D: vi.fn() });
+    const node = new TextTo3DNode();
+    node.assign({
+      model: { type: "model_3d_model", provider: "meshy", id: "meshy-4" },
+      prompt: "x",
+      output_format: "stl"
+    });
+    await expect(node.process(ctx)).rejects.toThrow(
+      /output_format must be one of: glb, obj, fbx, usdz/
+    );
+  });
+
+  it("throws when output_format is not supported by selected model", async () => {
+    const ctx = makeContextWithProvider({ textTo3D: vi.fn() });
+    const node = new TextTo3DNode();
+    node.assign({
+      model: {
+        type: "model_3d_model",
+        provider: "meshy",
+        id: "meshy-4",
+        output_formats: ["glb"]
+      },
+      prompt: "x",
+      output_format: "obj"
+    });
+    await expect(node.process(ctx)).rejects.toThrow(
+      /does not support output format "obj"/
+    );
+  });
+
   it("throws when model has no provider", async () => {
     const ctx = makeContextWithProvider({ textTo3D: vi.fn() });
     const node = new TextTo3DNode();
@@ -227,6 +258,39 @@ describe("ImageTo3DNode", () => {
       /Image input has no data or uri|Image input is empty/
     );
     expect(imageTo3D).not.toHaveBeenCalled();
+  });
+
+  it("throws when output_format is not supported by providers", async () => {
+    const imageTo3D = vi.fn();
+    const ctx = makeContextWithProvider({ imageTo3D });
+    const node = new ImageTo3DNode();
+    node.assign({
+      model: { type: "model_3d_model", provider: "meshy", id: "meshy-4-image" },
+      image: { type: "image", data: Buffer.from([1]).toString("base64") },
+      output_format: "ply"
+    });
+    await expect(node.process(ctx)).rejects.toThrow(
+      /output_format must be one of: glb, obj, fbx, usdz/
+    );
+  });
+
+  it("throws when output_format is not supported by selected model", async () => {
+    const imageTo3D = vi.fn();
+    const ctx = makeContextWithProvider({ imageTo3D });
+    const node = new ImageTo3DNode();
+    node.assign({
+      model: {
+        type: "model_3d_model",
+        provider: "meshy",
+        id: "meshy-4-image",
+        output_formats: ["glb"]
+      },
+      image: { type: "image", data: Buffer.from([1]).toString("base64") },
+      output_format: "obj"
+    });
+    await expect(node.process(ctx)).rejects.toThrow(
+      /does not support output format "obj"/
+    );
   });
 
   it("resolves storage uri via context.storage", async () => {

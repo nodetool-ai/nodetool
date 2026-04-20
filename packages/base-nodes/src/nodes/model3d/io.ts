@@ -27,7 +27,7 @@ export class LoadModel3DFileNode extends BaseNode {
     const p = filePath(String(this.path ?? ""));
     const data = new Uint8Array(await fs.readFile(p));
     return {
-      output: modelRef(data, { uri: `file://${p}`, format: extFormat(p) })
+      output: modelRef(data, { uri: pathToFileURL(p).toString(), format: extFormat(p) })
     };
   }
 }
@@ -77,15 +77,39 @@ export class SaveModel3DFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
-    const filename = String(this.filename ?? "model.glb");
-    const full = path.resolve(folder, filename);
-    await fs.mkdir(path.dirname(full), { recursive: true });
+    const filename = dateName(String(this.filename ?? "model.glb"));
+    const overwrite = this.overwrite === true;
+    await fs.mkdir(path.resolve(folder), { recursive: true });
     const bytes = modelBytes(this.model);
-    await fs.writeFile(full, bytes);
+
+    const targetPath =
+      overwrite
+        ? path.resolve(folder, filename)
+        : await (async (): Promise<string> => {
+            const parsed = path.parse(path.resolve(folder, filename));
+            for (let i = 0; ; i++) {
+              const candidate =
+                i === 0
+                  ? path.join(parsed.dir, parsed.base)
+                  : path.join(parsed.dir, `${parsed.name}-${i}${parsed.ext}`);
+              try {
+                await fs.writeFile(candidate, bytes, { flag: "wx" });
+                return candidate;
+              } catch (error) {
+                if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+                  throw error;
+                }
+              }
+            }
+          })();
+    if (overwrite) {
+      await fs.writeFile(targetPath, bytes);
+    }
+
     return {
       output: modelRef(bytes, {
-        uri: pathToFileURL(full).toString(),
-        format: extFormat(full)
+        uri: pathToFileURL(targetPath).toString(),
+        format: extFormat(targetPath)
       })
     };
   }
