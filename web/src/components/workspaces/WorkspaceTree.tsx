@@ -41,8 +41,8 @@ export interface TreeViewItem {
   label: string;
   className?: string;
   children?: TreeViewItem[];
-  itemProps?: Record<string, any>;
-  treeItemProps?: Record<string, any>;
+  itemProps?: Record<string, unknown>;
+  treeItemProps?: Record<string, unknown>;
   style?: Record<string, string>;
 }
 

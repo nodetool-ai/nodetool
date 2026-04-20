@@ -1,12 +1,11 @@
 import React, { memo } from "react";
 import { CodeBlock } from "./CodeBlock";
 
-// Define a more specific type for the props coming from ReactMarkdown's 'pre' renderer
 interface PreRendererProps {
-  node?: any;
+  node?: unknown;
   children?: React.ReactNode;
   onInsert?: (text: string, language?: string) => void;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export const PreRenderer: React.FC<PreRendererProps> = memo(({
@@ -22,7 +21,7 @@ export const PreRenderer: React.FC<PreRendererProps> = memo(({
     const singleChild = React.Children.toArray(children)[0];
     if (
       React.isValidElement(singleChild) &&
-      (singleChild.props as any)?.node?.tagName === "code"
+      (singleChild.props as { node?: { tagName?: string } })?.node?.tagName === "code"
     ) {
       codeBlockChild = singleChild as React.ReactElement;
     }
