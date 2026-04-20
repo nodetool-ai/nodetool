@@ -80,16 +80,23 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   - `timeoutSeconds` added to `TextTo3DParams` / `ImageTo3DParams` so node
     timeout can be passed through (PR-4 will wire it).
 
-- [ ] **#3 – Port `RodinProvider`** (`packages/runtime/src/providers/rodin-provider.ts`)
-  Direct port of `nodetool-core@25e60910:src/nodetool/providers/rodin_provider.py`.
-  Same pattern as #2, different API endpoints. Models exposed: copy from the
-  Python `RODIN_3D_MODELS` constant.
+- [x] **#3 – Port `RodinProvider`** *(landed in working tree)*
+  - `packages/runtime/src/providers/rodin-provider.ts` — port of
+    `nodetool-core@25e60910:src/nodetool/providers/rodin_provider.py` with
+    one bug fix: the original Python `image_to_3d` accidentally submitted
+    the task **twice** to fetch `subscription_key`; the TS version reads
+    both `uuids[0]` and `subscription_key` from a single submit response.
+  - All three models exported as `RODIN_3D_MODELS` constant.
+  - Status polling handles `DONE` / `FAILED` / `ERROR` / `CANCELLED`, plus
+    the "no jobs yet" transient where Rodin returns `jobs: []` for the
+    first few polls.
+  - Download is the documented two-step (POST `/v2/download` to get URL,
+    GET that URL); falls back from `model_url` → `url` to match Python.
 
-- [ ] **#4 – Register the new providers**
-  - [x] Meshy registered + exported in `packages/runtime/src/providers/index.ts`.
-    Also exposes `Model3D`, `TextTo3DParams`, `ImageTo3DParams` from the
-    barrel.
-  - [ ] Rodin registration pending PR-3.
+- [x] **#4 – Register the new providers**
+  - Meshy registered + exported in `packages/runtime/src/providers/index.ts`.
+  - Rodin registered + exported in `packages/runtime/src/providers/index.ts`.
+  - Barrel also exposes `Model3D`, `TextTo3DParams`, `ImageTo3DParams`.
 
 - [ ] **#5 – Wire `TextTo3DNode.process()` and `ImageTo3DNode.process()`**
   In `packages/base-nodes/src/nodes/model3d/generation.ts`, replace the
@@ -108,14 +115,17 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
 ## Tests
 
 - [ ] **#6 – Mocked HTTP tests for both providers**
-  - [x] **Meshy** — `packages/runtime/tests/providers/meshy-provider.test.ts`.
-    21 cases covering: requiredSecrets, model catalogue (with/without key),
-    chat-throws guards, missing-key guards, empty-prompt guard, full
-    happy-path submit→poll→download for `textTo3D`, JPEG/PNG mime detection
-    for `imageTo3D`, seed=-1 omission, FAILED-status propagation, non-200
-    submit error, polling-timeout, `timeoutSeconds` honored, format-fallback
-    to `glb`, and missing-format error. **All 21 pass.**
-  - [ ] **Rodin** — pending PR-3.
+  - [x] **Meshy** — `packages/runtime/tests/providers/meshy-provider.test.ts`
+    (21 cases, all pass).
+  - [x] **Rodin** — `packages/runtime/tests/providers/rodin-provider.test.ts`
+    (25 cases covering: requiredSecrets, model catalogue with/without key,
+    chat-throws, missing-key/empty-prompt/empty-image guards, full
+    happy-path text-to-3D submit→poll→download→download-URL fetch, JPEG/PNG
+    mime detection for imageTo3D, optional prompt forwarding for image
+    mode, seed=-1 omission, missing-uuid/missing-subscription_key submit
+    errors, FAILED + CANCELLED status mapping, non-200 submit error,
+    polling timeout, transient-empty-jobs handling, `model_url`→`url`
+    fallback, and missing download URL. **All 25 pass.**)
 
 - [ ] **#7 – Smoke test for the wired-up nodes**
   In `packages/base-nodes/tests/`, add a test that instantiates `TextTo3DNode`
@@ -172,9 +182,13 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   - 21 new tests pass; 64 existing registry/barrel/base-provider tests
     unchanged.
 
-- [ ] **PR-3 "Rodin provider"** *(medium, parallel to PR-2 if useful)*
-  - #3 + #4 (Rodin half) + #6 (Rodin tests) + #8 (Rodin pricing).
-  - Same shape as PR-2.
+- [x] **PR-3 "Rodin provider"** *(implementation in working tree)*
+  - #3 + #4 (Rodin half) + #6 (Rodin tests) all done.
+  - Cost tracking deferred (same reasoning as PR-2).
+  - 25 new tests pass; 64 existing registry/barrel/base-provider tests
+    unchanged.
+  - Bug fix vs Python original: single-submit instead of double-submit in
+    `imageTo3D`.
 
 - [ ] **PR-4 "Wire up the nodes"** *(small but user-visible)*
   - #5 + #7. This is the PR that **resolves Bug 1b** in

@@ -1,6 +1,55 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
+import type {
+  ImageTo3DParams,
+  Model3D,
+  TextTo3DParams
+} from "@nodetool/runtime";
 
-import { DEFAULT_IMAGE, DEFAULT_IMAGE_TO_3D_MODEL, DEFAULT_TEXT_TO_3D_MODEL } from "./defaults.js";
+import {
+  DEFAULT_IMAGE,
+  DEFAULT_IMAGE_TO_3D_MODEL,
+  DEFAULT_TEXT_TO_3D_MODEL
+} from "./defaults.js";
+import { glbOutput } from "./base.js";
+import { imageRefToBytes } from "./utils.js";
+
+/**
+ * Build the {@link Model3D} object expected by the runtime providers from the
+ * `model_3d_model`-shaped value carried by the node prop. The node prop uses
+ * snake_case (`supported_tasks`, `output_formats`) to match the persisted
+ * workflow JSON; the provider layer uses camelCase.
+ */
+function nodeModelToProviderModel(raw: unknown): Model3D {
+  const obj = (raw as Record<string, unknown> | null | undefined) ?? {};
+  const provider = String(obj.provider ?? "").trim();
+  const id = String(obj.id ?? "").trim();
+  if (!provider) throw new Error("3D model is missing a provider id");
+  if (!id) throw new Error("3D model is missing a model id");
+  return {
+    id,
+    name: String(obj.name ?? id),
+    provider,
+    supportedTasks: Array.isArray(obj.supported_tasks)
+      ? (obj.supported_tasks as string[])
+      : undefined,
+    outputFormats: Array.isArray(obj.output_formats)
+      ? (obj.output_formats as string[])
+      : undefined
+  };
+}
+
+/** Treat 0 (the field's "use provider default" sentinel) as undefined. */
+function normalizeTimeoutSeconds(v: unknown): number | null {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return null;
+  return v;
+}
+
+/** -1 is the random-seed sentinel; convert to null so providers omit it. */
+function normalizeSeed(v: unknown): number | null {
+  if (typeof v !== "number" || !Number.isFinite(v) || v < 0) return null;
+  return v;
+}
 
 export class TextTo3DNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.TextTo3D";
@@ -39,10 +88,30 @@ export class TextTo3DNode extends BaseNode {
   @prop({ type: "int", default: 600, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use provider default)", min: 0, max: 7200 })
   declare timeout_seconds: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    throw new Error(
-      "Not implemented: configure a Meshy or Rodin provider to use TextTo3D."
-    );
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    if (!context) {
+      throw new Error(
+        "TextTo3DNode requires a ProcessingContext to resolve the provider"
+      );
+    }
+    if (!this.prompt || typeof this.prompt !== "string") {
+      throw new Error("Prompt is required");
+    }
+    const model = nodeModelToProviderModel(this.model);
+    const provider = await context.getProvider(model.provider);
+
+    const params: TextTo3DParams = {
+      model,
+      prompt: this.prompt,
+      negativePrompt: this.negative_prompt || null,
+      artStyle: this.art_style || null,
+      outputFormat: String(this.output_format ?? "glb"),
+      seed: normalizeSeed(this.seed),
+      timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds)
+    };
+
+    const bytes = await provider.textTo3D(params);
+    return glbOutput(bytes);
   }
 }
 
@@ -80,9 +149,28 @@ export class ImageTo3DNode extends BaseNode {
   @prop({ type: "int", default: 600, title: "Timeout Seconds", description: "Timeout in seconds for API calls (0 = use provider default)", min: 0, max: 7200 })
   declare timeout_seconds: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    throw new Error(
-      "Not implemented: configure a Meshy or Rodin provider to use ImageTo3D."
-    );
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    if (!context) {
+      throw new Error(
+        "ImageTo3DNode requires a ProcessingContext to resolve the provider"
+      );
+    }
+    const model = nodeModelToProviderModel(this.model);
+    const provider = await context.getProvider(model.provider);
+    const imageBytes = await imageRefToBytes(this.image, context);
+    if (imageBytes.length === 0) {
+      throw new Error("Image input is empty");
+    }
+
+    const params: ImageTo3DParams = {
+      model,
+      prompt: this.prompt ? String(this.prompt) : null,
+      outputFormat: String(this.output_format ?? "glb"),
+      seed: normalizeSeed(this.seed),
+      timeoutSeconds: normalizeTimeoutSeconds(this.timeout_seconds)
+    };
+
+    const bytes = await provider.imageTo3D(imageBytes, params);
+    return glbOutput(bytes);
   }
 }
