@@ -104,8 +104,23 @@ export class LoadAudioAssetsNode extends BaseNode {
   }
 
   private async *_loadAudios(): AsyncGenerator<Record<string, unknown>> {
-    const folder = String(this.folder ?? ".");
-    const entries = await fs.readdir(folder, { withFileTypes: true });
+    const raw = this.folder;
+    const folder =
+      typeof raw === "string" && raw.length > 0
+        ? raw.startsWith("file:")
+          ? uriToPath(raw)
+          : raw
+        : typeof raw === "object" && raw !== null && typeof raw.uri === "string" && raw.uri.length > 0
+          ? uriToPath(raw.uri)
+          : "";
+    if (!folder) return;
+    let entries;
+    try {
+      entries = await fs.readdir(folder, { withFileTypes: true });
+    } catch {
+      // folder does not exist or is not accessible
+      return;
+    }
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       const ext = path.extname(entry.name).toLowerCase();
@@ -939,13 +954,17 @@ export class AudioMixerNode extends BaseNode {
       { track: this.track4, volume: this.volume4 },
       { track: this.track5, volume: this.volume5 }
     ];
-    const tracks = entries
-      .filter((e) => e.track && typeof e.track === "object")
-      .map((e) => ({
-        bytes: audioBytes(e.track),
-        volume: Number.isFinite(Number(e.volume)) ? Number(e.volume) : 1
-      }))
-      .filter((t) => t.bytes.length > 0);
+    const filtered = entries.filter(
+      (e) => e.track && typeof e.track === "object"
+    );
+    const tracks = (
+      await Promise.all(
+        filtered.map(async (e) => ({
+          bytes: await audioBytesAsync(e.track),
+          volume: Number.isFinite(Number(e.volume)) ? Number(e.volume) : 1
+        }))
+      )
+    ).filter((t) => t.bytes.length > 0);
 
     if (tracks.length === 0)
       return { output: audioRefFromBytes(new Uint8Array()) };
