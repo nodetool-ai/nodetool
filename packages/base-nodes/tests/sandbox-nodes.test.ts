@@ -1,17 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool/runtime";
-import {
-  SandboxAgentNode,
-  SandboxBrowserNode,
-  SandboxFileNode,
-  SandboxShellNode
-} from "../src/nodes/sandbox.js";
 
 type RunAgentLoopArgs = {
   providerId?: string;
   modelId?: string;
   tools?: unknown[];
 };
+
+let SandboxShellNode: (typeof import("../src/nodes/sandbox.js"))["SandboxShellNode"];
+let SandboxBrowserNode: (typeof import("../src/nodes/sandbox.js"))["SandboxBrowserNode"];
+let SandboxFileNode: (typeof import("../src/nodes/sandbox.js"))["SandboxFileNode"];
+let SandboxAgentNode: (typeof import("../src/nodes/sandbox.js"))["SandboxAgentNode"];
 
 const mocks = vi.hoisted(() => {
   const client = {
@@ -72,6 +71,14 @@ vi.mock("../src/nodes/agents.js", () => ({
 }));
 
 describe("sandbox nodes", () => {
+  beforeAll(async () => {
+    const mod = await import("../src/nodes/sandbox.js");
+    SandboxShellNode = mod.SandboxShellNode;
+    SandboxBrowserNode = mod.SandboxBrowserNode;
+    SandboxFileNode = mod.SandboxFileNode;
+    SandboxAgentNode = mod.SandboxAgentNode;
+  });
+
   beforeEach(() => {
     mocks.acquire.mockClear();
     mocks.runAgentLoop.mockClear();
@@ -169,7 +176,7 @@ describe("sandbox nodes", () => {
     expect(args.providerId).toBe("openai");
     expect(args.modelId).toBe("gpt-5");
     expect(Array.isArray(args.tools)).toBe(true);
-    expect(args.tools?.length).toBeGreaterThan(1);
+    expect(args.tools?.length).toBeGreaterThan(10);
     expect(result).toEqual({ session_id: "s4", text: "done" });
   });
 });

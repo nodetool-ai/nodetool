@@ -14,6 +14,357 @@ type LanguageModelLike = {
   id?: string;
 };
 
+type BrowserAction =
+  | "view"
+  | "navigate"
+  | "restart"
+  | "click"
+  | "input_text"
+  | "move_mouse"
+  | "press_key"
+  | "select_option"
+  | "scroll"
+  | "console_exec"
+  | "console_view";
+
+type FileAction =
+  | "read"
+  | "write"
+  | "str_replace"
+  | "find_in_content"
+  | "find_by_name";
+
+type ActionDef = {
+  toolName: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  invoke: (client: ToolClient, params: Record<string, unknown>) => Promise<unknown>;
+};
+
+const BROWSER_ACTIONS: Record<BrowserAction, ActionDef> = {
+  view: {
+    toolName: "sandbox_browser_view",
+    description: "Inspect current sandbox browser page and elements.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        include_screenshot: { type: "boolean" }
+      }
+    },
+    invoke: (client, params) =>
+      client.browserView(params as Parameters<ToolClient["browserView"]>[0])
+  },
+  navigate: {
+    toolName: "sandbox_browser_navigate",
+    description: "Navigate the sandbox browser to a URL.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string" },
+        wait_until: {
+          type: "string",
+          enum: ["load", "domcontentloaded", "networkidle"]
+        }
+      },
+      required: ["url"]
+    },
+    invoke: (client, params) =>
+      client.browserNavigate(
+        params as Parameters<ToolClient["browserNavigate"]>[0]
+      )
+  },
+  restart: {
+    toolName: "sandbox_browser_restart",
+    description: "Restart sandbox browser context.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string" }
+      }
+    },
+    invoke: (client, params) =>
+      client.browserRestart(params as Parameters<ToolClient["browserRestart"]>[0])
+  },
+  click: {
+    toolName: "sandbox_browser_click",
+    description: "Click an element in the sandbox browser.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        index: { type: "integer" },
+        coordinate_x: { type: "integer" },
+        coordinate_y: { type: "integer" }
+      }
+    },
+    invoke: (client, params) =>
+      client.browserClick(params as Parameters<ToolClient["browserClick"]>[0])
+  },
+  input_text: {
+    toolName: "sandbox_browser_input_text",
+    description: "Type into an element in the sandbox browser.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        text: { type: "string" },
+        press_enter: { type: "boolean" },
+        index: { type: "integer" },
+        coordinate_x: { type: "integer" },
+        coordinate_y: { type: "integer" }
+      },
+      required: ["text"]
+    },
+    invoke: (client, params) =>
+      client.browserInput(params as Parameters<ToolClient["browserInput"]>[0])
+  },
+  move_mouse: {
+    toolName: "sandbox_browser_move_mouse",
+    description: "Move mouse in sandbox browser viewport.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        coordinate_x: { type: "integer" },
+        coordinate_y: { type: "integer" }
+      },
+      required: ["coordinate_x", "coordinate_y"]
+    },
+    invoke: (client, params) =>
+      client.browserMoveMouse(
+        params as Parameters<ToolClient["browserMoveMouse"]>[0]
+      )
+  },
+  press_key: {
+    toolName: "sandbox_browser_press_key",
+    description: "Press a keyboard key in the sandbox browser.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        key: { type: "string" }
+      },
+      required: ["key"]
+    },
+    invoke: (client, params) =>
+      client.browserPressKey(
+        params as Parameters<ToolClient["browserPressKey"]>[0]
+      )
+  },
+  select_option: {
+    toolName: "sandbox_browser_select_option",
+    description: "Select an option in a sandbox browser select element.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        index: { type: "integer" },
+        option: { type: "string" }
+      },
+      required: ["index", "option"]
+    },
+    invoke: (client, params) =>
+      client.browserSelectOption(
+        params as Parameters<ToolClient["browserSelectOption"]>[0]
+      )
+  },
+  scroll: {
+    toolName: "sandbox_browser_scroll",
+    description: "Scroll the sandbox browser page.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        to_top: { type: "boolean" },
+        to_bottom: { type: "boolean" },
+        pixels: { type: "integer" }
+      }
+    },
+    invoke: (client, params) =>
+      client.browserScroll(params as Parameters<ToolClient["browserScroll"]>[0])
+  },
+  console_exec: {
+    toolName: "sandbox_browser_console_exec",
+    description: "Execute JavaScript in sandbox browser console.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        javascript: { type: "string" }
+      },
+      required: ["javascript"]
+    },
+    invoke: (client, params) =>
+      client.browserConsoleExec(
+        params as Parameters<ToolClient["browserConsoleExec"]>[0]
+      )
+  },
+  console_view: {
+    toolName: "sandbox_browser_console_view",
+    description: "View sandbox browser console messages.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        max_lines: { type: "integer" }
+      }
+    },
+    invoke: (client, params) =>
+      client.browserConsoleView(
+        params as Parameters<ToolClient["browserConsoleView"]>[0]
+      )
+  }
+};
+
+const FILE_ACTIONS: Record<FileAction, ActionDef> = {
+  read: {
+    toolName: "sandbox_file_read",
+    description: "Read a file from the sandbox.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file: { type: "string" },
+        start_line: { type: "integer" },
+        end_line: { type: "integer" }
+      },
+      required: ["file"]
+    },
+    invoke: (client, params) =>
+      client.fileRead(params as Parameters<ToolClient["fileRead"]>[0])
+  },
+  write: {
+    toolName: "sandbox_file_write",
+    description: "Write a file in the sandbox.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file: { type: "string" },
+        content: { type: "string" },
+        append: { type: "boolean" },
+        leading_newline: { type: "boolean" },
+        trailing_newline: { type: "boolean" }
+      },
+      required: ["file", "content"]
+    },
+    invoke: (client, params) =>
+      client.fileWrite(params as Parameters<ToolClient["fileWrite"]>[0])
+  },
+  str_replace: {
+    toolName: "sandbox_file_str_replace",
+    description: "Replace string content inside a sandbox file.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file: { type: "string" },
+        old_str: { type: "string" },
+        new_str: { type: "string" }
+      },
+      required: ["file", "old_str", "new_str"]
+    },
+    invoke: (client, params) =>
+      client.fileStrReplace(
+        params as Parameters<ToolClient["fileStrReplace"]>[0]
+      )
+  },
+  find_in_content: {
+    toolName: "sandbox_file_find_in_content",
+    description: "Find content in a sandbox file using regex.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        file: { type: "string" },
+        regex: { type: "string" }
+      },
+      required: ["file", "regex"]
+    },
+    invoke: (client, params) =>
+      client.fileFindInContent(
+        params as Parameters<ToolClient["fileFindInContent"]>[0]
+      )
+  },
+  find_by_name: {
+    toolName: "sandbox_file_find_by_name",
+    description: "Find files by glob pattern in sandbox workspace.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        path: { type: "string" },
+        glob: { type: "string" }
+      },
+      required: ["path", "glob"]
+    },
+    invoke: (client, params) =>
+      client.fileFindByName(
+        params as Parameters<ToolClient["fileFindByName"]>[0]
+      )
+  }
+};
+
+const SHELL_AGENT_TOOLS: readonly ActionDef[] = [
+  {
+    toolName: "sandbox_shell_exec",
+    description: "Start a shell command in the sandbox.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        command: { type: "string" },
+        exec_dir: { type: "string" }
+      },
+      required: ["id", "command"]
+    },
+    invoke: (client, params) =>
+      client.shellExec(params as Parameters<ToolClient["shellExec"]>[0])
+  },
+  {
+    toolName: "sandbox_shell_wait",
+    description: "Wait for a shell command in the sandbox and collect output.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        seconds: { type: "number" }
+      },
+      required: ["id"]
+    },
+    invoke: (client, params) =>
+      client.shellWait(params as Parameters<ToolClient["shellWait"]>[0])
+  },
+  {
+    toolName: "sandbox_shell_view",
+    description: "Read current shell command output in the sandbox.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"]
+    },
+    invoke: (client, params) =>
+      client.shellView(params as Parameters<ToolClient["shellView"]>[0])
+  },
+  {
+    toolName: "sandbox_shell_write",
+    description: "Write to a running sandbox shell process.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        input: { type: "string" },
+        press_enter: { type: "boolean" }
+      },
+      required: ["id", "input", "press_enter"]
+    },
+    invoke: (client, params) =>
+      client.shellWriteToProcess(
+        params as Parameters<ToolClient["shellWriteToProcess"]>[0]
+      )
+  },
+  {
+    toolName: "sandbox_shell_kill",
+    description: "Kill a running sandbox shell process.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"]
+    },
+    invoke: (client, params) =>
+      client.shellKillProcess(
+        params as Parameters<ToolClient["shellKillProcess"]>[0]
+      )
+  }
+];
+
 let sharedSandboxStore: SessionStore | null = null;
 
 function getSandboxStore(): SessionStore {
@@ -38,12 +389,33 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function asString(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function getContextScope(context?: ProcessingContext): string {
+  if (!context) {
+    return "default";
+  }
+  const userId = asString(context.userId) || "default";
+  const workflowId = asString(context.workflowId) || "workflow";
+  const jobId = asString(context.jobId) || "job";
+  return `${userId}:${workflowId}:${jobId}`;
+}
+
 function resolveSessionId(value: unknown): string {
-  const sessionId = String(value ?? "").trim();
+  const sessionId = asString(value);
   if (sessionId.length > 0) {
     return sessionId;
   }
   return `workflow-${randomUUID().slice(0, 8)}`;
+}
+
+function toEffectiveSessionId(
+  sessionId: string,
+  context?: ProcessingContext
+): string {
+  return `${getContextScope(context)}:${sessionId}`;
 }
 
 async function getClient(
@@ -60,140 +432,18 @@ async function getClient(
 }
 
 function createAgentTools(client: ToolClient): ToolLike[] {
-  return [
-    {
-      name: "sandbox_shell_exec",
-      description: "Start a shell command in the sandbox.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          id: { type: "string" },
-          command: { type: "string" },
-          exec_dir: { type: "string" }
-        },
-        required: ["id", "command"]
-      },
-      process: async (_context, params) =>
-        client.shellExec(params as Parameters<ToolClient["shellExec"]>[0])
-    },
-    {
-      name: "sandbox_shell_wait",
-      description: "Wait for a shell command in the sandbox and collect output.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          id: { type: "string" },
-          seconds: { type: "number" }
-        },
-        required: ["id"]
-      },
-      process: async (_context, params) =>
-        client.shellWait(params as Parameters<ToolClient["shellWait"]>[0])
-    },
-    {
-      name: "sandbox_shell_view",
-      description: "Read current shell command output in the sandbox.",
-      inputSchema: {
-        type: "object",
-        properties: { id: { type: "string" } },
-        required: ["id"]
-      },
-      process: async (_context, params) =>
-        client.shellView(params as Parameters<ToolClient["shellView"]>[0])
-    },
-    {
-      name: "sandbox_file_read",
-      description: "Read a file from the sandbox.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          file: { type: "string" },
-          start_line: { type: "integer" },
-          end_line: { type: "integer" }
-        },
-        required: ["file"]
-      },
-      process: async (_context, params) =>
-        client.fileRead(params as Parameters<ToolClient["fileRead"]>[0])
-    },
-    {
-      name: "sandbox_file_write",
-      description: "Write a file in the sandbox.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          file: { type: "string" },
-          content: { type: "string" },
-          append: { type: "boolean" }
-        },
-        required: ["file", "content"]
-      },
-      process: async (_context, params) =>
-        client.fileWrite(params as Parameters<ToolClient["fileWrite"]>[0])
-    },
-    {
-      name: "sandbox_browser_navigate",
-      description: "Navigate the sandbox browser to a URL.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          url: { type: "string" },
-          wait_until: {
-            type: "string",
-            enum: ["load", "domcontentloaded", "networkidle"]
-          }
-        },
-        required: ["url"]
-      },
-      process: async (_context, params) =>
-        client.browserNavigate(
-          params as Parameters<ToolClient["browserNavigate"]>[0]
-        )
-    },
-    {
-      name: "sandbox_browser_view",
-      description: "Inspect current sandbox browser page and elements.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          include_screenshot: { type: "boolean" }
-        }
-      },
-      process: async (_context, params) =>
-        client.browserView(params as Parameters<ToolClient["browserView"]>[0])
-    },
-    {
-      name: "sandbox_browser_click",
-      description: "Click an element in the sandbox browser.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          index: { type: "integer" },
-          coordinate_x: { type: "integer" },
-          coordinate_y: { type: "integer" }
-        }
-      },
-      process: async (_context, params) =>
-        client.browserClick(params as Parameters<ToolClient["browserClick"]>[0])
-    },
-    {
-      name: "sandbox_browser_input",
-      description: "Type into an element in the sandbox browser.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          text: { type: "string" },
-          press_enter: { type: "boolean" },
-          index: { type: "integer" },
-          coordinate_x: { type: "integer" },
-          coordinate_y: { type: "integer" }
-        },
-        required: ["text"]
-      },
-      process: async (_context, params) =>
-        client.browserInput(params as Parameters<ToolClient["browserInput"]>[0])
-    }
+  const defs: ActionDef[] = [
+    ...SHELL_AGENT_TOOLS,
+    ...Object.values(FILE_ACTIONS),
+    ...Object.values(BROWSER_ACTIONS)
   ];
+
+  return defs.map((def) => ({
+    name: def.toolName,
+    description: def.description,
+    inputSchema: def.inputSchema,
+    process: async (_context, params) => def.invoke(client, params)
+  }));
 }
 
 export class SandboxShellNode extends BaseNode {
@@ -250,20 +500,19 @@ export class SandboxShellNode extends BaseNode {
   })
   declare wait_seconds: number;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
-    const workspaceDir = String(this.workspace_dir ?? "").trim();
-    const command = String(this.command ?? "").trim();
+    const effectiveSessionId = toEffectiveSessionId(sessionId, context);
+    const workspaceDir = asString(this.workspace_dir);
+    const command = asString(this.command);
     const waitSeconds = Number(this.wait_seconds ?? 1);
-    const commandId =
-      String(this.command_id ?? "").trim() ||
-      `cmd-${randomUUID().slice(0, 8)}`;
+    const commandId = asString(this.command_id) || `cmd-${randomUUID().slice(0, 8)}`;
 
     if (command.length === 0) {
       throw new Error("Command is required");
     }
 
-    const client = await getClient(sessionId, workspaceDir);
+    const client = await getClient(effectiveSessionId, workspaceDir);
     await client.shellExec({
       id: commandId,
       command,
@@ -339,73 +588,19 @@ export class SandboxBrowserNode extends BaseNode {
   })
   declare params: Record<string, unknown>;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
-    const workspaceDir = String(this.workspace_dir ?? "").trim();
-    const action = String(this.action ?? "view");
+    const effectiveSessionId = toEffectiveSessionId(sessionId, context);
+    const workspaceDir = asString(this.workspace_dir);
+    const action = asString(this.action || "view") as BrowserAction;
     const params = asRecord(this.params);
-    const client = await getClient(sessionId, workspaceDir);
+    const client = await getClient(effectiveSessionId, workspaceDir);
 
-    let output: unknown;
-    switch (action) {
-      case "view":
-        output = await client.browserView(
-          params as Parameters<ToolClient["browserView"]>[0]
-        );
-        break;
-      case "navigate":
-        output = await client.browserNavigate(
-          params as Parameters<ToolClient["browserNavigate"]>[0]
-        );
-        break;
-      case "restart":
-        output = await client.browserRestart(
-          params as Parameters<ToolClient["browserRestart"]>[0]
-        );
-        break;
-      case "click":
-        output = await client.browserClick(
-          params as Parameters<ToolClient["browserClick"]>[0]
-        );
-        break;
-      case "input_text":
-        output = await client.browserInput(
-          params as Parameters<ToolClient["browserInput"]>[0]
-        );
-        break;
-      case "move_mouse":
-        output = await client.browserMoveMouse(
-          params as Parameters<ToolClient["browserMoveMouse"]>[0]
-        );
-        break;
-      case "press_key":
-        output = await client.browserPressKey(
-          params as Parameters<ToolClient["browserPressKey"]>[0]
-        );
-        break;
-      case "select_option":
-        output = await client.browserSelectOption(
-          params as Parameters<ToolClient["browserSelectOption"]>[0]
-        );
-        break;
-      case "scroll":
-        output = await client.browserScroll(
-          params as Parameters<ToolClient["browserScroll"]>[0]
-        );
-        break;
-      case "console_exec":
-        output = await client.browserConsoleExec(
-          params as Parameters<ToolClient["browserConsoleExec"]>[0]
-        );
-        break;
-      case "console_view":
-        output = await client.browserConsoleView(
-          params as Parameters<ToolClient["browserConsoleView"]>[0]
-        );
-        break;
-      default:
-        throw new Error(`Unsupported browser action: ${action}`);
+    const actionDef = BROWSER_ACTIONS[action];
+    if (!actionDef) {
+      throw new Error(`Unsupported browser action: ${action}`);
     }
+    const output = await actionDef.invoke(client, params);
 
     return {
       session_id: sessionId,
@@ -458,43 +653,19 @@ export class SandboxFileNode extends BaseNode {
   })
   declare params: Record<string, unknown>;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const sessionId = resolveSessionId(this.session_id);
-    const workspaceDir = String(this.workspace_dir ?? "").trim();
-    const action = String(this.action ?? "read");
+    const effectiveSessionId = toEffectiveSessionId(sessionId, context);
+    const workspaceDir = asString(this.workspace_dir);
+    const action = asString(this.action || "read") as FileAction;
     const params = asRecord(this.params);
-    const client = await getClient(sessionId, workspaceDir);
+    const client = await getClient(effectiveSessionId, workspaceDir);
 
-    let output: unknown;
-    switch (action) {
-      case "read":
-        output = await client.fileRead(
-          params as Parameters<ToolClient["fileRead"]>[0]
-        );
-        break;
-      case "write":
-        output = await client.fileWrite(
-          params as Parameters<ToolClient["fileWrite"]>[0]
-        );
-        break;
-      case "str_replace":
-        output = await client.fileStrReplace(
-          params as Parameters<ToolClient["fileStrReplace"]>[0]
-        );
-        break;
-      case "find_in_content":
-        output = await client.fileFindInContent(
-          params as Parameters<ToolClient["fileFindInContent"]>[0]
-        );
-        break;
-      case "find_by_name":
-        output = await client.fileFindByName(
-          params as Parameters<ToolClient["fileFindByName"]>[0]
-        );
-        break;
-      default:
-        throw new Error(`Unsupported file action: ${action}`);
+    const actionDef = FILE_ACTIONS[action];
+    if (!actionDef) {
+      throw new Error(`Unsupported file action: ${action}`);
     }
+    const output = await actionDef.invoke(client, params);
 
     return {
       session_id: sessionId,
@@ -507,7 +678,7 @@ export class SandboxAgentNode extends BaseNode {
   static readonly nodeType = "nodetool.sandbox.SandboxAgent";
   static readonly title = "SandboxAgent";
   static readonly description =
-    "Prompt-driven agent with full sandbox tool access (shell, browser, file, desktop).";
+    "Prompt-driven agent with access to configured sandbox shell, browser, and file tools.";
   static readonly metadataOutputTypes = {
     session_id: "str",
     text: "str"
@@ -588,9 +759,10 @@ export class SandboxAgentNode extends BaseNode {
     }
 
     const sessionId = resolveSessionId(this.session_id);
-    const workspaceDir = String(this.workspace_dir ?? "").trim();
+    const effectiveSessionId = toEffectiveSessionId(sessionId, context);
+    const workspaceDir = asString(this.workspace_dir);
     const maxIterations = Number(this.max_iterations ?? 12);
-    const client = await getClient(sessionId, workspaceDir);
+    const client = await getClient(effectiveSessionId, workspaceDir);
     const tools = createAgentTools(client);
 
     const { text } = await runAgentLoop({
