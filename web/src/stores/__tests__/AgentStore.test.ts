@@ -287,20 +287,22 @@ describe("AgentStore", () => {
 
   it("ignores stale model responses from older loadModels requests", async () => {
     const useAgentStore = await loadStore();
-    let resolveFirst: ((models: AgentModelDescriptor[]) => void) | null = null;
-    let resolveSecond: ((models: AgentModelDescriptor[]) => void) | null = null;
+    let resolveOlderRequest: ((models: AgentModelDescriptor[]) => void) | null =
+      null;
+    let resolveNewerRequest: ((models: AgentModelDescriptor[]) => void) | null =
+      null;
 
     fakeClient.listModels
       .mockImplementationOnce(
         () =>
           new Promise<AgentModelDescriptor[]>((resolve) => {
-            resolveFirst = resolve;
+            resolveOlderRequest = resolve;
           })
       )
       .mockImplementationOnce(
         () =>
           new Promise<AgentModelDescriptor[]>((resolve) => {
-            resolveSecond = resolve;
+            resolveNewerRequest = resolve;
           })
       );
 
@@ -311,7 +313,7 @@ describe("AgentStore", () => {
 
     // Resolve the newer request first to verify an older response cannot
     // overwrite the newer workspace-specific model catalog.
-    resolveSecond?.([
+    resolveNewerRequest?.([
       {
         id: "claude-new",
         label: "Claude New",
@@ -333,7 +335,7 @@ describe("AgentStore", () => {
       expect(useAgentStore.getState().modelsLoading).toBe(false);
     });
 
-    resolveFirst?.([
+    resolveOlderRequest?.([
       {
         id: "claude-old",
         label: "Claude Old",
@@ -352,5 +354,6 @@ describe("AgentStore", () => {
         isDefault: true
       }
     ]);
+    expect(useAgentStore.getState().modelsLoading).toBe(false);
   });
 });

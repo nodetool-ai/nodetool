@@ -1,6 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, memo, useEffect, useState } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  memo,
+  useEffect,
+  useRef,
+  useState
+} from "react";
 import {
   Button,
   Menu,
@@ -228,6 +235,8 @@ const AgentPanel: React.FC = () => {
   const [draftModels, setDraftModels] = useState<AgentModelDescriptor[]>([]);
   const [draftModelsLoading, setDraftModelsLoading] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
+  const [isSwitchingModel, setIsSwitchingModel] = useState(false);
+  const modelSwitchRequestRef = useRef(0);
   const [resumeAnchorEl, setResumeAnchorEl] = useState<HTMLElement | null>(null);
 
   const {
@@ -418,10 +427,23 @@ const AgentPanel: React.FC = () => {
         return;
       }
 
+      const previousModel = model;
       setModel(nextModel);
 
       if (hasRunningSession) {
-        await startNewSession();
+        const requestId = ++modelSwitchRequestRef.current;
+        setIsSwitchingModel(true);
+
+        try {
+          await startNewSession();
+        } catch (error) {
+          log.error("Failed to restart agent session after model change:", error);
+          setModel(previousModel);
+        } finally {
+          if (requestId === modelSwitchRequestRef.current) {
+            setIsSwitchingModel(false);
+          }
+        }
       }
     },
     [hasRunningSession, model, setModel, startNewSession]
@@ -911,7 +933,9 @@ const AgentPanel: React.FC = () => {
               onChange={(nextModel) => {
                 void handleModelSelectChange(nextModel);
               }}
-              disabled={hasBusySession || availableModels.length === 0}
+              disabled={
+                hasBusySession || isSwitchingModel || availableModels.length === 0
+              }
               loading={modelsLoading}
             />
           </FlexRow>
