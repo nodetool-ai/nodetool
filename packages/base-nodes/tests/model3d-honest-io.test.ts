@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getDeclaredPropertiesForClass } from "@nodetool/node-sdk";
 import {
   Boolean3DNode,
   CenterMeshNode,
@@ -7,10 +8,12 @@ import {
   FlipNormalsNode,
   FormatConverterNode,
   GetModel3DMetadataNode,
+  ImageTo3DNode,
   MergeMeshesNode,
   NormalizeModel3DNode,
   RecalculateNormalsNode,
   RepairMeshNode,
+  TextTo3DNode,
   Transform3DNode
 } from "../src/nodes/model3d.js";
 
@@ -804,5 +807,26 @@ describe("model3d honest I/O", () => {
     });
 
     await expect(node.process()).rejects.toThrow(/unsupported/i);
+  });
+
+  it("CenterMeshNode has exactly one @prop on model with type model_3d (no dict from old base)", () => {
+    // GlbTransformNode does not declare @prop on model; CenterMeshNode does.
+    // getDeclaredPropertiesForClass merges the hierarchy — model should appear once as model_3d.
+    const props = getDeclaredPropertiesForClass(CenterMeshNode);
+    const modelProps = props.filter((p) => p.name === "model");
+    expect(modelProps).toHaveLength(1);
+    expect(modelProps[0].options.type).toBe("model_3d");
+  });
+
+  it("TextTo3DNode throws a clear not-implemented error", async () => {
+    const node = new TextTo3DNode();
+    node.assign({ prompt: "a red dragon" });
+    await expect(node.process()).rejects.toThrow(/not implemented/i);
+  });
+
+  it("ImageTo3DNode throws a clear not-implemented error", async () => {
+    const node = new ImageTo3DNode();
+    node.assign({ image: { type: "image", uri: "", data: null } });
+    await expect(node.process()).rejects.toThrow(/not implemented/i);
   });
 });
