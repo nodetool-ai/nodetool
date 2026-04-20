@@ -58,10 +58,10 @@ export default defineConfig(async ({ mode }) => {
         "superjson",
         "@trpc/client",
         "@trpc/react-query",
-        "@trpc/server"
+        "@trpc/server",
+        "@tanstack/react-query",
       ],
       exclude: [
-        "@tanstack/react-query",
         "monaco-editor",
         "@monaco-editor/react",
         "@monaco-editor/loader",
