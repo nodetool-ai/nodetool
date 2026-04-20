@@ -307,6 +307,10 @@ describe("AgentStore", () => {
     useAgentStore.getState().setWorkspaceContext("workspace-1", "/tmp/workspace-1");
     useAgentStore.getState().setWorkspaceContext("workspace-2", "/tmp/workspace-2");
 
+    expect(fakeClient.listModels).toHaveBeenCalledTimes(2);
+
+    // Resolve the newer request first to verify an older response cannot
+    // overwrite the newer workspace-specific model catalog.
     resolveSecond?.([
       {
         id: "claude-new",
