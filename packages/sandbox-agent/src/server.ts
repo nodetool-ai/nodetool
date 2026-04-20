@@ -95,6 +95,7 @@ import { setPortMap } from "./port-map.js";
 import { setSecretMap } from "./secret-map.js";
 
 export const SANDBOX_AGENT_VERSION = "0.1.0";
+const INTERNAL_TOKEN_HEADER = "x-nodetool-internal-token";
 
 export interface BuildServerOptions {
   workspace?: string;
@@ -165,7 +166,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
 
   // Internal control plane (host → server). Not an agent-facing tool.
   app.post("/internal/set-port-map", async (req, reply) => {
-    if (!isLoopbackRequest(req.ip)) {
+    if (!isInternalAuthorized(req)) {
       reply.status(403).send({ error: "forbidden" });
       return;
     }
@@ -178,7 +179,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
     reply.send({ ok: true });
   });
   app.post("/internal/set-secret-map", async (req, reply) => {
-    if (!isLoopbackRequest(req.ip)) {
+    if (!isInternalAuthorized(req)) {
       reply.status(403).send({ error: "forbidden" });
       return;
     }
@@ -259,9 +260,14 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   return app;
 }
 
-function isLoopbackRequest(ip: string | undefined): boolean {
-  if (!ip) return false;
-  return ip === "127.0.0.1" || ip === "::1" || ip.startsWith("::ffff:127.");
+function isInternalAuthorized(req: { headers: Record<string, unknown> }): boolean {
+  const expected = process.env.NODETOOL_INTERNAL_TOKEN;
+  if (!expected) {
+    return true;
+  }
+  const raw = req.headers[INTERNAL_TOKEN_HEADER];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return typeof value === "string" && value === expected;
 }
 
 import type { ZodType } from "zod";

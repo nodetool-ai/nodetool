@@ -1,6 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { buildServer, SANDBOX_AGENT_VERSION } from "../src/server.js";
 import { _resetForTests as resetSecretMap } from "../src/secret-map.js";
+
+const originalInternalToken = process.env.NODETOOL_INTERNAL_TOKEN;
+
+afterEach(() => {
+  if (originalInternalToken === undefined) {
+    delete process.env.NODETOOL_INTERNAL_TOKEN;
+  } else {
+    process.env.NODETOOL_INTERNAL_TOKEN = originalInternalToken;
+  }
+});
 
 describe("buildServer / health", () => {
   it("responds on /health with ok", async () => {
@@ -89,16 +99,32 @@ describe("buildServer / health", () => {
     }
   });
 
-  it("rejects non-loopback callers for internal control routes", async () => {
+  it("requires internal token when configured", async () => {
+    process.env.NODETOOL_INTERNAL_TOKEN = "test-token";
     const app = buildServer();
     try {
-      const res = await app.inject({
+      const missingToken = await app.inject({
         method: "POST",
         url: "/internal/set-secret-map",
-        remoteAddress: "10.1.2.3",
         payload: { map: { OPENAI_API_KEY: "sk-test" } }
       });
-      expect(res.statusCode).toBe(403);
+      expect(missingToken.statusCode).toBe(403);
+
+      const wrongToken = await app.inject({
+        method: "POST",
+        url: "/internal/set-secret-map",
+        headers: { "x-nodetool-internal-token": "wrong-token" },
+        payload: { map: { OPENAI_API_KEY: "sk-test" } }
+      });
+      expect(wrongToken.statusCode).toBe(403);
+
+      const ok = await app.inject({
+        method: "POST",
+        url: "/internal/set-secret-map",
+        headers: { "x-nodetool-internal-token": "test-token" },
+        payload: { map: { OPENAI_API_KEY: "sk-test" } }
+      });
+      expect(ok.statusCode).toBe(200);
     } finally {
       await app.close();
     }

@@ -15,6 +15,7 @@
  */
 
 import { createConnection, type Socket as NetSocket } from "node:net";
+import { randomBytes } from "node:crypto";
 import Dockerode from "dockerode";
 import { createLogger } from "@nodetool/config";
 import type {
@@ -120,11 +121,13 @@ export class DockerSandboxProvider implements SandboxProvider {
       binds.push(`${options.workspaceDir}:/workspace:rw`);
     }
 
+    const internalToken = randomBytes(24).toString("hex");
     const env: string[] = [
       `NODETOOL_SESSION_ID=${options.sessionId}`,
       `NODETOOL_TOOL_PORT=${TOOL_SERVER_PORT}`,
       `NODETOOL_VNC_PORT=${VNC_WS_PORT}`,
       `NODETOOL_USER_SERVICE_PORTS=${this.userServicePorts.join(",")}`,
+      `NODETOOL_INTERNAL_TOKEN=${internalToken}`,
       ...Object.entries(options.env ?? {}).map(([k, v]) => `${k}=${v}`)
     ];
 
@@ -207,7 +210,10 @@ export class DockerSandboxProvider implements SandboxProvider {
       if (Object.keys(userServiceMap).length > 0) {
         await fetch(`${toolUrl}/internal/set-port-map`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            "x-nodetool-internal-token": internalToken
+          },
           body: JSON.stringify({ map: userServiceMap })
         }).catch((error: unknown) => {
           log.warn("failed to configure expose_port map", {
@@ -220,7 +226,10 @@ export class DockerSandboxProvider implements SandboxProvider {
       if (options.secretMap && Object.keys(options.secretMap).length > 0) {
         const response = await fetch(`${toolUrl}/internal/set-secret-map`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            "x-nodetool-internal-token": internalToken
+          },
           body: JSON.stringify({ map: options.secretMap })
         }).catch((error: unknown) => {
           throw new Error(
