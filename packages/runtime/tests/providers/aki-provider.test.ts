@@ -160,6 +160,46 @@ describe("AkiProvider", () => {
     expect(deltas).toEqual(["Hello", ", world", "!", ""]);
   });
 
+  it("generateMessages tracks usage when stream reports token counts", async () => {
+    async function* stream() {
+      yield {
+        success: true,
+        progress_data: { text: "Hello", prompt_length: 11, num_generated_tokens: 2 }
+      };
+      yield {
+        success: true,
+        result_data: {
+          text: "Hello world",
+          prompt_length: 11,
+          num_generated_tokens: 4
+        }
+      };
+    }
+    const { factory } = makeFactory({
+      getApiRequestGenerator: stream as unknown as GetGenerator
+    });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+    const trackUsage = vi.spyOn(
+      provider as unknown as { trackUsage: (model: string, usage: unknown) => void },
+      "trackUsage"
+    );
+
+    for await (const _item of provider.generateMessages({
+      model: "llama3_chat",
+      messages: [{ role: "user", content: "hi" }]
+    })) {
+      // consume stream
+    }
+
+    expect(trackUsage).toHaveBeenCalledWith("llama3_chat", {
+      inputTokens: 11,
+      outputTokens: 4
+    });
+  });
+
   it("generateMessages surfaces error payloads", async () => {
     async function* stream() {
       yield { success: false, error: "quota exceeded" };
@@ -270,6 +310,33 @@ describe("AkiProvider", () => {
     );
   });
 
+  it("uses SDK endpoint discovery when available and classifies modalities", async () => {
+    const getEndpointList = vi
+      .fn()
+      .mockResolvedValue(["llama3_chat", "sdxl_img", "custom_chat"]);
+    const { factory } = makeFactory({ getEndpointList });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const languageModels = await provider.getAvailableLanguageModels();
+    const imageModels = await provider.getAvailableImageModels();
+
+    expect(languageModels).toEqual([
+      { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" },
+      { id: "custom_chat", name: "custom_chat", provider: "aki" }
+    ]);
+    expect(imageModels).toEqual([
+      {
+        id: "sdxl_img",
+        name: "SDXL",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      }
+    ]);
+  });
+
   it("textToImage decodes image bytes from the AKI response", async () => {
     const doApiRequest = vi.fn().mockResolvedValue({
       success: true,
@@ -371,6 +438,81 @@ describe("AkiProvider", () => {
     expect(doApiRequest).toHaveBeenCalledWith({
       chat_context: [{ role: "user", content: "what is this" }],
       image: "BASE64DATA"
+    });
+  });
+
+  it("normalizes data URI image content to raw base64", async () => {
+    const doApiRequest = vi
+      .fn()
+      .mockResolvedValue({ success: true, text: "ok" });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    await provider.generateMessage({
+      model: "llama3_chat",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image: {
+                data: "data:image/png;base64,QUJD",
+                mimeType: "image/png"
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(doApiRequest).toHaveBeenCalledWith({
+      chat_context: [{ role: "user", content: "" }],
+      image: "QUJD"
+    });
+  });
+
+  it("resolves image URI content to base64", async () => {
+    const doApiRequest = vi
+      .fn()
+      .mockResolvedValue({ success: true, text: "ok" });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+    const resolveUri = vi
+      .spyOn(
+        provider as unknown as { resolveUri: (uri: string) => Promise<string> },
+        "resolveUri"
+      )
+      .mockResolvedValue("data:image/png;base64,UkVT");
+
+    await provider.generateMessage({
+      model: "llama3_chat",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image: {
+                uri: "file:///tmp/image.png",
+                mimeType: "image/png"
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(resolveUri).toHaveBeenCalledWith("file:///tmp/image.png");
+    expect(doApiRequest).toHaveBeenCalledWith({
+      chat_context: [{ role: "user", content: "" }],
+      image: "UkVT"
     });
   });
 });

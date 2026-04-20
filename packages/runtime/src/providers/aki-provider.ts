@@ -86,6 +86,32 @@ function uint8ToBase64(data: Uint8Array): string {
   return Buffer.from(data).toString("base64");
 }
 
+function dataUriToBase64(uri: string): string {
+  const commaIndex = uri.indexOf(",");
+  if (commaIndex < 0) {
+    return uri;
+  }
+  const header = uri.slice(0, commaIndex);
+  const payload = uri.slice(commaIndex + 1);
+  if (header.includes(";base64")) {
+    return payload;
+  }
+  return Buffer.from(decodeURIComponent(payload), "utf8").toString("base64");
+}
+
+function isLikelyImageEndpoint(endpointId: string): boolean {
+  const normalized = endpointId.trim().toLowerCase();
+  const parts = normalized.split(/[_-]+/).filter(Boolean);
+  const tail = parts.length > 0 ? parts[parts.length - 1] : "";
+  return (
+    tail === "img" ||
+    tail === "image" ||
+    tail === "txt2img" ||
+    tail === "text2img" ||
+    tail === "img2img"
+  );
+}
+
 function loadAkiManifest(): AkiManifestEntry[] {
   if (akiManifestCache) {
     return akiManifestCache;
@@ -133,6 +159,14 @@ function manifestImageModels(): ImageModel[] {
     }));
 
   return models.length > 0 ? models : AKI_FALLBACK_IMAGE_MODELS;
+}
+
+function getManifestEntryMap(): Map<string, AkiManifestEntry> {
+  const map = new Map<string, AkiManifestEntry>();
+  for (const entry of loadAkiManifest()) {
+    map.set(entry.endpointId, entry);
+  }
+  return map;
 }
 
 function responseImageToBytes(images: ApiResponse["images"]): Uint8Array | null {
@@ -201,10 +235,10 @@ export class AkiProvider extends BaseProvider {
    * `tool` messages or multi-part content, so image parts are collapsed into
    * the single `image` field (last image wins) and text parts are joined.
    */
-  private toChatContext(messages: Message[]): {
+  private async toChatContext(messages: Message[]): Promise<{
     chatContext: ChatMessage[];
     image: string | undefined;
-  } {
+  }> {
     const chatContext: ChatMessage[] = [];
     let image: string | undefined;
 
@@ -228,11 +262,13 @@ export class AkiProvider extends BaseProvider {
           } else if (part.type === "image_url") {
             const data = part.image.data;
             if (typeof data === "string") {
-              image = data;
+              image = data.startsWith("data:")
+                ? dataUriToBase64(data)
+                : data;
             } else if (data instanceof Uint8Array) {
               image = uint8ToBase64(data);
             } else if (part.image.uri) {
-              image = part.image.uri;
+              image = await this.resolveImageUri(part.image.uri);
             }
           }
         }
@@ -245,19 +281,50 @@ export class AkiProvider extends BaseProvider {
     return { chatContext, image };
   }
 
-  private buildParams(args: {
+  private async buildParams(args: {
     messages: Message[];
     maxTokens?: number;
     temperature?: number;
     topP?: number;
-  }): ApiRequestParams {
-    const { chatContext, image } = this.toChatContext(args.messages);
+  }): Promise<ApiRequestParams> {
+    const { chatContext, image } = await this.toChatContext(args.messages);
     const params: ApiRequestParams = { chat_context: chatContext };
     if (image) params.image = image;
     if (args.maxTokens != null) params.max_gen_tokens = args.maxTokens;
     if (args.temperature != null) params.temperature = args.temperature;
     if (args.topP != null) params.top_p = args.topP;
     return params;
+  }
+
+  private async resolveImageUri(uri: string): Promise<string | undefined> {
+    const resolved = await this.resolveUri(uri);
+    if (resolved.startsWith("data:")) {
+      return dataUriToBase64(resolved);
+    }
+    if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
+      try {
+        const response = await fetch(resolved);
+        if (!response.ok) {
+          return undefined;
+        }
+        return Buffer.from(await response.arrayBuffer()).toString("base64");
+      } catch {
+        return undefined;
+      }
+    }
+    return resolved;
+  }
+
+  private async listDiscoveredEndpoints(): Promise<string[]> {
+    const client = this.makeClient("llama3_chat");
+    try {
+      const endpoints = await client.getEndpointList();
+      return endpoints.filter(
+        (id): id is string => typeof id === "string" && id.trim().length > 0
+      );
+    } catch {
+      return [];
+    }
   }
 
   async generateMessage(args: {
@@ -270,7 +337,7 @@ export class AkiProvider extends BaseProvider {
     topP?: number;
   }): Promise<Message> {
     const client = this.makeClient(args.model);
-    const params = this.buildParams(args);
+    const params = await this.buildParams(args);
     const response = await client.doApiRequest(params);
     if (!response.success) {
       throw new Error(
@@ -300,10 +367,12 @@ export class AkiProvider extends BaseProvider {
     topP?: number;
   }): AsyncGenerator<ProviderStreamItem> {
     const client = this.makeClient(args.model);
-    const params = this.buildParams(args);
+    const params = await this.buildParams(args);
 
     let emitted = "";
     let errorMessage: string | undefined;
+    let promptTokens: number | undefined;
+    let generatedTokens: number | undefined;
 
     for await (const update of client.getApiRequestGenerator(params)) {
       const u = update as Record<string, unknown>;
@@ -314,6 +383,15 @@ export class AkiProvider extends BaseProvider {
       const progressData = (u.progress_data ?? u.result_data) as
         | Record<string, unknown>
         | undefined;
+      const promptLength = progressData?.["prompt_length"] ?? u["prompt_length"];
+      if (typeof promptLength === "number") {
+        promptTokens = promptLength;
+      }
+      const generatedLength =
+        progressData?.["num_generated_tokens"] ?? u["num_generated_tokens"];
+      if (typeof generatedLength === "number") {
+        generatedTokens = Math.max(generatedTokens ?? 0, generatedLength);
+      }
       const text =
         typeof progressData?.["text"] === "string"
           ? (progressData["text"] as string)
@@ -326,6 +404,12 @@ export class AkiProvider extends BaseProvider {
     }
 
     if (errorMessage) throw new Error(errorMessage);
+    if (typeof generatedTokens === "number") {
+      this.trackUsage(args.model, {
+        inputTokens: promptTokens ?? 0,
+        outputTokens: generatedTokens
+      });
+    }
     yield { type: "chunk", content: "", done: true } as Chunk;
   }
 
@@ -417,10 +501,58 @@ export class AkiProvider extends BaseProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    return manifestLanguageModels();
+    const endpoints = await this.listDiscoveredEndpoints();
+    const manifestById = getManifestEntryMap();
+    const models = endpoints
+      .filter((id) => {
+        const entry = manifestById.get(id);
+        if (entry?.outputType === "image") {
+          return false;
+        }
+        if (entry?.outputType === "text") {
+          return true;
+        }
+        return !isLikelyImageEndpoint(id);
+      })
+      .map((id) => {
+        const entry = manifestById.get(id);
+        return {
+          id,
+          name: entry?.title ?? id,
+          provider: "aki" as const
+        };
+      });
+
+    return models.length > 0 ? models : manifestLanguageModels();
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return manifestImageModels();
+    const endpoints = await this.listDiscoveredEndpoints();
+    const manifestById = getManifestEntryMap();
+    const models = endpoints
+      .filter((id) => {
+        const entry = manifestById.get(id);
+        if (entry?.outputType === "image") {
+          return true;
+        }
+        if (entry?.outputType === "text") {
+          return false;
+        }
+        return isLikelyImageEndpoint(id);
+      })
+      .map((id) => {
+        const entry = manifestById.get(id);
+        return {
+          id,
+          name: entry?.title ?? id,
+          provider: "aki" as const,
+          supportedTasks:
+            entry?.supportedTasks && entry.supportedTasks.length > 0
+              ? entry.supportedTasks
+              : undefined
+        };
+      });
+
+    return models.length > 0 ? models : manifestImageModels();
   }
 }
