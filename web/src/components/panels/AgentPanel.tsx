@@ -412,6 +412,21 @@ const AgentPanel: React.FC = () => {
     [resumeSession]
   );
 
+  const handleModelSelectChange = useCallback(
+    async (nextModel: string) => {
+      if (nextModel === model) {
+        return;
+      }
+
+      setModel(nextModel);
+
+      if (hasRunningSession) {
+        await startNewSession();
+      }
+    },
+    [hasRunningSession, model, setModel, startNewSession]
+  );
+
   // Map store status to ChatView status
   const chatStatus = useMemo(() => {
     switch (status) {
@@ -893,7 +908,9 @@ const AgentPanel: React.FC = () => {
             <AgentModelSelect
               value={model}
               options={availableModels}
-              onChange={setModel}
+              onChange={(nextModel) => {
+                void handleModelSelectChange(nextModel);
+              }}
               disabled={hasBusySession || availableModels.length === 0}
               loading={modelsLoading}
             />

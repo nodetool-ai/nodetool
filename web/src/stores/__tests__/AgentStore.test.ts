@@ -1,4 +1,5 @@
 import type { Message } from "../ApiTypes";
+import type { AgentModelDescriptor } from "../AgentStore";
 import { EventEmitter } from "eventemitter3";
 import { waitFor } from "@testing-library/react";
 
@@ -282,5 +283,70 @@ describe("AgentStore", () => {
     await waitFor(() => {
       expect(fakeClient.listModels).not.toHaveBeenCalled();
     });
+  });
+
+  it("ignores stale model responses from older loadModels requests", async () => {
+    const useAgentStore = await loadStore();
+    let resolveFirst: ((models: AgentModelDescriptor[]) => void) | null = null;
+    let resolveSecond: ((models: AgentModelDescriptor[]) => void) | null = null;
+
+    fakeClient.listModels
+      .mockImplementationOnce(
+        () =>
+          new Promise<AgentModelDescriptor[]>((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<AgentModelDescriptor[]>((resolve) => {
+            resolveSecond = resolve;
+          })
+      );
+
+    useAgentStore.getState().setWorkspaceContext("workspace-1", "/tmp/workspace-1");
+    useAgentStore.getState().setWorkspaceContext("workspace-2", "/tmp/workspace-2");
+
+    resolveSecond?.([
+      {
+        id: "claude-new",
+        label: "Claude New",
+        provider: "claude",
+        isDefault: true
+      }
+    ]);
+
+    await waitFor(() => {
+      expect(useAgentStore.getState().model).toBe("claude-new");
+      expect(useAgentStore.getState().availableModels).toEqual([
+        {
+          id: "claude-new",
+          label: "Claude New",
+          provider: "claude",
+          isDefault: true
+        }
+      ]);
+      expect(useAgentStore.getState().modelsLoading).toBe(false);
+    });
+
+    resolveFirst?.([
+      {
+        id: "claude-old",
+        label: "Claude Old",
+        provider: "claude",
+        isDefault: true
+      }
+    ]);
+    await Promise.resolve();
+
+    expect(useAgentStore.getState().model).toBe("claude-new");
+    expect(useAgentStore.getState().availableModels).toEqual([
+      {
+        id: "claude-new",
+        label: "Claude New",
+        provider: "claude",
+        isDefault: true
+      }
+    ]);
   });
 });

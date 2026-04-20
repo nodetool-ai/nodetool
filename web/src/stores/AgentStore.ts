@@ -148,6 +148,8 @@ function replaceSessionHistoryId(
   return [replacement, ...filtered].slice(0, 50);
 }
 
+let latestModelsLoadRequestId = 0;
+
 const useAgentStore = create<AgentState>((set, get) => ({
   status: "disconnected",
   messages: [],
@@ -176,6 +178,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
   loadModels: async () => {
     const { provider, workspacePath } = get();
+    const requestId = ++latestModelsLoadRequestId;
     set({ modelsLoading: true });
     try {
       const client = getAgentSocketClient();
@@ -190,16 +193,32 @@ const useAgentStore = create<AgentState>((set, get) => ({
       // Re-read state at set time. If the user (or another loadModels call)
       // selected a model while this request was in flight, preserve it as
       // long as it's still valid under the new provider's catalog.
-      set((state) => ({
-        availableModels: models,
-        model: models.some((item) => item.id === state.model)
-          ? state.model
-          : defaultModel?.id ?? state.model,
-        modelsLoading: false
-      }));
+      set((state) => {
+        const isLatestRequest = requestId === latestModelsLoadRequestId;
+        const contextUnchanged =
+          state.provider === provider && state.workspacePath === workspacePath;
+
+        if (!isLatestRequest || !contextUnchanged) {
+          return state;
+        }
+
+        return {
+          availableModels: models,
+          model: models.some((item) => item.id === state.model)
+            ? state.model
+            : defaultModel?.id ?? state.model,
+          modelsLoading: false
+        };
+      });
     } catch (error) {
       log.error("Failed to load agent models:", error);
-      set({ modelsLoading: false });
+      set((state) => {
+        if (requestId !== latestModelsLoadRequestId) {
+          return state;
+        }
+
+        return { modelsLoading: false };
+      });
     }
   },
 
