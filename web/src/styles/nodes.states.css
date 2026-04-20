@@ -9,13 +9,14 @@
     var(--palette-text-primary)
   ) !important;
   filter: drop-shadow(
-    0 0 6px
-      color-mix(
-        in srgb,
-        var(--node-primary-color, var(--palette-primary-main)) 50%,
-        transparent
-      )
-  );
+      0 0 10px
+        color-mix(
+          in srgb,
+          var(--node-primary-color, var(--palette-primary-main)) 22%,
+          transparent
+        )
+    )
+    drop-shadow(0 14px 24px rgb(0 0 0 / 0.18));
 }
 
 .react-flow__node:not(.selected) {
@@ -34,13 +35,14 @@
 }
 
 .react-flow__node:hover:not(.selected) {
-  outline: 2px solid color-mix(
+  outline: 1px solid color-mix(
     in srgb,
-    var(--c_node_header_bg) 60%,
-    var(--palette-primary-main) 40%
+    var(--c_node_header_bg) 58%,
+    var(--palette-primary-main) 42%
   ) !important;
-  outline-offset: 1px;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+  outline-offset: 0;
+  transform: translateY(-1px);
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.18));
 }
 
 /* Hover for grouped nodes keeps group header color */

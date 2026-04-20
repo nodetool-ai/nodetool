@@ -146,20 +146,26 @@ const CollectionItem = ({
   }, []);
 
   const listItemSx = useMemo(() => ({
-    borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+    borderBottom: "1px solid",
+    borderColor: "divider",
+    backgroundColor: "transparent",
     ...(dragOverCollection === collection.name && {
-      backgroundColor: "rgba(var(--mui-palette-primary-mainChannel) / 0.08)",
+      backgroundColor: "action.hover",
       borderStyle: "dashed",
       borderWidth: 2,
       borderColor: "primary.main",
-      borderRadius: 1,
+      borderRadius: 2,
       m: 0.5,
       width: "calc(100% - 8px)",
+      boxShadow: "0 0 0 1px rgb(var(--mui-palette-primary-mainChannel) / 0.08)",
       "& > :not(.drop-zone-overlay)": {
-        opacity: 0.1,
+        opacity: 0.12,
         filter: "blur(1px)"
       }
     }),
+    "&:hover": {
+      backgroundColor: "action.hover"
+    },
     transition: "all 0.2s ease-in-out",
     display: "flex",
     flexDirection: "column",
@@ -221,7 +227,7 @@ const CollectionItem = ({
               alignItems: "center",
               gap: 1.5,
               pointerEvents: "none",
-              textShadow: "0 0 10px rgba(var(--mui-palette-primary-mainChannel) / 0.2)"
+              textShadow: "0 0 10px rgb(var(--mui-palette-primary-mainChannel) / 0.2)"
             }}
           >
             <UploadFileIcon sx={{ fontSize: "1.5rem" }} />
@@ -235,7 +241,7 @@ const CollectionItem = ({
             weight={600}
             truncate
             sx={{
-              color: "primary.main",
+              color: "text.primary",
               fontSize: "1.1rem",
               flexShrink: 0,
               maxWidth: "150px"
@@ -304,7 +310,12 @@ const CollectionItem = ({
                 flexShrink: 1,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
+                whiteSpace: "nowrap",
+                borderRadius: 2,
+                "&:hover": {
+                  backgroundColor: "action.hover",
+                  color: "text.primary"
+                }
               }}
               onClick={handleEditWorkflow}
             >

@@ -324,6 +324,8 @@ export const createNodeStore = (
 
         let lastNodesForSelectionCount: Node<NodeData>[] | null = null;
         let lastSelectionCount = 0;
+        let lastNodesForSelection: Node<NodeData>[] | null = null;
+        let lastSelectedNodes: Node<NodeData>[] = [];
 
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
@@ -379,8 +381,15 @@ export const createNodeStore = (
             );
             return { nodes, edges };
           },
-          getSelectedNodes: (): Node<NodeData>[] =>
-            get().nodes.filter((node) => node.selected),
+          getSelectedNodes: (): Node<NodeData>[] => {
+            const nodes = get().nodes;
+            if (nodes === lastNodesForSelection) {
+              return lastSelectedNodes;
+            }
+            lastNodesForSelection = nodes;
+            lastSelectedNodes = nodes.filter((node) => node.selected);
+            return lastSelectedNodes;
+          },
           getSelectedNodeCount: (): number => {
             const nodes = get().nodes;
             if (nodes === lastNodesForSelectionCount) {

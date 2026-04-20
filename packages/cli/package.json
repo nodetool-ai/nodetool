@@ -32,6 +32,8 @@
     "@nodetool/chat": "*",
     "@nodetool/protocol": "*",
     "@nodetool/runtime": "*",
+    "@nodetool/sandbox": "*",
+    "@nodetool/sandbox-tools": "*",
     "@nodetool/security": "*",
     "chalk": "^5.3.0",
     "ws": "^8.18.3",

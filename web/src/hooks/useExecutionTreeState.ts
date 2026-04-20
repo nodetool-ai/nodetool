@@ -23,13 +23,29 @@ import type { StepToolCall } from "../stores/GlobalChatStore";
 export type StepStatus = "waiting" | "running" | "completed" | "failed";
 export type TaskStatus = "waiting" | "running" | "completed" | "failed";
 
+export interface StepToolCallEntry {
+  id?: string;
+  name: string;
+  args: Record<string, unknown>;
+  result?: unknown;
+  message?: string;
+}
+
 export interface StepState {
   id: string;
   name: string;
   status: StepStatus;
+  /** Full step instructions as planned — available from task_update. */
+  instructions?: string;
+  /** Last-seen tool name/args (kept for the one-line tree row). */
   toolName?: string;
   toolArgs?: string;
+  /** Truncated preview shown inline in the tree. */
   output: string;
+  /** Full step result (unbounded). Used by the inspector. */
+  rawResult?: unknown;
+  /** All tool calls observed for this step, in order. */
+  toolCalls: StepToolCallEntry[];
   error?: string;
   startedAt?: number;
   duration?: number;
@@ -156,7 +172,9 @@ export function buildExecutionTreeState(
             id: s.id ?? "",
             name: s.instructions?.slice(0, 80) ?? s.id ?? "",
             status: "waiting" as StepStatus,
-            output: ""
+            instructions: s.instructions ?? undefined,
+            output: "",
+            toolCalls: []
           }));
           const task: TaskState = {
             id: taskId,
@@ -187,7 +205,9 @@ export function buildExecutionTreeState(
               name: tu.step?.instructions?.slice(0, 80) ?? stepId,
               status: "running",
               startedAt: Date.now(),
-              output: ""
+              instructions: tu.step?.instructions ?? undefined,
+              output: "",
+              toolCalls: []
             });
           }
           task.status = "running";
@@ -237,10 +257,26 @@ export function buildExecutionTreeState(
               return `${k}: ${val.slice(0, 40)}`;
             })
             .join(", ");
+          const prev = task.steps[stepIdx];
+          const callId = tc.tool_call_id ?? undefined;
+          const existingIdx = callId
+            ? prev.toolCalls.findIndex((c) => c.id === callId)
+            : -1;
+          const entry: StepToolCallEntry = {
+            id: callId,
+            name: tc.name ?? "",
+            args: (tc.args ?? {}) as Record<string, unknown>,
+            message: tc.message ?? undefined
+          };
+          const nextCalls =
+            existingIdx !== -1
+              ? prev.toolCalls.map((c, i) => (i === existingIdx ? { ...c, ...entry } : c))
+              : [...prev.toolCalls, entry];
           task.steps[stepIdx] = {
-            ...task.steps[stepIdx],
+            ...prev,
             toolName: tc.name,
             toolArgs: argsStr,
+            toolCalls: nextCalls,
             status: "running"
           };
           break;
@@ -261,11 +297,21 @@ export function buildExecutionTreeState(
             typeof sr.result === "string"
               ? sr.result
               : JSON.stringify(sr.result ?? "");
+          const rawErr: unknown = sr.error;
+          const errorText =
+            rawErr == null
+              ? undefined
+              : typeof rawErr === "string"
+                ? rawErr
+                : rawErr instanceof Error
+                  ? rawErr.message
+                  : JSON.stringify(rawErr);
           task.steps[stepIdx] = {
             ...task.steps[stepIdx],
             output: result.slice(0, 200),
-            status: sr.error ? "failed" : "completed",
-            error: sr.error ?? undefined
+            rawResult: sr.result,
+            status: errorText ? "failed" : "completed",
+            error: errorText
           };
           break;
         }

@@ -36,10 +36,10 @@ const styles = (theme: Theme) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      padding: "0.5em 0",
-      background: "transparent",
-      backdropFilter: "blur(4px)",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+      padding: "0.75em 0 0.65em",
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.background.defaultChannel} / 0.92), rgb(${theme.vars.palette.background.defaultChannel} / 0.82))`,
+      backdropFilter: "blur(12px)",
+      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
     },
 
     ".status": {
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.5em 0.75em 0.75em",
+      padding: "0.75em 0.75em 1em",
       flex: 1,
       overflow: "hidden"
     },
@@ -84,6 +84,7 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [toolsExpanded, setToolsExpanded] = useState(false);
   const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
   const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
@@ -309,6 +310,8 @@ const WorkflowList = () => {
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}
+            compact={!toolsExpanded}
+            onExpand={() => setToolsExpanded(true)}
           />
         </FlexRow>
         <div className="status">

@@ -16,16 +16,16 @@ export const createMediaComposerStyles = (theme: Theme) =>
       width: "100%",
       borderRadius: 22,
       padding: "14px 16px 12px",
-      background: "rgba(20, 20, 20, 0.88)",
+      background: theme.vars.palette.background.paper,
       backdropFilter: "blur(16px)",
-      border: "1px solid rgba(255,255,255,0.08)",
+      border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 10px 40px rgba(0,0,0,0.45)",
       display: "flex",
       flexDirection: "column",
       gap: 10,
       transition: "border-color 180ms ease, box-shadow 180ms ease",
       "&:focus-within": {
-        borderColor: "rgba(255,255,255,0.16)"
+        borderColor: theme.vars.palette.action.focus
       },
       "&.dragging": {
         borderColor: theme.vars.palette.primary.main
@@ -87,7 +87,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       cursor: "pointer",
       transition: "background-color 140ms ease",
       "&:hover:not(:disabled)": {
-        backgroundColor: "rgba(255,255,255,0.08)"
+        backgroundColor: theme.vars.palette.action.hover
       },
       "&:disabled": {
         opacity: 0.4,
@@ -103,8 +103,8 @@ export const createMediaComposerStyles = (theme: Theme) =>
       height: 36,
       padding: "0 20px",
       borderRadius: 999,
-      background: "linear-gradient(135deg, #4a7bff 0%, #6e64ff 100%)",
-      color: "#ffffff",
+      background: `linear-gradient(135deg, ${theme.vars.palette.primary.main} 0%, ${theme.vars.palette.primary.light} 100%)`,
+      color: theme.vars.palette.primary.contrastText,
       border: "none",
       cursor: "pointer",
       fontFamily: theme.fontFamily1,

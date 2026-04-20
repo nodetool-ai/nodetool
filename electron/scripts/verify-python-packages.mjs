@@ -2,17 +2,11 @@
 /**
  * Pre-build registry verification.
  *
- * Ensures every Python package the Electron app pins to its own version is
- * actually published on the NodeTool registry BEFORE we build/ship installers.
- *
- * The Electron installer pins `nodetool-core==<app_version>` (and any other
- * required packages) at install time. If those wheels do not exist on the
- * registry, every fresh install ends up with a stale older Python package
- * that is incompatible with the bundled JS — leading to silent failures like
- * "Python bridge failed to start: unrecognized arguments: --stdio".
- *
- * This script is wired into the `build` npm script so a release build cannot
- * complete unless all matching wheels are published.
+ * Ensures the NodeTool registry has at least one published `nodetool-core`
+ * wheel that satisfies `nodetool-core >= MIN_NODETOOL_CORE_VERSION` (read
+ * from packages/runtime/src/bridge-protocol.ts). Without this, the Electron
+ * installer would pin to a constraint that resolves to nothing, leaving
+ * users with a stale, incompatible Python environment.
  *
  * Skip with `SKIP_PYTHON_REGISTRY_CHECK=1` when iterating locally.
  */
@@ -22,32 +16,114 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ELECTRON_DIR = join(__dirname, "..");
+const REPO_ROOT = join(ELECTRON_DIR, "..");
+const BRIDGE_PROTOCOL_TS = join(
+  REPO_ROOT,
+  "packages",
+  "runtime",
+  "src",
+  "bridge-protocol.ts"
+);
 
 const REGISTRY_INDEX_URL =
   "https://nodetool-ai.github.io/nodetool-registry/simple/";
 
 /**
- * Packages whose version must match the Electron app version exactly.
- * Keep in sync with REQUIRED_PYTHON_PACKAGES in electron/src/python.ts.
+ * Packages whose minimum published version must satisfy a constraint.
+ * `min` is a PEP 440 string read from a single source of truth.
  */
-const REQUIRED_PACKAGES = ["nodetool-core"];
-
-/**
- * Mirrors convertToPep440Version() in electron/src/python.ts.
- *  "0.7.0-rc.8" -> "0.7.0rc8"
- */
-function convertToPep440Version(npmVersion) {
-  return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
+function getRequiredPackages() {
+  return [
+    {
+      name: "nodetool-core",
+      min: readMinNodetoolCoreVersion()
+    }
+  ];
 }
 
-function readAppVersion() {
-  const pkgPath = join(ELECTRON_DIR, "package.json");
-  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
-  if (typeof pkg.version !== "string" || pkg.version.length === 0) {
-    throw new Error(`Cannot read version from ${pkgPath}`);
+function readMinNodetoolCoreVersion() {
+  const source = readFileSync(BRIDGE_PROTOCOL_TS, "utf8");
+  const match = source.match(
+    /MIN_NODETOOL_CORE_VERSION\s*=\s*"([^"]+)"/
+  );
+  if (!match) {
+    throw new Error(
+      `Cannot find MIN_NODETOOL_CORE_VERSION in ${BRIDGE_PROTOCOL_TS}`
+    );
   }
-  return pkg.version;
+  return match[1];
 }
+
+// ── PEP 440 lite comparator ─────────────────────────────────────────────
+//
+// Handles the version shapes nodetool-core actually publishes:
+//   1.2.3
+//   1.2.3rc4   1.2.3a4   1.2.3b4
+//   1.2.3.post1
+//   1.2.3.dev1
+// Pre-releases sort before the matching final release. Post sorts after.
+//
+// This is intentionally minimal — full PEP 440 has many edge cases we
+// do not need.
+
+const PRE_RANK = { dev: 0, a: 1, b: 2, rc: 3, "": 4, post: 5 };
+
+function parsePep440(version) {
+  const m = version
+    .toLowerCase()
+    .match(
+      /^(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:(a|b|rc)\.?(\d+))?(?:\.(post|dev)(\d+))?$/
+    );
+  if (!m) {
+    throw new Error(`Unsupported version string for comparison: ${version}`);
+  }
+  const [, major, minor, patch, preTag, preNum, postOrDev, postOrDevNum] = m;
+  let preKey = "";
+  let preValue = 0;
+  if (preTag) {
+    preKey = preTag;
+    preValue = Number(preNum);
+  } else if (postOrDev === "dev") {
+    preKey = "dev";
+    preValue = Number(postOrDevNum);
+  }
+  let postKey = "";
+  let postValue = 0;
+  if (postOrDev === "post") {
+    postKey = "post";
+    postValue = Number(postOrDevNum);
+  }
+  return {
+    release: [Number(major), Number(minor ?? 0), Number(patch ?? 0)],
+    preKey,
+    preValue,
+    postKey,
+    postValue
+  };
+}
+
+function comparePep440(a, b) {
+  const av = parsePep440(a);
+  const bv = parsePep440(b);
+  for (let i = 0; i < 3; i += 1) {
+    if (av.release[i] !== bv.release[i]) {
+      return av.release[i] - bv.release[i];
+    }
+  }
+  // Same release segment — pre-release info breaks the tie.
+  // Treat "no pre tag" as PRE_RANK[""] = 4 so it sorts after rc/a/b/dev
+  // and before post.
+  const aRank = PRE_RANK[av.preKey] ?? 4;
+  const bRank = PRE_RANK[bv.preKey] ?? 4;
+  if (aRank !== bRank) return aRank - bRank;
+  if (av.preValue !== bv.preValue) return av.preValue - bv.preValue;
+  // Post segment last.
+  const aPost = av.postKey === "post" ? av.postValue + 1 : 0;
+  const bPost = bv.postKey === "post" ? bv.postValue + 1 : 0;
+  return aPost - bPost;
+}
+
+// ── Registry I/O ─────────────────────────────────────────────────────────
 
 async function fetchRegistryIndex(packageName) {
   const url = `${REGISTRY_INDEX_URL}${packageName}/`;
@@ -58,38 +134,69 @@ async function fetchRegistryIndex(packageName) {
     return { url, status: 404, body: "" };
   }
   if (!response.ok) {
-    throw new Error(
-      `Registry returned HTTP ${response.status} for ${url}`
-    );
+    throw new Error(`Registry returned HTTP ${response.status} for ${url}`);
   }
   const body = await response.text();
   return { url, status: response.status, body };
 }
 
-function indexHasVersion(body, packageName, pep440Version) {
+function extractWheelVersions(body, packageName) {
+  // Filenames look like: nodetool_core-0.6.3rc47-py3-none-any.whl
   const normalized = packageName.replaceAll("-", "_");
-  const needle = `${normalized}-${pep440Version}-`;
-  return body.includes(needle);
+  const re = new RegExp(`${normalized}-([^-]+)-`, "g");
+  const versions = new Set();
+  let match;
+  while ((match = re.exec(body)) !== null) {
+    versions.add(match[1]);
+  }
+  return [...versions];
 }
 
-async function verifyPackage(packageName, pep440Version) {
-  const { url, status, body } = await fetchRegistryIndex(packageName);
+async function verifyPackage(pkg) {
+  const { name, min } = pkg;
+  const { url, status, body } = await fetchRegistryIndex(name);
   if (status === 404) {
     return {
       ok: false,
-      reason: `Package "${packageName}" not found on registry (${url}).`
+      reason: `Package "${name}" not found on registry (${url}).`
     };
   }
-  if (!indexHasVersion(body, packageName, pep440Version)) {
+  const versions = extractWheelVersions(body, name);
+  if (versions.length === 0) {
+    return {
+      ok: false,
+      reason: `No wheels for "${name}" listed at ${url}.`
+    };
+  }
+  const satisfying = versions.filter((v) => {
+    try {
+      return comparePep440(v, min) >= 0;
+    } catch {
+      return false;
+    }
+  });
+  if (satisfying.length === 0) {
+    const latest = versions
+      .slice()
+      .sort((a, b) => {
+        try {
+          return comparePep440(b, a);
+        } catch {
+          return 0;
+        }
+      })[0];
     return {
       ok: false,
       reason:
-        `Wheel "${packageName}==${pep440Version}" is missing from ${url}. ` +
-        `Publish the matching Python package release before building this app version.`
+        `No wheel for "${name}>=${min}" on ${url} (latest published: ${latest}). ` +
+        `Publish a matching nodetool-core release before building this app version.`
     };
   }
-  return { ok: true };
+  const best = satisfying.sort((a, b) => comparePep440(b, a))[0];
+  return { ok: true, satisfying: best };
 }
+
+// ── Main ─────────────────────────────────────────────────────────────────
 
 async function main() {
   if (process.env.SKIP_PYTHON_REGISTRY_CHECK === "1") {
@@ -99,21 +206,21 @@ async function main() {
     return;
   }
 
-  const appVersion = readAppVersion();
-  const pep440Version = convertToPep440Version(appVersion);
+  const required = getRequiredPackages();
   console.log(
-    `[verify-python-packages] App version: ${appVersion} (PEP 440: ${pep440Version})`
+    `[verify-python-packages] Checking required Python package constraints:`
   );
+  for (const pkg of required) {
+    console.log(`  - ${pkg.name} >= ${pkg.min}`);
+  }
 
   const failures = [];
-  for (const packageName of REQUIRED_PACKAGES) {
-    process.stdout.write(
-      `[verify-python-packages] Checking ${packageName}==${pep440Version} ... `
-    );
+  for (const pkg of required) {
+    process.stdout.write(`[verify-python-packages] ${pkg.name} >= ${pkg.min} ... `);
     try {
-      const result = await verifyPackage(packageName, pep440Version);
+      const result = await verifyPackage(pkg);
       if (result.ok) {
-        console.log("OK");
+        console.log(`OK (best match: ${result.satisfying})`);
       } else {
         console.log("MISSING");
         failures.push(result.reason);
@@ -121,9 +228,7 @@ async function main() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.log("ERROR");
-      failures.push(
-        `Failed to query registry for "${packageName}": ${message}`
-      );
+      failures.push(`Failed to check "${pkg.name}": ${message}`);
     }
   }
 
@@ -137,8 +242,10 @@ async function main() {
     }
     console.error("");
     console.error(
-      "Hint: publish the matching Python package release(s), or set " +
-        "SKIP_PYTHON_REGISTRY_CHECK=1 for local non-release builds."
+      "Hint: publish a matching nodetool-core release that bumps " +
+        "BRIDGE_PROTOCOL_VERSION (or update MIN_NODETOOL_CORE_VERSION in " +
+        "packages/runtime/src/bridge-protocol.ts to a published version). " +
+        "Set SKIP_PYTHON_REGISTRY_CHECK=1 for local non-release builds."
     );
     process.exit(1);
   }
@@ -150,3 +257,6 @@ main().catch((error) => {
   console.error("[verify-python-packages] Unexpected error:", error);
   process.exit(1);
 });
+
+// Tests use the comparator directly; export when imported as a module.
+export { parsePep440, comparePep440 };

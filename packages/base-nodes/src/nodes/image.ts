@@ -3,6 +3,7 @@ import type { ImageRef } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 type ImageRefLike = {
@@ -45,7 +46,14 @@ async function imageBytesAsync(image: unknown, context?: ProcessingContext): Pro
 }
 
 function filePath(uriOrPath: string): string {
-  if (uriOrPath.startsWith("file://")) return uriOrPath.slice("file://".length);
+  if (uriOrPath.startsWith("file://")) {
+    try {
+      return fileURLToPath(new URL(uriOrPath));
+    } catch {
+      // Fallback for non-standard URIs like file://C:\path
+      return uriOrPath.slice("file://".length);
+    }
+  }
   return uriOrPath;
 }
 
@@ -256,7 +264,16 @@ export class LoadImageFolderNode extends BaseNode {
   }
 
   private async *_loadImages(): AsyncGenerator<Record<string, unknown>> {
-    const folder = String(this.folder ?? ".");
+    const raw = this.folder;
+    const folder =
+      typeof raw === "string" && raw.length > 0
+        ? raw.startsWith("file:")
+          ? filePath(raw)
+          : raw
+        : typeof raw === "object" && raw !== null && typeof (raw as Record<string, unknown>).uri === "string" && ((raw as Record<string, unknown>).uri as string).length > 0
+          ? filePath((raw as Record<string, unknown>).uri as string)
+          : "";
+    if (!folder) return;
     const extensions: string[] = Array.isArray(this.extensions)
       ? this.extensions.map((e: string) => String(e).toLowerCase())
       : [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tiff"];
@@ -275,7 +292,13 @@ export class LoadImageFolderNode extends BaseNode {
 
     const files: { fullPath: string; name: string }[] = [];
     const collect = async (dir: string): Promise<void> => {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
+      let entries;
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        // directory does not exist or is not accessible
+        return;
+      }
       for (const entry of entries) {
         if (entry.isDirectory() && this.include_subdirectories) {
           await collect(path.join(dir, entry.name));

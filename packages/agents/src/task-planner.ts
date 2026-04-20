@@ -68,6 +68,14 @@ STEP INSTRUCTIONS:
 - Bad: "Research NLP and write a summary including main ideas and relevance."
 - Good: "Use google_search to find recent NLP advances. Summarize key findings in 2-3 sentences."
 
+STEP GRANULARITY (HARD RULE):
+- One step = one focused operation that a sub-agent can finish in ~3 LLM turns.
+  Typical shapes: a single search + summarize, a single image/video render, a single file write.
+- NEVER combine N independent items into one step (e.g. "research 3 games and render an image for each"
+  is 6 steps minimum, not 1). Fan out into N parallel steps/tasks, then an aggregation step.
+- If a step would need more than 2 tool calls of different kinds, split it.
+- Prefer many small parallel steps over a few wide ones — steps are iteration-capped, parallelism is cheap.
+
 OUTPUT SCHEMAS:
 - Include output_schema (as a JSON schema string) for steps that produce structured data.
 - The aggregation step MUST have an output_schema matching the plan's overall output schema.

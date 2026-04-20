@@ -23,6 +23,7 @@ import type { Message } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
 import { processChat } from "@nodetool/chat";
 import { Agent } from "@nodetool/agents";
+import type { Tool } from "@nodetool/agents/tool";
 import { createProvider, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
 import { getSecret } from "@nodetool/models";
@@ -33,6 +34,8 @@ export interface StdinModeOptions {
   workspaceDir: string;
   agentMode?: boolean;
   wsUrl?: string;
+  /** Pre-built tools (e.g. from --sandbox) appended to the Agent's tool list. */
+  extraTools?: Tool[];
 }
 
 interface SlashCommand {
@@ -233,7 +236,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         objective: trimmed,
         provider: prov,
         model: opts.model,
-        tools: [],
+        tools: opts.extraTools ?? [],
         outputFormat: "markdown",
         maxStepIterations: 20
       });
@@ -273,8 +276,8 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       if (taskResult !== null) {
         process.stdout.write(taskResult);
       }
-    } else if (wsClient) {
-      // --- Regular chat via WebSocket ---
+    } else if (wsClient && !opts.extraTools?.length) {
+      // --- Regular chat via WebSocket (server handles everything) ---
       for await (const event of wsClient.chat(
         trimmed,
         threadId,
@@ -308,6 +311,27 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           break;
         }
       }
+    } else if (wsClient && opts.extraTools?.length) {
+      // --- Regular chat via WebSocket inference + local sandbox tool execution ---
+      const prov = new WebSocketProvider(wsClient, opts.model, opts.provider);
+      await processChat({
+        userInput: trimmed,
+        messages: chatHistory,
+        model: opts.model,
+        provider: prov,
+        context: new ProcessingContext({
+          jobId: crypto.randomUUID(),
+          userId: "1",
+          workspaceDir: opts.workspaceDir,
+          secretResolver: getSecret
+        }),
+        tools: opts.extraTools,
+        callbacks: {
+          onChunk: (text) => {
+            process.stdout.write(text);
+          }
+        }
+      });
     } else {
       // --- Regular chat via direct provider ---
       await processChat({
@@ -321,7 +345,7 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           workspaceDir: opts.workspaceDir,
           secretResolver: getSecret
         }),
-        tools: [],
+        tools: opts.extraTools ?? [],
         callbacks: {
           onChunk: (text) => {
             process.stdout.write(text);

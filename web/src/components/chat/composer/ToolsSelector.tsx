@@ -7,11 +7,9 @@ import {
   Button,
   ListItemIcon,
   ListItemText,
-  Dialog,
-  DialogContent,
-  DialogTitle
+  DialogContent
 } from "@mui/material";
-import { Tooltip, Text, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
+import { Dialog, Tooltip, Text, Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 import {
   MailOutline,
@@ -337,7 +335,7 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
         className="tools-selector-dialog"
         open={isOpen}
         onClose={handleClose}
-        aria-labelledby="tools-selector-title"
+        title="Tools"
         slotProps={{
           backdrop: {
             style: { backdropFilter: "blur(20px)" }
@@ -354,17 +352,6 @@ const ToolsSelector: React.FC<ToolsSelectorProps> = ({ value, onChange }) => {
           }
         })}
       >
-        <DialogTitle className="dialog-title">
-          <Text size="big" id="tools-selector-title">
-            Tools
-          </Text>
-          <ToolbarIconButton
-            tooltip="Close"
-            onClick={handleClose}
-            className="close-button"
-            icon={<Build />}
-          />
-        </DialogTitle>
         <DialogContent sx={{ background: "transparent", pt: 2 }}>
           <div className="tools-grid">
             {TOOL_CATEGORIES.map((category) => (

@@ -289,13 +289,20 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             title="Open workflow"
             density="compact"
             sx={{
-              padding: "2px 10px",
+              padding: "3px 10px",
               minWidth: "unset",
               fontSize: "0.7rem",
               fontWeight: 600,
               textTransform: "none",
               lineHeight: 1.4,
-              borderRadius: "var(--rounded-sm)"
+              borderRadius: "var(--rounded-sm)",
+              boxShadow: "none",
+              background: "linear-gradient(180deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.03))",
+              border: "1px solid rgb(255 255 255 / 0.08)",
+              "&:hover": {
+                boxShadow: "none",
+                background: "linear-gradient(180deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.05))"
+              }
             }}
           >
             OPEN

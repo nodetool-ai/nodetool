@@ -44,25 +44,26 @@ const listStyles = (theme: Theme) =>
     ".workflow": {
       flex: 1,
       height: "100%",
-      padding: "4px 8px 4px 12px",
+      padding: "6px 10px 6px 12px",
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      margin: "0",
+      margin: "0 0 6px",
       width: "100%",
       cursor: "pointer",
       outline: "none",
-      border: "none",
-      borderRadius: 3,
-      transition: "background 0.18s ease",
+      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
+      borderRadius: 10,
+      transition: "background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease",
       "& .MuiCheckbox-root": {
         margin: "0 0.75em 0 0",
         padding: 0
       },
-      position: "relative"
+      position: "relative",
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.028), transparent)`
     },
     ".workflow.alternate": {
-      backgroundColor: `${theme.vars.palette.grey[600]}20`
+      backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.015)`
     },
     ".workflow.current .name": {
       color: "var(--palette-primary-light)",
@@ -72,7 +73,10 @@ const listStyles = (theme: Theme) =>
       fontSize: "1em"
     },
     ".workflow:hover": {
-      backgroundColor: theme.vars.palette.grey[600]
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.primary.mainChannel} / 0.09), rgb(${theme.vars.palette.common.whiteChannel} / 0.02))`,
+      borderColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
+      boxShadow: "0 10px 24px rgb(0 0 0 / 0.12)",
+      transform: "translateY(-1px)"
     },
     ".workflow img": {
       width: "100%",
@@ -89,7 +93,7 @@ const listStyles = (theme: Theme) =>
     ".name": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
-      lineHeight: "2.5em",
+      lineHeight: "2.35em",
       color: theme.vars.palette.grey[0],
       userSelect: "none",
       flex: "1",
@@ -98,16 +102,19 @@ const listStyles = (theme: Theme) =>
       WebkitBoxOrient: "vertical",
       overflow: "hidden",
       textOverflow: "ellipsis",
-      paddingRight: "0"
+      paddingRight: "0",
+      letterSpacing: "0.01em"
     },
     ".date-container": {
       position: "absolute",
       top: "50%",
       transform: "translateY(-50%)",
-      right: "0.75em",
+      right: "0.85em",
       display: "flex",
       alignItems: "center",
-      gap: "4px"
+      gap: "4px",
+      padding: "2px 0 2px 8px",
+      background: `linear-gradient(to right, transparent, rgb(${theme.vars.palette.background.defaultChannel} / 0.94) 18px)`
     },
     ".favorite-indicator": {
       flexShrink: 0
@@ -123,7 +130,8 @@ const listStyles = (theme: Theme) =>
       lineHeight: "2em",
       minWidth: "80px",
       userSelect: "none",
-      textAlign: "right"
+      textAlign: "right",
+      letterSpacing: "0.04em"
     },
     ".duplicate-button svg": {
       transform: "scale(0.7)"
@@ -137,17 +145,17 @@ const listStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-end",
-      gap: "2px",
+      gap: "4px",
       zIndex: 10,
       opacity: 0,
       transition: "opacity 0.15s ease",
-      background: `linear-gradient(to right, transparent, ${theme.vars.palette.grey[600]} 16px)`,
-      paddingLeft: "20px",
+      background: `linear-gradient(to right, transparent, rgb(${theme.vars.palette.background.defaultChannel} / 0.96) 16px)`,
+      paddingLeft: "24px",
       button: {
         opacity: 1,
         color: theme.vars.palette.grey[100],
         "&:hover": {
-          backgroundColor: theme.vars.palette.grey[500]
+          backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
         }
       }
     },
@@ -176,7 +184,7 @@ const listStyles = (theme: Theme) =>
       padding: "2px 6px"
     },
     ".date-header": {
-      padding: "8px 12px 4px",
+      padding: "10px 12px 6px",
       color: theme.vars.palette.grey[200],
       backgroundColor: "transparent",
       fontFamily: theme.fontFamily2,
@@ -184,8 +192,8 @@ const listStyles = (theme: Theme) =>
       fontWeight: 600,
       textAlign: "right",
       textTransform: "uppercase",
-      letterSpacing: "0.05em",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`,
+      letterSpacing: "0.08em",
+      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
     }
   });
 

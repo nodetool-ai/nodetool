@@ -412,7 +412,7 @@ describe("input nodes — full coverage", () => {
         thread_id: "t2",
         role: "assistant",
         content: [
-          { type: "image", image: { uri: "img.png" } },
+          { type: "image_url", image: { uri: "img.png" } },
           { type: "audio", audio: { uri: "clip.mp3" } },
           { type: "text", text: "hello" },
           null, // non-object item

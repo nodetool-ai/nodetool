@@ -154,15 +154,13 @@ const CollectionList = () => {
           ) : (
             <Surface
               elevation={0}
-              sx={{
+              background="transparent"
+              sx={(theme) => ({
                 mt: 2,
-                borderRadius: 2,
+                borderRadius: 3,
                 p: 1,
-                boxShadow: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)"
-                : "0 8px 24px rgba(16,24,40,0.08), 0 0 0 1px rgba(16,24,40,0.06)"
-              }}
+                border: `1px solid ${theme.vars.palette.divider}`
+              })}
             >
               <List>
                 {collections?.collections.map((collection: CollectionResponse) => (

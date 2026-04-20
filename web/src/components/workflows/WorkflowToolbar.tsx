@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import AddIcon from "@mui/icons-material/Add";
+import TuneIcon from "@mui/icons-material/Tune";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -31,6 +32,10 @@ interface WorkflowToolbarProps {
   showFavoritesOnly?: boolean;
   onToggleFavorites?: () => void;
   availableTags?: string[];
+  /** When true, only the create button is shown. Other controls collapse. */
+  compact?: boolean;
+  /** When compact, clicking the expand toggle calls this to reveal the full toolbar. */
+  onExpand?: () => void;
 }
 
 const styles = (theme: Theme) =>
@@ -226,7 +231,9 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
   onBulkDelete,
   showFavoritesOnly = false,
   onToggleFavorites,
-  availableTags = []
+  availableTags = [],
+  compact = false,
+  onExpand
 }) => {
   const theme = useTheme();
   const createNewWorkflow = useWorkflowManager((state) => state.createNew);
@@ -304,6 +311,37 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
 
   // Memoize selected tags set for O(1) lookup
   const selectedTagsSet = useMemo(() => new Set(selectedTags), [selectedTags]);
+
+  if (compact) {
+    return (
+      <Box css={styles(theme)}>
+        <div className="tools">
+          <div className="buttons-row">
+            {onExpand && (
+              <ToolbarIconButton
+                icon={<TuneIcon />}
+                tooltip="Show filters"
+                onClick={onExpand}
+                tooltipPlacement="top"
+                className="expand-button"
+                nodrag={false}
+              />
+            )}
+            <div style={flexGrow1Style} />
+            <ToolbarIconButton
+              icon={<AddIcon fontSize="small" />}
+              tooltip="Create new workflow"
+              onClick={handleCreateWorkflow}
+              size="large"
+              tooltipPlacement="top"
+              className="add-button"
+              nodrag={false}
+            />
+          </div>
+        </div>
+      </Box>
+    );
+  }
 
   return (
     <Box css={styles(theme)}>

@@ -153,6 +153,8 @@ if [[ -z "$PULL_TAG" ]]; then
     PULL_TAG="${BASH_REMATCH[1]}"
   else
     BRANCH="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD)"
+    # Strip heads/ prefix if git added it due to tag/branch name collision
+    BRANCH="${BRANCH#heads/}"
     PULL_TAG="${BRANCH}-${SHA}"
   fi
 fi
