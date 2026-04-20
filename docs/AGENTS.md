@@ -140,7 +140,7 @@ abstract class Tool {
 | **Web** | `BrowserTool`, `ScreenshotTool` | `browser-tools.ts` |
 | **HTTP** | `HttpRequestTool`, `DownloadFileTool` | `http-tools.ts` |
 | **Search** | `GoogleSearchTool`, `GoogleNewsTool`, `GoogleImagesTool` | `search-tools.ts` |
-| **Code execution** | `RunCodeTool` | `code-tools.ts` |
+| **Code execution** | `RunCodeTool`, `MiniJSAgentTool` | `code-tools.ts`, `js-code-tool.ts` |
 | **Math** | `CalculatorTool`, `StatisticsTool`, `GeometryTool`, `TrigonometryTool`, `ConversionTool` | `math-tools.ts`, `calculator-tool.ts` |
 | **OpenAI** | `OpenAIWebSearchTool`, `OpenAIImageGenerationTool`, `OpenAITextToSpeechTool` | `openai-tools.ts` |
 | **Google** | `GoogleGroundedSearchTool`, `GoogleImageGenerationTool` | `google-tools.ts` |
@@ -150,6 +150,24 @@ abstract class Tool {
 | **Workspace** | `WorkspaceReadTool`, `WorkspaceWriteTool`, `WorkspaceListTool` | `workspace-tools.ts` |
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
 | **MCP** | `ListWorkflowsTool`, `RunWorkflowTool`, `SearchNodesTool`, and more | `mcp-tools.ts` |
+
+### JavaScript Sandbox
+
+The `MiniJSAgentTool` and the `CodeNode` workflow node both run user JavaScript inside a **QuickJS WebAssembly** sandbox (`packages/agents/src/js-sandbox.ts`). QuickJS runs in its own WASM instance with a separate heap, providing a true memory/CPU boundary — unlike Node's `node:vm` which shares the V8 heap.
+
+**Limits enforced:**
+
+| Limit | Value |
+|-------|-------|
+| Execution timeout | 30 s |
+| Guest heap | 64 MB |
+| Guest stack | 512 KB |
+| Max output size | 100 KB |
+| Max loop iterations | 10 000 |
+| Max `fetch` calls | 20 |
+| Max response body | 1 MB |
+
+The sandbox exposes a curated surface: vanilla JavaScript plus bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`, `console`). Third-party libraries (lodash, dayjs, etc.) are intentionally excluded — use dedicated workflow nodes instead.
 
 ### Tool Registry
 

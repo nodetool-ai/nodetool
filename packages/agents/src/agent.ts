@@ -605,7 +605,11 @@ export class Agent extends BaseAgent {
 
     const systemPrompt =
       (this.systemPrompt ? this.systemPrompt + "\n\n" : "") +
-      "You are finishing a multi-task job. Combine the results from every task below into a single coherent response for the user. Preserve every concrete artifact (image URLs, file paths, tables, key facts) — never drop or paraphrase them away. Do not mention the task IDs. " +
+      "You are finishing a multi-task job. Combine the results from every task below into a single coherent response for the user.\n\n" +
+      "## Rules\n" +
+      "- Preserve every concrete artifact (image URLs, file paths, tables, key facts) — never drop or paraphrase them away.\n" +
+      "- Do not mention the task IDs or internal task structure to the user.\n" +
+      "- Do not reveal chain-of-thought or internal deliberation.\n" +
       formatHint;
 
     const userPrompt = `Original request:\n${this.objective}\n\nTask results:\n${sections.join("\n\n")}\n\nProduce the final answer now.`;

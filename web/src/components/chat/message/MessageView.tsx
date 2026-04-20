@@ -43,7 +43,7 @@ import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStor
  * PrettyJson - Memoized component for displaying formatted JSON.
  * Extracted outside MessageView to prevent recreation on every render.
  */
-const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
+const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
   const text = useMemo(() => {
     try {
       if (typeof value === "string") {
@@ -66,7 +66,7 @@ PrettyJson.displayName = "PrettyJson";
  */
 const ToolCallCard: React.FC<{
   tc: ToolCall;
-  result?: { name?: string | null; content: any };
+  result?: { name?: string | null; content: unknown };
 }> = React.memo(({ tc, result: _result }) => {
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
@@ -120,12 +120,12 @@ interface MessageViewProps {
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
   onInsertCode?: (text: string, language?: string) => void;
-  toolResultsByCallId?: Record<string, { name?: string | null; content: any }>;
+  toolResultsByCallId?: Record<string, { name?: string | null; content: unknown }>;
   executionMessagesById?: Map<string, Message[]>;
 }
 
 export const MessageView: React.FC<
-  MessageViewProps & { componentStyles?: any }
+  MessageViewProps & { componentStyles?: Record<string, unknown> }
 > = React.memo(({
   message,
   expandedThoughts,

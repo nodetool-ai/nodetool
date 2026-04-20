@@ -1,0 +1,681 @@
+import { describe, it, expect, vi } from "vitest";
+import { encodeBinary } from "@aki-io/aki-io";
+import { AkiProvider } from "../../src/providers/aki-provider.js";
+
+type DoApiRequest = ReturnType<typeof vi.fn>;
+type GetGenerator = (params: unknown) => AsyncGenerator<unknown>;
+type GetEndpoints = ReturnType<typeof vi.fn>;
+
+interface FakeClient {
+  doApiRequest: DoApiRequest;
+  getApiRequestGenerator: GetGenerator;
+  getEndpointList: GetEndpoints;
+}
+
+function makeFactory(client: Partial<FakeClient>) {
+  const base: FakeClient = {
+    doApiRequest: vi.fn(),
+    getApiRequestGenerator: async function* () {
+      /* empty */
+    },
+    getEndpointList: vi.fn().mockResolvedValue([])
+  };
+  const merged = { ...base, ...client } as FakeClient;
+  const factory = vi.fn().mockReturnValue(merged);
+  return { factory, client: merged };
+}
+
+describe("AkiProvider", () => {
+  it("reports required secrets, container env, and provider id", () => {
+    const { factory } = makeFactory({});
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "secret" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    expect(AkiProvider.requiredSecrets()).toEqual(["AKI_API_KEY"]);
+    expect(provider.getContainerEnv()).toEqual({ AKI_API_KEY: "secret" });
+    expect((provider as unknown as { provider: string }).provider).toBe("aki");
+  });
+
+  it("throws when AKI_API_KEY is missing or empty", () => {
+    expect(() => new AkiProvider({})).toThrow("AKI_API_KEY is not configured");
+    expect(
+      () => new AkiProvider({ AKI_API_KEY: "   " })
+    ).toThrow("AKI_API_KEY is not configured");
+  });
+
+  it("advertises tool support", async () => {
+    const { factory } = makeFactory({});
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+    expect(await provider.hasToolSupport("llama3_chat")).toBe(true);
+  });
+
+  it("generateMessage sends chat_context and returns assistant text", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      text: "hello from aki",
+      prompt_length: 4,
+      num_generated_tokens: 7
+    });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const result = await provider.generateMessage({
+      model: "llama3_chat",
+      messages: [
+        { role: "system", content: "you are helpful" },
+        { role: "user", content: "hi" }
+      ],
+      maxTokens: 128,
+      temperature: 0.5,
+      topP: 0.9
+    });
+
+    expect(result).toEqual({
+      role: "assistant",
+      content: "hello from aki",
+      toolCalls: []
+    });
+    expect(factory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpointName: "llama3_chat",
+        apiKey: "k"
+      })
+    );
+    expect(doApiRequest).toHaveBeenCalledWith({
+      chat_context: [
+        { role: "system", content: "you are helpful" },
+        { role: "user", content: "hi" }
+      ],
+      max_gen_tokens: 128,
+      temperature: 0.5,
+      top_p: 0.9
+    });
+  });
+
+  it("generateMessage parses tool calls and forwards tool definitions", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      text: null,
+      tool_calls: {
+        id: "tool-1",
+        name: "search_docs",
+        arguments: { query: "aki tools" }
+      }
+    });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const result = await provider.generateMessage({
+      model: "llama3_chat",
+      messages: [{ role: "user", content: "find docs" }],
+      tools: [
+        {
+          name: "search_docs",
+          description: "Search docs",
+          inputSchema: {
+            type: "object",
+            properties: { query: { type: "string" } },
+            required: ["query"]
+          }
+        }
+      ],
+      toolChoice: "search_docs"
+    });
+
+    expect(result).toEqual({
+      role: "assistant",
+      content: "",
+      toolCalls: [
+        {
+          id: "tool-1",
+          name: "search_docs",
+          args: { query: "aki tools" }
+        }
+      ]
+    });
+    expect(doApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "search_docs",
+              description: "Search docs",
+              parameters: {
+                type: "object",
+                properties: { query: { type: "string" } },
+                required: ["query"]
+              }
+            }
+          }
+        ]
+      })
+    );
+    expect(doApiRequest).not.toHaveBeenCalledWith(
+      expect.objectContaining({ tool_choice: "search_docs" })
+    );
+  });
+
+  it("generateMessage throws on unsuccessful response", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: false,
+      error: "invalid key",
+      error_code: 401
+    });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    await expect(
+      provider.generateMessage({
+        model: "llama3_chat",
+        messages: [{ role: "user", content: "hi" }]
+      })
+    ).rejects.toThrow("invalid key");
+  });
+
+  it("generateMessages yields deltas between progress updates", async () => {
+    async function* stream() {
+      yield { job_id: "j1", success: true, job_state: "started" };
+      yield {
+        job_id: "j1",
+        success: true,
+        job_state: "processing",
+        progress_data: { text: "Hello" }
+      };
+      yield {
+        job_id: "j1",
+        success: true,
+        job_state: "processing",
+        progress_data: { text: "Hello, world" }
+      };
+      yield {
+        job_id: "j1",
+        success: true,
+        job_state: "done",
+        result_data: { text: "Hello, world!" }
+      };
+    }
+    const { factory } = makeFactory({
+      getApiRequestGenerator: stream as unknown as GetGenerator
+    });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const deltas: string[] = [];
+    for await (const item of provider.generateMessages({
+      model: "llama3_chat",
+      messages: [{ role: "user", content: "hi" }]
+    })) {
+      if ("type" in item && item.type === "chunk") {
+        deltas.push(item.content ?? "");
+      }
+    }
+
+    // Hello, then ", world", then "!", then trailing done chunk with ""
+    expect(deltas).toEqual(["Hello", ", world", "!", ""]);
+  });
+
+  it("generateMessages tracks usage when stream reports token counts", async () => {
+    async function* stream() {
+      yield {
+        success: true,
+        progress_data: { text: "Hello", prompt_length: 11, num_generated_tokens: 2 }
+      };
+      yield {
+        success: true,
+        result_data: {
+          text: "Hello world",
+          prompt_length: 11,
+          num_generated_tokens: 4
+        }
+      };
+    }
+    const { factory } = makeFactory({
+      getApiRequestGenerator: stream as unknown as GetGenerator
+    });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+    const trackUsage = vi.spyOn(
+      provider as unknown as { trackUsage: (model: string, usage: unknown) => void },
+      "trackUsage"
+    );
+
+    for await (const _item of provider.generateMessages({
+      model: "llama3_chat",
+      messages: [{ role: "user", content: "hi" }]
+    })) {
+      // consume stream
+    }
+
+    expect(trackUsage).toHaveBeenCalledWith("llama3_chat", {
+      inputTokens: 11,
+      outputTokens: 4
+    });
+  });
+
+  it("generateMessages yields tool calls from stream updates", async () => {
+    async function* stream() {
+      yield {
+        success: true,
+        progress_data: { text: "Thinking" }
+      };
+      yield {
+        success: true,
+        result_data: {
+          tool_calls: {
+            id: "tool-stream-1",
+            name: "lookup",
+            arguments: '{"id":42}'
+          }
+        }
+      };
+    }
+    const { factory } = makeFactory({
+      getApiRequestGenerator: stream as unknown as GetGenerator
+    });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const items: unknown[] = [];
+    for await (const item of provider.generateMessages({
+      model: "llama3_chat",
+      messages: [{ role: "user", content: "lookup 42" }],
+      tools: [{ name: "lookup", inputSchema: { type: "object" } }]
+    })) {
+      items.push(item);
+    }
+
+    expect(items).toEqual([
+      { type: "chunk", content: "Thinking", done: false },
+      { id: "tool-stream-1", name: "lookup", args: { id: 42 } },
+      { type: "chunk", content: "", done: true }
+    ]);
+  });
+
+  it("generateMessages surfaces error payloads", async () => {
+    async function* stream() {
+      yield { success: false, error: "quota exceeded" };
+    }
+    const { factory } = makeFactory({
+      getApiRequestGenerator: stream as unknown as GetGenerator
+    });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const run = async () => {
+      const collected: unknown[] = [];
+      for await (const item of provider.generateMessages({
+        model: "llama3_chat",
+        messages: [{ role: "user", content: "hi" }]
+      })) {
+        collected.push(item);
+      }
+      return collected;
+    };
+
+    await expect(run()).rejects.toThrow("quota exceeded");
+  });
+
+  it("getAvailableLanguageModels loads text endpoints from the manifest", async () => {
+    const { factory } = makeFactory({});
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const models = await provider.getAvailableLanguageModels();
+    expect(models).toEqual([
+      { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
+    ]);
+  });
+
+  it("getAvailableImageModels loads image endpoints from the manifest", async () => {
+    const { factory } = makeFactory({});
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const models = await provider.getAvailableImageModels();
+    expect(models).toEqual([
+      {
+        id: "sdxl_img",
+        name: "SDXL",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-text2img",
+        name: "FLUX Text to Image",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-img2img",
+        name: "FLUX Image to Image",
+        provider: "aki",
+        supportedTasks: ["image_to_image"]
+      }
+    ]);
+  });
+
+  it("separates language and image models from the manifest", async () => {
+    const { factory } = makeFactory({});
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const languageModels = await provider.getAvailableLanguageModels();
+    const imageModels = await provider.getAvailableImageModels();
+
+    expect(languageModels).toEqual([
+      { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
+    ]);
+    expect(imageModels).toEqual([
+      {
+        id: "sdxl_img",
+        name: "SDXL",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-text2img",
+        name: "FLUX Text to Image",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-img2img",
+        name: "FLUX Image to Image",
+        provider: "aki",
+        supportedTasks: ["image_to_image"]
+      }
+    ]);
+    expect(languageModels.some((model) => model.id.trim().length === 0)).toBe(
+      false
+    );
+    expect(imageModels.some((model) => model.id.trim().length === 0)).toBe(
+      false
+    );
+  });
+
+  it("does not mix image endpoints into language models", async () => {
+    const { factory } = makeFactory({
+      getEndpointList: vi
+        .fn()
+        .mockResolvedValue(["llama3_chat", "sdxl_img", "custom_chat"])
+    });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const languageModels = await provider.getAvailableLanguageModels();
+    const imageModels = await provider.getAvailableImageModels();
+
+    expect(languageModels).toEqual([
+      { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
+    ]);
+    expect(imageModels).toEqual([
+      {
+        id: "sdxl_img",
+        name: "SDXL",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-text2img",
+        name: "FLUX Text to Image",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      {
+        id: "flux-img2img",
+        name: "FLUX Image to Image",
+        provider: "aki",
+        supportedTasks: ["image_to_image"]
+      }
+    ]);
+  });
+
+  it("textToImage decodes image bytes from the AKI response", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      images: encodeBinary(Uint8Array.from([1, 2, 3]), "png")
+    });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const result = await provider.textToImage({
+      model: {
+        id: "sdxl_img",
+        name: "SDXL",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      prompt: "a castle",
+      width: 1024,
+      height: 1024,
+      negativePrompt: "low quality"
+    });
+
+    expect(result).toEqual(Uint8Array.from([1, 2, 3]));
+    expect(doApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: "a castle",
+        width: 1024,
+        height: 1024,
+        negative_prompt: "low quality"
+      })
+    );
+  });
+
+  it("imageToImage sends the encoded image and decodes image bytes", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      images: encodeBinary(Uint8Array.from([4, 5, 6]), "png")
+    });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const inputImage = Uint8Array.from([9, 8, 7]);
+    const result = await provider.imageToImage(inputImage, {
+      model: {
+        id: "flux-img2img",
+        name: "FLUX Image to Image",
+        provider: "aki",
+        supportedTasks: ["image_to_image"]
+      },
+      prompt: "make it cinematic",
+      targetWidth: 512,
+      targetHeight: 768,
+      strength: 0.7
+    });
+
+    expect(result).toEqual(Uint8Array.from([4, 5, 6]));
+    expect(doApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: "make it cinematic",
+        image: Buffer.from(inputImage).toString("base64"),
+        width: 512,
+        height: 768,
+        strength: 0.7
+      })
+    );
+  });
+
+  it("retries image requests with prompt when AKI rejects prompt_input", async () => {
+    const doApiRequest = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new Error(
+          "api request at https://aki.io/api/ failed!\nHTTP status code: 400\nError message: Invalid input parameter(s): prompt_input;Missing required argument: prompt"
+        )
+      )
+      .mockResolvedValueOnce({
+        success: true,
+        images: encodeBinary(Uint8Array.from([7, 8, 9]), "png")
+      });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const result = await provider.textToImage({
+      model: {
+        id: "qwen_image",
+        name: "Qwen Image",
+        provider: "aki",
+        supportedTasks: ["text_to_image"]
+      },
+      prompt: "a neon city"
+    });
+
+    expect(result).toEqual(Uint8Array.from([7, 8, 9]));
+    expect(doApiRequest).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ prompt_input: "a neon city" })
+    );
+    expect(doApiRequest).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ prompt: "a neon city" })
+    );
+  });
+
+  it("collapses multi-part content and attaches the last image", async () => {
+    const doApiRequest = vi
+      .fn()
+      .mockResolvedValue({ success: true, text: "ok" });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    await provider.generateMessage({
+      model: "llama3_chat",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "what is this" },
+            {
+              type: "image_url",
+              image: { data: "BASE64DATA", mimeType: "image/png" }
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(doApiRequest).toHaveBeenCalledWith({
+      chat_context: [{ role: "user", content: "what is this" }],
+      image: "BASE64DATA"
+    });
+  });
+
+  it("normalizes data URI image content to raw base64", async () => {
+    const doApiRequest = vi
+      .fn()
+      .mockResolvedValue({ success: true, text: "ok" });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    await provider.generateMessage({
+      model: "llama3_chat",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image: {
+                data: "data:image/png;base64,QUJD",
+                mimeType: "image/png"
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(doApiRequest).toHaveBeenCalledWith({
+      chat_context: [{ role: "user", content: "" }],
+      image: "QUJD"
+    });
+  });
+
+  it("resolves image URI content to base64", async () => {
+    const doApiRequest = vi
+      .fn()
+      .mockResolvedValue({ success: true, text: "ok" });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+    const resolveUri = vi
+      .spyOn(
+        provider as unknown as { resolveUri: (uri: string) => Promise<string> },
+        "resolveUri"
+      )
+      .mockResolvedValue("data:image/png;base64,UkVT");
+
+    await provider.generateMessage({
+      model: "llama3_chat",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image: {
+                uri: "file:///tmp/image.png",
+                mimeType: "image/png"
+              }
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(resolveUri).toHaveBeenCalledWith("file:///tmp/image.png");
+    expect(doApiRequest).toHaveBeenCalledWith({
+      chat_context: [{ role: "user", content: "" }],
+      image: "UkVT"
+    });
+  });
+});

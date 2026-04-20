@@ -68,6 +68,7 @@
     "generate:fal": "npm run generate --workspace=packages/fal-codegen",
     "generate:replicate": "npm run generate --workspace=packages/replicate-codegen -- --all && npm run extract-manifest --workspace=packages/replicate-nodes",
     "generate:kie": "npm run generate --workspace=packages/kie-codegen -- --all",
+    "generate:aki": "tsx packages/runtime/scripts/generate-aki-manifest.ts",
     "dev:chat": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/index.ts",
     "dev:workflow": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts workflows run",
     "dev:nodetool": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts",

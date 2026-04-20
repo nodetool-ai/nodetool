@@ -1491,7 +1491,7 @@ export class MessageDeconstructorNode extends BaseNode {
         const block = item as Record<string, unknown>;
         const type = String(block.type ?? "");
         if (type === "text") text = String(block.text ?? "");
-        else if (type === "image_url") image = block.image ?? null;
+        else if (type === "image" || type === "image_url") image = block.image ?? null;
         else if (type === "audio") audio = block.audio ?? null;
       }
     }
