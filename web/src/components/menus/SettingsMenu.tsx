@@ -670,7 +670,6 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       placeholder="Search API keys, settings, and folders..."
                       value={apiSearchTerm}
                       onChange={setApiSearchTerm}
-                      size="small"
                       showClear
                     />
                   </div>

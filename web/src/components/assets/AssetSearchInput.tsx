@@ -2,13 +2,12 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useEffect, useRef, useState, memo } from "react";
-import BackspaceIcon from "@mui/icons-material/Backspace";
 import { Public as GlobalIcon, Folder as LocalIcon } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "use-debounce";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import { Tooltip } from "../ui_primitives";
+import { SearchInput, Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import log from "loglevel";
@@ -21,101 +20,15 @@ const styles = (theme: Theme) =>
       position: "relative",
       flexDirection: "row",
       alignItems: "center",
-      gap: "0.1em",
       margin: "0",
       padding: 0,
       overflow: "hidden"
     },
-    ".search-box": {
-      border: 0,
-      position: "relative"
-    },
-    ".search-input": {
-      width: "100%",
-      flexShrink: "0"
-    },
-    "input[type='text']": {
-      border: 0,
-      outline: "none",
-      padding: "0 2.5em 0 3em",
-      margin: "0",
-      height: "36px",
-      WebkitAppearance: "none",
-      MozAppearance: "none",
-      appearance: "none",
-      color: "var(--palette-text-primary)",
-      backgroundColor: "var(--palette-grey-800)",
-      borderRadius: "var(--rounded-lg)",
-      transition: "all 0.2s"
-    },
-    "input[type='text']:focus": {
-      backgroundColor: "var(--palette-grey-700)",
-      borderColor: "var(--palette-primary-main)",
-      outline: "none"
-    },
-    ".clear-search-btn": {
-      position: "absolute",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "2em",
-      height: "100%",
-      top: 0,
-      right: "0.7em",
-      border: 0,
-      backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
-      transition: "color 0.2s, opacity 0.2s",
-      padding: 0,
-      "& svg": {
-        fontSize: "1.4rem"
-      },
-      "&:hover": {
-        backgroundColor: "transparent"
-      },
-      "&:not(.disabled):hover svg": {
-        color: "var(--palette-primary-main)",
-        backgroundColor: "transparent"
-      },
-      "&.disabled": {
-        opacity: 0,
-        pointerEvents: "none"
-      }
-    },
-    ".search-loading-indicator": {
-      position: "absolute",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "2em",
-      height: "100%",
-      top: 0,
-      right: "0.7em",
-      padding: 0
-    },
-    ".search-spinner": {
-      width: "16px",
-      height: "16px",
-      border: "2px solid var(--palette-grey-500)",
-      borderTop: "2px solid var(--palette-grey-100)",
-      borderRadius: "var(--rounded-circle)",
-      animation: "spin 1s linear infinite"
-    },
-    "@keyframes spin": {
-      "0%": { transform: "rotate(0deg)" },
-      "100%": { transform: "rotate(360deg)" }
-    },
     ".search-mode-toggle": {
-      position: "absolute",
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      width: "2em",
-      height: "100%",
-      top: 0,
-      left: "0.5em",
       border: 0,
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
@@ -152,7 +65,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   width
 }) => {
   const theme = useTheme();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState("");
   const isControlOrMetaPressed = useKeyPressedStore(
     (state) => state.isKeyPressed("control") || state.isKeyPressed("meta")
@@ -237,9 +150,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       abortControllerRef.current = null;
     }
 
-    // Clear local input state
-    setLocalSearchTerm("");
-
     if (isGlobalSearchMode) {
       // Reset global search state
       setIsGlobalSearchActive(false);
@@ -313,19 +223,16 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     onLocalSearchChange
   ]);
 
-  // Handle input changes with debouncing
-  const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value;
-      // Update local state immediately for UI responsiveness
-      setLocalSearchTerm(newValue);
-      // Schedule debounced search
-      debouncedSetSearchTerm(newValue);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setLocalSearchTerm(value);
+      debouncedSetSearchTerm(value);
     },
     [debouncedSetSearchTerm]
   );
 
   const clearSearch = useCallback(() => {
+    setLocalSearchTerm("");
     resetSearch();
     inputRef.current?.focus();
   }, [resetSearch]);
@@ -352,7 +259,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         (focusOnTyping &&
           !document.activeElement?.classList.contains("search-input"));
 
-      if (!shouldHandleEvent) {return;}
+      if (!shouldHandleEvent) { return; }
 
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
@@ -364,13 +271,12 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       }
 
       if (focusOnTyping) {
-        if (isControlOrMetaPressed) {return;}
+        if (isControlOrMetaPressed) { return; }
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
           if (document.activeElement !== inputRef.current) {
             event.preventDefault();
             inputRef.current?.focus();
-            setLocalSearchTerm(event.key);
-            debouncedSetSearchTerm(event.key);
+            handleSearchChange(event.key);
           }
         }
       }
@@ -381,14 +287,36 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   }, [
     focusOnTyping,
     isControlOrMetaPressed,
-    debouncedSetSearchTerm,
-    clearSearch
+    clearSearch,
+    handleSearchChange
   ]);
 
   // Dynamic placeholder based on search mode
   const effectivePlaceholder = isGlobalSearchMode
     ? "Search all assets..."
     : "Search current folder...";
+
+  const showSpinner =
+    isSearching && isGlobalSearchMode && localSearchTerm.length >= 2;
+
+  const modeToggleNode = (
+    <Tooltip
+      title={
+        isGlobalSearchMode
+          ? "Switch to local search"
+          : "Switch to global search"
+      }
+    >
+      <button
+        className={`search-mode-toggle ${isGlobalSearchMode ? "global-mode" : ""}`}
+        onClick={toggleSearchMode}
+        data-testid="asset-search-mode-toggle"
+        tabIndex={-1}
+      >
+        {isGlobalSearchMode ? <GlobalIcon /> : <LocalIcon />}
+      </button>
+    </Tooltip>
+  );
 
   return (
     <div
@@ -404,57 +332,19 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
             : (width as string | undefined)
       }}
     >
-      <Tooltip
-        title={
-          isGlobalSearchMode
-            ? "Switch to local search"
-            : "Switch to global search"
-        }
-      >
-        <button
-          className={`search-mode-toggle ${
-            isGlobalSearchMode ? "global-mode" : ""
-          }`}
-          onClick={toggleSearchMode}
-          data-testid="asset-search-mode-toggle"
-          tabIndex={-1}
-        >
-          {isGlobalSearchMode ? <GlobalIcon /> : <LocalIcon />}
-        </button>
-      </Tooltip>
-
-      <input
-        id="asset-search-input"
-        className="search-input"
-        ref={inputRef}
-        type="text"
-        placeholder={effectivePlaceholder}
+      <SearchInput
         value={localSearchTerm}
-        onChange={handleInputChange}
-        autoCorrect="off"
-        autoCapitalize="none"
-        spellCheck="false"
-        autoComplete="off"
-        data-testid="asset-search-input-field"
-        data-search-mode={isGlobalSearchMode ? "global" : "local"}
+        onChange={handleSearchChange}
+        onClear={clearSearch}
+        placeholder={effectivePlaceholder}
+        showClear={!showSpinner}
+        startNode={modeToggleNode}
+        isLoading={showSpinner}
+        fullWidth
+        debounceMs={0}
+        inputTestId="asset-search-input-field"
+        inputRef={inputRef}
       />
-
-      {isSearching && isGlobalSearchMode && localSearchTerm.length >= 2 ? (
-        <div className="search-loading-indicator">
-          <div className="search-spinner"></div>
-        </div>
-      ) : (
-        <button
-          className={`clear-search-btn ${
-            localSearchTerm.trim() === "" ? "disabled" : ""
-          }`}
-          tabIndex={-1}
-          onClick={clearSearch}
-          data-testid="asset-search-clear-btn"
-        >
-          <BackspaceIcon />
-        </button>
-      )}
     </div>
   );
 };
