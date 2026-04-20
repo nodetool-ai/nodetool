@@ -75,6 +75,7 @@ const AKI_FALLBACK_IMAGE_MODELS: ImageModel[] = [
 const AKI_FALLBACK_LANGUAGE_MODELS: LanguageModel[] = [
   { id: "llama3_chat", name: "Llama 3 Chat", provider: "aki" }
 ];
+const AKI_DISCOVERY_ENDPOINT = "llama3_chat";
 
 let akiManifestCache: AkiManifestEntry[] | null = null;
 
@@ -308,7 +309,12 @@ export class AkiProvider extends BaseProvider {
           return undefined;
         }
         return Buffer.from(await response.arrayBuffer()).toString("base64");
-      } catch {
+      } catch (error) {
+        log.debug("Failed to fetch remote AKI image URI", {
+          uri: resolved,
+          error
+        });
+        // Best-effort URI normalization; keep request flowing without image.
         return undefined;
       }
     }
@@ -316,13 +322,16 @@ export class AkiProvider extends BaseProvider {
   }
 
   private async listDiscoveredEndpoints(): Promise<string[]> {
-    const client = this.makeClient("llama3_chat");
+    // SDK requires an endpoint to construct the client, even for listing.
+    const client = this.makeClient(AKI_DISCOVERY_ENDPOINT);
     try {
       const endpoints = await client.getEndpointList();
       return endpoints.filter(
         (id): id is string => typeof id === "string" && id.trim().length > 0
       );
-    } catch {
+    } catch (error) {
+      log.debug("AKI endpoint discovery failed", { error });
+      // Discovery is optional; caller falls back to manifest/default model lists.
       return [];
     }
   }
