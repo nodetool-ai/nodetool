@@ -5,6 +5,7 @@ import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { audioBytes, toBytes } from "../lib/audio-wav.js";
 
@@ -45,7 +46,7 @@ function imageBytes(image: unknown): Uint8Array {
 function filePath(uriOrPath: string): string {
   if (uriOrPath.startsWith("file://")) {
     try {
-      return new URL(uriOrPath).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+      return fileURLToPath(new URL(uriOrPath));
     } catch {
       // Fallback for non-standard URIs like file://C:\path
       return uriOrPath.slice("file://".length);
@@ -593,9 +594,11 @@ export class LoadVideoAssetsNode extends BaseNode {
     const raw = this.folder;
     const folder =
       typeof raw === "string" && raw.length > 0
-        ? raw
+        ? raw.startsWith("file:")
+          ? filePath(raw)
+          : raw
         : typeof raw === "object" && raw !== null && typeof (raw as Record<string, unknown>).uri === "string" && ((raw as Record<string, unknown>).uri as string).length > 0
-          ? ((raw as Record<string, unknown>).uri as string).replace(/^file:\/\//, "")
+          ? filePath((raw as Record<string, unknown>).uri as string)
           : "";
     if (!folder) return;
     let entries;
