@@ -198,15 +198,24 @@ const useAgentStore = create<AgentState>((set, get) => ({
         const contextUnchanged =
           state.provider === provider && state.workspacePath === workspacePath;
 
-        if (!isLatestRequest || !contextUnchanged) {
-          log.debug("Ignoring stale agent model load response", {
+        if (!isLatestRequest) {
+          log.debug("Ignoring stale agent model load response (request id)", {
             requestId,
-            latestModelsLoadRequestId,
-            requestedProvider: provider,
-            requestedWorkspacePath: workspacePath,
-            currentProvider: state.provider,
-            currentWorkspacePath: state.workspacePath
+            latestModelsLoadRequestId
           });
+          return state;
+        }
+        if (!contextUnchanged) {
+          log.debug(
+            "Ignoring agent model load response due to provider/workspace change",
+            {
+              requestId,
+              requestedProvider: provider,
+              requestedWorkspacePath: workspacePath,
+              currentProvider: state.provider,
+              currentWorkspacePath: state.workspacePath
+            }
+          );
           return state;
         }
 

@@ -236,6 +236,9 @@ const AgentPanel: React.FC = () => {
   const [draftModelsLoading, setDraftModelsLoading] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const [isSwitchingModel, setIsSwitchingModel] = useState(false);
+  // State controls rendered disabled/loading UI. The ref is a synchronous
+  // guard so rapid same-tick events can't queue overlapping restarts before
+  // React applies the state update.
   const modelSwitchRequestRef = useRef(0);
   const isSwitchingModelRef = useRef(false);
   const [resumeAnchorEl, setResumeAnchorEl] = useState<HTMLElement | null>(null);
