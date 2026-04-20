@@ -66,17 +66,19 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   - `Model3D` interface gained JSDoc + `outputFormats?: string[]` field.
   - Verified: `npx tsc --noEmit -p packages/runtime/tsconfig.json` clean.
 
-- [ ] **#2 – Port `MeshyProvider`** (`packages/runtime/src/providers/meshy-provider.ts`)
-  Direct port of `nodetool-core@25e60910:src/nodetool/providers/meshy_provider.py`:
-  - `aiohttp` → `fetch` (Node 18+, same pattern as `KieProvider`).
-  - `asyncio.sleep` → `await new Promise(r => setTimeout(r, ms))`.
-  - `base64.b64encode` → `Buffer.from(bytes).toString("base64")`.
-  - Polling state machine + status enums (`SUCCEEDED`, `FAILED`, `EXPIRED`)
-    map 1:1.
-  - Methods: `getAvailable3DModels()`, `textTo3D()`, `imageTo3D()`.
-  - Models exposed: `meshy-4`, `meshy-3-turbo`, `meshy-4-image`,
-    `meshy-3-turbo-image` — copy from the Python `MESHY_3D_MODELS` constant.
-  - `static requiredSecrets() { return ["MESHY_API_KEY"]; }`.
+- [x] **#2 – Port `MeshyProvider`** *(landed in working tree)*
+  - `packages/runtime/src/providers/meshy-provider.ts` — direct port of
+    `nodetool-core@25e60910:src/nodetool/providers/meshy_provider.py`.
+  - `fetch` (Node 18+) instead of `aiohttp`; `setTimeout` Promise instead of
+    `asyncio.sleep`; `Buffer.from(bytes).toString("base64")` instead of
+    `base64.b64encode`.
+  - Polling state machine handles `SUCCEEDED` / `FAILED` / `EXPIRED` 1:1.
+  - Methods: `getAvailable3DModels()`, `textTo3D()`, `imageTo3D()`,
+    `requiredSecrets()`.
+  - All four models exported as `MESHY_3D_MODELS` constant.
+  - Polling cadence injectable via `MeshyProviderOptions` for tests.
+  - `timeoutSeconds` added to `TextTo3DParams` / `ImageTo3DParams` so node
+    timeout can be passed through (PR-4 will wire it).
 
 - [ ] **#3 – Port `RodinProvider`** (`packages/runtime/src/providers/rodin-provider.ts`)
   Direct port of `nodetool-core@25e60910:src/nodetool/providers/rodin_provider.py`.
@@ -84,16 +86,10 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   Python `RODIN_3D_MODELS` constant.
 
 - [ ] **#4 – Register the new providers**
-  In `packages/runtime/src/providers/index.ts`:
-  ```ts
-  registerBuiltinProvider("meshy", MeshyProvider, {
-    MESHY_API_KEY: process.env["MESHY_API_KEY"]
-  });
-  registerBuiltinProvider("rodin", RodinProvider, {
-    RODIN_API_KEY: process.env["RODIN_API_KEY"]
-  });
-  ```
-  Plus `export { MeshyProvider, RodinProvider }`.
+  - [x] Meshy registered + exported in `packages/runtime/src/providers/index.ts`.
+    Also exposes `Model3D`, `TextTo3DParams`, `ImageTo3DParams` from the
+    barrel.
+  - [ ] Rodin registration pending PR-3.
 
 - [ ] **#5 – Wire `TextTo3DNode.process()` and `ImageTo3DNode.process()`**
   In `packages/base-nodes/src/nodes/model3d/generation.ts`, replace the
@@ -112,15 +108,14 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
 ## Tests
 
 - [ ] **#6 – Mocked HTTP tests for both providers**
-  Port `nodetool-core@25e60910:tests/chat/providers/test_meshy_provider.py`
-  (139 lines) and `test_rodin_provider.py` (143 lines) to
-  `packages/runtime/tests/providers/`. Use the existing `fetch` mock pattern
-  from the `KieProvider` test file. Cover at least:
-  - Successful submit + poll + download path for both `textTo3D` and
-    `imageTo3D`.
-  - `FAILED` task status raises with the upstream error message.
-  - Missing API key raises a clear error before hitting the wire.
-  - Polling timeout raises with a useful message.
+  - [x] **Meshy** — `packages/runtime/tests/providers/meshy-provider.test.ts`.
+    21 cases covering: requiredSecrets, model catalogue (with/without key),
+    chat-throws guards, missing-key guards, empty-prompt guard, full
+    happy-path submit→poll→download for `textTo3D`, JPEG/PNG mime detection
+    for `imageTo3D`, seed=-1 omission, FAILED-status propagation, non-200
+    submit error, polling-timeout, `timeoutSeconds` honored, format-fallback
+    to `glb`, and missing-format error. **All 21 pass.**
+  - [ ] **Rodin** — pending PR-3.
 
 - [ ] **#7 – Smoke test for the wired-up nodes**
   In `packages/base-nodes/tests/`, add a test that instantiates `TextTo3DNode`
@@ -132,7 +127,7 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
 
 ## Cost tracking
 
-- [ ] **#8 – Add Meshy / Rodin pricing entries**
+- [ ] **#8 – Add Meshy / Rodin pricing entries** *(deferred — see note)*
   In `packages/runtime/src/providers/cost-calculator.ts`, add per-task pricing
   for the four Meshy models and the Rodin models. Source from each provider's
   pricing page; cite the URL in a comment so future bumps are easy.
@@ -140,6 +135,11 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   - Rodin pricing: <https://hyperhuman.deemos.com/api/pricing>.
   - These are not language-model-style token costs; treat them as flat
     per-call costs keyed by model id.
+  - **Note:** the existing `CostCalculator` `PricingTier` schema only models
+    token / character / minute / image / video costs. Adding flat per-task
+    pricing requires either a new `CostType.TASK_BASED` tier or a parallel
+    lookup table. Pull this into its own follow-up so the providers can ship
+    without blocking on a schema bump.
 
 ---
 
@@ -164,11 +164,13 @@ current `throw new Error("Not implemented")` stubs with real provider calls.
   - #1 done. No behavior change: `KieProvider` and friends still report no
     `text_to_3d` capability since they don't override `getAvailable3DModels`.
 
-- [ ] **PR-2 "Meshy provider"** *(medium)*
-  - #2 + #4 (Meshy half) + #6 (Meshy tests) + #8 (Meshy pricing).
-  - Wires Meshy into the registry but **does not** touch the node `process()`.
-  - Verify in isolation: `getRegisteredProvider("meshy")?.getAvailable3DModels()`
-    returns the four models when `MESHY_API_KEY` is set.
+- [x] **PR-2 "Meshy provider"** *(implementation in working tree)*
+  - #2 + #4 (Meshy half) + #6 (Meshy tests) all done. **Cost tracking (#8)
+    deferred** to a follow-up — Meshy's per-task credit model differs from
+    the runtime's per-token `CostCalculator`, deserves its own pass.
+  - Wires Meshy into the registry; node `process()` still throws (PR-4).
+  - 21 new tests pass; 64 existing registry/barrel/base-provider tests
+    unchanged.
 
 - [ ] **PR-3 "Rodin provider"** *(medium, parallel to PR-2 if useful)*
   - #3 + #4 (Rodin half) + #6 (Rodin tests) + #8 (Rodin pricing).

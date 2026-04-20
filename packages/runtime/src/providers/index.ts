@@ -29,6 +29,7 @@ import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { KieProvider } from "./kie-provider.js";
 import { MeshyProvider } from "./meshy-provider.js";
+import { RodinProvider } from "./rodin-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
@@ -60,6 +61,7 @@ export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
 export { MeshyProvider };
+export { RodinProvider };
 export {
   FakeProvider,
   createFakeToolCall,
@@ -156,6 +158,9 @@ registerBuiltinProvider("kie", KieProvider, {
 });
 registerBuiltinProvider("meshy", MeshyProvider, {
   MESHY_API_KEY: process.env["MESHY_API_KEY"]
+});
+registerBuiltinProvider("rodin", RodinProvider, {
+  RODIN_API_KEY: process.env["RODIN_API_KEY"]
 });
 registerBuiltinProvider("openrouter", OpenRouterProvider, {
   OPENROUTER_API_KEY: process.env["OPENROUTER_API_KEY"]
