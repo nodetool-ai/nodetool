@@ -148,7 +148,7 @@ export const RefreshButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
-          <span style={{ display: "inline-flex" }}>
+          <span>
             <IconButton
               ref={ref}
               className={cn(

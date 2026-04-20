@@ -335,7 +335,7 @@ export const CircularActionButton = memo(
             enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
             placement={tooltipPlacement}
           >
-            <span style={{ display: "inline-flex" }}>{button}</span>
+            <span>{button}</span>
           </Tooltip>
         );
       }

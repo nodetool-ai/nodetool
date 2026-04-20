@@ -556,9 +556,9 @@ export class Agent extends BaseAgent {
 
     if (taskCount === 0) {
       this.results = executor.getFinalResult();
-    } else if (singleIsGoodString) {
+    } else if (taskCount === 1 && (singleIsGoodString || typeof singleResult === "object")) {
       this.results =
-        this.outputFormat === "structured" && this.outputSchema
+        this.outputFormat === "structured" && this.outputSchema && typeof singleResult === "string"
           ? { markdown: singleResult }
           : singleResult;
     } else {
