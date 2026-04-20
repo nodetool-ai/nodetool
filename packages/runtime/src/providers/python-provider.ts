@@ -38,7 +38,7 @@ export class PythonProvider extends BaseProvider {
   constructor(
     providerId: string,
     bridge: PythonBridge,
-    secrets: Record<string, string> = {}
+    secrets?: Record<string, string>
   );
   constructor(options: PythonProviderOptions);
   constructor(
