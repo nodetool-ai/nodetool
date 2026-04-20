@@ -93,14 +93,16 @@ export const ThemeToggleButtonInternal: React.FC<ThemeToggleButtonProps> = ({
   return (
     <Box css={styles(theme)} className={`nodrag theme-toggle ${className || ""}`}>
       <Tooltip title={tooltipText} enterDelay={TOOLTIP_ENTER_DELAY}>
-        <IconButton
-          className="theme-button"
-          onClick={handleToggle}
-          size={buttonSize}
-          aria-label={tooltipText}
-        >
-          {isDark ? <LightModeIcon fontSize={buttonSize} /> : <DarkModeIcon fontSize={buttonSize} />}
-        </IconButton>
+        <span style={{ display: "inline-flex" }}>
+          <IconButton
+            className="theme-button"
+            onClick={handleToggle}
+            size={buttonSize}
+            aria-label={tooltipText}
+          >
+            {isDark ? <LightModeIcon fontSize={buttonSize} /> : <DarkModeIcon fontSize={buttonSize} />}
+          </IconButton>
+        </span>
       </Tooltip>
     </Box>
   );

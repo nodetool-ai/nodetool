@@ -230,7 +230,7 @@ export const StateIconButton = memo(
             enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
             placement={tooltipPlacement}
           >
-            <span>{button}</span>
+            <span style={{ display: "inline-flex" }}>{button}</span>
           </Tooltip>
         );
       }

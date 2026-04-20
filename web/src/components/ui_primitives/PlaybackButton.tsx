@@ -217,29 +217,31 @@ export const PlaybackButton = memo(
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}
         >
-          <IconButton
-            ref={ref}
-            aria-label={tooltip}
-            className={cn(
-              "playback-button",
-              nodrag && editorClassNames.nodrag,
-              state,
-              playbackAction,
-              className
-            )}
-            onClick={handleClick}
-            tabIndex={tabIndex}
-            sx={{
-              ...sizeStyles,
-              ...colorStyles,
-              borderRadius: "var(--rounded-circle)",
-              transition: "all 0.2s ease-in-out",
-              ...sx
-            }}
-            {...props}
-          >
-            {icon}
-          </IconButton>
+          <span style={{ display: "inline-flex" }}>
+            <IconButton
+              ref={ref}
+              aria-label={tooltip}
+              className={cn(
+                "playback-button",
+                nodrag && editorClassNames.nodrag,
+                state,
+                playbackAction,
+                className
+              )}
+              onClick={handleClick}
+              tabIndex={tabIndex}
+              sx={{
+                ...sizeStyles,
+                ...colorStyles,
+                borderRadius: "var(--rounded-circle)",
+                transition: "all 0.2s ease-in-out",
+                ...sx
+              }}
+              {...props}
+            >
+              {icon}
+            </IconButton>
+          </span>
         </Tooltip>
       );
     }

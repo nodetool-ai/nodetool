@@ -40,3 +40,6 @@
 ## 2025-05-30 - Missing ARIA Labels on Icon-only Submit Buttons
 **Learning:** Icon-only submit buttons (like the send button in `PortalInput`) often omit `aria-label`s, rendering them inaccessible to screen readers. Relying solely on the visual icon to convey the button's purpose is a common pattern that breaks accessibility.
 **Action:** When auditing or creating input components with icon-only submission buttons, always ensure an explicit `aria-label` is provided to describe the action (e.g., "Send message").
+## 2024-04-20 - Tooltip issues on disabled buttons
+**Learning:** In Material-UI, if a tooltip wraps a disabled button (`<IconButton disabled>`), the button does not fire pointer events and the tooltip won't display. Wrapping the button in a `<span style={{ display: "inline-flex" }}>` ensures the wrapper tightly hugs the button to catch pointer events without causing layout shifts, fixing a common accessibility issue where tooltips won't appear on disabled buttons.
+**Action:** Always wrap disabled Material-UI components in a `<span style={{ display: 'inline-flex' }}>` tag when wrapping them inside a `<Tooltip>` to maintain intended component layout and ensure the tooltip shows up correctly.
