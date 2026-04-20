@@ -25,6 +25,11 @@ import type {
 import type { Chunk } from "@nodetool/protocol";
 import type { PythonBridge } from "../python-bridge.js";
 
+type PythonProviderOptions = Record<string, unknown> & {
+  _id: string;
+  _bridge: PythonBridge;
+};
+
 export class PythonProvider extends BaseProvider {
   private _bridge: PythonBridge;
   private _pythonProviderId: string;
@@ -34,11 +39,33 @@ export class PythonProvider extends BaseProvider {
     providerId: string,
     bridge: PythonBridge,
     secrets: Record<string, string> = {}
+  );
+  constructor(options: PythonProviderOptions);
+  constructor(
+    providerIdOrOptions: string | PythonProviderOptions,
+    bridge?: PythonBridge,
+    secrets: Record<string, string> = {}
   ) {
-    super(providerId);
-    this._bridge = bridge;
-    this._pythonProviderId = providerId;
-    this._secrets = secrets;
+    if (typeof providerIdOrOptions === "string") {
+      super(providerIdOrOptions);
+      if (!bridge) {
+        throw new Error("PythonProvider requires a bridge instance");
+      }
+      this._bridge = bridge;
+      this._pythonProviderId = providerIdOrOptions;
+      this._secrets = secrets;
+      return;
+    }
+
+    const { _id, _bridge, ...rawSecrets } = providerIdOrOptions;
+    super(_id);
+    this._bridge = _bridge;
+    this._pythonProviderId = _id;
+    this._secrets = Object.fromEntries(
+      Object.entries(rawSecrets).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string"
+      )
+    );
   }
 
   static requiredSecrets(): string[] {
