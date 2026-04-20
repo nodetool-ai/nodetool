@@ -51,6 +51,13 @@ The capability system uses introspection to automatically detect which features 
 | Ollama | `ollama-provider.ts` | ✅ | model-dependent | Base64 | Local, no API key. `ollama pull` first |
 | vLLM | `vllm-provider.ts` | ✅ | model-dependent | ✅ | OpenAI-compatible, self-hosted |
 | HuggingFace | `huggingface-provider.ts` | ✅ | — | — | Hub models via FAL/Together/Replicate. See [HuggingFace Integration](huggingface.md) |
+| Groq | `groq-provider.ts` | ✅ | ✅ | — | Ultra-fast inference via Groq LPU |
+| Mistral | `mistral-provider.ts` | ✅ | ✅ | — | Mistral & Mixtral models |
+| Cerebras | `cerebras-provider.ts` | ✅ | ✅ | — | High-throughput Cerebras inference |
+| OpenRouter | `openrouter-provider.ts` | ✅ | ✅ | model-dependent | 300+ models via one key. Includes image generation |
+| LM Studio | `lmstudio-provider.ts` | ✅ | model-dependent | model-dependent | Local LM Studio server (no API key needed) |
+| Together AI | `together-provider.ts` | ✅ | ✅ | — | Open-weight model hosting |
+| Moonshot (Kimi) | `moonshot-provider.ts` | ✅ | ✅ | — | Kimi coding plan — Anthropic-compatible endpoint |
 
 ### Video Generation Providers
 
@@ -164,6 +171,13 @@ const params: TextToVideoParams = {
 | <img src="assets/icons/replicate.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Replicate**   | `REPLICATE_API_TOKEN` | -                               |
 | <img src="assets/icons/fal.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **FAL**         | `FAL_API_KEY`         | -                               |
 | <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **ElevenLabs**  | `ELEVENLABS_API_KEY`  | -                               |
+| **Groq**         | `GROQ_API_KEY`        | -                               |
+| **Mistral**      | `MISTRAL_API_KEY`     | -                               |
+| **Cerebras**     | `CEREBRAS_API_KEY`    | -                               |
+| **OpenRouter**   | `OPENROUTER_API_KEY`  | -                               |
+| **LM Studio**    | `LMSTUDIO_API_KEY` (optional) | `LMSTUDIO_API_URL` (default `http://127.0.0.1:1234`) |
+| **Together AI**  | `TOGETHER_API_KEY`    | -                               |
+| **Moonshot (Kimi)** | `KIMI_API_KEY`     | -                               |
 
 
 ### Getting API Keys
@@ -175,6 +189,13 @@ const params: TextToVideoParams = {
 - <img src="assets/icons/replicate.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Replicate:** https://replicate.com/account/api-tokens
 - <img src="assets/icons/fal.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **FAL:** https://fal.ai/dashboard/keys
 - <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **ElevenLabs:** https://elevenlabs.io/app/settings/api-keys
+- **Groq:** https://console.groq.com/keys
+- **Mistral:** https://console.mistral.ai/api-keys
+- **Cerebras:** https://cloud.cerebras.ai/
+- **OpenRouter:** https://openrouter.ai/keys
+- **Together AI:** https://api.together.xyz/settings/api-keys
+- **Moonshot (Kimi):** https://platform.moonshot.cn/console/api-keys
+- **LM Studio:** No key needed — download from https://lmstudio.ai and start a local server
 
 | 3D Provider     | Required Variables    |
 | --------------- | --------------------- |
