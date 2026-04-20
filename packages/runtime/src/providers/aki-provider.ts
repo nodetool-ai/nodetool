@@ -9,6 +9,7 @@
  * Docs: https://aki.io/docs
  */
 
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { AkiClient, decodeBinary } from "@aki-io/aki-io";
 import type {
@@ -27,7 +28,8 @@ import type {
   Message,
   ProviderStreamItem,
   ProviderTool,
-  TextToImageParams
+  TextToImageParams,
+  ToolCall
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.aki");
@@ -244,7 +246,7 @@ export class AkiProvider extends BaseProvider {
   }
 
   override async hasToolSupport(_model: string): Promise<boolean> {
-    return false;
+    return true;
   }
 
   /** Create a fresh AkiClient targeting the given endpoint (= model id). */
@@ -310,8 +312,90 @@ export class AkiProvider extends BaseProvider {
     return { chatContext, image };
   }
 
+  private formatTools(tools: ProviderTool[]): Array<Record<string, unknown>> {
+    return tools.map((tool) => {
+      if (
+        tool.type === "code_interpreter" ||
+        tool.name === "code_interpreter"
+      ) {
+        return { type: "code_interpreter" };
+      }
+
+      return {
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description ?? "",
+          parameters: tool.inputSchema ?? { type: "object", properties: {} }
+        }
+      };
+    });
+  }
+
+  private parseToolCalls(raw: unknown): ToolCall[] {
+    if (raw == null) {
+      return [];
+    }
+
+    const candidates = Array.isArray(raw) ? raw : [raw];
+    const toolCalls: ToolCall[] = [];
+
+    for (const candidate of candidates) {
+      let parsed = candidate;
+      if (typeof parsed === "string") {
+        try {
+          parsed = JSON.parse(parsed) as unknown;
+        } catch {
+          continue;
+        }
+      }
+      if (!parsed || typeof parsed !== "object") {
+        continue;
+      }
+
+      const record = parsed as Record<string, unknown>;
+      const nestedFunction =
+        record.function && typeof record.function === "object"
+          ? (record.function as Record<string, unknown>)
+          : null;
+      const name =
+        typeof record.name === "string"
+          ? record.name
+          : typeof nestedFunction?.name === "string"
+            ? nestedFunction.name
+            : "";
+      if (!name) {
+        continue;
+      }
+
+      const rawArgs =
+        record.arguments ?? nestedFunction?.arguments ?? record.args ?? {};
+      let args: Record<string, unknown> = {};
+      if (typeof rawArgs === "string") {
+        args = this.parseToolCallArgs(rawArgs);
+      } else if (rawArgs && typeof rawArgs === "object" && !Array.isArray(rawArgs)) {
+        args = rawArgs as Record<string, unknown>;
+      }
+
+      toolCalls.push({
+        id:
+          typeof record.id === "string"
+            ? record.id
+            : typeof record.tool_call_id === "string"
+              ? record.tool_call_id
+              : randomUUID(),
+        name,
+        args
+      });
+    }
+
+    return toolCalls;
+  }
+
   private async buildParams(args: {
     messages: Message[];
+    tools?: ProviderTool[];
+    toolChoice?: string | "any";
     maxTokens?: number;
     temperature?: number;
     topP?: number;
@@ -319,6 +403,11 @@ export class AkiProvider extends BaseProvider {
     const { chatContext, image } = await this.toChatContext(args.messages);
     const params: ApiRequestParams = { chat_context: chatContext };
     if (image) params.image = image;
+    if (args.tools && args.tools.length > 0) {
+      params.tools = this.formatTools(args.tools);
+    }
+    // AKI accepts tool definitions but currently rejects `tool_choice`, so we
+    // intentionally do not send it.
     if (args.maxTokens != null) params.max_gen_tokens = args.maxTokens;
     if (args.temperature != null) params.temperature = args.temperature;
     if (args.topP != null) params.top_p = args.topP;
@@ -360,6 +449,7 @@ export class AkiProvider extends BaseProvider {
   }): Promise<Message> {
     const client = this.makeClient(args.model);
     const params = await this.buildParams(args);
+
     const response = await client.doApiRequest(params);
     if (!response.success) {
       throw new Error(
@@ -375,7 +465,8 @@ export class AkiProvider extends BaseProvider {
     }
     return {
       role: "assistant",
-      content: response.text ?? ""
+      content: response.text ?? "",
+      toolCalls: this.parseToolCalls(response.tool_calls)
     };
   }
 
@@ -391,12 +482,19 @@ export class AkiProvider extends BaseProvider {
     const client = this.makeClient(args.model);
     const params = await this.buildParams(args);
 
+    const stream = client.getApiRequestGenerator(params) as AsyncGenerator<
+      Record<string, unknown>,
+      void,
+      unknown
+    >;
+
     let emitted = "";
     let errorMessage: string | undefined;
     let promptTokens: number | undefined;
     let generatedTokens: number | undefined;
+    const emittedToolCallIds = new Set<string>();
 
-    for await (const update of client.getApiRequestGenerator(params)) {
+    for await (const update of stream) {
       const u = update as Record<string, unknown>;
       if (u.success === false && typeof u.error === "string") {
         errorMessage = u.error;
@@ -422,6 +520,17 @@ export class AkiProvider extends BaseProvider {
         const delta = text.slice(emitted.length);
         emitted = text;
         yield { type: "chunk", content: delta, done: false } as Chunk;
+      }
+
+      const toolCalls = this.parseToolCalls(
+        progressData?.["tool_calls"] ?? u["tool_calls"]
+      );
+      for (const toolCall of toolCalls) {
+        if (emittedToolCallIds.has(toolCall.id)) {
+          continue;
+        }
+        emittedToolCallIds.add(toolCall.id);
+        yield toolCall;
       }
     }
 

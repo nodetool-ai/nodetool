@@ -45,13 +45,13 @@ describe("AkiProvider", () => {
     ).toThrow("AKI_API_KEY is not configured");
   });
 
-  it("does not advertise tool support", async () => {
+  it("advertises tool support", async () => {
     const { factory } = makeFactory({});
     const provider = new AkiProvider(
       { AKI_API_KEY: "k" },
       { clientFactory: factory as unknown as never }
     );
-    expect(await provider.hasToolSupport("llama3_chat")).toBe(false);
+    expect(await provider.hasToolSupport("llama3_chat")).toBe(true);
   });
 
   it("generateMessage sends chat_context and returns assistant text", async () => {
@@ -78,7 +78,11 @@ describe("AkiProvider", () => {
       topP: 0.9
     });
 
-    expect(result).toEqual({ role: "assistant", content: "hello from aki" });
+    expect(result).toEqual({
+      role: "assistant",
+      content: "hello from aki",
+      toolCalls: []
+    });
     expect(factory).toHaveBeenCalledWith(
       expect.objectContaining({
         endpointName: "llama3_chat",
@@ -94,6 +98,73 @@ describe("AkiProvider", () => {
       temperature: 0.5,
       top_p: 0.9
     });
+  });
+
+  it("generateMessage parses tool calls and forwards tool definitions", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      text: null,
+      tool_calls: {
+        id: "tool-1",
+        name: "search_docs",
+        arguments: { query: "aki tools" }
+      }
+    });
+    const { factory } = makeFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const result = await provider.generateMessage({
+      model: "llama3_chat",
+      messages: [{ role: "user", content: "find docs" }],
+      tools: [
+        {
+          name: "search_docs",
+          description: "Search docs",
+          inputSchema: {
+            type: "object",
+            properties: { query: { type: "string" } },
+            required: ["query"]
+          }
+        }
+      ],
+      toolChoice: "search_docs"
+    });
+
+    expect(result).toEqual({
+      role: "assistant",
+      content: "",
+      toolCalls: [
+        {
+          id: "tool-1",
+          name: "search_docs",
+          args: { query: "aki tools" }
+        }
+      ]
+    });
+    expect(doApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "search_docs",
+              description: "Search docs",
+              parameters: {
+                type: "object",
+                properties: { query: { type: "string" } },
+                required: ["query"]
+              }
+            }
+          }
+        ]
+      })
+    );
+    expect(doApiRequest).not.toHaveBeenCalledWith(
+      expect.objectContaining({ tool_choice: "search_docs" })
+    );
   });
 
   it("generateMessage throws on unsuccessful response", async () => {
@@ -198,6 +269,47 @@ describe("AkiProvider", () => {
       inputTokens: 11,
       outputTokens: 4
     });
+  });
+
+  it("generateMessages yields tool calls from stream updates", async () => {
+    async function* stream() {
+      yield {
+        success: true,
+        progress_data: { text: "Thinking" }
+      };
+      yield {
+        success: true,
+        result_data: {
+          tool_calls: {
+            id: "tool-stream-1",
+            name: "lookup",
+            arguments: '{"id":42}'
+          }
+        }
+      };
+    }
+    const { factory } = makeFactory({
+      getApiRequestGenerator: stream as unknown as GetGenerator
+    });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { clientFactory: factory as unknown as never }
+    );
+
+    const items: unknown[] = [];
+    for await (const item of provider.generateMessages({
+      model: "llama3_chat",
+      messages: [{ role: "user", content: "lookup 42" }],
+      tools: [{ name: "lookup", inputSchema: { type: "object" } }]
+    })) {
+      items.push(item);
+    }
+
+    expect(items).toEqual([
+      { type: "chunk", content: "Thinking", done: false },
+      { id: "tool-stream-1", name: "lookup", args: { id: 42 } },
+      { type: "chunk", content: "", done: true }
+    ]);
   });
 
   it("generateMessages surfaces error payloads", async () => {
