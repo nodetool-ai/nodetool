@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { ProcessingContext } from "@nodetool/runtime";
 import { getDeclaredPropertiesForClass } from "@nodetool/node-sdk";
 import {
   Boolean3DNode,
@@ -818,15 +819,31 @@ describe("model3d honest I/O", () => {
     expect(modelProps[0].options.type).toBe("model_3d");
   });
 
-  it("TextTo3DNode throws a clear not-implemented error", async () => {
+  it("TextTo3DNode requires a ProcessingContext to resolve a provider", async () => {
     const node = new TextTo3DNode();
     node.assign({ prompt: "a red dragon" });
-    await expect(node.process()).rejects.toThrow(/not implemented/i);
+    await expect(node.process()).rejects.toThrow(/ProcessingContext/i);
   });
 
-  it("ImageTo3DNode throws a clear not-implemented error", async () => {
+  it("ImageTo3DNode requires a ProcessingContext to resolve a provider", async () => {
     const node = new ImageTo3DNode();
     node.assign({ image: { type: "image", uri: "", data: null } });
-    await expect(node.process()).rejects.toThrow(/not implemented/i);
+    await expect(node.process()).rejects.toThrow(/ProcessingContext/i);
+  });
+
+  it("TextTo3DNode delegates to the resolved provider's textTo3D", async () => {
+    const meshBytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46]);
+    const textTo3D = vi.fn().mockResolvedValue(meshBytes);
+    const ctx = {
+      getProvider: vi.fn().mockResolvedValue({ textTo3D })
+    } as unknown as ProcessingContext;
+    const node = new TextTo3DNode();
+    node.assign({
+      model: { type: "model_3d_model", provider: "meshy", id: "meshy-4" },
+      prompt: "a red dragon"
+    });
+    const result = await node.process(ctx);
+    expect(textTo3D).toHaveBeenCalledTimes(1);
+    expect((result.output as Record<string, unknown>).format).toBe("glb");
   });
 });

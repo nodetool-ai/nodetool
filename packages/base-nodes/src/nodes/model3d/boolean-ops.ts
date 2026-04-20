@@ -36,8 +36,8 @@ function extractTriangleMeshForBoolean(bytes: Uint8Array): ManifoldMeshLike {
     throw new Error("Unsupported model boolean: expected valid GLB bytes.");
   }
 
-  const positions: number[] = [];
-  const indices: number[] = [];
+  const posChunks: Float32Array[] = [];
+  const idxChunks: Uint32Array[] = [];
   let vertexOffset = 0;
 
   for (const mesh of glb.json.meshes ?? []) {
@@ -68,7 +68,7 @@ function extractTriangleMeshForBoolean(bytes: Uint8Array): ManifoldMeshLike {
         positionAccessor.acc,
         positionAccessor.bv
       );
-      positions.push(...primitivePositions);
+      posChunks.push(primitivePositions);
 
       let primitiveIndices: Uint32Array;
       if (primitive.indices !== undefined) {
@@ -92,18 +92,25 @@ function extractTriangleMeshForBoolean(bytes: Uint8Array): ManifoldMeshLike {
         }
       }
 
-      for (const index of primitiveIndices) {
-        indices.push(index + vertexOffset);
+      const offsetted = new Uint32Array(primitiveIndices.length);
+      for (let i = 0; i < primitiveIndices.length; i++) {
+        offsetted[i] = primitiveIndices[i] + vertexOffset;
       }
+      idxChunks.push(offsetted);
       vertexOffset += positionAccessor.acc.count;
     }
   }
 
-  return {
-    numProp: 3,
-    triVerts: Uint32Array.from(indices),
-    vertProperties: Float32Array.from(positions)
-  };
+  const totalPos = posChunks.reduce((s, c) => s + c.length, 0);
+  const totalIdx = idxChunks.reduce((s, c) => s + c.length, 0);
+  const vertProperties = new Float32Array(totalPos);
+  const triVerts = new Uint32Array(totalIdx);
+  let off = 0;
+  for (const chunk of posChunks) { vertProperties.set(chunk, off); off += chunk.length; }
+  off = 0;
+  for (const chunk of idxChunks) { triVerts.set(chunk, off); off += chunk.length; }
+
+  return { numProp: 3, triVerts, vertProperties };
 }
 
 function buildGlbFromTriangleMesh(mesh: ManifoldMeshLike): Uint8Array {
