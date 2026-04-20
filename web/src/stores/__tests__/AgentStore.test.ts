@@ -343,17 +343,17 @@ describe("AgentStore", () => {
         isDefault: true
       }
     ]);
-    await Promise.resolve();
-
-    expect(useAgentStore.getState().model).toBe("claude-new");
-    expect(useAgentStore.getState().availableModels).toEqual([
-      {
-        id: "claude-new",
-        label: "Claude New",
-        provider: "claude",
-        isDefault: true
-      }
-    ]);
-    expect(useAgentStore.getState().modelsLoading).toBe(false);
+    await waitFor(() => {
+      expect(useAgentStore.getState().model).toBe("claude-new");
+      expect(useAgentStore.getState().availableModels).toEqual([
+        {
+          id: "claude-new",
+          label: "Claude New",
+          provider: "claude",
+          isDefault: true
+        }
+      ]);
+      expect(useAgentStore.getState().modelsLoading).toBe(false);
+    });
   });
 });
