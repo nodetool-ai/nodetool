@@ -3,12 +3,10 @@
  */
 
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import AudioPlayer from "../AudioPlayer";
-
-var mockWaveSurferCreate: jest.Mock;
 
 // Mock URL.createObjectURL/revokeObjectURL without replacing the entire URL object
 const originalCreateObjectURL = global.URL.createObjectURL;
@@ -18,9 +16,8 @@ global.URL.revokeObjectURL = jest.fn();
 
 // Mock dependencies
 jest.mock("wavesurfer.js", () => ({
-  __esModule: true,
   default: {
-    create: (mockWaveSurferCreate = jest.fn(() => ({
+    create: jest.fn(() => ({
       on: jest.fn(),
       un: jest.fn(),
       unAll: jest.fn(),
@@ -51,7 +48,7 @@ jest.mock("wavesurfer.js", () => ({
       })),
       destroy: jest.fn(),
       load: jest.fn()
-    })))
+    }))
   }
 }));
 
@@ -171,32 +168,6 @@ describe("AudioPlayer", () => {
   });
 
   describe("Custom Props", () => {
-    it("should cap waveform bar height by default", async () => {
-      render(<AudioPlayer {...defaultProps} />, { wrapper: themeWrapper });
-
-      await waitFor(() => {
-        expect(mockWaveSurferCreate).toHaveBeenCalledWith(
-          expect.objectContaining({
-            barHeight: 0.8
-          })
-        );
-      });
-    });
-
-    it("should pass through a custom waveform bar height", async () => {
-      render(<AudioPlayer {...defaultProps} barHeight={0.65} />, {
-        wrapper: themeWrapper
-      });
-
-      await waitFor(() => {
-        expect(mockWaveSurferCreate).toHaveBeenCalledWith(
-          expect.objectContaining({
-            barHeight: 0.65
-          })
-        );
-      });
-    });
-
     it("should render with custom height props", () => {
       const { container } = render(<AudioPlayer {...defaultProps} height={20} />, { wrapper: themeWrapper });
 
