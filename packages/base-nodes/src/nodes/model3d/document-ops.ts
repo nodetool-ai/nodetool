@@ -10,8 +10,7 @@ import { MeshoptSimplifier } from "meshoptimizer";
 import type { GltfJson, JsonResourceRef, Model3DRefLike } from "./types.js";
 import {
   embedJsonResourceUris,
-  modelBytes,
-  replaceExtension
+  modelBytes
 } from "./utils.js";
 
 const gltfIo = new NodeIO();
@@ -64,11 +63,4 @@ export async function mergeGlbModels(models: Model3DRefLike[]): Promise<Uint8Arr
 
   await target.transform(unpartition());
   return gltfIo.writeBinary(target);
-}
-
-export function nextConvertedUri(
-  sourceUri: string,
-  format: string
-): string {
-  return replaceExtension(sourceUri, format);
 }

@@ -53,17 +53,6 @@ export function pad4(length: number): number {
   return (4 - (length % 4)) % 4;
 }
 
-export function concatBytes(parts: Uint8Array[]): Uint8Array {
-  const total = parts.reduce((sum, p) => sum + p.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.length;
-  }
-  return out;
-}
-
 export function replaceExtension(uriOrPath: string, format: string): string {
   if (!uriOrPath) return "";
   const isFileUri = uriOrPath.startsWith("file://");

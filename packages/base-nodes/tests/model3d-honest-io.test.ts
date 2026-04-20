@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   Boolean3DNode,
+  CenterMeshNode,
   DecimateNode,
+  FlipNormalsNode,
   FormatConverterNode,
   GetModel3DMetadataNode,
-  MergeMeshesNode
+  MergeMeshesNode,
+  RecalculateNormalsNode,
+  Transform3DNode
 } from "../src/nodes/model3d.js";
 
 function pad4(length: number): number {
@@ -21,6 +25,24 @@ function createTriangleGlb(): Uint8Array {
     [0, 1, 2],
     [0, 0, 0],
     [1, 2, 0]
+  );
+}
+
+function createTriangleWithNormalsGlb(): Uint8Array {
+  return createIndexedGlb(
+    [
+      0, 0, 0,
+      1, 0, 0,
+      0, 2, 0
+    ],
+    [0, 1, 2],
+    [0, 0, 0],
+    [1, 2, 0],
+    [
+      0, 0, -1,
+      0, 0, -1,
+      0, 0, -1
+    ]
   );
 }
 
@@ -79,14 +101,25 @@ function createIndexedGlb(
   positions: number[],
   indices: number[],
   min: number[],
-  max: number[]
+  max: number[],
+  normals?: number[]
 ): Uint8Array {
   const positionsArray = new Float32Array(positions);
+  const normalsArray = normals ? new Float32Array(normals) : null;
   const indicesArray = new Uint32Array(indices);
   const positionsBytes = new Uint8Array(positionsArray.buffer);
+  const normalsBytes = normalsArray ? new Uint8Array(normalsArray.buffer) : null;
   const indicesBytes = new Uint8Array(indicesArray.buffer);
   const totalBinaryLength =
-    positionsBytes.byteLength + indicesBytes.byteLength + pad4(indicesBytes.byteLength);
+    positionsBytes.byteLength +
+    (normalsBytes?.byteLength ?? 0) +
+    indicesBytes.byteLength +
+    pad4(indicesBytes.byteLength);
+
+  const normalBufferViewIndex = normalsBytes ? 1 : undefined;
+  const indexBufferViewIndex = normalsBytes ? 2 : 1;
+  const normalAccessorIndex = normalsBytes ? 1 : undefined;
+  const indexAccessorIndex = normalsBytes ? 2 : 1;
 
   const json = {
     asset: { version: "2.0" },
@@ -97,8 +130,13 @@ function createIndexedGlb(
       {
         primitives: [
           {
-            attributes: { POSITION: 0 },
-            indices: 1
+            attributes: {
+              POSITION: 0,
+              ...(normalAccessorIndex !== undefined
+                ? { NORMAL: normalAccessorIndex }
+                : {})
+            },
+            indices: indexAccessorIndex
           }
         ]
       }
@@ -106,9 +144,18 @@ function createIndexedGlb(
     buffers: [{ byteLength: totalBinaryLength }],
     bufferViews: [
       { buffer: 0, byteOffset: 0, byteLength: positionsBytes.byteLength },
+      ...(normalsBytes
+        ? [
+            {
+              buffer: 0,
+              byteOffset: positionsBytes.byteLength,
+              byteLength: normalsBytes.byteLength
+            }
+          ]
+        : []),
       {
         buffer: 0,
-        byteOffset: positionsBytes.byteLength,
+        byteOffset: positionsBytes.byteLength + (normalsBytes?.byteLength ?? 0),
         byteLength: indicesBytes.byteLength
       }
     ],
@@ -121,8 +168,18 @@ function createIndexedGlb(
         min,
         max
       },
+      ...(normalsBytes
+        ? [
+            {
+              bufferView: normalBufferViewIndex,
+              componentType: 5126,
+              count: normals!.length / 3,
+              type: "VEC3"
+            }
+          ]
+        : []),
       {
-        bufferView: 1,
+        bufferView: indexBufferViewIndex,
         componentType: 5125,
         count: indices.length,
         type: "SCALAR"
@@ -138,7 +195,13 @@ function createIndexedGlb(
 
   const binaryBytes = new Uint8Array(totalBinaryLength);
   binaryBytes.set(positionsBytes, 0);
-  binaryBytes.set(indicesBytes, positionsBytes.byteLength);
+  if (normalsBytes) {
+    binaryBytes.set(normalsBytes, positionsBytes.byteLength);
+  }
+  binaryBytes.set(
+    indicesBytes,
+    positionsBytes.byteLength + (normalsBytes?.byteLength ?? 0)
+  );
 
   const totalLength = 12 + 8 + jsonBytes.byteLength + 8 + binaryBytes.byteLength;
   const glb = new Uint8Array(totalLength);
@@ -173,6 +236,104 @@ function expectBoundsClose(
   for (let i = 0; i < 3; i++) {
     expect(actual[i]).toBeCloseTo(expected[i], 5);
   }
+}
+
+function parseGlb(bytes: Uint8Array): {
+  json: {
+    accessors: Array<{
+      bufferView: number;
+      byteOffset?: number;
+      componentType: number;
+      count: number;
+      type: string;
+    }>;
+    bufferViews: Array<{
+      buffer: number;
+      byteOffset?: number;
+      byteLength: number;
+      byteStride?: number;
+    }>;
+    meshes: Array<{
+      primitives: Array<{
+        attributes: Record<string, number>;
+        indices?: number;
+      }>;
+    }>;
+  };
+  bin: Uint8Array;
+} {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let offset = 12;
+  let json = {} as {
+    accessors: Array<{
+      bufferView: number;
+      byteOffset?: number;
+      componentType: number;
+      count: number;
+      type: string;
+    }>;
+    bufferViews: Array<{
+      buffer: number;
+      byteOffset?: number;
+      byteLength: number;
+      byteStride?: number;
+    }>;
+    meshes: Array<{
+      primitives: Array<{
+        attributes: Record<string, number>;
+        indices?: number;
+      }>;
+    }>;
+  };
+  let bin = new Uint8Array(0);
+
+  while (offset + 8 <= bytes.length) {
+    const length = view.getUint32(offset, true);
+    const type = view.getUint32(offset + 4, true);
+    offset += 8;
+    if (type === 0x4e4f534a) {
+      json = JSON.parse(
+        new TextDecoder().decode(bytes.slice(offset, offset + length))
+      ) as typeof json;
+    } else if (type === 0x004e4942) {
+      bin = bytes.slice(offset, offset + length);
+    }
+    offset += length;
+  }
+
+  return { json, bin };
+}
+
+function readVec3Accessor(bytes: Uint8Array, accessorIndex: number): number[] {
+  const glb = parseGlb(bytes);
+  const accessor = glb.json.accessors[accessorIndex];
+  const bufferView = glb.json.bufferViews[accessor.bufferView];
+  const baseOffset = (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+  const stride = bufferView.byteStride ?? 12;
+  const view = new DataView(glb.bin.buffer, glb.bin.byteOffset);
+  const values: number[] = [];
+  for (let i = 0; i < accessor.count; i++) {
+    const offset = baseOffset + i * stride;
+    values.push(
+      view.getFloat32(offset, true),
+      view.getFloat32(offset + 4, true),
+      view.getFloat32(offset + 8, true)
+    );
+  }
+  return values;
+}
+
+function readIndexAccessor(bytes: Uint8Array, accessorIndex: number): number[] {
+  const glb = parseGlb(bytes);
+  const accessor = glb.json.accessors[accessorIndex];
+  const bufferView = glb.json.bufferViews[accessor.bufferView];
+  const baseOffset = (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+  const view = new DataView(glb.bin.buffer, glb.bin.byteOffset);
+  const values: number[] = [];
+  for (let i = 0; i < accessor.count; i++) {
+    values.push(view.getUint32(baseOffset + i * 4, true));
+  }
+  return values;
 }
 
 describe("model3d honest I/O", () => {
@@ -268,6 +429,91 @@ describe("model3d honest I/O", () => {
     });
 
     await expect(node.process()).rejects.toThrow(/unsupported/i);
+  });
+
+  it("Transform3DNode applies translation and scaling to real GLB geometry", async () => {
+    const node = new Transform3DNode();
+    node.assign({
+      model: modelRef(createTriangleGlb()),
+      translate_x: 1,
+      translate_y: -2,
+      translate_z: 3,
+      scale_x: 2,
+      scale_y: 3,
+      scale_z: 1,
+      uniform_scale: 1
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expectBoundsClose(output.bounds_min, [1, -2, 3]);
+    expectBoundsClose(output.bounds_max, [3, 4, 3]);
+  });
+
+  it("CenterMeshNode recenters geometry around the bounding-box midpoint", async () => {
+    const node = new CenterMeshNode();
+    node.assign({
+      model: modelRef(createTriangleGlb()),
+      use_centroid: false
+    });
+
+    const result = await node.process();
+    const metadataNode = new GetModel3DMetadataNode();
+    metadataNode.assign({ model: result.output });
+    const output = (await metadataNode.process()).output as {
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+
+    expectBoundsClose(output.bounds_min, [-0.5, -1, 0]);
+    expectBoundsClose(output.bounds_max, [0.5, 1, 0]);
+  });
+
+  it("RecalculateNormalsNode rewrites vertex normals from real triangle geometry", async () => {
+    const node = new RecalculateNormalsNode();
+    node.assign({
+      model: modelRef(createTriangleWithNormalsGlb()),
+      mode: "smooth",
+      fix_winding: false
+    });
+
+    const result = await node.process();
+    const output = result.output as { data: string };
+    const normals = readVec3Accessor(Buffer.from(output.data, "base64"), 1);
+
+    expect(normals).toEqual([
+      0, 0, 1,
+      0, 0, 1,
+      0, 0, 1
+    ]);
+  });
+
+  it("FlipNormalsNode negates normals and reverses triangle winding", async () => {
+    const node = new FlipNormalsNode();
+    node.assign({
+      model: modelRef(createTriangleWithNormalsGlb())
+    });
+
+    const result = await node.process();
+    const output = result.output as { data: string };
+    const bytes = Buffer.from(output.data, "base64");
+    const normals = readVec3Accessor(bytes, 1).map((value) =>
+      Object.is(value, -0) ? 0 : value
+    );
+    const indices = readIndexAccessor(bytes, 2);
+
+    expect(normals).toEqual([
+      0, 0, 1,
+      0, 0, 1,
+      0, 0, 1
+    ]);
+    expect(indices).toEqual([0, 2, 1]);
   });
 
   it("MergeMeshesNode performs an honest GLB scene merge", async () => {
