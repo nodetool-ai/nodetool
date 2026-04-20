@@ -556,11 +556,17 @@ export class Agent extends BaseAgent {
 
     if (taskCount === 0) {
       this.results = executor.getFinalResult();
-    } else if (singleIsGoodString) {
-      this.results =
-        this.outputFormat === "structured" && this.outputSchema
-          ? { markdown: singleResult }
-          : singleResult;
+    } else if (taskCount === 1 && singleResult !== null) {
+      if (singleIsGoodString) {
+        this.results =
+          this.outputFormat === "structured" && this.outputSchema
+            ? { markdown: singleResult }
+            : singleResult;
+      } else if (typeof singleResult !== "string") {
+        this.results = singleResult;
+      } else {
+        yield* this.synthesizeFinalResponse(context, allResults, taskPlan);
+      }
     } else {
       yield* this.synthesizeFinalResponse(context, allResults, taskPlan);
     }
