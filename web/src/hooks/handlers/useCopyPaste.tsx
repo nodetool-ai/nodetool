@@ -51,6 +51,7 @@ export const useCopyPaste = () => {
 
   const handleCopy = useCallback(
     async (nodeId?: string) => {
+      if (!nodeId && isTextInputActive()) return { nodesToCopy: [], connectedEdges: [] };
       let nodesToCopy: Node[];
       if (nodeId && nodeId !== "") {
         const node = nodes.find((node) => node.id === nodeId);
