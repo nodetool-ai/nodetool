@@ -646,6 +646,17 @@ function isControlTool(tool: ToolLike): tool is ControlToolLike {
   );
 }
 
+function extractThinkTags(text: string): { thinking: string; text: string } {
+  const parts: string[] = [];
+  const cleaned = text
+    .replace(/<think>([\s\S]*?)<\/think>/g, (_, content) => {
+      parts.push(content.trim());
+      return "";
+    })
+    .trim();
+  return { thinking: parts.join("\n\n"), text: cleaned };
+}
+
 /**
  * Sanitize a node title to a valid tool name (snake_case, max 64 chars).
  */
@@ -2499,8 +2510,18 @@ export class AgentNode extends BaseNode {
       }
 
       if (assistantText) {
-        lastTextOutput = assistantText;
-        yield { chunk: null, thinking: null, text: assistantText, audio: null };
+        const { thinking: thinkingText, text: cleanText } =
+          extractThinkTags(assistantText);
+        lastTextOutput = cleanText;
+        if (thinkingText) {
+          yield {
+            chunk: null,
+            thinking: { type: "chunk", content: thinkingText, thinking: true },
+            text: null,
+            audio: null
+          };
+        }
+        yield { chunk: null, thinking: null, text: cleanText, audio: null };
       }
 
       // Save messages to thread
@@ -2597,11 +2618,21 @@ export class AgentNode extends BaseNode {
         });
 
         if (assistantText) {
-          lastTextOutput = assistantText;
+          const { thinking: thinkingText, text: cleanText } =
+            extractThinkTags(assistantText);
+          lastTextOutput = cleanText;
+          if (thinkingText) {
+            yield {
+              chunk: null,
+              thinking: { type: "chunk", content: thinkingText, thinking: true },
+              text: null,
+              audio: null
+            };
+          }
           yield {
             chunk: null,
             thinking: null,
-            text: assistantText,
+            text: cleanText,
             audio: null
           };
         }
