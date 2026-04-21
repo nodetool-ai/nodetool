@@ -17,6 +17,43 @@ export function modelBytes(model: unknown): Uint8Array {
   return toBytes((model as Model3DRefLike).data);
 }
 
+export async function modelRefToBytes(
+  model: unknown,
+  context?: {
+    storage?: {
+      retrieve(uri: string): Promise<Uint8Array | null>;
+    } | null;
+  }
+): Promise<Uint8Array> {
+  if (!model || typeof model !== "object") return new Uint8Array();
+  const obj = model as Model3DRefLike;
+
+  const inline = toBytes(obj.data);
+  if (inline.length > 0) return inline;
+
+  const uri = obj.uri ?? "";
+  if (!uri) return new Uint8Array();
+
+  if (context?.storage) {
+    const stored = await context.storage.retrieve(uri);
+    if (stored && stored.length > 0) return new Uint8Array(stored);
+  }
+
+  if (uri.startsWith("file://")) {
+    const { readFile } = await import("node:fs/promises");
+    const { fileURLToPath } = await import("node:url");
+    return new Uint8Array(await readFile(fileURLToPath(uri)));
+  }
+
+  if (uri.startsWith("http://") || uri.startsWith("https://")) {
+    const res = await fetch(uri);
+    if (!res.ok) throw new Error(`Failed to fetch model (${res.status}): ${uri}`);
+    return new Uint8Array(await res.arrayBuffer());
+  }
+
+  return new Uint8Array();
+}
+
 /**
  * Resolve an image-ref-shaped value (`{uri, data, asset_id, ...}`) to raw
  * image bytes. Accepts inline `data` (base64 string or Uint8Array), a

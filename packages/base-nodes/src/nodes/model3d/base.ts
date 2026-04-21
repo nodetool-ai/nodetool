@@ -1,6 +1,7 @@
 import { BaseNode } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import type { Model3DRefLike } from "./types.js";
-import { modelBytes, modelRef, passthroughModel } from "./utils.js";
+import { modelRef, modelRefToBytes } from "./utils.js";
 
 export abstract class GlbTransformNode extends BaseNode {
   declare model: any;
@@ -14,11 +15,11 @@ export abstract class GlbTransformNode extends BaseNode {
     bytes: Uint8Array
   ): Uint8Array | null | Promise<Uint8Array | null>;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const model = this.getModel();
-    const bytes = modelBytes(model);
+    const bytes = await modelRefToBytes(model, context);
     const out = await this.transform(bytes);
-    if (!out) return passthroughModel(model);
+    if (!out) return { output: modelRef(bytes, { uri: model.uri ?? "", format: model.format ?? "glb" }) };
     return { output: modelRef(out, { uri: model.uri ?? "", format: "glb" }) };
   }
 }

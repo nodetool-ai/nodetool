@@ -1,12 +1,13 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 
+import type { ProcessingContext } from "@nodetool/runtime";
 import { glbOutput } from "./base.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { booleanGlb } from "./boolean-ops.js";
 import { decimateGlb, mergeGlbModels } from "./document-ops.js";
 import { requireGlbBytes } from "./glb.js";
 import type { Model3DRefLike } from "./types.js";
-import { modelBytes } from "./utils.js";
+import { modelRefToBytes } from "./utils.js";
 
 export class DecimateNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.Decimate";
@@ -35,9 +36,9 @@ export class DecimateNode extends BaseNode {
   })
   declare target_ratio: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const model = (this.model ?? {}) as Model3DRefLike;
-    const bytes = modelBytes(model);
+    const bytes = await modelRefToBytes(model, context);
     const ratio = Number(this.target_ratio ?? 0.5);
     requireGlbBytes(model, bytes, "decimation");
     const decimatedBytes = await decimateGlb(bytes, ratio);
@@ -79,11 +80,11 @@ export class Boolean3DNode extends BaseNode {
   })
   declare operation: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const modelA = (this.model_a ?? {}) as Model3DRefLike;
     const modelB = (this.model_b ?? {}) as Model3DRefLike;
-    const a = requireGlbBytes(modelA, modelBytes(modelA), "boolean");
-    const b = requireGlbBytes(modelB, modelBytes(modelB), "boolean");
+    const a = requireGlbBytes(modelA, await modelRefToBytes(modelA, context), "boolean");
+    const b = requireGlbBytes(modelB, await modelRefToBytes(modelB, context), "boolean");
     const operation = String(this.operation ?? "union").toLowerCase();
     const out = await booleanGlb(a, b, operation);
     return glbOutput(out);
@@ -107,16 +108,17 @@ export class MergeMeshesNode extends BaseNode {
   })
   declare models: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const values = Array.isArray(this.models) ? (this.models as unknown[]) : [];
     if (values.length === 0) {
       return glbOutput(new Uint8Array(0));
     }
     const models = values.map((v) => v as Model3DRefLike);
-    for (const m of models) {
-      requireGlbBytes(m, modelBytes(m), "merge");
+    const bytesList = await Promise.all(models.map((m) => modelRefToBytes(m, context)));
+    for (let i = 0; i < models.length; i++) {
+      requireGlbBytes(models[i], bytesList[i], "merge");
     }
-    const merged = await mergeGlbModels(models);
+    const merged = await mergeGlbModels(bytesList);
     return glbOutput(merged);
   }
 }

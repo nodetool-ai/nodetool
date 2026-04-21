@@ -7,10 +7,9 @@ import {
 } from "@gltf-transform/functions";
 import { MeshoptSimplifier } from "meshoptimizer";
 
-import type { GltfJson, JsonResourceRef, Model3DRefLike } from "./types.js";
+import type { GltfJson, JsonResourceRef } from "./types.js";
 import {
-  embedJsonResourceUris,
-  modelBytes
+  embedJsonResourceUris
 } from "./utils.js";
 
 const gltfIo = new NodeIO();
@@ -51,13 +50,13 @@ export async function decimateGlb(
   return gltfIo.writeBinary(document);
 }
 
-export async function mergeGlbModels(models: Model3DRefLike[]): Promise<Uint8Array> {
-  const [first, ...rest] = models;
+export async function mergeGlbModels(modelsBytesList: Uint8Array[]): Promise<Uint8Array> {
+  const [first, ...rest] = modelsBytesList;
   if (!first) return new Uint8Array(0);
 
-  const target = await gltfIo.readBinary(modelBytes(first));
-  for (const model of rest) {
-    const source = await gltfIo.readBinary(modelBytes(model));
+  const target = await gltfIo.readBinary(first);
+  for (const bytes of rest) {
+    const source = await gltfIo.readBinary(bytes);
     mergeDocuments(target, source);
   }
 

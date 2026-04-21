@@ -2,9 +2,10 @@ import { BaseNode, prop } from "@nodetool/node-sdk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
-import { dateName, extFormat, filePath, modelBytes, modelRef } from "./utils.js";
+import { dateName, extFormat, filePath, modelRef, modelRefToBytes } from "./utils.js";
 
 const MAX_NON_OVERWRITE_ATTEMPTS = 1000;
 
@@ -105,12 +106,12 @@ export class SaveModel3DFileNode extends BaseNode {
   })
   declare overwrite: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
     const filename = dateName(String(this.filename ?? "model.glb"));
     const overwrite = this.overwrite === true;
     await fs.mkdir(path.resolve(folder), { recursive: true });
-    const bytes = modelBytes(this.model);
+    const bytes = await modelRefToBytes(this.model, context);
     const full = path.resolve(folder, filename);
     const targetPath = overwrite
       ? full
@@ -162,12 +163,12 @@ export class SaveModel3DNode extends BaseNode {
   })
   declare name: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const folder = String(this.folder ?? ".");
     const name = dateName(String(this.name ?? "model.glb"));
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
-    const bytes = modelBytes(this.model);
+    const bytes = await modelRefToBytes(this.model, context);
     await fs.writeFile(full, bytes);
     return {
       output: modelRef(bytes, {

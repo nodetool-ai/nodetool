@@ -1,9 +1,10 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { analyzeGlbMetadata, fallbackMetadata, parseGlb } from "./glb.js";
 import type { Model3DRefLike } from "./types.js";
-import { modelBytes, modelFormat } from "./utils.js";
+import { modelFormat, modelRefToBytes } from "./utils.js";
 
 export class GetModel3DMetadataNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.GetModel3DMetadata";
@@ -23,9 +24,9 @@ export class GetModel3DMetadataNode extends BaseNode {
   })
   declare model: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const model = (this.model ?? {}) as Model3DRefLike;
-    const bytes = modelBytes(model);
+    const bytes = await modelRefToBytes(model, context);
     const metadata =
       modelFormat(model) === "glb" && parseGlb(bytes)
         ? analyzeGlbMetadata(model, bytes)
