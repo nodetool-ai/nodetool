@@ -27,6 +27,10 @@ const namespaceToSecretKey: Record<string, string> = {
 // API-backed namespaces that currently do not require a dedicated key in this map.
 const apiNamespacesWithoutSecret = new Set<string>(["messaging"]);
 
+// Namespaces that run locally but may require a token (e.g. for model download).
+// These override the default "has secret key → api" heuristic.
+const localNamespaces = new Set<string>(["huggingface"]);
+
 const secretKeyToDisplayName: Record<string, string> = {
   OPENAI_API_KEY: "OpenAI API Key",
   ANTHROPIC_API_KEY: "Anthropic API Key",
@@ -61,9 +65,12 @@ export const getRequiredSecretKeyForNamespace = (
 export const getSecretDisplayName = (secretKey: string): string =>
   secretKeyToDisplayName[secretKey] || secretKey;
 
-export const getProviderKindForNamespace = (namespace: string): ProviderKind =>
-  getRequiredSecretKeyForNamespace(namespace) ||
-  apiNamespacesWithoutSecret.has(getRootNamespace(namespace))
+export const getProviderKindForNamespace = (namespace: string): ProviderKind => {
+  const root = getRootNamespace(namespace);
+  if (localNamespaces.has(root)) return "local";
+  return getRequiredSecretKeyForNamespace(namespace) ||
+    apiNamespacesWithoutSecret.has(root)
     ? "api"
     : "local";
+};
 
