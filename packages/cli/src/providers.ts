@@ -18,6 +18,7 @@ import {
   GroqProvider,
   MoonshotProvider,
   AkiProvider,
+  LMStudioProvider,
   ClaudeAgentProvider,
   BaseProvider as BaseProviderClass
 } from "@nodetool/runtime";
@@ -31,6 +32,7 @@ export const KNOWN_PROVIDERS = [
   "ollama",
   "gemini",
   "mistral",
+  "lmstudio",
   "groq",
   "moonshot",
   "aki",
@@ -41,10 +43,11 @@ export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 /** Default models for each provider. */
 export const DEFAULT_MODELS: Record<string, string> = {
   anthropic: "claude-sonnet-4-6",
-  openai: "gpt-4o",
-  ollama: "llama3.2",
-  gemini: "gemini-2.0-flash",
+  openai: "gpt-5.4",
+  ollama: "qwen-3.5:4b",
+  gemini: "gemini-2.5-flash",
   mistral: "mistral-large-latest",
+  lmstudiio: "qwen/qwen3.5-9b",
   groq: "llama-3.3-70b-versatile",
   moonshot: "kimi-k2.5",
   aki: "llama3_chat",
@@ -76,6 +79,12 @@ export async function createProvider(
       return new GeminiProvider({
         GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY")
       });
+    case "lmstudio":
+      return new LMStudioProvider({
+        options: {
+          baseUrl: "http://127.0.0.1"
+        }
+      })
     case "mistral":
       return new MistralProvider({
         MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY")
@@ -112,6 +121,7 @@ export function availableProviders(): string[] {
   if (process.env["KIMI_API_KEY"]) available.push("moonshot");
   if (process.env["AKI_API_KEY"]) available.push("aki");
   available.push("ollama"); // always available (local)
+  available.push("lmstudio")
   return available;
 }
 
