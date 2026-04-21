@@ -28,6 +28,9 @@ jest.mock("../SystemStats", () => () => <div data-testid="system-stats" />);
 jest.mock("../../hugging_face/OverallDownloadProgress", () => () => (
   <div data-testid="download-progress" />
 ));
+jest.mock("../../feedback/FeedbackDialog", () => ({
+  FeedbackDialog: ({ open }: { open: boolean }) => (open ? <div>Send feedback</div> : null),
+}));
 
 const renderComponent = () =>
   render(
