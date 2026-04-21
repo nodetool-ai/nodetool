@@ -80,11 +80,7 @@ export async function createProvider(
         GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY")
       });
     case "lmstudio":
-      return new LMStudioProvider({
-        options: {
-          baseUrl: "http://127.0.0.1"
-        }
-      })
+      return new LMStudioProvider({}, { baseURL: "http://127.0.0.1:1234" })
     case "mistral":
       return new MistralProvider({
         MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY")
