@@ -84,7 +84,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GROQ_API_KEY", "");
     vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
-    expect(availableProviders()).toEqual(["ollama"]);
+    expect(availableProviders()).toEqual(["ollama", "lmstudio"]);
   });
 
   it("includes anthropic when ANTHROPIC_API_KEY is set", async () => {
@@ -98,6 +98,7 @@ describe("availableProviders", () => {
     const providers = availableProviders();
     expect(providers).toContain("anthropic");
     expect(providers).toContain("ollama");
+    expect(providers).toContain("lmstudio");
   });
 
   it("includes openai when OPENAI_API_KEY is set", async () => {
@@ -128,9 +129,10 @@ describe("availableProviders", () => {
     expect(providers).toContain("groq");
     expect(providers).toContain("moonshot");
     expect(providers).toContain("ollama");
+    expect(providers).toContain("lmstudio");
   });
 
-  it("ollama is always last in the list", async () => {
+  it("lmstudio is always last in the list", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "a");
     vi.stubEnv("OPENAI_API_KEY", "b");
     vi.stubEnv("GEMINI_API_KEY", "");
@@ -139,10 +141,10 @@ describe("availableProviders", () => {
     vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
-    expect(providers[providers.length - 1]).toBe("ollama");
+    expect(providers[providers.length - 1]).toBe("lmstudio");
   });
 
-  it("always includes ollama and any configured env-backed providers", async () => {
+  it("always includes ollama, lmstudio, and any configured env-backed providers", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic");
     vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("GEMINI_API_KEY", "test-gemini");
@@ -150,7 +152,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GROQ_API_KEY", "");
     vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
-    expect(availableProviders()).toEqual(["anthropic", "gemini", "ollama"]);
+    expect(availableProviders()).toEqual(["anthropic", "gemini", "ollama", "lmstudio"]);
   });
 });
 
