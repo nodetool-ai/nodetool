@@ -52,7 +52,7 @@
     "cmdk": "^1.0.4",
     "date-fns": "^4.1.0",
     "dockview": "^5.2.0",
-    "dompurify": "^3.4.0",
+    "dompurify": "^3.4.1",
     "elkjs": "^0.9.3",
     "eventemitter3": "^5.0.4",
     "fast-deep-equal": "^3.1.3",
