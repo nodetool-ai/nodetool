@@ -84,7 +84,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GROQ_API_KEY", "");
     vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
-    expect(availableProviders()).toEqual(["ollama"]);
+    expect(availableProviders()).toEqual(["lmstudio", "ollama"]);
   });
 
   it("includes anthropic when ANTHROPIC_API_KEY is set", async () => {
@@ -150,7 +150,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GROQ_API_KEY", "");
     vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
-    expect(availableProviders()).toEqual(["anthropic", "gemini", "ollama"]);
+    expect(availableProviders()).toEqual(["anthropic", "gemini", "lmstudio", "ollama"]);
   });
 });
 
@@ -191,7 +191,7 @@ describe("DEFAULT_MODELS", () => {
   it("uses gpt-4o for openai", async () => {
     vi.resetModules();
     const { DEFAULT_MODELS } = await import("../src/providers.js");
-    expect(DEFAULT_MODELS["openai"]).toBe("gpt-4o");
+    expect(DEFAULT_MODELS["openai"]).toBe("gpt-5.4");
   });
 
   it("uses a claude model for anthropic", async () => {

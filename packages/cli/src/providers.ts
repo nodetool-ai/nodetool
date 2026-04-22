@@ -47,7 +47,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   ollama: "qwen-3.5:4b",
   gemini: "gemini-2.5-flash",
   mistral: "mistral-large-latest",
-  lmstudiio: "qwen/qwen3.5-9b",
+  lmstudio: "qwen/qwen3.5-9b",
   groq: "llama-3.3-70b-versatile",
   moonshot: "kimi-k2.5",
   aki: "llama3_chat",
@@ -116,8 +116,8 @@ export function availableProviders(): string[] {
   if (process.env["GROQ_API_KEY"]) available.push("groq");
   if (process.env["KIMI_API_KEY"]) available.push("moonshot");
   if (process.env["AKI_API_KEY"]) available.push("aki");
+  available.push("lmstudio"); // always available (local)
   available.push("ollama"); // always available (local)
-  available.push("lmstudio")
   return available;
 }
 
