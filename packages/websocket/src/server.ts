@@ -238,6 +238,32 @@ const pythonBridge = new PythonStdioBridge({
 
 let pythonBridgeReady = false;
 
+function logPythonBridgeDiagnostics(context: string): void {
+  const loadErrors = (
+    pythonBridge as {
+      getLoadErrors?: () => Array<{
+        module: string;
+        phase: string;
+        error: string;
+      }>;
+    }
+  ).getLoadErrors?.() ?? [];
+  if (loadErrors.length === 0) return;
+  log.warn(
+    `Python bridge ${context} with ${loadErrors.length} load error(s)`
+  );
+  for (const entry of loadErrors.slice(0, 10)) {
+    log.warn(
+      `[python-worker][load-error] ${entry.module} (${entry.phase}): ${entry.error}`
+    );
+  }
+  if (loadErrors.length > 10) {
+    log.warn(
+      `[python-worker][load-error] ... ${loadErrors.length - 10} additional load error(s) omitted`
+    );
+  }
+}
+
 pythonBridge.on("stderr", (msg: string) => {
   for (const line of msg.split("\n")) {
     if (line.trim()) log.debug(`[python-worker] ${line}`);
@@ -528,8 +554,18 @@ await app.register(websocketPlugin, {
   getPythonBridgeReady: () => pythonBridgeReady,
   ensurePythonBridge: async () => {
     if (pythonBridgeReady) return;
-    await pythonBridge.ensureConnected();
+    log.info(`Lazily starting Python bridge [${startupMs()}]`);
+    try {
+      await pythonBridge.ensureConnected();
+    } catch (err) {
+      log.warn(
+        `Python bridge lazy start failed [${startupMs()}]`,
+        err instanceof Error ? err : new Error(String(err))
+      );
+      throw err;
+    }
     pythonBridgeReady = true;
+    log.info(`Python bridge lazy start completed [${startupMs()}]`);
     const meta = pythonBridge.getNodeMetadata();
     // Register Python bridge nodes — skip those already loaded from JSON metadata
     let bridgeOnly = 0;
@@ -553,6 +589,41 @@ await app.register(websocketPlugin, {
     log.info(
       `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
     );
+    (
+      pythonBridge as {
+        getWorkerStatus?: () => Promise<{
+          protocol_version: number;
+          node_count: number;
+          provider_count: number;
+          namespaces: string[];
+          transport: string;
+          max_frame_size: number;
+          load_errors: Array<unknown>;
+        }>;
+      }
+    )
+      .getWorkerStatus?.()
+      ?.then((status) => {
+        log.info(
+          `Python bridge status [${startupMs()}]`,
+          {
+            protocol_version: status.protocol_version,
+            node_count: status.node_count,
+            provider_count: status.provider_count,
+            namespaces: status.namespaces,
+            transport: status.transport,
+            max_frame_size: status.max_frame_size,
+            load_error_count: status.load_errors.length
+          }
+        );
+      })
+      .catch((err: unknown) => {
+        log.warn(
+          `Failed to fetch Python bridge status [${startupMs()}]`,
+          err instanceof Error ? err : new Error(String(err))
+        );
+      });
+    logPythonBridgeDiagnostics("connected");
     // Notify connected clients to reload metadata
     try {
       const { encode } = await import("@msgpack/msgpack");
@@ -744,6 +815,7 @@ app.listen({ port, host }, (err) => {
 
 async function shutdown(signal: string): Promise<void> {
   log.info(`${signal} received — shutting down`);
+  log.info("Closing Python bridge");
   try {
     getAgentRuntime().closeAllSessions();
   } catch {
@@ -768,10 +840,12 @@ if (process.platform === "win32") {
 
 // Start Python bridge eagerly if Python is installed.
 if (pythonBridge.hasPython()) {
+  log.info(`Starting Python bridge eagerly [${startupMs()}]`);
   pythonBridge
     .ensureConnected()
     .then(() => {
       pythonBridgeReady = true;
+      log.info(`Python bridge eager start completed [${startupMs()}]`);
       const meta = pythonBridge.getNodeMetadata();
       let bridgeOnly = 0;
       for (const nodeMeta of meta) {
@@ -794,6 +868,41 @@ if (pythonBridge.hasPython()) {
       log.info(
         `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
       );
+      (
+        pythonBridge as {
+          getWorkerStatus?: () => Promise<{
+            protocol_version: number;
+            node_count: number;
+            provider_count: number;
+            namespaces: string[];
+            transport: string;
+            max_frame_size: number;
+            load_errors: Array<unknown>;
+          }>;
+        }
+      )
+        .getWorkerStatus?.()
+        ?.then((status) => {
+          log.info(
+            `Python bridge status [${startupMs()}]`,
+            {
+              protocol_version: status.protocol_version,
+              node_count: status.node_count,
+              provider_count: status.provider_count,
+              namespaces: status.namespaces,
+              transport: status.transport,
+              max_frame_size: status.max_frame_size,
+              load_error_count: status.load_errors.length
+            }
+          );
+        })
+        .catch((err: unknown) => {
+          log.warn(
+            `Failed to fetch Python bridge status [${startupMs()}]`,
+            err instanceof Error ? err : new Error(String(err))
+          );
+        });
+      logPythonBridgeDiagnostics("connected");
       // Notify connected clients to reload metadata
       import("@msgpack/msgpack")
         .then(({ encode }) => {
@@ -830,5 +939,9 @@ if (pythonBridge.hasPython()) {
       );
     });
 } else {
-  log.info("Python not found — Python nodes will not be available");
+  log.info(
+    isProduction
+      ? "Python bridge disabled in production — Python nodes will not be available"
+      : "Python not found — Python nodes will not be available"
+  );
 }

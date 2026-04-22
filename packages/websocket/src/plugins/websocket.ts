@@ -317,8 +317,23 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+          const stderrSummary = (
+            pythonBridge as { getRecentStderrSummary?: () => string | null }
+          ).getRecentStderrSummary?.() ?? null;
+          const loadErrors = (
+            pythonBridge as {
+              getLoadErrors?: () => Array<{ module: string; error: string }>;
+            }
+          ).getLoadErrors?.() ?? [];
+          const matchingLoadError = loadErrors.find(
+            (entry) =>
+              entry.module.includes(node.type) ||
+              node.type.startsWith(entry.module.split(".").slice(2).join("."))
+          );
           throw new Error(
-            `Python node "${node.type}" cannot execute: Python worker is not connected.`
+            getPythonBridgeReady()
+              ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`
+              : `Python node "${node.type}" cannot execute: Python worker is not connected.${stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : ""}`
           );
         }
         return registry.resolve(node);

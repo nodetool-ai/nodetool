@@ -403,7 +403,7 @@ import { PythonProvider, registerProvider } from "@nodetool/runtime";
 
 /**
  * Register Python-only providers (HuggingFace Local, MLX) discovered
- * via the PythonBridge. Call after the bridge has connected.
+ * via the Python stdio bridge. Call after the bridge has connected.
  */
 export async function registerPythonProviders(
   bridge: PythonStdioBridge

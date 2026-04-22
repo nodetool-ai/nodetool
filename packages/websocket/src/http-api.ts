@@ -127,14 +127,83 @@ async function getWorkflowRuntimeEnvironment(
           : []
       });
 
+      const logPythonBridgeDiagnostics = (context: string): void => {
+        const loadErrors = (
+          pythonBridge as {
+            getLoadErrors?: () => Array<{
+              module: string;
+              phase: string;
+              error: string;
+            }>;
+          }
+        ).getLoadErrors?.() ?? [];
+        if (loadErrors.length === 0) return;
+        log.warn(`HTTP API Python bridge ${context} with ${loadErrors.length} load error(s)`);
+        for (const entry of loadErrors.slice(0, 10)) {
+          log.warn(
+            `[python-worker][load-error] ${entry.module} (${entry.phase}): ${entry.error}`
+          );
+        }
+      };
+
       let pythonBridgeReady = false;
-      pythonBridge.on("exit", () => {
+      pythonBridge.on("stderr", (msg: string) => {
+        for (const line of msg.split("\n")) {
+          if (line.trim()) log.debug(`[python-worker] ${line}`);
+        }
+      });
+      pythonBridge.on("exit", (code: number) => {
+        log.warn(`HTTP API Python worker exited with code ${code}`);
         pythonBridgeReady = false;
       });
 
       const ensurePythonBridge = async (): Promise<void> => {
-        await pythonBridge.ensureConnected();
+        log.info("HTTP API lazily starting Python bridge");
+        try {
+          await pythonBridge.ensureConnected();
+        } catch (err) {
+          log.warn(
+            "HTTP API Python bridge lazy start failed",
+            err instanceof Error ? err : new Error(String(err))
+          );
+          throw err;
+        }
         pythonBridgeReady = true;
+        log.info("HTTP API Python bridge lazy start completed");
+        const meta = pythonBridge.getNodeMetadata();
+        log.info(`HTTP API Python bridge connected — ${meta.length} Python nodes`);
+        (
+          pythonBridge as {
+            getWorkerStatus?: () => Promise<{
+              protocol_version: number;
+              node_count: number;
+              provider_count: number;
+              namespaces: string[];
+              transport: string;
+              max_frame_size: number;
+              load_errors: Array<unknown>;
+            }>;
+          }
+        )
+          .getWorkerStatus?.()
+          ?.then((status) => {
+            log.info("HTTP API Python bridge status", {
+              protocol_version: status.protocol_version,
+              node_count: status.node_count,
+              provider_count: status.provider_count,
+              namespaces: status.namespaces,
+              transport: status.transport,
+              max_frame_size: status.max_frame_size,
+              load_error_count: status.load_errors.length
+            });
+          })
+          .catch((err: unknown) => {
+            log.warn(
+              "HTTP API failed to fetch Python bridge status",
+              err instanceof Error ? err : new Error(String(err))
+            );
+          });
+        logPythonBridgeDiagnostics("connected");
       };
 
       const resolveExecutor = (node: {
@@ -164,8 +233,23 @@ async function getWorkflowRuntimeEnvironment(
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+          const stderrSummary = (
+            pythonBridge as { getRecentStderrSummary?: () => string | null }
+          ).getRecentStderrSummary?.() ?? null;
+          const loadErrors = (
+            pythonBridge as {
+              getLoadErrors?: () => Array<{ module: string; error: string }>;
+            }
+          ).getLoadErrors?.() ?? [];
+          const matchingLoadError = loadErrors.find(
+            (entry) =>
+              entry.module.includes(node.type) ||
+              node.type.startsWith(entry.module.split(".").slice(2).join("."))
+          );
           throw new Error(
-            `Python node "${node.type}" cannot execute: Python worker is not connected.`
+            pythonBridgeReady
+              ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`
+              : `Python node "${node.type}" cannot execute: Python worker is not connected.${stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : ""}`
           );
         }
         return registry.resolve(node);
