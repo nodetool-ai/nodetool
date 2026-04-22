@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useRef, useEffect, useMemo, memo, useState } from "react";
+import { useRef, useEffect, useMemo, useCallback, memo, useState } from "react";
 import {
   useReactFlow,
   Background,
@@ -414,16 +414,23 @@ const ReactFlowWrapper = ({
     [activeGradientKeys]
   );
 
-  // Memoize selected node IDs to avoid recalculating on every edge iteration
-  const selectedNodeIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const node of nodes) {
-      if (node.selected) {
-        ids.add(node.id);
-      }
+  // Stable selector: only updates when the set of selected IDs actually changes,
+  // not on every position update during drag.
+  const selectedNodeIds = useNodes(
+    useCallback(
+      (state) =>
+        state.nodes.reduce((set, node) => {
+          if (node.selected) set.add(node.id);
+          return set;
+        }, new Set<string>()),
+      []
+    ),
+    (a, b) => {
+      if (a.size !== b.size) return false;
+      for (const id of a) if (!b.has(id)) return false;
+      return true;
     }
-    return ids;
-  }, [nodes]);
+  );
 
   // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
   const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
@@ -433,7 +440,7 @@ const ReactFlowWrapper = ({
       return;
     }
 
-    if (!nodes.length || !edges.length) {
+    if (!edges.length) {
       return;
     }
 
@@ -469,7 +476,7 @@ const ReactFlowWrapper = ({
     if (Object.keys(selectionUpdates).length > 0) {
       setEdgeSelectionState(selectionUpdates);
     }
-  }, [nodes, edges, setEdgeSelectionState, isSelecting, selectedNodeIds]);
+  }, [edges, setEdgeSelectionState, isSelecting, selectedNodeIds]);
 
   useEffect(() => {
     if (shouldFitToScreen) {
