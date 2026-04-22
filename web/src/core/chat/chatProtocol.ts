@@ -598,7 +598,9 @@ const applyToolCallUpdate = (
     const existingExecution =
       state.agentExecutionToolCalls[agentExecutionId] || {};
     const existingCalls = existingExecution[stepId] || [];
-    const existingIndex = existingCalls.findIndex(
+    // ⚡ Bolt optimization: Search from the end since new tool calls are appended
+    // This prevents an O(N²) time complexity bottleneck during high-frequency streaming events
+    const existingIndex = existingCalls.findLastIndex(
       (call) => call.id === toolCallId
     );
     const nextCall: StepToolCall = {

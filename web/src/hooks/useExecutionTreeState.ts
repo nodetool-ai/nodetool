@@ -192,7 +192,8 @@ export function buildExecutionTreeState(
         const task = taskMap.get(taskId);
         if (task) {
           const stepId = tu.step?.id ?? "";
-          const stepIdx = task.steps.findIndex((s) => s.id === stepId);
+          // ⚡ Bolt optimization: Search from the end since steps are usually appended
+          const stepIdx = task.steps.findLastIndex((s) => s.id === stepId);
           if (stepIdx !== -1) {
             task.steps[stepIdx] = {
               ...task.steps[stepIdx],
@@ -217,7 +218,8 @@ export function buildExecutionTreeState(
         const task = taskMap.get(taskId);
         if (task) {
           const stepId = tu.step?.id ?? "";
-          const stepIdx = task.steps.findIndex((s) => s.id === stepId);
+          // ⚡ Bolt optimization: Search from the end
+          const stepIdx = task.steps.findLastIndex((s) => s.id === stepId);
           if (stepIdx !== -1) {
             const step = task.steps[stepIdx];
             task.steps[stepIdx] = {
@@ -249,7 +251,8 @@ export function buildExecutionTreeState(
       if (!stepId) continue;
 
       for (const task of taskMap.values()) {
-        const stepIdx = task.steps.findIndex((s) => s.id === stepId);
+        // ⚡ Bolt optimization: Search from the end
+        const stepIdx = task.steps.findLastIndex((s) => s.id === stepId);
         if (stepIdx !== -1) {
           const argsStr = Object.entries(tc.args ?? {})
             .map(([k, v]) => {
@@ -259,8 +262,9 @@ export function buildExecutionTreeState(
             .join(", ");
           const prev = task.steps[stepIdx];
           const callId = tc.tool_call_id ?? undefined;
+          // ⚡ Bolt optimization: Search from the end since tool calls are appended
           const existingIdx = callId
-            ? prev.toolCalls.findIndex((c) => c.id === callId)
+            ? prev.toolCalls.findLastIndex((c) => c.id === callId)
             : -1;
           const entry: StepToolCallEntry = {
             id: callId,
@@ -291,7 +295,8 @@ export function buildExecutionTreeState(
       if (!stepId) continue;
 
       for (const task of taskMap.values()) {
-        const stepIdx = task.steps.findIndex((s) => s.id === stepId);
+        // ⚡ Bolt optimization: Search from the end
+        const stepIdx = task.steps.findLastIndex((s) => s.id === stepId);
         if (stepIdx !== -1) {
           const result =
             typeof sr.result === "string"
