@@ -119,7 +119,7 @@ Provides adapters for AI providers:
 - `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`
 - `OllamaProvider`, `MistralProvider`, `GroqProvider`
 - `ClaudeAgentProvider` — Claude Agent SDK integration (uses Claude subscription, not API key)
-- `PythonBridge` — calls Python-based nodes (HuggingFace, MLX) via subprocess
+- `PythonStdioBridge` — calls Python-based nodes (HuggingFace, MLX) via local stdio subprocess
 - `ProcessingContext` — execution context with secret resolution
 
 ### `@nodetool/agents` — Agent System
