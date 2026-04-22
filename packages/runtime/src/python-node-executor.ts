@@ -3,12 +3,12 @@ import type {
   ExecuteInputBlobs,
   ExecuteResult,
   ProgressEvent
-} from "./python-bridge.js";
+} from "./python-bridge-types.js";
 import { createLogger } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.python-node-executor");
 
-/** Minimal interface for the bridge — works with both PythonBridge and PythonStdioBridge. */
+/** Minimal interface for the local Python stdio bridge. */
 interface PythonBridgeLike {
   execute(
     nodeType: string,
