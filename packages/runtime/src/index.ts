@@ -23,13 +23,14 @@ export {
 } from "./telemetry.js";
 export { packContext, type PackedContext } from "./context-packer.js";
 export {
-  PythonBridge,
+  PythonStdioBridge,
   type PythonBridgeOptions,
   type PythonNodeMetadata,
   type ExecuteResult,
-  type ProgressEvent
-} from "./python-bridge.js";
-export { PythonStdioBridge } from "./python-stdio-bridge.js";
+  type ProgressEvent,
+  type PythonWorkerLoadError,
+  type PythonWorkerStatus
+} from "./python-stdio-bridge.js";
 export {
   BRIDGE_PROTOCOL_VERSION,
   MIN_NODETOOL_CORE_VERSION

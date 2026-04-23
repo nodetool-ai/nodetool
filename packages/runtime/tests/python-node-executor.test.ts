@@ -3,15 +3,16 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PythonNodeExecutor } from "../src/python-node-executor.js";
-import type { PythonBridge, ExecuteResult } from "../src/python-bridge.js";
+import type { PythonStdioBridge } from "../src/index.js";
+import type { ExecuteResult } from "../src/python-bridge-types.js";
 import type { ProcessingContext } from "../src/context.js";
 
-function createMockBridge(executeResult: ExecuteResult): PythonBridge {
+function createMockBridge(executeResult: ExecuteResult): PythonStdioBridge {
   return {
     execute: vi.fn().mockResolvedValue(executeResult),
     hasNodeType: vi.fn().mockReturnValue(true),
     getNodeMetadata: vi.fn().mockReturnValue([])
-  } as unknown as PythonBridge;
+  } as unknown as PythonStdioBridge;
 }
 
 function createMockContext(

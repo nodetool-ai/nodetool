@@ -294,7 +294,7 @@ async function main() {
   let AnthropicProvider;
   let OllamaProvider;
   let LlamaProvider;
-  let PythonBridge;
+  let PythonStdioBridge;
   let PythonNodeExecutor;
   let getSecret;
   let SQLiteAdapterFactory;
@@ -319,7 +319,7 @@ async function main() {
       AnthropicProvider,
       OllamaProvider,
       LlamaProvider,
-      PythonBridge,
+      PythonStdioBridge,
       PythonNodeExecutor,
     } = await import(pathToFileURL(runtimePath).href));
     ({ SQLiteAdapterFactory, setGlobalAdapterResolver, Secret, getSecret } = await import(pathToFileURL(modelsPath).href));
@@ -358,7 +358,7 @@ async function main() {
   let pythonBridge = null;
   if (needsPython) {
     process.stderr.write("Starting Python bridge for non-TS nodes...\n");
-    pythonBridge = new PythonBridge({
+    pythonBridge = new PythonStdioBridge({
       workerArgs: process.env.NODETOOL_WORKER_NAMESPACES
         ? ["--namespaces", process.env.NODETOOL_WORKER_NAMESPACES]
         : [],

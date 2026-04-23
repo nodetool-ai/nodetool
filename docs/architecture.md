@@ -199,6 +199,17 @@ The storage adapter is selected automatically based on environment configuration
 
 ---
 
+## Python Worker Bridge
+
+Python nodes and Python-only local providers run in a separate worker process. The TS backend spawns the worker with `python -m nodetool.worker --stdio` and communicates over a local stdio protocol:
+
+- binary-safe MessagePack payloads
+- 4-byte big-endian length framing
+- in-band discovery, execution, status, progress, chunk, and error messages
+- structured `load_errors` so import failures are visible without parsing logs
+
+See [Python Bridge Protocol](python-bridge-protocol.md) for the full wire protocol and lifecycle.
+
 ## Notes
 
 - All endpoints and examples use `http://127.0.0.1:7777` by default; update host/port when deploying.
@@ -209,5 +220,6 @@ The storage adapter is selected automatically based on environment configuration
 
 - [Key Concepts](key-concepts.md) -- High-level overview of workflows, nodes, and models
 - [API Reference](api-reference.md) -- REST and WebSocket API documentation
+- [Python Bridge Protocol](python-bridge-protocol.md) -- TS ↔ Python worker transport and message schemas
 - [Developer Guide](developer/) -- Building custom nodes and extensions
 - [Deployment Guide](deployment.md) -- Running NodeTool in production

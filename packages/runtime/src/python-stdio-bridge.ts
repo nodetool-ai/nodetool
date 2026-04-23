@@ -1,7 +1,7 @@
 /**
  * Python worker bridge using stdio transport.
  *
- * Same public API as PythonBridge but communicates over stdin/stdout
+ * Communicates over stdin/stdout
  * with length-prefixed msgpack framing instead of WebSocket.
  * This eliminates WebSocket connection instability.
  *
@@ -29,10 +29,11 @@ import type {
   ProgressEvent,
   StreamCallback,
   PythonProviderInfo,
-  PythonBridgeOptions
-} from "./python-bridge.js";
+  PythonBridgeOptions,
+  PythonWorkerLoadError,
+  PythonWorkerStatus
+} from "./python-bridge-types.js";
 
-// Re-export types so consumers can import from either module.
 export type {
   PythonNodeMetadata,
   ExecuteResult,
@@ -40,7 +41,9 @@ export type {
   ProgressEvent,
   StreamCallback,
   PythonProviderInfo,
-  PythonBridgeOptions
+  PythonBridgeOptions,
+  PythonWorkerLoadError,
+  PythonWorkerStatus
 };
 
 interface PendingRequest {
@@ -61,9 +64,21 @@ type PythonLaunchCandidate = {
   source: string;
 };
 
+const MAX_BRIDGE_FRAME_SIZE = Number(
+  process.env["NODETOOL_BRIDGE_MAX_FRAME_SIZE"] ?? 256 * 1024 * 1024
+);
+const PYTHON_BRIDGE_ALLOWED_IN_PRODUCTION =
+  process.env["NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION"] === "1";
+
+function isProductionMode(): boolean {
+  return process.env["NODETOOL_ENV"] === "production";
+}
+
 export class PythonStdioBridge extends EventEmitter {
   private _process: ChildProcess | null = null;
   private _nodeMetadata: PythonNodeMetadata[] = [];
+  private _loadErrors: PythonWorkerLoadError[] = [];
+  private _workerStatus: PythonWorkerStatus | null = null;
   private _pending = new Map<string, PendingRequest>();
   private _pendingStream = new Map<string, PendingStreamRequest>();
   private _options: PythonBridgeOptions;
@@ -71,6 +86,8 @@ export class PythonStdioBridge extends EventEmitter {
   private _connectPromise: Promise<void> | null = null;
   /** Buffered stdout data waiting to be parsed into frames. */
   private _readBuffer = Buffer.alloc(0);
+  /** Recent stderr lines from the worker for diagnostics. */
+  private _recentStderr: string[] = [];
 
   constructor(options: PythonBridgeOptions = {}) {
     super();
@@ -80,8 +97,14 @@ export class PythonStdioBridge extends EventEmitter {
   // ── Connection lifecycle ───────────────────────────────────────────
 
   async connect(): Promise<void> {
+    if (isProductionMode() && !PYTHON_BRIDGE_ALLOWED_IN_PRODUCTION) {
+      throw new Error(
+        "Python bridge is disabled in production. Python workers are a local-only feature."
+      );
+    }
     await this._spawnAndConnect();
     await this._discover();
+    await this.getWorkerStatus().catch(() => null);
   }
 
   ensureConnected(): Promise<void> {
@@ -145,16 +168,28 @@ export class PythonStdioBridge extends EventEmitter {
       let ready = false;
       let stderrOutput = "";
       let settled = false;
+      const startupTimeoutMs = this._options.startupTimeoutMs ?? 20000;
+
+      const startupTimer = setTimeout(() => {
+        settleError(
+          new Error(
+            `Python worker did not become ready within ${startupTimeoutMs}ms.` +
+              (stderrOutput.trim() ? ` Recent stderr: ${stderrOutput.trim()}` : "")
+          )
+        );
+      }, startupTimeoutMs);
 
       const settleError = (error: Error) => {
         if (settled) return;
         settled = true;
+        clearTimeout(startupTimer);
         reject(error);
       };
 
       const settleSuccess = () => {
         if (settled) return;
         settled = true;
+        clearTimeout(startupTimer);
         resolve();
       };
 
@@ -168,6 +203,7 @@ export class PythonStdioBridge extends EventEmitter {
       proc.stderr!.on("data", (chunk: Buffer) => {
         const text = chunk.toString();
         stderrOutput += text;
+        this._rememberStderr(text);
         this.emit("stderr", text);
 
         if (!ready && text.includes("NODETOOL_STDIO_READY")) {
@@ -231,6 +267,16 @@ export class PythonStdioBridge extends EventEmitter {
   private _drainFrames(): void {
     while (this._readBuffer.length >= 4) {
       const length = this._readBuffer.readUInt32BE(0);
+      if (length > MAX_BRIDGE_FRAME_SIZE) {
+        this.emit(
+          "error",
+          new Error(
+            `Incoming Python bridge frame exceeds max size (${length} > ${MAX_BRIDGE_FRAME_SIZE})`
+          )
+        );
+        this.close();
+        return;
+      }
       if (this._readBuffer.length < 4 + length) break; // incomplete frame
       const payload = this._readBuffer.subarray(4, 4 + length);
       this._readBuffer = this._readBuffer.subarray(4 + length);
@@ -250,13 +296,18 @@ export class PythonStdioBridge extends EventEmitter {
       throw new Error("Not connected to Python worker");
     }
     const payload = Buffer.from(msgpack.encode(msg));
+    if (payload.length > MAX_BRIDGE_FRAME_SIZE) {
+      throw new Error(
+        `Outgoing Python bridge frame exceeds max size (${payload.length} > ${MAX_BRIDGE_FRAME_SIZE})`
+      );
+    }
     const header = Buffer.alloc(4);
     header.writeUInt32BE(payload.length, 0);
     this._process.stdin.write(header);
     this._process.stdin.write(payload);
   }
 
-  // ── Message dispatch (identical to PythonBridge) ───────────────────
+  // ── Message dispatch ────────────────────────────────────────────────
 
   private _handleMessage(msg: Record<string, unknown>): void {
     const type = msg.type as string;
@@ -268,6 +319,7 @@ export class PythonStdioBridge extends EventEmitter {
         const data = msg.data as {
           nodes: PythonNodeMetadata[];
           protocol_version?: number;
+          load_errors?: PythonWorkerLoadError[];
         };
         // Reject the discover promise if the worker's protocol is older
         // than what this build of the JS runtime requires. Workers that
@@ -300,6 +352,7 @@ export class PythonStdioBridge extends EventEmitter {
           );
         }
         this._nodeMetadata = data.nodes;
+        this._loadErrors = data.load_errors ?? [];
         pending.resolve({ outputs: {}, blobs: {} });
       }
     } else if (type === "result" && requestId) {
@@ -396,6 +449,26 @@ export class PythonStdioBridge extends EventEmitter {
 
   getNodeMetadata(): PythonNodeMetadata[] {
     return this._nodeMetadata;
+  }
+
+  getLoadErrors() {
+    return this._loadErrors;
+  }
+
+  async getWorkerStatus() {
+    const requestId = randomUUID();
+    const result = await new Promise<Record<string, unknown>>((resolve, reject) => {
+      this._pendingStream.set(requestId, {
+        resolve,
+        reject,
+        onChunk: () => {}
+      });
+      this._send({ type: "worker.status", request_id: requestId, data: {} });
+    });
+    this._workerStatus =
+      result as unknown as PythonWorkerStatus;
+    this._loadErrors = this._workerStatus.load_errors ?? this._loadErrors;
+    return this._workerStatus;
   }
 
   hasNodeType(nodeType: string): boolean {
@@ -656,10 +729,37 @@ export class PythonStdioBridge extends EventEmitter {
 
   /** Check if a Python interpreter can be found (without spawning). */
   hasPython(): boolean {
+    if (isProductionMode() && !PYTHON_BRIDGE_ALLOWED_IN_PRODUCTION) {
+      return false;
+    }
     return this._getPythonLaunchCandidates().length > 0;
   }
 
-  // ── Python path detection (shared with PythonBridge) ───────────────
+  getRecentStderrLines(limit = 12): string[] {
+    return this._recentStderr.slice(-limit);
+  }
+
+  getRecentStderrSummary(limit = 12): string | null {
+    const lines = this.getRecentStderrLines(limit)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => line !== "NODETOOL_STDIO_READY");
+    if (lines.length === 0) return null;
+    return lines.join(" | ");
+  }
+
+  private _rememberStderr(text: string): void {
+    for (const rawLine of text.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      this._recentStderr.push(line);
+    }
+    if (this._recentStderr.length > 200) {
+      this._recentStderr.splice(0, this._recentStderr.length - 200);
+    }
+  }
+
+  // ── Python path detection ───────────────────────────────────────────
 
   private _getPythonLaunchCandidates(): PythonLaunchCandidate[] {
     const explicitPythonPath =

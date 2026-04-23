@@ -1,6 +1,6 @@
 /**
  * PythonProvider — bridges Python-only providers (HuggingFace Local, MLX)
- * through the PythonBridge WebSocket protocol.
+ * through the local Python stdio bridge.
  *
  * Each instance wraps a specific Python provider ID (e.g. "huggingface", "mlx")
  * and proxies all BaseProvider methods through the bridge.
@@ -23,27 +23,27 @@ import type {
   ToolCall
 } from "./types.js";
 import type { Chunk } from "@nodetool/protocol";
-import type { PythonBridge } from "../python-bridge.js";
+import type { PythonStdioBridge } from "../python-stdio-bridge.js";
 
 type PythonProviderOptions = Record<string, unknown> & {
   _id: string;
-  _bridge: PythonBridge;
+  _bridge: PythonStdioBridge;
 };
 
 export class PythonProvider extends BaseProvider {
-  private _bridge: PythonBridge;
+  private _bridge: PythonStdioBridge;
   private _pythonProviderId: string;
   private _secrets: Record<string, string>;
 
   constructor(
     providerId: string,
-    bridge: PythonBridge,
+    bridge: PythonStdioBridge,
     secrets?: Record<string, string>
   );
   constructor(options: PythonProviderOptions);
   constructor(
     providerIdOrOptions: string | PythonProviderOptions,
-    bridge?: PythonBridge,
+    bridge?: PythonStdioBridge,
     secrets: Record<string, string> = {}
   ) {
     if (typeof providerIdOrOptions === "string") {
