@@ -108,7 +108,8 @@ export const formatGenericProviderName = (provider?: string): string => {
     meshy: "Meshy AI",
     "meshy-ai": "Meshy AI",
     rodin: "Rodin AI",
-    "rodin-ai": "Rodin AI"
+    "rodin-ai": "Rodin AI",
+    mlx: "MLX"
   };
 
   if (providerAliasNames[providerLower]) {

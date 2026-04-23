@@ -182,7 +182,6 @@ const providerIconMap: Record<string, string> = {
   "llama.cpp": ollamaIcon,
   llamacpp: ollamaIcon,
   "llama-cpp": ollamaIcon,
-  mlx: lmstudioIcon,
   lmstudio: lmstudioIcon,
   "lm-studio": lmstudioIcon,
   
@@ -481,6 +480,15 @@ const getProviderIconUrl = (provider: string): string | null => {
   return null;
 };
 
+const getProviderFallbackLabel = (provider: string): string => {
+  const normalized = provider.toLowerCase().trim();
+  if (normalized === "mlx") {
+    return "MLX";
+  }
+
+  return formatGenericProviderName(provider).substring(0, 2).toUpperCase();
+};
+
 const listStyles = css({
   overflowY: "auto",
   maxHeight: "calc(100% - 20px)"
@@ -742,7 +750,15 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 }}
               >
                 {iconOnly ? (
-                  <Tooltip className="model-menu__provider-icon-tooltip" title={p} placement="right">
+                  <Tooltip
+                    className="model-menu__provider-icon-tooltip"
+                    title={
+                      isHuggingFaceProvider(p)
+                        ? getProviderBaseName(p)
+                        : formatGenericProviderName(p)
+                    }
+                    placement="right"
+                  >
                     <Box className="model-menu__provider-icon-circle" sx={{
                       width: 36,
                       height: 36,
@@ -778,7 +794,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             />
                           );
                         }
-                        return formatGenericProviderName(p).substring(0, 2).toUpperCase();
+                        return getProviderFallbackLabel(p);
                       })()}
                     </Box>
                   </Tooltip>
@@ -817,7 +833,19 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                       filter: (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
                                     }} 
                                   />
-                                ) : null}
+                                ) : (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      fontWeight: 700,
+                                      fontSize: theme.vars.fontSizeSmall,
+                                      color: theme.vars.palette.text.primary,
+                                      lineHeight: 1
+                                    }}
+                                  >
+                                    {getProviderFallbackLabel(p)}
+                                  </Box>
+                                )}
                               </Box>
                             );
                           })()}

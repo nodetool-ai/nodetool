@@ -112,6 +112,7 @@ describe("providerDisplay", () => {
       expect(formatGenericProviderName("point_e")).toBe("Point-E");
       expect(formatGenericProviderName("meshy")).toBe("Meshy AI");
       expect(formatGenericProviderName("rodin")).toBe("Rodin AI");
+      expect(formatGenericProviderName("mlx")).toBe("MLX");
     });
 
     it("should handle special case for Google", () => {
