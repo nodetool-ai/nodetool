@@ -31,7 +31,7 @@
   - `stream_input` / `end_input_stream` and `useInputStream` already provide a live control path.
   - `RealtimeAudioInput` already exists in the runner/runtime; `VideoInput` already exists as a standard workflow input node.
   - Model compatibility and artifact inspection already recognize ControlNet/LoRA-capable families.
-- **Reference note from ComfyUI-style streaming.** Execution, progress, and custom websocket events are enough for control-plane/status updates; dedicated media transport should be added only for high-rate browser media, not for every live control.
+- **Reference note from ComfyUI-style streaming.** ComfyUI uses websocket execution/progress/custom event messages for control-plane feedback during graph execution; use that pattern for status and live-control updates here, and add dedicated media transport only for high-rate browser media.
 
 ## Ordered roadmap
 
@@ -147,7 +147,7 @@ Add the highest-value realtime controls after the base session path works.
 
 - [ ] Add live prompt/control updates while streaming
 - [ ] Group controls for diffusion strength, ControlNet settings, and LoRA weight
-- [ ] Add speech-to-prompt / captions if Phase 0 puts them in MVP-adjacent scope
+- [ ] Add speech-to-prompt / captions if Phase 0 assigns them to this later live-controls phase
 - [ ] Add reusable pose / depth / mask preprocessor workflows
 - [ ] Add reusable pre/post FX chain support before adding more bespoke plugins
 
@@ -188,7 +188,7 @@ Keep cloud brokering and extra hardware integrations out of the core local MVP.
 ## Priority feature ladder
 
 - [ ] **StreamDiffusionV1 + ControlNet depth/scribble + LoRA** — first serious target
-- [ ] **Speech-to-prompt / captions / transcription** — early operator win once scope is decided
+- [ ] **Speech-to-prompt / captions / transcription** *(pending Phase 0 scope decision)* — early operator win once scope is decided
 - [ ] **Moondream / live VLM scene understanding** — next step after the core img2img path
 - [ ] **Pose / depth / mask preprocessors** — natural extension of ControlNet-first workflows
 - [ ] **Reusable FX and upscaling passes** — after the base pipeline is stable
