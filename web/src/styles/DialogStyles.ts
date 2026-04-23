@@ -66,7 +66,7 @@ const dialogStyles = (theme: Theme) =>
       fontWeight: "bold"
     },
     ".button-confirm.MuiButton-containedError": {
-      color: "#fff"
+      color: theme.vars.palette.error.contrastText
     },
     ".button-confirm:hover": {
       backgroundColor: theme.vars.palette.grey[900]
