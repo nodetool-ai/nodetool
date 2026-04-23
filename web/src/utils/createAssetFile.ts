@@ -449,9 +449,10 @@ const createSingleAssetFile = async (
   const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
   let desiredFilename = typedOutput?.filename;
 
+  // Include asset:// URIs: preview uses resolveAssetUri for display, but without
+  // asset_id the trpc branch above is skipped; fetching the resolved URL is required.
   const shouldFetchFromUri =
     typeof outputUri === "string" &&
-    !isAssetUri &&
     (isDataEmpty || stringLooksLikeUrl || data === output);
   const shouldDownloadAsset =
     typeof typedOutput?.asset_id === "string" &&

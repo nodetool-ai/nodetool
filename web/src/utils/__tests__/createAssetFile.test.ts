@@ -130,6 +130,28 @@ describe("createAssetFile", () => {
     expect(files[1].filename).toBe("note_1.txt");
   });
 
+  it("fetches image from asset:// when asset_id is absent (URI-only image ref)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer
+    });
+
+    const [result] = await createAssetFile(
+      {
+        type: "image",
+        uri: "asset://abc123.png"
+      },
+      "node"
+    );
+
+    expect(assetGetQuery).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalled();
+    const fetchUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+    expect(fetchUrl).toContain("/api/storage/");
+    expect(fetchUrl).toContain("abc123.png");
+    expect(result.file.size).toBe(4);
+  });
+
   it("resolves asset refs through asset metadata instead of fetching asset:// directly", async () => {
     assetGetQuery.mockResolvedValueOnce({
       id: "asset-1",
