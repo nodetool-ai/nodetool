@@ -131,7 +131,7 @@ export const paletteLight: PaletteOptions = {
     main: "#D8615B",
     light: "#F29D99",
     dark: "#A8443F",
-    contrastText: "#FAF7F2"
+    contrastText: "#1a1a1a"
   },
   warning: {
     main: "#D99A3B",
