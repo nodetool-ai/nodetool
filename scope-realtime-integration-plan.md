@@ -200,6 +200,7 @@ Keep the new session layer, but connect it to the existing NodeTool workflow mod
 - [ ] Decide exactly where `stream_input` remains the low-rate control path and where dedicated media transport starts
 - [ ] Audit `useVideoRecorder` / `VideoRecorder` and document what becomes the shared capture layer
 - [ ] Decide whether the first operator UI lives in `/realtime`, mini-apps, `html_app`, or a hybrid of those surfaces
+- [ ] Decide whether speech-to-prompt or caption injection belongs in the first MVP or a later live-controls phase
 - [ ] List which current input/output nodes are reused directly in realtime workflows
 - [ ] List which new realtime-specific nodes are actually required after that reuse audit
 
@@ -231,7 +232,6 @@ Ship a first serious realtime workflow that proves the architecture with a workf
 - [ ] Add one browser preview/output surface for the MVP operator flow
 - [ ] Support live parameter updates for the MVP workflow
 - [ ] Add basic session status/logging for the MVP run path
-- [ ] Decide whether speech-to-prompt or caption injection fits cleanly enough to join this MVP
 
 ### Phase 3 - Realtime editor integration
 
