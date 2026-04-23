@@ -7,8 +7,7 @@ import {
   MenuItem,
   CircularProgress,
   Box,
-  Divider,
-  ListSubheader
+  Divider
 } from "@mui/material";
 import { Text, Caption, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -216,6 +215,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           MenuProps={{
             PaperProps: {
               sx: {
+                maxWidth: "min(400px, calc(100vw - 32px))",
                 backgroundColor: theme.vars.palette.background.paper,
                 border: `1px solid ${theme.vars.palette.divider}`,
                 borderRadius: "var(--rounded-md)",
@@ -285,23 +285,30 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
             }
           }}
         >
-          <ListSubheader
+          <Box
+            role="note"
             sx={{
-              fontSize: "0.75rem",
-              lineHeight: 1.4,
-              color: "text.disabled",
-              backgroundColor: "background.paper",
               px: 1.75,
               pt: 1.25,
               pb: 1,
-              whiteSpace: "normal",
               pointerEvents: "none"
             }}
           >
-            Agents read and write files here during execution — saved images,
-            text, data, and other outputs. Browse the results in the Workspace
-            panel. Agents can only access files inside this folder.
-          </ListSubheader>
+            <Caption
+              size="smaller"
+              color="muted"
+              sx={{
+                display: "block",
+                lineHeight: 1.5,
+                whiteSpace: "normal",
+                wordBreak: "break-word"
+              }}
+            >
+              Agents read and write files here during execution — saved images,
+              text, data, and other outputs. Browse the results in the Workspace
+              panel. Agents can only access files inside this folder.
+            </Caption>
+          </Box>
           <Divider sx={{ mb: 0.5 }} />
           <MenuItem value="">
             <span className="none-option">None</span>
