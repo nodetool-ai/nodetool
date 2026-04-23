@@ -2551,6 +2551,8 @@ export class AgentNode extends BaseNode {
     }
 
     let lastTextOutput: string | null = null;
+    /** Latest extracted `<think>` body (for diagnostics / truncation errors). */
+    let lastExtractedThinking: string | null = null;
     const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
     const provider = await context.getProvider(providerId);
 
@@ -2685,7 +2687,13 @@ export class AgentNode extends BaseNode {
       if (assistantText) {
         const { thinking: thinkingText, text: cleanText } =
           extractThinkTags(assistantText);
-        lastTextOutput = cleanText;
+        const trimmed = cleanText.trim();
+        if (trimmed) {
+          lastTextOutput = trimmed;
+        }
+        if (thinkingText.trim()) {
+          lastExtractedThinking = thinkingText;
+        }
         if (thinkingText && !streamedRedactedThinking) {
           yield {
             chunk: null,
@@ -2823,7 +2831,13 @@ export class AgentNode extends BaseNode {
         if (assistantText) {
           const { thinking: thinkingText, text: cleanText } =
             extractThinkTags(assistantText);
-          lastTextOutput = cleanText;
+          const trimmed = cleanText.trim();
+          if (trimmed) {
+            lastTextOutput = trimmed;
+          }
+          if (thinkingText.trim()) {
+            lastExtractedThinking = thinkingText;
+          }
           if (thinkingText && !streamedRedactedThinking) {
             yield {
               chunk: null,
@@ -2924,14 +2938,23 @@ export class AgentNode extends BaseNode {
     }
 
     if (structuredSchema) {
-      if (!lastTextOutput) {
+      const structuredText = (lastTextOutput ?? "").trim();
+      if (!structuredText) {
+        const reasoningOnly = Boolean(lastExtractedThinking?.trim());
         log.error("AgentNode structured output missing text payload", {
           nodeId: this.__node_id ?? null,
           providerId,
-          modelId
+          modelId,
+          reasoningOnly,
+          maxTokens
         });
-        throw new Error("Agent did not return structured output text");
+        throw new Error(
+          reasoningOnly
+            ? "Agent did not return structured output text: the response was cut off during internal reasoning before any answer was produced. Increase max_tokens on this node (or reduce prompt / reasoning) so the model can finish with valid JSON."
+            : "Agent did not return structured output text."
+        );
       }
+      lastTextOutput = structuredText;
       let parsed = extractJson(lastTextOutput);
       if (!parsed) {
         // The LLM returned plain text instead of JSON. Rather than failing
