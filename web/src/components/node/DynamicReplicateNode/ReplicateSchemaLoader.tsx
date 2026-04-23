@@ -122,7 +122,8 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
     }, [nodeId, modelInfo, updateNodeData]);
 
     React.useEffect(() => {
-      const isResolved = !!data.model_id;
+      // Need both model_id AND dynamic_inputs — inputs are transient (not persisted) and must be re-fetched
+      const isResolved = !!data.model_id && Object.keys(data.dynamic_inputs ?? {}).length > 0;
       if (
         modelInfo &&
         !isResolved &&

@@ -120,8 +120,8 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
   }, [nodeId, modelInfo, updateNodeData]);
 
   React.useEffect(() => {
-    // If we have an endpoint_id, it was successfully resolved via backend
-    const isResolved = !!data.endpoint_id;
+    // Need both endpoint_id AND dynamic_inputs — inputs are transient (not persisted) and must be re-fetched
+    const isResolved = !!data.endpoint_id && Object.keys(data.dynamic_inputs ?? {}).length > 0;
     if (modelInfo && !isResolved && !loading && !error && !autoLoadAttempted) {
       setAutoLoadAttempted(true);
       handleLoad(false); // auto-load: preserve existing values

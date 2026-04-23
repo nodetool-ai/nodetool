@@ -40,8 +40,9 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
     React.useEffect(() => {
       existingDynamicPropsRef.current = data.dynamic_properties;
     }, [data.dynamic_properties]);
-    // model_id alone is sufficient — dynamic_inputs are transient and not persisted
-    const hasResolvedSchema = !!data.model_id;
+    // Need both model_id AND dynamic_inputs — inputs are transient (not persisted) and must be re-fetched
+    const hasResolvedSchema =
+      !!data.model_id && Object.keys(data.dynamic_inputs ?? {}).length > 0;
 
     const handleLoad = useCallback(async (force = false) => {
       if (!modelInfo) {
