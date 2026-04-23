@@ -131,6 +131,7 @@ npm install
 npm run build:packages     # Build all TS packages in dependency order
 
 # Run backend (port 7777) and frontend (port 3000)
+# Uses tsx --watch for the backend, so startup skips a full websocket package rebuild.
 npm run dev
 ```
 
@@ -162,7 +163,7 @@ See [mobile/README.md](mobile/README.md) for full setup.
 | :--- | :--- |
 | `npm install` | Install all dependencies |
 | `npm run build` | Build all packages + web |
-| `npm run dev` | Start backend + web dev server |
+| `npm run dev` | Start backend (`tsx --watch`) + web dev server |
 | `npm run electron` | Build and start Electron app |
 | `npm run check` | Run typecheck + lint + test |
 | `npm run test` | Run all tests |

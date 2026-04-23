@@ -52,10 +52,11 @@ npm run dev:watch:server
 
 # Start both server and web frontend
 npm run dev:watch
-
-# Standard dev mode (no auto-restart)
-npm run dev:server
 npm run dev
+
+# Start backend only
+npm run dev:watch:server
+npm run dev:server
 ```
 
 **Important**: The dev server uses `tsx --watch` which runs TypeScript directly. However, `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, and `elevenlabs-nodes` use decorators and load from `dist/`. If you change these packages, run `npm run build:packages` first.
