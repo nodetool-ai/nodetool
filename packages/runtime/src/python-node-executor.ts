@@ -17,6 +17,13 @@ interface PythonBridgeLike {
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void
   ): Promise<ExecuteResult>;
+  executeStream?(
+    nodeType: string,
+    fields: Record<string, unknown>,
+    secrets: Record<string, string>,
+    blobs: ExecuteInputBlobs,
+    onProgress?: (event: ProgressEvent) => void
+  ): AsyncGenerator<ExecuteResult>;
 }
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -170,10 +177,14 @@ export class PythonNodeExecutor {
     private requiredSettings: string[]
   ) {}
 
-  async process(
+  private async prepareExecution(
     inputs: Record<string, unknown>,
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<{
+    fields: Record<string, unknown>;
+    blobs: ExecuteInputBlobs;
+    secrets: Record<string, string>;
+  }> {
     // NodeActor merges node.properties + edge inputs before calling process(),
     // so `inputs` already contains all fields. Filter out internal keys.
     const fields: Record<string, unknown> = {};
@@ -183,7 +194,6 @@ export class PythonNodeExecutor {
       }
     }
 
-    // 2. Extract input blobs from media refs
     const blobs: ExecuteInputBlobs = {};
     for (const [key, value] of Object.entries(fields)) {
       if (isMediaRef(value)) {
@@ -229,7 +239,6 @@ export class PythonNodeExecutor {
       }
     }
 
-    // 3. Gather secrets
     const secrets: Record<string, string> = {};
     if (context) {
       for (const key of this.requiredSettings) {
@@ -238,16 +247,13 @@ export class PythonNodeExecutor {
       }
     }
 
-    // 4. Execute via bridge
-    const result = await this.bridge.execute(
-      this.nodeType,
-      fields,
-      secrets,
-      blobs,
-      undefined
-    );
+    return { fields, blobs, secrets };
+  }
 
-    // 5. Convert output blobs to stored assets
+  private async materializeOutputs(
+    result: ExecuteResult,
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const outputs: Record<string, unknown> = { ...result.outputs };
     for (const [name, blobData] of Object.entries(result.blobs)) {
       const mediaType = normalizeMediaOutputType(this.outputTypes[name]);
@@ -265,7 +271,42 @@ export class PythonNodeExecutor {
         outputs[name] = blobData;
       }
     }
-
     return outputs;
+  }
+
+  async process(
+    inputs: Record<string, unknown>,
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const { fields, blobs, secrets } = await this.prepareExecution(inputs, context);
+    const result = await this.bridge.execute(
+      this.nodeType,
+      fields,
+      secrets,
+      blobs,
+      undefined
+    );
+    return this.materializeOutputs(result, context);
+  }
+
+  async *genProcess(
+    inputs: Record<string, unknown>,
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
+    if (!this.bridge.executeStream) {
+      yield await this.process(inputs, context);
+      return;
+    }
+
+    const { fields, blobs, secrets } = await this.prepareExecution(inputs, context);
+    for await (const partial of this.bridge.executeStream(
+      this.nodeType,
+      fields,
+      secrets,
+      blobs,
+      undefined
+    )) {
+      yield await this.materializeOutputs(partial, context);
+    }
   }
 }

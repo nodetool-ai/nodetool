@@ -10,6 +10,7 @@ import type { ProcessingContext } from "../src/context.js";
 function createMockBridge(executeResult: ExecuteResult): PythonStdioBridge {
   return {
     execute: vi.fn().mockResolvedValue(executeResult),
+    executeStream: vi.fn(),
     hasNodeType: vi.fn().mockReturnValue(true),
     getNodeMetadata: vi.fn().mockReturnValue([])
   } as unknown as PythonStdioBridge;
@@ -202,6 +203,39 @@ describe("PythonNodeExecutor", () => {
     expect(call[1]).toEqual({});
     expect(Uint8Array.from(call[3].image as ArrayLike<number>)).toEqual(
       new Uint8Array([4, 5, 6])
+    );
+  });
+
+  it("streams Python node partial outputs when executeStream is available", async () => {
+    const bridge = createMockBridge({ outputs: { text: "final" }, blobs: {} });
+    vi.mocked(bridge.executeStream).mockImplementation(async function* () {
+      yield { outputs: { chunk: "hello", text: null }, blobs: {} };
+      yield { outputs: { chunk: " world", text: "hello world" }, blobs: {} };
+    });
+
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "test.StreamingNode",
+      {},
+      { chunk: "chunk", text: "str" },
+      []
+    );
+
+    const outputs: Record<string, unknown>[] = [];
+    for await (const partial of executor.genProcess({ prompt: "hi" })) {
+      outputs.push(partial);
+    }
+
+    expect(outputs).toEqual([
+      { chunk: "hello", text: null },
+      { chunk: " world", text: "hello world" }
+    ]);
+    expect(vi.mocked(bridge.executeStream)).toHaveBeenCalledWith(
+      "test.StreamingNode",
+      { prompt: "hi" },
+      {},
+      {},
+      undefined
     );
   });
 });
