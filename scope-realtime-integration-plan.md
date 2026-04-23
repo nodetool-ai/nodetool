@@ -11,12 +11,12 @@
   - [x] REST endpoints for listing/fetching sessions
   - [x] Frontend realtime session client/store
   - [x] Basic `/realtime/:workflowId?` page and local preview
-- [ ] Rework the realtime plan around existing NodeTool workflows, nodes, and editor UX
-- [ ] Add WebRTC/media transport and session negotiation
-- [ ] Deliver an integrated MVP: stream diffusion + ControlNet + LoRA
-- [ ] Add richer session diagnostics and live controls
-- [ ] Extend the editor with realtime-aware workflow authoring instead of a parallel product surface
-- [ ] Add optional hardware/cloud integrations only after the local architecture is stable
+- [ ] Phase 1 foundation: define the session/runtime boundary, transport contract, and reuse plan for existing capture/editor/operator surfaces
+- [ ] Phase 2 MVP: ship a workflow-native stream diffusion session with ControlNet + LoRA and browser preview
+- [ ] Phase 3 editor integration: make realtime workflows easy to author, validate, and run from the existing editor
+- [ ] Phase 4 live controls: add prompt/control updates, grouped parameters, diagnostics, and recovery UX
+- [ ] Phase 5 local media extensions: add audio, recording/export, device selection, and optional local hardware integrations behind flags
+- [ ] Phase 6 cloud brokering: add relay/TURN/auth/telemetry only after the local architecture is stable
 
 ## Priority feature ladder (easy to harder integration)
 
@@ -178,69 +178,153 @@ The MVP should lean harder on what the repo already offers:
 
 ### Phase 1 - Integrate the substrate cleanly
 
-Goal: keep the new session layer, but connect it more naturally to the existing NodeTool workflow model.
+**Purpose**
 
-- define a clear session/runtime boundary separate from batch `run_job`
-- add WebRTC signaling and transport messages
-- reuse `useVideoRecorder` / shared capture utilities instead of keeping separate camera-preview code paths
-- reuse mini-app / `html_app` surfaces for the operator experience where possible
-- decide which existing input/output nodes can be reused directly
-- define which realtime-specific nodes are truly needed vs. adapted existing nodes
+Keep the new session layer, but connect it to the existing NodeTool workflow model instead of growing a parallel realtime stack.
+
+**Requires**
+
+- existing session substrate from this branch
+- agreement that realtime stays workflow-native and modular
+
+**Done when**
+
+- the session/runtime boundary is documented
+- the transport contract is defined
+- the reuse plan for capture, editor, and operator UI is explicit
+
+**Tasks**
+
+- [ ] Write a short technical spec that separates realtime sessions from batch `run_job`
+- [ ] Define the WebRTC signaling messages and session negotiation flow
+- [ ] Decide exactly where `stream_input` remains the low-rate control path and where dedicated media transport starts
+- [ ] Audit `useVideoRecorder` / `VideoRecorder` and document what becomes the shared capture layer
+- [ ] Decide whether the first operator UI lives in `/realtime`, mini-apps, `html_app`, or a hybrid of those surfaces
+- [ ] List which current input/output nodes are reused directly in realtime workflows
+- [ ] List which new realtime-specific nodes are actually required after that reuse audit
 
 ### Phase 2 - Integrated MVP: stream diffusion
 
-The MVP should be stronger than the current camera-preview slice.
+**Purpose**
 
-**Include in MVP:**
+Ship a first serious realtime workflow that proves the architecture with a workflow-native stream diffusion path, not just a control-plane demo.
 
-- browser camera/video input, preferably through existing input-node patterns where possible
-- a workflow-native realtime session path
-- stream diffusion as the primary demo/use case
-- ControlNet support
-- LoRA support
-- one browser preview/output surface
-- start/stop/reconnect
-- live parameter updates
-- basic session status/logging
+**Requires**
 
-**Architecture expectations for MVP:**
+- Phase 1 decisions on runtime boundary, signaling, shared capture, and operator surface
+- reuse of existing model compatibility and workflow authoring paths
 
-- reuse the existing node editor and workflow model
-- reuse existing input-node creation paths so camera/video/audio are workflow inputs, not special route-only state
-- reuse mini-app / `html_app` patterns for the operator UI when that keeps the system workflow-native
-- reuse `stream_input` for low-rate live controls and add dedicated media transport only for high-rate streams
-- reuse existing model compatibility/selection paths for ControlNet and LoRA
-- keep realtime transport/runtime in dedicated modules
-- avoid a large parallel realtime-only frontend stack unless clearly required
+**Done when**
+
+- a canonical stream diffusion workflow exists
+- it can be started/stopped as a realtime session
+- ControlNet and LoRA can be configured without a separate realtime-only model system
+- the browser can preview output and apply live parameter updates
+
+**Tasks**
+
+- [ ] Define the canonical realtime workflow template for stream diffusion
+- [ ] Use existing input-node patterns for camera/video input wherever possible
+- [ ] Connect the workflow template to the realtime session lifecycle (start, stop, reconnect)
+- [ ] Reuse the current model compatibility/selection path for ControlNet-enabled guidance
+- [ ] Reuse the current model compatibility/selection path for LoRA-enabled styling/customization
+- [ ] Add one browser preview/output surface for the MVP operator flow
+- [ ] Support live parameter updates for the MVP workflow
+- [ ] Add basic session status/logging for the MVP run path
+- [ ] Decide whether speech-to-prompt or caption injection fits cleanly enough to join this MVP
 
 ### Phase 3 - Realtime editor integration
 
-- add realtime-aware validation and affordances to the existing editor
-- make source/sink/control nodes easier to compose in standard workflows
-- add a canonical starter template for stream diffusion + ControlNet + LoRA
-- support workflow templates/presets for realtime diffusion pipelines
+**Purpose**
+
+Make realtime authoring feel native inside the existing editor instead of relying on custom route-local configuration.
+
+**Requires**
+
+- a working Phase 2 reference workflow
+- a clear answer on which nodes are reused vs. new
+
+**Done when**
+
+- authors can discover, compose, validate, and launch realtime workflows from the standard editor flow
+
+**Tasks**
+
+- [ ] Add realtime-aware validation rules to the existing editor
+- [ ] Add editor affordances for composing source, sink, and control nodes in realtime workflows
+- [ ] Add a starter template for stream diffusion + ControlNet + LoRA
+- [ ] Add workflow presets/templates for common realtime diffusion variants
+- [ ] Ensure the editor/context-menu flow makes realtime input nodes easy to create without special route-only state
 
 ### Phase 4 - Rich live controls
 
-- live prompt/control updates while streaming
-- parameter groups for diffusion/control strength, LoRA weight, etc.
-- better diagnostics, status, and recovery UX
+**Purpose**
+
+Make live operation practical after the first end-to-end session path works.
+
+**Requires**
+
+- Phase 2 MVP session path
+- an operator UI that can present grouped controls and status clearly
+
+**Done when**
+
+- operators can adjust important realtime parameters live and recover from common failures without restarting the whole setup blindly
+
+**Tasks**
+
+- [ ] Add live prompt/control updates while streaming
+- [ ] Group parameters for diffusion strength, ControlNet settings, LoRA weight, and similar frequently changed controls
+- [ ] Add clearer session diagnostics and status reporting
+- [ ] Add reconnect/recovery UX for common transport/runtime failures
+- [ ] Add basic session event history or logs that help debug live runs
 
 ### Phase 5 - Media + hardware
 
-- audio input/output
-- recording/export
-- device selection
-- optional NDI/Spout/Syphon-style integrations behind feature flags
+**Purpose**
+
+Extend the local realtime stack once the core video-first path is stable.
+
+**Requires**
+
+- stable local realtime sessions
+- clear device/capture ownership from Phase 1
+
+**Done when**
+
+- common local media extensions work without complicating the MVP architecture
+
+**Tasks**
+
+- [ ] Add audio input support
+- [ ] Add audio output support where the workflow needs it
+- [ ] Add recording/export for realtime sessions
+- [ ] Add shared device selection on top of the reusable capture layer
+- [ ] Add optional NDI/Spout/Syphon-style integrations behind feature flags
+- [ ] Evaluate which local-only test pipelines (for example audio beep or simple split-screen) are useful for bring-up/debugging
 
 ### Phase 6 - Cloud/session brokering
 
-Treat this as separate from local realtime support:
+**Purpose**
 
-- cloud relay/session brokering
-- TURN credential management
-- auth/entitlement checks
-- telemetry/recovery
+Treat remote/session-brokered realtime as a separate phase after local realtime works well.
+
+**Requires**
+
+- stable local realtime behavior
+- a clear local transport/runtime design worth exposing remotely
+
+**Done when**
+
+- cloud/session brokering can be added without changing the local-first architecture
+
+**Tasks**
+
+- [ ] Define the cloud relay/session brokering model
+- [ ] Add TURN credential management
+- [ ] Add auth and entitlement checks for remote sessions
+- [ ] Add telemetry and recovery hooks for brokered sessions
+- [ ] Keep the cloud path optional and layered above the local runtime
 
 ## Recommended next milestone
 
@@ -265,11 +349,11 @@ Do not include yet:
 - advanced hardware integrations
 - MIDI/tempo/OSC/DMX
 
-## Next steps
+## Immediate next tasks
 
-1. Audit the existing web capture path (`useVideoRecorder` / `VideoRecorder`) and decide what should become the shared realtime media input layer.
-2. Write a short technical spec for WebRTC signaling plus the session/runtime boundary, explicitly separating high-rate media transport from lower-rate `stream_input` controls.
-3. Define the canonical workflow template for stream diffusion with ControlNet and LoRA using existing input/model node patterns.
-4. Use the existing editor/context-menu/input-node flow to make that workflow easy to author before introducing new realtime-only nodes.
-5. Use mini-app / `html_app` patterns for the first serious operator UI so realtime remains workflow-native.
-6. Keep the transport/runtime modular so realtime support integrates cleanly without sprawling through existing files.
+- [ ] Audit the existing web capture path (`useVideoRecorder` / `VideoRecorder`) and decide what becomes the shared realtime media input layer
+- [ ] Write the short technical spec for WebRTC signaling plus the session/runtime boundary, explicitly separating high-rate media transport from lower-rate `stream_input` controls
+- [ ] Decide the first operator surface: `/realtime`, mini-app, `html_app`, or a staged hybrid
+- [ ] Define the canonical workflow template for stream diffusion with ControlNet and LoRA using existing input/model node patterns
+- [ ] Use the existing editor/context-menu/input-node flow to make that workflow easy to author before introducing new realtime-only nodes
+- [ ] Keep the transport/runtime modular so the first implementation does not sprawl through existing files
