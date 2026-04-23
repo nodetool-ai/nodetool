@@ -1,5 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import { useRef, useEffect, useMemo, useCallback, memo, useState } from "react";
+import {
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  memo,
+  useState,
+  type MouseEvent as ReactMouseEvent
+} from "react";
 import {
   useReactFlow,
   Background,
@@ -8,7 +16,9 @@ import {
   SelectionMode,
   ConnectionMode,
   useViewport,
-  useUpdateNodeInternals
+  useUpdateNodeInternals,
+  type Edge,
+  type Node
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -112,6 +122,8 @@ const ReactFlowWrapper = ({
   );
 
   const [isSelecting] = useState(false);
+  const [suppressNodeDrivenEdgeSelection, setSuppressNodeDrivenEdgeSelection] =
+    useState(false);
 
   const reactFlowInstance = useReactFlow();
   const pendingNodeType = useNodePlacementStore(
@@ -374,8 +386,20 @@ const ReactFlowWrapper = ({
 
   const { handleNodeContextMenu, handleNodesChange } = useNodeEvents();
 
-  const { onEdgeContextMenu, onEdgeUpdateEnd, onEdgeUpdateStart, onEdgeClick } =
-    useEdgeHandlers();
+  const {
+    onEdgeContextMenu,
+    onEdgeUpdateEnd,
+    onEdgeUpdateStart,
+    onEdgeClick: onEdgeClickBase
+  } = useEdgeHandlers();
+
+  const onEdgeClick = useCallback(
+    (event: ReactMouseEvent, edge: Edge) => {
+      setSuppressNodeDrivenEdgeSelection(false);
+      onEdgeClickBase(event, edge);
+    },
+    [onEdgeClickBase]
+  );
 
   const {
     onSelectionDragStart,
@@ -394,8 +418,21 @@ const ReactFlowWrapper = ({
     onSelectionStartBase: onSelectionStart,
     onSelectionEndBase: onSelectionEnd,
     onSelectionDragStartBase: onSelectionDragStart,
-    onSelectionDragStopBase: onSelectionDragStop
+    onSelectionDragStopBase: onSelectionDragStop,
+    setSuppressNodeDrivenEdgeSelection
   });
+
+  const handleNodeClick = useCallback((_event: ReactMouseEvent, _node: Node) => {
+    setSuppressNodeDrivenEdgeSelection(false);
+  }, []);
+
+  const handlePaneClickWithSuppress = useCallback(
+    (event: ReactMouseEvent) => {
+      setSuppressNodeDrivenEdgeSelection(false);
+      handlePaneClick(event);
+    },
+    [handlePaneClick]
+  );
 
   const edgeStatuses = useResultsStore((state) => state.edges);
   const nodeStatuses = useStatusStore((state) => state.statuses);
@@ -466,7 +503,9 @@ const ReactFlowWrapper = ({
       const isEdgeAlreadySelected = Boolean(edge.selected);
       const nodeDrivenSelection =
         selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
-      const shouldSelect = isEdgeAlreadySelected || nodeDrivenSelection;
+      const shouldSelect =
+        isEdgeAlreadySelected ||
+        (!suppressNodeDrivenEdgeSelection && nodeDrivenSelection);
 
       if (isEdgeAlreadySelected !== shouldSelect) {
         selectionUpdates[edge.id] = shouldSelect;
@@ -476,7 +515,13 @@ const ReactFlowWrapper = ({
     if (Object.keys(selectionUpdates).length > 0) {
       setEdgeSelectionState(selectionUpdates);
     }
-  }, [edges, setEdgeSelectionState, isSelecting, selectedNodeIds]);
+  }, [
+    edges,
+    setEdgeSelectionState,
+    isSelecting,
+    selectedNodeIds,
+    suppressNodeDrivenEdgeSelection
+  ]);
 
   useEffect(() => {
     if (shouldFitToScreen) {
@@ -583,7 +628,8 @@ const ReactFlowWrapper = ({
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         onNodeContextMenu={handleNodeContextMenu}
-        onPaneClick={handlePaneClick}
+        onPaneClick={handlePaneClickWithSuppress}
+        onNodeClick={handleNodeClick}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}

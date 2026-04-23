@@ -29,6 +29,7 @@ describe("useSelectionEvents", () => {
   const mockOnSelectionEnd = jest.fn();
   const mockOnSelectionDragStart = jest.fn();
   const mockOnSelectionDragStop = jest.fn();
+  const mockSetSuppressNodeDrivenEdgeSelection = jest.fn();
 
   const mockedUseContextMenu = useContextMenu as unknown as jest.Mock;
   const mockedUseNodes = useNodes as unknown as jest.Mock;
@@ -37,6 +38,8 @@ describe("useSelectionEvents", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([]);
+    mockReactFlowInstance.getEdges = jest.fn().mockReturnValue([]);
     mockedUseContextMenu.mockReturnValue({
       openContextMenu: mockOpenContextMenu
     });
@@ -63,7 +66,8 @@ describe("useSelectionEvents", () => {
         onSelectionStartBase: mockOnSelectionStart,
         onSelectionEndBase: mockOnSelectionEnd,
         onSelectionDragStartBase: mockOnSelectionDragStart,
-        onSelectionDragStopBase: mockOnSelectionDragStop
+        onSelectionDragStopBase: mockOnSelectionDragStop,
+        setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
       })
     );
 
@@ -88,7 +92,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -121,7 +126,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -147,7 +153,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -177,7 +184,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -236,6 +244,7 @@ describe("useSelectionEvents", () => {
 
       result.current.handleSelectionEnd(mockEvent);
 
+      expect(mockSetSuppressNodeDrivenEdgeSelection).toHaveBeenCalledWith(false);
       expect(mockSetEdgeSelectionState).toHaveBeenCalledWith({
         "edge-1": true,
         "edge-2": false
@@ -244,6 +253,52 @@ describe("useSelectionEvents", () => {
       rafSpy.mockRestore();
       edgeIn.remove();
       edgeOut.remove();
+    });
+
+    it("with selected nodes and no Shift, deselects all edges and sets suppress flag", () => {
+      mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([
+        { id: "n1", selected: true, position: { x: 0, y: 0 }, data: {} }
+      ]);
+      mockReactFlowInstance.getEdges = jest.fn().mockReturnValue([
+        { id: "edge-1" },
+        { id: "edge-2" }
+      ]);
+
+      const { result } = renderHook(() =>
+        useSelectionEvents({
+          reactFlowInstance: mockReactFlowInstance as any,
+          onSelectionStartBase: mockOnSelectionStart,
+          onSelectionEndBase: mockOnSelectionEnd,
+          onSelectionDragStartBase: mockOnSelectionDragStart,
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
+        })
+      );
+
+      result.current.selectionStartRef.current = { x: 0, y: 0 };
+      result.current.selectionEndRef.current = { x: 100, y: 100 };
+      const mockEvent = {
+        clientX: 100,
+        clientY: 100,
+        shiftKey: false
+      } as unknown as ReactMouseEvent;
+
+      const rafSpy = jest
+        .spyOn(window, "requestAnimationFrame")
+        .mockImplementation((cb: FrameRequestCallback) => {
+          cb(0);
+          return 1;
+        });
+
+      result.current.handleSelectionEnd(mockEvent);
+
+      expect(mockSetSuppressNodeDrivenEdgeSelection).toHaveBeenCalledWith(true);
+      expect(mockSetEdgeSelectionState).toHaveBeenCalledWith({
+        "edge-1": false,
+        "edge-2": false
+      });
+
+      rafSpy.mockRestore();
     });
   });
 
@@ -255,7 +310,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -279,7 +335,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -302,7 +359,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -324,7 +382,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -355,7 +414,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -386,7 +446,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -417,7 +478,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -439,7 +501,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -459,7 +522,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
@@ -476,7 +540,8 @@ describe("useSelectionEvents", () => {
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
-          onSelectionDragStopBase: mockOnSelectionDragStop
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
         })
       );
 
