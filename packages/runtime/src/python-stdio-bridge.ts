@@ -443,6 +443,90 @@ export class PythonStdioBridge extends EventEmitter {
     });
   }
 
+  async *executeStream(
+    nodeType: string,
+    fields: Record<string, unknown>,
+    secrets: Record<string, string>,
+    blobs: ExecuteInputBlobs,
+    onProgress?: (event: ProgressEvent) => void
+  ): AsyncGenerator<ExecuteResult> {
+    const requestId = randomUUID();
+    const chunks: ExecuteResult[] = [];
+    let done = false;
+    let error: Error | null = null;
+    let finalResult: ExecuteResult | null = null;
+    let emittedCount = 0;
+    let resolveWait: (() => void) | null = null;
+
+    if (onProgress) {
+      this._pending.set(requestId, {
+        resolve: () => undefined,
+        reject: () => undefined,
+        onProgress
+      });
+    }
+
+    const onChunk = (chunk: Record<string, unknown>) => {
+      chunks.push({
+        outputs: (chunk.outputs as Record<string, unknown>) ?? {},
+        blobs: (chunk.blobs as Record<string, Uint8Array>) ?? {}
+      });
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+
+    const streamPromise = new Promise<Record<string, unknown>>((resolve, reject) => {
+      this._pendingStream.set(requestId, { resolve, reject, onChunk });
+    });
+
+    streamPromise
+      .then((result) => {
+        finalResult = {
+          outputs: (result.outputs as Record<string, unknown>) ?? {},
+          blobs: (result.blobs as Record<string, Uint8Array>) ?? {}
+        };
+        done = true;
+        this._pending.delete(requestId);
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      })
+      .catch((err) => {
+        error = err;
+        done = true;
+        this._pending.delete(requestId);
+        if (resolveWait) {
+          resolveWait();
+          resolveWait = null;
+        }
+      });
+
+    this._send({
+      type: "execute.stream",
+      request_id: requestId,
+      data: { node_type: nodeType, fields, secrets, blobs }
+    });
+
+    while (true) {
+      while (chunks.length > 0) {
+        emittedCount += 1;
+        yield chunks.shift()!;
+      }
+      if (done) break;
+      if (error) throw error;
+      await new Promise<void>((resolve) => {
+        resolveWait = resolve;
+      });
+    }
+    if (error) throw error;
+    if (emittedCount === 0 && finalResult) {
+      yield finalResult;
+    }
+  }
+
   cancel(requestId: string): void {
     this._send({ type: "cancel", request_id: requestId, data: {} });
   }

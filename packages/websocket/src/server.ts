@@ -57,6 +57,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
+import { encode } from "@msgpack/msgpack";
 import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
 import {
   fastifyTRPCPlugin,
@@ -83,6 +84,70 @@ const log = createLogger("nodetool.websocket.server");
 const startupT0 = performance.now();
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;
+}
+
+type ResourceChangeEvent = "created" | "updated" | "deleted";
+
+async function broadcastResourceChange(
+  app: FastifyInstance,
+  change: {
+    event: ResourceChangeEvent;
+    resource_type: string;
+    resource: Record<string, unknown>;
+  }
+): Promise<void> {
+  const message = encode({
+    type: "resource_change",
+    ...change
+  });
+
+  for (const client of app.websocketServer.clients) {
+    if (client.readyState === 1) {
+      client.send(message);
+    }
+  }
+}
+
+async function notifyPythonBridgeResourceChanges(
+  app: FastifyInstance,
+  pythonBridge: PythonStdioBridge
+): Promise<void> {
+  await broadcastResourceChange(app, {
+    event: "updated",
+    resource_type: "metadata",
+    resource: { id: "nodes", etag: String(Date.now()) }
+  });
+
+  const registered = await registerPythonProviders(pythonBridge);
+  if (registered.length > 0) {
+    log.info(`Registered Python providers: ${registered.join(", ")}`);
+  }
+
+  const discoveredProviders = await pythonBridge.listProviders();
+  const registeredProviders = new Set(registered);
+
+  for (const provider of discoveredProviders) {
+    await broadcastResourceChange(app, {
+      event: registeredProviders.has(provider.id) ? "created" : "updated",
+      resource_type: "provider",
+      resource: {
+        id: provider.id,
+        provider: provider.id,
+        capabilities: provider.capabilities,
+        etag: String(Date.now())
+      }
+    });
+
+    await broadcastResourceChange(app, {
+      event: "updated",
+      resource_type: "model",
+      resource: {
+        id: provider.id,
+        provider: provider.id,
+        etag: String(Date.now())
+      }
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -624,35 +689,12 @@ await app.register(websocketPlugin, {
         );
       });
     logPythonBridgeDiagnostics("connected");
-    // Notify connected clients to reload metadata
-    try {
-      const { encode } = await import("@msgpack/msgpack");
-      const msg = encode({
-        type: "resource_change",
-        event: "updated",
-        resource_type: "metadata",
-        resource: { id: "nodes", etag: String(Date.now()) }
-      });
-      for (const client of app.websocketServer.clients) {
-        if (client.readyState === 1) {
-          client.send(msg);
-        }
-      }
-    } catch {
-      // broadcast is best-effort
-    }
-    registerPythonProviders(pythonBridge)
-      .then((registered) => {
-        if (registered.length > 0) {
-          log.info(`Registered Python providers: ${registered.join(", ")}`);
-        }
-      })
-      .catch((err) => {
-        log.warn(
-          "Failed to register Python providers",
-          err instanceof Error ? err : new Error(String(err))
-        );
-      });
+    notifyPythonBridgeResourceChanges(app, pythonBridge).catch((err) => {
+      log.warn(
+        "Failed to notify Python bridge resource changes",
+        err instanceof Error ? err : new Error(String(err))
+      );
+    });
   },
   toolClassMap
 });
@@ -903,34 +945,12 @@ if (pythonBridge.hasPython()) {
           );
         });
       logPythonBridgeDiagnostics("connected");
-      // Notify connected clients to reload metadata
-      import("@msgpack/msgpack")
-        .then(({ encode }) => {
-          const msg = encode({
-            type: "resource_change",
-            event: "updated",
-            resource_type: "metadata",
-            resource: { id: "nodes", etag: String(Date.now()) }
-          });
-          for (const client of app.websocketServer.clients) {
-            if (client.readyState === 1) {
-              client.send(msg);
-            }
-          }
-        })
-        .catch(() => {});
-      registerPythonProviders(pythonBridge)
-        .then((registered) => {
-          if (registered.length > 0) {
-            log.info(`Registered Python providers: ${registered.join(", ")}`);
-          }
-        })
-        .catch((err) => {
-          log.warn(
-            "Failed to register Python providers",
-            err instanceof Error ? err : new Error(String(err))
-          );
-        });
+      notifyPythonBridgeResourceChanges(app, pythonBridge).catch((err) => {
+        log.warn(
+          "Failed to notify Python bridge resource changes",
+          err instanceof Error ? err : new Error(String(err))
+        );
+      });
     })
     .catch((err) => {
       log.warn(

@@ -241,6 +241,7 @@ export const handleUpdate = (
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
   const clearProgress = useResultsStore.getState().clearProgress;
+  const addChunk = useResultsStore.getState().addChunk;
   const setPreview = useResultsStore.getState().setPreview;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
@@ -355,6 +356,13 @@ export const handleUpdate = (
       severity: "info",
       timestamp: Date.now()
     });
+  }
+
+  if (data.type === "chunk") {
+    const chunk = data as Chunk;
+    if (chunk.node_id && chunk.content) {
+      addChunk(workflow.id, chunk.node_id, chunk.content);
+    }
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
