@@ -34,8 +34,12 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
     ).trim();
 
     const [autoLoadAttempted, setAutoLoadAttempted] = useState(false);
+    const existingDynamicPropsRef = React.useRef(data.dynamic_properties);
+    React.useEffect(() => {
+      existingDynamicPropsRef.current = data.dynamic_properties;
+    }, [data.dynamic_properties]);
 
-    const handleLoad = useCallback(async () => {
+    const handleLoad = useCallback(async (force = false) => {
       if (!modelInfo) {
         setError("Paste a Replicate model identifier first.");
         return;
@@ -94,8 +98,11 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
             values: meta.values ?? ((meta as Record<string, unknown>).enum as (string | number)[] | null)
           };
         }
+        const dynamic_properties = force
+          ? resolved.dynamic_properties
+          : { ...resolved.dynamic_properties, ...(existingDynamicPropsRef.current ?? {}) };
         updateNodeData(nodeId, {
-          dynamic_properties: resolved.dynamic_properties,
+          dynamic_properties,
           dynamic_inputs:
             Object.keys(dynamic_inputs).length > 0
               ? dynamic_inputs
@@ -124,7 +131,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
         !autoLoadAttempted
       ) {
         setAutoLoadAttempted(true);
-        handleLoad();
+        handleLoad(false); // auto-load: preserve existing values
       }
     }, [
       modelInfo,
@@ -145,7 +152,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
           <IconButton
             size="small"
             disabled={loading}
-            onClick={handleLoad}
+            onClick={() => void handleLoad(true)}
             sx={{
               padding: "4px",
               color: "var(--palette-text-secondary)",

@@ -13,7 +13,9 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     title: node.data.title,
     color: node.data.color,
     selectable: true,
-    bypassed: node.data.bypassed || false
+    bypassed: node.data.bypassed || false,
+    model_id: node.data.model_id,
+    endpoint_id: node.data.endpoint_id
   };
 
   // Persist explicit user resize dimensions
