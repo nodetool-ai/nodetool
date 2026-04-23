@@ -118,6 +118,22 @@ const decodeBase64 = (value: string): Uint8Array => {
 };
 
 /**
+ * Tests whether a value carries a usable binary payload that we can safely
+ * convert into bytes. Anything else (e.g. a msgpack `ExtData` wrapper, a
+ * pydantic-serialized object, a stray map) should be treated as "no data" so
+ * the URI-fetch fallback runs instead.
+ */
+const isUsableBinary = (val: unknown): boolean => {
+  if (val instanceof Uint8Array) return val.length > 0;
+  if (val instanceof ArrayBuffer) return val.byteLength > 0;
+  if (ArrayBuffer.isView(val)) return (val as ArrayBufferView).byteLength > 0;
+  if (Array.isArray(val))
+    return val.length > 0 && val.every((v) => typeof v === "number");
+  if (typeof val === "string") return val.trim() !== "";
+  return false;
+};
+
+/**
  * Convert various input types to Uint8Array
  */
 const toUint8Array = (input: unknown): Uint8Array => {
@@ -151,13 +167,25 @@ const toUint8Array = (input: unknown): Uint8Array => {
   }
   if (typeof input === "object") {
     const record = input as Record<string, unknown>;
-    if ("data" in record) {
-      return toUint8Array(record.data);
+    if (record.data instanceof Uint8Array) return record.data;
+    if (record.data instanceof ArrayBuffer) return new Uint8Array(record.data);
+    if (ArrayBuffer.isView(record.data as object | null)) {
+      const view = record.data as ArrayBufferView;
+      return new Uint8Array(
+        view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength)
+      );
     }
     if ("content" in record) {
       return toUint8Array(record.content);
     }
-    return new Uint8Array(Object.values(record as Record<string, number>));
+    // Fallback: treat as a sparse byte map. Only safe when all values are
+    // numbers; otherwise we'd silently produce garbage (e.g. for `ExtData`
+    // wrappers that hold a non-binary `.data`).
+    const values = Object.values(record);
+    if (values.length > 0 && values.every((v) => typeof v === "number")) {
+      return new Uint8Array(values as number[]);
+    }
+    return new Uint8Array();
   }
 
   return new Uint8Array();
@@ -418,27 +446,15 @@ const createSingleAssetFile = async (
   index?: number
 ): Promise<AssetFileResult> => {
   const originalData = getOutputData(output);
-  log.info("[createAssetFile] createSingleAssetFile input", {
-    outputType: typeof output,
-    outputKeys: output && typeof output === "object" ? Object.keys(output as object) : null,
-    type: (output as any)?.type,
-    dataType: typeof originalData,
-    dataIsUint8Array: originalData instanceof Uint8Array,
-    dataLength: typeof originalData === "string" ? (originalData as string).length
-      : originalData instanceof Uint8Array ? originalData.length
-      : null,
-    dataPreview: typeof originalData === "string" ? (originalData as string).slice(0, 50) : null,
-    uri: (output as any)?.uri,
-    mimeType: (output as any)?.mimeType ?? (output as any)?.mime_type
-  });
 
-  let data = originalData;
-  const isDataEmpty =
-    data === null ||
-    data === undefined ||
-    (typeof data === "string" && data.trim() === "") ||
-    (Array.isArray(data) && data.length === 0) ||
-    (data instanceof Uint8Array && data.length === 0);
+  let data: unknown = originalData;
+  // Treat anything that isn't a direct binary form (Uint8Array, ArrayBuffer,
+  // typed array, numeric array, non-empty string) as "no inline data". This
+  // catches msgpack `ExtData` wrappers and similar containers that the
+  // backend may attach alongside a real `uri`. When a URI is present we'll
+  // fetch the bytes from there; if not, the `toUint8Array` call below tries
+  // to extract `record.data` as a best-effort fallback.
+  const isDataEmpty = !isUsableBinary(data);
 
   const stringLooksLikeUrl =
     typeof data === "string" &&
@@ -449,15 +465,15 @@ const createSingleAssetFile = async (
   const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
   let desiredFilename = typedOutput?.filename;
 
-  // Include asset:// URIs: preview uses resolveAssetUri for display, but without
-  // asset_id the trpc branch above is skipped; fetching the resolved URL is required.
+  // Fetch from URI whenever inline `data` isn't a usable binary payload.
+  // This covers asset://, /api/storage/, http(s)://, and also the ExtData
+  // case where the wrapper exists but doesn't contain real bytes.
   const shouldFetchFromUri =
     typeof outputUri === "string" &&
     (isDataEmpty || stringLooksLikeUrl || data === output);
   const shouldDownloadAsset =
     typeof typedOutput?.asset_id === "string" &&
     (isDataEmpty || data === output || isAssetUri);
-
 
   if (shouldDownloadAsset) {
     try {
@@ -502,7 +518,12 @@ const createSingleAssetFile = async (
       mimeType = getMimeType(output, "image/png");
       const extension = getExtension(mimeType, "png");
       const bytes = toUint8Array(data);
-      log.info("[createAssetFile] image bytes decoded", { byteLength: bytes.length, mimeType, dataType: typeof data });
+      if (bytes.length === 0) {
+        log.warn("[createAssetFile] image bytes empty — uploaded file will be 0 bytes", {
+          uri: (output as TypedOutput | null)?.uri ?? null,
+          asset_id: (output as TypedOutput | null)?.asset_id ?? null
+        });
+      }
       content = toArrayBuffer(bytes);
       filename = buildFilename(desiredFilename, id, suffix, extension, index);
       break;
@@ -561,12 +582,6 @@ const createSingleAssetFile = async (
   }
 
   const file = new File([content], filename, { type: mimeType });
-  log.info("[createAssetFile] created file", {
-    filename,
-    mimeType,
-    size: file.size,
-    typeDetected: type ?? typeof output
-  });
 
   return { file, filename, type: mimeType };
 };
