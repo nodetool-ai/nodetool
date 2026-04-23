@@ -363,6 +363,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     }
 
     try {
+      log.info("[addToAssets] previewOutput type:", typeof previewOutput, "value:", JSON.stringify(
+        previewOutput,
+        (_, v) => v instanceof Uint8Array ? `Uint8Array(${v.length})` : v,
+        2
+      ));
       const assetFiles = await createAssetFile(previewOutput, props.id);
       await Promise.all(assetFiles.map(({ file }) => createAsset(file)));
 

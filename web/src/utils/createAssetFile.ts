@@ -418,6 +418,19 @@ const createSingleAssetFile = async (
   index?: number
 ): Promise<AssetFileResult> => {
   const originalData = getOutputData(output);
+  log.info("[createAssetFile] createSingleAssetFile input", {
+    outputType: typeof output,
+    outputKeys: output && typeof output === "object" ? Object.keys(output as object) : null,
+    type: (output as any)?.type,
+    dataType: typeof originalData,
+    dataIsUint8Array: originalData instanceof Uint8Array,
+    dataLength: typeof originalData === "string" ? (originalData as string).length
+      : originalData instanceof Uint8Array ? originalData.length
+      : null,
+    dataPreview: typeof originalData === "string" ? (originalData as string).slice(0, 50) : null,
+    uri: (output as any)?.uri,
+    mimeType: (output as any)?.mimeType ?? (output as any)?.mime_type
+  });
 
   let data = originalData;
   const isDataEmpty =
@@ -487,7 +500,9 @@ const createSingleAssetFile = async (
     case "image": {
       mimeType = getMimeType(output, "image/png");
       const extension = getExtension(mimeType, "png");
-      content = toArrayBuffer(toUint8Array(data));
+      const bytes = toUint8Array(data);
+      log.info("[createAssetFile] image bytes decoded", { byteLength: bytes.length, mimeType, dataType: typeof data });
+      content = toArrayBuffer(bytes);
       filename = buildFilename(desiredFilename, id, suffix, extension, index);
       break;
     }
@@ -602,7 +617,7 @@ export const createAssetFile = async (
   if (Array.isArray(unwrapped)) {
     log.info("[createAssetFile] unwrapped named-output map", { count: unwrapped.length });
     return Promise.all(
-      unwrapped.map((item, index) => createSingleAssetFile(item, id, index))
+      unwrapped.map((item, index) => createSingleAssetFile(item as AssetOutput, id, index))
     );
   }
 
