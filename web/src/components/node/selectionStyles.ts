@@ -53,53 +53,43 @@ export const getBaseNodeSelectionStyles = ({
   parentColor,
   theme,
   minHeight
-}: BaseNodeSelectionStyleArgs) => {
-  const resolvedBaseColor = baseColor || theme.vars.palette.primary.main;
-  const defaultBorder = `1px solid color-mix(in srgb, ${theme.vars.palette.grey[800]} 84%, transparent)`;
-
-  return {
-    display: "flex" as const,
-    height: "100%",
-    minHeight,
-    overflow: "visible" as const,
-    border: isLoading ? "none" : defaultBorder,
-    ...theme.applyStyles("dark", {
-      border: isLoading ? "none" : defaultBorder
-    }),
-    boxShadow: selected
-      ? `0 0 0 1px color-mix(in srgb, ${resolvedBaseColor} 75%, white 25%), 0 10px 28px rgb(0 0 0 / 0.34), 0 2px 10px color-mix(in srgb, ${resolvedBaseColor} 18%, transparent)`
-      : isFocused
-        ? `0 0 0 2px ${theme.vars.palette.warning.main}, 0 10px 24px rgb(0 0 0 / 0.22)`
-        : `0 8px 20px rgb(0 0 0 / 0.16), 0 1px 0 rgb(255 255 255 / 0.03) inset`,
-    outline: isFocused
-      ? `2px dashed ${theme.vars.palette.warning.main}`
-      : selected
-        ? `2px solid color-mix(in srgb, ${resolvedBaseColor} 82%, white 18%)`
-        : "1px solid transparent",
-    outlineOffset: "-1px",
-    backgroundColor:
-      hasParent && !isLoading ? parentColor : theme.vars.palette.c_node_bg,
-    backgroundImage:
-      "linear-gradient(180deg, rgb(255 255 255 / 0.025) 0%, rgb(255 255 255 / 0.008) 18%, transparent 52%)",
-    borderRadius: "var(--rounded-node)",
-    transform: selected ? "translateY(-1px)" : "translateY(0)",
-    transition:
-      "transform 0.18s ease, box-shadow 0.18s ease, outline-color 0.18s ease, border-color 0.18s ease",
-    "--node-primary-color": resolvedBaseColor,
-    ...(hasToggleableResult
-      ? {
-          "& .react-flow__resize-control.nodrag.bottom.right.handle": {
-            opacity: 0,
-            position: "absolute" as const,
-            right: "-8px",
-            bottom: "-9px",
-            transition: "opacity 0.2s"
-          },
-          "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
-            opacity: 1
-          }
+}: BaseNodeSelectionStyleArgs) => ({
+  display: "flex" as const,
+  height: "100%",
+  minHeight,
+  overflow: "visible" as const,
+  border: isLoading ? "none" : `1px solid var(--palette-grey-900)`,
+  ...theme.applyStyles("dark", {
+    border: isLoading ? "none" : `1px solid var(--palette-grey-900)`
+  }),
+  boxShadow: selected
+    ? `0 0 0 1px ${baseColor || "#666"}, 0 1px 10px rgba(0,0,0,0.5)`
+    : isFocused
+      ? `0 0 0 2px ${theme.vars.palette.warning.main}`
+      : "none",
+  outline: isFocused
+    ? `2px dashed ${theme.vars.palette.warning.main}`
+    : selected
+      ? `3px solid ${baseColor || "#666"}`
+      : "none",
+  outlineOffset: "-2px",
+  backgroundColor:
+    hasParent && !isLoading ? parentColor : theme.vars.palette.c_node_bg,
+  borderRadius: "var(--rounded-node)",
+  "--node-primary-color": baseColor || "var(--palette-primary-main)",
+  ...(hasToggleableResult
+    ? {
+        "& .react-flow__resize-control.nodrag.bottom.right.handle": {
+          opacity: 0,
+          position: "absolute" as const,
+          right: "-8px",
+          bottom: "-9px",
+          transition: "opacity 0.2s"
+        },
+        "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
+          opacity: 1
         }
-      : {}),
-    ...CRISP_NO_BLUR_STYLES
-  };
-};
+      }
+    : {}),
+  ...CRISP_NO_BLUR_STYLES
+});
