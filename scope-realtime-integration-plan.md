@@ -2,166 +2,186 @@
 
 ## Checklist
 
-- [x] Review NodeTool's current workflow streaming and mini-app architecture
+- [x] Review NodeTool's current workflow streaming, mini-app, and editor architecture
 - [x] Confirm clean-room requirement for Scope-inspired work
-- [x] Add initial realtime substrate in NodeTool
+- [x] Add initial realtime session substrate
   - [x] Protocol message types for realtime sessions
   - [x] Backend realtime session manager
   - [x] WebSocket commands for start/update/stop session
   - [x] REST endpoints for listing/fetching sessions
   - [x] Frontend realtime session client/store
-  - [x] Basic `/realtime/:workflowId?` page and local camera preview
-- [ ] Add a real media transport layer (WebRTC signaling + session negotiation)
-- [ ] Support a true end-to-end realtime video session
-- [ ] Add richer live controls and diagnostics
-- [ ] Add a dedicated realtime graph/editor model
-- [ ] Add media and hardware integrations
-- [ ] Evaluate cloud/session brokering later as a separate workstream
+  - [x] Basic `/realtime/:workflowId?` page and local preview
+- [ ] Rework the realtime plan around existing NodeTool workflows, nodes, and editor UX
+- [ ] Add WebRTC/media transport and session negotiation
+- [ ] Deliver an integrated MVP: stream diffusion + ControlNet + LoRA
+- [ ] Add richer session diagnostics and live controls
+- [ ] Extend the editor with realtime-aware workflow authoring instead of a parallel product surface
+- [ ] Add optional hardware/cloud integrations only after the local architecture is stable
 
 ## Current state
 
-NodeTool already had:
+NodeTool already had strong foundations before this branch:
 
 - workflow/job streaming over WebSocket
-- mini-app and standalone workflow surfaces
-- streaming workflow input commands
-- a reusable workflow engine and node system
+- streaming input commands (`stream_input`, `end_input_stream`)
+- mini-app and `html_app` surfaces
+- a reusable node graph/editor
+- existing input nodes, including `VideoInput` and `RealtimeAudioInput`
+- model compatibility logic for ControlNet and LoRA families
 
-NodeTool did **not** have a dedicated realtime media/session architecture.
+This branch adds the first realtime control-plane substrate:
 
-This branch now adds the first substrate layer:
-
-- a separate realtime session record/model
+- session records and lifecycle events
 - backend session lifecycle management
 - realtime session commands over WebSocket
 - session listing APIs
 - frontend session state and a basic realtime page
 
-This is useful groundwork, but it is **not** Scope parity yet. It is still a control-plane-first MVP slice.
+That is a useful start, but it is still too bolted-on to be the long-term shape of realtime in NodeTool.
 
 ## Key constraint
 
 Scope is currently licensed under `CC BY-NC-SA 4.0`. NodeTool should use Scope only as product and architecture reference material. Any implementation here must remain a clean-room reimplementation.
 
-## Gap summary
+## Re-evaluated design direction
 
-Compared with Scope-style realtime support, the biggest missing pieces are still:
+The next steps should favor **integration over reinvention**:
+
+1. **Reuse existing workflow graphs**
+   - Realtime should be expressed as a NodeTool workflow mode or workflow profile, not a separate product with duplicated concepts.
+   - Existing nodes, metadata, model compatibility, and workflow persistence should stay central.
+
+2. **Reuse the existing node editor**
+   - Start from the current NodeTool editor and add realtime-aware validation, controls, and runtime affordances.
+   - Avoid building a separate editor unless the current graph model proves insufficient.
+
+3. **Reuse existing node/input infrastructure where possible**
+   - `VideoInput` already exists and may cover part of the camera/video source story.
+   - Existing mini-app input mapping and workflow runner streaming can be extended rather than replaced.
+   - ControlNet/LoRA model selection should use the current model compatibility and selector patterns.
+
+4. **Keep the implementation modular**
+   - Realtime session/runtime logic should live in dedicated modules/services.
+   - Avoid inflating existing job-runner files with media-specific branching where a separate session/runtime boundary is cleaner.
+
+## What NodeTool can integrate better
+
+The MVP should lean harder on what the repo already offers:
+
+- **Existing input nodes** for video/audio/image instead of inventing new app-only source concepts too early
+- **Existing workflow editor + node metadata** instead of a standalone realtime graph tool
+- **Existing model ecosystem** for Stable Diffusion, Flux, ControlNet, and LoRA compatibility
+- **Existing mini-app / HTML app surfaces** for a focused realtime operator UI on top of standard workflows
+- **Existing streaming input path** as a bridge for live controls where it fits, while keeping media transport separate
+
+## Main gaps still missing
 
 1. **Media transport**
    - no WebRTC signaling flow
    - no ICE/TURN/session negotiation
-   - no track lifecycle management
+   - no browser-to-backend track lifecycle
 
 2. **Realtime runtime**
-   - no persistent low-latency media loop
-   - no dedicated frame/audio execution path
-   - no session-scoped media routing
+   - no persistent low-latency media/session execution path
+   - no dedicated frame-oriented runtime for live video generation/processing
+   - no session-scoped routing for realtime sources/sinks
 
-3. **Live control model**
-   - no prompt timeline/sequencing
-   - no low-latency control/data channel
-   - no controller/MIDI/tempo integration
+3. **Editor/runtime integration**
+   - current realtime page is mostly a control page, not a workflow-native operator surface
+   - no realtime-aware validation or authoring mode in the existing editor
 
-4. **Realtime authoring**
-   - no dedicated realtime graph type or editor mode
-   - no realtime-specific node families or validation
-
-5. **Media I/O**
-   - no browser-to-backend video transport
-   - no recording/export pipeline
-   - no NDI/Spout/Syphon-style integrations
+4. **Diffusion-oriented live pipeline support**
+   - no clear integrated path yet for stream diffusion
+   - no session model yet for live ControlNet / LoRA updates
 
 ## Roadmap
 
-### Phase 1 - Finish the substrate
+### Phase 1 - Integrate the substrate cleanly
 
-Goal: complete the missing pieces around the new session stack without overloading the existing job runner.
+Goal: keep the new session layer, but connect it more naturally to the existing NodeTool workflow model.
 
-- add WebRTC signaling endpoints
-- define session negotiation and transport messages
-- keep session control separate from batch `run_job`
-- define the session/runtime boundary more clearly
+- define a clear session/runtime boundary separate from batch `run_job`
+- add WebRTC signaling and transport messages
+- decide which existing input/output nodes can be reused directly
+- define which realtime-specific nodes are truly needed vs. adapted existing nodes
 
-### Phase 2 - Realtime video MVP
+### Phase 2 - Integrated MVP: stream diffusion
 
-Target one narrow slice:
+The MVP should be stronger than the current camera-preview slice.
 
-- one browser video input
-- one realtime processing chain
-- one browser video output
+**Include in MVP:**
+
+- browser camera/video input, preferably through existing input-node patterns where possible
+- a workflow-native realtime session path
+- stream diffusion as the primary demo/use case
+- ControlNet support
+- LoRA support
+- one browser preview/output surface
 - start/stop/reconnect
-- live slider or prompt updates
+- live parameter updates
 - basic session status/logging
 
-Minimum work:
+**Architecture expectations for MVP:**
 
-- session-scoped execution context
-- realtime source/sink node contracts
-- hot parameter updates during a session
-- browser video transport path
-- Electron/browser validation for device permissions
+- reuse the existing node editor and workflow model
+- reuse existing model compatibility/selection paths for ControlNet and LoRA
+- keep realtime transport/runtime in dedicated modules
+- avoid a large parallel realtime-only frontend stack unless clearly required
 
-### Phase 3 - Live controls
+### Phase 3 - Realtime editor integration
 
-- prompt updates while streaming
-- transport controls
-- better connection/session diagnostics
-- status, logs, and recovery UX
+- add realtime-aware validation and affordances to the existing editor
+- make source/sink/control nodes easier to compose in standard workflows
+- support workflow templates/presets for realtime diffusion pipelines
 
-### Phase 4 - Realtime graph/editor
+### Phase 4 - Rich live controls
 
-- dedicated realtime graph/editor mode
-- realtime node categories: source, sink, pipeline, prompt/control, record
-- realtime routing/validation rules
+- live prompt/control updates while streaming
+- parameter groups for diffusion/control strength, LoRA weight, etc.
+- better diagnostics, status, and recovery UX
 
 ### Phase 5 - Media + hardware
 
 - audio input/output
 - recording/export
 - device selection
-- optional NDI/Spout/Syphon integrations behind feature flags
+- optional NDI/Spout/Syphon-style integrations behind feature flags
 
-### Phase 6 - Advanced control features
-
-- MIDI mapping
-- tempo sync
-- controller input
-- scheduled/beat-aligned changes
-
-### Phase 7 - Cloud parity
+### Phase 6 - Cloud/session brokering
 
 Treat this as separate from local realtime support:
 
 - cloud relay/session brokering
 - TURN credential management
 - auth/entitlement checks
-- preload/download/session telemetry
+- telemetry/recovery
 
 ## Recommended next milestone
 
-**Realtime video session MVP**
+**Workflow-native stream diffusion MVP**
 
 Include:
 
-- browser camera/video input
-- one realtime pipeline
-- one browser sink
-- session reconnect
-- one live control path
-- basic status/logging
+- existing NodeTool workflow/editor as the authoring surface
+- camera or video input integrated through existing node patterns
+- stream diffusion runtime path
+- ControlNet-enabled guidance
+- LoRA-enabled styling/customization
+- browser preview/output
+- live control updates
+- basic diagnostics
 
 Do not include yet:
 
-- cloud relay
-- billing
-- NDI/Spout/Syphon
+- a separate standalone realtime editor product
+- broad cloud parity
+- advanced hardware integrations
 - MIDI/tempo/OSC/DMX
-- full Scope editor parity
 
 ## Next steps
 
-1. Write a short technical spec for WebRTC signaling and session negotiation.
-2. Define the realtime session runtime boundary separate from `run_job`.
-3. Build the minimal browser video session path.
-4. Add one live control channel and one realtime source/sink contract.
-5. Treat full Scope parity as a roadmap, not a single feature.
+1. Audit which existing input/model nodes can be reused directly for realtime workflows.
+2. Write a short technical spec for WebRTC signaling plus the session/runtime boundary.
+3. Define the minimal workflow shape for stream diffusion with ControlNet and LoRA.
+4. Add realtime-aware validation/editor affordances to that workflow shape instead of inventing a parallel editor first.
+5. Keep the transport/runtime modular so realtime support integrates cleanly without sprawling through existing files.
