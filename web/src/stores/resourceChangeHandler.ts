@@ -25,10 +25,28 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
   collection: ["collections"],
   workspace: ["workspaces"],
   secret: ["secrets"],
-  model: ["models"],
   metadata: ["metadata"]
   // Add more mappings as needed
 };
+
+const PROVIDER_QUERY_KEYS = ["providers"] as const;
+const MODEL_QUERY_KEYS = [
+  "models",
+  "language-models",
+  "embedding-models",
+  "image-models",
+  "tts-models",
+  "asr-models",
+  "video-models",
+  "allModels"
+] as const;
+
+function invalidateQueryKeys(keys: readonly string[]): void {
+  keys.forEach((queryKey) => {
+    log.debug(`[ResourceChange] Invalidating query cache: [${queryKey}]`);
+    queryClient.invalidateQueries({ queryKey: [queryKey] });
+  });
+}
 
 /**
  * Handle resource change notifications from the WebSocket.
@@ -47,6 +65,19 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   if (resource_type === "metadata") {
     log.info("[ResourceChange] Reloading node metadata");
     void loadMetadata();
+    invalidateQueryKeys(["metadata"]);
+    return;
+  }
+
+  if (resource_type === "provider") {
+    log.info("[ResourceChange] Invalidating provider and model queries");
+    invalidateQueryKeys([...PROVIDER_QUERY_KEYS, ...MODEL_QUERY_KEYS]);
+    return;
+  }
+
+  if (resource_type === "model") {
+    log.info("[ResourceChange] Invalidating model queries");
+    invalidateQueryKeys(MODEL_QUERY_KEYS);
     return;
   }
 
@@ -66,10 +97,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   );
 
   // Invalidate all relevant query caches
-  queryKeys.forEach((queryKey) => {
-    log.debug(`[ResourceChange] Invalidating query cache: [${queryKey}]`);
-    queryClient.invalidateQueries({ queryKey: [queryKey] });
-  });
+  invalidateQueryKeys(queryKeys);
 
   // For specific resources, also invalidate their individual caches
   if (resource.id) {

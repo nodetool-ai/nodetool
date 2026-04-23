@@ -4,12 +4,17 @@
 import { handleResourceChange } from "../resourceChangeHandler";
 import { queryClient } from "../../queryClient";
 import { ResourceChangeUpdate } from "../ApiTypes";
+import { loadMetadata } from "../../serverState/useMetadata";
 
 // Mock the queryClient
 jest.mock("../../queryClient", () => ({
   queryClient: {
     invalidateQueries: jest.fn()
   }
+}));
+
+jest.mock("../../serverState/useMetadata", () => ({
+  loadMetadata: jest.fn()
 }));
 
 describe("handleResourceChange", () => {
@@ -150,6 +155,109 @@ describe("handleResourceChange", () => {
     // Should still invalidate general queries
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["workflows"]
+    });
+  });
+
+  it("reloads metadata on metadata update", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "updated",
+      resource_type: "metadata",
+      resource: {
+        id: "nodes",
+        etag: "meta-123"
+      }
+    };
+
+    handleResourceChange(update);
+
+    expect(loadMetadata).toHaveBeenCalled();
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["metadata"]
+    });
+  });
+
+  it("invalidates provider and model queries on provider update", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "created",
+      resource_type: "provider",
+      resource: {
+        id: "mlx",
+        etag: "provider-123"
+      }
+    };
+
+    handleResourceChange(update);
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["providers"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["language-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["embedding-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["image-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["tts-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["asr-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["video-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["allModels"]
+    });
+  });
+
+  it("invalidates model queries on model update", () => {
+    const update: ResourceChangeUpdate = {
+      type: "resource_change",
+      event: "updated",
+      resource_type: "model",
+      resource: {
+        id: "mlx",
+        etag: "model-123"
+      }
+    };
+
+    handleResourceChange(update);
+
+    expect(queryClient.invalidateQueries).not.toHaveBeenCalledWith({
+      queryKey: ["providers"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["language-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["embedding-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["image-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["tts-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["asr-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["video-models"]
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["allModels"]
     });
   });
 
