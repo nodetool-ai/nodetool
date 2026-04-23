@@ -555,6 +555,33 @@ const createSingleAssetFile = async (
   return { file, filename, type: mimeType };
 };
 
+/**
+ * Unwrap named-output maps like { image: { type: "image", ... } } that dynamic
+ * nodes (e.g. KieAI) return.  A plain object with no "type" field whose every
+ * value is itself a typed object is treated as a collection of named outputs;
+ * we expand it into an array so each output gets its own asset file.
+ */
+const unwrapNamedOutputs = (output: AssetOutput): AssetOutput | AssetOutput[] => {
+  if (!output || typeof output !== "object" || Array.isArray(output)) {
+    return output;
+  }
+  const record = output as Record<string, unknown>;
+  if ("type" in record) {
+    return output; // already a typed output
+  }
+  const values = Object.values(record);
+  if (values.length === 0) {
+    return output;
+  }
+  const typedValues = values.filter(
+    (v) => v !== null && typeof v === "object" && !Array.isArray(v) && "type" in (v as object)
+  );
+  if (typedValues.length === values.length) {
+    return typedValues as AssetOutput[];
+  }
+  return output;
+};
+
 export const createAssetFile = async (
   output: AssetOutput | AssetOutput[],
   id: string,
@@ -570,5 +597,14 @@ export const createAssetFile = async (
       normalized.map((item, index) => createSingleAssetFile(item as AssetOutput, id, index))
     );
   }
-  return Promise.all([createSingleAssetFile(normalized as AssetOutput, id)]);
+
+  const unwrapped = unwrapNamedOutputs(normalized as AssetOutput);
+  if (Array.isArray(unwrapped)) {
+    log.info("[createAssetFile] unwrapped named-output map", { count: unwrapped.length });
+    return Promise.all(
+      unwrapped.map((item, index) => createSingleAssetFile(item, id, index))
+    );
+  }
+
+  return Promise.all([createSingleAssetFile(unwrapped as AssetOutput, id)]);
 };
