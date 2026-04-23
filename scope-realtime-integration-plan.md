@@ -18,6 +18,47 @@
 - [ ] Extend the editor with realtime-aware workflow authoring instead of a parallel product surface
 - [ ] Add optional hardware/cloud integrations only after the local architecture is stable
 
+## Priority feature ladder (easy to harder integration)
+
+- [ ] **StreamDiffusionV1 + ControlNet depth/scribble + LoRA**
+  - Most important near-term target.
+  - Best fit with the current roadmap because NodeTool already has diffusion model selection, ControlNet/LoRA compatibility work, image/video inputs, and the new session substrate.
+
+- [ ] **Realtime speech-to-prompt / captions / transcription**
+  - Strong early win because NodeTool already has Whisper/ASR examples, subtitle workflows, streaming input commands, and TTS/ASR model types.
+  - Good operator UX feature even before full media transport parity.
+
+- [ ] **Moondream / live VLM scene understanding**
+  - Good next feature after the core img2img path.
+  - Fits existing multimodal/VLM support and can help drive prompts, overlays, or diagnostics from live frames.
+
+- [ ] **Pose / depth / mask preprocessors**
+  - Includes features in the spirit of pose preprocessors, YOLO masks, and depth/scribble conditioning.
+  - Natural extension of the ControlNet-first MVP and likely more reusable than one-off bespoke plugins.
+
+- [ ] **Reusable pre/post FX chain**
+  - Includes WallSpace-style effects, OpenCV filters, bloom, kaleidoscope, and similar preprocess/postprocess stages.
+  - Valuable once the session/runtime can compose standard workflow nodes around a realtime media path.
+
+- [ ] **Realtime upscaling / refinement**
+  - Includes Real-ESRGAN / super-resolution style nodes and similar refinement passes.
+  - Important, but should come after the base realtime pipeline and FX/preprocessor composition are stable.
+
+- [ ] **High-speed alternative generation pipelines**
+  - Includes FLUX-Klein and LTX-2 style realtime or near-realtime generation paths.
+  - Important for performance-oriented follow-ups, but harder than the initial StreamDiffusion-first MVP.
+
+- [ ] **DeepLiveCam / face-swap style pipelines**
+  - Useful, but requires more specialized identity, safety, and runtime handling than the first diffusion/control stack.
+
+- [ ] **Music / beat / external-timing driven controls**
+  - Includes Spotify, captions-to-visuals, MIDI/OSC/timecode-driven prompt/control systems.
+  - Better treated as a later control-surface layer after the core local realtime session architecture is working well.
+
+- [ ] **World-model / 3D / advanced geometry pipelines**
+  - Includes SAM3D, WorldFM, and similar advanced geometry or view-synthesis features.
+  - High-value long term, but clearly later than the workflow-native realtime diffusion/control stack.
+
 ## Current state
 
 NodeTool already had strong foundations before this branch:
@@ -212,6 +253,7 @@ Include:
 - stream diffusion runtime path
 - ControlNet-enabled guidance
 - LoRA-enabled styling/customization
+- optional speech-to-prompt or caption injection if it fits the same session/runtime boundary cleanly
 - browser preview/output
 - live control updates
 - basic diagnostics
