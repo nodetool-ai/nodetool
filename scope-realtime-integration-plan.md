@@ -31,7 +31,7 @@
   - `stream_input` / `end_input_stream` and `useInputStream` already provide a live control path.
   - `RealtimeAudioInput` already exists in the runner/runtime; `VideoInput` already exists as a standard workflow input node.
   - Model compatibility and artifact inspection already recognize ControlNet/LoRA-capable families.
-- **Reference note from ComfyUI-style streaming.** ComfyUI uses websocket execution/progress/custom event messages for control-plane feedback during graph execution. Use that pattern here for status and live-control updates, and add dedicated media transport only for high-rate browser media.
+- **Reference note from ComfyUI architecture pattern.** ComfyUI uses websocket execution/progress/custom event messages for control-plane feedback during graph execution. Use that pattern here for status and live-control updates, and add dedicated media transport only for high-rate browser media.
 
 ## Ordered roadmap
 
@@ -50,7 +50,7 @@ Resolve the few decisions that block implementation order before adding more cod
 **Tasks**
 
 - [ ] Decide whether the first serious operator surface is `/realtime`, mini-app, `html_app`, or a staged hybrid
-- [ ] Decide whether speech-to-prompt / captions belong in the first MVP or a later live-controls phase
+- [ ] Decide whether speech-to-prompt/captions belong in the first MVP or a later live-controls phase
 - [ ] Define the canonical stream diffusion workflow target for MVP
 - [ ] List which existing nodes are reused directly and which realtime-specific nodes are actually needed
 
@@ -147,7 +147,7 @@ Add the highest-value realtime controls after the base session path works.
 
 - [ ] Add live prompt/control updates while streaming
 - [ ] Group controls for diffusion strength, ControlNet settings, and LoRA weight
-- [ ] Add speech-to-prompt / captions if Phase 0 assigns them to this later live-controls phase
+- [ ] Add speech-to-prompt/captions if Phase 0 assigns them to this later live-controls phase
 - [ ] Add reusable pose / depth / mask preprocessor workflows
 - [ ] Add reusable pre/post FX chain support before adding more bespoke plugins
 
@@ -188,7 +188,7 @@ Keep cloud brokering and extra hardware integrations out of the core local MVP.
 ## Priority feature ladder
 
 - [ ] **StreamDiffusionV1 + ControlNet depth/scribble + LoRA** — first serious target
-- [ ] **Speech-to-prompt / captions / transcription** *(pending Phase 0 scope decision)* — early operator win
+- [ ] **Speech-to-prompt/captions/transcription** *(pending Phase 0 scope decision)* — early operator win
 - [ ] **Moondream / live VLM scene understanding** — next step after the core img2img path
 - [ ] **Pose / depth / mask preprocessors** — natural extension of ControlNet-first workflows
 - [ ] **Reusable FX and upscaling passes** — after the base pipeline is stable
