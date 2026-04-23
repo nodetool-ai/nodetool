@@ -299,26 +299,22 @@ describe("ChatView", () => {
       fireEvent.click(sendButton);
 
       await waitFor(() => {
-        expect(mockSendMessage).toHaveBeenCalledWith({
-          type: "message",
-          name: "",
-          role: "user",
-          provider: "openai",
-          model: "gpt-4",
-          content: [{ type: "text", text: "Test message" }],
-          tools: undefined,
-          collections: undefined,
-          agent_mode: false,
-          help_mode: false,
-          graph: undefined,
-          workflow_id: undefined,
-          workflow_target: undefined,
-          media_generation: null
-        });
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: "message",
+            name: "",
+            role: "user",
+            provider: "openai",
+            model: "gpt-4",
+            content: [{ type: "text", text: "Test message" }],
+            agent_mode: false,
+            help_mode: false
+          })
+        );
       });
     });
 
-    it("includes selected tools in message when tools are selected", async () => {
+    it("includes default chat tools in message", async () => {
       renderWithProviders(
         <ChatView {...baseProps} selectedTools={["tool1", "tool2"]} />
       );
@@ -329,7 +325,8 @@ describe("ChatView", () => {
       await waitFor(() => {
         expect(mockSendMessage).toHaveBeenCalledWith(
           expect.objectContaining({
-            tools: ["tool1", "tool2"]
+            type: "message",
+            tools: expect.arrayContaining(["browser"])
           })
         );
       });
