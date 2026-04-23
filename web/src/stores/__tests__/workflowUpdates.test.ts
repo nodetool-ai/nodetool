@@ -1,6 +1,37 @@
 import { normalizeOutputUpdateValue } from "../outputUpdateValue";
-import type { OutputUpdate } from "../ApiTypes";
-import { mergeNodeUpdateProperties } from "../workflowUpdates";
+import type { Chunk, OutputUpdate, WorkflowAttributes } from "../ApiTypes";
+import useResultsStore from "../ResultsStore";
+import { handleUpdate, mergeNodeUpdateProperties } from "../workflowUpdates";
+
+const mockRunnerStore = {
+  getState: () => ({
+    job_id: "job-1",
+    state: "running",
+    addNotification: jest.fn()
+  }),
+  setState: jest.fn(),
+  subscribe: jest.fn()
+};
+
+const mockWorkflow = {
+  id: "workflow-1",
+  name: "Workflow 1"
+} as WorkflowAttributes;
+
+beforeEach(() => {
+  useResultsStore.setState({
+    results: {},
+    outputResults: {},
+    progress: {},
+    edges: {},
+    chunks: {},
+    tasks: {},
+    toolCalls: {},
+    planningUpdates: {},
+    previews: {}
+  });
+  mockRunnerStore.setState.mockClear();
+});
 
 describe("normalizeOutputUpdateValue", () => {
   it("wraps raw image output values with their media type", () => {
@@ -48,6 +79,48 @@ describe("normalizeOutputUpdateValue", () => {
     };
 
     expect(normalizeOutputUpdateValue(update)).toBe("hello");
+  });
+});
+
+describe("handleUpdate", () => {
+  it("stores workflow chunk updates by node id", () => {
+    const chunk: Chunk = {
+      type: "chunk",
+      node_id: "node-1",
+      workflow_id: "workflow-1",
+      content_type: "text",
+      content: "hello"
+    };
+
+    handleUpdate(
+      mockWorkflow,
+      chunk,
+      mockRunnerStore as never,
+      () => undefined
+    );
+
+    expect(useResultsStore.getState().getChunk("workflow-1", "node-1")).toBe(
+      "hello"
+    );
+  });
+
+  it("ignores workflow chunk updates without node id", () => {
+    const chunk: Chunk = {
+      type: "chunk",
+      workflow_id: "workflow-1",
+      content_type: "text",
+      content: "done",
+      done: true
+    };
+
+    handleUpdate(
+      mockWorkflow,
+      chunk,
+      mockRunnerStore as never,
+      () => undefined
+    );
+
+    expect(useResultsStore.getState().getChunk("workflow-1", "node-1")).toBeUndefined();
   });
 });
 
