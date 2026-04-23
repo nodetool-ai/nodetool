@@ -1,0 +1,64 @@
+import { describe, expect, it, beforeEach } from "vitest";
+
+import { realtimeSessionManager } from "../src/realtime-session-manager.js";
+
+describe("RealtimeSessionManager", () => {
+  beforeEach(() => {
+    realtimeSessionManager.reset();
+  });
+
+  it("creates and lists sessions for a user", () => {
+    const session = realtimeSessionManager.createSession({
+      userId: "user-1",
+      workflowId: "workflow-1",
+      parameters: { brightness: 120 }
+    });
+
+    expect(session.workflow_id).toBe("workflow-1");
+    expect(session.parameters).toEqual({ brightness: 120 });
+
+    const sessions = realtimeSessionManager.listSessions("user-1");
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].session_id).toBe(session.session_id);
+  });
+
+  it("updates session parameters without exposing other users' sessions", () => {
+    const session = realtimeSessionManager.createSession({
+      userId: "user-1",
+      workflowId: "workflow-1",
+      parameters: { brightness: 100 }
+    });
+
+    const missingUpdate = realtimeSessionManager.updateSession(
+      session.session_id,
+      "user-2",
+      {
+        parameters: { brightness: 180 }
+      }
+    );
+
+    expect(missingUpdate).toBeNull();
+
+    const updated = realtimeSessionManager.updateSession(
+      session.session_id,
+      "user-1",
+      {
+        parameters: { brightness: 180 }
+      }
+    );
+
+    expect(updated?.parameters.brightness).toBe(180);
+  });
+
+  it("stops and removes sessions", () => {
+    const session = realtimeSessionManager.createSession({
+      userId: "user-1",
+      workflowId: "workflow-1"
+    });
+
+    const stopped = realtimeSessionManager.stopSession(session.session_id, "user-1");
+
+    expect(stopped?.status).toBe("stopped");
+    expect(realtimeSessionManager.listSessions("user-1")).toHaveLength(0);
+  });
+});

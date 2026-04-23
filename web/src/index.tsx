@@ -86,6 +86,9 @@ const MiniAppPage = React.lazy(
 const StandaloneMiniApp = React.lazy(
   () => import("./components/miniapps/StandaloneMiniApp")
 );
+const RealtimeStreamPage = React.lazy(
+  () => import("./components/realtime/RealtimeStreamPage")
+);
 const ModelListIndex = React.lazy(
   () => import("./components/hugging_face/model_list/ModelListIndex")
 );
@@ -311,6 +314,31 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <StandaloneMiniApp />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/realtime/:workflowId?",
+      element: (
+        <ProtectedRoute>
+          <>
+            <SkipLinks />
+            <AppHeader />
+            <div
+              id="main-content"
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%"
+              }}
+            >
+              <PanelLeft />
+              <div style={{ flex: 1, display: "flex" }}>
+                <RealtimeStreamPage />
+              </div>
+              <PanelBottom />
+            </div>
+          </>
         </ProtectedRoute>
       )
     },

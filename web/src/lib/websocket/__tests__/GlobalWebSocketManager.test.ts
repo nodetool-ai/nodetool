@@ -88,6 +88,16 @@ describe("GlobalWebSocketManager", () => {
       expect(handler).toHaveBeenCalledWith({ thread_id: "thread-789" });
       unsubscribe();
     });
+
+    it("routes messages by session_id", () => {
+      const handler = jest.fn();
+      const unsubscribe = globalWebSocketManager.subscribe("session-123", handler);
+
+      (globalWebSocketManager as any).routeMessage({ session_id: "session-123" });
+
+      expect(handler).toHaveBeenCalledWith({ session_id: "session-123" });
+      unsubscribe();
+    });
   });
 
   describe("resource change handling", () => {

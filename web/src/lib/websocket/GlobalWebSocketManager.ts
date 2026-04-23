@@ -17,6 +17,7 @@ export interface WebSocketMessage {
   thread_id?: string;
   workflow_id?: string;
   job_id?: string;
+  session_id?: string;
   [key: string]: unknown;
 }
 
@@ -38,7 +39,7 @@ const RECONNECT_INTERVAL_MS = 1000;
  * Global WebSocket Manager - Singleton pattern.
  *
  * Establishes a single shared WebSocket to the unified backend and
- * multiplexes messages by job_id or thread_id. Consumers subscribe with a
+ * multiplexes messages by job_id, session_id, workflow_id, or thread_id. Consumers subscribe with a
  * routing key and receive only their messages. Built-in reconnect with up to
  * 5 attempts/1s backoff; `ensureConnection` blocks until connected and reuses
  * Supabase auth when available.
@@ -160,7 +161,7 @@ class GlobalWebSocketManager extends EventEmitter {
   /**
    * Route incoming message to registered handlers.
    * Each handler is called at most once per message, even if the message
-   * matches multiple routing keys (thread_id, workflow_id, job_id).
+     * matches multiple routing keys (thread_id, workflow_id, job_id, session_id).
    *
    * Special handling for resource_change and system_stats messages which don't
    * have routing keys but should update global state.
@@ -202,9 +203,13 @@ class GlobalWebSocketManager extends EventEmitter {
       routingKeys.add(message.job_id);
     }
 
+    if (message.session_id) {
+      routingKeys.add(message.session_id);
+    }
+
     if (routingKeys.size === 0) {
       log.debug(
-        "GlobalWebSocketManager: Message without routing key (job_id/workflow_id/thread_id)",
+        "GlobalWebSocketManager: Message without routing key (job_id/session_id/workflow_id/thread_id)",
         message
       );
       return;

@@ -302,6 +302,37 @@ export interface LLMCallUpdate {
   timestamp: string;
 }
 
+export type RealtimeSessionStatus = "starting" | "running" | "stopped" | "error";
+
+export type RealtimeSessionTransport = "websocket";
+
+export interface RealtimeSessionRecord {
+  session_id: string;
+  workflow_id: string | null;
+  status: RealtimeSessionStatus;
+  transport: RealtimeSessionTransport;
+  parameters: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RealtimeSessionStarted extends RealtimeSessionRecord {
+  type: "realtime_session_started";
+}
+
+export interface RealtimeSessionUpdated extends RealtimeSessionRecord {
+  type: "realtime_session_updated";
+}
+
+export interface RealtimeSessionStopped {
+  type: "realtime_session_stopped";
+  session_id: string;
+  workflow_id: string | null;
+  status: Extract<RealtimeSessionStatus, "stopped" | "error">;
+  reason: string;
+  updated_at: string;
+}
+
 // ---------------------------------------------------------------------------
 // Unified websocket command/control/update types
 // ---------------------------------------------------------------------------
@@ -318,6 +349,9 @@ export type UnifiedCommandType =
   | "clear_models"
   | "stream_input"
   | "end_input_stream"
+  | "start_realtime_session"
+  | "update_realtime_session"
+  | "stop_realtime_session"
   | "chat_message"
   | "inference"
   | "stop";
@@ -398,7 +432,10 @@ export type ProcessingMessage =
   | PlanningUpdate
   | Chunk
   | Prediction
-  | LLMCallUpdate;
+  | LLMCallUpdate
+  | RealtimeSessionStarted
+  | RealtimeSessionUpdated
+  | RealtimeSessionStopped;
 
 /**
  * Literal union of every `type` discriminator value.

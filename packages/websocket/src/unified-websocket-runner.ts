@@ -48,7 +48,12 @@ import {
   type ComfyProgressEvent,
   type ComfyExecutionHandle
 } from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
+import type {
+  Chunk,
+  RealtimeSessionRecord,
+  RealtimeSessionStopped,
+  RealtimeSessionUpdated
+} from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -56,6 +61,7 @@ import type {
 } from "@nodetool/protocol";
 import { Tool } from "@nodetool/agents";
 import type { NodeMetadata } from "@nodetool/node-sdk";
+import { realtimeSessionManager } from "./realtime-session-manager.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -988,6 +994,189 @@ export class UnifiedWebSocketRunner {
     } finally {
       release();
     }
+  }
+
+  private getRealtimeUserId(): string {
+    return this.userId ?? "1";
+  }
+
+  private normalizeRealtimeParameters(
+    value: unknown
+  ): Record<string, unknown> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    return { ...(value as Record<string, unknown>) };
+  }
+
+  private async emitRealtimeSessionStarted(
+    session: RealtimeSessionRecord
+  ): Promise<void> {
+    await this.sendMessage({
+      type: "realtime_session_started",
+      ...session
+    });
+  }
+
+  private async emitRealtimeSessionUpdated(
+    session: RealtimeSessionRecord
+  ): Promise<void> {
+    const message: RealtimeSessionUpdated = {
+      type: "realtime_session_updated",
+      ...session
+    };
+    await this.sendMessage(message);
+  }
+
+  private async emitRealtimeSessionStopped(
+    session: RealtimeSessionRecord,
+    reason: string
+  ): Promise<void> {
+    const message: RealtimeSessionStopped = {
+      type: "realtime_session_stopped",
+      session_id: session.session_id,
+      workflow_id: session.workflow_id,
+      status: session.status === "error" ? "error" : "stopped",
+      reason,
+      updated_at: session.updated_at
+    };
+    await this.sendMessage(message);
+  }
+
+  private async startRealtimeSession(
+    data: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const workflowId =
+      typeof data.workflow_id === "string" && data.workflow_id.length > 0
+        ? data.workflow_id
+        : null;
+
+    if (!workflowId) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        error: "workflow_id is required"
+      };
+    }
+
+    const sessionId =
+      typeof data.session_id === "string" && data.session_id.length > 0
+        ? data.session_id
+        : undefined;
+    const parameters = this.normalizeRealtimeParameters(data.parameters);
+    const session = realtimeSessionManager.createSession({
+      sessionId,
+      userId: this.getRealtimeUserId(),
+      workflowId,
+      parameters,
+      transport: "websocket"
+    });
+
+    await this.emitRealtimeSessionStarted(session);
+
+    return {
+      type: "realtime_session_ack",
+      ok: true,
+      action: "start",
+      session_id: session.session_id,
+      workflow_id: session.workflow_id,
+      status: session.status
+    };
+  }
+
+  private async updateRealtimeSession(
+    data: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const sessionId =
+      typeof data.session_id === "string" && data.session_id.length > 0
+        ? data.session_id
+        : null;
+
+    if (!sessionId) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        error: "session_id is required"
+      };
+    }
+
+    const session = realtimeSessionManager.updateSession(
+      sessionId,
+      this.getRealtimeUserId(),
+      {
+        parameters: this.normalizeRealtimeParameters(data.parameters),
+        status: "running"
+      }
+    );
+
+    if (!session) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "update",
+        session_id: sessionId,
+        error: "Realtime session not found"
+      };
+    }
+
+    await this.emitRealtimeSessionUpdated(session);
+
+    return {
+      type: "realtime_session_ack",
+      ok: true,
+      action: "update",
+      session_id: session.session_id,
+      workflow_id: session.workflow_id,
+      status: session.status
+    };
+  }
+
+  private async stopRealtimeSession(
+    data: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const sessionId =
+      typeof data.session_id === "string" && data.session_id.length > 0
+        ? data.session_id
+        : null;
+
+    if (!sessionId) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        error: "session_id is required"
+      };
+    }
+
+    const reason =
+      typeof data.reason === "string" && data.reason.length > 0
+        ? data.reason
+        : "user";
+    const session = realtimeSessionManager.stopSession(
+      sessionId,
+      this.getRealtimeUserId()
+    );
+
+    if (!session) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "stop",
+        session_id: sessionId,
+        error: "Realtime session not found"
+      };
+    }
+
+    await this.emitRealtimeSessionStopped(session, reason);
+
+    return {
+      type: "realtime_session_ack",
+      ok: true,
+      action: "stop",
+      session_id: session.session_id,
+      workflow_id: session.workflow_id,
+      status: session.status
+    };
   }
 
   async receiveMessage(): Promise<Record<string, unknown> | null> {
@@ -4333,6 +4522,12 @@ export class UnifiedWebSocketRunner {
             };
           }
         }
+      case "start_realtime_session":
+        return this.startRealtimeSession(data);
+      case "update_realtime_session":
+        return this.updateRealtimeSession(data);
+      case "stop_realtime_session":
+        return this.stopRealtimeSession(data);
       case "cancel_job":
         if (!jobId) return { error: "job_id is required" };
         return this.cancelJob(jobId, workflowId);
