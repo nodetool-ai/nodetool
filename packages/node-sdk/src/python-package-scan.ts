@@ -1,6 +1,6 @@
 /**
- * Scan a nodetool Python node package by invoking `nodetool-package-tools`
- * as a one-shot subprocess.
+ * Scan a nodetool Python node package by invoking `nodetool.package_tools`
+ * (shipped inside `nodetool-core`) as a one-shot subprocess.
  *
  * Produces a `PackageMetadata` (same shape as what `loadPythonPackageMetadata`
  * reads back from disk). Does not require a running server.
@@ -47,7 +47,9 @@ export class PythonScanError extends Error {
 }
 
 /**
- * Run `python -m nodetool_package_tools scan` and return the parsed result.
+ * Run `python -m nodetool.package_tools scan` and return the parsed result.
+ *
+ * Requires `nodetool-core` to be installed in the target Python environment.
  */
 export async function scanPythonPackage(
   opts: PythonScanOptions
@@ -56,7 +58,7 @@ export async function scanPythonPackage(
 
   const args = [
     "-m",
-    "nodetool_package_tools",
+    "nodetool.package_tools",
     "scan",
     "--package-dir",
     opts.packageDir

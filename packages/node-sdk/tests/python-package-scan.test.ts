@@ -12,8 +12,9 @@ const FIXTURE = join(
   "..",
   "..",
   "..",
-  "nodetool-package-tools",
+  "nodetool-core",
   "tests",
+  "package_tools",
   "fixtures",
   "sample_pkg"
 );
