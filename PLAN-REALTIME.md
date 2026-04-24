@@ -8,7 +8,7 @@
   - [x] Protocol message types for realtime sessions
   - [x] Backend realtime session manager
   - [x] WebSocket commands for start, update, and stop session
-  - [x] REST endpoints for listing and fetching sessions
+  - [x] tRPC endpoints for listing and fetching sessions
   - [x] Frontend realtime session client and store
   - [x] Basic `/realtime/:workflowId?` page and local preview
 - [ ] Phase 1 foundation
@@ -18,7 +18,7 @@
 
 ## Core decisions
 
-- **Realtime is a workflow execution mode.** It belongs to the normal NodeTool workflow model, editor, persistence, and operator surfaces.
+- **Realtime is a workflow execution mode.** It belongs to the normal NodeTool workflow model, editor, persistence, and operator surfaces. Realtime sessions should be tracked as standard Jobs in the database, and their outputs should be savable as standard Assets.
 - **The first runtime stays separate internally.** It should align with workflow identity, preview routing, and control semantics so later convergence remains straightforward.
 - **StreamDiffusion is the first proof of the system.** It validates the architecture without defining the entire architecture.
 - **Control plane and media plane are separate.** Session lifecycle, control updates, diagnostics, preview notifications, and status stay on the workflow/websocket control plane. High-rate media uses a dedicated adapter boundary.
@@ -36,13 +36,17 @@ Based on research into high-performance real-time generative video systems (like
 3. **Separation of Parameter and Media Queues:** Control signals (UI slider changes, prompt updates) should flow through a dedicated parameter queue or state object, separate from the high-volume media queues. This ensures control updates are applied immediately on the next execution cycle, rather than waiting behind a backlog of video frames.
 4. **WebRTC Bitrate Tuning:** Default WebRTC bitrates are tuned for video conferencing (e.g., 1-2 Mbps), which degrades generative AI output quality. The WebRTC implementation must be explicitly configured for high maximum bitrates (e.g., 5-10 Mbps) and hardware-accelerated codecs.
 
-## Current code reality
+## Current code reality & MVP Corrections
 
-- The current realtime session substrate is a control-plane layer. It tracks sessions and emits session events.
+- The current realtime session substrate is a control-plane layer. It tracks sessions and emits session events, but **does not yet instantiate a graph runner**. 
+  - *Correction needed:* `start_realtime_session` must be wired to actually spawn a dedicated `RealtimeWorkflowRunner` (or equivalent). It currently only accepts `workflow_id`, but to support live editor previews, it should also accept an optional `graph` payload (nodes and edges) similar to the standard `run_job` command. It should also persist a standard `Job` record in the database so the session appears in the user's history.
+  - *Correction needed:* `start_realtime_session` immediately sets the session status to `"running"`. It should start as `"starting"` and only transition to `"running"` once the WebRTC connection is established and the graph is actually executing.
+  - *Correction needed:* `update_realtime_session` must push parameter changes directly into the running graph's parameter queue, rather than just updating static session metadata.
+- `/realtime` is a useful incubation surface and currently captures a local camera stream.
+  - *Correction needed:* The camera stream is not yet transmitted. As per the WebRTC boundary decision, this media must NOT be sent over the WebSocket. The implementation must add WebRTC signaling (offer/answer) to the session initialization flow to establish the media transport, and explicitly map WebRTC media tracks to specific `nodetool.realtime` input nodes in the graph.
 - Live graph streaming is still tied to an active `job_id`.
 - `RealtimeAudioInput` already demonstrates a streaming input pattern.
 - `VideoInput` is still a standard asset/video reference input.
-- `/realtime` is a useful incubation surface.
 - `MiniAppPage`, `html_app`, workflow previews, and editor flows already provide workflow-native surfaces that realtime should grow into.
 
 ## Phase 1 - Foundation
@@ -86,8 +90,8 @@ Ship the first end-to-end realtime workflow that proves the system.
 **Tasks**
 
 - [ ] Build the canonical stream-diffusion workflow template
-- [ ] Reuse existing model compatibility and selection for ControlNet-enabled guidance
-- [ ] Reuse existing model compatibility and selection for LoRA-enabled styling
+- [ ] Reuse existing model compatibility and selection for ControlNet-enabled guidance (leveraging existing `ModelsManager` and `UnifiedModel` patterns)
+- [ ] Reuse existing model compatibility and selection for LoRA-enabled styling (leveraging existing `ModelsManager` and `UnifiedModel` patterns)
 - [ ] Investigate TensorRT dynamic weight injection vs recompilation for ControlNet/LoRA swaps (documenting the UX fallback if recompilation is required)
 - [ ] Connect the workflow template to realtime session start, stop, and reconnect
 - [ ] Add one preview/output surface that reflects the realtime session state
@@ -114,7 +118,7 @@ Make realtime authoring and operation feel native inside NodeTool.
 - [ ] Add menu and discovery rules for realtime-capable existing nodes
 - [ ] Add menu and discovery rules for `nodetool.realtime` nodes
 - [ ] Connect the chosen operator surface to workflow-native launch and reconnect flows
-- [ ] Add live control groups for prompt steering, diffusion strength, ControlNet settings, and LoRA weight
+- [ ] Add live control groups for prompt steering, diffusion strength, ControlNet settings, and LoRA weight (reusing existing UI property components like `NodeSlider`, `TextProperty`, etc.)
 - [ ] Add reusable preprocessor and effects stages that fit the standard workflow model
 
 ## Phase 4 - Expansion adapters
@@ -132,7 +136,7 @@ Extend the realtime system through clear media and control adapters after the fi
 **Tasks**
 
 - [ ] Add audio input and output support where the workflow needs it
-- [ ] Add recording and export for realtime sessions
+- [ ] Add recording and export for realtime sessions (saving outputs as standard NodeTool Assets via `AssetStore`)
 - [ ] Add shared device selection on top of the reusable capture layer
 - [ ] Add `NDI` output and routing adapters
 - [ ] Add `Spout` output and routing adapters
