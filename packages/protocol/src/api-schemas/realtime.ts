@@ -11,8 +11,8 @@ export const realtimeMediaTrackMapping = z.object({
   kind: realtimeMediaTrackKind,
   node_id: z.string(),
   input_name: z.string(),
-  label: z.string().nullable(),
-  enabled: z.boolean()
+  label: z.string().nullable().optional(),
+  enabled: z.boolean().optional()
 });
 export type RealtimeMediaTrackMapping = z.infer<typeof realtimeMediaTrackMapping>;
 
@@ -29,9 +29,9 @@ export type RealtimeSignalingStatus = z.infer<typeof realtimeSignalingStatus>;
 
 export const realtimeSessionSignalingState = z.object({
   status: realtimeSignalingStatus,
-  last_signal_type: realtimeSignalType.nullable(),
-  last_signal_at: z.string().nullable(),
-  error: z.string().nullable()
+  last_signal_type: realtimeSignalType.nullable().optional(),
+  last_signal_at: z.string().nullable().optional(),
+  error: z.string().nullable().optional()
 });
 export type RealtimeSessionSignalingState = z.infer<
   typeof realtimeSessionSignalingState
