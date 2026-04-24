@@ -130,13 +130,17 @@ export const useNodeEditorShortcuts = (
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
+    if (!active) {
+      return;
+    }
+
     const mousePos = getMousePosition();
     openNodeMenu({
       x: mousePos.x,
       y: mousePos.y,
       centerOnScreen: true
     });
-  }, [openNodeMenu]);
+  }, [active, openNodeMenu]);
 
   const handleGroup = useCallback(() => {
     const selectedNodes = nodeStore.getState().getSelectedNodes();
@@ -641,6 +645,10 @@ export const useNodeEditorShortcuts = (
 
   // useEffect for shortcut registration
   useEffect(() => {
+    if (!active) {
+      return;
+    }
+
     const registered: string[] = [];
 
     NODE_EDITOR_SHORTCUTS.forEach((sc) => {
@@ -679,7 +687,7 @@ export const useNodeEditorShortcuts = (
       registered.forEach((combo) => unregisterComboCallback(combo));
     };
     // selectedNodeCount affects active flags for align shortcuts
-  }, [selectedNodeCount, electronDetails, shortcutMeta]);
+  }, [active, selectedNodeCount, electronDetails, shortcutMeta]);
 
   // Return dialog state and handlers for external use
   return {
