@@ -20,10 +20,23 @@ export interface Edge {
   sourceHandle: string;
   target: string;
   targetHandle: string;
+  metadata?: EdgeMetadata;
   ui_properties?: Record<string, string> | null;
   edge_type?: EdgeType;
   [key: string]: unknown;
 }
+
+export type InputBufferOverflowPolicy =
+  | "block"
+  | "drop_oldest"
+  | "drop_newest";
+
+export interface InputBufferPolicy {
+  capacity?: number | null;
+  overflowPolicy?: InputBufferOverflowPolicy;
+}
+
+export interface EdgeMetadata extends InputBufferPolicy {}
 
 export function isControlEdge(edge: Edge): boolean {
   return edge.edge_type === "control";
@@ -95,6 +108,9 @@ export interface NodeDescriptor {
 
   /** Whether this node is dynamic (runtime outputs). */
   is_dynamic?: boolean;
+
+  /** Optional per-input-handle buffer policies used by realtime-capable runners. */
+  inputBufferPolicy?: Record<string, InputBufferPolicy>;
 
   /** Property type strings keyed by property name (e.g. { values: "list[int]" }). */
   propertyTypes?: Record<string, string>;

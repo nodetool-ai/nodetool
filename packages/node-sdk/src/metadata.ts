@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
+import type { InputBufferPolicy } from "@nodetool/protocol";
 
 export interface TypeMetadata {
   type: string;
@@ -59,6 +60,7 @@ export interface NodeMetadata {
   is_streaming_input?: boolean;
   is_streaming_output?: boolean;
   is_controlled?: boolean;
+  input_buffer_policy?: Record<string, InputBufferPolicy>;
   expose_as_tool?: boolean;
   supports_dynamic_outputs?: boolean;
   auto_save_asset?: boolean;

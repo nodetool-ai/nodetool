@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Edge, NodeDescriptor, ProcessingMessage } from "@nodetool/protocol";
 import {
+  NodeInbox,
   RealtimeRunner,
   REALTIME_MESSAGE_BUFFER_LIMIT,
   REALTIME_OUTPUT_BUFFER_LIMIT,
@@ -39,6 +40,11 @@ const getPrivateOutputValues = (
   name: string
 ): unknown[] | undefined =>
   (runner as unknown as { _outputs: Map<string, unknown[]> })._outputs.get(name);
+
+const getPrivateInbox = (runner: WorkflowRunner, nodeId: string): NodeInbox =>
+  (runner as unknown as { _inboxes: Map<string, NodeInbox> })._inboxes.get(
+    nodeId
+  )!;
 
 describe("WorkflowRunner realtime primitives", () => {
   it("initializes a realtime graph without entering the normal run loop", async () => {
@@ -106,6 +112,97 @@ describe("WorkflowRunner realtime primitives", () => {
     expect(outputs).toHaveLength(REALTIME_OUTPUT_BUFFER_LIMIT);
     expect(outputs?.[0]).toBe(10);
     expect(outputs?.at(-1)).toBe(REALTIME_OUTPUT_BUFFER_LIMIT + 9);
+  });
+
+  it("applies node-level input buffer policy during realtime initialization", async () => {
+    const runner = new WorkflowRunner("rt-node-policy", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs),
+      runMode: "realtime"
+    });
+
+    await runner.initializeForRealtime(
+      { job_id: "rt-node-policy" },
+      {
+        nodes: [
+          { id: "input", type: "test.Input", name: "value" },
+          {
+            id: "buffered",
+            type: "test.Buffered",
+            inputBufferPolicy: {
+              value: { capacity: 2, overflowPolicy: "drop_oldest" }
+            }
+          }
+        ],
+        edges: [
+          {
+            source: "input",
+            sourceHandle: "value",
+            target: "buffered",
+            targetHandle: "value"
+          }
+        ]
+      }
+    );
+
+    await runner.pushInputValue("value", 1);
+    await runner.pushInputValue("value", 2);
+    await runner.pushInputValue("value", 3);
+    runner.finishInputStream("value");
+
+    const inbox = getPrivateInbox(runner, "buffered");
+    const values: unknown[] = [];
+    for await (const value of inbox.iterInput("value")) {
+      values.push(value);
+    }
+
+    expect(values).toEqual([2, 3]);
+    expect(inbox.getDroppedCount("value")).toBe(1);
+  });
+
+  it("lets per-edge metadata override node-level input buffer policy", async () => {
+    const runner = new WorkflowRunner("rt-edge-policy", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs),
+      runMode: "realtime"
+    });
+
+    await runner.initializeForRealtime(
+      { job_id: "rt-edge-policy" },
+      {
+        nodes: [
+          { id: "input", type: "test.Input", name: "value" },
+          {
+            id: "buffered",
+            type: "test.Buffered",
+            inputBufferPolicy: {
+              value: { capacity: 2, overflowPolicy: "drop_oldest" }
+            }
+          }
+        ],
+        edges: [
+          {
+            source: "input",
+            sourceHandle: "value",
+            target: "buffered",
+            targetHandle: "value",
+            metadata: { capacity: 1, overflowPolicy: "drop_newest" }
+          }
+        ]
+      }
+    );
+
+    await runner.pushInputValue("value", 1);
+    await runner.pushInputValue("value", 2);
+    await runner.pushInputValue("value", 3);
+    runner.finishInputStream("value");
+
+    const inbox = getPrivateInbox(runner, "buffered");
+    const values: unknown[] = [];
+    for await (const value of inbox.iterInput("value")) {
+      values.push(value);
+    }
+
+    expect(values).toEqual([1]);
+    expect(inbox.getDroppedCount("value")).toBe(2);
   });
 });
 

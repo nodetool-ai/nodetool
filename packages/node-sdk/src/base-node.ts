@@ -1,4 +1,8 @@
-import type { NodeDescriptor, SyncMode } from "@nodetool/protocol";
+import type {
+  InputBufferPolicy,
+  NodeDescriptor,
+  SyncMode
+} from "@nodetool/protocol";
 import type { NodeExecutor } from "@nodetool/kernel";
 import type {
   ProcessingContext,
@@ -27,6 +31,7 @@ export type NodeClass = {
   isDynamic: boolean;
   syncMode: SyncMode;
   isControlled: boolean;
+  inputBufferPolicy?: Record<string, InputBufferPolicy>;
   exposeAsTool?: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
@@ -82,6 +87,9 @@ export abstract class BaseNode {
   static readonly isDynamic: boolean = false;
   static readonly syncMode: SyncMode = "zip_all";
   static readonly isControlled: boolean = false;
+  static readonly inputBufferPolicy:
+    | Record<string, InputBufferPolicy>
+    | undefined = undefined;
   static readonly exposeAsTool: boolean | undefined = undefined;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
@@ -301,6 +309,14 @@ export abstract class BaseNode {
       sync_mode: cls.syncMode,
       is_controlled: cls.isControlled
     };
+    if (cls.inputBufferPolicy) {
+      desc.inputBufferPolicy = Object.fromEntries(
+        Object.entries(cls.inputBufferPolicy).map(([handle, policy]) => [
+          handle,
+          { ...policy }
+        ])
+      );
+    }
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;
     }

@@ -19,7 +19,8 @@ import type {
   NodeDescriptor,
   Edge,
   ProcessingMessage,
-  ControlEvent
+  ControlEvent,
+  InputBufferPolicy
 } from "@nodetool/protocol";
 import { TypeMetadata } from "@nodetool/protocol";
 
@@ -385,10 +386,20 @@ export class WorkflowRunner {
 
   private _initializeInboxes(): void {
     for (const node of this._graph.nodes) {
-      const inbox = new NodeInbox(this._options.bufferLimit ?? null);
+      const incomingData = this._graph.findDataEdges(node.id);
+      const incomingControl = this._graph
+        .findIncomingEdges(node.id)
+        .filter(isControlEdge);
+      const inbox = new NodeInbox({
+        bufferLimit: this._options.bufferLimit ?? null,
+        handlePolicies: this._resolveInputBufferPolicies(
+          node,
+          incomingData,
+          incomingControl
+        )
+      });
 
       // Count upstream sources per handle from data edges
-      const incomingData = this._graph.findDataEdges(node.id);
       const handleCounts = new Map<string, number>();
       for (const edge of incomingData) {
         const cur = handleCounts.get(edge.targetHandle) ?? 0;
@@ -396,9 +407,6 @@ export class WorkflowRunner {
       }
 
       // Also count control edges
-      const incomingControl = this._graph
-        .findIncomingEdges(node.id)
-        .filter(isControlEdge);
       if (incomingControl.length > 0) {
         const uniqueControllerCount = new Set(
           incomingControl.map((e) => e.source)
@@ -415,6 +423,49 @@ export class WorkflowRunner {
 
       this._inboxes.set(node.id, inbox);
     }
+  }
+
+  private _resolveInputBufferPolicies(
+    node: NodeDescriptor,
+    incomingData: Edge[],
+    incomingControl: Edge[]
+  ): Record<string, InputBufferPolicy> {
+    const resolved = new Map<string, InputBufferPolicy>();
+    const baseCapacity = this._options.bufferLimit ?? null;
+
+    const applyPolicy = (
+      handle: string,
+      policy: InputBufferPolicy | undefined
+    ): void => {
+      if (!policy) {
+        return;
+      }
+      const current = resolved.get(handle) ?? { capacity: baseCapacity };
+      resolved.set(handle, {
+        ...current,
+        ...policy
+      });
+    };
+
+    for (const edge of incomingData) {
+      const handle = edge.targetHandle;
+      if (!resolved.has(handle) && baseCapacity !== null) {
+        resolved.set(handle, { capacity: baseCapacity });
+      }
+      applyPolicy(handle, node.inputBufferPolicy?.[handle]);
+      applyPolicy(handle, edge.metadata);
+    }
+
+    for (const edge of incomingControl) {
+      const handle = "__control__";
+      if (!resolved.has(handle) && baseCapacity !== null) {
+        resolved.set(handle, { capacity: baseCapacity });
+      }
+      applyPolicy(handle, node.inputBufferPolicy?.[handle]);
+      applyPolicy(handle, edge.metadata);
+    }
+
+    return Object.fromEntries(resolved.entries());
   }
 
   // -----------------------------------------------------------------------

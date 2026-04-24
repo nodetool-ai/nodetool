@@ -7,6 +7,9 @@ class ConcreteNode extends BaseNode {
   static readonly nodeType = "test.Concrete";
   static readonly title = "Concrete";
   static readonly description = "Test node";
+  static readonly inputBufferPolicy = {
+    x: { capacity: 2, overflowPolicy: "drop_oldest" as const }
+  };
 
   @prop({ type: "int", default: 10 })
   declare x: number;
@@ -102,6 +105,9 @@ describe("BaseNode", () => {
     expect(desc.is_streaming_input).toBe(false);
     expect(desc.is_streaming_output).toBe(false);
     expect(desc.is_controlled).toBe(false);
+    expect(desc.inputBufferPolicy).toEqual({
+      x: { capacity: 2, overflowPolicy: "drop_oldest" }
+    });
   });
 
   it("toDescriptor() uses nodeType as id when none provided", () => {

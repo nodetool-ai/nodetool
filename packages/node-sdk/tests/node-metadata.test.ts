@@ -19,6 +19,22 @@ import {
   Multiply
 } from "../src/nodes/test-nodes.js";
 
+class BufferedNode extends BaseNode {
+  static readonly nodeType = "nodetool.test.Buffered";
+  static readonly title = "Buffered";
+  static readonly description = "Buffered test node";
+  static readonly inputBufferPolicy = {
+    frame: { capacity: 2, overflowPolicy: "drop_oldest" as const }
+  };
+
+  @prop({ type: "image" })
+  declare frame: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { frame: this.frame };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // getNodeMetadata
 // ---------------------------------------------------------------------------
@@ -58,6 +74,13 @@ describe("getNodeMetadata", () => {
   it("detects streaming output on StreamingCounter", () => {
     const meta = getNodeMetadata(StreamingCounter);
     expect(meta.is_streaming_output).toBe(true);
+  });
+
+  it("includes input buffer policy metadata when declared", () => {
+    const meta = getNodeMetadata(BufferedNode);
+    expect(meta.input_buffer_policy).toEqual({
+      frame: { capacity: 2, overflowPolicy: "drop_oldest" }
+    });
   });
 
   it("infers string types from defaults", () => {

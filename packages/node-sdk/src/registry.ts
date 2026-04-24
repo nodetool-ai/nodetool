@@ -217,6 +217,13 @@ export function createGraphNodeTypeResolver(
       );
       const NodeClass = registry.getClass(nodeType);
       const syncMode = NodeClass?.syncMode;
+      const inputBufferPolicy = metadata.input_buffer_policy
+        ? Object.fromEntries(
+            Object.entries(metadata.input_buffer_policy).map(
+              ([handle, policy]) => [handle, { ...policy }]
+            )
+          )
+        : undefined;
       return {
         nodeType: metadata.node_type,
         propertyTypes,
@@ -227,6 +234,7 @@ export function createGraphNodeTypeResolver(
           ...(metadata.is_streaming_input && { is_streaming_input: true }),
           ...(metadata.is_streaming_output && { is_streaming_output: true }),
           ...(metadata.is_controlled && { is_controlled: true }),
+          ...(inputBufferPolicy && { inputBufferPolicy }),
           ...(syncMode !== undefined && { sync_mode: syncMode }),
           ...(Object.keys(propertyMeta).length > 0 && { propertyMeta })
         }

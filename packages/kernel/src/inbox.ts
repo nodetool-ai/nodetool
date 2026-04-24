@@ -12,6 +12,10 @@
  */
 
 import { randomUUID } from "crypto";
+import type {
+  InputBufferOverflowPolicy,
+  InputBufferPolicy
+} from "@nodetool/protocol";
 
 // ---------------------------------------------------------------------------
 // MessageEnvelope
@@ -73,6 +77,12 @@ export class NodeInbox {
   /** Optional per-handle buffer capacity. */
   private _bufferLimit: number | null;
 
+  /** Explicit per-handle buffering overrides. */
+  private _handlePolicies = new Map<string, InputBufferPolicy>();
+
+  /** Per-handle drop counters for non-blocking overflow policies. */
+  private _droppedCounts = new Map<string, number>();
+
   /** Flag: inbox is closed (no more data accepted). */
   private _closed = false;
 
@@ -82,8 +92,24 @@ export class NodeInbox {
   /** Waiters: producers blocking when buffer is full. */
   private _putWaiters: Array<Deferred<void>> = [];
 
-  constructor(bufferLimit: number | null = null) {
-    this._bufferLimit = bufferLimit;
+  constructor(
+    bufferLimitOrOptions: number | null | NodeInboxOptions = null
+  ) {
+    if (
+      bufferLimitOrOptions !== null &&
+      typeof bufferLimitOrOptions === "object"
+    ) {
+      this._bufferLimit = bufferLimitOrOptions.bufferLimit ?? null;
+      if (bufferLimitOrOptions.handlePolicies) {
+        for (const [handle, policy] of Object.entries(
+          bufferLimitOrOptions.handlePolicies
+        )) {
+          this._handlePolicies.set(handle, { ...policy });
+        }
+      }
+      return;
+    }
+    this._bufferLimit = bufferLimitOrOptions;
   }
 
   // -----------------------------------------------------------------------
@@ -113,23 +139,40 @@ export class NodeInbox {
   ): Promise<void> {
     if (this._closed) return;
 
-    const buf = this._buffers.get(handle);
+    let buf = this._buffers.get(handle);
     if (!buf) {
       // Handle not registered – auto-create
-      this._buffers.set(handle, []);
+      buf = [];
+      this._buffers.set(handle, buf);
     }
 
+    const policy = this._getHandlePolicy(handle);
+
     // Backpressure: wait if buffer is at limit
-    if (this._bufferLimit !== null) {
+    if (
+      policy.capacity !== null &&
+      policy.overflowPolicy === "block"
+    ) {
       while (
         !this._closed &&
-        (this._buffers.get(handle)?.length ?? 0) >= this._bufferLimit
+        (this._buffers.get(handle)?.length ?? 0) >= policy.capacity
       ) {
         const d = deferred<void>();
         this._putWaiters.push(d);
         await d.promise;
       }
       if (this._closed) return;
+    } else if (
+      policy.capacity !== null &&
+      (this._buffers.get(handle)?.length ?? 0) >= policy.capacity
+    ) {
+      if (policy.overflowPolicy === "drop_newest") {
+        this._incrementDroppedCount(handle);
+        return;
+      }
+      while ((this._buffers.get(handle)?.length ?? 0) >= policy.capacity) {
+        this._dropOldest(handle);
+      }
     }
 
     const envelope = makeEnvelope(item, metadata);
@@ -319,6 +362,16 @@ export class NodeInbox {
     return !this.isFullyDrained();
   }
 
+  /** Number of dropped items for a handle due to overflow policy. */
+  getDroppedCount(handle: string): number {
+    return this._droppedCounts.get(handle) ?? 0;
+  }
+
+  /** Snapshot of per-handle drop counts. */
+  getDroppedCounts(): Record<string, number> {
+    return Object.fromEntries(this._droppedCounts.entries());
+  }
+
   // -----------------------------------------------------------------------
   // Control
   // -----------------------------------------------------------------------
@@ -364,6 +417,28 @@ export class NodeInbox {
     return d.promise;
   }
 
+  private _getHandlePolicy(handle: string): Required<InputBufferPolicy> {
+    const policy = this._handlePolicies.get(handle);
+    return {
+      capacity: policy?.capacity ?? this._bufferLimit,
+      overflowPolicy: policy?.overflowPolicy ?? "block"
+    };
+  }
+
+  private _dropOldest(handle: string): void {
+    const buf = this._buffers.get(handle);
+    if (!buf || buf.length === 0) {
+      return;
+    }
+    buf.shift();
+    this._removeFromArrival(handle);
+    this._incrementDroppedCount(handle);
+  }
+
+  private _incrementDroppedCount(handle: string): void {
+    this._droppedCounts.set(handle, (this._droppedCounts.get(handle) ?? 0) + 1);
+  }
+
   /**
    * Remove the first occurrence of `handle` from the arrival queue.
    * Called after consuming from a specific handle.
@@ -375,3 +450,10 @@ export class NodeInbox {
     }
   }
 }
+
+export interface NodeInboxOptions {
+  bufferLimit?: number | null;
+  handlePolicies?: Record<string, InputBufferPolicy>;
+}
+
+export type { InputBufferOverflowPolicy, InputBufferPolicy };
