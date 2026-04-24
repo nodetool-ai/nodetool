@@ -1,0 +1,3 @@
+# Override the root .gitignore "dist/" rule so the pre-built fixture
+# dist/index.js used by the package-scanner tests is committed.
+!dist/
