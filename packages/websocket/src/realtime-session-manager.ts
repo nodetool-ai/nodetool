@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type {
+  RealtimeMediaTrackMapping,
   RealtimeSessionRecord,
+  RealtimeSessionSignalingState,
   RealtimeSessionStatus,
   RealtimeSessionTransport
 } from "@nodetool/protocol";
@@ -16,6 +18,8 @@ interface CreateRealtimeSessionInput {
   jobId?: string | null;
   parameters?: Record<string, unknown>;
   transport?: RealtimeSessionTransport;
+  mediaTracks?: RealtimeMediaTrackMapping[];
+  signaling?: Partial<RealtimeSessionSignalingState>;
   status?: RealtimeSessionStatus;
 }
 
@@ -23,11 +27,52 @@ interface UpdateRealtimeSessionInput {
   status?: RealtimeSessionStatus;
   jobId?: string | null;
   parameters?: Record<string, unknown>;
+  transport?: RealtimeSessionTransport;
+  mediaTracks?: RealtimeMediaTrackMapping[];
+  signaling?: Partial<RealtimeSessionSignalingState>;
 }
 
 const cloneParameters = (
   parameters?: Record<string, unknown>
 ): Record<string, unknown> => ({ ...(parameters ?? {}) });
+
+const cloneMediaTracks = (
+  mediaTracks?: RealtimeMediaTrackMapping[]
+): RealtimeMediaTrackMapping[] =>
+  (mediaTracks ?? []).map((track) => ({ ...track }));
+
+const createSignalingState = (
+  signaling?: Partial<RealtimeSessionSignalingState>
+): RealtimeSessionSignalingState => ({
+  status: signaling?.status ?? "idle",
+  last_signal_type: signaling?.last_signal_type ?? null,
+  last_signal_at: signaling?.last_signal_at ?? null,
+  error: signaling?.error ?? null
+});
+
+const cloneSignalingPatch = (
+  signaling?: Partial<RealtimeSessionSignalingState>
+): Partial<RealtimeSessionSignalingState> | undefined => {
+  if (!signaling) {
+    return undefined;
+  }
+
+  const nextPatch: Partial<RealtimeSessionSignalingState> = {};
+  if (signaling.status !== undefined) {
+    nextPatch.status = signaling.status;
+  }
+  if (signaling.last_signal_type !== undefined) {
+    nextPatch.last_signal_type = signaling.last_signal_type;
+  }
+  if (signaling.last_signal_at !== undefined) {
+    nextPatch.last_signal_at = signaling.last_signal_at;
+  }
+  if (signaling.error !== undefined) {
+    nextPatch.error = signaling.error;
+  }
+
+  return Object.keys(nextPatch).length > 0 ? nextPatch : undefined;
+};
 
 const toPublicSession = (
   session: StoredRealtimeSession
@@ -38,6 +83,8 @@ const toPublicSession = (
   status: session.status,
   transport: session.transport,
   parameters: cloneParameters(session.parameters),
+  media_tracks: cloneMediaTracks(session.media_tracks),
+  signaling: createSignalingState(session.signaling),
   created_at: session.created_at,
   updated_at: session.updated_at
 });
@@ -56,6 +103,8 @@ export class RealtimeSessionManager {
       status: input.status ?? "starting",
       transport: input.transport ?? "websocket",
       parameters: cloneParameters(input.parameters),
+      media_tracks: cloneMediaTracks(input.mediaTracks),
+      signaling: createSignalingState(input.signaling),
       created_at: now,
       updated_at: now
     };
@@ -102,6 +151,21 @@ export class RealtimeSessionManager {
       session.parameters = {
         ...session.parameters,
         ...cloneParameters(input.parameters)
+      };
+    }
+
+    if (input.transport) {
+      session.transport = input.transport;
+    }
+
+    if (input.mediaTracks) {
+      session.media_tracks = cloneMediaTracks(input.mediaTracks);
+    }
+
+    if (input.signaling) {
+      session.signaling = {
+        ...session.signaling,
+        ...cloneSignalingPatch(input.signaling)
       };
     }
 

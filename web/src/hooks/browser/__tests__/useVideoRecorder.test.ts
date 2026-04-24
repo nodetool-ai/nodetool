@@ -32,6 +32,7 @@ Object.defineProperty(global.navigator, "mediaDevices", {
 
 describe("useVideoRecorder", () => {
   const mockOnChange = jest.fn();
+  const createPendingMediaRequest = () => new Promise<MediaStream>(() => {});
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -40,8 +41,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("initializes with default state", () => {
-    // Mock getUserMedia to reject to avoid hanging
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })
@@ -58,7 +58,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("provides handleRecord function", () => {
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })
@@ -68,7 +68,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("provides startPreview function", () => {
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })
@@ -78,7 +78,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("provides stopStream function", () => {
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })
@@ -88,7 +88,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("toggles device list visibility", () => {
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })
@@ -110,7 +110,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("handles video device change", () => {
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })
@@ -124,7 +124,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("handles audio device change", () => {
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })
@@ -138,7 +138,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("sets error when no stream available and trying to record", () => {
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })
@@ -154,7 +154,7 @@ describe("useVideoRecorder", () => {
   });
 
   it("provides videoRef for video element attachment", () => {
-    mockGetUserMedia.mockRejectedValue(new Error("Mock rejection"));
+    mockGetUserMedia.mockImplementation(createPendingMediaRequest);
 
     const { result } = renderHook(() =>
       useVideoRecorder({ onChange: mockOnChange })

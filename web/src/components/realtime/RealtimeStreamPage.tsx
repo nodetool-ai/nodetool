@@ -15,10 +15,13 @@ import {
   LoadingSpinner,
   NodeSlider,
   Text,
-  EditorButton
+  EditorButton,
+  TextInput
 } from "../ui_primitives";
 import VideoPreview from "./VideoPreview";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useVideoCapture } from "../../hooks/browser/useVideoCapture";
+import { useRealtimeSessionWebRTC } from "../../hooks/browser/useRealtimeSessionWebRTC";
 import { useRealtimeSessionStore } from "../../stores/RealtimeSessionStore";
 
 const RealtimeStreamPage = () => {
@@ -38,9 +41,20 @@ const RealtimeStreamPage = () => {
     (state) => state.setActiveSession
   );
 
-  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
   const [brightness, setBrightness] = useState<number>(100);
+  const [videoTargetNodeId, setVideoTargetNodeId] = useState<string>("camera");
+  const [videoTargetInputName, setVideoTargetInputName] =
+    useState<string>("video");
+  const [webrtcConfigError, setWebrtcConfigError] = useState<string | null>(null);
+  const {
+    error: previewError,
+    previewStream,
+    startPreview,
+    stopPreview
+  } = useVideoCapture({
+    includeAudio: false,
+    autoFetchDevices: false
+  });
 
   const {
     data: workflow,
@@ -61,12 +75,6 @@ const RealtimeStreamPage = () => {
     }
   }, [hydrateSessions, hydrated]);
 
-  useEffect(() => {
-    return () => {
-      previewStream?.getTracks().forEach((track) => track.stop());
-    };
-  }, [previewStream]);
-
   const workflowSessions = useMemo(() => {
     return Object.values(sessions).filter(
       (session) => session.workflow_id === (workflowId ?? null)
@@ -80,6 +88,28 @@ const RealtimeStreamPage = () => {
 
     return workflowSessions[0] ?? null;
   }, [activeSessionId, sessions, workflowSessions]);
+  const { remoteStream, signalingStatus, connectionState, error: webrtcError } =
+    useRealtimeSessionWebRTC({
+      sessionId: activeSession?.session_id ?? null,
+      workflowId: activeSession?.workflow_id ?? null,
+      localStream: previewStream,
+      enabled: activeSession?.transport === "webrtc" && activeSession.status !== "error"
+    });
+  const isStartSessionDisabled = useMemo(() => {
+    return (
+      !workflowId ||
+      Boolean(activeSession) ||
+      !previewStream ||
+      !videoTargetNodeId.trim() ||
+      !videoTargetInputName.trim()
+    );
+  }, [
+    activeSession,
+    previewStream,
+    videoTargetInputName,
+    videoTargetNodeId,
+    workflowId
+  ]);
 
   useEffect(() => {
     if (activeSession?.parameters.brightness) {
@@ -90,47 +120,53 @@ const RealtimeStreamPage = () => {
     }
   }, [activeSession]);
 
-  const startPreview = useCallback(async () => {
-    try {
-      setPreviewError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-      });
-      setPreviewStream((currentStream) => {
-        currentStream?.getTracks().forEach((track) => track.stop());
-        return stream;
-      });
-    } catch (error) {
-      setPreviewError(
-        error instanceof Error
-          ? error.message
-          : "Failed to access the camera preview"
-      );
-    }
-  }, []);
-
-  const stopPreview = useCallback(() => {
-    setPreviewStream((currentStream) => {
-      currentStream?.getTracks().forEach((track) => track.stop());
-      return null;
-    });
-  }, []);
-
   const handleStartSession = useCallback(async () => {
     if (!workflowId) {
       return;
     }
 
     if (!previewStream) {
-      await startPreview();
+      setWebrtcConfigError("Start the camera preview before launching WebRTC.");
+      return;
     }
+
+    if (!videoTargetNodeId.trim() || !videoTargetInputName.trim()) {
+      setWebrtcConfigError(
+        "Set the target node id and input name for the incoming video track."
+      );
+      return;
+    }
+
+    setWebrtcConfigError(null);
+    const mediaTracks = previewStream
+      .getVideoTracks()
+      .map((track) => ({
+        track_id: track.id,
+        kind: "video" as const,
+        label: track.label || "Camera track",
+        node_id: videoTargetNodeId.trim(),
+        input_name: videoTargetInputName.trim(),
+        enabled: true
+      }));
 
     await startSession(workflowId, {
       preview_source: "camera",
       brightness
+    }, undefined, {
+      transport: "webrtc",
+      mediaTracks,
+      signaling: {
+        status: "idle"
+      }
     });
-  }, [brightness, previewStream, startPreview, startSession, workflowId]);
+  }, [
+    brightness,
+    previewStream,
+    startSession,
+    videoTargetInputName,
+    videoTargetNodeId,
+    workflowId
+  ]);
 
   const handleStopSession = useCallback(async () => {
     if (!activeSession) {
@@ -210,6 +246,11 @@ const RealtimeStreamPage = () => {
       <FlexRow gap={3} align="stretch" sx={{ flexWrap: "wrap" }}>
         <FlexColumn gap={3} sx={{ flex: "1 1 420px", minWidth: 320 }}>
           <VideoPreview stream={previewStream} />
+          <VideoPreview
+            stream={remoteStream}
+            title="WebRTC Runtime Preview"
+            emptyText="Start a realtime session to negotiate the WebRTC proof transport and mirror the mapped runtime stream."
+          />
 
           <Card padding="normal" variant="outlined">
             <FlexColumn gap={2}>
@@ -223,7 +264,7 @@ const RealtimeStreamPage = () => {
                 </EditorButton>
                 <EditorButton
                   onClick={() => void handleStartSession()}
-                  disabled={!workflowId || Boolean(activeSession)}
+                  disabled={isStartSessionDisabled}
                 >
                   Start Realtime Session
                 </EditorButton>
@@ -250,7 +291,33 @@ const RealtimeStreamPage = () => {
                 <Text color="secondary">Current value: {brightness}</Text>
               </FlexColumn>
 
+              <FlexColumn gap={1.5}>
+                <Text weight={600}>WebRTC Video Track Mapping</Text>
+                <Text color="secondary">
+                  Map the browser camera track to the realtime workflow node input
+                  that should receive the media stream.
+                </Text>
+                <TextInput
+                  label="Target node id"
+                  value={videoTargetNodeId}
+                  onChange={(event) => setVideoTargetNodeId(event.target.value)}
+                  compact
+                />
+                <TextInput
+                  label="Target input name"
+                  value={videoTargetInputName}
+                  onChange={(event) =>
+                    setVideoTargetInputName(event.target.value)
+                  }
+                  compact
+                />
+              </FlexColumn>
+
               {previewError ? <Text color="error">{previewError}</Text> : null}
+              {webrtcConfigError ? (
+                <Text color="error">{webrtcConfigError}</Text>
+              ) : null}
+              {webrtcError ? <Text color="error">{webrtcError}</Text> : null}
               {sessionError ? <Text color="error">{sessionError}</Text> : null}
             </FlexColumn>
           </Card>
@@ -263,21 +330,34 @@ const RealtimeStreamPage = () => {
               {activeSession ? (
                 <>
                   <Text>Session id: {activeSession.session_id}</Text>
-                  <Text>Status: {activeSession.status}</Text>
-                  <Text color="secondary">
-                    Job id: {activeSession.job_id ?? "pending"}
-                  </Text>
+                   <Text>Status: {activeSession.status}</Text>
+                   <Text>Transport: {activeSession.transport}</Text>
+                   <Text color="secondary">
+                     Signaling: {activeSession.signaling.status}
+                   </Text>
+                   <Text color="secondary">
+                     Peer connection: {connectionState}
+                   </Text>
+                   <Text color="secondary">
+                     Local hook state: {signalingStatus}
+                   </Text>
+                   <Text color="secondary">
+                     Job id: {activeSession.job_id ?? "pending"}
+                   </Text>
                   <Text color="secondary">
                     Started: {new Date(activeSession.created_at).toLocaleString()}
                   </Text>
                   <Text color="secondary">
                     Updated: {new Date(activeSession.updated_at).toLocaleString()}
                   </Text>
-                  <Text color="secondary">
-                    Parameters: {JSON.stringify(activeSession.parameters)}
-                  </Text>
-                </>
-              ) : (
+                   <Text color="secondary">
+                     Parameters: {JSON.stringify(activeSession.parameters)}
+                   </Text>
+                   <Text color="secondary">
+                     Media tracks: {JSON.stringify(activeSession.media_tracks)}
+                   </Text>
+                 </>
+               ) : (
                 <Text color="secondary">
                   No active realtime session for this workflow yet.
                 </Text>

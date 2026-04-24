@@ -304,7 +304,46 @@ export interface LLMCallUpdate {
 
 export type RealtimeSessionStatus = "starting" | "running" | "stopped" | "error";
 
-export type RealtimeSessionTransport = "websocket";
+export type RealtimeSessionTransport = "websocket" | "webrtc";
+
+export type RealtimeMediaTrackKind = "audio" | "video";
+
+export interface RealtimeMediaTrackMapping {
+  track_id: string;
+  kind: RealtimeMediaTrackKind;
+  node_id: string;
+  input_name: string;
+  label?: string | null;
+  enabled?: boolean;
+}
+
+export type RealtimeSignalType = "offer" | "answer" | "ice_candidate";
+
+export type RealtimeSignalPeer = "operator" | "runtime";
+
+export type RealtimeSignalingStatus =
+  | "idle"
+  | "negotiating"
+  | "connected"
+  | "failed";
+
+export interface RealtimeSessionSignalingState {
+  status: RealtimeSignalingStatus;
+  last_signal_type?: RealtimeSignalType | null;
+  last_signal_at?: string | null;
+  error?: string | null;
+}
+
+export interface RealtimeSessionSignalDescription {
+  type: Extract<RealtimeSignalType, "offer" | "answer">;
+  sdp: string;
+}
+
+export interface RealtimeSessionIceCandidate {
+  candidate: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+}
 
 export interface RealtimeSessionRecord {
   session_id: string;
@@ -313,6 +352,8 @@ export interface RealtimeSessionRecord {
   status: RealtimeSessionStatus;
   transport: RealtimeSessionTransport;
   parameters: Record<string, unknown>;
+  media_tracks: RealtimeMediaTrackMapping[];
+  signaling: RealtimeSessionSignalingState;
   created_at: string;
   updated_at: string;
 }
@@ -334,6 +375,18 @@ export interface RealtimeSessionStopped {
   updated_at: string;
 }
 
+export interface RealtimeSessionSignal {
+  type: "realtime_session_signal";
+  session_id: string;
+  workflow_id: string | null;
+  signal_type: RealtimeSignalType;
+  source: RealtimeSignalPeer;
+  target: RealtimeSignalPeer;
+  description?: RealtimeSessionSignalDescription;
+  candidate?: RealtimeSessionIceCandidate;
+  created_at: string;
+}
+
 // ---------------------------------------------------------------------------
 // Unified websocket command/control/update types
 // ---------------------------------------------------------------------------
@@ -351,6 +404,7 @@ export type UnifiedCommandType =
   | "stream_input"
   | "end_input_stream"
   | "start_realtime_session"
+  | "signal_realtime_session"
   | "update_realtime_session"
   | "stop_realtime_session"
   | "chat_message"
@@ -431,6 +485,10 @@ export type ProcessingMessage =
   | TaskUpdate
   | StepResult
   | PlanningUpdate
+  | RealtimeSessionStarted
+  | RealtimeSessionUpdated
+  | RealtimeSessionStopped
+  | RealtimeSessionSignal
   | Chunk
   | Prediction
   | LLMCallUpdate
