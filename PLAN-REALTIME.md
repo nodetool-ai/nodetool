@@ -20,7 +20,7 @@
 
 - **Realtime is a workflow execution mode.** It belongs to the normal NodeTool workflow model, editor, persistence, and operator surfaces. Realtime sessions should be tracked as standard Jobs in the database, and their outputs should be savable as standard Assets.
 - **The first runtime stays separate internally.** It should align with workflow identity, preview routing, and control semantics so later convergence remains straightforward.
-- **StreamDiffusion is the first proof of the system.** It validates the architecture without defining the entire architecture.
+- **StreamDiffusion V2 (and similar autoregressive models) is the first proof of the system.** It validates the architecture without defining the entire architecture.
 - **Control plane and media plane are separate.** Session lifecycle, control updates, diagnostics, preview notifications, and status stay on the workflow/websocket control plane. High-rate media uses a dedicated adapter boundary.
 - **WebRTC is the media adapter boundary for web clients.** To prevent head-of-line blocking and latency spikes, high-framerate video and audio for the web operator surface must use WebRTC (or a similar UDP-based protocol) rather than the WebSocket control plane.
 - **Existing workflow nodes remain the default building blocks.** Realtime-specific nodes are added where the graph needs a distinct live source, sink, adapter, or control role. Standard WebSocket-based streaming nodes (using the existing `stream_input` command and `pushInputValue` inbox pattern) can feed into realtime nodes asynchronously, acting as inputs or control signals without disrupting the high-framerate realtime execution loop.
@@ -75,7 +75,7 @@ Define the realtime execution contract and establish the workflow-native substra
 - [ ] Define how realtime previews and outputs land in the same core surfaces used by workflow runs
 - [ ] Define which messages stay on the existing websocket control plane and which cross the media adapter boundary (e.g., WebRTC for web clients)
 
-## Phase 2 - First proof: StreamDiffusion
+## Phase 2 - First proof: Autoregressive Video Diffusion (e.g., Wan 2.1 / StreamDiffusion V2)
 
 **Goal**
 
@@ -83,20 +83,23 @@ Ship the first end-to-end realtime workflow that proves the system.
 
 **Done when**
 
-- a canonical stream-diffusion workflow runs as a realtime session
+- a canonical realtime video diffusion workflow runs as a realtime session
 - ControlNet and LoRA use existing compatibility and selection paths
 - live preview, parameter updates, and session control work together
 
 **Tasks**
 
-- [ ] Build the canonical stream-diffusion workflow template
+- [ ] Implement **StreamDiffusion V2 (Wan2.1 1.3B)** as the baseline realtime video node (easiest integration: pure PyTorch, ~20GB VRAM, no TensorRT compilation required).
+- [ ] Implement **LongLive (Wan2.1 1.3B)** as an alternative node/mode to support smoother prompt transitions during live generation.
+- [ ] Implement **MemFlow (Wan2.1 1.3B)**, adding the necessary state management to the node capability model to handle its cross-frame memory bank.
+- [ ] Implement **Krea Realtime (Wan2.1 14B)** as a high-fidelity option, adding VRAM-aware validation/warnings for users with <32GB VRAM.
 - [ ] Reuse existing model compatibility and selection for ControlNet-enabled guidance (leveraging existing `ModelsManager` and `UnifiedModel` patterns)
 - [ ] Reuse existing model compatibility and selection for LoRA-enabled styling (leveraging existing `ModelsManager` and `UnifiedModel` patterns)
-- [ ] Investigate TensorRT dynamic weight injection vs recompilation for ControlNet/LoRA swaps (documenting the UX fallback if recompilation is required)
+- [ ] Implement dynamic weight injection for ControlNet/LoRA swaps (leveraging the pure-PyTorch backend to avoid recompilation delays).
 - [ ] Connect the workflow template to realtime session start, stop, and reconnect
 - [ ] Add one preview/output surface that reflects the realtime session state
 - [ ] Add live parameter updates and session diagnostics
-- [ ] Document which parts of the proof are generic realtime substrate and which parts are stream-diffusion-specific
+- [ ] Document which parts of the proof are generic realtime substrate and which parts are model-specific
 
 ## Phase 3 - Workflow integration
 
@@ -113,7 +116,7 @@ Make realtime authoring and operation feel native inside NodeTool.
 **Tasks**
 
 - [ ] Add realtime-aware validation rules to the editor (e.g., preventing non-realtime nodes from being placed in the high-framerate path)
-- [ ] Add a starter template for stream diffusion plus ControlNet plus LoRA
+- [ ] Add a starter template for realtime video diffusion plus ControlNet plus LoRA
 - [ ] Add editor affordances for composing realtime source, sink, control, and adapter nodes (e.g., visual indicators for realtime vs. standard edges)
 - [ ] Add menu and discovery rules for realtime-capable existing nodes
 - [ ] Add menu and discovery rules for `nodetool.realtime` nodes
@@ -160,13 +163,13 @@ Extend the realtime system through clear media and control adapters after the fi
 - [ ] Write the short execution contract for the separate but workflow-native realtime runtime
 - [ ] Choose the first operator surface and define the path from incubation to workflow-native usage
 - [ ] Define the initial `nodetool.realtime` node set for the first proof
-- [ ] Build the canonical stream-diffusion workflow template using the capability model
+- [ ] Build the canonical realtime video diffusion workflow template using the capability model
 - [ ] Write the session/runtime spec with control-plane and media-plane boundaries (incorporating WebRTC for web clients)
 - [ ] Define the first adapter roadmap for `NDI` and `Spout`
 
 ## Review checks
 
-- [ ] Check that the execution contract stays broader than the first StreamDiffusion proof
+- [ ] Check that the execution contract stays broader than the first StreamDiffusion V2 proof
 - [ ] Check that preview, output, and session state fit the normal workflow model
 - [ ] Check that `nodetool.realtime` remains small and specific
 - [ ] Check that `NDI` and `Spout` are supported by the adapter design from the start
