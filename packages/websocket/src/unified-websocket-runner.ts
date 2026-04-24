@@ -1020,7 +1020,13 @@ export class UnifiedWebSocketRunner {
     if (value === undefined) {
       return undefined;
     }
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
+    if (value === null) {
+      throw new Error("graph must be an object with nodes and edges arrays");
+    }
+    if (Array.isArray(value)) {
+      throw new Error("graph must be an object, not an array");
+    }
+    if (typeof value !== "object") {
       throw new Error("graph must be an object with nodes and edges arrays");
     }
 
@@ -1136,18 +1142,18 @@ export class UnifiedWebSocketRunner {
   private async emitRealtimeSessionUpdated(
     session: RealtimeSessionRecord
   ): Promise<void> {
-    const message: RealtimeSessionUpdated = {
+    const message: Record<string, unknown> = {
       type: "realtime_session_updated",
       ...session
     };
-    await this.sendMessage({ ...message });
+    await this.sendMessage(message);
   }
 
   private async emitRealtimeSessionStopped(
     session: RealtimeSessionRecord,
     reason: string
   ): Promise<void> {
-    const message: RealtimeSessionStopped = {
+    const message: Record<string, unknown> = {
       type: "realtime_session_stopped",
       session_id: session.session_id,
       workflow_id: session.workflow_id,
@@ -1155,7 +1161,7 @@ export class UnifiedWebSocketRunner {
       reason,
       updated_at: session.updated_at
     };
-    await this.sendMessage({ ...message });
+    await this.sendMessage(message);
   }
 
   private async startRealtimeSession(
