@@ -16,13 +16,14 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
   const chunksRef = useRef<Blob[]>([]);
 
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isRecordingLoading, setIsRecordingLoading] = useState<boolean>(false);
   const {
     error,
     setError,
     videoRef,
     streamRef,
     isPreviewing,
-    isLoading,
+    isLoading: isCaptureLoading,
     startPreview,
     stopPreview,
     videoInputDevices,
@@ -47,7 +48,7 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
       return;
     }
 
-    setIsLoading(true);
+    setIsRecordingLoading(true);
     setError(null);
     chunksRef.current = [];
 
@@ -91,14 +92,14 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
       setIsRecording(true);
-      setIsLoading(false);
+      setIsRecordingLoading(false);
     } catch (recordError) {
       const errorMessage =
         recordError instanceof Error
           ? recordError.message
           : "Failed to start recording";
       setError(errorMessage);
-      setIsLoading(false);
+      setIsRecordingLoading(false);
     }
   }, [
     isRecording,
@@ -136,7 +137,7 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
     handleRecord,
     isRecording,
     isPreviewing,
-    isLoading,
+    isLoading: isCaptureLoading || isRecordingLoading,
     startPreview,
     stopStream: stopPreview,
     videoInputDevices,
