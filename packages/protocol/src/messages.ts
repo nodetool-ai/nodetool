@@ -309,6 +309,7 @@ export type RealtimeSessionTransport = "websocket";
 export interface RealtimeSessionRecord {
   session_id: string;
   workflow_id: string | null;
+  job_id: string | null;
   status: RealtimeSessionStatus;
   transport: RealtimeSessionTransport;
   parameters: Record<string, unknown>;

@@ -13,6 +13,11 @@ type RealtimeSessionMessage =
   | RealtimeSessionUpdated
   | RealtimeSessionStopped;
 
+type RealtimeGraphPayload = {
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+};
+
 interface RealtimeSessionStoreState {
   sessions: Record<string, RealtimeSessionRecord>;
   activeSessionId: string | null;
@@ -22,7 +27,8 @@ interface RealtimeSessionStoreState {
   hydrateSessions: () => Promise<void>;
   startSession: (
     workflowId: string,
-    parameters: Record<string, unknown>
+    parameters: Record<string, unknown>,
+    graph?: RealtimeGraphPayload
   ) => Promise<RealtimeSessionRecord>;
   updateSession: (
     sessionId: string,
@@ -42,6 +48,7 @@ const toRecordFromMessage = (
 ): RealtimeSessionRecord => ({
   session_id: message.session_id,
   workflow_id: message.workflow_id,
+  job_id: message.job_id,
   status: message.status,
   transport: message.transport,
   parameters: message.parameters,
@@ -119,12 +126,13 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
         }
       },
 
-      async startSession(workflowId, parameters) {
+      async startSession(workflowId, parameters, graph) {
         set({ isLoading: true, error: null });
         try {
           const session = await realtimeSessionClient.startSession(
             workflowId,
-            parameters
+            parameters,
+            graph
           );
           attachSessionSubscription(session.session_id);
           set((state) => ({

@@ -13,6 +13,11 @@ type RealtimeSessionMessage =
   | RealtimeSessionUpdated
   | RealtimeSessionStopped;
 
+type RealtimeGraphPayload = {
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+};
+
 const SESSION_START_TIMEOUT_MS = 15000;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -69,7 +74,8 @@ export class RealtimeSessionClient {
 
   async startSession(
     workflowId: string,
-    parameters: Record<string, unknown>
+    parameters: Record<string, unknown>,
+    graph?: RealtimeGraphPayload
   ): Promise<RealtimeSessionRecord> {
     await this.ensureConnection();
 
@@ -80,6 +86,7 @@ export class RealtimeSessionClient {
           resolve({
             session_id: message.session_id,
             workflow_id: message.workflow_id,
+            job_id: message.job_id,
             status: message.status,
             transport: message.transport,
             parameters: message.parameters,
@@ -105,7 +112,8 @@ export class RealtimeSessionClient {
           command: "start_realtime_session",
           data: {
             workflow_id: workflowId,
-            parameters
+            parameters,
+            graph
           }
         })
         .catch((error) => {

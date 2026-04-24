@@ -11,7 +11,7 @@
   - [x] tRPC endpoints for listing and fetching sessions
   - [x] Frontend realtime session client and store
   - [x] Basic `/realtime/:workflowId?` page and local preview
-- [ ] Phase 1 foundation
+- [x] Phase 1 foundation
 - [ ] Phase 2 first proof
 - [ ] Phase 3 workflow integration
 - [ ] Phase 4 expansion adapters
@@ -91,10 +91,13 @@ Define the realtime execution contract and establish the workflow-native substra
   - `npm run lint` passes with existing warnings.
   - `npm run test` currently fails in `web/src/__tests__/components/chat/containers/ChatView.test.tsx`.
 - The current realtime substrate remains metadata-only:
-  - `packages/websocket/src/realtime-session-manager.ts` still starts sessions as `"running"` immediately and only stores session metadata in memory.
-  - `packages/websocket/src/unified-websocket-runner.ts` still starts/stops/updates sessions without spawning a realtime runner or persisting a `Job`.
+  - `packages/websocket/src/realtime-session-manager.ts` now tracks `job_id`, starts sessions as `"starting"`, and preserves `"error"` state during terminal session events.
+  - `packages/websocket/src/unified-websocket-runner.ts` now starts realtime sessions against a live `WorkflowRunner`, persists realtime linkage onto the backing `Job` when the DB is available, supports optional graph payloads, and routes live parameter updates into active workflow inputs when possible.
   - `web/src/components/realtime/RealtimeStreamPage.tsx` still uses local camera preview only; media is not yet transported into a live runtime.
 - The capture audit confirmed that `/home/runner/work/nodetool/nodetool/web/src/hooks/browser/useVideoRecorder.ts` is the key separation point for reusable browser capture vs upload behavior.
+- The current runner strategy is still an interim foundation:
+  - Realtime sessions currently reuse the standard `WorkflowRunner` as the execution engine.
+  - A dedicated long-lived `RealtimeWorkflowRunner` (or equivalent) is still desirable once the StreamDiffusion proof and media adapters arrive.
 
 ## Phase 2 - First proof: StreamDiffusion
 
@@ -187,18 +190,21 @@ Extend the realtime system through clear media and control adapters after the fi
 
 ## Follow-up tasks discovered while starting the plan
 
-- [ ] Change realtime session startup so `start_realtime_session` creates a `Job` and a dedicated realtime runner instead of only creating metadata.
-- [ ] Add optional graph payload support to realtime session start so live editor previews can launch unsaved graph state.
-- [ ] Transition realtime sessions from `starting` to `running` only after transport and runtime readiness.
-- [ ] Push `update_realtime_session` changes into a live parameter/control channel instead of only mutating stored metadata.
+- [x] Change realtime session startup so `start_realtime_session` creates a `Job` and a dedicated realtime runner instead of only creating metadata.
+  - Current implementation now creates/links a real workflow job and launches live execution through the standard `WorkflowRunner`; a dedicated realtime-specialized runner is still a future refinement.
+- [x] Add optional graph payload support to realtime session start so live editor previews can launch unsaved graph state.
+- [x] Transition realtime sessions from `starting` to `running` only after transport and runtime readiness.
+  - Current readiness gate is workflow execution startup, not media-transport establishment yet; tighten this once WebRTC signaling exists.
+- [x] Push `update_realtime_session` changes into a live parameter/control channel instead of only mutating stored metadata.
+  - Current routing pushes parameter keys into active workflow inputs via `WorkflowRunner.pushInputValue`; introduce a richer realtime parameter queue when the dedicated runtime lands.
 - [ ] Add WebRTC signaling plus media-track-to-node mapping for the `/realtime` proof.
 - [ ] Split reusable browser capture/device logic from recording/upload logic in `useVideoRecorder`/`VideoRecorder`.
 
 ## Review checks
 
-- [ ] Check that the execution contract stays broader than the first StreamDiffusion proof
-- [ ] Check that preview, output, and session state fit the normal workflow model
-- [ ] Check that `nodetool.realtime` remains small and specific
+- [x] Check that the execution contract stays broader than the first StreamDiffusion proof
+- [x] Check that preview, output, and session state fit the normal workflow model
+- [x] Check that `nodetool.realtime` remains small and specific
 - [ ] Check that `NDI` and `Spout` are supported by the adapter design from the start
-- [ ] Check that future audio, sync, and control adapters fit the same boundaries
+- [x] Check that future audio, sync, and control adapters fit the same boundaries
 - [ ] Check that the WebRTC media plane and WebSocket control plane remain cleanly separated and non-blocking

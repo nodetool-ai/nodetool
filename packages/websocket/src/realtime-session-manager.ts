@@ -13,12 +13,15 @@ interface CreateRealtimeSessionInput {
   sessionId?: string;
   userId: string;
   workflowId: string | null;
+  jobId?: string | null;
   parameters?: Record<string, unknown>;
   transport?: RealtimeSessionTransport;
+  status?: RealtimeSessionStatus;
 }
 
 interface UpdateRealtimeSessionInput {
   status?: RealtimeSessionStatus;
+  jobId?: string | null;
   parameters?: Record<string, unknown>;
 }
 
@@ -31,6 +34,7 @@ const toPublicSession = (
 ): RealtimeSessionRecord => ({
   session_id: session.session_id,
   workflow_id: session.workflow_id,
+  job_id: session.job_id,
   status: session.status,
   transport: session.transport,
   parameters: cloneParameters(session.parameters),
@@ -48,7 +52,8 @@ export class RealtimeSessionManager {
       session_id: sessionId,
       user_id: input.userId,
       workflow_id: input.workflowId,
-      status: "running",
+      job_id: input.jobId ?? null,
+      status: input.status ?? "starting",
       transport: input.transport ?? "websocket",
       parameters: cloneParameters(input.parameters),
       created_at: now,
@@ -89,6 +94,10 @@ export class RealtimeSessionManager {
       session.status = input.status;
     }
 
+    if (input.jobId !== undefined) {
+      session.job_id = input.jobId;
+    }
+
     if (input.parameters) {
       session.parameters = {
         ...session.parameters,
@@ -110,7 +119,9 @@ export class RealtimeSessionManager {
       return null;
     }
 
-    session.status = "stopped";
+    if (session.status !== "error") {
+      session.status = "stopped";
+    }
     session.updated_at = new Date().toISOString();
     this.sessions.delete(sessionId);
     return toPublicSession(session);

@@ -5,6 +5,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
+import { realtimeSessionManager } from "../src/realtime-session-manager.js";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -52,6 +53,7 @@ describe("UnifiedWebSocketRunner", () => {
   beforeEach(() => {
     ws = new MockWebSocket();
     runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    realtimeSessionManager.reset();
   });
 
   it("connects and defaults user id", async () => {
@@ -194,6 +196,164 @@ describe("UnifiedWebSocketRunner", () => {
 
     // Give the runner time to drain queue and complete.
     await new Promise((r) => setTimeout(r, 20));
+    await runner.disconnect();
+  });
+
+  it("starts a realtime session with a linked job and graph payload", async () => {
+    await runner.connect(ws);
+
+    const response = await runner.handleCommand({
+      command: "start_realtime_session",
+      data: {
+        workflow_id: "workflow-1",
+        graph: {
+          nodes: [
+            { id: "brightness", type: "test.Input", name: "brightness" },
+            { id: "sink", type: "test.Sink", name: "sink" }
+          ],
+          edges: [
+            {
+              source: "brightness",
+              sourceHandle: "value",
+              target: "sink",
+              targetHandle: "value",
+              edge_type: "data"
+            }
+          ]
+        },
+        parameters: { brightness: 120 }
+      }
+    });
+
+    expect(response.ok).toBe(true);
+    expect(typeof response.job_id).toBe("string");
+    expect(response.status).toBe("running");
+
+    const sessions = realtimeSessionManager.listSessions("1");
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].job_id).toBe(response.job_id);
+    expect(sessions[0].status).toBe("running");
+
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+    expect(sent).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "realtime_session_started",
+          workflow_id: "workflow-1",
+          job_id: response.job_id,
+          status: "starting"
+        }),
+        expect.objectContaining({
+          type: "realtime_session_updated",
+          workflow_id: "workflow-1",
+          job_id: response.job_id,
+          status: "running"
+        })
+      ])
+    );
+
+    await runner.disconnect();
+  });
+
+  it("routes realtime parameter updates into the active workflow when possible", async () => {
+    await runner.connect(ws);
+
+    const start = await runner.handleCommand({
+      command: "start_realtime_session",
+      data: {
+        workflow_id: "workflow-2",
+        graph: {
+          nodes: [
+            { id: "brightness", type: "test.Input", name: "brightness" },
+            { id: "sink", type: "test.Sink", name: "sink" }
+          ],
+          edges: [
+            {
+              source: "brightness",
+              sourceHandle: "value",
+              target: "sink",
+              targetHandle: "value",
+              edge_type: "data"
+            }
+          ]
+        }
+      }
+    });
+
+    const sessions = realtimeSessionManager.listSessions("1");
+    const sessionId = sessions[0]?.session_id;
+    expect(sessionId).toBeTruthy();
+
+    const update = await runner.handleCommand({
+      command: "update_realtime_session",
+      data: {
+        session_id: sessionId,
+        parameters: { brightness: 180, unused_control: 3 }
+      }
+    });
+
+    expect(update.ok).toBe(true);
+    expect(update.job_id).toBe(start.job_id);
+    expect(update.unrouted_parameters).toEqual(["unused_control"]);
+
+    const updatedSession = realtimeSessionManager.getSession(sessionId!, "1");
+    expect(updatedSession?.parameters).toMatchObject({
+      brightness: 180,
+      unused_control: 3
+    });
+
+    await runner.disconnect();
+  });
+
+  it("stops realtime sessions and emits a session-stopped event", async () => {
+    await runner.connect(ws);
+
+    await runner.handleCommand({
+      command: "start_realtime_session",
+      data: {
+        workflow_id: "workflow-3",
+        graph: {
+          nodes: [
+            { id: "brightness", type: "test.Input", name: "brightness" },
+            { id: "sink", type: "test.Sink", name: "sink" }
+          ],
+          edges: [
+            {
+              source: "brightness",
+              sourceHandle: "value",
+              target: "sink",
+              targetHandle: "value",
+              edge_type: "data"
+            }
+          ]
+        }
+      }
+    });
+
+    const [session] = realtimeSessionManager.listSessions("1");
+    const response = await runner.handleCommand({
+      command: "stop_realtime_session",
+      data: {
+        session_id: session.session_id,
+        reason: "user"
+      }
+    });
+
+    expect(response.ok).toBe(true);
+    expect(realtimeSessionManager.listSessions("1")).toHaveLength(0);
+
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+    expect(sent).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "realtime_session_stopped",
+          session_id: session.session_id,
+          status: "stopped",
+          reason: "user"
+        })
+      ])
+    );
+
     await runner.disconnect();
   });
 
