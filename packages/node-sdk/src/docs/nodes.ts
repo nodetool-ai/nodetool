@@ -17,7 +17,10 @@ function typeMetaToString(type: TypeMetadata): string {
 }
 
 function escapeCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/\r?\n/g, " ");
 }
 
 function formatDefault(value: unknown): string {

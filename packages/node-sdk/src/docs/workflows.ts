@@ -94,7 +94,12 @@ export function generateWorkflowMarkdown(wf: WorkflowFile): string {
         slotName(input),
         slotType(input),
         slotDescription(input)
-      ].map((c) => c.replace(/\|/g, "\\|").replace(/\r?\n/g, " "));
+      ].map((c) =>
+        c
+          .replace(/\\/g, "\\\\")
+          .replace(/\|/g, "\\|")
+          .replace(/\r?\n/g, " ")
+      );
       lines.push(`| ${cells.join(" | ")} |`);
     }
     lines.push("");
@@ -111,7 +116,12 @@ export function generateWorkflowMarkdown(wf: WorkflowFile): string {
         slotName(output),
         slotType(output),
         slotDescription(output)
-      ].map((c) => c.replace(/\|/g, "\\|").replace(/\r?\n/g, " "));
+      ].map((c) =>
+        c
+          .replace(/\\/g, "\\\\")
+          .replace(/\|/g, "\\|")
+          .replace(/\r?\n/g, " ")
+      );
       lines.push(`| ${cells.join(" | ")} |`);
     }
     lines.push("");
