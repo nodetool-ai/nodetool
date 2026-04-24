@@ -1,8 +1,0 @@
-{
-  "name": "nodetool-sample",
-  "version": "0.1.0",
-  "description": "Sample package for scanner tests",
-  "type": "module",
-  "main": "dist/index.js",
-  "author": "Test Author <test@example.com>"
-}

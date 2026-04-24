@@ -4,7 +4,6 @@ export * from "./metadata.js";
 export * from "./node-metadata.js";
 export * from "./decorators.js";
 export * from "./nodes/test-nodes.js";
-export * from "./package-scanner.js";
 export * from "./package-registry-client.js";
 export * from "./docs/index.js";
 export type { StreamingInputs, StreamingOutputs } from "@nodetool/runtime";

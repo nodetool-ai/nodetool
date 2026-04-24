@@ -1,6 +1,0 @@
-{
-  "id": "hello",
-  "name": "Hello Example",
-  "description": "A friendly greeting.",
-  "graph": { "nodes": [], "edges": [] }
-}

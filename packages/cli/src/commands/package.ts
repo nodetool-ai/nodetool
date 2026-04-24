@@ -4,7 +4,6 @@ import type { Command } from "commander";
 import { confirm, input } from "@inquirer/prompts";
 import {
   loadPythonPackageMetadata,
-  scanPackage,
   fetchAvailablePackages,
   generatePackageOverviewMarkdown,
   generateAllNodeDocs,
@@ -17,10 +16,6 @@ import { asJson, findWorkspaceRoots, printTable } from "./package-helpers.js";
 interface ListOptions {
   available?: boolean;
   json?: boolean;
-}
-
-interface ScanOptions {
-  verbose?: boolean;
 }
 
 interface DocsOptions {
@@ -142,8 +137,7 @@ export function registerPackageCommands(program: Command): void {
           types: "dist/index.d.ts",
           author,
           scripts: {
-            build: "tsc",
-            "package:scan": "nodetool package scan"
+            build: "tsc"
           },
           dependencies: {
             "@nodetool/node-sdk": "*",
@@ -198,34 +192,7 @@ export function registerPackageCommands(program: Command): void {
         fs.mkdirSync(path.join(cwd, "assets"), { recursive: true });
 
         console.log(`Initialized '${name}'.`);
-        console.log(
-          "Next: implement nodes in src/, run 'npm run build', then 'nodetool package scan'."
-        );
-      } catch (e) {
-        console.error(String(e));
-        process.exit(1);
-      }
-    });
-
-  // -----------------------------------------------------------------------
-  // scan
-  // -----------------------------------------------------------------------
-  pkg
-    .command("scan")
-    .description(
-      "Scan the current package and write nodetool/package_metadata/<name>.json"
-    )
-    .option("-v, --verbose", "Verbose output")
-    .action(async (opts: ScanOptions) => {
-      try {
-        const result = await scanPackage({
-          packageDir: process.cwd(),
-          verbose: opts.verbose ?? false
-        });
-        console.log(`Wrote ${result.metadataPath}`);
-        console.log(`  - ${result.nodeCount} nodes`);
-        console.log(`  - ${result.exampleCount} examples`);
-        console.log(`  - ${result.assetCount} assets`);
+        console.log("Next: implement nodes in src/ and run 'npm run build'.");
       } catch (e) {
         console.error(String(e));
         process.exit(1);

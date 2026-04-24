@@ -1,9 +1,9 @@
 /**
  * Tests for src/commands/package.ts
  *
- * Covers: registerPackageCommands wires all 6 subcommands and forwards
+ * Covers: registerPackageCommands wires the package subcommands and forwards
  * flags/arguments to the underlying @nodetool/node-sdk helpers. Also
- * includes a self-contained integration test for init → scan → docs.
+ * includes a self-contained integration test for init → docs.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -20,13 +20,6 @@ import {
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock("@nodetool/node-sdk", () => ({
-  scanPackage: vi.fn(async () => ({
-    metadataPath: "/tmp/out.json",
-    metadata: { name: "sample", nodes: [], examples: [], assets: [] },
-    nodeCount: 0,
-    exampleCount: 0,
-    assetCount: 0
-  })),
   fetchAvailablePackages: vi.fn(async () => []),
   loadPythonPackageMetadata: vi.fn(() => ({
     files: [],
@@ -170,23 +163,6 @@ describe("package list", () => {
       .mockResolvedValue([{ name: "a", repo_id: "org/a" }]);
     const { stdout } = await runCommand(["list", "--available", "--json"]);
     expect(stdout.join("\n")).toContain('"name": "a"');
-  });
-});
-
-describe("package scan", () => {
-  it("calls scanPackage with cwd", async () => {
-    const sdk = await import("@nodetool/node-sdk");
-    const { stdout } = await runCommand(["scan"]);
-    expect(sdk.scanPackage).toHaveBeenCalled();
-    expect(stdout.join("\n")).toContain("Wrote");
-    expect(stdout.join("\n")).toContain("0 nodes");
-  });
-
-  it("forwards --verbose", async () => {
-    const sdk = await import("@nodetool/node-sdk");
-    await runCommand(["scan", "--verbose"]);
-    const mock = sdk.scanPackage as unknown as ReturnType<typeof vi.fn>;
-    expect(mock.mock.calls[0]![0].verbose).toBe(true);
   });
 });
 
@@ -366,12 +342,10 @@ describe("package init", () => {
   });
 });
 
-// ─── Integration: init → scan → docs ──────────────────────────────────────────
-// This test exercises the full flow without the sdk mock to make sure the
-// CLI glue really does wire the helpers together.
+// ─── Integration: init → docs ────────────────────────────────────────────────
 
-describe("integration: init + scan + docs", () => {
-  it("init creates files, scan writes metadata, docs writes index.md", async () => {
+describe("integration: init + docs", () => {
+  it("init creates files; docs writes index.md", async () => {
     const cwd = process.cwd();
     const tmp = makeTmp();
     inquirerAnswers["Package name (e.g. nodetool-foo):"] = "nodetool-it";
@@ -380,32 +354,9 @@ describe("integration: init + scan + docs", () => {
 
     process.chdir(tmp);
     try {
-      // 1. init — uses the mocked sdk, but init doesn't touch sdk beyond
-      //    @inquirer; package.json and friends are still written.
       await runCommand(["init"]);
 
-      // 2. Stub dist/ + a minimal index.js so scan can run. Since scan is
-      //    mocked, it won't actually read dist — just verify the CLI
-      //    called the helper.
       const sdk = await import("@nodetool/node-sdk");
-      (sdk.scanPackage as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
-        {
-          metadataPath: path.join(
-            tmp,
-            "nodetool",
-            "package_metadata",
-            "nodetool-it.json"
-          ),
-          metadata: { name: "nodetool-it", nodes: [], examples: [], assets: [] },
-          nodeCount: 0,
-          exampleCount: 0,
-          assetCount: 0
-        }
-      );
-      const scanResult = await runCommand(["scan"]);
-      expect(scanResult.stdout.join("\n")).toContain("0 nodes");
-
-      // 3. docs — simulate metadata dir exists; sdk still mocked.
       const metaDir = path.join(tmp, "nodetool", "package_metadata");
       fs.writeFileSync(
         path.join(metaDir, "nodetool-it.json"),
