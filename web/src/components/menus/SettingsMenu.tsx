@@ -32,6 +32,7 @@ import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
+import DatabaseSettingsMenu from "./DatabaseSettingsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -318,6 +319,18 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
     }
   ];
 
+  // Tab 3: Database & Storage sidebar folders
+  const databaseSidebarSections = [
+    {
+      category: "Storage",
+      items: [
+        { id: "database-stats", label: "Database Statistics" },
+        { id: "cleanup-jobs", label: "Job History" },
+        { id: "cleanup-versions", label: "Workflow Versions" }
+      ]
+    }
+  ];
+
   // Subscribe to store data for sidebar sections to enable memoization
   const remoteSettings = useRemoteSettingsStore((state) => state.settings);
   const secrets = useSecretsStore((state) => state.secrets);
@@ -380,6 +393,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                 <Tab label="General" id="settings-tab-0" />
                 <Tab label="API & Keys" id="settings-tab-1" />
                 <Tab label="About" id="settings-tab-2" />
+                <Tab label="Database" id="settings-tab-3" />
               </Tabs>
             </div>
 
@@ -394,7 +408,9 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                       ? apiKeysSidebarSections
                       : settingsTab === 2
                         ? getAboutSidebarSections()
-                        : []
+                        : settingsTab === 3
+                          ? databaseSidebarSections
+                          : []
                 }
                 onSectionClick={scrollToSection}
               />
@@ -774,6 +790,11 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
                 {/* Tab 2: About */}
                 <TabPanel value={settingsTab} index={2}>
                   <AboutMenu />
+                </TabPanel>
+
+                {/* Tab 3: Database */}
+                <TabPanel value={settingsTab} index={3}>
+                  <DatabaseSettingsMenu />
                 </TabPanel>
               </div>
             </div>

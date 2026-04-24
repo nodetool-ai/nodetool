@@ -3,6 +3,7 @@ export * from "./error-helpers.js";
 export * as assets from "./assets.js";
 export * as collections from "./collections.js";
 export * as costs from "./costs.js";
+export * as database from "./database.js";
 export * as files from "./files.js";
 export * as fonts from "./fonts.js";
 export * as jobs from "./jobs.js";

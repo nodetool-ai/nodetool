@@ -3,6 +3,7 @@ import { router, publicProcedure } from "./index.js";
 import { assetsRouter } from "./routers/assets.js";
 import { collectionsRouter } from "./routers/collections.js";
 import { costsRouter } from "./routers/costs.js";
+import { databaseRouter } from "./routers/database.js";
 import { filesRouter } from "./routers/files.js";
 import { jobsRouter } from "./routers/jobs.js";
 import { mcpConfigRouter } from "./routers/mcp-config.js";
@@ -24,6 +25,7 @@ export const appRouter = router({
   assets: assetsRouter,
   collections: collectionsRouter,
   costs: costsRouter,
+  database: databaseRouter,
   files: filesRouter,
   fonts: fontsRouter,
   jobs: jobsRouter,
