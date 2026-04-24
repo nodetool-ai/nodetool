@@ -162,6 +162,10 @@ export const useRealtimeSessionWebRTC = ({
       (message) => {
         void (async () => {
           try {
+            if (disposed) {
+              return;
+            }
+
             if (message.target === "runtime") {
               if (
                 message.signal_type === "offer" &&
@@ -170,6 +174,9 @@ export const useRealtimeSessionWebRTC = ({
                 await runtimePeer.setRemoteDescription(message.description);
                 const answer = await runtimePeer.createAnswer();
                 await runtimePeer.setLocalDescription(answer);
+                if (disposed) {
+                  return;
+                }
                 if (!answer.sdp) {
                   throw new Error("Realtime runtime peer produced an empty answer");
                 }
@@ -233,6 +240,9 @@ export const useRealtimeSessionWebRTC = ({
       try {
         const offer = await operatorPeer.createOffer();
         await operatorPeer.setLocalDescription(offer);
+        if (disposed) {
+          return;
+        }
         if (!offer.sdp) {
           throw new Error("Realtime operator peer produced an empty offer");
         }

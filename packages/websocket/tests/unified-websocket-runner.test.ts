@@ -213,6 +213,14 @@ describe("UnifiedWebSocketRunner", () => {
             kind: "video",
             node_id: "camera",
             input_name: "video"
+          },
+          {
+            track_id: "audio-track-1",
+            kind: "audio",
+            node_id: "microphone",
+            input_name: "audio",
+            label: "Desk Mic",
+            enabled: false
           }
         ],
         graph: {
@@ -251,6 +259,14 @@ describe("UnifiedWebSocketRunner", () => {
         input_name: "video",
         label: null,
         enabled: true
+      },
+      {
+        track_id: "audio-track-1",
+        kind: "audio",
+        node_id: "microphone",
+        input_name: "audio",
+        label: "Desk Mic",
+        enabled: false
       }
     ]);
 

@@ -95,6 +95,21 @@ const RealtimeStreamPage = () => {
       localStream: previewStream,
       enabled: activeSession?.transport === "webrtc" && activeSession.status !== "error"
     });
+  const isStartSessionDisabled = useMemo(() => {
+    return (
+      !workflowId ||
+      Boolean(activeSession) ||
+      !previewStream ||
+      !videoTargetNodeId.trim() ||
+      !videoTargetInputName.trim()
+    );
+  }, [
+    activeSession,
+    previewStream,
+    videoTargetInputName,
+    videoTargetNodeId,
+    workflowId
+  ]);
 
   useEffect(() => {
     if (activeSession?.parameters.brightness) {
@@ -249,13 +264,7 @@ const RealtimeStreamPage = () => {
                 </EditorButton>
                 <EditorButton
                   onClick={() => void handleStartSession()}
-                  disabled={
-                    !workflowId ||
-                    Boolean(activeSession) ||
-                    !previewStream ||
-                    !videoTargetNodeId.trim() ||
-                    !videoTargetInputName.trim()
-                  }
+                  disabled={isStartSessionDisabled}
                 >
                   Start Realtime Session
                 </EditorButton>

@@ -208,10 +208,7 @@ export function useVideoCapture(
         }
       })
       .catch((fetchError: unknown) => {
-        if (
-          fetchError instanceof DOMException &&
-          fetchError.name === "AbortError"
-        ) {
+        if ((fetchError as Error | undefined)?.name === "AbortError") {
           log.info("Fetch aborted");
           return;
         }

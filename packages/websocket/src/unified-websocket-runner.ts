@@ -1175,13 +1175,13 @@ export class UnifiedWebSocketRunner {
       !Array.isArray(record.candidate)
     ) {
       const candidateRecord = record.candidate as Record<string, unknown>;
-      const candidate =
+      const iceCandidateValue =
         typeof candidateRecord.candidate === "string"
           ? candidateRecord.candidate
           : "";
-      if (candidate) {
+      if (iceCandidateValue) {
         normalizedSignal.candidate = {
-          candidate,
+          candidate: iceCandidateValue,
           sdpMid:
             typeof candidateRecord.sdpMid === "string" ||
             candidateRecord.sdpMid === null
@@ -1362,7 +1362,17 @@ export class UnifiedWebSocketRunner {
   private async emitRealtimeSessionSignal(
     signal: RealtimeSessionSignal
   ): Promise<void> {
-    await this.sendMessage(signal as unknown as Record<string, unknown>);
+    await this.sendMessage({
+      type: signal.type,
+      session_id: signal.session_id,
+      workflow_id: signal.workflow_id,
+      signal_type: signal.signal_type,
+      source: signal.source,
+      target: signal.target,
+      description: signal.description,
+      candidate: signal.candidate,
+      created_at: signal.created_at
+    });
   }
 
   private async startRealtimeSession(

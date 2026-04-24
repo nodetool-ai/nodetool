@@ -119,8 +119,9 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
           mediaRecorderRef.current.stop();
         }
       }
+      stopPreview();
     };
-  }, []);
+  }, [stopPreview]);
 
   const [isDeviceListVisible, setIsDeviceListVisible] =
     useState<boolean>(false);
