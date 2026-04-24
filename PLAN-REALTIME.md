@@ -68,7 +68,7 @@ Define the realtime execution contract and establish the workflow-native substra
 - [ ] Write the realtime execution contract covering workflow identity, session identity, lifecycle, inputs, outputs, previews, and control updates
 - [ ] Define the convergence invariants between the realtime runtime and the standard workflow runner (specifically addressing per-node execution overhead, whether standard nodes need a "streaming" or "batched" execution mode, and how standard streaming nodes asynchronously feed realtime nodes via `NodeInbox` without blocking the high-framerate loop)
 - [ ] Choose the first operator surface: `/realtime`, mini-app, `html_app`, or a staged path between them
-- [ ] Define the node capability model: reusable, reusable-with-constraints, adapter-backed, and realtime-specific (including how nodes maintain and reset state across the lifecycle of a session)
+- [ ] Define the node capability model: reusable, reusable-with-constraints, adapter-backed, and realtime-specific (including how nodes maintain and reset state across the lifecycle of a session, and how they signal their realtime capabilities to the editor)
 - [ ] Reserve `nodetool.realtime` for new realtime-category nodes
 - [ ] List the initial `nodetool.realtime` roles needed for the first proof: source, sink, transport adapter, live control, or session utility
 - [ ] Audit `useVideoRecorder` and `VideoRecorder` to separate reusable capture and device concerns from upload concerns
@@ -112,9 +112,9 @@ Make realtime authoring and operation feel native inside NodeTool.
 
 **Tasks**
 
-- [ ] Add realtime-aware validation rules to the editor
+- [ ] Add realtime-aware validation rules to the editor (e.g., preventing non-realtime nodes from being placed in the high-framerate path)
 - [ ] Add a starter template for stream diffusion plus ControlNet plus LoRA
-- [ ] Add editor affordances for composing realtime source, sink, control, and adapter nodes
+- [ ] Add editor affordances for composing realtime source, sink, control, and adapter nodes (e.g., visual indicators for realtime vs. standard edges)
 - [ ] Add menu and discovery rules for realtime-capable existing nodes
 - [ ] Add menu and discovery rules for `nodetool.realtime` nodes
 - [ ] Connect the chosen operator surface to workflow-native launch and reconnect flows
