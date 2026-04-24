@@ -379,7 +379,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "image":
         if (Array.isArray(value.data)) {
           const seen = new Map<string, number>();
-          return value.data.map((v: any) => (
+          return value.data.map((v: string | Uint8Array) => (
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}

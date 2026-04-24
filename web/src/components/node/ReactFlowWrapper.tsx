@@ -546,7 +546,7 @@ const ReactFlowWrapper = ({
   }, [zoom, connecting]);
 
   const conditionalProps = useMemo(() => {
-    const props: any = {};
+    const props: { selectionOnDrag?: boolean } = {};
     // fitView disabled — viewport is restored from stored state
     if (settings.panControls === "RMB") {
       props.selectionOnDrag = true;

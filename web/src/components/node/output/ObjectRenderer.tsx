@@ -39,8 +39,8 @@ const objectStyles = (theme: Theme) =>
   });
 
 interface ObjectRendererProps {
-  value: Record<string, any>;
-  renderValue: (value: any, key: string) => React.ReactNode;
+  value: Record<string, unknown>;
+  renderValue: (value: unknown, key: string) => React.ReactNode;
 }
 
 /**
