@@ -4,9 +4,12 @@ This document captures the first execution contract for NodeTool realtime workfl
 
 ## Current baseline
 
-- The existing realtime substrate already has protocol messages, websocket lifecycle commands, REST session listing, a frontend session client/store, and a `/realtime/:workflowId?` incubation page.
-- The current backend session manager is still metadata-only: it does not yet create a runner, persist a `Job`, or push parameter updates into a live execution loop.
-- The current `/realtime` page captures a local preview stream, but the media is still local-only and not transported into a realtime workflow runtime.
+- Protocol messages, websocket lifecycle commands (`start`/`update`/`signal`/`stop`), HTTP session listing (still REST in `routes/realtime.ts`; tRPC migration is tracked in the plan), frontend session client/store, and the `/realtime/:workflowId?` incubation page are all in place.
+- `start_realtime_session` now creates a session linked to a `Job`, accepts an optional graph payload, and starts execution through the standard `WorkflowRunner`. `update_realtime_session` routes parameter changes into live workflow inputs via `pushInputValue` and reports `unrouted_parameters` for unmapped keys. The session manager preserves an `"error"` terminal state when startup or execution fails.
+- The `/realtime` page captures camera locally, negotiates WebRTC offer/answer/ICE through the websocket signaling channel, declares browser-track-to-node mappings on the session record, and runs an in-browser loopback (operator + runtime peers in the same tab) as a transport proof. There is no server-side WebRTC termination yet, so media is not actually delivered into the live graph.
+- Two known gaps remain inside the current substrate (tracked as actionable items in `nodetool/PLAN-REALTIME.md`):
+  - The `starting → running` transition is gated on workflow runtime startup only, not on media-transport readiness.
+  - Realtime sessions reuse the standard `WorkflowRunner`; a dedicated long-lived realtime runner is still a future refinement.
 
 ## Execution contract
 
@@ -124,11 +127,10 @@ The current recorder path mixes several concerns in one flow:
 
 That makes it useful for asset capture today, but it is not yet a reusable realtime capture layer. Follow-up work should split reusable device/capture concerns from workflow upload concerns so realtime session input can reuse browser capture without inheriting recording/upload behavior.
 
-## Immediate implementation follow-ups
+## Implementation follow-ups
 
-- Wire `start_realtime_session` to create a real runner and persist a `Job`.
-- Change initial session status from `running` to `starting`, then transition on transport/runtime readiness.
-- Add optional graph payload support for editor-driven preview launches.
-- Push `update_realtime_session` changes into a live parameter channel instead of metadata-only storage.
-- Add WebRTC signaling and media-track-to-node mapping for the `/realtime` proof.
-- Refactor capture code so realtime input can share device and preview logic without asset-upload coupling.
+The actionable backlog (live status, ownership, and dependencies) lives in `nodetool/PLAN-REALTIME.md`. The items still open against this contract specifically are:
+
+- Tighten the `starting → running` gate so it also waits on media-transport readiness once a server-side WebRTC peer exists.
+- Stand up a server-side WebRTC termination point so the mapped browser tracks actually reach the live graph through `nodetool.realtime` source nodes.
+- Promote ad-hoc parameter pushes into an explicit realtime parameter/control queue when the dedicated realtime runner lands.

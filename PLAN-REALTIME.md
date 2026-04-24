@@ -7,8 +7,8 @@
 - [x] Add initial realtime session substrate
   - [x] Protocol message types for realtime sessions
   - [x] Backend realtime session manager
-  - [x] WebSocket commands for start, update, and stop session
-  - [x] tRPC endpoints for listing and fetching sessions
+  - [x] WebSocket commands for start, update, and stop session (plus `signal_realtime_session` for WebRTC)
+  - [x] HTTP endpoints for listing and fetching sessions (currently REST in `routes/realtime.ts`; the rest of the codebase has standardized on tRPC, so these should migrate — see Follow-up tasks)
   - [x] Frontend realtime session client and store
   - [x] Basic `/realtime/:workflowId?` page and local preview
 - [x] Phase 1 foundation
@@ -47,8 +47,8 @@ Based on research into high-performance real-time generative video systems (like
   - *Correction still needed:* keep the `"starting"` → `"running"` transition tied to actual media-transport readiness once WebRTC signaling exists; the current readiness gate is runtime startup only.
   - `update_realtime_session` now routes parameter changes into live workflow inputs when possible.
   - *Correction still needed:* promote those ad-hoc input pushes into an explicit realtime parameter/control queue when the dedicated runtime lands.
-- `/realtime` is a useful incubation surface and currently captures a local camera stream while also showing session/job state.
-  - *Correction needed:* the camera stream is not yet transmitted. As per the WebRTC boundary decision, this media must NOT be sent over the WebSocket. The implementation must add WebRTC signaling (offer/answer) to the session initialization flow to establish the media transport, and explicitly map WebRTC media tracks to specific `nodetool.realtime` input nodes in the graph.
+  - `/realtime` is a useful incubation surface: it captures the camera, negotiates WebRTC offer/answer/ICE through the websocket signaling channel, declares browser-track-to-node mappings on the session record, and runs an in-browser loopback (operator + runtime peers in the same tab) as a transport proof while showing session/job state.
+    - *Correction still needed:* there is no server-side WebRTC termination yet, so the mapped tracks are not actually delivered into the live graph. The backend must add a WebRTC endpoint (e.g., `node-webrtc` or a Python media worker) that accepts the operator offer and routes incoming tracks into the corresponding `nodetool.realtime` input nodes.
 - Live graph streaming is still tied to an active `job_id`.
 - `RealtimeAudioInput` already demonstrates a streaming input pattern.
 - `VideoInput` is still a standard asset/video reference input.
@@ -98,10 +98,10 @@ Define the realtime execution contract and establish the workflow-native substra
 - The current realtime substrate has moved past metadata-only session tracking:
   - `packages/websocket/src/realtime-session-manager.ts` now tracks `job_id`, starts sessions as `"starting"`, and preserves `"error"` state during terminal session events.
   - `packages/websocket/src/unified-websocket-runner.ts` now starts realtime sessions against a live `WorkflowRunner`, persists realtime linkage onto the backing `Job` when the DB is available, supports optional graph payloads, and routes live parameter updates into active workflow inputs when possible.
-  - `web/src/components/realtime/RealtimeStreamPage.tsx` still uses local camera preview only; media is not yet transported into a live runtime.
-- The capture audit confirmed that `/home/runner/work/nodetool/nodetool/web/src/hooks/browser/useVideoRecorder.ts` is the key separation point for reusable browser capture vs upload behavior.
-- `/home/runner/work/nodetool/nodetool/web/src/hooks/browser/useVideoCapture.ts` now provides the shared browser video capture/device layer used by both `useVideoRecorder` and `/home/runner/work/nodetool/nodetool/web/src/components/realtime/RealtimeStreamPage.tsx`.
-- `/home/runner/work/nodetool/nodetool/web/src/components/realtime/RealtimeStreamPage.tsx` now launches the `/realtime` proof with `transport: "webrtc"`, explicit browser-track-to-node mappings, WebRTC signaling relayed over the existing websocket control plane, and a loopback runtime preview powered by browser peer connections.
+- The capture audit confirmed that `web/src/hooks/browser/useVideoRecorder.ts` is the key separation point for reusable browser capture vs upload behavior.
+- `web/src/hooks/browser/useVideoCapture.ts` now provides the shared browser video capture/device layer used by both `useVideoRecorder` and `web/src/components/realtime/RealtimeStreamPage.tsx`.
+- `web/src/components/realtime/RealtimeStreamPage.tsx` now launches the `/realtime` proof with `transport: "webrtc"`, explicit browser-track-to-node mappings, WebRTC signaling relayed over the existing websocket control plane, and a loopback runtime preview powered by browser peer connections.
+- API style: the realtime HTTP endpoints (`/api/realtime/sessions`, `/api/realtime/sessions/:id`) are still REST (`packages/websocket/src/routes/realtime.ts`); the broader codebase has migrated query/mutation endpoints to tRPC (`packages/websocket/src/trpc/routers/*`). Realtime should follow that convention — captured as a follow-up task below.
 - The current runner strategy is still an interim foundation:
   - Realtime sessions currently reuse the standard `WorkflowRunner` as the execution engine.
   - A dedicated long-lived `RealtimeWorkflowRunner` (or equivalent) is still desirable once the StreamDiffusion proof and media adapters arrive.
@@ -196,23 +196,36 @@ Extend the realtime system through clear media and control adapters after the fi
 - [x] Write the short execution contract for the separate but workflow-native realtime runtime
 - [x] Choose the first operator surface and define the path from incubation to workflow-native usage
 - [x] Define the initial `nodetool.realtime` node set for the first proof
+- [ ] Implement backend WebRTC termination (e.g., via `node-webrtc` or a dedicated media worker) to receive the mapped media tracks and feed them into the live graph
 - [ ] Build the canonical realtime video diffusion workflow template using the capability model
 - [x] Write the session/runtime spec with control-plane and media-plane boundaries (incorporating WebRTC for web clients)
 - [ ] Define the first adapter roadmap for `NDI` and `Spout`
 
 ## Follow-up tasks discovered while starting the plan
 
-- [x] Change realtime session startup so `start_realtime_session` creates a `Job` and a dedicated realtime runner instead of only creating metadata.
-  - Current implementation now creates/links a real workflow job and launches live execution through the standard `WorkflowRunner`; a dedicated realtime-specialized runner is still a future refinement.
+- [x] Change realtime session startup so `start_realtime_session` creates and links a `Job` (instead of only tracking metadata) and launches live execution.
+  - Implementation uses the standard `WorkflowRunner`. A dedicated long-lived realtime runner is *not* part of this item — it's flagged in "Current code reality" and naturally falls into Phase 2 once StreamDiffusion needs warm state.
 - [x] Add optional graph payload support to realtime session start so live editor previews can launch unsaved graph state.
-- [x] Transition realtime sessions from `starting` to `running` only after transport and runtime readiness.
-  - Current readiness gate is workflow execution startup, not media-transport establishment yet; tighten this once WebRTC signaling exists.
-- [x] Push `update_realtime_session` changes into a live parameter/control channel instead of only mutating stored metadata.
-  - Current routing pushes parameter keys into active workflow inputs via `WorkflowRunner.pushInputValue`; introduce a richer realtime parameter queue when the dedicated runtime lands.
+- [x] Add a `"starting"` lifecycle state and only flip to `"running"` once workflow runtime startup completes (replacing the old "always running" behavior).
+  - The transport-readiness half of the gate (waiting for WebRTC peer `connected`) is *not* part of this item; tracked under "Tighten the `starting` → `running` gate" below.
+- [x] Push `update_realtime_session` changes into the live workflow runner via `pushInputValue`, with `unrouted_parameters` reported back for unmapped keys.
+  - Promoting this into a richer realtime parameter/control queue is deferred to the dedicated runner work.
 - [x] Add WebRTC signaling plus media-track-to-node mapping for the `/realtime` proof.
   - Realtime session metadata now carries `webrtc` transport details, media-track mappings, and signaling state; `/realtime` negotiates a browser WebRTC proof transport and shows the mapped runtime preview/state.
 - [x] Split reusable browser capture/device logic from recording/upload logic in `useVideoRecorder`/`VideoRecorder`.
   - Added `web/src/hooks/browser/useVideoCapture.ts` as the shared preview/device layer and switched both the asset recorder flow and `/realtime` preview flow to use it.
+- [ ] Migrate the realtime list/get HTTP endpoints from REST (`packages/websocket/src/routes/realtime.ts`) to a tRPC `realtime` router (`packages/websocket/src/trpc/routers/realtime.ts`) and update `RealtimeSessionClient.listSessions` to use the typed tRPC client. Aligns realtime with the rest of the codebase and removes a one-off `restFetch` call.
+- [ ] Tighten the `starting` → `running` gate so a silent `beforeRunJob` failure (or any path where `runJob` returns without registering an active job) cannot leave the session stuck in `running`. Cheap fix: in `startRealtimeSession`, after `await this.runJob(...)`, verify `this.activeJobs.has(jobId)` before promoting; otherwise call `failRealtimeSessionStartup`. Revisit fully when the dedicated realtime runner lands.
+
+## Notes / maybe later
+
+Captured here so they aren't lost, but not worth promoting to actionable tasks until the surrounding work demands them.
+
+- **Stopped sessions disappear from the manager immediately.** `RealtimeSessionManager.stopSession` deletes the row right after returning the public record, so REST/tRPC `list`/`get` lose the session as soon as it stops. The `Job` row still persists. If/when reconnect or session history surfaces are built (Phase 3), keep the row around briefly with `status: "stopped" | "error"` and add a sweeper.
+- **WebRTC peer config is empty.** `useRealtimeSessionWebRTC` calls `new RTCPeerConnection()` with no `iceServers` and no bitrate tuning. Fine for the in-browser loopback proof; revisit when a real out-of-process runtime peer arrives (Phase 2 / "Core Technical Assumptions" item 4).
+- **Per-track WebRTC mapping UI.** `RealtimeStreamPage` collects a single `node_id`/`input_name` and applies it to every video track. Extend to per-track mapping (and add audio rows) once more than one camera/mic input is realistic.
+- **Brightness slider sync ignores `0`.** The `useEffect` that syncs `activeSession.parameters.brightness` into local state checks truthiness, so `0` is dropped. Switch to `!== undefined` if/when a brightness-of-zero is meaningful, or once realtime parameters are generalized beyond this MVP slider.
+- **Test noise from missing DB.** Realtime runner tests log `Database not initialized` warnings because `runJob`/`Job.markCompleted` are best-effort persisted. Not failing assertions; revisit if the tests grow assertions about persisted realtime job metadata.
 
 ## Review checks
 

@@ -491,10 +491,7 @@ export type ProcessingMessage =
   | RealtimeSessionSignal
   | Chunk
   | Prediction
-  | LLMCallUpdate
-  | RealtimeSessionStarted
-  | RealtimeSessionUpdated
-  | RealtimeSessionStopped;
+  | LLMCallUpdate;
 
 /**
  * Literal union of every `type` discriminator value.
