@@ -48,19 +48,7 @@ import {
   type ComfyProgressEvent,
   type ComfyExecutionHandle
 } from "@nodetool/runtime";
-import type {
-  Chunk,
-  RealtimeMediaTrackKind,
-  RealtimeMediaTrackMapping,
-  RealtimeSessionRecord,
-  RealtimeSessionSignal,
-  RealtimeSessionSignalDescription,
-  RealtimeSessionIceCandidate,
-  RealtimeSessionSignalingState,
-  RealtimeSessionTransport,
-  RealtimeSignalPeer,
-  RealtimeSignalType
-} from "@nodetool/protocol";
+import type { Chunk, RealtimeSessionRecord, RealtimeSessionSignal } from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -68,7 +56,8 @@ import type {
 } from "@nodetool/protocol";
 import { Tool } from "@nodetool/agents";
 import type { NodeMetadata } from "@nodetool/node-sdk";
-import { realtimeSessionManager } from "./realtime-session-manager.js";
+import { RealtimeCommandHandler } from "./realtime/command-handler.js";
+import { realtimeSessionManager } from "./realtime/session-manager.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -580,8 +569,6 @@ interface ActiveJob {
   comfyHandle?: ComfyExecutionHandle;
 }
 
-type WorkflowGraphPayload = NonNullable<RunJobRequest["graph"]>;
-
 class ToolBridge {
   private waiters = new Map<
     string,
@@ -761,6 +748,7 @@ export class UnifiedWebSocketRunner {
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private toolBridge = new ToolBridge();
   private observerRegistered = false;
+  private realtimeHandler: RealtimeCommandHandler;
 
   private logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
@@ -901,6 +889,27 @@ export class UnifiedWebSocketRunner {
         process_uptime_sec: process.uptime(),
         memory: process.memoryUsage()
       }));
+    this.realtimeHandler = new RealtimeCommandHandler({
+      getUserId: () => this.getRealtimeUserId(),
+      runJob: async (request) => this.runJob(request),
+      cancelJob: async (jobId, workflowId) => {
+        await this.cancelJob(jobId, workflowId);
+      },
+      getActiveJob: (jobId) => this.activeJobs.get(jobId),
+      trackSessionJob: (sessionId, jobId) => {
+        this.realtimeSessionJobs.set(sessionId, jobId);
+        this.realtimeJobSessions.set(jobId, sessionId);
+      },
+      clearSessionTracking: (sessionId, jobId) =>
+        this.clearRealtimeSessionTracking(sessionId, jobId),
+      failSessionStartup: async (sessionId, jobId, reason) =>
+        this.failRealtimeSessionStartup(sessionId, jobId, reason),
+      emitSessionStarted: async (session) => this.emitRealtimeSessionStarted(session),
+      emitSessionUpdated: async (session) => this.emitRealtimeSessionUpdated(session),
+      emitSessionStopped: async (session, reason) =>
+        this.emitRealtimeSessionStopped(session, reason),
+      emitSessionSignal: async (signal) => this.emitRealtimeSessionSignal(signal)
+    });
   }
 
   async connect(
@@ -1011,231 +1020,6 @@ export class UnifiedWebSocketRunner {
     return this.userId ?? "1";
   }
 
-  private normalizeRealtimeParameters(
-    value: unknown
-  ): Record<string, unknown> {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return {};
-    }
-
-    return { ...(value as Record<string, unknown>) };
-  }
-
-  private normalizeRealtimeTransport(
-    value: unknown
-  ): RealtimeSessionTransport {
-    return value === "webrtc" ? "webrtc" : "websocket";
-  }
-
-  private normalizeRealtimeMediaTracks(
-    value: unknown
-  ): RealtimeMediaTrackMapping[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    const normalizedTracks: RealtimeMediaTrackMapping[] = [];
-    for (const track of value) {
-      if (!track || typeof track !== "object" || Array.isArray(track)) {
-        continue;
-      }
-
-      const record = track as Record<string, unknown>;
-      const trackId =
-        typeof record.track_id === "string" ? record.track_id.trim() : "";
-      const nodeId =
-        typeof record.node_id === "string" ? record.node_id.trim() : "";
-      const inputName =
-        typeof record.input_name === "string" ? record.input_name.trim() : "";
-      const kind: RealtimeMediaTrackKind =
-        record.kind === "audio" ? "audio" : "video";
-
-      if (!trackId || !nodeId || !inputName) {
-        continue;
-      }
-
-      normalizedTracks.push({
-        track_id: trackId,
-        kind,
-        node_id: nodeId,
-        input_name: inputName,
-        label: typeof record.label === "string" ? record.label : null,
-        enabled: record.enabled !== false
-      });
-    }
-
-    return normalizedTracks;
-  }
-
-  private normalizeRealtimeSignalingState(
-    value: unknown
-  ): Partial<RealtimeSessionSignalingState> | undefined {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return undefined;
-    }
-
-    const record = value as Record<string, unknown>;
-    const status = record.status;
-    const validStatus =
-      status === "idle" ||
-      status === "negotiating" ||
-      status === "connected" ||
-      status === "failed"
-        ? status
-        : undefined;
-
-    const signaling: Partial<RealtimeSessionSignalingState> = {};
-    if (validStatus) {
-      signaling.status = validStatus;
-    }
-    if (
-      record.last_signal_type === "offer" ||
-      record.last_signal_type === "answer" ||
-      record.last_signal_type === "ice_candidate"
-    ) {
-      signaling.last_signal_type = record.last_signal_type;
-    }
-    if (typeof record.last_signal_at === "string") {
-      signaling.last_signal_at = record.last_signal_at;
-    }
-    if (typeof record.error === "string" || record.error === null) {
-      signaling.error = record.error;
-    }
-
-    return Object.keys(signaling).length > 0 ? signaling : undefined;
-  }
-
-  private normalizeRealtimeSignal(
-    value: unknown
-  ):
-    | {
-        signal_type: RealtimeSignalType;
-        source: RealtimeSignalPeer;
-        target: RealtimeSignalPeer;
-        description?: RealtimeSessionSignalDescription;
-        candidate?: RealtimeSessionIceCandidate;
-      }
-    | undefined {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return undefined;
-    }
-
-    const record = value as Record<string, unknown>;
-    const signalType = record.signal_type;
-    if (
-      signalType !== "offer" &&
-      signalType !== "answer" &&
-      signalType !== "ice_candidate"
-    ) {
-      return undefined;
-    }
-
-    const source: RealtimeSignalPeer =
-      record.source === "runtime" ? "runtime" : "operator";
-    const target: RealtimeSignalPeer =
-      record.target === "operator" ? "operator" : "runtime";
-
-    const normalizedSignal: {
-      signal_type: RealtimeSignalType;
-      source: RealtimeSignalPeer;
-      target: RealtimeSignalPeer;
-      description?: RealtimeSessionSignalDescription;
-      candidate?: RealtimeSessionIceCandidate;
-    } = {
-      signal_type: signalType,
-      source,
-      target
-    };
-
-    if (
-      (signalType === "offer" || signalType === "answer") &&
-      record.description &&
-      typeof record.description === "object" &&
-      !Array.isArray(record.description)
-    ) {
-      const descriptionRecord = record.description as Record<string, unknown>;
-      const sdp = typeof descriptionRecord.sdp === "string" ? descriptionRecord.sdp : "";
-      const descriptionType = descriptionRecord.type;
-      if (
-        sdp &&
-        ((signalType === "offer" && descriptionType === "offer") ||
-          (signalType === "answer" && descriptionType === "answer"))
-      ) {
-        normalizedSignal.description = {
-          type: descriptionType,
-          sdp
-        };
-      }
-    }
-
-    if (
-      signalType === "ice_candidate" &&
-      record.candidate &&
-      typeof record.candidate === "object" &&
-      !Array.isArray(record.candidate)
-    ) {
-      const candidateRecord = record.candidate as Record<string, unknown>;
-      const iceCandidateValue =
-        typeof candidateRecord.candidate === "string"
-          ? candidateRecord.candidate
-          : "";
-      if (iceCandidateValue) {
-        normalizedSignal.candidate = {
-          candidate: iceCandidateValue,
-          sdpMid:
-            typeof candidateRecord.sdpMid === "string" ||
-            candidateRecord.sdpMid === null
-              ? candidateRecord.sdpMid
-              : null,
-          sdpMLineIndex:
-            typeof candidateRecord.sdpMLineIndex === "number"
-              ? candidateRecord.sdpMLineIndex
-              : null
-        };
-      }
-    }
-
-    if (
-      (signalType === "offer" || signalType === "answer") &&
-      !normalizedSignal.description
-    ) {
-      return undefined;
-    }
-
-    if (signalType === "ice_candidate" && !normalizedSignal.candidate) {
-      return undefined;
-    }
-
-    return normalizedSignal;
-  }
-
-  private normalizeRealtimeGraph(
-    value: unknown
-  ): WorkflowGraphPayload | undefined {
-    if (value === undefined) {
-      return undefined;
-    }
-    if (value === null) {
-      throw new Error("graph must be an object with nodes and edges arrays");
-    }
-    if (Array.isArray(value)) {
-      throw new Error("graph must be an object, not an array");
-    }
-    if (typeof value !== "object") {
-      throw new Error("graph must be an object with nodes and edges arrays");
-    }
-
-    const record = value as Record<string, unknown>;
-    if (!Array.isArray(record.nodes) || !Array.isArray(record.edges)) {
-      throw new Error("graph must include nodes and edges arrays");
-    }
-
-    return {
-      nodes: record.nodes.map((node) => ({ ...(node as Record<string, unknown>) })),
-      edges: record.edges.map((edge) => ({ ...(edge as Record<string, unknown>) }))
-    };
-  }
-
   private clearRealtimeSessionTracking(
     sessionId: string,
     jobId?: string | null
@@ -1244,23 +1028,6 @@ export class UnifiedWebSocketRunner {
     if (jobId) {
       this.realtimeJobSessions.delete(jobId);
     }
-  }
-
-  private async persistRealtimeJobMetadata(
-    jobId: string,
-    sessionId: string
-  ): Promise<void> {
-    const job = (await Job.get(jobId)) as Job | null;
-    if (!job) {
-      return;
-    }
-
-    job.metadata_json = {
-      ...(job.metadata_json ?? {}),
-      realtime_session_id: sessionId,
-      execution_mode: "realtime"
-    };
-    await job.save();
   }
 
   private async failRealtimeSessionStartup(
@@ -1373,336 +1140,6 @@ export class UnifiedWebSocketRunner {
       candidate: signal.candidate,
       created_at: signal.created_at
     });
-  }
-
-  private async startRealtimeSession(
-    data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const workflowId =
-      typeof data.workflow_id === "string" && data.workflow_id.length > 0
-        ? data.workflow_id
-        : null;
-
-    if (!workflowId) {
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        error: "workflow_id is required"
-      };
-    }
-
-    const sessionId =
-      typeof data.session_id === "string" && data.session_id.length > 0
-        ? data.session_id
-        : undefined;
-    const parameters = this.normalizeRealtimeParameters(data.parameters);
-    const transport = this.normalizeRealtimeTransport(data.transport);
-    const mediaTracks = this.normalizeRealtimeMediaTracks(data.media_tracks);
-    const signaling = this.normalizeRealtimeSignalingState(data.signaling);
-    const jobId = randomUUID();
-    const userId = this.getRealtimeUserId();
-    const session = realtimeSessionManager.createSession({
-      sessionId,
-      userId,
-      workflowId,
-      jobId,
-      parameters,
-      transport,
-      mediaTracks,
-      signaling,
-      status: "starting"
-    });
-
-    this.realtimeSessionJobs.set(session.session_id, jobId);
-    this.realtimeJobSessions.set(jobId, session.session_id);
-
-    try {
-      const graph = this.normalizeRealtimeGraph(data.graph);
-      await this.runJob({
-        job_id: jobId,
-        workflow_id: workflowId,
-        graph,
-        params: parameters
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to start realtime session";
-      await this.failRealtimeSessionStartup(session.session_id, jobId, message);
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        action: "start",
-        session_id: session.session_id,
-        workflow_id: workflowId,
-        job_id: jobId,
-        error: message
-      };
-    }
-
-    try {
-      await this.persistRealtimeJobMetadata(jobId, session.session_id);
-    } catch (error) {
-      this.logError("realtime metadata persistence failed", error);
-    }
-    await this.emitRealtimeSessionStarted(session);
-
-    const runningSession = realtimeSessionManager.updateSession(
-      session.session_id,
-      userId,
-      { status: "running" }
-    );
-    if (runningSession) {
-      await this.emitRealtimeSessionUpdated(runningSession);
-    }
-
-    return {
-      type: "realtime_session_ack",
-      ok: true,
-      action: "start",
-      session_id: session.session_id,
-      workflow_id: session.workflow_id,
-      job_id: jobId,
-      status: "running"
-    };
-  }
-
-  private async updateRealtimeSession(
-    data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const sessionId =
-      typeof data.session_id === "string" && data.session_id.length > 0
-        ? data.session_id
-        : null;
-
-    if (!sessionId) {
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        error: "session_id is required"
-      };
-    }
-
-    const session = realtimeSessionManager.updateSession(
-      sessionId,
-      this.getRealtimeUserId(),
-      {
-        parameters: this.normalizeRealtimeParameters(data.parameters),
-        transport:
-          data.transport === undefined
-            ? undefined
-            : this.normalizeRealtimeTransport(data.transport),
-        mediaTracks:
-          data.media_tracks === undefined
-            ? undefined
-            : this.normalizeRealtimeMediaTracks(data.media_tracks),
-        signaling: this.normalizeRealtimeSignalingState(data.signaling)
-      }
-    );
-
-    if (!session) {
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        action: "update",
-        session_id: sessionId,
-        error: "Realtime session not found"
-      };
-    }
-
-    const parameterUpdates = this.normalizeRealtimeParameters(data.parameters);
-    const unrouted_parameters: string[] = [];
-    if (session.job_id) {
-      const active = this.activeJobs.get(session.job_id);
-      if (active) {
-        for (const [inputName, value] of Object.entries(parameterUpdates)) {
-          try {
-            await active.runner.pushInputValue(inputName, value);
-          } catch (error) {
-            log.warn("Failed to route realtime session parameter update", {
-              sessionId,
-              jobId: session.job_id,
-              inputName,
-              error: error instanceof Error ? error.message : String(error)
-            });
-            unrouted_parameters.push(inputName);
-          }
-        }
-      }
-    }
-
-    await this.emitRealtimeSessionUpdated(session);
-
-    return {
-      type: "realtime_session_ack",
-      ok: true,
-      action: "update",
-      session_id: session.session_id,
-      workflow_id: session.workflow_id,
-      job_id: session.job_id,
-      status: session.status,
-      unrouted_parameters
-    };
-  }
-
-  private async signalRealtimeSession(
-    data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const sessionId =
-      typeof data.session_id === "string" && data.session_id.length > 0
-        ? data.session_id
-        : null;
-
-    if (!sessionId) {
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        error: "session_id is required"
-      };
-    }
-
-    const existingSession = realtimeSessionManager.getSession(
-      sessionId,
-      this.getRealtimeUserId()
-    );
-    if (!existingSession) {
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        action: "signal",
-        session_id: sessionId,
-        error: "Realtime session not found"
-      };
-    }
-
-    const signal = this.normalizeRealtimeSignal(data.signal);
-    const signalingStatus =
-      typeof data.signaling_status === "string" ? data.signaling_status : undefined;
-    const signalingError =
-      typeof data.error === "string" || data.error === null ? data.error : undefined;
-
-    const signalingPatch: Partial<RealtimeSessionSignalingState> = {};
-    if (
-      signalingStatus === "idle" ||
-      signalingStatus === "negotiating" ||
-      signalingStatus === "connected" ||
-      signalingStatus === "failed"
-    ) {
-      signalingPatch.status = signalingStatus;
-    }
-    if (signal) {
-      signalingPatch.last_signal_type = signal.signal_type;
-      signalingPatch.last_signal_at = new Date().toISOString();
-    }
-    if (signalingError !== undefined) {
-      signalingPatch.error = signalingError;
-    }
-
-    const session = realtimeSessionManager.updateSession(
-      sessionId,
-      this.getRealtimeUserId(),
-      {
-        signaling:
-          Object.keys(signalingPatch).length > 0 ? signalingPatch : undefined
-      }
-    );
-
-    if (!session) {
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        action: "signal",
-        session_id: sessionId,
-        error: "Realtime session not found"
-      };
-    }
-
-    if (Object.keys(signalingPatch).length > 0) {
-      await this.emitRealtimeSessionUpdated(session);
-    }
-
-    if (signal) {
-      await this.emitRealtimeSessionSignal({
-        type: "realtime_session_signal",
-        session_id: session.session_id,
-        workflow_id: session.workflow_id,
-        signal_type: signal.signal_type,
-        source: signal.source,
-        target: signal.target,
-        description: signal.description,
-        candidate: signal.candidate,
-        created_at: new Date().toISOString()
-      });
-    }
-
-    return {
-      type: "realtime_session_ack",
-      ok: true,
-      action: "signal",
-      session_id: session.session_id,
-      workflow_id: session.workflow_id,
-      job_id: session.job_id,
-      status: session.status,
-      signaling_status: session.signaling.status
-    };
-  }
-
-  private async stopRealtimeSession(
-    data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const sessionId =
-      typeof data.session_id === "string" && data.session_id.length > 0
-        ? data.session_id
-        : null;
-
-    if (!sessionId) {
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        error: "session_id is required"
-      };
-    }
-
-    const reason =
-      typeof data.reason === "string" && data.reason.length > 0
-        ? data.reason
-        : "user";
-    const existingSession = realtimeSessionManager.getSession(
-      sessionId,
-      this.getRealtimeUserId()
-    );
-    const jobId = existingSession?.job_id ?? null;
-    if (jobId) {
-      await this.cancelJob(jobId, existingSession?.workflow_id ?? undefined);
-    }
-    const session = realtimeSessionManager.stopSession(
-      sessionId,
-      this.getRealtimeUserId()
-    );
-
-    if (!session) {
-      return {
-        type: "realtime_session_ack",
-        ok: false,
-        action: "stop",
-        session_id: sessionId,
-        error: "Realtime session not found"
-      };
-    }
-
-    await this.emitRealtimeSessionStopped(session, reason);
-    this.clearRealtimeSessionTracking(sessionId, jobId);
-
-    return {
-      type: "realtime_session_ack",
-      ok: true,
-      action: "stop",
-      session_id: session.session_id,
-      workflow_id: session.workflow_id,
-      job_id: session.job_id,
-      status: session.status
-    };
   }
 
   async receiveMessage(): Promise<Record<string, unknown> | null> {
@@ -5054,13 +4491,13 @@ export class UnifiedWebSocketRunner {
           }
         }
       case "start_realtime_session":
-        return this.startRealtimeSession(data);
+        return this.realtimeHandler.handleStart(data);
       case "signal_realtime_session":
-        return this.signalRealtimeSession(data);
+        return this.realtimeHandler.handleSignal(data);
       case "update_realtime_session":
-        return this.updateRealtimeSession(data);
+        return this.realtimeHandler.handleUpdate(data);
       case "stop_realtime_session":
-        return this.stopRealtimeSession(data);
+        return this.realtimeHandler.handleStop(data);
       case "cancel_job":
         if (!jobId) return { error: "job_id is required" };
         return this.cancelJob(jobId, workflowId);

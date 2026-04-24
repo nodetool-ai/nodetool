@@ -4,7 +4,7 @@ This document captures the first execution contract for NodeTool realtime workfl
 
 ## Current baseline
 
-- Protocol messages, websocket lifecycle commands (`start`/`update`/`signal`/`stop`), HTTP session listing (still REST in `routes/realtime.ts`; tRPC migration is tracked in the plan), frontend session client/store, and the `/realtime/:workflowId?` incubation page are all in place.
+- Protocol messages, websocket lifecycle commands (`start`/`update`/`signal`/`stop`), HTTP session listing (still REST in `packages/websocket/src/realtime/routes.ts`; tRPC migration is tracked in the plan), frontend session client/store, and the `/realtime/:workflowId?` incubation page are all in place.
 - `start_realtime_session` now creates a session linked to a `Job`, accepts an optional graph payload, and starts execution through the standard `WorkflowRunner`. `update_realtime_session` routes parameter changes into live workflow inputs via `pushInputValue` and reports `unrouted_parameters` for unmapped keys. The session manager preserves an `"error"` terminal state when startup or execution fails.
 - The `/realtime` page captures camera locally, negotiates WebRTC offer/answer/ICE through the websocket signaling channel, declares browser-track-to-node mappings on the session record, and runs an in-browser loopback (operator + runtime peers in the same tab) as a transport proof. There is no server-side WebRTC termination yet, so media is not actually delivered into the live graph.
 - Two known gaps remain inside the current substrate (tracked as actionable items in `nodetool/PLAN-REALTIME.md`):

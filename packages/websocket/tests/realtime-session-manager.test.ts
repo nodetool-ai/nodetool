@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 
-import { realtimeSessionManager } from "../src/realtime-session-manager.js";
+import { realtimeSessionManager } from "../src/realtime/session-manager.js";
 
 describe("RealtimeSessionManager", () => {
   beforeEach(() => {

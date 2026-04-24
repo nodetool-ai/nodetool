@@ -5,7 +5,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
-import { realtimeSessionManager } from "../src/realtime-session-manager.js";
+import { realtimeSessionManager } from "../src/realtime/session-manager.js";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
