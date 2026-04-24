@@ -398,3 +398,127 @@ Captured for memory, not committed. These became visible during the architecture
 **Agent integration**
 
 - **Realtime as an agent tool.** A `nodetool-chat` agent calls `start_realtime_session`, observes fps/output, adjusts prompts. Especially powerful with the existing `TaskExecutor` planning.
+
+## Use case ideas
+
+End-user scenarios that become possible once Phase 2/3 lands. Not commitments — concrete examples to ground the design and the model/library choices below. Each names the architectural pieces it leans on.
+
+**Live performance & VJ**
+
+- **Audio-reactive AI VJ.** DJ feed → audio analysis nodes → `pushParameter` → diffusion strength, LoRA blend, prompt fade. Output to Resolume / TouchDesigner / projector via NDI/Spout. The whole rig is one workflow, editable live in the editor's realtime mode while it runs.
+- **Dancer-driven generation.** Camera in, pose + motion-energy analysis taps the same `VideoSource` inbox, motion intensity ramps a curated LoRA library and ControlNet pose strength. The dancer is a knob.
+
+**Live broadcast & streaming**
+
+- **Selective restyling.** Person mask keeps the anchor photoreal; background gets diffused in any chosen style. Standard nodes (matting, mask, diffusion, composite) on the realtime substrate, no special infra.
+- **Streaming captions + style coupling.** LLM caption nodes run on the same control plane; audio emotion classification feeds a Parameter that warms/cools the palette in sync. The control-plane vs media-plane split is what makes this tractable.
+
+**Telepresence & collaboration**
+
+- **Multi-operator director's chair.** Multiple browsers attach to one `session_id` — one drives the prompt box, one moves a slider, one swaps LoRAs. All standard `pushParameter` traffic on the existing websocket.
+- **Remote production.** Producers in different cities each hold one parameter strip. The graph is shared; parameter ownership is per-operator.
+
+**Game / interactive**
+
+- **Game capture restyling.** Spout in (game) → diffusion → Spout out (to OBS, projection, second window). Parameter automation tied to in-game OSC events: boss appears, palette shifts.
+- **Live mocap-to-avatar.** Webcam pose → ControlNet → character LoRA → live avatar feed for streamers, all in one browser tab.
+
+**Installations & permanent art**
+
+- **Headless gallery install.** No browser at all: NDI in from a sensor camera, MIDI/OSC in from environmental sensors, Spout out to the projector. Just the runtime + a graph + adapter nodes.
+- **Bio-reactive painting.** Heart rate or EEG over OSC → smoothing node → Parameter → diffusion strength.
+
+**Education & accessibility**
+
+- **Live drawing/coding coach.** Webcam on the student's hand or screen; vision-LLM produces feedback at low rate; the realtime UI surfaces tips next to a still-running diffusion of an "ideal" reference. Two rates sharing one session — exactly what the parameter/media plane split was designed for.
+- **Realtime sign translation.** Webcam → pose model → translation LLM → TTS audio out the WebRTC sink. End-to-end on standard nodes once `AudioSink` exists.
+
+**Authoring superpowers**
+
+- **Production = live, but pre-rendered.** Feed a music file as the "live" source and a parameter timeline scheduled against the beat. Same workflow you use for the live show renders the music video offline. One graph, two delivery modes.
+- **Self-balancing agent.** A `nodetool-chat` agent calls `start_realtime_session`, subscribes to `realtime_metrics`, and downshifts (smaller LoRA, lower resolution, more aggressive `drop_oldest`) when fps slips. Quality adapts to load without a human in the loop.
+- **Workflow as MIDI device.** Because parameters are addressable by name and `pushParameter` is one call, a NodeTool workflow becomes a controllable instrument that any MIDI/OSC controller, agent, web hook, or script can drive.
+
+The unifying thread: every use case is built from **existing NodeTool primitives + the Phase 2 substrate + a small set of realtime-capable model/utility nodes** — not a new app per scenario. The list of model/library candidates that make these realistic is below.
+
+## Reference: realtime-capable models & libraries
+
+Sorted by **integration cost vs. impact ratio**: top items are quick wins that unlock many use cases; bottom items are heavier, narrower, or platform-specific. Treat this as a shopping list for `realtime-vision`, `realtime-audio`, `realtime-vlm`, etc. node packages — not as commitments to wrap all of them.
+
+Realtime-suitability flags: ✅ tested realtime (>20 fps for video, <200 ms for audio/text), ⚠️ realtime under TensorRT/quantization, ❌ not realtime (do not use for hot-path nodes).
+
+**TensorRT posture.** The diffusion baseline target in this plan (StreamDiffusion V2 / Wan2.1 1.3B, see Phase 2 task at line 237) is **pure PyTorch on purpose** — StreamDiffusion v1 was deferred specifically because of TensorRT compilation friction. Apply the same preference everywhere below: pick libraries with a usable PyTorch / ONNX Runtime path first; treat ⚠️ "with TRT" entries as acceptable to ship without the TRT step (just slower) and reserve real TRT work for the final-mile optimization entry (#26).
+
+### Tier 1 — Quick wins, broad impact (start here)
+
+| # | Library / Model | What it gives | Realtime | License | Where in stack |
+|---|---|---|---|---|---|
+| 1 | **OpenCV (cv2 / opencv4nodejs)** | Resize, color spaces, blur, contours, frame diff, compositing, Farneback flow | ✅ (CPU/GPU) | Apache 2.0 | Foundation utility nodes; Python preferred for GPU (`cv2.cuda_GpuMat`), Node for operator-side ops |
+| 2 | **Meyda** | Browser-side audio features (RMS, spectral centroid, onset, MFCC) via Web Audio API | ✅ (~86×/sec) | MIT | Operator-UI hook; enables audio-reactive parameters with no server |
+| 3 | **Aubio** | Server-side onset / pitch / beat / tempo / MFCC | ✅ | GPL-3.0 | `realtime-audio.AudioAnalysis` Python node |
+| 4 | **MediaPipe (Pose, Holistic, Face Mesh, Hands)** | Pose / face / hand landmarks, single-person | ✅ (30+ fps CPU) | Apache 2.0 | `realtime-vision.Pose` etc.; also has JS bindings — can run client-side in the operator browser |
+| 5 | **YOLO11 (det / seg / pose)** | Class-aware detection, segmentation, pose | ✅ (1.5–16 ms on T4 TRT) | AGPL-3.0 (Ultralytics) | `realtime-vision.Detect`/`Segment`/`Pose`; AGPL means the wrapping package may need separation |
+| 6 | **Kokoro 82M TTS** | Streaming TTS, MOS 4.2, RTF 0.03, 48 voices, 9 languages | ✅ (23× realtime) | Apache 2.0 | `realtime-audio.TTS`; also has `StreamingKokoroJS` for browser via WebGPU |
+| 7 | **Moonshine STT** | Streaming speech-to-text, 100 ms latency, beats Whisper Large v3 | ✅ | MIT | `realtime-audio.STT` — gates voice control and live captions |
+| 8 | **Depth Anything V3 (Small / Base / Metric-Large)** | Monocular depth | ✅ Small in PyTorch (≈15–25 fps, model-dependent); ⚠️ 30 fps @ 504² needs TRT FP16 | Apache 2.0 (Small/Base/Metric); CC-BY-NC for Giant | `realtime-vision.Depth` — ship the PyTorch path first; TRT is later optimization |
+
+### Tier 2 — High impact, slightly more setup
+
+| # | Library / Model | What it gives | Realtime | License | Where in stack |
+|---|---|---|---|---|---|
+| 9 | **RVM (Robust Video Matting)** | Person/portrait alpha matte, recurrent (temporal), 4K @ 76 FPS / HD @ 104 FPS on GTX 1080 Ti | ✅ | GPL-3.0 | `realtime-vision.PersonMatte` — primary "selective restyling" enabler; ONNX/TF.js/CoreML available |
+| 10 | **ControlNet preprocessors** (OpenPose / Depth / Canny / HED / Color) | Standalone condition-map generators (pose, depth edges, line art, color blocks) | ✅ (preprocessors run in PyTorch, no TRT) | mixed permissive | `realtime-controlnet.*` preprocessor nodes. Note: pairing with the diffusion target is a separate question — Wan2.1 (StreamDiffusion V2) ControlNet adapters are still maturing; in the meantime the preprocessor outputs are useful as masks, overlays, or condition signals into other nodes. Do **not** pull in the SD1.5 StreamDiffusion v1 ControlNet pipeline (TRT compilation, deferred). |
+| 11 | **Moondream 0.5B / 3 / Photon** | Vision-language captioning + reasoning over live frames | ✅ Photon (60+ inf/sec H100); ⚠️ 0.5B (a few fps) | Apache 2.0 (open variants); Photon paid | `realtime-vlm.Moondream` — enables AI commentary, drawing coach, scene description |
+| 12 | **SmolVLM 256M / 500M** | Tiny VLM that runs **in the browser** via Transformers.js, 40–80 tok/sec | ✅ (browser) | Apache 2.0 | Operator-side captioner — zero server round-trip |
+| 13 | **SAM 2 (streaming video predictor)** | Click/box-prompted any-object segmentation with temporal memory | ✅ | Apache 2.0 | `realtime-vision.Segment` — interactive masks; foundation for selective effects beyond person matting |
+| 14 | **Piper TTS** | Edge TTS, sub-100 ms latency, RTF 0.008, <100 MB on CPU | ✅ | MIT | `realtime-audio.TTS` for installations / RPi-class hardware (lower naturalness, much faster) |
+| 15 | **Distil-Whisper large-v3** | 6× Whisper, batch transcription | ✅ batch only | MIT | Companion to Moonshine — post-show transcripts, batch alongside live |
+
+### Tier 3 — Narrower or specialized
+
+| # | Library / Model | What it gives | Realtime | License | Where in stack |
+|---|---|---|---|---|---|
+| 16 | **GMFlow** | Neural optical flow, 26 ms / frame on A100 | ✅ (high-end GPU) | Apache 2.0 | Only when motion-energy from cv2 isn't expressive enough; otherwise prefer `cv2.calcOpticalFlowFarneback` |
+| 17 | **MobileSAM / EfficientTAM** | Lightweight SAM variants for mobile / browser segmentation | ✅ | Apache 2.0 | Edge fallback when SAM 2 server-side isn't available |
+| 18 | **MediaPipe Face Mesh + DeepFace / RealtimeFER** | 7-class emotion detection or valence/arousal from landmarks | ✅ (60+ fps) | Apache 2.0 / MIT | `realtime-vision.Emotion` — affect-driven parameters; off-the-shelf labels are noisy, prefer landmarks → custom head |
+| 19 | **F5-TTS / XTTS v2** | Voice cloning from 6 s reference | ⚠️ (RTF 0.18, short clips OK) | CPML (F5) / non-commercial; XTTS Coqui non-commercial | Premium voice node; not for continuous narration |
+| 20 | **MonarchRT** (Wan2.1) text-to-video | Realtime autoregressive text-to-video, 16 FPS | ⚠️ | various | Alternative model node alongside StreamDiffusion / LongLive / MemFlow |
+
+### Tier 4 — Substrate / platform / heavy (mostly already in the plan)
+
+| # | Library / Model | What it gives | Realtime | License | Where in stack |
+|---|---|---|---|---|---|
+| 21 | **werift** (preferred) / `@roamhq/wrtc` | Node-side WebRTC stack | ✅ | Apache 2.0 / MIT | Phase 2 substrate prerequisite (already in plan) |
+| 22 | **PyAV (FFmpeg)** | Codec / container handling for the WebRTC frame router | ✅ | BSD-3 | Backend frame router |
+| 23 | **PyVideoProc** | CUDA-accelerated multi-stream decode → infer → encode pipeline | ✅ | BSD-2 | Reference for headless / server realtime mode (Phase 4) |
+| 24 | **NDI / Spout / Syphon native bindings** | Pro AV interop adapters | ✅ | platform-specific | Phase 4 adapter nodes (already on roadmap) |
+| 25 | **Krea Realtime 14B** (and likely distilled/smaller variants when they ship) | High-fidelity diffusion alternative to the 1.3B baseline | ⚠️ (32 GB+ VRAM today; reachable for many users on a 4090/5090/A6000) | various | **Fast-follow after the 1.3B baseline (line 240).** Not blocked by anything beyond proving the substrate end-to-end with the smaller model first; pull it forward as soon as a user case calls for the quality bump. Watch for distilled/quantized variants from Krea — those would shift this entry up a tier. |
+| 25b | **FLUX.2 Klein / Hyper-SDXL** and other large diffusion variants | Premium fidelity, larger memory budget | ⚠️ (varies, mostly 24–32 GB+) | various | Exploratory — slot in as additional model nodes once the substrate is proven; same VRAM-aware validation pattern as Krea 14B. |
+| 26 | **Custom TensorRT / CUDA kernels** | Final mile of latency optimization for any of the above | — | — | Only when profiling proves a bottleneck the upstream library can't address |
+
+### Not realtime — do not use for hot-path nodes
+
+Listed so future contributors don't reach for them by reflex:
+
+- **Bark** TTS (RTF 0.85), **Whisper Large v3 sequential** (11 s per phrase on MacBook).
+- **Mask R-CNN, U-Net, DETR, MaskFormer, OneFormer** for video (2–15 fps).
+- **MASt3R, RoMa** dense correspondence (seconds per frame).
+- **FlowFormer** (slower than GMFlow without accuracy gain).
+- **DA3-Giant, DA3-Nested, Depth Anything Giant** (research-grade resolution, not realtime).
+- **Essentia BPM extractor** (whole-track, batch only — use Aubio for live).
+- **librosa** for streams (works frame-by-frame but Aubio/Meyda are purpose-built and much cheaper).
+
+These are all *fine* in standard NodeTool workflows for offline/batch tasks — just not behind the `isRealtimeCapable` flag.
+
+### Suggested package layout
+
+To keep the realtime namespace small and let environments install only what they need (mirrors the existing `replicate-nodes` / `fal-nodes` separation):
+
+- `packages/realtime-nodes/` — substrate (Source / Sink / Parameter / SessionInfo) per Phase 2
+- `packages/realtime-vision/` — DA3, SAM 2, RVM, YOLO11, MediaPipe wrappers
+- `packages/realtime-audio/` — Aubio analysis, Moonshine STT, Kokoro/Piper TTS
+- `packages/realtime-controlnet/` — the five SD2.1 ControlNet preprocessors wired into the diffusion node
+- `packages/realtime-vlm/` — Moondream / SmolVLM
+- `packages/realtime-adapters/` — NDI / Spout / Syphon / MIDI / OSC (Phase 4 home)
+
+A VJ rig wants `realtime-audio` + `realtime-vision` + `realtime-controlnet`. An installation wants `realtime-adapters`. A captioner wants `realtime-vlm` + `realtime-audio`. The substrate is required by all.
