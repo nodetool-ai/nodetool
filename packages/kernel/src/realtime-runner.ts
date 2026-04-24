@@ -1,4 +1,5 @@
 import {
+  type ParameterUpdateResult,
   WorkflowRunner,
   type RunJobRequest,
   type RunResult,
@@ -9,10 +10,7 @@ import {
 export interface RealtimeRunnerOptions
   extends Omit<WorkflowRunnerOptions, "runMode"> {}
 
-export interface RealtimeParameterUpdateResult {
-  routed: boolean;
-  nodeIds: string[];
-}
+export type RealtimeParameterUpdateResult = ParameterUpdateResult;
 
 /**
  * RealtimeRunner is a composition shell around WorkflowRunner.
@@ -45,11 +43,9 @@ export class RealtimeRunner {
   }
 
   async pushParameter(
-    _name: string,
-    _value: unknown
+    name: string,
+    value: unknown
   ): Promise<RealtimeParameterUpdateResult> {
-    // TODO(PLAN-REALTIME step 6 / follow-up 347): route control-plane updates
-    // through dedicated realtime parameter handling instead of throwing.
-    throw new Error("RealtimeRunner.pushParameter is not implemented yet");
+    return this.runner.pushParameter(name, value);
   }
 }

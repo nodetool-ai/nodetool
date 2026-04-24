@@ -23,6 +23,7 @@ export {
   type RunJobRequest,
   type WorkflowGraphData,
   type WorkflowRunnerOptions,
+  type ParameterUpdateResult,
   type RunResult,
   REALTIME_MESSAGE_BUFFER_LIMIT,
   REALTIME_OUTPUT_BUFFER_LIMIT

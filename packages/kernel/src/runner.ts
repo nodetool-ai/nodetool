@@ -67,6 +67,11 @@ export interface WorkflowRunnerOptions {
   executionContext?: ProcessingContext;
 }
 
+export interface ParameterUpdateResult {
+  routed: boolean;
+  nodeIds: string[];
+}
+
 export interface WorkflowGraphData {
   nodes: NodeDescriptor[];
   edges: Edge[];
@@ -188,6 +193,47 @@ export class WorkflowRunner {
         this._incrementEdgeCounter(edge);
       }
     }
+  }
+
+  async pushParameter(
+    name: string,
+    value: unknown
+  ): Promise<ParameterUpdateResult> {
+    if (!this._graph) {
+      throw new Error("Workflow has not been started");
+    }
+
+    const matchingNodes = this._graph.nodes.filter((node) => {
+      if (node.type !== "nodetool.realtime.Parameter") {
+        return false;
+      }
+
+      const properties =
+        node.properties && typeof node.properties === "object"
+          ? (node.properties as Record<string, unknown>)
+          : {};
+      return properties.name === name;
+    });
+
+    const nodeIds: string[] = [];
+    for (const node of matchingNodes) {
+      const inbox = this._inboxes.get(node.id);
+      if (!inbox) {
+        continue;
+      }
+
+      const controlEvent: ControlEvent = {
+        event_type: "run",
+        properties: { value }
+      };
+      await inbox.put("__control__", controlEvent);
+      nodeIds.push(node.id);
+    }
+
+    return {
+      routed: nodeIds.length > 0,
+      nodeIds
+    };
   }
 
   /**
@@ -415,6 +461,13 @@ export class WorkflowRunner {
           "__control__",
           (handleCounts.get("__control__") ?? 0) + uniqueControllerCount
         );
+      }
+
+      if (
+        incomingControl.length === 0 &&
+        node.type === "nodetool.realtime.Parameter"
+      ) {
+        handleCounts.set("__control__", 1);
       }
 
       for (const [handle, count] of handleCounts) {

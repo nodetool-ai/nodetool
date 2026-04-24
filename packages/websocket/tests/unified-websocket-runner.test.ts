@@ -334,6 +334,7 @@ describe("UnifiedWebSocketRunner", () => {
 
     expect(update.ok).toBe(true);
     expect(update.job_id).toBe(start.job_id);
+    expect(update.routed_parameters).toEqual(["brightness"]);
     expect(update.unrouted_parameters).toEqual(["unused_control"]);
 
     const updatedSession = realtimeSessionManager.getSession(sessionId, "1");

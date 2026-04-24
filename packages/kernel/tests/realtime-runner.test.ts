@@ -204,6 +204,69 @@ describe("WorkflowRunner realtime primitives", () => {
     expect(values).toEqual([1]);
     expect(inbox.getDroppedCount("value")).toBe(2);
   });
+
+  it("routes realtime parameter updates into matching parameter node control inboxes", async () => {
+    const runner = new WorkflowRunner("rt-parameter", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs),
+      runMode: "realtime"
+    });
+
+    await runner.initializeForRealtime(
+      { job_id: "rt-parameter" },
+      {
+        nodes: [
+          {
+            id: "parameter",
+            type: "nodetool.realtime.Parameter",
+            is_controlled: true,
+            properties: { name: "strength" }
+          }
+        ],
+        edges: []
+      }
+    );
+
+    await expect(runner.pushParameter("strength", 0.5)).resolves.toEqual({
+      routed: true,
+      nodeIds: ["parameter"]
+    });
+
+    const inbox = getPrivateInbox(runner, "parameter");
+    expect(inbox.tryPopAny()).toEqual([
+      "__control__",
+      {
+        event_type: "run",
+        properties: { value: 0.5 }
+      }
+    ]);
+  });
+
+  it("reports unrouted realtime parameters when no parameter node matches", async () => {
+    const runner = new WorkflowRunner("rt-parameter-miss", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs),
+      runMode: "realtime"
+    });
+
+    await runner.initializeForRealtime(
+      { job_id: "rt-parameter-miss" },
+      {
+        nodes: [
+          {
+            id: "parameter",
+            type: "nodetool.realtime.Parameter",
+            is_controlled: true,
+            properties: { name: "strength" }
+          }
+        ],
+        edges: []
+      }
+    );
+
+    await expect(runner.pushParameter("guidance", 0.5)).resolves.toEqual({
+      routed: false,
+      nodeIds: []
+    });
+  });
 });
 
 describe("RealtimeRunner skeleton", () => {
@@ -224,7 +287,7 @@ describe("RealtimeRunner skeleton", () => {
     ).toBe("realtime");
   });
 
-  it("exposes explicit stubs for stopRealtimeMode and pushParameter", async () => {
+  it("keeps stopRealtimeMode as an explicit stub", async () => {
     const realtimeRunner = new RealtimeRunner("rt-stubs", {
       resolveExecutor: () => simpleExecutor((inputs) => inputs)
     });
@@ -232,8 +295,31 @@ describe("RealtimeRunner skeleton", () => {
     await expect(realtimeRunner.stopRealtimeMode()).rejects.toThrow(
       "RealtimeRunner.stopRealtimeMode is not implemented yet"
     );
-    await expect(realtimeRunner.pushParameter("strength", 0.5)).rejects.toThrow(
-      "RealtimeRunner.pushParameter is not implemented yet"
+  });
+
+  it("delegates pushParameter to the underlying realtime-configured WorkflowRunner", async () => {
+    const realtimeRunner = new RealtimeRunner("rt-push-parameter", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs)
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      { job_id: "rt-push-parameter" },
+      {
+        nodes: [
+          {
+            id: "parameter",
+            type: "nodetool.realtime.Parameter",
+            is_controlled: true,
+            properties: { name: "strength" }
+          }
+        ],
+        edges: []
+      }
     );
+
+    await expect(realtimeRunner.pushParameter("strength", 0.5)).resolves.toEqual({
+      routed: true,
+      nodeIds: ["parameter"]
+    });
   });
 });
