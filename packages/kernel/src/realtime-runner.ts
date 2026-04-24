@@ -49,7 +49,7 @@ export class RealtimeRunner {
       return this.runner.snapshotRunResult("completed");
     }
 
-    let errorMessage: string | undefined;
+    const failureMessages: string[] = [];
 
     try {
       for (const inputName of this.runner.getMediaAdapterInputNames()) {
@@ -60,16 +60,17 @@ export class RealtimeRunner {
         await this.processingPromise;
       }
     } catch (error) {
-      errorMessage =
-        error instanceof Error ? error.message : String(error);
+      this.appendFailureMessage(failureMessages, error);
     }
 
     try {
       await this.runWarmStateHooks("stop");
     } catch (error) {
-      errorMessage =
-        error instanceof Error ? error.message : String(error);
+      this.appendFailureMessage(failureMessages, error);
     }
+
+    const errorMessage =
+      failureMessages.length > 0 ? failureMessages.join("; ") : undefined;
 
     return this.runner.snapshotRunResult(
       errorMessage ? "failed" : "completed",
@@ -133,5 +134,10 @@ export class RealtimeRunner {
         await executor.onSessionStop?.(context, sessionInfo);
       }
     }
+  }
+
+  private appendFailureMessage(messages: string[], error: unknown): void {
+    const message = error instanceof Error ? error.message : String(error);
+    messages.push(message);
   }
 }

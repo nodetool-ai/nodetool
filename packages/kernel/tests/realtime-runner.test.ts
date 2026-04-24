@@ -15,7 +15,7 @@ import {
 import type { NodeExecutor } from "../src/actor.js";
 import type { ProcessingContext, StreamingInputs, StreamingOutputs } from "@nodetool/runtime";
 
-const testExecutionContext = {
+const mockProcessingContext = {
   emit() {},
   setSendControlEvent() {}
 } as unknown as ProcessingContext;
@@ -370,7 +370,7 @@ describe("RealtimeRunner skeleton", () => {
     };
 
     const realtimeRunner = new RealtimeRunner("rt-live", {
-      executionContext: testExecutionContext,
+      executionContext: mockProcessingContext,
       resolveExecutor: (node) => {
         if (node.id === "warm") {
           return warmExecutor;

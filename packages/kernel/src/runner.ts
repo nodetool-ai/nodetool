@@ -718,6 +718,8 @@ export class WorkflowRunner {
       const inbox = this._inboxes.get(node.id)!;
       let executor = this._executors.get(node.id);
       if (!executor) {
+        // Realtime tests may bypass the normal initialize path or future callers
+        // may inject executors lazily, so retain a defensive fallback here.
         executor = this._options.resolveExecutor(node);
         this._executors.set(node.id, executor);
       }
