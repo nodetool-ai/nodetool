@@ -104,15 +104,13 @@ export const threadsRouter = router({
     .output(threadResponse)
     .query(async ({ ctx, input }) => {
       const existing = await Thread.find(ctx.userId, input.id);
-      if (existing) {
-        return toThreadResponse(existing);
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `Thread ${input.id} not found`
+        });
       }
-      const created = (await Thread.create({
-        id: input.id,
-        user_id: ctx.userId,
-        title: "New Thread"
-      })) as unknown as ThreadModel;
-      return toThreadResponse(created);
+      return toThreadResponse(existing);
     }),
 
   create: protectedProcedure
