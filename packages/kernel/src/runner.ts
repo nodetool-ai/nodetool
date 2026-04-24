@@ -71,7 +71,16 @@ export interface WorkflowGraphData {
   edges: Edge[];
 }
 
+/**
+ * Keep enough recent runtime history for operator diagnostics without letting a
+ * long-lived realtime session grow unbounded in memory.
+ */
 export const REALTIME_MESSAGE_BUFFER_LIMIT = 1024;
+
+/**
+ * Keep a small tail of the most recent output values per output node so
+ * realtime-mode previews remain inspectable without accumulating every frame.
+ */
 export const REALTIME_OUTPUT_BUFFER_LIMIT = 256;
 
 // ---------------------------------------------------------------------------
@@ -297,6 +306,11 @@ export class WorkflowRunner {
 
   /**
    * Prepare the runner for a realtime session without entering the standard run loop.
+   *
+   * The request argument is retained for API symmetry with `run(...)` and for
+   * future realtime lifecycle needs, even though the current initialization
+   * pipeline only needs the graph payload. Expected future uses include session
+   * metadata, realtime-only init flags, and transport-specific bootstrap data.
    */
   async initializeForRealtime(
     _request: RunJobRequest,
@@ -1087,6 +1101,14 @@ export class WorkflowRunner {
     values.push(value);
   }
 
+  /**
+   * Append into a FIFO bounded buffer, dropping the oldest entries first when
+   * realtime mode exceeds the configured limit.
+   *
+   * This array-based implementation is an intentionally small shared primitive
+   * for the current scaffold task; if profiling shows it on the hot path, the
+   * realtime runner can swap it for a dedicated circular buffer later.
+   */
   private _appendBounded<T>(values: T[], value: T, limit: number): void {
     values.push(value);
     if (values.length > limit) {

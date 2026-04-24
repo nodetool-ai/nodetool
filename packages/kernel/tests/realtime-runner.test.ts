@@ -31,6 +31,15 @@ const graph: { nodes: NodeDescriptor[]; edges: Edge[] } = {
   ]
 };
 
+const getPrivateMessages = (runner: WorkflowRunner): ProcessingMessage[] =>
+  (runner as unknown as { _messages: ProcessingMessage[] })._messages;
+
+const getPrivateOutputValues = (
+  runner: WorkflowRunner,
+  name: string
+): unknown[] | undefined =>
+  (runner as unknown as { _outputs: Map<string, unknown[]> })._outputs.get(name);
+
 describe("WorkflowRunner realtime primitives", () => {
   it("initializes a realtime graph without entering the normal run loop", async () => {
     const runner = new WorkflowRunner("rt-init", {
@@ -40,16 +49,12 @@ describe("WorkflowRunner realtime primitives", () => {
 
     await runner.initializeForRealtime({ job_id: "rt-init" }, graph);
 
-    expect(((runner as unknown as { _messages: ProcessingMessage[] })._messages)).toHaveLength(
-      0
-    );
+    expect(getPrivateMessages(runner)).toHaveLength(0);
 
     await expect(runner.pushInputValue("value", 42)).resolves.toBeUndefined();
-    expect(
-      ((runner as unknown as { _messages: ProcessingMessage[] })._messages[0] as {
-        type: string;
-      }).type
-    ).toBe("edge_update");
+    expect((getPrivateMessages(runner)[0] as { type: string }).type).toBe(
+      "edge_update"
+    );
   });
 
   it("bounds the realtime message buffer", () => {
@@ -71,9 +76,7 @@ describe("WorkflowRunner realtime primitives", () => {
       });
     }
 
-    const messages = (
-      runner as unknown as { _messages: ProcessingMessage[] }
-    )._messages;
+    const messages = getPrivateMessages(runner);
     expect(messages).toHaveLength(REALTIME_MESSAGE_BUFFER_LIMIT);
     expect((messages.at(0) as { job_id: string }).job_id).toBe("job-25");
     expect((messages.at(-1) as { job_id: string }).job_id).toBe(
@@ -97,9 +100,7 @@ describe("WorkflowRunner realtime primitives", () => {
       appendOutputValue("result", index);
     }
 
-    const outputs = (
-      runner as unknown as { _outputs: Map<string, unknown[]> }
-    )._outputs.get("result");
+    const outputs = getPrivateOutputValues(runner, "result");
 
     expect(outputs).toBeDefined();
     expect(outputs).toHaveLength(REALTIME_OUTPUT_BUFFER_LIMIT);

@@ -17,8 +17,9 @@ export interface RealtimeParameterUpdateResult {
 /**
  * RealtimeRunner is a composition shell around WorkflowRunner.
  *
- * The skeleton lives here so future realtime lifecycle behavior can grow in a
- * dedicated module without inflating runner.ts.
+ * Its long-term role is owning long-lived realtime session behavior — warm
+ * node lifecycle, parameter streaming, and media-adapter orchestration —
+ * while leaving the shared DAG execution primitives in runner.ts.
  */
 export class RealtimeRunner {
   readonly runner: WorkflowRunner;
@@ -38,6 +39,8 @@ export class RealtimeRunner {
   }
 
   async stopRealtimeMode(): Promise<RunResult> {
+    // TODO(PLAN-REALTIME step 6): finish media-source teardown and return the
+    // held runner's collected outputs/messages after long-lived realtime mode lands.
     throw new Error("RealtimeRunner.stopRealtimeMode is not implemented yet");
   }
 
@@ -45,6 +48,8 @@ export class RealtimeRunner {
     _name: string,
     _value: unknown
   ): Promise<RealtimeParameterUpdateResult> {
+    // TODO(PLAN-REALTIME step 6 / follow-up 347): route control-plane updates
+    // through dedicated realtime parameter handling instead of throwing.
     throw new Error("RealtimeRunner.pushParameter is not implemented yet");
   }
 }

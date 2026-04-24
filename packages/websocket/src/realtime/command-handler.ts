@@ -56,6 +56,11 @@ export interface RealtimeCommandHandlerDependencies {
   emitSessionSignal: (signal: RealtimeSessionSignal) => Promise<void>;
 }
 
+/**
+ * Handles realtime websocket session commands behind a narrow dependency
+ * interface so session mutation and runner orchestration stay out of the
+ * unified websocket runner god-class.
+ */
 export class RealtimeCommandHandler {
   constructor(private readonly dependencies: RealtimeCommandHandlerDependencies) {}
 
@@ -364,6 +369,8 @@ export class RealtimeCommandHandler {
     try {
       await this.persistRealtimeJobMetadata(jobId, session.session_id);
     } catch (error) {
+      // Best effort only: the realtime job still runs, but DB-backed
+      // job/session linkage will be missing until persistence succeeds.
       log.error("realtime metadata persistence failed", {
         error: error instanceof Error ? error.message : String(error),
         jobId,
@@ -433,7 +440,7 @@ export class RealtimeCommandHandler {
     }
 
     const parameterUpdates = this.normalizeParameters(data.parameters);
-    const unroutedParameters: string[] = [];
+    const unrouted_parameters: string[] = [];
     if (session.job_id) {
       const active = this.dependencies.getActiveJob(session.job_id);
       if (active) {
@@ -447,7 +454,7 @@ export class RealtimeCommandHandler {
               inputName,
               error: error instanceof Error ? error.message : String(error)
             });
-            unroutedParameters.push(inputName);
+            unrouted_parameters.push(inputName);
           }
         }
       }
@@ -463,7 +470,7 @@ export class RealtimeCommandHandler {
       workflow_id: session.workflow_id,
       job_id: session.job_id,
       status: session.status,
-      unrouted_parameters: unroutedParameters
+      unrouted_parameters
     };
   }
 
