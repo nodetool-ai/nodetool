@@ -16,8 +16,12 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@inquirer/prompts": "^5.0.0",
     "@nodetool/config": "*",
     "@nodetool/agents": "*",
+    "@nodetool/deploy": "*",
+    "@nodetool/storage": "*",
+    "@nodetool/vectorstore": "*",
     "@nodetool/websocket": "*",
     "@trpc/client": "^11.0.0",
     "@trpc/server": "^11.0.0",
@@ -36,6 +40,7 @@
     "@nodetool/sandbox-tools": "*",
     "@nodetool/security": "*",
     "chalk": "^5.3.0",
+    "js-yaml": "^4.1.0",
     "ws": "^8.18.3",
     "commander": "^12.1.0",
     "ink": "^6.8.0",
@@ -46,6 +51,7 @@
     "superjson": "^2.2.2"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.0.0",
     "vitest": "^4.1.2",
     "typescript": "^5.7.2"

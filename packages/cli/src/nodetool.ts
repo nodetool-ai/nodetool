@@ -32,6 +32,10 @@ import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { ProcessingContext } from "@nodetool/runtime";
+import {
+  registerDeployCommands,
+  registerListGcpOptions
+} from "./commands/deploy.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1336,6 +1340,13 @@ mcp
     printTable(results);
     console.log();
   });
+
+// ---------------------------------------------------------------------------
+// deploy / list-gcp-options — registered from commands/deploy.ts
+// ---------------------------------------------------------------------------
+
+registerDeployCommands(program);
+registerListGcpOptions(program);
 
 // ---------------------------------------------------------------------------
 
