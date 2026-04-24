@@ -366,6 +366,21 @@ export class RealtimeCommandHandler {
       };
     }
 
+    if (!this.dependencies.getActiveJob(jobId)) {
+      const message =
+        "Failed to start realtime session: job runner did not stay active";
+      await this.dependencies.failSessionStartup(session.session_id, jobId, message);
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "start",
+        session_id: session.session_id,
+        workflow_id: workflowId,
+        job_id: jobId,
+        error: message
+      };
+    }
+
     try {
       await this.persistRealtimeJobMetadata(jobId, session.session_id);
     } catch (error) {

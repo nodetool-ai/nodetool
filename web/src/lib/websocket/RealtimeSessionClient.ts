@@ -8,8 +8,7 @@ import type {
   RealtimeSessionTransport,
   RealtimeSessionUpdated
 } from "@nodetool/protocol";
-
-import { restFetch } from "../rest-fetch";
+import { trpcClient } from "../../trpc/client";
 import { globalWebSocketManager } from "./GlobalWebSocketManager";
 
 type RealtimeSessionMessage =
@@ -87,15 +86,8 @@ export class RealtimeSessionClient {
   }
 
   async listSessions(): Promise<RealtimeSessionRecord[]> {
-    const response = await restFetch("/api/realtime/sessions");
-    if (!response.ok) {
-      throw new Error(`Failed to load realtime sessions (${response.status})`);
-    }
-
-    const payload = (await response.json()) as {
-      sessions?: RealtimeSessionRecord[];
-    };
-    return payload.sessions ?? [];
+    const payload = await trpcClient.realtime.list.query();
+    return payload.sessions;
   }
 
   async startSession(
