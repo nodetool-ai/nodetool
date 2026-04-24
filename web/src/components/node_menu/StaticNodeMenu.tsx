@@ -9,6 +9,7 @@ import SearchInput from "../search/SearchInput";
 
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
 
 // theme
 import useNamespaceTree from "../../hooks/useNamespaceTree";
@@ -36,7 +37,8 @@ function StaticNodeMenu({ className }: StaticNodeMenuProps) {
       searchResults: state.searchResults,
       searchTerm: state.searchTerm,
       setSearchTerm: state.setSearchTerm
-    })
+    }),
+    shallow
   );
 
   const memoizedStyles = useMemo(() => staticMenuStyles(), []);

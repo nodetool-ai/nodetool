@@ -26,6 +26,7 @@ import { isProduction } from "../../lib/env";
 import { trpc } from "../../lib/trpc";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { shallow } from "zustand/shallow";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import { useGettingStartedStore } from "../../stores/GettingStartedStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -191,7 +192,7 @@ const InlineModelDownload: React.FC<{
   const { startDownload, downloads } = useModelDownloadStore((state) => ({
     startDownload: state.startDownload,
     downloads: state.downloads
-  }));
+  }), shallow);
   const downloadKey = model.repo_id || model.id;
 
   const inProgress = !!downloads[downloadKey];
