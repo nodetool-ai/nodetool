@@ -466,15 +466,20 @@ export class RealtimeCommandHandler {
       if (active) {
         for (const [inputName, value] of Object.entries(parameterUpdates)) {
           try {
+            let didRoute = false;
             const parameterResult = active.runner.pushParameter
               ? await active.runner.pushParameter(inputName, value)
               : { routed: false, nodeIds: [] };
+            didRoute = parameterResult.routed;
 
-            if (!parameterResult.routed) {
+            if (!didRoute) {
               await active.runner.pushInputValue(inputName, value);
+              didRoute = true;
             }
 
-            routed_parameters.push(inputName);
+            if (didRoute) {
+              routed_parameters.push(inputName);
+            }
           } catch (error) {
             log.warn("Failed to route realtime session parameter update", {
               sessionId,
