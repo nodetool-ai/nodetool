@@ -1,0 +1,6 @@
+{
+  "id": "second",
+  "name": "Second Example",
+  "description": "Another example.",
+  "graph": { "nodes": [], "edges": [] }
+}
