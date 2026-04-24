@@ -573,6 +573,8 @@ interface ActiveJob {
   comfyHandle?: ComfyExecutionHandle;
 }
 
+type WorkflowGraphPayload = NonNullable<RunJobRequest["graph"]>;
+
 class ToolBridge {
   private waiters = new Map<
     string,
@@ -743,6 +745,8 @@ export class UnifiedWebSocketRunner {
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
+  private realtimeSessionJobs = new Map<string, string>();
+  private realtimeJobSessions = new Map<string, string>();
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
@@ -1010,6 +1014,122 @@ export class UnifiedWebSocketRunner {
     return { ...(value as Record<string, unknown>) };
   }
 
+  private normalizeRealtimeGraph(
+    value: unknown
+  ): WorkflowGraphPayload | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (value === null) {
+      throw new Error("graph must be an object with nodes and edges arrays");
+    }
+    if (Array.isArray(value)) {
+      throw new Error("graph must be an object, not an array");
+    }
+    if (typeof value !== "object") {
+      throw new Error("graph must be an object with nodes and edges arrays");
+    }
+
+    const record = value as Record<string, unknown>;
+    if (!Array.isArray(record.nodes) || !Array.isArray(record.edges)) {
+      throw new Error("graph must include nodes and edges arrays");
+    }
+
+    return {
+      nodes: record.nodes.map((node) => ({ ...(node as Record<string, unknown>) })),
+      edges: record.edges.map((edge) => ({ ...(edge as Record<string, unknown>) }))
+    };
+  }
+
+  private clearRealtimeSessionTracking(
+    sessionId: string,
+    jobId?: string | null
+  ): void {
+    this.realtimeSessionJobs.delete(sessionId);
+    if (jobId) {
+      this.realtimeJobSessions.delete(jobId);
+    }
+  }
+
+  private async persistRealtimeJobMetadata(
+    jobId: string,
+    sessionId: string
+  ): Promise<void> {
+    const job = (await Job.get(jobId)) as Job | null;
+    if (!job) {
+      return;
+    }
+
+    job.metadata_json = {
+      ...(job.metadata_json ?? {}),
+      realtime_session_id: sessionId,
+      execution_mode: "realtime"
+    };
+    await job.save();
+  }
+
+  private async failRealtimeSessionStartup(
+    sessionId: string,
+    jobId: string,
+    reason: string
+  ): Promise<void> {
+    const userId = this.getRealtimeUserId();
+    const session = realtimeSessionManager.updateSession(sessionId, userId, {
+      status: "error"
+    });
+
+    if (session) {
+      await this.emitRealtimeSessionUpdated(session);
+      const stopped = realtimeSessionManager.stopSession(sessionId, userId);
+      if (stopped) {
+        await this.emitRealtimeSessionStopped(stopped, reason);
+      }
+    }
+
+    try {
+      const job = (await Job.get(jobId)) as Job | null;
+      if (job) {
+        job.markFailed(reason);
+        await job.save();
+      }
+    } catch (error) {
+      this.logError("realtime startup failure persistence failed", error);
+    }
+
+    this.clearRealtimeSessionTracking(sessionId, jobId);
+  }
+
+  private async finalizeRealtimeSessionForJob(
+    jobId: string,
+    status: ActiveJob["status"],
+    reason?: string
+  ): Promise<void> {
+    const sessionId = this.realtimeJobSessions.get(jobId);
+    if (!sessionId) {
+      return;
+    }
+
+    const userId = this.getRealtimeUserId();
+    if (status === "failed") {
+      const session = realtimeSessionManager.updateSession(sessionId, userId, {
+        status: "error"
+      });
+      if (session) {
+        await this.emitRealtimeSessionUpdated(session);
+      }
+    }
+
+    const stopped = realtimeSessionManager.stopSession(sessionId, userId);
+    if (stopped) {
+      await this.emitRealtimeSessionStopped(
+        stopped,
+        reason ?? (status === "failed" ? "error" : status)
+      );
+    }
+
+    this.clearRealtimeSessionTracking(sessionId, jobId);
+  }
+
   private async emitRealtimeSessionStarted(
     session: RealtimeSessionRecord
   ): Promise<void> {
@@ -1022,7 +1142,7 @@ export class UnifiedWebSocketRunner {
   private async emitRealtimeSessionUpdated(
     session: RealtimeSessionRecord
   ): Promise<void> {
-    const message: RealtimeSessionUpdated = {
+    const message: Record<string, unknown> = {
       type: "realtime_session_updated",
       ...session
     };
@@ -1033,7 +1153,7 @@ export class UnifiedWebSocketRunner {
     session: RealtimeSessionRecord,
     reason: string
   ): Promise<void> {
-    const message: RealtimeSessionStopped = {
+    const message: Record<string, unknown> = {
       type: "realtime_session_stopped",
       session_id: session.session_id,
       workflow_id: session.workflow_id,
@@ -1065,15 +1185,61 @@ export class UnifiedWebSocketRunner {
         ? data.session_id
         : undefined;
     const parameters = this.normalizeRealtimeParameters(data.parameters);
+    const jobId = randomUUID();
+    const userId = this.getRealtimeUserId();
     const session = realtimeSessionManager.createSession({
       sessionId,
-      userId: this.getRealtimeUserId(),
+      userId,
       workflowId,
+      jobId,
       parameters,
-      transport: "websocket"
+      transport: "websocket",
+      status: "starting"
     });
 
+    this.realtimeSessionJobs.set(session.session_id, jobId);
+    this.realtimeJobSessions.set(jobId, session.session_id);
+
+    try {
+      const graph = this.normalizeRealtimeGraph(data.graph);
+      await this.runJob({
+        job_id: jobId,
+        workflow_id: workflowId,
+        graph,
+        params: parameters
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to start realtime session";
+      await this.failRealtimeSessionStartup(session.session_id, jobId, message);
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "start",
+        session_id: session.session_id,
+        workflow_id: workflowId,
+        job_id: jobId,
+        error: message
+      };
+    }
+
+    try {
+      await this.persistRealtimeJobMetadata(jobId, session.session_id);
+    } catch (error) {
+      this.logError("realtime metadata persistence failed", error);
+    }
     await this.emitRealtimeSessionStarted(session);
+
+    const runningSession = realtimeSessionManager.updateSession(
+      session.session_id,
+      userId,
+      { status: "running" }
+    );
+    if (runningSession) {
+      await this.emitRealtimeSessionUpdated(runningSession);
+    }
 
     return {
       type: "realtime_session_ack",
@@ -1081,7 +1247,8 @@ export class UnifiedWebSocketRunner {
       action: "start",
       session_id: session.session_id,
       workflow_id: session.workflow_id,
-      status: session.status
+      job_id: jobId,
+      status: "running"
     };
   }
 
@@ -1105,8 +1272,7 @@ export class UnifiedWebSocketRunner {
       sessionId,
       this.getRealtimeUserId(),
       {
-        parameters: this.normalizeRealtimeParameters(data.parameters),
-        status: "running"
+        parameters: this.normalizeRealtimeParameters(data.parameters)
       }
     );
 
@@ -1120,6 +1286,27 @@ export class UnifiedWebSocketRunner {
       };
     }
 
+    const parameterUpdates = this.normalizeRealtimeParameters(data.parameters);
+    const unrouted_parameters: string[] = [];
+    if (session.job_id) {
+      const active = this.activeJobs.get(session.job_id);
+      if (active) {
+        for (const [inputName, value] of Object.entries(parameterUpdates)) {
+          try {
+            await active.runner.pushInputValue(inputName, value);
+          } catch (error) {
+            log.warn("Failed to route realtime session parameter update", {
+              sessionId,
+              jobId: session.job_id,
+              inputName,
+              error: error instanceof Error ? error.message : String(error)
+            });
+            unrouted_parameters.push(inputName);
+          }
+        }
+      }
+    }
+
     await this.emitRealtimeSessionUpdated(session);
 
     return {
@@ -1128,7 +1315,9 @@ export class UnifiedWebSocketRunner {
       action: "update",
       session_id: session.session_id,
       workflow_id: session.workflow_id,
-      status: session.status
+      job_id: session.job_id,
+      status: session.status,
+      unrouted_parameters
     };
   }
 
@@ -1152,6 +1341,14 @@ export class UnifiedWebSocketRunner {
       typeof data.reason === "string" && data.reason.length > 0
         ? data.reason
         : "user";
+    const existingSession = realtimeSessionManager.getSession(
+      sessionId,
+      this.getRealtimeUserId()
+    );
+    const jobId = existingSession?.job_id ?? null;
+    if (jobId) {
+      await this.cancelJob(jobId, existingSession?.workflow_id ?? undefined);
+    }
     const session = realtimeSessionManager.stopSession(
       sessionId,
       this.getRealtimeUserId()
@@ -1168,6 +1365,7 @@ export class UnifiedWebSocketRunner {
     }
 
     await this.emitRealtimeSessionStopped(session, reason);
+    this.clearRealtimeSessionTracking(sessionId, jobId);
 
     return {
       type: "realtime_session_ack",
@@ -1175,6 +1373,7 @@ export class UnifiedWebSocketRunner {
       action: "stop",
       session_id: session.session_id,
       workflow_id: session.workflow_id,
+      job_id: session.job_id,
       status: session.status
     };
   }
@@ -1823,6 +2022,11 @@ export class UnifiedWebSocketRunner {
       this.logError("job persistence (final status) failed", error);
     }
 
+    await this.finalizeRealtimeSessionForJob(
+      active.jobId,
+      active.status,
+      active.error
+    );
     this.activeJobs.delete(active.jobId);
   }
 

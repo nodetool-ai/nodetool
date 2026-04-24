@@ -11,10 +11,13 @@ describe("RealtimeSessionManager", () => {
     const session = realtimeSessionManager.createSession({
       userId: "user-1",
       workflowId: "workflow-1",
+      jobId: "job-1",
       parameters: { brightness: 120 }
     });
 
     expect(session.workflow_id).toBe("workflow-1");
+    expect(session.job_id).toBe("job-1");
+    expect(session.status).toBe("starting");
     expect(session.parameters).toEqual({ brightness: 120 });
 
     const sessions = realtimeSessionManager.listSessions("user-1");
@@ -43,10 +46,12 @@ describe("RealtimeSessionManager", () => {
       session.session_id,
       "user-1",
       {
+        status: "running",
         parameters: { brightness: 180 }
       }
     );
 
+    expect(updated?.status).toBe("running");
     expect(updated?.parameters.brightness).toBe(180);
   });
 
