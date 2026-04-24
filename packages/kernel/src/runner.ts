@@ -152,6 +152,12 @@ export class WorkflowRunner {
     }
   >();
 
+  /** Reused executor instances keyed by node id. */
+  private _executors = new Map<string, NodeExecutor>();
+
+  /** Background graph-processing task used by realtime mode. */
+  private _activeProcessingPromise: Promise<void> | null = null;
+
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
     this._options = options;
@@ -236,6 +242,60 @@ export class WorkflowRunner {
     };
   }
 
+  async startBackgroundProcessing(
+    params: Record<string, unknown> = {}
+  ): Promise<void> {
+    if (!this._graph) {
+      throw new Error("Workflow has not been started");
+    }
+
+    await this._dispatchInputs(params);
+    this._bindSendControlEvent();
+    this._activeProcessingPromise = this._processGraph();
+  }
+
+  async waitForBackgroundProcessing(): Promise<void> {
+    await this._activeProcessingPromise;
+  }
+
+  getExecutionContext(): ProcessingContext | undefined {
+    return this._options.executionContext;
+  }
+
+  getNodes(): NodeDescriptor[] {
+    if (!this._graph) {
+      throw new Error("Workflow has not been started");
+    }
+
+    return [...this._graph.nodes];
+  }
+
+  getExecutor(nodeId: string): NodeExecutor | undefined {
+    return this._executors.get(nodeId);
+  }
+
+  getMediaAdapterInputNames(): string[] {
+    if (!this._graph) {
+      throw new Error("Workflow has not been started");
+    }
+
+    return this._graph.nodes
+      .filter((node) => node.is_media_adapter && this._isExternalInputNode(node))
+      .map((node) => this._getExternalInputName(node));
+  }
+
+  snapshotRunResult(
+    status: RunResult["status"] = "completed",
+    error?: string
+  ): RunResult {
+    return {
+      outputs: Object.fromEntries(this._outputs),
+      messages: this._messages,
+      status,
+      error
+    };
+  }
+
   /**
    * Signal end-of-stream for an input node so downstream handles can complete.
    */
@@ -284,18 +344,7 @@ export class WorkflowRunner {
       });
       // Dispatch input parameters
       await this._dispatchInputs(request.params ?? {});
-
-      // Bind sendControlEvent to processing context so agent nodes can dispatch
-      // control events to controlled nodes and await their results.
-      if (
-        this._options.executionContext &&
-        typeof this._options.executionContext.setSendControlEvent === "function"
-      ) {
-        this._options.executionContext.setSendControlEvent(
-          (targetNodeId: string, properties: Record<string, unknown>) =>
-            this.sendControlEvent(targetNodeId, properties)
-        );
-      }
+      this._bindSendControlEvent();
 
       // Process graph (spawn actors)
       await this._processGraph();
@@ -349,6 +398,8 @@ export class WorkflowRunner {
     this._messages = [];
     this._cancelled = false;
     this._pendingControlResponses = new Map();
+    this._executors = new Map();
+    this._activeProcessingPromise = null;
   }
 
   /**
@@ -420,6 +471,7 @@ export class WorkflowRunner {
   private async _initializeGraph(): Promise<void> {
     for (const node of this._graph.nodes) {
       const executor = this._options.resolveExecutor(node);
+      this._executors.set(node.id, executor);
       if (executor.initialize) {
         await executor.initialize();
       }
@@ -664,7 +716,11 @@ export class WorkflowRunner {
       }
 
       const inbox = this._inboxes.get(node.id)!;
-      const executor = this._options.resolveExecutor(node);
+      const executor =
+        this._executors.get(node.id) ?? this._options.resolveExecutor(node);
+      if (!this._executors.has(node.id)) {
+        this._executors.set(node.id, executor);
+      }
 
       // Compute sticky handles: handles fed by non-streaming edges
       // are sticky from the start (Python parity: _analyze_streaming).
@@ -1181,6 +1237,18 @@ export class WorkflowRunner {
       this._options.executionContext.emit(msg);
     }
     log.debug("Message emitted", { jobId: this.jobId, type: msg.type });
+  }
+
+  private _bindSendControlEvent(): void {
+    if (
+      this._options.executionContext &&
+      typeof this._options.executionContext.setSendControlEvent === "function"
+    ) {
+      this._options.executionContext.setSendControlEvent(
+        (targetNodeId: string, properties: Record<string, unknown>) =>
+          this.sendControlEvent(targetNodeId, properties)
+      );
+    }
   }
 
   private _appendMessage(msg: ProcessingMessage): void {

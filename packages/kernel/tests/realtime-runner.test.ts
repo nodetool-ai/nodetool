@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Edge, NodeDescriptor, ProcessingMessage } from "@nodetool/protocol";
+import type {
+  Edge,
+  NodeDescriptor,
+  ProcessingMessage,
+  RealtimeSessionInfo
+} from "@nodetool/protocol";
 import {
   NodeInbox,
   RealtimeRunner,
@@ -8,6 +13,7 @@ import {
   WorkflowRunner
 } from "../src/index.js";
 import type { NodeExecutor } from "../src/actor.js";
+import type { ProcessingContext, StreamingInputs, StreamingOutputs } from "@nodetool/runtime";
 
 const simpleExecutor = (
   fn: (inputs: Record<string, unknown>) => Record<string, unknown>
@@ -287,14 +293,17 @@ describe("RealtimeRunner skeleton", () => {
     ).toBe("realtime");
   });
 
-  it("keeps stopRealtimeMode as an explicit stub", async () => {
+  it("returns an empty completed result if realtime mode never started", async () => {
     const realtimeRunner = new RealtimeRunner("rt-stubs", {
       resolveExecutor: () => simpleExecutor((inputs) => inputs)
     });
 
-    await expect(realtimeRunner.stopRealtimeMode()).rejects.toThrow(
-      "RealtimeRunner.stopRealtimeMode is not implemented yet"
-    );
+    await expect(realtimeRunner.stopRealtimeMode()).resolves.toEqual({
+      outputs: {},
+      messages: [],
+      status: "completed",
+      error: undefined
+    });
   });
 
   it("delegates pushParameter to the underlying realtime-configured WorkflowRunner", async () => {
@@ -321,5 +330,108 @@ describe("RealtimeRunner skeleton", () => {
       routed: true,
       nodeIds: ["parameter"]
     });
+  });
+
+  it("starts background processing, invokes warm-state hooks, and stops cleanly", async () => {
+    const lifecycleEvents: string[] = [];
+    const seenSessions: RealtimeSessionInfo[] = [];
+
+    const warmExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(inputs: StreamingInputs, outputs: StreamingOutputs) {
+        for await (const frame of inputs.stream("frame")) {
+          await outputs.emit("frame", frame);
+        }
+      },
+      resetWarmState() {
+        lifecycleEvents.push("reset");
+      },
+      async onSessionStart(
+        _context: ProcessingContext,
+        session: RealtimeSessionInfo
+      ) {
+        lifecycleEvents.push("start");
+        seenSessions.push(session);
+      },
+      async onSessionStop(
+        _context: ProcessingContext,
+        session: RealtimeSessionInfo
+      ) {
+        lifecycleEvents.push("stop");
+        seenSessions.push(session);
+      }
+    };
+
+    const realtimeRunner = new RealtimeRunner("rt-live", {
+      resolveExecutor: (node) => {
+        if (node.id === "warm") {
+          return warmExecutor;
+        }
+        return simpleExecutor((inputs) => inputs);
+      }
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      {
+        job_id: "rt-live",
+        workflow_id: "workflow-live"
+      },
+      {
+        nodes: [
+          {
+            id: "source",
+            type: "test.Input",
+            name: "camera",
+            is_streaming_output: true,
+            is_media_adapter: true
+          },
+          {
+            id: "warm",
+            type: "test.WarmStreaming",
+            is_streaming_input: true,
+            owns_warm_state: true,
+            outputs: { frame: "int" }
+          },
+          {
+            id: "sink",
+            type: "test.Output",
+            name: "result"
+          }
+        ],
+        edges: [
+          {
+            source: "source",
+            sourceHandle: "value",
+            target: "warm",
+            targetHandle: "frame"
+          },
+          {
+            source: "warm",
+            sourceHandle: "frame",
+            target: "sink",
+            targetHandle: "value"
+          }
+        ]
+      }
+    );
+
+    expect(lifecycleEvents).toEqual(["reset", "start"]);
+    expect(seenSessions[0]).toMatchObject({
+      session_id: "rt-live",
+      workflow_id: "workflow-live",
+      job_id: "rt-live",
+      status: "running"
+    });
+
+    await realtimeRunner.runner.pushInputValue("camera", 7);
+
+    const result = await realtimeRunner.stopRealtimeMode();
+
+    expect(lifecycleEvents).toEqual(["reset", "start", "stop"]);
+    expect(seenSessions[1]?.session_id).toBe("rt-live");
+    expect(result.status).toBe("completed");
+    expect(result.outputs.result).toEqual([7]);
   });
 });

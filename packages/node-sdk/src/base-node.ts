@@ -298,7 +298,16 @@ export abstract class BaseNode {
       }.bind(this) as NodeExecutor["genProcess"],
       preProcess: () => this.preProcess(),
       finalize: () => this.finalize(),
-      initialize: () => this.initialize()
+      initialize: () => this.initialize(),
+      onSessionStart: (
+        context: ProcessingContext,
+        session: RealtimeSessionInfo
+      ) => this.onSessionStart(context, session),
+      onSessionStop: (
+        context: ProcessingContext,
+        session: RealtimeSessionInfo
+      ) => this.onSessionStop(context, session),
+      resetWarmState: () => this.resetWarmState()
     };
     if (this.run) {
       executor.run = async (
