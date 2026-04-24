@@ -6,6 +6,7 @@
  * interface for backward compatibility.
  */
 
+import type { RealtimeSessionInfo } from "@nodetool/protocol";
 import type { ProcessingContext } from "./context.js";
 
 // ---------------------------------------------------------------------------
@@ -76,4 +77,19 @@ export interface NodeExecutor {
 
   /** Called once during graph initialization. */
   initialize?(): Promise<void>;
+
+  /** Called when a realtime session starts for warm-state nodes. */
+  onSessionStart?(
+    context: ProcessingContext,
+    session: RealtimeSessionInfo
+  ): Promise<void>;
+
+  /** Called when a realtime session stops for warm-state nodes. */
+  onSessionStop?(
+    context: ProcessingContext,
+    session: RealtimeSessionInfo
+  ): Promise<void>;
+
+  /** Clears any retained warm-state between realtime sessions. */
+  resetWarmState?(): void;
 }

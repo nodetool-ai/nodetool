@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Edge, NodeDescriptor, ProcessingMessage } from "@nodetool/protocol";
+import type {
+  Edge,
+  NodeDescriptor,
+  ProcessingMessage,
+  RealtimeSessionInfo
+} from "@nodetool/protocol";
 import {
   NodeInbox,
   RealtimeRunner,
@@ -8,6 +13,12 @@ import {
   WorkflowRunner
 } from "../src/index.js";
 import type { NodeExecutor } from "../src/actor.js";
+import type { ProcessingContext, StreamingInputs, StreamingOutputs } from "@nodetool/runtime";
+
+const mockProcessingContext = {
+  emit() {},
+  setSendControlEvent() {}
+} as unknown as ProcessingContext;
 
 const simpleExecutor = (
   fn: (inputs: Record<string, unknown>) => Record<string, unknown>
@@ -204,6 +215,69 @@ describe("WorkflowRunner realtime primitives", () => {
     expect(values).toEqual([1]);
     expect(inbox.getDroppedCount("value")).toBe(2);
   });
+
+  it("routes realtime parameter updates into matching parameter node control inboxes", async () => {
+    const runner = new WorkflowRunner("rt-parameter", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs),
+      runMode: "realtime"
+    });
+
+    await runner.initializeForRealtime(
+      { job_id: "rt-parameter" },
+      {
+        nodes: [
+          {
+            id: "parameter",
+            type: "nodetool.realtime.Parameter",
+            is_controlled: true,
+            properties: { name: "strength" }
+          }
+        ],
+        edges: []
+      }
+    );
+
+    await expect(runner.pushParameter("strength", 0.5)).resolves.toEqual({
+      routed: true,
+      nodeIds: ["parameter"]
+    });
+
+    const inbox = getPrivateInbox(runner, "parameter");
+    expect(inbox.tryPopAny()).toEqual([
+      "__control__",
+      {
+        event_type: "run",
+        properties: { value: 0.5 }
+      }
+    ]);
+  });
+
+  it("reports unrouted realtime parameters when no parameter node matches", async () => {
+    const runner = new WorkflowRunner("rt-parameter-miss", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs),
+      runMode: "realtime"
+    });
+
+    await runner.initializeForRealtime(
+      { job_id: "rt-parameter-miss" },
+      {
+        nodes: [
+          {
+            id: "parameter",
+            type: "nodetool.realtime.Parameter",
+            is_controlled: true,
+            properties: { name: "strength" }
+          }
+        ],
+        edges: []
+      }
+    );
+
+    await expect(runner.pushParameter("guidance", 0.5)).resolves.toEqual({
+      routed: false,
+      nodeIds: []
+    });
+  });
 });
 
 describe("RealtimeRunner skeleton", () => {
@@ -224,16 +298,170 @@ describe("RealtimeRunner skeleton", () => {
     ).toBe("realtime");
   });
 
-  it("exposes explicit stubs for stopRealtimeMode and pushParameter", async () => {
+  it("returns an empty completed result if realtime mode never started", async () => {
     const realtimeRunner = new RealtimeRunner("rt-stubs", {
       resolveExecutor: () => simpleExecutor((inputs) => inputs)
     });
 
-    await expect(realtimeRunner.stopRealtimeMode()).rejects.toThrow(
-      "RealtimeRunner.stopRealtimeMode is not implemented yet"
+    await expect(realtimeRunner.stopRealtimeMode()).resolves.toEqual({
+      outputs: {},
+      messages: [],
+      status: "completed",
+      error: undefined
+    });
+  });
+
+  it("delegates pushParameter to the underlying realtime-configured WorkflowRunner", async () => {
+    const realtimeRunner = new RealtimeRunner("rt-push-parameter", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs)
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      { job_id: "rt-push-parameter" },
+      {
+        nodes: [
+          {
+            id: "parameter",
+            type: "nodetool.realtime.Parameter",
+            is_controlled: true,
+            properties: { name: "strength" }
+          }
+        ],
+        edges: []
+      }
     );
-    await expect(realtimeRunner.pushParameter("strength", 0.5)).rejects.toThrow(
-      "RealtimeRunner.pushParameter is not implemented yet"
+
+    await expect(realtimeRunner.pushParameter("strength", 0.5)).resolves.toEqual({
+      routed: true,
+      nodeIds: ["parameter"]
+    });
+  });
+
+  it("starts background processing, invokes warm-state hooks, and stops cleanly", async () => {
+    const lifecycleEvents: string[] = [];
+    const seenSessions: RealtimeSessionInfo[] = [];
+
+    const warmExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(inputs: StreamingInputs, outputs: StreamingOutputs) {
+        for await (const frame of inputs.stream("frame")) {
+          await outputs.emit("frame", frame);
+        }
+      },
+      resetWarmState() {
+        lifecycleEvents.push("reset");
+      },
+      async onSessionStart(
+        _context: ProcessingContext,
+        session: RealtimeSessionInfo
+      ) {
+        lifecycleEvents.push("start");
+        seenSessions.push(session);
+      },
+      async onSessionStop(
+        _context: ProcessingContext,
+        session: RealtimeSessionInfo
+      ) {
+        lifecycleEvents.push("stop");
+        seenSessions.push(session);
+      }
+    };
+
+    const realtimeRunner = new RealtimeRunner("rt-live", {
+      executionContext: mockProcessingContext,
+      resolveExecutor: (node) => {
+        if (node.id === "warm") {
+          return warmExecutor;
+        }
+        return simpleExecutor((inputs) => inputs);
+      }
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      {
+        job_id: "rt-live",
+        workflow_id: "workflow-live"
+      },
+      {
+        nodes: [
+          {
+            id: "source",
+            type: "test.Input",
+            name: "camera",
+            is_streaming_output: true,
+            is_media_adapter: true
+          },
+          {
+            id: "warm",
+            type: "test.WarmStreaming",
+            is_streaming_input: true,
+            owns_warm_state: true,
+            outputs: { frame: "int" }
+          },
+          {
+            id: "sink",
+            type: "test.Output",
+            name: "result"
+          }
+        ],
+        edges: [
+          {
+            source: "source",
+            sourceHandle: "value",
+            target: "warm",
+            targetHandle: "frame"
+          },
+          {
+            source: "warm",
+            sourceHandle: "frame",
+            target: "sink",
+            targetHandle: "value"
+          }
+        ]
+      }
+    );
+
+    expect(lifecycleEvents).toEqual(["reset", "start"]);
+    expect(seenSessions[0]).toMatchObject({
+      session_id: "rt-live",
+      workflow_id: "workflow-live",
+      job_id: "rt-live",
+      status: "running"
+    });
+
+    await realtimeRunner.runner.pushInputValue("camera", 7);
+
+    const result = await realtimeRunner.stopRealtimeMode();
+
+    expect(lifecycleEvents).toEqual(["reset", "start", "stop"]);
+    expect(seenSessions[1]?.session_id).toBe("rt-live");
+    expect(result.status).toBe("completed");
+    expect(result.outputs.result).toEqual([7]);
+  });
+
+  it("fails warm-state startup without an execution context", async () => {
+    const realtimeRunner = new RealtimeRunner("rt-no-context", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs)
+    });
+
+    await expect(
+      realtimeRunner.startRealtimeMode(
+        { job_id: "rt-no-context" },
+        {
+          nodes: [
+            {
+              id: "warm",
+              type: "test.Warm",
+              owns_warm_state: true
+            }
+          ],
+          edges: []
+        }
+      )
+    ).rejects.toThrow(
+      "RealtimeRunner requires an executionContext for warm-state hooks"
     );
   });
 });

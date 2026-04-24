@@ -32,6 +32,10 @@ interface RealtimeRunJobRequest {
 interface ActiveRealtimeJob {
   runner: {
     pushInputValue(inputName: string, value: unknown): Promise<void>;
+    pushParameter?(
+      name: string,
+      value: unknown
+    ): Promise<{ routed: boolean; nodeIds: string[] }>;
   };
 }
 
@@ -455,13 +459,24 @@ export class RealtimeCommandHandler {
     }
 
     const parameterUpdates = this.normalizeParameters(data.parameters);
+    const routed_parameters: string[] = [];
     const unrouted_parameters: string[] = [];
     if (session.job_id) {
       const active = this.dependencies.getActiveJob(session.job_id);
       if (active) {
         for (const [inputName, value] of Object.entries(parameterUpdates)) {
           try {
+            const parameterResult = active.runner.pushParameter
+              ? await active.runner.pushParameter(inputName, value)
+              : { routed: false, nodeIds: [] };
+
+            if (parameterResult.routed) {
+              routed_parameters.push(inputName);
+              continue;
+            }
+
             await active.runner.pushInputValue(inputName, value);
+            routed_parameters.push(inputName);
           } catch (error) {
             log.warn("Failed to route realtime session parameter update", {
               sessionId,
@@ -485,6 +500,7 @@ export class RealtimeCommandHandler {
       workflow_id: session.workflow_id,
       job_id: session.job_id,
       status: session.status,
+      routed_parameters,
       unrouted_parameters
     };
   }
