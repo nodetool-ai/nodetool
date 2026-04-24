@@ -7,6 +7,12 @@ class ConcreteNode extends BaseNode {
   static readonly nodeType = "test.Concrete";
   static readonly title = "Concrete";
   static readonly description = "Test node";
+  static readonly isRealtimeCapable = true;
+  static readonly ownsWarmState = true;
+  static readonly isMediaAdapter = true;
+  static readonly inputBufferPolicy = {
+    x: { capacity: 2, overflowPolicy: "drop_oldest" as const }
+  };
 
   @prop({ type: "int", default: 10 })
   declare x: number;
@@ -102,10 +108,56 @@ describe("BaseNode", () => {
     expect(desc.is_streaming_input).toBe(false);
     expect(desc.is_streaming_output).toBe(false);
     expect(desc.is_controlled).toBe(false);
+    expect(desc.is_realtime_capable).toBe(true);
+    expect(desc.owns_warm_state).toBe(true);
+    expect(desc.is_media_adapter).toBe(true);
+    expect(desc.inputBufferPolicy).toEqual({
+      x: { capacity: 2, overflowPolicy: "drop_oldest" }
+    });
   });
 
   it("toDescriptor() uses nodeType as id when none provided", () => {
     const desc = ConcreteNode.toDescriptor();
     expect(desc.id).toBe("test.Concrete");
+  });
+
+  it("session lifecycle hooks are overrideable and default to no-op", async () => {
+    const events: string[] = [];
+
+    class SessionNode extends BaseNode {
+      static readonly nodeType = "test.Session";
+
+      async onSessionStart() {
+        events.push("start");
+      }
+
+      async onSessionStop() {
+        events.push("stop");
+      }
+
+      resetWarmState() {
+        events.push("reset");
+      }
+
+      async process(): Promise<Record<string, unknown>> {
+        return {};
+      }
+    }
+
+    const sessionNode = new SessionNode();
+    await sessionNode.onSessionStart({} as never, {} as never);
+    sessionNode.resetWarmState();
+    await sessionNode.onSessionStop({} as never, {} as never);
+
+    const plainNode = new ConcreteNode();
+    await expect(
+      plainNode.onSessionStart({} as never, {} as never)
+    ).resolves.toBeUndefined();
+    expect(() => plainNode.resetWarmState()).not.toThrow();
+    await expect(
+      plainNode.onSessionStop({} as never, {} as never)
+    ).resolves.toBeUndefined();
+
+    expect(events).toEqual(["start", "reset", "stop"]);
   });
 });

@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import type { HttpApiOptions } from "../http-api.js";
-import { realtimeSessionManager } from "../realtime-session-manager.js";
+import { realtimeSessionManager } from "./session-manager.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;

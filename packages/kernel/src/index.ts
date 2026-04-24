@@ -10,14 +10,28 @@ export {
   type NodeTypeResolver,
   type ResolvedNodeType
 } from "./graph.js";
-export { NodeInbox, type MessageEnvelope } from "./inbox.js";
+export {
+  NodeInbox,
+  type MessageEnvelope,
+  type NodeInboxOptions,
+  type InputBufferOverflowPolicy,
+  type InputBufferPolicy
+} from "./inbox.js";
 export { NodeActor, type NodeExecutor, type ActorResult } from "./actor.js";
 export {
   WorkflowRunner,
   type RunJobRequest,
+  type WorkflowGraphData,
   type WorkflowRunnerOptions,
-  type RunResult
+  type RunResult,
+  REALTIME_MESSAGE_BUFFER_LIMIT,
+  REALTIME_OUTPUT_BUFFER_LIMIT
 } from "./runner.js";
+export {
+  RealtimeRunner,
+  type RealtimeRunnerOptions,
+  type RealtimeParameterUpdateResult
+} from "./realtime-runner.js";
 export { Channel, ChannelManager, type ChannelStats } from "./channel.js";
 export { NodeInputs, NodeOutputs, type NodeOutputsOptions } from "./io.js";
 export {

@@ -19,7 +19,8 @@ import type {
   NodeDescriptor,
   Edge,
   ProcessingMessage,
-  ControlEvent
+  ControlEvent,
+  InputBufferPolicy
 } from "@nodetool/protocol";
 import { TypeMetadata } from "@nodetool/protocol";
 
@@ -59,9 +60,29 @@ export interface WorkflowRunnerOptions {
   /** Optional per-inbox buffer limit. */
   bufferLimit?: number | null;
 
+  /** Selects one-shot job execution or realtime session initialization mode. */
+  runMode?: "one_shot" | "realtime";
+
   /** Optional execution context passed to each node executor call. */
   executionContext?: ProcessingContext;
 }
+
+export interface WorkflowGraphData {
+  nodes: NodeDescriptor[];
+  edges: Edge[];
+}
+
+/**
+ * Keep enough recent runtime history for operator diagnostics without letting a
+ * long-lived realtime session grow unbounded in memory.
+ */
+export const REALTIME_MESSAGE_BUFFER_LIMIT = 1024;
+
+/**
+ * Keep a small tail of the most recent output values per output node so
+ * realtime-mode previews remain inspectable without accumulating every frame.
+ */
+export const REALTIME_OUTPUT_BUFFER_LIMIT = 256;
 
 // ---------------------------------------------------------------------------
 // Runner result
@@ -202,32 +223,11 @@ export class WorkflowRunner {
    */
   async run(
     request: RunJobRequest,
-    graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
+    graphData: WorkflowGraphData
   ): Promise<RunResult> {
-    this._resetRunState();
-
     try {
-      log.info("Workflow started", {
-        jobId: request.job_id,
-        workflowId: request.workflow_id
-      });
-      // Rewrite the graph to route around nodes marked
-      // `ui_properties.bypassed === true`. Each outgoing edge of a
-      // bypassed node is re-attached to the matching upstream source
-      // (by type compatibility); outgoing edges with no compatible
-      // upstream are dropped, as is the bypassed node itself.
-      const effectiveGraph = rewriteBypassedNodes(graphData);
-      this._graph = new Graph(effectiveGraph);
-
-      // Python parity: _filter_invalid_edges — silently remove edges
-      // whose source or target node doesn't exist in the graph.
-      this._filterInvalidEdges();
-
-      // Analyze streaming paths (Python parity: _analyze_streaming)
-      this._analyzeStreaming();
-
-      // Validate
-      this._graph.validate();
+      log.info("Workflow started", { jobId: request.job_id, workflowId: request.workflow_id });
+      await this.initializeForRealtime(request, graphData);
 
       // Emit job_update: running
       this._emit({
@@ -236,16 +236,6 @@ export class WorkflowRunner {
         job_id: request.job_id,
         workflow_id: request.workflow_id ?? null
       });
-
-      // Detect multi-edge list inputs
-      this._detectMultiEdgeListInputs();
-
-      // Initialize inboxes
-      this._initializeInboxes();
-
-      // Initialize all nodes (Python parity: initialize_graph)
-      await this._initializeGraph();
-
       // Dispatch input parameters
       await this._dispatchInputs(request.params ?? {});
 
@@ -316,6 +306,30 @@ export class WorkflowRunner {
   }
 
   /**
+   * Prepare the runner for a realtime session without entering the standard run loop.
+   *
+   * The request argument is retained for API symmetry with `run(...)` and for
+   * future realtime lifecycle needs, even though the current initialization
+   * pipeline only needs the graph payload. Expected future uses include session
+   * metadata, realtime-only init flags, and transport-specific bootstrap data.
+   */
+  async initializeForRealtime(
+    _request: RunJobRequest,
+    graphData: WorkflowGraphData
+  ): Promise<void> {
+    this._resetRunState();
+
+    const effectiveGraph = rewriteBypassedNodes(graphData);
+    this._graph = new Graph(effectiveGraph);
+    this._filterInvalidEdges();
+    this._analyzeStreaming();
+    this._graph.validate();
+    this._detectMultiEdgeListInputs();
+    this._initializeInboxes();
+    await this._initializeGraph();
+  }
+
+  /**
    * Cancel the running workflow.
    */
   cancel(): void {
@@ -372,10 +386,20 @@ export class WorkflowRunner {
 
   private _initializeInboxes(): void {
     for (const node of this._graph.nodes) {
-      const inbox = new NodeInbox(this._options.bufferLimit ?? null);
+      const incomingData = this._graph.findDataEdges(node.id);
+      const incomingControl = this._graph
+        .findIncomingEdges(node.id)
+        .filter(isControlEdge);
+      const inbox = new NodeInbox({
+        bufferLimit: this._options.bufferLimit ?? null,
+        handlePolicies: this._resolveInputBufferPolicies(
+          node,
+          incomingData,
+          incomingControl
+        )
+      });
 
       // Count upstream sources per handle from data edges
-      const incomingData = this._graph.findDataEdges(node.id);
       const handleCounts = new Map<string, number>();
       for (const edge of incomingData) {
         const cur = handleCounts.get(edge.targetHandle) ?? 0;
@@ -383,9 +407,6 @@ export class WorkflowRunner {
       }
 
       // Also count control edges
-      const incomingControl = this._graph
-        .findIncomingEdges(node.id)
-        .filter(isControlEdge);
       if (incomingControl.length > 0) {
         const uniqueControllerCount = new Set(
           incomingControl.map((e) => e.source)
@@ -402,6 +423,49 @@ export class WorkflowRunner {
 
       this._inboxes.set(node.id, inbox);
     }
+  }
+
+  private _resolveInputBufferPolicies(
+    node: NodeDescriptor,
+    incomingData: Edge[],
+    incomingControl: Edge[]
+  ): Record<string, InputBufferPolicy> {
+    const resolved = new Map<string, InputBufferPolicy>();
+    const baseCapacity = this._options.bufferLimit ?? null;
+
+    const applyPolicy = (
+      handle: string,
+      policy: InputBufferPolicy | undefined
+    ): void => {
+      if (!policy) {
+        return;
+      }
+      const current = resolved.get(handle) ?? { capacity: baseCapacity };
+      resolved.set(handle, {
+        ...current,
+        ...policy
+      });
+    };
+
+    for (const edge of incomingData) {
+      const handle = edge.targetHandle;
+      if (!resolved.has(handle) && baseCapacity !== null) {
+        resolved.set(handle, { capacity: baseCapacity });
+      }
+      applyPolicy(handle, node.inputBufferPolicy?.[handle]);
+      applyPolicy(handle, edge.metadata);
+    }
+
+    for (const edge of incomingControl) {
+      const handle = "__control__";
+      if (!resolved.has(handle) && baseCapacity !== null) {
+        resolved.set(handle, { capacity: baseCapacity });
+      }
+      applyPolicy(handle, node.inputBufferPolicy?.[handle]);
+      applyPolicy(handle, edge.metadata);
+    }
+
+    return Object.fromEntries(resolved.entries());
   }
 
   // -----------------------------------------------------------------------
@@ -595,12 +659,9 @@ export class WorkflowRunner {
           // If this is an output node, collect the result
           if (this._isOutputNode(node)) {
             const name = node.name ?? node.id;
-            if (!this._outputs.has(name)) {
-              this._outputs.set(name, []);
-            }
             if (result.outputs) {
               for (const val of Object.values(result.outputs)) {
-                this._outputs.get(name)!.push(val);
+                this._appendOutputValue(name, val);
               }
             }
           }
@@ -1062,11 +1123,48 @@ export class WorkflowRunner {
   }
 
   private _emit(msg: ProcessingMessage): void {
-    this._messages.push(msg);
+    this._appendMessage(msg);
     if (this._options.executionContext) {
       this._options.executionContext.emit(msg);
     }
     log.debug("Message emitted", { jobId: this.jobId, type: msg.type });
+  }
+
+  private _appendMessage(msg: ProcessingMessage): void {
+    if (this._options.runMode === "realtime") {
+      this._appendBounded(this._messages, msg, REALTIME_MESSAGE_BUFFER_LIMIT);
+      return;
+    }
+    this._messages.push(msg);
+  }
+
+  private _appendOutputValue(name: string, value: unknown): void {
+    if (!this._outputs.has(name)) {
+      this._outputs.set(name, []);
+    }
+
+    const values = this._outputs.get(name)!;
+    if (this._options.runMode === "realtime") {
+      this._appendBounded(values, value, REALTIME_OUTPUT_BUFFER_LIMIT);
+      return;
+    }
+
+    values.push(value);
+  }
+
+  /**
+   * Append into a FIFO bounded buffer, dropping the oldest entries first when
+   * realtime mode exceeds the configured limit.
+   *
+   * This array-based implementation is an intentionally small shared primitive
+   * for the current scaffold task; if profiling shows it on the hot path, the
+   * realtime runner can swap it for a dedicated circular buffer later.
+   */
+  private _appendBounded<T>(values: T[], value: T, limit: number): void {
+    values.push(value);
+    if (values.length > limit) {
+      values.splice(0, values.length - limit);
+    }
   }
 
   private _resolveInputNodes(inputName: string): NodeDescriptor[] {

@@ -199,6 +199,65 @@ describe("NodeInbox – backpressure", () => {
     await putPromise;
     expect(putResolved).toBe(true);
   });
+
+  it("drops the oldest buffered item when configured", async () => {
+    const inbox = new NodeInbox({
+      handlePolicies: {
+        frame: { capacity: 2, overflowPolicy: "drop_oldest" }
+      }
+    });
+    inbox.addUpstream("frame", 1);
+
+    await inbox.put("frame", "f1");
+    await inbox.put("frame", "f2");
+    await inbox.put("frame", "f3");
+    inbox.markSourceDone("frame");
+
+    const items = await collect(inbox.iterInput("frame"));
+    expect(items).toEqual(["f2", "f3"]);
+    expect(inbox.getDroppedCount("frame")).toBe(1);
+  });
+
+  it("drops the newest item when configured", async () => {
+    const inbox = new NodeInbox({
+      handlePolicies: {
+        frame: { capacity: 2, overflowPolicy: "drop_newest" }
+      }
+    });
+    inbox.addUpstream("frame", 1);
+
+    await inbox.put("frame", "f1");
+    await inbox.put("frame", "f2");
+    await inbox.put("frame", "f3");
+    inbox.markSourceDone("frame");
+
+    const items = await collect(inbox.iterInput("frame"));
+    expect(items).toEqual(["f1", "f2"]);
+    expect(inbox.getDroppedCounts()).toEqual({ frame: 1 });
+  });
+
+  it("applies per-handle policy without changing other handles", async () => {
+    const inbox = new NodeInbox({
+      bufferLimit: 2,
+      handlePolicies: {
+        fast: { capacity: 1, overflowPolicy: "drop_oldest" }
+      }
+    });
+    inbox.addUpstream("fast", 1);
+    inbox.addUpstream("slow", 1);
+
+    await inbox.put("fast", "f1");
+    await inbox.put("fast", "f2");
+    await inbox.put("slow", "s1");
+    await inbox.put("slow", "s2");
+    inbox.markSourceDone("fast");
+    inbox.markSourceDone("slow");
+
+    expect(await collect(inbox.iterInput("fast"))).toEqual(["f2"]);
+    expect(await collect(inbox.iterInput("slow"))).toEqual(["s1", "s2"]);
+    expect(inbox.getDroppedCount("fast")).toBe(1);
+    expect(inbox.getDroppedCount("slow")).toBe(0);
+  });
 });
 
 describe("NodeInbox – closeAll", () => {

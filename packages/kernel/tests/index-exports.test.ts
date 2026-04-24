@@ -7,6 +7,7 @@ import {
   GraphValidationError,
   NodeInbox,
   NodeActor,
+  RealtimeRunner,
   WorkflowRunner
 } from "../src/index.js";
 import type {
@@ -15,7 +16,10 @@ import type {
   ActorResult,
   RunJobRequest,
   WorkflowRunnerOptions,
-  RunResult
+  RunResult,
+  WorkflowGraphData,
+  RealtimeRunnerOptions,
+  RealtimeParameterUpdateResult
 } from "../src/index.js";
 
 describe("@nodetool/kernel barrel exports", () => {
@@ -43,5 +47,9 @@ describe("@nodetool/kernel barrel exports", () => {
 
   it("exports WorkflowRunner class", () => {
     expect(WorkflowRunner).toBeDefined();
+  });
+
+  it("exports RealtimeRunner class", () => {
+    expect(RealtimeRunner).toBeDefined();
   });
 });

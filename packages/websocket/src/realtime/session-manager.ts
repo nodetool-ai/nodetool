@@ -174,10 +174,7 @@ export class RealtimeSessionManager {
     return toPublicSession(session);
   }
 
-  stopSession(
-    sessionId: string,
-    userId: string
-  ): RealtimeSessionRecord | null {
+  stopSession(sessionId: string, userId: string): RealtimeSessionRecord | null {
     const session = this.sessions.get(sessionId);
     if (!session || session.user_id !== userId) {
       return null;

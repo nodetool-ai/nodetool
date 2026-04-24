@@ -14,6 +14,7 @@ import type {
   TypeMetadata
 } from "./metadata.js";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
+import type { InputBufferPolicy } from "@nodetool/protocol";
 
 export interface GetNodeMetadataOptions {
   pythonMetadata?: NodeMetadata;
@@ -110,6 +111,14 @@ function cloneOutputMetadata(output: OutputSlotMetadata): OutputSlotMetadata {
   };
 }
 
+function cloneInputBufferPolicy(
+  policy: Record<string, InputBufferPolicy>
+): Record<string, InputBufferPolicy> {
+  return Object.fromEntries(
+    Object.entries(policy).map(([handle, value]) => [handle, { ...value }])
+  );
+}
+
 function mergeMetadata(
   tsMetadata: NodeMetadata,
   pyMetadata?: NodeMetadata
@@ -151,7 +160,14 @@ function mergeMetadata(
         : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
-    model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs
+    model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
+    is_realtime_capable:
+      tsMetadata.is_realtime_capable ?? pyMetadata.is_realtime_capable,
+    owns_warm_state: tsMetadata.owns_warm_state ?? pyMetadata.owns_warm_state,
+    is_media_adapter:
+      tsMetadata.is_media_adapter ?? pyMetadata.is_media_adapter,
+    input_buffer_policy:
+      tsMetadata.input_buffer_policy ?? pyMetadata.input_buffer_policy
   };
 }
 
@@ -286,6 +302,12 @@ export function getNodeMetadata(
     is_streaming_output: nodeClass.isStreamingOutput || false,
     is_controlled: nodeClass.isControlled || false,
     is_dynamic: nodeClass.isDynamic || false,
+    is_realtime_capable: nodeClass.isRealtimeCapable || false,
+    owns_warm_state: nodeClass.ownsWarmState || false,
+    is_media_adapter: nodeClass.isMediaAdapter || false,
+    input_buffer_policy: nodeClass.inputBufferPolicy
+      ? cloneInputBufferPolicy(nodeClass.inputBufferPolicy)
+      : undefined,
     expose_as_tool: nodeClass.exposeAsTool,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,

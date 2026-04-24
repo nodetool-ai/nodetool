@@ -1,6 +1,12 @@
-import type { NodeDescriptor, SyncMode } from "@nodetool/protocol";
+import type {
+  InputBufferPolicy,
+  NodeDescriptor,
+  RealtimeSessionInfo,
+  SyncMode
+} from "@nodetool/protocol";
 import type { NodeExecutor } from "@nodetool/kernel";
 import type {
+  ExecutionContext,
   ProcessingContext,
   StreamingInputs,
   StreamingOutputs
@@ -27,6 +33,10 @@ export type NodeClass = {
   isDynamic: boolean;
   syncMode: SyncMode;
   isControlled: boolean;
+  isRealtimeCapable: boolean;
+  ownsWarmState: boolean;
+  isMediaAdapter: boolean;
+  inputBufferPolicy?: Record<string, InputBufferPolicy>;
   exposeAsTool?: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
@@ -82,6 +92,12 @@ export abstract class BaseNode {
   static readonly isDynamic: boolean = false;
   static readonly syncMode: SyncMode = "zip_all";
   static readonly isControlled: boolean = false;
+  static readonly isRealtimeCapable: boolean = false;
+  static readonly ownsWarmState: boolean = false;
+  static readonly isMediaAdapter: boolean = false;
+  static readonly inputBufferPolicy:
+    | Record<string, InputBufferPolicy>
+    | undefined = undefined;
   static readonly exposeAsTool: boolean | undefined = undefined;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
@@ -179,6 +195,15 @@ export abstract class BaseNode {
   async initialize(): Promise<void> {}
   async preProcess(): Promise<void> {}
   async finalize(): Promise<void> {}
+  async onSessionStart(
+    _context: ExecutionContext,
+    _session: RealtimeSessionInfo
+  ): Promise<void> {}
+  async onSessionStop(
+    _context: ExecutionContext,
+    _session: RealtimeSessionInfo
+  ): Promise<void> {}
+  resetWarmState(): void {}
 
   abstract process(
     context?: ProcessingContext
@@ -299,8 +324,19 @@ export abstract class BaseNode {
       is_streaming_input: cls.isStreamingInput,
       is_streaming_output: cls.isStreamingOutput,
       sync_mode: cls.syncMode,
-      is_controlled: cls.isControlled
+      is_controlled: cls.isControlled,
+      is_realtime_capable: cls.isRealtimeCapable,
+      owns_warm_state: cls.ownsWarmState,
+      is_media_adapter: cls.isMediaAdapter
     };
+    if (cls.inputBufferPolicy) {
+      desc.inputBufferPolicy = Object.fromEntries(
+        Object.entries(cls.inputBufferPolicy).map(([handle, policy]) => [
+          handle,
+          { ...policy }
+        ])
+      );
+    }
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;
     }

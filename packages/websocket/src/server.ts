@@ -78,7 +78,7 @@ import oauthRoutes from "./routes/oauth.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
-import realtimeRoutes from "./routes/realtime.js";
+import realtimeRoutes from "./realtime/routes.js";
 import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 
 const log = createLogger("nodetool.websocket.server");

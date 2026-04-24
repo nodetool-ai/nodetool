@@ -14,6 +14,7 @@ export {
   type S3Client,
   type StorageAdapter
 } from "./context.js";
+export type { ProcessingContext as ExecutionContext } from "./context.js";
 
 export * from "./providers/index.js";
 export {

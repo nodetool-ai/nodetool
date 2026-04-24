@@ -20,7 +20,13 @@ const sampleMetadata: NodeMetadata = {
       type: { type: "list", type_args: [{ type: "string", type_args: [] }] }
     }
   ],
-  is_streaming_output: true
+  is_streaming_output: true,
+  is_realtime_capable: true,
+  owns_warm_state: true,
+  is_media_adapter: true,
+  input_buffer_policy: {
+    value: { capacity: 2, overflowPolicy: "drop_oldest" }
+  }
 };
 
 class LazyNode extends BaseNode {
@@ -58,7 +64,13 @@ describe("createGraphNodeTypeResolver", () => {
       isDynamic: false,
       descriptorDefaults: {
         name: "Strict Node",
-        is_streaming_output: true
+        is_streaming_output: true,
+        is_realtime_capable: true,
+        owns_warm_state: true,
+        is_media_adapter: true,
+        inputBufferPolicy: {
+          value: { capacity: 2, overflowPolicy: "drop_oldest" }
+        }
       }
     });
   });
@@ -119,6 +131,12 @@ describe("createGraphNodeTypeResolver", () => {
     expect(resolved?.descriptorDefaults).toEqual({
       name: "Zip Node",
       is_streaming_output: true,
+      is_realtime_capable: true,
+      owns_warm_state: true,
+      is_media_adapter: true,
+      inputBufferPolicy: {
+        value: { capacity: 2, overflowPolicy: "drop_oldest" }
+      },
       sync_mode: "zip_all"
     });
   });

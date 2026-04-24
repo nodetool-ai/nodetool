@@ -375,7 +375,15 @@ export class Graph {
           node.is_streaming_output ||
           false,
         is_controlled:
-          descriptorDefaults.is_controlled || node.is_controlled || false
+          descriptorDefaults.is_controlled || node.is_controlled || false,
+        is_realtime_capable:
+          descriptorDefaults.is_realtime_capable ||
+          node.is_realtime_capable ||
+          false,
+        owns_warm_state:
+          descriptorDefaults.owns_warm_state || node.owns_warm_state || false,
+        is_media_adapter:
+          descriptorDefaults.is_media_adapter || node.is_media_adapter || false
       };
 
       resolvedNodes.push(hydratedNode);
