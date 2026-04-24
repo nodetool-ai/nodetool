@@ -40,12 +40,15 @@ Based on research into high-performance real-time generative video systems (like
 
 ## Current code reality & MVP Corrections
 
-- The current realtime session substrate is a control-plane layer. It tracks sessions and emits session events, but **does not yet instantiate a graph runner**. 
-  - *Correction needed:* `start_realtime_session` must be wired to actually spawn a dedicated `RealtimeWorkflowRunner` (or equivalent). It currently only accepts `workflow_id`, but to support live editor previews, it should also accept an optional `graph` payload (nodes and edges) similar to the standard `run_job` command. It should also persist a standard `Job` record in the database so the session appears in the user's history.
-  - *Correction needed:* `start_realtime_session` immediately sets the session status to `"running"`. It should start as `"starting"` and only transition to `"running"` once the WebRTC connection is established and the graph is actually executing.
-  - *Correction needed:* `update_realtime_session` must push parameter changes directly into the running graph's parameter queue, rather than just updating static session metadata.
-- `/realtime` is a useful incubation surface and currently captures a local camera stream.
-  - *Correction needed:* The camera stream is not yet transmitted. As per the WebRTC boundary decision, this media must NOT be sent over the WebSocket. The implementation must add WebRTC signaling (offer/answer) to the session initialization flow to establish the media transport, and explicitly map WebRTC media tracks to specific `nodetool.realtime` input nodes in the graph.
+- The realtime session substrate now launches a live workflow-backed runtime instead of staying metadata-only.
+  - `start_realtime_session` now creates a realtime session with a linked `job_id`, accepts an optional `graph` payload for unsaved editor launches, and starts execution through the standard `WorkflowRunner`.
+  - When the database is available, realtime linkage is persisted onto the backing `Job` so history and diagnostics stay workflow-native.
+  - *Correction still needed:* replace the interim `WorkflowRunner` reuse with a dedicated long-lived `RealtimeWorkflowRunner` (or equivalent) once the first high-framerate proof needs warm-state execution and richer adapter queues.
+  - *Correction still needed:* keep the `"starting"` → `"running"` transition tied to actual media-transport readiness once WebRTC signaling exists; the current readiness gate is runtime startup only.
+  - `update_realtime_session` now routes parameter changes into live workflow inputs when possible.
+  - *Correction still needed:* promote those ad-hoc input pushes into an explicit realtime parameter/control queue when the dedicated runtime lands.
+- `/realtime` is a useful incubation surface and currently captures a local camera stream while also showing session/job state.
+  - *Correction needed:* the camera stream is not yet transmitted. As per the WebRTC boundary decision, this media must NOT be sent over the WebSocket. The implementation must add WebRTC signaling (offer/answer) to the session initialization flow to establish the media transport, and explicitly map WebRTC media tracks to specific `nodetool.realtime` input nodes in the graph.
 - Live graph streaming is still tied to an active `job_id`.
 - `RealtimeAudioInput` already demonstrates a streaming input pattern.
 - `VideoInput` is still a standard asset/video reference input.
@@ -89,10 +92,10 @@ Define the realtime execution contract and establish the workflow-native substra
 ## Progress notes (2026-04-24)
 
 - Baseline validation before edits found pre-existing repository issues unrelated to this roadmap work:
-  - `npm run typecheck` currently fails in unrelated web typing/trpc/model-selector files.
+  - `npm run typecheck` currently fails in unrelated web Hugging Face model-list, provider/model hooks, store, and tRPC typing files.
   - `npm run lint` passes with existing warnings.
-  - `npm run test` currently fails in `web/src/__tests__/components/chat/containers/ChatView.test.tsx`.
-- The current realtime substrate remains metadata-only:
+  - `npm run test` currently fails with two assertions in `web/src/__tests__/components/chat/containers/ChatView.test.tsx`.
+- The current realtime substrate has moved past metadata-only session tracking:
   - `packages/websocket/src/realtime-session-manager.ts` now tracks `job_id`, starts sessions as `"starting"`, and preserves `"error"` state during terminal session events.
   - `packages/websocket/src/unified-websocket-runner.ts` now starts realtime sessions against a live `WorkflowRunner`, persists realtime linkage onto the backing `Job` when the DB is available, supports optional graph payloads, and routes live parameter updates into active workflow inputs when possible.
   - `web/src/components/realtime/RealtimeStreamPage.tsx` still uses local camera preview only; media is not yet transported into a live runtime.
@@ -123,8 +126,10 @@ Ship the first end-to-end realtime workflow that proves the system.
 - [ ] Reuse existing model compatibility and selection for LoRA-enabled styling (leveraging existing `ModelsManager` and `UnifiedModel` patterns)
 - [ ] Implement dynamic weight injection for ControlNet/LoRA swaps (leveraging the pure-PyTorch backend to avoid recompilation delays).
 - [ ] Connect the workflow template to realtime session start, stop, and reconnect
-- [ ] Add one preview/output surface that reflects the realtime session state
-- [ ] Add live parameter updates and session diagnostics
+- [x] Add one preview/output surface that reflects the realtime session state
+  - `/realtime/:workflowId?` now provides a first operator surface with local preview, active-session state, and workflow session history; media transport into the graph is still pending.
+- [x] Add live parameter updates and session diagnostics
+  - The `/realtime` surface now pushes live brightness updates through `update_realtime_session` and exposes session status, timestamps, job linkage, and current parameters.
 - [ ] Document which parts of the proof are generic realtime substrate and which parts are model-specific
 
 ## Phase 3 - Workflow integration
