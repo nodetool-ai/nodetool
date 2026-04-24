@@ -265,6 +265,9 @@ const RealtimeStreamPage = () => {
                   <Text>Session id: {activeSession.session_id}</Text>
                   <Text>Status: {activeSession.status}</Text>
                   <Text color="secondary">
+                    Job id: {activeSession.job_id ?? "pending"}
+                  </Text>
+                  <Text color="secondary">
                     Started: {new Date(activeSession.created_at).toLocaleString()}
                   </Text>
                   <Text color="secondary">
