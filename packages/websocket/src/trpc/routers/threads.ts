@@ -9,6 +9,7 @@
 import { Thread, Message } from "@nodetool/models";
 import type { Thread as ThreadModel } from "@nodetool/models";
 import { ApiErrorCode } from "../../error-codes.js";
+import { TRPCError } from "@trpc/server";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
