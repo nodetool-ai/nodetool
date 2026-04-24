@@ -4,9 +4,17 @@ import { Card, FlexColumn, Text } from "../ui_primitives";
 
 interface VideoPreviewProps {
   stream: MediaStream | null;
+  title?: string;
+  emptyText?: string;
+  muted?: boolean;
 }
 
-const VideoPreview = ({ stream }: VideoPreviewProps) => {
+const VideoPreview = ({
+  stream,
+  title = "Local Camera Preview",
+  emptyText = "Start the preview to prepare a local video source for the realtime session.",
+  muted = true
+}: VideoPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -24,12 +32,12 @@ const VideoPreview = ({ stream }: VideoPreviewProps) => {
   return (
     <Card padding="normal" variant="outlined">
       <FlexColumn gap={2}>
-        <Text weight={600}>Local Camera Preview</Text>
+        <Text weight={600}>{title}</Text>
         {stream ? (
           <video
             ref={videoRef}
             autoPlay
-            muted
+            muted={muted}
             playsInline
             style={{
               width: "100%",
@@ -40,10 +48,7 @@ const VideoPreview = ({ stream }: VideoPreviewProps) => {
             }}
           />
         ) : (
-          <Text color="secondary">
-            Start the preview to prepare a local video source for the realtime
-            session.
-          </Text>
+          <Text color="secondary">{emptyText}</Text>
         )}
       </FlexColumn>
     </Card>

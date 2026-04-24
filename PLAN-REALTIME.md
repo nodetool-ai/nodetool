@@ -101,6 +101,7 @@ Define the realtime execution contract and establish the workflow-native substra
   - `web/src/components/realtime/RealtimeStreamPage.tsx` still uses local camera preview only; media is not yet transported into a live runtime.
 - The capture audit confirmed that `/home/runner/work/nodetool/nodetool/web/src/hooks/browser/useVideoRecorder.ts` is the key separation point for reusable browser capture vs upload behavior.
 - `/home/runner/work/nodetool/nodetool/web/src/hooks/browser/useVideoCapture.ts` now provides the shared browser video capture/device layer used by both `useVideoRecorder` and `/home/runner/work/nodetool/nodetool/web/src/components/realtime/RealtimeStreamPage.tsx`.
+- `/home/runner/work/nodetool/nodetool/web/src/components/realtime/RealtimeStreamPage.tsx` now launches the `/realtime` proof with `transport: "webrtc"`, explicit browser-track-to-node mappings, WebRTC signaling relayed over the existing websocket control plane, and a loopback runtime preview powered by browser peer connections.
 - The current runner strategy is still an interim foundation:
   - Realtime sessions currently reuse the standard `WorkflowRunner` as the execution engine.
   - A dedicated long-lived `RealtimeWorkflowRunner` (or equivalent) is still desirable once the StreamDiffusion proof and media adapters arrive.
@@ -208,7 +209,8 @@ Extend the realtime system through clear media and control adapters after the fi
   - Current readiness gate is workflow execution startup, not media-transport establishment yet; tighten this once WebRTC signaling exists.
 - [x] Push `update_realtime_session` changes into a live parameter/control channel instead of only mutating stored metadata.
   - Current routing pushes parameter keys into active workflow inputs via `WorkflowRunner.pushInputValue`; introduce a richer realtime parameter queue when the dedicated runtime lands.
-- [ ] Add WebRTC signaling plus media-track-to-node mapping for the `/realtime` proof.
+- [x] Add WebRTC signaling plus media-track-to-node mapping for the `/realtime` proof.
+  - Realtime session metadata now carries `webrtc` transport details, media-track mappings, and signaling state; `/realtime` negotiates a browser WebRTC proof transport and shows the mapped runtime preview/state.
 - [x] Split reusable browser capture/device logic from recording/upload logic in `useVideoRecorder`/`VideoRecorder`.
   - Added `web/src/hooks/browser/useVideoCapture.ts` as the shared preview/device layer and switched both the asset recorder flow and `/realtime` preview flow to use it.
 

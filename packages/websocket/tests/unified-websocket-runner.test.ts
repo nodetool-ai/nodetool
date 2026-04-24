@@ -206,6 +206,15 @@ describe("UnifiedWebSocketRunner", () => {
       command: "start_realtime_session",
       data: {
         workflow_id: "workflow-1",
+        transport: "webrtc",
+        media_tracks: [
+          {
+            track_id: "video-track-1",
+            kind: "video",
+            node_id: "camera",
+            input_name: "video"
+          }
+        ],
         graph: {
           nodes: [
             { id: "brightness", type: "test.Input", name: "brightness" },
@@ -233,6 +242,17 @@ describe("UnifiedWebSocketRunner", () => {
     expect(sessions).toHaveLength(1);
     expect(sessions[0].job_id).toBe(response.job_id);
     expect(sessions[0].status).toBe("running");
+    expect(sessions[0].transport).toBe("webrtc");
+    expect(sessions[0].media_tracks).toEqual([
+      {
+        track_id: "video-track-1",
+        kind: "video",
+        node_id: "camera",
+        input_name: "video",
+        label: null,
+        enabled: true
+      }
+    ]);
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     expect(sent).toEqual(
@@ -247,7 +267,8 @@ describe("UnifiedWebSocketRunner", () => {
           type: "realtime_session_updated",
           workflow_id: "workflow-1",
           job_id: response.job_id,
-          status: "running"
+          status: "running",
+          transport: "webrtc"
         })
       ])
     );
@@ -304,6 +325,85 @@ describe("UnifiedWebSocketRunner", () => {
       brightness: 180,
       unused_control: 3
     });
+
+    await runner.disconnect();
+  });
+
+  it("relays realtime signaling messages and persists signaling status", async () => {
+    await runner.connect(ws);
+
+    await runner.handleCommand({
+      command: "start_realtime_session",
+      data: {
+        workflow_id: "workflow-signal",
+        transport: "webrtc",
+        media_tracks: [
+          {
+            track_id: "video-track-1",
+            kind: "video",
+            node_id: "camera",
+            input_name: "video"
+          }
+        ],
+        graph: {
+          nodes: [
+            { id: "brightness", type: "test.Input", name: "brightness" },
+            { id: "sink", type: "test.Sink", name: "sink" }
+          ],
+          edges: [
+            {
+              source: "brightness",
+              sourceHandle: "value",
+              target: "sink",
+              targetHandle: "value",
+              edge_type: "data"
+            }
+          ]
+        }
+      }
+    });
+
+    const [session] = realtimeSessionManager.listSessions("1");
+    const response = await runner.handleCommand({
+      command: "signal_realtime_session",
+      data: {
+        session_id: session.session_id,
+        signaling_status: "negotiating",
+        signal: {
+          signal_type: "offer",
+          source: "operator",
+          target: "runtime",
+          description: {
+            type: "offer",
+            sdp: "test-sdp"
+          }
+        }
+      }
+    });
+
+    expect(response.ok).toBe(true);
+    expect(response.signaling_status).toBe("negotiating");
+
+    const updatedSession = realtimeSessionManager.getSession(session.session_id, "1");
+    expect(updatedSession?.signaling.status).toBe("negotiating");
+    expect(updatedSession?.signaling.last_signal_type).toBe("offer");
+
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+    expect(sent).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "realtime_session_updated",
+          session_id: session.session_id
+        }),
+        expect.objectContaining({
+          type: "realtime_session_signal",
+          session_id: session.session_id,
+          signal_type: "offer",
+          source: "operator",
+          target: "runtime"
+        })
+      ])
+    );
 
     await runner.disconnect();
   });
