@@ -1140,7 +1140,7 @@ export class UnifiedWebSocketRunner {
       type: "realtime_session_updated",
       ...session
     };
-    await this.sendMessage(message as unknown as Record<string, unknown>);
+    await this.sendMessage({ ...message });
   }
 
   private async emitRealtimeSessionStopped(
@@ -1155,7 +1155,7 @@ export class UnifiedWebSocketRunner {
       reason,
       updated_at: session.updated_at
     };
-    await this.sendMessage(message as unknown as Record<string, unknown>);
+    await this.sendMessage({ ...message });
   }
 
   private async startRealtimeSession(

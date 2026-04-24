@@ -283,6 +283,9 @@ describe("UnifiedWebSocketRunner", () => {
     const sessions = realtimeSessionManager.listSessions("1");
     const sessionId = sessions[0]?.session_id;
     expect(sessionId).toBeTruthy();
+    if (!sessionId) {
+      throw new Error("Expected realtime session id to be set");
+    }
 
     const update = await runner.handleCommand({
       command: "update_realtime_session",
@@ -296,7 +299,7 @@ describe("UnifiedWebSocketRunner", () => {
     expect(update.job_id).toBe(start.job_id);
     expect(update.unrouted_parameters).toEqual(["unused_control"]);
 
-    const updatedSession = realtimeSessionManager.getSession(sessionId!, "1");
+    const updatedSession = realtimeSessionManager.getSession(sessionId, "1");
     expect(updatedSession?.parameters).toMatchObject({
       brightness: 180,
       unused_control: 3
