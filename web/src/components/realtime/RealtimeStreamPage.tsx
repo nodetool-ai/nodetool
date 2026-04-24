@@ -19,6 +19,7 @@ import {
 } from "../ui_primitives";
 import VideoPreview from "./VideoPreview";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useVideoCapture } from "../../hooks/browser/useVideoCapture";
 import { useRealtimeSessionStore } from "../../stores/RealtimeSessionStore";
 
 const RealtimeStreamPage = () => {
@@ -38,9 +39,16 @@ const RealtimeStreamPage = () => {
     (state) => state.setActiveSession
   );
 
-  const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
   const [brightness, setBrightness] = useState<number>(100);
+  const {
+    error: previewError,
+    previewStream,
+    startPreview,
+    stopPreview
+  } = useVideoCapture({
+    includeAudio: false,
+    autoFetchDevices: false
+  });
 
   const {
     data: workflow,
@@ -60,12 +68,6 @@ const RealtimeStreamPage = () => {
       void hydrateSessions();
     }
   }, [hydrateSessions, hydrated]);
-
-  useEffect(() => {
-    return () => {
-      previewStream?.getTracks().forEach((track) => track.stop());
-    };
-  }, [previewStream]);
 
   const workflowSessions = useMemo(() => {
     return Object.values(sessions).filter(
@@ -89,33 +91,6 @@ const RealtimeStreamPage = () => {
       }
     }
   }, [activeSession]);
-
-  const startPreview = useCallback(async () => {
-    try {
-      setPreviewError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-      });
-      setPreviewStream((currentStream) => {
-        currentStream?.getTracks().forEach((track) => track.stop());
-        return stream;
-      });
-    } catch (error) {
-      setPreviewError(
-        error instanceof Error
-          ? error.message
-          : "Failed to access the camera preview"
-      );
-    }
-  }, []);
-
-  const stopPreview = useCallback(() => {
-    setPreviewStream((currentStream) => {
-      currentStream?.getTracks().forEach((track) => track.stop());
-      return null;
-    });
-  }, []);
 
   const handleStartSession = useCallback(async () => {
     if (!workflowId) {

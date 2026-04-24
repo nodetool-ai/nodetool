@@ -100,6 +100,7 @@ Define the realtime execution contract and establish the workflow-native substra
   - `packages/websocket/src/unified-websocket-runner.ts` now starts realtime sessions against a live `WorkflowRunner`, persists realtime linkage onto the backing `Job` when the DB is available, supports optional graph payloads, and routes live parameter updates into active workflow inputs when possible.
   - `web/src/components/realtime/RealtimeStreamPage.tsx` still uses local camera preview only; media is not yet transported into a live runtime.
 - The capture audit confirmed that `/home/runner/work/nodetool/nodetool/web/src/hooks/browser/useVideoRecorder.ts` is the key separation point for reusable browser capture vs upload behavior.
+- `/home/runner/work/nodetool/nodetool/web/src/hooks/browser/useVideoCapture.ts` now provides the shared browser video capture/device layer used by both `useVideoRecorder` and `/home/runner/work/nodetool/nodetool/web/src/components/realtime/RealtimeStreamPage.tsx`.
 - The current runner strategy is still an interim foundation:
   - Realtime sessions currently reuse the standard `WorkflowRunner` as the execution engine.
   - A dedicated long-lived `RealtimeWorkflowRunner` (or equivalent) is still desirable once the StreamDiffusion proof and media adapters arrive.
@@ -208,7 +209,8 @@ Extend the realtime system through clear media and control adapters after the fi
 - [x] Push `update_realtime_session` changes into a live parameter/control channel instead of only mutating stored metadata.
   - Current routing pushes parameter keys into active workflow inputs via `WorkflowRunner.pushInputValue`; introduce a richer realtime parameter queue when the dedicated runtime lands.
 - [ ] Add WebRTC signaling plus media-track-to-node mapping for the `/realtime` proof.
-- [ ] Split reusable browser capture/device logic from recording/upload logic in `useVideoRecorder`/`VideoRecorder`.
+- [x] Split reusable browser capture/device logic from recording/upload logic in `useVideoRecorder`/`VideoRecorder`.
+  - Added `web/src/hooks/browser/useVideoCapture.ts` as the shared preview/device layer and switched both the asset recorder flow and `/realtime` preview flow to use it.
 
 ## Review checks
 

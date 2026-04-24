@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Box } from "@mui/material";
 import { EditorButton, Text, LoadingSpinner } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
@@ -131,7 +130,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
     });
 
   return (
-    <Box className="videorecorder" css={styles(theme)}>
+    <div className="videorecorder" css={styles(theme)}>
       {!isPreviewing ? (
         <EditorButton
           onClick={startPreview}
@@ -271,7 +270,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
           )}
         </div>
       )}
-    </Box>
+    </div>
   );
 };
 
