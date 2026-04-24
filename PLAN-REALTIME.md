@@ -65,15 +65,36 @@ Define the realtime execution contract and establish the workflow-native substra
 
 **Tasks**
 
-- [ ] Write the realtime execution contract covering workflow identity, session identity, lifecycle, inputs, outputs, previews, and control updates
-- [ ] Define the convergence invariants between the realtime runtime and the standard workflow runner (specifically addressing per-node execution overhead, whether standard nodes need a "streaming" or "batched" execution mode, and how standard streaming nodes asynchronously feed realtime nodes via `NodeInbox` without blocking the high-framerate loop)
-- [ ] Choose the first operator surface: `/realtime`, mini-app, `html_app`, or a staged path between them
-- [ ] Define the node capability model: reusable, reusable-with-constraints, adapter-backed, and realtime-specific (including how nodes maintain and reset state across the lifecycle of a session, and how they signal their realtime capabilities to the editor)
-- [ ] Reserve `nodetool.realtime` for new realtime-category nodes
-- [ ] List the initial `nodetool.realtime` roles needed for the first proof: source, sink, transport adapter, live control, or session utility
-- [ ] Audit `useVideoRecorder` and `VideoRecorder` to separate reusable capture and device concerns from upload concerns
-- [ ] Define how realtime previews and outputs land in the same core surfaces used by workflow runs
-- [ ] Define which messages stay on the existing websocket control plane and which cross the media adapter boundary (e.g., WebRTC for web clients)
+- [x] Write the realtime execution contract covering workflow identity, session identity, lifecycle, inputs, outputs, previews, and control updates
+  - Added `/home/runner/work/nodetool/nodetool/docs/realtime-runtime-contract.md` with the first workflow-native realtime contract.
+- [x] Define the convergence invariants between the realtime runtime and the standard workflow runner (specifically addressing per-node execution overhead, whether standard nodes need a "streaming" or "batched" execution mode, and how standard streaming nodes asynchronously feed realtime nodes via `NodeInbox` without blocking the high-framerate loop)
+  - Documented the "separate internally, workflow-native externally" invariants and the latest-frame-wins/async-boundary rules in the runtime contract.
+- [x] Choose the first operator surface: `/realtime`, mini-app, `html_app`, or a staged path between them
+  - Chosen path: keep `/realtime/:workflowId?` as the incubation/operator page first, then converge into workflow-native launch/reconnect flows before mini-app/html-app specialization.
+- [x] Define the node capability model: reusable, reusable-with-constraints, adapter-backed, and realtime-specific (including how nodes maintain and reset state across the lifecycle of a session, and how they signal their realtime capabilities to the editor)
+  - Captured the four capability classes plus required lifecycle/state declarations in the runtime contract.
+- [x] Reserve `nodetool.realtime` for new realtime-category nodes
+  - Namespace policy is now explicitly documented so later node work can follow one rule set.
+- [x] List the initial `nodetool.realtime` roles needed for the first proof: source, sink, transport adapter, live control, or session utility
+  - Initial first-proof roles are now listed in the runtime contract.
+- [x] Audit `useVideoRecorder` and `VideoRecorder` to separate reusable capture and device concerns from upload concerns
+  - Audit result: the current implementation still bundles device enumeration, preview, recording, workflow-bound upload, and UI state; it needs a reusable capture layer before realtime input can reuse it cleanly.
+- [x] Define how realtime previews and outputs land in the same core surfaces used by workflow runs
+  - Defined preview/output landing zones in terms of workflow-native job, asset, preview, and reconnect surfaces.
+- [x] Define which messages stay on the existing websocket control plane and which cross the media adapter boundary (e.g., WebRTC for web clients)
+  - Control-plane vs media-plane responsibilities are now explicitly split; WebRTC is the first web media adapter.
+
+## Progress notes (2026-04-24)
+
+- Baseline validation before edits found pre-existing repository issues unrelated to this roadmap work:
+  - `npm run typecheck` currently fails in unrelated web typing/trpc/model-selector files.
+  - `npm run lint` passes with existing warnings.
+  - `npm run test` currently fails in `web/src/__tests__/components/chat/containers/ChatView.test.tsx`.
+- The current realtime substrate remains metadata-only:
+  - `packages/websocket/src/realtime-session-manager.ts` still starts sessions as `"running"` immediately and only stores session metadata in memory.
+  - `packages/websocket/src/unified-websocket-runner.ts` still starts/stops/updates sessions without spawning a realtime runner or persisting a `Job`.
+  - `web/src/components/realtime/RealtimeStreamPage.tsx` still uses local camera preview only; media is not yet transported into a live runtime.
+- The capture audit confirmed that `/home/runner/work/nodetool/nodetool/web/src/hooks/browser/useVideoRecorder.ts` is the key separation point for reusable browser capture vs upload behavior.
 
 ## Phase 2 - First proof: StreamDiffusion
 
@@ -157,12 +178,21 @@ Extend the realtime system through clear media and control adapters after the fi
 
 ## Immediate next tasks
 
-- [ ] Write the short execution contract for the separate but workflow-native realtime runtime
-- [ ] Choose the first operator surface and define the path from incubation to workflow-native usage
-- [ ] Define the initial `nodetool.realtime` node set for the first proof
+- [x] Write the short execution contract for the separate but workflow-native realtime runtime
+- [x] Choose the first operator surface and define the path from incubation to workflow-native usage
+- [x] Define the initial `nodetool.realtime` node set for the first proof
 - [ ] Build the canonical stream-diffusion workflow template using the capability model
-- [ ] Write the session/runtime spec with control-plane and media-plane boundaries (incorporating WebRTC for web clients)
+- [x] Write the session/runtime spec with control-plane and media-plane boundaries (incorporating WebRTC for web clients)
 - [ ] Define the first adapter roadmap for `NDI` and `Spout`
+
+## Follow-up tasks discovered while starting the plan
+
+- [ ] Change realtime session startup so `start_realtime_session` creates a `Job` and a dedicated realtime runner instead of only creating metadata.
+- [ ] Add optional graph payload support to realtime session start so live editor previews can launch unsaved graph state.
+- [ ] Transition realtime sessions from `starting` to `running` only after transport and runtime readiness.
+- [ ] Push `update_realtime_session` changes into a live parameter/control channel instead of only mutating stored metadata.
+- [ ] Add WebRTC signaling plus media-track-to-node mapping for the `/realtime` proof.
+- [ ] Split reusable browser capture/device logic from recording/upload logic in `useVideoRecorder`/`VideoRecorder`.
 
 ## Review checks
 
