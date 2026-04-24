@@ -424,12 +424,24 @@ describe("deploy destroy", () => {
   });
 
   it("no-ops on non-TTY without --force", async () => {
-    Object.defineProperty(process.stdin, "isTTY", {
-      value: false,
-      configurable: true
-    });
-    await run(["deploy", "destroy", "dev"]);
-    expect(destroyMock).not.toHaveBeenCalled();
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      process.stdin,
+      "isTTY"
+    );
+    try {
+      Object.defineProperty(process.stdin, "isTTY", {
+        value: false,
+        configurable: true
+      });
+      await run(["deploy", "destroy", "dev"]);
+      expect(destroyMock).not.toHaveBeenCalled();
+    } finally {
+      if (originalDescriptor) {
+        Object.defineProperty(process.stdin, "isTTY", originalDescriptor);
+      } else {
+        delete (process.stdin as NodeJS.ReadStream & { isTTY?: boolean }).isTTY;
+      }
+    }
   });
 });
 

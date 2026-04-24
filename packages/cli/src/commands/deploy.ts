@@ -36,7 +36,6 @@ import {
   makeSyncerDeps,
   parseParamPairs,
   printTable,
-  promptHidden,
   promptLine,
   runEditor
 } from "./deploy-helpers.js";
@@ -110,6 +109,26 @@ function runAction<A extends unknown[]>(
       process.exit(1);
     }
   };
+}
+
+/** Parse a positive integer string or throw a clear error. */
+function parsePositiveInt(raw: string, label: string): number {
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+    throw new Error(`Invalid ${label} '${raw}': expected a positive integer.`);
+  }
+  return n;
+}
+
+/** Parse a port number (1–65535) or throw. */
+function parsePort(raw: string, label: string): number {
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > 65535) {
+    throw new Error(
+      `Invalid ${label} '${raw}': expected an integer in the range 1–65535.`
+    );
+  }
+  return n;
 }
 
 // ---------------------------------------------------------------------------
@@ -316,6 +335,7 @@ function registerAdd(deploy: Command): void {
             const containerPortRaw = await promptLine("Container port", {
               default: "8000"
             });
+            const containerPort = parsePort(containerPortRaw, "Container port");
             deployment = configureDocker(name, {
               host,
               sshUser,
@@ -323,7 +343,7 @@ function registerAdd(deploy: Command): void {
               imageName,
               imageTag,
               containerName,
-              containerPort: Number.parseInt(containerPortRaw, 10)
+              containerPort
             });
             break;
           }
@@ -384,10 +404,10 @@ function registerAdd(deploy: Command): void {
 
 function registerEdit(deploy: Command): void {
   deploy
-    .command("edit [name]")
+    .command("edit")
     .description("Open deployment.yaml in $EDITOR")
     .action(
-      runAction(async (_name?: string) => {
+      runAction(async () => {
         const configPath = getDeploymentConfigPath();
         if (!fs.existsSync(configPath)) {
           throw new Error(
@@ -460,11 +480,12 @@ function registerLogs(deploy: Command): void {
           name: string,
           opts: { service?: string; follow?: boolean; tail: string }
         ) => {
+          const tail = parsePositiveInt(opts.tail, "--tail");
           const mgr = await getManager();
           const text = await mgr.logs(name, {
             service: opts.service,
             follow: Boolean(opts.follow),
-            tail: Number.parseInt(opts.tail, 10)
+            tail
           });
           process.stdout.write(text);
           if (!text.endsWith("\n")) process.stdout.write("\n");
@@ -486,7 +507,9 @@ function registerDestroy(deploy: Command): void {
         );
         if (!ok) return;
         const mgr = await getManager();
-        const result = await mgr.destroy(name, { force: true });
+        const result = await mgr.destroy(name, {
+          force: Boolean(opts.force)
+        });
         asJson(result);
       })
     );
@@ -703,9 +726,7 @@ function registerCollections(deploy: Command): void {
           collectionName: string,
           opts: { token?: string; batchSize: string }
         ) => {
-          const config = await loadConfigOrExit();
-          const dep = getDeploymentOrExit(config, deploymentName);
-          const client = await getAdminClient(dep, deploymentName, opts);
+          const batchSize = parsePositiveInt(opts.batchSize, "--batch-size");
 
           const collection = await getCollection(collectionName);
           if (!collection) {
@@ -722,12 +743,9 @@ function registerCollections(deploy: Command): void {
             );
           }
 
-          await client.createCollection(collectionName, embeddingModel);
-
-          // Stream documents in pages. Without access to stored embeddings
-          // locally via the public API, we must re-embed via the local
-          // embedding function. If the collection has no embedding function
-          // attached, fail fast rather than silently uploading empty vectors.
+          // Inspect the local collection BEFORE creating anything on the
+          // remote, so partial failures don't leave an empty/orphan collection
+          // on the deployment.
           const withGet = collection as unknown as {
             get(opts?: {
               limit?: number;
@@ -738,19 +756,23 @@ function registerCollections(deploy: Command): void {
               metadatas: (Record<string, unknown> | null)[];
             }>;
           };
-
-          const batchSize = Number.parseInt(opts.batchSize, 10);
           const page = await withGet.get({ limit: batchSize, offset: 0 });
-          if (page.ids.length === 0) {
-            console.log(
-              `Collection '${collectionName}' is empty — created an empty collection on '${deploymentName}'.`
+
+          if (page.ids.length > 0) {
+            throw new Error(
+              "deploy collections sync: re-embedding of local documents during sync is not yet implemented in the Node CLI. " +
+                `Found ${page.ids.length} document(s) locally but cannot upload without embeddings. ` +
+                "No remote collection was created."
             );
-            return;
           }
 
-          throw new Error(
-            "deploy collections sync: re-embedding of local documents during sync is not yet implemented in the Node CLI. " +
-              `Found ${page.ids.length} document(s) locally but cannot upload without embeddings.`
+          // Empty collection — safe to create on the remote as a no-op sync.
+          const config = await loadConfigOrExit();
+          const dep = getDeploymentOrExit(config, deploymentName);
+          const client = await getAdminClient(dep, deploymentName, opts);
+          await client.createCollection(collectionName, embeddingModel);
+          console.log(
+            `Collection '${collectionName}' is empty — created an empty collection on '${deploymentName}'.`
           );
         }
       )
@@ -888,5 +910,3 @@ function registerUsers(deploy: Command): void {
     );
 }
 
-// Suppress TS unused-warning for these hidden helper imports in certain branches
-void promptHidden;

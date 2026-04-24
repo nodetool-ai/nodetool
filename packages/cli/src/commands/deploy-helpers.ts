@@ -568,7 +568,21 @@ export function parseParamPairs(pairs: string[]): Record<string, unknown> {
 export function runEditor(filePath: string): number {
   const editor = process.env["VISUAL"] ?? process.env["EDITOR"] ?? "vi";
   const result = spawnSync(editor, [filePath], { stdio: "inherit" });
-  return result.status ?? 0;
+  if (result.error != null) {
+    console.error(
+      `Failed to launch editor '${editor}': ${result.error.message}`
+    );
+    return 1;
+  }
+  if (result.status === null) {
+    console.error(
+      `Editor '${editor}' did not exit with a valid status code (terminated by signal ${
+        result.signal ?? "unknown"
+      }).`
+    );
+    return 1;
+  }
+  return result.status;
 }
 
 // Re-export for downstream consumers who want the syncer class.

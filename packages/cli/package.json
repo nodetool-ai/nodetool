@@ -16,11 +16,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@inquirer/prompts": "^5.0.0",
     "@nodetool/config": "*",
     "@nodetool/agents": "*",
     "@nodetool/deploy": "*",
-    "@nodetool/storage": "*",
     "@nodetool/vectorstore": "*",
     "@nodetool/websocket": "*",
     "@trpc/client": "^11.0.0",

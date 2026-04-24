@@ -31,13 +31,11 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool/protocol",
     "@nodetool/config",
     "@nodetool/deploy",
-    "@nodetool/storage",
     "@nodetool/vectorstore",
     // Direct CLI dependencies not installed at the workspace root
     "marked",
     "marked-terminal",
-    "js-yaml",
-    "@inquirer/prompts"
+    "js-yaml"
   ]);
 
   return {
