@@ -40,6 +40,3 @@
 ## 2025-05-30 - Missing ARIA Labels on Icon-only Submit Buttons
 **Learning:** Icon-only submit buttons (like the send button in `PortalInput`) often omit `aria-label`s, rendering them inaccessible to screen readers. Relying solely on the visual icon to convey the button's purpose is a common pattern that breaks accessibility.
 **Action:** When auditing or creating input components with icon-only submission buttons, always ensure an explicit `aria-label` is provided to describe the action (e.g., "Send message").
-## 2026-04-23 - Add ARIA labels to standard Material UI IconButtons
-**Learning:** While the repository's custom UI primitives (like `ToolbarIconButton`) handle accessibility automatically via tooltips, standard Material-UI `<IconButton>` components used throughout the application (like in the Chain Editor) often lack accessible names, making them invisible to screen readers.
-**Action:** When working on views using standard Material-UI components instead of internal primitives, always check `<IconButton>` elements and ensure they have an explicit `aria-label` prop.
