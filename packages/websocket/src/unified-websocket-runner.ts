@@ -50,9 +50,16 @@ import {
 } from "@nodetool/runtime";
 import type {
   Chunk,
+  RealtimeMediaTrackKind,
+  RealtimeMediaTrackMapping,
   RealtimeSessionRecord,
-  RealtimeSessionStopped,
-  RealtimeSessionUpdated
+  RealtimeSessionSignal,
+  RealtimeSessionSignalDescription,
+  RealtimeSessionIceCandidate,
+  RealtimeSessionSignalingState,
+  RealtimeSessionTransport,
+  RealtimeSignalPeer,
+  RealtimeSignalType
 } from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
@@ -1014,6 +1021,194 @@ export class UnifiedWebSocketRunner {
     return { ...(value as Record<string, unknown>) };
   }
 
+  private normalizeRealtimeTransport(
+    value: unknown
+  ): RealtimeSessionTransport {
+    return value === "webrtc" ? "webrtc" : "websocket";
+  }
+
+  private normalizeRealtimeMediaTracks(
+    value: unknown
+  ): RealtimeMediaTrackMapping[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const normalizedTracks: RealtimeMediaTrackMapping[] = [];
+    for (const track of value) {
+      if (!track || typeof track !== "object" || Array.isArray(track)) {
+        continue;
+      }
+
+      const record = track as Record<string, unknown>;
+      const trackId =
+        typeof record.track_id === "string" ? record.track_id.trim() : "";
+      const nodeId =
+        typeof record.node_id === "string" ? record.node_id.trim() : "";
+      const inputName =
+        typeof record.input_name === "string" ? record.input_name.trim() : "";
+      const kind: RealtimeMediaTrackKind =
+        record.kind === "audio" ? "audio" : "video";
+
+      if (!trackId || !nodeId || !inputName) {
+        continue;
+      }
+
+      normalizedTracks.push({
+        track_id: trackId,
+        kind,
+        node_id: nodeId,
+        input_name: inputName,
+        label: typeof record.label === "string" ? record.label : null,
+        enabled: record.enabled !== false
+      });
+    }
+
+    return normalizedTracks;
+  }
+
+  private normalizeRealtimeSignalingState(
+    value: unknown
+  ): Partial<RealtimeSessionSignalingState> | undefined {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const record = value as Record<string, unknown>;
+    const status = record.status;
+    const validStatus =
+      status === "idle" ||
+      status === "negotiating" ||
+      status === "connected" ||
+      status === "failed"
+        ? status
+        : undefined;
+
+    const signaling: Partial<RealtimeSessionSignalingState> = {};
+    if (validStatus) {
+      signaling.status = validStatus;
+    }
+    if (
+      record.last_signal_type === "offer" ||
+      record.last_signal_type === "answer" ||
+      record.last_signal_type === "ice_candidate"
+    ) {
+      signaling.last_signal_type = record.last_signal_type;
+    }
+    if (typeof record.last_signal_at === "string") {
+      signaling.last_signal_at = record.last_signal_at;
+    }
+    if (typeof record.error === "string" || record.error === null) {
+      signaling.error = record.error;
+    }
+
+    return Object.keys(signaling).length > 0 ? signaling : undefined;
+  }
+
+  private normalizeRealtimeSignal(
+    value: unknown
+  ):
+    | {
+        signal_type: RealtimeSignalType;
+        source: RealtimeSignalPeer;
+        target: RealtimeSignalPeer;
+        description?: RealtimeSessionSignalDescription;
+        candidate?: RealtimeSessionIceCandidate;
+      }
+    | undefined {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const record = value as Record<string, unknown>;
+    const signalType = record.signal_type;
+    if (
+      signalType !== "offer" &&
+      signalType !== "answer" &&
+      signalType !== "ice_candidate"
+    ) {
+      return undefined;
+    }
+
+    const source: RealtimeSignalPeer =
+      record.source === "runtime" ? "runtime" : "operator";
+    const target: RealtimeSignalPeer =
+      record.target === "operator" ? "operator" : "runtime";
+
+    const normalizedSignal: {
+      signal_type: RealtimeSignalType;
+      source: RealtimeSignalPeer;
+      target: RealtimeSignalPeer;
+      description?: RealtimeSessionSignalDescription;
+      candidate?: RealtimeSessionIceCandidate;
+    } = {
+      signal_type: signalType,
+      source,
+      target
+    };
+
+    if (
+      (signalType === "offer" || signalType === "answer") &&
+      record.description &&
+      typeof record.description === "object" &&
+      !Array.isArray(record.description)
+    ) {
+      const descriptionRecord = record.description as Record<string, unknown>;
+      const sdp = typeof descriptionRecord.sdp === "string" ? descriptionRecord.sdp : "";
+      const descriptionType = descriptionRecord.type;
+      if (
+        sdp &&
+        ((signalType === "offer" && descriptionType === "offer") ||
+          (signalType === "answer" && descriptionType === "answer"))
+      ) {
+        normalizedSignal.description = {
+          type: descriptionType,
+          sdp
+        };
+      }
+    }
+
+    if (
+      signalType === "ice_candidate" &&
+      record.candidate &&
+      typeof record.candidate === "object" &&
+      !Array.isArray(record.candidate)
+    ) {
+      const candidateRecord = record.candidate as Record<string, unknown>;
+      const iceCandidateValue =
+        typeof candidateRecord.candidate === "string"
+          ? candidateRecord.candidate
+          : "";
+      if (iceCandidateValue) {
+        normalizedSignal.candidate = {
+          candidate: iceCandidateValue,
+          sdpMid:
+            typeof candidateRecord.sdpMid === "string" ||
+            candidateRecord.sdpMid === null
+              ? candidateRecord.sdpMid
+              : null,
+          sdpMLineIndex:
+            typeof candidateRecord.sdpMLineIndex === "number"
+              ? candidateRecord.sdpMLineIndex
+              : null
+        };
+      }
+    }
+
+    if (
+      (signalType === "offer" || signalType === "answer") &&
+      !normalizedSignal.description
+    ) {
+      return undefined;
+    }
+
+    if (signalType === "ice_candidate" && !normalizedSignal.candidate) {
+      return undefined;
+    }
+
+    return normalizedSignal;
+  }
+
   private normalizeRealtimeGraph(
     value: unknown
   ): WorkflowGraphPayload | undefined {
@@ -1164,6 +1359,22 @@ export class UnifiedWebSocketRunner {
     await this.sendMessage(message);
   }
 
+  private async emitRealtimeSessionSignal(
+    signal: RealtimeSessionSignal
+  ): Promise<void> {
+    await this.sendMessage({
+      type: signal.type,
+      session_id: signal.session_id,
+      workflow_id: signal.workflow_id,
+      signal_type: signal.signal_type,
+      source: signal.source,
+      target: signal.target,
+      description: signal.description,
+      candidate: signal.candidate,
+      created_at: signal.created_at
+    });
+  }
+
   private async startRealtimeSession(
     data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
@@ -1185,6 +1396,9 @@ export class UnifiedWebSocketRunner {
         ? data.session_id
         : undefined;
     const parameters = this.normalizeRealtimeParameters(data.parameters);
+    const transport = this.normalizeRealtimeTransport(data.transport);
+    const mediaTracks = this.normalizeRealtimeMediaTracks(data.media_tracks);
+    const signaling = this.normalizeRealtimeSignalingState(data.signaling);
     const jobId = randomUUID();
     const userId = this.getRealtimeUserId();
     const session = realtimeSessionManager.createSession({
@@ -1193,7 +1407,9 @@ export class UnifiedWebSocketRunner {
       workflowId,
       jobId,
       parameters,
-      transport: "websocket",
+      transport,
+      mediaTracks,
+      signaling,
       status: "starting"
     });
 
@@ -1272,7 +1488,16 @@ export class UnifiedWebSocketRunner {
       sessionId,
       this.getRealtimeUserId(),
       {
-        parameters: this.normalizeRealtimeParameters(data.parameters)
+        parameters: this.normalizeRealtimeParameters(data.parameters),
+        transport:
+          data.transport === undefined
+            ? undefined
+            : this.normalizeRealtimeTransport(data.transport),
+        mediaTracks:
+          data.media_tracks === undefined
+            ? undefined
+            : this.normalizeRealtimeMediaTracks(data.media_tracks),
+        signaling: this.normalizeRealtimeSignalingState(data.signaling)
       }
     );
 
@@ -1318,6 +1543,108 @@ export class UnifiedWebSocketRunner {
       job_id: session.job_id,
       status: session.status,
       unrouted_parameters
+    };
+  }
+
+  private async signalRealtimeSession(
+    data: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const sessionId =
+      typeof data.session_id === "string" && data.session_id.length > 0
+        ? data.session_id
+        : null;
+
+    if (!sessionId) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        error: "session_id is required"
+      };
+    }
+
+    const existingSession = realtimeSessionManager.getSession(
+      sessionId,
+      this.getRealtimeUserId()
+    );
+    if (!existingSession) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "signal",
+        session_id: sessionId,
+        error: "Realtime session not found"
+      };
+    }
+
+    const signal = this.normalizeRealtimeSignal(data.signal);
+    const signalingStatus =
+      typeof data.signaling_status === "string" ? data.signaling_status : undefined;
+    const signalingError =
+      typeof data.error === "string" || data.error === null ? data.error : undefined;
+
+    const signalingPatch: Partial<RealtimeSessionSignalingState> = {};
+    if (
+      signalingStatus === "idle" ||
+      signalingStatus === "negotiating" ||
+      signalingStatus === "connected" ||
+      signalingStatus === "failed"
+    ) {
+      signalingPatch.status = signalingStatus;
+    }
+    if (signal) {
+      signalingPatch.last_signal_type = signal.signal_type;
+      signalingPatch.last_signal_at = new Date().toISOString();
+    }
+    if (signalingError !== undefined) {
+      signalingPatch.error = signalingError;
+    }
+
+    const session = realtimeSessionManager.updateSession(
+      sessionId,
+      this.getRealtimeUserId(),
+      {
+        signaling:
+          Object.keys(signalingPatch).length > 0 ? signalingPatch : undefined
+      }
+    );
+
+    if (!session) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "signal",
+        session_id: sessionId,
+        error: "Realtime session not found"
+      };
+    }
+
+    if (Object.keys(signalingPatch).length > 0) {
+      await this.emitRealtimeSessionUpdated(session);
+    }
+
+    if (signal) {
+      await this.emitRealtimeSessionSignal({
+        type: "realtime_session_signal",
+        session_id: session.session_id,
+        workflow_id: session.workflow_id,
+        signal_type: signal.signal_type,
+        source: signal.source,
+        target: signal.target,
+        description: signal.description,
+        candidate: signal.candidate,
+        created_at: new Date().toISOString()
+      });
+    }
+
+    return {
+      type: "realtime_session_ack",
+      ok: true,
+      action: "signal",
+      session_id: session.session_id,
+      workflow_id: session.workflow_id,
+      job_id: session.job_id,
+      status: session.status,
+      signaling_status: session.signaling.status
     };
   }
 
@@ -4728,6 +5055,8 @@ export class UnifiedWebSocketRunner {
         }
       case "start_realtime_session":
         return this.startRealtimeSession(data);
+      case "signal_realtime_session":
+        return this.signalRealtimeSession(data);
       case "update_realtime_session":
         return this.updateRealtimeSession(data);
       case "stop_realtime_session":

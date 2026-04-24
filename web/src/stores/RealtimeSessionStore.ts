@@ -6,7 +6,10 @@ import type {
   RealtimeSessionUpdated
 } from "@nodetool/protocol";
 
-import { realtimeSessionClient } from "../lib/websocket/RealtimeSessionClient";
+import {
+  realtimeSessionClient,
+  type RealtimeTransportConfig
+} from "../lib/websocket/RealtimeSessionClient";
 
 type RealtimeSessionMessage =
   | RealtimeSessionStarted
@@ -28,7 +31,8 @@ interface RealtimeSessionStoreState {
   startSession: (
     workflowId: string,
     parameters: Record<string, unknown>,
-    graph?: RealtimeGraphPayload
+    graph?: RealtimeGraphPayload,
+    transportConfig?: RealtimeTransportConfig
   ) => Promise<RealtimeSessionRecord>;
   updateSession: (
     sessionId: string,
@@ -52,6 +56,8 @@ const toRecordFromMessage = (
   status: message.status,
   transport: message.transport,
   parameters: message.parameters,
+  media_tracks: message.media_tracks,
+  signaling: message.signaling,
   created_at: message.created_at,
   updated_at: message.updated_at
 });
@@ -126,13 +132,14 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
         }
       },
 
-      async startSession(workflowId, parameters, graph) {
+      async startSession(workflowId, parameters, graph, transportConfig) {
         set({ isLoading: true, error: null });
         try {
           const session = await realtimeSessionClient.startSession(
             workflowId,
             parameters,
-            graph
+            graph,
+            transportConfig
           );
           attachSessionSubscription(session.session_id);
           set((state) => ({

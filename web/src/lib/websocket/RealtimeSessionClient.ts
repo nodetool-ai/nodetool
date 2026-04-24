@@ -1,7 +1,11 @@
 import type {
+  RealtimeMediaTrackMapping,
   RealtimeSessionRecord,
+  RealtimeSessionSignal,
+  RealtimeSessionSignalingState,
   RealtimeSessionStarted,
   RealtimeSessionStopped,
+  RealtimeSessionTransport,
   RealtimeSessionUpdated
 } from "@nodetool/protocol";
 
@@ -12,6 +16,18 @@ type RealtimeSessionMessage =
   | RealtimeSessionStarted
   | RealtimeSessionUpdated
   | RealtimeSessionStopped;
+
+export interface RealtimeTransportConfig {
+  transport: RealtimeSessionTransport;
+  mediaTracks?: RealtimeMediaTrackMapping[];
+  signaling?: Partial<RealtimeSessionSignalingState>;
+}
+
+export interface RealtimeSignalPayload {
+  signal?: Omit<RealtimeSessionSignal, "type" | "session_id" | "workflow_id" | "created_at">;
+  signalingStatus?: RealtimeSessionSignalingState["status"];
+  error?: string | null;
+}
 
 type RealtimeGraphPayload = {
   nodes: Array<Record<string, unknown>>;
@@ -41,6 +57,16 @@ const isRealtimeSessionMessage = (
     (message.type === "realtime_session_started" ||
       message.type === "realtime_session_updated" ||
       message.type === "realtime_session_stopped")
+  );
+};
+
+const isRealtimeSessionSignal = (
+  message: unknown
+): message is RealtimeSessionSignal => {
+  return (
+    isObject(message) &&
+    message.type === "realtime_session_signal" &&
+    typeof message.session_id === "string"
   );
 };
 
@@ -75,7 +101,8 @@ export class RealtimeSessionClient {
   async startSession(
     workflowId: string,
     parameters: Record<string, unknown>,
-    graph?: RealtimeGraphPayload
+    graph?: RealtimeGraphPayload,
+    transportConfig?: RealtimeTransportConfig
   ): Promise<RealtimeSessionRecord> {
     await this.ensureConnection();
 
@@ -90,6 +117,8 @@ export class RealtimeSessionClient {
             status: message.status,
             transport: message.transport,
             parameters: message.parameters,
+            media_tracks: message.media_tracks,
+            signaling: message.signaling,
             created_at: message.created_at,
             updated_at: message.updated_at
           });
@@ -113,7 +142,10 @@ export class RealtimeSessionClient {
           data: {
             workflow_id: workflowId,
             parameters,
-            graph
+            graph,
+            transport: transportConfig?.transport,
+            media_tracks: transportConfig?.mediaTracks,
+            signaling: transportConfig?.signaling
           }
         })
         .catch((error) => {
@@ -140,6 +172,36 @@ export class RealtimeSessionClient {
         session_id: sessionId,
         workflow_id: workflowId,
         parameters
+      }
+    });
+  }
+
+  async signalSession(
+    sessionId: string,
+    workflowId: string | null,
+    payload: RealtimeSignalPayload
+  ): Promise<void> {
+    await this.ensureConnection();
+    await globalWebSocketManager.send({
+      type: "signal_realtime_session",
+      command: "signal_realtime_session",
+      data: {
+        session_id: sessionId,
+        workflow_id: workflowId,
+        signal: payload.signal,
+        signaling_status: payload.signalingStatus,
+        error: payload.error
+      }
+    });
+  }
+
+  subscribeToSignals(
+    sessionId: string,
+    handler: (message: RealtimeSessionSignal) => void
+  ): () => void {
+    return globalWebSocketManager.subscribe(sessionId, (message: unknown) => {
+      if (isRealtimeSessionSignal(message)) {
+        handler(message);
       }
     });
   }
