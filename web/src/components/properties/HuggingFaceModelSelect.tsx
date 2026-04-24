@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 interface HuggingFaceModelSelectProps {
-  modelType: "hf.text_to_image" | "hf.image_to_image";
+  modelType: string;
   onChange: (value: HuggingFaceModelValue) => void;
   value: HuggingFaceModelValueInput;
 }
