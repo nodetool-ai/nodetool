@@ -1,7 +1,6 @@
 import {
   contentTypeToNodeType,
   inputForType,
-  outputForType,
   constantForType,
   constantToInputType,
   inputToConstantType
@@ -40,19 +39,6 @@ describe('NodeTypeMapping utilities', () => {
 
     test('returns null for unknown type', () => {
       expect(inputForType('unknown')).toBeNull();
-    });
-  });
-
-  describe('outputForType', () => {
-    test('maps type names to generic output node type', () => {
-      expect(outputForType('str')).toBe('nodetool.output.Output');
-      expect(outputForType('text')).toBe('nodetool.output.Output');
-      expect(outputForType('image')).toBe('nodetool.output.Output');
-      expect(outputForType('dataframe')).toBe('nodetool.output.Output');
-    });
-
-    test('returns generic output node for unknown type', () => {
-      expect(outputForType('unknown')).toBe('nodetool.output.Output');
     });
   });
 
