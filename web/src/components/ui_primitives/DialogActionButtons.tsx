@@ -15,7 +15,8 @@
  */
 
 import { forwardRef, useCallback, memo } from "react";
-import { Button, ButtonProps, CircularProgress } from "@mui/material";
+import { Button, ButtonProps } from "@mui/material";
+import { LoadingSpinner } from "./LoadingSpinner";
 import DialogActions from "@mui/material/DialogActions";
 import { useTheme } from "@mui/material/styles";
 
@@ -149,7 +150,7 @@ export const DialogActionButtons = memo(
             }}
             {...confirmButtonProps}
           >
-            {isLoading ? <CircularProgress size={20} /> : confirmText}
+            {isLoading ? <LoadingSpinner inline size={20} color="inherit" /> : confirmText}
           </Button>
         </DialogActions>
       );

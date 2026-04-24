@@ -35,7 +35,8 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
-import { IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
+import { LoadingSpinner } from "./LoadingSpinner";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -299,7 +300,7 @@ export const CircularActionButton = memo(
       };
 
       const displayContent = isLoading ? (
-        <CircularProgress size={finalLoadingSize} />
+        <LoadingSpinner inline size={finalLoadingSize} />
       ) : (
         icon
       );

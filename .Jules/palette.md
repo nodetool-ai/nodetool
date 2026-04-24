@@ -40,3 +40,6 @@
 ## 2025-05-30 - Missing ARIA Labels on Icon-only Submit Buttons
 **Learning:** Icon-only submit buttons (like the send button in `PortalInput`) often omit `aria-label`s, rendering them inaccessible to screen readers. Relying solely on the visual icon to convey the button's purpose is a common pattern that breaks accessibility.
 **Action:** When auditing or creating input components with icon-only submission buttons, always ensure an explicit `aria-label` is provided to describe the action (e.g., "Send message").
+## 2024-06-25 - Using `LoadingSpinner` Primitive over Raw Material-UI
+**Learning:** Found instances of raw Material-UI `CircularProgress` usage in components like `CircularActionButton`, `DialogActionButtons`, `DownloadButton`, `RefreshButton`, `RunWorkflowButton`, and `StateIconButton`. This usage goes against `STRATEGY.md` standardizing UI primitives.
+**Action:** When working on UI components, use the explicit primitive `<LoadingSpinner inline />` over the raw `<CircularProgress>` to adhere to standardisation guidelines. Ensure proper test updates to reflect mock substitutions.

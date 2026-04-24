@@ -15,10 +15,10 @@ jest.mock("@mui/icons-material/RestartAlt", () => ({
   default: () => <span data-testid="restart-icon" />
 }));
 
-// Mock CircularProgress
-jest.mock("@mui/material/CircularProgress", () => ({
+// Mock LoadingSpinner
+jest.mock("../LoadingSpinner", () => ({
   __esModule: true,
-  default: () => <span data-testid="loading-spinner" />
+  LoadingSpinner: () => <span data-testid="loading-spinner" />
 }));
 
 // Mock MUI IconButton
