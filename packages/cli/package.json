@@ -19,6 +19,7 @@
     "@nodetool/config": "*",
     "@nodetool/agents": "*",
     "@nodetool/deploy": "*",
+    "@nodetool/huggingface": "*",
     "@nodetool/vectorstore": "*",
     "@nodetool/websocket": "*",
     "@trpc/client": "^11.0.0",

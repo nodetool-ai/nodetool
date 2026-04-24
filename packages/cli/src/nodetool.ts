@@ -36,6 +36,8 @@ import {
   registerDeployCommands,
   registerListGcpOptions
 } from "./commands/deploy.js";
+import { registerHfCommands } from "./commands/models-hf.js";
+import { registerRecommendedCommand } from "./commands/models-recommended.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -739,33 +741,8 @@ models
     }
   });
 
-models
-  .command("recommended")
-  .description("List recommended models")
-  .option(
-    "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
-  )
-  .option("--check-servers", "Check availability on local servers")
-  .option("--json", "Output as JSON")
-  .action(async (opts) => {
-    try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.models.recommended.query({
-        check_servers: Boolean(opts.checkServers)
-      });
-      const rows = data as unknown as Record<string, unknown>[];
-      if (opts.json) {
-        asJson(rows);
-        return;
-      }
-      printTable(rows.map(modelRow));
-    } catch (e) {
-      console.error(String(e));
-      process.exit(1);
-    }
-  });
+registerRecommendedCommand(models);
+registerHfCommands(models);
 
 models
   .command("ollama")
