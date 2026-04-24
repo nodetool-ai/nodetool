@@ -15,6 +15,11 @@ import {
 import type { NodeExecutor } from "../src/actor.js";
 import type { ProcessingContext, StreamingInputs, StreamingOutputs } from "@nodetool/runtime";
 
+const testExecutionContext = {
+  emit() {},
+  setSendControlEvent() {}
+} as unknown as ProcessingContext;
+
 const simpleExecutor = (
   fn: (inputs: Record<string, unknown>) => Record<string, unknown>
 ): NodeExecutor => ({
@@ -365,6 +370,7 @@ describe("RealtimeRunner skeleton", () => {
     };
 
     const realtimeRunner = new RealtimeRunner("rt-live", {
+      executionContext: testExecutionContext,
       resolveExecutor: (node) => {
         if (node.id === "warm") {
           return warmExecutor;
@@ -433,5 +439,29 @@ describe("RealtimeRunner skeleton", () => {
     expect(seenSessions[1]?.session_id).toBe("rt-live");
     expect(result.status).toBe("completed");
     expect(result.outputs.result).toEqual([7]);
+  });
+
+  it("fails warm-state startup without an execution context", async () => {
+    const realtimeRunner = new RealtimeRunner("rt-no-context", {
+      resolveExecutor: () => simpleExecutor((inputs) => inputs)
+    });
+
+    await expect(
+      realtimeRunner.startRealtimeMode(
+        { job_id: "rt-no-context" },
+        {
+          nodes: [
+            {
+              id: "warm",
+              type: "test.Warm",
+              owns_warm_state: true
+            }
+          ],
+          edges: []
+        }
+      )
+    ).rejects.toThrow(
+      "RealtimeRunner requires an executionContext for warm-state hooks"
+    );
   });
 });

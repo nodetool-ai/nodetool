@@ -716,9 +716,9 @@ export class WorkflowRunner {
       }
 
       const inbox = this._inboxes.get(node.id)!;
-      const executor =
-        this._executors.get(node.id) ?? this._options.resolveExecutor(node);
-      if (!this._executors.has(node.id)) {
+      let executor = this._executors.get(node.id);
+      if (!executor) {
+        executor = this._options.resolveExecutor(node);
         this._executors.set(node.id, executor);
       }
 

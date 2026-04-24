@@ -106,15 +106,21 @@ export class RealtimeRunner {
       return;
     }
 
-    const context =
-      this.runner.getExecutionContext() ??
-      ({} as ProcessingContext);
+    const warmNodes = this.runner
+      .getNodes()
+      .filter((node) => node.owns_warm_state);
+    if (warmNodes.length === 0) {
+      return;
+    }
 
-    for (const node of this.runner.getNodes()) {
-      if (!node.owns_warm_state) {
-        continue;
-      }
+    const context = this.runner.getExecutionContext();
+    if (!context) {
+      throw new Error(
+        "RealtimeRunner requires an executionContext for warm-state hooks"
+      );
+    }
 
+    for (const node of warmNodes) {
       const executor = this.runner.getExecutor(node.id);
       if (!executor) {
         continue;
