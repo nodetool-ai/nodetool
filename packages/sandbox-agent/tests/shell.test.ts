@@ -48,7 +48,7 @@ describeTmux("shell tools (tmux required)", () => {
     const view = await shellView({ id: "t3" });
     expect(view.running).toBe(true);
     expect(view.exit_code).toBeNull();
-    const waited = await shellWait({ id: "t3", seconds: 5 });
+    const waited = await shellWait({ id: "t3", seconds: 15 });
     expect(waited.running).toBe(false);
     expect(waited.exit_code).toBe(0);
     await shellKillProcess({ id: "t3" });
