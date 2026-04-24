@@ -26,6 +26,7 @@
 - **Existing workflow nodes remain the default building blocks.** Realtime-specific nodes are added where the graph needs a distinct live source, sink, adapter, or control role. Standard WebSocket-based streaming nodes (using the existing `stream_input` command and `pushInputValue` inbox pattern) can feed into realtime nodes asynchronously, acting as inputs or control signals without disrupting the high-framerate realtime execution loop.
 - **`nodetool.realtime` is the namespace for new realtime-category nodes.** Use this namespace for nodes that are genuinely specific to realtime execution instead of duplicating ordinary workflow nodes.
 - **`NDI` and `Spout` are committed later goals.** The architecture should reserve clean media adapter boundaries for them from the start. `Syphon`, `MIDI`, `OSC`, `DMX`, and `timecode` follow the same adapter-first model.
+- **Code organization rule: shared files hold primitives and surfaces; dedicated files hold realtime behavior.** Realtime work should not be glued into the existing god-classes. Concretely: `unified-websocket-runner.ts` (already 4,880 lines) and `runner.ts` (1,051 lines) gain only the small primitives/surfaces they need (a delegating switch case, a `RunMode` enum, a bounded buffer); all realtime *behavior* lives in `packages/websocket/src/realtime/*` and `packages/kernel/src/realtime-runner.ts`. Any task that would add more than ~50 lines to a shared file, or a new conceptual responsibility (signaling, frame routing, parameter routing) to one, must extract first.
 
 - **Contract** see nodetool/docs/realtime-runtime-contract.md
 
@@ -136,47 +137,58 @@ Ship the first end-to-end realtime workflow that proves the system.
 Browser camera/mic
    │  MediaStream
    ▼
-RTCPeerConnection (operator)        ── WebSocket signaling ──▶  unified-websocket-runner
-   │  SDP/ICE                                                   (signal_realtime_session)
-   │
+RTCPeerConnection (operator)         ── WebSocket signaling ──▶  RealtimeCommandHandler
+   │  SDP/ICE                                                    (handleSignal — was inline
+   │                                                             in unified-websocket-runner)
    │  (RTP frames)
    ▼
-Server-side WebRTC peer (werift)  ◀── session_id + track→node mapping ── RealtimeSessionManager
-   │  decoded VideoFrame / AudioFrame                                      (transport.tracks)
+RealtimeWebRTCServer (werift)     ◀── getRunner(sessionId) ──── RealtimeSessionManager
+   │  decoded VideoFrame / AudioFrame                            (transport.tracks)
    ▼
-Per-track frame router  ──▶  WorkflowRunner.pushInputValue(inputName, frame)
-                                       │
-                                       ▼
-                               NodeInbox (bounded, drop_oldest)
-                                       │
-                                       ▼
-                       nodetool.realtime.VideoSource (isStreamingInput, run())
-                                       │
-                                       ▼
-                         …graph nodes (StreamDiffusion, etc.)…
-                                       │
-                                       ▼
-                           nodetool.realtime.VideoSink (isMediaAdapter)
-                                       │
-                                       ▼
-                       Server-side WebRTC peer outbound track
-                                       │
-                                       ▼
-                        Browser RTCPeerConnection (operator) ──▶  preview <video>
+frame-router  ──▶  RealtimeRunner.pushInputValue(inputName, frame)
+                              │  (delegates to the held WorkflowRunner)
+                              ▼
+                      NodeInbox (bounded, drop_oldest)
+                              │
+                              ▼
+              nodetool.realtime.VideoSource (isStreamingInput, run())
+                              │
+                              ▼
+                  …graph nodes (StreamDiffusion, etc.)…
+                              │
+                              ▼
+                  nodetool.realtime.VideoSink (isMediaAdapter)
+                              │
+                              ▼
+              RealtimeWebRTCServer outbound track
+                              │
+                              ▼
+               Browser RTCPeerConnection (operator) ──▶  preview <video>
 ```
 
-Control plane (separate from the path above): `update_realtime_session` → `WorkflowRunner.pushParameter(name, value)` → control queue → realtime-capable nodes pick up on next tick. `realtime_metrics` flows back over the websocket control plane (fps, queue depth, dropped frames).
+Control plane (separate from the path above): `update_realtime_session` → `RealtimeCommandHandler.handleUpdate` → `RealtimeRunner.pushParameter(name, value)` → control queue → realtime-capable nodes pick up on next tick. `realtime_metrics` flows back over the websocket control plane (fps, queue depth, dropped frames).
+
+Module map (everything new lives in two folders, not in the existing god-classes):
+
+- `packages/websocket/src/realtime/` — `command-handler.ts`, `session-manager.ts` (moved), `webrtc-server.ts`, `frame-router.ts`
+- `packages/kernel/src/realtime-runner.ts` — `RealtimeRunner` class composing `WorkflowRunner`
+- `packages/kernel/src/runner.ts` and `packages/websocket/src/unified-websocket-runner.ts` — gain only small primitives/surfaces (`runMode` option, ring-buffer behavior, one-line delegating switch cases)
 
 **Tasks**
 
-*Substrate prerequisites (gate the model nodes — do these first):*
+*Pre-substrate refactor (gate the substrate prerequisites — do these first to avoid Phase 2 landing in a 6,000-line god-class):*
+
+- [ ] **Extract `RealtimeCommandHandler` from `unified-websocket-runner.ts`.** Pure refactor, no behavior change. Move the four existing realtime command cases (`start_realtime_session`, `signal_realtime_session`, `update_realtime_session`, `stop_realtime_session`) and their backing methods out of `unified-websocket-runner.ts` (currently 4,880 lines) into a new `packages/websocket/src/realtime/command-handler.ts` exporting a `RealtimeCommandHandler` class. The websocket runner keeps a single instance and delegates: each `case` becomes one line (`case "start_realtime_session": return this.realtimeHandler.handleStart(data, jobId, workflowId)`). Required state access (e.g. `activeJobs`, `runJob`, `failRealtimeSessionStartup`) is passed in via the constructor as a small interface so the handler doesn't have to import the whole runner. Tests should pass unchanged. Also move `packages/websocket/src/realtime-session-manager.ts` and `packages/websocket/src/routes/realtime.ts` into the same `realtime/` folder for consistency. **Why first:** all subsequent Phase 2 work (WebRTC server, frame router, gate-tightening) lands in the new module rather than further inflating the god-class; doing this *after* Phase 2 means re-untangling much more code.
+- [ ] **Decide runner extension shape: composition over inheritance.** The realtime runner work below is structured as a **sibling `packages/kernel/src/realtime-runner.ts` exporting a `RealtimeRunner` class that holds (composes) a `WorkflowRunner`** — not as in-place changes to `runner.ts` or a subclass. Only the small shared primitives land in `runner.ts`: a `runMode?: "one_shot" | "realtime"` option on `WorkflowRunnerOptions`, `_messages`/`_edgeCounters`/`_outputs` switched to bounded ring buffers when `runMode === "realtime"`, and a public `_initializeForRealtime()` (or equivalent) that exposes the existing init pipeline (`_resetRunState` → `rewriteBypassedNodes` → `_filterInvalidEdges` → `_analyzeStreaming` → `_initializeInboxes` → `_initializeGraph`) so `RealtimeRunner` can drive it without entering the standard run loop. All realtime-mode behavior — `startRealtimeMode`, `stopRealtimeMode`, `pushParameter`, lifecycle-hook orchestration, WebRTC-server integration — lives in `realtime-runner.ts`. Land an empty skeleton with the constructor and stubbed methods as part of this task so the substrate prerequisites have a concrete file to add code to.
+
+*Substrate prerequisites (gate the model nodes — do these next):*
 
 - [ ] **Pick the server-side WebRTC stack (Node-first).** One short spike comparing `werift` (pure-TS, actively maintained, no native build) vs `@roamhq/wrtc`/`node-webrtc` (native, well-known but maintenance-thin). Decision criteria: (1) install/build cost on macOS/Windows/Linux + Electron, (2) H.264/VP8/VP9 codec coverage, (3) latency at 720p30 in a local loopback test, (4) ability to hand raw frames into JS (or zero-copy into a worker). Python `aiortc` is only revisited if all Node options fail criteria 3 or 4.
-- [ ] **Stand up the server-side WebRTC endpoint and frame router.** Land the chosen stack as `packages/websocket/src/realtime/webrtc-server.ts` exporting a `RealtimeWebRTCServer` with these responsibilities:
-  - Lifecycle is **per session, not singleton**: `start(sessionId, transportConfig)` is called from `RealtimeSessionManager` when a session enters `starting`; `stop(sessionId)` is called on terminal transitions.
-  - Consumes the existing `signal_realtime_session` command in `unified-websocket-runner.ts` to receive operator SDP/ICE, produces answer SDP/ICE, and pushes them back through the same command (no new websocket commands needed for signaling).
+- [ ] **Stand up the server-side WebRTC endpoint and frame router.** Land the chosen stack as `packages/websocket/src/realtime/webrtc-server.ts` (alongside the `command-handler.ts` and `session-manager.ts` from the refactor), with frame-routing concerns split into `packages/websocket/src/realtime/frame-router.ts` if the server file would otherwise grow past ~500 lines. Export a `RealtimeWebRTCServer` with these responsibilities:
+  - Lifecycle is **per session, not singleton**: `start(sessionId, transportConfig)` is called from `RealtimeCommandHandler.handleStart` after `RealtimeRunner.startRealtimeMode` resolves; `stop(sessionId)` is called on terminal transitions.
+  - Consumes the existing `signal_realtime_session` command (now routed through `RealtimeCommandHandler.handleSignal`) to receive operator SDP/ICE, produces answer SDP/ICE, and replies through the same command (no new websocket commands needed for signaling).
   - Reads `transport.tracks` (the existing track→node mapping on the session record) to know which inbound track feeds which `nodetool.realtime` source node and input name.
-  - For each inbound media track, decodes frames and calls `runner.pushInputValue(inputName, frame, sourceHandle?)` on the session's active runner. Frames must arrive on the **same `runner` instance** the session was started with — the manager already exposes `getActiveRunner(sessionId)`-style access via `unified-websocket-runner.activeJobs.get(jobId).runner`; if not, add an explicit `RealtimeSessionManager.getRunner(sessionId)`.
+  - For each inbound media track, decodes frames and calls `realtimeRunner.pushInputValue(inputName, frame, sourceHandle?)` on the session's `RealtimeRunner`. The runner instance is obtained via `RealtimeSessionManager.getRunner(sessionId)` (add this accessor as part of the refactor task — store the `RealtimeRunner` reference on the session record at start time).
   - Runs WebRTC peer work off the runner's main async loop (Worker thread or scheduler-yielded async) to honor "Async I/O vs. Synchronous Inference Boundary" in Core Technical Assumptions.
   - Exposes outbound tracks for `nodetool.realtime` sink nodes to write encoded frames into (used by the sink-node task below).
   - Emits a `realtime_metrics` snapshot (see follow-up task) every N seconds with fps in/out, peer state, and dropped-frame count.
@@ -197,13 +209,13 @@ Control plane (separate from the path above): `update_realtime_session` → `Wor
     - `resetWarmState(): void` — called on intra-session restart (e.g. operator pressed "reset" without ending the session).
   - **Runner consumption** (where the flags are READ): the long-lived realtime entry point (next task) calls `onSessionStart` once per warm-state node before the tick loop, calls `onSessionStop` on teardown, and refuses to start a session if any node on the data path from a `is_media_adapter` source has `isRealtimeCapable === false` (loud error with the offending node id, not silent execution).
   - **Editor consumption** (where the flags are READ): the realtime-mode validation in Phase 3 reads them off the existing `NodeMetadata` via the node registry (no new endpoint). Capability-aware palette filter and edge validation are pure UI on top of the descriptor.
-- [ ] **Promote the runner to long-lived realtime mode.** Extend `WorkflowRunner` (`packages/kernel/src/runner.ts`) — preferably in-place behind a `RunMode = "one_shot" | "realtime"` option on `WorkflowRunnerOptions`, with a thin subclass only if shared state would otherwise leak.
-  - **New entry point:** `async startRealtimeMode(request, graphData): Promise<void>` runs the existing init pipeline (`_resetRunState` → `rewriteBypassedNodes` → `_filterInvalidEdges` → `_analyzeStreaming` → `_initializeInboxes` → `_initializeGraph`) **without entering the buffered/streaming run loop**, then calls `onSessionStart` on every node where `ownsWarmState === true`, then resolves. The session is now "live": media frames arrive via `pushInputValue` and parameter updates via `pushParameter` (below). The existing `run()` is unchanged for one-shot jobs.
-  - **Tick model:** the realtime nodes are themselves `isStreamingInput=true` with their own `run()` loops (per the existing `ManualTriggerNode` pattern); the runner does **not** drive a separate tick clock. The "session-tick" is implicit — each `pushInputValue` from the WebRTC frame router wakes the source node's `for await` loop, which propagates downstream. This means most existing actor machinery already does the right thing; the runner's job in realtime mode is keeping it alive, not orchestrating ticks.
-  - **Teardown:** `async stopRealtimeMode(): Promise<RunResult>` calls `finishInputStream` on all media-adapter source nodes (so their `for await` loops exit), awaits their actor completion, calls `onSessionStop` on warm-state nodes, then returns the collected outputs/messages.
-  - **Bounded growth:** convert `_messages: ProcessingMessage[]`, `_edgeCounters`, and `_outputs` to bounded ring buffers (or roll them up into running counters for `_edgeCounters`) when `runMode === "realtime"`. Without this, a multi-hour session OOMs.
-  - **Parameter API:** add `async pushParameter(name: string, value: unknown): Promise<{ routed: boolean; nodeIds: string[] }>` that routes into nodes flagged `isControlled === true` via the `__control__` handle, falling back to `pushInputValue` semantics for non-controlled nodes (preserving today's behavior). `update_realtime_session` switches to this and reports both `routed_parameters` and `unrouted_parameters` back to the operator.
-  - **Wiring with the WebRTC server:** `unified-websocket-runner.startRealtimeSession` constructs the runner with `runMode: "realtime"`, awaits `startRealtimeMode`, **then** asks `RealtimeWebRTCServer.start(sessionId, ...)` to spin up the peer; the WebRTC server obtains the runner via `getRunner(sessionId)` and pushes frames into it. The `starting → running` gate flips after both `startRealtimeMode` resolves and the WebRTC peer reports `connected` (closes the open follow-up about that gate).
+- [ ] **Implement the long-lived realtime mode in `RealtimeRunner`.** Build out the skeleton from the pre-substrate refactor task above. `RealtimeRunner` (in `packages/kernel/src/realtime-runner.ts`) holds a `WorkflowRunner` constructed with `runMode: "realtime"` and orchestrates the realtime lifecycle on top of it. Only the shared primitives (`runMode` option, bounded ring buffers, `_initializeForRealtime()` accessor) live in `runner.ts`.
+  - **Entry point:** `async startRealtimeMode(request, graphData): Promise<void>` calls the underlying runner's exposed init pipeline (`_resetRunState` → `rewriteBypassedNodes` → `_filterInvalidEdges` → `_analyzeStreaming` → `_initializeInboxes` → `_initializeGraph`) **without entering the buffered/streaming run loop**, then iterates the graph's nodes and calls `onSessionStart` on every node where `ownsWarmState === true`, then resolves. The session is now "live": media frames arrive via `WorkflowRunner.pushInputValue` and parameter updates via `pushParameter` (below). The standard `WorkflowRunner.run()` path is unchanged for one-shot jobs.
+  - **Tick model:** realtime nodes are themselves `isStreamingInput=true` with their own `run()` loops (per the existing `ManualTriggerNode` pattern); `RealtimeRunner` does **not** drive a separate tick clock. The "session-tick" is implicit — each `pushInputValue` from the WebRTC frame router wakes the source node's `for await` loop, which propagates downstream. Most existing actor machinery already does the right thing; the realtime runner's job is keeping it alive, not orchestrating ticks.
+  - **Teardown:** `async stopRealtimeMode(): Promise<RunResult>` calls `WorkflowRunner.finishInputStream` on all media-adapter source nodes (so their `for await` loops exit), awaits their actor completion, calls `onSessionStop` on warm-state nodes, then returns the collected outputs/messages.
+  - **Bounded growth (inside `runner.ts`):** when `runMode === "realtime"`, `_messages: ProcessingMessage[]`, `_edgeCounters`, and `_outputs` use bounded ring buffers (or running counters for `_edgeCounters`). Without this, a multi-hour session OOMs.
+  - **Parameter API (on `RealtimeRunner`):** `async pushParameter(name: string, value: unknown): Promise<{ routed: boolean; nodeIds: string[] }>` routes into nodes flagged `isControlled === true` via the `__control__` handle, falling back to `WorkflowRunner.pushInputValue` semantics for non-controlled nodes (preserving today's behavior). `RealtimeCommandHandler.handleUpdate` switches to this and reports both `routed_parameters` and `unrouted_parameters` back to the operator.
+  - **Wiring with the WebRTC server:** `RealtimeCommandHandler.handleStart` constructs a `RealtimeRunner`, awaits `startRealtimeMode`, **then** asks `RealtimeWebRTCServer.start(sessionId, ...)` to spin up the peer; the WebRTC server obtains the realtime runner via `RealtimeSessionManager.getRunner(sessionId)` and pushes frames into it. The `starting → running` gate flips after both `startRealtimeMode` resolves and the WebRTC peer reports `connected` (closes the open follow-up about that gate).
 
 *First `nodetool.realtime` nodes (depend on substrate, gate the model nodes):*
 
@@ -299,7 +311,9 @@ Extend the realtime system through clear media and control adapters after the fi
 - [x] Write the short execution contract for the separate but workflow-native realtime runtime
 - [x] Choose the first operator surface and define the path from incubation to workflow-native usage
 - [x] Define the initial `nodetool.realtime` node set for the first proof
-- [ ] **Pick the Node-side WebRTC stack** (`werift` vs `@roamhq/wrtc`) — short spike, gates everything in Phase 2
+- [ ] **Extract `RealtimeCommandHandler` from `unified-websocket-runner.ts`** and move `realtime-session-manager.ts`/`routes/realtime.ts` into `packages/websocket/src/realtime/` — pure refactor, gates the rest of Phase 2 so new realtime work doesn't compound the existing 4,880-line god-class
+- [ ] **Land the `RealtimeRunner` skeleton** in `packages/kernel/src/realtime-runner.ts` and add the small shared primitives (`runMode` option, bounded ring buffers, init-pipeline accessor) to `runner.ts` — composition over inheritance, gates the long-lived runner work
+- [ ] **Pick the Node-side WebRTC stack** (`werift` vs `@roamhq/wrtc`) — short spike, gates the rest of the substrate
 - [ ] **Add `isRealtimeCapable` / `ownsWarmState` / `isMediaAdapter` flags + `onSessionStart`/`onSessionStop`/`resetWarmState` hooks to `BaseNode`** — gates editor validation, capability-aware palette, and the runner's hot-path safety check
 - [ ] **Add `overflowPolicy` to `NodeInbox`** with a `"drop_oldest"` variant — the latest-frame-wins primitive the contract requires
 - [ ] Implement backend WebRTC termination using the chosen stack to receive the mapped media tracks and feed them into the live graph via `pushInputValue`
