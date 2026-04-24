@@ -384,6 +384,19 @@ describe("_inferModelTypeFromLocalConfigs", () => {
     expect(result).toBe("hf.automatic_speech_recognition");
   });
 
+  it("infers image-to-text models from model_type field", async () => {
+    const config = { model_type: "vision-encoder-decoder" };
+    await fs.writeFile(
+      path.join(tmpDir, "config.json"),
+      JSON.stringify(config)
+    );
+    const result = _inferModelTypeFromLocalConfigs(
+      [["config.json", 100]],
+      tmpDir
+    );
+    expect(result).toBe("hf.image_to_text");
+  });
+
   it("infers type from architectures array (LlamaForCausalLM)", async () => {
     const config = { architectures: ["LlamaForCausalLM"] };
     await fs.writeFile(
@@ -421,6 +434,19 @@ describe("_inferModelTypeFromLocalConfigs", () => {
       tmpDir
     );
     expect(result).toBe("hf.zero_shot_image_classification");
+  });
+
+  it("infers image-to-text models from architectures array", async () => {
+    const config = { architectures: ["BlipForConditionalGeneration"] };
+    await fs.writeFile(
+      path.join(tmpDir, "config.json"),
+      JSON.stringify(config)
+    );
+    const result = _inferModelTypeFromLocalConfigs(
+      [["config.json", 100]],
+      tmpDir
+    );
+    expect(result).toBe("hf.image_to_text");
   });
 
   it("returns null for unknown architecture", async () => {
@@ -681,6 +707,12 @@ describe("_CONFIG_MODEL_TYPE_MAPPING", () => {
       "hf.zero_shot_image_classification"
     );
   });
+
+  it("maps vision-encoder-decoder to image_to_text", () => {
+    expect(_CONFIG_MODEL_TYPE_MAPPING["vision-encoder-decoder"]).toBe(
+      "hf.image_to_text"
+    );
+  });
 });
 
 describe("_CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING", () => {
@@ -694,6 +726,14 @@ describe("_CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING", () => {
     expect(_CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING["CLIPModel"]).toBe(
       "hf.zero_shot_image_classification"
     );
+  });
+
+  it("maps BlipForConditionalGeneration to hf.image_to_text", () => {
+    expect(
+      _CONFIG_MODEL_TYPE_ARCHITECTURE_MAPPING[
+        "BlipForConditionalGeneration"
+      ]
+    ).toBe("hf.image_to_text");
   });
 
   it("maps WhisperForConditionalGeneration to hf.automatic_speech_recognition", () => {
