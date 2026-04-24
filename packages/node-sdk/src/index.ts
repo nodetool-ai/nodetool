@@ -4,11 +4,16 @@ export * from "./metadata.js";
 export * from "./node-metadata.js";
 export * from "./decorators.js";
 export * from "./nodes/test-nodes.js";
-export type { StreamingInputs, StreamingOutputs } from "@nodetool/runtime";
+export type {
+  ExecutionContext,
+  StreamingInputs,
+  StreamingOutputs
+} from "@nodetool/runtime";
 export type {
   ImageRef,
   AudioRef,
   VideoRef,
   TextRef,
-  DataframeRef
+  DataframeRef,
+  RealtimeSessionInfo
 } from "@nodetool/protocol";

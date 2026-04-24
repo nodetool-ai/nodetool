@@ -191,18 +191,20 @@ Module map (everything new lives in two folders, not in the existing god-classes
   - **Wiring point:** `_initializeInboxes()` in `packages/kernel/src/runner.ts` now resolves policies per `(node, handle)` and passes them into a single `NodeInbox` per node via handle-policy overrides, keeping the existing inbox shape intact.
   - **Default for `nodetool.realtime` source nodes:** the descriptor surface now exists; the concrete `{ capacity: 2, overflowPolicy: "drop_oldest" }` default will be attached when the first `nodetool.realtime.*Source` nodes land below.
   - **Tests:** added focused coverage for producer-faster-than-consumer behavior at each overflow policy, unchanged `block` semantics, drop counters, node-level policy propagation, and per-edge override precedence.
-- [ ] **Add realtime capability flags + lifecycle hooks to `BaseNode`.**
-  - **Static flags** (in `packages/node-sdk/src/base-node.ts`):
-    - `static readonly isRealtimeCapable: boolean = false` — node is safe to execute inside a realtime session at all (default false: opt-in).
-    - `static readonly ownsWarmState: boolean = false` — node holds GPU/model state that must persist across ticks; the runner must keep its instance alive between frames.
-    - `static readonly isMediaAdapter: boolean = false` — node terminates or originates a media transport (e.g. `nodetool.realtime.VideoSource`/`VideoSink`); the runner wires its inbox/outbox to the WebRTC server.
-  - **Descriptor surface** (in `packages/node-sdk/src/node-metadata.ts`): add `is_realtime_capable`, `owns_warm_state`, `is_media_adapter` to `NodeDescriptor` and serialize them in `toDescriptor()` alongside the existing `is_streaming_input` / `is_streaming_output` fields. They flow to the web client through the existing node-registry endpoint with no new transport.
-  - **Optional instance hooks** (added to `BaseNode` with no-op defaults so they're override-only):
-    - `async onSessionStart(ctx: ExecutionContext, session: RealtimeSessionInfo): Promise<void>` — called once per session before the first tick (load model, warm caches, open device).
-    - `async onSessionStop(ctx: ExecutionContext, session: RealtimeSessionInfo): Promise<void>` — called when the session enters `stopped`/`error` (release resources).
-    - `resetWarmState(): void` — called on intra-session restart (e.g. operator pressed "reset" without ending the session).
-  - **Runner consumption** (where the flags are READ): the long-lived realtime entry point (next task) calls `onSessionStart` once per warm-state node before the tick loop, calls `onSessionStop` on teardown, and refuses to start a session if any node on the data path from a `is_media_adapter` source has `isRealtimeCapable === false` (loud error with the offending node id, not silent execution).
-  - **Editor consumption** (where the flags are READ): the realtime-mode validation in Phase 3 reads them off the existing `NodeMetadata` via the node registry (no new endpoint). Capability-aware palette filter and edge validation are pure UI on top of the descriptor.
+- [x] **Add realtime capability flags + lifecycle hooks to `BaseNode`.**
+  - **Static flags** (in `packages/node-sdk/src/base-node.ts`) landed:
+    - `static readonly isRealtimeCapable: boolean = false`
+    - `static readonly ownsWarmState: boolean = false`
+    - `static readonly isMediaAdapter: boolean = false`
+    These default to false so realtime behavior remains opt-in.
+  - **Descriptor surface** is now wired through `NodeDescriptor`, `BaseNode.toDescriptor()`, `NodeMetadata`, and the graph resolver as `is_realtime_capable`, `owns_warm_state`, and `is_media_adapter`, alongside the existing streaming/control flags. `Graph.loadFromDict()` also now prefers registry-provided truth for these flags over stale saved graph values.
+  - **Optional instance hooks** landed on `BaseNode` with no-op defaults:
+    - `async onSessionStart(ctx: ExecutionContext, session: RealtimeSessionInfo): Promise<void>`
+    - `async onSessionStop(ctx: ExecutionContext, session: RealtimeSessionInfo): Promise<void>`
+    - `resetWarmState(): void`
+    Supporting types are exported as `ExecutionContext` from `@nodetool/runtime` and `RealtimeSessionInfo` from `@nodetool/protocol`.
+  - **Runner consumption** remains the next task: the long-lived realtime runner will call these hooks and enforce capability validation when realtime session orchestration lands below.
+  - **Editor consumption** remains for Phase 3, but the metadata needed by the node registry is now present with no new transport.
 - [ ] **Implement the long-lived realtime mode in `RealtimeRunner`.** Build out the skeleton from the pre-substrate refactor task above. `RealtimeRunner` (in `packages/kernel/src/realtime-runner.ts`) holds a `WorkflowRunner` constructed with `runMode: "realtime"` and orchestrates the realtime lifecycle on top of it. Only the shared primitives (`runMode` option, bounded ring buffers, `_initializeForRealtime()` accessor) live in `runner.ts`.
   - **Entry point:** `async startRealtimeMode(request, graphData): Promise<void>` calls the underlying runner's exposed init pipeline (`_resetRunState` → `rewriteBypassedNodes` → `_filterInvalidEdges` → `_analyzeStreaming` → `_initializeInboxes` → `_initializeGraph`) **without entering the buffered/streaming run loop**, then iterates the graph's nodes and calls `onSessionStart` on every node where `ownsWarmState === true`, then resolves. The session is now "live": media frames arrive via `WorkflowRunner.pushInputValue` and parameter updates via `pushParameter` (below). The standard `WorkflowRunner.run()` path is unchanged for one-shot jobs.
   - **Tick model:** realtime nodes are themselves `isStreamingInput=true` with their own `run()` loops (per the existing `ManualTriggerNode` pattern); `RealtimeRunner` does **not** drive a separate tick clock. The "session-tick" is implicit — each `pushInputValue` from the WebRTC frame router wakes the source node's `for await` loop, which propagates downstream. Most existing actor machinery already does the right thing; the realtime runner's job is keeping it alive, not orchestrating ticks.

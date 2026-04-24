@@ -19,7 +19,10 @@ describe("Graph.loadFromDict", () => {
           descriptorDefaults: {
             name: "Resolved Input",
             sync_mode: "on_any",
-            is_streaming_output: false
+            is_streaming_output: false,
+            is_realtime_capable: true,
+            owns_warm_state: true,
+            is_media_adapter: true
           }
         };
       }
@@ -39,6 +42,45 @@ describe("Graph.loadFromDict", () => {
     expect(node?.outputs).toEqual({ output: "int" });
     expect(node?.sync_mode).toBe("on_any");
     expect(node?.name).toBe("Resolved Input");
+    expect(node?.is_realtime_capable).toBe(true);
+    expect(node?.owns_warm_state).toBe(true);
+    expect(node?.is_media_adapter).toBe(true);
+  });
+
+  it("prefers resolver realtime flags over stale saved graph values", async () => {
+    const graph = await Graph.loadFromDict(
+      {
+        nodes: [
+          {
+            id: "n1",
+            type: "test.Input",
+            is_realtime_capable: false,
+            owns_warm_state: false,
+            is_media_adapter: false
+          }
+        ],
+        edges: []
+      },
+      {
+        resolver: {
+          async resolveNodeType(nodeType: string): Promise<ResolvedNodeType | null> {
+            return {
+              nodeType,
+              descriptorDefaults: {
+                is_realtime_capable: true,
+                owns_warm_state: true,
+                is_media_adapter: true
+              }
+            };
+          }
+        }
+      }
+    );
+
+    const node = graph.findNode("n1");
+    expect(node?.is_realtime_capable).toBe(true);
+    expect(node?.owns_warm_state).toBe(true);
+    expect(node?.is_media_adapter).toBe(true);
   });
 
   it("drops unresolved nodes and connected edges when skipErrors is true", async () => {

@@ -161,6 +161,11 @@ function mergeMetadata(
     // Backfill optional fields from Python when TS doesn't set them
     layout: tsMetadata.layout ?? pyMetadata.layout,
     model_packs: tsMetadata.model_packs ?? pyMetadata.model_packs,
+    is_realtime_capable:
+      tsMetadata.is_realtime_capable ?? pyMetadata.is_realtime_capable,
+    owns_warm_state: tsMetadata.owns_warm_state ?? pyMetadata.owns_warm_state,
+    is_media_adapter:
+      tsMetadata.is_media_adapter ?? pyMetadata.is_media_adapter,
     input_buffer_policy:
       tsMetadata.input_buffer_policy ?? pyMetadata.input_buffer_policy
   };
@@ -297,6 +302,9 @@ export function getNodeMetadata(
     is_streaming_output: nodeClass.isStreamingOutput || false,
     is_controlled: nodeClass.isControlled || false,
     is_dynamic: nodeClass.isDynamic || false,
+    is_realtime_capable: nodeClass.isRealtimeCapable || false,
+    owns_warm_state: nodeClass.ownsWarmState || false,
+    is_media_adapter: nodeClass.isMediaAdapter || false,
     input_buffer_policy: nodeClass.inputBufferPolicy
       ? cloneInputBufferPolicy(nodeClass.inputBufferPolicy)
       : undefined,

@@ -234,6 +234,9 @@ export function createGraphNodeTypeResolver(
           ...(metadata.is_streaming_input && { is_streaming_input: true }),
           ...(metadata.is_streaming_output && { is_streaming_output: true }),
           ...(metadata.is_controlled && { is_controlled: true }),
+          ...(metadata.is_realtime_capable && { is_realtime_capable: true }),
+          ...(metadata.owns_warm_state && { owns_warm_state: true }),
+          ...(metadata.is_media_adapter && { is_media_adapter: true }),
           ...(inputBufferPolicy && { inputBufferPolicy }),
           ...(syncMode !== undefined && { sync_mode: syncMode }),
           ...(Object.keys(propertyMeta).length > 0 && { propertyMeta })

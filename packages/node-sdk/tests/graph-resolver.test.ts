@@ -21,6 +21,9 @@ const sampleMetadata: NodeMetadata = {
     }
   ],
   is_streaming_output: true,
+  is_realtime_capable: true,
+  owns_warm_state: true,
+  is_media_adapter: true,
   input_buffer_policy: {
     value: { capacity: 2, overflowPolicy: "drop_oldest" }
   }
@@ -62,6 +65,9 @@ describe("createGraphNodeTypeResolver", () => {
       descriptorDefaults: {
         name: "Strict Node",
         is_streaming_output: true,
+        is_realtime_capable: true,
+        owns_warm_state: true,
+        is_media_adapter: true,
         inputBufferPolicy: {
           value: { capacity: 2, overflowPolicy: "drop_oldest" }
         }
@@ -125,6 +131,9 @@ describe("createGraphNodeTypeResolver", () => {
     expect(resolved?.descriptorDefaults).toEqual({
       name: "Zip Node",
       is_streaming_output: true,
+      is_realtime_capable: true,
+      owns_warm_state: true,
+      is_media_adapter: true,
       inputBufferPolicy: {
         value: { capacity: 2, overflowPolicy: "drop_oldest" }
       },

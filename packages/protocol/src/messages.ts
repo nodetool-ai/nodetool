@@ -358,6 +358,8 @@ export interface RealtimeSessionRecord {
   updated_at: string;
 }
 
+export type RealtimeSessionInfo = RealtimeSessionRecord;
+
 export interface RealtimeSessionStarted extends RealtimeSessionRecord {
   type: "realtime_session_started";
 }

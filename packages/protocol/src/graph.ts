@@ -109,6 +109,15 @@ export interface NodeDescriptor {
   /** Whether this node is dynamic (runtime outputs). */
   is_dynamic?: boolean;
 
+  /** Whether this node can execute inside a realtime session. */
+  is_realtime_capable?: boolean;
+
+  /** Whether this node owns warm session state that persists across ticks. */
+  owns_warm_state?: boolean;
+
+  /** Whether this node originates or terminates a media transport. */
+  is_media_adapter?: boolean;
+
   /** Optional per-input-handle buffer policies used by realtime-capable runners. */
   inputBufferPolicy?: Record<string, InputBufferPolicy>;
 

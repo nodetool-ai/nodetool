@@ -23,6 +23,9 @@ class BufferedNode extends BaseNode {
   static readonly nodeType = "nodetool.test.Buffered";
   static readonly title = "Buffered";
   static readonly description = "Buffered test node";
+  static readonly isRealtimeCapable = true;
+  static readonly ownsWarmState = true;
+  static readonly isMediaAdapter = true;
   static readonly inputBufferPolicy = {
     frame: { capacity: 2, overflowPolicy: "drop_oldest" as const }
   };
@@ -78,6 +81,9 @@ describe("getNodeMetadata", () => {
 
   it("includes input buffer policy metadata when declared", () => {
     const meta = getNodeMetadata(BufferedNode);
+    expect(meta.is_realtime_capable).toBe(true);
+    expect(meta.owns_warm_state).toBe(true);
+    expect(meta.is_media_adapter).toBe(true);
     expect(meta.input_buffer_policy).toEqual({
       frame: { capacity: 2, overflowPolicy: "drop_oldest" }
     });
