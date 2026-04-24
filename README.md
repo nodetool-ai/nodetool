@@ -1,4 +1,4 @@
-# NodeTool: Visual Builder for AI Workflows and Agents
+# NodeTool: Visual Builder for AI Agents and Workflows
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
@@ -12,7 +12,7 @@
 
 > AI belongs on your machine, next to your data. Not behind a paywall. Not in someone else's cloud.
 
-NodeTool is an open-source visual platform for building AI workflows. Connect LLMs, generate media, build agents, and process data through a drag-and-drop node interface — locally or in the cloud.
+NodeTool is an open-source visual platform for building AI agents and workflows. Compose planning agents, give them tools, generate media, and process data through a drag-and-drop node interface — running locally or in the cloud.
 
 ![NodeTool Interface](screen3.png)
 
@@ -20,25 +20,27 @@ NodeTool is an open-source visual platform for building AI workflows. Connect LL
 
 | | |
 | :--- | :--- |
-| **Visual workflow builder** | Drag-and-drop nodes with type-safe connections — no code required |
-| **Local-first AI** | Run models on your machine via Ollama, MLX (Apple Silicon), and GGUF/GGML |
+| **Agent-first design** | Planning agents with task decomposition, parallel execution, and 100+ built-in tools |
+| **Visual agent builder** | Drag-and-drop nodes with type-safe connections — wire up agents without code |
+| **Tool use & code execution** | Give agents browsing, file I/O, vector search, and sandboxed Docker code runners |
+| **Local-first AI** | Run agents and models on your machine via Ollama, MLX (Apple Silicon), and GGUF/GGML |
 | **500,000+ models** | Access HuggingFace's full model library for any ML task |
 | **Cloud APIs** | OpenAI, Anthropic, Gemini, Replicate, Fal, MiniMax, Kie, OpenRouter |
-| **AI agents** | Build LLM agents with 100+ built-in tools and secure code execution |
-| **Multimodal** | Process and generate text, images, video, and audio in one workflow |
-| **Real-time streaming** | Async execution with live output previews |
+| **Multimodal** | Agents that read, generate, and reason over text, images, video, and audio |
+| **Real-time streaming** | Async execution with live agent traces and output previews |
 | **Deploy anywhere** | Docker, RunPod, Google Cloud Run, or self-hosted |
 | **Extend with code** | Build custom nodes in Python or TypeScript |
 | **Cross-platform** | Desktop (Electron), web, CLI, and mobile (React Native) |
 
 ## What You Can Build
 
-- **LLM agents** with tool use, planning, and multi-step reasoning
+- **Autonomous agents** that plan, call tools, and execute multi-step tasks in parallel
+- **Research agents** that browse the web, summarize sources, and write reports
+- **Coding agents** with sandboxed Docker execution and file system access
+- **RAG agents** backed by native vector search and document processing
 - **Creative pipelines** for image, video, and audio generation
-- **RAG systems** with vector search and document processing
-- **Data transformation** workflows with batch processing
-- **Mini-Apps** — share workflows as interactive web applications
-- **Automation** pipelines combining local AI with cloud services
+- **Mini-Apps** — ship agents and workflows as interactive web applications
+- **Automation** pipelines that hand off between local AI and cloud services
 
 ## Cloud Models
 
@@ -59,9 +61,9 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 
 | | NodeTool | ComfyUI | n8n |
 | :--- | :--- | :--- | :--- |
-| **Focus** | General AI workflows + agents | Media generation | Business automation |
+| **Focus** | Agents + general AI workflows | Media generation | Business automation |
 | **Local LLMs** | Ollama, MLX, GGUF | Limited | No |
-| **AI Agents** | Built-in with 100+ tools | No | Basic |
+| **AI Agents** | First-class: planning, tools, parallel steps | No | Basic |
 | **RAG / Vector DB** | Native support | No | Via plugins |
 | **Streaming** | Real-time async | Queue-based | Webhook-based |
 | **Multimodal** | Text, image, video, audio | Image, video | Text-focused |
