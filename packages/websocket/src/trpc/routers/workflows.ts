@@ -82,10 +82,10 @@ const log = createLogger("nodetool.websocket.trpc.workflows");
  * the workflow row instead of failing the entire response.
  */
 function summarizeGraphIssues(
-  issues: Array<{
-    code: string;
-    path: Array<string | number>;
-    message: string;
+  issues: ReadonlyArray<{
+    readonly code: string;
+    readonly path: ReadonlyArray<PropertyKey>;
+    readonly message: string;
   }>
 ): string {
   const [first] = issues;
@@ -93,7 +93,10 @@ function summarizeGraphIssues(
     return "unknown validation error";
   }
 
-  const path = first.path.length > 0 ? first.path.join(".") : "<root>";
+  const path =
+    first.path.length > 0
+      ? first.path.map((segment) => String(segment)).join(".")
+      : "<root>";
   const suffix = issues.length > 1 ? ` (+${issues.length - 1} more)` : "";
   return `${path}: ${first.message}${suffix}`;
 }

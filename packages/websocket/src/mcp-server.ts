@@ -9,6 +9,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
+import { createLogger } from "@nodetool/config";
 import { Workflow, Job, Asset } from "@nodetool/models";
 import {
   toAssetResponse,
@@ -35,6 +36,8 @@ export interface McpServerOptions {
   metadataMaxDepth?: number;
   registry?: NodeRegistry;
 }
+
+const log = createLogger("nodetool.websocket.mcp-server");
 
 const GLOBAL_FRONTEND_SESSION_ID = "global-mcp";
 let activeFrontendTransport: AgentTransport | null = null;

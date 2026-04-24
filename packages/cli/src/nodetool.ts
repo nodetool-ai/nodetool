@@ -654,6 +654,215 @@ assets
   });
 
 // ---------------------------------------------------------------------------
+// models
+// ---------------------------------------------------------------------------
+
+const models = program.command("models").description("Model management");
+
+const modelKinds = ["llm", "image", "tts", "asr", "video", "embedding"] as const;
+type ModelKind = (typeof modelKinds)[number];
+
+const byProviderRoute: Record<ModelKind, string> = {
+  llm: "llmByProvider",
+  image: "imageByProvider",
+  tts: "ttsByProvider",
+  asr: "asrByProvider",
+  video: "videoByProvider",
+  embedding: "embeddingByProvider"
+};
+
+function modelRow(m: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: m["id"],
+    name: m["name"],
+    provider: m["provider"] ?? "",
+    type: m["type"] ?? "",
+    repo_id: m["repo_id"] ?? ""
+  };
+}
+
+models
+  .command("list")
+  .description("List all models (recommended + provider + HF cached)")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.all.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("providers")
+  .description("List configured providers and their capabilities")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.providers.query();
+      if (opts.json) {
+        asJson(data);
+        return;
+      }
+      printTable(
+        data.map((p) => ({
+          provider: p.provider,
+          capabilities: p.capabilities.join(", ")
+        }))
+      );
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("recommended")
+  .description("List recommended models")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--check-servers", "Check availability on local servers")
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.recommended.query({
+        check_servers: Boolean(opts.checkServers)
+      });
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("ollama")
+  .description("List Ollama models")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.ollama.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("huggingface")
+  .description("List HuggingFace cached models")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--query <q>", "Search query")
+  .option("--type <t>", "Filter by HF model type")
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data =
+        opts.query || opts.type
+          ? await client.models.huggingfaceSearch.query({
+              ...(opts.query ? { query: String(opts.query) } : {}),
+              ...(opts.type ? { type: String(opts.type) } : {})
+            })
+          : await client.models.huggingfaceList.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("by-provider <provider>")
+  .description(
+    `List models for a provider. --kind one of: ${modelKinds.join(", ")}`
+  )
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--kind <kind>", "Model kind", "llm")
+  .option("--json", "Output as JSON")
+  .action(async (provider, opts) => {
+    const kind = opts.kind as ModelKind;
+    if (!modelKinds.includes(kind)) {
+      console.error(
+        `Invalid --kind '${opts.kind}'. Must be one of: ${modelKinds.join(", ")}`
+      );
+      process.exit(1);
+    }
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const route = byProviderRoute[kind];
+      const data = await (
+        client.models as unknown as Record<
+          string,
+          { query: (input: { provider: string }) => Promise<unknown[]> }
+        >
+      )[route]!.query({ provider });
+      const rows = data as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+// ---------------------------------------------------------------------------
 // secrets
 // ---------------------------------------------------------------------------
 

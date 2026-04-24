@@ -330,7 +330,9 @@ function ModelList<TModel extends ModelSelectorModel>({
                   width: safeWidth,
                   "& .MuiListItemButton-root": { py: 0.5 },
                   "& .MuiListItemText-primary": {
-                    fontSize: theme.vars.fontSizeNormal
+                    fontSize: theme.vars.fontSizeNormal,
+                    color: theme.vars.palette.text.primary,
+                    fontWeight: 500
                   },
                   "& .MuiListItemText-secondary": {
                     color: theme.vars.palette.text.secondary,
