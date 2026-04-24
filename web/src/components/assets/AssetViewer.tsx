@@ -91,7 +91,7 @@ const styles = (theme: Theme) =>
       top: "20px"
     },
     ".actions": {
-      zIndex: 10000,
+      zIndex: 10_200,
       position: "absolute",
       top: "1em",
       right: "2em"
@@ -620,7 +620,47 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         open={open}
         onClose={handleClose}
       >
-        <FlexRow className="actions" gap={1.5} align="center">
+        {/* Compare mode instruction bar */}
+        {compareMode && !compareAssetB && (
+          <FlexRow className="compare-mode-bar" gap={1} align="center">
+            <Text size="small">
+              Select another image from the thumbnails below to compare
+            </Text>
+            <EditorButton density="compact" onClick={cancelCompareMode}>
+              Cancel
+            </EditorButton>
+          </FlexRow>
+        )}
+
+        {/* Show ImageComparer when both assets selected, otherwise show normal viewer */}
+        {compareAssetA && compareAssetB ? (
+          <div style={{ width: "100%", height: "calc(100% - 120px)" }}>
+            <ImageComparer
+              imageA={compareAssetA.get_url || ""}
+              imageB={compareAssetB.get_url || ""}
+              labelA={compareAssetA.name || "A"}
+              labelB={compareAssetB.name || "B"}
+              showLabels={true}
+              showMetadata={true}
+              initialMode="horizontal"
+            />
+          </div>
+        ) : (
+          assetViewer
+        )}
+        {navigation}
+
+        {/*
+          Render the toolbar after the main viewer in DOM order so it paints (and
+          receives hit targets) on top; ImageViewer is a full-area interactive layer
+          and would otherwise take precedence for equal/ambiguous stacking.
+        */}
+        <FlexRow
+          className="actions"
+          gap={1.5}
+          align="center"
+          sx={{ zIndex: 10_200 }}
+        >
           <DownloadButton
             onClick={handleDownload}
             className="button download"
@@ -670,36 +710,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             nodrag={false}
           />
         </FlexRow>
-
-        {/* Compare mode instruction bar */}
-        {compareMode && !compareAssetB && (
-          <FlexRow className="compare-mode-bar" gap={1} align="center">
-            <Text size="small">
-              Select another image from the thumbnails below to compare
-            </Text>
-            <EditorButton density="compact" onClick={cancelCompareMode}>
-              Cancel
-            </EditorButton>
-          </FlexRow>
-        )}
-
-        {/* Show ImageComparer when both assets selected, otherwise show normal viewer */}
-        {compareAssetA && compareAssetB ? (
-          <div style={{ width: "100%", height: "calc(100% - 120px)" }}>
-            <ImageComparer
-              imageA={compareAssetA.get_url || ""}
-              imageB={compareAssetB.get_url || ""}
-              labelA={compareAssetA.name || "A"}
-              labelB={compareAssetB.name || "B"}
-              showLabels={true}
-              showMetadata={true}
-              initialMode="horizontal"
-            />
-          </div>
-        ) : (
-          assetViewer
-        )}
-        {navigation}
       </Dialog>
     </div>
   );

@@ -11,8 +11,6 @@ import AssetTree from "./AssetTree";
 import { Asset } from "../../stores/ApiTypes";
 import { useAuth } from "../../stores/useAuth";
 import log from "loglevel";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import {
   Dialog,
   DialogActionButtons,
@@ -22,25 +20,14 @@ import {
   Text
 } from "../ui_primitives";
 
-const styles = (theme: Theme) =>
-  css({
-    ".asset-delete-confirmation-content": {
-      position: "relative",
-      minWidth: "600px",
-      minHeight: "200px",
-      maxHeight: "60vh"
-    },
-    ".asset-delete-confirmation-content::after": {
-      content: "''",
-      width: "100%",
-      height: "4em",
-      display: "block",
-      background: `linear-gradient(to top, ${theme.vars.palette.grey[600]}, transparent)`,
-      position: "absolute",
-      bottom: "3em",
-      left: 0
-    }
-  });
+const styles = css({
+  ".asset-delete-confirmation-content": {
+    position: "relative",
+    minWidth: "600px",
+    minHeight: "200px",
+    maxHeight: "60vh"
+  }
+});
 
 interface AssetDeleteConfirmationProps {
   assets: string[];
@@ -63,7 +50,6 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
   const { refetchAssetsAndFolders } = useAssets();
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
   const user = useAuth((state) => state.user);
-  const theme = useTheme();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -165,7 +151,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
 
   return (
     <Dialog
-      css={styles(theme)}
+      css={styles}
       className="asset-delete-confirmation"
       open={dialogOpen}
       onClose={handleClose}

@@ -236,7 +236,13 @@ function validateAndSanitizeSchema(
 
 function removeThinkTags(text: string | null | undefined): string {
   if (!text) return "";
-  return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  return text
+    .replace(
+      /<think>[\s\S]*?<\/(?:redacted_thinking|think)>/g,
+      ""
+    )
+    .replace(/<think>[\s\S]*/g, "")
+    .trim();
 }
 
 // ---------------------------------------------------------------------------

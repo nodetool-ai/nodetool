@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Cache UV packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/uv
           key: uv-${{ runner.os }}-${{ hashFiles('**/pyproject.toml') }}
@@ -60,10 +60,10 @@ jobs:
       #   uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           # Use repository_owner instead of github.actor so the login identity

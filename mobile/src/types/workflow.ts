@@ -30,10 +30,3 @@ export type {
   Asset,
 };
 
-export type MsgpackData =
-  | JobUpdate
-  | Prediction
-  | NodeProgress
-  | NodeUpdate
-  | TaskUpdate
-  | PlanningUpdate;

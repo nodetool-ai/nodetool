@@ -5,7 +5,7 @@ import { glbOutput } from "./base.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { booleanGlb } from "./boolean-ops.js";
 import { decimateGlb, mergeGlbModels } from "./document-ops.js";
-import { requireGlbBytes } from "./glb.js";
+import { analyzeGlbMetadata, requireGlbBytes } from "./glb.js";
 import type { Model3DRefLike } from "./types.js";
 import { modelRefToBytes } from "./utils.js";
 
@@ -13,7 +13,7 @@ export class DecimateNode extends BaseNode {
   static readonly nodeType = "nodetool.model3d.Decimate";
   static readonly title = "Decimate";
   static readonly description =
-    "Reduce polygon count while preserving shape using meshoptimizer-backed simplification.\n    3d, mesh, model, decimate, simplify, reduce, polygon, optimize, LOD\n\n    Current limits:\n    - First honest pass supports GLB input only\n\n    Use cases:\n    - Create level-of-detail (LOD) versions\n    - Optimize models for real-time rendering\n    - Reduce file size for web deployment\n    - Prepare models for mobile/VR applications";
+    "Reduce polygon count while preserving shape using meshoptimizer-backed simplification.\n    3d, mesh, model, decimate, simplify, reduce, polygon, optimize, LOD\n\n    Set target_vertices > 0 to target an exact vertex count instead of a ratio.\n\n    Use cases:\n    - Create level-of-detail (LOD) versions\n    - Optimize models for real-time rendering\n    - Reduce file size for web deployment\n    - Prepare models for mobile/VR applications";
   static readonly metadataOutputTypes = {
     output: "model_3d"
   };
@@ -30,17 +30,34 @@ export class DecimateNode extends BaseNode {
     type: "float",
     default: 0.5,
     title: "Target Ratio",
-    description: "Target ratio of faces to keep (0.5 = 50% reduction)",
+    description: "Target ratio of faces to keep (0.5 = 50% reduction). Ignored when target_vertices is set.",
     min: 0.01,
     max: 1
   })
   declare target_ratio: any;
 
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Target Vertices",
+    description: "Approximate target vertex count. Overrides target_ratio when > 0.",
+    min: 0
+  })
+  declare target_vertices: any;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const model = (this.model ?? {}) as Model3DRefLike;
     const bytes = await modelRefToBytes(model, context);
-    const ratio = Number(this.target_ratio ?? 0.5);
     requireGlbBytes(model, bytes, "decimation");
+    const targetVertices = Number(this.target_vertices ?? 0);
+    let ratio: number;
+    if (targetVertices > 0) {
+      const meta = analyzeGlbMetadata(model, bytes);
+      const currentVertices = meta.vertex_count;
+      ratio = currentVertices > 0 ? targetVertices / currentVertices : 0.5;
+    } else {
+      ratio = Number(this.target_ratio ?? 0.5);
+    }
     const decimatedBytes = await decimateGlb(bytes, ratio);
     return glbOutput(decimatedBytes, model.uri ?? "");
   }

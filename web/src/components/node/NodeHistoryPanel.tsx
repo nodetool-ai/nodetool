@@ -77,7 +77,7 @@ function ConfirmDialog({
  * Extract image URIs from a result object.
  * Handles various result formats: single images, arrays, nested objects.
  */
-function extractImageSources(result: any): ImageSource[] {
+function extractImageSources(result: unknown): ImageSource[] {
   if (!result) {
     return [];
   }
@@ -86,22 +86,28 @@ function extractImageSources(result: any): ImageSource[] {
 
   // Handle array of results
   if (Array.isArray(result)) {
-    result.forEach((item) => {
+    result.forEach((item: unknown) => {
       images.push(...extractImageSources(item));
     });
     return images;
   }
 
+  if (typeof result !== "object") {
+    return images;
+  }
+
+  const obj = result as Record<string, unknown>;
+
   // Handle single image/asset with uri
-  if (result.type === "image" && result.uri) {
-    images.push(result.uri);
+  if (obj.type === "image" && obj.uri) {
+    images.push(obj.uri as string);
     return images;
   }
 
   // Handle asset with uri
-  if (result.uri && typeof result.uri === "string") {
+  if (obj.uri && typeof obj.uri === "string") {
     // Check if it looks like an image URI
-    const uri = result.uri.toLowerCase();
+    const uri = obj.uri.toLowerCase();
     if (
       uri.endsWith(".png") ||
       uri.endsWith(".jpg") ||
@@ -109,27 +115,27 @@ function extractImageSources(result: any): ImageSource[] {
       uri.endsWith(".gif") ||
       uri.endsWith(".webp") ||
       uri.includes("/image/") ||
-      result.content_type?.startsWith("image/")
+      (typeof obj.content_type === "string" && obj.content_type.startsWith("image/"))
     ) {
-      images.push(result.uri);
+      images.push(obj.uri);
       return images;
     }
   }
 
   // Handle base64 data
-  if (result.data && result.data instanceof Uint8Array) {
-    images.push(result.data);
+  if (obj.data && obj.data instanceof Uint8Array) {
+    images.push(obj.data);
     return images;
   }
 
   // Handle nested output property
-  if (result.output) {
-    images.push(...extractImageSources(result.output));
+  if (obj.output) {
+    images.push(...extractImageSources(obj.output));
   }
 
   // Handle nested result property
-  if (result.result) {
-    images.push(...extractImageSources(result.result));
+  if (obj.result) {
+    images.push(...extractImageSources(obj.result));
   }
 
   return images;

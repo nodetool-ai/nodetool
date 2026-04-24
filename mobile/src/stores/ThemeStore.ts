@@ -23,14 +23,6 @@ const getColorsForMode = (mode: ThemeMode): ThemeColors => {
   return mode === 'light' ? paletteLight : paletteDark;
 };
 
-/** Resolve effective dark/light from mode. Exported for use in non-hook contexts. */
-export const isDarkMode = (mode: ThemeMode): boolean => {
-  if (mode === 'system') {
-    return Appearance.getColorScheme() !== 'light';
-  }
-  return mode === 'dark';
-};
-
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({

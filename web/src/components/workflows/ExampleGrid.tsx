@@ -430,11 +430,20 @@ const TemplateGrid = memo(function TemplateGrid() {
     return Math.max(1, Math.floor((width + GAP) / (CARD_WIDTH + GAP)));
   }, []);
 
+  // Pre-compute a Map for O(1) search result lookups instead of O(n) .find() per cell
+  const searchResultsMap = useMemo(() => {
+    const map = new Map<string, FrontendSearchResult>();
+    for (const r of searchResults) {
+      map.set(r.workflow.id, r);
+    }
+    return map;
+  }, [searchResults]);
+
   // Grid item data for virtualization
   const gridItemData = useMemo(
     () => ({
       filteredWorkflows,
-      searchResults,
+      searchResultsMap,
       nodesOnlySearch,
       loadingWorkflowId,
       onClickWorkflow,
@@ -442,7 +451,7 @@ const TemplateGrid = memo(function TemplateGrid() {
     }),
     [
       filteredWorkflows,
-      searchResults,
+      searchResultsMap,
       nodesOnlySearch,
       loadingWorkflowId,
       onClickWorkflow
@@ -462,9 +471,7 @@ const TemplateGrid = memo(function TemplateGrid() {
 
       if (!workflow) { return null; }
 
-      const searchResult = data.searchResults.find(
-        (r: FrontendSearchResult) => r.workflow.id === workflow.id
-      );
+      const searchResult = data.searchResultsMap.get(workflow.id);
       const matchedNodes = searchResult?.matches?.length
         ? searchResult.matches
         : [];

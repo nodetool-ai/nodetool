@@ -115,6 +115,18 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     [zoom, isZoomPreset]
   );
 
+  const zoomButtonSx = useMemo(
+    () => ({
+      padding: "2px",
+      color: theme.vars.palette.text.secondary,
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.palette.primary.main
+      }
+    }),
+    [theme.vars.palette.text.secondary, theme.vars.palette.action.hover, theme.palette.primary.main]
+  );
+
   // Keep the popover open even when not zooming
   const shouldShowPanel = isZooming || Boolean(zoomMenuAnchor);
 
@@ -152,14 +164,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           tooltipPlacement="top"
           onClick={handleZoomOut}
           size="small"
-          sx={{
-            padding: "2px",
-            color: theme.vars.palette.text.secondary,
-            "&:hover": {
-              backgroundColor: theme.vars.palette.action.hover,
-              color: theme.palette.primary.main
-            }
-          }}
+          sx={zoomButtonSx}
         />
 
         <Tooltip
@@ -207,14 +212,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           tooltipPlacement="top"
           onClick={handleZoomIn}
           size="small"
-          sx={{
-            padding: "2px",
-            color: theme.vars.palette.text.secondary,
-            "&:hover": {
-              backgroundColor: theme.vars.palette.action.hover,
-              color: theme.palette.primary.main
-            }
-          }}
+          sx={zoomButtonSx}
         />
 
         <Box
@@ -232,14 +230,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           tooltipPlacement="top"
           onClick={handleFitView}
           size="small"
-          sx={{
-            padding: "2px",
-            color: theme.vars.palette.text.secondary,
-            "&:hover": {
-              backgroundColor: theme.vars.palette.action.hover,
-              color: theme.palette.primary.main
-            }
-          }}
+          sx={zoomButtonSx}
         />
       </Box>
 

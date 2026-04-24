@@ -7,6 +7,7 @@ import { List } from "@mui/material";
 import { Text } from "../ui_primitives";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 
 interface NamespacePanelProps {
@@ -168,7 +169,8 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
       searchTerm: state.searchTerm,
       selectedPath: state.selectedPath,
       setSelectedPath: state.setSelectedPath
-    })
+    }),
+    shallow
   );
   const selectedProviderType = useNodeMenuStore(
     (state) => state.selectedProviderType

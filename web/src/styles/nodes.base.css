@@ -24,6 +24,16 @@
     filter 0.2s ease-in-out;
 }
 
+/* Tween the node's `transform` only when the user is NOT actively
+   dragging it. This gives align / arrange / collapse / programmatic
+   moves a smooth slide while keeping mouse-driven drags 1:1 with the
+   cursor (React Flow adds the `dragging` class for the duration of
+   the drag gesture, so the selector below stops matching mid-drag). */
+.react-flow__node:not(.dragging) {
+  transition: background-color 0.05s, box-shadow 0.15s ease-in-out,
+    filter 0.2s ease-in-out, transform 0.18s ease;
+}
+
 .node-drag-handle {
   cursor: grabbing !important;
 }
