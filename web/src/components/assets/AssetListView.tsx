@@ -236,15 +236,6 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
     selectedAssetIdsRef.current = selectedAssetIds;
   }, [selectedAssetIds]);
 
-  // Memoize asset signature for change detection
-  useMemo(
-    () =>
-      assets
-        .map((asset) => `${asset.id}-${asset.name}-${asset.content_type}`)
-        .join(","),
-    [assets]
-  );
-
   const assetsByType = useMemo(() => {
     const grouped: Record<string, Asset[]> = {};
 

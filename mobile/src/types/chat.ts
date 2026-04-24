@@ -110,31 +110,6 @@ export interface ChatState {
 }
 
 /**
- * Actions for the chat store
- */
-export interface ChatActions {
-  // Connection actions
-  connect: () => Promise<void>;
-  disconnect: () => void;
-
-  // Message actions
-  sendMessage: (content: MessageContent[], text: string) => Promise<void>;
-  stopGeneration: () => void;
-
-  // Thread actions
-  createNewThread: (title?: string) => Promise<string>;
-  switchThread: (threadId: string) => void;
-
-  // Getters
-  getCurrentMessages: () => Message[];
-
-  // Internal
-  addMessageToCache: (threadId: string, message: Message) => void;
-  setStatus: (status: ChatStatus) => void;
-  setError: (error: string | null) => void;
-}
-
-/**
  * WebSocket configuration
  */
 export interface WebSocketConfig {

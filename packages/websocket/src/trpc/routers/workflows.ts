@@ -81,6 +81,23 @@ const log = createLogger("nodetool.websocket.trpc.workflows");
  * passes, or null if invalid — so list endpoints can still return the rest of
  * the workflow row instead of failing the entire response.
  */
+function summarizeGraphIssues(
+  issues: Array<{
+    code: string;
+    path: Array<string | number>;
+    message: string;
+  }>
+): string {
+  const [first] = issues;
+  if (!first) {
+    return "unknown validation error";
+  }
+
+  const path = first.path.length > 0 ? first.path.join(".") : "<root>";
+  const suffix = issues.length > 1 ? ` (+${issues.length - 1} more)` : "";
+  return `${path}: ${first.message}${suffix}`;
+}
+
 function safeGraph(
   workflowId: string,
   raw: unknown
@@ -89,7 +106,7 @@ function safeGraph(
   const parsed = graphSchema.safeParse(raw);
   if (parsed.success) return parsed.data;
   log.warn(
-    `Workflow ${workflowId} has an invalid graph; returning null. Issues: ${JSON.stringify(parsed.error.issues)}`
+    `Workflow ${workflowId} has an invalid graph; returning null: ${summarizeGraphIssues(parsed.error.issues)}`
   );
   return null;
 }

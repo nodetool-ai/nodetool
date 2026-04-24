@@ -134,13 +134,6 @@ export const inputForType = (type: TypeName) => {
 };
 
 /**
- * Maps internal types to output node type (generic Output node handles all types)
- */
-export const outputForType = (_type: TypeName) => {
-  return "nodetool.output.Output";
-};
-
-/**
  * Maps constant node types to their corresponding input node types
  */
 export const constantToInputType = (constantType: string): string | null => {

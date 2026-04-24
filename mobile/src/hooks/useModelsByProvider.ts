@@ -9,12 +9,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { apiService } from "../services/api";
 import type {
   ProviderInfo,
-  LanguageModel,
-  ImageModel,
-  TTSModel,
-  ASRModel,
-  VideoModel,
-  EmbeddingModel,
 } from "../types/ApiTypes";
 
 // ── Generic model type ──────────────────────────────────────────────
@@ -99,34 +93,6 @@ function useModelsByProvider<T extends BaseModel>(
   }, [fetchAll]);
 
   return { models, providers, isLoading, error, refetch: fetchAll };
-}
-
-// ── Typed hooks per model category ──────────────────────────────────
-
-const fetchLLM = (provider: string) => apiService.getLanguageModels(provider);
-const fetchImage = (provider: string) => apiService.getImageModels(provider);
-const fetchTTS = (provider: string) => apiService.getTTSModels(provider);
-const fetchASR = (provider: string) => apiService.getASRModels(provider);
-const fetchVideo = (provider: string) => apiService.getVideoModels(provider);
-
-export function useLanguageModelsByProvider(): UseModelsResult<LanguageModel> {
-  return useModelsByProvider("generate_message", fetchLLM);
-}
-
-export function useImageModelsByProvider(): UseModelsResult<ImageModel> {
-  return useModelsByProvider("text_to_image", fetchImage);
-}
-
-export function useTTSModelsByProvider(): UseModelsResult<TTSModel> {
-  return useModelsByProvider("text_to_speech", fetchTTS);
-}
-
-export function useASRModelsByProvider(): UseModelsResult<ASRModel> {
-  return useModelsByProvider("automatic_speech_recognition", fetchASR);
-}
-
-export function useVideoModelsByProvider(): UseModelsResult<VideoModel> {
-  return useModelsByProvider("text_to_video", fetchVideo);
 }
 
 /**

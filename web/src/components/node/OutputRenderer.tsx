@@ -53,7 +53,7 @@ import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
-import { isTextLikeChunk } from "./outputChunkUtils";
+import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -215,6 +215,26 @@ const concatTextChunksSafely = (
 };
 
 // Custom hook for draggable scrolling
+const formatAudioChunkTimestamp = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "00:00.000";
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${secs
+      .toFixed(3)
+      .padStart(6, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${secs
+    .toFixed(3)
+    .padStart(6, "0")}`;
+};
+
 const useDraggableScroll = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -379,7 +399,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "image":
         if (Array.isArray(value.data)) {
           const seen = new Map<string, number>();
-          return value.data.map((v: any) => (
+          return value.data.map((v: string | Uint8Array) => (
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
@@ -666,6 +686,59 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             );
           }
           if (typeof value[0] === "object") {
+            if (value.every((item: unknown) => isAudioChunkLike(item))) {
+              const seen = new Map<string, number>();
+              return (
+                <div
+                  ref={scrollRef}
+                  onMouseDown={handleMouseDown}
+                  className="nodrag"
+                  style={{
+                    height: "100%",
+                    overflow: "auto",
+                    cursor: "grab",
+                    userSelect: "none"
+                  }}
+                >
+                  <List sx={{ p: 1 }}>
+                    {value.map((chunk: { timestamp: [number, number]; text: string }) => {
+                      const key = withOccurrenceSuffix(
+                        `audio-chunk:${chunk.timestamp[0]}:${chunk.timestamp[1]}:${hashStringBounded(chunk.text)}`,
+                        seen
+                      );
+                      return (
+                        <ListItem
+                          key={key}
+                          sx={{
+                            alignItems: "flex-start",
+                            borderRadius: 2,
+                            bgcolor: "background.paper",
+                            boxShadow: 1,
+                            mb: 1,
+                            px: 2,
+                            display: "block"
+                          }}
+                        >
+                          <ListItemText
+                            primary={`${formatAudioChunkTimestamp(chunk.timestamp[0])} → ${formatAudioChunkTimestamp(chunk.timestamp[1])}`}
+                            secondary={chunk.text}
+                            primaryTypographyProps={{
+                              sx: {
+                                fontFamily: "monospace",
+                                fontSize: "0.85rem"
+                              }
+                            }}
+                            secondaryTypographyProps={{
+                              sx: { whiteSpace: "pre-wrap", color: "text.primary" }
+                            }}
+                          />
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </div>
+              );
+            }
             if (value[0].type === "chunk") {
               const chunks = value as Chunk[];
               const allText = chunks.every((c) => isTextLikeChunk(c));

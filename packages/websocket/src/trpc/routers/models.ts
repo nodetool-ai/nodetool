@@ -489,7 +489,11 @@ async function instantiateProvider(
   try {
     return await getProvider(provider, userId);
   } catch (error) {
-    log.warn("Provider instantiation failed", { provider, error });
+    log.warn("Provider instantiation failed", {
+      provider,
+      userId,
+      error: summarizeError(error)
+    });
     return null;
   }
 }
@@ -498,6 +502,53 @@ async function instantiateProvider(
  * Run `fn`, log and return `fallback` on error. Unmasks silent provider
  * failures so the server log shows why a `*ByProvider` query came back empty.
  */
+function summarizeError(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) {
+    return { message: String(error) };
+  }
+
+  const summary: Record<string, unknown> = {
+    name: error.name,
+    message: error.message
+  };
+
+  const cause = error.cause;
+  if (cause instanceof Error) {
+    const causeSummary: Record<string, unknown> = {
+      name: cause.name,
+      message: cause.message
+    };
+
+    const causeWithFields = cause as Error & {
+      code?: string;
+      errno?: number;
+      syscall?: string;
+      address?: string;
+      port?: number;
+    };
+
+    if (causeWithFields.code) {
+      causeSummary.code = causeWithFields.code;
+    }
+    if (causeWithFields.errno != null) {
+      causeSummary.errno = causeWithFields.errno;
+    }
+    if (causeWithFields.syscall) {
+      causeSummary.syscall = causeWithFields.syscall;
+    }
+    if (causeWithFields.address) {
+      causeSummary.address = causeWithFields.address;
+    }
+    if (causeWithFields.port != null) {
+      causeSummary.port = causeWithFields.port;
+    }
+
+    summary.cause = causeSummary;
+  }
+
+  return summary;
+}
+
 async function safeProviderCall<T>(
   label: string,
   context: Record<string, unknown>,
@@ -507,7 +558,7 @@ async function safeProviderCall<T>(
   try {
     return await fn();
   } catch (error) {
-    log.warn(`${label} failed`, { ...context, error });
+    log.warn(`${label} failed`, { ...context, error: summarizeError(error) });
     return fallback;
   }
 }

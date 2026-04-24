@@ -1,12 +1,12 @@
 export type UploadSource = "clipboard" | "drop" | "file";
 
-export type SniffedImageMime =
+type SniffedImageMime =
   | "image/png"
   | "image/jpeg"
   | "image/gif"
   | "image/webp";
 
-export interface PreparedUploadFile {
+interface PreparedUploadFile {
   file: File;
   declaredMime: string;
   sniffedMime: SniffedImageMime | null;

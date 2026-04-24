@@ -332,10 +332,6 @@ export async function fetchAllNodes(
   }
 }
 
-export function clearNodeCache(): void {
-  nodeCache = null;
-}
-
 export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
   const [nodes, installed] = await Promise.all([
     fetchAllNodes(),
@@ -909,35 +905,6 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       message: errorMsg(error),
     };
   }
-}
-
-/**
- * Get installation information for a package
- */
-export function getPackageInstallationInfo(repoId: string): {
-  packageName: string;
-  repoId: string;
-  wheelCommand: string;
-  gitCommand: string;
-  packageIndexUrl: string;
-} {
-  const packageName = repoId.split("/")[1];
-
-  return {
-    packageName,
-    repoId,
-    wheelCommand: `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`,
-    gitCommand: `uv pip install git+https://github.com/${repoId}.git`,
-    packageIndexUrl: PACKAGE_INDEX_URL,
-  };
-}
-
-/**
- * Get the recommended install command for a package
- */
-export function getInstallCommandForPackage(repoId: string): string {
-  const packageName = repoId.split("/")[1];
-  return `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`;
 }
 
 export { PACKAGE_INDEX_URL };
