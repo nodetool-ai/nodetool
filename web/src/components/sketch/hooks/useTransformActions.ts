@@ -18,7 +18,15 @@ import {
   type PushHistoryOptions,
   type SketchDocument
 } from "../types";
-import { deserializeLayerData } from "../rendering/canvas2d/layerIO";
+import { deserializeLayerData, getLayerDataFromCanvas } from "../rendering/canvas2d/layerIO";
+import { getCanvasRasterBounds } from "../painting";
+import { useSketchStore } from "../state";
+import { cloneSelectionMask, selectionHasAnyPixels } from "../selection";
+import {
+  compositeSelectionOverBase,
+  prepareSelectionFreeTransformCanvases,
+  transformSelectionMask
+} from "../selection/selectionFreeTransform";
 
 export interface UseTransformActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -50,8 +58,18 @@ export function useTransformActions({
   setLayerContentBounds,
   syncSketchOutputsNow
 }: UseTransformActionsParams) {
+  interface SelectionFreeTransformSession {
+    layerId: string;
+    originalSnapshot: HTMLCanvasElement;
+    baseSnapshot: HTMLCanvasElement;
+    selectionBounds: LayerContentBounds;
+    originalSelection: ReturnType<typeof cloneSelectionMask>;
+    originalContentBounds: LayerContentBounds;
+  }
+
   /** Original transform saved when the transform tool activates. */
   const transformOriginalRef = useRef<LayerTransform | null>(null);
+  const selectionFreeTransformRef = useRef<SelectionFreeTransformSession | null>(null);
 
   const pushTransformHistory = useCallback(
     (label: string) => {
@@ -76,6 +94,73 @@ export function useTransformActions({
     }
   }, [document]);
 
+  const clearSelectionFreeTransformSession = useCallback(() => {
+    selectionFreeTransformRef.current = null;
+  }, []);
+
+  const restoreSelectionFreeTransformState = useCallback(() => {
+    const session = selectionFreeTransformRef.current;
+    const canvas = canvasRef.current;
+    if (!session || !canvas) {
+      return false;
+    }
+    canvas.restoreLayerCanvas(session.layerId, session.originalSnapshot);
+    setLayerContentBounds(session.layerId, session.originalContentBounds);
+    useSketchStore.getState().setSelection(cloneSelectionMask(session.originalSelection));
+    clearSelectionFreeTransformSession();
+    return true;
+  }, [canvasRef, setLayerContentBounds, clearSelectionFreeTransformSession]);
+
+  const prepareSelectionFreeTransform = useCallback(() => {
+    const activeLayerId = document.activeLayerId;
+    const canvas = canvasRef.current;
+    const selection = useSketchStore.getState().selection;
+    if (!activeLayerId || !canvas || !selection || !selectionHasAnyPixels(selection)) {
+      return false;
+    }
+    const activeLayer = document.layers.find((layer) => layer.id === activeLayerId);
+    if (!activeLayer) {
+      return false;
+    }
+    const originalSnapshot = canvas.snapshotLayerCanvas(activeLayerId);
+    if (!originalSnapshot) {
+      return false;
+    }
+    const prepared = prepareSelectionFreeTransformCanvases({
+      snapshot: originalSnapshot,
+      layer: activeLayer,
+      documentCanvasWidth: document.canvas.width,
+      documentCanvasHeight: document.canvas.height,
+      selection
+    });
+    if (!prepared) {
+      return false;
+    }
+    selectionFreeTransformRef.current = {
+      layerId: activeLayerId,
+      originalSnapshot,
+      baseSnapshot: prepared.baseCanvas,
+      selectionBounds: prepared.selectionBounds,
+      originalSelection: cloneSelectionMask(selection),
+      originalContentBounds: activeLayer.contentBounds ?? {
+        x: 0,
+        y: 0,
+        width: originalSnapshot.width,
+        height: originalSnapshot.height
+      }
+    };
+    canvas.restoreLayerCanvas(activeLayerId, prepared.selectionCanvas);
+    setLayerContentBounds(activeLayerId, prepared.selectionBounds);
+    return true;
+  }, [
+    canvasRef,
+    document.activeLayerId,
+    document.canvas.height,
+    document.canvas.width,
+    document.layers,
+    setLayerContentBounds
+  ]);
+
   /** Commit: bake the current scale/rotation into the pixel data and reset transform fields. */
   const handleTransformCommit = useCallback(() => {
     const activeLayerId = document.activeLayerId;
@@ -86,6 +171,38 @@ export function useTransformActions({
 
     const canvas = canvasRef.current;
     if (!canvas) {
+      return;
+    }
+
+    const selectionSession = selectionFreeTransformRef.current;
+    if (selectionSession && selectionSession.layerId === activeLayerId) {
+      canvas.reconcileLayerToDocumentSpace(activeLayerId);
+      const transformedSelectionCanvas = canvas.snapshotLayerCanvas(activeLayerId);
+      if (!transformedSelectionCanvas) {
+        restoreSelectionFreeTransformState();
+        transformOriginalRef.current = null;
+        return;
+      }
+      const finalCanvas = compositeSelectionOverBase(
+        selectionSession.baseSnapshot,
+        transformedSelectionCanvas
+      );
+      const fallbackBounds =
+        getCanvasRasterBounds(finalCanvas) ?? selectionSession.originalContentBounds;
+      const finalData = getLayerDataFromCanvas(finalCanvas);
+      const { bounds } = deserializeLayerData(finalData, fallbackBounds);
+      const transformedSelection = transformSelectionMask(
+        selectionSession.originalSelection,
+        selectionSession.selectionBounds,
+        activeLayer.transform
+      );
+      setLayerTransform(activeLayerId, { x: 0, y: 0 });
+      canvas.restoreLayerCanvas(activeLayerId, finalCanvas);
+      updateLayerData(activeLayerId, finalData);
+      setLayerContentBounds(activeLayerId, bounds);
+      useSketchStore.getState().setSelection(transformedSelection);
+      clearSelectionFreeTransformSession();
+      transformOriginalRef.current = null;
       return;
     }
 
@@ -107,17 +224,26 @@ export function useTransformActions({
     setLayerTransform(activeLayerId, { x: 0, y: 0 });
 
     transformOriginalRef.current = null;
-  }, [document, canvasRef, updateLayerData, setLayerTransform, setLayerContentBounds]);
+  }, [
+    document,
+    canvasRef,
+    updateLayerData,
+    setLayerTransform,
+    setLayerContentBounds,
+    restoreSelectionFreeTransformState,
+    clearSelectionFreeTransformSession
+  ]);
 
   /** Cancel: restore the original transform. */
   const handleTransformCancel = useCallback(() => {
     const activeLayerId = document.activeLayerId;
+    restoreSelectionFreeTransformState();
     const original = transformOriginalRef.current;
     if (original) {
       setLayerTransform(activeLayerId, original);
     }
     transformOriginalRef.current = null;
-  }, [document.activeLayerId, setLayerTransform]);
+  }, [document.activeLayerId, setLayerTransform, restoreSelectionFreeTransformState]);
 
   /** Reset: set transform to identity. */
   const handleTransformReset = useCallback(() => {
@@ -298,6 +424,7 @@ export function useTransformActions({
   return {
     transformOriginalRef,
     saveTransformOriginal,
+    prepareSelectionFreeTransform,
     handleTransformCommit,
     handleTransformCancel,
     handleTransformReset,

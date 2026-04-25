@@ -126,6 +126,8 @@ export interface UseEditorKeyboardShortcutsParams {
   handleLayerViaCopy?: () => void;
   /** Layer via Cut: move selected region to a new layer. */
   handleLayerViaCut?: () => void;
+  /** Enter free transform, optionally preparing a selection-only session first. */
+  handleFreeTransform?: () => void;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -331,7 +333,11 @@ export function useEditorKeyboardShortcuts(
         // Ctrl+T / Cmd+T → enter Free Transform mode
         if (e.key.toLowerCase() === "t" && !e.shiftKey && !e.altKey) {
           e.preventDefault();
-          paramsRef.current.setActiveTool("transform");
+          if (paramsRef.current.handleFreeTransform) {
+            paramsRef.current.handleFreeTransform();
+          } else {
+            paramsRef.current.setActiveTool("transform");
+          }
         }
       } else if (e.altKey) {
         // Alt+Backspace → fill with foreground color (Photoshop convention)

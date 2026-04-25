@@ -116,8 +116,9 @@ export function useEditorCommands({
   }, [canvasActions, layerActions]);
 
   const handleFreeTransform = useCallback(() => {
+    canvasActions.prepareSelectionFreeTransform?.();
     sessionStore.setActiveTool("transform" as SketchTool);
-  }, [sessionStore]);
+  }, [canvasActions, sessionStore]);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
@@ -154,7 +155,8 @@ export function useEditorCommands({
     handleTransformUndo: canvasActions.handleTransformUndo,
     handleTransformRedo: canvasActions.handleTransformRedo,
     handleLayerViaCopy,
-    handleLayerViaCut
+    handleLayerViaCut,
+    handleFreeTransform
   });
 
   // ─── Imperative handle ─────────────────────────────────────────────

@@ -123,7 +123,8 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
 - [x] add a selection-tool right-click context menu entry for `Fill`
 - [x] add a selection-tool right-click context menu entry for `Stroke`
-- [ ] fix selection `Free Transform` - should transform the selection, not the layer
+- [x] [impl+test] fix selection `Free Transform` - should transform the selection, not the layer
+  - **Done:** `Free Transform` now isolates the active selection into a temporary transform session instead of transforming the entire layer. `Ctrl+T` / `Cmd+T` and the selection context-menu entry both route through the selection-aware path, commit composites transformed selected pixels back onto the original layer, cancel restores the original layer snapshot, and the selection mask is updated to the transformed bounds.
 - [ ] fix `Layer via Copy` - not yet implemented
 - [ ] fix `Layer via Cut` - not yet implemented
 - [ ] submenu for selection-tool right-click context menu entry for `New Layer...` - new layer entries as in photoshop 

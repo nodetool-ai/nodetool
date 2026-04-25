@@ -43,7 +43,8 @@ function makeParams(): UseEditorKeyboardShortcutsParams {
     handleTransformUndo: jest.fn(),
     handleTransformRedo: jest.fn(),
     handleLayerViaCopy: jest.fn(),
-    handleLayerViaCut: jest.fn()
+    handleLayerViaCut: jest.fn(),
+    handleFreeTransform: jest.fn()
   };
 }
 
@@ -113,5 +114,24 @@ describe("useEditorKeyboardShortcuts", () => {
       syncOutputs: false
     });
     expect(params.syncSketchOutputsNow).toHaveBeenCalled();
+  });
+
+  it("routes Ctrl+T through handleFreeTransform", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    const event = new KeyboardEvent("keydown", {
+      key: "t",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true
+    });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(params.handleFreeTransform).toHaveBeenCalledTimes(1);
+    expect(params.setActiveTool).not.toHaveBeenCalledWith("transform");
   });
 });
