@@ -28,7 +28,7 @@
 - **`NDI` and `Spout` are committed later goals.** The architecture should reserve clean media adapter boundaries for them from the start. `Syphon`, `MIDI`, `OSC`, `DMX`, and `timecode` follow the same adapter-first model.
 - **Code organization rule: shared files hold primitives and surfaces; dedicated files hold realtime behavior.** Realtime work should not be glued into the existing god-classes. Concretely: `unified-websocket-runner.ts` (already 4,880 lines) and `runner.ts` (1,051 lines) gain only the small primitives/surfaces they need (a delegating switch case, a `RunMode` enum, a bounded buffer); all realtime *behavior* lives in `packages/websocket/src/realtime/*` and `packages/kernel/src/realtime-runner.ts`. Any task that would add more than ~50 lines to a shared file, or a new conceptual responsibility (signaling, frame routing, parameter routing) to one, must extract first.
 - **Substrate lives in core; model nodes live in a sister Python package — sister repo from day one (decided).** Mirrors the existing precedent where `packages/huggingface/` (TS bridge/types) lives in `nodetool-core` while `nodetool-huggingface` (Python ML nodes) is a sibling repo, and the same again for fal/kie/replicate/elevenlabs. The packaging trade-off was considered three ways — (A) sister repo from day one, (B) subpackage in the main `nodetool` repo with installable extras, (C) bootstrap in core then extract — and (A) won on install bloat isolation, release cadence independence, CI scope correctness (model nodes need GPU CI; substrate doesn't), and matching the existing multi-repo workflow that's already in muscle memory. Concretely:
-  - **In `nodetool-core` (this repo):** `packages/kernel/src/realtime-runner.ts`, `packages/websocket/src/realtime/*` (session manager, command handler, WebRTC server), `packages/realtime-nodes/` (TS — `VideoSource` / `VideoSink` / `AudioSource` / `AudioSink` / `Parameter` / `SessionInfo`; pure I/O nodes that talk to the WebRTC server, no PyTorch), `packages/realtime/` (TS — frame format encoding, session-protocol shapes, the bridge-side glue analogous to `packages/huggingface/`). Python side **also** in core: `BaseNode` realtime hooks (`on_session_start` / `on_session_stop` / `reset_warm_state`), `nodetool.worker` bridge protocol verbs (`start_session` / `update_parameter` / `push_input_frame` / `output_frame` / `stop_session`), the `LatestPerHandleAccumulator` utility, the frame-format dataclass, and the hardware-detection helper extending SystemStats.
+  - **In `nodetool-core` (this repo):** `packages/kernel/src/realtime-runner.ts`, `packages/websocket/src/realtime/*` (session manager, command handler, WebRTC server), `packages/realtime-nodes/` (TS — `VideoSource` / `VideoSink` / `AudioSource` / `AudioSink` / `Parameter` / `SessionInfo`; pure I/O nodes that talk to the WebRTC server, no PyTorch), `packages/realtime/` (TS — frame format encoding, session-protocol shapes, the bridge-side glue analogous to `packages/huggingface/`). Python side **also** in core: `BaseNode` realtime hooks (`on_session_start` / `on_session_stop` / `reset_warm_state`), `nodetool.worker` bridge protocol verbs (`start_session` / `update_parameter` / `push_input_frame` / `stop_session` request/response + `realtime_output_frame` server-pushed event), the `LatestPerHandleAccumulator` utility, the frame-format dataclass, and the hardware-detection helper extending SystemStats.
   - **In a new sister `nodetool-realtime` Python repo:** all model-pipeline code (LongLive, Self-Forcing, StreamDiffusion V2, MemFlow, RewardForcing, Krea, streaming VACE), the `WeightSource` resolver, the GGUF loader, the Wan2.1 base, and the `RealtimePipelineNode` base class (analogue of `HuggingFacePipelineNode`). Heavy ML deps (`diffusers`, `transformer_engine`, `flash-attn`, `gguf`, `bitsandbytes`) only appear here as pyproject extras — `nodetool-core` install stays lean.
   - **Why this split matters:** core stays small enough to ship in any deployment; users who don't want realtime model nodes don't pay the install/disk cost; model nodes can release on their own cadence and churn faster than the substrate; the substrate gets validated end-to-end by the first model node in the sister package without needing to live in the same repo.
 
@@ -230,17 +230,186 @@ The TS-side `BaseNode` hooks landed above need a **Python mirror**, the existing
     - `def reset_warm_state(self) -> None: ...` (no-op default)
   - **Discovery:** `nodetool.worker.node_loader.node_to_metadata` now serializes `is_realtime_capable` / `owns_warm_state` / `is_media_adapter` alongside `is_streaming_input` / `is_streaming_output` / `is_dynamic`, and the TS `PythonNodeMetadata` interface mirrors the new fields. The TS-side registry sees the same truth for Python and TS nodes.
   - **Tests:** `tests/workflows/test_base_node_realtime.py` covers default values, override + inheritance, lifecycle no-ops + invocation, cleanup on `on_session_start` failure, and the `node_to_metadata` payload shape.
-- [x] **Extend the stdio bridge protocol with session-scoped verbs.** *(done — Python side landed in `nodetool-core` commit `6db11296` on `feat-realtime-core`; TS side landed in `nodetool` commit `922243675` on `feat-realtime`.)* The pre-realtime bridge (`packages/runtime/src/python-stdio-bridge.ts`) was request/response only — `execute(req) → result` and `executeStream(req) → AsyncGenerator<result>` — which one-shots a Python process per call (or per stream) and could not hold warm GPU state across frames. Realtime added four request/response verbs plus one server-pushed event, all msgpack-framed on the existing length-prefixed transport (no transport change):
-  - **`start_session(session, node_type, fields, secrets, input_buffer_size?) → { session_id, status }`** — Python `StdioWorkerServer` instantiates the requested node via `RealtimeNodeInstance.start`, applies pydantic fields, awaits `pre_process` + `on_session_start`, and spawns a background task that drives `gen_process(NodeInputs/NodeOutputs)`. Rejects non-realtime nodes (`is_realtime_capable() == False`) and unknown node types. (TS: `PythonStdioBridge.startRealtimeSession` + `PythonRealtimeSession.start`.)
-  - **`update_parameter(session_id, name, value) → { ok, routed }`** — live field assignment on the warm node instance using `setattr`-via-pydantic; `routed=False` indicates an unknown attribute (caller decides whether to surface as an error or ignore).
-  - **`push_input_frame(session_id, handle, payload, metadata?) → { ok, dropped_count }`** — frames land on the Python `NodeInbox` via the new `put_nowait_drop_oldest(handle, item, capacity)` method, mirroring the TS-side `drop_oldest` overflow policy. The inbox is non-blocking — when full, the oldest item is evicted and `dropped_count` increments so callers can surface drop telemetry without backpressuring the bridge.
-  - **`realtime_output_frame` event** (server → client, asynchronous) — Python emits a frame downstream by sending `{ session_id, handle, data, metadata? }` with no `request_id`. `PythonStdioBridge` re-emits this as a typed `realtimeOutputFrame` EventEmitter event; `PythonRealtimeSession` filters it down to a single session and re-emits `frame`.
-  - **`stop_session(session_id, timeout?) → { ok, error }`** — gracefully cancels the runner task, awaits `on_session_stop`, removes the session from the worker's `_realtime_sessions` map. Idempotent on the TS side (`PythonRealtimeSession.stop` short-circuits when already stopped).
-  - **Frame payload encoding:** the verbs treat `payload` / `data` as opaque msgpack values, so transports can choose between raw `bin` tensors (preferred for video — no base64 overhead) or richer JSON-shaped headers (acceptable for low-rate metadata channels). The full frame-format dataclass from the design pass slots in once the first model node lands.
-  - **Where it lives (shipped):**
-    - **Python:** `nodetool.workflows.realtime` (dataclasses), `nodetool.workflows.base_node` (hooks), `nodetool.workflows.inbox.NodeInbox.put_nowait_drop_oldest` (backpressure), `nodetool.worker.realtime_session.RealtimeNodeInstance` (per-session warm node), `nodetool.worker.stdio_server.StdioWorkerServer` (verb dispatch + frame emit).
-    - **TS:** `packages/runtime/src/python-bridge-types.ts` (request/response/event types), `packages/runtime/src/python-stdio-bridge.ts` (four verb methods + `realtimeOutputFrame` dispatch via `_realtimeCall` mirroring `_providerCall`), `packages/runtime/src/python-realtime-session.ts` (lifecycle wrapper with idempotent `stop()` + `dispose()` crash-recovery escape hatch).
-  - **Tests (shipped):** Python — `tests/worker/test_realtime_session.py` covers full lifecycle round-trips (`start` → `push` → `realtime_output_frame` → `stop`), 100-frame identity passthrough, drop-oldest behavior, parameter updates, duplicate-session rejection, unknown node type errors, and `on_session_start` cleanup-on-failure. TS — `packages/runtime/tests/python-realtime-bridge.test.ts` drives the bridge through a transport-less harness for the four verbs + the frame event; `packages/runtime/tests/python-realtime-session.test.ts` covers the wrapper's lifecycle + 100-frame end-to-end loop with a mock bridge.
+- [x] **Extend the stdio bridge protocol with session-scoped verbs.** *(done — Python side landed in `nodetool-core` commits `6db11296` + `8799a767`; TS side landed in `nodetool` commits `922243675` + `fb6f7c2e8` — the second commit on each side fixed wire-format drift between the two ends.)* The pre-realtime bridge (`packages/runtime/src/python-stdio-bridge.ts`) was request/response only — `execute(req) → result` and `executeStream(req) → AsyncGenerator<result>` — which one-shots a Python process per call (or per stream) and could not hold warm GPU state across frames. Realtime added four request/response verbs plus one server-pushed event, all msgpack-framed on the existing length-prefixed transport (no transport change). **The exact wire-level shape is documented in the next section ("Realtime substrate surface — frozen contract"); use that as the source of truth, not the prose summary here.**
+
+  - The four verbs are `start_session`, `update_parameter`, `push_input_frame`, `stop_session` (all request/response) plus a `realtime_output_frame` server-pushed event. Behaviorally:
+    - `start_session` instantiates the requested node via `RealtimeNodeInstance.start`, applies pydantic fields, awaits `pre_process` + `on_session_start`, and spawns a background task that drives `gen_process(NodeInputs/NodeOutputs)`. Rejects non-realtime nodes (`is_realtime_capable() == False`) and unknown node types.
+    - `update_parameter` is live field assignment on the warm node instance via `BaseNode.assign_property` (pydantic-validated); `routed=False` indicates the field name doesn't exist on the node, so the caller decides whether to surface it as an error or warn.
+    - `push_input_frame` lands frames on the Python `NodeInbox` via `put_nowait_drop_oldest(handle, item, capacity, metadata?)`, mirroring the TS-side `drop_oldest` overflow policy. Non-blocking — when full, the oldest item is evicted and `dropped_count` increments so callers can surface drop telemetry without backpressuring the bridge.
+    - `realtime_output_frame` events are emitted whenever the node yields. `PythonStdioBridge` re-emits them as a typed `realtimeOutputFrame` EventEmitter event; `PythonRealtimeSession` filters to a single session and re-emits `frame`.
+    - `stop_session` gracefully cancels the runner task, awaits `on_session_stop`, removes the session from the worker's `_realtime_sessions` map, and honors the optional `timeout` from the caller. Idempotent on the TS side (`PythonRealtimeSession.stop` short-circuits when already stopped).
+  - **Frame payload encoding:** the verbs treat `payload` as an opaque msgpack value, so transports can choose between raw `bin` tensors (preferred for video — no base64 overhead) or richer JSON-shaped headers (acceptable for low-rate metadata channels). The full frame-format dataclass from the design pass slots in once the first model node lands.
+  - **Tests (shipped):** Python — `tests/worker/test_realtime_session.py` (in `nodetool-core`) covers full lifecycle round-trips, 100-frame identity passthrough, drop-oldest behavior, parameter updates, duplicate-session rejection, unknown node type errors, `on_session_start` cleanup-on-failure, and three explicit **wire-format contract tests** (`test_wire_contract_push_and_emit_uses_payload_key`, `..._start_session_response_status_is_running`, `..._stop_session_honors_optional_timeout`) that pin the JSON shape so the TS bridge can rely on it. TS — `packages/runtime/tests/python-realtime-bridge.test.ts` drives the bridge through a transport-less harness for the four verbs + the frame event; `packages/runtime/tests/python-realtime-session.test.ts` covers the wrapper's lifecycle + 100-frame end-to-end loop with a mock bridge.
+
+### Realtime substrate surface — frozen contract (read this first, no `nodetool-core` checkout required)
+
+The Python-side substrate that the TS bridge talks to lives entirely in `nodetool-core` (see commits `dcce722e`, `6db11296`, `8799a767` on `feat-realtime-core`). Everything below is **shipped, tested, and frozen** — drift here is a breaking protocol change. Agents working in this repo (`nodetool/`) on the next-task ladder (server-side WebRTC endpoint, frame router, model nodes in `nodetool-realtime`) can rely on this surface without reading the Python source.
+
+#### Where it lives (Python side, in `nodetool-core/src/`)
+
+| Module | What it contains | TS-side counterpart |
+|---|---|---|
+| `nodetool/workflows/realtime.py` | `RealtimeMediaTrack`, `RealtimeSessionInfo` dataclasses + `RealtimeSessionInfo.from_dict()` | `RealtimeMediaTrackPayload` / `RealtimeSessionInfoPayload` in `@nodetool/runtime` |
+| `nodetool/workflows/base_node.py` | `BaseNode` realtime capability flags + lifecycle hooks (see below) | `BaseNode` static flags + instance hooks in `@nodetool/node-sdk` |
+| `nodetool/workflows/inbox.py` | `NodeInbox.put_nowait_drop_oldest(handle, item, capacity, metadata?)` — non-blocking enqueue with drop-oldest backpressure for realtime media | `NodeInbox` + `inputBufferPolicy` in `@nodetool/kernel` |
+| `nodetool/worker/realtime_session.py` | `RealtimeNodeInstance` — one warm `BaseNode` + `gen_process` task per live session; `DEFAULT_INPUT_BUFFER_SIZE = 2`, `DEFAULT_STOP_TIMEOUT = 5.0` | `PythonRealtimeSession` (TS wrapper, one per session) in `@nodetool/runtime` |
+| `nodetool/worker/stdio_server.py` | `StdioWorkerServer` — verb dispatch (`_handle_start_session` / `_handle_update_parameter` / `_handle_push_input_frame` / `_handle_stop_session`) + `realtime_output_frame` emit; `_realtime_sessions: dict[str, RealtimeNodeInstance]` | `PythonStdioBridge.startRealtimeSession` / `updateRealtimeParameter` / `pushRealtimeInputFrame` / `stopRealtimeSession` in `@nodetool/runtime` |
+| `nodetool/worker/node_loader.py` | `node_to_metadata()` serializes `is_realtime_capable` / `owns_warm_state` / `is_media_adapter` flags onto every Python node descriptor | `PythonNodeMetadata` in `@nodetool/runtime` carries the same fields |
+| `nodetool/worker/context_stub.py` | `WorkerContext(ProcessingContext)` — the actual context type passed to `on_session_start` / `on_session_stop` in the worker process (see "Worker context surface" below) | n/a (worker-internal) |
+
+> Naming sanity-check (asked during review): `inbox.py` is the right name — it has been the location of the streaming `NodeInbox` class since the inbox primitive landed and is the same name used by the TS `inbox.ts` it mirrors. `realtime_session.py` houses `RealtimeNodeInstance` (one warm instance per live session — the name reflects "the worker-side state for one realtime session"); the broader concept "session" lives on the TS-side `RealtimeSessionRecord`. Don't rename either.
+
+#### Python `BaseNode` realtime surface (what node authors override)
+
+```python
+class BaseNode(BaseModel):
+    # Capability flags — mirror the TS-side `static readonly is*` properties.
+    # Defaults are False so non-realtime nodes are unaffected.
+    _is_realtime_capable: ClassVar[bool] = False
+    _owns_warm_state: ClassVar[bool] = False
+    _is_media_adapter: ClassVar[bool] = False
+
+    @classmethod
+    def is_realtime_capable(cls) -> bool: ...
+    @classmethod
+    def owns_warm_state(cls) -> bool: ...
+    @classmethod
+    def is_media_adapter(cls) -> bool: ...
+
+    # Lifecycle hooks — defaults are no-ops; override on realtime-capable nodes.
+    # `context` is typed `Any` so the worker can pass a `WorkerContext` (subset
+    # of ProcessingContext available inside the stdio worker process) without
+    # forcing every node to import the full ProcessingContext type. `session`
+    # is the `RealtimeSessionInfo` snapshot below.
+    async def on_session_start(self, context, session: RealtimeSessionInfo) -> None: ...
+    async def on_session_stop(self, context, session: RealtimeSessionInfo) -> None: ...
+    def reset_warm_state(self) -> None: ...
+```
+
+#### Python session value types (`nodetool.workflows.realtime`)
+
+```python
+@dataclass(slots=True)
+class RealtimeMediaTrack:
+    track_id: str
+    kind: str          # "audio" | "video"
+    node_id: str       # graph node that consumes this track
+    input_name: str    # input handle name on that node
+
+@dataclass(slots=True)
+class RealtimeSessionInfo:
+    session_id: str
+    workflow_id: str | None
+    transport: str     # "websocket" | "webrtc"
+    parameters: dict[str, Any] = field(default_factory=dict)
+    media_tracks: list[RealtimeMediaTrack] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "RealtimeSessionInfo":
+        # Tolerant of missing optional fields (parameters / media_tracks)
+        # so partial payloads from older bridges don't crash node startup.
+```
+
+These mirror a deliberately trimmed subset of the TS `RealtimeSessionRecord` (`packages/protocol/src/api-schemas/realtime.ts`) — the worker only carries what a node would actually inspect. Orchestration-only fields (`status`, `signaling`, `created_at`, `updated_at`, `label`, `enabled`) are intentionally absent.
+
+#### Worker context surface (what `context` actually is in `on_session_start`)
+
+`StdioWorkerServer` constructs `ctx = WorkerContext(secrets={...}, cancel_event=asyncio.Event())` (`nodetool/worker/context_stub.py`). `WorkerContext` subclasses `ProcessingContext` but only `secrets` lookup (`get_secret(key)` / `get_secret_required(key)`) and `cancel_event` are guaranteed-functional inside the worker process. **Do not** assume the storage / database / asset-server / messaging surfaces of a full `ProcessingContext` are available — those will raise or no-op. Realtime model nodes should treat `context` as "secrets bag + cancellation token" only; pass anything else through `session.parameters` or via the bridge.
+
+#### Wire-format contract (canonical — TS bridge ⇄ Python worker)
+
+All frames are msgpack-framed on the existing length-prefixed stdio transport. Every message has a `type` field; request/response messages add `request_id`; the body is always nested under `data` (matches the rest of the bridge protocol — `result` / `error` / `chunk` / `progress` use the same envelope).
+
+```jsonc
+// 1. start_session — request
+{ "type": "start_session", "request_id": "<uuid>", "data": {
+    "session_id": "<routing key, must equal session.session_id>",
+    "session": {
+      "session_id": "<id>",
+      "workflow_id": "<id|null>",
+      "transport": "websocket"|"webrtc",
+      "parameters": { ... },              // optional
+      "media_tracks": [ {"track_id":"...","kind":"video","node_id":"...","input_name":"..."}, ... ]
+    },
+    "node_type": "<fully-qualified Python node type>",
+    "fields":  { ... },                   // optional, applied via assign_property
+    "secrets": { "OPENAI_API_KEY": "..." }, // optional, exposed via WorkerContext.get_secret
+    "input_buffer_size": 2                // optional, defaults to DEFAULT_INPUT_BUFFER_SIZE
+  } }
+// → response
+{ "type": "result", "request_id": "<uuid>", "data": { "session_id": "<id>", "status": "running" } }
+
+// 2. update_parameter — request
+{ "type": "update_parameter", "request_id": "<uuid>", "data": {
+    "session_id": "<id>", "name": "<field>", "value": <any> } }
+// → response
+{ "type": "result", "request_id": "<uuid>", "data": {
+    "session_id": "<id>", "ok": true, "routed": true|false } }
+
+// 3. push_input_frame — request
+{ "type": "push_input_frame", "request_id": "<uuid>", "data": {
+    "session_id": "<id>", "handle": "<input handle name>",
+    "payload": <opaque msgpack value>,    // tensor bin, dict, primitive — node-defined
+    "metadata": { ... }                   // optional, attached to the inbox envelope
+  } }
+// → response
+{ "type": "result", "request_id": "<uuid>", "data": {
+    "session_id": "<id>", "ok": true, "dropped_count": 0 } }
+
+// 4. stop_session — request
+{ "type": "stop_session", "request_id": "<uuid>", "data": {
+    "session_id": "<id>", "timeout": 5.0   // optional, seconds; defaults to DEFAULT_STOP_TIMEOUT
+  } }
+// → response
+{ "type": "result", "request_id": "<uuid>", "data": {
+    "session_id": "<id>", "ok": true, "error": null } }   // ok=false + error="..." if the runner raised
+
+// 5. realtime_output_frame — server-pushed event (no request_id)
+{ "type": "realtime_output_frame", "data": {
+    "session_id": "<id>", "handle": "<output slot name>",
+    "payload": <opaque msgpack value>,    // SAME field name as push_input_frame
+    "metadata": { ... }                   // optional
+  } }
+
+// Errors (any verb) — same envelope as the existing bridge protocol
+{ "type": "error", "request_id": "<uuid>", "data": {
+    "session_id": "<id>", "error": "<message>", "traceback": "<optional>"
+  } }
+```
+
+**Pinned rules (any change here breaks both sides):**
+
+- `data.session_id` is the routing key on every verb and must be set first; the worker rewrites `data.session.session_id` from it defensively in `start_session`.
+- `start_session` response status is the literal string `"running"` (was discussed as `"started"`; pinned to `"running"` to match the TS `PythonRealtimeSession` state model).
+- `push_input_frame` and `realtime_output_frame` both use the field name `payload` (not `data` — that field name is reserved for the envelope itself).
+- All event/response bodies live under `data`. The bridge dispatcher routes by `msg.type` and reads `msg.data` uniformly; a top-level routing field like `msg.session_id` would be silently dropped.
+- `stop_session.data.timeout` is in seconds (float) and is forwarded to `RealtimeNodeInstance.stop(timeout=...)`. Omit to use the worker default (5 s).
+- `update_parameter.data.value` and the `payload` fields on push/output frames are msgpack-encoded as-is — no JSON re-encoding step. Use raw `bin` tensors for video frames; small JSON-shaped objects for control/metadata.
+
+**Non-rules (deliberately not pinned, free to evolve):**
+
+- The shape inside `payload` (frame format dataclass) is per-node and will be standardized when the first model node lands — it is **not** part of this contract.
+- The `metadata` field on push/output frames is free-form per node; not interpreted by the substrate.
+- `routed=false` from `update_parameter` is a soft signal: the bridge treats it as "field name unknown on this node"; the caller decides whether to escalate.
+
+#### TS-side surface already in this repo (consumes the contract above)
+
+| Symbol | File | What it does |
+|---|---|---|
+| `RealtimeStartSessionRequest` / `Result`, `RealtimeUpdateParameterRequest` / `Result`, `RealtimePushInputFrameRequest` / `Result`, `RealtimeStopSessionRequest` / `Result`, `RealtimeOutputFrameEvent`, `RealtimeMediaTrackPayload`, `RealtimeSessionInfoPayload` | `packages/runtime/src/python-bridge-types.ts` | Typed mirrors of every wire-format payload above. Field-for-field 1:1 with the Python side. |
+| `PythonStdioBridge.startRealtimeSession(req)` / `.updateRealtimeParameter(req)` / `.pushRealtimeInputFrame(req)` / `.stopRealtimeSession(req)` | `packages/runtime/src/python-stdio-bridge.ts` | Async wrappers around the four verbs. Each returns the worker's `Result` payload; rejects on `error` envelopes. |
+| `PythonStdioBridge.on("realtimeOutputFrame", handler)` | same | Bridge-wide event for every frame the worker emits, in any session. Filter by `event.session_id` if you need per-session routing. |
+| `PythonRealtimeSession` (class) | `packages/runtime/src/python-realtime-session.ts` | High-level wrapper around a single live session. State machine `idle → starting → running → stopping → stopped`. `start()`, `pushFrame(handle, payload, metadata?)`, `updateParameter(name, value)`, `stop(timeout?)` (idempotent), `dispose()` (crash-recovery escape hatch — detaches the listener without contacting the worker). Filters bridge-wide `realtimeOutputFrame` events down to this session's `session_id` and re-emits as `frame`. |
+
+All of the above are exported from `@nodetool/runtime` (`packages/runtime/src/index.ts`).
+
+#### What's not yet decided / shipped (the agent working on the next ladder rung needs to land these)
+
+- **Frame format dataclass** — concrete shape of `payload` for video/audio (lives next to the first model node in `nodetool-realtime`; design-pass output, not bridge work).
+- **`LatestPerHandleAccumulator`** Python utility (Phase 2 design pass — see "Pre-model design pass" below).
+- **`WeightSource` resolver** — lives in `nodetool-realtime`, not in core (see Python integration architecture above).
+- **TS-side `node-executor.ts` import bug** (pre-existing, from PR #2766) — `import type { RealtimeSessionInfo } from "@nodetool/protocol"` should be `RealtimeSessionRecord`. Out of scope for the bridge work; will be fixed when the realtime runner branch lands its full type cleanup.
+
 - [x] **Decide the Python package layout for realtime nodes.** *(done — sister repo bootstrapped at `../nodetool-realtime`, root commit `44eccf5`. Skeleton mirrors `nodetool-huggingface`: `src/nodetool/nodes/realtime/` for thin nodes, `src/nodetool/realtime/` for fat pipelines, `package_metadata/nodetool-realtime.json` stub, hatchling build, lint+publish-wheel+copilot-setup CI workflows, smoke tests that pass without torch. Base install only depends on `nodetool-core`; precision-specific deps are placeholder `[fp8]` / `[gguf]` / `[int8]` / `[all]` extras that fill in as model nodes land. `[tool.uv.sources]` points at the local `../nodetool-core` checkout for editable dev.)* Mirror the `nodetool-huggingface` precedent exactly so anyone who can build an HF node can build a realtime node:
   - **Sister repo `nodetool-realtime`:**
     ```
@@ -446,7 +615,7 @@ Extend the realtime system through clear media and control adapters after the fi
 - [x] **(5) Add `isRealtimeCapable` / `ownsWarmState` / `isMediaAdapter` flags + `onSessionStart`/`onSessionStop`/`resetWarmState` hooks to `BaseNode`** — flags + hooks landed and surfaced through `NodeDescriptor`/`NodeMetadata` (see line 194); runner consumption still pending under step (6)
 - [x] **(6) Implement long-lived realtime mode in `RealtimeRunner`** — `startRealtimeMode`/`stopRealtimeMode`/`pushParameter` landed on top of the skeleton from step 2, using the inbox policy from step 4 and the capability flags from step 5; warm-state hooks are wired through `runWarmStateHooks` and bounded ring buffers protect against multi-hour OOMs (commit `0ff45c7b8`)
 - [x] **(6b) Mirror realtime hooks on the Python `BaseNode`** — landed via `nodetool-core` commit `dcce722e`. `BaseNode` exposes `is_realtime_capable() / owns_warm_state() / is_media_adapter()` classmethods and async `on_session_start` / `on_session_stop` / `reset_warm_state` hooks; `node_to_metadata` surfaces the new flags so the TS-side registry sees identical truth for Python and TS nodes. See Python integration architecture subsection.
-- [x] **(6c) Extend the stdio bridge protocol with session-scoped verbs** — landed via `nodetool-core` commit `6db11296` (Python — `RealtimeNodeInstance` + `StdioWorkerServer` verb dispatch + `realtime_output_frame` emit, `NodeInbox.put_nowait_drop_oldest` backpressure) and `nodetool` commit `922243675` (TS — `PythonStdioBridge` verb methods + typed `realtimeOutputFrame` event + `PythonRealtimeSession` wrapper). The worker now holds warm GPU state across many frames; the bridge protocol layers on top of the existing length-prefixed msgpack framing without any transport change. See Python integration architecture subsection.
+- [x] **(6c) Extend the stdio bridge protocol with session-scoped verbs** — landed via `nodetool-core` commits `6db11296` + `8799a767` (Python — `RealtimeNodeInstance` + `StdioWorkerServer` verb dispatch + `realtime_output_frame` emit, `NodeInbox.put_nowait_drop_oldest` backpressure, plus a follow-up that pinned the canonical wire format with three contract tests) and `nodetool` commits `922243675` + `fb6f7c2e8` (TS — `PythonStdioBridge` verb methods + typed `realtimeOutputFrame` event + `PythonRealtimeSession` wrapper, plus a follow-up that aligned the bridge with the canonical wire format). The worker now holds warm GPU state across many frames; the bridge protocol layers on top of the existing length-prefixed msgpack framing without any transport change. **The full wire-level contract is documented in "Realtime substrate surface — frozen contract" inside the Python integration architecture subsection — read that, not this checklist entry, when wiring the next layer.**
 - [ ] **(7) Create the first `nodetool.realtime` nodes** (`VideoSource`, `VideoSink`, `AudioSource`/`Sink`, `Parameter`, `SessionInfo`) in a new `packages/realtime-nodes/` package (TS — these don't need PyTorch, they talk to the WebRTC server in-process) — gates the WebRTC server (it needs source nodes to push frames into) and the model nodes. **Decide first inside this step:** frame format contract + package layout / registry discovery (see Phase 2 task)
 - [ ] **(8) Stand up the backend WebRTC endpoint** using the stack from step 3 to receive mapped media tracks and feed them into the live graph via `RealtimeRunner.pushInputValue` — replaces the `/realtime` in-browser loopback. Closes the transport-readiness half of the `starting → running` gate by waiting for the WebRTC peer to report `connected` before promoting
 - [ ] **(9) Pre-model design pass** — Wan2.1 upstream choice (Scope vs `diffusers` vs research), model-loading lifecycle on the `starting` path (with progress events), `LatestPerHandleAccumulator` utility (in core, alongside the bridge), CPU-only smoke-test pattern, framerate acceptance threshold, **the `WeightSource` resolver for community pre-quantized weights** in the `nodetool-realtime` sister package (FP8 e4m3fn / GGUF builds — the universal-hardware low-VRAM path), and **extending the existing hardware-detection pipeline** (SystemStats payload from `electron/src/torchruntime.ts` + `systemInfo.ts` + `protocol/api-types.ts`) with `device_capability` / `fp8_native` / `gguf_loader_available` / `recommended_precision`. All written-down decisions / one small wiring PR + the `WeightSource` resolver, not full model code; gates step 10
