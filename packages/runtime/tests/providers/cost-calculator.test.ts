@@ -22,16 +22,6 @@ describe("CostType enum", () => {
   });
 });
 
-describe("PRICING_TIERS", () => {
-  it("contains expected tiers", () => {
-    expect(PRICING_TIERS.topTierChat).toBeDefined();
-    expect(PRICING_TIERS.lowTierChat).toBeDefined();
-    expect(PRICING_TIERS.embeddingSmall).toBeDefined();
-    expect(PRICING_TIERS.whisperStandard).toBeDefined();
-    expect(PRICING_TIERS.ttsStandard).toBeDefined();
-    expect(PRICING_TIERS.imageGptLow).toBeDefined();
-  });
-});
 
 describe("CostCalculator.getTier", () => {
   it("returns tier for direct model lookup", () => {

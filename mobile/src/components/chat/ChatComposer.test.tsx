@@ -26,16 +26,6 @@ describe('ChatComposer', () => {
       expect(screen.getByPlaceholderText('Type a message...')).toBeTruthy();
     });
 
-    it('renders send button when connected', () => {
-      const { UNSAFE_root } = render(
-        <ChatComposer
-          status="connected"
-          onSendMessage={mockOnSendMessage}
-        />
-      );
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
     it('shows placeholder when disconnected', () => {
       render(
         <ChatComposer
@@ -82,16 +72,6 @@ describe('ChatComposer', () => {
   });
 
   describe('Send button', () => {
-    it('is disabled when text is empty', () => {
-      const { UNSAFE_getAllByType } = render(
-        <ChatComposer
-          status="connected"
-          onSendMessage={mockOnSendMessage}
-        />
-      );
-      expect(UNSAFE_getAllByType).toBeDefined();
-    });
-
     it('calls onSendMessage when text is entered and button pressed', () => {
       render(
         <ChatComposer

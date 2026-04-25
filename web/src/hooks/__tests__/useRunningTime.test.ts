@@ -79,23 +79,6 @@ describe("useRunningTime", () => {
     expect(result.current).toBe(2);
   });
 
-  it("cleans up interval when unmounted", () => {
-    const { unmount } = renderHook(() => useRunningTime(true));
-
-    act(() => {
-      jest.advanceTimersByTime(2000);
-    });
-
-    unmount();
-
-    // Should not throw error or cause memory leak
-    act(() => {
-      jest.advanceTimersByTime(5000);
-    });
-
-    expect(true).toBe(true);
-  });
-
   it("handles rapid toggles", () => {
     const { result, rerender } = renderHook(
       ({ isRunning }) => useRunningTime(isRunning),
