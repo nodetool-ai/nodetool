@@ -2,6 +2,7 @@ import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import Papa from "papaparse";
 
 type Row = Record<string, unknown>;
 function asRows(value: unknown): Row[] {
@@ -24,38 +25,23 @@ function toDataframe(rows: Row[]): { rows: Row[] } {
   return { rows };
 }
 
-function parseCsvValue(value: string): unknown {
-  const trimmed = value.trim();
-  if (trimmed === "") return null;
-  const numeric = Number(trimmed);
-  if (!Number.isNaN(numeric)) return numeric;
-  return trimmed;
-}
-
 function parseCsv(csv: string): Row[] {
-  const lines = csv.split(/\r?\n/).filter((line) => line.length > 0);
-  if (lines.length === 0) return [];
-  const headers = lines[0].split(",").map((h) => h.trim());
-  const rows: Row[] = [];
-  for (let i = 1; i < lines.length; i += 1) {
-    const values = lines[i].split(",");
-    const row: Row = {};
-    for (let j = 0; j < headers.length; j += 1) {
-      row[headers[j]] = parseCsvValue(values[j] ?? "");
-    }
-    rows.push(row);
-  }
-  return rows;
+  if (!csv) return [];
+  const result = Papa.parse<Row>(csv, {
+    header: true,
+    dynamicTyping: true,
+    skipEmptyLines: true,
+    transformHeader: (h) => h.trim()
+  });
+  return (result.data ?? []).filter(
+    (row): row is Row => !!row && typeof row === "object"
+  );
 }
 
 function toCsv(rows: Row[]): string {
   if (rows.length === 0) return "";
   const headers = [...new Set(rows.flatMap((r) => Object.keys(r)))];
-  const lines = [headers.join(",")];
-  for (const row of rows) {
-    lines.push(headers.map((h) => String(row[h] ?? "")).join(","));
-  }
-  return lines.join("\n");
+  return Papa.unparse(rows, { columns: headers, newline: "\n" });
 }
 
 function parseConditionExpr(condition: string): string {
