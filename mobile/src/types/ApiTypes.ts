@@ -1,11 +1,8 @@
 /**
  * API Types — Re-exports from @nodetool/protocol shared types.
  *
- * These types are used throughout the mobile app and are now sourced from
- * the shared protocol package instead of auto-generated OpenAPI types.
- *
- * The openapi-fetch client (src/api.ts) still provides the generated
- * path-typed HTTP interface. This file bridges the two type systems.
+ * The mobile app talks to the backend exclusively via tRPC; these types
+ * provide the shared shapes used throughout the mobile UI.
  */
 
 import type {
@@ -27,7 +24,6 @@ import type {
   NodeRef,
   NPArray,
   SVGElement,
-  PlotlyConfig,
   Datetime,
   CalendarEvent,
   // Asset types
@@ -137,7 +133,6 @@ export type {
   NodeRef,
   NPArray,
   SVGElement,
-  PlotlyConfig,
   Datetime,
   CalendarEvent,
 };

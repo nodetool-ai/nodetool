@@ -1,4 +1,5 @@
 import { getSecret } from "@nodetool/models";
+import type { NodeMetadata } from "@nodetool/protocol";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { z } from "zod";
@@ -37,6 +38,17 @@ export const nodesRouter = router({
       const replicateKey = await getSecret("REPLICATE_API_TOKEN", "1");
       return { configured: Boolean(replicateKey) };
     }),
+
+  /**
+   * List node metadata. Public (called at client boot before auth) — same
+   * surface as GET /api/nodes/metadata, returned as a sorted array.
+   */
+  metadata: publicProcedure.query(({ ctx }): NodeMetadata[] => {
+    const list = ctx.registry.listMetadata();
+    return list.sort((a: NodeMetadata, b: NodeMetadata) =>
+      a.node_type.localeCompare(b.node_type)
+    );
+  }),
 
   /**
    * Validate a username string against the allowed pattern.

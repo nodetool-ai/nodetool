@@ -1,14 +1,20 @@
-import { components } from '../api';
 import type {
   ASRModel as AppASRModel,
+  Asset,
+  AssetList,
+  AssetSearchResult,
+  AssetUpdateRequest,
+  AssetWithPath,
   ImageModel as AppImageModel,
+  JobListResponse,
+  JobResponse,
   LanguageModel as AppLanguageModel,
+  NodeMetadata,
   ProviderInfo as AppProviderInfo,
   TTSModel as AppTTSModel,
   VideoModel as AppVideoModel,
   Workflow as AppWorkflow,
 } from '../types/ApiTypes';
-import { useAuthStore } from '../stores/AuthStore';
 import { createMobileTRPCClient } from '../trpc/client';
 import {
   getApiHost as getSharedApiHost,
@@ -17,13 +23,15 @@ import {
   setCachedApiHost,
 } from './apiHost';
 
-export type Asset = components["schemas"]["Asset"];
-export type AssetList = components["schemas"]["AssetList"];
-export type AssetUpdateRequest = components["schemas"]["AssetUpdateRequest"];
-export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
-export type AssetWithPath = components["schemas"]["AssetWithPath"];
-export type JobResponse = components["schemas"]["JobResponse"];
-export type JobListResponse = components["schemas"]["JobListResponse"];
+export type {
+  Asset,
+  AssetList,
+  AssetSearchResult,
+  AssetUpdateRequest,
+  AssetWithPath,
+  JobListResponse,
+  JobResponse,
+};
 
 // ── Types for tRPC-migrated domains ───────────────────────────────────────────
 // These shapes match the tRPC output schemas exactly and replace the openapi-
@@ -127,33 +135,6 @@ function normalizeModels<T extends { id: string; name: string }>(
 }
 
 class ApiService {
-  private async authHeaders(): Promise<Record<string, string>> {
-    const session = useAuthStore.getState().session;
-    return session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : {};
-  }
-
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const headers = new Headers(init.headers);
-    const authHeaders = await this.authHeaders();
-    Object.entries(authHeaders).forEach(([key, value]) => {
-      headers.set(key, value);
-    });
-
-    const response = await fetch(`${getSharedApiHost()}${path}`, {
-      ...init,
-      headers,
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Request failed (${response.status}): ${text}`);
-    }
-
-    return await response.json() as T;
-  }
-
   async loadApiHost(): Promise<string> {
     try {
       const host = await loadSharedApiHost();
@@ -263,8 +244,9 @@ class ApiService {
     );
   }
 
-  async getNodeMetadata() {
-    return this.request<components["schemas"]["NodeMetadata"][]>('/api/nodes/metadata');
+  async getNodeMetadata(): Promise<NodeMetadata[]> {
+    const trpc = createMobileTRPCClient();
+    return trpc.nodes.metadata.query() as unknown as Promise<NodeMetadata[]>;
   }
 
   async saveWorkflow(workflow: {

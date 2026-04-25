@@ -226,6 +226,10 @@ export interface AssetUpdateRequest {
   name?: string;
   parent_id?: string | null;
   content_type?: string;
+  metadata?: Record<string, unknown>;
+  size?: number;
+  data?: string | null;
+  data_encoding?: "base64" | "utf-8" | null;
 }
 
 // ---------------------------------------------------------------------------
