@@ -39,6 +39,7 @@ export interface ConnectedLayersPanelProps {
   onMoveLayerToGroup: (layerId: string, groupId: string | null) => void;
   onUngroupLayer: (groupId: string) => void;
   onGroupSelectedLayers: () => void;
+  onMergeSelectedLayers: () => void;
   onDeleteSelectedLayers: () => void;
   canvasResizeHandlesEnabled: boolean;
   onCanvasResizeHandlesEnabledChange: (enabled: boolean) => void;
@@ -120,6 +121,7 @@ export const ConnectedLayersPanel = memo(function ConnectedLayersPanel(
       onMoveLayerToGroup={props.onMoveLayerToGroup}
       onUngroupLayer={props.onUngroupLayer}
       onGroupSelectedLayers={props.onGroupSelectedLayers}
+      onMergeSelectedLayers={props.onMergeSelectedLayers}
       onDeleteSelectedLayers={props.onDeleteSelectedLayers}
     />
   );

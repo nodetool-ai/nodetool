@@ -9,12 +9,13 @@ import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { BlendMode, PushHistoryOptions, SketchDocument } from "../types";
 import { useSketchStore } from "../state";
+import { getMergeSelectedLayersPlan } from "../layerMergeSelection";
 
 export interface UseLayerActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
   pushHistory: (label: string, layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>, options?: PushHistoryOptions) => void;
-  addLayer: () => string;
+  addLayer: (name?: string, type?: "raster" | "mask") => string;
   removeLayer: (layerId: string) => void;
   duplicateLayer: (layerId: string) => void;
   reorderLayers: (fromIndex: number, toIndex: number) => void;
@@ -34,6 +35,12 @@ export interface UseLayerActionsParams {
   moveLayerToGroup: (layerId: string, groupId: string | null) => void;
   ungroupLayer: (groupId: string) => void;
   groupLayers: (layerIds: string[]) => void;
+}
+
+interface HandleAddLayerOptions {
+  fillColor?: string | null;
+  name?: string;
+  type?: "raster" | "mask";
 }
 
 export function useLayerActions({
@@ -62,9 +69,10 @@ export function useLayerActions({
   groupLayers
 }: UseLayerActionsParams) {
   const handleAddLayer = useCallback(
-    (fillColor?: string | null) => {
+    (options?: HandleAddLayerOptions) => {
+      const fillColor = options?.fillColor;
       pushHistory("add layer");
-      const newLayerId = addLayer();
+      const newLayerId = addLayer(options?.name, options?.type);
       if (fillColor && canvasRef.current) {
         requestAnimationFrame(() => {
           if (canvasRef.current) {
@@ -76,6 +84,7 @@ export function useLayerActions({
           }
         });
       }
+      return newLayerId;
     },
     [pushHistory, addLayer, updateLayerData, canvasRef]
   );
@@ -330,6 +339,31 @@ export function useLayerActions({
     }
   }, [document.layers, pushHistory, removeLayer]);
 
+  const handleMergeSelectedLayers = useCallback(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+
+    const selectedLayerIds = useSketchStore.getState().selectedLayerIds;
+    const plan = getMergeSelectedLayersPlan(document.layers, selectedLayerIds);
+    if (!plan) {
+      return;
+    }
+
+    pushHistory("merge selected");
+
+    for (const { upperLayerId, lowerLayerId } of plan.mergePairs) {
+      const mergedData = canvasRef.current.mergeLayerDown(
+        upperLayerId,
+        lowerLayerId
+      );
+      mergeLayerDown(upperLayerId);
+      if (mergedData) {
+        updateLayerData(lowerLayerId, mergedData);
+      }
+    }
+  }, [canvasRef, document.layers, mergeLayerDown, pushHistory, updateLayerData]);
+
   return {
     handleAddLayer,
     handleRemoveLayer,
@@ -352,6 +386,7 @@ export function useLayerActions({
     handleMoveLayerToGroup,
     handleUngroupLayer,
     handleGroupSelectedLayers,
+    handleMergeSelectedLayers,
     handleDeleteSelectedLayers
   };
 }

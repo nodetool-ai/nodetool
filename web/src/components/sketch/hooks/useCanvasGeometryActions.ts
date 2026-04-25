@@ -173,6 +173,11 @@ export interface UseCanvasGeometryActionsParams {
   syncSketchOutputsNow: () => void;
 }
 
+interface HandlePasteOptions {
+  targetLayerId?: string;
+  pasteAnchorDocument?: Point | null;
+}
+
 export function useCanvasGeometryActions({
   canvasRef,
   document,
@@ -639,11 +644,14 @@ export function useCanvasGeometryActions({
    *   so masked in-sketch copies keep correct alpha; default Ctrl+V prefers other apps' clipboard.
    */
   const handlePaste = useCallback(
-    async (preferInternalClipboardFirst = false) => {
+    async (
+      preferInternalClipboardFirst = false,
+      options?: HandlePasteOptions
+    ) => {
       if (!canvasRef.current) {
         return;
       }
-      const layerId = document.activeLayerId;
+      const layerId = options?.targetLayerId ?? document.activeLayerId;
       if (!layerId) {
         return;
       }
@@ -680,7 +688,10 @@ export function useCanvasGeometryActions({
         pasteSnapshot
       );
 
-      const pasteDoc = canvasRef.current.getPasteAnchorDocumentPoint();
+      const pasteDoc =
+        options && "pasteAnchorDocument" in options
+          ? options.pasteAnchorDocument ?? null
+          : canvasRef.current.getPasteAnchorDocumentPoint();
       const sel = useSketchStore.getState().selection;
       const bounds = sel ? getSelectionBounds(sel) : null;
 

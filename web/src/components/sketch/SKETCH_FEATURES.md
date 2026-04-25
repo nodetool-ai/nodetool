@@ -123,10 +123,14 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
 - [x] add a selection-tool right-click context menu entry for `Fill`
 - [x] add a selection-tool right-click context menu entry for `Stroke`
-- [ ] fix selection `Free Transform` - should transform the selection, not the layer
-- [ ] fix `Layer via Copy` - not yet implemented
-- [ ] fix `Layer via Cut` - not yet implemented
-- [ ] submenu for selection-tool right-click context menu entry for `New Layer...` - new layer entries as in photoshop 
+- [x] [impl+test] fix selection `Free Transform` - should transform the selection, not the layer
+  - **Done:** `Free Transform` now isolates the active selection into a temporary transform session instead of transforming the entire layer. `Ctrl+T` / `Cmd+T` and the selection context-menu entry both route through the selection-aware path, commit composites transformed selected pixels back onto the original layer, cancel restores the original layer snapshot, and the selection mask is updated to the transformed bounds.
+- [x] [impl+test] fix `Layer via Copy`
+  - **Done:** Selection `Layer via Copy` now creates a new layer and pastes the copied pixels into that new target layer instead of pasting back into the source layer. `Ctrl+J` and the selection context-menu entry both route through the new-layer target path and ignore transient paste-anchor placement so the copied pixels stay aligned with the original selection.
+- [x] [impl+test] fix `Layer via Cut`
+  - **Done:** Selection `Layer via Cut` now clears the selected pixels from the source layer, creates a new layer, and pastes the cut pixels into that new target layer instead of reusing the original layer.
+- [x] [impl+test] submenu for selection-tool right-click context menu entry for `New Layer...`
+  - **Done:** `New Layer...` now opens a submenu with concrete `Raster Layer` and `Mask Layer` targets and forwards the chosen layer type through the command surface.
 
 Deferred selection-context-menu items:
 
@@ -136,7 +140,8 @@ Deferred selection-context-menu items:
 - [ ] deferred: `Refine Edge`
 
 ### 2.5 - FEATURES
-- [ ] Layers: add option to merge selected, in right click menu and add icon when multiple layers are selected
+- [x] [impl+test] Layers: add option to merge selected, in right click menu and add icon when multiple layers are selected
+  - **Done:** The layers panel now exposes `Merge Selected` in both the multi-select footer chrome and the layer right-click menu. The action intentionally stays narrow for the current runtime/store seam: it only enables for contiguous, unlocked, non-group sibling selections and executes by chaining the existing merge-down primitive from top to bottom.
 - [ ] add one output handle that combines all output layers in a list[image] output
 - [ ] improve Layer visibility toggle: allow toggling layer visibility by presing mouse and holding - moving over several layers. the eye icon part of the layer item should be exempt of dragging
 

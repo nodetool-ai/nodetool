@@ -3,23 +3,38 @@
  */
 import React from "react";
 import { render, screen, createEvent, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import SketchLayersPanel from "../SketchLayersPanel";
 import { createDefaultLayer } from "../types";
 import type { BlendMode } from "../types";
 
-function renderPanel(blendMode: BlendMode = "normal") {
+function buildPanelProps({
+  blendMode = "normal",
+  layerCount = 1,
+  selectedLayerIds,
+  activeLayerIndex = 0
+}: {
+  blendMode?: BlendMode;
+  layerCount?: number;
+  selectedLayerIds?: string[];
+  activeLayerIndex?: number;
+} = {}) {
   const theme = createTheme({
     cssVariables: true
   });
-  const layer = createDefaultLayer("Layer 1", "raster", 64, 64);
-  layer.blendMode = blendMode;
+  const layers = Array.from({ length: layerCount }, (_, index) => {
+    const layer = createDefaultLayer(`Layer ${index + 1}`, "raster", 64, 64);
+    layer.blendMode = index === activeLayerIndex ? blendMode : "normal";
+    return layer;
+  });
+  const layer = layers[activeLayerIndex];
   const props = {
     foregroundColor: "#ffffff",
     onForegroundColorChange: jest.fn(),
-    layers: [layer],
+    layers,
     activeLayerId: layer.id,
-    selectedLayerIds: [layer.id],
+    selectedLayerIds: selectedLayerIds ?? [layer.id],
     maskLayerId: null,
     isolatedLayerId: null,
     onSelectLayer: jest.fn(),
@@ -56,8 +71,20 @@ function renderPanel(blendMode: BlendMode = "normal") {
     onMoveLayerToGroup: jest.fn(),
     onUngroupLayer: jest.fn(),
     onGroupSelectedLayers: jest.fn(),
+    onMergeSelectedLayers: jest.fn(),
     onDeleteSelectedLayers: jest.fn()
   };
+
+  return { theme, layer, layers, props };
+}
+
+function renderPanel(options: {
+  blendMode?: BlendMode;
+  layerCount?: number;
+  selectedLayerIds?: string[];
+  activeLayerIndex?: number;
+} = {}) {
+  const { theme, layer, layers, props } = buildPanelProps(options);
 
   render(
     <ThemeProvider theme={theme}>
@@ -65,7 +92,7 @@ function renderPanel(blendMode: BlendMode = "normal") {
     </ThemeProvider>
   );
 
-  return { layer, props };
+  return { layer, layers, props };
 }
 
 describe("SketchLayersPanel blend mode quick cycling", () => {
@@ -99,7 +126,7 @@ describe("SketchLayersPanel blend mode quick cycling", () => {
   });
 
   it("does not wrap past the first blend mode", () => {
-    const { props } = renderPanel("normal");
+    const { props } = renderPanel({ blendMode: "normal" });
     const combobox = screen.getByRole("combobox");
 
     fireEvent.keyDown(combobox, { key: "ArrowUp" });
@@ -107,5 +134,50 @@ describe("SketchLayersPanel blend mode quick cycling", () => {
 
     expect(props.onLayerBlendModeChange).not.toHaveBeenCalled();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+});
+
+describe("SketchLayersPanel merge selected affordances", () => {
+  it("shows a merge-selected footer action for valid multi-layer selections", async () => {
+    const user = userEvent.setup();
+    const { theme, layers, props } = buildPanelProps({ layerCount: 3 });
+    const selectedIds = layers.map((layer) => layer.id);
+
+    render(
+      <ThemeProvider theme={theme}>
+        <SketchLayersPanel
+          {...props}
+          activeLayerId={selectedIds[2]}
+          selectedLayerIds={selectedIds}
+        />
+      </ThemeProvider>
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Merge Selected Layers"
+      })
+    );
+
+    expect(props.onMergeSelectedLayers).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers Merge Selected in the layer context menu for selected multi-layer targets", () => {
+    const { theme, layers, props } = buildPanelProps({ layerCount: 3 });
+    const selectedIds = layers.map((layer) => layer.id);
+
+    render(
+      <ThemeProvider theme={theme}>
+        <SketchLayersPanel
+          {...props}
+          activeLayerId={selectedIds[1]}
+          selectedLayerIds={selectedIds}
+        />
+      </ThemeProvider>
+    );
+
+    fireEvent.contextMenu(screen.getByText("Layer 2"));
+
+    expect(screen.getByRole("menuitem", { name: "Merge Selected" })).toBeInTheDocument();
   });
 });

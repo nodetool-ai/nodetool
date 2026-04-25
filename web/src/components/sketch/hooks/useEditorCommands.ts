@@ -21,7 +21,7 @@
 
 import { useCallback, useImperativeHandle } from "react";
 import type { RefObject } from "react";
-import type { SketchDocument, SketchTool } from "../types";
+import type { LayerType, SketchDocument, SketchTool } from "../types";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { SketchEditorHandle } from "../SketchEditor";
 import { useEditorKeyboardShortcuts } from "../useEditorKeyboardShortcuts";
@@ -58,7 +58,9 @@ export interface EditorCommandsResult {
   handleRunSegmentation: () => void;
   handleClearSegmentPrompts: () => void;
   handleFillSelectionWithForeground: () => void;
-  handleNewLayerFromContextMenu: () => void;
+  handleNewLayerFromContextMenu: (
+    type?: Extract<LayerType, "raster" | "mask">
+  ) => void;
   handleLayerViaCopy: () => Promise<void>;
   handleLayerViaCut: () => Promise<void>;
   handleFreeTransform: () => void;
@@ -99,25 +101,34 @@ export function useEditorCommands({
     canvasActions.handleFillLayerWithColor(fg);
   }, [canvasActions]);
 
-  const handleNewLayerFromContextMenu = useCallback(() => {
-    layerActions.handleAddLayer();
+  const handleNewLayerFromContextMenu = useCallback((
+    type: Extract<LayerType, "raster" | "mask"> = "raster"
+  ) => {
+    layerActions.handleAddLayer({ type });
   }, [layerActions]);
 
   const handleLayerViaCopy = useCallback(async () => {
     canvasActions.handleCopy();
-    layerActions.handleAddLayer();
-    await canvasActions.handlePaste(true);
+    const newLayerId = layerActions.handleAddLayer();
+    await canvasActions.handlePaste(true, {
+      targetLayerId: newLayerId,
+      pasteAnchorDocument: null
+    });
   }, [canvasActions, layerActions]);
 
   const handleLayerViaCut = useCallback(async () => {
     canvasActions.handleCut();
-    layerActions.handleAddLayer();
-    await canvasActions.handlePaste(true);
+    const newLayerId = layerActions.handleAddLayer();
+    await canvasActions.handlePaste(true, {
+      targetLayerId: newLayerId,
+      pasteAnchorDocument: null
+    });
   }, [canvasActions, layerActions]);
 
   const handleFreeTransform = useCallback(() => {
+    canvasActions.prepareSelectionFreeTransform?.();
     sessionStore.setActiveTool("transform" as SketchTool);
-  }, [sessionStore]);
+  }, [canvasActions, sessionStore]);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
   useEditorKeyboardShortcuts({
@@ -154,7 +165,8 @@ export function useEditorCommands({
     handleTransformUndo: canvasActions.handleTransformUndo,
     handleTransformRedo: canvasActions.handleTransformRedo,
     handleLayerViaCopy,
-    handleLayerViaCut
+    handleLayerViaCut,
+    handleFreeTransform
   });
 
   // ─── Imperative handle ─────────────────────────────────────────────

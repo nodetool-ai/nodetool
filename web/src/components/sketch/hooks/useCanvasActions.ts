@@ -195,6 +195,7 @@ export function useCanvasActions({
     handleCancelAdjustments: geometryActions.handleCancelAdjustments,
     handleInvertLayerColors: geometryActions.handleInvertLayerColors,
     saveTransformOriginal: transformActions.saveTransformOriginal,
+    prepareSelectionFreeTransform: transformActions.prepareSelectionFreeTransform,
     handleTransformCommit: transformActions.handleTransformCommit,
     handleTransformCancel: transformActions.handleTransformCancel,
     handleTransformReset: transformActions.handleTransformReset,

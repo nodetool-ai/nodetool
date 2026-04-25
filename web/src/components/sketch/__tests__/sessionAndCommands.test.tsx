@@ -319,3 +319,108 @@ describe("hooks index exports", () => {
     expect(hooks.useTransformAdapter).toBeDefined();
   });
 });
+
+describe("useEditorCommands", () => {
+  const createParams = (): Parameters<typeof useEditorCommands>[0] => {
+    const document = useSketchStore.getState().document;
+    const editorRef = { current: null };
+    const canvasRef = { current: null };
+    const initialDocumentRef = { current: document };
+
+    return {
+      editorRef,
+      canvasRef,
+      initialDocumentRef,
+      document,
+      handleUndo: jest.fn(),
+      handleRedo: jest.fn(),
+      canvasActions: {
+        handleZoomIn: jest.fn(),
+        handleZoomOut: jest.fn(),
+        handleZoomReset: jest.fn(),
+        handleExportPng: jest.fn(),
+        handleClearLayer: jest.fn(),
+        handleFillLayerWithColor: jest.fn(),
+        handleCopy: jest.fn(),
+        handleCut: jest.fn(),
+        handlePaste: jest.fn(async () => undefined),
+        handleNudgeLayer: jest.fn(),
+        syncSketchOutputsNow: jest.fn(),
+        handleInvertLayerColors: jest.fn(),
+        prepareSelectionFreeTransform: jest.fn()
+      } as unknown as Parameters<typeof useEditorCommands>[0]["canvasActions"],
+      layerActions: {
+        handleAddLayer: jest.fn(() => "layer-new")
+      } as unknown as Parameters<typeof useEditorCommands>[0]["layerActions"],
+      colorActions: {} as unknown as Parameters<typeof useEditorCommands>[0]["colorActions"],
+      segmentation: {
+        runSegmentation: jest.fn()
+      } as unknown as Parameters<typeof useEditorCommands>[0]["segmentation"],
+      canvasStore: {
+        setZoom: jest.fn(),
+        setMirrorX: jest.fn(),
+        setMirrorY: jest.fn()
+      } as unknown as Parameters<typeof useEditorCommands>[0]["canvasStore"],
+      colorStore: {
+        setBrushSettings: jest.fn(),
+        setPencilSettings: jest.fn(),
+        setEraserSettings: jest.fn(),
+        setShapeSettings: jest.fn(),
+        setBlurSettings: jest.fn(),
+        setCloneStampSettings: jest.fn(),
+        swapColors: jest.fn(),
+        resetColors: jest.fn()
+      } as unknown as Parameters<typeof useEditorCommands>[0]["colorStore"],
+      sessionStore: {
+        setActiveTool: jest.fn(),
+        togglePanelsHidden: jest.fn(),
+        setDocument: jest.fn()
+      } as unknown as Parameters<typeof useEditorCommands>[0]["sessionStore"]
+    };
+  };
+
+  it("routes layer via copy through a new target layer", async () => {
+    const params = createParams();
+    const { result } = renderHook(() => useEditorCommands(params));
+
+    await act(async () => {
+      await result.current.handleLayerViaCopy();
+    });
+
+    expect(params.canvasActions.handleCopy).toHaveBeenCalledTimes(1);
+    expect(params.layerActions.handleAddLayer).toHaveBeenCalledTimes(1);
+    expect(params.canvasActions.handlePaste).toHaveBeenCalledWith(true, {
+      targetLayerId: "layer-new",
+      pasteAnchorDocument: null
+    });
+  });
+
+  it("routes layer via cut through a new target layer", async () => {
+    const params = createParams();
+    const { result } = renderHook(() => useEditorCommands(params));
+
+    await act(async () => {
+      await result.current.handleLayerViaCut();
+    });
+
+    expect(params.canvasActions.handleCut).toHaveBeenCalledTimes(1);
+    expect(params.layerActions.handleAddLayer).toHaveBeenCalledTimes(1);
+    expect(params.canvasActions.handlePaste).toHaveBeenCalledWith(true, {
+      targetLayerId: "layer-new",
+      pasteAnchorDocument: null
+    });
+  });
+
+  it("creates the requested layer type from the context menu", () => {
+    const params = createParams();
+    const { result } = renderHook(() => useEditorCommands(params));
+
+    act(() => {
+      result.current.handleNewLayerFromContextMenu("mask");
+    });
+
+    expect(params.layerActions.handleAddLayer).toHaveBeenCalledWith({
+      type: "mask"
+    });
+  });
+});
