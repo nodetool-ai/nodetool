@@ -1019,6 +1019,36 @@ export const modelsRouter = router({
     }),
 
   /**
+   * Recommended Transformers.js models for a given `tjs.<task>` type.
+   *
+   * Same curated list as the recommended-first half of `transformersJsByType`,
+   * minus the off-list cached repos. Used by the model picker's
+   * "Recommended downloads" panel so users can see what's worth fetching even
+   * if nothing is cached yet.
+   */
+  transformersJsRecommended: protectedProcedure
+    .input(tjsByTypeInput)
+    .output(modelsListOutput)
+    .query(async ({ input }) => {
+      const modelType = input.model_type;
+      const recs = recommendedFor(modelType);
+      if (recs.length === 0) return [];
+
+      const cacheDir = getTransformersJsCacheDir();
+      const cached = await scanTransformersJsCache(cacheDir).catch(() => []);
+      const cacheSizes = new Map(cached.map((c) => [c.repo_id, c.size_bytes]));
+
+      return recs.map((ref) =>
+        tjsRefToUnified(
+          ref,
+          modelType,
+          cacheSizes.has(ref.repo_id),
+          cacheSizes.get(ref.repo_id) ?? null
+        )
+      );
+    }),
+
+  /**
    * Check whether a single Transformers.js repo is present in the cache.
    */
   transformersJsIsCached: protectedProcedure

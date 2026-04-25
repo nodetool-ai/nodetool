@@ -211,6 +211,11 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             const queryClient = get().queryClient;
             queryClient?.invalidateQueries({ queryKey: ["allModels"] });
             queryClient?.invalidateQueries({ queryKey: ["image-models"] });
+            // TJS picker queries by `["tjs-models", modelType]` and
+            // `["tjs-recommended", modelType]` — invalidate both so newly
+            // cached repos flip from "Download" to "Downloaded" immediately.
+            queryClient?.invalidateQueries({ queryKey: ["tjs-models"] });
+            queryClient?.invalidateQueries({ queryKey: ["tjs-recommended"] });
             useHfCacheStatusStore.getState().invalidate([id]);
 
             // Restart llama-server if a llama_cpp model was downloaded

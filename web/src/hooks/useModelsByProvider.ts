@@ -452,12 +452,17 @@ export const useTransformersJsModelsByType = (opts?: {
 const convertUnifiedToTransformersJsModel = (
   model: UnifiedModel
 ): ImageModel => {
+  // Preserve `downloaded` / `size_on_disk` past the conversion — the picker
+  // filters by `downloaded === true` and these fields don't live on the
+  // ImageModel interface, so we widen via cast.
   return {
     type: "image_model",
     provider: "transformers_js" as ImageModel["provider"],
     id: model.id || model.repo_id || "",
     name: model.name || model.repo_id || model.id || "",
     path: model.path || undefined,
-    supported_tasks: []
-  };
+    supported_tasks: [],
+    downloaded: model.downloaded ?? false,
+    size_on_disk: model.size_on_disk ?? null
+  } as ImageModel;
 };

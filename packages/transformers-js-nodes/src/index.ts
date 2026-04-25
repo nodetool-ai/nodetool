@@ -58,6 +58,13 @@ export {
   type CachedTjsModel
 } from "./cache-scan.js";
 
+export {
+  downloadTransformersJsModel,
+  tjsTypeToPipelineTask,
+  type TjsDownloadOptions,
+  type TjsDownloadProgress
+} from "./tjs-downloader.js";
+
 export const TRANSFORMERS_JS_NODES: readonly NodeClass[] = [
   ...TEXT_CLASSIFICATION_NODES,
   ...TOKEN_CLASSIFICATION_NODES,

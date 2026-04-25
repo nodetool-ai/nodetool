@@ -228,11 +228,20 @@ const PRIMARY_INPUT_TYPES = new Set([
   "any"
 ]);
 
+/** Type-name prefixes that mark a prop as a model-selector and therefore primary. */
+const PRIMARY_TYPE_PREFIXES = ["tjs."];
+
+function isPrimaryType(typeName: string): boolean {
+  if (PRIMARY_INPUT_TYPES.has(typeName)) return true;
+  return PRIMARY_TYPE_PREFIXES.some((prefix) => typeName.startsWith(prefix));
+}
+
 /**
  * When a node doesn't explicitly set basicFields, derive them:
  * - Nodes with ≤3 properties: show all
- * - Nodes with >3 properties: primary inputs (media/data types) and
- *   required props are basic; scalar tuning params are advanced.
+ * - Nodes with >3 properties: primary inputs (media/data types,
+ *   model-selector types like `tjs.*`) and required props are basic;
+ *   scalar tuning params are advanced.
  * - If heuristic produces no basic or no advanced fields, show all.
  */
 function deriveBasicFields(properties: PropertyMetadata[]): string[] {
@@ -241,7 +250,7 @@ function deriveBasicFields(properties: PropertyMetadata[]): string[] {
 
   const basic = properties
     .filter(
-      (p) => p.required || PRIMARY_INPUT_TYPES.has(p.type.type)
+      (p) => p.required || isPrimaryType(p.type.type)
     )
     .map((p) => p.name);
 

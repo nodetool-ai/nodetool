@@ -1,8 +1,10 @@
 import { useMemo, memo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
-import type { ImageModel } from "../../stores/ApiTypes";
+import type { ImageModel, UnifiedModel } from "../../stores/ApiTypes";
 import { useTransformersJsModelMenuStore } from "../../stores/ModelMenuStore";
 import { useTransformersJsModelsByType } from "../../hooks/useModelsByProvider";
+import { trpc } from "../../lib/trpc";
 
 export interface TransformersJsModelMenuDialogProps {
   open: boolean;
@@ -22,17 +24,29 @@ function TransformersJsModelMenuDialog({
   const { models, isLoading, isFetching, error, refetch } =
     useTransformersJsModelsByType({ modelType });
 
-  // Sort: downloaded first, then alphabetical by id. The backend already
-  // returns recommended entries in curated order at the top, but we keep
-  // downloaded models grouped first so users see "what's ready" up front.
+  // Curated downloads list — drives the "Recommended downloads" panel in
+  // ModelMenuDialogBase. Mirrors how HuggingFaceModelMenuDialog fetches
+  // recommendations.
+  const { data: recommendedModels = [] } = useQuery<UnifiedModel[]>({
+    queryKey: ["tjs-recommended", modelType ?? "none"],
+    enabled: !!modelType,
+    queryFn: async () =>
+      (await trpc.models.transformersJsRecommended.query({
+        model_type: modelType!
+      })) as UnifiedModel[],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always"
+  });
+
+  // Restrict the main list to downloaded models only — recommended-but-uncached
+  // entries are surfaced in the "Recommended downloads" tab so the user can
+  // fetch them, but they aren't selectable here. Sorted alphabetically by id.
   const modelData = useMemo(
     () => ({
-      models: [...models].sort((a, b) => {
-        const aDl = (a as { downloaded?: boolean }).downloaded ? 1 : 0;
-        const bDl = (b as { downloaded?: boolean }).downloaded ? 1 : 0;
-        if (aDl !== bDl) return bDl - aDl;
-        return (a.id || "").localeCompare(b.id || "");
-      }),
+      models: models
+        .filter((m) => (m as { downloaded?: boolean }).downloaded === true)
+        .sort((a, b) => (a.id || "").localeCompare(b.id || "")),
       isLoading,
       isFetching,
       error,
@@ -51,6 +65,7 @@ function TransformersJsModelMenuDialog({
       title="Select Transformers.js Model"
       searchPlaceholder="Search Transformers.js models..."
       storeHook={useTransformersJsModelMenuStore}
+      recommendedModels={recommendedModels}
     />
   );
 }

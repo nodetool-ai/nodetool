@@ -484,6 +484,65 @@ describe("models router", () => {
     });
   });
 
+  // ── transformersJsRecommended ────────────────────────────────────────────
+
+  describe("transformersJsRecommended", () => {
+    it("returns the curated list with downloaded=false when cache is empty", async () => {
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsRecommended({
+        model_type: "tjs.text_classification"
+      });
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0].provider).toBe("transformers_js");
+      expect(result[0].type).toBe("tjs.text_classification");
+      expect(result.every((m) => m.downloaded === false)).toBe(true);
+    });
+
+    it("marks downloaded=true for recommended repos present in cache", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          repo_id: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+          dir: "/tmp/tjs-cache/Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+          size_bytes: 7777
+        }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsRecommended({
+        model_type: "tjs.text_classification"
+      });
+      const hit = result.find(
+        (m) =>
+          m.repo_id === "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
+      );
+      expect(hit?.downloaded).toBe(true);
+      expect(hit?.size_on_disk).toBe(7777);
+    });
+
+    it("does NOT include off-list cached repos (unlike transformersJsByType)", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          repo_id: "user/random-onnx-model",
+          dir: "/tmp/tjs-cache/user/random-onnx-model",
+          size_bytes: 99
+        }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsRecommended({
+        model_type: "tjs.text_classification"
+      });
+      expect(result.find((m) => m.repo_id === "user/random-onnx-model"))
+        .toBeUndefined();
+    });
+
+    it("returns empty for unknown tjs.* types", async () => {
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsRecommended({
+        model_type: "tjs.does_not_exist"
+      });
+      expect(result).toEqual([]);
+    });
+  });
+
   // ── transformersJsList ───────────────────────────────────────────────────
 
   describe("transformersJsList", () => {
