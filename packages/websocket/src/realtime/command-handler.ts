@@ -31,12 +31,33 @@ interface RealtimeRunJobRequest {
 
 interface ActiveRealtimeJob {
   runner: {
-    pushInputValue(inputName: string, value: unknown): Promise<void>;
+    pushInputValue(
+      inputName: string,
+      value: unknown,
+      sourceHandle?: string
+    ): Promise<void>;
+    finishInputStream?(inputName: string, sourceHandle?: string): void;
     pushParameter?(
       name: string,
       value: unknown
     ): Promise<{ routed: boolean; nodeIds: string[] }>;
   };
+}
+
+type NormalizedRealtimeSignal = {
+  signal_type: RealtimeSignalType;
+  source: RealtimeSignalPeer;
+  target: RealtimeSignalPeer;
+  description?: RealtimeSessionSignalDescription;
+  candidate?: RealtimeSessionIceCandidate;
+};
+
+export interface RealtimeWebRTCServerDependency {
+  handleSignal(
+    session: RealtimeSessionRecord,
+    signal: NormalizedRealtimeSignal
+  ): Promise<void>;
+  stopSession(sessionId: string): Promise<void>;
 }
 
 export interface RealtimeCommandHandlerDependencies {
@@ -61,6 +82,7 @@ export interface RealtimeCommandHandlerDependencies {
     reason: string
   ) => Promise<void>;
   emitSessionSignal: (signal: RealtimeSessionSignal) => Promise<void>;
+  realtimeWebRTCServer?: RealtimeWebRTCServerDependency;
 }
 
 /**
@@ -163,17 +185,7 @@ export class RealtimeCommandHandler {
     return Object.keys(signaling).length > 0 ? signaling : undefined;
   }
 
-  private normalizeSignal(
-    value: unknown
-  ):
-    | {
-        signal_type: RealtimeSignalType;
-        source: RealtimeSignalPeer;
-        target: RealtimeSignalPeer;
-        description?: RealtimeSessionSignalDescription;
-        candidate?: RealtimeSessionIceCandidate;
-      }
-    | undefined {
+  private normalizeSignal(value: unknown): NormalizedRealtimeSignal | undefined {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return undefined;
     }
@@ -193,13 +205,7 @@ export class RealtimeCommandHandler {
     const target: RealtimeSignalPeer =
       record.target === "operator" ? "operator" : "runtime";
 
-    const normalizedSignal: {
-      signal_type: RealtimeSignalType;
-      source: RealtimeSignalPeer;
-      target: RealtimeSignalPeer;
-      description?: RealtimeSessionSignalDescription;
-      candidate?: RealtimeSessionIceCandidate;
-    } = {
+    const normalizedSignal: NormalizedRealtimeSignal = {
       signal_type: signalType,
       source,
       target
@@ -587,7 +593,17 @@ export class RealtimeCommandHandler {
       await this.dependencies.emitSessionUpdated(session);
     }
 
-    if (signal) {
+    const handledByWebRTCServer =
+      !!signal &&
+      session.transport === "webrtc" &&
+      signal.target === "runtime" &&
+      !!this.dependencies.realtimeWebRTCServer;
+
+    if (handledByWebRTCServer && signal) {
+      await this.dependencies.realtimeWebRTCServer!.handleSignal(session, signal);
+    }
+
+    if (signal && !handledByWebRTCServer) {
       await this.dependencies.emitSessionSignal({
         type: "realtime_session_signal",
         session_id: session.session_id,
@@ -654,6 +670,7 @@ export class RealtimeCommandHandler {
       };
     }
 
+    await this.dependencies.realtimeWebRTCServer?.stopSession(session.session_id);
     await this.dependencies.emitSessionStopped(session, reason);
     this.dependencies.clearSessionTracking(sessionId, jobId);
 

@@ -442,7 +442,7 @@ describe("UnifiedWebSocketRunner", () => {
       command: "start_realtime_session",
       data: {
         workflow_id: "workflow-signal",
-        transport: "webrtc",
+        transport: "websocket",
         media_tracks: [
           {
             track_id: "video-track-1",

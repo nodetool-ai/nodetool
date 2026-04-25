@@ -61,6 +61,7 @@ import { Tool } from "@nodetool/agents";
 import type { NodeMetadata } from "@nodetool/node-sdk";
 import { RealtimeCommandHandler } from "./realtime/command-handler.js";
 import { realtimeSessionManager } from "./realtime/session-manager.js";
+import { RealtimeWebRTCServer } from "./realtime/webrtc-server.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -755,6 +756,7 @@ export class UnifiedWebSocketRunner {
   private toolBridge = new ToolBridge();
   private observerRegistered = false;
   private realtimeHandler: RealtimeCommandHandler;
+  private readonly realtimeWebRTCServer: RealtimeWebRTCServer;
 
   private logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
@@ -895,6 +897,11 @@ export class UnifiedWebSocketRunner {
         process_uptime_sec: process.uptime(),
         memory: process.memoryUsage()
       }));
+    this.realtimeWebRTCServer = new RealtimeWebRTCServer({
+      emitSessionSignal: async (signal) => this.emitRealtimeSessionSignal(signal),
+      getRunnerForSession: (session) =>
+        session.job_id ? this.activeJobs.get(session.job_id)?.runner : undefined
+    });
     this.realtimeHandler = new RealtimeCommandHandler({
       getUserId: () => this.getRealtimeUserId(),
       runRealtimeJob: async (request, session) =>
@@ -915,7 +922,8 @@ export class UnifiedWebSocketRunner {
       emitSessionUpdated: async (session) => this.emitRealtimeSessionUpdated(session),
       emitSessionStopped: async (session, reason) =>
         this.emitRealtimeSessionStopped(session, reason),
-      emitSessionSignal: async (signal) => this.emitRealtimeSessionSignal(signal)
+      emitSessionSignal: async (signal) => this.emitRealtimeSessionSignal(signal),
+      realtimeWebRTCServer: this.realtimeWebRTCServer
     });
   }
 

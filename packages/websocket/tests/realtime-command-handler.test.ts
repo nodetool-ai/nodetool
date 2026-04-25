@@ -106,4 +106,122 @@ describe("RealtimeCommandHandler", () => {
     });
     expect(emitSessionUpdated).toHaveBeenCalledTimes(1);
   });
+
+  it("delegates runtime-targeted WebRTC signaling to the backend server", async () => {
+    const emitSessionSignal = vi.fn().mockResolvedValue(undefined);
+    const realtimeWebRTCServer = {
+      handleSignal: vi.fn().mockResolvedValue(undefined),
+      stopSession: vi.fn().mockResolvedValue(undefined)
+    };
+    const session = realtimeSessionManager.createSession({
+      userId: "user-1",
+      workflowId: "workflow-1",
+      jobId: "job-1",
+      transport: "webrtc",
+      mediaTracks: [
+        {
+          track_id: "video-track",
+          kind: "video",
+          node_id: "camera",
+          input_name: "camera"
+        }
+      ],
+      parameters: {},
+      status: "running"
+    });
+
+    const handler = new RealtimeCommandHandler({
+      getUserId: () => "user-1",
+      runRealtimeJob: vi.fn().mockResolvedValue(undefined),
+      cancelJob: vi.fn().mockResolvedValue(undefined),
+      getActiveJob: vi.fn().mockReturnValue(undefined),
+      trackSessionJob: vi.fn(),
+      clearSessionTracking: vi.fn(),
+      failSessionStartup: vi.fn().mockResolvedValue(undefined),
+      emitSessionStarted: vi.fn().mockResolvedValue(undefined),
+      emitSessionUpdated: vi.fn().mockResolvedValue(undefined),
+      emitSessionStopped: vi.fn().mockResolvedValue(undefined),
+      emitSessionSignal,
+      realtimeWebRTCServer
+    });
+
+    const result = await handler.handleSignal({
+      session_id: session.session_id,
+      signaling_status: "negotiating",
+      signal: {
+        signal_type: "offer",
+        source: "operator",
+        target: "runtime",
+        description: {
+          type: "offer",
+          sdp: "v=0\r\n"
+        }
+      }
+    });
+
+    expect(result).toMatchObject({ ok: true, action: "signal" });
+    expect(realtimeWebRTCServer.handleSignal).toHaveBeenCalledWith(
+      expect.objectContaining({ session_id: session.session_id }),
+      expect.objectContaining({
+        signal_type: "offer",
+        source: "operator",
+        target: "runtime"
+      })
+    );
+    expect(emitSessionSignal).not.toHaveBeenCalled();
+  });
+
+  it("keeps relay-only signaling for non-WebRTC transports", async () => {
+    const emitSessionSignal = vi.fn().mockResolvedValue(undefined);
+    const realtimeWebRTCServer = {
+      handleSignal: vi.fn().mockResolvedValue(undefined),
+      stopSession: vi.fn().mockResolvedValue(undefined)
+    };
+    const session = realtimeSessionManager.createSession({
+      userId: "user-1",
+      workflowId: "workflow-1",
+      jobId: "job-1",
+      transport: "websocket",
+      parameters: {},
+      status: "running"
+    });
+
+    const handler = new RealtimeCommandHandler({
+      getUserId: () => "user-1",
+      runRealtimeJob: vi.fn().mockResolvedValue(undefined),
+      cancelJob: vi.fn().mockResolvedValue(undefined),
+      getActiveJob: vi.fn().mockReturnValue(undefined),
+      trackSessionJob: vi.fn(),
+      clearSessionTracking: vi.fn(),
+      failSessionStartup: vi.fn().mockResolvedValue(undefined),
+      emitSessionStarted: vi.fn().mockResolvedValue(undefined),
+      emitSessionUpdated: vi.fn().mockResolvedValue(undefined),
+      emitSessionStopped: vi.fn().mockResolvedValue(undefined),
+      emitSessionSignal,
+      realtimeWebRTCServer
+    });
+
+    await handler.handleSignal({
+      session_id: session.session_id,
+      signal: {
+        signal_type: "offer",
+        source: "operator",
+        target: "runtime",
+        description: {
+          type: "offer",
+          sdp: "v=0\r\n"
+        }
+      }
+    });
+
+    expect(realtimeWebRTCServer.handleSignal).not.toHaveBeenCalled();
+    expect(emitSessionSignal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session_id: session.session_id,
+        signal_type: "offer",
+        source: "operator",
+        target: "runtime"
+      })
+    );
+  });
 });
