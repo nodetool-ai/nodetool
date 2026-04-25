@@ -5,6 +5,9 @@ import {
   OllamaEmbeddingFunction,
   GeminiEmbeddingFunction,
   MistralEmbeddingFunction,
+  CohereEmbeddingFunction,
+  VoyageEmbeddingFunction,
+  JinaEmbeddingFunction,
   ProviderEmbeddingFunction,
   getProviderEmbeddingFunction
 } from "../src/embedding.js";
@@ -70,6 +73,21 @@ describe("getProviderEmbeddingFunction", () => {
   it("returns null when provider cannot be determined and no Ollama URL", () => {
     const ef = getProviderEmbeddingFunction("unknown-model");
     expect(ef).toBeNull();
+  });
+
+  it("returns CohereEmbeddingFunction for embed-* models", () => {
+    const ef = getProviderEmbeddingFunction("embed-v4.0");
+    expect(ef).toBeInstanceOf(CohereEmbeddingFunction);
+  });
+
+  it("returns VoyageEmbeddingFunction for voyage-* models", () => {
+    const ef = getProviderEmbeddingFunction("voyage-3.5");
+    expect(ef).toBeInstanceOf(VoyageEmbeddingFunction);
+  });
+
+  it("returns JinaEmbeddingFunction for jina-* models", () => {
+    const ef = getProviderEmbeddingFunction("jina-embeddings-v3");
+    expect(ef).toBeInstanceOf(JinaEmbeddingFunction);
   });
 
   it("uses explicit provider when supplied", () => {
@@ -317,6 +335,198 @@ describe("MistralEmbeddingFunction", () => {
 
     await expect(ef.generate(["test"])).rejects.toThrow(
       "Mistral embedding failed (429)"
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CohereEmbeddingFunction
+// ---------------------------------------------------------------------------
+
+describe("CohereEmbeddingFunction", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    clearAllSecretCache();
+    delete process.env.COHERE_API_KEY;
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearAllSecretCache();
+    delete process.env.COHERE_API_KEY;
+  });
+
+  it("calls Cohere v2 embed and returns float embeddings", async () => {
+    process.env.COHERE_API_KEY = "cohere-key";
+    const ef = new CohereEmbeddingFunction();
+
+    let captured: { url?: string; body?: Record<string, unknown> } = {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        captured = { url, body: JSON.parse(opts.body as string) };
+        return {
+          ok: true,
+          json: async () => ({
+            embeddings: { float: [[0.1, 0.2], [0.3, 0.4]] }
+          }),
+          text: async () => ""
+        };
+      })
+    );
+
+    const result = await ef.generate(["one", "two"]);
+    expect(result).toEqual([
+      [0.1, 0.2],
+      [0.3, 0.4]
+    ]);
+    expect(captured.url).toBe("https://api.cohere.com/v2/embed");
+    expect(captured.body).toMatchObject({
+      texts: ["one", "two"],
+      input_type: "search_document",
+      embedding_types: ["float"]
+    });
+  });
+
+  it("throws when API key is not configured", async () => {
+    const ef = new CohereEmbeddingFunction();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("fetch should not be called"))
+    );
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "COHERE_API_KEY not configured"
+    );
+  });
+
+  it("throws on HTTP error", async () => {
+    process.env.COHERE_API_KEY = "cohere-key";
+    const ef = new CohereEmbeddingFunction();
+    vi.stubGlobal("fetch", mockFetch("Error", false, 429));
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "Cohere embedding failed (429)"
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// VoyageEmbeddingFunction
+// ---------------------------------------------------------------------------
+
+describe("VoyageEmbeddingFunction", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    clearAllSecretCache();
+    delete process.env.VOYAGE_API_KEY;
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearAllSecretCache();
+    delete process.env.VOYAGE_API_KEY;
+  });
+
+  it("calls Voyage embeddings endpoint and orders by index", async () => {
+    process.env.VOYAGE_API_KEY = "voyage-key";
+    const ef = new VoyageEmbeddingFunction();
+
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        data: [
+          { index: 1, embedding: [0.3, 0.4] },
+          { index: 0, embedding: [0.1, 0.2] }
+        ]
+      })
+    );
+
+    const result = await ef.generate(["a", "b"]);
+    expect(result).toEqual([
+      [0.1, 0.2],
+      [0.3, 0.4]
+    ]);
+  });
+
+  it("throws when API key is not configured", async () => {
+    const ef = new VoyageEmbeddingFunction();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("fetch should not be called"))
+    );
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "VOYAGE_API_KEY not configured"
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// JinaEmbeddingFunction
+// ---------------------------------------------------------------------------
+
+describe("JinaEmbeddingFunction", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    clearAllSecretCache();
+    delete process.env.JINA_API_KEY;
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearAllSecretCache();
+    delete process.env.JINA_API_KEY;
+  });
+
+  it("sets task=retrieval.passage for v3 models", async () => {
+    process.env.JINA_API_KEY = "jina-key";
+    const ef = new JinaEmbeddingFunction();
+
+    let body: Record<string, unknown> = {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (_url: string, opts: RequestInit) => {
+        body = JSON.parse(opts.body as string);
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{ index: 0, embedding: [0.1, 0.2] }]
+          }),
+          text: async () => ""
+        };
+      })
+    );
+
+    await ef.generate(["x"]);
+    expect(body.task).toBe("retrieval.passage");
+  });
+
+  it("omits task for v2 models", async () => {
+    process.env.JINA_API_KEY = "jina-key";
+    const ef = new JinaEmbeddingFunction("jina-embeddings-v2-base-en");
+
+    let body: Record<string, unknown> = {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (_url: string, opts: RequestInit) => {
+        body = JSON.parse(opts.body as string);
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{ index: 0, embedding: [0.1] }]
+          }),
+          text: async () => ""
+        };
+      })
+    );
+
+    await ef.generate(["x"]);
+    expect(body.task).toBeUndefined();
+  });
+
+  it("throws when API key is not configured", async () => {
+    const ef = new JinaEmbeddingFunction();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("fetch should not be called"))
+    );
+    await expect(ef.generate(["test"])).rejects.toThrow(
+      "JINA_API_KEY not configured"
     );
   });
 });

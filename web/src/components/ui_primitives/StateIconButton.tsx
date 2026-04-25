@@ -34,7 +34,8 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
-import { IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
+import { LoadingSpinner } from "./LoadingSpinner";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -177,7 +178,7 @@ export const StateIconButton = memo(
 
       // Display the appropriate icon
       const displayIcon = isLoading ? (
-        <CircularProgress size={spinnerSize} />
+        <LoadingSpinner inline size={spinnerSize} color="inherit" />
       ) : isActive && activeIcon ? (
         activeIcon
       ) : (

@@ -1,5 +1,4 @@
 import { format, isValid, parseISO } from "date-fns";
-import log from "loglevel";
 
 interface Settings {
   timeFormat: "12h" | "24h";
@@ -37,7 +36,7 @@ export function prettyDate(
   }
 
   if (!isValid(date)) {
-    log.warn("Invalid date input");
+    console.warn("Invalid date input");
     return "Invalid Date";
   }
 

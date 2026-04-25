@@ -1537,7 +1537,7 @@ export class PdfLibAgentNode extends ToolAgentNode {
     "  Example text: page.get_text().\n" +
     "- pdf-lib (JS): PDFDocument.load/create, copyPages, addPage, drawText, drawRectangle, save.\n" +
     "  Use Node scripts for merge/split/edit and form-safe updates.\n" +
-    "- pdfjs-dist (JS): getDocument, getPage, getTextContent, getAnnotations for browser pipelines.\n" +
+    "- @llamaindex/liteparse (JS): LiteParse class, parse() for text/OCR extraction with bounding boxes.\n" +
     "- poppler-utils:\n" +
     "  pdftotext -bbox-layout for coordinates;\n" +
     "  pdftoppm for rasterization;\n" +

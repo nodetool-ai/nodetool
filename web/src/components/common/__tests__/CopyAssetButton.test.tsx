@@ -23,12 +23,6 @@ jest.mock("../../../utils/browser", () => ({
   isElectron: false
 }));
 
-// Mock loglevel
-jest.mock("loglevel", () => ({
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn()
-}));
 
 import { getClipboardSupportMessage } from "../../../utils/clipboardUtils";
 

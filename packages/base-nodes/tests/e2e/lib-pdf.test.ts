@@ -6,7 +6,10 @@ import {
   PdfExtractTablesNode,
   PdfExtractMarkdownNode,
   PdfExtractTextBlocksNode,
-  PdfExtractStyledTextNode
+  PdfExtractStyledTextNode,
+  PdfScreenshotNode,
+  PdfSearchTextNode,
+  PdfExtractOcrNode
 } from "../../src/index.js";
 
 // Minimal valid PDF with text content (single page, "Hello World" text)
@@ -283,4 +286,81 @@ describe("lib.pdf nodes", () => {
     expect(String(page2.output)).toContain("Page Two");
     expect(String(page2.output)).not.toContain("Page One");
   });
+
+  it("SearchText finds matches with page and bounding box", async () => {
+    const node = new PdfSearchTextNode();
+    node.assign({
+      pdf: singlePagePdf,
+      phrase: "Hello",
+      case_sensitive: false,
+      start_page: 0,
+      end_page: -1
+    });
+    const result = await node.process();
+    const matches = result.output as Array<Record<string, unknown>>;
+    expect(matches.length).toBeGreaterThan(0);
+    const match = matches[0];
+    expect(match.page).toBe(0);
+    expect(String(match.text)).toContain("Hello");
+    expect(typeof match.x).toBe("number");
+    expect(typeof match.y).toBe("number");
+    expect(typeof match.width).toBe("number");
+    expect(typeof match.height).toBe("number");
+  });
+
+  it("SearchText returns empty matches when phrase is not found", async () => {
+    const node = new PdfSearchTextNode();
+    node.assign({
+      pdf: singlePagePdf,
+      phrase: "ThisPhraseDoesNotExist",
+      case_sensitive: false,
+      start_page: 0,
+      end_page: -1
+    });
+    const result = await node.process();
+    expect(result.output).toEqual([]);
+  });
+
+  it("Screenshot renders a PDF page as a PNG image", async () => {
+    const node = new PdfScreenshotNode();
+    node.assign({
+      pdf: singlePagePdf,
+      start_page: 0,
+      end_page: 0,
+      dpi: 72
+    });
+    const result = await node.process();
+    const images = result.output as Array<{ type: string; data: string }>;
+    expect(images).toHaveLength(1);
+    expect(images[0].type).toBe("image");
+    // PNG header: base64 "iVBORw0KGgo" = bytes 89 50 4e 47 0d 0a 1a 0a
+    expect(images[0].data.startsWith("iVBORw0KGgo")).toBe(true);
+  });
+
+  it("Screenshot honors page range across multi-page PDFs", async () => {
+    const node = new PdfScreenshotNode();
+    node.assign({
+      pdf: twoPagePdf,
+      start_page: 0,
+      end_page: -1,
+      dpi: 72
+    });
+    const result = await node.process();
+    const images = result.output as Array<{ type: string; data: string }>;
+    expect(images).toHaveLength(2);
+  });
+
+  it("ExtractOcr runs OCR and returns text from rendered pages", async () => {
+    const node = new PdfExtractOcrNode();
+    node.assign({
+      pdf: singlePagePdf,
+      start_page: 0,
+      end_page: 0,
+      ocr_language: "en",
+      dpi: 100
+    });
+    const result = await node.process();
+    expect(typeof result.output).toBe("string");
+    expect(String(result.output).length).toBeGreaterThan(0);
+  }, 60000);
 });

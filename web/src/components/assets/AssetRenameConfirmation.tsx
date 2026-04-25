@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { Text, Dialog, AlertBanner, EditorButton, FlexColumn, FlexRow, TextInput } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
-import log from "loglevel";
 import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
@@ -34,7 +33,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
   useEffect(() => {
     if (dialogOpen) {
       setBaseNewName("");
-      log.info("dialogOpen", dialogOpen);
+      console.info("dialogOpen", dialogOpen);
       const mousePosition = getMousePosition();
       setDialogPosition({ x: mousePosition.x, y: mousePosition.y });
 

@@ -18,7 +18,6 @@ import { subgraph } from "../../core/graph";
 import useResultsStore from "../../stores/ResultsStore";
 import { NodeData } from "../../stores/NodeData";
 import { Node, Edge } from "@xyflow/react";
-import log from "loglevel";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
@@ -115,7 +114,7 @@ const collectCachedValuesForSubgraph = (
     existing[targetHandle] = value;
     nodePropertyOverrides.set(targetNodeId, existing);
 
-    log.debug(
+    console.debug(
       `Auto-run: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
       {
         sourceHandle,
@@ -237,7 +236,7 @@ export const useNodeAutoRun = (
       propertyOverrides.values()
     ).reduce((sum, props) => sum + Object.keys(props).length, 0);
 
-    log.info("Auto-run: Running downstream subgraph", {
+    console.info("Auto-run: Running downstream subgraph", {
       startNodeId: nodeId,
       nodeCount: nodesWithCachedValues.length,
       edgeCount: downstream.edges.length,

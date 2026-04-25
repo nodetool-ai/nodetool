@@ -57,6 +57,39 @@ export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     provider: "openai"
   },
   {
+    id: "voyage-3.5",
+    type: "embedding_model",
+    name: "Voyage 3.5",
+    repo_id: null,
+    path: null,
+    downloaded: false,
+    modality: "language",
+    task: "embedding",
+    provider: "voyage"
+  },
+  {
+    id: "embed-v4.0",
+    type: "embedding_model",
+    name: "Cohere Embed v4.0",
+    repo_id: null,
+    path: null,
+    downloaded: false,
+    modality: "language",
+    task: "embedding",
+    provider: "cohere"
+  },
+  {
+    id: "jina-embeddings-v3",
+    type: "embedding_model",
+    name: "Jina Embeddings v3",
+    repo_id: null,
+    path: null,
+    downloaded: false,
+    modality: "language",
+    task: "embedding",
+    provider: "jina"
+  },
+  {
     id: "gpt-image-1",
     type: "image_model",
     name: "GPT Image 1",

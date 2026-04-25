@@ -8,7 +8,6 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { subgraph } from "../../core/graph";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodes } from "../../contexts/NodeContext";
-import log from "loglevel";
 import { shallow } from "zustand/shallow";
 
 interface UseRunFromHereReturn {
@@ -85,7 +84,7 @@ export function useRunFromHere(
       existing[targetHandle] = value;
       nodePropertyOverrides.set(targetNodeId, existing);
 
-      log.info(
+      console.info(
         `Run from here: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
         {
           sourceHandle,
@@ -131,7 +130,7 @@ export function useRunFromHere(
       nodePropertyOverrides.values()
     ).reduce((sum, props) => sum + Object.keys(props).length, 0);
 
-    log.info("Running downstream subgraph from node", {
+    console.info("Running downstream subgraph from node", {
       startNodeId: nodeId,
       nodeCount: nodesWithCachedValues.length,
       edgeCount: downstream.edges.length,

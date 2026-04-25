@@ -16,7 +16,6 @@ import React, {
 import { v4 as uuidv4 } from "uuid";
 import { throttle } from "../../utils/lodashAlternatives";
 import AudioControls from "./AudioControls";
-import log from "loglevel";
 
 type WaveSurferProps = {
   fontSize?: "normal" | "small" | "tiny";
@@ -164,14 +163,14 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
     try {
       waveSurferRef.current?.playPause();
     } catch (error) {
-      log.error("Audio Playback Error:", error);
+      console.error("Audio Playback Error:", error);
     }
   }, []);
 
   useEffect(() => {
-    log.info("Audio Player mounted.");
+    console.info("Audio Player mounted.");
     return () => {
-      log.info("Audio Player unmounted.");
+      console.info("Audio Player unmounted.");
     };
   }, []);
 
@@ -263,21 +262,21 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         waveSurferRef.current = waveSurfer;
 
         waveSurfer.on("error", (err) => {
-          log.error("Wavesurfer audio error:", err);
+          console.error("Wavesurfer audio error:", err);
         });
         waveSurfer.on("play", onPlay);
         waveSurfer.on("pause", onPause);
         waveSurfer.on("ready", () => {
           setIsReady(true);
           checkWaveformFit();
-          log.info("Audio is ready for playback");
+          console.info("Audio is ready for playback");
           if (otherProps.playOnLoad) {
             waveSurfer.play();
           }
         });
         waveSurfer.on("decode", (duration) => {
           setDuration(duration);
-          log.info("Decode: ", duration + "s");
+          console.info("Decode: ", duration + "s");
         });
         waveSurfer.on("audioprocess", handleAudioProcess);
         waveSurfer.on("seeking", handleSeekingProcess as unknown as (...args: unknown[]) => void);
@@ -294,13 +293,13 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
         });
         setPrevUrl(audioUrl);
       } else if (!response.ok) {
-        log.error("Audio file not found.");
+        console.error("Audio file not found.");
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        log.info("Request canceled:", error.message);
+        console.info("Request canceled:", error.message);
       } else {
-        log.error("Error while checking or loading audio:", error);
+        console.error("Error while checking or loading audio:", error);
       }
     }
 
@@ -429,7 +428,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
               });
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
-              log.info("Zoom audio failed: ", message);
+              console.info("Zoom audio failed: ", message);
             }
           }}
         />

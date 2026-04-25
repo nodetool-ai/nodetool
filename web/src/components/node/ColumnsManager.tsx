@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo, useCallback } from "react";
 import { Grid, InputLabel } from "@mui/material";
-import log from "loglevel";
 import { ColumnDef } from "../../stores/ApiTypes";
 import isEqual from "fast-deep-equal";
 import Column from "./Column";
@@ -168,7 +167,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
       newName.trim() === "" ||
       localColumns.some((col) => col.name === newName)
     ) {
-      log.warn(
+      console.warn(
         "Invalid column name. Column names must be unique and non-empty."
       );
     }

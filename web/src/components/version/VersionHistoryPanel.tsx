@@ -36,7 +36,6 @@ import {
   ToggleOption,
   Tooltip
 } from "../ui_primitives";
-import log from "loglevel";
 
 interface VersionHistoryPanelProps {
   workflowId: string;
@@ -172,7 +171,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           setCompareVersion(null);
         }
       } catch (error) {
-        log.error("Failed to delete version:", error);
+        console.error("Failed to delete version:", error);
       }
     }
     setDeleteDialogOpen(false);
@@ -193,7 +192,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         onRestore(version);
         setHistoryPanelOpen(false);
       } catch (error) {
-        log.error("Failed to restore version:", error);
+        console.error("Failed to restore version:", error);
       }
     },
     [restoreVersion, onRestore, setHistoryPanelOpen]

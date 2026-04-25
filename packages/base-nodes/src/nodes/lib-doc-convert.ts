@@ -5,8 +5,6 @@ import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { createRequire } from "node:module";
 import { promisify } from "node:util";
 
 const execFile = promisify(execFileCb);
@@ -167,45 +165,10 @@ async function loadFromUri(uri: string, context?: ProcessingContext): Promise<Bu
 // ---------------------------------------------------------------------------
 
 async function pdfToText(inputBytes: Buffer): Promise<string> {
-  // pdfjs-dist 5.x checks for DOMMatrix at import time; provide a stub
-  // for Node.js (only text extraction is used, no canvas rendering).
-  if (typeof globalThis.DOMMatrix === "undefined") {
-    (globalThis as Record<string, unknown>).DOMMatrix = class DOMMatrix {
-      constructor(init?: number[] | string) {
-        const values = Array.isArray(init) ? init : [1, 0, 0, 1, 0, 0];
-        const props = ["a", "b", "c", "d", "e", "f"];
-        for (let i = 0; i < props.length; i++) {
-          (this as Record<string, unknown>)[props[i]] = values[i] ?? 0;
-        }
-      }
-    };
-  }
-  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  // Point to the worker module so pdfjs can set up its fake worker in Node.js.
-  // import.meta.resolve is not supported in all runtimes (e.g. Vitest module
-  // runner), so we fall back to createRequire which is universally available.
-  const _require = createRequire(import.meta.url);
-  const workerUrl = pathToFileURL(_require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs")).href;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
-  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(inputBytes), useSystemFonts: true });
-  const doc = await loadingTask.promise;
-
-  let text = "";
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    let lastY: number | null = null;
-    for (const item of content.items as any[]) {
-      const y = item.transform[5];
-      if (lastY !== null && Math.abs(y - lastY) > 2) text += "\n";
-      text += item.str;
-      lastY = y;
-    }
-    text += "\n\n";
-  }
-
-  void doc.destroy();
-  return text.trim();
+  const { LiteParse } = await import("@llamaindex/liteparse");
+  const parser = new LiteParse({ ocrEnabled: false });
+  const result = await parser.parse(inputBytes, true);
+  return result.text;
 }
 
 // ---------------------------------------------------------------------------

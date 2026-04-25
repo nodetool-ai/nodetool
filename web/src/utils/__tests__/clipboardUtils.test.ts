@@ -5,16 +5,6 @@ import {
   copyAssetToClipboard
 } from "../clipboardUtils";
 
-// Mock loglevel
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn()
-  }
-}));
 
 // Mock fetch
 global.fetch = jest.fn();

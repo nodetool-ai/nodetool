@@ -2,6 +2,7 @@ import React, { memo } from "react";
 //mui
 import { Menu, MenuItem } from "@mui/material";
 import { Text, Divider } from "../ui_primitives";
+import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
@@ -29,22 +30,21 @@ const PropertyContextMenuComponent: React.FC = () => {
     handleId,
     description,
     isDynamicProperty
-  } = useContextMenuStore((state) => {
-    return {
-      menuPosition: state.menuPosition,
-      closeContextMenu: state.closeContextMenu,
-      description: state.description,
-      nodeId: state.nodeId,
-      handleId: state.handleId,
-      isDynamicProperty: state.isDynamicProperty
-    };
-  });
+  } = useContextMenuStore((state) => ({
+    menuPosition: state.menuPosition,
+    closeContextMenu: state.closeContextMenu,
+    description: state.description,
+    nodeId: state.nodeId,
+    handleId: state.handleId,
+    isDynamicProperty: state.isDynamicProperty
+  }), shallow);
   const { findNode, updateNodeData, updateNodeProperties } = useNodes(
     (state) => ({
       findNode: state.findNode,
       updateNodeData: state.updateNodeData,
       updateNodeProperties: state.updateNodeProperties
-    })
+    }),
+    shallow
   );
   const metadata = useMetadataStore((state) => state.metadata);
 

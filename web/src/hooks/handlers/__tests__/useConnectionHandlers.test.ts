@@ -1,4 +1,3 @@
-import log from "loglevel";
 import { renderHook } from "@testing-library/react";
 import { OnConnectStartParams, Connection } from "@xyflow/react";
 import useConnectionHandlers from "../useConnectionHandlers";
@@ -270,7 +269,7 @@ describe("useConnectionHandlers", () => {
       const { result } = renderHook(() => useConnectionHandlers());
 
       mockFindNode.mockReturnValue(undefined);
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       const connectStartParams: OnConnectStartParams = {
         nodeId: "nonexistent",
@@ -294,7 +293,7 @@ describe("useConnectionHandlers", () => {
       const sourceNode = createMockNode("node1");
       mockFindNode.mockReturnValue(sourceNode);
       mockGetMetadata.mockReturnValue(undefined);
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       const connectStartParams: OnConnectStartParams = {
         nodeId: "node1",
@@ -315,7 +314,7 @@ describe("useConnectionHandlers", () => {
     it("should handle missing required parameters", () => {
       const { result } = renderHook(() => useConnectionHandlers());
 
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       // Missing nodeId
       result.current.onConnectStart(
@@ -475,7 +474,7 @@ describe("useConnectionHandlers", () => {
       mockFindOutputHandle.mockReturnValue(undefined);
       mockFindInputHandle.mockReturnValue(undefined);
 
-      const consoleSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       const connection: Connection = {
         source: "source",

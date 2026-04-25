@@ -16,7 +16,6 @@ import TabIcon from "@mui/icons-material/Tab";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
-import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useFileTabsStore } from "../../stores/FileTabsStore";
@@ -130,7 +129,7 @@ const AssetItemContextMenu = () => {
         alert: true
       });
     } catch (error) {
-      log.error("Failed to copy to clipboard", error);
+      console.error("Failed to copy to clipboard", error);
       addNotification({
         type: "error",
         content: "Failed to copy to clipboard",
@@ -153,7 +152,7 @@ const AssetItemContextMenu = () => {
         alert: true
       });
     } catch (error) {
-      log.error("Download failed", error);
+      console.error("Download failed", error);
       addNotification({
         type: "error",
         content: "Download failed. Please check the console for more details.",

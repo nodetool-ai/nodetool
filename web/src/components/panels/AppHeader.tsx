@@ -13,7 +13,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { FlexRow, Tooltip } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -159,7 +158,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
         const workflow = await createNewWorkflow();
         navigate(`/editor/${workflow.id}`);
       } catch (error) {
-        log.error("Failed to create new workflow:", error);
+        console.error("Failed to create new workflow:", error);
       }
     }
   }, [navigate, currentWorkflowId, createNewWorkflow]);

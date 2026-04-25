@@ -1,7 +1,6 @@
 import JSZip from "jszip";
 import { createAssetFile } from "./createAssetFile";
 import { resolveAssetUri } from "../components/node/output/hooks";
-import log from "loglevel";
 
 interface DownloadOptions {
   nodeId: string;
@@ -41,7 +40,7 @@ export const downloadPreviewAssets = async ({
         : undefined;
     if (uri) {
       const resolvedUri = resolveAssetUri(uri);
-      log.warn(
+      console.warn(
         "[downloadPreviewAssets] Falling back to direct URI download due to error",
         error
       );

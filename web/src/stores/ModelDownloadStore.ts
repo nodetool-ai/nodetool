@@ -3,7 +3,6 @@ import { DOWNLOAD_URL } from "./BASE_URL";
 import { QueryClient } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
-import log from "loglevel";
 
 interface SpeedDataPoint {
   bytes: number;
@@ -105,7 +104,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     }
 
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      log.error(
+      console.error(
         "[ModelDownloadStore] Max reconnect attempts reached. Giving up."
       );
       // Mark active downloads as potentially stalled/errored
@@ -222,7 +221,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
               window.api?.restartLlamaServer
             ) {
               window.api.restartLlamaServer().catch((e: unknown) => {
-                log.error("Failed to restart llama-server:", e);
+                console.error("Failed to restart llama-server:", e);
               });
             }
           }
@@ -230,7 +229,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       };
 
       ws.onclose = (event) => {
-        log.warn(
+        console.warn(
           `[ModelDownloadStore] WebSocket closed: code=${event.code}, reason=${event.reason}`
         );
         set({ ws: null, wsConnectionState: "disconnected" });
@@ -242,7 +241,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       };
 
       ws.onerror = (error) => {
-        log.error("[ModelDownloadStore] WebSocket error:", error);
+        console.error("[ModelDownloadStore] WebSocket error:", error);
       };
 
       set({ ws });

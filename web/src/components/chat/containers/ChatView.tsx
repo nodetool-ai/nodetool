@@ -19,7 +19,6 @@ import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
 } from "../types/media.types";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -199,7 +198,7 @@ const ChatView = ({
         };
         await sendMessage(outgoing);
       } catch (error) {
-        log.error("Error sending message:", error);
+        console.error("Error sending message:", error);
       }
     },
     [

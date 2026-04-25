@@ -1,5 +1,4 @@
 import { Edge, Node } from "@xyflow/react";
-import log from "loglevel";
 import { NodeData } from "../stores/NodeData";
 import ELK, { ElkNode } from "elkjs/lib/elk.bundled.js";
 
@@ -77,7 +76,7 @@ export function topologicalSort(
   const totalNodes = nodes.length;
   const processedNodes = sortedNodes.flat().length;
   if (processedNodes < totalNodes) {
-    log.warn("Graph contains at least one cycle", { edges, nodes });
+    console.warn("Graph contains at least one cycle", { edges, nodes });
   }
 
   return sortedNodes;
@@ -267,7 +266,7 @@ export const autoLayout = async (
 
       processedGroups[groupId] = groupUpdatedNodes;
     } catch (error) {
-      log.error(`Error in ELK layout for group ${groupId}:`, error);
+      console.error(`Error in ELK layout for group ${groupId}:`, error);
     }
   }
 

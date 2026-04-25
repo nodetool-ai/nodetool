@@ -7,7 +7,6 @@ import { Container } from "@mui/material";
 import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
@@ -358,7 +357,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const handleAddToAssets = useCallback(async () => {
     if (previewOutput === null || previewOutput === undefined) {
-      log.warn("No result output to add to assets");
+      console.warn("No result output to add to assets");
       return;
     }
 
@@ -371,7 +370,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         content: `${assetFiles.length} file(s) added to assets successfully`
       });
     } catch (error) {
-      log.error("Error in handleAddToAssets:", error);
+      console.error("Error in handleAddToAssets:", error);
       addNotification({
         type: "error",
         content: "Failed to add preview to assets"
@@ -391,7 +390,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         content: "Download started successfully"
       });
     } catch (error) {
-      log.error("Error in handleDownload:", error);
+      console.error("Error in handleDownload:", error);
       addNotification({
         type: "error",
         content: "Failed to start download"

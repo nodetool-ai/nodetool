@@ -9,7 +9,6 @@
  * to any specific workflow or job.
  */
 import { create } from "zustand";
-import log from "loglevel";
 import { SystemStats } from "./ApiTypes";
 
 /**
@@ -37,11 +36,11 @@ interface SystemStatsState {
 export const useSystemStatsStore = create<SystemStatsState>((set) => ({
   stats: null,
   setStats: (stats: SystemStats) => {
-    log.debug("[SystemStats] Updated:", stats);
+    console.debug("[SystemStats] Updated:", stats);
     set({ stats });
   },
   clearStats: () => {
-    log.debug("[SystemStats] Cleared");
+    console.debug("[SystemStats] Cleared");
     set({ stats: null });
   }
 }));
@@ -54,7 +53,7 @@ export const useSystemStatsStore = create<SystemStatsState>((set) => ({
 export function handleSystemStats(message: SystemStatsMessage): void {
   const { stats } = message;
 
-  log.debug("[SystemStats] Received update:", {
+  console.debug("[SystemStats] Received update:", {
     cpu: stats.cpu_percent,
     memory: stats.memory_percent,
     vram: stats.vram_percent

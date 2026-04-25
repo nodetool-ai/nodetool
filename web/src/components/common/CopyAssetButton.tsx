@@ -21,7 +21,6 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { copyAssetToClipboard, isClipboardSupported, getClipboardSupportMessage } from "../../utils/clipboardUtils";
 import { isElectron } from "../../utils/browser";
-import log from "loglevel";
 
 const FEEDBACK_TIMEOUT = 2000;
 
@@ -96,13 +95,13 @@ async function copyAssetToClipboardBrowser(
       });
       
       await navigator.clipboard.write([clipboardItem]);
-      log.info("Image copied to clipboard via browser API");
+      console.info("Image copied to clipboard via browser API");
       return;
     } catch (error) {
-      log.warn("Browser clipboard image write failed, falling back to URL copy:", error);
+      console.warn("Browser clipboard image write failed, falling back to URL copy:", error);
       // Fall back to copying the URL as text
       await navigator.clipboard.writeText(absoluteUrl);
-      log.info("Image URL copied to clipboard as text (fallback)");
+      console.info("Image URL copied to clipboard as text (fallback)");
       return;
     }
   }
@@ -113,12 +112,12 @@ async function copyAssetToClipboardBrowser(
       const response = await fetch(absoluteUrl);
       const text = await response.text();
       await navigator.clipboard.writeText(text);
-      log.info("Text content copied to clipboard via browser API");
+      console.info("Text content copied to clipboard via browser API");
       return;
     } catch {
       // Text fetch failed, fall back to copying URL
       await navigator.clipboard.writeText(absoluteUrl);
-      log.info("URL copied to clipboard as text (fallback)");
+      console.info("URL copied to clipboard as text (fallback)");
       return;
     }
   }
@@ -128,13 +127,13 @@ async function copyAssetToClipboardBrowser(
     const mediaType = isVideoType(contentType) ? "Video" : "Audio";
     const textContent = assetName ? `${mediaType}: ${assetName}\nURL: ${absoluteUrl}` : absoluteUrl;
     await navigator.clipboard.writeText(textContent);
-    log.info("Media info copied to clipboard via browser API");
+    console.info("Media info copied to clipboard via browser API");
     return;
   }
 
   // Default: copy URL as text
   await navigator.clipboard.writeText(absoluteUrl);
-  log.info("URL copied to clipboard as text");
+  console.info("URL copied to clipboard as text");
 }
 
 /**
@@ -313,7 +312,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
         } catch (error) {
           setState("error");
           onCopyError?.(error as Error);
-          log.error("Failed to copy to clipboard:", error);
+          console.error("Failed to copy to clipboard:", error);
           timeoutRef.current = setTimeout(() => setState("idle"), FEEDBACK_TIMEOUT);
         }
       },
