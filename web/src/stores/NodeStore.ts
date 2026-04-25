@@ -325,6 +325,11 @@ export const createNodeStore = (
         let lastSelectionCount = 0;
         let lastNodesForSelection: Node<NodeData>[] | null = null;
         let lastSelectedNodes: Node<NodeData>[] = [];
+        let lastNodesForSelectionIds: Node<NodeData>[] | null = null;
+        let lastSelectedNodeIdsArray: string[] = [];
+        let lastNodesForGetSelection: Node<NodeData>[] | null = null;
+        let lastEdgesForGetSelection: Edge[] | null = null;
+        let lastSelection: NodeSelection = { nodes: [], edges: [] };
 
         return {
           shouldAutoLayout: state?.shouldAutoLayout || false,
@@ -370,15 +375,26 @@ export const createNodeStore = (
           getOutputEdges: (nodeId: string): Edge[] =>
             get().edges.filter((e) => e.source === nodeId),
           getSelection: (): NodeSelection => {
-            const nodes = get().nodes.filter((node) => node.selected);
+            const state = get();
+            if (
+              state.nodes === lastNodesForGetSelection &&
+              state.edges === lastEdgesForGetSelection
+            ) {
+              return lastSelection;
+            }
+            const nodes = state.nodes.filter((node) => node.selected);
             const nodeIds: Record<string, boolean> = {};
             for (const node of nodes) {
               nodeIds[node.id] = true;
             }
-            const edges = get().edges.filter(
+            const edges = state.edges.filter(
               (edge) => edge.source in nodeIds && edge.target in nodeIds
             );
-            return { nodes, edges };
+
+            lastNodesForGetSelection = state.nodes;
+            lastEdgesForGetSelection = state.edges;
+            lastSelection = { nodes, edges };
+            return lastSelection;
           },
           getSelectedNodes: (): Node<NodeData>[] => {
             const nodes = get().nodes;
@@ -447,13 +463,20 @@ export const createNodeStore = (
             });
           },
           getSelectedNodeIds: (): string[] => {
-            const ids: string[] = [];
             const nodes = get().nodes;
+            if (nodes === lastNodesForSelectionIds) {
+              return lastSelectedNodeIdsArray;
+            }
+
+            const ids: string[] = [];
             for (const node of nodes) {
               if (node.selected) {
                 ids.push(node.id);
               }
             }
+
+            lastNodesForSelectionIds = nodes;
+            lastSelectedNodeIdsArray = ids;
             return ids;
           },
           setEdgeUpdateSuccessful: (value: boolean): void =>
