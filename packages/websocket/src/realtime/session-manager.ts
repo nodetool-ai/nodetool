@@ -185,6 +185,10 @@ export class RealtimeSessionManager {
       return null;
     }
 
+    if (session.status === "stopped") {
+      return null;
+    }
+
     if (session.status !== "error") {
       session.status = "stopped";
     }

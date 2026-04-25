@@ -14,6 +14,7 @@ export interface RealtimeWebRTCServerOptions {
   emitSessionSignal: (signal: RealtimeSessionSignal) => Promise<void>;
   getRunnerForSession?: (session: RealtimeSessionRecord) => FrameRouterRunner | undefined;
   codecBridge?: CodecBridge;
+  stopTimeoutMs?: number;
 }
 
 export interface RealtimeWebRTCStopSessionsResult {
@@ -24,8 +25,11 @@ export interface RealtimeWebRTCStopSessionsResult {
 export class RealtimeWebRTCServer {
   private readonly sessions = new Map<string, RealtimeWebRTCSession>();
   private readonly closedStates = new Set<string>();
+  private readonly stopTimeoutMs: number;
 
-  constructor(private readonly options: RealtimeWebRTCServerOptions) {}
+  constructor(private readonly options: RealtimeWebRTCServerOptions) {
+    this.stopTimeoutMs = options.stopTimeoutMs ?? 5_000;
+  }
 
   async handleSignal(
     session: RealtimeSessionRecord,
@@ -43,7 +47,7 @@ export class RealtimeWebRTCServer {
     }
 
     try {
-      await session.close();
+      await this.withStopTimeout(session.close());
     } finally {
       this.sessions.delete(sessionId);
       this.closedStates.add(sessionId);
@@ -103,5 +107,27 @@ export class RealtimeWebRTCServer {
     this.sessions.set(session.session_id, created);
     this.closedStates.delete(session.session_id);
     return created;
+  }
+
+  private async withStopTimeout(promise: Promise<void>): Promise<void> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => {
+            reject(
+              new Error(
+                `WebRTC session stop timed out after ${this.stopTimeoutMs}ms`
+              )
+            );
+          }, this.stopTimeoutMs);
+        })
+      ]);
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
   }
 }

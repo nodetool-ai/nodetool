@@ -75,7 +75,7 @@ export class RealtimeRunner {
     }
 
     try {
-      await this.runWarmStateHooks("stop");
+      await this.waitForStop(this.runWarmStateHooks("stop"));
     } catch (error) {
       this.appendFailureMessage(failureMessages, error);
     }
