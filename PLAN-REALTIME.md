@@ -54,14 +54,24 @@ Rules for the remaining work:
 - [ ] **8b. Stand up `RealtimeWebRTCServer` and `frame-router`.**
   - Own per-session peers, SDP/ICE handling, track mapping, frame decode/encode, outbound sink tracks, and metrics.
   - Replace the `/realtime` in-browser loopback with one operator peer connected to the backend.
+  - Model the server around explicit session objects that own peer connection(s), track handlers, codec bridge, frame router bindings, and teardown callbacks. `RealtimeCommandHandler` should delegate signaling into this object instead of owning media behavior.
+  - Add a codec bridge or alternate WebRTC stack before claiming graph-connected media: `werift` alone proved RTP delivery but not RTP frame assembly, pixel decode to `VideoFrame`, or raw-frame encode to outbound RTP.
+  - Introduce a small normalized media packet boundary around the existing `VideoFrame` / `AudioFrame` types. WebRTC/RTP payloads enter and leave only at adapter edges; graph/model nodes see substrate frame types.
+  - Route inbound decoded frames through `RealtimeRunner.pushInputValue(inputName, frame)` using `media_tracks` mapping. End inbound streams with `finishInputStream(inputName, "frame")` or the equivalent source handle on teardown.
+  - Give every outbound sink consumer its own bounded queue: browser preview, recording/export, hardware adapters, and chained workflow egress must not share one destructive consumer queue.
+  - Add a minimal pacing helper for outbound sink tracks so preview cadence, frame age, and reconnect discontinuities are handled outside codec and model code.
 - [ ] **8c. Tighten realtime lifecycle and teardown.**
   - `starting → running` waits for runtime startup plus WebRTC readiness when `transport: "webrtc"`.
   - Add TS stop timeout/cancellation so `stopRealtimeMode()` cannot hang forever on long-lived nodes.
   - Keep stopped/error sessions visible long enough for history/reconnect; add a sweeper instead of immediate deletion.
+  - Define deterministic close order for media sessions: stop inbound/outbound tracks and per-consumer queues, stop frame-router pumps, close codec bridge resources, close peer connections, then stop the `RealtimeRunner`.
+  - Stop many sessions with bounded async waits and aggregate errors so one stuck peer does not prevent other sessions from closing.
 - [ ] **8d. Add `realtime_metrics`.**
   - Add the control-plane message in `packages/protocol/src/messages.ts`.
   - Emit fps, queue depth, dropped frames, and peer state every ~500 ms.
   - Feed the store and `SessionInfo` node from the same data.
+  - Include per-consumer queue depth/drop counters, inbound/outbound frame counts, decode/encode latency, average frame age, peer ICE/connection state, codec name, bitrate target, and reconnect count.
+  - Keep metrics on the WebSocket control plane; do not send metrics over the media transport.
 - [ ] **9. Pre-model design pass.**
   - Pick Wan2.1 upstream source.
   - Define model-loading progress events.
@@ -109,6 +119,9 @@ Based on research into high-performance real-time generative video systems (like
 2. **Queue-Based Backpressure (Latest-Frame-Wins):** The boundary between the network layer and the execution graph must use bounded, thread-safe queues. When a queue is full, the system must drop the oldest frame and insert the newest one. This ensures the inference engine is always processing the most recent data, minimizing perceived latency.
 3. **Separation of Parameter and Media Queues:** Control signals (UI slider changes, prompt updates) should flow through a dedicated parameter queue or state object, separate from the high-volume media queues. This ensures control updates are applied immediately on the next execution cycle, rather than waiting behind a backlog of video frames.
 4. **WebRTC Bitrate Tuning:** Default WebRTC bitrates are tuned for video conferencing (e.g., 1-2 Mbps), which degrades generative AI output quality. The WebRTC implementation must be explicitly configured for high maximum bitrates (e.g., 5-10 Mbps) and hardware-accelerated codecs.
+5. **Per-Consumer Media Queues:** A realtime sink may feed multiple consumers (browser preview, recording/export, NDI/Spout/Syphon, chained workflows). Each consumer gets its own bounded queue so a slow hardware adapter or recorder cannot steal frames from WebRTC preview or block the hot path.
+6. **Normalized Media Packet Boundary:** Transport adapters convert into the shared `VideoFrame` / `AudioFrame` contract before entering the graph and convert out of that contract at the edge. Codec/WebRTC-specific packetization stays inside the adapter/server layer, not inside model nodes.
+7. **Pacing Is Separate From Pixels:** Timing decisions (wall-clock drift, frame age, reconnect discontinuities, outbound preview cadence) should live in a small pacing primitive rather than being embedded in WebRTC tracks or model nodes.
 
 ## External assumption checks
 
@@ -116,6 +129,7 @@ Based on research into high-performance real-time generative video systems (like
 - **Native FP8:** NVIDIA Transformer Engine documents FP8 support on Ada/Hopper/Blackwell with compute capability 8.9+. Ampere should route to GGUF/FP16/INT8 fallbacks.
 - **WebRTC bitrate:** browser sender bitrate should be tuned via `RTCRtpSender.getParameters()` → mutate `encodings[0].maxBitrate` → `setParameters()`, with Safari/Firefox fallback handling.
 - **werift:** good Node-first choice for WebRTC/RTP, but pixel decode/encode still needs a spike before full implementation.
+- **Scope architecture sanity check:** `daydreamlive/scope` validates the broad split: thin UI shell, long-lived media service/session objects, bounded queues between transport and inference, per-consumer output queues, explicit media packet types, deterministic teardown, pacing helpers, and structured heartbeat/metrics. Use these as architecture inspiration, not code to copy.
 - **Self-Forcing community weights:** FP8/GGUF low-VRAM artifacts exist, including ComfyUI-oriented 6 GB VRAM workflows, but treat them as experimental until source, license, and quality are validated.
 
 ## Current code reality
@@ -587,6 +601,7 @@ That's the full surface. No build-system changes; no node-discovery infrastructu
   - WebRTC spike result: `werift` handles peer connection and RTP, but codec decode/encode needs a bridge or alternate stack before full integration.
   - Implement `packages/websocket/src/realtime/webrtc-server.ts` and `frame-router.ts`.
   - Route inbound tracks to `RealtimeRunner.pushInputValue`; expose outbound sink tracks.
+  - Use per-session media server objects, normalized `VideoFrame` / `AudioFrame` boundaries, per-consumer sink queues, and a pacing helper rather than embedding media timing in model nodes.
   - Fix session readiness, stop timeouts, stopped-session retention, and `realtime_metrics`.
 - [ ] **9: Pre-model design pass.**
   - Decide Wan2.1 upstream source.
