@@ -14,7 +14,7 @@ describe("RealtimeCommandHandler", () => {
 
     const handler = new RealtimeCommandHandler({
       getUserId: () => "user-1",
-      runJob: vi.fn().mockResolvedValue(undefined),
+      runRealtimeJob: vi.fn().mockResolvedValue(undefined),
       cancelJob: vi.fn().mockResolvedValue(undefined),
       getActiveJob: vi.fn().mockReturnValue(undefined),
       trackSessionJob: vi.fn(),
@@ -65,7 +65,7 @@ describe("RealtimeCommandHandler", () => {
 
     const handler = new RealtimeCommandHandler({
       getUserId: () => "user-1",
-      runJob: vi.fn().mockResolvedValue(undefined),
+      runRealtimeJob: vi.fn().mockResolvedValue(undefined),
       cancelJob: vi.fn().mockResolvedValue(undefined),
       getActiveJob: vi.fn().mockReturnValue({
         runner: {

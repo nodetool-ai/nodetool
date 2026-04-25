@@ -43,6 +43,22 @@ const graph: { nodes: NodeDescriptor[]; edges: Edge[] } = {
   ]
 };
 
+const realtimeSession = (
+  overrides: Partial<RealtimeSessionInfo> = {}
+): RealtimeSessionInfo => ({
+  session_id: "session-rt",
+  workflow_id: null,
+  job_id: "job-rt",
+  status: "starting",
+  transport: "websocket",
+  parameters: {},
+  media_tracks: [],
+  signaling: { status: "idle" },
+  created_at: "2026-01-01T00:00:00.000Z",
+  updated_at: "2026-01-01T00:00:00.000Z",
+  ...overrides
+});
+
 const getPrivateMessages = (runner: WorkflowRunner): ProcessingMessage[] =>
   (runner as unknown as { _messages: ProcessingMessage[] })._messages;
 
@@ -286,7 +302,11 @@ describe("RealtimeRunner skeleton", () => {
       resolveExecutor: () => simpleExecutor((inputs) => inputs)
     });
 
-    await realtimeRunner.startRealtimeMode({ job_id: "rt-shell" }, graph);
+    await realtimeRunner.startRealtimeMode(
+      { job_id: "rt-shell" },
+      graph,
+      realtimeSession({ session_id: "rt-shell", job_id: "rt-shell" })
+    );
 
     expect(realtimeRunner.runner).toBeInstanceOf(WorkflowRunner);
     expect(
@@ -328,7 +348,11 @@ describe("RealtimeRunner skeleton", () => {
           }
         ],
         edges: []
-      }
+      },
+      realtimeSession({
+        session_id: "rt-push-parameter",
+        job_id: "rt-push-parameter"
+      })
     );
 
     await expect(realtimeRunner.pushParameter("strength", 0.5)).resolves.toEqual({
@@ -420,15 +444,41 @@ describe("RealtimeRunner skeleton", () => {
             targetHandle: "value"
           }
         ]
-      }
+      },
+      realtimeSession({
+        session_id: "session-live",
+        workflow_id: "workflow-live",
+        job_id: "rt-live",
+        transport: "webrtc",
+        parameters: { fps: 24 },
+        media_tracks: [
+          {
+            track_id: "camera-track",
+            kind: "video",
+            node_id: "source",
+            input_name: "camera",
+            label: null,
+            enabled: true
+          }
+        ]
+      })
     );
 
     expect(lifecycleEvents).toEqual(["reset", "start"]);
     expect(seenSessions[0]).toMatchObject({
-      session_id: "rt-live",
+      session_id: "session-live",
       workflow_id: "workflow-live",
       job_id: "rt-live",
-      status: "running"
+      transport: "webrtc",
+      parameters: { fps: 24 },
+      media_tracks: [
+        {
+          track_id: "camera-track",
+          kind: "video",
+          node_id: "source",
+          input_name: "camera"
+        }
+      ]
     });
 
     await realtimeRunner.runner.pushInputValue("camera", 7);
@@ -436,7 +486,7 @@ describe("RealtimeRunner skeleton", () => {
     const result = await realtimeRunner.stopRealtimeMode();
 
     expect(lifecycleEvents).toEqual(["reset", "start", "stop"]);
-    expect(seenSessions[1]?.session_id).toBe("rt-live");
+    expect(seenSessions[1]?.session_id).toBe("session-live");
     expect(result.status).toBe("completed");
     expect(result.outputs.result).toEqual([7]);
   });
@@ -458,7 +508,11 @@ describe("RealtimeRunner skeleton", () => {
             }
           ],
           edges: []
-        }
+        },
+        realtimeSession({
+          session_id: "rt-no-context",
+          job_id: "rt-no-context"
+        })
       )
     ).rejects.toThrow(
       "RealtimeRunner requires an executionContext for warm-state hooks"

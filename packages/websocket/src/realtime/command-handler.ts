@@ -41,7 +41,10 @@ interface ActiveRealtimeJob {
 
 export interface RealtimeCommandHandlerDependencies {
   getUserId: () => string;
-  runJob: (request: RealtimeRunJobRequest) => Promise<void>;
+  runRealtimeJob: (
+    request: RealtimeRunJobRequest,
+    session: RealtimeSessionRecord
+  ) => Promise<void>;
   cancelJob: (jobId: string, workflowId?: string) => Promise<void>;
   getActiveJob: (jobId: string) => ActiveRealtimeJob | undefined;
   trackSessionJob: (sessionId: string, jobId: string) => void;
@@ -347,12 +350,15 @@ export class RealtimeCommandHandler {
 
     try {
       const graph = this.normalizeGraph(data.graph);
-      await this.dependencies.runJob({
-        job_id: jobId,
-        workflow_id: workflowId,
-        graph,
-        params: parameters
-      });
+      await this.dependencies.runRealtimeJob(
+        {
+          job_id: jobId,
+          workflow_id: workflowId,
+          graph,
+          params: parameters
+        },
+        session
+      );
     } catch (error) {
       const message =
         error instanceof Error

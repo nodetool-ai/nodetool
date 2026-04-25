@@ -12,9 +12,12 @@ import {
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
   Graph,
+  RealtimeRunner,
   WorkflowRunner,
   type NodeExecutor,
-  type NodeTypeResolver
+  type NodeTypeResolver,
+  type RunResult,
+  type WorkflowGraphData
 } from "@nodetool/kernel";
 import {
   Asset,
@@ -557,6 +560,7 @@ interface ActiveJob {
   workflowId: string | null;
   context: ProcessingContext;
   runner: WorkflowRunner;
+  realtimeRunner?: RealtimeRunner;
   graph: {
     nodes: Array<Record<string, unknown>>;
     edges: Array<Record<string, unknown>>;
@@ -567,6 +571,8 @@ interface ActiveJob {
   streamTask?: Promise<void>;
   /** For ComfyUI jobs: handle to cancel the underlying execution. */
   comfyHandle?: ComfyExecutionHandle;
+  resolveRealtimeResult?: (result: RunResult) => void;
+  rejectRealtimeResult?: (error: unknown) => void;
 }
 
 class ToolBridge {
@@ -891,7 +897,8 @@ export class UnifiedWebSocketRunner {
       }));
     this.realtimeHandler = new RealtimeCommandHandler({
       getUserId: () => this.getRealtimeUserId(),
-      runJob: async (request) => this.runJob(request),
+      runRealtimeJob: async (request, session) =>
+        this.runRealtimeJob(request, session),
       cancelJob: async (jobId, workflowId) => {
         await this.cancelJob(jobId, workflowId);
       },
@@ -944,6 +951,12 @@ export class UnifiedWebSocketRunner {
     for (const [jobId, job] of this.activeJobs) {
       if (job.comfyHandle) {
         job.comfyHandle.cancel();
+      } else if (job.realtimeRunner) {
+        job.runner.cancel();
+        void job.realtimeRunner
+          .stopRealtimeMode("cancelled")
+          .then((result) => job.resolveRealtimeResult?.(result))
+          .catch((error) => job.rejectRealtimeResult?.(error));
       } else if (job.runner) {
         job.runner.cancel();
       }
@@ -1269,6 +1282,47 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  private async createJobContext(
+    jobId: string,
+    workflowId: string | null,
+    userId: string
+  ): Promise<ProcessingContext> {
+    const workspaceDir =
+      workflowId && this.workspaceResolver
+        ? await this.workspaceResolver(workflowId, userId)
+        : null;
+
+    const context = createRuntimeContext({
+      jobId,
+      workflowId,
+      userId,
+      workspaceDir,
+      assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
+    });
+
+    // Expose executor/node-type resolution on the context so that
+    // sub-workflow nodes (WorkflowNode) can create child runners.
+    context.setResolveExecutor((node) => this.resolveExecutor(node));
+    if (this.resolveNodeType) {
+      const resolverObj =
+        typeof this.resolveNodeType === "function"
+          ? { resolveNodeType: this.resolveNodeType }
+          : this.resolveNodeType;
+      context.setResolveNodeType(
+        (nodeType) =>
+          resolverObj.resolveNodeType(nodeType) as Promise<{
+            nodeType: string;
+            propertyTypes?: Record<string, string>;
+            outputs?: Record<string, string>;
+            isDynamic?: boolean;
+            descriptorDefaults?: Record<string, unknown>;
+          } | null>
+      );
+    }
+
+    return context;
+  }
+
   async runJob(req: RunJobRequest): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
@@ -1400,6 +1454,101 @@ export class UnifiedWebSocketRunner {
     );
 
     active.streamTask = this.streamJobMessages(active, executePromise);
+  }
+
+  async runRealtimeJob(
+    req: RunJobRequest,
+    session: RealtimeSessionRecord
+  ): Promise<void> {
+    const userId = req.user_id ?? this.userId ?? "1";
+    const workflowId = req.workflow_id ?? null;
+    const jobId = req.job_id ?? randomUUID();
+
+    const rawGraph = await this.getRawGraph(req);
+    if (isComfyGraph(rawGraph)) {
+      throw new Error("Realtime sessions do not support ComfyUI graphs");
+    }
+
+    const graph = await this.hydrateGraph(rawGraph);
+    if (this.beforeRunJob) {
+      try {
+        await this.beforeRunJob(graph);
+      } catch (err) {
+        await this.emitBeforeRunFailure(jobId, workflowId, err);
+        throw err;
+      }
+    }
+
+    const context = await this.createJobContext(jobId, workflowId, userId);
+    const realtimeRunner = new RealtimeRunner(jobId, {
+      resolveExecutor: (node) =>
+        this.resolveExecutor(
+          node as { id: string; type: string; [key: string]: unknown }
+        ),
+      executionContext: context
+    });
+
+    let resolveRealtimeResult: (result: RunResult) => void = () => {};
+    let rejectRealtimeResult: (error: unknown) => void = () => {};
+    const executePromise = new Promise<RunResult>((resolve, reject) => {
+      resolveRealtimeResult = resolve;
+      rejectRealtimeResult = reject;
+    });
+
+    const active: ActiveJob = {
+      jobId,
+      workflowId,
+      context,
+      runner: realtimeRunner.runner,
+      realtimeRunner,
+      graph,
+      finished: false,
+      status: "running",
+      resolveRealtimeResult,
+      rejectRealtimeResult
+    };
+    this.activeJobs.set(jobId, active);
+    log.info("Realtime job started", {
+      jobId,
+      workflowId,
+      sessionId: session.session_id
+    });
+
+    try {
+      const existing = await Job.get(jobId);
+      if (!existing) {
+        await Job.create({
+          id: jobId,
+          workflow_id: workflowId ?? "",
+          user_id: userId,
+          status: "running",
+          params: req.params ?? {},
+          graph
+        });
+      }
+    } catch (error) {
+      this.logError("runRealtimeJob persistence failed", error);
+      // Persistence is best-effort in TS runtime mode.
+    }
+
+    active.streamTask = this.streamJobMessages(active, executePromise);
+
+    try {
+      await realtimeRunner.startRealtimeMode(
+        {
+          job_id: jobId,
+          workflow_id: workflowId ?? undefined,
+          params: req.params ?? {}
+        },
+        graph as unknown as WorkflowGraphData,
+        session
+      );
+    } catch (error) {
+      this.activeJobs.delete(jobId);
+      active.finished = true;
+      rejectRealtimeResult(error);
+      throw error;
+    }
   }
 
   /**
@@ -1844,7 +1993,15 @@ export class UnifiedWebSocketRunner {
       };
     }
 
-    if (active.comfyHandle) {
+    if (active.realtimeRunner) {
+      active.runner.cancel();
+      try {
+        const result = await active.realtimeRunner.stopRealtimeMode("cancelled");
+        active.resolveRealtimeResult?.(result);
+      } catch (error) {
+        active.rejectRealtimeResult?.(error);
+      }
+    } else if (active.comfyHandle) {
       active.comfyHandle.cancel();
     } else if (active.runner) {
       active.runner.cancel();
@@ -4553,7 +4710,19 @@ export class UnifiedWebSocketRunner {
         if (jobId) {
           const active = this.activeJobs.get(jobId);
           if (active) {
-            active.runner.cancel();
+            if (active.realtimeRunner) {
+              active.runner.cancel();
+              try {
+                const result = await active.realtimeRunner.stopRealtimeMode(
+                  "cancelled"
+                );
+                active.resolveRealtimeResult?.(result);
+              } catch (error) {
+                active.rejectRealtimeResult?.(error);
+              }
+            } else {
+              active.runner.cancel();
+            }
             active.finished = true;
             active.status = "cancelled";
           }

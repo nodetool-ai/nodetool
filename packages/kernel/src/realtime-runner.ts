@@ -7,7 +7,6 @@ import {
   type WorkflowRunnerOptions
 } from "./runner.js";
 import type { RealtimeSessionInfo } from "@nodetool/protocol";
-import type { ProcessingContext } from "@nodetool/runtime";
 
 export interface RealtimeRunnerOptions
   extends Omit<WorkflowRunnerOptions, "runMode"> {}
@@ -35,18 +34,21 @@ export class RealtimeRunner {
 
   async startRealtimeMode(
     request: RunJobRequest,
-    graphData: WorkflowGraphData
+    graphData: WorkflowGraphData,
+    sessionInfo: RealtimeSessionInfo
   ): Promise<void> {
     await this.runner.initializeForRealtime(request, graphData);
-    this.sessionInfo = this.buildSessionInfo(request);
+    this.sessionInfo = sessionInfo;
     await this.runWarmStateHooks("start");
     await this.runner.startBackgroundProcessing(request.params ?? {});
     this.processingPromise = this.runner.waitForBackgroundProcessing();
   }
 
-  async stopRealtimeMode(): Promise<RunResult> {
+  async stopRealtimeMode(
+    terminalStatus: RunResult["status"] = "completed"
+  ): Promise<RunResult> {
     if (!this.sessionInfo) {
-      return this.runner.snapshotRunResult("completed");
+      return this.runner.snapshotRunResult(terminalStatus);
     }
 
     const failureMessages: string[] = [];
@@ -73,7 +75,7 @@ export class RealtimeRunner {
       failureMessages.length > 0 ? failureMessages.join("; ") : undefined;
 
     return this.runner.snapshotRunResult(
-      errorMessage ? "failed" : "completed",
+      errorMessage ? "failed" : terminalStatus,
       errorMessage
     );
   }
@@ -83,22 +85,6 @@ export class RealtimeRunner {
     value: unknown
   ): Promise<RealtimeParameterUpdateResult> {
     return this.runner.pushParameter(name, value);
-  }
-
-  private buildSessionInfo(request: RunJobRequest): RealtimeSessionInfo {
-    const now = new Date().toISOString();
-    return {
-      session_id: request.job_id,
-      workflow_id: request.workflow_id ?? null,
-      job_id: request.job_id,
-      status: "running",
-      transport: "websocket",
-      parameters: { ...(request.params ?? {}) },
-      media_tracks: [],
-      signaling: { status: "idle" },
-      created_at: now,
-      updated_at: now
-    };
   }
 
   private async runWarmStateHooks(stage: "start" | "stop"): Promise<void> {

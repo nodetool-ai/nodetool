@@ -5,6 +5,9 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
+import type { NodeExecutor } from "@nodetool/kernel";
+import type { RealtimeSessionInfo } from "@nodetool/protocol";
+import type { ProcessingContext } from "@nodetool/runtime";
 import { realtimeSessionManager } from "../src/realtime/session-manager.js";
 
 class MockWebSocket implements WebSocketConnection {
@@ -242,7 +245,8 @@ describe("UnifiedWebSocketRunner", () => {
       }
     });
 
-    expect(response.ok).toBe(true);
+    expect(response.error).toBeUndefined();
+    expect(response).toMatchObject({ ok: true });
     expect(typeof response.job_id).toBe("string");
     expect(response.status).toBe("running");
 
@@ -288,6 +292,91 @@ describe("UnifiedWebSocketRunner", () => {
         })
       ])
     );
+
+    await runner.disconnect();
+  });
+
+  it("starts production realtime sessions through RealtimeRunner with real session metadata", async () => {
+    const seenSessions: RealtimeSessionInfo[] = [];
+    const warmExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async onSessionStart(
+        _context: ProcessingContext,
+        session: RealtimeSessionInfo
+      ) {
+        seenSessions.push(session);
+      }
+    };
+    runner = new UnifiedWebSocketRunner({
+      resolveExecutor: (node) =>
+        node.id === "warm" ? warmExecutor : resolveExecutor()
+    });
+    await runner.connect(ws);
+
+    const response = await runner.handleCommand({
+      command: "start_realtime_session",
+      data: {
+        session_id: "session-webrtc",
+        workflow_id: "workflow-webrtc",
+        transport: "webrtc",
+        parameters: { strength: 0.75 },
+        media_tracks: [
+          {
+            track_id: "video-track-1",
+            kind: "video",
+            node_id: "camera",
+            input_name: "video"
+          }
+        ],
+        graph: {
+          nodes: [
+            {
+              id: "warm",
+              type: "test.Warm",
+              owns_warm_state: true
+            }
+          ],
+          edges: []
+        }
+      }
+    });
+
+    expect(response).toMatchObject({ ok: true });
+    expect(seenSessions).toHaveLength(1);
+    expect(seenSessions[0]).toMatchObject({
+      session_id: "session-webrtc",
+      workflow_id: "workflow-webrtc",
+      job_id: response.job_id,
+      transport: "webrtc",
+      parameters: { strength: 0.75 },
+      media_tracks: [
+        {
+          track_id: "video-track-1",
+          kind: "video",
+          node_id: "camera",
+          input_name: "video",
+          label: null,
+          enabled: true
+        }
+      ]
+    });
+
+    const activeJobs = (
+      runner as unknown as {
+        activeJobs: Map<
+          string,
+          {
+            realtimeRunner?: unknown;
+            runner: { _options: { runMode?: "one_shot" | "realtime" } };
+          }
+        >;
+      }
+    ).activeJobs;
+    const active = activeJobs.get(String(response.job_id));
+    expect(active?.realtimeRunner).toBeDefined();
+    expect(active?.runner._options.runMode).toBe("realtime");
 
     await runner.disconnect();
   });
