@@ -1,6 +1,6 @@
 import React from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
-import type { ASRModel } from "../../stores/ApiTypes";
+import type { ASRModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import {
   useASRModelMenuStore
 } from "../../stores/ModelMenuStore";
@@ -11,13 +11,17 @@ export interface ASRModelMenuDialogProps {
   onClose: () => void;
   onModelChange?: (model: ASRModel) => void;
   anchorEl?: HTMLElement | null;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 function ASRModelMenuDialog({
   open,
   onClose,
   onModelChange,
-  anchorEl
+  anchorEl,
+  recommendedModels,
+  modelPacks
 }: ASRModelMenuDialogProps) {
   const modelData = useASRModelsByProvider();
   return (
@@ -30,6 +34,8 @@ function ASRModelMenuDialog({
       title="Select ASR Model"
       searchPlaceholder="Search speech-to-text models..."
       storeHook={useASRModelMenuStore}
+      recommendedModels={recommendedModels}
+      modelPacks={modelPacks}
     />
   );
 }

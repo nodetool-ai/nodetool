@@ -1,13 +1,8 @@
-import React, { memo, useMemo } from "react";
-import { UnifiedModel } from "../../stores/ApiTypes";
-import useMetadataStore from "../../stores/MetadataStore";
-import ModelRecommendationsButton from "./ModelRecommendationsButton";
-import { trpc } from "../../lib/trpc";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-
-interface ModelRecommendationsProps {
-  nodeType: string;
-}
+import { ModelPack, UnifiedModel } from "../stores/ApiTypes";
+import useMetadataStore from "../stores/MetadataStore";
+import { trpc } from "../lib/trpc";
 
 type RecommendedTaskKey =
   | "recommendedImageTextToImage"
@@ -19,7 +14,7 @@ type RecommendedTaskKey =
   | "recommendedTts"
   | null;
 
-const mapNodeTypeToTask = (nodeType: string): RecommendedTaskKey => {
+const mapNodeTypeToTask = (nodeType: string | undefined): RecommendedTaskKey => {
   switch (nodeType) {
     case "nodetool.image.TextToImage":
       return "recommendedImageTextToImage";
@@ -38,7 +33,9 @@ const mapNodeTypeToTask = (nodeType: string): RecommendedTaskKey => {
   }
 };
 
-async function fetchRecommendedByTask(task: RecommendedTaskKey): Promise<UnifiedModel[]> {
+async function fetchRecommendedByTask(
+  task: RecommendedTaskKey
+): Promise<UnifiedModel[]> {
   if (!task) return [];
   switch (task) {
     case "recommendedImageTextToImage":
@@ -60,9 +57,18 @@ async function fetchRecommendedByTask(task: RecommendedTaskKey): Promise<Unified
   }
 }
 
-const ModelRecommendations: React.FC<ModelRecommendationsProps> = memo(({
-  nodeType
-}) => {
+export interface RecommendedModelsForNode {
+  recommendedModels: UnifiedModel[];
+  modelPacks: ModelPack[];
+}
+
+/**
+ * Returns recommended models and model packs for a given node type.
+ * Used by the model picker dialog to surface downloadable models.
+ */
+export function useRecommendedModelsForNode(
+  nodeType: string | undefined
+): RecommendedModelsForNode {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const taskKey = useMemo(() => mapNodeTypeToTask(nodeType), [nodeType]);
 
@@ -74,27 +80,20 @@ const ModelRecommendations: React.FC<ModelRecommendationsProps> = memo(({
     refetchOnWindowFocus: false
   });
 
-  const recommendedModels: UnifiedModel[] = useMemo(() => {
-    // If this node maps to a task-specific tRPC procedure, rely solely on API recommendations
+  const recommendedModels = useMemo<UnifiedModel[]>(() => {
     if (taskKey) {
       return apiModels || [];
     }
-    // For non-generic nodes, fall back to per-node metadata recommendations
+    if (!nodeType) return [];
     const baseMetadata = getMetadata(nodeType);
     return baseMetadata?.recommended_models || [];
   }, [taskKey, apiModels, getMetadata, nodeType]);
 
-  const modelPacks = useMemo(() => {
-    // We only show model packs for specific nodes, not generic task keys
-    if (taskKey) {return [];}
-
+  const modelPacks = useMemo<ModelPack[]>(() => {
+    if (taskKey || !nodeType) return [];
     const baseMetadata = getMetadata(nodeType);
     return baseMetadata?.model_packs || [];
   }, [taskKey, getMetadata, nodeType]);
 
-  return <ModelRecommendationsButton recommendedModels={recommendedModels} modelPacks={modelPacks} />;
-});
-
-ModelRecommendations.displayName = "ModelRecommendations";
-
-export default ModelRecommendations;
+  return { recommendedModels, modelPacks };
+}

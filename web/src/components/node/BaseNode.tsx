@@ -27,7 +27,6 @@ import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
 import { hasNodeError } from "../../stores/ErrorStore";
 import useErrorStore from "../../stores/ErrorStore";
-import ModelRecommendations from "./ModelRecommendations";
 import ApiKeyValidation from "./ApiKeyValidation";
 import InputNodeNameWarning from "./InputNodeNameWarning";
 import RequiredSettingsWarning from "./RequiredSettingsWarning";
@@ -48,12 +47,10 @@ import ChunkDisplay from "./ChunkDisplay";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
-import { getIsElectronDetails } from "../../utils/browser";
 import { useNodeFocusStore } from "../../stores/NodeFocusStore";
 import { useNodes } from "../../contexts/NodeContext";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { isProduction } from "../../lib/env";
 import {
   CONTROL_HANDLE_ID,
   isAgentNodeType
@@ -721,10 +718,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       )}
       <NodeStatus status={status} />
       <NodeExecutionTime nodeId={id} workflowId={workflow_id} status={status} />
-      {!isOverlayVisible &&
-        (getIsElectronDetails().isElectron || !isProduction) && (
-          <ModelRecommendations nodeType={type} />
-        )}
       <ApiKeyValidation nodeNamespace={meta.nodeNamespace} />
       <RequiredSettingsWarning nodeType={type} />
       <InputNodeNameWarning

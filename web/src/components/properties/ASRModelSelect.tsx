@@ -2,16 +2,23 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import ASRModelMenuDialog from "../model_menu/ASRModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ASRModel } from "../../stores/ApiTypes";
+import type { ASRModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 interface ASRModelSelectProps {
   onChange: (value: any) => void;
   value: string;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
-const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
+const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
+  onChange,
+  value,
+  recommendedModels,
+  modelPacks
+}) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
@@ -68,6 +75,8 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({ onChange, value }) => {
         anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </>
   );

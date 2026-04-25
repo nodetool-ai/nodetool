@@ -1,6 +1,6 @@
 import { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
-import type { EmbeddingModel } from "../../stores/ApiTypes";
+import type { EmbeddingModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import { useEmbeddingModelMenuStore } from "../../stores/ModelMenuStore";
 
@@ -10,6 +10,8 @@ export interface EmbeddingModelMenuDialogProps {
   onModelChange?: (model: EmbeddingModel) => void;
   allowedProviders?: string[];
   anchorEl?: HTMLElement | null;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 function EmbeddingModelMenuDialog({
@@ -17,7 +19,9 @@ function EmbeddingModelMenuDialog({
   onClose,
   onModelChange,
   allowedProviders,
-  anchorEl
+  anchorEl,
+  recommendedModels,
+  modelPacks
 }: EmbeddingModelMenuDialogProps) {
   const modelData = useEmbeddingModelsByProvider({ allowedProviders });
   return (
@@ -30,6 +34,8 @@ function EmbeddingModelMenuDialog({
       title="Select Embedding Model"
       searchPlaceholder="Search embedding models..."
       storeHook={useEmbeddingModelMenuStore}
+      recommendedModels={recommendedModels}
+      modelPacks={modelPacks}
     />
   );
 }

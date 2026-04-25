@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import EmbeddingModelMenuDialog from "../model_menu/EmbeddingModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { EmbeddingModel } from "../../stores/ApiTypes";
+import type { EmbeddingModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
@@ -10,12 +10,16 @@ interface EmbeddingModelSelectProps {
   onChange: (value: any) => void;
   value: string;
   allowedProviders?: string[];
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
   onChange,
   value,
-  allowedProviders
+  allowedProviders,
+  recommendedModels,
+  modelPacks
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -72,6 +76,8 @@ const EmbeddingModelSelect: React.FC<EmbeddingModelSelectProps> = ({
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         allowedProviders={allowedProviders}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </>
   );
