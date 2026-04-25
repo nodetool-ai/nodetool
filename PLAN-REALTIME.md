@@ -274,9 +274,13 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - CPU frame conversion and cache-refresh contracts landed: `VideoFrame` inputs can be validated/normalized into LongLive `rgba8` model inputs, and prompt/negative-prompt changes record when warm caches must refresh on the next iteration.
   - Backend delegation contract landed: `LongLivePipeline` can drive an injected Wan2.1 backend through loading, generation, warm-state reset, and close, while preserving dependency-light base imports.
   - Lazy backend adapter landed: the default real-mode factory now resolves optional ML modules and component loaders only during backend load.
-  - Component load plan landed: tokenizer/VAE/transformer loading is mapped to `Wan-AI/Wan2.1-T2V-1.3B-Diffusers`, with the selected LongLive weight source retained for the future checkpoint-application step.
-  - Checkpoint-applier hook landed: base transformer loading now has an explicit LongLive checkpoint application step before sampler readiness, and the default path reports a structured pending error until that applier is real.
-  - Still pending for completion: real LongLive checkpoint application, tensor conversion inside the backend, sampler loop, and validated FP8/GGUF/INT8 paths.
+  - Component load plan landed: tokenizer/VAE/transformer loading is mapped to `Wan-AI/Wan2.1-T2V-1.3B-Diffusers`, with the selected LongLive weight source retained for checkpoint application.
+  - Checkpoint applier landed: `longlive_base.pt` resolution/application, EMA/model state-dict extraction, FSDP key cleanup, optional LoRA loading via lazy `peft`, and checkpoint metadata are covered by tests.
+  - Sampler boundary landed: LongLive input frames convert to torch-like BCHW tensors, sampler output tensors convert back to realtime `rgba8` frames, metadata/timing/cache state is preserved, and sampler reset/close hooks delegate through the lazy backend.
+  - Configurable causal sampler wiring landed: default real-mode backend can build a dependency-lazy imported pipeline factory and pass optional sampler config without importing upstream ML packages at base import time.
+  - Node-facing real pipeline configuration landed: advanced `LongLive` fields can pass an upstream pipeline module/class and sampler options into real mode while keeping default fake-mode behavior unchanged.
+  - Precision guard landed: real mode defers `auto` precision resolution to the lazy backend so CUDA capability can be used, while unvalidated `fp8`/`gguf`/`int8` paths fail early with structured errors instead of silently falling back.
+  - Still pending for completion: validated upstream LongLive pipeline class/call signature against the real package, real end-to-end inference against downloaded weights, and real FP8/GGUF/INT8 loader paths.
 - [ ] Step 10b: Self-Forcing.
 - [ ] Step 11: canonical workflow template.
 
