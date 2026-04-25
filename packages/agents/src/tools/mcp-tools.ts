@@ -7,8 +7,13 @@
  * Port of src/nodetool/agents/tools/mcp_tools.py
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { BaseProvider, ProcessingContext } from "@nodetool/runtime";
+import type { NodeRegistry } from "@nodetool/node-sdk";
 import { Tool } from "./base-tool.js";
+import { LocalListNodesTool } from "./local-list-nodes-tool.js";
+import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
+import { LocalGetNodeInfoTool } from "./local-get-node-info-tool.js";
+import { FindModelTool } from "./find-model-tool.js";
 
 const DEFAULT_API_URL = "http://localhost:7777";
 
@@ -725,8 +730,24 @@ export class ListModelsTool extends Tool {
 // Helper
 // ============================================================================
 
-export function getAllMcpTools(): Tool[] {
-  return [
+export interface GetAllMcpToolsOptions {
+  /**
+   * In-process NodeRegistry. When supplied, the REST-based
+   * ListNodesTool / SearchNodesTool / GetNodeInfoTool are replaced with the
+   * local biased counterparts so any agent reaching for `search_nodes`
+   * gets the same namespace-aware ranking as the GraphPlanner.
+   */
+  registry?: NodeRegistry;
+  /**
+   * Configured BaseProvider instances by id. When supplied alongside a
+   * registry, `find_model` is included so the agent can resolve a real
+   * `{provider, model_id}` for generic AI nodes from any agent loop.
+   */
+  providers?: Record<string, BaseProvider>;
+}
+
+export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
+  const tools: Tool[] = [
     new ListWorkflowsTool(),
     new GetWorkflowTool(),
     new CreateWorkflowTool(),
@@ -734,9 +755,6 @@ export function getAllMcpTools(): Tool[] {
     new ValidateWorkflowTool(),
     new GetExampleWorkflowTool(),
     new ExportWorkflowDigraphTool(),
-    new ListNodesTool(),
-    new SearchNodesTool(),
-    new GetNodeInfoTool(),
     new ListJobsTool(),
     new GetJobTool(),
     new GetJobLogsTool(),
@@ -745,4 +763,23 @@ export function getAllMcpTools(): Tool[] {
     new GetAssetTool(),
     new ListModelsTool()
   ];
+
+  if (options.registry) {
+    tools.push(
+      new LocalListNodesTool(options.registry),
+      new LocalSearchNodesTool(options.registry),
+      new LocalGetNodeInfoTool(options.registry)
+    );
+    if (options.providers && Object.keys(options.providers).length > 0) {
+      tools.push(new FindModelTool(options.providers));
+    }
+  } else {
+    tools.push(
+      new ListNodesTool(),
+      new SearchNodesTool(),
+      new GetNodeInfoTool()
+    );
+  }
+
+  return tools;
 }

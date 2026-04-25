@@ -387,7 +387,13 @@ export function App({
       archive_email: new ArchiveEmailTool(),
     };
     // NodeTool MCP tools (workflows, nodes, jobs, assets, models).
-    for (const tool of getAllMcpTools()) {
+    // When a NodeRegistry is in process, this swaps the REST node-search
+    // tools for the local biased versions (and adds `find_model`) so any
+    // agent loop gets the same node-selection bias as the GraphPlanner.
+    for (const tool of getAllMcpTools({
+      registry,
+      providers: agentProviders,
+    })) {
       toolMap[tool.name] = tool;
     }
     // When sandbox tools are present, exclude host tools that have sandbox

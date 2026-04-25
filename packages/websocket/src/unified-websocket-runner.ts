@@ -3812,6 +3812,13 @@ export class UnifiedWebSocketRunner {
       ? (data.tools as string[]).filter((t) => typeof t === "string")
       : [];
 
+    // Build configured providers up-front when a registry is available, so
+    // both `getAllMcpTools` (default tool set) and the MultiModeAgent below
+    // can share the same map. Cached per-user in `getConfiguredProviders`.
+    const agentProviders = this.nodeRegistry
+      ? await this.getConfiguredProviders(userId)
+      : undefined;
+
     if (rawToolNames.length > 0) {
       // User explicitly specified tools — resolve by name
       for (const name of rawToolNames) {
@@ -3823,14 +3830,19 @@ export class UnifiedWebSocketRunner {
       });
     } else {
       // No tools specified — use the current built-in defaults plus NodeTool's
-      // MCP-style backend tools. Additional server-side or client-bridged
-      // tools are merged below when explicitly requested/available.
+      // MCP-style backend tools. When a NodeRegistry is wired up, the MCP
+      // helper swaps the REST search/list/get tools for the in-process biased
+      // versions and adds `find_model`, so any agent loop (not just the
+      // GraphPlanner) gets the same node-selection bias.
       selectedTools = [
         new ReadFileTool(),
         new WriteFileTool(),
         new BrowserTool(),
         new GoogleSearchTool(),
-        ...getAllMcpTools()
+        ...getAllMcpTools({
+          registry: this.nodeRegistry,
+          providers: agentProviders
+        })
       ];
       log.debug("Using default + MCP tools for agent", {
         count: selectedTools.length
@@ -3891,9 +3903,6 @@ export class UnifiedWebSocketRunner {
     // graph-native MultiModeAgent so the GraphPlanner can build workflows
     // with the curated `nodetool.*` core nodes and a `find_model` tool.
     const useGraphPlanner = !!this.nodeRegistry;
-    const configuredProviders = useGraphPlanner
-      ? await this.getConfiguredProviders(userId)
-      : undefined;
 
     try {
       const agent = useGraphPlanner
@@ -3906,7 +3915,7 @@ export class UnifiedWebSocketRunner {
             tools: selectedTools,
             useGraphPlanner: true,
             registry: this.nodeRegistry,
-            providers: configuredProviders,
+            providers: agentProviders,
             maxStepIterations,
             ...(maxSteps !== undefined ? { maxSteps } : {}),
             outputSchema: {

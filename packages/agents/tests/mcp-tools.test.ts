@@ -351,7 +351,7 @@ describe("API error handling", () => {
 // ---------------------------------------------------------------------------
 
 describe("getAllMcpTools", () => {
-  it("returns all 17 tool instances", () => {
+  it("returns all 17 tool instances by default (REST node tools)", () => {
     const tools = getAllMcpTools();
     expect(tools.length).toBe(17);
     const names = tools.map((t) => t.name);
@@ -372,6 +372,30 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("list_assets");
     expect(names).toContain("get_asset");
     expect(names).toContain("list_models");
+  });
+
+  it("swaps in local biased node tools when a registry is provided", () => {
+    const registry = {
+      listMetadata: () => [],
+      getMetadata: () => undefined
+    } as unknown as Parameters<typeof getAllMcpTools>[0]["registry"];
+    const tools = getAllMcpTools({ registry });
+    const names = tools.map((t) => t.name);
+    // Local versions still expose the same agent-facing names.
+    expect(names.filter((n) => n === "list_nodes").length).toBe(1);
+    expect(names.filter((n) => n === "search_nodes").length).toBe(1);
+    expect(names.filter((n) => n === "get_node_info").length).toBe(1);
+    // No find_model unless providers are also passed.
+    expect(names).not.toContain("find_model");
+  });
+
+  it("adds find_model when providers are supplied alongside the registry", () => {
+    const registry = {
+      listMetadata: () => [],
+      getMetadata: () => undefined
+    } as unknown as Parameters<typeof getAllMcpTools>[0]["registry"];
+    const tools = getAllMcpTools({ registry, providers: { fake: {} as any } });
+    expect(tools.map((t) => t.name)).toContain("find_model");
   });
 
   it("all tools have valid toProviderTool()", () => {
