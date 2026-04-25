@@ -295,6 +295,7 @@ describe("CollectionStore", () => {
     });
 
     it("logs thrown upload exceptions", async () => {
+      const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       const file = new File(["a"], "bad.txt", { type: "text/plain" });
       const event = {
         preventDefault: jest.fn(),
@@ -308,7 +309,8 @@ describe("CollectionStore", () => {
         await useCollectionStore.getState().handleDrop("collection1")(event);
       });
 
-      expect(console.error).toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
       expect(useCollectionStore.getState().indexErrors).toEqual([
         { file: "bad.txt", error: "network" }
       ]);

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 type DebouncedCallback<T extends (...args: unknown[]) => unknown> = {
   (...args: Parameters<T>): void;
@@ -12,6 +12,14 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fnRef = useRef(fn);
   fnRef.current = fn;
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   return useMemo(() => {
     const cancel = () => {
