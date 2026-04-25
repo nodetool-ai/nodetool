@@ -16,6 +16,11 @@ export interface RealtimeWebRTCServerOptions {
   codecBridge?: CodecBridge;
 }
 
+export interface RealtimeWebRTCStopSessionsResult {
+  closed: string[];
+  failed: Array<{ sessionId: string; error: string }>;
+}
+
 export class RealtimeWebRTCServer {
   private readonly sessions = new Map<string, RealtimeWebRTCSession>();
   private readonly closedStates = new Set<string>();
@@ -37,9 +42,42 @@ export class RealtimeWebRTCServer {
       return;
     }
 
-    await session.close();
-    this.sessions.delete(sessionId);
-    this.closedStates.add(sessionId);
+    try {
+      await session.close();
+    } finally {
+      this.sessions.delete(sessionId);
+      this.closedStates.add(sessionId);
+    }
+  }
+
+  async stopSessions(
+    sessionIds: string[]
+  ): Promise<RealtimeWebRTCStopSessionsResult> {
+    const settled = await Promise.allSettled(
+      sessionIds.map(async (sessionId) => {
+        await this.stopSession(sessionId);
+        return sessionId;
+      })
+    );
+    const result: RealtimeWebRTCStopSessionsResult = {
+      closed: [],
+      failed: []
+    };
+
+    settled.forEach((entry, index) => {
+      const sessionId = sessionIds[index];
+      if (entry.status === "fulfilled") {
+        result.closed.push(entry.value);
+        return;
+      }
+
+      result.failed.push({
+        sessionId,
+        error: entry.reason instanceof Error ? entry.reason.message : String(entry.reason)
+      });
+    });
+
+    return result;
   }
 
   getSessionState(sessionId: string): RealtimeWebRTCSessionState | "missing" {

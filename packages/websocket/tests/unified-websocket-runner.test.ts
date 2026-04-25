@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
+import { MediaStreamTrack, RTCPeerConnection } from "werift";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
@@ -42,6 +43,26 @@ class MockWebSocket implements WebSocketConnection {
     this.applicationState = "disconnected";
   }
 }
+
+const makeRuntimeOfferSignal = async () => {
+  const peer = new RTCPeerConnection();
+  peer.createDataChannel("runtime-smoke");
+  peer.addTrack(new MediaStreamTrack({ kind: "video" }));
+  await peer.setLocalDescription(await peer.createOffer());
+
+  return {
+    peer,
+    signal: {
+      signal_type: "offer",
+      source: "operator",
+      target: "runtime",
+      description: {
+        type: "offer",
+        sdp: peer.localDescription!.sdp
+      }
+    }
+  };
+};
 
 const resolveExecutor = () => ({
   async process() {
@@ -248,12 +269,12 @@ describe("UnifiedWebSocketRunner", () => {
     expect(response.error).toBeUndefined();
     expect(response).toMatchObject({ ok: true });
     expect(typeof response.job_id).toBe("string");
-    expect(response.status).toBe("running");
+    expect(response.status).toBe("starting");
 
     const sessions = realtimeSessionManager.listSessions("1");
     expect(sessions).toHaveLength(1);
     expect(sessions[0].job_id).toBe(response.job_id);
-    expect(sessions[0].status).toBe("running");
+    expect(sessions[0].status).toBe("starting");
     expect(sessions[0].transport).toBe("webrtc");
     expect(sessions[0].media_tracks).toEqual([
       {
@@ -284,11 +305,10 @@ describe("UnifiedWebSocketRunner", () => {
           status: "starting"
         }),
         expect.objectContaining({
-          type: "realtime_session_updated",
+          type: "realtime_session_started",
           workflow_id: "workflow-1",
           job_id: response.job_id,
-          status: "running",
-          transport: "webrtc"
+          status: "starting"
         })
       ])
     );
@@ -514,6 +534,69 @@ describe("UnifiedWebSocketRunner", () => {
     await runner.disconnect();
   });
 
+  it("closes backend WebRTC sessions on websocket disconnect", async () => {
+    await runner.connect(ws);
+
+    await runner.handleCommand({
+      command: "start_realtime_session",
+      data: {
+        workflow_id: "workflow-backend-signal",
+        transport: "webrtc",
+        media_tracks: [
+          {
+            track_id: "video-track-1",
+            kind: "video",
+            node_id: "camera",
+            input_name: "video"
+          }
+        ],
+        graph: {
+          nodes: [
+            { id: "camera", type: "test.Input", name: "video" },
+            { id: "sink", type: "test.Sink", name: "sink" }
+          ],
+          edges: [
+            {
+              source: "camera",
+              sourceHandle: "value",
+              target: "sink",
+              targetHandle: "value",
+              edge_type: "data"
+            }
+          ],
+        }
+      }
+    });
+    const [session] = realtimeSessionManager.listSessions("1");
+    const { peer, signal } = await makeRuntimeOfferSignal();
+
+    try {
+      const response = await runner.handleCommand({
+        command: "signal_realtime_session",
+        data: {
+          session_id: session.session_id,
+          signaling_status: "negotiating",
+          signal
+        }
+      });
+      const server = (
+        runner as unknown as {
+          realtimeWebRTCServer: { getSessionState(sessionId: string): string };
+        }
+      ).realtimeWebRTCServer;
+
+      expect(response.ok).toBe(true);
+      expect(server.getSessionState(session.session_id)).toBe("running");
+      expect(
+        realtimeSessionManager.getSession(session.session_id, "1")?.status
+      ).toBe("running");
+      await runner.disconnect();
+      expect(server.getSessionState(session.session_id)).toBe("closed");
+    } finally {
+      await peer.close();
+    }
+  });
+
   it("stops realtime sessions and emits a session-stopped event", async () => {
     await runner.connect(ws);
 
@@ -549,9 +632,17 @@ describe("UnifiedWebSocketRunner", () => {
     });
 
     expect(response.ok).toBe(true);
-    expect(realtimeSessionManager.listSessions("1")).toHaveLength(0);
+    expect(realtimeSessionManager.listSessions("1")).toHaveLength(1);
+    expect(
+      realtimeSessionManager.getSession(session.session_id, "1")?.status
+    ).toBe("stopped");
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+    const stoppedEvents = sent.filter(
+      (message) => message.type === "realtime_session_stopped"
+    );
+    expect(stoppedEvents).toHaveLength(1);
     expect(sent).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

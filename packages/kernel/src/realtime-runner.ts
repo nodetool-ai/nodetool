@@ -9,7 +9,9 @@ import {
 import type { RealtimeSessionInfo } from "@nodetool/protocol";
 
 export interface RealtimeRunnerOptions
-  extends Omit<WorkflowRunnerOptions, "runMode"> {}
+  extends Omit<WorkflowRunnerOptions, "runMode"> {
+  stopTimeoutMs?: number;
+}
 
 export type RealtimeParameterUpdateResult = ParameterUpdateResult;
 
@@ -24,10 +26,13 @@ export class RealtimeRunner {
   readonly runner: WorkflowRunner;
   private processingPromise: Promise<void> | null = null;
   private sessionInfo: RealtimeSessionInfo | null = null;
+  private readonly stopTimeoutMs: number;
 
   constructor(jobId: string, options: RealtimeRunnerOptions) {
+    const { stopTimeoutMs = 5_000, ...runnerOptions } = options;
+    this.stopTimeoutMs = stopTimeoutMs;
     this.runner = new WorkflowRunner(jobId, {
-      ...options,
+      ...runnerOptions,
       runMode: "realtime"
     });
   }
@@ -63,7 +68,7 @@ export class RealtimeRunner {
       this.runner.finishControlStreams();
 
       if (this.processingPromise) {
-        await this.processingPromise;
+        await this.waitForStop(this.processingPromise);
       }
     } catch (error) {
       this.appendFailureMessage(failureMessages, error);
@@ -129,5 +134,28 @@ export class RealtimeRunner {
   private appendFailureMessage(messages: string[], error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
     messages.push(message);
+  }
+
+  private async waitForStop(promise: Promise<void>): Promise<void> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => {
+            this.runner.cancel();
+            reject(
+              new Error(
+                `Realtime stop timed out after ${this.stopTimeoutMs}ms`
+              )
+            );
+          }, this.stopTimeoutMs);
+        })
+      ]);
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
   }
 }

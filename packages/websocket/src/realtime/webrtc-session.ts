@@ -74,7 +74,14 @@ export class RealtimeWebRTCSession {
     if (this.state === "closed") {
       return;
     }
-    this.frameRouter?.finish();
+
+    try {
+      this.frameRouter?.finish();
+    } catch {
+      // Teardown must still release peer resources when a saved mapping points
+      // at a missing/stale realtime input.
+    }
+
     await Promise.resolve(this.peer.close());
     this.state = "closed";
   }

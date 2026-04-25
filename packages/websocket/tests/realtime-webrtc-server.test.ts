@@ -101,6 +101,89 @@ describe("RealtimeWebRTCServer", () => {
 
     expect(server.getSessionState("session-1")).toBe("closed");
   });
+
+  it("closes peers even when frame-router stream finishing fails", async () => {
+    const server = new RealtimeWebRTCServer({
+      emitSessionSignal: async () => undefined,
+      getRunnerForSession: () => ({
+        pushInputValue: vi.fn().mockResolvedValue(undefined),
+        finishInputStream: vi.fn(() => {
+          throw new Error("stale mapping");
+        })
+      })
+    });
+    const { peer, signal } = await makeOfferSignal();
+
+    try {
+      await server.handleSignal(session(), signal);
+      await expect(server.stopSession("session-1")).resolves.toBeUndefined();
+    } finally {
+      await peer.close();
+    }
+
+    expect(server.getSessionState("session-1")).toBe("closed");
+  });
+
+  it("stops multiple sessions with bounded independent results", async () => {
+    const server = new RealtimeWebRTCServer({
+      emitSessionSignal: async () => undefined
+    });
+    const firstOffer = await makeOfferSignal();
+    const secondOffer = await makeOfferSignal();
+
+    try {
+      await server.handleSignal(
+        session({ session_id: "session-1" }),
+        firstOffer.signal
+      );
+      await server.handleSignal(
+        session({ session_id: "session-2" }),
+        secondOffer.signal
+      );
+
+      const result = await server.stopSessions(["session-1", "session-2"]);
+
+      expect(result).toEqual({
+        closed: ["session-1", "session-2"],
+        failed: []
+      });
+      expect(server.getSessionState("session-1")).toBe("closed");
+      expect(server.getSessionState("session-2")).toBe("closed");
+    } finally {
+      await firstOffer.peer.close();
+      await secondOffer.peer.close();
+    }
+  });
+
+  it("does not let one stuck session close block multi-session teardown", async () => {
+    const server = new RealtimeWebRTCServer({
+      emitSessionSignal: async () => undefined,
+      stopTimeoutMs: 10
+    });
+    (
+      server as unknown as {
+        sessions: Map<string, { close(): Promise<void>; getState(): string }>;
+      }
+    ).sessions.set("stuck-session", {
+      async close() {
+        await new Promise<void>(() => undefined);
+      },
+      getState() {
+        return "running";
+      }
+    });
+
+    const result = await server.stopSessions(["stuck-session", "missing-session"]);
+
+    expect(result.closed).toEqual(["missing-session"]);
+    expect(result.failed).toEqual([
+      {
+        sessionId: "stuck-session",
+        error: "WebRTC session stop timed out after 10ms"
+      }
+    ]);
+    expect(server.getSessionState("stuck-session")).toBe("closed");
+  });
 });
 
 describe("FrameRouter", () => {

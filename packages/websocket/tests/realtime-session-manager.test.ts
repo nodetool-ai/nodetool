@@ -83,7 +83,7 @@ describe("RealtimeSessionManager", () => {
     expect(updated?.signaling.last_signal_type).toBe("answer");
   });
 
-  it("stops and removes sessions", () => {
+  it("stops sessions but retains them until the retention sweeper removes them", () => {
     const session = realtimeSessionManager.createSession({
       userId: "user-1",
       workflowId: "workflow-1"
@@ -92,6 +92,17 @@ describe("RealtimeSessionManager", () => {
     const stopped = realtimeSessionManager.stopSession(session.session_id, "user-1");
 
     expect(stopped?.status).toBe("stopped");
+    expect(realtimeSessionManager.listSessions("user-1")).toHaveLength(1);
+    expect(
+      realtimeSessionManager.getSession(session.session_id, "user-1")?.status
+    ).toBe("stopped");
+
+    const swept = realtimeSessionManager.sweepTerminalSessions({
+      olderThanMs: 0,
+      now: new Date(Date.now() + 1_000)
+    });
+
+    expect(swept).toEqual([session.session_id]);
     expect(realtimeSessionManager.listSessions("user-1")).toHaveLength(0);
   });
 });

@@ -15,7 +15,8 @@
 - [ ] Phase 2 first proof
 - [ ] Phase 3 browser/JS realtime inference
 - [ ] Phase 4 workflow integration
-- [ ] Phase 5 expansion adapters
+- [ ] Phase 5 deployed realtime worker readiness
+- [ ] Phase 6 expansion adapters
 
 ## How to use this plan now
 
@@ -51,7 +52,7 @@ Rules for the remaining work:
   - `werift` supports WebRTC, RTP, and codec payload parsing, but payload parsing is not the same as guaranteed pixel decode/encode. Treat codec handling as the risky part of the spike.
   - If `werift` cannot expose decoded/encoded frames cleanly enough, switch to `@roamhq/wrtc` or isolate a codec bridge before building the full server.
   - Spike result: `werift` proves offer-answer, ICE connection, inbound RTP delivery, and clean teardown in `packages/websocket/tests/realtime-webrtc-spike.test.ts`. Pure `werift` does not decode RTP payloads into raw `VideoFrame` pixels or encode raw frames into RTP; browser-node interop and RTP frame assembly remain unproven. 8b must include either a codec bridge or an alternate WebRTC stack before production media routing.
-- [ ] **8b. Stand up `RealtimeWebRTCServer` and `frame-router`.**
+- [x] **8b. Stand up `RealtimeWebRTCServer` and `frame-router`.**
   - Own per-session peers, SDP/ICE handling, track mapping, frame decode/encode, outbound sink tracks, and metrics.
   - Replace the `/realtime` in-browser loopback with one operator peer connected to the backend.
   - Model the server around explicit session objects that own peer connection(s), track handlers, codec bridge, frame router bindings, and teardown callbacks. `RealtimeCommandHandler` should delegate signaling into this object instead of owning media behavior.
@@ -60,12 +61,14 @@ Rules for the remaining work:
   - Route inbound decoded frames through `RealtimeRunner.pushInputValue(inputName, frame)` using `media_tracks` mapping. End inbound streams with `finishInputStream(inputName, "frame")` or the equivalent source handle on teardown.
   - Give every outbound sink consumer its own bounded queue: browser preview, recording/export, hardware adapters, and chained workflow egress must not share one destructive consumer queue.
   - Add a minimal pacing helper for outbound sink tracks so preview cadence, frame age, and reconnect discontinuities are handled outside codec and model code.
-- [ ] **8c. Tighten realtime lifecycle and teardown.**
+  - 8b result: landed the conservative backend shell in `packages/websocket/src/realtime/`: `RealtimeWebRTCServer`, per-session `werift` peer ownership, `FrameRouter`, `UnsupportedCodecBridge`, bounded per-consumer media queues, and pacing helper. `RealtimeCommandHandler` now delegates runtime-targeted WebRTC signals into the backend server, while non-backend/fallback signaling still relays over the control plane. `/realtime` keeps browser-browser loopback by default and adds guarded backend smoke mode via `?webrtcRuntime=backend`, showing codec status honestly as unsupported until a real codec bridge is proven.
+- [x] **8c. Tighten realtime lifecycle and teardown.**
   - `starting → running` waits for runtime startup plus WebRTC readiness when `transport: "webrtc"`.
   - Add TS stop timeout/cancellation so `stopRealtimeMode()` cannot hang forever on long-lived nodes.
   - Keep stopped/error sessions visible long enough for history/reconnect; add a sweeper instead of immediate deletion.
   - Define deterministic close order for media sessions: stop inbound/outbound tracks and per-consumer queues, stop frame-router pumps, close codec bridge resources, close peer connections, then stop the `RealtimeRunner`.
   - Stop many sessions with bounded async waits and aggregate errors so one stuck peer does not prevent other sessions from closing.
+  - 8c result: WebRTC session start now remains `starting` until the backend WebRTC session answers and reports runtime readiness, then promotes to `running`. `RealtimeRunner.stopRealtimeMode()` has a bounded `stopTimeoutMs` path that cancels and returns a failed snapshot instead of hanging on non-cooperative realtime nodes. Stopped/error sessions remain queryable until `sweepTerminalSessions()` removes old terminal records. Backend WebRTC teardown now exposes `stopSessions()` with per-session closed/failed results, and disconnect uses that bounded multi-session path.
 - [ ] **8d. Add `realtime_metrics`.**
   - Add the control-plane message in `packages/protocol/src/messages.ts`.
   - Emit fps, queue depth, dropped frames, and peer state every ~500 ms.
@@ -95,6 +98,10 @@ Rules for the remaining work:
   - Add package/runtime boundaries for browser-local, Electron-renderer, and Node-side JS inference.
   - Route pose, landmarks, captions, classifications, and other analysis outputs through existing session/control/event surfaces instead of the media transport unless they are actual media frames.
   - Add model loading, cache, backend capability, and metrics surfaces for `webgpu` / `wasm` / `cpu`.
+- [ ] **13. Make realtime work from deployed NodeTool workers.**
+  - Treat this as deployment hardening for the existing NodeTool deploy path, not a separate Scope-style cloud runner.
+  - Must-have: HTTPS/WSS, auth, proxy, ICE/STUN/TURN, worker placement, metrics, reconnect, and public output URL behavior.
+  - Nice-to-have: WHIP/WHEP, remote media brokering, entitlements, multi-region routing, and richer operations dashboards.
 
 ## Core decisions
 
@@ -128,7 +135,7 @@ Based on research into high-performance real-time generative video systems (like
 - **LongLive:** NVlabs LongLive is public, Apache 2.0, Wan2.1-based, and reports 20.7 FPS on one H100 plus 24.8 FPS with FP8 quantization. Keep exact FPS claims tied to upstream hardware, not consumer GPUs.
 - **Native FP8:** NVIDIA Transformer Engine documents FP8 support on Ada/Hopper/Blackwell with compute capability 8.9+. Ampere should route to GGUF/FP16/INT8 fallbacks.
 - **WebRTC bitrate:** browser sender bitrate should be tuned via `RTCRtpSender.getParameters()` → mutate `encodings[0].maxBitrate` → `setParameters()`, with Safari/Firefox fallback handling.
-- **werift:** good Node-first choice for WebRTC/RTP, but pixel decode/encode still needs a spike before full implementation.
+- **werift:** good Node-first choice for WebRTC/RTP and now owns the first backend peer/session shell. Pixel decode/encode remains behind `UnsupportedCodecBridge`; do not claim graph-connected pixels until a real bridge or alternate stack proves raw frame conversion.
 - **Scope architecture sanity check:** `daydreamlive/scope` validates the broad split: thin UI shell, long-lived media service/session objects, bounded queues between transport and inference, per-consumer output queues, explicit media packet types, deterministic teardown, pacing helpers, and structured heartbeat/metrics. Use these as architecture inspiration, not code to copy.
 - **Self-Forcing community weights:** FP8/GGUF low-VRAM artifacts exist, including ComfyUI-oriented 6 GB VRAM workflows, but treat them as experimental until source, license, and quality are validated.
 
@@ -137,8 +144,8 @@ Based on research into high-performance real-time generative video systems (like
 - Realtime session start creates a linked `job_id`, accepts unsaved graph payloads, and starts a workflow-backed runtime.
 - `RealtimeRunner` exists, composes `WorkflowRunner`, and is wired into the websocket production path for realtime sessions.
 - `pushParameter(name, value)` routes live control updates to `nodetool.realtime.Parameter` nodes.
-- `/realtime` is still an incubation page. It proves browser capture and signaling, but media is not yet delivered into the backend graph.
-- Server-side WebRTC termination, frame routing, metrics, stop timeouts, and reconnect/session-retention semantics are still pending.
+- `/realtime` is still an incubation page. It proves browser capture and loopback signaling by default, and has a guarded backend WebRTC smoke mode via `?webrtcRuntime=backend`.
+- Server-side WebRTC termination and frame-router boundaries exist, but decoded media is not yet delivered into the backend graph because the codec bridge intentionally reports unsupported. Metrics, stop timeouts, and reconnect/session-retention semantics are still pending.
 - `RealtimeAudioInput` shows the existing streaming-input pattern; `VideoInput` remains an asset/reference input, not a live media source.
 
 ## Existing event-driven primitives we build on
@@ -679,7 +686,43 @@ Make realtime authoring and operation feel native inside NodeTool.
 - [ ] Add live control groups for prompt steering, diffusion strength, ControlNet settings, and LoRA weight (reusing existing UI property components like `NodeSlider`, `TextProperty`, etc.).
 - [ ] Add reusable preprocessor and effects stages that fit the standard workflow model.
 
-## Phase 5 - Expansion adapters
+## Phase 5 - Deployed realtime worker readiness
+
+**Goal**
+
+Make realtime sessions work reliably when NodeTool is running as a deployed instance with remote browsers, authenticated users, reverse proxies, and potentially separate GPU/model workers.
+
+This is **not** a new cloud-runner architecture. NodeTool can already be deployed; this phase hardens the realtime substrate so deployed workers behave like local realtime sessions, with clear network, auth, worker-placement, and observability contracts.
+
+**Done when**
+
+- a remote browser can start, signal, preview, reconnect to, and stop a realtime session over a deployed HTTPS/WSS NodeTool endpoint
+- WebRTC connectivity works outside localhost through explicit ICE/STUN/TURN configuration
+- realtime model workers can run beside or behind the deployed app without breaking session identity, auth, metrics, or asset/output routing
+- operators have enough metrics and logs to debug failed remote peers, codec failures, worker crashes, and reconnect behavior
+
+**Must-have tasks**
+
+- [ ] Define deployed realtime topology: single-host app+worker, app server plus local GPU worker, and app server plus remote GPU worker. Document which topology the first deployed release supports and which fields identify the worker that owns a session.
+- [ ] Require secure browser-facing endpoints for deployed realtime: HTTPS for capture APIs, WSS for control/signaling, correct origin checks, and reverse-proxy headers.
+- [ ] Add configurable ICE/STUN/TURN settings for the backend WebRTC server and browser peer. Surface selected ICE policy and connection state in `realtime_metrics`.
+- [ ] Audit reverse-proxy compatibility for realtime endpoints: WebSocket upgrade paths, signaling routes, backend WebRTC HTTP routes, idle timeouts, request body limits for SDP/ICE payloads, and sticky routing if session state is process-local.
+- [ ] Enforce auth and session ownership on `start_realtime_session`, `signal_realtime_session`, `update_realtime_session`, `stop_realtime_session`, metrics subscription, and reconnect/list/get routes.
+- [ ] Define worker placement and routing for Python realtime sessions: how the deployed app chooses a GPU/model worker, how it forwards `start_session` / frame / parameter / stop messages, and how it handles worker loss.
+- [ ] Make public preview/output/recording URLs deployment-aware so assets and realtime exports resolve correctly behind a proxy or hosted domain.
+- [ ] Add deployed failure metrics and logs: ICE failure reason, TURN usage, peer disconnect reason, codec bridge status, worker id, worker crash/timeout, dropped frames, reconnect count, and auth rejection reason.
+- [ ] Add a deployed smoke test or runbook that covers remote browser start → WebRTC connect → frame route → parameter update → metrics → reconnect → stop.
+
+**Nice-to-have tasks**
+
+- [ ] Add WHIP / WHEP ingest and egress endpoints for standards-compliant OBS/vMix/broadcast interoperability.
+- [ ] Add optional remote media brokering when direct WebRTC between browser and worker is impossible or undesirable.
+- [ ] Add entitlement/rate-limit controls for long-running realtime sessions, GPU worker allocation, and TURN bandwidth.
+- [ ] Add multi-region or nearest-worker routing for hosted deployments.
+- [ ] Add a richer operations dashboard for active realtime sessions, peer state, worker load, GPU memory, queue depth, and TURN usage.
+- [ ] Add admin controls to evict stuck sessions, drain a worker, or force reconnect operators to a replacement worker.
+
+## Phase 6 - Expansion adapters
 
 **Goal**
 
@@ -700,8 +743,8 @@ Extend the realtime system through clear media and control adapters after the fi
 - [ ] Add `Spout` output and routing adapters
 - [ ] Add `Syphon` adapters using the same media-adapter model
 - [ ] Add `MIDI`, `OSC`, `DMX`, and `timecode` control or sync adapters
-- [ ] Add **WHIP / WHEP** ingest and egress endpoints alongside the existing custom WebSocket signaling — exposes realtime sessions as standards-compliant WebRTC participants so OBS, vMix, hosted broadcast services, and other NodeTool instances can push frames in or pull preview/output out without custom signaling. Sits on the same `RealtimeWebRTCServer` from Phase 2 — adds two HTTP routes (`POST /api/realtime/sessions/:id/whip` and `/whep`) and reuses the existing peer/track plumbing. Pairs naturally with "Chained realtime workflows" (one session's WHEP egress = another's WHIP ingest).
-- [ ] Add optional remote brokering and entitlement layers on top of the same session contract
+- [ ] Integrate WHIP / WHEP endpoints from Phase 5 into adapter discovery and workflow templates where they act as normal realtime ingress/egress nodes.
+- [ ] Add optional remote brokering and entitlement layers on top of the same session contract if Phase 5 proves they are needed beyond deployment hardening.
 
 ## Namespace policy
 
@@ -734,7 +777,8 @@ Remaining:
 - [ ] Step 10b: Self-Forcing
 - [ ] Step 11: canonical workflow template
 - [ ] Step 12 / Phase 3: browser/JS realtime inference
-- [ ] Adapter roadmap for `NDI` and `Spout`
+- [ ] Step 13 / Phase 5: deployed realtime worker readiness
+- [ ] Phase 6 adapter roadmap for `NDI` and `Spout`
 
 ## Follow-up tasks discovered while starting the plan
 
@@ -753,6 +797,7 @@ Still active:
 - [ ] Transport readiness and backend WebRTC connection are tracked in step 8c.
 - [ ] `realtime_metrics` is tracked in step 8d.
 - [ ] Session retention/reconnect is tracked in step 8c and Phase 4.
+- [ ] Deployed realtime worker behavior is tracked in Phase 5.
 
 ## Notes / maybe later
 
@@ -770,6 +815,7 @@ Still active:
 - [x] Check that future audio, sync, and control adapters fit the same boundaries
 - [ ] Check that the WebRTC media plane and WebSocket control plane remain cleanly separated and non-blocking
 - [ ] Check that browser/JS inference stays on explicit session/control/event contracts instead of becoming ad hoc UI-only behavior
+- [ ] Check that deployed realtime worker support is framed as hardening for existing NodeTool deployments, not a separate cloud product
 
 ## Future ideas
 
@@ -895,8 +941,8 @@ Realtime-suitability flags: ✅ tested realtime (>20 fps for video, <200 ms for 
 |---|---|---|---|---|---|
 | 21 | **werift** (preferred) / `@roamhq/wrtc` | Node-side WebRTC stack | ✅ | Apache 2.0 / MIT | Phase 2 substrate prerequisite (already in plan) |
 | 22 | **PyAV (FFmpeg)** | Codec / container handling for the WebRTC frame router | ✅ | BSD-3 | Backend frame router |
-| 23 | **PyVideoProc** | CUDA-accelerated multi-stream decode → infer → encode pipeline | ✅ | BSD-2 | Reference for headless / server realtime mode (Phase 5) |
-| 24 | **NDI / Spout / Syphon native bindings** | Pro AV interop adapters | ✅ | platform-specific | Phase 5 adapter nodes (already on roadmap) |
+| 23 | **PyVideoProc** | CUDA-accelerated multi-stream decode → infer → encode pipeline | ✅ | BSD-2 | Reference for headless / server realtime mode (Phase 6) |
+| 24 | **NDI / Spout / Syphon native bindings** | Pro AV interop adapters | ✅ | platform-specific | Phase 6 adapter nodes (already on roadmap) |
 | 25 | **Krea Realtime 14B** (and likely distilled/smaller variants when they ship) | High-fidelity diffusion alternative to the 1.3B baseline | ⚠️ (32 GB+ VRAM today; reachable for many users on a 4090/5090/A6000) | various | **Fast-follow after the 1.3B baseline** (the LongLive / Self-Forcing model nodes in Phase 2). Not blocked by anything beyond proving the substrate end-to-end with the smaller model first; pull it forward as soon as a user case calls for the quality bump. Watch for distilled/quantized variants from Krea — those would shift this entry up a tier. |
 | 25b | **FLUX.2 Klein / Hyper-SDXL** and other large diffusion variants | Premium fidelity, larger memory budget | ⚠️ (varies, mostly 24–32 GB+) | various | Exploratory — slot in as additional model nodes once the substrate is proven; same VRAM-aware validation pattern as Krea 14B. |
 | 26 | **Custom TensorRT / CUDA kernels** | Final mile of latency optimization for any of the above | — | — | Only when profiling proves a bottleneck the upstream library can't address |
@@ -925,6 +971,6 @@ To keep the realtime namespace small and let environments install only what they
 - `packages/realtime-audio/` — Aubio analysis, Moonshine STT, Kokoro/Piper TTS
 - `packages/realtime-controlnet/` — the five SD2.1 ControlNet preprocessors wired into the diffusion node
 - `packages/realtime-vlm/` — Moondream / SmolVLM
-- `packages/realtime-adapters/` — NDI / Spout / Syphon / MIDI / OSC (Phase 5 home)
+- `packages/realtime-adapters/` — NDI / Spout / Syphon / MIDI / OSC (Phase 6 home)
 
 A VJ rig wants `realtime-audio` + `realtime-vision` + `realtime-controlnet`. An installation wants `realtime-adapters`. A captioner wants `realtime-vlm` + `realtime-audio`. The substrate is required by all.

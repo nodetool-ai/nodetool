@@ -491,6 +491,113 @@ describe("RealtimeRunner skeleton", () => {
     expect(result.outputs.result).toEqual([7]);
   });
 
+  it("bounds stopRealtimeMode so non-cooperative realtime nodes cannot hang teardown forever", async () => {
+    const stuckExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run() {
+        await new Promise<void>(() => undefined);
+      }
+    };
+    const realtimeRunner = new RealtimeRunner("rt-stuck-stop", {
+      executionContext: mockProcessingContext,
+      stopTimeoutMs: 10,
+      resolveExecutor: (node) => {
+        if (node.id === "stuck") {
+          return stuckExecutor;
+        }
+        return simpleExecutor((inputs) => inputs);
+      }
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      {
+        job_id: "rt-stuck-stop"
+      },
+      {
+        nodes: [
+          {
+            id: "source",
+            type: "test.Input",
+            name: "camera",
+            is_streaming_output: true,
+            is_media_adapter: true
+          },
+          {
+            id: "stuck",
+            type: "test.StuckRealtimeNode",
+            is_streaming_input: true,
+            owns_warm_state: true
+          }
+        ],
+        edges: [
+          {
+            source: "source",
+            sourceHandle: "value",
+            target: "stuck",
+            targetHandle: "frame"
+          }
+        ]
+      },
+      realtimeSession({
+        session_id: "rt-stuck-stop",
+        job_id: "rt-stuck-stop"
+      })
+    );
+
+    const result = await realtimeRunner.stopRealtimeMode("cancelled");
+
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain("Realtime stop timed out");
+  });
+
+  it("bounds warm-state stop hooks so teardown cannot hang forever", async () => {
+    const stuckStopExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async onSessionStop() {
+        await new Promise<void>(() => undefined);
+      }
+    };
+    const realtimeRunner = new RealtimeRunner("rt-stuck-stop-hook", {
+      executionContext: mockProcessingContext,
+      stopTimeoutMs: 10,
+      resolveExecutor: (node) => {
+        if (node.id === "warm") {
+          return stuckStopExecutor;
+        }
+        return simpleExecutor((inputs) => inputs);
+      }
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      {
+        job_id: "rt-stuck-stop-hook"
+      },
+      {
+        nodes: [
+          {
+            id: "warm",
+            type: "test.StuckWarmStop",
+            owns_warm_state: true
+          }
+        ],
+        edges: []
+      },
+      realtimeSession({
+        session_id: "rt-stuck-stop-hook",
+        job_id: "rt-stuck-stop-hook"
+      })
+    );
+
+    const result = await realtimeRunner.stopRealtimeMode("cancelled");
+
+    expect(result.status).toBe("failed");
+    expect(result.error).toContain("Realtime stop timed out");
+  });
+
   it("fails warm-state startup without an execution context", async () => {
     const realtimeRunner = new RealtimeRunner("rt-no-context", {
       resolveExecutor: () => simpleExecutor((inputs) => inputs)

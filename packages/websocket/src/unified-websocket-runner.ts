@@ -956,6 +956,7 @@ export class UnifiedWebSocketRunner {
     this.toolBridge.cancelAll();
 
     this.currentTask = null;
+    const realtimeSessionIds = [...this.realtimeSessionJobs.keys()];
     for (const [jobId, job] of this.activeJobs) {
       if (job.comfyHandle) {
         job.comfyHandle.cancel();
@@ -970,6 +971,7 @@ export class UnifiedWebSocketRunner {
       }
       this.activeJobs.delete(jobId);
     }
+    await this.realtimeWebRTCServer.stopSessions(realtimeSessionIds);
 
     if (this.websocket) {
       try {
@@ -1104,6 +1106,7 @@ export class UnifiedWebSocketRunner {
 
     const stopped = realtimeSessionManager.stopSession(sessionId, userId);
     if (stopped) {
+      await this.realtimeWebRTCServer.stopSession(sessionId);
       await this.emitRealtimeSessionStopped(
         stopped,
         reason ?? (status === "failed" ? "error" : status)

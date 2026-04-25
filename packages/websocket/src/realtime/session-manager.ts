@@ -32,6 +32,11 @@ interface UpdateRealtimeSessionInput {
   signaling?: Partial<RealtimeSessionSignalingState>;
 }
 
+interface SweepTerminalSessionsInput {
+  olderThanMs: number;
+  now?: Date;
+}
+
 const cloneParameters = (
   parameters?: Record<string, unknown>
 ): Record<string, unknown> => ({ ...(parameters ?? {}) });
@@ -184,8 +189,30 @@ export class RealtimeSessionManager {
       session.status = "stopped";
     }
     session.updated_at = new Date().toISOString();
-    this.sessions.delete(sessionId);
+    this.sessions.set(sessionId, session);
     return toPublicSession(session);
+  }
+
+  sweepTerminalSessions(input: SweepTerminalSessionsInput): string[] {
+    const nowMs = (input.now ?? new Date()).getTime();
+    const thresholdMs = Math.max(0, input.olderThanMs);
+    const removedSessionIds: string[] = [];
+
+    for (const session of this.sessions.values()) {
+      if (session.status !== "stopped" && session.status !== "error") {
+        continue;
+      }
+
+      const updatedAtMs = new Date(session.updated_at).getTime();
+      if (Number.isNaN(updatedAtMs) || nowMs - updatedAtMs < thresholdMs) {
+        continue;
+      }
+
+      this.sessions.delete(session.session_id);
+      removedSessionIds.push(session.session_id);
+    }
+
+    return removedSessionIds;
   }
 
   reset(): void {

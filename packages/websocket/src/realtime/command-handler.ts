@@ -58,6 +58,7 @@ export interface RealtimeWebRTCServerDependency {
     signal: NormalizedRealtimeSignal
   ): Promise<void>;
   stopSession(sessionId: string): Promise<void>;
+  getSessionState?(sessionId: string): string;
 }
 
 export interface RealtimeCommandHandlerDependencies {
@@ -411,13 +412,14 @@ export class RealtimeCommandHandler {
 
     await this.dependencies.emitSessionStarted(session);
 
-    const runningSession = realtimeSessionManager.updateSession(
-      session.session_id,
-      userId,
-      { status: "running" }
-    );
-    if (runningSession) {
-      await this.dependencies.emitSessionUpdated(runningSession);
+    const shouldWaitForTransportReadiness = session.transport === "webrtc";
+    const readySession = shouldWaitForTransportReadiness
+      ? session
+      : realtimeSessionManager.updateSession(session.session_id, userId, {
+          status: "running"
+        });
+    if (readySession && !shouldWaitForTransportReadiness) {
+      await this.dependencies.emitSessionUpdated(readySession);
     }
 
     return {
@@ -427,7 +429,7 @@ export class RealtimeCommandHandler {
       session_id: session.session_id,
       workflow_id: session.workflow_id,
       job_id: jobId,
-      status: "running"
+      status: readySession?.status ?? session.status
     };
   }
 
@@ -601,6 +603,31 @@ export class RealtimeCommandHandler {
 
     if (handledByWebRTCServer && signal) {
       await this.dependencies.realtimeWebRTCServer!.handleSignal(session, signal);
+      if (
+        session.status === "starting" &&
+        this.dependencies.realtimeWebRTCServer!.getSessionState?.(
+          session.session_id
+        ) === "running"
+      ) {
+        const runningSession = realtimeSessionManager.updateSession(
+          session.session_id,
+          this.getUserId(),
+          { status: "running" }
+        );
+        if (runningSession) {
+          await this.dependencies.emitSessionUpdated(runningSession);
+          return {
+            type: "realtime_session_ack",
+            ok: true,
+            action: "signal",
+            session_id: runningSession.session_id,
+            workflow_id: runningSession.workflow_id,
+            job_id: runningSession.job_id,
+            status: runningSession.status,
+            signaling_status: runningSession.signaling.status
+          };
+        }
+      }
     }
 
     if (signal && !handledByWebRTCServer) {

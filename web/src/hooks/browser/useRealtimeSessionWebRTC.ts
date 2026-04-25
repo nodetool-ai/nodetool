@@ -4,17 +4,23 @@ import type { RealtimeSignalingStatus } from "@nodetool/protocol";
 
 import { realtimeSessionClient } from "../../lib/websocket/RealtimeSessionClient";
 
+export type RealtimeWebRTCRuntimeMode = "loopback" | "backend";
+type RealtimeWebRTCCodecStatus = "loopback" | "unsupported";
+
 interface UseRealtimeSessionWebRTCOptions {
   sessionId: string | null;
   workflowId: string | null;
   localStream: MediaStream | null;
   enabled: boolean;
+  runtimeMode?: RealtimeWebRTCRuntimeMode;
 }
 
 interface UseRealtimeSessionWebRTCResult {
   remoteStream: MediaStream | null;
   signalingStatus: RealtimeSignalingStatus;
   connectionState: RTCPeerConnectionState | "closed";
+  runtimeMode: RealtimeWebRTCRuntimeMode;
+  codecStatus: RealtimeWebRTCCodecStatus;
   error: string | null;
 }
 
@@ -22,7 +28,8 @@ export const useRealtimeSessionWebRTC = ({
   sessionId,
   workflowId,
   localStream,
-  enabled
+  enabled,
+  runtimeMode = "loopback"
 }: UseRealtimeSessionWebRTCOptions): UseRealtimeSessionWebRTCResult => {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [signalingStatus, setSignalingStatus] =
@@ -43,9 +50,10 @@ export const useRealtimeSessionWebRTC = ({
 
     let disposed = false;
     const operatorPeer = new RTCPeerConnection();
-    const runtimePeer = new RTCPeerConnection();
+    const runtimePeer =
+      runtimeMode === "loopback" ? new RTCPeerConnection() : null;
     const nextRemoteStream = new MediaStream();
-    setRemoteStream(nextRemoteStream);
+    setRemoteStream(runtimePeer ? nextRemoteStream : null);
     setSignalingStatus("negotiating");
     setConnectionState("new");
     setError(null);
@@ -75,7 +83,10 @@ export const useRealtimeSessionWebRTC = ({
         return;
       }
 
-      const states = [operatorPeer.connectionState, runtimePeer.connectionState];
+      const states = [
+        operatorPeer.connectionState,
+        ...(runtimePeer ? [runtimePeer.connectionState] : [])
+      ];
       const nextState = states.includes("failed")
         ? "failed"
         : states.includes("connected")
@@ -97,19 +108,23 @@ export const useRealtimeSessionWebRTC = ({
     };
 
     operatorPeer.onconnectionstatechange = syncConnectionState;
-    runtimePeer.onconnectionstatechange = syncConnectionState;
+    if (runtimePeer) {
+      runtimePeer.onconnectionstatechange = syncConnectionState;
+    }
 
-    runtimePeer.ontrack = (event) => {
-      const sourceStream = event.streams[0];
-      if (sourceStream) {
-        sourceStream.getTracks().forEach((track) => {
-          nextRemoteStream.addTrack(track);
-        });
-        return;
-      }
+    if (runtimePeer) {
+      runtimePeer.ontrack = (event) => {
+        const sourceStream = event.streams[0];
+        if (sourceStream) {
+          sourceStream.getTracks().forEach((track) => {
+            nextRemoteStream.addTrack(track);
+          });
+          return;
+        }
 
-      nextRemoteStream.addTrack(event.track);
-    };
+        nextRemoteStream.addTrack(event.track);
+      };
+    }
 
     operatorPeer.onicecandidate = (event) => {
       if (!event.candidate) {
@@ -134,28 +149,30 @@ export const useRealtimeSessionWebRTC = ({
         });
     };
 
-    runtimePeer.onicecandidate = (event) => {
-      if (!event.candidate) {
-        return;
-      }
+    if (runtimePeer) {
+      runtimePeer.onicecandidate = (event) => {
+        if (!event.candidate) {
+          return;
+        }
 
-      void realtimeSessionClient
-        .signalSession(sessionId, workflowId, {
-          signal: {
-            signal_type: "ice_candidate",
-            source: "runtime",
-            target: "operator",
-            candidate: {
-              candidate: event.candidate.candidate,
-              sdpMid: event.candidate.sdpMid,
-              sdpMLineIndex: event.candidate.sdpMLineIndex
+        void realtimeSessionClient
+          .signalSession(sessionId, workflowId, {
+            signal: {
+              signal_type: "ice_candidate",
+              source: "runtime",
+              target: "operator",
+              candidate: {
+                candidate: event.candidate.candidate,
+                sdpMid: event.candidate.sdpMid,
+                sdpMLineIndex: event.candidate.sdpMLineIndex
+              }
             }
-          }
-        })
-        .catch((signalError) => {
-          log.warn("Failed to relay runtime ICE candidate", signalError);
-        });
-    };
+          })
+          .catch((signalError) => {
+            log.warn("Failed to relay runtime ICE candidate", signalError);
+          });
+      };
+    }
 
     const unsubscribe = realtimeSessionClient.subscribeToSignals(
       sessionId,
@@ -167,6 +184,10 @@ export const useRealtimeSessionWebRTC = ({
             }
 
             if (message.target === "runtime") {
+              if (!runtimePeer) {
+                return;
+              }
+
               if (
                 message.signal_type === "offer" &&
                 message.description?.type === "offer"
@@ -272,16 +293,18 @@ export const useRealtimeSessionWebRTC = ({
       disposed = true;
       unsubscribe();
       operatorPeer.close();
-      runtimePeer.close();
+      runtimePeer?.close();
       nextRemoteStream.getTracks().forEach((track) => track.stop());
       setConnectionState("closed");
     };
-  }, [enabled, localStream, sessionId, workflowId]);
+  }, [enabled, localStream, runtimeMode, sessionId, workflowId]);
 
   return {
     remoteStream,
     signalingStatus,
     connectionState,
+    runtimeMode,
+    codecStatus: runtimeMode === "backend" ? "unsupported" : "loopback",
     error
   };
 };

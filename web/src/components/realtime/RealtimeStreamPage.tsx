@@ -5,7 +5,7 @@ import {
   useState,
   type SyntheticEvent
 } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -26,6 +26,7 @@ import { useRealtimeSessionStore } from "../../stores/RealtimeSessionStore";
 
 const RealtimeStreamPage = () => {
   const { workflowId } = useParams<{ workflowId?: string }>();
+  const location = useLocation();
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
 
   const sessions = useRealtimeSessionStore((state) => state.sessions);
@@ -88,12 +89,23 @@ const RealtimeStreamPage = () => {
 
     return workflowSessions[0] ?? null;
   }, [activeSessionId, sessions, workflowSessions]);
-  const { remoteStream, signalingStatus, connectionState, error: webrtcError } =
-    useRealtimeSessionWebRTC({
+  const webrtcRuntimeMode = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("webrtcRuntime") === "backend" ? "backend" : "loopback";
+  }, [location.search]);
+  const {
+    remoteStream,
+    signalingStatus,
+    connectionState,
+    runtimeMode,
+    codecStatus,
+    error: webrtcError
+  } = useRealtimeSessionWebRTC({
       sessionId: activeSession?.session_id ?? null,
       workflowId: activeSession?.workflow_id ?? null,
       localStream: previewStream,
-      enabled: activeSession?.transport === "webrtc" && activeSession.status !== "error"
+      enabled: activeSession?.transport === "webrtc" && activeSession.status !== "error",
+      runtimeMode: webrtcRuntimeMode
     });
   const isStartSessionDisabled = useMemo(() => {
     return (
@@ -337,6 +349,12 @@ const RealtimeStreamPage = () => {
                    </Text>
                    <Text color="secondary">
                      Peer connection: {connectionState}
+                   </Text>
+                   <Text color="secondary">
+                     WebRTC runtime: {runtimeMode}
+                   </Text>
+                   <Text color="secondary">
+                     Codec bridge: {codecStatus}
                    </Text>
                    <Text color="secondary">
                      Local hook state: {signalingStatus}
