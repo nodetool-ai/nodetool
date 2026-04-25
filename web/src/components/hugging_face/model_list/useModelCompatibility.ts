@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from "react";
-import log from "loglevel";
 import type {
   NodeMetadata,
   Property,
@@ -380,7 +379,7 @@ export const useModelCompatibility = () => {
                 sampleIds: Array.from(entry.sampleIds)
               })
             );
-            log.warn("[ModelCompatibility] HF models missing coverage", summary);
+            console.warn("[ModelCompatibility] HF models missing coverage", summary);
             missingSummary.clear();
             missingSummaryTimeout = null;
           }, 1500);

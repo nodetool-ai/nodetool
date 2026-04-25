@@ -26,7 +26,6 @@ import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
-import log from "loglevel";
 import { shallow } from "zustand/shallow";
 
 // Function to calculate contrast color (black or white) for a given hex background
@@ -152,7 +151,7 @@ const styles = (theme: Theme) =>
 const initialConfigTemplate = {
   namespace: "CommentNodeEditor",
   onError: (error: Error) => {
-    log.error(error);
+    console.error(error);
   },
   nodes: [
     HeadingNode,

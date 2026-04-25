@@ -23,7 +23,6 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList as List } from "react-window";
 import { trpcClient } from "../../trpc/client";
 import type { FileInfo } from "../../stores/ApiTypes";
-import log from "loglevel";
 
 import {
   Breadcrumbs,
@@ -251,7 +250,7 @@ function FileBrowserDialog({
           }));
         setTreeItems(roots);
       } catch (e) {
-        log.error("Failed to load roots", e);
+        console.error("Failed to load roots", e);
       }
     };
     if (open && treeItems.length === 0) {
@@ -381,7 +380,7 @@ function FileBrowserDialog({
                 }));
               return { id: path, children: folders.length > 0 ? folders : [] };
             } catch (e) {
-              log.error(`Failed to load tree node ${path}`, e);
+              console.error(`Failed to load tree node ${path}`, e);
               // Return empty children on failure to stop loading spinner (if any)
               // But if the node doesn't exist, this update will just be ignored
               return { id: path, children: [] as ExtendedTreeItem[] };
@@ -398,7 +397,7 @@ function FileBrowserDialog({
 
         updateTreeItemsBulk(results);
       } catch (e) {
-        log.error("Failed to load ancestors in parallel", e);
+        console.error("Failed to load ancestors in parallel", e);
       }
     };
 
@@ -428,7 +427,7 @@ function FileBrowserDialog({
         const fileList = await fetchFileList(currentPath);
         setFiles(fileList);
       } catch (err) {
-        log.error("Failed to load files", err);
+        console.error("Failed to load files", err);
       } finally {
         setIsLoadingFiles(false);
       }
@@ -594,7 +593,7 @@ function FileBrowserDialog({
             updateTreeItem(itemId, folders);
           }
         } catch (e) {
-          log.error("Failed to load tree children", e);
+          console.error("Failed to load tree children", e);
           updateTreeItem(itemId, []);
         }
       }

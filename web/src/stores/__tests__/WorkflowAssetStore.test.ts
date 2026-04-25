@@ -19,16 +19,6 @@ const listQuery = trpcClient.assets.list.query as jest.Mock;
 // payload-shape adjustments.
 const mockClient = { GET: listQuery };
 
-// Mock loglevel
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn()
-  }
-}));
 
 describe("WorkflowAssetStore", () => {
   const mockAssets: Asset[] = [

@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { Node, XYPosition } from "@xyflow/react";
 import Papa from "papaparse";
-import log from "loglevel";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
@@ -50,7 +49,7 @@ export const useCreateDataframe = (
                 };
                 addNode(newNode);
               } else {
-                log.error("CSV file is empty or could not be parsed");
+                console.error("CSV file is empty or could not be parsed");
               }
             }
           };

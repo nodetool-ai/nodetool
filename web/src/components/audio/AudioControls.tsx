@@ -13,7 +13,6 @@ import OffIcon from "@mui/icons-material/VolumeOff";
 import UpIcon from "@mui/icons-material/VolumeUp";
 import DownloadIcon from "@mui/icons-material/Download";
 import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
-import log from "loglevel";
 import type { Theme } from "@mui/material/styles";
 
 interface AudioControlsProps {
@@ -124,7 +123,7 @@ const Zoom: React.FC<ZoomProps> = ({
 
 async function download(filename: string, assetUrl: string) {
   if (!assetUrl) {
-    log.warn("No url provided for download");
+    console.warn("No url provided for download");
     return;
   }
 
@@ -133,7 +132,7 @@ async function download(filename: string, assetUrl: string) {
     const response = await fetch(assetUrl);
 
     if (!response.ok) {
-      log.warn("Network response was not ok");
+      console.warn("Network response was not ok");
       return;
     }
 
@@ -152,7 +151,7 @@ async function download(filename: string, assetUrl: string) {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
   } catch (error) {
-    log.error("Failed to download file:", error);
+    console.error("Failed to download file:", error);
   }
 }
 
@@ -191,7 +190,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
     if (assetUrl) {
       download(filename || "audio.mp3", assetUrl);
     } else {
-      log.warn("No assetUrl provided for download");
+      console.warn("No assetUrl provided for download");
     }
   }, [assetUrl, filename]);
 

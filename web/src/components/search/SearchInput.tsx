@@ -7,7 +7,7 @@ import { Tooltip } from "../ui_primitives";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { useDebouncedCallback } from "use-debounce";
+import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { isMac } from "../../utils/platform";
 

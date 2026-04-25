@@ -27,7 +27,6 @@ import MiniAppResults from "../../miniapps/components/MiniAppResults";
 import MiniAppInputsForm from "../../miniapps/components/MiniAppInputsForm";
 import { useMiniAppInputs } from "../../miniapps/hooks/useMiniAppInputs";
 import { useMiniAppRunner } from "../../miniapps/hooks/useMiniAppRunner";
-import log from "loglevel";
 
 interface MiniAppPanelProps {
   workflowId?: string;
@@ -161,7 +160,7 @@ const MiniAppPanel: React.FC<MiniAppPanelProps> = ({
 
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
-      log.error("Failed to run workflow", error);
+      console.error("Failed to run workflow", error);
     }
   }, [
     inputDefinitions,

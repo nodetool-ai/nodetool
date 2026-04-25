@@ -18,7 +18,6 @@ import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles";
-import log from "loglevel";
 
 const QUICK_ACTION_NODE_TYPES = new Set(
   QUICK_ACTION_BUTTONS.map((action) => action.nodeType)
@@ -214,7 +213,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
 
       const metadata = getMetadata(nodeType);
       if (!metadata) {
-        log.warn(`Metadata not found for node type: ${nodeType}`);
+        console.warn(`Metadata not found for node type: ${nodeType}`);
         addNotification({
           type: "warning",
           content: `Unable to find metadata for ${nodeType}.`,

@@ -23,7 +23,6 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import isEqual from "fast-deep-equal";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { FlexColumn, FlexRow, Chip } from "../ui_primitives";
-import log from "loglevel";
 
 const treeStyles = (theme: Theme) =>
   css({
@@ -206,7 +205,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       // Do not clear selectedPath here; just perform search with current path
       state?.performSearch?.(searchTerm);
     } catch (error) {
-      log.error("Error performing search:", error);
+      console.error("Error performing search:", error);
     }
   }, [isMenuOpen, searchTerm, searchResults.length]);
 

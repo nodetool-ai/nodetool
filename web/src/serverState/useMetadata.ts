@@ -5,7 +5,6 @@ import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 import { generateSnippetMetadata } from "../config/snippetMetadata";
-import log from "loglevel";
 
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 
@@ -72,7 +71,7 @@ export const loadMetadata = async () => {
     "/api/nodes/metadata?fields=full&limit=10000"
   );
   if (!response.ok) {
-    log.error(new Error(`Failed to load metadata: ${response.status}`));
+    console.error(new Error(`Failed to load metadata: ${response.status}`));
     return "error";
   }
 

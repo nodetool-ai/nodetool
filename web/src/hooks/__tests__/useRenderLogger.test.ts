@@ -6,22 +6,16 @@ jest.mock("../../config/constants", () => ({
   DEBUG_RENDER_LOGGING: true,
 }));
 
-// Mock loglevel
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-  },
-}));
-
-// Get the mocked module
-import log from "loglevel";
-
 describe("useRenderLogger", () => {
+  let infoSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset the mock
-    (log.info as jest.Mock).mockClear();
+    infoSpy = jest.spyOn(console, "info").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    infoSpy.mockRestore();
   });
 
   it("should not log on initial render when no previous deps exist", () => {
@@ -29,21 +23,20 @@ describe("useRenderLogger", () => {
 
     // On initial render, there are no changes because prevDeps starts with the same reference
     // useMemo compares the deps array, and on first render they're the same object
-    expect(log.info).not.toHaveBeenCalled();
+    expect(infoSpy).not.toHaveBeenCalled();
   });
 
-  it("should call log.info when dependencies change", () => {
+  it("should call console.info when dependencies change", () => {
     const { rerender } = renderHook(
       ({ deps }) => useRenderLogger("TestComponent", deps),
       { initialProps: { deps: { value: 1 } } }
     );
 
-    // Clear initial call
-    (log.info as jest.Mock).mockClear();
+    infoSpy.mockClear();
 
     rerender({ deps: { value: 2 } });
 
-    expect(log.info).toHaveBeenCalledWith(
+    expect(infoSpy).toHaveBeenCalledWith(
       "TestComponent render triggered by:",
       "value"
     );
@@ -55,12 +48,11 @@ describe("useRenderLogger", () => {
       { initialProps: { deps: { value1: 1, value2: "a" } } }
     );
 
-    // Clear initial call
-    (log.info as jest.Mock).mockClear();
+    infoSpy.mockClear();
 
     rerender({ deps: { value1: 2, value2: "b" } });
 
-    expect(log.info).toHaveBeenCalledWith(
+    expect(infoSpy).toHaveBeenCalledWith(
       "TestComponent render triggered by:",
       "value1, value2"
     );
@@ -72,12 +64,11 @@ describe("useRenderLogger", () => {
       { initialProps: { deps: { changed: 1, unchanged: "constant" } } }
     );
 
-    // Clear initial call
-    (log.info as jest.Mock).mockClear();
+    infoSpy.mockClear();
 
     rerender({ deps: { changed: 2, unchanged: "constant" } });
 
-    expect(log.info).toHaveBeenCalledWith(
+    expect(infoSpy).toHaveBeenCalledWith(
       "TestComponent render triggered by:",
       "changed"
     );

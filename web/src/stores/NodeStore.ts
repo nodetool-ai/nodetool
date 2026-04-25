@@ -24,7 +24,6 @@ import {
 import { customEquality } from "./customEquality";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
-import log from "loglevel";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
@@ -235,9 +234,9 @@ const hydrateMissingComfyMetadata = (nodeTypes: string[]): void => {
           await comfyStore.connect();
         }
         // connect() registers metadata in MetadataStore, so we're done
-        log.info("[NodeStore] Hydrated ComfyUI metadata via backend proxy");
+        console.info("[NodeStore] Hydrated ComfyUI metadata via backend proxy");
       } catch (error) {
-        log.warn(
+        console.warn(
           "[NodeStore] Failed to hydrate missing ComfyUI metadata",
           error
         );
@@ -424,7 +423,7 @@ export const createNodeStore = (
                 (!!originalType && originalType === nodeType)
               );
             }).length;
-            log.info(
+            console.info(
               "[NodeStore] selectNodesByType",
               nodeType,
               "matching",
@@ -677,7 +676,7 @@ export const createNodeStore = (
             get().edges.find((e) => e.id === id),
           addNode: (node: Node<NodeData>): void => {
             if (get().findNode(node.id)) {
-              log.warn(`Node with id ${node.id} already exists`);
+              console.warn(`Node with id ${node.id} already exists`);
               return;
             }
             node.expandParent = true;
@@ -792,7 +791,7 @@ export const createNodeStore = (
               .map((node) => node.id);
 
             if (foundIds.length === 0) {
-              log.warn(`Node(s) not found: ${ids.join(", ")}`);
+              console.warn(`Node(s) not found: ${ids.join(", ")}`);
               return;
             }
 
@@ -849,7 +848,7 @@ export const createNodeStore = (
             const targetNode = get().findNode(edge.target);
 
             if (!sourceNode || !targetNode) {
-              log.warn(
+              console.warn(
                 `Cannot add edge ${edge.id}: source or target node not found`
               );
               return;
@@ -860,7 +859,7 @@ export const createNodeStore = (
             const nodeMap = new Map(get().nodes.map((n) => [n.id, n]));
 
             if (!isValidEdge(edge, nodeMap, metadata)) {
-              log.warn(
+              console.warn(
                 `Cannot add edge ${edge.id}: edge validation failed`,
                 edge
               );
