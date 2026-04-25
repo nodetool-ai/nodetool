@@ -1,8 +1,8 @@
 # Sketch Editor Roadmap
 
-> **Status**: the transform-aware foundation is in place; Phase 1 helper-tool / UX items and many transform foundations are shipped (see `SKETCH_FEATURES_DONE.md`). Next focus: move/transform consolidation, editor session seams, then transform-advanced modes and later phases.
-> **Last updated**: 2026-04-11
-> **Execution note**: this is the active sketch roadmap/backlog. Completed checklists are archived in `SKETCH_FEATURES_DONE.md`. `REFACTOR-SKETCH-APP.md` is supporting context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
+> **Status**: the transform-aware foundation, selection-derived layer actions, and merge-selected workflow are shipped on `sketch-editor-6`. Next focus: finish the remaining advanced transform items, then implement node-backed segmentation and image generation/editing flows.
+> **Last updated**: 2026-04-25
+> **Execution note**: this is the active sketch roadmap/backlog for the `sketch-editor-6` branch. Completed checklists are archived in `SKETCH_FEATURES_DONE.md`. `REFACTOR-SKETCH-APP.md` is supporting context; `REFACTOR-WEBGPU-TASKS.md` is no longer the active checklist.
 
 ## Principles
 
@@ -22,13 +22,48 @@ Task labels used below:
 - `[impl+test]` implementation plus regression coverage
 - `[test-first]` write the proving test first, then fix code if the test exposes a gap
 
-## Current Tasks
-- [x] [CHECK] fix MoveTool and TransformTool gizmo size: gizmo should be sized by layer pixel bounds, currently always canvas sized. mask also holds the second last position after moving is done! so when movig stops it should update.
-- [x] fix gizmo showing second-to-last position after MoveTool and TransformTool ends
-- [x] add auto-select for MoveTool
-- [x] improve TransformTool: update gizmo when selecting a different layer in right panel
-- [x] improve auto-select for TransformTool, works better for MoveTool
-- [x] enable arrow key up + down to change focused select fields, e.g. for fast blend mode change
+## Recently Archived
+
+Completed current tasks, display/interactions hardening, move/transform hardening, canvas refactors, selection-derived layer actions, and merge-selected workflow details live in `SKETCH_FEATURES_DONE.md` under **Archived From Active Roadmap (2026-04-25)**.
+
+## TOP PRIORITY - Architecture Hardening Before New Features
+
+Do these before advanced transform work, SAM, or new node execution surfaces. These are follow-up hardening tasks from the `sketch-editor-6` architecture sweep, focused on preventing the same classes of bugs that previously caused stale previews, layers jumping after move/transform, and CPU/GPU display drift.
+
+- [ ] [impl+test] make history snapshots document-complete for canvas and layer tree state
+  - Extend history entries or their parallel snapshot data so undo/redo restores `document.canvas` dimensions/background together with layers.
+  - Ensure layer structure snapshots preserve all metadata needed to rebuild groups and generated layers, including `parentId`, `collapsed`, `segmentationMeta`, image references, effects, exposed input/output flags, transforms, and content bounds.
+  - Fix structural-history ordering so layer creation/removal entries capture the post-action structure needed for redo, not only the pre-action state.
+  - Add regressions for crop/resize undo/redo, grouped/collapsed layer undo/redo, segmentation-generated metadata preservation, and add-layer redo.
+- [ ] [impl+test] close store-vs-runtime canvas drift in history restore paths
+  - Audit `structure-only` restore paths and either replay affected pixels into runtime canvases or make the restore mode explicitly impossible for entries whose layer pixel data can differ from runtime surfaces.
+  - Add tests that undo/redo transform, selection-derived layer actions, and structure-only entries, then immediately sample/export from runtime canvases without requiring an incidental redraw or brush stroke.
+- [ ] [impl+test] harden first-frame and hydration readiness semantics
+  - Only advance `firstFrameComposited` / interaction readiness after a composite actually reaches the active display target; do not call initial-composite readiness after a no-op `compositeToDisplay` early return.
+  - Split “hydration scheduled” from “hydration pixels decoded/uploaded” so async layer decode cannot mark the editor interaction-ready before startup pixels and GPU invalidation are complete.
+  - Add tests for fresh-open brush tap, first transform preview, image-backed startup layers, WebGPU bootstrap, and Canvas2D fallback with no prior stroke.
+- [ ] [impl+test] wire transform preview through one coordinator-aware path
+  - Pass the display coordinator through the transform-preview bridge or otherwise route preview redraws with an explicit `transform-preview` reason.
+  - Compare full transform identity, including matrix data, when deciding whether a transform preview update can skip redraw.
+  - Add tests for matrix-authoritative layers, preview-only transform changes, and startup transform preview without a preceding brush stroke.
+- [ ] [impl+test] reconcile transform target-set semantics with actual tool behavior
+  - Decide whether `TransformTool` is single-target for now or truly multi-target. If single-target, narrow `TransformTargetSet` naming/comments/state so it cannot imply union-gizmo multi-layer transform support. If multi-target, drive hit-testing, gizmo bounds, preview, and commit from the union helpers and define per-layer preview application.
+  - Add tests that prove `Shift+click` target behavior cannot leave stale IDs, wrong gizmo bounds, or mismatched preview/commit targets.
+
+## Next Implementation Queue
+
+Work from this list top to bottom. Keep each item focused and covered by sketch-specific tests before moving to the next one.
+
+1. **Architecture hardening:** complete the top-priority history/runtime/readiness/transform-target tasks above.
+2. **Finish transform modes:** implement distort, skew, perspective, and the UI mode/modifier rules listed in **2.3** before adding more AI workflow surface area.
+3. **Finish selection/layer polish:** keep the selection context menu shipped state from `sketch-editor-6`, then implement only the remaining deferred selection actions when they are needed by concrete workflows.
+4. **Complete SAM vertical slice:** put all SAM work in Phase 3: node discovery/availability, local HuggingFace and cloud/API-backed SAM configs, source transport, output normalization, cancellation, preview, and document-space layer apply.
+5. **Reusable sketch node execution bridge:** after SAM works end-to-end, generalize the SAM execution/source/output contracts into a sketch image workflow executor for other image nodes.
+6. **Built-in image workflows first:** expose text-to-image, image-to-image, and inpainting using existing nodetool nodes/presets before adding user workflow selection. Local HuggingFace img-2-img nodes should be first-class built-in options alongside cloud/API-backed nodes.
+7. **User-selectable workflows second:** once built-in presets are stable, add a workflow picker that maps sketch inputs/outputs to saved user workflows without hardcoding model providers into the sketch editor.
+8. **Layer output and visibility polish:** add the list-of-images output handle and drag-across visibility toggles after the node execution path can produce and consume layer groups cleanly.
+
+Node execution rule: do not add new direct provider API paths for text-to-image, image-to-image, inpainting, or layer split. Use nodetool nodes via WebSocket execution, including local HuggingFace nodes and cloud/API-backed nodes as equal backend choices. Sketch prepares sources and applies normalized outputs; nodetool executes graphs. User-selectable workflows come later through the same bridge.
 
 
 ## Immediate `SketchEditor.tsx` Refactor Candidates
@@ -41,59 +76,20 @@ Completed refactor items (lifecycle hook, tool chrome, color router, store actio
 
 `SketchCanvas.tsx` is much smaller than before, but it still mixes transient preview ownership, hook-bridge setup, and canvas chrome/layout in one place. Keep this refactor narrow and only extract seams that already want to exist.
 
-- [x] [impl+test] extract a dedicated transform-preview bridge from `SketchCanvas.tsx` so preview-map ownership, active-layer preview bridging, redraw/invalidate policy, and startup texture invalidation stop living inline beside compositing and pointer wiring. this should line up with the editor task to remove the parallel preview channel used by transform UI
-- [x] [impl+test] extract a canvas interaction-orchestration hook or bridge so the shared refs and the current `useCompositing` / `useOverlayRenderer` / `usePointerHandlers` setup stop living in one component body. focus especially on the container/canvas refs, modifier refs, cursor-position tracking, and the current circular-style wiring comments in `SketchCanvas.tsx`
-- [x] [impl] extract canvas stack + chrome presentation from `SketchCanvas.tsx` so stacked canvas JSX, canvas/cursor style computation, resize handles, and the info bar stop living beside orchestration logic. keep the extracted piece presentational: no new state ownership, just props for already-derived layout/chrome data
+Completed `SketchCanvas.tsx` refactor items are archived in `SKETCH_FEATURES_DONE.md`.
 
 ## Active Roadmap
 
 Shipped backlog for this section (startup transform preview bug, selection mask CPU path + invert fix, store subscription hardening, selection performance plan notes) lives in `SKETCH_FEATURES_DONE.md`. Medium/long-term selection-mask GPU ideas are listed there for when profiling warrants them.
 
-## TOP PRIORITY - DISPLAY / INTERACTION CORE
-
-Treat this as the shared seam behind startup paint, transform preview, buffered-stroke visibility, and runtime/bootstrap display updates. Keep it narrow: centralize the contract for "a visual change becomes visible" without building a broad new interaction framework.
-Current diagnostic clue: on a freshly opened editor, move/transform preview and click-only brush taps can fail while a real dragged stroke succeeds and then "unlocks" later preview/tap behavior for the session. treat this as evidence that the shared startup redraw / pending-commit / display-target seam is dropping first interactive frames, not as proof of a tool-local bug.
-
-- [x] [test-first] add a focused scenario regression matrix for the shared display seam: fresh-open click-only brush tap, first dragged brush stroke, move drag, transform drag, startup `imageReference` / hydrated layer, WebGPU bootstrap, and Canvas2D fallback. these should prove first-interaction visibility before tool-specific fixes
-- [x] [impl+test] introduce one small shared display/frame coordinator seam that owns immediate vs deferred redraw entry points, pending buffered-stroke drain, and the active display target decision (`bootstrap` vs real display). move only the already-shared policy here; do not fold unrelated tool/session logic into it
-- [x] [impl+test] make startup interaction readiness explicit with one narrow state/contract (for example: first interactive frame ready) so preview-only and click-only paths do not rely on implicit timing between hydration, runtime bootstrap, and redraw scheduling
-- [x] [impl+test] replace ad hoc redraw calls with one typed redraw request surface that records reason and urgency (`transform-preview`, `buffered-stroke-commit`, `paint-move`, `hydration-complete`; `immediate` vs `raf`) so future fixes can be reasoned about from one place
-- [x] [impl] document the display invariants in one local seam comment / mini design note: preview transforms are visual-only, pending stroke commit must be drained before frames that claim to show committed pixels, bootstrap/display switching must not drop the first interactive frame, and first-open tap/preview must work without a prior stroke
-- [x] [impl+test] unify the display-facing contract for transient visual changes so transform preview and buffered-brush preview use the same central visibility semantics even if their internal state remains separate. goal: one understandable answer to "what changed, and why should it be visible now?"
-- [x] [impl+test] add lightweight dev-only tracing for this seam (`preview-set`, `frame-requested`, `pending-stroke-drained`, `frame-composited`, `hydration-complete`, backend/target) so temporal startup bugs can be debugged without scattering temporary logs across tools and runtimes
-
-## NEXT UP - MOVE AND TRANSFORM TOOL
-
-Do these before more transform-heavy work. The goal is to reduce brittleness in `MoveTool` + `TransformTool` and nearby overlay tools by sharing only the stable gizmo primitives, not by forcing all tools into one generic interaction framework.
-Try to implement these tasks with only as much shared core as needed. It is fine to change core helpers and adapt focused tests when that removes real brittleness, but avoid introducing a broad new interaction framework just to satisfy one tool.
-- [x] [test-first] `1.` restore first-interaction rendering on a freshly opened editor: move/transform preview must update layer pixels before any prior stroke, and a click-only brush tap must paint immediately instead of requiring a real drag first. investigate the shared startup redraw seam before changing tool-specific logic. likely area: preview/tap paths currently depend on deferred `requestRedraw()` / pending-commit drain behavior while drag paths also hit stronger dirty/immediate composite paths. cover both WebGPU bootstrap and Canvas2D fallback, including `imageReference` / hydrated startup layers
-- [x] [impl+test] `2.` make the startup redraw path deterministic for preview-only and click-only interactions. the first transform preview frame and first buffered-brush commit must not be dropped because bootstrap/display targets, pending rAF state, or pending stroke merge timing are not ready yet. prefer the smallest shared fix in redraw scheduling / preview bridge / compositing bootstrap rather than per-tool hacks
-- [x] [impl+test] `3.` unify move/transform preview ownership so compositing, gizmo drawing, and transform UI all read one live preview source instead of today's parallel channels (`transformPreviewByLayerIdRef` vs active-layer preview singleton). either route both tools through one existing preview-session contract or remove the duplicate UI-only path entirely, but do not introduce a broader new interaction framework. dragging must not show stale top-bar/context-menu numbers, mismatched gizmo position, or pointer-up jumps, including startup/image-hydration cases and layers with existing translation, scale, rotation, non-zero raster origin, or off-canvas raster bounds
-- [x] [impl+test] `4.` harden spring-loaded move (`Ctrl`/`Cmd` move while another tool stays active) so modifier-driven `interactionTool` changes cannot desync preview state from `TransformTool` session baseline/cancel logic. likely area: these temporary tool swaps do not run the same activation/deactivation lifecycle as real tool switches. after the modifier-drag finishes, the moved layer must keep the committed transform, move gizmo state must clean up correctly, and later transform cancel/reset must not restore stale pre-move state
-- [x] [impl+test] `5.` harden move/transform gizmo geometry around one explicit resolved-bounds contract. likely area: `MoveTool` already derives extents from resolved raster bounds while `TransformTool` still prefers smaller `contentBounds` for gizmo sizing. decide one rule for visible bounds vs backing raster bounds; avoid fallback-to-document-size behavior; cover `contentBounds`, expanded raster bounds, rotated/scaled layers, and `imageReference` startup cases with focused regressions
-- [x] [test-first] `6.` investigate transform preview-vs-commit parity at the lowest stable seam, centered on reconcile/bake-to-pixels rather than a broad rendering rewrite. start with focused regressions that isolate preview compositing, reconcile/bake output, and runtime display paths separately, then only add the smallest fix that matches the failing seam. treat bootstrap/backend promotion as a regression scenario instead of the assumed root cause. likely area: `reconcileLayerToDocumentSpace()` still computes from raw canvas size/transform more directly than the resolved preview path. rotating/scaling semi-transparent pixels must not introduce edge halos, distorted alpha, stripe artifacts, or commit-only visual shifts, including layers with non-zero raster origin / expanded raster bounds
-
-Non-goal for this pass: multi-layer transform targeting, advanced transform modes, pivot UX, and broader gesture abstractions beyond what is required to stabilize the current single-layer move/transform path.
-Done when the first transform preview frame and first click-only brush tap work in a freshly opened editor, move and transform share one preview story, spring-loaded move cannot poison transform cancel/reset, gizmo bounds come from one resolved contract, and preview/commit images match for the covered regression cases.
-
-Completed transform-core groundwork for shared gizmo primitives and narrow follow-up hardening has been moved to `SKETCH_FEATURES_DONE.md` so this section stays focused on the still-open move/transform work.
-
-## PHASE 1 - Architecture Stability Before Transform-Heavy Work
-
-Sections **1.1** (helper-tool architecture) and **1.2** (correctness / UX fixes) are complete. Checklist and notes: `SKETCH_FEATURES_DONE.md`.
-
 ## PHASE 2 - Transform Foundation
 
-Sections **2.1** (transform, zoom, selection), **2.2** (lifecycle shortcuts), completed **2.3** / modifier-key rows, and shipped **2.4** context-menu entries are archived in `SKETCH_FEATURES_DONE.md`.
+Completed Phase 1 work, display/interactions core, move/transform hardening, and shipped transform foundations are archived in `SKETCH_FEATURES_DONE.md`. This section now tracks only remaining advanced transform behavior.
 
 ### 2.3 - Advanced transform modes and modifier rules
 
-Do not start these until the `NEXT UP` hardening pass is done. Preview ownership, spring-loaded move lifecycle, resolved gizmo bounds, and preview-vs-commit parity all belong to that earlier pass; this section starts only after those seams are stable.
-- [x] [impl+test] add a minimal transform-targeting flow, not a generic multi-tool selection framework: optional auto-select toggle for `TransformTool`; clicking opaque pixels targets the topmost visible transformable layer; `Shift+click` adds/removes layers from the transform target set; the transform gizmo, transform UI, and live preview must use one shared bounds source for the targeted set. do not assume layers-panel multi-select is already the correct transform-target model unless their semantics are made intentionally identical
+Preview ownership, spring-loaded move lifecycle, resolved gizmo bounds, preview-vs-commit parity, transform targeting, rotation, and pivot behavior are complete and archived in `SKETCH_FEATURES_DONE.md`.
 
-- [x] support rotate behavior, including `Shift` snapping and pivot-point changes
-  - **Done:** Rotation via dedicated handle above top-center is implemented. Shift snaps to 15° increments via `snapAngle()` in `computeRotateTransform()`. User-adjustable pivot placement is implemented, including re-grabbing pivots outside the box and clearing custom pivots when auto-pick retargets to another layer.
-- [x] [impl+test] expand transform hit policy only if it can stay local to transform gizmo layout/hit-testing: allow rotate when dragging just outside the box/near scale handles, add an explicit pivot handle, and support snapping the pivot to stable anchor points such as corners/edge handles. keep this built on the same resolved geometry/hit-test seam as the box/handles above, and do not spread it into a generic cross-tool gesture system unless repeated evidence demands it
 - [ ] support distort behavior on corner handles
 - [ ] support skew behavior on side handles
 - [ ] support perspective behavior
@@ -108,29 +104,10 @@ Modifier-key target behavior to preserve while implementing the items above:
   - **Partial:** Proportional scale (Shift on corner handles) and 15° rotation snap (Shift while rotating) are implemented. Remaining: axis-lock distortion (requires distort mode which does not exist yet).
 - [ ] `Ctrl+Shift` / `Cmd+Shift` -> skew on sides, constrained distort on corners
 - [ ] `Ctrl+Alt+Shift` / `Cmd+Option+Shift` -> perspective
-- [x] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform
 
 ### 2.4 - Selection context menu
 
-- [x] add a selection-tool right-click context menu entry for `Select Inverse`
-- [x] add a selection-tool right-click context menu entry for `Deselect`
-- [x] add a selection-tool right-click context menu entry for `Reselect`
-- [x] add a selection-tool right-click context menu entry for `Layer via Copy`
-- [x] add a selection-tool right-click context menu entry for `Layer via Cut`
-- [x] add a selection-tool right-click context menu entry for `New Layer...`
-- [x] add a selection-tool right-click context menu entry for `Free Transform`
-- [x] add a selection-tool right-click context menu entry for `Transform Selection`
-  - **Done:** Added `Transform Selection` menu entry in `SketchCanvasContextMenu.tsx` with `HighlightAltIcon`. Currently disabled (grayed out) — the `onTransformSelection` prop is optional and wired but no backend implementation exists yet. The entry will enable when transform-selection infrastructure is implemented.
-- [x] add a selection-tool right-click context menu entry for `Fill`
-- [x] add a selection-tool right-click context menu entry for `Stroke`
-- [x] [impl+test] fix selection `Free Transform` - should transform the selection, not the layer
-  - **Done:** `Free Transform` now isolates the active selection into a temporary transform session instead of transforming the entire layer. `Ctrl+T` / `Cmd+T` and the selection context-menu entry both route through the selection-aware path, commit composites transformed selected pixels back onto the original layer, cancel restores the original layer snapshot, and the selection mask is updated to the transformed bounds.
-- [x] [impl+test] fix `Layer via Copy`
-  - **Done:** Selection `Layer via Copy` now creates a new layer and pastes the copied pixels into that new target layer instead of pasting back into the source layer. `Ctrl+J` and the selection context-menu entry both route through the new-layer target path and ignore transient paste-anchor placement so the copied pixels stay aligned with the original selection.
-- [x] [impl+test] fix `Layer via Cut`
-  - **Done:** Selection `Layer via Cut` now clears the selected pixels from the source layer, creates a new layer, and pastes the cut pixels into that new target layer instead of reusing the original layer.
-- [x] [impl+test] submenu for selection-tool right-click context menu entry for `New Layer...`
-  - **Done:** `New Layer...` now opens a submenu with concrete `Raster Layer` and `Mask Layer` targets and forwards the chosen layer type through the command surface.
+Completed selection context menu entries, selection-aware free transform, `Layer via Copy`, `Layer via Cut`, and `New Layer...` submenu details are archived in `SKETCH_FEATURES_DONE.md`.
 
 Deferred selection-context-menu items:
 
@@ -140,14 +117,44 @@ Deferred selection-context-menu items:
 - [ ] deferred: `Refine Edge`
 
 ### 2.5 - FEATURES
-- [x] [impl+test] Layers: add option to merge selected, in right click menu and add icon when multiple layers are selected
-  - **Done:** The layers panel now exposes `Merge Selected` in both the multi-select footer chrome and the layer right-click menu. The action intentionally stays narrow for the current runtime/store seam: it only enables for contiguous, unlocked, non-group sibling selections and executes by chaining the existing merge-down primitive from top to bottom.
+
+Completed merge-selected layer actions are archived in `SKETCH_FEATURES_DONE.md`.
+
 - [ ] add one output handle that combines all output layers in a list[image] output
 - [ ] improve Layer visibility toggle: allow toggling layer visibility by presing mouse and holding - moving over several layers. the eye icon part of the layer item should be exempt of dragging
 
 ### PHASE 3 - SAM SEGMENTATION
 
-- [ ] segmentation/SAM-driven layer creation flows - see web/components/sketch/FEAT-2-SAM.md
+Goal: ship SAM layer split as the first complete sketch-to-nodetool image workflow. This phase should prove the execution, source, output, cancellation, and document-space apply contracts before Phase 7 generalizes them to text-to-image, image-to-image, inpainting, and user workflows.
+
+- [ ] [impl+test] define the SAM backend catalog and availability states
+  - Use `web/src/components/sketch/sam/SamServiceNode.ts` as the starting service.
+  - Keep local HuggingFace SAM and cloud/API-backed SAM as selectable peers in the same backend catalog. Existing SAM2 configs include `fal.image_to_image.Sam2Image` and `huggingface.image_segmentation.SAM2Segmentation`; add SAM3 as another node-backed config where its nodetool nodes are available.
+  - Discover available node types from the nodetool node registry/manifest when possible; keep static config only as the curated preset layer, not as proof that a backend is actually installed or runnable.
+  - Add explicit availability states per backend: available, missing node type, missing secret, missing local model, model downloading/loading, backend unavailable, and failed.
+  - Include install/download/retry/cancel entry points for missing local HuggingFace models when the underlying node/runtime exposes those actions; otherwise show a clear “install outside sketch” state.
+  - Tests should cover backend catalog entries, node discovery, availability state mapping, local HuggingFace readiness, missing secret/model copy, and selection persistence.
+- [ ] [impl+test] finish the SAM WebSocket execution vertical slice
+  - Use `web/src/components/sketch/sam/NodeExecutor.ts` as the transport seam. It already sends inline graphs through `globalWebSocketManager` with `run_job`; keep using the singleton WebSocket manager and do not create a sketch-specific socket.
+  - Preserve a narrow executor contract: ensure connection, subscribe by `job_id`, send `run_job`, collect `node_update` / `output_update`, handle terminal `job_update`, and clean up subscriptions.
+  - Add real cancellation semantics: client abort should update UI immediately and send/call backend cancel-job behavior when the runner supports it so long-running local jobs are not orphaned.
+  - Tests should assert the exact `run_job` message shape, terminal success/failure handling, cancellation, timeout, and unsubscribe cleanup.
+- [ ] [impl+test] make SAM source scope and transport explicit
+  - Support `active layer` first, then `selected layers` and `visible composite` through the same export/readback helpers used by sketch rendering.
+  - If a selection mask exists, pass it as a box/mask prompt when the chosen node supports it; otherwise use it only to crop/limit the source image and document the limitation in the UI.
+  - Use small inline image payloads only when appropriate. For large images or multi-layer composites, upload/create assets or references first and pass asset/image references through the graph instead of large base64 payloads.
+  - Preserve source metadata needed for output placement: source layer IDs, source bounds/origin, canvas size, selection bounds, and source transform.
+- [ ] [impl+test] normalize SAM outputs before touching document layers
+  - Add one parser/normalizer that accepts the output shapes returned by current SAM nodes: image objects, asset references, URLs, lists of images, masks, and RLE-like masks if SAM3 uses them.
+  - Normalize every accepted result into a sketch-owned structure with `kind` (`mask`, `cutout`, or `mask-and-cutout`), dimensions, confidence/label when available, source node/backend metadata, and document-space bounds.
+  - Tests should cover SAM2 fal output, HuggingFace local output, SAM3 output shape, empty outputs, partial outputs, malformed outputs, and output ordering.
+- [ ] [impl+test] apply accepted SAM results in document space
+  - Invariant: all generated layers return to document space, not source-image local space. Transformed, cropped, or off-canvas source layers must produce layers that align with the original document view.
+  - Preview returned masks/cutouts before apply. Applying accepted results creates a new group of ordinary raster layers with document-space placement preserved.
+  - One apply action must be one clean history step; generated layers must paint, move, transform, trim, export, and serialize without special rendering branches.
+  - Tests should cover mask-to-layer placement, off-canvas sources, transformed sources, selected-layer sources, visible-composite sources, history, serialization, and export/readback behavior.
+- [ ] [test] manually validate the complete SAM phase
+  - Validate one-object extraction, multi-object separation, point/box prompt behavior, local HuggingFace backend, cloud/API-backed backend, cancellation, missing secret/model state, large image handling, and rerun behavior on a transformed or off-canvas source layer.
 
 ### PHASE 4 - ADVANCED FEATURES
 
@@ -203,7 +210,54 @@ Shipped: adjustable stroke stabilizer (all drawing tools) — see `SKETCH_FEATUR
 
 
 ### PHASE 7 - NODETOOL NODE EXECUTION
-- [ ] make a plan how text-to-image, image-to-image nodes can be executed from sketch editor. menu with node search, inpainting, img-2-img acting on all layers and only selected layers, etc.
+
+Goal: let the sketch editor run existing nodetool image nodes and, later, user-selected workflows without embedding provider-specific APIs in sketch code. The sketch editor should prepare image/mask inputs, execute through the existing WebSocket workflow runner, and apply outputs as normal document layers.
+
+#### 7.1 - Generalize the SAM execution bridge
+
+- [ ] [impl+test] lift the SAM-proven executor into a reusable sketch workflow executor
+  - Start from the SAM Phase 3 executor only after SAM cancellation, timeout, output, and source contracts are covered.
+  - Keep transport responsibility narrow: ensure WebSocket connection, subscribe by `job_id`, send `run_job`, collect `node_update` / `output_update`, handle terminal `job_update`, cancellation, timeout, and errors.
+  - Move SAM-specific naming such as `sketch_segmentation_*` behind a caller-provided job prefix so text-to-image, image-to-image, inpainting, and future workflow runs can share the executor.
+  - Tests should assert the exact `run_job` message shape and that abort/timeout/cancel unsubscribes cleanly.
+- [ ] [impl+test] add sketch input-source preparation helpers
+  - Inputs: active layer, selected layers as a list, visible document composite, selection mask, and optional prompt text.
+  - Reuse the SAM Phase 3 source transport contract: existing sketch render/export/readback helpers, asset/reference transport for large images, and document-space source metadata.
+  - Preserve document-space metadata: source layer IDs, bounds/origin, canvas size, selection bounds, and transform state needed to place outputs correctly.
+- [ ] [impl+test] add a single output application path for workflow images
+  - Single image output creates a new layer above the source.
+  - Multiple image outputs create a named group with one child layer per image.
+  - Mask outputs can become layer alpha or companion mask layers only when the workflow preset declares that intent.
+  - Reuse the SAM Phase 3 output normalizer shape and extend it only where non-SAM image nodes require additional output kinds.
+  - Every apply action must be one clean history step and must serialize/export like ordinary layers.
+
+#### 7.2 - Built-in node presets before user workflows
+
+- [ ] [impl+test] add built-in preset descriptors for text-to-image, image-to-image, inpainting, and layer split
+  - Presets should reference existing nodetool node types and input/output mappings; do not call fal, OpenAI, Replicate, HuggingFace, or other providers directly from sketch.
+  - Built-in preset catalogs should list local HuggingFace nodes and cloud/API-backed nodes as backend choices under the same sketch workflow contract. Do not make local HuggingFace execution a hidden fallback or a later-only path.
+  - Text-to-image preset inputs: prompt, optional negative prompt/settings, output size from document or user choice.
+  - Image-to-image preset inputs: active layer, selected layers, or visible composite plus prompt/settings. Include local HuggingFace img-2-img nodes as first-class selectable presets when their nodetool node types are available.
+  - Inpainting preset inputs: source image plus selection mask; disable or explain the action when no mask/selection is available.
+  - Layer split preset inputs: source image plus optional point/box/selection prompt. This should reuse the completed Phase 3 SAM workflow as a built-in preset, not rebuild separate layer-split execution logic.
+- [ ] [impl+test] add minimal UI entry points for built-in presets
+  - Add sketch menu/toolbar actions for `Generate Image`, `Image to Image`, `Inpaint Selection`, and `Split Layer with SAM`.
+  - Keep the first UI simple: source selector, prompt/settings fields that the preset requires, run/cancel state, and preview/apply/discard.
+  - Surface missing secrets/model errors from node execution instead of pre-baking provider-specific checks into the sketch editor.
+- [ ] [test] add end-to-end-ish mocked executor tests
+  - Mock the shared executor and verify each preset builds the expected graph, sends the right source data, handles progress/error/cancel states, and applies outputs to layers/groups with correct placement.
+
+#### 7.3 - User-selectable workflows after presets
+
+- [ ] [impl+test] add workflow picker and mapping metadata
+  - Allow selecting saved user workflows only after built-in presets prove the input/output contract.
+  - Require explicit mapping between sketch sources (`activeImage`, `selectedImages`, `visibleComposite`, `selectionMask`, `prompt`) and workflow inputs.
+  - Require explicit mapping from workflow outputs to sketch actions (`newLayer`, `newLayerGroup`, `replaceSelection`, `maskLayer`, `list[image] output`).
+- [ ] [impl+test] persist last-used workflow mappings per sketch node/editor session
+  - Persist workflow ID, input mapping, output mapping, and user-facing preset name.
+  - Do not persist transient image data or secrets.
+- [ ] [test] validate workflow compatibility and failure states
+  - Missing workflow, incompatible inputs, no image outputs, cancelled job, failed job, and partial outputs should all produce clear UI states without mutating the document unless the user applies a preview.
 
 
 ### PHASE 8 - COLOR PALETTES

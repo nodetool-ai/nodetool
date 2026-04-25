@@ -6,6 +6,7 @@ function makeHistoryEntry(restoreMode: HistoryEntry["restoreMode"]): HistoryEntr
   return {
     layerSnapshots: { layer1: "data:image/png;base64,abc" },
     layerStructure: [],
+    documentCanvas: { width: 512, height: 512, backgroundColor: "#000000" },
     activeLayerId: "layer1",
     maskLayerId: null,
     restoreMode,

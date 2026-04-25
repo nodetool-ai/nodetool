@@ -17,7 +17,8 @@ import type {
   HistoryEntry,
   LayerStructureSnapshot,
   Layer,
-  PushHistoryOptions
+  PushHistoryOptions,
+  SketchDocument
 } from "../../types";
 import { MAX_HISTORY_SIZE } from "../../types";
 
@@ -58,8 +59,17 @@ function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot
     exposedAsInput: l.exposedAsInput,
     exposedAsOutput: l.exposedAsOutput,
     imageReference: l.imageReference,
+    parentId: l.parentId,
+    collapsed: l.collapsed,
+    segmentationMeta: l.segmentationMeta,
     effects: l.effects
   }));
+}
+
+function captureDocumentCanvas(
+  canvas: SketchDocument["canvas"]
+): SketchDocument["canvas"] {
+  return { ...canvas };
 }
 
 export interface HistorySlice {
@@ -117,12 +127,14 @@ export const createHistorySlice: StateCreator<
     }
 
     const layerStructure = captureLayerStructure(state.document.layers);
+    const documentCanvas = captureDocumentCanvas(state.document.canvas);
 
     const entry: HistoryEntry = {
       changedLayerIds,
       layerSnapshots: snapshot,
       layerCanvasSnapshots,
       layerStructure,
+      documentCanvas,
       activeLayerId: state.document.activeLayerId,
       maskLayerId: state.document.maskLayerId,
       restoreMode,
@@ -171,6 +183,7 @@ export const createHistorySlice: StateCreator<
       const tipEntry: HistoryEntry = {
         layerSnapshots: tipSnapshot,
         layerStructure: captureLayerStructure(state.document.layers),
+        documentCanvas: captureDocumentCanvas(state.document.canvas),
         activeLayerId: state.document.activeLayerId,
         maskLayerId: state.document.maskLayerId,
         restoreMode: "full",
@@ -213,6 +226,7 @@ export const createHistorySlice: StateCreator<
     set({
       document: {
         ...state.document,
+        canvas: entry.documentCanvas ?? state.document.canvas,
         layers,
         activeLayerId:
           entry.activeLayerId ?? state.document.activeLayerId,
@@ -262,6 +276,7 @@ export const createHistorySlice: StateCreator<
     set({
       document: {
         ...state.document,
+        canvas: entry.documentCanvas ?? state.document.canvas,
         layers,
         activeLayerId:
           entry.activeLayerId ?? state.document.activeLayerId,

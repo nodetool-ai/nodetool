@@ -4,6 +4,57 @@
 - [x] **Clone Stamp tool**: fixed — now correctly renders on click and stroke (same `invalidateLayer` fix)
 - [x] **Clone Stamp cursor feedback**: crosshair indicator now appears at the clone source position (set via Alt+click) while the tool is active
 
+## Archived From Active Roadmap (2026-04-25)
+
+These completed items were moved out of `SKETCH_FEATURES.md` so the active roadmap can stay focused on the next implementable tasks.
+
+### Completed current task cleanup
+
+- [x] [CHECK] fix MoveTool and TransformTool gizmo size: gizmo should be sized by layer pixel bounds, currently always canvas sized. mask also holds the second last position after moving is done, so when moving stops it should update.
+- [x] fix gizmo showing second-to-last position after MoveTool and TransformTool ends
+- [x] add auto-select for MoveTool
+- [x] improve TransformTool: update gizmo when selecting a different layer in right panel
+- [x] improve auto-select for TransformTool, works better for MoveTool
+- [x] enable arrow key up + down to change focused select fields, e.g. for fast blend mode change
+
+### Completed `SketchCanvas.tsx` refactor candidates
+
+- [x] [impl+test] extract a dedicated transform-preview bridge from `SketchCanvas.tsx` so preview-map ownership, active-layer preview bridging, redraw/invalidate policy, and startup texture invalidation stop living inline beside compositing and pointer wiring.
+- [x] [impl+test] extract a canvas interaction-orchestration hook or bridge so shared refs and the `useCompositing` / `useOverlayRenderer` / `usePointerHandlers` setup stop living in one component body.
+- [x] [impl] extract canvas stack + chrome presentation from `SketchCanvas.tsx` so stacked canvas JSX, canvas/cursor style computation, resize handles, and the info bar stop living beside orchestration logic.
+
+### Completed display / interaction core
+
+- [x] [test-first] add a focused scenario regression matrix for the shared display seam: fresh-open click-only brush tap, first dragged brush stroke, move drag, transform drag, startup `imageReference` / hydrated layer, WebGPU bootstrap, and Canvas2D fallback.
+- [x] [impl+test] introduce one small shared display/frame coordinator seam that owns immediate vs deferred redraw entry points, pending buffered-stroke drain, and the active display target decision (`bootstrap` vs real display).
+- [x] [impl+test] make startup interaction readiness explicit with one narrow state/contract so preview-only and click-only paths do not rely on implicit timing between hydration, runtime bootstrap, and redraw scheduling.
+- [x] [impl+test] replace ad hoc redraw calls with one typed redraw request surface that records reason and urgency (`transform-preview`, `buffered-stroke-commit`, `paint-move`, `hydration-complete`; `immediate` vs `raf`).
+- [x] [impl] document the display invariants in one local seam comment / mini design note.
+- [x] [impl+test] unify the display-facing contract for transient visual changes so transform preview and buffered-brush preview use the same central visibility semantics.
+- [x] [impl+test] add lightweight dev-only tracing for this seam (`preview-set`, `frame-requested`, `pending-stroke-drained`, `frame-composited`, `hydration-complete`, backend/target).
+
+### Completed move and transform hardening
+
+- [x] [test-first] restore first-interaction rendering on a freshly opened editor: move/transform preview must update layer pixels before any prior stroke, and a click-only brush tap must paint immediately instead of requiring a real drag first.
+- [x] [impl+test] make the startup redraw path deterministic for preview-only and click-only interactions.
+- [x] [impl+test] unify move/transform preview ownership so compositing, gizmo drawing, and transform UI all read one live preview source instead of parallel channels.
+- [x] [impl+test] harden spring-loaded move (`Ctrl`/`Cmd` move while another tool stays active) so modifier-driven `interactionTool` changes cannot desync preview state from `TransformTool` session baseline/cancel logic.
+- [x] [impl+test] harden move/transform gizmo geometry around one explicit resolved-bounds contract.
+- [x] [test-first] investigate transform preview-vs-commit parity at the lowest stable seam, centered on reconcile/bake-to-pixels rather than a broad rendering rewrite.
+
+### Completed transform and selection features
+
+- [x] [impl+test] add a minimal transform-targeting flow: optional auto-select toggle for `TransformTool`; clicking opaque pixels targets the topmost visible transformable layer; `Shift+click` adds/removes layers from the transform target set.
+- [x] support rotate behavior, including `Shift` snapping and pivot-point changes.
+- [x] [impl+test] expand transform hit policy: rotate outside the box/near scale handles, explicit pivot handle, and pivot snapping to stable anchor points.
+- [x] cursor position determines behavior: outside box = rotate, inside = move, on handle = transform.
+- [x] add selection-tool right-click context menu entries for `Select Inverse`, `Deselect`, `Reselect`, `Layer via Copy`, `Layer via Cut`, `New Layer...`, `Free Transform`, `Transform Selection`, `Fill`, and `Stroke`.
+- [x] [impl+test] fix selection `Free Transform` so it transforms the selection instead of the whole layer.
+- [x] [impl+test] fix `Layer via Copy` so copied pixels are pasted into a new aligned layer.
+- [x] [impl+test] fix `Layer via Cut` so selected pixels are cleared from the source layer and pasted into a new aligned layer.
+- [x] [impl+test] add the selection context-menu submenu for `New Layer...` with concrete `Raster Layer` and `Mask Layer` targets.
+- [x] [impl+test] add `Merge Selected` to the layers panel multi-select footer and layer right-click menu for contiguous, unlocked, non-group sibling selections.
+
 ## Archived From Active Roadmap (2026-04-09)
 
 These transform-core groundwork tasks were moved out of `SKETCH_FEATURES.md` once the remaining move/transform section was reordered around still-open work.

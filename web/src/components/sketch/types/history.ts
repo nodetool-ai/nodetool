@@ -7,6 +7,7 @@
 
 import type { Point } from "./geometry";
 import type {
+  Layer,
   LayerType,
   BlendMode,
   LayerTransform,
@@ -36,6 +37,7 @@ export interface LayerStructureSnapshot {
   imageReference?: LayerImageReference | null;
   parentId?: string | null;
   collapsed?: boolean;
+  segmentationMeta?: Layer["segmentationMeta"];
   effects: LayerEffect[];
 }
 
@@ -63,6 +65,8 @@ export interface HistoryEntry {
   layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>;
   /** Snapshot of layer structure (order + metadata) */
   layerStructure: LayerStructureSnapshot[];
+  /** Snapshot of document canvas metadata that affects layer placement. */
+  documentCanvas: SketchDocument["canvas"];
   /** Active layer ID at the time of the snapshot */
   activeLayerId: string;
   /** Mask layer ID at the time of the snapshot */

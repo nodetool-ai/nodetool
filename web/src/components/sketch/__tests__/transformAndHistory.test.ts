@@ -63,6 +63,7 @@ function makeEntry(
     changedLayerIds: Object.keys(snapshots),
     layerSnapshots: snapshots,
     layerStructure: structures,
+    documentCanvas: { width: 512, height: 512, backgroundColor: "#000000" },
     activeLayerId,
     maskLayerId: null,
     restoreMode: "full",

@@ -53,6 +53,107 @@ describe("History — layer structure snapshots", () => {
     expect(ls).toHaveProperty("blendMode");
   });
 
+  it("undo and redo restore canvas dimensions and background color", () => {
+    act(() => {
+      useSketchStore.getState().pushHistory("initial");
+      useSketchStore.getState().resizeCanvas(1024, 768);
+      useSketchStore.getState().setCanvasBackgroundColor("#123456");
+      useSketchStore.getState().pushHistory("resize canvas");
+    });
+
+    expect(useSketchStore.getState().document.canvas).toEqual({
+      width: 1024,
+      height: 768,
+      backgroundColor: "#123456"
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(useSketchStore.getState().document.canvas).toEqual({
+      width: 512,
+      height: 512,
+      backgroundColor: "#000000"
+    });
+
+    act(() => {
+      useSketchStore.getState().redo();
+    });
+    expect(useSketchStore.getState().document.canvas).toEqual({
+      width: 1024,
+      height: 768,
+      backgroundColor: "#123456"
+    });
+  });
+
+  it("undo restores group hierarchy, collapse state, and segmentation metadata", () => {
+    let childId = "";
+    let groupId = "";
+
+    act(() => {
+      useSketchStore.getState().addLayer("Segment");
+      childId = useSketchStore.getState().document.activeLayerId;
+      groupId = useSketchStore.getState().addGroup("SAM Results");
+      useSketchStore.getState().moveLayerToGroup(childId, groupId);
+      useSketchStore.getState().toggleGroupCollapsed(groupId);
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) =>
+            layer.id === childId
+              ? {
+                  ...layer,
+                  segmentationMeta: {
+                    segmentationRunId: "seg_456",
+                    maskIndex: 2,
+                    confidence: 0.82,
+                    modelId: "sam2",
+                    sourceLayerId: "source_layer"
+                  }
+                }
+              : layer
+          )
+        }
+      }));
+      useSketchStore.getState().pushHistory("grouped SAM layer");
+
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) => {
+            if (layer.id === childId) {
+              const { segmentationMeta, ...withoutMeta } = layer;
+              return { ...withoutMeta, parentId: undefined };
+            }
+            if (layer.id === groupId) {
+              return { ...layer, collapsed: false };
+            }
+            return layer;
+          })
+        }
+      }));
+      useSketchStore.getState().pushHistory("flatten metadata");
+    });
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+
+    const restoredLayers = useSketchStore.getState().document.layers;
+    const restoredChild = restoredLayers.find((layer) => layer.id === childId);
+    const restoredGroup = restoredLayers.find((layer) => layer.id === groupId);
+
+    expect(restoredChild?.parentId).toBe(groupId);
+    expect(restoredChild?.segmentationMeta).toMatchObject({
+      segmentationRunId: "seg_456",
+      maskIndex: 2,
+      confidence: 0.82,
+      modelId: "sam2",
+      sourceLayerId: "source_layer"
+    });
+    expect(restoredGroup?.collapsed).toBe(true);
+  });
+
   it("undo restores layer structure when layers are added then undone", () => {
     // Capture initial state
     act(() => {
