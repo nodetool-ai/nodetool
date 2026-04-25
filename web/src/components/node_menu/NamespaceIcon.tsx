@@ -48,8 +48,7 @@ type MuiEntry = {
 type IconEntry = SvgEntry | MuiEntry;
 
 const NAMESPACE_ICONS: Record<string, IconEntry> = {
-  // Local
-  elevenlabs: { kind: "svg", src: elevenlabsIcon },
+  // Local / abstract
   huggingface: { kind: "svg", src: huggingfaceColorIcon, preserveInDark: true },
   lib: { kind: "mui", Component: ExtensionIcon },
   mlx: { kind: "mui", Component: MemoryIcon },
@@ -64,6 +63,7 @@ const NAMESPACE_ICONS: Record<string, IconEntry> = {
   anthropic: { kind: "svg", src: anthropicIcon },
   claude: { kind: "svg", src: claudeColorIcon, preserveInDark: true },
   apify: { kind: "mui", Component: BoltIcon },
+  elevenlabs: { kind: "svg", src: elevenlabsIcon },
   fal: { kind: "svg", src: falColorIcon, preserveInDark: true },
   gemini: { kind: "svg", src: geminiColorIcon, preserveInDark: true },
   google: { kind: "svg", src: geminiColorIcon, preserveInDark: true },
