@@ -33,6 +33,9 @@ import { KieProvider } from "./kie-provider.js";
 import { AkiProvider } from "./aki-provider.js";
 import { MeshyProvider } from "./meshy-provider.js";
 import { RodinProvider } from "./rodin-provider.js";
+import { CohereProvider } from "./cohere-provider.js";
+import { VoyageProvider } from "./voyage-provider.js";
+import { JinaProvider } from "./jina-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
@@ -68,6 +71,9 @@ export { KieProvider };
 export { AkiProvider };
 export { MeshyProvider };
 export { RodinProvider };
+export { CohereProvider };
+export { VoyageProvider };
+export { JinaProvider };
 export {
   FakeProvider,
   createFakeToolCall,
@@ -179,6 +185,15 @@ registerBuiltinProvider("together", TogetherProvider, {
 });
 registerBuiltinProvider("cerebras", CerebrasProvider, {
   CEREBRAS_API_KEY: process.env["CEREBRAS_API_KEY"]
+});
+registerBuiltinProvider("cohere", CohereProvider, {
+  COHERE_API_KEY: process.env["COHERE_API_KEY"]
+});
+registerBuiltinProvider("voyage", VoyageProvider, {
+  VOYAGE_API_KEY: process.env["VOYAGE_API_KEY"]
+});
+registerBuiltinProvider("jina", JinaProvider, {
+  JINA_API_KEY: process.env["JINA_API_KEY"]
 });
 registerBuiltinProvider("deepseek", DeepSeekProvider, {
   DEEPSEEK_API_KEY: process.env["DEEPSEEK_API_KEY"]
