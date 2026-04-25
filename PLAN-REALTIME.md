@@ -275,7 +275,8 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - Backend delegation contract landed: `LongLivePipeline` can drive an injected Wan2.1 backend through loading, generation, warm-state reset, and close, while preserving dependency-light base imports.
   - Lazy backend adapter landed: the default real-mode factory now resolves optional ML modules and component loaders only during backend load.
   - Component load plan landed: tokenizer/VAE/transformer loading is mapped to `Wan-AI/Wan2.1-T2V-1.3B-Diffusers`, with the selected LongLive weight source retained for the future checkpoint-application step.
-  - Still pending for completion: applying LongLive checkpoint weights to the transformer, tensor conversion inside the backend, sampler loop, and validated FP8/GGUF/INT8 paths.
+  - Checkpoint-applier hook landed: base transformer loading now has an explicit LongLive checkpoint application step before sampler readiness, and the default path reports a structured pending error until that applier is real.
+  - Still pending for completion: real LongLive checkpoint application, tensor conversion inside the backend, sampler loop, and validated FP8/GGUF/INT8 paths.
 - [ ] Step 10b: Self-Forcing.
 - [ ] Step 11: canonical workflow template.
 
