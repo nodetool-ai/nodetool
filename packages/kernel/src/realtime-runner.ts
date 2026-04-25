@@ -6,7 +6,7 @@ import {
   type WorkflowGraphData,
   type WorkflowRunnerOptions
 } from "./runner.js";
-import type { RealtimeSessionInfo } from "@nodetool/protocol";
+import type { RealtimeMetrics, RealtimeSessionInfo } from "@nodetool/protocol";
 
 export interface RealtimeRunnerOptions
   extends Omit<WorkflowRunnerOptions, "runMode"> {
@@ -94,6 +94,12 @@ export class RealtimeRunner {
     value: unknown
   ): Promise<RealtimeParameterUpdateResult> {
     return this.runner.pushParameter(name, value);
+  }
+
+  updateMetrics(metrics: RealtimeMetrics): void {
+    if (this.sessionInfo?.session_id === metrics.session_id) {
+      this.sessionInfo.metrics = metrics;
+    }
   }
 
   private async runWarmStateHooks(stage: "start" | "stop"): Promise<void> {

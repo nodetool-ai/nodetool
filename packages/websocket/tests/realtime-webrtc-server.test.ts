@@ -184,6 +184,75 @@ describe("RealtimeWebRTCServer", () => {
     ]);
     expect(server.getSessionState("stuck-session")).toBe("closed");
   });
+
+  it("reports metrics-ready peer and codec state without claiming decoded pixels", () => {
+    const server = new RealtimeWebRTCServer({
+      emitSessionSignal: async () => undefined
+    });
+
+    const metrics = server.getMetrics(session());
+
+    expect(metrics).toMatchObject({
+      type: "realtime_metrics",
+      session_id: "session-1",
+      workflow_id: "workflow-1",
+      job_id: "job-1",
+      transport: "webrtc",
+      peer: {
+        connection_state: "missing"
+      },
+      codec: {
+        status: "unsupported",
+        name: null
+      },
+      frames: {
+        inbound: 0,
+        outbound: 0,
+        inbound_rtp_packets: 0,
+        routed: 0,
+        unrouted: 0,
+        decode_unsupported: 0,
+        encoded: 0
+      },
+      rates: {
+        inbound_fps: 0,
+        outbound_fps: 0,
+        routed_fps: 0
+      },
+      queues: {
+        total_depth: 0,
+        total_dropped: 0,
+        consumers: []
+      },
+      reconnect_count: 0
+    });
+    expect(typeof metrics.created_at).toBe("string");
+  });
+
+  it("aggregates per-consumer queue depth and drop metrics", () => {
+    const server = new RealtimeWebRTCServer({
+      emitSessionSignal: async () => undefined
+    });
+    const preview = new BoundedMediaQueue<number>({ capacity: 2 });
+    const recorder = new BoundedMediaQueue<number>({ capacity: 1 });
+    preview.push(1);
+    preview.push(2);
+    preview.push(3);
+    recorder.push(1);
+    server.registerConsumerQueue("session-1", "preview", preview);
+    server.registerConsumerQueue("session-1", "recorder", recorder);
+
+    const metrics = server.getMetrics(session());
+
+    expect(metrics.queues).toEqual({
+      total_depth: 3,
+      total_dropped: 1,
+      consumers: [
+        { id: "preview", depth: 2, dropped: 1, pushed: 3 },
+        { id: "recorder", depth: 1, dropped: 0, pushed: 1 }
+      ]
+    });
+  });
 });
 
 describe("FrameRouter", () => {

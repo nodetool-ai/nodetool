@@ -410,6 +410,42 @@ describe("realtime control and session nodes", () => {
         workflow_id: "workflow-session",
         job_id: "job-session-info",
         parameters: { prompt: "live" },
+        metrics: {
+          type: "realtime_metrics",
+          session_id: "session-info-1",
+          workflow_id: "workflow-session",
+          job_id: "job-session-info",
+          transport: "webrtc",
+          peer: { connection_state: "connected" },
+          codec: { status: "unsupported", name: null },
+          frames: {
+            inbound: 1,
+            outbound: 0,
+            inbound_rtp_packets: 1,
+            routed: 1,
+            unrouted: 0,
+            decode_unsupported: 0,
+            encoded: 0
+          },
+          rates: {
+            inbound_fps: 2,
+            outbound_fps: 0,
+            routed_fps: 2
+          },
+          queues: {
+            total_depth: 0,
+            total_dropped: 0,
+            consumers: []
+          },
+          latency: {
+            decode_ms_avg: null,
+            encode_ms_avg: null,
+            frame_age_ms_avg: null
+          },
+          bitrate: { target_bps: null },
+          reconnect_count: 0,
+          created_at: "2026-01-01T00:00:00.000Z"
+        },
         media_tracks: [
           {
             track_id: "track-1",
@@ -431,7 +467,11 @@ describe("realtime control and session nodes", () => {
         session_id: "session-info-1",
         workflow_id: "workflow-session",
         transport: "webrtc",
-        parameters: { prompt: "live" }
+        parameters: { prompt: "live" },
+        metrics: expect.objectContaining({
+          type: "realtime_metrics",
+          frames: expect.objectContaining({ inbound: 1 })
+        })
       })
     );
   });

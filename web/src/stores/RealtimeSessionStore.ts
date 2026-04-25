@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type {
+  RealtimeMetrics,
   RealtimeSessionRecord,
   RealtimeSessionStarted,
   RealtimeSessionStopped,
@@ -14,7 +15,8 @@ import {
 type RealtimeSessionMessage =
   | RealtimeSessionStarted
   | RealtimeSessionUpdated
-  | RealtimeSessionStopped;
+  | RealtimeSessionStopped
+  | RealtimeMetrics;
 
 type RealtimeGraphPayload = {
   nodes: Array<Record<string, unknown>>;
@@ -23,6 +25,7 @@ type RealtimeGraphPayload = {
 
 interface RealtimeSessionStoreState {
   sessions: Record<string, RealtimeSessionRecord>;
+  metrics: Record<string, RealtimeMetrics>;
   activeSessionId: string | null;
   isLoading: boolean;
   error: string | null;
@@ -41,6 +44,7 @@ interface RealtimeSessionStoreState {
   ) => Promise<void>;
   stopSession: (sessionId: string, workflowId: string | null) => Promise<void>;
   upsertSession: (session: RealtimeSessionRecord) => void;
+  upsertMetrics: (metrics: RealtimeMetrics) => void;
   removeSession: (sessionId: string) => void;
   setActiveSession: (sessionId: string | null) => void;
 }
@@ -82,7 +86,28 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
             return;
           }
 
-          get().removeSession(message.session_id);
+          if (message.type === "realtime_metrics") {
+            get().upsertMetrics(message);
+            return;
+          }
+
+          set((state) => {
+            const existing = state.sessions[message.session_id];
+            if (!existing) {
+              return state;
+            }
+
+            return {
+              sessions: {
+                ...state.sessions,
+                [message.session_id]: {
+                  ...existing,
+                  status: message.status,
+                  updated_at: message.updated_at
+                }
+              }
+            };
+          });
         }
       );
 
@@ -99,6 +124,7 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
 
     return {
       sessions: {},
+      metrics: {},
       activeSessionId: null,
       isLoading: false,
       error: null,
@@ -201,14 +227,26 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
         }));
       },
 
+      upsertMetrics(metrics) {
+        set((state) => ({
+          metrics: {
+            ...state.metrics,
+            [metrics.session_id]: metrics
+          }
+        }));
+      },
+
       removeSession(sessionId) {
         detachSessionSubscription(sessionId);
         set((state) => {
           const nextSessions = { ...state.sessions };
+          const nextMetrics = { ...state.metrics };
           delete nextSessions[sessionId];
+          delete nextMetrics[sessionId];
 
           return {
             sessions: nextSessions,
+            metrics: nextMetrics,
             activeSessionId:
               state.activeSessionId === sessionId
                 ? Object.keys(nextSessions)[0] ?? null

@@ -491,6 +491,85 @@ describe("RealtimeRunner skeleton", () => {
     expect(result.outputs.result).toEqual([7]);
   });
 
+  it("updates the live session info metrics object for warm-state nodes", async () => {
+    const seenSessions: RealtimeSessionInfo[] = [];
+    const warmExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async onSessionStart(_context, session) {
+        seenSessions.push(session);
+      }
+    };
+    const realtimeRunner = new RealtimeRunner("rt-metrics", {
+      executionContext: mockProcessingContext,
+      resolveExecutor: () => warmExecutor
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      { job_id: "rt-metrics" },
+      {
+        nodes: [
+          {
+            id: "warm",
+            type: "test.WarmMetrics",
+            owns_warm_state: true
+          }
+        ],
+        edges: []
+      },
+      realtimeSession({
+        session_id: "rt-metrics",
+        job_id: "rt-metrics"
+      })
+    );
+
+    realtimeRunner.updateMetrics({
+      type: "realtime_metrics",
+      session_id: "rt-metrics",
+      workflow_id: null,
+      job_id: "rt-metrics",
+      transport: "websocket",
+      peer: { connection_state: "connected" },
+      codec: { status: "loopback", name: null },
+      frames: {
+        inbound: 1,
+        outbound: 0,
+        inbound_rtp_packets: 0,
+        routed: 1,
+        unrouted: 0,
+        decode_unsupported: 0,
+        encoded: 0
+      },
+      rates: {
+        inbound_fps: 2,
+        outbound_fps: 0,
+        routed_fps: 2
+      },
+      queues: {
+        total_depth: 0,
+        total_dropped: 0,
+        consumers: []
+      },
+      latency: {
+        decode_ms_avg: null,
+        encode_ms_avg: null,
+        frame_age_ms_avg: null
+      },
+      bitrate: { target_bps: null },
+      reconnect_count: 0,
+      created_at: "2026-01-01T00:00:01.000Z"
+    });
+
+    expect(seenSessions[0].metrics).toMatchObject({
+      type: "realtime_metrics",
+      frames: expect.objectContaining({ inbound: 1 }),
+      rates: expect.objectContaining({ inbound_fps: 2 })
+    });
+
+    await realtimeRunner.stopRealtimeMode();
+  });
+
   it("bounds stopRealtimeMode so non-cooperative realtime nodes cannot hang teardown forever", async () => {
     const stuckExecutor: NodeExecutor = {
       async process() {

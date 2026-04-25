@@ -1,5 +1,6 @@
 import type {
   RealtimeMediaTrackMapping,
+  RealtimeMetrics,
   RealtimeSessionRecord,
   RealtimeSessionSignal,
   RealtimeSessionSignalingState,
@@ -14,7 +15,8 @@ import { globalWebSocketManager } from "./GlobalWebSocketManager";
 type RealtimeSessionMessage =
   | RealtimeSessionStarted
   | RealtimeSessionUpdated
-  | RealtimeSessionStopped;
+  | RealtimeSessionStopped
+  | RealtimeMetrics;
 
 export interface RealtimeTransportConfig {
   transport: RealtimeSessionTransport;
@@ -55,7 +57,8 @@ const isRealtimeSessionMessage = (
     isObject(message) &&
     (message.type === "realtime_session_started" ||
       message.type === "realtime_session_updated" ||
-      message.type === "realtime_session_stopped")
+      message.type === "realtime_session_stopped" ||
+      message.type === "realtime_metrics")
   );
 };
 

@@ -1,4 +1,5 @@
 import type {
+  RealtimeMetrics,
   RealtimeSessionRecord,
   RealtimeSessionSignal,
   RealtimeSessionSignalDescription,
@@ -29,11 +30,21 @@ export interface RealtimeWebRTCSessionOptions {
 
 export type RealtimeWebRTCSessionState = "new" | "running" | "closed";
 
+export interface RealtimeWebRTCSessionMetrics {
+  peer: RealtimeMetrics["peer"];
+  codec: RealtimeMetrics["codec"];
+  frames: RealtimeMetrics["frames"];
+}
+
 export class RealtimeWebRTCSession {
   private readonly peer = new RTCPeerConnection();
   private readonly codecBridge: CodecBridge;
   private readonly frameRouter?: FrameRouter;
   private state: RealtimeWebRTCSessionState = "new";
+  private inboundFrames = 0;
+  private outboundFrames = 0;
+  private inboundRtpPackets = 0;
+  private encodedFrames = 0;
   private unsupportedCodecFrames = 0;
 
   constructor(private readonly options: RealtimeWebRTCSessionOptions) {
@@ -53,9 +64,33 @@ export class RealtimeWebRTCSession {
     return this.state;
   }
 
-  metrics(): { unsupportedCodecFrames: number } {
+  metrics(): RealtimeWebRTCSessionMetrics {
+    const peerState = this.peer as unknown as {
+      connectionState?: string;
+      iceConnectionState?: string;
+    };
+    const routed = this.frameRouter?.metrics() ?? {
+      routedFrames: 0,
+      unroutedFrames: 0
+    };
     return {
-      unsupportedCodecFrames: this.unsupportedCodecFrames
+      peer: {
+        connection_state: peerState.connectionState ?? this.state,
+        ice_connection_state: peerState.iceConnectionState ?? null
+      },
+      codec: {
+        status: "unsupported",
+        name: null
+      },
+      frames: {
+        inbound: this.inboundFrames,
+        outbound: this.outboundFrames,
+        inbound_rtp_packets: this.inboundRtpPackets,
+        routed: routed.routedFrames,
+        unrouted: routed.unroutedFrames,
+        decode_unsupported: this.unsupportedCodecFrames,
+        encoded: this.encodedFrames
+      }
     };
   }
 
@@ -160,9 +195,11 @@ export class RealtimeWebRTCSession {
     kind: "audio" | "video",
     rtp: RtpPacket
   ): Promise<void> {
+    this.inboundRtpPackets += 1;
     const result = await this.codecBridge.decode({ trackId, kind, rtp });
     if (result.status === "decoded") {
       await this.frameRouter?.routeFrame(trackId, result.frame);
+      this.inboundFrames += 1;
       return;
     }
     this.unsupportedCodecFrames += 1;

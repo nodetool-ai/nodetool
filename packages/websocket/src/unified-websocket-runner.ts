@@ -751,6 +751,7 @@ export class UnifiedWebSocketRunner {
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
+  private realtimeMetricsTimer: NodeJS.Timeout | null = null;
   private chatRequestSeq = 0;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private toolBridge = new ToolBridge();
@@ -945,6 +946,7 @@ export class UnifiedWebSocketRunner {
     if (process.env.NODE_ENV !== "production") {
       this.startStatsBroadcast();
     }
+    this.startRealtimeMetricsBroadcast();
     this.registerObserver();
   }
 
@@ -952,6 +954,7 @@ export class UnifiedWebSocketRunner {
     log.info("Client disconnected");
     this.stopHeartbeat();
     this.stopStatsBroadcast();
+    this.stopRealtimeMetricsBroadcast();
     this.unregisterObserver();
     this.toolBridge.cancelAll();
 
@@ -1164,6 +1167,31 @@ export class UnifiedWebSocketRunner {
       candidate: signal.candidate,
       created_at: signal.created_at
     });
+  }
+
+  private async emitRealtimeMetrics(): Promise<void> {
+    const userId = this.getRealtimeUserId();
+    const sessions = realtimeSessionManager
+      .listSessions(userId)
+      .filter(
+        (session) => session.status === "starting" || session.status === "running"
+      );
+
+    for (const session of sessions) {
+      const metrics = this.realtimeWebRTCServer.getMetrics(session);
+      if (session.job_id) {
+        const realtimeRunner = this.activeJobs.get(session.job_id)
+          ?.realtimeRunner as
+          | { updateMetrics?: (metrics: unknown) => void }
+          | undefined;
+        if (typeof realtimeRunner?.updateMetrics === "function") {
+          realtimeRunner.updateMetrics(metrics);
+        }
+      }
+      await this.sendMessage(
+        metrics as unknown as Record<string, unknown>
+      );
+    }
   }
 
   async receiveMessage(): Promise<Record<string, unknown> | null> {
@@ -4788,6 +4816,22 @@ export class UnifiedWebSocketRunner {
     if (this.statsTimer) {
       clearInterval(this.statsTimer);
       this.statsTimer = null;
+    }
+  }
+
+  private startRealtimeMetricsBroadcast(): void {
+    this.stopRealtimeMetricsBroadcast();
+    this.realtimeMetricsTimer = setInterval(() => {
+      this.emitRealtimeMetrics().catch((err) => {
+        log.warn("Failed to send realtime metrics", { error: String(err) });
+      });
+    }, 500);
+  }
+
+  private stopRealtimeMetricsBroadcast(): void {
+    if (this.realtimeMetricsTimer) {
+      clearInterval(this.realtimeMetricsTimer);
+      this.realtimeMetricsTimer = null;
     }
   }
 

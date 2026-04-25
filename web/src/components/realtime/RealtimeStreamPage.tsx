@@ -30,6 +30,7 @@ const RealtimeStreamPage = () => {
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
 
   const sessions = useRealtimeSessionStore((state) => state.sessions);
+  const metrics = useRealtimeSessionStore((state) => state.metrics);
   const activeSessionId = useRealtimeSessionStore((state) => state.activeSessionId);
   const isLoadingSessions = useRealtimeSessionStore((state) => state.isLoading);
   const sessionError = useRealtimeSessionStore((state) => state.error);
@@ -89,6 +90,9 @@ const RealtimeStreamPage = () => {
 
     return workflowSessions[0] ?? null;
   }, [activeSessionId, sessions, workflowSessions]);
+  const activeMetrics = activeSession
+    ? metrics[activeSession.session_id] ?? null
+    : null;
   const webrtcRuntimeMode = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return params.get("webrtcRuntime") === "backend" ? "backend" : "loopback";
@@ -355,6 +359,22 @@ const RealtimeStreamPage = () => {
                    </Text>
                    <Text color="secondary">
                      Codec bridge: {codecStatus}
+                   </Text>
+                   <Text color="secondary">
+                     Metrics codec: {activeMetrics?.codec.status ?? "pending"}
+                   </Text>
+                   <Text color="secondary">
+                     Frames: inbound {activeMetrics?.frames.inbound ?? 0}, routed{" "}
+                     {activeMetrics?.frames.routed ?? 0}, dropped{" "}
+                     {activeMetrics?.queues.total_dropped ?? 0}
+                   </Text>
+                   <Text color="secondary">
+                     FPS: inbound{" "}
+                     {(activeMetrics?.rates.inbound_fps ?? 0).toFixed(1)}, routed{" "}
+                     {(activeMetrics?.rates.routed_fps ?? 0).toFixed(1)}
+                   </Text>
+                   <Text color="secondary">
+                     Queue depth: {activeMetrics?.queues.total_depth ?? 0}
                    </Text>
                    <Text color="secondary">
                      Local hook state: {signalingStatus}

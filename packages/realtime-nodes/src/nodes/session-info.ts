@@ -13,7 +13,8 @@ export class SessionInfo extends BaseNode {
     workflow_id: "str",
     transport: "str",
     parameters: "dict",
-    media_tracks: "list[dict]"
+    media_tracks: "list[dict]",
+    metrics: "dict"
   };
   static readonly isRealtimeCapable = true;
   static readonly ownsWarmState = true;
@@ -39,7 +40,8 @@ export class SessionInfo extends BaseNode {
       workflow_id: session?.workflow_id ?? null,
       transport: session?.transport ?? "",
       parameters: session?.parameters ?? {},
-      media_tracks: session?.media_tracks ?? []
+      media_tracks: session?.media_tracks ?? [],
+      metrics: session?.metrics ?? null
     };
   }
 }

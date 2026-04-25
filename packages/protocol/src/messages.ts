@@ -358,7 +358,9 @@ export interface RealtimeSessionRecord {
   updated_at: string;
 }
 
-export type RealtimeSessionInfo = RealtimeSessionRecord;
+export interface RealtimeSessionInfo extends RealtimeSessionRecord {
+  metrics?: RealtimeMetrics | null;
+}
 
 export interface RealtimeSessionStarted extends RealtimeSessionRecord {
   type: "realtime_session_started";
@@ -386,6 +388,56 @@ export interface RealtimeSessionSignal {
   target: RealtimeSignalPeer;
   description?: RealtimeSessionSignalDescription;
   candidate?: RealtimeSessionIceCandidate;
+  created_at: string;
+}
+
+export interface RealtimeMetrics {
+  type: "realtime_metrics";
+  session_id: string;
+  workflow_id: string | null;
+  job_id: string | null;
+  transport: RealtimeSessionTransport;
+  peer: {
+    connection_state: string;
+    ice_connection_state?: string | null;
+  };
+  codec: {
+    status: "loopback" | "unsupported" | "active" | "error";
+    name?: string | null;
+  };
+  frames: {
+    inbound: number;
+    outbound: number;
+    inbound_rtp_packets: number;
+    routed: number;
+    unrouted: number;
+    decode_unsupported: number;
+    encoded: number;
+  };
+  rates: {
+    inbound_fps: number;
+    outbound_fps: number;
+    routed_fps: number;
+  };
+  queues: {
+    total_depth: number;
+    total_dropped: number;
+    consumers: Array<{
+      id: string;
+      depth: number;
+      dropped: number;
+      pushed: number;
+    }>;
+  };
+  latency: {
+    decode_ms_avg: number | null;
+    encode_ms_avg: number | null;
+    frame_age_ms_avg: number | null;
+  };
+  bitrate: {
+    target_bps: number | null;
+  };
+  reconnect_count: number;
   created_at: string;
 }
 
@@ -491,6 +543,7 @@ export type ProcessingMessage =
   | RealtimeSessionUpdated
   | RealtimeSessionStopped
   | RealtimeSessionSignal
+  | RealtimeMetrics
   | Chunk
   | Prediction
   | LLMCallUpdate;

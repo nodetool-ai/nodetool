@@ -597,6 +597,72 @@ describe("UnifiedWebSocketRunner", () => {
     }
   });
 
+  it("emits realtime_metrics messages for active realtime sessions", async () => {
+    await runner.connect(ws);
+
+    await runner.handleCommand({
+      command: "start_realtime_session",
+      data: {
+        workflow_id: "workflow-metrics",
+        transport: "webrtc",
+        media_tracks: [
+          {
+            track_id: "video-track-1",
+            kind: "video",
+            node_id: "camera",
+            input_name: "video"
+          }
+        ],
+        graph: {
+          nodes: [
+            { id: "camera", type: "test.Input", name: "video" },
+            { id: "sink", type: "test.Sink", name: "sink" }
+          ],
+          edges: [
+            {
+              source: "camera",
+              sourceHandle: "value",
+              target: "sink",
+              targetHandle: "value",
+              edge_type: "data"
+            }
+          ]
+        }
+      }
+    });
+    const [session] = realtimeSessionManager.listSessions("1");
+
+    await (
+      runner as unknown as {
+        emitRealtimeMetrics(): Promise<void>;
+      }
+    ).emitRealtimeMetrics();
+
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+    expect(sent).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "realtime_metrics",
+          session_id: session.session_id,
+          workflow_id: "workflow-metrics",
+          codec: expect.objectContaining({
+            status: "unsupported"
+          }),
+          frames: expect.objectContaining({
+            inbound: 0,
+            outbound: 0
+          }),
+          queues: expect.objectContaining({
+            total_depth: 0,
+            total_dropped: 0
+          })
+        })
+      ])
+    );
+
+    await runner.disconnect();
+  });
+
   it("stops realtime sessions and emits a session-stopped event", async () => {
     await runner.connect(ws);
 
