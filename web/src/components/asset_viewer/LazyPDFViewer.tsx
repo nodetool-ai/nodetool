@@ -1,5 +1,10 @@
 /**
  * Lazy-loaded wrapper for PDFViewer component.
+ *
+ * This component lazy-loads the PDFViewer (react-pdf + pdfjs-dist ~8MB)
+ * only when actually needed, reducing initial bundle size.
+ *
+ * @module LazyPDFViewer
  */
 
 import React, { Suspense, lazy } from "react";
@@ -37,6 +42,10 @@ const PDFViewerLoadingFallback: React.FC = () => (
 
 /**
  * Lazy-loaded PDF viewer component.
+ *
+ * Wraps PDFViewer in React.lazy and Suspense to defer loading
+ * of the heavy react-pdf and pdfjs-dist dependencies (~8MB) until
+ * a PDF is actually displayed.
  *
  * @example
  * ```tsx
