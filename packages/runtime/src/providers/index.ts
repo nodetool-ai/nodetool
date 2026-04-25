@@ -20,6 +20,8 @@ import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import { CerebrasProvider } from "./cerebras-provider.js";
+import { DeepSeekProvider } from "./deepseek-provider.js";
+import { XAIProvider } from "./xai-provider.js";
 import { LMStudioProvider } from "./lmstudio-provider.js";
 import { VLLMProvider } from "./vllm-provider.js";
 import { HuggingFaceProvider } from "./huggingface-provider.js";
@@ -54,6 +56,8 @@ export { MoonshotProvider };
 export { OpenRouterProvider };
 export { TogetherProvider };
 export { CerebrasProvider };
+export { DeepSeekProvider };
+export { XAIProvider };
 export { LMStudioProvider };
 export { VLLMProvider };
 export { HuggingFaceProvider };
@@ -175,6 +179,12 @@ registerBuiltinProvider("together", TogetherProvider, {
 });
 registerBuiltinProvider("cerebras", CerebrasProvider, {
   CEREBRAS_API_KEY: process.env["CEREBRAS_API_KEY"]
+});
+registerBuiltinProvider("deepseek", DeepSeekProvider, {
+  DEEPSEEK_API_KEY: process.env["DEEPSEEK_API_KEY"]
+});
+registerBuiltinProvider("xai", XAIProvider, {
+  XAI_API_KEY: process.env["XAI_API_KEY"]
 });
 
 // Local-only providers — require local servers/CLIs, skip in production
