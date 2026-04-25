@@ -8,6 +8,7 @@ import type {
 } from "./metadata.js";
 import { loadPythonPackageMetadata } from "./metadata.js";
 import { getNodeMetadata } from "./node-metadata.js";
+import type { NodePropertyValidationIssue } from "./validation.js";
 
 export interface NodeRegistryOptions {
   metadataByType?: Map<string, NodeMetadata>;
@@ -59,6 +60,40 @@ export class NodeRegistry {
       );
     }
     this._classes.set(nodeClass.nodeType, nodeClass);
+  }
+
+  /**
+   * Validate a node descriptor against its registered class's @prop schema.
+   *
+   * Returns an empty array when:
+   *   - the class is not registered (the runner will surface that elsewhere), or
+   *   - all required/model fields are populated.
+   */
+  validateNode(
+    descriptor: NodeDescriptor,
+    connectedHandles?: ReadonlySet<string> | ReadonlyArray<string>
+  ): NodePropertyValidationIssue[] {
+    const NodeClass = this._classes.get(descriptor.type);
+    if (!NodeClass) return [];
+    const properties =
+      (descriptor.properties as Record<string, unknown> | undefined) ?? {};
+    return NodeClass.validateProperties(properties, {
+      connectedHandles,
+      nodeId: descriptor.id
+    });
+  }
+
+  /**
+   * Create a validator function compatible with WorkflowRunnerOptions.validateNode.
+   * Bound to this registry, so the runner can call it without holding a
+   * reference to the registry itself.
+   */
+  createNodeValidator(): (
+    descriptor: NodeDescriptor,
+    connectedHandles: ReadonlySet<string>
+  ) => NodePropertyValidationIssue[] {
+    return (descriptor, connectedHandles) =>
+      this.validateNode(descriptor, connectedHandles);
   }
 
   resolve(descriptor: NodeDescriptor): NodeExecutor {

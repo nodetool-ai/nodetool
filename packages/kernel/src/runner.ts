@@ -26,10 +26,37 @@ import { TypeMetadata } from "@nodetool/protocol";
 const log = createLogger("nodetool.kernel.runner");
 import type { ProcessingContext } from "@nodetool/runtime";
 import { isControlEdge, isDataEdge } from "@nodetool/protocol";
-import { Graph } from "./graph.js";
+import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
+
+// ---------------------------------------------------------------------------
+// Node-level validation hook
+// ---------------------------------------------------------------------------
+
+/**
+ * Issue reported by a node validator. Mirrors the shape of
+ * `@nodetool/node-sdk`'s `NodePropertyValidationIssue`, redeclared here to
+ * avoid a circular dependency (node-sdk depends on kernel).
+ */
+export interface NodeValidationIssue {
+  nodeId?: string;
+  nodeType?: string;
+  property: string;
+  message: string;
+}
+
+/**
+ * Function used by WorkflowRunner to validate each node before execution.
+ * `connectedHandles` lists the targetHandles on the node that have an
+ * incoming data edge — those properties are produced at runtime and the
+ * validator must not flag them as missing.
+ */
+export type NodeValidator = (
+  node: NodeDescriptor,
+  connectedHandles: ReadonlySet<string>
+) => NodeValidationIssue[] | undefined | null;
 
 // ---------------------------------------------------------------------------
 // Runner options
@@ -61,6 +88,16 @@ export interface WorkflowRunnerOptions {
 
   /** Optional execution context passed to each node executor call. */
   executionContext?: ProcessingContext;
+
+  /**
+   * Optional pre-flight validator invoked once per node after structural
+   * graph validation succeeds. Returning a non-empty list of issues aborts
+   * the run with a `GraphValidationError` before any actor is spawned.
+   *
+   * `NodeRegistry.createNodeValidator()` from `@nodetool/node-sdk` produces
+   * a callback compatible with this signature.
+   */
+  validateNode?: NodeValidator;
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +266,10 @@ export class WorkflowRunner {
       // Validate
       this._graph.validate();
 
+      // Pre-flight node validation: catch missing required fields and
+      // unset model selections before spawning any actors.
+      this._validateNodes();
+
       // Emit job_update: running
       this._emit({
         type: "job_update",
@@ -350,6 +391,56 @@ export class WorkflowRunner {
         nodes: [...this._graph.nodes],
         edges: validEdges
       });
+    }
+  }
+
+  /**
+   * Run the optional `validateNode` callback for every node in the graph,
+   * passing the set of property handles that have an incoming data edge.
+   * Aggregates issues across nodes and throws a single GraphValidationError.
+   */
+  private _validateNodes(): void {
+    const validator = this._options.validateNode;
+    if (!validator) return;
+
+    // Build map: nodeId -> set of targetHandles with an incoming data edge.
+    const connectedByNode = new Map<string, Set<string>>();
+    for (const edge of this._graph.edges) {
+      if (!isDataEdge(edge)) continue;
+      let handles = connectedByNode.get(edge.target);
+      if (!handles) {
+        handles = new Set();
+        connectedByNode.set(edge.target, handles);
+      }
+      handles.add(edge.targetHandle);
+    }
+
+    const issues: NodeValidationIssue[] = [];
+    for (const node of this._graph.nodes) {
+      const handles = connectedByNode.get(node.id) ?? new Set<string>();
+      const nodeIssues = validator(node, handles);
+      if (nodeIssues && nodeIssues.length > 0) {
+        for (const issue of nodeIssues) {
+          issues.push({
+            nodeId: issue.nodeId ?? node.id,
+            nodeType: issue.nodeType ?? node.type,
+            property: issue.property,
+            message: issue.message
+          });
+        }
+      }
+    }
+
+    if (issues.length > 0) {
+      const lines = issues.map((issue) => {
+        const where = ` on node "${issue.nodeId}"${
+          issue.nodeType ? ` (${issue.nodeType})` : ""
+        }`;
+        return `  - ${issue.message}${where}`;
+      });
+      throw new GraphValidationError(
+        `Graph validation failed with ${issues.length} issue(s):\n${lines.join("\n")}`
+      );
     }
   }
 
