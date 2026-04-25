@@ -1,13 +1,18 @@
 import React from "react";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { trpc } from "../../lib/trpc";
 import { useHuggingFaceModels } from "../useHuggingFaceModels";
-import { client } from "../../stores/ApiClient";
 
-// Mock the API client
-jest.mock("../../stores/ApiClient");
+jest.mock("../../lib/trpc", () => ({
+  trpc: {
+    models: {
+      huggingfaceList: { query: jest.fn() }
+    }
+  }
+}));
 
-const mockClient = client as jest.Mocked<typeof client>;
+const mockQuery = trpc.models.huggingfaceList.query as jest.Mock;
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = new QueryClient({
@@ -51,10 +56,7 @@ describe("useHuggingFaceModels", () => {
 
   describe("fetching models", () => {
     it("fetches and returns HuggingFace models successfully", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockHFModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockHFModels as never);
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -66,14 +68,11 @@ describe("useHuggingFaceModels", () => {
 
       expect(result.current.hfModels).toEqual(mockHFModels);
       expect(result.current.hfError).toBeNull();
-      expect(mockClient.GET).toHaveBeenCalledWith("/api/models/huggingface", {});
+      expect(mockQuery).toHaveBeenCalled();
     });
 
     it("returns undefined when no models available", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: [],
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce([] as never);
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -88,11 +87,9 @@ describe("useHuggingFaceModels", () => {
     });
 
     it("handles API error", async () => {
-      const errorResponse = { detail: "Failed to fetch HuggingFace models" };
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: errorResponse,
-      });
+      mockQuery.mockRejectedValueOnce(
+        new Error("Failed to fetch HuggingFace models")
+      );
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -107,7 +104,7 @@ describe("useHuggingFaceModels", () => {
     });
 
     it("handles network error", async () => {
-      mockClient.GET.mockRejectedValueOnce(new Error("Network error"));
+      mockQuery.mockRejectedValueOnce(new Error("Network error"));
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -122,10 +119,7 @@ describe("useHuggingFaceModels", () => {
     });
 
     it("does not refetch on window focus", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockHFModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockHFModels as never);
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -135,7 +129,7 @@ describe("useHuggingFaceModels", () => {
         expect(result.current.hfLoading).toBe(false);
       });
 
-      expect(mockClient.GET).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
 
       // Simulate window focus
       window.dispatchEvent(new Event("focus"));
@@ -144,7 +138,7 @@ describe("useHuggingFaceModels", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should still only be called once due to refetchOnWindowFocus: false
-      expect(mockClient.GET).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -154,7 +148,7 @@ describe("useHuggingFaceModels", () => {
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
-      mockClient.GET.mockReturnValueOnce(promise);
+      mockQuery.mockReturnValueOnce(promise);
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -166,7 +160,7 @@ describe("useHuggingFaceModels", () => {
 
       // Resolve the promise
       await waitFor(() => {
-        resolvePromise({ data: mockHFModels, error: null });
+        resolvePromise(mockHFModels);
       });
 
       await waitFor(() => {
@@ -177,10 +171,7 @@ describe("useHuggingFaceModels", () => {
     });
 
     it("provides isFetching state for background refreshes", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockHFModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockHFModels as never);
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -196,10 +187,7 @@ describe("useHuggingFaceModels", () => {
 
   describe("return values", () => {
     it("returns all expected properties", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockHFModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockHFModels as never);
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -216,10 +204,7 @@ describe("useHuggingFaceModels", () => {
     });
 
     it("maintains stable references when data doesn't change", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockHFModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockHFModels as never);
 
       const { result, rerender } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -241,11 +226,9 @@ describe("useHuggingFaceModels", () => {
 
   describe("error handling", () => {
     it("provides error details when API call fails", async () => {
-      const errorDetail = { detail: "HuggingFace API token not configured" };
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: errorDetail,
-      });
+      mockQuery.mockRejectedValueOnce(
+        new Error("HuggingFace API token not configured")
+      );
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -260,10 +243,7 @@ describe("useHuggingFaceModels", () => {
     });
 
     it("handles empty error response", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: null,
-        error: {},
-      });
+      mockQuery.mockRejectedValueOnce(new Error("Unknown error"));
 
       const { result } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -279,10 +259,7 @@ describe("useHuggingFaceModels", () => {
 
   describe("caching behavior", () => {
     it("uses query key for caching", async () => {
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockHFModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockHFModels as never);
 
       const { result: result1 } = renderHook(() => useHuggingFaceModels(), {
         wrapper: createWrapper(),
@@ -293,7 +270,7 @@ describe("useHuggingFaceModels", () => {
       });
 
       // First hook should fetch
-      expect(mockClient.GET).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledTimes(1);
 
       // Create a new QueryClient for a truly independent test
       const queryClient2 = new QueryClient({
@@ -309,10 +286,7 @@ describe("useHuggingFaceModels", () => {
         return <QueryClientProvider client={queryClient2}>{children}</QueryClientProvider>;
       };
 
-      mockClient.GET.mockResolvedValueOnce({
-        data: mockHFModels,
-        error: null,
-      });
+      mockQuery.mockResolvedValueOnce(mockHFModels as never);
 
       const { result: result2 } = renderHook(() => useHuggingFaceModels(), {
         wrapper: TestWrapper2,
@@ -323,7 +297,7 @@ describe("useHuggingFaceModels", () => {
       });
 
       // Second hook in different context should also fetch
-      expect(mockClient.GET).toHaveBeenCalledTimes(2);
+      expect(mockQuery).toHaveBeenCalledTimes(2);
     });
   });
 });

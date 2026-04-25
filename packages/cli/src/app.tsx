@@ -38,6 +38,7 @@ import {
   OpenAIWebSearchTool, OpenAIImageGenerationTool, OpenAITextToSpeechTool,
   DataForSEOSearchTool, DataForSEONewsTool,
   SearchEmailTool, ArchiveEmailTool,
+  getAllMcpTools,
 } from "@nodetool/agents";
 import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
@@ -65,6 +66,11 @@ interface AppProps {
   enabledTools: string[];
   workspaceDir: string;
   wsUrl?: string;
+  /**
+   * Pre-built tools appended to the tool list returned from buildTools().
+   * Used by --sandbox to inject the 37 sandbox-tools adapter instances.
+   */
+  extraTools?: import("@nodetool/agents").Tool[];
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +215,7 @@ export function App({
   enabledTools,
   workspaceDir,
   wsUrl,
+  extraTools,
 }: AppProps) {
   const { exit } = useApp();
 
@@ -366,9 +373,38 @@ export function App({
       search_email: new SearchEmailTool(),
       archive_email: new ArchiveEmailTool(),
     };
-    return enabledTools
-      .filter(name => name in toolMap)
+    // NodeTool MCP tools (workflows, nodes, jobs, assets, models).
+    for (const tool of getAllMcpTools()) {
+      toolMap[tool.name] = tool;
+    }
+    // When sandbox tools are present, exclude host tools that have sandbox
+    // equivalents so the agent is forced to execute inside the sandbox.
+    const sandboxMode = extraTools && extraTools.length > 0;
+    const hostToolsToExclude = sandboxMode
+      ? new Set([
+          "read_file",
+          "write_file",
+          "edit_file",
+          "list_directory",
+          "glob",
+          "grep",
+          "run_code",
+          "browser",
+          "screenshot",
+          "google_search",
+          "google_news",
+          "google_images",
+          "dataseo_search",
+          "dataseo_news"
+        ])
+      : null;
+
+    const enabled = enabledTools
+      .filter(name => name in toolMap && !(hostToolsToExclude?.has(name)))
       .map(name => toolMap[name] as import("@nodetool/agents").Tool);
+    return extraTools && extraTools.length > 0
+      ? [...enabled, ...extraTools]
+      : enabled;
   }
 
   // ---------------------------------------------------------------------------
@@ -501,33 +537,51 @@ export function App({
           provider: prov,
           model: modelRef.current,
           tools,
+          outputFormat: "markdown",
+          maxStepIterations: 20,
         });
 
         // Feed all messages into the execution tree state.
-        // Collect task results for the final chat message.
-        const taskResults: string[] = [];
+        let synthesisContent = "";
         for await (const msg of agent.execute(ctx)) {
           if (abortRef.current) break;
           execState.processMessage(msg);
 
-          if (msg.type === "step_result") {
-            const sr = msg as { result: unknown; is_task_result: boolean };
-            if (sr.is_task_result) {
-              const result = typeof sr.result === "string"
-                ? sr.result
-                : JSON.stringify(sr.result, null, 2);
-              if (result) taskResults.push(result);
+          // Stream the agent's final synthesis so the user sees the answer
+          // forming in real time. Other chunks (step thinking, planner
+          // commentary) are noise in the chat pane and stay in the tree.
+          if (msg.type === "chunk") {
+            const ch = msg as { content?: string; node_id?: string };
+            if (ch.node_id === "agent_synthesizer" && ch.content) {
+              synthesisContent += ch.content;
+              setStreamContent(synthesisContent);
+              setStreamLabel("finalizing");
             }
           }
         }
         execState.markDone();
+        setStreamContent("");
 
-        if (taskResults.length > 0) {
-          await addMessage("assistant", taskResults.join("\n\n---\n\n"));
+        const finalResults = agent.getResults();
+        const finalText =
+          typeof finalResults === "string"
+            ? finalResults
+            : finalResults &&
+                typeof finalResults === "object" &&
+                "markdown" in (finalResults as Record<string, unknown>) &&
+                typeof (finalResults as Record<string, unknown>).markdown ===
+                  "string"
+              ? ((finalResults as Record<string, unknown>).markdown as string)
+              : finalResults != null
+                ? JSON.stringify(finalResults, null, 2)
+                : "";
+
+        if (finalText) {
+          await addMessage("assistant", finalText);
         }
 
-      } else if (wsClientRef.current) {
-        // --- Regular chat via WebSocket ---
+      } else if (wsClientRef.current && !extraTools?.length) {
+        // --- Regular chat via WebSocket (server handles everything) ---
         const wsClient = wsClientRef.current;
         let assistantContent = "";
         const toolSchemas = tools.map(t => t.toProviderTool());
@@ -553,6 +607,45 @@ export function App({
             break;
           }
         }
+        if (assistantContent) {
+          await addMessage("assistant", assistantContent);
+        }
+
+      } else if (wsClientRef.current && extraTools?.length) {
+        // --- Regular chat via WebSocket inference + local sandbox tool execution ---
+        const prov = new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current);
+        let assistantContent = "";
+        const updatedHistory = [...chatHistoryRef.current];
+
+        await processChat({
+          userInput: trimmed,
+          messages: updatedHistory,
+          model: modelRef.current,
+          provider: prov,
+          context: ctx,
+          tools,
+          signal: abortController.signal,
+          callbacks: {
+            onChunk: (text) => {
+              if (abortRef.current) throw new Error("aborted");
+              assistantContent += text;
+              setStreamContent(assistantContent);
+              setStreamLabel("streaming");
+            },
+            onToolCall: (tc: ToolCall) => {
+              setStreamLabel(`tool: ${tc.name}`);
+            },
+            onToolResult: (tc: ToolCall, result: unknown) => {
+              const preview = typeof result === "string"
+                ? result
+                : JSON.stringify(result).slice(0, 100);
+              addMessage("tool", preview, { toolName: tc.name, toolArgs: tc.args });
+            },
+          },
+        });
+
+        setChatHistory(updatedHistory);
+
         if (assistantContent) {
           await addMessage("assistant", assistantContent);
         }

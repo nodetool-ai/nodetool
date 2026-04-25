@@ -14,7 +14,7 @@
  * └─ ○ Task 3: Write summary                   waiting
  */
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useMemo, useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -23,6 +23,7 @@ import type {
   ExecutionTreeState,
   TaskState,
   StepState,
+  StepToolCallEntry,
   PlanningEntry,
   LogEntry
 } from "../../hooks/useExecutionTreeState";
@@ -95,6 +96,17 @@ const treeStyles = (theme: Theme) =>
       "100%": { color: theme.vars.palette.warning.main }
     },
 
+    "@keyframes treeItemEnter": {
+      "0%": { opacity: 0, transform: "translateY(-4px)" },
+      "100%": { opacity: 1, transform: "translateY(0)" }
+    },
+
+    "@media (prefers-reduced-motion: no-preference)": {
+      ".tree-planning-entry, .tree-task, .tree-step, .tree-plan-header": {
+        animation: "treeItemEnter 220ms ease-out both"
+      }
+    },
+
     ".tree-icon-waiting": { color: theme.vars.palette.text.disabled },
     ".tree-icon-running": {
       animation: "gradientShift 2s ease-in-out infinite"
@@ -131,39 +143,47 @@ const treeStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: "0.35rem",
+      fontFamily: theme.fontFamily1,
       color: theme.vars.palette.warning.main
     },
 
     ".tree-planning-text": {
+      fontFamily: theme.fontFamily1,
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.75rem",
+      fontSize: "0.8125rem",
       marginLeft: "0.25rem"
     },
 
     ".tree-planning-log": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.15rem",
-      marginBottom: "0.5rem"
+      gap: "0.2rem",
+      marginBottom: "0.5rem",
+      fontFamily: theme.fontFamily1
     },
 
     ".tree-planning-entry": {
       display: "flex",
       alignItems: "baseline",
-      gap: "0.5rem"
+      gap: "0.5rem",
+      fontFamily: theme.fontFamily1
     },
 
     ".tree-planning-phase": {
-      fontSize: "0.75rem",
+      fontFamily: theme.fontFamily1,
+      fontSize: "0.8125rem",
       fontWeight: 600,
       textTransform: "capitalize",
-      minWidth: "5rem",
+      letterSpacing: 0,
+      minWidth: "5.5rem",
       flexShrink: 0
     },
 
     ".tree-planning-content": {
+      fontFamily: theme.fontFamily1,
       color: theme.vars.palette.text.secondary,
-      fontSize: "0.75rem",
+      fontSize: "0.8125rem",
+      lineHeight: 1.45,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
@@ -173,6 +193,77 @@ const treeStyles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       fontSize: "0.7rem",
       paddingLeft: "1.5rem"
+    },
+
+    ".tree-step-row": {
+      cursor: "pointer",
+      "&:hover .tree-step-name": {
+        textDecoration: "underline",
+        textDecorationColor: theme.vars.palette.text.secondary,
+        textUnderlineOffset: "2px"
+      }
+    },
+
+    ".tree-step-inspector": {
+      marginTop: "0.25rem",
+      marginBottom: "0.4rem",
+      padding: "0.5rem 0.75rem",
+      borderLeft: `2px solid ${theme.vars.palette.divider}`,
+      background: `${theme.vars.palette.action.hover}`,
+      borderRadius: "0 var(--rounded-sm) var(--rounded-sm) 0",
+      fontSize: "0.75rem",
+      lineHeight: 1.5,
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.4rem"
+    },
+
+    ".tree-step-inspector-section": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.15rem"
+    },
+
+    ".tree-step-inspector-label": {
+      color: theme.vars.palette.text.secondary,
+      fontWeight: 600,
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+      fontSize: "0.65rem"
+    },
+
+    ".tree-step-inspector-body": {
+      color: theme.vars.palette.text.primary,
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word",
+      fontFamily: theme.fontFamily2 || "monospace",
+      fontSize: "0.72rem"
+    },
+
+    ".tree-step-inspector-code": {
+      color: theme.vars.palette.text.primary,
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word",
+      fontFamily: theme.fontFamily2 || "monospace",
+      fontSize: "0.72rem",
+      background: theme.vars.palette.background.default,
+      padding: "0.35rem 0.5rem",
+      borderRadius: "var(--rounded-sm)",
+      maxHeight: "20rem",
+      overflow: "auto"
+    },
+
+    ".tree-step-inspector-tool": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.15rem",
+      padding: "0.25rem 0",
+      borderTop: `1px dashed ${theme.vars.palette.divider}`,
+      "&:first-of-type": { borderTop: "none" }
+    },
+
+    ".tree-step-inspector-error": {
+      color: theme.vars.palette.error.main
     }
   });
 
@@ -202,11 +293,90 @@ function truncateOutput(output: string, maxLines: number = 2): string {
 // Step rendering
 // ---------------------------------------------------------------------------
 
+function stringifyResult(v: unknown): string {
+  if (v === undefined || v === null) return "";
+  if (typeof v === "string") return v;
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
+}
+
+const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
+  const resultText = useMemo(() => stringifyResult(step.rawResult), [step.rawResult]);
+
+  return (
+    <div className="tree-step-inspector">
+      {step.instructions ? (
+        <div className="tree-step-inspector-section">
+          <span className="tree-step-inspector-label">Instructions</span>
+          <span className="tree-step-inspector-body">{step.instructions}</span>
+        </div>
+      ) : null}
+
+      {step.duration !== undefined ? (
+        <div className="tree-step-inspector-section">
+          <span className="tree-step-inspector-label">Duration</span>
+          <span className="tree-step-inspector-body">
+            {formatDuration(step.duration)}
+          </span>
+        </div>
+      ) : null}
+
+      {step.toolCalls.length > 0 ? (
+        <div className="tree-step-inspector-section">
+          <span className="tree-step-inspector-label">
+            Tool calls ({step.toolCalls.length})
+          </span>
+          {step.toolCalls.map((call: StepToolCallEntry, i: number) => (
+            <div
+              key={call.id ?? `${call.name}-${i}`}
+              className="tree-step-inspector-tool"
+            >
+              <span className="tree-step-inspector-body">
+                <strong>{call.name || "tool"}</strong>
+                {call.message ? `  ${call.message}` : ""}
+              </span>
+              {Object.keys(call.args ?? {}).length > 0 ? (
+                <pre className="tree-step-inspector-code">
+                  {JSON.stringify(call.args, null, 2)}
+                </pre>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {resultText ? (
+        <div className="tree-step-inspector-section">
+          <span className="tree-step-inspector-label">Result</span>
+          <pre className="tree-step-inspector-code">{resultText}</pre>
+        </div>
+      ) : null}
+
+      {step.error ? (
+        <div className="tree-step-inspector-section">
+          <span className="tree-step-inspector-label tree-step-inspector-error">
+            Error
+          </span>
+          <pre className="tree-step-inspector-code tree-step-inspector-error">
+            {step.error}
+          </pre>
+        </div>
+      ) : null}
+    </div>
+  );
+});
+
+StepInspector.displayName = "StepInspector";
+
 const StepNode: React.FC<{
   step: StepState;
   isLast: boolean;
   parentPrefix: string;
 }> = memo(({ step, isLast, parentPrefix }) => {
+  const [expanded, setExpanded] = useState(false);
   const branch = isLast ? "└─ " : "├─ ";
   const cont = isLast ? "   " : "│  ";
   const iconClass = `tree-icon-${step.status}`;
@@ -221,11 +391,27 @@ const StepNode: React.FC<{
   const duration =
     step.duration !== undefined ? ` ${formatDuration(step.duration)}` : "";
   const outputPreview = truncateOutput(step.output);
-  const errorPreview = step.error ? step.error.slice(0, 120) : "";
+  const errorText =
+    typeof step.error === "string" ? step.error : "";
+  const errorPreview = errorText.slice(0, 120);
+
+  const hasInspector =
+    !!step.instructions ||
+    step.toolCalls.length > 0 ||
+    !!step.rawResult ||
+    !!step.error;
+
+  const handleToggle = useCallback(() => {
+    if (hasInspector) setExpanded((v) => !v);
+  }, [hasInspector]);
 
   return (
-    <FlexColumn>
-      <FlexRow align="center">
+    <FlexColumn className="tree-step">
+      <FlexRow
+        align="center"
+        className={hasInspector ? "tree-step-row" : undefined}
+        onClick={hasInspector ? handleToggle : undefined}
+      >
         <span className="tree-branch">
           {parentPrefix}
           {branch}
@@ -234,7 +420,7 @@ const StepNode: React.FC<{
         <span className={`tree-step-name ${iconClass}`}>{displayName}</span>
         {duration && <span className="tree-task-meta">{duration}</span>}
       </FlexRow>
-      {outputPreview && step.status === "running" ? (
+      {outputPreview && step.status === "running" && !expanded ? (
         <span className="tree-step-output">
           {parentPrefix}
           {cont}
@@ -242,7 +428,7 @@ const StepNode: React.FC<{
           {outputPreview}
         </span>
       ) : null}
-      {errorPreview ? (
+      {errorPreview && !expanded ? (
         <span className="tree-step-error">
           {parentPrefix}
           {cont}
@@ -250,6 +436,7 @@ const StepNode: React.FC<{
           {errorPreview}
         </span>
       ) : null}
+      {expanded && hasInspector ? <StepInspector step={step} /> : null}
     </FlexColumn>
   );
 });
@@ -407,11 +594,14 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
 
   return (
     <div css={treeStyles(theme)}>
-      {state.planningLog.length > 0 && (
+      {/* Planning trace is a live indicator — only keep it on screen while
+          planning is still running. Once planning is complete, the plan
+          tree below is the durable representation. */}
+      {state.phase === "planning" && state.planningLog.length > 0 && (
         <PlanningLog
           entries={state.planningLog}
           logs={state.logs}
-          isActive={state.phase === "planning"}
+          isActive={true}
         />
       )}
       {state.phase === "planning" && state.planningLog.length === 0 && (

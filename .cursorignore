@@ -1,6 +1,7 @@
 build/
 dist/
 node_modules/
+**/node_modules/
 # docs/
 examples/
 src/comfy/

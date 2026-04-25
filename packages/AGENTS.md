@@ -52,10 +52,11 @@ npm run dev:watch:server
 
 # Start both server and web frontend
 npm run dev:watch
-
-# Standard dev mode (no auto-restart)
-npm run dev:server
 npm run dev
+
+# Start backend only
+npm run dev:watch:server
+npm run dev:server
 ```
 
 **Important**: The dev server uses `tsx --watch` which runs TypeScript directly. However, `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, and `elevenlabs-nodes` use decorators and load from `dist/`. If you change these packages, run `npm run build:packages` first.
@@ -119,7 +120,7 @@ Provides adapters for AI providers:
 - `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`
 - `OllamaProvider`, `MistralProvider`, `GroqProvider`
 - `ClaudeAgentProvider` — Claude Agent SDK integration (uses Claude subscription, not API key)
-- `PythonBridge` — calls Python-based nodes (HuggingFace, MLX) via subprocess
+- `PythonStdioBridge` — calls Python-based nodes (HuggingFace, MLX) via local stdio subprocess
 - `ProcessingContext` — execution context with secret resolution
 
 ### `@nodetool/agents` — Agent System

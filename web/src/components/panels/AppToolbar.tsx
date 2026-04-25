@@ -23,7 +23,7 @@ import isEqual from "fast-deep-equal";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
-import { isLocalhost } from "../../stores/ApiClient";
+import { isLocalhost } from "../../lib/env";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { executeComfyWorkflow } from "../../utils/comfyExecutor";
 import { shallow } from "zustand/shallow";

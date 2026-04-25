@@ -19,6 +19,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import superjson from "superjson";
+import type { AppRouter } from "@nodetool/websocket/trpc";
 import { workflowToDsl } from "@nodetool/dsl";
 import { initDb, Workflow, Secret, getSecret } from "@nodetool/models";
 import { getDefaultDbPath } from "@nodetool/config";
@@ -30,6 +33,12 @@ import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { ProcessingContext } from "@nodetool/runtime";
 import { registerPackageCommands } from "./commands/package.js";
+import {
+  registerDeployCommands,
+  registerListGcpOptions
+} from "./commands/deploy.js";
+import { registerHfCommands } from "./commands/models-hf.js";
+import { registerRecommendedCommand } from "./commands/models-recommended.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,33 +56,26 @@ async function setupDb(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// HTTP API helper
+// API clients
 // ---------------------------------------------------------------------------
 
-async function apiGet(apiUrl: string, path: string): Promise<unknown> {
-  const res = await fetch(`${apiUrl}${path}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
+function createApiClient(apiUrl: string) {
+  return createTRPCClient<AppRouter>({
+    links: [
+      httpBatchLink({
+        url: `${apiUrl}/trpc`,
+        transformer: superjson
+      })
+    ]
+  });
 }
 
+// REST GET (text) — used for the DSL export endpoint which stays REST
+// because it returns a TypeScript source string rather than JSON.
 async function apiGetText(apiUrl: string, path: string): Promise<string> {
   const res = await fetch(`${apiUrl}${path}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
   return res.text();
-}
-
-async function apiPost(
-  apiUrl: string,
-  path: string,
-  body: unknown
-): Promise<unknown> {
-  const res = await fetch(`${apiUrl}${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-  return res.json();
 }
 
 // ---------------------------------------------------------------------------
@@ -270,11 +272,11 @@ workflows
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const data = (await apiGet(
-        opts.apiUrl,
-        `/api/workflows?limit=${opts.limit}`
-      )) as { workflows?: unknown[] };
-      const rows = (data.workflows ?? []) as Record<string, unknown>[];
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.workflows.list.query({
+        limit: Number.parseInt(opts.limit, 10)
+      });
+      const rows = data.workflows as Record<string, unknown>[];
       if (opts.json) {
         asJson(rows);
         return;
@@ -303,12 +305,13 @@ workflows
   .option("--json", "Output as JSON")
   .action(async (workflowId, opts) => {
     try {
-      const data = await apiGet(opts.apiUrl, `/api/workflows/${workflowId}`);
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.workflows.get.query({ id: workflowId });
       if (opts.json) {
         asJson(data);
         return;
       }
-      const w = data as Record<string, unknown>;
+      const w = data as unknown as Record<string, unknown>;
       printTable([
         {
           id: w["id"],
@@ -516,12 +519,12 @@ jobs
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const qs = new URLSearchParams({ limit: opts.limit });
-      if (opts.workflowId) qs.set("workflow_id", opts.workflowId);
-      const data = (await apiGet(opts.apiUrl, `/api/jobs?${qs}`)) as {
-        jobs?: unknown[];
-      };
-      const rows = (data.jobs ?? []) as Record<string, unknown>[];
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.jobs.list.query({
+        limit: Number.parseInt(opts.limit, 10),
+        ...(opts.workflowId ? { workflow_id: opts.workflowId } : {})
+      });
+      const rows = data.jobs as Record<string, unknown>[];
       if (opts.json) {
         asJson(rows);
         return;
@@ -551,12 +554,13 @@ jobs
   .option("--json", "Output as JSON")
   .action(async (jobId, opts) => {
     try {
-      const data = await apiGet(opts.apiUrl, `/api/jobs/${jobId}`);
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.jobs.get.query({ id: jobId });
       if (opts.json) {
         asJson(data);
         return;
       }
-      const j = data as Record<string, unknown>;
+      const j = data as unknown as Record<string, unknown>;
       printTable([
         {
           id: j["id"],
@@ -591,13 +595,20 @@ assets
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const qs = new URLSearchParams({ limit: opts.limit });
-      if (opts.query) qs.set("query", opts.query);
-      if (opts.contentType) qs.set("content_type", opts.contentType);
-      const data = (await apiGet(opts.apiUrl, `/api/assets?${qs}`)) as {
-        assets?: unknown[];
-      };
-      const rows = (data.assets ?? []) as Record<string, unknown>[];
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.assets.list.query({
+        page_size: Number.parseInt(opts.limit, 10),
+        ...(opts.contentType ? { content_type: opts.contentType } : {})
+      });
+      // Note: --query isn't forwarded because assets.list has no server-side
+      // search; keep local filtering until the tRPC schema exposes one.
+      let rows = data.assets as Record<string, unknown>[];
+      if (opts.query) {
+        const q = String(opts.query).toLowerCase();
+        rows = rows.filter((r) =>
+          String(r["name"] ?? "").toLowerCase().includes(q)
+        );
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -627,12 +638,13 @@ assets
   .option("--json", "Output as JSON")
   .action(async (assetId, opts) => {
     try {
-      const data = await apiGet(opts.apiUrl, `/api/assets/${assetId}`);
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.assets.get.query({ id: assetId });
       if (opts.json) {
         asJson(data);
         return;
       }
-      const a = data as Record<string, unknown>;
+      const a = data as unknown as Record<string, unknown>;
       printTable([
         {
           id: a["id"],
@@ -642,6 +654,190 @@ assets
           url: a["url"]
         }
       ]);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+// ---------------------------------------------------------------------------
+// models
+// ---------------------------------------------------------------------------
+
+const models = program.command("models").description("Model management");
+
+const modelKinds = ["llm", "image", "tts", "asr", "video", "embedding"] as const;
+type ModelKind = (typeof modelKinds)[number];
+
+const byProviderRoute: Record<ModelKind, string> = {
+  llm: "llmByProvider",
+  image: "imageByProvider",
+  tts: "ttsByProvider",
+  asr: "asrByProvider",
+  video: "videoByProvider",
+  embedding: "embeddingByProvider"
+};
+
+function modelRow(m: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: m["id"],
+    name: m["name"],
+    provider: m["provider"] ?? "",
+    type: m["type"] ?? "",
+    repo_id: m["repo_id"] ?? ""
+  };
+}
+
+models
+  .command("list")
+  .description("List all models (recommended + provider + HF cached)")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.all.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("providers")
+  .description("List configured providers and their capabilities")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.providers.query();
+      if (opts.json) {
+        asJson(data);
+        return;
+      }
+      printTable(
+        data.map((p) => ({
+          provider: p.provider,
+          capabilities: p.capabilities.join(", ")
+        }))
+      );
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+registerRecommendedCommand(models);
+registerHfCommands(models);
+
+models
+  .command("ollama")
+  .description("List Ollama models")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.ollama.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("huggingface")
+  .description("List HuggingFace cached models")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--query <q>", "Search query")
+  .option("--type <t>", "Filter by HF model type")
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data =
+        opts.query || opts.type
+          ? await client.models.huggingfaceSearch.query({
+              ...(opts.query ? { query: String(opts.query) } : {}),
+              ...(opts.type ? { type: String(opts.type) } : {})
+            })
+          : await client.models.huggingfaceList.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("by-provider <provider>")
+  .description(
+    `List models for a provider. --kind one of: ${modelKinds.join(", ")}`
+  )
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--kind <kind>", "Model kind", "llm")
+  .option("--json", "Output as JSON")
+  .action(async (provider, opts) => {
+    const kind = opts.kind as ModelKind;
+    if (!modelKinds.includes(kind)) {
+      console.error(
+        `Invalid --kind '${opts.kind}'. Must be one of: ${modelKinds.join(", ")}`
+      );
+      process.exit(1);
+    }
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const route = byProviderRoute[kind];
+      const data = await (
+        client.models as unknown as Record<
+          string,
+          { query: (input: { provider: string }) => Promise<unknown[]> }
+        >
+      )[route]!.query({ provider });
+      const rows = data as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
     } catch (e) {
       console.error(String(e));
       process.exit(1);
@@ -1128,6 +1324,13 @@ mcp
 // ---------------------------------------------------------------------------
 
 registerPackageCommands(program);
+
+// ---------------------------------------------------------------------------
+// deploy / list-gcp-options — registered from commands/deploy.ts
+// ---------------------------------------------------------------------------
+
+registerDeployCommands(program);
+registerListGcpOptions(program);
 
 // ---------------------------------------------------------------------------
 

@@ -1786,9 +1786,12 @@ export class SaveTextFileNode extends BaseNode {
       throw new Error("folder cannot be empty");
     }
     await fs.mkdir(folder, { recursive: true });
-    const path = join(folder, name);
-    await fs.writeFile(path, text, "utf-8");
-    return { output: { uri: path, data: text } };
+    const fsPath = join(folder, name);
+    await fs.writeFile(fsPath, text, "utf-8");
+    // The output `uri` is a portable, URI-style path (forward slashes) so
+    // downstream nodes and the web UI never have to special-case Windows.
+    const uri = fsPath.replace(/\\/g, "/");
+    return { output: { uri, data: text } };
   }
 }
 
@@ -2199,10 +2202,11 @@ export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
   static readonly title = "Concatenate Text";
   static readonly description =
-    "Concatenates two text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
+    "Concatenates text inputs into a single output.\n    text, combine, add, concatenate, merge, join, append";
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  static readonly isDynamic = true;
 
   @prop({ type: "str", default: "", title: "A", description: "First text input." })
   declare a: any;
@@ -2211,7 +2215,10 @@ export class ConcatTextNode extends BaseNode {
   declare b: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: String(this.a ?? "") + String(this.b ?? "") };
+    const values = [this.a, this.b, ...Array.from(this.dynamicProps.values())].map(
+      (value) => String(value ?? "")
+    );
+    return { output: values.join("") };
   }
 }
 
@@ -2441,11 +2448,27 @@ export class ToStringNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const v = this.value;
     const mode = String(this.mode ?? "str");
+    const toJsonString = (value: unknown): string => {
+      if (value === undefined) {
+        return "";
+      }
+      try {
+        const json = JSON.stringify(value);
+        if (json === undefined) {
+          return "";
+        }
+        return json;
+      } catch (_error) {
+        // JSON.stringify can fail for non-serializable values (e.g. circular objects).
+        return String(value);
+      }
+    };
+
     if (mode === "repr") {
-      return { output: JSON.stringify(v) };
+      return { output: toJsonString(v) };
     }
     if (v === null || v === undefined) return { output: "" };
-    if (typeof v === "object") return { output: JSON.stringify(v) };
+    if (typeof v === "object") return { output: toJsonString(v) };
     return { output: String(v) };
   }
 }

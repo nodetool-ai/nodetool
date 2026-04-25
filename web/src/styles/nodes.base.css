@@ -20,8 +20,19 @@
   padding: 0;
   border-radius: var(--rounded-node);
   background-color: transparent;
-  transition: background-color 0.05s, box-shadow 0.15s ease-in-out,
-    filter 0.2s ease-in-out;
+  transform-origin: center center;
+  transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
+    filter 0.2s ease-in-out, outline-color 0.18s ease;
+}
+
+/* Tween the node's `transform` only when the user is NOT actively
+   dragging it. This gives align / arrange / collapse / programmatic
+   moves a smooth slide while keeping mouse-driven drags 1:1 with the
+   cursor (React Flow adds the `dragging` class for the duration of
+   the drag gesture, so the selector below stops matching mid-drag). */
+.react-flow__node:not(.dragging) {
+  transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
+    filter 0.2s ease-in-out, transform 0.18s ease, outline-color 0.18s ease;
 }
 
 .node-drag-handle {
@@ -34,6 +45,23 @@
   padding: 0;
   border-radius: var(--rounded-node);
   overflow: visible;
+  position: relative;
+  isolation: isolate;
+}
+
+.react-flow__node .node-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.04) 0%,
+    rgb(255 255 255 / 0.015) 16%,
+    transparent 42%
+  );
+  opacity: 0.8;
 }
 
 .react-flow .has-result {

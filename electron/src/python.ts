@@ -8,7 +8,8 @@ import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
-import { getTorchIndexUrl, getTorchIndexUrlAsync } from "./torchPlatformCache";
+import { getTorchIndexUrl } from "./torchPlatformCache";
+import { MIN_NODETOOL_CORE_VERSION } from "@nodetool/runtime";
 
 /**
  * Python environment manager for the Electron shell.
@@ -155,21 +156,27 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
     return false;
   }
 
-  const expectedCoreVersion = convertToPep440Version(app.getVersion());
+  // Only verify nodetool-core is installed at all. The actual JS↔Python
+  // protocol compatibility check happens at runtime via the bridge's
+  // `discover` handshake (see packages/runtime/src/bridge-protocol.ts).
+  // This decouples the Electron app version from the nodetool-core
+  // release cadence — most app builds do NOT need a fresh core release.
   const installedCoreVersion = await getInstalledPythonPackageVersion(
     pythonExecutablePath,
     "nodetool-core",
   );
 
-  if (installedCoreVersion !== expectedCoreVersion) {
+  if (!installedCoreVersion) {
     logMessage(
-      installedCoreVersion
-        ? `Python package version mismatch for nodetool-core at ${pythonExecutablePath}: expected ${expectedCoreVersion}, found ${installedCoreVersion}`
-        : `Python package nodetool-core is missing at ${pythonExecutablePath}; expected version ${expectedCoreVersion}`,
+      `Python package nodetool-core is missing at ${pythonExecutablePath} ` +
+        `(installer pins nodetool-core>=${MIN_NODETOOL_CORE_VERSION})`,
       "error",
     );
     return false;
   }
+  logMessage(
+    `nodetool-core ${installedCoreVersion} is installed at ${pythonExecutablePath}`,
+  );
 
   const workerImportable = await canImportNodeToolWorker(pythonExecutablePath);
   if (!workerImportable) {
@@ -272,10 +279,6 @@ async function canImportNodeToolWorker(
   });
 }
 
-function convertToPep440Version(npmVersion: string): string {
-  return npmVersion.replace(/-([a-zA-Z]+)\.?(\d*)/, "$1$2");
-}
-
 function normalizePythonPackageName(packageName: string): string {
   const trimmed = packageName.trim();
   if (!trimmed) {
@@ -288,101 +291,36 @@ function normalizePythonPackageName(packageName: string): string {
   return resolvedName || trimmed;
 }
 
-/**
- * Update the Python environment packages using wheel-based package index
- */
-async function updateCondaEnvironment(
-  packages: string[]
-): Promise<void> {
-  try {
-    emitBootMessage(`Updating python packages...`);
-
-    const uvExecutable = getUVPath();
-    const PACKAGE_INDEX_URL =
-      "https://nodetool-ai.github.io/nodetool-registry/simple/";
-
-    // Get version from package.json via Electron's app.getVersion()
-    const appVersion = app.getVersion();
-    const pipVersion = convertToPep440Version(appVersion);
-    logMessage(`Pinning packages to version: ${pipVersion} (from ${appVersion})`);
-
-    // Convert repo IDs to package names for wheel installation, pinned to app version
-    const corePackages = [
-      `nodetool-core==${pipVersion}`,
-    ];
-
-    // Convert additional packages from repo format to package names, pinned to app version
-    const additionalPackages = packages.map((repoId) => {
-      if (!repoId) {
-        return repoId;
-      }
-
-      const trimmed = repoId.trim();
-      if (!trimmed) {
-        return trimmed;
-      }
-
-      let packageName: string;
-      if (!trimmed.includes("/")) {
-        packageName = trimmed;
-      } else {
-        const [, name = ""] = trimmed.split("/", 2);
-        packageName = name || trimmed;
-      }
-
-      // Pin to the same version as the app
-      return `${packageName}==${pipVersion}`;
-    });
-
-    const allPackages = [...corePackages, ...additionalPackages];
-
-    // Get the torch platform index URL (e.g., cu128 for CUDA 12.8)
-    const torchIndexUrl = await getTorchIndexUrlAsync();
-
-    const installCommand: string[] = [
-      uvExecutable,
-      "pip",
-      "install",
-      "--extra-index-url",
-      PACKAGE_INDEX_URL,
-      // Add PyTorch index URL for the detected GPU platform
-      ...(torchIndexUrl ? ["--extra-index-url", torchIndexUrl] : []),
-      "--index-strategy",
-      "unsafe-best-match",
-      "--system",
-      ...allPackages,
-    ];
-
-    if (torchIndexUrl) {
-      logMessage(`Using torch index URL: ${torchIndexUrl}`);
-    }
-    logMessage(`Running command: ${installCommand.join(" ")}`);
-    await runCommand(installCommand);
-
-    logMessage(
-      "Python packages update completed successfully from wheel index",
-    );
-  } catch (error: any) {
-    logMessage(`Failed to update Pip packages: ${error.message}`, "error");
-    throw error;
-  }
-}
-
 async function installRequiredPythonPackages(
   additionalPackages: string[] = []
 ): Promise<void> {
   emitBootMessage("Installing Nodetool Python packages...");
 
   const uvExecutable = getUVPath();
-  const appVersion = app.getVersion();
-  const pinnedVersion = convertToPep440Version(appVersion);
+
+  // nodetool-core is pinned by lower bound only (matched to the bridge
+  // protocol version). Additional nodetool-* node packages are installed
+  // unpinned: their own pyproject.toml declares the nodetool-core range
+  // they need, so uv resolves a coherent set automatically. This keeps
+  // node packages on an independent release cadence from the Electron
+  // app — if a user opts into nodetool-huggingface, they get the latest
+  // published version that is compatible with the resolved nodetool-core.
+  const corePackageSpecs = REQUIRED_PYTHON_PACKAGES.map(
+    normalizePythonPackageName,
+  )
+    .filter(Boolean)
+    .map((pkg) =>
+      pkg === "nodetool-core"
+        ? `${pkg}>=${MIN_NODETOOL_CORE_VERSION}`
+        : pkg,
+    );
+
+  const additionalSpecs = additionalPackages
+    .map(normalizePythonPackageName)
+    .filter(Boolean);
+
   const packageSpecs = Array.from(
-    new Set(
-      [...REQUIRED_PYTHON_PACKAGES, ...additionalPackages]
-        .map(normalizePythonPackageName)
-        .filter(Boolean)
-        .map((pkg) => `${pkg}==${pinnedVersion}`)
-    )
+    new Set([...corePackageSpecs, ...additionalSpecs]),
   );
 
   const installCommand: string[] = [
@@ -406,7 +344,7 @@ async function installRequiredPythonPackages(
   }
 
   logMessage(
-    `Installing required Python packages pinned to ${pinnedVersion}: ${packageSpecs.join(", ")}`
+    `Installing required Python packages: ${packageSpecs.join(", ")}`,
   );
   await runCommand(installCommand);
 }

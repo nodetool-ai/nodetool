@@ -1,0 +1,40 @@
+{
+  "name": "@nodetool/sandbox",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Host-side sandbox provisioning: Docker-backed isolated Linux computers for agents, with shell, file, browser, and desktop tools",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/config": "*",
+    "dockerode": "^4.0.4",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.34",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./schemas": {
+      "nodetool-dev": "./src/schemas/index.ts",
+      "types": "./dist/schemas/index.d.ts",
+      "import": "./dist/schemas/index.js",
+      "default": "./dist/schemas/index.js"
+    }
+  }
+}

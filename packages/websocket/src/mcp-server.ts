@@ -9,6 +9,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
+import { createLogger } from "@nodetool/config";
 import { Workflow, Job, Asset } from "@nodetool/models";
 import {
   toAssetResponse,
@@ -35,6 +36,8 @@ export interface McpServerOptions {
   metadataMaxDepth?: number;
   registry?: NodeRegistry;
 }
+
+const log = createLogger("nodetool.websocket.mcp-server");
 
 const GLOBAL_FRONTEND_SESSION_ID = "global-mcp";
 let activeFrontendTransport: AgentTransport | null = null;
@@ -88,14 +91,83 @@ function getRuntimeEnvironment(
           : []
       });
 
+      const logPythonBridgeDiagnostics = (context: string): void => {
+        const loadErrors = (
+          pythonBridge as {
+            getLoadErrors?: () => Array<{
+              module: string;
+              phase: string;
+              error: string;
+            }>;
+          }
+        ).getLoadErrors?.() ?? [];
+        if (loadErrors.length === 0) return;
+        log.warn(`MCP Python bridge ${context} with ${loadErrors.length} load error(s)`);
+        for (const entry of loadErrors.slice(0, 10)) {
+          log.warn(
+            `[python-worker][load-error] ${entry.module} (${entry.phase}): ${entry.error}`
+          );
+        }
+      };
+
       let pythonBridgeReady = false;
-      pythonBridge.on("exit", () => {
+      pythonBridge.on("stderr", (msg: string) => {
+        for (const line of msg.split("\n")) {
+          if (line.trim()) log.debug(`[python-worker] ${line}`);
+        }
+      });
+      pythonBridge.on("exit", (code: number) => {
+        log.warn(`MCP Python worker exited with code ${code}`);
         pythonBridgeReady = false;
       });
 
       const ensurePythonBridge = async (): Promise<void> => {
-        await pythonBridge.ensureConnected();
+        log.info("MCP lazily starting Python bridge");
+        try {
+          await pythonBridge.ensureConnected();
+        } catch (err) {
+          log.warn(
+            "MCP Python bridge lazy start failed",
+            err instanceof Error ? err : new Error(String(err))
+          );
+          throw err;
+        }
         pythonBridgeReady = true;
+        log.info("MCP Python bridge lazy start completed");
+        const meta = pythonBridge.getNodeMetadata();
+        log.info(`MCP Python bridge connected — ${meta.length} Python nodes`);
+        (
+          pythonBridge as {
+            getWorkerStatus?: () => Promise<{
+              protocol_version: number;
+              node_count: number;
+              provider_count: number;
+              namespaces: string[];
+              transport: string;
+              max_frame_size: number;
+              load_errors: Array<unknown>;
+            }>;
+          }
+        )
+          .getWorkerStatus?.()
+          ?.then((status) => {
+            log.info("MCP Python bridge status", {
+              protocol_version: status.protocol_version,
+              node_count: status.node_count,
+              provider_count: status.provider_count,
+              namespaces: status.namespaces,
+              transport: status.transport,
+              max_frame_size: status.max_frame_size,
+              load_error_count: status.load_errors.length
+            });
+          })
+          .catch((err: unknown) => {
+            log.warn(
+              "MCP failed to fetch Python bridge status",
+              err instanceof Error ? err : new Error(String(err))
+            );
+          });
+        logPythonBridgeDiagnostics("connected");
       };
 
       const resolveExecutor = (node: {
@@ -126,8 +198,23 @@ function getRuntimeEnvironment(
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
+          const stderrSummary = (
+            pythonBridge as { getRecentStderrSummary?: () => string | null }
+          ).getRecentStderrSummary?.() ?? null;
+          const loadErrors = (
+            pythonBridge as {
+              getLoadErrors?: () => Array<{ module: string; error: string }>;
+            }
+          ).getLoadErrors?.() ?? [];
+          const matchingLoadError = loadErrors.find(
+            (entry) =>
+              entry.module.includes(node.type) ||
+              node.type.startsWith(entry.module.split(".").slice(2).join("."))
+          );
           throw new Error(
-            `Python node "${node.type}" cannot execute: Python worker is not connected.`
+            pythonBridgeReady
+              ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`
+              : `Python node "${node.type}" cannot execute: Python worker is not connected.${stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : ""}`
           );
         }
         return registry.resolve(node);

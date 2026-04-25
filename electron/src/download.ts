@@ -36,16 +36,6 @@ async function getFileSizeFromUrl(url: string): Promise<number> {
   });
 }
 
-/** Download a file's contents directly to a string */
-async function downloadFromFile(filePath: string): Promise<string> {
-  try {
-    const data = await fs.readFile(filePath, "utf8");
-    return data;
-  } catch (error: unknown) {
-    throw new Error(`Failed to read file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
 /**
  * Download a file from a URL with validation
  * @param url - The URL to download the file from
@@ -195,4 +185,4 @@ async function downloadFile(url: string, dest: string): Promise<void> {
   });
 }
 
-export { downloadFile, getFileSizeFromUrl, downloadFromFile };
+export { downloadFile };

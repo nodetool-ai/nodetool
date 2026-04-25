@@ -58,11 +58,7 @@ const EXTERNAL_PACKAGES = [
   // Large optional packages (dynamic await import())
   "playwright",
   "playwright-core",
-  "tesseract.js",
-  "tesseract.js-core",
   "pdfjs-dist",
-  "chartjs-node-canvas",
-  "canvas",
   "@napi-rs/canvas",
   "chart.js",
 
@@ -76,21 +72,22 @@ const EXTERNAL_PACKAGES = [
   "@opentelemetry/sdk-trace-base",
   "@opentelemetry/exporter-trace-otlp-proto",
   "@opentelemetry/semantic-conventions",
-  "@traceloop/node-server-sdk",
 
   // MCP SDK (deep-path imports like /server/mcp.js)
   "@modelcontextprotocol/sdk",
-
-  // CJS packages with __dirname-relative file reads at runtime
-  "jsdom",
-
-  // Sandboxed code execution (native addon, optional)
-  "isolated-vm",
 
   // CJS require() packages
   "openai",
   "ssh2",
   "cpu-features",
+];
+
+// Packages that esbuild should treat as external (to avoid bundling .node binaries)
+// but that should NOT be copied to _modules/ — they are loaded optionally at runtime
+// with a try/catch fallback (e.g. linkedom falls back to its canvas shim if canvas
+// is unavailable). Copying these would trigger a node-gyp rebuild on Linux CI.
+const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
+  "canvas",
 ];
 
 // ---------------------------------------------------------------------------
@@ -337,7 +334,7 @@ async function main() {
     format: "esm",
     target: "node20",
     outfile: path.join(BUNDLE_DIR, "server.mjs"),
-    external: EXTERNAL_PACKAGES,
+    external: [...EXTERNAL_PACKAGES, ...ESBUILD_ONLY_EXTERNAL_PACKAGES],
     metafile: true,
     sourcemap: "external",
     banner: {

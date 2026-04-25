@@ -53,7 +53,7 @@ import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
-import { isTextLikeChunk } from "./outputChunkUtils";
+import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -107,50 +107,48 @@ const withOccurrenceSuffix = (
   return n === 0 ? base : `${base}-${n}`;
 };
 
-const stableKeyForOutputValue = (v: any): string => {
+const stableKeyForOutputValue = (v: unknown): string => {
   if (v === null) {
     return "null";
   }
   if (v === undefined) {
     return "undefined";
   }
-  const t = typeof v;
-  if (t === "string") {
+  if (typeof v === "string") {
     return `str:${hashStringBounded(v)}`;
   }
-  if (t === "number" || t === "boolean" || t === "bigint") {
-    return `${t}:${String(v)}`;
+  if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") {
+    return `${typeof v}:${String(v)}`;
   }
   if (v instanceof Uint8Array) {
     return `u8:${hashBytesBounded(v)}`;
   }
   if (Array.isArray(v)) {
-    // Often byte arrays or lists of primitives
     return `arr:${hashBytesBounded(v)}`;
   }
-  if (t === "object") {
-    const id = (v as Record<string, unknown>).id;
+  if (typeof v === "object") {
+    const obj = v as Record<string, unknown>;
+    const id = obj.id;
     if (typeof id === "string" || typeof id === "number") {
       return `id:${String(id)}`;
     }
-    const uri = (v as Record<string, unknown>).uri;
+    const uri = obj.uri;
     if (typeof uri === "string" && uri) {
       return `uri:${uri}`;
     }
-    const type = (v as Record<string, unknown>).type;
-    const name = (v as Record<string, unknown>).name;
+    const type = obj.type;
+    const name = obj.name;
     if (typeof type === "string" && typeof name === "string") {
       return `type-name:${type}:${name}`;
     }
     if (typeof type === "string") {
       return `type:${type}:${hashStringBounded(
-        JSON.stringify(Object.keys(v).slice(0, 50))
+        JSON.stringify(Object.keys(obj).slice(0, 50))
       )}`;
     }
     try {
       return `json:${hashStringBounded(JSON.stringify(v))}`;
     } catch {
-      // JSON.stringify failed, return generic type
       return "object";
     }
   }
@@ -217,6 +215,26 @@ const concatTextChunksSafely = (
 };
 
 // Custom hook for draggable scrolling
+const formatAudioChunkTimestamp = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "00:00.000";
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${secs
+      .toFixed(3)
+      .padStart(6, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${secs
+    .toFixed(3)
+    .padStart(6, "0")}`;
+};
+
 const useDraggableScroll = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -379,10 +397,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":
-        console.log("[OutputRenderer] image value:", { type: value?.type, uri: value?.uri, hasData: !!value?.data, dataType: typeof value?.data, keys: value ? Object.keys(value) : [] });
         if (Array.isArray(value.data)) {
           const seen = new Map<string, number>();
-          return value.data.map((v: any) => (
+          return value.data.map((v: string | Uint8Array) => (
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
@@ -392,7 +409,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           let imageSource: string | Uint8Array;
           if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
             imageSource = resolveAssetUri(value.uri);
-            console.log("[OutputRenderer] using uri path, imageSource:", imageSource);
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
           } else if (Array.isArray(value?.data)) {
@@ -623,7 +639,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (value[0] === undefined || value[0] === null) {
             return null;
           }
-          if (typeof value[0] === "string" && value.every((v: any) => typeof v === "string")) {
+          if (typeof value[0] === "string" && value.every((v: unknown) => typeof v === "string")) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -670,6 +686,59 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             );
           }
           if (typeof value[0] === "object") {
+            if (value.every((item: unknown) => isAudioChunkLike(item))) {
+              const seen = new Map<string, number>();
+              return (
+                <div
+                  ref={scrollRef}
+                  onMouseDown={handleMouseDown}
+                  className="nodrag"
+                  style={{
+                    height: "100%",
+                    overflow: "auto",
+                    cursor: "grab",
+                    userSelect: "none"
+                  }}
+                >
+                  <List sx={{ p: 1 }}>
+                    {value.map((chunk: { timestamp: [number, number]; text: string }) => {
+                      const key = withOccurrenceSuffix(
+                        `audio-chunk:${chunk.timestamp[0]}:${chunk.timestamp[1]}:${hashStringBounded(chunk.text)}`,
+                        seen
+                      );
+                      return (
+                        <ListItem
+                          key={key}
+                          sx={{
+                            alignItems: "flex-start",
+                            borderRadius: 2,
+                            bgcolor: "background.paper",
+                            boxShadow: 1,
+                            mb: 1,
+                            px: 2,
+                            display: "block"
+                          }}
+                        >
+                          <ListItemText
+                            primary={`${formatAudioChunkTimestamp(chunk.timestamp[0])} → ${formatAudioChunkTimestamp(chunk.timestamp[1])}`}
+                            secondary={chunk.text}
+                            primaryTypographyProps={{
+                              sx: {
+                                fontFamily: "monospace",
+                                fontSize: "0.85rem"
+                              }
+                            }}
+                            secondaryTypographyProps={{
+                              sx: { whiteSpace: "pre-wrap", color: "text.primary" }
+                            }}
+                          />
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </div>
+              );
+            }
             if (value[0].type === "chunk") {
               const chunks = value as Chunk[];
               const allText = chunks.every((c) => isTextLikeChunk(c));
@@ -749,7 +818,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               const seen = new Map<string, number>();
               return (
                 <Container>
-                  {value.map((v: any) => (
+                  {value.map((v: unknown) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(v),
@@ -763,7 +832,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               );
             }
             const columnType = (
-              v: any
+              v: unknown
             ): "string" | "float" | "int" | "datetime" | "object" => {
               if (typeof v === "string") {
                 return "string";
@@ -776,7 +845,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             const df: DataframeRef = {
               type: "dataframe" as const,
               uri: "",
-              data: value.map((v: any) => Object.values(v)),
+              data: value.map((v: Record<string, unknown>) => Object.values(v)),
               columns: Object.entries(value[0]).map((i) => ({
                 name: i[0],
                 data_type: columnType(i[1]),
@@ -791,7 +860,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <Container>
             {(() => {
               const seen = new Map<string, number>();
-              return value.map((v: any) => (
+              return value.map((v: unknown) => (
                 <OutputRenderer
                   key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
                   value={v}
@@ -804,7 +873,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "segmentation_result":
         return (
           <div>
-            {Object.entries(value).map((v: any) => (
+            {Object.entries(value).map((v: [string, unknown]) => (
               <OutputRenderer
                 key={v[0]}
                 value={v[1]}

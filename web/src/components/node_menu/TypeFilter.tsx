@@ -18,6 +18,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { useComfyUIStore } from "../../stores/ComfyUIStore";
 
 interface TypeFilterProps {
   selectedInputType: string;
@@ -34,7 +35,10 @@ const TypeFilter = memo(({
 }: TypeFilterProps) => {
   const theme = useTheme();
   const nodeTypes = DATA_TYPES;
-  const comfyTypes = nodeTypes.filter((t) => t.value.startsWith("comfy"));
+  const isComfyConnected = useComfyUIStore((state) => state.isConnected);
+  const comfyTypes = isComfyConnected
+    ? nodeTypes.filter((t) => t.value.startsWith("comfy"))
+    : [];
   const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
 
   const [showNodetoolInput, setShowNodetoolInput] = useState(true);

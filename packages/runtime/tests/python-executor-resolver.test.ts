@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import type { NodeDescriptor } from "@nodetool/protocol";
-import type { PythonBridge } from "../src/python-bridge.js";
+import type { PythonStdioBridge } from "../src/index.js";
 import { PythonNodeExecutor } from "../src/python-node-executor.js";
 
-describe("executor resolver with PythonBridge", () => {
+describe("executor resolver with PythonStdioBridge", () => {
   it("returns PythonNodeExecutor for Python node types", () => {
     const bridge = {
       hasNodeType: vi.fn((t: string) => t === "huggingface.TextToImage"),
@@ -14,7 +14,7 @@ describe("executor resolver with PythonBridge", () => {
           required_settings: ["HF_TOKEN"]
         }
       ])
-    } as unknown as PythonBridge;
+    } as unknown as PythonStdioBridge;
 
     const tsResolve = vi.fn();
 
@@ -50,7 +50,7 @@ describe("executor resolver with PythonBridge", () => {
   it("falls through to TS resolve for non-Python nodes", () => {
     const bridge = {
       hasNodeType: vi.fn().mockReturnValue(false)
-    } as unknown as PythonBridge;
+    } as unknown as PythonStdioBridge;
 
     const mockExecutor = { process: vi.fn() };
     const tsResolve = vi.fn().mockReturnValue(mockExecutor);

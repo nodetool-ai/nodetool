@@ -13,9 +13,8 @@ import { Text, Caption, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
-import { createErrorMessage } from "../../utils/errorHandling";
 import FolderIcon from "@mui/icons-material/Folder";
 import AddIcon from "@mui/icons-material/Add";
 import StarIcon from "@mui/icons-material/Star";
@@ -104,13 +103,8 @@ const styles = (theme: Theme) =>
 
 // Fetch workspaces
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces/", {
-    params: { query: { limit: 100 } }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workspaces");
-  }
-  return data.workspaces;
+  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
+  return workspaces as WorkspaceResponse[];
 };
 
 interface WorkspaceSelectProps {
@@ -221,6 +215,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
           MenuProps={{
             PaperProps: {
               sx: {
+                maxWidth: "min(400px, calc(100vw - 32px))",
                 backgroundColor: theme.vars.palette.background.paper,
                 border: `1px solid ${theme.vars.palette.divider}`,
                 borderRadius: "var(--rounded-md)",
@@ -290,6 +285,31 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
             }
           }}
         >
+          <Box
+            role="note"
+            sx={{
+              px: 1.75,
+              pt: 1.25,
+              pb: 1,
+              pointerEvents: "none"
+            }}
+          >
+            <Caption
+              size="smaller"
+              color="muted"
+              sx={{
+                display: "block",
+                lineHeight: 1.5,
+                whiteSpace: "normal",
+                wordBreak: "break-word"
+              }}
+            >
+              Agents read and write files here during execution — saved images,
+              text, data, and other outputs. Browse the results in the Workspace
+              panel. Agents can only access files inside this folder.
+            </Caption>
+          </Box>
+          <Divider sx={{ mb: 0.5 }} />
           <MenuItem value="">
             <span className="none-option">None</span>
           </MenuItem>

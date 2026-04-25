@@ -66,7 +66,7 @@ const getWsprops = (theme: Theme): WaveSurferProps => ({
   minPxPerSec: 1,
   sampleRate: 44100,
   height: 12,
-  barHeight: 1.0,
+  barHeight: 0.8,
   minimapHeight: 8,
   waveformHeight: 15,
   minimapBarHeight: 1,

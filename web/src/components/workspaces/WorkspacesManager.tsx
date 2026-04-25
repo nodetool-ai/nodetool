@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   DialogContent,
-  DialogTitle,
   Box,
   List,
   ListItem,
@@ -23,16 +22,13 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
-import { createErrorMessage } from "../../utils/errorHandling";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
-import PanelHeadline from "../ui/PanelHeadline";
 import {
   Chip,
-  CloseButton,
   Dialog,
   EditorButton,
   FlexRow,
@@ -112,27 +108,6 @@ const styles = (theme: Theme) =>
       minWidth: "auto",
       padding: "6px 12px"
     },
-    ".dialog-title": {
-      position: "sticky",
-      top: 0,
-      zIndex: 2,
-      background: "transparent",
-      margin: 0,
-      padding: theme.spacing(2, 3),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backdropFilter: "blur(10px)",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    },
-    ".close-button": {
-      color: theme.vars.palette.text.secondary,
-      transition: "color 0.2s",
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: theme.vars.palette.action.hover
-      }
-    },
     ".empty-state": {
       display: "flex",
       flexDirection: "column",
@@ -151,13 +126,8 @@ const styles = (theme: Theme) =>
 
 // Fetch workspaces
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
-  const { data, error } = await client.GET("/api/workspaces/", {
-    params: { query: { limit: 100 } }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workspaces");
-  }
-  return data.workspaces;
+  const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
+  return workspaces as WorkspaceResponse[];
 };
 
 // Check if native dialog API is available (running in Electron)
@@ -234,13 +204,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
       path: string;
       is_default: boolean;
     }) => {
-      const { data: result, error } = await client.POST("/api/workspaces/", {
-        body: data
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to create workspace");
-      }
-      return result;
+      return trpcClient.workspace.create.mutate(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -272,24 +236,13 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
       name?: string;
       is_default?: boolean;
     }) => {
-      const body: { name?: string; is_default?: boolean } = {};
-      if (data.name !== undefined) {
-        body.name = data.name;
-      }
-      if (data.is_default !== undefined) {
-        body.is_default = data.is_default;
-      }
-      const { data: result, error } = await client.PUT(
-        "/api/workspaces/{workspace_id}",
-        {
-          params: { path: { workspace_id: data.id } },
-          body
-        }
-      );
-      if (error) {
-        throw createErrorMessage(error, "Failed to update workspace");
-      }
-      return result;
+      return trpcClient.workspace.update.mutate({
+        id: data.id,
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.is_default !== undefined
+          ? { is_default: data.is_default }
+          : {})
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -314,12 +267,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
   // Delete workspace mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await client.DELETE("/api/workspaces/{workspace_id}", {
-        params: { path: { workspace_id: id } }
-      });
-      if (error) {
-        throw createErrorMessage(error, "Failed to delete workspace");
-      }
+      await trpcClient.workspace.delete.mutate({ id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
@@ -474,20 +422,9 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
         className="workspaces-manager-dialog"
         open={open}
         onClose={onClose}
+        title="Workspaces Manager"
         minWidth={600}
       >
-        <DialogTitle className="dialog-title">
-          <PanelHeadline
-            title="Workspaces Manager"
-            actions={
-              <CloseButton
-                onClick={onClose}
-                tooltip="Close"
-                className="close-button"
-              />
-            }
-          />
-        </DialogTitle>
         <DialogContent>
           <div className="workspaces-manager">
             {isLoading ? (

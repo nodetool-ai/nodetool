@@ -124,6 +124,7 @@ const PortalInput: React.FC<PortalInputProps> = ({
         onClick={handleSend}
         disabled={disabled || !value.trim()}
         size="small"
+        aria-label="Send message"
       >
         <ArrowUpwardIcon sx={{ fontSize: 16 }} />
       </IconButton>

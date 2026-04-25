@@ -23,7 +23,7 @@ import {
   EditorButton
 } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { isLocalhost, isElectron } from "../../stores/ApiClient";
+import { isLocalhost, isElectron } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";

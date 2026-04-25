@@ -1,7 +1,7 @@
 import { NodeTypes } from "@xyflow/react";
-import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import BaseNode from "../components/node/BaseNode";
-import { client } from "../stores/ApiClient";
+import { restFetch } from "../lib/rest-fetch";
+import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import useMetadataStore from "../stores/MetadataStore";
 import { createConnectabilityMatrix } from "../components/node_menu/typeFilterUtils";
 import { generateSnippetMetadata } from "../config/snippetMetadata";
@@ -68,11 +68,15 @@ const defaultMetadata: Record<string, NodeMetadata> = {
 };
 
 export const loadMetadata = async () => {
-  const { data, error } = await client.GET("/api/nodes/metadata", {});
-  if (error) {
-    log.error(error);
+  const response = await restFetch(
+    "/api/nodes/metadata?fields=full&limit=10000"
+  );
+  if (!response.ok) {
+    log.error(new Error(`Failed to load metadata: ${response.status}`));
     return "error";
   }
+
+  const data = (await response.json()) as NodeMetadata[];
 
   const nodeTypes: NodeTypes = {};
   const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata };

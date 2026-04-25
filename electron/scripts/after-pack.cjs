@@ -1,6 +1,7 @@
 const fs = require("fs");
 const fsp = fs.promises;
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 function resolveResourcesDir(context) {
   const { electronPlatformName, appOutDir, packager } = context;
@@ -49,23 +50,107 @@ async function promoteBackendNodeModules(context) {
   }
 }
 
+// Walk the staged node_modules and collect names of packages that contain a
+// binding.gyp (i.e. need a node-gyp rebuild against Electron's ABI). We
+// discover from the staged tree directly — the backend bundle's package.json
+// only declares { "type": "module" } with no deps, so any dependency-walking
+// rebuilder would otherwise miss everything.
+function findNativeModuleNames(nodeModulesPath) {
+  const names = [];
+  if (!fs.existsSync(nodeModulesPath)) return names;
+
+  const hasBindingGyp = (pkgPath) =>
+    fs.existsSync(path.join(pkgPath, "binding.gyp"));
+
+  for (const entry of fs.readdirSync(nodeModulesPath, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+    if (entry.name.startsWith("@")) {
+      const scopeDir = path.join(nodeModulesPath, entry.name);
+      for (const sub of fs.readdirSync(scopeDir, { withFileTypes: true })) {
+        if (!sub.isDirectory()) continue;
+        const pkgPath = path.join(scopeDir, sub.name);
+        if (hasBindingGyp(pkgPath)) {
+          names.push(`${entry.name}/${sub.name}`);
+        }
+      }
+      continue;
+    }
+    const pkgPath = path.join(nodeModulesPath, entry.name);
+    if (hasBindingGyp(pkgPath)) {
+      names.push(entry.name);
+    }
+  }
+  return names;
+}
+
+function resolveArch(context) {
+  if (typeof context.arch === "string") return context.arch;
+  return ["ia32", "x64", "armv7l", "arm64", "universal"][context.arch] ?? "x64";
+}
+
+function resolveElectronVersion(context) {
+  return (
+    context.packager.config.electronVersion ??
+    context.packager.electronVersion ??
+    require("electron/package.json").version
+  );
+}
+
+// Invoke `node-gyp rebuild` directly against Electron's headers. This matches
+// what scripts/electron-dev.mjs does for the dev workflow and avoids
+// @electron/rebuild's prebuild-install path, which has a tendency to
+// silently leave the wrong-ABI binary in place when it can't resolve a
+// matching prebuilt asset (observed for better-sqlite3 v12 + Electron 39:
+// rebuild reports success but leaves the node-vNNN prebuild from npm install).
+//
+// We resolve node-gyp's bin script via require.resolve and run it through the
+// current Node interpreter, which sidesteps PATH/npx surprises when the
+// module being rebuilt lives deep inside the packaged app's resources tree.
+function nodeGypRebuild(modulePath, electronVersion, arch) {
+  const nodeGypBin = require.resolve("node-gyp/bin/node-gyp.js");
+  const result = spawnSync(
+    process.execPath,
+    [
+      nodeGypBin,
+      "rebuild",
+      `--target=${electronVersion}`,
+      `--arch=${arch}`,
+      "--dist-url=https://electronjs.org/headers",
+    ],
+    { cwd: modulePath, stdio: "inherit" }
+  );
+  if (result.status !== 0) {
+    throw new Error(
+      `node-gyp rebuild failed for ${modulePath} (exit ${result.status})`
+    );
+  }
+}
+
 async function rebuildNativeModulesForElectron(context) {
-  const { rebuild } = require("@electron/rebuild");
   const resourcesDir = resolveResourcesDir(context);
   const backendDir = path.join(resourcesDir, "backend");
-  const electronVersion = context.packager.config.electronVersion
-    ?? context.packager.electronVersion
-    ?? require("electron/package.json").version;
-  const arch = typeof context.arch === "string" ? context.arch : ["ia32","x64","armv7l","arm64","universal"][context.arch] ?? "x64";
+  const electronVersion = resolveElectronVersion(context);
+  const arch = resolveArch(context);
 
-  console.info(`Rebuilding native backend modules for Electron ${electronVersion} (${arch})...`);
+  const runtimeNodeModulesPath = path.join(backendDir, "node_modules");
+  const moduleNames = findNativeModuleNames(runtimeNodeModulesPath);
 
-  await rebuild({
-    buildPath: backendDir,
-    electronVersion,
-    arch,
-    force: true,
-  });
+  if (moduleNames.length === 0) {
+    throw new Error(
+      `No native modules found to rebuild in ${runtimeNodeModulesPath}. ` +
+      `Expected at least better-sqlite3. Did bundle-backend.mjs stage modules correctly?`
+    );
+  }
+
+  console.info(
+    `Rebuilding ${moduleNames.length} native backend module(s) for Electron ${electronVersion} (${arch}): ${moduleNames.join(", ")}`
+  );
+
+  for (const name of moduleNames) {
+    const modulePath = path.join(runtimeNodeModulesPath, name);
+    console.info(`  -> ${name}`);
+    nodeGypRebuild(modulePath, electronVersion, arch);
+  }
 
   console.info("Native backend module rebuild complete.");
 }
@@ -82,3 +167,4 @@ module.exports = async function afterPack(context) {
 
 module.exports.promoteBackendNodeModules = promoteBackendNodeModules;
 module.exports.resolveResourcesDir = resolveResourcesDir;
+module.exports.findNativeModuleNames = findNativeModuleNames;

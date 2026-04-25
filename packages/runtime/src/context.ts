@@ -1357,7 +1357,7 @@ export class ProcessingContext {
       const parts: MessageContent[] = [];
       for (const part of msg.content) {
         if (
-          part.type === "image" &&
+          part.type === "image_url" &&
           part.image.uri &&
           !part.image.uri.startsWith("data:") &&
           !part.image.uri.startsWith("http")
@@ -1375,7 +1375,7 @@ export class ProcessingContext {
             const mimeType = mime[ext] ?? part.image.mimeType ?? "image/png";
             const b64 = Buffer.from(bytes).toString("base64");
             parts.push({
-              type: "image",
+              type: "image_url",
               image: { uri: `data:${mimeType};base64,${b64}`, mimeType }
             });
             continue;

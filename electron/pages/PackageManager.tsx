@@ -26,8 +26,6 @@ const PackageManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [activePackageId, setActivePackageId] = useState<string | null>(null);
-  const [overlayText, setOverlayText] = useState("");
-  const [showOverlay, setShowOverlay] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [nodeQuery, setNodeQuery] = useState("");
@@ -262,12 +260,6 @@ const PackageManager: React.FC = () => {
     setIsProcessing(true);
     setActivePackageId(repoId);
 
-    const pkg = availablePackages.find((p) => p.repo_id === repoId);
-    const action = isInstalled ? "Uninstalling" : "Installing";
-
-    setOverlayText(`${action} ${pkg?.name || "package"}...`);
-    setShowOverlay(true);
-
     try {
       let result: PackageResponse;
       if (isInstalled) {
@@ -307,7 +299,6 @@ const PackageManager: React.FC = () => {
     } finally {
       setIsProcessing(false);
       setActivePackageId(null);
-      setShowOverlay(false);
     }
   };
 
@@ -316,11 +307,6 @@ const PackageManager: React.FC = () => {
 
     setIsProcessing(true);
     setActivePackageId(repoId);
-
-    const pkg = availablePackages.find((p) => p.repo_id === repoId);
-
-    setOverlayText(`Updating ${pkg?.name || "package"}...`);
-    setShowOverlay(true);
 
     try {
       const result = await updatePackage(repoId);
@@ -347,7 +333,6 @@ const PackageManager: React.FC = () => {
     } finally {
       setIsProcessing(false);
       setActivePackageId(null);
-      setShowOverlay(false);
     }
   };
 
@@ -563,7 +548,7 @@ const PackageManager: React.FC = () => {
                           onClick={() => handlePackageAction(n.package, false)}
                           disabled={isProcessing}
                         >
-                          Install
+                          {activePackageId === n.package ? <div className="spinner-small" /> : "Install"}
                         </button>
                       ) : (
                         <span className="status-text installed">
@@ -653,7 +638,7 @@ const PackageManager: React.FC = () => {
                         onClick={() => handleUpdatePackage(pkg.repo_id)}
                         disabled={isProcessing}
                       >
-                        {isActive ? "Updating..." : "Update v" + installedPkg?.latestVersion}
+                        {isActive ? <div className="spinner-small" /> : "Update v" + installedPkg?.latestVersion}
                       </button>
                     )}
                     <button
@@ -665,9 +650,7 @@ const PackageManager: React.FC = () => {
                       disabled={isProcessing}
                     >
                       {isActive && !updateAvailable
-                        ? installed
-                          ? "Uninstalling..."
-                          : "Installing..."
+                        ? <div className="spinner-small" />
                         : installed
                           ? "Uninstall"
                           : "Install"}
@@ -679,12 +662,7 @@ const PackageManager: React.FC = () => {
           )}
         </div>
 
-        {showOverlay && (
-          <div className="overlay">
-            <div className="spinner-large"></div>
-            <div className="overlay-text">{overlayText}</div>
-          </div>
-        )}
+
         </>
         )}
       </div>

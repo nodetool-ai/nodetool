@@ -354,7 +354,6 @@ export {
   ImageTo3DNode,
   MODEL3D_NODES
 } from "./nodes/model3d.js";
-export { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
 export {
   WorkspaceDirectoryLibNode,
   OpenWorkspaceDirectoryLibNode,
@@ -655,7 +654,6 @@ import { VIDEO_NODES } from "./nodes/video.js";
 import { AGENT_NODES } from "./nodes/agents.js";
 import { GENERATOR_NODES } from "./nodes/generators.js";
 import { MODEL3D_NODES } from "./nodes/model3d.js";
-import { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
 import { LIB_OS_NODES } from "./nodes/lib-os.js";
 import { LIB_MARKDOWN_NODES } from "./nodes/lib-markdown.js";
 import { LIB_SECRET_NODES } from "./nodes/lib-secret.js";
@@ -723,7 +721,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...AGENT_NODES,
   ...GENERATOR_NODES,
   ...MODEL3D_NODES,
-  ...LIB_COMPAT_PY_NODES,
   ...LIB_OS_NODES,
   ...LIB_MARKDOWN_NODES,
   ...LIB_SECRET_NODES,

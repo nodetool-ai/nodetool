@@ -58,6 +58,12 @@ vi.mock("@nodetool/runtime", () => {
         void cfg;
       }
     },
+    MoonshotProvider: class extends FakeProvider {
+      constructor(cfg: Record<string, unknown>) {
+        super("moonshot");
+        void cfg;
+      }
+    },
     BaseProvider: FakeProvider
   };
 });
@@ -76,8 +82,9 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
-    expect(availableProviders()).toEqual(["ollama"]);
+    expect(availableProviders()).toEqual(["lmstudio", "ollama"]);
   });
 
   it("includes anthropic when ANTHROPIC_API_KEY is set", async () => {
@@ -86,6 +93,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers).toContain("anthropic");
@@ -98,6 +106,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers).toContain("openai");
@@ -109,6 +118,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "c");
     vi.stubEnv("MISTRAL_API_KEY", "d");
     vi.stubEnv("GROQ_API_KEY", "e");
+    vi.stubEnv("KIMI_API_KEY", "f");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers).toContain("anthropic");
@@ -116,6 +126,7 @@ describe("availableProviders", () => {
     expect(providers).toContain("gemini");
     expect(providers).toContain("mistral");
     expect(providers).toContain("groq");
+    expect(providers).toContain("moonshot");
     expect(providers).toContain("ollama");
   });
 
@@ -125,6 +136,7 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers[providers.length - 1]).toBe("ollama");
@@ -136,8 +148,9 @@ describe("availableProviders", () => {
     vi.stubEnv("GEMINI_API_KEY", "test-gemini");
     vi.stubEnv("MISTRAL_API_KEY", "");
     vi.stubEnv("GROQ_API_KEY", "");
+    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
-    expect(availableProviders()).toEqual(["anthropic", "gemini", "ollama"]);
+    expect(availableProviders()).toEqual(["anthropic", "gemini", "lmstudio", "ollama"]);
   });
 });
 
@@ -153,7 +166,8 @@ describe("KNOWN_PROVIDERS", () => {
       "ollama",
       "gemini",
       "mistral",
-      "groq"
+      "groq",
+      "moonshot"
     ];
     for (const p of expected) {
       expect(KNOWN_PROVIDERS).toContain(p);
@@ -177,7 +191,7 @@ describe("DEFAULT_MODELS", () => {
   it("uses gpt-4o for openai", async () => {
     vi.resetModules();
     const { DEFAULT_MODELS } = await import("../src/providers.js");
-    expect(DEFAULT_MODELS["openai"]).toBe("gpt-4o");
+    expect(DEFAULT_MODELS["openai"]).toBe("gpt-5.4");
   });
 
   it("uses a claude model for anthropic", async () => {
@@ -235,6 +249,13 @@ describe("createProvider", () => {
     const { createProvider } = await import("../src/providers.js");
     const provider = await createProvider("groq");
     expect((provider as unknown as { id: string }).id).toBe("groq");
+  });
+
+  it("creates a MoonshotProvider for 'moonshot'", async () => {
+    vi.stubEnv("KIMI_API_KEY", "test-moonshot");
+    const { createProvider } = await import("../src/providers.js");
+    const provider = await createProvider("moonshot");
+    expect((provider as unknown as { id: string }).id).toBe("moonshot");
   });
 
   it("falls back to OllamaProvider for an unknown provider id", async () => {

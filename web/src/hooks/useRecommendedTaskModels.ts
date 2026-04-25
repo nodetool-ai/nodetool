@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { BASE_URL } from "../stores/BASE_URL";
+import { trpc } from "../lib/trpc";
 import type { ImageModel, LanguageModel, TTSModel, ASRModel, UnifiedModel, Provider } from "../stores/ApiTypes";
 
 /**
@@ -98,21 +98,22 @@ export const useRecommendedTaskModels = <T extends TaskType>(task: T) => {
   return useQuery({
     queryKey: ["recommended", task],
     queryFn: async () => {
-      const res = await fetch(`${BASE_URL}/api/models/recommended/${task}`);
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Failed to fetch recommended ${task} models: ${res.status} ${txt}`);
-      }
-      const unified = (await res.json()) as UnifiedModel[];
+      let unified: UnifiedModel[];
       switch (task) {
         case "image":
+          unified = (await trpc.models.recommendedImage.query()) as UnifiedModel[];
           return unified.map(mapUnifiedToImageModel);
         case "language":
+          unified = (await trpc.models.recommendedLanguage.query()) as UnifiedModel[];
           return unified.map(mapUnifiedToLanguageModel);
         case "asr":
+          unified = (await trpc.models.recommendedAsr.query()) as UnifiedModel[];
           return unified.map(mapUnifiedToASRModel);
         case "tts":
+          unified = (await trpc.models.recommendedTts.query()) as UnifiedModel[];
           return unified.map(mapUnifiedToTTSModel);
+        default:
+          return [];
       }
     },
     staleTime: 5 * 60 * 1000,

@@ -28,7 +28,6 @@ export type {
   ChatMessageRequest,
   StopGenerationRequest,
   ChatState,
-  ChatActions,
   WebSocketConfig,
 } from "./chat";
 // Export chat file handling types

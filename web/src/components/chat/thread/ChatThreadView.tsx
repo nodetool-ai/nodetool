@@ -6,18 +6,22 @@ import React, {
   useCallback,
   useState,
   useMemo,
-  memo,
-  RefObject
+  memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Message, PlanningUpdate, TaskUpdate, LogUpdate } from "../../../stores/ApiTypes";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import {
+  Message,
+  PlanningUpdate,
+  TaskUpdate,
+  LogUpdate
+} from "../../../stores/ApiTypes";
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
 import { createStyles } from "./ChatThreadView.styles";
-import { textPulse } from "../styles/animations";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 
@@ -38,266 +42,57 @@ interface ChatThreadViewProps {
   progressMessage: string | null;
   runningToolCallId?: string | null;
   runningToolMessage?: string | null;
-  _runningToolMessage?: string | null;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
   onInsertCode?: (text: string, language?: string) => void;
-  scrollContainer?: HTMLDivElement | null;
 }
 
-const USER_SCROLL_IDLE_THRESHOLD_MS = 500;
-const ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS = 200;
-const SPACER_RECALC_DEBOUNCE_MS = 100;
+const SCROLL_THRESHOLD = 50;
+const ESTIMATED_MESSAGE_HEIGHT = 200;
+const STREAM_FLOOR_PX_PER_SEC = 40;
+const STREAM_CATCHUP_PER_SEC = 4;
+const STREAM_MAX_PX_PER_SEC = 800;
+const STREAM_RUNWAY_CSS = "8vh";
+const STREAM_FADE_PX = 160;
+// Fixed-viewport fade band positioned just above the runway, so new tokens
+// emerging at the streaming frontier pass through the fade as they glide up.
+const STREAM_FADE_MASK = `linear-gradient(to bottom, black 0, black calc(100% - ${STREAM_RUNWAY_CSS} - ${STREAM_FADE_PX}px), transparent calc(100% - ${STREAM_RUNWAY_CSS}), transparent 100%)`;
 
-// Dynamic scroll spacer component that adapts to content and viewport
-// Purpose: Provide enough space at the bottom so the last user message can be scrolled to the top
-// Memoized to prevent unnecessary re-renders during scrolling
-interface DynamicScrollSpacerProps {
-  lastUserMessageRef: RefObject<HTMLDivElement | null>;
-  bottomRef: RefObject<HTMLDivElement | null>;
-  scrollHost: HTMLElement | null;
+function formatElapsed(seconds: number): string {
+  if (seconds < 1) return "0s";
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
 }
 
-const DynamicScrollSpacer = memo(function DynamicScrollSpacer({
-  lastUserMessageRef,
-  bottomRef,
-  scrollHost
-}: DynamicScrollSpacerProps) {
-  const [spacerHeight, setSpacerHeight] = useState(0);
-  const prevSpacerHeightRef = useRef(0);
-  const spacerRef = useRef<HTMLDivElement>(null);
+function useElapsedTime(active: boolean): number {
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef<number>(0);
 
   useEffect(() => {
-    let recalcTimeoutId: number | null = null;
-
-    const calculateOptimalSpacerHeight = () => {
-      if (!scrollHost || !lastUserMessageRef.current || !bottomRef.current) {
-        if (prevSpacerHeightRef.current !== 0) {
-          prevSpacerHeightRef.current = 0;
-          setSpacerHeight(0);
-        }
-        return;
-      }
-
-      const viewportHeight = scrollHost.clientHeight;
-      const lastUserMessage = lastUserMessageRef.current;
-      const bottomElement = bottomRef.current;
-
-      // Get positions relative to the scroll container's content
-      const lastUserMessageRect = lastUserMessage.getBoundingClientRect();
-      const bottomRect = bottomElement.getBoundingClientRect();
-
-      // Calculate height of content from user message top to bottom marker
-      // This is the content that needs to fit when the user message is at the top
-      const contentBelowUserMessage = bottomRect.bottom - lastUserMessageRect.top;
-
-      // Spacer should fill the remaining viewport space so the message can scroll to top
-      // If content below user message is less than viewport, we need a spacer
-      let neededHeight = Math.max(0, viewportHeight - contentBelowUserMessage);
-
-      // Safety cap: never exceed viewport height (which is the max useful spacer)
-      neededHeight = Math.min(neededHeight, viewportHeight);
-
-      // Only update if there's a meaningful change to avoid layout thrashing
-      if (Math.abs(neededHeight - prevSpacerHeightRef.current) > 5) {
-        prevSpacerHeightRef.current = neededHeight;
-        setSpacerHeight(neededHeight);
-      }
-    };
-
-    const scheduleRecalculation = () => {
-      if (recalcTimeoutId !== null) {
-        clearTimeout(recalcTimeoutId);
-      }
-      recalcTimeoutId = window.setTimeout(() => {
-        calculateOptimalSpacerHeight();
-        recalcTimeoutId = null;
-      }, SPACER_RECALC_DEBOUNCE_MS);
-    };
-
-    // Calculate initial height
-    calculateOptimalSpacerHeight();
-
-    // Use MutationObserver to watch for content changes (exclude spacer changes)
-    const mutationObserver = new MutationObserver((mutations) => {
-      // Ignore mutations that only affect the spacer itself
-      const hasNonSpacerMutation = mutations.some(m => {
-        if (m.target === spacerRef.current) { return false; }
-        if (m.type === 'attributes' && m.target === spacerRef.current) { return false; }
-        return true;
-      });
-      if (hasNonSpacerMutation) {
-        scheduleRecalculation();
-      }
-    });
-
-    if (lastUserMessageRef.current) {
-      mutationObserver.observe(lastUserMessageRef.current.parentElement || lastUserMessageRef.current, {
-        childList: true,
-        subtree: true,
-        attributes: false
-      });
+    if (!active) {
+      setElapsed(0);
+      return;
     }
+    startRef.current = Date.now();
+    setElapsed(0);
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active]);
 
-    // Recalculate on resize
-    const resizeObserver = new ResizeObserver(scheduleRecalculation);
-
-    if (scrollHost) {
-      resizeObserver.observe(scrollHost);
-    }
-
-    return () => {
-      mutationObserver.disconnect();
-      resizeObserver.disconnect();
-      if (recalcTimeoutId !== null) {
-        clearTimeout(recalcTimeoutId);
-      }
-    };
-  }, [scrollHost, lastUserMessageRef, bottomRef]);
-
-  // Memoize the spacer style to avoid creating new objects
-  const spacerStyle = useMemo(() => ({
-    height: `${spacerHeight}px`,
-    flexShrink: 0
-  }), [spacerHeight]);
-
-  return (
-    <div
-      ref={spacerRef}
-      className="scroll-spacer"
-      style={spacerStyle}
-    />
-  );
-});
-
-// Define props for the memoized list component (static message content)
-interface MemoizedMessageListProps {
-  messages: Message[];
-  expandedThoughts: { [key: string]: boolean };
-  onToggleThought: (key: string) => void;
-  lastUserMessageRef: RefObject<HTMLDivElement | null>;
-  componentStyles: ReturnType<typeof createStyles>;
-  toolResultsByCallId: Record<string, { name?: string | null; content: any }>;
-  onInsertCode?: (text: string, language?: string) => void;
+  return elapsed;
 }
 
-const MemoizedMessageList = memo<MemoizedMessageListProps>(
-  ({
-    messages,
-    expandedThoughts,
-    onToggleThought,
-    lastUserMessageRef,
-    componentStyles,
-    toolResultsByCallId,
-    onInsertCode
-  }) => {
-    const executionMessagesById = useMemo(() => {
-      const map = new Map<string, Message[]>();
-      for (const msg of messages) {
-        if (msg.role !== "agent_execution") continue;
-        // Use agent_execution_id if present, otherwise group all ungrouped
-        // execution messages under a synthetic key "__ungrouped__"
-        const key = msg.agent_execution_id || "__ungrouped__";
-        const list = map.get(key) || [];
-        list.push(msg);
-        map.set(key, list);
-      }
-      return map;
-    }, [messages]);
-
-    // Memoize filtered messages and last user message index to avoid recalculations on each render
-    const { filteredMessages, lastUserMessageIndex } = useMemo(() => {
-      const filtered = messages.filter((m) => {
-        // Always hide tool role messages
-        if (m.role === "tool") {
-          return false;
-        }
-
-        // Check if message has any visible content
-        const hasToolCalls = Array.isArray(m.tool_calls) && m.tool_calls.length > 0;
-        const hasExecutionEvent = !!m.execution_event_type || m.role === "agent_execution";
-
-        let hasContent = false;
-        if (typeof m.content === "string") {
-          hasContent = m.content.trim().length > 0;
-        } else if (Array.isArray(m.content)) {
-          hasContent = m.content.some((block: any) => {
-            if (!block || typeof block !== "object") {
-              return false;
-            }
-            if (block.type === "text") {
-              return typeof block.text === "string" && block.text.trim().length > 0;
-            }
-            if (block.type === "image_url" || block.type === "image") {
-              return true;
-            }
-            return true; // Other content types are considered non-empty
-          });
-        } else if (m.content != null) {
-          hasContent = true; // Non-null/non-string/non-array content (e.g. object)
-        }
-
-        // Keep the message if it has any visible element
-        return hasContent || hasToolCalls || hasExecutionEvent;
-      });
-      const lastUserIdx = filtered.reduce(
-        (lastIdx, msg, idx) => (msg.role === "user" ? idx : lastIdx),
-        -1
-      );
-      return { filteredMessages: filtered, lastUserMessageIndex: lastUserIdx };
-    }, [messages]);
-
-    return (
-      <>
-        {filteredMessages.map((msg, index) => {
-          if (msg.role === "agent_execution") {
-            const key = msg.agent_execution_id || "__ungrouped__";
-            const executionMessages = executionMessagesById.get(key);
-            // Only render the first message per group; the rest are consolidated
-            if (executionMessages && executionMessages[0] !== msg) {
-              return null;
-            }
-          }
-          const isLastUserMessage = index === lastUserMessageIndex;
-          // Use message id as key, with fallback to index-based key for rare cases where id is missing
-          const messageKey = msg.id || `msg-${index}`;
-          const messageElement = (
-            <MessageView
-              key={messageKey}
-              message={msg}
-              expandedThoughts={expandedThoughts}
-              onToggleThought={onToggleThought}
-              onInsertCode={onInsertCode}
-              toolResultsByCallId={toolResultsByCallId}
-              componentStyles={componentStyles}
-              executionMessagesById={executionMessagesById}
-            />
-          );
-          // Wrap the last user message in a div with ref for scroll-to-top behavior
-          if (isLastUserMessage) {
-            return (
-              <div key={`wrapper-${messageKey}`} ref={lastUserMessageRef}>
-                {messageElement}
-              </div>
-            );
-          }
-          return messageElement;
-        })}
-      </>
-    );
-  }
-);
-MemoizedMessageList.displayName = "MemoizedMessageList";
-
-// Define props for the memoized status footer component (dynamic status/progress)
-interface MemoizedStatusFooterProps {
+interface StatusFooterProps {
   status: ChatThreadViewProps["status"];
   progress: number;
   total: number;
   progressMessage: string | null;
   runningToolCallId?: string | null;
-  runningToolMessage?: string | null;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
@@ -305,7 +100,7 @@ interface MemoizedStatusFooterProps {
   theme: Theme;
 }
 
-const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
+const StatusFooter = memo<StatusFooterProps>(
   ({
     status,
     progress,
@@ -318,96 +113,118 @@ const MemoizedStatusFooter = memo<MemoizedStatusFooterProps>(
     hasAgentExecutionMessages,
     theme
   }) => {
+    const isBusy = status === "loading" || status === "streaming";
+    const elapsed = useElapsedTime(isBusy);
     return (
       <>
-        {status === "loading" && progress === 0 && !hasAgentExecutionMessages && (
-          <li key="loading-indicator" className="chat-message-list-item">
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 0" }}>
-              <LoadingIndicator />
-              <span style={{
-                fontSize: "0.85rem",
-                color: theme.vars.palette.text.secondary,
-                fontStyle: "italic"
-              }}>
-                Thinking...
+        {isBusy && !hasAgentExecutionMessages && (
+          <div className="chat-message-list-item">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px 0"
+              }}
+            >
+              {status === "loading" && progress === 0 ? (
+                <LoadingIndicator />
+              ) : null}
+              <span
+                style={{
+                  fontSize: "0.85rem",
+                  color: theme.vars.palette.text.secondary,
+                  fontStyle: "italic"
+                }}
+              >
+                {progressMessage && !runningToolCallId
+                  ? progressMessage
+                  : status === "streaming"
+                    ? "Responding…"
+                    : "Thinking…"}
+              </span>
+              <span
+                style={{
+                  fontSize: "0.8rem",
+                  color: theme.vars.palette.text.disabled,
+                  fontVariantNumeric: "tabular-nums",
+                  marginLeft: "auto"
+                }}
+              >
+                {formatElapsed(elapsed)}
               </span>
             </div>
-          </li>
+          </div>
         )}
         {progress > 0 && !hasAgentExecutionMessages && (
-          <li key="progress-indicator" className="chat-message-list-item">
+          <div className="chat-message-list-item">
             <Progress progress={progress} total={total} />
-          </li>
+          </div>
         )}
-        {/* Hide global progress message if a tool call is running */}
-        {progressMessage && !runningToolCallId && !hasAgentExecutionMessages && (
-          <li
-            key="progress-message"
-            className="node-status chat-message-list-item"
-          >
-            <span
-              css={css`
-                display: inline;
-                animation: ${textPulse} 1.8s ease-in-out infinite;
-              `}
-            >
-              {progressMessage}
-            </span>
-          </li>
-        )}
-        {/* Reserve area for future non-animated hints when a tool is running, if needed */}
         {!hasAgentExecutionMessages && currentPlanningUpdate && (
-          <li key="planning-update" className="chat-message-list-item">
+          <div className="chat-message-list-item">
             <PlanningUpdateDisplay planningUpdate={currentPlanningUpdate} />
-          </li>
+          </div>
         )}
         {!hasAgentExecutionMessages && currentTaskUpdate && (
-          <li key="task-update" className="chat-message-list-item">
+          <div className="chat-message-list-item">
             <TaskUpdateDisplay taskUpdate={currentTaskUpdate} />
-          </li>
+          </div>
         )}
         {!hasAgentExecutionMessages && currentLogUpdate && (
-          <li key="log-update" className="chat-message-list-item">
+          <div className="chat-message-list-item">
             <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
-              <div style={{
-                position: "absolute",
-                left: "4px",
-                top: "10px",
-                bottom: "10px",
-                width: "2px",
-                background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
-                borderRadius: "1px"
-              }} />
-              <div style={{
-                position: "absolute",
-                left: "-21px",
-                top: "12px",
-                width: "10px",
-                height: "10px",
-                borderRadius: "var(--rounded-circle)",
-                backgroundColor: theme.vars.palette.primary.main,
-                border: `2px solid ${theme.vars.palette.background.default}`,
-                boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
-                zIndex: 2
-              }} />
-              <div className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`} style={{
-                fontSize: "0.8rem",
-                padding: "0.5rem 0.75rem",
-                borderRadius: "var(--rounded-lg)",
-                backgroundColor: "rgba(30, 35, 40, 0.4)",
-                border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-                color: currentLogUpdate.severity === "error" ? theme.vars.palette.error.light : currentLogUpdate.severity === "warning" ? theme.vars.palette.warning.light : "grey.300",
-              }}>
+              <div
+                style={{
+                  position: "absolute",
+                  left: "4px",
+                  top: "10px",
+                  bottom: "10px",
+                  width: "2px",
+                  background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
+                  borderRadius: "1px"
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: "-21px",
+                  top: "12px",
+                  width: "10px",
+                  height: "10px",
+                  borderRadius: "var(--rounded-circle)",
+                  backgroundColor: theme.vars.palette.primary.main,
+                  border: `2px solid ${theme.vars.palette.background.default}`,
+                  boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
+                  zIndex: 2
+                }}
+              />
+              <div
+                className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`}
+                style={{
+                  fontSize: "0.8rem",
+                  padding: "0.5rem 0.75rem",
+                  borderRadius: "var(--rounded-lg)",
+                  backgroundColor: "rgba(30, 35, 40, 0.4)",
+                  border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
+                  color:
+                    currentLogUpdate.severity === "error"
+                      ? theme.vars.palette.error.light
+                      : currentLogUpdate.severity === "warning"
+                        ? theme.vars.palette.warning.light
+                        : "grey.300"
+                }}
+              >
                 {currentLogUpdate.content}
               </div>
             </div>
-          </li>
+          </div>
         )}
       </>
     );
   }
 );
-MemoizedStatusFooter.displayName = "MemoizedStatusFooter";
+StatusFooter.displayName = "StatusFooter";
 
 const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   messages,
@@ -416,45 +233,46 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   total,
   progressMessage,
   runningToolCallId,
-  runningToolMessage,
+  runningToolMessage: _runningToolMessage,
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
-  onInsertCode,
-  scrollContainer
+  onInsertCode
 }) => {
   const theme = useTheme();
-  const internalScrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const lastUserMessageRef = useRef<HTMLDivElement>(null);
-  const scrollRafId = useRef<number | null>(null);
-  const [expandedThoughts, setExpandedThoughts] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const userHasScrolledUpRef = useRef(false);
-  const isNearBottomRef = useRef(true);
-  const lastUserScrollTimeRef = useRef<number>(0);
-  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Track when we've scrolled to a user message - prevents auto-scroll to bottom from overriding.
-  // Lifecycle:
-  // - Set to true: when scrollToLastUserMessage() is called (user submits a message)
-  // - Set to false: when user manually scrolls, or when streaming ends
-  // - Checked: in auto-scroll effect to skip scrollToBottom during streaming
-  const scrolledToUserMessageRef = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
+  const [expandedThoughts, setExpandedThoughts] = useState<
+    Record<string, boolean>
+  >({});
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
-  const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
-  const previousStatusRef = useRef(status);
+  const userHasScrolledUpRef = useRef(false);
   const previousMessageCountRef = useRef(messages.length);
-
-  const SCROLL_THRESHOLD = 50;
+  const lastScrollTopRef = useRef(0);
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
+  const handleScrollRef = useCallback((node: HTMLDivElement | null) => {
+    scrollRef.current = node;
+    setScrollHost(node);
+  }, []);
+
+  const executionMessagesById = useMemo(() => {
+    const map = new Map<string, Message[]>();
+    for (const msg of messages) {
+      if (msg.role !== "agent_execution") continue;
+      const key = msg.agent_execution_id || "__ungrouped__";
+      const list = map.get(key) || [];
+      list.push(msg);
+      map.set(key, list);
+    }
+    return map;
+  }, [messages]);
+
   const toolResultsByCallId = useMemo(() => {
-    const map: Record<string, { name?: string | null; content: any }> = {};
+    const map: Record<string, { name?: string | null; content: Message["content"] }> = {};
     for (const m of messages) {
-      // Tool result messages carry tool_call_id to link back to the originating tool call
       if (m.role === "tool" && m.tool_call_id) {
         map[String(m.tool_call_id)] = {
           name: m.name ?? undefined,
@@ -465,208 +283,190 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     return map;
   }, [messages]);
 
-  const hasAgentExecutionMessages = useMemo(() => messages.some(
-    (msg) => msg.role === "agent_execution"
-  ), [messages]);
+  const hasAgentExecutionMessages = useMemo(
+    () => messages.some((msg) => msg.role === "agent_execution"),
+    [messages]
+  );
 
-  useEffect(() => {
-    lastUserScrollTimeRef.current = Date.now();
+  const { filteredMessages, lastUserMessageIndex } = useMemo(() => {
+    const filtered: Message[] = [];
+    for (const m of messages) {
+      if (m.role === "tool") continue;
+
+      const hasToolCalls =
+        Array.isArray(m.tool_calls) && m.tool_calls.length > 0;
+      const hasExecutionEvent =
+        !!m.execution_event_type || m.role === "agent_execution";
+
+      let hasContent = false;
+      if (typeof m.content === "string") {
+        hasContent = m.content.trim().length > 0;
+      } else if (Array.isArray(m.content)) {
+        hasContent = m.content.some((block) => {
+          if (!block || typeof block !== "object") return false;
+          if (block.type === "text") {
+            return (
+              typeof block.text === "string" && block.text.trim().length > 0
+            );
+          }
+          if (block.type === "image_url") return true;
+          return true;
+        });
+      } else if (m.content != null) {
+        hasContent = true;
+      }
+
+      if (!hasContent && !hasToolCalls && !hasExecutionEvent) continue;
+
+      // Only render the first message per agent_execution group
+      if (m.role === "agent_execution") {
+        const key = m.agent_execution_id || "__ungrouped__";
+        const group = executionMessagesById.get(key);
+        if (group && group[0] !== m) continue;
+      }
+
+      filtered.push(m);
+    }
+
+    let lastUserIdx = -1;
+    for (let i = 0; i < filtered.length; i++) {
+      if (filtered[i].role === "user") lastUserIdx = i;
+    }
+    return { filteredMessages: filtered, lastUserMessageIndex: lastUserIdx };
+  }, [messages, executionMessagesById]);
+
+  const virtualizer = useVirtualizer({
+    count: filteredMessages.length,
+    getScrollElement: () => scrollHost,
+    estimateSize: () => ESTIMATED_MESSAGE_HEIGHT,
+    overscan: 6,
+    getItemKey: (index) => filteredMessages[index].id ?? `msg-${index}`,
+    initialRect: { width: 0, height: 800 }
+  });
+
+  // The RAF loop drives scroll during streaming. Suppress the virtualizer's
+  // own per-resize scroll adjustment for the last (growing) item — otherwise
+  // every measured token bump adds an instantaneous scrollTop delta on top
+  // of our smooth catch-up, which reads as visible jitter.
+  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = (
+    item,
+    _delta,
+    instance
+  ) => {
+    if (item.index === filteredMessages.length - 1) return false;
+    return item.start < (instance.scrollOffset ?? 0);
+  };
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const prev = lastScrollTopRef.current;
+    const curr = el.scrollTop;
+    lastScrollTopRef.current = curr;
+
+    // Only a decrease in scrollTop indicates the user scrolled up.
+    // A growing distance-to-bottom from content expansion or programmatic
+    // catch-up must not flip this flag.
+    if (curr < prev - 1) userHasScrolledUpRef.current = true;
+
+    const nearBottom =
+      el.scrollHeight - curr - el.clientHeight < SCROLL_THRESHOLD;
+    if (nearBottom) userHasScrolledUpRef.current = false;
+    setShowScrollToBottomButton(!nearBottom);
   }, []);
 
   useEffect(() => {
-    if (scrollContainer) {
-      setScrollHost(scrollContainer);
-    } else if (internalScrollRef.current) {
-      setScrollHost(internalScrollRef.current);
-    }
-  }, [scrollContainer]);
-
-  // Cleanup animation frame on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollRafId.current) {
-        cancelAnimationFrame(scrollRafId.current);
-      }
-    };
-  }, []);
-
-  const handleScroll = useCallback(() => {
-    lastUserScrollTimeRef.current = Date.now();
-    // User manually scrolling clears the "scrolled to user message" state
-    scrolledToUserMessageRef.current = false;
-
-    if (scrollRafId.current) {
-      return;
-    }
-
-    scrollRafId.current = requestAnimationFrame(() => {
-      scrollRafId.current = null;
-      // Throttling scroll handling to the next animation frame prevents
-      // excessive layout reflows (caused by reading scrollTop/scrollHeight)
-      // during rapid scrolling events.
-      const element = scrollHost;
-      if (!element) { return; }
-
-      const calculatedIsNearBottom =
-        element.scrollHeight - element.scrollTop - element.clientHeight <
-        SCROLL_THRESHOLD;
-
-      const previousUserHasScrolledUp = userHasScrolledUpRef.current;
-      if (!calculatedIsNearBottom && !userHasScrolledUpRef.current) {
-        userHasScrolledUpRef.current = true;
-      } else if (calculatedIsNearBottom && userHasScrolledUpRef.current) {
-        userHasScrolledUpRef.current = false;
-      }
-
-      if (userHasScrolledUpRef.current !== previousUserHasScrolledUp) {
-        const shouldBeVisible =
-          !isNearBottomRef.current && userHasScrolledUpRef.current;
-        setShowScrollToBottomButton(shouldBeVisible);
-      }
-    });
-  }, [scrollHost]);
-
-  useEffect(() => {
-    if (!scrollHost) {
-      return;
-    }
-    const handleScrollEvent = () => handleScroll();
-    scrollHost.addEventListener("scroll", handleScrollEvent);
-    return () => {
-      scrollHost.removeEventListener("scroll", handleScrollEvent);
-    };
-  }, [scrollHost, handleScroll]);
+    const el = scrollHost;
+    if (!el) return;
+    const onScroll = () => updateScrollState();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [scrollHost, updateScrollState]);
 
   const scrollToBottom = useCallback(() => {
-    const el = bottomRef.current;
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-      userHasScrolledUpRef.current = false;
-    }
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight });
+    lastScrollTopRef.current = el.scrollTop;
+    userHasScrolledUpRef.current = false;
+    setShowScrollToBottomButton(false);
   }, []);
 
-  // Scroll to align the last user message at the top of the viewport
-  const scrollToLastUserMessage = useCallback(() => {
-    const el = lastUserMessageRef.current;
-    if (el) {
-      // Calculate the exact position to scroll to for precise top alignment
-      const elementRect = el.getBoundingClientRect();
-      const scrollHostRect = scrollHost?.getBoundingClientRect();
+  // On new user message → scroll that message to top.
+  // On other new messages → follow to bottom if user hasn't scrolled up.
+  useEffect(() => {
+    const prevCount = previousMessageCountRef.current;
+    previousMessageCountRef.current = messages.length;
+    if (messages.length <= prevCount) return;
 
-      if (scrollHostRect) {
-        const currentScrollTop = scrollHost?.scrollTop || 0;
-        const targetScrollTop = currentScrollTop + elementRect.top - scrollHostRect.top;
-
-        scrollHost?.scrollTo({
-          top: targetScrollTop,
-          behavior: 'smooth'
-        });
-      } else {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-
+    const last = messages[messages.length - 1];
+    if (last?.role === "user" && lastUserMessageIndex >= 0) {
+      virtualizer.scrollToIndex(lastUserMessageIndex, { align: "start" });
+      const el = scrollRef.current;
+      if (el) lastScrollTopRef.current = el.scrollTop;
       userHasScrolledUpRef.current = false;
-      // Set flag to prevent auto-scroll to bottom during streaming
-      scrolledToUserMessageRef.current = true;
-    }
-  }, [scrollHost]);
-
-  useEffect(() => {
-    const scrollElement = scrollHost;
-    const bottomElement = bottomRef.current;
-    if (!scrollElement || !bottomElement) { return; }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const wasNearBottom = isNearBottomRef.current;
-        isNearBottomRef.current = entry.isIntersecting;
-
-        if (isNearBottomRef.current !== wasNearBottom) {
-          const shouldBeVisible =
-            !isNearBottomRef.current && userHasScrolledUpRef.current;
-          if (shouldBeVisible !== showScrollToBottomButton) {
-            setShowScrollToBottomButton(shouldBeVisible);
-          }
-        }
-      },
-      { root: scrollElement, threshold: 0.1 }
-    );
-
-    observer.observe(bottomElement);
-    return () => {
-      observer.disconnect();
-    };
-  }, [scrollHost, showScrollToBottomButton]);
-
-  useEffect(() => {
-    if (previousStatusRef.current === "streaming" && status !== "streaming") {
-      // Don't force scroll to bottom when streaming ends to preserve user position
-      // The auto-scroll logic in the next effect will handle this appropriately
-      scrolledToUserMessageRef.current = false;
-    }
-    previousStatusRef.current = status;
-  }, [status]);
-
-  useEffect(() => {
-    if (messages.length <= previousMessageCountRef.current) {
-      previousMessageCountRef.current = messages.length;
+      setShowScrollToBottomButton(false);
       return;
     }
-    previousMessageCountRef.current = messages.length;
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
-    if (lastMessage?.role === "user") {
-      scrollToLastUserMessage();
 
-      // Clear the flag after a short delay to allow the scroll to complete
-      // but still prevent immediate auto-scroll during streaming
-      const scrollFlagTimeoutId = setTimeout(() => {
-        scrolledToUserMessageRef.current = false;
-      }, 1000);
-      return () => clearTimeout(scrollFlagTimeoutId);
+    // During streaming, the RAF loop below drives the scroll at a constant
+    // speed — do NOT jump to bottom here or we'll race with it.
+    if (status !== "streaming" && !userHasScrolledUpRef.current) {
+      const el = scrollRef.current;
+      if (el) {
+        el.scrollTo({ top: el.scrollHeight });
+        lastScrollTopRef.current = el.scrollTop;
+      }
     }
-  }, [messages, scrollToLastUserMessage]);
+  }, [messages, lastUserMessageIndex, virtualizer, status]);
 
+  // Follow streaming output at a constant speed with proportional catch-up.
+  // The runway spacer below keeps the frontier in the lower viewport so new
+  // tokens appear to rise into view rather than pin to the bottom edge.
   useEffect(() => {
-    if (autoScrollTimeoutRef.current) {
-      clearTimeout(autoScrollTimeoutRef.current);
-    }
+    if (status !== "streaming") return;
+    const el = scrollRef.current;
+    if (!el) return;
 
-    const lastMessage =
-      messages.length > 0 ? messages[messages.length - 1] : null;
-    if (
-      status === "streaming" ||
-      (lastMessage && lastMessage.role !== "user")
-    ) {
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        const userIsIdle =
-          Date.now() - lastUserScrollTimeRef.current >
-          USER_SCROLL_IDLE_THRESHOLD_MS;
+    let rafId: number | null = null;
+    let lastTime: number | null = null;
+    let cancelled = false;
 
-        // Only auto-scroll if the user hasn't manually scrolled and we know they're at the bottom
-        // This preserves the user's scroll position when they've scrolled to see a specific message
-        if (
-          !userHasScrolledUpRef.current &&
-          userIsIdle &&
-          isNearBottomRef.current &&
-          // Additional check: only auto-scroll if we didn't just scroll to a user message
-          !scrolledToUserMessageRef.current
-        ) {
-          scrollToBottom();
+    const tick = (time: number) => {
+      if (cancelled) return;
+      const dt = lastTime == null ? 16 : Math.min(50, time - lastTime);
+      lastTime = time;
+
+      if (!userHasScrolledUpRef.current) {
+        const target = el.scrollHeight - el.clientHeight;
+        const gap = target - el.scrollTop;
+        if (gap > 0.5) {
+          const velocity = Math.min(
+            STREAM_MAX_PX_PER_SEC,
+            Math.max(STREAM_FLOOR_PX_PER_SEC, gap * STREAM_CATCHUP_PER_SEC)
+          );
+          const delta = Math.min(gap, velocity * (dt / 1000));
+          el.scrollTop = el.scrollTop + delta;
         }
-      }, ASSISTANT_MESSAGE_SCROLL_DEBOUNCE_MS);
-    }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
 
     return () => {
-      if (autoScrollTimeoutRef.current) {
-        clearTimeout(autoScrollTimeoutRef.current);
-      }
+      cancelled = true;
+      if (rafId != null) cancelAnimationFrame(rafId);
     };
-  }, [messages, status, scrollToBottom]);
+  }, [status]);
 
   const handleToggleThought = useCallback((key: string) => {
     setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
+
+  const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
 
   return (
     <div
@@ -674,42 +474,88 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       className="chat-thread-view-root"
     >
       <div
-        ref={internalScrollRef}
+        ref={handleScrollRef}
         css={componentStyles.messageWrapper}
         className="scrollable-message-wrapper"
+        style={
+          status === "streaming"
+            ? {
+                WebkitMaskImage: STREAM_FADE_MASK,
+                maskImage: STREAM_FADE_MASK
+              }
+            : undefined
+        }
       >
-        <div css={componentStyles.chatMessagesList} className="chat-messages-list">
-          <MemoizedMessageList
-            messages={messages}
-            expandedThoughts={expandedThoughts}
-            onToggleThought={handleToggleThought}
-            lastUserMessageRef={lastUserMessageRef}
-            componentStyles={componentStyles}
-            toolResultsByCallId={toolResultsByCallId}
-            onInsertCode={onInsertCode}
-          />
-          <MemoizedStatusFooter
+        <div
+          css={componentStyles.chatMessagesList}
+          className="chat-messages-list"
+        >
+          <div
+            className="chat-messages-virtual"
+            style={{
+              position: "relative",
+              width: "100%",
+              height: `${totalSize}px`
+            }}
+          >
+            {virtualItems.map((virtualRow) => {
+              const msg = filteredMessages[virtualRow.index];
+              const messageKey = msg.id || `msg-${virtualRow.index}`;
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`
+                  }}
+                >
+                  <MessageView
+                    key={messageKey}
+                    message={msg}
+                    expandedThoughts={expandedThoughts}
+                    onToggleThought={handleToggleThought}
+                    onInsertCode={onInsertCode}
+                    toolResultsByCallId={toolResultsByCallId}
+                    componentStyles={componentStyles}
+                    executionMessagesById={executionMessagesById}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {status === "streaming" && (
+            <div
+              aria-hidden="true"
+              className="streaming-runway"
+              style={{
+                height: STREAM_RUNWAY_CSS,
+                pointerEvents: "none",
+                flexShrink: 0
+              }}
+            />
+          )}
+
+          <StatusFooter
             status={status}
             progress={progress}
             total={total}
             progressMessage={progressMessage}
             runningToolCallId={runningToolCallId}
-            runningToolMessage={runningToolMessage}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={currentTaskUpdate}
             currentLogUpdate={currentLogUpdate}
             hasAgentExecutionMessages={hasAgentExecutionMessages}
             theme={theme}
           />
-          <div ref={bottomRef} style={{ height: 1 }} />
-          {/* Dynamic spacer that adapts based on viewport and content needs */}
-          <DynamicScrollSpacer
-            lastUserMessageRef={lastUserMessageRef}
-            bottomRef={bottomRef}
-            scrollHost={scrollHost}
-          />
         </div>
       </div>
+
       <ScrollToBottomButton
         isVisible={showScrollToBottomButton}
         onClick={scrollToBottom}

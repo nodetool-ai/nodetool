@@ -34,7 +34,7 @@ import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
 import { NodeData } from "../../stores/NodeData";
-import { isDevelopment } from "../../stores/ApiClient";
+import { isDevelopment } from "../../lib/env";
 
 interface NodeToolbarProps {
   nodeId: string | null;

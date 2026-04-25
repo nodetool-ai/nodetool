@@ -139,6 +139,78 @@ describe("WorkflowRunner – bypassed nodes", () => {
     expect(displayInputs.some((i) => i.value === "ignored")).toBe(false);
   });
 
+  it("routes image through bypass when downstream accepts any input type", async () => {
+    // text_input(string) ─┐
+    // image_input(image) ─┼→ transform(bypassed, prompt: string, image: image, out: image)
+    //                     └→ display(value: any)
+    // Downstream type alone cannot disambiguate, so bypass should prefer
+    // the input matching transform's output type (image).
+    const nodes: NodeDescriptor[] = [
+      {
+        id: "text_input",
+        type: "test.Input",
+        name: "text",
+        outputs: { value: "string" }
+      },
+      {
+        id: "image_input",
+        type: "test.Input",
+        name: "img",
+        outputs: { value: "image" }
+      },
+      {
+        id: "transform",
+        type: "test.Transform",
+        outputs: { out: "image" },
+        propertyTypes: { prompt: "string", image: "image" },
+        ui_properties: { bypassed: true }
+      },
+      {
+        id: "display",
+        type: "test.Output",
+        name: "out",
+        propertyTypes: { value: "any" }
+      }
+    ];
+    const edges: Edge[] = [
+      {
+        source: "text_input",
+        sourceHandle: "value",
+        target: "transform",
+        targetHandle: "prompt"
+      },
+      {
+        source: "image_input",
+        sourceHandle: "value",
+        target: "transform",
+        targetHandle: "image"
+      },
+      {
+        source: "transform",
+        sourceHandle: "out",
+        target: "display",
+        targetHandle: "value"
+      }
+    ];
+
+    const displayInputs: Array<Record<string, unknown>> = [];
+    const runner = makeRunner({
+      "test.Output": simpleExecutor((inputs) => {
+        displayInputs.push(inputs);
+        return { value: inputs.value };
+      })
+    });
+
+    const result = await runner.run(
+      { job_id: "j-bypass-4", params: { text: "caption", img: "img-asset-1" } },
+      { nodes, edges }
+    );
+
+    expect(result.status).toBe("completed");
+    expect(displayInputs.some((i) => i.value === "img-asset-1")).toBe(true);
+    expect(displayInputs.some((i) => i.value === "caption")).toBe(false);
+  });
+
   it("collapses a chain of bypassed nodes into a single edge", async () => {
     // input → A(bypassed) → B(bypassed) → output
     const nodes: NodeDescriptor[] = [

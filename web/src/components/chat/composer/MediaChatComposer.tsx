@@ -19,6 +19,7 @@ import MovieIcon from "@mui/icons-material/Movie";
 import MovieFilterIcon from "@mui/icons-material/MovieFilter";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import PsychologyIcon from "@mui/icons-material/Psychology";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SettingsIcon from "@mui/icons-material/Settings";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
@@ -74,7 +75,6 @@ import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
-import { AgentModeSelector } from "./AgentModeSelector";
 import { StopGenerationButton } from "./StopGenerationButton";
 import log from "loglevel";
 
@@ -473,9 +473,14 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "video") return <VideocamIcon fontSize="small" />;
     if (mode === "image_to_video") return <MovieFilterIcon fontSize="small" />;
     if (mode === "audio") return <RecordVoiceOverIcon fontSize="small" />;
-    if (mode === "chat") return <ChatBubbleOutlineIcon fontSize="small" />;
+    if (mode === "chat")
+      return agentMode ? (
+        <PsychologyIcon fontSize="small" />
+      ) : (
+        <ChatBubbleOutlineIcon fontSize="small" />
+      );
     return <AutoAwesomeIcon fontSize="small" />;
-  }, [mode]);
+  }, [mode, agentMode]);
 
   const modeLabel = useMemo(() => {
     if (mode === "image") return "Image";
@@ -483,12 +488,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "video") return "Video";
     if (mode === "image_to_video") return "Image→Video";
     if (mode === "audio") return "Speech";
-    if (mode === "chat") return "Chat";
+    if (mode === "chat") return agentMode ? "Agent" : "Chat";
     if (mode === "audio_to_video") return "Audio→Video";
     if (mode === "retake") return "Retake";
     if (mode === "extend") return "Extend";
     return "Motion";
-  }, [mode]);
+  }, [mode, agentMode]);
 
   // Model dialog selection callbacks
   const handlePickImageModel = useCallback(
@@ -786,7 +791,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             open={!!modeAnchor}
             onClose={() => setModeAnchor(null)}
             value={mode}
-            onChange={(m: MediaMode) => setMode(m)}
+            agentMode={agentMode}
+            onChange={(m: MediaMode, agent: boolean) => {
+              setMode(m);
+              onAgentModeToggle?.(agent);
+            }}
           />
 
           {/* Model chip — changes based on mode */}
@@ -1237,15 +1246,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             </>
           )}
 
-          {/* Chat-specific: agent mode toggle is surfaced here so the
-              composer still exposes it in chat mode. */}
-          {mode === "chat" && onAgentModeToggle && (
-            <AgentModeSelector
-              agentMode={agentMode}
-              onToggle={onAgentModeToggle}
-            />
-          )}
-
           <div className="media-chip-spacer" />
 
           {/* Retake (refresh) button */}
@@ -1263,8 +1263,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             </span>
           </Tooltip>
 
-          {/* Primary Generate button / timer */}
-          {isBusy && isMediaMode ? (
+          {/* Primary Generate/Send button, or timer + stop when busy */}
+          {isBusy ? (
             <FlexRow gap={1} alignItems="center">
               <Text
                 size="small"

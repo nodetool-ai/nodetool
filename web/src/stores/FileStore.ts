@@ -1,7 +1,6 @@
 import { create } from "zustand";
-import { client } from "./ApiClient";
-import { createErrorMessage } from "../utils/errorHandling";
-import { FileInfo } from "./ApiTypes";
+import { trpcClient } from "../trpc/client";
+import type { FileInfo } from "./ApiTypes";
 
 interface TreeViewItem {
   id: string;
@@ -14,18 +13,9 @@ const MAX_TREE_NODES = 5000;
 
 const fetchDirectoryContents = async (
   path: string,
-  signal?: AbortSignal
+  _signal?: AbortSignal
 ): Promise<FileInfo[]> => {
-  const { data, error } = await client.GET("/api/files/list", {
-    params: { query: { path } },
-    signal
-  });
-
-  if (error) {
-    throw createErrorMessage(error, "Failed to list files");
-  }
-
-  return data;
+  return trpcClient.files.list.query({ path });
 };
 
 const fileToTreeItem = (file: FileInfo): TreeViewItem => ({
@@ -73,17 +63,7 @@ export const useFileStore = create<FileStore>((set, get) => ({
   },
 
   listFiles: async (path) => {
-    const { data, error } = await client.GET("/api/files/list", {
-      params: {
-        query: { path }
-      }
-    });
-
-    if (error) {
-      throw createErrorMessage(error, "Failed to list files");
-    }
-
-    return data;
+    return trpcClient.files.list.query({ path: path ?? "." });
   },
 
   fetchFileTree: async (path = "~") => {

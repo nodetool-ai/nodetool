@@ -74,11 +74,11 @@ PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
 
 ### `nodetool workflows run <workflow_id_or_file>`
 
-Executes a workflow by ID (from the local database) or by JSON file path.
+Executes a workflow by ID (from the local database), JSON file, or TypeScript DSL file.
 
 **Arguments:**
 
-- `<workflow_id_or_file>` — workflow ID (loaded from DB) or path to a `.json` workflow file.
+- `<workflow_id_or_file>` — workflow ID, path to a `.json` workflow file, or path to a `.ts` DSL file.
 
 **Options:**
 
@@ -91,14 +91,57 @@ Executes a workflow by ID (from the local database) or by JSON file path.
 # Run workflow by ID
 nodetool workflows run workflow_abc123
 
-# Run workflow from file
+# Run workflow from JSON file
 nodetool workflows run ./my_workflow.json
+
+# Run workflow from TypeScript DSL
+nodetool workflows run ./my_workflow.ts
 
 # Run with parameters as JSON
 nodetool workflows run workflow_abc123 --params '{"input": "hello"}'
 
 # JSON output for automation
 nodetool workflows run ./my_workflow.json --json
+```
+
+### `nodetool workflows export-dsl <workflow_id_or_file>`
+
+Exports a workflow as a TypeScript DSL file.
+
+**Arguments:**
+
+- `<workflow_id_or_file>` — workflow ID or path to a `.json` workflow file.
+
+**Options:**
+
+- `-o, --output <file>` — write to file instead of stdout.
+
+**Examples:**
+
+```bash
+# Print DSL to stdout
+nodetool workflows export-dsl workflow_abc123
+
+# Write to file
+nodetool workflows export-dsl workflow_abc123 -o workflow.ts
+
+# Export from JSON file
+nodetool workflows export-dsl ./my_workflow.json
+```
+
+### `nodetool run <dsl-file>`
+
+Shorthand for running a TypeScript DSL workflow file directly.
+
+**Options:**
+
+- `--json` — output results as JSON.
+
+**Examples:**
+
+```bash
+nodetool run workflow.ts
+nodetool run workflow.ts --json
 ```
 
 ## Chat

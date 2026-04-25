@@ -54,6 +54,45 @@ function createMockProvider(
   } as any;
 }
 
+/**
+ * Convert a legacy create_plan payload into the sequence of provider calls the
+ * new incremental planner expects:
+ *   call N (one per task): { name: "add_task", args: { id, title, depends_on, steps } }
+ *   final call: { name: "finish_plan", args: { title } }
+ * Prepended chunks/text are included on the first call for parity with old tests.
+ */
+function planCalls(
+  plan: { title: string; tasks: Array<Record<string, unknown>> },
+  firstCallPrefix: Array<
+    | { type: "chunk"; content: string; done?: boolean }
+    | { id: string; name: string; args: Record<string, unknown> }
+  > = []
+): Array<
+  Array<
+    | { type: "chunk"; content: string; done?: boolean }
+    | { id: string; name: string; args: Record<string, unknown> }
+  >
+> {
+  const calls: Array<
+    Array<
+      | { type: "chunk"; content: string; done?: boolean }
+      | { id: string; name: string; args: Record<string, unknown> }
+    >
+  > = [];
+  plan.tasks.forEach((task, idx) => {
+    const call: Array<
+      | { type: "chunk"; content: string; done?: boolean }
+      | { id: string; name: string; args: Record<string, unknown> }
+    > = idx === 0 ? [...firstCallPrefix] : [];
+    call.push({ id: `tc_add_${idx}`, name: "add_task", args: task });
+    calls.push(call);
+  });
+  calls.push([
+    { id: "tc_finish", name: "finish_plan", args: { title: plan.title } }
+  ]);
+  return calls;
+}
+
 function createMockContext() {
   const store = new Map<string, unknown>();
   return {
@@ -292,13 +331,9 @@ describe("Agent", () => {
       ]
     };
 
-    // Two generateMessages calls: one for planning, one for step execution
+    // Planning now uses incremental add_task + finish_plan, then execution.
     const provider = createMockProvider([
-      // Planning call
-      [
-        { type: "chunk", content: "Planning..." },
-        { id: "tc_plan", name: "create_plan", args: planPayload }
-      ],
+      ...planCalls(planPayload, [{ type: "chunk", content: "Planning..." }]),
       // Execution call for step_1
       [
         { type: "chunk", content: "Executing step 1..." },
@@ -383,10 +418,7 @@ describe("Agent", () => {
     };
 
     const provider = createMockProvider([
-      [
-        { type: "chunk", content: "Planning..." },
-        { id: "tc_plan", name: "create_plan", args: planPayload }
-      ],
+      ...planCalls(planPayload, [{ type: "chunk", content: "Planning..." }]),
       [
         { type: "chunk", content: "Analyzing..." },
         { id: "tc_1", name: "finish_step", args: { result: { done: true } } }
@@ -427,7 +459,7 @@ describe("Agent", () => {
     };
 
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_plan", args: planPayload }],
+      ...planCalls(planPayload),
       [
         { type: "chunk", content: "A" },
         { id: "tc_a", name: "finish_step", args: { result: { v: 1 } } }
@@ -527,24 +559,19 @@ describe("Agent", () => {
   it("uses planningModel for planner and model for executor", async () => {
     // Spy on provider to capture which model is used
     const calls: string[] = [];
-    const baseProvider = createMockProvider([
-      [
+    const modelPlan = {
+      title: "T",
+      tasks: [
         {
-          id: "tc_plan",
-          name: "create_plan",
-          args: {
-            title: "T",
-            tasks: [
-              {
-                id: "task_1",
-                title: "T",
-                depends_on: [],
-                steps: [{ id: "s1", instructions: "Do it", depends_on: [] }]
-              }
-            ]
-          }
+          id: "task_1",
+          title: "T",
+          depends_on: [],
+          steps: [{ id: "s1", instructions: "Do it", depends_on: [] }]
         }
-      ],
+      ]
+    };
+    const baseProvider = createMockProvider([
+      ...planCalls(modelPlan),
       [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }]
     ]);
     const providerSpy = {
@@ -570,10 +597,13 @@ describe("Agent", () => {
       // consume
     }
 
-    // First call (planning) should use planningModel
+    // Planning makes multiple calls (one per add_task + finish_plan) — all use planningModel.
+    // Execution calls use exec-model.
     expect(calls[0]).toBe("plan-model");
-    // Second call (execution) should use model
-    expect(calls[1]).toBe("exec-model");
+    expect(calls[calls.length - 1]).toBe("exec-model");
+    expect(calls.filter((m) => m === "plan-model").length).toBeGreaterThanOrEqual(
+      2
+    );
   });
 
   it("defaults planningModel and reasoningModel to model when not provided", () => {
@@ -617,7 +647,7 @@ describe("Agent", () => {
       ]
     };
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_plan", args: planPayload }],
+      ...planCalls(planPayload),
       [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }]
     ]);
 
@@ -668,7 +698,7 @@ describe("Agent", () => {
       ]
     };
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_plan", args: planPayload }],
+      ...planCalls(planPayload),
       [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }]
     ]);
 
@@ -700,32 +730,27 @@ describe("Agent", () => {
   });
 
   it("runs successfully without explicit workspace (auto-creates workspace)", async () => {
-    const provider = createMockProvider([
-      [
+    const autoWsPlan = {
+      title: "T",
+      tasks: [
         {
-          id: "tc_plan",
-          name: "create_plan",
-          args: {
-            title: "T",
-            tasks: [
-              {
-                id: "task_1",
-                title: "T",
-                depends_on: [],
-                steps: [
-                  {
-                    id: "s1",
-                    instructions: "Do it",
-                    depends_on: [],
-                    output_schema:
-                      '{"type":"object","properties":{"v":{"type":"number"}}}'
-                  }
-                ]
-              }
-            ]
-          }
+          id: "task_1",
+          title: "T",
+          depends_on: [],
+          steps: [
+            {
+              id: "s1",
+              instructions: "Do it",
+              depends_on: [],
+              output_schema:
+                '{"type":"object","properties":{"v":{"type":"number"}}}'
+            }
+          ]
         }
-      ],
+      ]
+    };
+    const provider = createMockProvider([
+      ...planCalls(autoWsPlan),
       [{ id: "tc_1", name: "finish_step", args: { result: { v: 1 } } }]
     ]);
 
@@ -762,32 +787,27 @@ describe("Agent", () => {
     );
 
     const capturedPrompts: string[] = [];
-    const baseProvider = createMockProvider([
-      [
+    const mergePlan = {
+      title: "T",
+      tasks: [
         {
-          id: "tc_plan",
-          name: "create_plan",
-          args: {
-            title: "T",
-            tasks: [
-              {
-                id: "task_1",
-                title: "T",
-                depends_on: [],
-                steps: [
-                  {
-                    id: "s1",
-                    instructions: "Do it",
-                    depends_on: [],
-                    output_schema:
-                      '{"type":"object","properties":{"done":{"type":"boolean"}}}'
-                  }
-                ]
-              }
-            ]
-          }
+          id: "task_1",
+          title: "T",
+          depends_on: [],
+          steps: [
+            {
+              id: "s1",
+              instructions: "Do it",
+              depends_on: [],
+              output_schema:
+                '{"type":"object","properties":{"done":{"type":"boolean"}}}'
+            }
+          ]
         }
-      ],
+      ]
+    };
+    const baseProvider = createMockProvider([
+      ...planCalls(mergePlan),
       [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }]
     ]);
     const providerSpy = {
@@ -843,7 +863,7 @@ describe("Agent", () => {
     };
 
     const provider = createMockProvider([
-      [{ id: "tc_plan", name: "create_plan", args: planPayload }],
+      ...planCalls(planPayload),
       [
         { type: "chunk", content: "Done" },
         { id: "tc_1", name: "finish_step", args: { result: { ok: true } } }

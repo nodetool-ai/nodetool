@@ -5,6 +5,7 @@ import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { audioBytes, toBytes } from "../lib/audio-wav.js";
 
@@ -43,7 +44,14 @@ function imageBytes(image: unknown): Uint8Array {
 }
 
 function filePath(uriOrPath: string): string {
-  if (uriOrPath.startsWith("file://")) return uriOrPath.slice("file://".length);
+  if (uriOrPath.startsWith("file://")) {
+    try {
+      return fileURLToPath(new URL(uriOrPath));
+    } catch {
+      // Fallback for non-standard URIs like file://C:\path
+      return uriOrPath.slice("file://".length);
+    }
+  }
   return uriOrPath;
 }
 
@@ -583,8 +591,23 @@ export class LoadVideoAssetsNode extends BaseNode {
     video: unknown;
     name: string;
   }> {
-    const folder = String(this.folder ?? ".");
-    const entries = await fs.readdir(folder, { withFileTypes: true });
+    const raw = this.folder;
+    const folder =
+      typeof raw === "string" && raw.length > 0
+        ? raw.startsWith("file:")
+          ? filePath(raw)
+          : raw
+        : typeof raw === "object" && raw !== null && typeof (raw as Record<string, unknown>).uri === "string" && ((raw as Record<string, unknown>).uri as string).length > 0
+          ? filePath((raw as Record<string, unknown>).uri as string)
+          : "";
+    if (!folder) return;
+    let entries;
+    try {
+      entries = await fs.readdir(folder, { withFileTypes: true });
+    } catch {
+      // folder does not exist or is not accessible
+      return;
+    }
     for (const entry of entries) {
       if (!entry.isFile()) continue;
       const ext = path.extname(entry.name).toLowerCase();
@@ -1021,6 +1044,7 @@ export class ConcatVideoNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "video"
   };
+  static readonly isDynamic = true;
 
   @prop({
     type: "video",
@@ -1055,24 +1079,35 @@ export class ConcatVideoNode extends BaseNode {
   declare video_b: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const a = await videoBytesAsync(this.video_a, context);
-    const b = await videoBytesAsync(this.video_b, context);
-    if (a.length === 0) return { output: videoRef(b) };
-    if (b.length === 0) return { output: videoRef(a) };
+    const inputValues = [
+      this.video_a,
+      this.video_b,
+      ...Array.from(this.dynamicProps.values())
+    ];
+    const parts: Uint8Array[] = [];
+    for (const input of inputValues) {
+      const bytes = await videoBytesAsync(input, context);
+      if (bytes.length > 0) {
+        parts.push(bytes);
+      }
+    }
 
-    const inputA = await withTempFile(".mp4", a);
-    const inputB = await withTempFile(".mp4", b);
+    if (parts.length === 0) return { output: videoRef(new Uint8Array()) };
+    if (parts.length === 1) return { output: videoRef(parts[0]) };
+
+    const inputs = await Promise.all(parts.map((bytes) => withTempFile(".mp4", bytes)));
     const concatDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "nodetool-concat-")
     );
     const listPath = path.join(concatDir, "list.txt");
     const outputPath = path.join(concatDir, "output.mp4");
     try {
+      const listEntries = inputs
+        .map((input) => `file '${input.path}'`)
+        .join("\n");
       await fs.writeFile(
         listPath,
-        `file '${inputA.path}'
-file '${inputB.path}'
-`
+        `${listEntries}\n`
       );
       await execFile(
         "ffmpeg",
@@ -1082,10 +1117,11 @@ file '${inputB.path}'
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
     } catch {
-      return { output: videoRef(bytesConcat([a, b])) };
+      return { output: videoRef(bytesConcat(parts)) };
     } finally {
-      await inputA.cleanup();
-      await inputB.cleanup();
+      for (const input of inputs) {
+        await input.cleanup();
+      }
       await fs.rm(concatDir, { recursive: true, force: true });
     }
   }

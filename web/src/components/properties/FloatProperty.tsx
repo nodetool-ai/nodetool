@@ -3,6 +3,7 @@ import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";
 import { useInputMinMax } from "../../hooks/useInputMinMax";
+import { useTemporalNodes } from "../../contexts/NodeContext";
 
 const FloatProperty = (props: PropertyProps) => {
   const { property, nodeId, value: propValue, hideLabel, tabIndex, changed, onChange, onChangeComplete } = props;
@@ -11,6 +12,8 @@ const FloatProperty = (props: PropertyProps) => {
   const description = property.description || "No description available";
 
   const value = typeof propValue === "number" ? propValue : 0;
+  const pauseHistory = useTemporalNodes((state) => state.pause);
+  const resumeHistory = useTemporalNodes((state) => state.resume);
 
   const { min, max } = useInputMinMax({
     nodeType: props.nodeType,
@@ -29,6 +32,14 @@ const FloatProperty = (props: PropertyProps) => {
   const handleChange = useCallback((_: React.ChangeEvent<HTMLInputElement> | null, newValue: number) => {
     onChange(Number(newValue));
   }, [onChange]);
+
+  const handleDragStart = useCallback(() => {
+    pauseHistory();
+  }, [pauseHistory]);
+
+  const handleDragEnd = useCallback(() => {
+    resumeHistory();
+  }, [resumeHistory]);
 
   return (
     <>
@@ -50,6 +61,8 @@ const FloatProperty = (props: PropertyProps) => {
         showSlider={showSlider}
         onChange={handleChange}
         onChangeComplete={onChangeComplete}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
       />
     </>
   );

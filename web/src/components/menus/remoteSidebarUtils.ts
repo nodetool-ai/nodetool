@@ -8,7 +8,7 @@ export const getRemoteSidebarSections = (settings: SettingWithValue[]) => {
       acc[groupKey] = acc[groupKey] || [];
       acc[groupKey].push(setting);
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, SettingWithValue[]>);
 
   const filteredGroupEntries = Object.entries(initialGroupedSettings).filter(
     ([group]) => {
@@ -28,8 +28,8 @@ export const getRemoteSidebarSections = (settings: SettingWithValue[]) => {
     ];
   }
 
-  return (Object.entries(finalGroupedSettings) as [string, any[]][]).map(
-    ([groupName, settingsArray]: [string, any[]]) => {
+  return (Object.entries(finalGroupedSettings) as [string, SettingWithValue[]][]).map(
+    ([groupName, settingsArray]: [string, SettingWithValue[]]) => {
       const sectionId = groupName.toLowerCase().replace(/\s+/g, "-");
       const items = settingsArray.reduce<{ id: string; label: string }[]>(
         (acc, setting) => {

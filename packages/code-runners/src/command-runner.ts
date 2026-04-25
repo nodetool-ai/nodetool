@@ -20,4 +20,14 @@ export class CommandDockerRunner extends StreamRunnerBase {
   ): string[] {
     return userCode.split(" ");
   }
+
+  /**
+   * Run shell commands through the OS shell when executed locally so that
+   * built-ins (`echo` on Windows), pipes, redirects and quoting work as
+   * users expect. Docker mode is unaffected and continues to use the
+   * argv-style command vector inside the container.
+   */
+  override subprocessUseShell(): boolean {
+    return true;
+  }
 }

@@ -2,6 +2,7 @@
 import { memo, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
+import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
 import PropertyLabel from "./PropertyLabel";
@@ -55,16 +56,13 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     state.isKeyPressed("Meta")
   );
 
-  // Combine connection store subscriptions into a single selector to reduce re-renders
   const { connectType, connectDirection, connectNodeId } = useConnectionStore(
-    useMemo(
-      () => (state) => ({
-        connectType: state.connectType,
-        connectDirection: state.connectDirection,
-        connectNodeId: state.connectNodeId
-      }),
-      []
-    )
+    (state) => ({
+      connectType: state.connectType,
+      connectDirection: state.connectDirection,
+      connectNodeId: state.connectNodeId
+    }),
+    shallow
   );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const classConnectable = useMemo(() => {

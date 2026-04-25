@@ -20,7 +20,7 @@ import { ChainNodeCard } from "./ChainNodeCard";
 import { ChainConnector } from "./ChainConnector";
 import { AddNodeButton } from "./AddNodeButton";
 import { NodePickerDialog } from "./NodePickerDialog";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { ChainNode, InputSource } from "./chainTypes";
 
@@ -59,13 +59,17 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
     try {
       const graph = toWorkflowGraph();
       if (workflowId) {
-        await client.PUT("/api/workflows/{id}", {
-          params: { path: { id: workflowId } },
-          body: { name: workflowName, access: "private", graph } as never,
+        await trpcClient.workflows.update.mutate({
+          id: workflowId,
+          name: workflowName,
+          access: "private",
+          graph: graph as never
         });
       } else {
-        await client.POST("/api/workflows/", {
-          body: { name: workflowName, access: "private", graph } as never,
+        await trpcClient.workflows.create.mutate({
+          name: workflowName,
+          access: "private",
+          graph: graph as never
         });
       }
     } finally {

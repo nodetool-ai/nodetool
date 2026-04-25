@@ -23,13 +23,18 @@ export {
 } from "./telemetry.js";
 export { packContext, type PackedContext } from "./context-packer.js";
 export {
-  PythonBridge,
+  PythonStdioBridge,
   type PythonBridgeOptions,
   type PythonNodeMetadata,
   type ExecuteResult,
-  type ProgressEvent
-} from "./python-bridge.js";
-export { PythonStdioBridge } from "./python-stdio-bridge.js";
+  type ProgressEvent,
+  type PythonWorkerLoadError,
+  type PythonWorkerStatus
+} from "./python-stdio-bridge.js";
+export {
+  BRIDGE_PROTOCOL_VERSION,
+  MIN_NODETOOL_CORE_VERSION
+} from "./bridge-protocol.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";
 export {
   type NodeExecutor,
@@ -43,3 +48,5 @@ export type {
   ComfyProgressEvent,
   ComfyExecutionHandle
 } from "./comfy-executor.js";
+export { RECOMMENDED_MODELS } from "./recommended-models.js";
+export type { RecommendedUnifiedModel } from "./recommended-models.js";

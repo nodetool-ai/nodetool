@@ -24,7 +24,7 @@ const ArrayView: React.FC<ArrayViewProps> = ({ array }) => {
         Array ({dtype})
       </Text>
       <Text gutterBottom>
-        Shape: {shape.join(", ")}
+        Shape: {shape?.join(", ")}
       </Text>
       <FlexColumn gap={1}>
         <pre

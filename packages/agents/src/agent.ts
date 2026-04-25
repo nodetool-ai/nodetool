@@ -15,12 +15,13 @@ import { createLogger } from "@nodetool/config";
 import type { BaseProvider } from "@nodetool/runtime";
 
 const log = createLogger("nodetool.agents.agent");
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { Message, ProcessingContext } from "@nodetool/runtime";
 import type {
   ProcessingMessage,
   StepResult,
   LogUpdate,
-  TaskUpdate
+  TaskUpdate,
+  Chunk
 } from "@nodetool/protocol";
 import { TaskUpdateEvent } from "@nodetool/protocol";
 import { BaseAgent } from "./base-agent.js";
@@ -29,6 +30,11 @@ import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
+import { rejectAgenticProvider } from "./reject-agentic-provider.js";
+import {
+  type AgentOutputFormat,
+  outputFormatDirective
+} from "./output-format.js";
 
 // ---------------------------------------------------------------------------
 // Skill types and helpers
@@ -188,6 +194,13 @@ export interface AgentOptions {
   maxSteps?: number;
   maxStepIterations?: number;
   outputSchema?: Record<string, unknown>;
+  /**
+   * Format for the agent's final result.
+   * - "structured" (default): honors `outputSchema`; finish_step returns JSON.
+   * - "markdown" / "text" / "html": final result is a string in that format.
+   *   `outputSchema` is ignored.
+   */
+  outputFormat?: AgentOutputFormat;
   /** Pre-defined task to execute, skipping the planning phase. */
   task?: Task;
   skills?: string[];
@@ -201,6 +214,7 @@ export class Agent extends BaseAgent {
   private readonly maxSteps: number;
   private readonly maxStepIterations: number;
   private readonly outputSchema?: Record<string, unknown>;
+  private readonly outputFormat: AgentOutputFormat;
   private readonly workspace?: string;
   private readonly requestedSkills?: string[];
   private readonly skillDirs: string[];
@@ -209,6 +223,7 @@ export class Agent extends BaseAgent {
   taskPlan: TaskPlan | null = null;
 
   constructor(opts: AgentOptions) {
+    rejectAgenticProvider(opts.provider, "Agent");
     super({
       name: opts.name,
       objective: opts.objective,
@@ -223,8 +238,11 @@ export class Agent extends BaseAgent {
     this.planningModel = opts.planningModel ?? opts.model;
     this.reasoningModel = opts.reasoningModel ?? opts.model;
     this.maxSteps = opts.maxSteps ?? 10;
-    this.maxStepIterations = opts.maxStepIterations ?? 5;
-    this.outputSchema = opts.outputSchema;
+    this.maxStepIterations = opts.maxStepIterations ?? 15;
+    this.outputFormat = opts.outputFormat ?? "structured";
+    // Non-structured formats imply a string result; outputSchema is ignored.
+    this.outputSchema =
+      this.outputFormat === "structured" ? opts.outputSchema : undefined;
     this.workspace = opts.workspace;
     this.requestedSkills = opts.skills;
     this.skillDirs = opts.skillDirs ?? [];
@@ -380,10 +398,13 @@ export class Agent extends BaseAgent {
    * Merge user system prompt with skill system prompt.
    */
   private mergeSystemPrompt(skillPrompt: string | null): string | undefined {
-    if (this.systemPrompt && skillPrompt) {
-      return `${this.systemPrompt}\n\n${skillPrompt}`;
-    }
-    return this.systemPrompt || skillPrompt || undefined;
+    const parts: string[] = [];
+    if (this.systemPrompt) parts.push(this.systemPrompt);
+    if (skillPrompt) parts.push(skillPrompt);
+    const formatDirective = outputFormatDirective(this.outputFormat);
+    if (formatDirective) parts.push(formatDirective);
+    if (parts.length === 0) return undefined;
+    return parts.join("\n\n");
   }
 
   async *execute(
@@ -511,21 +532,136 @@ export class Agent extends BaseAgent {
       if (item.type === "step_result") {
         const stepResult = item as StepResult;
         if (stepResult.is_task_result) {
-          log.info("Setting final results", {
+          log.info("Captured task result", {
             objective: this.objective.slice(0, 50)
           });
-          this.results = stepResult.result;
+          // Note: do NOT overwrite this.results here for multi-task plans —
+          // only the last is_task_result would survive, losing all others.
         }
       }
       yield item;
     }
 
-    // If no task_result was captured, use the final task's result
-    if (this.results === null) {
+    // After execution, synthesize a final response so the user gets one
+    // coherent, readable answer regardless of what the planner/executor
+    // produced. Skip when there is a single task — its result (string or
+    // structured) already represents the final answer for that objective.
+    const allResults = executor.getAllResults();
+    const taskCount = Object.keys(allResults).length;
+
+    if (taskCount === 0) {
       this.results = executor.getFinalResult();
+    } else if (taskCount === 1) {
+      const singleResult = Object.values(allResults)[0];
+      const isEmptyString =
+        typeof singleResult === "string" && singleResult.trim().length === 0;
+      if (singleResult == null || isEmptyString) {
+        yield* this.synthesizeFinalResponse(context, allResults, taskPlan);
+      } else if (
+        this.outputFormat === "structured" &&
+        this.outputSchema &&
+        typeof singleResult === "string"
+      ) {
+        this.results = { markdown: singleResult };
+      } else {
+        this.results = singleResult;
+      }
+    } else {
+      yield* this.synthesizeFinalResponse(context, allResults, taskPlan);
     }
 
     log.info("Agent completed", { name: this.name });
+  }
+
+  /**
+   * Run a final LLM call that synthesizes all task results into one coherent
+   * response for the user. Streams chunks as ProcessingMessage so the UI sees
+   * the answer being composed in real time. Sets `this.results` to the
+   * synthesized string (or wraps in the outputSchema shape).
+   */
+  private async *synthesizeFinalResponse(
+    _context: ProcessingContext,
+    allResults: Record<string, unknown>,
+    taskPlan: TaskPlan
+  ): AsyncGenerator<ProcessingMessage> {
+    const titleById = new Map(taskPlan.tasks.map((t) => [t.id, t.title]));
+
+    const sections: string[] = [];
+    for (const [taskId, result] of Object.entries(allResults)) {
+      const title = titleById.get(taskId) ?? taskId;
+      const body =
+        typeof result === "string"
+          ? result
+          : (() => {
+              try {
+                return JSON.stringify(result, null, 2);
+              } catch {
+                return String(result);
+              }
+            })();
+      sections.push(`## ${title} (${taskId})\n${body}`);
+    }
+
+    const formatHint =
+      this.outputFormat === "structured"
+        ? "Respond in well-formatted markdown."
+        : outputFormatDirective(this.outputFormat) ??
+          "Respond in well-formatted markdown.";
+
+    const systemPrompt =
+      (this.systemPrompt ? this.systemPrompt + "\n\n" : "") +
+      "You are finishing a multi-task job. Combine the results from every task below into a single coherent response for the user.\n\n" +
+      "## Rules\n" +
+      "- Preserve every concrete artifact (image URLs, file paths, tables, key facts) — never drop or paraphrase them away.\n" +
+      "- Do not mention the task IDs or internal task structure to the user.\n" +
+      "- Do not reveal chain-of-thought or internal deliberation.\n" +
+      formatHint;
+
+    const userPrompt = `Original request:\n${this.objective}\n\nTask results:\n${sections.join("\n\n")}\n\nProduce the final answer now.`;
+
+    const messages: Message[] = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ];
+
+    log.info("Synthesizing final response", {
+      taskCount: Object.keys(allResults).length
+    });
+
+    let content = "";
+    try {
+      for await (const item of this.provider.generateMessagesTraced({
+        messages,
+        model: this.model
+      })) {
+        if ("type" in item && item.type === "chunk") {
+          const chunk = item as { content?: string };
+          const text = chunk.content ?? "";
+          if (!text) continue;
+          content += text;
+          yield {
+            type: "chunk",
+            node_id: "agent_synthesizer",
+            content: text,
+            done: false
+          } satisfies Chunk;
+        }
+      }
+    } catch (err) {
+      log.warn("Synthesis LLM call failed, falling back to joined results", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+      content = sections.join("\n\n");
+    }
+
+    if (!content) {
+      content = sections.join("\n\n");
+    }
+
+    this.results =
+      this.outputFormat === "structured" && this.outputSchema
+        ? { markdown: content }
+        : content;
   }
 
   /**

@@ -20,7 +20,8 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ExternalLink from "../common/ExternalLink";
-import { isElectron, client } from "../../stores/ApiClient";
+import { isElectron } from "../../lib/env";
+import { restFetch } from "../../lib/rest-fetch";
 import log from "loglevel";
 
 const SETTING_LINKS: Record<string, string> = {
@@ -35,7 +36,9 @@ const SETTING_LINKS: Record<string, string> = {
   ELEVENLABS_API_KEY: "https://elevenlabs.io/subscription",
   FAL_API_KEY: "https://fal.ai/dashboard/keys",
   SERPAPI_API_KEY: "https://serpapi.com/manage-api-key",
-  DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard"
+  DATA_FOR_SEO_LOGIN: "https://app.dataforseo.com/api-dashboard",
+  KIMI_API_KEY: "https://platform.moonshot.ai/console/api-keys",
+  AKI_API_KEY: "https://aki.io"
 };
 
 const SETTING_BUTTON_TITLES: Record<string, string> = {
@@ -50,7 +53,9 @@ const SETTING_BUTTON_TITLES: Record<string, string> = {
   ELEVENLABS_API_KEY: "Get ElevenLabs API Key",
   FAL_API_KEY: "Get Fal API Key",
   SERPAPI_API_KEY: "Get SerpAPI API Key",
-  DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials"
+  DATA_FOR_SEO_LOGIN: "Get DataForSEO Credentials",
+  KIMI_API_KEY: "Get Moonshot API Key",
+  AKI_API_KEY: "Get AKI.IO API Key"
 };
 
 const SETTING_TOOLTIPS: Record<string, string> = {
@@ -65,7 +70,9 @@ const SETTING_TOOLTIPS: Record<string, string> = {
   ELEVENLABS_API_KEY: "Go to ElevenLabs subscription page",
   FAL_API_KEY: "Go to Fal.ai dashboard",
   SERPAPI_API_KEY: "Go to SerpAPI key management page",
-  DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard"
+  DATA_FOR_SEO_LOGIN: "Go to DataForSEO dashboard",
+  KIMI_API_KEY: "Go to Moonshot (Kimi) platform API keys page",
+  AKI_API_KEY: "Go to AKI.IO to sign up and get your API key"
 };
 
 interface SettingItemProps {
@@ -172,11 +179,11 @@ const RemoteSettings = () => {
   const { data: hfTokenData, isError: isHfTokenError } = useQuery({
     queryKey: ["hf-oauth-token"],
     queryFn: async () => {
-      const { data, error } = await client.GET("/api/oauth/hf/tokens");
-      if (error) {
+      const response = await restFetch("/api/oauth/hf/tokens");
+      if (!response.ok) {
         throw new Error("Failed to fetch HuggingFace token");
       }
-      return data;
+      return (await response.json()) as HfTokenResponse;
     },
     refetchInterval: (query) => {
       // Handle both v4 (data) and v5 (Query object)
@@ -304,9 +311,12 @@ const RemoteSettings = () => {
     setHfOAuthLoading(true);
 
     try {
-      const { data, error } = await client.GET("/api/oauth/hf/start");
+      const response = await restFetch("/api/oauth/hf/start");
+      const data = (await response.json().catch(() => null)) as
+        | { auth_url?: string }
+        | null;
 
-      if (error || !data?.auth_url) {
+      if (!response.ok || !data?.auth_url) {
         throw new Error("Failed to start OAuth flow");
       }
 

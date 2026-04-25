@@ -1,5 +1,9 @@
+/**
+ * Storage REST API — binary PUT/GET/HEAD only.
+ * JSON ops (list, metadata, delete) have moved to the tRPC `storage` router.
+ */
 import { createReadStream } from "node:fs";
-import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import path, { extname } from "node:path";
 import { getDefaultAssetsPath } from "@nodetool/config";
 
@@ -225,20 +229,6 @@ async function handleStorageRequest(
     await mkdir(path.dirname(filePath), { recursive: true });
     const bodyBuffer = await request.arrayBuffer();
     await writeFile(filePath, Buffer.from(bodyBuffer));
-    return new Response(null, { status: 200 });
-  }
-
-  // DELETE
-  if (request.method === "DELETE") {
-    try {
-      await stat(filePath);
-    } catch {
-      return new Response(JSON.stringify({ detail: "Not found" }), {
-        status: 404,
-        headers: { "content-type": "application/json" }
-      });
-    }
-    await unlink(filePath);
     return new Response(null, { status: 200 });
   }
 

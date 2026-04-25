@@ -2,15 +2,18 @@ import type {
   ASRModel,
   EmbeddingModel,
   ImageModel,
+  ImageTo3DParams,
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
   Message,
+  Model3D,
   ProviderId,
   ProviderStreamItem,
   ProviderTool,
   EncodedAudioResult,
   StreamingAudioChunk,
+  TextTo3DParams,
   TextToImageParams,
   TextToVideoParams,
   ToolCall,
@@ -24,6 +27,82 @@ import { SpanStatusCode } from "@opentelemetry/api";
 import { createLogger, getAssetFilePath } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.provider");
+
+/**
+ * Capability names a provider can expose. These correspond to the `capability`
+ * strings consumed by client-side filters like `useImageModelProviders`,
+ * `useTTSProviders`, etc.
+ */
+export type ProviderCapability =
+  | "generate_message"
+  | "generate_messages"
+  | "text_to_image"
+  | "image_to_image"
+  | "text_to_video"
+  | "image_to_video"
+  | "text_to_speech"
+  | "automatic_speech_recognition"
+  | "generate_embedding"
+  | "text_to_3d"
+  | "image_to_3d";
+
+/**
+ * Derive a provider's capability set by checking which optional `getAvailable*`
+ * methods it overrides on its prototype. Every provider can always generate
+ * messages; image/video/TTS/ASR/embedding are advertised only when the concrete
+ * class overrides the matching base method.
+ *
+ * Shared by `packages/websocket/src/models-api.ts` (REST leftover) and the
+ * `models` tRPC router so both report identical capabilities for the same
+ * provider instance.
+ */
+export function providerCapabilities(
+  instance: BaseProvider
+): ProviderCapability[] {
+  const capabilities: ProviderCapability[] = [
+    "generate_message",
+    "generate_messages"
+  ];
+  if (
+    instance.getAvailableImageModels !==
+    BaseProvider.prototype.getAvailableImageModels
+  ) {
+    capabilities.push("text_to_image", "image_to_image");
+  }
+  if (
+    instance.getAvailableVideoModels !==
+    BaseProvider.prototype.getAvailableVideoModels
+  ) {
+    capabilities.push("text_to_video", "image_to_video");
+  }
+  if (
+    instance.getAvailableTTSModels !==
+    BaseProvider.prototype.getAvailableTTSModels
+  ) {
+    capabilities.push("text_to_speech");
+  }
+  if (
+    instance.getAvailableASRModels !==
+    BaseProvider.prototype.getAvailableASRModels
+  ) {
+    capabilities.push("automatic_speech_recognition");
+  }
+  if (
+    instance.getAvailableEmbeddingModels !==
+    BaseProvider.prototype.getAvailableEmbeddingModels
+  ) {
+    capabilities.push("generate_embedding");
+  }
+  if (
+    instance.getAvailable3DModels !==
+    BaseProvider.prototype.getAvailable3DModels
+  ) {
+    // Providers that expose 3D models are assumed to support both task types;
+    // individual `textTo3D` / `imageTo3D` calls will throw if not implemented.
+    capabilities.push("text_to_3d", "image_to_3d");
+  }
+  return capabilities;
+}
 
 export abstract class BaseProvider {
   readonly provider: ProviderId;
@@ -115,6 +194,15 @@ export abstract class BaseProvider {
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    return [];
+  }
+
+  /**
+   * 3D **generation** models exposed by this provider (e.g. Meshy's `meshy-4`,
+   * Rodin's `rodin-regular`). Override on providers that can synthesize 3D
+   * assets from text and/or images.
+   */
+  async getAvailable3DModels(): Promise<Model3D[]> {
     return [];
   }
 
@@ -449,6 +537,26 @@ export abstract class BaseProvider {
     _params: ImageToVideoParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToVideo`);
+  }
+
+  /**
+   * Generate a 3D asset from a text prompt. Returns the encoded asset bytes
+   * (typically GLB). Providers that support 3D generation should override.
+   */
+  async textTo3D(_params: TextTo3DParams): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support textTo3D`);
+  }
+
+  /**
+   * Generate a 3D asset from a single reference image. Returns the encoded
+   * asset bytes (typically GLB). Providers that support 3D generation should
+   * override.
+   */
+  async imageTo3D(
+    _image: Uint8Array,
+    _params: ImageTo3DParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support imageTo3D`);
   }
 
   async generateEmbedding(_args: {

@@ -1,0 +1,38 @@
+{
+  "name": "@nodetool/sandbox-agent",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "In-container tool server: Fastify HTTP service exposing file, shell, browser, and desktop tools to the host sandbox. Ships baked into the sandbox Docker image.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "start": "node dist/entry.js",
+    "dev": "tsx src/entry.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^9.0.0",
+    "@nodetool/sandbox": "*",
+    "fastify": "^5.1.0",
+    "playwright": "^1.49.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}

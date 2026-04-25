@@ -36,6 +36,11 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
     const [autoLoadAttempted, setAutoLoadAttempted] = useState(false);
     const previousModelInfoRef = React.useRef(modelInfo);
     const lastAutoLoadedModelInfoRef = React.useRef<string | null>(null);
+    const existingDynamicPropsRef = React.useRef(data.dynamic_properties);
+    React.useEffect(() => {
+      existingDynamicPropsRef.current = data.dynamic_properties;
+    }, [data.dynamic_properties]);
+    // Need both model_id AND dynamic_inputs — inputs are transient (not persisted) and must be re-fetched
     const hasResolvedSchema =
       !!data.model_id && Object.keys(data.dynamic_inputs ?? {}).length > 0;
 
@@ -98,8 +103,12 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
             values: meta.values || (meta as typeof meta & { enum?: (string | number)[] }).enum
           };
         }
+        // When force-reloading use fresh defaults; on auto-load (reload) preserve user values
+        const dynamic_properties = force
+          ? resolved.dynamic_properties
+          : { ...resolved.dynamic_properties, ...(existingDynamicPropsRef.current ?? {}) };
         updateNodeData(nodeId, {
-          dynamic_properties: resolved.dynamic_properties,
+          dynamic_properties,
           dynamic_inputs:
             Object.keys(dynamic_inputs).length > 0
               ? dynamic_inputs
@@ -138,7 +147,7 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
         lastAutoLoadedModelInfoRef.current = null;
         setError(null);
         setAutoLoadAttempted(true);
-        void handleLoad();
+        void handleLoad(true); // new model → reset to fresh defaults
         return;
       }
 

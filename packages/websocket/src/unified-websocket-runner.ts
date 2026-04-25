@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool/models";
-import { getSetting } from "./settings-api.js";
+import { getSetting } from "./settings-registry.js";
 import { pack, unpack } from "msgpackr";
 import {
   createLogger,
@@ -1085,6 +1085,38 @@ export class UnifiedWebSocketRunner {
     throw new Error("workflow_id or graph is required");
   }
 
+  /**
+   * Surface a clean terminal job_update when pre-run setup fails (typically
+   * because the Python bridge could not start). Without this the error would
+   * bubble up to handleCommand and be sent as a generic `invalid_command`
+   * envelope, which the UI does not associate with the job — the workflow
+   * appears to spin forever instead of failing.
+   */
+  private async emitBeforeRunFailure(
+    jobId: string,
+    workflowId: string | null,
+    err: unknown
+  ): Promise<void> {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    this.logError("beforeRunJob failed", err);
+    await this.sendMessage({
+      type: "job_update",
+      status: "failed",
+      job_id: jobId,
+      workflow_id: workflowId,
+      error: errorMessage
+    });
+    try {
+      const job = (await Job.get(jobId)) as Job | null;
+      if (job) {
+        job.markFailed(errorMessage);
+        await job.save();
+      }
+    } catch (persistErr) {
+      this.logError("beforeRunJob failure persistence failed", persistErr);
+    }
+  }
+
   async runJob(req: RunJobRequest): Promise<void> {
     const userId = req.user_id ?? this.userId ?? "1";
     const workflowId = req.workflow_id ?? null;
@@ -1097,7 +1129,12 @@ export class UnifiedWebSocketRunner {
     // Route ComfyUI workflows to the dedicated comfy executor
     if (isComfyGraph(rawGraph)) {
       if (this.beforeRunJob) {
-        await this.beforeRunJob(rawGraph);
+        try {
+          await this.beforeRunJob(rawGraph);
+        } catch (err) {
+          await this.emitBeforeRunFailure(jobId, workflowId, err);
+          return;
+        }
       }
       await this.runComfyJob(
         jobId,
@@ -1113,7 +1150,12 @@ export class UnifiedWebSocketRunner {
     const graph = await this.hydrateGraph(rawGraph);
 
     if (this.beforeRunJob) {
-      await this.beforeRunJob(graph);
+      try {
+        await this.beforeRunJob(graph);
+      } catch (err) {
+        await this.emitBeforeRunFailure(jobId, workflowId, err);
+        return;
+      }
     }
 
     const workspaceDir =
@@ -3724,7 +3766,9 @@ export class UnifiedWebSocketRunner {
         tools: selectedTools.map((t) => t.name)
       });
     } else {
-      // No tools specified — use defaults + MCP tools for omnipotent mode
+      // No tools specified — use the current built-in defaults plus NodeTool's
+      // MCP-style backend tools. Additional server-side or client-bridged
+      // tools are merged below when explicitly requested/available.
       selectedTools = [
         new ReadFileTool(),
         new WriteFileTool(),
@@ -3777,6 +3821,16 @@ export class UnifiedWebSocketRunner {
       workspaceDir: agentWorkspaceDir
     });
 
+    const maxStepIterations =
+      typeof data.max_step_iterations === "number" &&
+      data.max_step_iterations > 0
+        ? Math.floor(data.max_step_iterations)
+        : 20;
+    const maxSteps =
+      typeof data.max_steps === "number" && data.max_steps > 0
+        ? Math.floor(data.max_steps)
+        : undefined;
+
     try {
       const agent = new Agent({
         name: "Assistant",
@@ -3784,6 +3838,8 @@ export class UnifiedWebSocketRunner {
         provider,
         model,
         tools: selectedTools,
+        maxStepIterations,
+        ...(maxSteps !== undefined ? { maxSteps } : {}),
         outputSchema: {
           type: "object",
           properties: {
@@ -3819,12 +3875,16 @@ export class UnifiedWebSocketRunner {
             thread_id: chunk.thread_id ?? threadId
           });
         } else if (msgType === "tool_call_update") {
-          // Forward tool call updates
+          // Forward tool call updates live AND persist them as an
+          // agent_execution message so that reopening a thread preserves the
+          // full per-step debug trace (which tools were called, with what args).
           const tc = item as {
             name: string;
             args: Record<string, unknown>;
             tool_call_id?: string;
             step_id?: string;
+            node_id?: string;
+            message?: string;
           };
           await this.sendMessage({
             type: "tool_call_update",
@@ -3832,11 +3892,33 @@ export class UnifiedWebSocketRunner {
             workflow_id: workflowId,
             tool_call_id: tc.tool_call_id ?? null,
             name: tc.name,
-            message: `Calling ${tc.name}...`,
+            message: tc.message ?? `Calling ${tc.name}...`,
             args: tc.args,
             step_id: tc.step_id ?? null,
+            node_id: tc.node_id ?? null,
             agent_execution_id: agentExecutionId
           });
+          const persisted: Record<string, unknown> = {
+            type: "message",
+            role: "agent_execution",
+            execution_event_type: "tool_call_update",
+            agent_execution_id: agentExecutionId,
+            content: {
+              type: "tool_call_update",
+              tool_call_id: tc.tool_call_id ?? null,
+              name: tc.name,
+              message: tc.message ?? `Calling ${tc.name}...`,
+              args: tc.args ?? {},
+              step_id: tc.step_id ?? null,
+              node_id: tc.node_id ?? null
+            },
+            thread_id: threadId,
+            workflow_id: workflowId,
+            provider: providerId,
+            model,
+            agent_mode: true
+          };
+          await this.saveMessageToDb(persisted);
         } else if (msgType === "task_update") {
           // Send task update as agent_execution message — persisted by _run_processor pattern
           const tu = item as { task?: unknown; step?: unknown; event?: string };
@@ -4354,7 +4436,7 @@ export class UnifiedWebSocketRunner {
       }).catch((err) => {
         log.warn("Failed to send system stats", { error: String(err) });
       });
-    }, 1_000);
+    }, 30_000);
   }
 
   private stopStatsBroadcast(): void {

@@ -81,7 +81,9 @@ export function graphNodeToReactFlowNode(
       workflow_id: workflow.id,
       title: ui_properties?.title,
       color: ui_properties?.color,
-      originalType: node.type
+      originalType: node.type,
+      model_id: ui_properties?.model_id,
+      endpoint_id: ui_properties?.endpoint_id
     },
     position: ui_properties?.position || { x: 0, y: 0 },
     // Set both top-level width/height (used by ReactFlow after resize) and style (for initial render)

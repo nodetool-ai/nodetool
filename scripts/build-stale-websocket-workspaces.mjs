@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { websocketWorkspaces } from "./websocket-workspaces.mjs";
@@ -32,6 +32,14 @@ function run(command, args) {
 
 function getWorkspaceDir(workspaceName) {
   return resolve(rootDir, "packages", workspaceName.replace("@nodetool/", ""));
+}
+
+function getWorkspaceDependencies(workspaceName) {
+  const packageJsonPath = resolve(getWorkspaceDir(workspaceName), "package.json");
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+  const dependencies = packageJson.dependencies ?? {};
+
+  return Object.keys(dependencies).filter((dependencyName) => websocketWorkspaces.includes(dependencyName));
 }
 
 function getNewestMtimeMs(pathname) {
@@ -76,11 +84,44 @@ function isWorkspaceStale(workspaceName) {
   return sourceMtime > distMtime;
 }
 
-const staleWorkspaces = websocketWorkspaces.filter(isWorkspaceStale);
+const directStaleWorkspaces = websocketWorkspaces.filter(isWorkspaceStale);
+
+const dependentsByWorkspace = new Map(
+  websocketWorkspaces.map((workspace) => [workspace, []])
+);
+
+for (const workspace of websocketWorkspaces) {
+  for (const dependency of getWorkspaceDependencies(workspace)) {
+    dependentsByWorkspace.get(dependency)?.push(workspace);
+  }
+}
+
+const affectedWorkspaces = new Set(directStaleWorkspaces);
+const workspacesToVisit = [...directStaleWorkspaces];
+
+while (workspacesToVisit.length > 0) {
+  const workspace = workspacesToVisit.shift();
+
+  for (const dependent of dependentsByWorkspace.get(workspace) ?? []) {
+    if (affectedWorkspaces.has(dependent)) {
+      continue;
+    }
+
+    affectedWorkspaces.add(dependent);
+    workspacesToVisit.push(dependent);
+  }
+}
+
+const staleWorkspaces = websocketWorkspaces.filter((workspace) => affectedWorkspaces.has(workspace));
 
 if (staleWorkspaces.length === 0) {
   console.log("All websocket workspaces are up to date.");
   process.exit(0);
+}
+
+if (directStaleWorkspaces.length > 0 && staleWorkspaces.length > directStaleWorkspaces.length) {
+  const downstreamDependents = staleWorkspaces.filter((workspace) => !directStaleWorkspaces.includes(workspace));
+  console.log(`Including downstream dependents: ${downstreamDependents.join(", ")}`);
 }
 
 console.log(`Building stale workspaces: ${staleWorkspaces.join(", ")}`);

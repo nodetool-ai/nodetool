@@ -2,6 +2,7 @@ import { Menu, shell, dialog, app, clipboard } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
 import { createPackageManagerWindow, createLogViewerWindow, createSettingsWindow } from "./window";
+import { createChatWindow } from "./workflowWindow";
 import { getSystemInfo } from "./systemInfo";
 
 /**
@@ -222,6 +223,10 @@ const buildMenu = () => {
     {
       label: "Tools",
       submenu: [
+        {
+          label: "Chat",
+          click: () => createChatWindow(),
+        },
         {
           label: "Package Manager",
           click: () => createPackageManagerWindow(),

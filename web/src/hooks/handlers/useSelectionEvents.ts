@@ -15,6 +15,8 @@ interface UseSelectionEventsProps {
   onSelectionEndBase: (event: ReactMouseEvent) => void;
   onSelectionDragStartBase: (event: ReactMouseEvent, nodes: Node<NodeData>[]) => void;
   onSelectionDragStopBase: (event: ReactMouseEvent, nodes: Node<NodeData>[]) => void;
+  /** When true, the pane effect does not auto-select edges from selected nodes (node-only marquee). */
+  setSuppressNodeDrivenEdgeSelection: (suppress: boolean) => void;
 }
 
 const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
@@ -24,7 +26,8 @@ export function useSelectionEvents({
   onSelectionStartBase,
   onSelectionEndBase,
   onSelectionDragStartBase,
-  onSelectionDragStopBase
+  onSelectionDragStopBase,
+  setSuppressNodeDrivenEdgeSelection
 }: UseSelectionEventsProps) {
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
   const selectionEndRef = useRef<{ x: number; y: number } | null>(null);
@@ -168,17 +171,35 @@ export function useSelectionEvents({
     (event: ReactMouseEvent) => {
       onSelectionEndBase(event);
       selectionEndRef.current = projectMouseEventToFlow(event);
+      const includeMarqueeEdges = event.shiftKey;
       // Defer to next frame to allow ReactFlow to complete its selection updates
       requestAnimationFrame(() => {
         selectGroupsWithinSelection();
-        selectEdgesWithinSelection();
+        const hasSelectedNode = reactFlowInstance
+          .getNodes()
+          .some((n) => n.selected);
+        if (hasSelectedNode && !includeMarqueeEdges) {
+          setSuppressNodeDrivenEdgeSelection(true);
+          const allEdges = reactFlowInstance.getEdges();
+          if (allEdges.length > 0) {
+            setEdgeSelectionState(
+              Object.fromEntries(allEdges.map((e) => [e.id, false]))
+            );
+          }
+        } else {
+          setSuppressNodeDrivenEdgeSelection(false);
+          selectEdgesWithinSelection();
+        }
       });
     },
     [
       onSelectionEndBase,
       projectMouseEventToFlow,
+      reactFlowInstance,
       selectGroupsWithinSelection,
-      selectEdgesWithinSelection
+      selectEdgesWithinSelection,
+      setEdgeSelectionState,
+      setSuppressNodeDrivenEdgeSelection
     ]
   );
 

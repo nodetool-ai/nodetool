@@ -131,6 +131,284 @@ function modelRef(data?: string): Record<string, unknown> {
   return { type: "model3d", uri: "", data: d, format: "glb" };
 }
 
+function pad4(length: number): number {
+  return (4 - (length % 4)) % 4;
+}
+
+function triangleGlbBase64(): string {
+  const positions = new Float32Array([
+    0, 0, 0,
+    1, 0, 0,
+    0, 2, 0
+  ]);
+  const indices = new Uint16Array([0, 1, 2]);
+  const positionsBytes = new Uint8Array(positions.buffer);
+  const indicesBytes = new Uint8Array(indices.buffer);
+  const totalBinaryLength =
+    positionsBytes.byteLength + indicesBytes.byteLength + pad4(indicesBytes.byteLength);
+
+  const json = {
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    scene: 0,
+    nodes: [{ mesh: 0 }],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            indices: 1
+          }
+        ]
+      }
+    ],
+    buffers: [{ byteLength: totalBinaryLength }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positionsBytes.byteLength },
+      {
+        buffer: 0,
+        byteOffset: positionsBytes.byteLength,
+        byteLength: indicesBytes.byteLength
+      }
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: "VEC3",
+        min: [0, 0, 0],
+        max: [1, 2, 0]
+      },
+      {
+        bufferView: 1,
+        componentType: 5123,
+        count: 3,
+        type: "SCALAR"
+      }
+    ]
+  };
+
+  const jsonRaw = new TextEncoder().encode(JSON.stringify(json));
+  const jsonBytes = new Uint8Array(jsonRaw.byteLength + pad4(jsonRaw.byteLength));
+  jsonBytes.set(jsonRaw);
+  jsonBytes.fill(0x20, jsonRaw.byteLength);
+
+  const binary = new Uint8Array(totalBinaryLength);
+  binary.set(positionsBytes, 0);
+  binary.set(indicesBytes, positionsBytes.byteLength);
+
+  const totalLength = 12 + 8 + jsonBytes.byteLength + 8 + binary.byteLength;
+  const glb = new Uint8Array(totalLength);
+  const view = new DataView(glb.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, totalLength, true);
+  view.setUint32(12, jsonBytes.byteLength, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  glb.set(jsonBytes, 20);
+  const binaryChunkOffset = 20 + jsonBytes.byteLength;
+  view.setUint32(binaryChunkOffset, binary.byteLength, true);
+  view.setUint32(binaryChunkOffset + 4, 0x004e4942, true);
+  glb.set(binary, binaryChunkOffset + 8);
+  return Buffer.from(glb).toString("base64");
+}
+
+function gridGlbBase64(gridSize = 8): string {
+  const positions: number[] = [];
+  for (let y = 0; y <= gridSize; y++) {
+    for (let x = 0; x <= gridSize; x++) {
+      positions.push(x / gridSize, y / gridSize, 0);
+    }
+  }
+
+  const indices: number[] = [];
+  const rowStride = gridSize + 1;
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      const a = y * rowStride + x;
+      const b = a + 1;
+      const c = a + rowStride;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const positionsBytes = new Uint8Array(new Float32Array(positions).buffer);
+  const indicesBytes = new Uint8Array(new Uint32Array(indices).buffer);
+  const totalBinaryLength =
+    positionsBytes.byteLength + indicesBytes.byteLength + pad4(indicesBytes.byteLength);
+
+  const json = {
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    scene: 0,
+    nodes: [{ mesh: 0 }],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            indices: 1
+          }
+        ]
+      }
+    ],
+    buffers: [{ byteLength: totalBinaryLength }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positionsBytes.byteLength },
+      {
+        buffer: 0,
+        byteOffset: positionsBytes.byteLength,
+        byteLength: indicesBytes.byteLength
+      }
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: positions.length / 3,
+        type: "VEC3",
+        min: [0, 0, 0],
+        max: [1, 1, 0]
+      },
+      {
+        bufferView: 1,
+        componentType: 5125,
+        count: indices.length,
+        type: "SCALAR"
+      }
+    ]
+  };
+
+  const jsonRaw = new TextEncoder().encode(JSON.stringify(json));
+  const jsonBytes = new Uint8Array(jsonRaw.byteLength + pad4(jsonRaw.byteLength));
+  jsonBytes.set(jsonRaw);
+  jsonBytes.fill(0x20, jsonRaw.byteLength);
+
+  const binary = new Uint8Array(totalBinaryLength);
+  binary.set(positionsBytes, 0);
+  binary.set(indicesBytes, positionsBytes.byteLength);
+
+  const totalLength = 12 + 8 + jsonBytes.byteLength + 8 + binary.byteLength;
+  const glb = new Uint8Array(totalLength);
+  const view = new DataView(glb.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, totalLength, true);
+  view.setUint32(12, jsonBytes.byteLength, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  glb.set(jsonBytes, 20);
+  const binaryChunkOffset = 20 + jsonBytes.byteLength;
+  view.setUint32(binaryChunkOffset, binary.byteLength, true);
+  view.setUint32(binaryChunkOffset + 4, 0x004e4942, true);
+  glb.set(binary, binaryChunkOffset + 8);
+  return Buffer.from(glb).toString("base64");
+}
+
+function boxGlbBase64(
+  min: [number, number, number],
+  max: [number, number, number]
+): string {
+  const [minX, minY, minZ] = min;
+  const [maxX, maxY, maxZ] = max;
+  const positions = [
+    minX, minY, minZ,
+    maxX, minY, minZ,
+    maxX, maxY, minZ,
+    minX, maxY, minZ,
+    minX, minY, maxZ,
+    maxX, minY, maxZ,
+    maxX, maxY, maxZ,
+    minX, maxY, maxZ
+  ];
+  const indices = [
+    0, 2, 1, 0, 3, 2,
+    4, 5, 6, 4, 6, 7,
+    0, 1, 5, 0, 5, 4,
+    3, 7, 6, 3, 6, 2,
+    0, 4, 7, 0, 7, 3,
+    1, 2, 6, 1, 6, 5
+  ];
+  const positionsBytes = new Uint8Array(new Float32Array(positions).buffer);
+  const indicesBytes = new Uint8Array(new Uint32Array(indices).buffer);
+  const totalBinaryLength =
+    positionsBytes.byteLength + indicesBytes.byteLength + pad4(indicesBytes.byteLength);
+
+  const json = {
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    scene: 0,
+    nodes: [{ mesh: 0 }],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0 },
+            indices: 1
+          }
+        ]
+      }
+    ],
+    buffers: [{ byteLength: totalBinaryLength }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positionsBytes.byteLength },
+      {
+        buffer: 0,
+        byteOffset: positionsBytes.byteLength,
+        byteLength: indicesBytes.byteLength
+      }
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: positions.length / 3,
+        type: "VEC3",
+        min: [...min],
+        max: [...max]
+      },
+      {
+        bufferView: 1,
+        componentType: 5125,
+        count: indices.length,
+        type: "SCALAR"
+      }
+    ]
+  };
+
+  const jsonRaw = new TextEncoder().encode(JSON.stringify(json));
+  const jsonBytes = new Uint8Array(jsonRaw.byteLength + pad4(jsonRaw.byteLength));
+  jsonBytes.set(jsonRaw);
+  jsonBytes.fill(0x20, jsonRaw.byteLength);
+
+  const binary = new Uint8Array(totalBinaryLength);
+  binary.set(positionsBytes, 0);
+  binary.set(indicesBytes, positionsBytes.byteLength);
+
+  const totalLength = 12 + 8 + jsonBytes.byteLength + 8 + binary.byteLength;
+  const glb = new Uint8Array(totalLength);
+  const view = new DataView(glb.buffer);
+  view.setUint32(0, 0x46546c67, true);
+  view.setUint32(4, 2, true);
+  view.setUint32(8, totalLength, true);
+  view.setUint32(12, jsonBytes.byteLength, true);
+  view.setUint32(16, 0x4e4f534a, true);
+  glb.set(jsonBytes, 20);
+  const binaryChunkOffset = 20 + jsonBytes.byteLength;
+  view.setUint32(binaryChunkOffset, binary.byteLength, true);
+  view.setUint32(binaryChunkOffset + 4, 0x004e4942, true);
+  glb.set(binary, binaryChunkOffset + 8);
+  return Buffer.from(glb).toString("base64");
+}
+
+function expectBoundsClose(actual: number[], expected: [number, number, number]): void {
+  expect(actual).toHaveLength(3);
+  for (let i = 0; i < 3; i++) {
+    expect(actual[i]).toBeCloseTo(expected[i], 5);
+  }
+}
+
 const tmpDir = `/tmp/nodetool-media-test-${Date.now()}`;
 
 // --------------- AUDIO NODES ---------------
@@ -495,8 +773,8 @@ describe("audio nodes — full coverage", () => {
       filename: path.basename(filePath)
     });
     const result = await _n.process();
-    expect(result.output).toBe(filePath);
-    const stat = await fs.stat(filePath);
+    expect(path.normalize(String(result.output))).toBe(path.normalize(filePath));
+    const stat = await fs.stat(String(result.output));
     expect(stat.size).toBeGreaterThan(0);
   });
 
@@ -539,8 +817,10 @@ describe("audio nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(2); // .wav and .mp3
-    expect(items[0].name).toBe("a.wav");
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("a.wav");
+    expect(names).toContain("b.mp3");
+    expect(names).not.toContain("c.txt");
   });
 
   it("LoadAudioFolderNode delegates to LoadAudioAssetsNode", async () => {
@@ -554,17 +834,18 @@ describe("audio nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(1);
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("x.flac");
   });
 
   it("LoadAudioAssetsNode process returns empty", async () => {
     const result = await new LoadAudioAssetsNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ audio: {}, name: "", audios: [] });
   });
 
   it("LoadAudioFolderNode process returns empty", async () => {
     const result = await new LoadAudioFolderNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ audio: {}, name: "", audios: [] });
   });
 
   it("audioBytes handles non-object input", async () => {
@@ -801,12 +1082,19 @@ describe("image nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(6);
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("a.png");
+    expect(names).toContain("b.jpg");
+    expect(names).toContain("c.jpeg");
+    expect(names).toContain("d.webp");
+    expect(names).toContain("e.gif");
+    expect(names).toContain("f.bmp");
+    expect(names).not.toContain("g.txt");
   });
 
   it("LoadImageFolderNode process returns empty", async () => {
     const result = await new LoadImageFolderNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ image: {}, name: "", images: [] });
   });
 
   it("LoadImageAssetsNode delegates to folder loader", async () => {
@@ -820,12 +1108,13 @@ describe("image nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(1);
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("test.png");
   });
 
   it("LoadImageAssetsNode process returns empty", async () => {
     const result = await new LoadImageAssetsNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ image: {}, name: "", images: [] });
   });
 
   it("SaveImageFileImageNode writes to file", async () => {
@@ -838,8 +1127,8 @@ describe("image nodes — full coverage", () => {
       filename: path.basename(filePath)
     });
     const result = await _n.process();
-    expect(result.output).toBe(filePath);
-    const stat = await fs.stat(filePath);
+    expect(path.normalize(String(result.output))).toBe(path.normalize(filePath));
+    const stat = await fs.stat(String(result.output));
     expect(stat.size).toBeGreaterThan(0);
   });
 
@@ -1125,8 +1414,8 @@ describe("video nodes — full coverage", () => {
       filename: path.basename(filePath)
     });
     const result = await _n.process();
-    expect(result.output).toBe(filePath);
-    const stat = await fs.stat(filePath);
+    expect(path.normalize(String(result.output))).toBe(path.normalize(filePath));
+    const stat = await fs.stat(String(result.output));
     expect(stat.size).toBeGreaterThan(0);
   });
 
@@ -1146,12 +1435,18 @@ describe("video nodes — full coverage", () => {
     for await (const item of node.genProcess()) {
       items.push(item);
     }
-    expect(items.length).toBe(5);
+    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
+    expect(names).toContain("a.mp4");
+    expect(names).toContain("b.mov");
+    expect(names).toContain("c.webm");
+    expect(names).toContain("d.mkv");
+    expect(names).toContain("e.avi");
+    expect(names).not.toContain("f.txt");
   });
 
   it("LoadVideoAssetsNode process returns empty", async () => {
     const result = await new LoadVideoAssetsNode().process();
-    expect(result).toEqual({});
+    expect(result).toEqual({ video: null, name: "", videos: [], names: [] });
   });
 
   it("SaveVideoNode writes with date name", async () => {
@@ -1539,6 +1834,43 @@ describe("model3d nodes — full coverage", () => {
     expect(stat.size).toBeGreaterThan(0);
   });
 
+  it("SaveModel3DFileNode applies date placeholders in filename", async () => {
+    const dir = `${tmpDir}/save-model-file-datename`;
+    const ref = modelRef();
+    const _n = new SaveModel3DFileNode();
+    _n.assign({
+      model: ref,
+      folder: dir,
+      filename: "out_%Y%m%d.glb"
+    });
+    const result = await _n.process();
+    const output = result.output as { uri: string; format: string };
+    expect(output.uri).toMatch(/out_\d{8}\.glb/);
+    expect(output.format).toBe("glb");
+  });
+
+  it("SaveModel3DFileNode does not overwrite existing file when overwrite=false", async () => {
+    const dir = `${tmpDir}/save-model-file-no-overwrite`;
+    await fs.mkdir(dir, { recursive: true });
+    const originalPath = path.join(dir, "out.glb");
+    await fs.writeFile(originalPath, Buffer.from("old-content"));
+
+    const _n = new SaveModel3DFileNode();
+    _n.assign({
+      model: modelRef(Buffer.from("new-content").toString("base64")),
+      folder: dir,
+      filename: "out.glb",
+      overwrite: false
+    });
+    const result = await _n.process();
+    const output = result.output as { uri: string };
+    expect(output.uri).toContain("out-1.glb");
+    expect(await fs.readFile(originalPath, "utf8")).toBe("old-content");
+    expect(await fs.readFile(path.join(dir, "out-1.glb"), "utf8")).toBe(
+      "new-content"
+    );
+  });
+
   it("SaveModel3DNode writes with timestamped name", async () => {
     const dir = `${tmpDir}/save-model-date`;
     const ref = modelRef();
@@ -1553,31 +1885,37 @@ describe("model3d nodes — full coverage", () => {
     expect(output.uri).toMatch(/model_\d{8}\.glb/);
   });
 
-  it("FormatConverterNode changes output format", async () => {
-    const ref = modelRef();
+  it("FormatConverterNode converts GLB to textual glTF", async () => {
+    const ref = modelRef(triangleGlbBase64());
     const _n = new FormatConverterNode();
     _n.assign({
       model: ref,
-      output_format: "obj"
+      output_format: "gltf"
     });
     const result = await _n.process();
-    const output = result.output as { format: string };
-    expect(output.format).toBe("obj");
+    const output = result.output as { format: string; data: string };
+    expect(output.format).toBe("gltf");
+    const json = JSON.parse(Buffer.from(output.data, "base64").toString("utf8")) as {
+      asset?: { version?: string };
+    };
+    expect(json.asset?.version).toBe("2.0");
   });
 
   it("GetModel3DMetadataNode returns metadata", async () => {
-    const data = Buffer.from(new Array(320).fill(0)).toString("base64");
+    const data = triangleGlbBase64();
     const _n = new GetModel3DMetadataNode();
     _n.assign({
-      model: { data, format: "stl", uri: "file://test.stl" }
+      model: { data, format: "glb", uri: "file://test.glb" }
     });
     const result = await _n.process();
     const meta = result.output as Record<string, unknown>;
-    expect(meta.format).toBe("stl");
-    expect(meta.uri).toBe("file://test.stl");
-    expect(meta.size_bytes).toBe(320);
-    expect(meta.vertices).toBe(10); // 320/32
-    expect(meta.faces).toBe(3); // floor(10/3)
+    expect(meta.format).toBe("glb");
+    expect(meta.uri).toBe("file://test.glb");
+    expect(meta.size_bytes).toBeGreaterThan(0);
+    expect(meta.vertex_count).toBe(3);
+    expect(meta.face_count).toBe(1);
+    expect(meta.mesh_count).toBe(1);
+    expect(meta.primitive_count).toBe(1);
   });
 
   it("GetModel3DMetadataNode uses explicit vertices/faces", async () => {
@@ -1601,55 +1939,67 @@ describe("model3d nodes — full coverage", () => {
     expect(output.data.length).toBeGreaterThan(0);
   });
 
-  it("DecimateNode reduces model size", async () => {
-    const data = Buffer.from(new Array(100).fill(42)).toString("base64");
+  it("DecimateNode reduces face count for a real GLB", async () => {
+    const data = gridGlbBase64(8);
+    const beforeNode = new GetModel3DMetadataNode();
+    beforeNode.assign({ model: { data, format: "glb" } });
+    const before = (await beforeNode.process()).output as { face_count: number };
+
     const _n = new DecimateNode();
-    _n.assign({ model: { data }, target_ratio: 0.5 });
+    _n.assign({ model: { data, format: "glb" }, target_ratio: 0.5 });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData.length).toBe(50);
+    const afterNode = new GetModel3DMetadataNode();
+    afterNode.assign({ model: result.output });
+    const after = (await afterNode.process()).output as { face_count: number };
+    expect(after.face_count).toBeLessThan(before.face_count);
+    expect(after.face_count).toBeGreaterThan(0);
   });
 
-  it("DecimateNode clamps ratio to [0, 1]", async () => {
-    const data = Buffer.from(new Array(100).fill(42)).toString("base64");
+  it("DecimateNode clamps ratio to [0, 1] for GLB input", async () => {
+    const data = gridGlbBase64(8);
+    const beforeNode = new GetModel3DMetadataNode();
+    beforeNode.assign({ model: { data, format: "glb" } });
+    const before = (await beforeNode.process()).output as { face_count: number };
+
     const _n = new DecimateNode();
-    _n.assign({ model: { data }, target_ratio: 2.0 });
+    _n.assign({ model: { data, format: "glb" }, target_ratio: 2.0 });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData.length).toBe(100);
+    const afterNode = new GetModel3DMetadataNode();
+    afterNode.assign({ model: result.output });
+    const after = (await afterNode.process()).output as { face_count: number };
+    expect(after.face_count).toBe(before.face_count);
 
     const _n2 = new DecimateNode();
-    _n2.assign({ model: { data }, target_ratio: 0 });
+    _n2.assign({ model: { data, format: "glb" }, target_ratio: 0 });
     const result2 = await _n2.process();
-    const outData2 = Buffer.from(
-      (result2.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData2.length).toBe(1); // max(1, ...)
+    const afterNode2 = new GetModel3DMetadataNode();
+    afterNode2.assign({ model: result2.output });
+    const after2 = (await afterNode2.process()).output as { face_count: number };
+    expect(after2.face_count).toBeGreaterThan(0);
+    expect(after2.face_count).toBeLessThanOrEqual(before.face_count);
   });
 
-  it("Boolean3DNode union concatenates", async () => {
-    const a = { data: Buffer.from([1, 2]).toString("base64") };
-    const b = { data: Buffer.from([3, 4]).toString("base64") };
+  it("Boolean3DNode performs geometry-aware union", async () => {
+    const a = { data: boxGlbBase64([0, 0, 0], [1, 1, 1]), format: "glb" };
+    const b = { data: boxGlbBase64([0.5, 0, 0], [1.5, 1, 1]), format: "glb" };
     const _n = new Boolean3DNode();
     _n.assign({ model_a: a, model_b: b, operation: "union" });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
+    const metaNode = new GetModel3DMetadataNode();
+    metaNode.assign({ model: result.output });
+    const meta = (await metaNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+    expect(meta.face_count).toBeGreaterThan(0);
+    expectBoundsClose(meta.bounds_min, [0, 0, 0]);
+    expectBoundsClose(meta.bounds_max, [1.5, 1, 1]);
   });
 
-  it("Boolean3DNode difference subtracts", async () => {
-    const a = { data: Buffer.from([10, 20]).toString("base64") };
-    const b = { data: Buffer.from([3, 30]).toString("base64") };
+  it("Boolean3DNode performs geometry-aware difference", async () => {
+    const a = { data: boxGlbBase64([0, 0, 0], [1, 1, 1]), format: "glb" };
+    const b = { data: boxGlbBase64([0.5, 0, 0], [1.5, 1, 1]), format: "glb" };
     const _n = new Boolean3DNode();
     _n.assign({
       model_a: a,
@@ -1657,17 +2007,21 @@ describe("model3d nodes — full coverage", () => {
       operation: "difference"
     });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData[0]).toBe(7); // 10 - 3
-    expect(outData[1]).toBe(0); // max(0, 20-30)
+    const metaNode = new GetModel3DMetadataNode();
+    metaNode.assign({ model: result.output });
+    const meta = (await metaNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+    expect(meta.face_count).toBeGreaterThan(0);
+    expectBoundsClose(meta.bounds_min, [0, 0, 0]);
+    expectBoundsClose(meta.bounds_max, [0.5, 1, 1]);
   });
 
-  it("Boolean3DNode intersection takes min", async () => {
-    const a = { data: Buffer.from([10, 20, 30]).toString("base64") };
-    const b = { data: Buffer.from([15, 5]).toString("base64") };
+  it("Boolean3DNode performs geometry-aware intersection", async () => {
+    const a = { data: boxGlbBase64([0, 0, 0], [1, 1, 1]), format: "glb" };
+    const b = { data: boxGlbBase64([0.5, 0, 0], [1.5, 1, 1]), format: "glb" };
     const _n = new Boolean3DNode();
     _n.assign({
       model_a: a,
@@ -1675,13 +2029,16 @@ describe("model3d nodes — full coverage", () => {
       operation: "intersection"
     });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(outData.length).toBe(2); // min length
-    expect(outData[0]).toBe(10);
-    expect(outData[1]).toBe(5);
+    const metaNode = new GetModel3DMetadataNode();
+    metaNode.assign({ model: result.output });
+    const meta = (await metaNode.process()).output as {
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+    expect(meta.face_count).toBeGreaterThan(0);
+    expectBoundsClose(meta.bounds_min, [0.5, 0, 0]);
+    expectBoundsClose(meta.bounds_max, [1, 1, 1]);
   });
 
   it("RecalculateNormalsNode passes through", async () => {
@@ -1708,17 +2065,26 @@ describe("model3d nodes — full coverage", () => {
     expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
-  it("MergeMeshesNode merges list of models", async () => {
-    const a = { data: Buffer.from([1, 2]).toString("base64") };
-    const b = { data: Buffer.from([3]).toString("base64") };
+  it("MergeMeshesNode performs an honest GLB scene merge", async () => {
+    const a = { data: triangleGlbBase64(), format: "glb" };
+    const b = { data: boxGlbBase64([2, 0, 0], [3, 1, 1]), format: "glb" };
     const _n = new MergeMeshesNode();
     _n.assign({ models: [a, b] });
     const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(Array.from(outData)).toEqual([1, 2, 3]);
+    const metaNode = new GetModel3DMetadataNode();
+    metaNode.assign({ model: result.output });
+    const meta = (await metaNode.process()).output as {
+      mesh_count: number;
+      primitive_count: number;
+      face_count: number;
+      bounds_min: number[];
+      bounds_max: number[];
+    };
+    expect(meta.mesh_count).toBe(2);
+    expect(meta.primitive_count).toBe(2);
+    expect(meta.face_count).toBeGreaterThanOrEqual(13);
+    expectBoundsClose(meta.bounds_min, [0, 0, 0]);
+    expectBoundsClose(meta.bounds_max, [3, 2, 1]);
   });
 
   it("MergeMeshesNode handles empty list", async () => {
@@ -1736,7 +2102,12 @@ describe("model3d nodes — full coverage", () => {
     const data = Buffer.from([10, 20, 30]).toString("base64");
     const _n = new ImageTo3DNode();
     _n.assign({ image: { data } });
-    const result = await _n.process();
+    const ctx = {
+      getProvider: async () => ({
+        imageTo3D: async (imageBytes: Uint8Array) => imageBytes
+      })
+    } as any;
+    const result = await _n.process(ctx);
     const output = result.output as { data: string; format: string };
     expect(output.format).toBe("glb");
     const outData = Buffer.from(output.data, "base64");
@@ -1746,12 +2117,14 @@ describe("model3d nodes — full coverage", () => {
   it("ImageTo3DNode handles empty image", async () => {
     const _n = new ImageTo3DNode();
     _n.assign({ image: {} });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
+    const ctx = {
+      getProvider: async () => ({
+        imageTo3D: async () => new Uint8Array()
+      })
+    } as any;
+    await expect(_n.process(ctx)).rejects.toThrow(
+      /Image input has no data or uri|Image input is empty/
     );
-    expect(outData.length).toBe(0);
   });
 
   it("ModelTransformNode handles non-object model", async () => {
@@ -1863,7 +2236,12 @@ describe("model3d nodes — full coverage", () => {
   it("TextTo3DNode generates model from text", async () => {
     const _n = new TextTo3DNode();
     _n.assign({ prompt: "sphere" });
-    const result = await _n.process();
+    const ctx = {
+      getProvider: async () => ({
+        textTo3D: async () => Uint8Array.from(Buffer.from("sphere", "utf8"))
+      })
+    } as any;
+    const result = await _n.process(ctx);
     const output = result.output as { data: string; format: string };
     expect(output.format).toBe("glb");
     expect(output.data).toBeDefined();

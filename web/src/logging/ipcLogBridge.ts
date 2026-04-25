@@ -30,6 +30,11 @@ const normalizeLevel = (level: string): FrontendLogLevel => {
 };
 
 const sendToMain = (level: FrontendLogLevel, source: string, args: unknown[]) => {
+  // Only forward errors and warnings to the main process — info/debug/log are
+  // noisy and the IPC round-trip is a real bottleneck during normal operation.
+  if (level !== "error" && level !== "warn") {
+    return;
+  }
   if (!window.api?.logging?.log) {
     return;
   }

@@ -228,6 +228,11 @@ export function rewriteBypassedNodes(data: GraphData): GraphData {
 
       const reroutedEdges: Edge[] = [];
       for (const outEdge of outgoingData) {
+        const bypassNode = nodeById.get(bypassId);
+        const bypassOutputType = getOutputTypeString(
+          bypassNode,
+          outEdge.sourceHandle
+        );
         const targetNode = nodeById.get(outEdge.target);
         const targetInputType = getInputTypeString(
           targetNode,
@@ -238,7 +243,8 @@ export function rewriteBypassedNodes(data: GraphData): GraphData {
         // outgoing source handle (name-based pairing), then fall back to
         // the first incoming edge whose source output type is compatible
         // with the downstream target's input type.
-        const candidates: Edge[] = [];
+        const candidatesCompatibleWithDownstream: Edge[] = [];
+        const candidatesCompatibleWithBypassOutput: Edge[] = [];
         for (const inEdge of incomingData) {
           const sourceNode = nodeById.get(inEdge.source);
           const sourceOutputType = getOutputTypeString(
@@ -246,10 +252,24 @@ export function rewriteBypassedNodes(data: GraphData): GraphData {
             inEdge.sourceHandle
           );
           if (!typesCompatible(sourceOutputType, targetInputType)) continue;
-          if (inEdge.targetHandle === outEdge.sourceHandle) {
-            candidates.unshift(inEdge);
+
+          candidatesCompatibleWithDownstream.push(inEdge);
+          if (typesCompatible(sourceOutputType, bypassOutputType)) {
+            candidatesCompatibleWithBypassOutput.push(inEdge);
+          }
+        }
+
+        const preferredCandidates =
+          candidatesCompatibleWithBypassOutput.length > 0
+            ? candidatesCompatibleWithBypassOutput
+            : candidatesCompatibleWithDownstream;
+
+        const candidates: Edge[] = [];
+        for (const candidate of preferredCandidates) {
+          if (candidate.targetHandle === outEdge.sourceHandle) {
+            candidates.unshift(candidate);
           } else {
-            candidates.push(inEdge);
+            candidates.push(candidate);
           }
         }
 

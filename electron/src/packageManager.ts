@@ -26,6 +26,21 @@ interface RegistryPackageItem {
   latest_version?: string;
 }
 
+const PACKAGE_DESCRIPTION_OVERRIDES: Record<string, string> = {
+  "nodetool-ai/nodetool-core":
+    "Essential NodeTool core nodes and shared runtime components. Install this package in every NodeTool environment.",
+  "nunchaku-tech/nunchaku":
+    "Accelerates FLUX and Qwen image models with Nunchaku quantization kernels. Install this only if you plan to run Nunchaku-optimized HuggingFace models.",
+};
+
+export function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" | "description">): string {
+  const override = PACKAGE_DESCRIPTION_OVERRIDES[pkg.repo_id.toLowerCase()];
+  if (override) {
+    return override;
+  }
+  return typeof pkg.description === "string" ? pkg.description.trim() : "";
+}
+
 // TODO: Package manager needs to be rewritten for npm packages.
 // This is a temporary stub — uv/pip is no longer installed in the conda env.
 function getUVPath(): string {
@@ -118,7 +133,7 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
           const registryData = JSON.parse(data) as { packages?: RegistryPackageItem[] };
           const packages = (registryData.packages || []).map((pkg) => ({
             name: pkg.name,
-            description: pkg.description ?? "",
+            description: getPackageDescription(pkg),
             repo_id: pkg.repo_id,
             namespaces: pkg.namespaces,
             version:
@@ -315,10 +330,6 @@ export async function fetchAllNodes(
     logMessage(`Failed to fetch all nodes: ${errorMsg(error)}`, "error");
     return [];
   }
-}
-
-export function clearNodeCache(): void {
-  nodeCache = null;
 }
 
 export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
@@ -542,24 +553,60 @@ export async function getPackageForNodeType(
 }
 
 /**
+ * Ensure the Python runtime (python + uv) is installed in the conda env.
+ *
+ * After the install-wizard refactor (commits 08534478e / a6a392c47), Python
+ * is an opt-in runtime that the user installs from the Runtimes panel. Any
+ * `uv` operation triggered before that runtime is installed (e.g. clicking
+ * "Install" on a Python package in the Package Manager) used to fail with
+ * "uv executable not found", with no recovery path inside the Package
+ * Manager UI. We now install the Python runtime on demand the first time
+ * a uv command is requested, then proceed.
+ *
+ * This is idempotent: once `uv` exists on disk, the check is a no-op.
+ */
+async function ensurePythonRuntimeAvailable(): Promise<void> {
+  const uvPath = getUVPath();
+  if (await fileExists(uvPath)) {
+    return;
+  }
+
+  emitBootMessage("Setting up Python runtime (one-time, ~1-2 min)...");
+  logMessage(
+    `uv not found at ${uvPath} — auto-installing Python runtime before uv operation`,
+    "warn"
+  );
+
+  const result = await installRuntimePackage("python");
+  if (!result.success) {
+    throw new Error(
+      `Could not set up Python runtime automatically: ${result.message}. ` +
+      `Open the Runtimes panel and install Python manually, then retry.`
+    );
+  }
+
+  // Belt-and-braces: verify uv really did appear, in case the install
+  // reported success but landed something unexpected.
+  if (!(await fileExists(uvPath))) {
+    throw new Error(
+      `Python runtime install reported success but uv was not found at ${uvPath}. ` +
+      `Open the Runtimes panel and reinstall Python.`
+    );
+  }
+}
+
+/**
  * Run a uv command
  */
 async function runUvCommand(
   args: string[],
   options?: { stdin?: string; silent?: boolean }
 ): Promise<string> {
+  await ensurePythonRuntimeAvailable();
+
   const uvPath = getUVPath();
   const pythonPath = getPythonPath();
   const command = [uvPath, ...args];
-
-  // Check if uv executable exists before attempting to spawn
-  const uvExists = await fileExists(uvPath);
-  if (!uvExists) {
-    const errorMsg = `Python environment not properly installed: uv executable not found at ${uvPath}. ` +
-      `Please use "Reinstall environment" to set up the Python environment correctly.`;
-    logMessage(errorMsg, "error");
-    throw new Error(errorMsg);
-  }
 
   return new Promise((resolve, reject) => {
     logMessage(`Running uv command: ${command.join(" ")}`);
@@ -756,9 +803,12 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       `Failed to install package ${repoId}: ${errorMsg(error)}`,
       "error"
     );
+    // Renderer prepends its own "Failed to install package:" framing, so
+    // return just the underlying reason to avoid duplicated prefixes in
+    // user-facing dialogs (see electron/pages/PackageManager.tsx).
     return {
       success: false,
-      message: `Failed to install package: ${errorMsg(error)}`,
+      message: errorMsg(error),
     };
   }
 }
@@ -785,9 +835,10 @@ export async function uninstallPackage(
       `Failed to uninstall package ${repoId}: ${errorMsg(error)}`,
       "error"
     );
+    // Renderer prepends its own "Failed to uninstall package:" framing.
     return {
       success: false,
-      message: `Failed to uninstall package: ${errorMsg(error)}`,
+      message: errorMsg(error),
     };
   }
 }
@@ -848,40 +899,12 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     };
   } catch (error: unknown) {
     logMessage(`Failed to update package ${repoId}: ${errorMsg(error)}`, "error");
+    // Renderer prepends its own "Failed to update package:" framing.
     return {
       success: false,
-      message: `Failed to update package: ${errorMsg(error)}`,
+      message: errorMsg(error),
     };
   }
-}
-
-/**
- * Get installation information for a package
- */
-export function getPackageInstallationInfo(repoId: string): {
-  packageName: string;
-  repoId: string;
-  wheelCommand: string;
-  gitCommand: string;
-  packageIndexUrl: string;
-} {
-  const packageName = repoId.split("/")[1];
-
-  return {
-    packageName,
-    repoId,
-    wheelCommand: `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`,
-    gitCommand: `uv pip install git+https://github.com/${repoId}.git`,
-    packageIndexUrl: PACKAGE_INDEX_URL,
-  };
-}
-
-/**
- * Get the recommended install command for a package
- */
-export function getInstallCommandForPackage(repoId: string): string {
-  const packageName = repoId.split("/")[1];
-  return `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`;
 }
 
 export { PACKAGE_INDEX_URL };

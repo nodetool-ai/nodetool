@@ -50,7 +50,9 @@ describe("Storage API", () => {
     expect(headRes.headers.get("content-length")).toBeTruthy();
   });
 
-  it("deletes a file", async () => {
+  it("DELETE returns 405 (moved to tRPC storage.delete)", async () => {
+    // Upload a file first, then verify DELETE returns 405 because
+    // the delete operation has moved to the tRPC `storage.delete` procedure.
     await fetch(`${getBaseUrl()}/api/storage/delete-me.txt`, {
       method: "PUT",
       headers: { ...headers, "content-type": "text/plain" },
@@ -61,11 +63,6 @@ describe("Storage API", () => {
       method: "DELETE",
       headers
     });
-    expect([200, 204]).toContain(delRes.status);
-
-    const getRes = await fetch(`${getBaseUrl()}/api/storage/delete-me.txt`, {
-      headers
-    });
-    expect(getRes.status).toBe(404);
+    expect(delRes.status).toBe(405);
   });
 });

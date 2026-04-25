@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 import {
@@ -477,9 +477,18 @@ describe("input/output/workspace nodes", () => {
   });
 
   it("model3d nodes generate and inspect metadata", async () => {
+    const meshBytes = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 1, 2, 3, 4]);
+    const textTo3D = vi.fn().mockResolvedValue(meshBytes);
+    const ctx = {
+      getProvider: vi.fn().mockResolvedValue({ textTo3D })
+    } as unknown as ProcessingContext;
+
     const _t3d = new TextTo3DNode();
-    _t3d.assign({ prompt: "cube" });
-    const model = await _t3d.process();
+    _t3d.assign({
+      model: { type: "model_3d_model", provider: "meshy", id: "meshy-4" },
+      prompt: "cube"
+    });
+    const model = await _t3d.process(ctx);
     const _m3d = new GetModel3DMetadataNode();
     _m3d.assign({ model: model.output });
     const meta = await _m3d.process();

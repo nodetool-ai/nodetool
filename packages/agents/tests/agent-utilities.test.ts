@@ -209,7 +209,7 @@ describe("T-AG-7: removeBase64Images", () => {
   it("removes base64 image content blocks", () => {
     const content: MessageContent[] = [
       { type: "text", text: "hello" },
-      { type: "image", image: { uri: "data:image/png;base64,abc123" } },
+      { type: "image_url", image: { uri: "data:image/png;base64,abc123" } },
       { type: "text", text: "world" }
     ];
     const result = removeBase64Images(content);
@@ -221,11 +221,11 @@ describe("T-AG-7: removeBase64Images", () => {
   it("preserves real-URL images", () => {
     const content: MessageContent[] = [
       { type: "text", text: "hello" },
-      { type: "image", image: { uri: "https://example.com/image.png" } }
+      { type: "image_url", image: { uri: "https://example.com/image.png" } }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(2);
-    expect(result[1].type).toBe("image");
+    expect(result[1].type).toBe("image_url");
   });
 
   it("preserves text content", () => {
@@ -239,7 +239,10 @@ describe("T-AG-7: removeBase64Images", () => {
 
   it("removes image with base64 data field", () => {
     const content: MessageContent[] = [
-      { type: "image", image: { data: "base64string", mimeType: "image/png" } }
+      {
+        type: "image_url",
+        image: { data: "base64string", mimeType: "image/png" }
+      }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(0);

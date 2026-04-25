@@ -67,6 +67,10 @@ const styles = (theme: Theme) =>
       alignItems: "stretch",
       "&:last-of-type": {
         borderBottom: "none"
+      },
+      "&:hover .node-edit-button, .node-edit-button:focus-visible": {
+        opacity: 1,
+        pointerEvents: "auto"
       }
     },
     ".node-body": {
@@ -112,7 +116,10 @@ const styles = (theme: Theme) =>
       outline: "none",
       display: "flex",
       alignItems: "center",
-      justifyContent: "center"
+      justifyContent: "center",
+      opacity: 0,
+      pointerEvents: "none",
+      transition: "opacity 0.15s ease"
     },
     ".empty-state": {
       flex: 1,

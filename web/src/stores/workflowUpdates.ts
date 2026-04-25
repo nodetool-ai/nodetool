@@ -42,6 +42,51 @@ type WorkflowSubscription = {
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
 
+export const mergeNodeUpdateProperties = ({
+  updateProperties,
+  existingStatic,
+  existingDynamic,
+  isDynamicSchemaNode
+}: {
+  updateProperties: Record<string, unknown>;
+  existingStatic: Record<string, unknown>;
+  existingDynamic: Record<string, unknown>;
+  isDynamicSchemaNode: boolean;
+}): {
+  staticProperties: Record<string, unknown>;
+  dynamicProperties: Record<string, unknown>;
+} => {
+  const nextDynamic = { ...existingDynamic };
+  const nextStatic = { ...existingStatic };
+
+  for (const key in updateProperties) {
+    if (!Object.prototype.hasOwnProperty.call(updateProperties, key)) {
+      continue;
+    }
+    const value = updateProperties[key];
+    if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
+      // Dynamic schema node inputs are user-editable between runs;
+      // backend echoes execution-time values that can be stale.
+      if (isDynamicSchemaNode) {
+        continue;
+      }
+      nextDynamic[key] = value;
+      continue;
+    }
+
+    // Preserve existing static values so user edits made while a run is in
+    // progress are not overwritten by stale execution-time echoes.
+    if (!Object.prototype.hasOwnProperty.call(existingStatic, key)) {
+      nextStatic[key] = value;
+    }
+  }
+
+  return {
+    staticProperties: nextStatic,
+    dynamicProperties: nextDynamic
+  };
+};
+
 const formatJobDurationSeconds = (
   duration: number | null | undefined
 ): string | null => {
@@ -196,6 +241,7 @@ export const handleUpdate = (
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
   const clearProgress = useResultsStore.getState().clearProgress;
+  const addChunk = useResultsStore.getState().addChunk;
   const setPreview = useResultsStore.getState().setPreview;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
@@ -310,6 +356,13 @@ export const handleUpdate = (
       severity: "info",
       timestamp: Date.now()
     });
+  }
+
+  if (data.type === "chunk") {
+    const chunk = data as Chunk;
+    if (chunk.node_id && chunk.content) {
+      addChunk(workflow.id, chunk.node_id, chunk.content);
+    }
   }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
@@ -558,33 +611,26 @@ export const handleUpdate = (
       if (nodeStore) {
         const state = nodeStore.getState();
         const node = state.findNode(update.node_id);
+        const existingStatic = node?.data?.properties || {};
         const existingDynamic = node?.data?.dynamic_properties || {};
-        const nextDynamic = { ...existingDynamic };
-        const nextStatic: Record<string, unknown> = {};
 
         const isDynamicSchemaNode =
           update.node_type === "fal.DynamicFal" ||
           update.node_type === DYNAMIC_KIE_NODE_TYPE ||
           update.node_type === "kie.DynamicKie";
 
-        for (const key in update.properties) {
-          if (!Object.prototype.hasOwnProperty.call(update.properties, key)) {continue;}
-          const value = update.properties[key];
-          if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
-            // Dynamic schema node inputs are user-editable between runs;
-            // backend echoes execution-time values that can be stale.
-            if (isDynamicSchemaNode) {
-              continue;
-            }
-            nextDynamic[key] = value;
-          } else {
-            nextStatic[key] = value;
+        const { staticProperties, dynamicProperties } = mergeNodeUpdateProperties(
+          {
+            updateProperties: update.properties,
+            existingStatic,
+            existingDynamic,
+            isDynamicSchemaNode
           }
-        }
+        );
 
         state.updateNodeData(update.node_id, {
-          properties: nextStatic,
-          dynamic_properties: nextDynamic
+          properties: staticProperties,
+          dynamic_properties: dynamicProperties
         });
       }
     }

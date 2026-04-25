@@ -41,7 +41,7 @@ import { useModelManagerStore } from "../../stores/ModelManagerStore";
 import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
 import { useCollectionsManagerStore } from "../../stores/CollectionsManagerStore";
 import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../stores/ApiClient";
+import { isProduction } from "../../lib/env";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;

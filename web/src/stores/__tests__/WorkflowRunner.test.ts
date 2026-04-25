@@ -1,6 +1,7 @@
 import { createWorkflowRunnerStore } from "../WorkflowRunner";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import log from "loglevel";
+import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
   EditorInsertionProvider: ({ children }: any) => children,
@@ -19,7 +20,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   },
 }));
 
-jest.mock("../ApiClient", () => ({
+jest.mock("../../lib/env", () => ({
   isLocalhost: true,
 }));
 
@@ -45,6 +46,7 @@ jest.mock("../ResultsStore", () => ({
       clearTasks: jest.fn(),
       clearChunks: jest.fn(),
       clearPlanningUpdates: jest.fn(),
+      clearOutputResults: jest.fn(),
     }),
   },
 }));
@@ -80,6 +82,10 @@ jest.mock("../uuidv4", () => ({
 
 describe("WorkflowRunner", () => {
   let store: ReturnType<typeof createWorkflowRunnerStore>;
+  const testWorkflow = {
+    id: "test-workflow-id",
+    settings: {},
+  } as unknown as WorkflowAttributes;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -243,6 +249,56 @@ describe("WorkflowRunner", () => {
         "streamInput called without an active job"
       );
       logSpy.mockRestore();
+    });
+  });
+
+  describe("run", () => {
+    it.each(["connecting", "running", "paused", "suspended"] as const)(
+      "ignores run requests while state is %s",
+      async (state) => {
+        store.setState({ state });
+
+        await store.getState().run({}, testWorkflow, [], []);
+
+        expect(globalWebSocketManager.ensureConnection).not.toHaveBeenCalled();
+        expect(globalWebSocketManager.send).not.toHaveBeenCalled();
+      }
+    );
+
+    it("only starts one run when called consecutively", async () => {
+      let resolveConnection!: () => void;
+      (globalWebSocketManager.ensureConnection as jest.Mock).mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveConnection = resolve;
+          })
+      );
+
+      const firstRunPromise = store.getState().run({}, testWorkflow, [], []);
+      expect(store.getState().state).toBe("connecting");
+      const secondRunPromise = store.getState().run({}, testWorkflow, [], []);
+
+      resolveConnection();
+      await Promise.all([firstRunPromise, secondRunPromise]);
+
+      expect(globalWebSocketManager.ensureConnection).toHaveBeenCalledTimes(1);
+      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(1);
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "run_job",
+          command: "run_job",
+        })
+      );
+    });
+
+    it("allows starting a new run after state returns to idle", async () => {
+      await store.getState().run({}, testWorkflow, [], []);
+      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(1);
+
+      store.setState({ state: "idle" });
+
+      await store.getState().run({}, testWorkflow, [], []);
+      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(2);
     });
   });
 });

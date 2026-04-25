@@ -95,23 +95,34 @@ describe("cleanStack", () => {
   it("filters out node: and node_modules lines", () => {
     const stack = [
       "Error: test",
-      "    at evalmachine.<anonymous>:1:1",
+      "    at <anonymous> (user-code:3:5)",
       "    at node:internal/modules/cjs/loader:1234",
       "    at node_modules/something/index.js:5",
-      "    at agent-js:2:3"
+      "    at <anonymous> (<evalScript>:1:1)"
     ].join("\n");
 
     const cleaned = cleanStack(stack);
-    expect(cleaned).toContain("evalmachine");
-    expect(cleaned).toContain("agent-js");
+    expect(cleaned).toContain("user-code");
+    expect(cleaned).toContain("<evalScript>");
     expect(cleaned).not.toContain("node:internal");
     expect(cleaned).not.toContain("node_modules");
+  });
+
+  it("preserves legacy node:vm frame markers", () => {
+    const stack = [
+      "Error: test",
+      "    at evalmachine.<anonymous>:1:1",
+      "    at agent-js:2:3"
+    ].join("\n");
+    const cleaned = cleanStack(stack);
+    expect(cleaned).toContain("evalmachine");
+    expect(cleaned).toContain("agent-js");
   });
 
   it("limits to 5 lines", () => {
     const lines = Array.from(
       { length: 10 },
-      (_, i) => `    at evalmachine:${i}`
+      (_, i) => `    at <anonymous> (user-code:${i}:0)`
     );
     const cleaned = cleanStack(lines.join("\n"));
     expect(cleaned.split("\n").length).toBeLessThanOrEqual(5);
@@ -277,8 +288,8 @@ describe("runInSandbox", () => {
     const cases = ["_", "dayjs", "cheerio", "csvParse", "validator"];
     for (const name of cases) {
       const result = await runInSandbox({ code: `return typeof ${name};` });
-      // vm semantics: bare identifier reference returns "undefined" via typeof
-      // without throwing, but invoking it throws.
+      // `typeof` on an undeclared identifier returns "undefined" by spec
+      // (works the same in QuickJS modules and node:vm).
       expect(result.success).toBe(true);
       expect(result.result).toBe("undefined");
 
@@ -326,11 +337,15 @@ describe("runInSandbox", () => {
   });
 
   it("can use URL and URLSearchParams", async () => {
+    // Note: QuickJS's URL implementation doesn't propagate mutations on
+    // `url.searchParams` back to the parent URL, so we build the query via
+    // URLSearchParams directly and concatenate.
     const result = await runInSandbox({
       code: `
         const u = new URL("https://example.com/a?x=1");
-        u.searchParams.set("y", "2");
-        return u.toString();
+        const p = new URLSearchParams(u.search);
+        p.append("y", "2");
+        return u.origin + u.pathname + "?" + p.toString();
       `
     });
     expect(result.success).toBe(true);
@@ -397,6 +412,52 @@ describe("runInSandbox", () => {
     });
     expect(result.success).toBe(true);
     expect(Date.now() - start).toBeLessThan(6_000);
+  });
+
+  it("enforces a CPU budget via the runtime interrupt handler", async () => {
+    // Pure compute with no async yield points — only the engine's interrupt
+    // handler can stop this. With node:vm this was advisory (wall-clock race
+    // around the Promise); with QuickJS it's a hard interrupt on the runtime.
+    const start = Date.now();
+    const result = await runInSandbox({
+      code: "let x = 0; while (true) { x++; } return x;",
+      timeoutMs: 200
+    });
+    expect(result.success).toBe(false);
+    // Should abort close to the deadline, not run forever.
+    expect(Date.now() - start).toBeLessThan(3_000);
+  });
+
+  it("syncs mutations on object globals back to the host", async () => {
+    // The CodeNode relies on being able to pass a `state` object and have
+    // user-code mutations persist across invocations. With a true WASM
+    // sandbox the guest heap is isolated from the host, so runInSandbox
+    // syncs object globals back in place after execution.
+    const state: Record<string, unknown> = { counter: 0, history: [] };
+
+    const r1 = await runInSandbox({
+      code: `
+        state.counter += 1;
+        state.history.push(state.counter);
+        return state.counter;
+      `,
+      globals: { state }
+    });
+    expect(r1.success).toBe(true);
+    expect(r1.result).toBe(1);
+    expect(state).toEqual({ counter: 1, history: [1] });
+
+    const r2 = await runInSandbox({
+      code: `
+        state.counter += 1;
+        state.history.push(state.counter);
+        return state.counter;
+      `,
+      globals: { state }
+    });
+    expect(r2.success).toBe(true);
+    expect(r2.result).toBe(2);
+    expect(state).toEqual({ counter: 2, history: [1, 2] });
   });
 });
 

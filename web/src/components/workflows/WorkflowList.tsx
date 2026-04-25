@@ -12,10 +12,9 @@ import {
   WorkflowAttributes,
   WorkflowList as WorkflowListType
 } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
 import isEqual from "fast-deep-equal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { trpcClient } from "../../trpc/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
@@ -37,10 +36,10 @@ const styles = (theme: Theme) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      padding: "0.5em 0",
-      background: "transparent",
-      backdropFilter: "blur(4px)",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+      padding: "0.75em 0 0.65em",
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.background.defaultChannel} / 0.92), rgb(${theme.vars.palette.background.defaultChannel} / 0.82))`,
+      backdropFilter: "blur(12px)",
+      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
     },
 
     ".status": {
@@ -48,7 +47,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.5em 0.75em 0.75em",
+      padding: "0.75em 0.75em 1em",
       flex: 1,
       overflow: "hidden"
     },
@@ -69,16 +68,10 @@ const styles = (theme: Theme) =>
   });
 
 const loadWorkflows = async (cursor?: string, limit?: number) => {
-  cursor = cursor || "";
-  const { data, error } = await client.GET("/api/workflows/", {
-    params: {
-      query: { cursor, limit, columns: "name,id,updated_at,description,tags,graph" }
-    }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workflows");
-  }
-  return data;
+  return trpcClient.workflows.list.query({
+    cursor: cursor ?? "",
+    limit: limit ?? 100
+  }) as unknown as WorkflowListType;
 };
 
 const WorkflowList = () => {
@@ -91,6 +84,7 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [toolsExpanded, setToolsExpanded] = useState(false);
   const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
   const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
@@ -248,9 +242,9 @@ const WorkflowList = () => {
   const handleRename = useCallback(
     async (workflow: Workflow, newName: string) => {
       try {
-        await client.PUT("/api/workflows/{id}", {
-          params: { path: { id: workflow.id } },
-          body: { ...workflow, name: newName }
+        await trpcClient.workflows.update.mutate({
+          id: workflow.id,
+          name: newName
         });
         // Update the cache optimistically
         queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {
@@ -316,6 +310,8 @@ const WorkflowList = () => {
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}
+            compact={!toolsExpanded}
+            onExpand={() => setToolsExpanded(true)}
           />
         </FlexRow>
         <div className="status">

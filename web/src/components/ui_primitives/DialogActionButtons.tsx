@@ -139,9 +139,7 @@ export const DialogActionButtons = memo(
             variant={destructive ? "contained" : "text"}
             autoFocus
             sx={{
-              color: destructive
-                ? theme.vars.palette.error.contrastText
-                : "var(--palette-primary-main)",
+              color: destructive ? undefined : "var(--palette-primary-main)",
               fontWeight: "bold",
               "&:hover": {
                 backgroundColor: destructive

@@ -3,15 +3,8 @@ import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
 import {
   handleAssetsRoot,
-  handleAssetsSearch,
-  handleAssetByFilename,
-  handleAssetRecursive,
-  handleAssetThumbnail,
-  handleAssetById,
-  getUserId,
-  parseLimit
+  handleAssetThumbnail
 } from "../http-api.js";
-import { Asset } from "@nodetool/models";
 import { loadPythonPackageMetadata } from "@nodetool/node-sdk";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
@@ -19,20 +12,29 @@ interface RouteOptions {
   apiOptions: HttpApiOptions;
 }
 
+/**
+ * Assets REST plugin — only binary + multipart endpoints remain here.
+ * JSON CRUD + list + search + by-filename + children + recursive moved to
+ * the tRPC `assets` router.
+ *
+ * Still served via REST:
+ *   - POST   /api/assets                            — multipart file upload
+ *   - GET    /api/assets/:id/thumbnail              — binary thumbnail
+ *   - POST   /api/assets/:id/thumbnail              — 501 stub
+ *   - POST   /api/assets/download                   — 501 stub (ZIP download)
+ *   - GET    /api/assets/packages                   — empty list stub
+ *   - GET    /api/assets/packages/:package          — empty list stub
+ *   - GET    /api/assets/packages/:package/:asset   — binary asset file stream
+ */
 const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   const { apiOptions } = opts;
 
-  // Static sub-routes first
-  app.get("/api/assets/search", async (req, reply) => {
-    await bridge(req, reply, (request) =>
-      handleAssetsSearch(request, apiOptions)
-    );
-  });
-
+  // Stub: no package listing in standalone mode.
   app.get("/api/assets/packages", async (_req, reply) => {
     reply.send({ assets: [], next: null });
   });
 
+  // Stub: ZIP download not available in standalone mode.
   app.post("/api/assets/download", async (_req, reply) => {
     reply
       .status(501)
@@ -44,29 +46,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       );
   });
 
-  app.get("/api/assets/by-filename", async (req, reply) => {
-    await bridge(req, reply, (request) =>
-      handleAssetByFilename(request, "", apiOptions)
-    );
-  });
-
-  app.get("/api/assets/by-filename/:filename", async (req, reply) => {
-    const { filename } = req.params as { filename: string };
-    let decoded: string;
-    try {
-      decoded = decodeURIComponent(filename);
-    } catch {
-      reply
-        .status(400)
-        .send(apiError(ApiErrorCode.INVALID_INPUT, "Invalid URL encoding"));
-      return;
-    }
-    await bridge(req, reply, (request) =>
-      handleAssetByFilename(request, decoded, apiOptions)
-    );
-  });
-
-  // /api/assets/packages/:packageName (list) and /api/assets/packages/:packageName/:assetName
+  // Per-package asset listing (stub) and binary file streaming.
   app.get("/api/assets/packages/:packageName", async (_req, reply) => {
     reply.send({ assets: [], next: null });
   });
@@ -148,7 +128,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           `${pkg.sourceFolder}/nodetool/assets/${pkgName}`
         );
         const assetPath = resolve(baseDir, aName);
-        // Prevent path traversal: resolved path must stay within the base directory
+        // Prevent path traversal.
         if (!assetPath.startsWith(baseDir + "/") && assetPath !== baseDir) {
           return new Response(
             JSON.stringify(apiError(ApiErrorCode.ASSET_NOT_FOUND, "Not found")),
@@ -184,21 +164,21 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
               try {
                 controller.enqueue(chunk);
               } catch {
-                /* Intentional: stream already closed by consumer; destroy source */ stream.destroy();
+                stream.destroy();
               }
             });
             stream.on("end", () => {
               try {
                 controller.close();
               } catch {
-                /* Intentional: controller already closed */
+                /* already closed */
               }
             });
             stream.on("error", (err) => {
               try {
                 controller.error(err);
               } catch {
-                /* Intentional: controller already errored/closed */
+                /* already errored */
               }
             });
           },
@@ -219,38 +199,7 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     }
   );
 
-  // Sub-resource routes for /:id
-  app.get("/api/assets/:id/children", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, async (request) => {
-      const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
-      const url = new URL(request.url);
-      const limit = parseLimit(url, 100);
-      const [assets] = await Asset.paginate(userId, {
-        parentId: decodeURIComponent(id),
-        limit
-      });
-      return new Response(
-        JSON.stringify({
-          assets: assets.map((a: any) => ({
-            id: a.id,
-            name: a.name,
-            content_type: a.content_type
-          })),
-          next: null
-        }),
-        { headers: { "content-type": "application/json" } }
-      );
-    });
-  });
-
-  app.get("/api/assets/:id/recursive", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleAssetRecursive(request, decodeURIComponent(id), apiOptions)
-    );
-  });
-
+  // Binary thumbnail serving + POST stub.
   app.get("/api/assets/:id/thumbnail", async (req, reply) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, (request) =>
@@ -264,35 +213,11 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     );
   });
 
-  // Root CRUD
-  app.get("/api/assets", async (req, reply) => {
-    await bridge(req, reply, (request) =>
-      handleAssetsRoot(request, apiOptions)
-    );
-  });
+  // Multipart asset upload (file POST). The handler also accepts JSON bodies,
+  // but the tRPC `assets.create` procedure is the preferred path for JSON.
   app.post("/api/assets", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleAssetsRoot(request, apiOptions)
-    );
-  });
-
-  // Generic /:id (GET/PUT/DELETE)
-  app.get("/api/assets/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleAssetById(request, decodeURIComponent(id), apiOptions)
-    );
-  });
-  app.put("/api/assets/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleAssetById(request, decodeURIComponent(id), apiOptions)
-    );
-  });
-  app.delete("/api/assets/:id", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleAssetById(request, decodeURIComponent(id), apiOptions)
     );
   });
 };

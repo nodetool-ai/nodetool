@@ -165,7 +165,7 @@ export class GeminiProvider extends BaseProvider {
       return { text: (content as MessageTextContent).text };
     }
 
-    if (content.type === "image") {
+    if (content.type === "image_url") {
       const img = (content as MessageImageContent).image;
       let base64Data: string;
       let mimeType = img.mimeType ?? "image/jpeg";

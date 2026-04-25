@@ -360,7 +360,7 @@ function normalizeMessageContent(value: unknown): Message["content"] {
         record.image ?? record.image_url ?? record.imageUrl
       );
       if (image)
-        parts.push({ type: "image", image } satisfies MessageImageContent);
+        parts.push({ type: "image_url", image } satisfies MessageImageContent);
       continue;
     }
     if (kind === "audio") {
@@ -445,7 +445,7 @@ function buildUserMessage(
   const content: MessageContent[] = [{ type: "text", text: prompt }];
   const imageRef = normalizeBinaryRef(image);
   if (imageRef) {
-    content.push({ type: "image", image: imageRef });
+    content.push({ type: "image_url", image: imageRef });
   }
   const audioRef = normalizeBinaryRef(audio);
   if (audioRef) {
@@ -644,6 +644,151 @@ function isControlTool(tool: ToolLike): tool is ControlToolLike {
     CONTROL_TOOL_MARKER in tool &&
     (tool as ControlToolLike)[CONTROL_TOOL_MARKER] === true
   );
+}
+
+/** Opening tag and closers models may emit (legacy `</think>` was a typo). */
+const REDACTED_THINKING_OPEN = "<think>";
+const REDACTED_THINKING_CLOSES = [
+  "</think>",
+  "</" + "think>"
+] as const;
+
+function findEarliestThinkClose(buf: string): { idx: number; len: number } | null {
+  let best: { idx: number; len: number } | null = null;
+  for (const c of REDACTED_THINKING_CLOSES) {
+    const i = buf.indexOf(c);
+    if (i !== -1 && (best === null || i < best.idx)) {
+      best = { idx: i, len: c.length };
+    }
+  }
+  return best;
+}
+
+/** Longest suffix of buf that is a proper prefix of one of the candidate strings (for streaming). */
+function holdSuffixForPartialTag(buf: string, candidates: readonly string[]): number {
+  const maxCheck = Math.max(
+    0,
+    ...candidates.map((c) => Math.max(0, c.length - 1))
+  );
+  const limit = Math.min(buf.length, maxCheck);
+  for (let len = limit; len >= 1; len--) {
+    const suf = buf.slice(-len);
+    if (candidates.some((c) => c.startsWith(suf))) return len;
+  }
+  return 0;
+}
+
+function extractThinkTags(text: string): { thinking: string; text: string } {
+  const parts: string[] = [];
+  const re = /<think>([\s\S]*?)<\/(?:redacted_thinking|think)>/g;
+  let cleaned = text.replace(re, (_, content: string) => {
+    parts.push(content.trim());
+    return "";
+  });
+  const orphan = cleaned.match(/<think>([\s\S]*)$/);
+  if (orphan && orphan.index !== undefined) {
+    parts.push(orphan[1].trim());
+    cleaned = cleaned.slice(0, orphan.index);
+  }
+  return { thinking: parts.filter((p) => p.length > 0).join("\n\n"), text: cleaned.trim() };
+}
+
+/**
+ * Splits streamed text so `<think>…` never appears on the text channel:
+ * reasoning goes to `thinking`, user-visible text to `text` chunks only.
+ */
+class RedactedThinkingStreamSplitter {
+  private buf = "";
+  private inThink = false;
+
+  *feed(incoming: string): Generator<
+    { kind: "text"; content: string } | { kind: "thinking"; content: string }
+  > {
+    if (!incoming) return;
+    this.buf += incoming;
+
+    while (true) {
+      if (!this.inThink) {
+        const openIdx = this.buf.indexOf(REDACTED_THINKING_OPEN);
+        if (openIdx === -1) {
+          const keep = holdSuffixForPartialTag(this.buf, [REDACTED_THINKING_OPEN]);
+          if (this.buf.length > keep) {
+            const emitEnd = this.buf.length - keep;
+            const out = this.buf.slice(0, emitEnd);
+            this.buf = this.buf.slice(emitEnd);
+            if (out) yield { kind: "text", content: out };
+          }
+          return;
+        }
+        if (openIdx > 0) {
+          const out = this.buf.slice(0, openIdx);
+          if (out) yield { kind: "text", content: out };
+        }
+        this.buf = this.buf.slice(
+          openIdx + REDACTED_THINKING_OPEN.length
+        );
+        this.inThink = true;
+        continue;
+      }
+
+      const close = findEarliestThinkClose(this.buf);
+      if (!close) {
+        const keep = holdSuffixForPartialTag(this.buf, REDACTED_THINKING_CLOSES);
+        if (this.buf.length > keep) {
+          const emitEnd = this.buf.length - keep;
+          const out = this.buf.slice(0, emitEnd);
+          this.buf = this.buf.slice(emitEnd);
+          if (out) yield { kind: "thinking", content: out };
+        }
+        return;
+      }
+      const thinkBody = this.buf.slice(0, close.idx);
+      this.buf = this.buf.slice(close.idx + close.len);
+      this.inThink = false;
+      if (thinkBody) yield { kind: "thinking", content: thinkBody };
+    }
+  }
+
+  *flush(): Generator<
+    { kind: "text"; content: string } | { kind: "thinking"; content: string }
+  > {
+    if (!this.buf && !this.inThink) return;
+    if (this.inThink) {
+      if (this.buf) yield { kind: "thinking", content: this.buf };
+    } else if (this.buf) {
+      yield { kind: "text", content: this.buf };
+    }
+    this.buf = "";
+    this.inThink = false;
+  }
+}
+
+function* yieldSplitThinkChunks(
+  item: Chunk,
+  rawPiece: string,
+  splitter: RedactedThinkingStreamSplitter
+): Generator<Record<string, unknown>> {
+  for (const part of splitter.feed(rawPiece)) {
+    if (part.kind === "text" && part.content.length > 0) {
+      yield {
+        chunk: { ...item, content: part.content },
+        thinking: null,
+        text: null,
+        audio: null
+      };
+    } else if (part.kind === "thinking" && part.content.length > 0) {
+      yield {
+        chunk: null,
+        thinking: {
+          type: "chunk",
+          content: part.content,
+          thinking: true
+        },
+        text: null,
+        audio: null
+      };
+    }
+  }
 }
 
 /**
@@ -2192,11 +2337,12 @@ export class AgentNode extends BaseNode {
   declare model: any;
 
   @prop({
-    type: "str",
+    type: "enum",
     default: "loop",
     title: "Mode",
     description:
-      "Agent execution mode: 'loop' for simple tool calling, 'plan' for automatic task planning, 'multi-agent' for parallel sub-agents"
+      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.\n• multi-agent: auto‑specialises a team of sub‑agents (count controlled by Num Agents) that collaborate on the objective using the chosen Team Strategy. Best for open‑ended objectives that benefit from different roles working together.",
+    values: ["loop", "plan", "multi-agent"]
   })
   declare mode: any;
 
@@ -2204,7 +2350,8 @@ export class AgentNode extends BaseNode {
     type: "str",
     default: "You are a friendly assistant",
     title: "System",
-    description: "The system prompt for the LLM"
+    description:
+      "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per‑run task."
   })
   declare system: any;
 
@@ -2212,7 +2359,8 @@ export class AgentNode extends BaseNode {
     type: "str",
     default: "",
     title: "Prompt",
-    description: "The prompt for the LLM"
+    description:
+      "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning."
   })
   declare prompt: any;
 
@@ -2257,7 +2405,8 @@ export class AgentNode extends BaseNode {
     type: "list[message]",
     default: [],
     title: "Messages",
-    description: "The messages for the LLM"
+    description:
+      "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
   })
   declare history: any;
 
@@ -2266,7 +2415,7 @@ export class AgentNode extends BaseNode {
     default: "",
     title: "Thread ID",
     description:
-      "Optional thread ID for persistent conversation history. If provided, messages will be loaded from and saved to this thread."
+      "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
   })
   declare thread_id: any;
 
@@ -2274,6 +2423,8 @@ export class AgentNode extends BaseNode {
     type: "int",
     default: 8192,
     title: "Max Tokens",
+    description:
+      "Upper bound on the number of tokens the model may generate per response (the model's reply, not the prompt). Higher values allow longer answers but cost more and take longer; very low values may cause the model to truncate mid‑sentence. This is also the maxTokenLimit passed to plan and multi-agent executors. Typical values: 1024 for short answers, 4096–8192 for normal use, 16k+ for long‑form generation. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -2283,18 +2434,20 @@ export class AgentNode extends BaseNode {
     type: "int",
     default: 3,
     title: "Num Agents",
-    description: "Number of sub-agents to auto-specialize in multi-agent mode",
+    description:
+      "Number of sub‑agents to auto‑specialise when Mode is multi-agent. The planner inspects the objective and creates this many distinct roles (e.g. researcher, writer, critic), each with its own skill set, that then collaborate via the Team Strategy. Ignored in loop and plan modes. More agents allow more division of labour but increase token usage and coordination overhead.",
     min: 2,
     max: 10
   })
   declare num_agents: any;
 
   @prop({
-    type: "str",
+    type: "enum",
     default: "coordinator",
     title: "Team Strategy",
     description:
-      "Team strategy for multi-agent mode: 'coordinator', 'autonomous', or 'hybrid'"
+      "How the auto‑specialised sub‑agents collaborate when Mode is multi-agent. Ignored in other modes.\n\n• coordinator: the first agent acts as a project manager — it decomposes the objective into tasks on a shared task board, and the remaining agents claim and execute them. Best for well‑defined goals where you want predictable orchestration.\n• autonomous: every agent sees the full objective and self‑organises, claiming tasks, posting messages, and creating new tasks as needed without a central planner. Best for open‑ended exploration.\n• hybrid: a coordinator seeds an initial plan, but worker agents may also create their own subtasks while executing. Balances structure with flexibility.",
+    values: ["coordinator", "autonomous", "hybrid"]
   })
   declare team_strategy: any;
 
@@ -2389,7 +2542,7 @@ export class AgentNode extends BaseNode {
       historyCount: history.length,
       toolCount: tools.length,
       messageCount: messages.length,
-      hasImage: hasContentType(messages[messages.length - 1], "image"),
+      hasImage: hasContentType(messages[messages.length - 1], "image_url"),
       hasAudio: hasContentType(messages[messages.length - 1], "audio")
     });
 
@@ -2398,6 +2551,8 @@ export class AgentNode extends BaseNode {
     }
 
     let lastTextOutput: string | null = null;
+    /** Latest extracted `<think>` body (for diagnostics / truncation errors). */
+    let lastExtractedThinking: string | null = null;
     const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
     const provider = await context.getProvider(providerId);
 
@@ -2461,6 +2616,8 @@ export class AgentNode extends BaseNode {
 
       let assistantText = "";
       const assistantToolCalls: ToolCall[] = [];
+      const thinkSplitter = new RedactedThinkingStreamSplitter();
+      let streamedRedactedThinking = false;
 
       for await (const item of streamProviderMessages(provider, {
         messages,
@@ -2485,8 +2642,12 @@ export class AgentNode extends BaseNode {
               audio: { data: new Uint8Array(audioBytes) }
             };
           } else {
-            assistantText += item.content ?? "";
-            yield { chunk: item, thinking: null, text: null, audio: null };
+            const rawPiece = item.content ?? "";
+            assistantText += rawPiece;
+            for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
+              if (y.thinking != null) streamedRedactedThinking = true;
+              yield y;
+            }
           }
         }
         if (isToolCallItem(item)) {
@@ -2498,9 +2659,50 @@ export class AgentNode extends BaseNode {
         }
       }
 
+      for (const part of thinkSplitter.flush()) {
+        if (part.kind === "thinking" && part.content.length > 0) {
+          streamedRedactedThinking = true;
+          yield {
+            chunk: null,
+            thinking: { type: "chunk", content: part.content, thinking: true },
+            text: null,
+            audio: null
+          };
+        } else if (part.kind === "text" && part.content.length > 0) {
+          yield {
+            chunk: {
+              type: "chunk",
+              content: part.content,
+              content_type: "text",
+              thinking: false,
+              done: false
+            } as Chunk,
+            thinking: null,
+            text: null,
+            audio: null
+          };
+        }
+      }
+
       if (assistantText) {
-        lastTextOutput = assistantText;
-        yield { chunk: null, thinking: null, text: assistantText, audio: null };
+        const { thinking: thinkingText, text: cleanText } =
+          extractThinkTags(assistantText);
+        const trimmed = cleanText.trim();
+        if (trimmed) {
+          lastTextOutput = trimmed;
+        }
+        if (thinkingText.trim()) {
+          lastExtractedThinking = thinkingText;
+        }
+        if (thinkingText && !streamedRedactedThinking) {
+          yield {
+            chunk: null,
+            thinking: { type: "chunk", content: thinkingText, thinking: true },
+            text: null,
+            audio: null
+          };
+        }
+        yield { chunk: null, thinking: null, text: cleanText, audio: null };
       }
 
       // Save messages to thread
@@ -2539,6 +2741,8 @@ export class AgentNode extends BaseNode {
         let chunkCount = 0;
         let thinkingCount = 0;
         let audioChunkCount = 0;
+        const thinkSplitter = new RedactedThinkingStreamSplitter();
+        let streamedRedactedThinking = false;
 
         for await (const item of streamProviderMessages(provider, {
           messages,
@@ -2567,8 +2771,12 @@ export class AgentNode extends BaseNode {
                 audio: { data: new Uint8Array(audioBytes) }
               };
             } else {
-              assistantText += item.content ?? "";
-              yield { chunk: item, thinking: null, text: null, audio: null };
+              const rawPiece = item.content ?? "";
+              assistantText += rawPiece;
+              for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
+                if (y.thinking != null) streamedRedactedThinking = true;
+                yield y;
+              }
             }
             continue;
           }
@@ -2596,12 +2804,52 @@ export class AgentNode extends BaseNode {
           assistantTextLength: assistantText.length
         });
 
+        for (const part of thinkSplitter.flush()) {
+          if (part.kind === "thinking" && part.content.length > 0) {
+            streamedRedactedThinking = true;
+            yield {
+              chunk: null,
+              thinking: { type: "chunk", content: part.content, thinking: true },
+              text: null,
+              audio: null
+            };
+          } else if (part.kind === "text" && part.content.length > 0) {
+            yield {
+              chunk: {
+                type: "chunk",
+                content: part.content,
+                content_type: "text",
+                done: false
+              },
+              thinking: null,
+              text: null,
+              audio: null
+            };
+          }
+        }
+
         if (assistantText) {
-          lastTextOutput = assistantText;
+          const { thinking: thinkingText, text: cleanText } =
+            extractThinkTags(assistantText);
+          const trimmed = cleanText.trim();
+          if (trimmed) {
+            lastTextOutput = trimmed;
+          }
+          if (thinkingText.trim()) {
+            lastExtractedThinking = thinkingText;
+          }
+          if (thinkingText && !streamedRedactedThinking) {
+            yield {
+              chunk: null,
+              thinking: { type: "chunk", content: thinkingText, thinking: true },
+              text: null,
+              audio: null
+            };
+          }
           yield {
             chunk: null,
             thinking: null,
-            text: assistantText,
+            text: cleanText,
             audio: null
           };
         }
@@ -2690,14 +2938,23 @@ export class AgentNode extends BaseNode {
     }
 
     if (structuredSchema) {
-      if (!lastTextOutput) {
+      const structuredText = (lastTextOutput ?? "").trim();
+      if (!structuredText) {
+        const reasoningOnly = Boolean(lastExtractedThinking?.trim());
         log.error("AgentNode structured output missing text payload", {
           nodeId: this.__node_id ?? null,
           providerId,
-          modelId
+          modelId,
+          reasoningOnly,
+          maxTokens
         });
-        throw new Error("Agent did not return structured output text");
+        throw new Error(
+          reasoningOnly
+            ? "Agent did not return structured output text: the response was cut off during internal reasoning before any answer was produced. Increase max_tokens on this node (or reduce prompt / reasoning) so the model can finish with valid JSON."
+            : "Agent did not return structured output text."
+        );
       }
+      lastTextOutput = structuredText;
       let parsed = extractJson(lastTextOutput);
       if (!parsed) {
         // The LLM returned plain text instead of JSON. Rather than failing

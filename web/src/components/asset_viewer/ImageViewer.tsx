@@ -20,7 +20,8 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       margin: "0",
       position: "relative",
-      pointerEvents: "all"
+      zIndex: 0,
+      pointerEvents: "auto"
     },
     ".image-info": {
       position: "absolute",

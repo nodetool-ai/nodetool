@@ -1,79 +1,103 @@
 /**
- * TaskPlanner -- uses an LLM agent with tools to decompose an objective into
- * a Task or TaskPlan.
+ * TaskPlanner -- decomposes an objective into a Task or TaskPlan via tool calls.
  *
- * The planner calls the LLM with a planning tool (CreatePlanTool or
- * CreateTaskPlanTool). The tools handle validation and building the plan;
- * the planner drives the retry loop and message history.
+ * planMultiTask() builds the plan incrementally: the LLM calls add_task one
+ * task at a time, with per-task validation. Progress is yielded as task_update
+ * events (TaskPlanned) so clients can watch the plan take shape in real time.
+ *
+ * plan() (single-task) keeps the original one-shot create_task tool.
  */
 
 import type {
   BaseProvider,
   ProcessingContext,
   Message,
+  ToolCall
 } from "@nodetool/runtime";
 import { createLogger } from "@nodetool/config";
-import type {
-  ProcessingMessage,
-  Chunk,
-  PlanningUpdate
+import {
+  TaskUpdateEvent,
+  type ProcessingMessage,
+  type Chunk,
+  type PlanningUpdate,
+  type TaskUpdate,
+  type ToolCallUpdate
 } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.agents.planner");
-import type { Task, TaskPlan } from "./types.js";
+import type { Task, TaskPlan, Step } from "./types.js";
 import type { Tool } from "./tools/base-tool.js";
-import { CreatePlanTool } from "./tools/create-plan-tool.js";
 import { CreateTaskPlanTool } from "./tools/create-task-tool.js";
+import {
+  PlanBuilder,
+  AddTaskTool,
+  RemoveTaskTool,
+  FinishPlanTool
+} from "./tools/plan-builder-tools.js";
+import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 
 const MAX_RETRIES = 3;
+const MAX_PER_TASK_RETRIES = 3;
 
-const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. You decompose objectives into parallel executable plans.
+const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objectives into parallel executable plans by calling tools.
 
-STRUCTURE:
-- TaskPlan: { title, tasks[] }
-- Task: { id, title, depends_on[], steps[] }  — each task runs as an independent sub-agent
+## Process (call tools in order)
+1. Call \`add_task\` one task at a time. Each call adds exactly one task and is validated immediately.
+2. If a call returns \`validation_failed\`, read the errors and call \`add_task\` again with corrections.
+3. Add dependency tasks BEFORE their dependents (task-level \`depends_on\` must point at a task already added).
+4. If you added a task in error, call \`remove_task\` with its id.
+5. When all tasks are added, call \`finish_plan\` with the overall plan title.
+
+## Structure
+- Task: { id, title, depends_on[], steps[] } — each task runs as an independent sub-agent.
 - Step: { id, instructions, depends_on[], output_schema?, tools? }
 
-ID RULES (violations cause retries):
-- Task IDs: use descriptive snake_case, e.g. "research_nlp", "write_summary"
-- Step IDs: prefix with task ID to guarantee uniqueness across ALL tasks, e.g. "research_nlp_s1", "write_summary_s1"
-- NEVER use bare "s1", "s2" etc. — these collide across tasks and fail validation
+## ID Rules (violations cause retries)
+- Task IDs: descriptive snake_case, e.g. "research_nlp", "write_summary".
+- Step IDs: globally unique across the plan. Prefix with the task id, e.g. "research_nlp_s1".
+- NEVER use bare "s1", "s2" — they collide across tasks.
 
-PARALLELISM:
-- Independent work MUST be separate tasks (they run concurrently)
-- Only add depends_on when a task genuinely needs another task's output
-- Add a final aggregation task (depends on all others) when results need combining
+## Parallelism
+- Independent work goes in separate tasks (they run concurrently).
+- Only add \`depends_on\` when one task genuinely needs another's output.
+- Add a final aggregation task (depending on all others) when results need combining.
 
-STEP INSTRUCTIONS:
-- Be specific and concise — state exactly what to do, not the whole objective
-- Reference available tools by name when the step should use them
-- Bad: "Research the topic of NLP and write a summary including main ideas and relevance"
+## Step Instructions
+- Specific and concise. State exactly what to do, not the whole objective.
+- Reference available tools by name.
+- Bad: "Research NLP and write a summary including main ideas and relevance."
 - Good: "Use google_search to find recent NLP advances. Summarize key findings in 2-3 sentences."
 
-OUTPUT SCHEMAS:
-- Include output_schema (as a JSON schema string) for steps that produce structured data
-- The aggregation step MUST have an output_schema matching the plan's overall output schema
-- Use type "object" at the top level (not bare arrays)
+## Step Granularity (hard rule)
+- One step = one focused operation that a sub-agent can finish in ~3 LLM turns.
+  Typical shapes: a single search + summarize, a single image/video render, a single file write.
+- NEVER combine N independent items into one step (e.g. "research 3 games and render an image for each"
+  is 6 steps minimum, not 1). Fan out into N parallel steps/tasks, then an aggregation step.
+- If a step would need more than 2 tool calls of different kinds, split it.
+- Prefer many small parallel steps over a few wide ones — steps are iteration-capped, parallelism is cheap.
 
-Call the create_plan tool with your plan.`;
+## Output Schemas
+- Include \`output_schema\` (as a JSON schema string) for steps that produce structured data.
+- The aggregation step MUST have an \`output_schema\` matching the plan's overall output schema.
+- Use type "object" at the top level.`;
 
-const DEFAULT_SINGLE_TASK_SYSTEM_PROMPT = `You are a TaskArchitect. You decompose objectives into executable step plans.
+const DEFAULT_SINGLE_TASK_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objectives into executable step plans.
 
-STRUCTURE:
+## Structure
 - Task: { title, steps[] }
 - Step: { id, instructions, depends_on[], output_schema?, tools? }
 
-RULES:
-- Step IDs: descriptive snake_case, e.g. "search_sources", "write_report"
-- Steps should be atomic and focused — one clear action each
-- Maximize parallelism: steps without data dependencies should have depends_on: []
-- Reference available tools by name in step instructions
-- Include output_schema (JSON schema string) for steps producing structured data
-- Dependencies must form a valid DAG (no cycles)
+## Rules
+- Step IDs: descriptive snake_case, e.g. "search_sources", "write_report".
+- Steps must be atomic and focused — one clear action each.
+- Maximize parallelism: steps without data dependencies should have \`depends_on: []\`.
+- Reference available tools by name in step instructions.
+- Include \`output_schema\` (JSON schema string) for steps producing structured data.
+- Dependencies must form a valid DAG (no cycles).
 
-Call the create_task tool with your task plan.`;
+Call the \`create_task\` tool with your task plan.`;
 
-const PLAN_CREATION_PROMPT_TEMPLATE = `Create an executable TaskPlan using the create_plan tool.
+const PLAN_CREATION_PROMPT_TEMPLATE = `Build an executable TaskPlan by calling add_task once per task, then finish_plan.
 
 Objective: {{objective}}
 
@@ -83,7 +107,7 @@ Available tools (reference by name in step instructions):
 Output schema for the final aggregation step:
 {{outputSchema}}
 
-Remember: prefix step IDs with their task ID (e.g. "task1_search", "task1_summarize") to avoid collisions.`;
+Remember: prefix step IDs with their task ID (e.g. "task1_search", "task1_summarize") to avoid collisions. Call add_task for each task in dependency order.`;
 
 const TASK_CREATION_PROMPT_TEMPLATE = `Create an executable task plan using the create_task tool.
 
@@ -98,7 +122,6 @@ Output schema for the final step:
 export interface TaskPlannerOptions {
   provider: BaseProvider;
   model: string;
-  /** Optional alternative model for reasoning/refinement passes. Defaults to `model`. */
   reasoningModel?: string;
   tools?: Tool[];
   systemPrompt?: string;
@@ -131,14 +154,15 @@ export class TaskPlanner {
     this.threadId = opts.threadId;
   }
 
-  /**
-   * Generate a single-Task plan from an objective using a tool-calling agent.
-   * Returns null on repeated failure (graceful degradation).
-   */
+  // ---------------------------------------------------------------------------
+  // Single-task planning (legacy one-shot)
+  // ---------------------------------------------------------------------------
+
   async *plan(
     objective: string,
     _context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, Task | null> {
+    rejectAgenticProvider(this.provider, "TaskPlanner.plan");
     const toolsInfo = this.formatToolsInfo();
 
     const userPrompt = TASK_CREATION_PROMPT_TEMPLATE
@@ -151,9 +175,10 @@ export class TaskPlanner {
           : "None specified"
       );
 
-    const systemPrompt = this.systemPrompt !== DEFAULT_PLANNING_SYSTEM_PROMPT
-      ? this.systemPrompt
-      : DEFAULT_SINGLE_TASK_SYSTEM_PROMPT;
+    const systemPrompt =
+      this.systemPrompt !== DEFAULT_PLANNING_SYSTEM_PROMPT
+        ? this.systemPrompt
+        : DEFAULT_SINGLE_TASK_SYSTEM_PROMPT;
 
     const messages: Message[] = [
       { role: "system", content: systemPrompt },
@@ -170,11 +195,6 @@ export class TaskPlanner {
     const createTaskTool = new CreateTaskPlanTool(this.inputs);
 
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
-      log.debug("Generating plan", {
-        objective: objective.slice(0, 60),
-        attempt: attempt + 1
-      });
-
       yield {
         type: "planning_update",
         phase: "generation",
@@ -185,35 +205,24 @@ export class TaskPlanner {
             : "Generating plan..."
       } satisfies PlanningUpdate;
 
-      const toolCallResult = yield* this.callProviderWithTool(
+      const toolCallResult = yield* this.callSingleTaskTool(
         messages,
         createTaskTool
       );
 
       if (createTaskTool.task) {
-        log.info("Plan created", {
-          title: createTaskTool.task.title,
-          steps: createTaskTool.task.steps.length
-        });
-
         yield {
           type: "planning_update",
           phase: "complete",
           status: "success",
           content: `Plan created: ${createTaskTool.task.title} (${createTaskTool.task.steps.length} steps)`
         } satisfies PlanningUpdate;
-
         return createTaskTool.task;
       }
 
-      // Tool was called but validation failed, or tool was not called
-      const errorMsg = toolCallResult.error ??
+      const errorMsg =
+        toolCallResult.error ??
         `Planning tool was not called successfully on attempt ${attempt + 1}/${this.maxRetries}`;
-
-      log.warn("Plan generation retry", {
-        attempt: attempt + 1,
-        reason: errorMsg
-      });
 
       yield {
         type: "planning_update",
@@ -222,7 +231,6 @@ export class TaskPlanner {
         content: errorMsg
       } satisfies PlanningUpdate;
 
-      // Feed error back to LLM for retry
       if (toolCallResult.assistantContent) {
         messages.push({
           role: "assistant",
@@ -234,8 +242,6 @@ export class TaskPlanner {
         content: `Error: ${errorMsg}. Please call the create_task tool with a corrected plan.`
       });
     }
-
-    log.error("Plan generation failed", { attempts: this.maxRetries });
 
     yield {
       type: "chunk",
@@ -253,11 +259,10 @@ export class TaskPlanner {
     return null;
   }
 
-  /**
-   * Generate a multi-task plan from an objective using a tool-calling agent.
-   * Each task runs as an independent sub-agent. Tasks form a DAG via dependsOn.
-   * Returns null on repeated failure (graceful degradation).
-   */
+  // ---------------------------------------------------------------------------
+  // Multi-task planning (incremental)
+  // ---------------------------------------------------------------------------
+
   async *planMultiTask(
     objective: string,
     _context: ProcessingContext
@@ -286,110 +291,218 @@ export class TaskPlanner {
       content: "Starting parallel task planning..."
     } satisfies PlanningUpdate;
 
-    const createPlanTool = new CreatePlanTool(this.inputs);
+    rejectAgenticProvider(this.provider, "TaskPlanner.planMultiTask");
 
-    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
-      log.debug("Generating multi-task plan", {
-        objective: objective.slice(0, 60),
-        attempt: attempt + 1
+    const builder = new PlanBuilder(this.inputs);
+    const addTaskTool = new AddTaskTool(builder);
+    const removeTaskTool = new RemoveTaskTool(builder);
+    const finishPlanTool = new FinishPlanTool(builder);
+    const toolsByName = new Map<string, Tool>([
+      [addTaskTool.name, addTaskTool],
+      [removeTaskTool.name, removeTaskTool],
+      [finishPlanTool.name, finishPlanTool]
+    ]);
+    const providerTools = [
+      addTaskTool.toProviderTool(),
+      removeTaskTool.toProviderTool(),
+      finishPlanTool.toProviderTool()
+    ];
+
+    const perTaskFailures = new Map<string, number>();
+    const MAX_CALLS = 100;
+
+    for (let call = 0; call < MAX_CALLS; call++) {
+      const pendingToolCalls: ToolCall[] = [];
+      let assistantText = "";
+
+      const stream = this.provider.generateMessagesTraced({
+        messages: [...messages],
+        model: this.model,
+        tools: providerTools,
+        toolChoice: "any",
+        threadId: this.threadId
       });
 
-      yield {
-        type: "planning_update",
-        phase: "generation",
-        status: "running",
-        content:
-          attempt > 0
-            ? `Retry attempt ${attempt + 1}/${this.maxRetries}...`
-            : "Generating parallel plan..."
-      } satisfies PlanningUpdate;
+      for await (const item of stream) {
+        if ("type" in item && (item as { type: string }).type === "chunk") {
+          const chunk = item as { content?: string };
+          if (typeof chunk.content === "string" && chunk.content.length > 0) {
+            assistantText += chunk.content;
+            yield {
+              type: "chunk",
+              content: chunk.content,
+              done: false
+            } satisfies Chunk;
+          }
+        }
+        if ("id" in item && "name" in item && "args" in item) {
+          pendingToolCalls.push(item as ToolCall);
+        }
+      }
 
-      const toolCallResult = yield* this.callProviderWithTool(
-        messages,
-        createPlanTool
-      );
+      // Record assistant turn with any tool calls.
+      messages.push({
+        role: "assistant",
+        content: assistantText,
+        toolCalls: pendingToolCalls.length > 0 ? pendingToolCalls : undefined
+      });
 
-      if (createPlanTool.plan) {
-        const plan = createPlanTool.plan;
-        const totalSteps = plan.tasks.reduce(
-          (sum, t) => sum + t.steps.length,
-          0
-        );
-        const independentTasks = plan.tasks.filter(
-          (t) => !t.dependsOn || t.dependsOn.length === 0
-        ).length;
+      if (pendingToolCalls.length === 0) {
+        messages.push({
+          role: "user",
+          content:
+            "No tool call in your response. Call add_task, remove_task, or finish_plan to continue."
+        });
+        continue;
+      }
 
-        log.info("Multi-task plan created", {
-          title: plan.title,
-          tasks: plan.tasks.length,
-          totalSteps,
-          independentTasks
+      let aborted: string | null = null;
+      let finished = false;
+
+      for (const tc of pendingToolCalls) {
+        const tool = toolsByName.get(tc.name);
+        if (!tool) {
+          messages.push({
+            role: "tool",
+            toolCallId: tc.id,
+            content: JSON.stringify({
+              status: "error",
+              error: `Unknown tool: ${tc.name}. Use add_task, remove_task, or finish_plan.`
+            })
+          });
+          continue;
+        }
+
+        const args = (tc.args ?? {}) as Record<string, unknown>;
+        yield {
+          type: "tool_call_update",
+          node_id: "",
+          name: tc.name,
+          args,
+          message: tool.userMessage(args)
+        } satisfies ToolCallUpdate;
+
+        const result = (await tool.process(
+          {} as ProcessingContext,
+          args
+        )) as Record<string, unknown>;
+        messages.push({
+          role: "tool",
+          toolCallId: tc.id,
+          content: JSON.stringify(result)
         });
 
+        const status = result["status"];
+
+        if (tc.name === addTaskTool.name) {
+          const taskId = typeof args["id"] === "string" ? args["id"] : undefined;
+          if (status === "task_added") {
+            const added = builder.currentTasks[builder.currentTasks.length - 1];
+            if (added) yield this.taskPlannedEvent(added);
+            yield {
+              type: "planning_update",
+              phase: "generation",
+              status: "running",
+              content: `Added task ${builder.taskCount}: ${added?.title ?? taskId ?? ""}`
+            } satisfies PlanningUpdate;
+          } else if (status === "validation_failed") {
+            const errors = (result["errors"] as string[]) ?? [];
+            const count = (perTaskFailures.get(taskId ?? "_") ?? 0) + 1;
+            perTaskFailures.set(taskId ?? "_", count);
+            yield {
+              type: "planning_update",
+              phase: "validation",
+              status: "failed",
+              content: `Task '${taskId ?? "?"}' validation failed (${count}/${MAX_PER_TASK_RETRIES}): ${errors.join("; ")}`
+            } satisfies PlanningUpdate;
+            if (count >= MAX_PER_TASK_RETRIES) {
+              aborted = `Task '${taskId ?? "?"}' failed validation ${count} times. Aborting plan.`;
+              break;
+            }
+          }
+        } else if (tc.name === removeTaskTool.name) {
+          const removedId =
+            typeof args["id"] === "string" ? (args["id"] as string) : "";
+          if (status === "task_removed") {
+            yield {
+              type: "task_update",
+              event: TaskUpdateEvent.TaskRemoved,
+              task: { id: removedId }
+            } satisfies TaskUpdate;
+            perTaskFailures.delete(removedId);
+            yield {
+              type: "planning_update",
+              phase: "generation",
+              status: "running",
+              content: `Removed task: ${removedId}`
+            } satisfies PlanningUpdate;
+          }
+        } else if (tc.name === finishPlanTool.name) {
+          if (status === "plan_finished" && builder.plan) {
+            const plan = builder.plan;
+            const totalSteps = plan.tasks.reduce(
+              (s, t) => s + t.steps.length,
+              0
+            );
+            const independent = plan.tasks.filter(
+              (t) => !t.dependsOn || t.dependsOn.length === 0
+            ).length;
+            log.info("Multi-task plan created", {
+              title: plan.title,
+              tasks: plan.tasks.length
+            });
+            yield {
+              type: "planning_update",
+              phase: "complete",
+              status: "success",
+              content: `Plan created: ${plan.title} (${plan.tasks.length} tasks, ${totalSteps} steps, ${independent} parallelizable)`
+            } satisfies PlanningUpdate;
+            finished = true;
+            break;
+          }
+          if (status === "validation_failed") {
+            const errors = (result["errors"] as string[]) ?? [];
+            yield {
+              type: "planning_update",
+              phase: "validation",
+              status: "failed",
+              content: `finish_plan failed: ${errors.join("; ")}`
+            } satisfies PlanningUpdate;
+          }
+        }
+      }
+
+      if (finished) return builder.plan;
+      if (aborted) {
         yield {
           type: "planning_update",
           phase: "complete",
-          status: "success",
-          content: `Plan created: ${plan.title} (${plan.tasks.length} tasks, ${totalSteps} steps, ${independentTasks} parallelizable)`
+          status: "failed",
+          content: aborted
         } satisfies PlanningUpdate;
-
-        return plan;
+        return null;
       }
-
-      const errorMsg = toolCallResult.error ??
-        `Planning tool was not called successfully on attempt ${attempt + 1}/${this.maxRetries}`;
-
-      log.warn("Multi-task plan generation retry", {
-        attempt: attempt + 1,
-        reason: errorMsg
-      });
-
-      yield {
-        type: "planning_update",
-        phase: "validation",
-        status: "failed",
-        content: errorMsg
-      } satisfies PlanningUpdate;
-
-      if (toolCallResult.assistantContent) {
-        messages.push({
-          role: "assistant",
-          content: toolCallResult.assistantContent
-        });
-      }
-      messages.push({
-        role: "user",
-        content: `Error: ${errorMsg}. Please call the create_plan tool with a corrected plan.`
-      });
     }
 
-    log.error("Multi-task plan generation failed", {
-      attempts: this.maxRetries
+    log.error("Multi-task plan exhausted call budget", {
+      tasksSoFar: builder.taskCount
     });
-
-    yield {
-      type: "chunk",
-      content: `\nFailed to generate a multi-task plan after ${this.maxRetries} attempts.\n`,
-      done: true
-    } satisfies Chunk;
-
     yield {
       type: "planning_update",
       phase: "complete",
       status: "failed",
-      content: `Multi-task plan generation failed after ${this.maxRetries} attempts`
+      content: `Plan generation exhausted ${MAX_CALLS} calls without calling finish_plan`
     } satisfies PlanningUpdate;
-
     return null;
   }
 
-  /**
-   * Call the provider with a planning tool, process the stream, and execute
-   * any tool calls. Returns metadata about the call outcome.
-   */
-  private async *callProviderWithTool(
+  // ---------------------------------------------------------------------------
+  // Single-task one-shot call
+  // ---------------------------------------------------------------------------
+
+  private async *callSingleTaskTool(
     messages: Message[],
-    planningTool: CreatePlanTool | CreateTaskPlanTool
+    planningTool: CreateTaskPlanTool
   ): AsyncGenerator<
     ProcessingMessage,
     { error?: string; assistantContent?: string }
@@ -399,8 +512,6 @@ export class TaskPlanner {
 
     const providerTool = planningTool.toProviderTool();
 
-    // Provide onToolCall so providers with native tool support can
-    // register the planning tool. The handler captures the args.
     const onToolCall = async (
       name: string,
       args: Record<string, unknown>
@@ -448,34 +559,48 @@ export class TaskPlanner {
       };
     }
 
-    // Execute the tool to validate and build the plan
     const result = await planningTool.process(
       {} as ProcessingContext,
       toolCallArgs
     );
 
-    // Check if validation failed
     if (
       typeof result === "object" &&
       result !== null &&
       (result as Record<string, unknown>)["status"] === "validation_failed"
     ) {
-      const errors = (result as Record<string, unknown>)[
-        "errors"
-      ] as string[];
+      const errors = (result as Record<string, unknown>)["errors"] as string[];
       return {
         error: `Plan validation failed:\n${errors.map((e) => `- ${e}`).join("\n")}`,
         assistantContent: content || undefined
       };
     }
 
-    // Tool succeeded — the plan/task is now stored on the tool instance
     return { assistantContent: content || undefined };
   }
 
-  /**
-   * Format tool info with full schemas for the planning prompt.
-   */
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  private taskPlannedEvent(task: Task): TaskUpdate {
+    const steps = task.steps.map((s: Step) => ({
+      id: s.id,
+      instructions: s.instructions,
+      completed: false
+    }));
+    return {
+      type: "task_update",
+      event: TaskUpdateEvent.TaskPlanned,
+      task: {
+        id: task.id,
+        title: task.title,
+        steps,
+        dependsOn: task.dependsOn
+      }
+    } satisfies TaskUpdate;
+  }
+
   private formatToolsInfo(): string {
     if (this.tools.length === 0) return "No execution tools available.";
 

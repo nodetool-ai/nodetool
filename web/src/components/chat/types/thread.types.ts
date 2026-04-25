@@ -1,8 +1,10 @@
+import type { Message } from "../../../stores/ApiTypes";
+
 export interface ThreadInfo {
   id: string;
   title?: string;
   updatedAt: string;
-  messages: Array<any>;
+  messages: Message[];
 }
 
 export interface ThreadListProps {

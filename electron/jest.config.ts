@@ -6,6 +6,7 @@ export default {
     '\\.(css|less|scss|sass)$': '<rootDir>/src/__mocks__/styleMock.ts',
     '\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/src/__mocks__/fileMock.ts',
     '^@nodetool/protocol$': '<rootDir>/src/__mocks__/protocol.ts',
+    '^superjson$': '<rootDir>/src/__mocks__/superjson.ts',
     '^@nodetool/config$': '<rootDir>/../packages/config/src/index.ts',
     '^@nodetool/config/(.*)$': '<rootDir>/../packages/config/src/$1',
     // Strip .js extensions from TypeScript ESM imports
@@ -28,7 +29,6 @@ export default {
   collectCoverageFrom: [
     'src/**/*.{js,ts}',
     '!src/**/*.d.ts',
-    '!src/index.ts',
     '!src/preload*.ts',
   ],
   coveragePathIgnorePatterns: [

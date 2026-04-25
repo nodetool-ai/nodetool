@@ -3,7 +3,7 @@ import isEqual from "fast-deep-equal";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { VideoModel } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
+import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
@@ -32,17 +32,9 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
-  const loadVideoModels = useCallback(async () => {
-    const res = await fetch(`${BASE_URL}/api/models/video`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch video models: ${res.status}`);
-    }
-    return (await res.json()) as VideoModel[];
-  }, []);
-
   const { data: models } = useQuery({
     queryKey: ["video-models"],
-    queryFn: async () => await loadVideoModels()
+    queryFn: () => trpc.models.video.query() as Promise<VideoModel[]>
   });
 
   const currentSelectedModelDetails = useMemo(() => {

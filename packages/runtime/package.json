@@ -6,12 +6,13 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').mkdirSync('dist/providers',{recursive:true}); require('node:fs').cpSync('src/providers/aki-manifest.json', 'dist/providers/aki-manifest.json')\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@aki-io/aki-io": "^1.0.1",
     "@anthropic-ai/sdk": "^0.33.1",
     "@msgpack/msgpack": "^3.1.3",
     "@nodetool/config": "*",

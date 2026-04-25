@@ -105,13 +105,50 @@ function createDrawNode(desc: Desc): NodeClass {
         const fg = await decodeImage(
           (this as any).foreground ??
             (this as unknown as Record<string, unknown>).foreground ??
+            (this as any).image2 ??
+            (this as unknown as Record<string, unknown>).image2 ??
             (this as any).image1 ??
             (this as unknown as Record<string, unknown>).image1,
           context
         );
         if (fg) {
+          const mask = await decodeImage(
+            (this as any).mask ??
+              (this as unknown as Record<string, unknown>).mask,
+            context
+          );
+          const baseMeta = await sharp(baseBytes, { failOn: "none" }).metadata();
+          const width = Math.max(1, baseMeta.width ?? 1);
+          const height = Math.max(1, baseMeta.height ?? 1);
+          let fgInput = await sharp(fg, { failOn: "none" })
+            .resize(width, height, { fit: "fill" })
+            .ensureAlpha()
+            .png()
+            .toBuffer();
+          if (mask) {
+            const { data: fgRaw, info } = await sharp(fgInput, {
+              failOn: "none"
+            })
+              .ensureAlpha()
+              .raw()
+              .toBuffer({ resolveWithObject: true });
+            const maskRaw = await sharp(mask, { failOn: "none" })
+              .resize(info.width, info.height, { fit: "fill" })
+              .greyscale()
+              .raw()
+              .toBuffer();
+            for (let i = 0; i < info.width * info.height; i += 1) {
+              fgRaw[i * 4 + 3] = maskRaw[i];
+            }
+            fgInput = await sharp(fgRaw, {
+              raw: { width: info.width, height: info.height, channels: 4 }
+            })
+              .png()
+              .toBuffer();
+          }
           const mixed = await sharp(baseBytes)
-            .composite([{ input: fg, blend: "over" }])
+            .resize(width, height, { fit: "fill" })
+            .composite([{ input: fgInput, blend: "over" }])
             .png()
             .toBuffer();
           return { output: toRef(mixed, baseObj) };

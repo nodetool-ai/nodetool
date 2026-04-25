@@ -3,12 +3,12 @@ import type {
   ExecuteInputBlobs,
   ExecuteResult,
   ProgressEvent
-} from "./python-bridge.js";
+} from "./python-bridge-types.js";
 import { createLogger } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.python-node-executor");
 
-/** Minimal interface for the bridge — works with both PythonBridge and PythonStdioBridge. */
+/** Minimal interface for the local Python stdio bridge. */
 interface PythonBridgeLike {
   execute(
     nodeType: string,
@@ -17,34 +17,52 @@ interface PythonBridgeLike {
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void
   ): Promise<ExecuteResult>;
+  executeStream?(
+    nodeType: string,
+    fields: Record<string, unknown>,
+    secrets: Record<string, string>,
+    blobs: ExecuteInputBlobs,
+    onProgress?: (event: ProgressEvent) => void
+  ): AsyncGenerator<ExecuteResult>;
 }
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 /** Media ref types that need blob conversion. */
-const MEDIA_REF_TYPES = new Set([
-  "ImageRef",
-  "AudioRef",
-  "VideoRef",
-  "Model3DRef"
-]);
+const MEDIA_TYPE_ALIASES: Record<string, string> = {
+  ImageRef: "image",
+  AudioRef: "audio",
+  VideoRef: "video",
+  Model3DRef: "model_3d",
+  image: "image",
+  audio: "audio",
+  video: "video",
+  model_3d: "model_3d"
+};
 
 /** File extensions by ref type. */
 const EXTENSION_MAP: Record<string, string> = {
-  ImageRef: ".png",
-  AudioRef: ".wav",
-  VideoRef: ".mp4",
-  Model3DRef: ".glb"
+  image: ".png",
+  audio: ".wav",
+  video: ".mp4",
+  model_3d: ".glb"
 };
 
 /** MIME types by ref type. */
 const MIME_MAP: Record<string, string> = {
-  ImageRef: "image/png",
-  AudioRef: "audio/wav",
-  VideoRef: "video/mp4",
-  Model3DRef: "model/gltf-binary"
+  image: "image/png",
+  audio: "audio/wav",
+  video: "video/mp4",
+  model_3d: "model/gltf-binary"
 };
+
+function normalizeMediaOutputType(outputType: string | undefined): string | null {
+  if (!outputType) {
+    return null;
+  }
+  return MEDIA_TYPE_ALIASES[outputType] ?? null;
+}
 
 function isMediaRef(value: unknown): value is { uri: string; type?: string } {
   return (
@@ -159,10 +177,14 @@ export class PythonNodeExecutor {
     private requiredSettings: string[]
   ) {}
 
-  async process(
+  private async prepareExecution(
     inputs: Record<string, unknown>,
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<{
+    fields: Record<string, unknown>;
+    blobs: ExecuteInputBlobs;
+    secrets: Record<string, string>;
+  }> {
     // NodeActor merges node.properties + edge inputs before calling process(),
     // so `inputs` already contains all fields. Filter out internal keys.
     const fields: Record<string, unknown> = {};
@@ -172,7 +194,6 @@ export class PythonNodeExecutor {
       }
     }
 
-    // 2. Extract input blobs from media refs
     const blobs: ExecuteInputBlobs = {};
     for (const [key, value] of Object.entries(fields)) {
       if (isMediaRef(value)) {
@@ -218,7 +239,6 @@ export class PythonNodeExecutor {
       }
     }
 
-    // 3. Gather secrets
     const secrets: Record<string, string> = {};
     if (context) {
       for (const key of this.requiredSettings) {
@@ -227,7 +247,38 @@ export class PythonNodeExecutor {
       }
     }
 
-    // 4. Execute via bridge
+    return { fields, blobs, secrets };
+  }
+
+  private async materializeOutputs(
+    result: ExecuteResult,
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const outputs: Record<string, unknown> = { ...result.outputs };
+    for (const [name, blobData] of Object.entries(result.blobs)) {
+      const mediaType = normalizeMediaOutputType(this.outputTypes[name]);
+      if (mediaType && context?.storage) {
+        const ext = EXTENSION_MAP[mediaType] ?? "";
+        const contentType = MIME_MAP[mediaType];
+        const storageKey = `python-bridge/${randomUUID()}${ext}`;
+        const uri = await context.storage.store(
+          storageKey,
+          blobData,
+          contentType
+        );
+        outputs[name] = { uri, type: mediaType };
+      } else {
+        outputs[name] = blobData;
+      }
+    }
+    return outputs;
+  }
+
+  async process(
+    inputs: Record<string, unknown>,
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const { fields, blobs, secrets } = await this.prepareExecution(inputs, context);
     const result = await this.bridge.execute(
       this.nodeType,
       fields,
@@ -235,26 +286,27 @@ export class PythonNodeExecutor {
       blobs,
       undefined
     );
+    return this.materializeOutputs(result, context);
+  }
 
-    // 5. Convert output blobs to stored assets
-    const outputs: Record<string, unknown> = { ...result.outputs };
-    for (const [name, blobData] of Object.entries(result.blobs)) {
-      const outputType = this.outputTypes[name] ?? "AssetRef";
-      if (MEDIA_REF_TYPES.has(outputType) && context?.storage) {
-        const ext = EXTENSION_MAP[outputType] ?? "";
-        const contentType = MIME_MAP[outputType];
-        const storageKey = `python-bridge/${randomUUID()}${ext}`;
-        const uri = await context.storage.store(
-          storageKey,
-          blobData,
-          contentType
-        );
-        outputs[name] = { uri, type: outputType };
-      } else {
-        outputs[name] = blobData;
-      }
+  async *genProcess(
+    inputs: Record<string, unknown>,
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
+    if (!this.bridge.executeStream) {
+      yield await this.process(inputs, context);
+      return;
     }
 
-    return outputs;
+    const { fields, blobs, secrets } = await this.prepareExecution(inputs, context);
+    for await (const partial of this.bridge.executeStream(
+      this.nodeType,
+      fields,
+      secrets,
+      blobs,
+      undefined
+    )) {
+      yield await this.materializeOutputs(partial, context);
+    }
   }
 }

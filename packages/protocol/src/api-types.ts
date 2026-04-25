@@ -17,7 +17,7 @@ export interface ImageRef {
   uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
-  data?: string | null;
+  data?: unknown;
   metadata?: Record<string, unknown> | null;
   mimeType?: string;
   width?: number;
@@ -30,7 +30,7 @@ export interface AudioRef {
   asset_id?: string | null;
   temp_id?: string | null;
   duration?: number | null;
-  data?: string | null;
+  data?: unknown;
   metadata?: Record<string, unknown> | null;
 }
 
@@ -40,7 +40,7 @@ export interface VideoRef {
   asset_id?: string | null;
   temp_id?: string | null;
   duration?: number | null;
-  data?: string | null;
+  data?: unknown;
   metadata?: Record<string, unknown> | null;
   format?: string | null;
 }
@@ -348,7 +348,7 @@ export interface MessageTextContent {
 }
 
 export interface MessageImageContent {
-  type: "image";
+  type: "image_url";
   image: ImageRef;
 }
 
@@ -562,6 +562,7 @@ export interface Node {
   dynamic_properties?: Record<string, unknown>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
   sync_mode: string;
+  [key: string]: unknown;
 }
 
 export interface Graph {
@@ -636,11 +637,25 @@ export type Provider =
   | "empty"
   | string;
 
-export interface InferenceProvider {
-  name: string;
-  description?: string;
-  is_available: boolean;
-}
+export type InferenceProvider =
+  | "cerebras"
+  | "cohere"
+  | "fal-ai"
+  | "featherless-ai"
+  | "fireworks-ai"
+  | "groq"
+  | "hf-inference"
+  | "hyperbolic"
+  | "nebius"
+  | "novita"
+  | "nscale"
+  | "openai"
+  | "replicate"
+  | "sambanova"
+  | "scaleway"
+  | "together"
+  | "zai-org"
+  | string;
 
 export interface ProviderInfo {
   provider: Provider;

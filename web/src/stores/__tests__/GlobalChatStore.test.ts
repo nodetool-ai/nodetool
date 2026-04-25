@@ -8,16 +8,12 @@ jest.mock("../BASE_URL", () => ({
   UNIFIED_WS_URL: "ws://test/ws"
 }));
 
-jest.mock("../ApiClient", () => ({
-  CHAT_URL: "ws://test/chat",
-  isLocalhost: true,
-  authHeader: jest.fn(async () => ({ Authorization: "Bearer test" })),
-  client: {
-    GET: jest.fn(async () => ({ data: {}, error: null })),
-    POST: jest.fn(async () => ({ data: {}, error: null })),
-    PUT: jest.fn(async () => ({ data: {}, error: null })),
-    DELETE: jest.fn(async () => ({ data: {}, error: null }))
-  }
+jest.mock("../../lib/env", () => ({
+  isLocalhost: true
+}));
+
+jest.mock("../../lib/auth", () => ({
+  authHeader: jest.fn(async () => ({ Authorization: "Bearer test" }))
 }));
 
 jest.mock("../../lib/supabaseClient", () => ({

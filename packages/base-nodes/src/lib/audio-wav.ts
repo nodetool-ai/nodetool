@@ -11,6 +11,7 @@
  */
 
 import { promises as fs } from "node:fs";
+import { fileURLToPath } from "node:url";
 import type { AudioRef } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
 
@@ -72,7 +73,14 @@ export async function audioBytesAsync(
 
 /** Strip a `file://` scheme from a URI, returning a plain filesystem path. */
 export function uriToPath(uriOrPath: string): string {
-  if (uriOrPath.startsWith("file://")) return uriOrPath.slice("file://".length);
+  if (uriOrPath.startsWith("file://")) {
+    try {
+      return fileURLToPath(new URL(uriOrPath));
+    } catch {
+      // Fallback for non-standard URIs like file://C:\path
+      return uriOrPath.slice("file://".length);
+    }
+  }
   return uriOrPath;
 }
 

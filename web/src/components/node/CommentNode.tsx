@@ -14,9 +14,11 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import {
-  EditorState
+  EditorState,
+  LexicalEditor
 } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -207,16 +209,14 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const contentOnFocusRef = useRef<EditorState | null>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
 
-  const editorConfig = useMemo(() => {
-    const config: any = {
-      ...initialConfigTemplate
-    };
-
+  const editorConfig = useMemo((): InitialConfigType => {
     const comment = props.data.properties.comment;
+
+    let editorState: InitialConfigType["editorState"];
 
     // Handle string comments as markdown
     if (typeof comment === "string" && comment.length > 0) {
-      config.editorState = (_editor: any) => {
+      editorState = (_editor: LexicalEditor) => {
         $convertFromMarkdownString(comment, TRANSFORMERS);
       };
     }
@@ -224,13 +224,16 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     else if (
       comment &&
       typeof comment === "object" &&
-      "root" in comment &&
-      Object.keys(comment).length > 0
+      "root" in (comment as Record<string, unknown>) &&
+      Object.keys(comment as Record<string, unknown>).length > 0
     ) {
-      config.editorState = JSON.stringify(comment);
+      editorState = JSON.stringify(comment);
     }
 
-    return config;
+    return {
+      ...initialConfigTemplate,
+      ...(editorState !== undefined ? { editorState } : {})
+    };
   }, [props.data.properties.comment]);
 
   const textColor = useMemo(() => {

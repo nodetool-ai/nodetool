@@ -6,7 +6,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
-import { isElectron } from "../../stores/ApiClient";
+import { isElectron } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip } from "../ui_primitives";
 import log from "loglevel";

@@ -1,6 +1,20 @@
 import { fetchWorkflows, startPeriodicHealthCheck, stopPeriodicHealthCheck, isConnected } from '../api';
 import { serverState } from '../state';
 
+const mockWorkflowsQuery = jest.fn();
+const mockHttpBatchLink = jest.fn();
+
+jest.mock('@trpc/client', () => ({
+  createTRPCClient: jest.fn(() => ({
+    workflows: {
+      list: {
+        query: mockWorkflowsQuery
+      }
+    }
+  })),
+  httpBatchLink: (...args: unknown[]) => mockHttpBatchLink(...args)
+}));
+
 // Mock the fetch global
 global.fetch = jest.fn();
 const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
@@ -27,46 +41,31 @@ describe('API', () => {
         { id: '1', name: 'Workflow 1' },
         { id: '2', name: 'Workflow 2' }
       ];
-      
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: jest.fn().mockResolvedValue({ workflows: mockWorkflows })
-      } as any);
+
+      mockWorkflowsQuery.mockResolvedValueOnce({ workflows: mockWorkflows });
 
       const result = await fetchWorkflows();
 
       expect(result).toEqual(mockWorkflows);
-      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:7777/api/workflows/', {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json'
-        }
-      });
+      expect(mockHttpBatchLink).toHaveBeenCalledWith(expect.objectContaining({
+        url: 'http://127.0.0.1:7777/trpc'
+      }));
     });
 
     it('should use custom server port when set', async () => {
       serverState.serverPort = 9000;
-      
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: jest.fn().mockResolvedValue({ workflows: [] })
-      } as any);
+
+      mockWorkflowsQuery.mockResolvedValueOnce({ workflows: [] });
 
       await fetchWorkflows();
 
-      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:9000/api/workflows/', {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json'
-        }
-      });
+      expect(mockHttpBatchLink).toHaveBeenCalledWith(expect.objectContaining({
+        url: 'http://127.0.0.1:9000/trpc'
+      }));
     });
 
     it('should handle HTTP errors', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 404
-      } as any);
+      mockWorkflowsQuery.mockRejectedValueOnce(new Error('Not found'));
 
       const result = await fetchWorkflows();
 
@@ -74,7 +73,7 @@ describe('API', () => {
     });
 
     it('should handle network errors', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockWorkflowsQuery.mockRejectedValueOnce(new Error('Network error'));
 
       const result = await fetchWorkflows();
 
@@ -82,10 +81,7 @@ describe('API', () => {
     });
 
     it('should handle missing workflows in response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: jest.fn().mockResolvedValue({})
-      } as any);
+      mockWorkflowsQuery.mockResolvedValueOnce({});
 
       const result = await fetchWorkflows();
 

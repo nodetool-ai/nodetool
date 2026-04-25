@@ -34,6 +34,7 @@ import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { extractJSON } from "./utils/json-parser.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
+import { rejectAgenticProvider } from "./reject-agentic-provider.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -47,16 +48,15 @@ const MAX_JSON_PARSE_FAILURES = 6;
 
 const PROMPT_NO_HUMAN_FEEDBACK = `# Hard Constraint: No Human Feedback
 - Do NOT ask clarifying questions or request user input.
-- If something is ambiguous or missing, choose the simplest reasonable assumption and proceed.`;
+- If something is ambiguous or missing, choose the simplest reasonable assumption, record it in your reasoning, and proceed.`;
 
-const PROMPT_SCHEMA_STRICT = `- Never invent fields: the final result must match the schema exactly (no extra keys; include all required keys).
-
-Output style:
-- Keep non-tool messages concise.
-- Do not reveal chain-of-thought or internal reasoning traces.`;
+const PROMPT_SCHEMA_STRICT = `# Output Discipline
+- Never invent fields: the final result must match the schema exactly (no extra keys; include all required keys).
+- Do not reveal chain-of-thought or internal reasoning traces in assistant text.
+- Keep non-tool messages concise and factual.`;
 
 const PROMPT_OUTPUT_SCHEMA = `# Output Schema
-- The final result must match this schema:
+The final result must match this JSON schema exactly:
 \`\`\`json
 {{ output_schema_json }}
 \`\`\``;
@@ -64,6 +64,7 @@ const PROMPT_OUTPUT_SCHEMA = `# Output Schema
 const PROMPT_TOOL_USE = `# Tool Use
 - Use tools only when they materially improve correctness or are required.
 - Avoid exploratory or repeated tool calls that are unlikely to change the outcome.
+- Before each tool call, emit a one-sentence rationale describing what you're doing and why.
 
 ## File Tools
 - Use \`read_file\` to read files. Do not use \`run_code\` with cat/head/tail.
@@ -71,12 +72,17 @@ const PROMPT_TOOL_USE = `# Tool Use
 - Use \`write_file\` only for creating new files or complete rewrites.
 - Use \`glob\` to find files by name pattern (e.g. "**/*.ts"). Do not use \`run_code\` with find or ls.
 - Use \`grep\` to search file contents with regex. Do not use \`run_code\` with grep or rg.
-- Use \`run_code\` with language="bash" only for system commands and operations that require shell execution.`;
+- Use \`run_code\` with language="bash" only for system commands and operations that require shell execution.
+
+## Web Tools
+- Use \`browser\` to fetch and read the content of a web page. It returns cleaned, readable text extracted from HTML. This is the right choice for reading articles, documentation, or any page content.
+- Use \`http_request\` for API calls, POST/PUT/PATCH requests, or when you need raw response headers and body. Do not use it for reading page content — use \`browser\` instead.
+- Use \`download_file\` to save a file (binary or text) from a URL to disk.`;
 
 const PROMPT_FINISH_STEP = `# Completion (Tool Call Only)
 - When done, CALL \`finish_step\` exactly once with:
   {"result": <result>}
-- Do NOT output the final result in assistant text.
+- Do NOT output the final result in assistant text — only use the tool.
 - Stop immediately after calling \`finish_step\`.`;
 
 // ---------------------------------------------------------------------------
@@ -84,7 +90,7 @@ const PROMPT_FINISH_STEP = `# Completion (Tool Call Only)
 // ---------------------------------------------------------------------------
 
 const DEFAULT_EXECUTION_SYSTEM_PROMPT = `# Role
-You are executing EXACTLY one step within a larger plan. Complete this step end-to-end.
+You are executing EXACTLY one step within a larger plan. Complete this step end-to-end without asking for clarification.
 
 # Objective
 {{ step_content }}
@@ -103,12 +109,13 @@ ${PROMPT_TOOL_USE}
 ${PROMPT_FINISH_STEP}`;
 
 const DEFAULT_FINISH_TASK_SYSTEM_PROMPT = `# Role
-You are completing the final aggregation task, synthesizing results from prior steps into a single deliverable.
+You are completing the final aggregation task, synthesizing results from prior steps into a single coherent deliverable.
 
 ${PROMPT_NO_HUMAN_FEEDBACK}
 
 # Scope & Discipline
-- Focus on synthesis and aggregation only (do not do additional research).
+- Focus on synthesis and aggregation only. Do NOT do additional research or data gathering.
+- Preserve every concrete artifact from upstream results (image URLs, file paths, tables, key facts) — never drop or paraphrase them away.
 - Use upstream step results already present in context; do not ask for them again.
 ${PROMPT_SCHEMA_STRICT}
 
@@ -119,7 +126,7 @@ ${PROMPT_TOOL_USE}
 ${PROMPT_FINISH_STEP}`;
 
 const DEFAULT_UNSTRUCTURED_SYSTEM_PROMPT = `# Role
-You are executing a task. Your job is to complete it end-to-end.
+You are executing a task. Your job is to complete it end-to-end without asking for clarification.
 
 # Objective
 {{ step_content }}
@@ -129,13 +136,15 @@ ${PROMPT_NO_HUMAN_FEEDBACK}
 # Operating Mode
 - Use tools as needed to achieve the objective.
 - When you have the final answer or have completed the task, provide the result as your final response.
+- Do not reveal chain-of-thought or internal reasoning traces.
 
-# Tool Usage Guidelines
-## Communication Pattern (Tool Preambles)
+# Communication Pattern (Tool Preambles)
 Before making tool calls, provide clear progress updates:
 1. First assistant message: Restate the objective in one sentence, then list a short numbered plan (1-3 steps).
 2. Before each tool call: Emit a one-sentence message describing what you're doing and why.
-3. After tool results: Provide a brief update only if the result changes your plan.`;
+3. After tool results: Provide a brief update only if the result changes your plan.
+
+${PROMPT_TOOL_USE}`;
 
 // ---------------------------------------------------------------------------
 // Schema validation helpers
@@ -227,7 +236,13 @@ function validateAndSanitizeSchema(
 
 function removeThinkTags(text: string | null | undefined): string {
   if (!text) return "";
-  return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  return text
+    .replace(
+      /<think>[\s\S]*?<\/(?:redacted_thinking|think)>/g,
+      ""
+    )
+    .replace(/<think>[\s\S]*/g, "")
+    .trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -824,245 +839,6 @@ export class StepExecutor {
     return parts.join("\n");
   }
 
-  /**
-   * Check if the provider supports native agentic tool execution (onToolCall).
-   * When true, the provider handles the tool-calling loop internally (e.g. Claude
-   * Agent SDK with MCP), so StepExecutor delegates the entire step to a single
-   * provider call rather than running its own multi-iteration loop.
-   */
-  private providerSupportsOnToolCall(): boolean {
-    // ClaudeAgentProvider advertises MCP support. Detect by provider id.
-    return (
-      (this.provider as unknown as Record<string, unknown>).provider ===
-      "claude_agent"
-    );
-  }
-
-  /**
-   * Execute the step using a provider with native agentic tool execution.
-   * A single provider call handles the full tool loop: action tools → finish_step.
-   * Falls back to a second call with a nudge if finish_step wasn't called.
-   */
-  private async *executeWithAgenticProvider(): AsyncGenerator<ProcessingMessage> {
-    const allTools = this.getCurrentTools();
-    const providerTools = allTools.map((t) => t.toProviderTool());
-
-    // State captured by the onToolCall callback
-    let finishStepResult: unknown = undefined;
-    let finishStepCalled = false;
-
-    const onToolCall = async (
-      name: string,
-      args: Record<string, unknown>
-    ): Promise<string> => {
-      const tool = this.tools.find((t) => t.name === name);
-      if (!tool) return JSON.stringify({ error: `Unknown tool: ${name}` });
-
-      if (tool instanceof ControlNodeTool) {
-        const event = tool.createControlEvent(args);
-        this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
-        const msg = tool.userMessage(args);
-        return typeof msg === "string" ? msg : JSON.stringify(msg);
-      }
-
-      if (name === "finish_step" || name === "finish_task") {
-        finishStepCalled = true;
-        finishStepResult = args?.["result"] ?? args;
-        return JSON.stringify({ status: "completed" });
-      }
-
-      try {
-        const result = await tool.process(this.context, args);
-        this.trackToolSideEffects(name, result);
-        return typeof result === "string"
-          ? result
-          : JSON.stringify(result ?? null);
-      } catch (e) {
-        return JSON.stringify({ error: String(e) });
-      }
-    };
-
-    // Single provider call — the SDK's agentic loop handles tool calls internally
-    yield {
-      type: "log_update",
-      node_id: this.step.id,
-      node_name: `Step: ${this.step.id}`,
-      content: "Executing step...",
-      severity: "info"
-    } satisfies LogUpdate;
-
-    this.inputTokensTotal += this.estimateTokens();
-
-    let content = "";
-    const toolCalls: ToolCall[] = [];
-
-    const stream = this.provider.generateMessagesTraced({
-      messages: [...this.history],
-      model: this.model,
-      tools: providerTools.length > 0 ? providerTools : undefined,
-      threadId: this.threadId,
-      onToolCall
-    });
-
-    for await (const item of stream) {
-      if (isChunk(item)) {
-        content += item.content ?? "";
-        yield {
-          type: "chunk",
-          node_id: this.step.id,
-          content: item.content,
-          done: false
-        } satisfies Chunk;
-      }
-      if (isToolCall(item)) {
-        toolCalls.push(item);
-        yield {
-          type: "tool_call_update",
-          node_id: this.step.id,
-          name: item.name,
-          args: item.args,
-          message: this.generateToolCallMessage(item)
-        } satisfies ToolCallUpdate;
-      }
-    }
-
-    content = removeThinkTags(content);
-    this.outputTokensTotal += Math.ceil(
-      (content.length + JSON.stringify(toolCalls).length) / 4
-    );
-
-    // Check if finish_step was called within the agentic loop
-    if (
-      finishStepCalled &&
-      finishStepResult !== undefined &&
-      finishStepResult !== null
-    ) {
-      const [isValid, errorDetail, normalizedResult] =
-        this.validateResultPayload(finishStepResult);
-      if (
-        isValid &&
-        normalizedResult !== null &&
-        normalizedResult !== undefined
-      ) {
-        await this.storeCompletionResult(normalizedResult);
-        return;
-      }
-      log.warn("finish_step result validation failed", {
-        stepId: this.step.id,
-        error: errorDetail
-      });
-    }
-
-    // For unstructured steps (no schema), accept text content
-    if (this.resultSchema === null && content) {
-      await this.storeCompletionResult(content);
-      return;
-    }
-
-    // Try JSON extraction from text
-    if (content) {
-      const message: Message = { role: "assistant", content };
-      const [completed, normalizedResult] =
-        this.maybeFinalizeFromMessage(message);
-      if (
-        completed &&
-        normalizedResult !== null &&
-        normalizedResult !== undefined
-      ) {
-        await this.storeCompletionResult(normalizedResult);
-        return;
-      }
-    }
-
-    // Fallback: send a second query with a nudge to call finish_step
-    if (this.finishStepTool && !this.step.completed) {
-      log.debug("Nudging provider to call finish_step", {
-        stepId: this.step.id
-      });
-
-      // Build nudge with tool results context
-      const toolResultsSummary = toolCalls
-        .filter((tc) => tc.name !== "finish_step" && tc.name !== "finish_task")
-        .map((tc) => `${tc.name}(${JSON.stringify(tc.args)})`)
-        .join(", ");
-
-      const schemaStr = JSON.stringify(this.resultSchema, null, 2);
-      const nudgePrompt = toolResultsSummary
-        ? `You already executed: ${toolResultsSummary}. The assistant's analysis: ${content?.slice(0, 500) ?? ""}.\n\nNow call finish_step with {"result": <result>} matching this schema:\n${schemaStr}`
-        : `Complete the step by calling finish_step with {"result": <result>} matching this schema:\n${schemaStr}`;
-
-      const nudgeMessages: Message[] = [
-        { role: "system", content: this.systemPrompt },
-        { role: "user", content: nudgePrompt }
-      ];
-
-      finishStepCalled = false;
-      finishStepResult = undefined;
-
-      const nudgeStream = this.provider.generateMessagesTraced({
-        messages: nudgeMessages,
-        model: this.model,
-        tools: providerTools.length > 0 ? providerTools : undefined,
-        threadId: this.threadId,
-        onToolCall
-      });
-
-      let nudgeContent = "";
-      for await (const item of nudgeStream) {
-        if (isChunk(item)) {
-          nudgeContent += item.content ?? "";
-          yield {
-            type: "chunk",
-            node_id: this.step.id,
-            content: item.content,
-            done: false
-          } satisfies Chunk;
-        }
-        if (isToolCall(item)) {
-          yield {
-            type: "tool_call_update",
-            node_id: this.step.id,
-            name: item.name,
-            args: item.args,
-            message: this.generateToolCallMessage(item)
-          } satisfies ToolCallUpdate;
-        }
-      }
-
-      if (
-        finishStepCalled &&
-        finishStepResult !== undefined &&
-        finishStepResult !== null
-      ) {
-        const [isValid, , normalizedResult] =
-          this.validateResultPayload(finishStepResult);
-        if (
-          isValid &&
-          normalizedResult !== null &&
-          normalizedResult !== undefined
-        ) {
-          await this.storeCompletionResult(normalizedResult);
-          return;
-        }
-      }
-
-      // Last resort: try JSON extraction from nudge response
-      nudgeContent = removeThinkTags(nudgeContent);
-      if (nudgeContent) {
-        const msg: Message = { role: "assistant", content: nudgeContent };
-        const [completed, normalizedResult] =
-          this.maybeFinalizeFromMessage(msg);
-        if (
-          completed &&
-          normalizedResult !== null &&
-          normalizedResult !== undefined
-        ) {
-          await this.storeCompletionResult(normalizedResult);
-          return;
-        }
-      }
-    }
-  }
 
   /**
    * Execute the step, yielding ProcessingMessages as progress updates.
@@ -1091,44 +867,9 @@ export class StepExecutor {
       event: TaskUpdateEvent.StepStarted
     } satisfies TaskUpdate;
 
-    // --- Agentic provider fast-path (e.g. Claude Agent SDK with MCP) ---
-    // The provider handles the full tool loop in a single call.
-    if (this.providerSupportsOnToolCall() && this.tools.length > 0) {
-      try {
-        yield* this.executeWithAgenticProvider();
-      } catch (e) {
-        log.error("Agentic execution failed", {
-          stepId: this.step.id,
-          error: String(e)
-        });
-      }
+    rejectAgenticProvider(this.provider, "StepExecutor.execute");
 
-      if (this.step.completed) {
-        yield {
-          type: "task_update",
-          node_id: this.step.id,
-          task: { id: this.task.id, title: this.task.title },
-          step: { id: this.step.id, instructions: this.step.instructions },
-          event: TaskUpdateEvent.StepCompleted
-        } satisfies TaskUpdate;
-
-        yield {
-          type: "step_result",
-          step: { id: this.step.id, instructions: this.step.instructions },
-          result: this.result,
-          is_task_result: this.useFinishTask
-        } satisfies StepResult;
-        return;
-      }
-
-      // Fall through to standard loop if agentic path didn't complete
-      log.warn(
-        "Agentic path did not complete step, falling back to standard loop",
-        { stepId: this.step.id }
-      );
-    }
-
-    // --- Standard multi-iteration loop (for non-agentic providers) ---
+    // --- Standard multi-iteration loop ---
     while (!this.step.completed && this.iterations < this.maxIterations) {
       this.iterations++;
 

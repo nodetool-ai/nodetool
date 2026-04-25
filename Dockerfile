@@ -44,6 +44,7 @@ RUN npm ci 2>/dev/null || npm install
 COPY packages/ packages/
 COPY scripts/ scripts/
 COPY tsconfig*.json ./
+COPY turbo.json ./
 
 RUN npm run build:packages
 

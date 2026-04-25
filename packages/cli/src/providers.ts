@@ -16,6 +16,9 @@ import {
   GeminiProvider,
   MistralProvider,
   GroqProvider,
+  MoonshotProvider,
+  AkiProvider,
+  LMStudioProvider,
   ClaudeAgentProvider,
   BaseProvider as BaseProviderClass
 } from "@nodetool/runtime";
@@ -29,7 +32,10 @@ export const KNOWN_PROVIDERS = [
   "ollama",
   "gemini",
   "mistral",
+  "lmstudio",
   "groq",
+  "moonshot",
+  "aki",
   "claude_agent"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
@@ -37,11 +43,14 @@ export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 /** Default models for each provider. */
 export const DEFAULT_MODELS: Record<string, string> = {
   anthropic: "claude-sonnet-4-6",
-  openai: "gpt-4o",
-  ollama: "llama3.2",
-  gemini: "gemini-2.0-flash",
+  openai: "gpt-5.4",
+  ollama: "qwen-3.5:4b",
+  gemini: "gemini-2.5-flash",
   mistral: "mistral-large-latest",
+  lmstudio: "qwen/qwen3.5-9b",
   groq: "llama-3.3-70b-versatile",
+  moonshot: "kimi-k2.5",
+  aki: "llama3_chat",
   claude_agent: "claude-opus-4-6"
 };
 
@@ -70,6 +79,8 @@ export async function createProvider(
       return new GeminiProvider({
         GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY")
       });
+    case "lmstudio":
+      return new LMStudioProvider({}, { baseURL: "http://127.0.0.1:1234" })
     case "mistral":
       return new MistralProvider({
         MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY")
@@ -77,6 +88,14 @@ export async function createProvider(
     case "groq":
       return new GroqProvider({
         GROQ_API_KEY: await resolveKey("GROQ_API_KEY")
+      });
+    case "moonshot":
+      return new MoonshotProvider({
+        KIMI_API_KEY: await resolveKey("KIMI_API_KEY")
+      });
+    case "aki":
+      return new AkiProvider({
+        AKI_API_KEY: await resolveKey("AKI_API_KEY")
       });
     case "claude_agent":
       return new ClaudeAgentProvider();
@@ -95,6 +114,9 @@ export function availableProviders(): string[] {
   if (process.env["GEMINI_API_KEY"]) available.push("gemini");
   if (process.env["MISTRAL_API_KEY"]) available.push("mistral");
   if (process.env["GROQ_API_KEY"]) available.push("groq");
+  if (process.env["KIMI_API_KEY"]) available.push("moonshot");
+  if (process.env["AKI_API_KEY"]) available.push("aki");
+  available.push("lmstudio"); // always available (local)
   available.push("ollama"); // always available (local)
   return available;
 }

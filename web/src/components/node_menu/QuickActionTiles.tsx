@@ -24,6 +24,7 @@ import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode";
 import { DYNAMIC_REPLICATE_NODE_TYPE } from "../node/DynamicReplicateNode";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
@@ -380,7 +381,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const { setDragToCreate, setHoveredNode } = useNodeMenuStore((state) => ({
     setDragToCreate: state.setDragToCreate,
     setHoveredNode: state.setHoveredNode
-  }));
+  }), shallow);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification

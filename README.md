@@ -119,18 +119,19 @@ ______________________________________________________________________
 
 ## Development Setup
 
-**Prerequisites:** Node.js 22.x (LTS), npm. Python 3.11 with conda for Python nodes (optional).
+**Prerequisites:** Node.js 24.x, npm. Python 3.11 with conda for Python nodes (optional).
 
-> **Node 22 is required.** Electron 35 embeds Node 22 — native modules must match. Use `nvm use` to activate the correct version (reads `.nvmrc`).
+> **Node 24 is required.** Electron 39 embeds Node 24 — native modules must match. Use `nvm use` to activate the correct version (reads `.nvmrc`).
 
 ### Quick Start
 
 ```bash
-nvm use                    # Activate Node 22 (reads .nvmrc)
+nvm use                    # Activate Node 24 (reads .nvmrc)
 npm install
 npm run build:packages     # Build all TS packages in dependency order
 
 # Run backend (port 7777) and frontend (port 3000)
+# Uses tsx --watch for the backend, so startup skips a full websocket package rebuild.
 npm run dev
 ```
 
@@ -162,7 +163,7 @@ See [mobile/README.md](mobile/README.md) for full setup.
 | :--- | :--- |
 | `npm install` | Install all dependencies |
 | `npm run build` | Build all packages + web |
-| `npm run dev` | Start backend + web dev server |
+| `npm run dev` | Start backend (`tsx --watch`) + web dev server |
 | `npm run electron` | Build and start Electron app |
 | `npm run check` | Run typecheck + lint + test |
 | `npm run test` | Run all tests |

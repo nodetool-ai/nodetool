@@ -16,7 +16,6 @@
  * New secrets must be created via the appropriate runtime's endpoints.
  */
 
-import keytarDefault from "keytar";
 import {
   SecretsManagerClient,
   GetSecretValueCommand
@@ -42,21 +41,45 @@ interface KeytarModule {
   deletePassword(service: string, account: string): Promise<boolean>;
 }
 
+/** No-op keytar fallback when native module is unavailable (e.g. Docker). */
+const noopKeytar: KeytarModule = {
+  async getPassword() { return null; },
+  async setPassword() {},
+  async deletePassword() { return false; },
+};
+
+/** Lazy-load keytar; falls back to no-op if the native module is missing. */
+let _keytarResolved: KeytarModule | null = null;
+async function loadKeytar(): Promise<KeytarModule> {
+  if (_keytarResolved) return _keytarResolved;
+  try {
+    const mod = await import("keytar");
+    _keytarResolved = mod.default ?? mod;
+    return _keytarResolved;
+  } catch {
+    log.info("keytar unavailable (headless environment), using env/AWS key sources only");
+    _keytarResolved = noopKeytar;
+    return _keytarResolved;
+  }
+}
+
 /** Active keytar implementation (can be overridden in tests). */
-let _keytar: KeytarModule = keytarDefault;
+let _keytar: KeytarModule | null = null;
 
 /**
  * Replace the keytar implementation (for testing / dependency injection).
  */
 export function setKeytarLoader(keytarImpl: KeytarModule): void {
   _keytar = keytarImpl;
+  _keytarResolved = keytarImpl;
 }
 
 /**
  * Restore the default keytar implementation (for testing).
  */
 export function resetKeytarLoader(): void {
-  _keytar = keytarDefault;
+  _keytar = null;
+  _keytarResolved = null;
 }
 
 /**
@@ -163,8 +186,9 @@ export async function initMasterKey(): Promise<string> {
   }
 
   // 3. Try system keychain via keytar
+  const keytar = _keytar ?? await loadKeytar();
   try {
-    const storedKey = await _keytar.getPassword(
+    const storedKey = await keytar.getPassword(
       KEYRING_SERVICE,
       KEYRING_ACCOUNT
     );
@@ -184,7 +208,7 @@ export async function initMasterKey(): Promise<string> {
   // 4. Auto-generate and persist to keychain
   const newKey = generateMasterKey();
   try {
-    await _keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, newKey);
+    await keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, newKey);
     log.info("Master key generated and stored");
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -220,7 +244,8 @@ export function setMasterKey(masterKey: string): void {
  * @throws {Error} If keychain write fails.
  */
 export async function setMasterKeyPersistent(masterKey: string): Promise<void> {
-  await _keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, masterKey);
+  const keytar = _keytar ?? await loadKeytar();
+  await keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, masterKey);
   cachedMasterKey = masterKey;
 }
 
@@ -233,7 +258,8 @@ export async function setMasterKeyPersistent(masterKey: string): Promise<void> {
  * @throws {Error} If keychain deletion fails.
  */
 export async function deleteMasterKey(): Promise<boolean> {
-  const deleted = await _keytar.deletePassword(
+  const keytar = _keytar ?? await loadKeytar();
+  const deleted = await keytar.deletePassword(
     KEYRING_SERVICE,
     KEYRING_ACCOUNT
   );

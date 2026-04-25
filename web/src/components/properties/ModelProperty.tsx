@@ -165,7 +165,7 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType.startsWith("hf.")) {
       return (
         <HuggingFaceModelSelect
-          modelType={modelType as "hf.text_to_image" | "hf.image_to_image"}
+          modelType={modelType}
           onChange={props.onChange}
           value={props.value}
         />

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { client } from "./ApiClient";
+import { trpcClient } from "../trpc/client";
 import { createErrorMessage } from "../utils/errorHandling";
 import type { SettingWithValue } from "./ApiTypes";
 
@@ -26,28 +26,31 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
   error: null,
 
   fetchSettings: async () => {
-    const { error, data } = await client.GET("/api/settings/", {});
-    if (error) {
+    try {
+      const data = await trpcClient.settings.list.query();
+      const settings = data.settings as SettingWithValue[];
+
+      // Group settings by their group field
+      const settingsByGroup = new Map<string, SettingWithValue[]>();
+      settings.forEach((setting) => {
+        const group = setting.group;
+        if (!settingsByGroup.has(group)) {
+          settingsByGroup.set(group, []);
+        }
+        settingsByGroup.get(group)!.push(setting);
+      });
+
+      set({
+        settings,
+        settingsByGroup,
+        isLoading: false
+      });
+
+      return settings;
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
       throw createErrorMessage(error, "Failed to load settings");
     }
-
-    // Group settings by their group field
-    const settingsByGroup = new Map<string, SettingWithValue[]>();
-    (data.settings as SettingWithValue[]).forEach((setting) => {
-      const group = setting.group;
-      if (!settingsByGroup.has(group)) {
-        settingsByGroup.set(group, []);
-      }
-      settingsByGroup.get(group)!.push(setting);
-    });
-
-    set({
-      settings: data.settings as SettingWithValue[],
-      settingsByGroup,
-      isLoading: false
-    });
-
-    return data.settings as SettingWithValue[];
   },
 
   updateSettings: async (
@@ -55,16 +58,17 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
     secrets: Record<string, string> = {}
   ) => {
     set({ isLoading: true, error: null });
-    const { error } = await client.PUT("/api/settings/", {
-      body: {
-        settings: settings as Record<string, never>,
-        secrets: secrets as Record<string, never>
-      }
-    });
-    if (error) {
+    try {
+      await trpcClient.settings.update.mutate({
+        settings,
+        secrets
+      });
+      set({ isLoading: false });
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      set({ isLoading: false });
       throw createErrorMessage(error, "Failed to update settings");
     }
-    set({ isLoading: false });
   },
 
   getSettingValue: (envVar: string) => {

@@ -22,9 +22,11 @@ import { useQuery } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
 import { Workflow, UnifiedModel } from "../../stores/ApiTypes";
 import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction, client } from "../../stores/ApiClient";
+import { isProduction } from "../../lib/env";
+import { trpc } from "../../lib/trpc";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { shallow } from "zustand/shallow";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import { useGettingStartedStore } from "../../stores/GettingStartedStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -190,7 +192,7 @@ const InlineModelDownload: React.FC<{
   const { startDownload, downloads } = useModelDownloadStore((state) => ({
     startDownload: state.startDownload,
     downloads: state.downloads
-  }));
+  }), shallow);
   const downloadKey = model.repo_id || model.id;
 
   const inProgress = !!downloads[downloadKey];
@@ -323,18 +325,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
   // Check for local models (Ollama)
   const { data: ollamaModels } = useQuery({
     queryKey: ["ollamaModels"],
-    queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/ollama", {});
-      if (error) {
-        throw error;
-      }
-      // Handle potential response structures (array or object with models property)
-      if (Array.isArray(data)) { return data; }
-
-      const responseData = data as { models?: unknown[] };
-      if (responseData?.models && Array.isArray(responseData.models)) { return responseData.models; }
-      return [];
-    },
+    queryFn: () => trpc.models.ollama.query(),
     enabled: shouldShowLocalModels,
     retry: false,
     refetchOnWindowFocus: false,

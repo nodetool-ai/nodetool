@@ -26,9 +26,9 @@ The server is implemented in the `@nodetool/websocket` package (`packages/websoc
 ```bash
 # Development (from repo root)
 npm run build:packages
-npm run dev:server   # PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
+npm run dev:server   # tsx --watch packages/websocket/src/server.ts
 
-# Or directly:
+# Or directly (built dist):
 PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
 
 # Via CLI:

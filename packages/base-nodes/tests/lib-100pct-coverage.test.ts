@@ -17,8 +17,6 @@ import {
 } from "../src/nodes/lib-supabase.js";
 
 import {
-  // lib-compat
-  LIB_COMPAT_PY_NODES,
   // lib-pedalboard-extra
   PitchShiftNode,
   TimeStretchNode,
@@ -158,16 +156,6 @@ function makeNode<T>(Cls: new () => T, props: Record<string, unknown>): T {
   Object.assign(node, rest);
   return node;
 }
-
-// ── lib-compat: exercise createLibCompatNode via module internals ──
-
-describe("lib-compat coverage", () => {
-  it("module exports functions and empty array", async () => {
-    // Force the module to be fully loaded (all top-level code)
-    const mod = await import("../src/nodes/lib-compat.js");
-    expect(mod.LIB_COMPAT_PY_NODES).toEqual([]);
-  });
-});
 
 // ── lib-supabase: mock createClient for success paths ──────────
 

@@ -23,6 +23,6 @@ describe("cli settings and provider helpers", () => {
 
     const { availableProviders } = await import("../src/providers.js");
 
-    expect(availableProviders()).toEqual(["anthropic", "gemini", "ollama"]);
+    expect(availableProviders()).toEqual(["anthropic", "gemini", "lmstudio", "ollama"]);
   });
 });

@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, memo, useRef } from "react";
 import { Handle, Position, useNodeConnections } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
+import { shallow } from "zustand/shallow";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -19,12 +20,16 @@ export type NodeOutputProps = {
 };
 
 const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, isStreamingOutput }) => {
-  const connectType = useConnectionStore((state) => state.connectType);
-  const connectDirection = useConnectionStore(
-    (state) => state.connectDirection
-  );
-  const connectNodeId = useConnectionStore((state) => state.connectNodeId);
-  const connectHandleId = useConnectionStore((state) => state.connectHandleId);
+  const { connectType, connectDirection, connectNodeId, connectHandleId } =
+    useConnectionStore(
+      (state) => ({
+        connectType: state.connectType,
+        connectDirection: state.connectDirection,
+        connectNodeId: state.connectNodeId,
+        connectHandleId: state.connectHandleId
+      }),
+      shallow
+    );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);

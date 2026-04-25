@@ -42,10 +42,20 @@ const styles = (theme: Theme) =>
       paddingBottom: "100%",
       top: 0,
       bottom: 0,
-      backgroundColor: "var(--palette-grey-800)",
-      borderRadius: "0.5em",
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.045) 0%, rgb(${theme.vars.palette.common.blackChannel} / 0.18) 100%), ${theme.vars.palette.grey[800]}`,
+      borderRadius: "0.9em",
       overflow: "hidden",
-      contain: "layout style paint"
+      contain: "layout style paint",
+      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
+      boxShadow: "0 10px 24px rgb(0 0 0 / 0.12)",
+      transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease"
+    },
+    ".asset::after": {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      pointerEvents: "none",
+      background: "linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 32%)"
     },
     ".asset .image, .asset .image-aspect-ratio": {
       position: "absolute",
@@ -55,7 +65,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      transition: "opacity 0.3s"
+      transition: "opacity 0.3s, transform 0.35s ease"
     },
     ".asset .image-aspect-ratio": {
       opacity: 0,
@@ -63,11 +73,18 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[800],
       willChange: "opacity"
     },
+    "&:hover .asset": {
+      transform: "translateY(-2px)",
+      boxShadow: "0 16px 30px rgb(0 0 0 / 0.18)",
+      borderColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.1)`
+    },
     "&:hover .asset .image": {
-      opacity: 1
+      opacity: 1,
+      transform: "scale(1.02)"
     },
     "&:hover .asset .image-aspect-ratio": {
-      opacity: 1
+      opacity: 1,
+      transform: "scale(1.02)"
     },
     "& svg.placeholder": {
       position: "absolute",
@@ -98,12 +115,13 @@ const styles = (theme: Theme) =>
     },
     ".name": {
       position: "relative",
-      padding: "0 0 0 .5em",
-      width: "95%",
-      height: "3em",
+      padding: "0.2em 0.35em 0 0.35em",
+      width: "100%",
+      height: "3.2em",
       overflow: "hidden",
       backgroundColor: "transparent",
-      textAlign: "center"
+      textAlign: "center",
+      color: theme.vars.palette.grey[100]
     },
     ".name.large": {
       fontSize: theme.fontSizeSmall,
@@ -178,12 +196,13 @@ const styles = (theme: Theme) =>
     },
     // ITEM
     "&.selected:after": {
-      border: `4px solid ${theme.vars.palette.grey[900]}`,
-      outline: `8px solid ${"var(--palette-primary-main)"}`,
-      backgroundColor: `rgba(${theme.vars.palette.grey[900]} / 0.33)`,
-      outlineOffset: "-2px",
-      borderRadius: ".75em",
-      zIndex: 2000
+      border: `2px solid rgb(${theme.vars.palette.common.blackChannel} / 0.55)`,
+      outline: `2px solid ${"var(--palette-primary-main)"}`,
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.primary.mainChannel} / 0.12), rgb(${theme.vars.palette.primary.mainChannel} / 0.04))`,
+      outlineOffset: "-1px",
+      borderRadius: "1em",
+      zIndex: 2000,
+      boxShadow: `inset 0 1px 0 rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`
     },
     "&:after": {
       content: '""',
@@ -196,8 +215,9 @@ const styles = (theme: Theme) =>
       zIndex: 100
     },
     "&:hover:after": {
-      border: `2px solid ${theme.vars.palette.grey[600]}`,
-      backgroundColor: `rgba(${theme.vars.palette.info.mainChannel} / 0.13)`
+      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.12)`,
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.info.mainChannel} / 0.1), rgb(${theme.vars.palette.info.mainChannel} / 0.04))`,
+      borderRadius: "1em"
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {

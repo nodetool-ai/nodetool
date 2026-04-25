@@ -36,23 +36,18 @@ import {
   OpenAITextToSpeechTool,
   BrowserTool,
   ScreenshotTool,
-  ReadFileTool,
-  WriteFileTool,
-  ListDirectoryTool,
-  DownloadFileTool,
   HttpRequestTool,
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
   CalculatorTool,
+  RunCodeTool,
+  StatisticsTool,
+  GeometryTool,
+  ConversionTool,
   SearchEmailTool,
   ArchiveEmailTool,
   AddLabelToEmailTool,
   DataForSEOSearchTool,
   DataForSEONewsTool,
-  DataForSEOImagesTool,
-  SaveAssetTool,
-  ReadAssetTool
+  DataForSEOImagesTool
 } from "@nodetool/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -62,41 +57,97 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
+import { encode } from "@msgpack/msgpack";
 import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
-
-// Auth: extend FastifyRequest with userId
-declare module "fastify" {
-  interface FastifyRequest {
-    userId: string | null;
-  }
-}
+import {
+  fastifyTRPCPlugin,
+  type FastifyTRPCPluginOptions
+} from "@trpc/server/adapters/fastify";
+import { appRouter, type AppRouter } from "./trpc/router.js";
+import { createContextFactory } from "./trpc/context.js";
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
 import assetsRoutes from "./routes/assets.js";
 import workflowsRoutes from "./routes/workflows.js";
 import jobsRoutes from "./routes/jobs.js";
-import messagesRoutes from "./routes/messages.js";
-import threadsRoutes from "./routes/threads.js";
 import nodesRoutes from "./routes/nodes.js";
-import settingsRoutes from "./routes/settings.js";
 import storageRoutes from "./routes/storage.js";
-import usersRoutes from "./routes/users.js";
 import openaiRoutes from "./routes/openai.js";
 import oauthRoutes from "./routes/oauth.js";
 import workspaceRoutes from "./routes/workspace.js";
 import filesRoutes from "./routes/files.js";
-import costsRoutes from "./routes/costs.js";
-import skillsRoutes from "./routes/skills.js";
 import collectionsRoutes from "./routes/collections.js";
-import modelsRoutes from "./routes/models.js";
-import mcpConfigRoutes from "./routes/mcp-config.js";
 import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 
 const log = createLogger("nodetool.websocket.server");
 const startupT0 = performance.now();
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;
+}
+
+type ResourceChangeEvent = "created" | "updated" | "deleted";
+
+async function broadcastResourceChange(
+  app: FastifyInstance,
+  change: {
+    event: ResourceChangeEvent;
+    resource_type: string;
+    resource: Record<string, unknown>;
+  }
+): Promise<void> {
+  const message = encode({
+    type: "resource_change",
+    ...change
+  });
+
+  for (const client of app.websocketServer.clients) {
+    if (client.readyState === 1) {
+      client.send(message);
+    }
+  }
+}
+
+async function notifyPythonBridgeResourceChanges(
+  app: FastifyInstance,
+  pythonBridge: PythonStdioBridge
+): Promise<void> {
+  await broadcastResourceChange(app, {
+    event: "updated",
+    resource_type: "metadata",
+    resource: { id: "nodes", etag: String(Date.now()) }
+  });
+
+  const registered = await registerPythonProviders(pythonBridge);
+  if (registered.length > 0) {
+    log.info(`Registered Python providers: ${registered.join(", ")}`);
+  }
+
+  const discoveredProviders = await pythonBridge.listProviders();
+  const registeredProviders = new Set(registered);
+
+  for (const provider of discoveredProviders) {
+    await broadcastResourceChange(app, {
+      event: registeredProviders.has(provider.id) ? "created" : "updated",
+      resource_type: "provider",
+      resource: {
+        id: provider.id,
+        provider: provider.id,
+        capabilities: provider.capabilities,
+        etag: String(Date.now())
+      }
+    });
+
+    await broadcastResourceChange(app, {
+      event: "updated",
+      resource_type: "model",
+      resource: {
+        id: provider.id,
+        provider: provider.id,
+        etag: String(Date.now())
+      }
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -252,6 +303,32 @@ const pythonBridge = new PythonStdioBridge({
 
 let pythonBridgeReady = false;
 
+function logPythonBridgeDiagnostics(context: string): void {
+  const loadErrors = (
+    pythonBridge as {
+      getLoadErrors?: () => Array<{
+        module: string;
+        phase: string;
+        error: string;
+      }>;
+    }
+  ).getLoadErrors?.() ?? [];
+  if (loadErrors.length === 0) return;
+  log.warn(
+    `Python bridge ${context} with ${loadErrors.length} load error(s)`
+  );
+  for (const entry of loadErrors.slice(0, 10)) {
+    log.warn(
+      `[python-worker][load-error] ${entry.module} (${entry.phase}): ${entry.error}`
+    );
+  }
+  if (loadErrors.length > 10) {
+    log.warn(
+      `[python-worker][load-error] ... ${loadErrors.length - 10} additional load error(s) omitted`
+    );
+  }
+}
+
 pythonBridge.on("stderr", (msg: string) => {
   for (const line of msg.split("\n")) {
     if (line.trim()) log.debug(`[python-worker] ${line}`);
@@ -278,23 +355,18 @@ const builtinToolClasses: (new () => Tool)[] = [
   OpenAITextToSpeechTool,
   BrowserTool,
   ScreenshotTool,
-  ReadFileTool,
-  WriteFileTool,
-  ListDirectoryTool,
-  DownloadFileTool,
   HttpRequestTool,
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
   CalculatorTool,
+  RunCodeTool,
+  StatisticsTool,
+  GeometryTool,
+  ConversionTool,
   SearchEmailTool,
   ArchiveEmailTool,
   AddLabelToEmailTool,
   DataForSEOSearchTool,
   DataForSEONewsTool,
-  DataForSEOImagesTool,
-  SaveAssetTool,
-  ReadAssetTool
+  DataForSEOImagesTool
 ];
 
 // Lazy tool class map — defers instantiation until first access.
@@ -374,7 +446,14 @@ const app: FastifyInstance = (Fastify as any)({
   trustProxy: true,
   bodyLimit: 100 * 1024 * 1024, // 100 MB
   logger: false,
-  ignoreTrailingSlash: true,
+  // tRPC's httpBatchLink encodes all batched procedure names into a single
+  // URL path segment joined with commas (e.g. `/trpc/foo,bar,baz`). Fastify's
+  // default `maxParamLength` of 100 rejects larger batches with a 404 — bump
+  // it so batches up to ~50 procedures route correctly.
+  routerOptions: {
+    ignoreTrailingSlash: true,
+    maxParamLength: 2000
+  },
   genReqId: (req: {
     headers: Record<string, string | string[] | undefined>;
   }) => {
@@ -432,7 +511,14 @@ app.addHook("onRequest", async (req, reply) => {
   }
 
   // Static frontend assets don't require auth (served by fastifyStatic)
-  if (hasStaticApp && req.method === "GET" && !pathname.startsWith("/api") && !pathname.startsWith("/ws") && !pathname.startsWith("/v1")) {
+  if (
+    hasStaticApp &&
+    req.method === "GET" &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/ws") &&
+    !pathname.startsWith("/v1") &&
+    !pathname.startsWith("/trpc")
+  ) {
     return;
   }
 
@@ -497,14 +583,54 @@ const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
 // Register route plugins
 // ---------------------------------------------------------------------------
 
+const createContext = createContextFactory({
+  registry,
+  apiOptions,
+  pythonBridge,
+  getPythonBridgeReady: () => pythonBridgeReady
+});
+
+await app.register(fastifyTRPCPlugin, {
+  prefix: "/trpc",
+  trpcOptions: {
+    router: appRouter,
+    createContext,
+    onError({ path, error }) {
+      log.error(
+        `tRPC error on ${path}`,
+        error instanceof Error ? error : new Error(String(error))
+      );
+      // Surface inner ZodError details (output validation failures) so callers
+      // can diagnose the offending fields instead of seeing only "Output
+      // validation failed".
+      const cause = (error as { cause?: unknown }).cause;
+      if (cause && typeof cause === "object" && "issues" in cause) {
+        log.error(
+          `tRPC error cause on ${path}: ${JSON.stringify((cause as { issues: unknown }).issues)}`
+        );
+      }
+    }
+  } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"]
+});
+
 await app.register(websocketPlugin, {
   registry,
   pythonBridge,
   getPythonBridgeReady: () => pythonBridgeReady,
   ensurePythonBridge: async () => {
     if (pythonBridgeReady) return;
-    await pythonBridge.ensureConnected();
+    log.info(`Lazily starting Python bridge [${startupMs()}]`);
+    try {
+      await pythonBridge.ensureConnected();
+    } catch (err) {
+      log.warn(
+        `Python bridge lazy start failed [${startupMs()}]`,
+        err instanceof Error ? err : new Error(String(err))
+      );
+      throw err;
+    }
     pythonBridgeReady = true;
+    log.info(`Python bridge lazy start completed [${startupMs()}]`);
     const meta = pythonBridge.getNodeMetadata();
     // Register Python bridge nodes — skip those already loaded from JSON metadata
     let bridgeOnly = 0;
@@ -528,35 +654,47 @@ await app.register(websocketPlugin, {
     log.info(
       `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
     );
-    // Notify connected clients to reload metadata
-    try {
-      const { encode } = await import("@msgpack/msgpack");
-      const msg = encode({
-        type: "resource_change",
-        event: "updated",
-        resource_type: "metadata",
-        resource: { id: "nodes", etag: String(Date.now()) }
-      });
-      for (const client of app.websocketServer.clients) {
-        if (client.readyState === 1) {
-          client.send(msg);
-        }
+    (
+      pythonBridge as {
+        getWorkerStatus?: () => Promise<{
+          protocol_version: number;
+          node_count: number;
+          provider_count: number;
+          namespaces: string[];
+          transport: string;
+          max_frame_size: number;
+          load_errors: Array<unknown>;
+        }>;
       }
-    } catch {
-      // broadcast is best-effort
-    }
-    registerPythonProviders(pythonBridge)
-      .then((registered) => {
-        if (registered.length > 0) {
-          log.info(`Registered Python providers: ${registered.join(", ")}`);
-        }
+    )
+      .getWorkerStatus?.()
+      ?.then((status) => {
+        log.info(
+          `Python bridge status [${startupMs()}]`,
+          {
+            protocol_version: status.protocol_version,
+            node_count: status.node_count,
+            provider_count: status.provider_count,
+            namespaces: status.namespaces,
+            transport: status.transport,
+            max_frame_size: status.max_frame_size,
+            load_error_count: status.load_errors.length
+          }
+        );
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         log.warn(
-          "Failed to register Python providers",
+          `Failed to fetch Python bridge status [${startupMs()}]`,
           err instanceof Error ? err : new Error(String(err))
         );
       });
+    logPythonBridgeDiagnostics("connected");
+    notifyPythonBridgeResourceChanges(app, pythonBridge).catch((err) => {
+      log.warn(
+        "Failed to notify Python bridge resource changes",
+        err instanceof Error ? err : new Error(String(err))
+      );
+    });
   },
   toolClassMap
 });
@@ -569,24 +707,17 @@ const routeOpts = { apiOptions };
 await app.register(assetsRoutes, routeOpts);
 await app.register(workflowsRoutes, routeOpts);
 await app.register(jobsRoutes, routeOpts);
-await app.register(messagesRoutes, routeOpts);
-await app.register(threadsRoutes, routeOpts);
 await app.register(nodesRoutes, routeOpts);
-await app.register(settingsRoutes, routeOpts);
 await app.register(storageRoutes, routeOpts);
-await app.register(usersRoutes, routeOpts);
 await app.register(openaiRoutes, routeOpts);
 await app.register(oauthRoutes, routeOpts);
 await app.register(workspaceRoutes, routeOpts);
 await app.register(filesRoutes, routeOpts);
-await app.register(costsRoutes, routeOpts);
-await app.register(skillsRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
-await app.register(modelsRoutes, routeOpts);
 // MCP endpoints are only available in local/dev mode — not in production.
+// The configuration endpoints moved to the tRPC `mcpConfig` router; the
+// `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
 if (!isProduction) {
-  await app.register(mcpConfigRoutes);
-
   app.all("/mcp", async (req, reply) => {
     const protocol = httpsOptions ? "https" : "http";
     const url = `${protocol}://${req.headers.host ?? `127.0.0.1:${port}`}${req.url}`;
@@ -667,6 +798,7 @@ app.setNotFoundHandler((req, reply) => {
     !pathname.startsWith("/ws") &&
     !pathname.startsWith("/v1") &&
     !pathname.startsWith("/oauth") &&
+    !pathname.startsWith("/trpc") &&
     !pathname.includes(".")
   ) {
     return reply.sendFile("index.html");
@@ -725,6 +857,7 @@ app.listen({ port, host }, (err) => {
 
 async function shutdown(signal: string): Promise<void> {
   log.info(`${signal} received — shutting down`);
+  log.info("Closing Python bridge");
   try {
     getAgentRuntime().closeAllSessions();
   } catch {
@@ -749,10 +882,12 @@ if (process.platform === "win32") {
 
 // Start Python bridge eagerly if Python is installed.
 if (pythonBridge.hasPython()) {
+  log.info(`Starting Python bridge eagerly [${startupMs()}]`);
   pythonBridge
     .ensureConnected()
     .then(() => {
       pythonBridgeReady = true;
+      log.info(`Python bridge eager start completed [${startupMs()}]`);
       const meta = pythonBridge.getNodeMetadata();
       let bridgeOnly = 0;
       for (const nodeMeta of meta) {
@@ -775,34 +910,47 @@ if (pythonBridge.hasPython()) {
       log.info(
         `Python bridge connected [${startupMs()}] — ${meta.length} Python nodes (${bridgeOnly} bridge-only, ${meta.length - bridgeOnly} from JSON)`
       );
-      // Notify connected clients to reload metadata
-      import("@msgpack/msgpack")
-        .then(({ encode }) => {
-          const msg = encode({
-            type: "resource_change",
-            event: "updated",
-            resource_type: "metadata",
-            resource: { id: "nodes", etag: String(Date.now()) }
-          });
-          for (const client of app.websocketServer.clients) {
-            if (client.readyState === 1) {
-              client.send(msg);
+      (
+        pythonBridge as {
+          getWorkerStatus?: () => Promise<{
+            protocol_version: number;
+            node_count: number;
+            provider_count: number;
+            namespaces: string[];
+            transport: string;
+            max_frame_size: number;
+            load_errors: Array<unknown>;
+          }>;
+        }
+      )
+        .getWorkerStatus?.()
+        ?.then((status) => {
+          log.info(
+            `Python bridge status [${startupMs()}]`,
+            {
+              protocol_version: status.protocol_version,
+              node_count: status.node_count,
+              provider_count: status.provider_count,
+              namespaces: status.namespaces,
+              transport: status.transport,
+              max_frame_size: status.max_frame_size,
+              load_error_count: status.load_errors.length
             }
-          }
+          );
         })
-        .catch(() => {});
-      registerPythonProviders(pythonBridge)
-        .then((registered) => {
-          if (registered.length > 0) {
-            log.info(`Registered Python providers: ${registered.join(", ")}`);
-          }
-        })
-        .catch((err) => {
+        .catch((err: unknown) => {
           log.warn(
-            "Failed to register Python providers",
+            `Failed to fetch Python bridge status [${startupMs()}]`,
             err instanceof Error ? err : new Error(String(err))
           );
         });
+      logPythonBridgeDiagnostics("connected");
+      notifyPythonBridgeResourceChanges(app, pythonBridge).catch((err) => {
+        log.warn(
+          "Failed to notify Python bridge resource changes",
+          err instanceof Error ? err : new Error(String(err))
+        );
+      });
     })
     .catch((err) => {
       log.warn(
@@ -811,5 +959,9 @@ if (pythonBridge.hasPython()) {
       );
     });
 } else {
-  log.info("Python not found — Python nodes will not be available");
+  log.info(
+    isProduction
+      ? "Python bridge disabled in production — Python nodes will not be available"
+      : "Python not found — Python nodes will not be available"
+  );
 }

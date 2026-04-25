@@ -1,79 +1,172 @@
-import createClient, { type Middleware } from 'openapi-fetch';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { paths, components } from '../api';
+import { components } from '../api';
+import type {
+  ASRModel as AppASRModel,
+  ImageModel as AppImageModel,
+  LanguageModel as AppLanguageModel,
+  ProviderInfo as AppProviderInfo,
+  TTSModel as AppTTSModel,
+  VideoModel as AppVideoModel,
+  Workflow as AppWorkflow,
+} from '../types/ApiTypes';
 import { useAuthStore } from '../stores/AuthStore';
+import { createMobileTRPCClient } from '../trpc/client';
+import {
+  getApiHost as getSharedApiHost,
+  loadApiHost as loadSharedApiHost,
+  saveApiHost as saveSharedApiHost,
+  setCachedApiHost,
+} from './apiHost';
 
 export type Asset = components["schemas"]["Asset"];
 export type AssetList = components["schemas"]["AssetList"];
 export type AssetUpdateRequest = components["schemas"]["AssetUpdateRequest"];
 export type AssetSearchResult = components["schemas"]["AssetSearchResult"];
 export type AssetWithPath = components["schemas"]["AssetWithPath"];
-export type SecretResponse = components["schemas"]["SecretResponse"];
-export type SecretsListResponse = components["schemas"]["SecretsListResponse"];
-export type SecretUpdateRequest = components["schemas"]["SecretUpdateRequest"];
-export type CollectionResponse = components["schemas"]["CollectionResponse"];
-export type CollectionList = components["schemas"]["CollectionList"];
-export type CollectionCreate = components["schemas"]["CollectionCreate"];
-export type CollectionModify = components["schemas"]["CollectionModify"];
 export type JobResponse = components["schemas"]["JobResponse"];
 export type JobListResponse = components["schemas"]["JobListResponse"];
-export type Thread = components["schemas"]["Thread"];
-export type ThreadList = components["schemas"]["ThreadList"];
-export type ThreadUpdateRequest = components["schemas"]["ThreadUpdateRequest"];
 
-const API_HOST_KEY = '@nodetool_api_host';
-const DEFAULT_API_HOST = 'http://localhost:7777';
+// ── Types for tRPC-migrated domains ───────────────────────────────────────────
+// These shapes match the tRPC output schemas exactly and replace the openapi-
+// generated equivalents that were removed from the REST API.
+
+export interface SecretResponse {
+  id?: string;
+  user_id?: string;
+  key: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+  is_configured: boolean;
+  is_unreadable?: boolean;
+  value?: string;
+}
+
+export interface SecretsListResponse {
+  secrets: SecretResponse[];
+  next_key: string | null;
+}
+
+export interface SecretUpdateRequest {
+  value: string;
+  description?: string | null;
+}
+
+export interface CollectionResponse {
+  name: string;
+  count: number;
+  metadata?: Record<string, string | number | boolean>;
+  workflow_name?: string | null;
+}
+
+export interface CollectionList {
+  collections: CollectionResponse[];
+  count: number;
+}
+
+export interface CollectionCreate {
+  name: string;
+  embedding_model?: string;
+  embedding_provider?: string;
+}
+
+export interface CollectionModify {
+  rename?: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+
+export interface Thread {
+  id: string;
+  user_id: string;
+  title: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  etag?: string;
+}
+
+export interface ThreadList {
+  threads: Thread[];
+  next: string | null;
+}
+
+export interface ThreadUpdateRequest {
+  title: string;
+}
+
+export interface WorkflowGraphInput {
+  nodes: Array<{
+    id: string;
+    type: string;
+    [key: string]: unknown;
+  }>;
+  edges: Array<{
+    source: string;
+    sourceHandle: string;
+    target: string;
+    targetHandle: string;
+    id?: string | null;
+    [key: string]: unknown;
+  }>;
+}
+
+function normalizeWorkflow(workflow: Record<string, unknown>): AppWorkflow {
+  return {
+    ...workflow,
+    description: (workflow.description as string | null | undefined) ?? '',
+  } as AppWorkflow;
+}
+
+function normalizeModels<T extends { id: string; name: string }>(
+  models: Array<Record<string, unknown>>,
+  provider: string
+): T[] {
+  return models.map((model) => ({
+    ...model,
+    provider,
+    type: (model.type as string | null | undefined) ?? null,
+  })) as unknown as T[];
+}
 
 class ApiService {
-  private client: ReturnType<typeof createClient<paths>>;
-  private apiHost: string = DEFAULT_API_HOST;
-
-  constructor() {
-    this.client = createClient<paths>({
-      baseUrl: this.apiHost,
-    });
-    this.setupMiddleware();
+  private async authHeaders(): Promise<Record<string, string>> {
+    const session = useAuthStore.getState().session;
+    return session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : {};
   }
 
-  private setupMiddleware() {
-    const authMiddleware: Middleware = {
-      onRequest: async ({ request }) => {
-        const session = useAuthStore.getState().session;
-        if (session?.access_token) {
-          request.headers.set('Authorization', `Bearer ${session.access_token}`);
-        }
-        console.log(`[API Request] ${request.method} ${request.url}`);
-        return request;
-      },
-      onResponse: async ({ response, request }) => {
-        console.log(`[API Response] ${response.status} ${request.url}`);
-        return response;
-      },
-    };
-    
-    // Eject existing middleware if any - openapi-fetch < 0.8 doesn't support eject easily 
-    // but in a class we can just recreate the client on host change. 
-    // For now, just add.
-    this.client.use(authMiddleware);
+  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const headers = new Headers(init.headers);
+    const authHeaders = await this.authHeaders();
+    Object.entries(authHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
+
+    const response = await fetch(`${getSharedApiHost()}${path}`, {
+      ...init,
+      headers,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Request failed (${response.status}): ${text}`);
+    }
+
+    return await response.json() as T;
   }
 
   async loadApiHost(): Promise<string> {
     try {
-      const savedHost = await AsyncStorage.getItem(API_HOST_KEY);
-      if (savedHost) {
-        this.apiHost = savedHost;
-        this.updateBaseURL(savedHost);
-      }
+      const host = await loadSharedApiHost();
+      this.updateBaseURL(host);
     } catch (error) {
       console.error('Failed to load API host:', error);
     }
-    return this.apiHost;
+    return getSharedApiHost();
   }
 
   async saveApiHost(host: string): Promise<void> {
     try {
-      this.apiHost = host;
-      await AsyncStorage.setItem(API_HOST_KEY, host);
+      await saveSharedApiHost(host);
       this.updateBaseURL(host);
     } catch (error) {
       console.error('Failed to save API host:', error);
@@ -82,145 +175,128 @@ class ApiService {
   }
 
   getApiHost(): string {
-    return this.apiHost;
+    return getSharedApiHost();
   }
 
   private updateBaseURL(host: string): void {
-    // Recreate client to update base URL
-    this.client = createClient<paths>({
-      baseUrl: host,
-    });
-    this.setupMiddleware();
+    setCachedApiHost(host);
   }
 
-  async getWorkflows(limit: number = 100): Promise<paths["/api/workflows/"]["get"]["responses"][200]["content"]["application/json"] | undefined> {
-    const { data, error } = await this.client.GET('/api/workflows/', {
-      params: {
-        query: { limit },
-      },
-    });
-    if (error) {throw error;}
-    return data;
+  async getWorkflows(limit: number = 100) {
+    const trpc = createMobileTRPCClient();
+    const result = await trpc.workflows.list.query({ limit });
+    return {
+      ...result,
+      workflows: result.workflows.map((workflow) =>
+        normalizeWorkflow(workflow as unknown as Record<string, unknown>)
+      ),
+    };
   }
 
-  async getWorkflow(id: string): Promise<paths["/api/workflows/{id}"]["get"]["responses"][200]["content"]["application/json"] | undefined> {
-    const { data, error } = await this.client.GET('/api/workflows/{id}', {
-      params: {
-        path: { id },
-      },
-    });
-    if (error) {throw error;}
-    return data;
+  async getWorkflow(id: string) {
+    const trpc = createMobileTRPCClient();
+    const workflow = await trpc.workflows.get.query({ id });
+    return normalizeWorkflow(workflow as unknown as Record<string, unknown>);
   }
 
-  async runWorkflow(id: string, params: Record<string, unknown>): Promise<paths["/api/workflows/{id}/run"]["post"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.POST('/api/workflows/{id}/run', {
-      params: {
-        path: { id },
-      },
-      body: params as paths["/api/workflows/{id}/run"]["post"]["requestBody"]["content"]["application/json"],
-    });
-    if (error) {throw error;}
-    return data as paths["/api/workflows/{id}/run"]["post"]["responses"][200]["content"]["application/json"];
+  async runWorkflow(id: string, params: Record<string, unknown>) {
+    const trpc = createMobileTRPCClient();
+    return trpc.workflows.run.mutate({ id, params });
   }
 
-  async getProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.GET('/api/models/providers');
-    if (error) { throw error; }
-    return data || [];
+  async getProviders(): Promise<AppProviderInfo[]> {
+    const trpc = createMobileTRPCClient();
+    return trpc.models.providers.query() as Promise<AppProviderInfo[]>;
   }
 
-  async getProvidersByCapability(capability: string): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
+  async getProvidersByCapability(capability: string) {
     const all = await this.getProviders();
     return all.filter((p) => p.capabilities?.includes(capability));
   }
 
-  async getLanguageModelProviders(): Promise<paths["/api/models/providers"]["get"]["responses"][200]["content"]["application/json"]> {
+  async getLanguageModelProviders() {
     return this.getProvidersByCapability('generate_message');
   }
 
-  async getLanguageModels(provider: string): Promise<paths["/api/models/llm/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.GET('/api/models/llm/{provider}', {
-      params: {
-        path: { provider: provider as paths["/api/models/llm/{provider}"]["get"]["parameters"]["path"]["provider"] },
-      },
-    });
-    if (error) { throw error; }
-    return data || [];
+  async getLanguageModels(provider: string): Promise<AppLanguageModel[]> {
+    const trpc = createMobileTRPCClient();
+    const models = await trpc.models.llmByProvider.query({ provider });
+    return normalizeModels<AppLanguageModel>(
+      models as unknown as Array<Record<string, unknown>>,
+      provider
+    );
   }
 
-  async getImageModels(provider: string): Promise<paths["/api/models/image/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.GET('/api/models/image/{provider}', {
-      params: {
-        path: { provider: provider as paths["/api/models/image/{provider}"]["get"]["parameters"]["path"]["provider"] },
-      },
-    });
-    if (error) { throw error; }
-    return data || [];
+  async getImageModels(provider: string): Promise<AppImageModel[]> {
+    const trpc = createMobileTRPCClient();
+    const models = await trpc.models.imageByProvider.query({ provider });
+    return normalizeModels<AppImageModel>(
+      models as unknown as Array<Record<string, unknown>>,
+      provider
+    );
   }
 
-  async getTTSModels(provider: string): Promise<paths["/api/models/tts/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.GET('/api/models/tts/{provider}', {
-      params: {
-        path: { provider: provider as paths["/api/models/tts/{provider}"]["get"]["parameters"]["path"]["provider"] },
-      },
-    });
-    if (error) { throw error; }
-    return data || [];
+  async getTTSModels(provider: string): Promise<AppTTSModel[]> {
+    const trpc = createMobileTRPCClient();
+    const models = await trpc.models.ttsByProvider.query({ provider });
+    return normalizeModels<AppTTSModel>(
+      models as unknown as Array<Record<string, unknown>>,
+      provider
+    );
   }
 
-  async getASRModels(provider: string): Promise<paths["/api/models/asr/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.GET('/api/models/asr/{provider}', {
-      params: {
-        path: { provider: provider as paths["/api/models/asr/{provider}"]["get"]["parameters"]["path"]["provider"] },
-      },
-    });
-    if (error) { throw error; }
-    return data || [];
+  async getASRModels(provider: string): Promise<AppASRModel[]> {
+    const trpc = createMobileTRPCClient();
+    const models = await trpc.models.asrByProvider.query({ provider });
+    return normalizeModels<AppASRModel>(
+      models as unknown as Array<Record<string, unknown>>,
+      provider
+    );
   }
 
-  async getVideoModels(provider: string): Promise<paths["/api/models/video/{provider}"]["get"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.GET('/api/models/video/{provider}', {
-      params: {
-        path: { provider: provider as paths["/api/models/video/{provider}"]["get"]["parameters"]["path"]["provider"] },
-      },
-    });
-    if (error) { throw error; }
-    return data || [];
+  async getVideoModels(provider: string): Promise<AppVideoModel[]> {
+    const trpc = createMobileTRPCClient();
+    const models = await trpc.models.videoByProvider.query({ provider });
+    return normalizeModels<AppVideoModel>(
+      models as unknown as Array<Record<string, unknown>>,
+      provider
+    );
   }
 
-  async getNodeMetadata(): Promise<paths["/api/nodes/metadata"]["get"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.GET('/api/nodes/metadata');
-    if (error) { throw error; }
-    return data || [];
+  async getNodeMetadata() {
+    return this.request<components["schemas"]["NodeMetadata"][]>('/api/nodes/metadata');
   }
 
   async saveWorkflow(workflow: {
     id: string;
     name: string;
     description: string;
-    graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+    graph: WorkflowGraphInput;
     access?: string;
-  }): Promise<paths["/api/workflows/{id}"]["put"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.PUT('/api/workflows/{id}', {
-      params: { path: { id: workflow.id } },
-      body: workflow as unknown as paths["/api/workflows/{id}"]["put"]["requestBody"]["content"]["application/json"],
+  }) {
+    const trpc = createMobileTRPCClient();
+    return trpc.workflows.update.mutate({
+      id: workflow.id,
+      name: workflow.name,
+      description: workflow.description,
+      graph: workflow.graph,
+      ...(workflow.access ? { access: workflow.access } : {}),
     });
-    if (error) { throw error; }
-    return data as paths["/api/workflows/{id}"]["put"]["responses"][200]["content"]["application/json"];
   }
 
   async createWorkflow(workflow: {
     name: string;
     description: string;
-    graph: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+    graph: WorkflowGraphInput;
     access?: string;
-  }): Promise<paths["/api/workflows/"]["post"]["responses"][200]["content"]["application/json"]> {
-    const { data, error } = await this.client.POST('/api/workflows/', {
-      body: workflow as paths["/api/workflows/"]["post"]["requestBody"]["content"]["application/json"],
+  }) {
+    const trpc = createMobileTRPCClient();
+    return trpc.workflows.create.mutate({
+      name: workflow.name,
+      description: workflow.description,
+      graph: workflow.graph,
+      ...(workflow.access ? { access: workflow.access } : {}),
     });
-    if (error) { throw error; }
-    return data as paths["/api/workflows/"]["post"]["responses"][200]["content"]["application/json"];
   }
 
   async listAssets(params: {
@@ -229,19 +305,20 @@ class ApiService {
     cursor?: string | null;
     page_size?: number | null;
   } = {}): Promise<AssetList> {
-    const { data, error } = await this.client.GET('/api/assets/', {
-      params: { query: params },
-    });
-    if (error) { throw error; }
-    return data as AssetList;
+    const trpc = createMobileTRPCClient();
+    return trpc.assets.list.query({
+      ...(params.parent_id != null ? { parent_id: params.parent_id } : {}),
+      ...(params.content_type != null ? { content_type: params.content_type } : {}),
+      ...(params.cursor ? { cursor: params.cursor } : {}),
+      ...(params.page_size !== undefined && params.page_size !== null
+        ? { page_size: params.page_size }
+        : {}),
+    }) as Promise<AssetList>;
   }
 
   async getAsset(id: string): Promise<Asset> {
-    const { data, error } = await this.client.GET('/api/assets/{id}', {
-      params: { path: { id } },
-    });
-    if (error) { throw error; }
-    return data as Asset;
+    const trpc = createMobileTRPCClient();
+    return trpc.assets.get.query({ id }) as Promise<Asset>;
   }
 
   async searchAssets(params: {
@@ -250,20 +327,28 @@ class ApiService {
     page_size?: number | null;
     cursor?: string | null;
   }): Promise<AssetSearchResult> {
-    const { data, error } = await this.client.GET('/api/assets/search', {
-      params: { query: params },
-    });
-    if (error) { throw error; }
-    return data as AssetSearchResult;
+    const trpc = createMobileTRPCClient();
+    return trpc.assets.search.query({
+      query: params.query,
+      ...(params.content_type != null ? { content_type: params.content_type } : {}),
+      ...(params.page_size !== undefined && params.page_size !== null
+        ? { page_size: params.page_size }
+        : {}),
+      ...(params.cursor ? { cursor: params.cursor } : {}),
+    }) as unknown as Promise<AssetSearchResult>;
   }
 
   async updateAsset(id: string, update: AssetUpdateRequest): Promise<Asset> {
-    const { data, error } = await this.client.PUT('/api/assets/{id}', {
-      params: { path: { id } },
-      body: update,
-    });
-    if (error) { throw error; }
-    return data as Asset;
+    const trpc = createMobileTRPCClient();
+    return trpc.assets.update.mutate({
+      id,
+      ...(update.name != null ? { name: update.name } : {}),
+      ...(update.parent_id != null ? { parent_id: update.parent_id } : {}),
+      ...(update.content_type != null ? { content_type: update.content_type } : {}),
+      ...(update.data !== undefined ? { data: update.data } : {}),
+      ...(update.metadata != null ? { metadata: update.metadata } : {}),
+      ...(update.size != null ? { size: update.size } : {}),
+    }) as Promise<Asset>;
   }
 
   async uploadAsset(params: {
@@ -292,7 +377,7 @@ class ApiService {
       headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
-    const response = await fetch(`${this.apiHost}/api/assets`, {
+    const response = await fetch(`${getSharedApiHost()}/api/assets`, {
       method: 'POST',
       headers,
       body: formData,
@@ -305,10 +390,8 @@ class ApiService {
   }
 
   async deleteAsset(id: string): Promise<void> {
-    const { error } = await this.client.DELETE('/api/assets/{id}', {
-      params: { path: { id } },
-    });
-    if (error) { throw error; }
+    const trpc = createMobileTRPCClient();
+    await trpc.assets.delete.mutate({ id });
   }
 
   resolveUrl(urlOrPath: string | null | undefined): string | null {
@@ -316,88 +399,74 @@ class ApiService {
     if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
       return urlOrPath;
     }
-    return `${this.apiHost}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
+    return `${getSharedApiHost()}${urlOrPath.startsWith('/') ? '' : '/'}${urlOrPath}`;
   }
 
   getWebSocketUrl(path: string): string {
-    const wsProtocol = this.apiHost.startsWith('https') ? 'wss:' : 'ws:';
-    const url = this.apiHost.replace(/^https?:/, wsProtocol);
+    const wsProtocol = getSharedApiHost().startsWith('https') ? 'wss:' : 'ws:';
+    const url = getSharedApiHost().replace(/^https?:/, wsProtocol);
     return `${url}${path}`;
   }
 
-  // ---------------------- Secrets ----------------------
+  // ---------------------- Secrets (tRPC) ----------------------
 
   async listSecrets(): Promise<SecretsListResponse> {
-    const { data, error } = await this.client.GET('/api/settings/secrets');
-    if (error) { throw error; }
-    return (data || { secrets: [], next_key: null }) as SecretsListResponse;
+    const trpc = createMobileTRPCClient();
+    return trpc.settings.secrets.list.query();
   }
 
   async getSecret(key: string, decrypt = false): Promise<SecretResponse> {
-    const { data, error } = await this.client.GET('/api/settings/secrets/{key}', {
-      params: {
-        path: { key },
-        query: { decrypt },
-      },
-    });
-    if (error) { throw error; }
-    return data as SecretResponse;
+    const trpc = createMobileTRPCClient();
+    return trpc.settings.secrets.get.query({ key, decrypt });
   }
 
   async updateSecret(key: string, update: SecretUpdateRequest): Promise<SecretResponse> {
-    const { data, error } = await this.client.PUT('/api/settings/secrets/{key}', {
-      params: { path: { key } },
-      body: update,
+    const trpc = createMobileTRPCClient();
+    return trpc.settings.secrets.upsert.mutate({
+      key,
+      value: update.value,
+      ...(update.description !== undefined ? { description: update.description ?? undefined } : {}),
     });
-    if (error) { throw error; }
-    return data as SecretResponse;
   }
 
   async deleteSecret(key: string): Promise<void> {
-    const { error } = await this.client.DELETE('/api/settings/secrets/{key}', {
-      params: { path: { key } },
-    });
-    if (error) { throw error; }
+    const trpc = createMobileTRPCClient();
+    await trpc.settings.secrets.delete.mutate({ key });
   }
 
-  // ---------------------- Collections ----------------------
+  // ---------------------- Collections (tRPC) ----------------------
 
   async listCollections(): Promise<CollectionList> {
-    const { data, error } = await this.client.GET('/api/collections/');
-    if (error) { throw error; }
-    return (data || { collections: [], count: 0 }) as CollectionList;
+    const trpc = createMobileTRPCClient();
+    return trpc.collections.list.query();
   }
 
   async getCollection(name: string): Promise<CollectionResponse> {
-    const { data, error } = await this.client.GET('/api/collections/{name}', {
-      params: { path: { name } },
-    });
-    if (error) { throw error; }
-    return data as CollectionResponse;
+    const trpc = createMobileTRPCClient();
+    return trpc.collections.get.query({ name });
   }
 
   async createCollection(body: CollectionCreate): Promise<CollectionResponse> {
-    const { data, error } = await this.client.POST('/api/collections/', {
-      body,
+    const trpc = createMobileTRPCClient();
+    return trpc.collections.create.mutate({
+      name: body.name,
+      ...(body.embedding_model ? { embedding_model: body.embedding_model } : {}),
+      ...(body.embedding_provider ? { embedding_provider: body.embedding_provider } : {}),
     });
-    if (error) { throw error; }
-    return data as CollectionResponse;
   }
 
   async updateCollection(name: string, body: CollectionModify): Promise<CollectionResponse> {
-    const { data, error } = await this.client.PUT('/api/collections/{name}', {
-      params: { path: { name } },
-      body,
+    const trpc = createMobileTRPCClient();
+    return trpc.collections.update.mutate({
+      name,
+      ...(body.rename ? { rename: body.rename } : {}),
+      ...(body.metadata ? { metadata: body.metadata } : {}),
     });
-    if (error) { throw error; }
-    return data as CollectionResponse;
   }
 
   async deleteCollection(name: string): Promise<void> {
-    const { error } = await this.client.DELETE('/api/collections/{name}', {
-      params: { path: { name } },
-    });
-    if (error) { throw error; }
+    const trpc = createMobileTRPCClient();
+    await trpc.collections.delete.mutate({ name });
   }
 
   // ---------------------- Jobs ----------------------
@@ -407,64 +476,52 @@ class ApiService {
     limit?: number;
     start_key?: string | null;
   } = {}): Promise<JobListResponse> {
-    const { data, error } = await this.client.GET('/api/jobs/', {
-      params: { query: params },
-    });
-    if (error) { throw error; }
-    return (data || { jobs: [], next_start_key: null }) as JobListResponse;
+    const trpc = createMobileTRPCClient();
+    return trpc.jobs.list.query({
+      ...(params.workflow_id ? { workflow_id: params.workflow_id } : {}),
+      ...(params.limit !== undefined ? { limit: params.limit } : {}),
+      ...(params.start_key ? { start_key: params.start_key } : {}),
+    }) as Promise<JobListResponse>;
   }
 
   async getJob(jobId: string): Promise<JobResponse> {
-    const { data, error } = await this.client.GET('/api/jobs/{job_id}', {
-      params: { path: { job_id: jobId } },
-    });
-    if (error) { throw error; }
-    return data as JobResponse;
+    const trpc = createMobileTRPCClient();
+    return trpc.jobs.get.query({ id: jobId }) as Promise<JobResponse>;
   }
 
   async cancelJob(jobId: string): Promise<void> {
-    const { error } = await this.client.POST('/api/jobs/{job_id}/cancel', {
-      params: { path: { job_id: jobId } },
-    });
-    if (error) { throw error; }
+    const trpc = createMobileTRPCClient();
+    await trpc.jobs.cancel.mutate({ id: jobId });
   }
 
-  // ---------------------- Threads ----------------------
+  // ---------------------- Threads (tRPC) ----------------------
 
   async listThreads(params: {
     cursor?: string | null;
     limit?: number;
     reverse?: boolean;
   } = {}): Promise<ThreadList> {
-    const { data, error } = await this.client.GET('/api/threads/', {
-      params: { query: params },
+    const trpc = createMobileTRPCClient();
+    return trpc.threads.list.query({
+      ...(params.cursor ? { cursor: params.cursor } : {}),
+      ...(params.limit !== undefined ? { limit: params.limit } : {}),
+      ...(params.reverse !== undefined ? { reverse: params.reverse } : {}),
     });
-    if (error) { throw error; }
-    return (data || { threads: [], next: null }) as ThreadList;
   }
 
   async getThread(threadId: string): Promise<Thread> {
-    const { data, error } = await this.client.GET('/api/threads/{thread_id}', {
-      params: { path: { thread_id: threadId } },
-    });
-    if (error) { throw error; }
-    return data as Thread;
+    const trpc = createMobileTRPCClient();
+    return trpc.threads.get.query({ id: threadId });
   }
 
   async updateThread(threadId: string, update: ThreadUpdateRequest): Promise<Thread> {
-    const { data, error } = await this.client.PUT('/api/threads/{thread_id}', {
-      params: { path: { thread_id: threadId } },
-      body: update,
-    });
-    if (error) { throw error; }
-    return data as Thread;
+    const trpc = createMobileTRPCClient();
+    return trpc.threads.update.mutate({ id: threadId, title: update.title });
   }
 
   async deleteThread(threadId: string): Promise<void> {
-    const { error } = await this.client.DELETE('/api/threads/{thread_id}', {
-      params: { path: { thread_id: threadId } },
-    });
-    if (error) { throw error; }
+    const trpc = createMobileTRPCClient();
+    await trpc.threads.delete.mutate({ id: threadId });
   }
 }
 

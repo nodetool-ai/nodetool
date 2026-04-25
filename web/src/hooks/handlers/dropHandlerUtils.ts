@@ -176,7 +176,10 @@ export const useFileHandlers = () => {
           workflow_id: workflow.id,
           parent_id: currentFolderId || user?.id,
           onCompleted: (uploadedAsset: Asset) => {
-            const assetType = contentTypeToNodeType(uploadedAsset.content_type);
+            const assetType = contentTypeToNodeType(
+              uploadedAsset.content_type,
+              uploadedAsset.name || file.name
+            );
             const nodeType = constantForType(assetType || "");
 
             if (nodeType === null) {

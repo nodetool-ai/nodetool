@@ -78,11 +78,10 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   useEffect(() => {
     const unsubscribe = window.api.server.onLog((message: string) => {
       setConsoleLogs((prev) => {
-        const next = prev.length >= MAX_CONSOLE_LINES
-          ? prev.slice(prev.length - MAX_CONSOLE_LINES + 1)
-          : prev.slice();
-        next.push(message);
-        return next;
+        if (prev.length >= MAX_CONSOLE_LINES) {
+          return [...prev.slice(prev.length - MAX_CONSOLE_LINES + 1), message];
+        }
+        return [...prev, message];
       });
     });
     return () => {

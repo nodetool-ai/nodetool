@@ -268,7 +268,5 @@ export type Image = ImageRef;
 export type Document = DocumentRef;
 export type Audio = AudioRef;
 export type Video = VideoRef;
-export type TypeName = string;
-export type WorkflowAttributes = Omit<Workflow, "graph">;
 export type Job = JobResponse;
 
