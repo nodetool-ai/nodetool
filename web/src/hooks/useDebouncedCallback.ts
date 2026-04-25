@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef } from "react";
 
-type DebouncedCallback<T extends (...args: unknown[]) => unknown> = {
-  (...args: Parameters<T>): void;
+type DebouncedCallback<TArgs extends unknown[]> = {
+  (...args: TArgs): void;
   cancel: () => void;
 };
 
-export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
-  fn: T,
+export function useDebouncedCallback<TArgs extends unknown[]>(
+  fn: (...args: TArgs) => unknown,
   delay: number
-): DebouncedCallback<T> {
+): DebouncedCallback<TArgs> {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fnRef = useRef(fn);
   fnRef.current = fn;
@@ -28,7 +28,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
         timerRef.current = null;
       }
     };
-    const debounced = (...args: Parameters<T>) => {
+    const debounced = (...args: TArgs) => {
       cancel();
       timerRef.current = setTimeout(() => {
         timerRef.current = null;
@@ -36,6 +36,6 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
       }, delay);
     };
     debounced.cancel = cancel;
-    return debounced as DebouncedCallback<T>;
+    return debounced as DebouncedCallback<TArgs>;
   }, [delay]);
 }

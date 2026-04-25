@@ -15,10 +15,7 @@ import {
   WebSocketMessageData 
 } from '../types/chat';
 
-interface WebSocketMessage {
-  type: string;
-  [key: string]: unknown;
-}
+type WebSocketMessage = { type: string };
 
 interface WebSocketCallbacks {
   onStateChange?: (state: ConnectionState, previousState: ConnectionState) => void;
@@ -146,7 +143,7 @@ export class WebSocketManager {
     }
   }
 
-  public send(message: WebSocketMessage): void {
+  public send<T extends WebSocketMessage>(message: T): void {
     if (!this.isConnected()) {
       if (
         this.config.reconnect &&
@@ -221,7 +218,7 @@ export class WebSocketManager {
       }
 
       console.log('[WS Receive]', data);
-      this.callbacks.onMessage?.(data);
+      this.callbacks.onMessage?.(data as WebSocketMessageData);
     } catch (error) {
       console.error('Failed to process message:', error);
       this.callbacks.onError?.(error as Error);
