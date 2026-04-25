@@ -274,7 +274,8 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - CPU frame conversion and cache-refresh contracts landed: `VideoFrame` inputs can be validated/normalized into LongLive `rgba8` model inputs, and prompt/negative-prompt changes record when warm caches must refresh on the next iteration.
   - Backend delegation contract landed: `LongLivePipeline` can drive an injected Wan2.1 backend through loading, generation, warm-state reset, and close, while preserving dependency-light base imports.
   - Lazy backend adapter landed: the default real-mode factory now resolves optional ML modules and component loaders only during backend load.
-  - Still pending for completion: concrete Wan2.1 / LongLive component loader wiring, tensor conversion inside the backend, sampler loop, and validated FP8/GGUF/INT8 paths.
+  - Component load plan landed: tokenizer/VAE/transformer loading is mapped to `Wan-AI/Wan2.1-T2V-1.3B-Diffusers`, with the selected LongLive weight source retained for the future checkpoint-application step.
+  - Still pending for completion: applying LongLive checkpoint weights to the transformer, tensor conversion inside the backend, sampler loop, and validated FP8/GGUF/INT8 paths.
 - [ ] Step 10b: Self-Forcing.
 - [ ] Step 11: canonical workflow template.
 
