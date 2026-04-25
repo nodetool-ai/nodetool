@@ -271,7 +271,7 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 - [ ] Step 10: LongLive.
   - Scaffold landed in `nodetool-realtime`: thin `LongLive` node, `WeightSource`, precision selection, `LatestPerHandleAccumulator`, fake CPU LongLive pipeline, and smoke tests.
   - Real-mode backend boundary landed: `use_fake_pipeline=False` routes through a dependency-guarded LongLive pipeline factory and emits structured loading `error` events when optional ML dependencies are absent, without importing heavy packages in the base install.
-  - CPU frame conversion and cache-refresh contracts landed: `VideoFrame` inputs can be validated/normalized into LongLive `rgba8` model inputs, and prompt/control changes record when warm caches must refresh on the next iteration.
+  - CPU frame conversion and cache-refresh contracts landed: `VideoFrame` inputs can be validated/normalized into LongLive `rgba8` model inputs, and prompt/negative-prompt changes record when warm caches must refresh on the next iteration.
   - Still pending for completion: real Wan2.1 / LongLive weight loading, tensor conversion, sampler loop, and validated FP8/GGUF/INT8 paths.
 - [ ] Step 10b: Self-Forcing.
 - [ ] Step 11: canonical workflow template.
