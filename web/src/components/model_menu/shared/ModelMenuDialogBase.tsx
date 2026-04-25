@@ -620,6 +620,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               <RecommendedModelsView
                 recommendedModels={recommendedModels}
                 modelPacks={modelPacks}
+                searchQuery={search}
               />
             ) : (
               <ModelList<TModel>

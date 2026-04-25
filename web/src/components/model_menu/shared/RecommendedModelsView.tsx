@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { Box, List } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { Caption, Text } from "../../ui_primitives";
-import SearchInput from "../../search/SearchInput";
 import ModelListItem from "../../hugging_face/model_list/ModelListItem";
 import ModelPackCard from "../../hugging_face/ModelPackCard";
 import type { ModelPack, UnifiedModel } from "../../../stores/ApiTypes";
@@ -17,14 +15,14 @@ import {
 interface RecommendedModelsViewProps {
   recommendedModels: UnifiedModel[];
   modelPacks: ModelPack[];
+  searchQuery?: string;
 }
 
 const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
   recommendedModels,
-  modelPacks
+  modelPacks,
+  searchQuery = ""
 }) => {
-  const theme = useTheme();
-  const [searchQuery, setSearchQuery] = useState("");
 
   const startDownload = useModelDownloadStore((s) => s.startDownload);
   const cacheStatuses = useHfCacheStatusStore((s) => s.statuses);
@@ -81,8 +79,6 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
     });
   }, [cacheStatuses, filteredModels]);
 
-  const showSearch = recommendedModels.length > 0;
-
   return (
     <Box
       sx={{
@@ -92,23 +88,6 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
         minHeight: 0
       }}
     >
-      {showSearch && (
-        <Box
-          sx={{
-            px: 2,
-            pt: 1.5,
-            pb: 1,
-            borderBottom: `1px solid ${theme.vars.palette.divider}`
-          }}
-        >
-          <SearchInput
-            onSearchChange={setSearchQuery}
-            placeholder="Search recommended models..."
-            debounceTime={150}
-            width="100%"
-          />
-        </Box>
-      )}
       <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1.5 }}>
         {modelPacks.length > 0 && (
           <Box sx={{ mb: 2 }}>
