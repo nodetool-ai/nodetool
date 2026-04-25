@@ -39,7 +39,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu: state.closeContextMenu,
     type: state.type,
     handleId: state.handleId
-  }), shallow);
+  }));
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -68,7 +68,7 @@ const OutputContextMenu: React.FC = () => {
     setNodeId: state.setNodeId,
     setFilterType: state.setFilterType,
     setConnectableType: state.setTypeMetadata
-  }), shallow);
+  }));
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(

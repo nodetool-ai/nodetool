@@ -35,7 +35,11 @@ interface DataframeColumn {
 }
 
 type OutputRendererProps = {
-  value: unknown;
+  // OutputRenderer accepts arbitrary runtime values from the backend
+  // and dispatches on a discriminated `type` field. The shape is
+  // dynamic and well-defended at runtime, so `any` is appropriate here.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  value: any;
 };
 
 /**
@@ -740,7 +744,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
  */
 function renderJSON(
   value: unknown,
-  codeTheme: Record<string, React.CSSProperties>,
+  codeTheme: Record<string, unknown>,
   colors: ThemeColors,
   mode: string,
   monoFont: string
