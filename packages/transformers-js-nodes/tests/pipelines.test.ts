@@ -4,6 +4,7 @@ import { QuestionAnsweringNode } from "../src/nodes/question-answering.js";
 import { TranslationNode } from "../src/nodes/translation.js";
 import { ZeroShotClassificationNode } from "../src/nodes/zero-shot-classification.js";
 import { FeatureExtractionNode } from "../src/nodes/feature-extraction.js";
+import { AutomaticSpeechRecognitionNode } from "../src/nodes/automatic-speech-recognition.js";
 import { __setTransformersModuleForTesting } from "../src/transformers-base.js";
 
 type PipelineFactory = (...args: unknown[]) => unknown;
@@ -105,6 +106,93 @@ describe("Transformers.js pipeline nodes", () => {
     expect(result.dim).toBe(3);
     const embedding = result.embedding as number[];
     expect(embedding[0]).toBeCloseTo(0.1);
+  });
+
+  // ── Whisper task/language gating ──────────────────────────────────────
+
+  /**
+   * Build a tiny mono 16k WAV so the audio-decode fast path lands on a
+   * Float32Array without invoking ffmpeg.
+   */
+  function tinyWavRef() {
+    const samples = new Float32Array(160); // 10 ms at 16k
+    const dataSize = samples.length * 2;
+    const buf = Buffer.alloc(44 + dataSize);
+    buf.write("RIFF", 0);
+    buf.writeUInt32LE(36 + dataSize, 4);
+    buf.write("WAVE", 8);
+    buf.write("fmt ", 12);
+    buf.writeUInt32LE(16, 16);
+    buf.writeUInt16LE(1, 20);
+    buf.writeUInt16LE(1, 22);
+    buf.writeUInt32LE(16000, 24);
+    buf.writeUInt32LE(32000, 28);
+    buf.writeUInt16LE(2, 32);
+    buf.writeUInt16LE(16, 34);
+    buf.write("data", 36);
+    buf.writeUInt32LE(dataSize, 40);
+    return { data: Buffer.from(buf).toString("base64") };
+  }
+
+  it("ASR omits task and language for English-only Whisper models", async () => {
+    const pipelineFn = stubPipeline(async () => ({ text: "ok" }));
+    const node = new AutomaticSpeechRecognitionNode({
+      audio: tinyWavRef(),
+      model: { type: "tjs.automatic_speech_recognition", repo_id: "Xenova/whisper-tiny.en" },
+      language: "english", // user picked one — must still be dropped
+      task: "translate" // user picked one — must still be dropped
+    });
+    await node.process();
+    const [, opts] = pipelineFn.mock.calls[0] as [
+      Float32Array,
+      Record<string, unknown>
+    ];
+    expect(opts).not.toHaveProperty("language");
+    expect(opts).not.toHaveProperty("task");
+  });
+
+  it("ASR forwards language for multilingual Whisper models when set", async () => {
+    const pipelineFn = stubPipeline(async () => ({ text: "ok" }));
+    const node = new AutomaticSpeechRecognitionNode({
+      audio: tinyWavRef(),
+      model: { type: "tjs.automatic_speech_recognition", repo_id: "Xenova/whisper-tiny" },
+      language: "english"
+    });
+    await node.process();
+    const [, opts] = pipelineFn.mock.calls[0] as [
+      Float32Array,
+      Record<string, unknown>
+    ];
+    expect(opts.language).toBe("english");
+  });
+
+  it("ASR forwards task=translate for multilingual models but skips redundant transcribe default", async () => {
+    const pipelineFn = stubPipeline(async () => ({ text: "ok" }));
+
+    // task="transcribe" is the model default — should NOT be sent.
+    const transcribeNode = new AutomaticSpeechRecognitionNode({
+      audio: tinyWavRef(),
+      model: { type: "tjs.automatic_speech_recognition", repo_id: "Xenova/whisper-base" }
+    });
+    await transcribeNode.process();
+    const [, transcribeOpts] = pipelineFn.mock.calls[0] as [
+      Float32Array,
+      Record<string, unknown>
+    ];
+    expect(transcribeOpts).not.toHaveProperty("task");
+
+    // task="translate" is meaningful — should be forwarded.
+    const translateNode = new AutomaticSpeechRecognitionNode({
+      audio: tinyWavRef(),
+      model: { type: "tjs.automatic_speech_recognition", repo_id: "Xenova/whisper-base" },
+      task: "translate"
+    });
+    await translateNode.process();
+    const [, translateOpts] = pipelineFn.mock.calls[1] as [
+      Float32Array,
+      Record<string, unknown>
+    ];
+    expect(translateOpts.task).toBe("translate");
   });
 
   it("mean-pools a 3-D feature-extraction tensor across the sequence axis", async () => {

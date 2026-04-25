@@ -106,9 +106,10 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
       context
     );
 
+    const repoId = extractRepoId(this.model);
     const pipeline = (await getPipeline({
       task: "automatic-speech-recognition",
-      model: extractRepoId(this.model) || undefined,
+      model: repoId || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (
@@ -119,10 +120,14 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     const opts: Record<string, unknown> = {
       return_timestamps: Boolean(this.return_timestamps)
     };
-    const language = asString(this.language);
-    if (language) opts.language = language;
-    const task = asString(this.task, "transcribe");
-    if (task) opts.task = task;
+    if (!isEnglishOnlyWhisper(repoId)) {
+      const language = asString(this.language);
+      if (language) opts.language = language;
+      // `transcribe` is the model default — passing it explicitly is
+      // redundant, and the only meaningful alternative is `translate`.
+      const task = asString(this.task, "transcribe");
+      if (task && task !== "transcribe") opts.task = task;
+    }
 
     const raw = await pipeline(samples, opts);
     return {
@@ -130,6 +135,19 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
       chunks: raw?.chunks ?? []
     };
   }
+}
+
+/**
+ * English-only Whisper checkpoints (`*.en`) reject `task` and `language`
+ * generation params and surface a confusing "If the model is intended to
+ * be multilingual, pass is_multilingual=true" error when either is set.
+ * The repo-id suffix is the canonical signal — every English-only Whisper
+ * variant in the official repos uses the `.en` suffix.
+ */
+function isEnglishOnlyWhisper(repoId: string): boolean {
+  if (!repoId) return false;
+  const name = repoId.split("/").pop() ?? "";
+  return /\.en$/i.test(name);
 }
 
 export const AUTOMATIC_SPEECH_RECOGNITION_NODES: readonly NodeClass[] = [
