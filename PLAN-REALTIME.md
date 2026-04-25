@@ -280,6 +280,7 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - Configurable causal sampler wiring landed: default real-mode backend can build a dependency-lazy imported pipeline factory and pass optional sampler config without importing upstream ML packages at base import time.
   - Node-facing real pipeline configuration landed: advanced `LongLive` fields can pass an upstream pipeline module/class, constructor kwargs, component/device/dtype pass-through controls, and sampler options into real mode while keeping default fake-mode behavior unchanged.
   - Upstream pipeline interface guard landed: configured causal samplers now validate `inference` vs callable pipeline shapes during sampler construction, and backend load reports mismatches as structured sampler errors.
+  - Async upstream call support landed: causal samplers can await either `.inference(...)` or callable pipeline results before converting output video tensors into realtime frames.
   - Precision guard landed: real mode defers `auto` precision resolution to the lazy backend so CUDA capability can be used, while unvalidated `fp8`/`gguf`/`int8` paths fail early with structured errors instead of silently falling back.
   - Still pending for completion: mapping the configurable interface to the real upstream LongLive package signature, real end-to-end inference against downloaded weights, and real FP8/GGUF/INT8 loader paths.
 - [ ] Step 10b: Self-Forcing.
