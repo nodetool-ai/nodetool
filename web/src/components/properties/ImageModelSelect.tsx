@@ -2,7 +2,12 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import ImageModelMenuDialog from "../model_menu/ImageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ImageModel, ImageModelValue } from "../../stores/ApiTypes";
+import type {
+  ImageModel,
+  ImageModelValue,
+  ModelPack,
+  UnifiedModel
+} from "../../stores/ApiTypes";
 import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
@@ -10,12 +15,16 @@ interface ImageModelSelectProps {
   onChange: (value: ImageModelValue) => void;
   value: string;
   task?: "text_to_image" | "image_to_image";
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   onChange,
   value,
-  task
+  task,
+  recommendedModels,
+  modelPacks
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -127,6 +136,8 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         task={task}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </>
   );

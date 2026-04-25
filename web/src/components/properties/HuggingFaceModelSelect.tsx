@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import HuggingFaceModelMenuDialog from "../model_menu/HuggingFaceModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ImageModel, UnifiedModel, HuggingFaceModelValue, HuggingFaceModelValueInput } from "../../stores/ApiTypes";
+import type { ImageModel, ModelPack, UnifiedModel, HuggingFaceModelValue, HuggingFaceModelValueInput } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +12,8 @@ interface HuggingFaceModelSelectProps {
   modelType: string;
   onChange: (value: HuggingFaceModelValue) => void;
   value: HuggingFaceModelValueInput;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 type RecommendedTask = "text_to_image" | "image_to_image" | null;
@@ -29,7 +31,9 @@ const mapModelTypeToTask = (modelType: string): RecommendedTask => {
 const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
   modelType,
   onChange,
-  value
+  value,
+  recommendedModels: recommendedModelsFromProps,
+  modelPacks
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -51,10 +55,10 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     [modelType]
   );
 
-  // Fetch recommended models via tRPC
-  const { data: recommendedModels = [] } = useQuery<UnifiedModel[]>({
+  // Fall back to fetching recommended models via tRPC when not provided by the caller
+  const { data: recommendedModelsFallback = [] } = useQuery<UnifiedModel[]>({
     queryKey: ["recommended-task-models", recommendedTask],
-    enabled: !!recommendedTask,
+    enabled: !recommendedModelsFromProps && !!recommendedTask,
     queryFn: async () => {
       if (recommendedTask === "text_to_image") {
         return trpc.models.recommendedImageTextToImage.query() as Promise<UnifiedModel[]>;
@@ -66,6 +70,8 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
   });
+
+  const recommendedModels = recommendedModelsFromProps ?? recommendedModelsFallback;
 
   // Create a set of recommended model IDs for quick lookup
   const recommendedModelIds = useMemo(() => {
@@ -215,6 +221,8 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
         onModelChange={handleDialogModelSelect}
         task={task}
         modelType={modelType}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </>
   );

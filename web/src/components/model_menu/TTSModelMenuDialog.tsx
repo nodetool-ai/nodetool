@@ -1,6 +1,6 @@
 import React from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
-import type { TTSModel } from "../../stores/ApiTypes";
+import type { ModelPack, TTSModel, UnifiedModel } from "../../stores/ApiTypes";
 import {
   useTTSModelMenuStore
 } from "../../stores/ModelMenuStore";
@@ -11,13 +11,17 @@ export interface TTSModelMenuDialogProps {
   onClose: () => void;
   onModelChange?: (model: TTSModel) => void;
   anchorEl?: HTMLElement | null;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 function TTSModelMenuDialog({
   open,
   onClose,
   onModelChange,
-  anchorEl
+  anchorEl,
+  recommendedModels,
+  modelPacks
 }: TTSModelMenuDialogProps) {
   const modelData = useTTSModelsByProvider();
   return (
@@ -30,6 +34,8 @@ function TTSModelMenuDialog({
       title="Select TTS Model"
       searchPlaceholder="Search text-to-speech models..."
       storeHook={useTTSModelMenuStore}
+      recommendedModels={recommendedModels}
+      modelPacks={modelPacks}
     />
   );
 }

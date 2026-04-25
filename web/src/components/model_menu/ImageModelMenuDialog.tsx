@@ -1,6 +1,6 @@
 import { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
-import type { ImageModel } from "../../stores/ApiTypes";
+import type { ImageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useImageModelMenuStore } from "../../stores/ModelMenuStore";
 import { useImageModelsByProvider } from "../../hooks/useModelsByProvider";
 
@@ -10,6 +10,8 @@ export interface ImageModelMenuDialogProps {
   onModelChange?: (model: ImageModel) => void;
   task?: "text_to_image" | "image_to_image";
   anchorEl?: HTMLElement | null;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 function ImageModelMenuDialog({
@@ -17,7 +19,9 @@ function ImageModelMenuDialog({
   onClose,
   onModelChange,
   task,
-  anchorEl
+  anchorEl,
+  recommendedModels,
+  modelPacks
 }: ImageModelMenuDialogProps) {
   const modelData = useImageModelsByProvider({ task });
   return (
@@ -30,6 +34,8 @@ function ImageModelMenuDialog({
       title="Select Image Model"
       searchPlaceholder="Search image models..."
       storeHook={useImageModelMenuStore}
+      recommendedModels={recommendedModels}
+      modelPacks={modelPacks}
     />
   );
 }

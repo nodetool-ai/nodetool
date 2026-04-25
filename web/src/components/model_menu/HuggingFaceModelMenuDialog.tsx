@@ -1,6 +1,6 @@
 import { useMemo, memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
-import type { ImageModel, UnifiedModel } from "../../stores/ApiTypes";
+import type { ImageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelMenuStore } from "../../stores/ModelMenuStore";
 import { useHuggingFaceImageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { trpc } from "../../lib/trpc";
@@ -13,6 +13,8 @@ export interface HuggingFaceModelMenuDialogProps {
   task?: "text_to_image" | "image_to_image";
   modelType?: string;
   anchorEl?: HTMLElement | null;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 type RecommendedTask = "text_to_image" | "image_to_image" | null;
@@ -28,17 +30,19 @@ function HuggingFaceModelMenuDialog({
   onModelChange,
   task,
   modelType,
-  anchorEl
+  anchorEl,
+  recommendedModels: recommendedModelsFromProps,
+  modelPacks
 }: HuggingFaceModelMenuDialogProps) {
   const modelData = useHuggingFaceImageModelsByProvider({ task, modelType });
 
   // Map to tRPC procedure key for recommended models
   const recommendedTask = useMemo(() => mapTaskToTrpcKey(task), [task]);
 
-  // Fetch recommended models via tRPC
-  const { data: recommendedModels = [] } = useQuery<UnifiedModel[]>({
+  // Fall back to fetching recommended models via tRPC when not provided by the caller
+  const { data: recommendedModelsFallback = [] } = useQuery<UnifiedModel[]>({
     queryKey: ["recommended-task-models", recommendedTask],
-    enabled: !!recommendedTask,
+    enabled: !recommendedModelsFromProps && !!recommendedTask,
     queryFn: async () => {
       if (recommendedTask === "text_to_image") {
         return trpc.models.recommendedImageTextToImage.query() as Promise<UnifiedModel[]>;
@@ -50,6 +54,8 @@ function HuggingFaceModelMenuDialog({
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
   });
+
+  const recommendedModels = recommendedModelsFromProps ?? recommendedModelsFallback;
 
   // Create a set of recommended model IDs for quick lookup
   const recommendedModelIds = useMemo(() => {
@@ -101,6 +107,8 @@ function HuggingFaceModelMenuDialog({
       title="Select HuggingFace Model"
       searchPlaceholder="Search HuggingFace models..."
       storeHook={useHuggingFaceImageModelMenuStore}
+      recommendedModels={recommendedModels}
+      modelPacks={modelPacks}
     />
   );
 }

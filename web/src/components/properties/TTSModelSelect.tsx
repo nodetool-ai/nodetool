@@ -2,7 +2,12 @@ import React, { memo, useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { TTSModel, TTSModelValue } from "../../stores/ApiTypes";
+import type {
+  ModelPack,
+  TTSModel,
+  TTSModelValue,
+  UnifiedModel
+} from "../../stores/ApiTypes";
 import { trpc } from "../../lib/trpc";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
@@ -11,9 +16,16 @@ import ModelSelectButton from "./shared/ModelSelectButton";
 interface TTSModelSelectProps {
   onChange: (value: TTSModelValue) => void;
   value: string | TTSModelValue; // Can be string (legacy) or TTSModelValue object
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
-const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
+const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
+  onChange,
+  value,
+  recommendedModels,
+  modelPacks
+}) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
@@ -137,6 +149,8 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({ onChange, value }) => {
         anchorEl={anchorEl}
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </div>
   );
