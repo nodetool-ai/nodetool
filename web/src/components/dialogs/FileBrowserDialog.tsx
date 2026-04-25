@@ -19,8 +19,7 @@ import {
 } from "@mui/icons-material";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList as List } from "react-window";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { trpcClient } from "../../trpc/client";
 import type { FileInfo } from "../../stores/ApiTypes";
 import log from "loglevel";
@@ -619,62 +618,15 @@ function FileBrowserDialog({
     [breadcrumbs, handleNavigate]
   );
 
-  // --- Renderers ---
+  // --- Virtualization ---
 
-  const Row = memo(function Row({
-    index,
-    style
-  }: {
-    index: number;
-    style: React.CSSProperties;
-  }) {
-    const file = filteredFiles[index];
-    const isSelected = selectedPath === file.path;
-    const handleClick = useCallback(() => {
-      handleFileClick(file);
-    }, [file, handleFileClick]);
-
-    const handleDoubleClick = useCallback(() => {
-      handleFileDoubleClick(file);
-    }, [file, handleFileDoubleClick]);
-
-    return (
-      <ListItemRow
-        style={style}
-        selected={isSelected}
-        onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
-        icon={
-          file.is_dir ? (
-            <FolderIcon color="primary" fontSize="small" />
-          ) : (
-            <FileIcon color="action" fontSize="small" />
-          )
-        }
-        sx={{
-          px: 1.5,
-          fontSize: "0.875rem",
-          "&:hover": {
-            backgroundColor: theme.vars.palette.action.hover
-          }
-        }}
-      >
-        <FlexRow fullWidth align="center" justify="space-between" sx={{ minWidth: 0 }}>
-          <Text
-            size="small"
-            truncate
-            sx={{ flex: 1, minWidth: 0, fontSize: "0.875rem" }}
-          >
-            {file.name}
-          </Text>
-          {file.size !== undefined && !file.is_dir && (
-            <Caption color="secondary" sx={{ ml: 1 }}>
-              {formatBytes(file.size)}
-            </Caption>
-          )}
-        </FlexRow>
-      </ListItemRow>
-    );
+  const fileListScrollRef = useRef<HTMLDivElement>(null);
+  const fileVirtualizer = useVirtualizer({
+    count: filteredFiles.length,
+    getScrollElement: () => fileListScrollRef.current,
+    estimateSize: () => 32,
+    overscan: 12,
+    getItemKey: (index) => filteredFiles[index]?.path ?? index,
   });
 
   return (
@@ -786,19 +738,82 @@ function FileBrowserDialog({
                 <LoadingSpinner size="medium" />
               </FlexColumn>
             ) : (
-              <AutoSizer>
-                {({ height, width }) => (
-                  <List
-                    className="file-list"
-                    height={height}
-                    itemCount={filteredFiles.length}
-                    itemSize={32}
-                    width={width}
-                  >
-                    {Row}
-                  </List>
-                )}
-              </AutoSizer>
+              <div
+                ref={fileListScrollRef}
+                className="file-list"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  overflow: "auto",
+                  outline: "none",
+                }}
+              >
+                <div
+                  style={{
+                    height: fileVirtualizer.getTotalSize(),
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {fileVirtualizer.getVirtualItems().map((vi) => {
+                    const file = filteredFiles[vi.index];
+                    if (!file) {
+                      return null;
+                    }
+                    const isSelected = selectedPath === file.path;
+                    return (
+                      <ListItemRow
+                        key={vi.key}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: vi.size,
+                          transform: `translateY(${vi.start}px)`,
+                        }}
+                        selected={isSelected}
+                        onClick={() => handleFileClick(file)}
+                        onDoubleClick={() => handleFileDoubleClick(file)}
+                        icon={
+                          file.is_dir ? (
+                            <FolderIcon color="primary" fontSize="small" />
+                          ) : (
+                            <FileIcon color="action" fontSize="small" />
+                          )
+                        }
+                        sx={{
+                          px: 1.5,
+                          fontSize: "0.875rem",
+                          "&:hover": {
+                            backgroundColor: theme.vars.palette.action.hover,
+                          },
+                        }}
+                      >
+                        <FlexRow
+                          fullWidth
+                          align="center"
+                          justify="space-between"
+                          sx={{ minWidth: 0 }}
+                        >
+                          <Text
+                            size="small"
+                            truncate
+                            sx={{ flex: 1, minWidth: 0, fontSize: "0.875rem" }}
+                          >
+                            {file.name}
+                          </Text>
+                          {file.size !== undefined && !file.is_dir && (
+                            <Caption color="secondary" sx={{ ml: 1 }}>
+                              {formatBytes(file.size)}
+                            </Caption>
+                          )}
+                        </FlexRow>
+                      </ListItemRow>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </FlexColumn>
         </FlexRow>

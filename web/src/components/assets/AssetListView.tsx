@@ -2,8 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, useRef, useState, useEffect, memo } from "react";
 import { Box } from "@mui/material";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { VariableSizeList as List } from "react-window";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -24,7 +23,6 @@ interface AssetListViewProps {
 }
 
 const ROW_HEIGHT = 40;
-const HEADER_HEIGHT = 50;
 const TYPE_SECTION_HEIGHT = 36;
 
 // Type for virtual list item data
@@ -228,7 +226,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   const { selectedAssetIds, handleSelectAsset, handleDeselectAssets } =
     useAssetSelection(assets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
-  const listRef = useRef<List>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Keep track of selected IDs in a ref to avoid recreating renderRow when selection changes
   const selectedAssetIdsRef = useRef(selectedAssetIds);
@@ -345,32 +343,26 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   // Empty callback for disabled button - prevents new function creation on each render
   const emptyCallback = useCallback(() => {}, []);
 
-  const getRowHeight = useCallback((index: number) => {
-    const item = virtualListItems[index];
-    if (item?.type === 'header') {
-      return TYPE_SECTION_HEIGHT;
-    }
-    return ROW_HEIGHT;
-  }, [virtualListItems]);
+  const virtualizer = useVirtualizer({
+    count: virtualListItems.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) =>
+      virtualListItems[index]?.type === "header"
+        ? TYPE_SECTION_HEIGHT
+        : ROW_HEIGHT,
+    overscan: 8,
+    getItemKey: (index) => virtualListItems[index]?.key ?? index,
+  });
 
-  // Reset list when data changes
+  // Recompute sizes when data changes
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.resetAfterIndex(0);
-    }
-  }, [virtualListItems.length, expandedTypes]);
-
-  // Force re-render when selection changes to update selected state
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.resetAfterIndex(0);
-    }
-  }, [selectedAssetIds]);
+    virtualizer.measure();
+  }, [virtualListItems.length, expandedTypes, virtualizer]);
 
   // Render a single row in the virtualized list
-  const renderRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+  const renderRow = useCallback((index: number, key: React.Key, style: React.CSSProperties) => {
     const item = virtualListItems[index];
-    
+
     if (!item) {
       return null;
     }
@@ -379,6 +371,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
       const { type, count, isExpanded } = item.data;
       return (
         <div
+          key={key}
           style={style}
           className="asset-content-type-header"
           onClick={(e) => {
@@ -422,6 +415,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
 
     return (
       <div
+        key={key}
         className={`asset-list-item ${isSelected ? "selected" : ""}`}
         style={style}
         onClick={(e) => {
@@ -522,28 +516,34 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
         </div>
 
         <div
-          className="asset-list-content"
+          ref={scrollRef}
+          className="asset-list-content asset-virtual-list"
           onContextMenu={(e) => handleContextMenu(e)}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               handleDeselectAssets();
             }
           }}
+          style={{ overflow: "auto" }}
         >
-          <AutoSizer>
-            {({ height, width }: { height: number; width: number }) => (
-              <List
-                ref={listRef}
-                className="asset-virtual-list"
-                height={height - HEADER_HEIGHT}
-                itemCount={virtualListItems.length}
-                itemSize={getRowHeight}
-                width={width}
-              >
-                {renderRow}
-              </List>
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((vi) =>
+              renderRow(vi.index, vi.key, {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: vi.size,
+                transform: `translateY(${vi.start}px)`,
+              })
             )}
-          </AutoSizer>
+          </div>
         </div>
       </div>
     </Box>

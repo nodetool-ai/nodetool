@@ -2,10 +2,9 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback, useMemo, memo } from "react";
+import React, { useCallback, useMemo, useRef, memo } from "react";
 import {
   Box,
-  List,
   ListItemButton,
   ListItemText,
   ListItemIcon
@@ -24,18 +23,42 @@ import {
   ModelSelectorModel
 } from "../../stores/ModelMenuStore";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import AutoSizer from "react-virtualized-auto-sizer";
-import {
-  FixedSizeList as VirtualList,
-  ListChildComponentProps
-} from "react-window";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSecrets } from "../../hooks/useSecrets";
 
-const listStyles = css({
-  overflowY: "auto",
-  overflowX: "hidden",
-  maxHeight: 600
-});
+import type { Theme } from "@mui/material/styles";
+
+const ROW_HEIGHT = 40;
+
+const listStyles = (theme: Theme) =>
+  css({
+    overflowY: "auto",
+    overflowX: "hidden",
+    maxHeight: 600,
+    "& .MuiListItemButton-root": { py: 0.5 },
+    "& .MuiListItemText-primary": {
+      fontSize: theme.vars.fontSizeNormal,
+      color: theme.vars.palette.text.primary,
+      fontWeight: 500
+    },
+    "& .MuiListItemText-secondary": {
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.vars.fontSizeSmall
+    },
+    "& .model-menu__model-item.is-unavailable": {
+      opacity: 0.55,
+      cursor: "not-allowed"
+    },
+    "& .model-menu__model-item.is-unavailable .MuiListItemText-primary": {
+      color: theme.vars.palette.text.disabled
+    },
+    "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary": {
+      color: theme.vars.palette.text.disabled
+    },
+    "& .MuiListItemButton-root:hover .favorite-star": {
+      opacity: 1
+    }
+  });
 
 /**
  * HighlightedModelName - Memoized component for highlighting search term in model name.
@@ -93,6 +116,15 @@ function ModelList<TModel extends ModelSelectorModel>({
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const { isApiKeySet } = useSecrets();
   const theme = useTheme();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: models.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+    getItemKey: (index) => `${models[index].provider}:${models[index].id}`,
+  });
 
   // Stable handler for model selection using data attributes
   const handleModelClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -105,7 +137,7 @@ function ModelList<TModel extends ModelSelectorModel>({
   }, [models, onSelect]);
 
   const renderRow = useCallback(
-    ({ index, style }: ListChildComponentProps) => {
+    ({ index, style }: { index: number; style: React.CSSProperties }) => {
       const m = models[index];
       const fav = isFavorite(m.provider || "", m.id || "");
       const env = requiredSecretForProvider(m.provider);
@@ -124,7 +156,7 @@ function ModelList<TModel extends ModelSelectorModel>({
               ? "Add API key in Settings to use this model"
               : "";
       return (
-        <div style={style} key={`${m.provider}:${m.id}`}>
+        <div style={style}>
           <Tooltip disableInteractive title={tooltipTitle}>
             <ListItemButton
               className={`model-menu__model-item ${available ? "" : "is-unavailable"
@@ -315,58 +347,39 @@ function ModelList<TModel extends ModelSelectorModel>({
           </Text>
         </Box>
       ) : (
-        <AutoSizer>
-          {({ height, width }) => {
-            const safeHeight = Math.max(height || 0, 320);
-            const safeWidth = Math.max(width || 0, 350);
-            return (
-              <List
-                dense
-                css={listStyles}
-                className="model-menu__models-list"
-                sx={{
-                  overflowX: "hidden",
-                  height: safeHeight,
-                  width: safeWidth,
-                  "& .MuiListItemButton-root": { py: 0.5 },
-                  "& .MuiListItemText-primary": {
-                    fontSize: theme.vars.fontSizeNormal,
-                    color: theme.vars.palette.text.primary,
-                    fontWeight: 500
-                  },
-                  "& .MuiListItemText-secondary": {
-                    color: theme.vars.palette.text.secondary,
-                    fontSize: theme.vars.fontSizeSmall
-                  },
-                  "& .model-menu__model-item.is-unavailable": {
-                    opacity: 0.55,
-                    cursor: "not-allowed"
-                  },
-                  "& .model-menu__model-item.is-unavailable .MuiListItemText-primary":
-                  {
-                    color: theme.vars.palette.text.disabled
-                  },
-                  "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary":
-                  {
-                    color: theme.vars.palette.text.disabled
-                  },
-                  "& .MuiListItemButton-root:hover .favorite-star": {
-                    opacity: 1
-                  }
-                }}
-              >
-                <VirtualList
-                  height={safeHeight}
-                  width={safeWidth}
-                  itemCount={models.length}
-                  itemSize={40}
-                >
-                  {renderRow}
-                </VirtualList>
-              </List>
-            );
+        <div
+          ref={scrollRef}
+          css={listStyles(theme)}
+          className="model-menu__models-list"
+          style={{
+            height: "100%",
+            width: "100%",
+            minHeight: 320,
+            overflow: "auto",
           }}
-        </AutoSizer>
+        >
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((vi) =>
+              renderRow({
+                index: vi.index,
+                style: {
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: vi.size,
+                  transform: `translateY(${vi.start}px)`,
+                },
+              })
+            )}
+          </div>
+        </div>
       )}
     </Box>
   );

@@ -60,29 +60,35 @@ jest.mock("@mui/icons-material/DataObject", () => {
   return DataObjectIcon;
 });
 
-// Mock AutoSizer correctly for default export
-jest.mock("react-virtualized-auto-sizer", () => ({
-  __esModule: true,
-  default: ({ children }: any) => children({ height: 600, width: 800 })
-}));
+// jsdom has no ResizeObserver — provide a no-op shim before the component
+// imports anything that might capture a reference.
+class ResizeObserverShim {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+(global as any).ResizeObserver = ResizeObserverShim;
 
-// Mock react-window to isolate issues
-jest.mock('react-window', () => {
-  const VariableSizeList = ({ children: Row, itemCount, itemData }: any) => (
-    <div data-testid="virtual-list">
-      {Array.from({ length: itemCount }).map((_, index) => (
-        <div key={index}>
-            <Row index={index} style={{}} data={itemData} />
-        </div>
-      ))}
-    </div>
-  );
-  VariableSizeList.displayName = "VariableSizeList";
-  return {
-    VariableSizeList,
-    areEqual: () => true
-  };
-});
+// Bypass virtualization in tests: render every row synchronously.
+// jsdom has no layout engine, so @tanstack/react-virtual's measurements
+// would return zero and no items would appear.
+jest.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, index) => ({
+        index,
+        key: index,
+        start: index * 36,
+        end: (index + 1) * 36,
+        size: 36,
+        lane: 0,
+      })),
+    getTotalSize: () => count * 36,
+    measure: () => {},
+    measureElement: () => {},
+    scrollToIndex: () => {},
+  }),
+}));
 
 const defaultProps = {
   rows: [],

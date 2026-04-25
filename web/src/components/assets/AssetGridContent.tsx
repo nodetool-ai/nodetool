@@ -8,8 +8,7 @@ import React, {
   useRef,
   useState
 } from "react";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { VariableSizeList as List } from "react-window";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import useAssets from "../../serverState/useAssets";
 import { Asset } from "../../stores/ApiTypes";
@@ -128,8 +127,8 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     itemHeight: 0
   });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const listRef = useRef<List>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
   const footerHeight = useMemo(
     () => getFooterHeight(assetItemSize),
     [assetItemSize]
@@ -306,11 +305,16 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     updateGridDimensions(containerSize.width);
   }, [containerSize, updateGridDimensions]);
 
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => listScrollRef.current,
+    estimateSize: getRowHeight,
+    overscan: 4,
+  });
+
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.resetAfterIndex(0);
-    }
-  }, [gridDimensions, assetItemSize, preparedItems]);
+    virtualizer.measure();
+  }, [gridDimensions, assetItemSize, preparedItems, virtualizer]);
 
   // If list view is selected, render AssetListView instead
   if (viewMode === "list") {
@@ -329,18 +333,12 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
           paddingLeft: isHorizontal ? ".5em" : "0"
         }}
       >
-        <AutoSizer>
-          {({ height, width }: { height: number; width: number }) => (
-            <div style={{ width, height }}>
-              <AssetListView
-                assets={assets}
-                onDoubleClick={onDoubleClick}
-                containerWidth={width}
-                isHorizontal={isHorizontal}
-              />
-            </div>
-          )}
-        </AutoSizer>
+        <AssetListView
+          assets={assets}
+          onDoubleClick={onDoubleClick}
+          containerWidth={containerSize.width}
+          isHorizontal={isHorizontal}
+        />
       </div>
     );
   }
@@ -386,24 +384,38 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
         paddingLeft: isHorizontal ? ".5em" : "0"
       }}
     >
-      <div className="asset-list">
-        <AutoSizer>
-          {({ height, width }: { height: number; width: number }) => {
-            return (
-              <List
-                ref={listRef}
-                className="autosizer-list"
-                height={height}
-                itemCount={rowCount}
-                itemSize={getRowHeight}
-                width={width}
-                itemData={itemData}
-              >
-                {AssetGridRow}
-              </List>
-            );
+      <div
+        ref={listScrollRef}
+        className="asset-list autosizer-list"
+        style={{ overflow: "auto" }}
+      >
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            width: "100%",
+            position: "relative",
           }}
-        </AutoSizer>
+        >
+          {virtualizer.getVirtualItems().map((vi) => (
+            <div
+              key={vi.key}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: vi.size,
+                transform: `translateY(${vi.start}px)`,
+              }}
+            >
+              <AssetGridRow
+                index={vi.index}
+                style={{ width: "100%", height: "100%" }}
+                data={itemData}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
