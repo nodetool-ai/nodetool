@@ -592,6 +592,9 @@ export {
   PdfExtractTextBlocksNode,
   PdfExtractStyledTextNode,
   PdfPageMetadataNode,
+  PdfScreenshotNode,
+  PdfSearchTextNode,
+  PdfExtractOcrNode,
   LIB_PDF_NODES
 } from "./nodes/lib-pdf.js";
 export {

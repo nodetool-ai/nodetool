@@ -18,7 +18,6 @@ import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
 import { sanitizeText } from "../../utils/sanitize";
 import { SearchParam } from "../../types/text_editor";
-import log from "loglevel";
 
 // CSS Custom Highlight API (experimental)
 type CSSWithHighlights = typeof CSS & {
@@ -572,7 +571,7 @@ const EditorController = ({
                 node.setTextContent(newText);
                 anyReplaced = true;
               } catch (err) {
-                log.error("Error performing regex replace:", err);
+                console.error("Error performing regex replace:", err);
               }
             }
           }

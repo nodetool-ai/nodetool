@@ -1,4 +1,3 @@
-import log from "loglevel";
 import { authHeader } from "../lib/auth";
 import type { Chunk } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
@@ -241,14 +240,14 @@ const resolveDownloadUri = (uri: string): string => {
 
 const chunkToOutput = (chunk: Chunk) => {
   if (typeof window !== "undefined") {
-    log.debug("[createAssetFile] chunkToOutput", {
+    console.debug("[createAssetFile] chunkToOutput", {
       type: chunk.content_type,
       hasContent: typeof chunk.content !== "undefined",
       contentLength:
         typeof chunk.content === "string" ? chunk.content.length : undefined
     });
   } else {
-    log.debug("[createAssetFile] chunkToOutput", {
+    console.debug("[createAssetFile] chunkToOutput", {
       type: chunk.content_type,
       hasContent: typeof chunk.content !== "undefined",
       contentLength:
@@ -319,7 +318,7 @@ const normalizeOutput = (
           maxTextChars
         );
         if (truncated) {
-          log.warn("[createAssetFile] Truncated streaming text output", {
+          console.warn("[createAssetFile] Truncated streaming text output", {
             maxTextChars,
             chunks: textChunks.length
           });
@@ -487,12 +486,12 @@ const createSingleAssetFile = async (
       } else if (outputUri) {
         data = await fetchBinaryFromUri(outputUri);
       } else {
-        log.warn("[createAssetFile] asset metadata missing get_url");
+        console.warn("[createAssetFile] asset metadata missing get_url");
       }
     } catch (err) {
       // NOT_FOUND is expected if the asset was already deleted; surface others normally.
       if (!isTRPCErrorWithCode(err, ApiErrorCode.NOT_FOUND)) {
-        log.warn("[createAssetFile] Failed to download asset via API", err);
+        console.warn("[createAssetFile] Failed to download asset via API", err);
       }
       data = originalData ?? new Uint8Array();
     }
@@ -500,7 +499,7 @@ const createSingleAssetFile = async (
     try {
       data = await fetchBinaryFromUri(outputUri);
     } catch (err) {
-      log.warn("[createAssetFile] Failed to fetch data from URI", err);
+      console.warn("[createAssetFile] Failed to fetch data from URI", err);
       data = originalData ?? new Uint8Array();
     }
   }
@@ -519,7 +518,7 @@ const createSingleAssetFile = async (
       const extension = getExtension(mimeType, "png");
       const bytes = toUint8Array(data);
       if (bytes.length === 0) {
-        log.warn("[createAssetFile] image bytes empty — uploaded file will be 0 bytes", {
+        console.warn("[createAssetFile] image bytes empty — uploaded file will be 0 bytes", {
           uri: (output as TypedOutput | null)?.uri ?? null,
           asset_id: (output as TypedOutput | null)?.asset_id ?? null
         });
@@ -621,7 +620,7 @@ export const createAssetFile = async (
   const normalized = normalizeOutput(output, options);
 
   if (Array.isArray(normalized)) {
-    log.info("[createAssetFile] creating multiple asset files", {
+    console.info("[createAssetFile] creating multiple asset files", {
       count: normalized.length
     });
     return Promise.all(
@@ -631,7 +630,7 @@ export const createAssetFile = async (
 
   const unwrapped = unwrapNamedOutputs(normalized as AssetOutput);
   if (Array.isArray(unwrapped)) {
-    log.info("[createAssetFile] unwrapped named-output map", { count: unwrapped.length });
+    console.info("[createAssetFile] unwrapped named-output map", { count: unwrapped.length });
     return Promise.all(
       unwrapped.map((item, index) => createSingleAssetFile(item as AssetOutput, id, index))
     );

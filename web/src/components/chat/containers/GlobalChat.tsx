@@ -34,7 +34,6 @@ import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 import { useShallow } from "zustand/react/shallow";
-import log from "loglevel";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -94,14 +93,14 @@ const GlobalChat: React.FC = () => {
   // Initialize GlobalChatStore connection on mount
   useEffect(() => {
     connect().catch((err) => {
-      log.error("Failed to connect GlobalChatStore:", err);
+      console.error("Failed to connect GlobalChatStore:", err);
     });
 
     return () => {
       try {
         disconnect();
       } catch (err) {
-        log.error("Error during GlobalChatStore disconnect:", err);
+        console.error("Error during GlobalChatStore disconnect:", err);
       }
     };
   }, [connect, disconnect]);
@@ -222,7 +221,7 @@ const GlobalChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          log.error("Failed to handle thread logic:", error);
+          console.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -309,7 +308,7 @@ const GlobalChat: React.FC = () => {
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
     } catch (error) {
-      log.error("Failed to create new thread:", error);
+      console.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 
@@ -341,7 +340,7 @@ const GlobalChat: React.FC = () => {
           selectedCollections.length > 0 ? selectedCollections : undefined,
         agent_mode: agentMode
       }).catch((err) => {
-        log.error("Failed to send suggestion:", err);
+        console.error("Failed to send suggestion:", err);
       });
     },
     [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
@@ -355,7 +354,7 @@ const GlobalChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((error) => {
-        log.error("Failed to delete thread:", error);
+        console.error("Failed to delete thread:", error);
       });
     },
     [deleteThread]
@@ -505,7 +504,7 @@ const GlobalChat: React.FC = () => {
                 onClick={() => {
                   setAlertDismissed(true);
                   connect().catch((err) => {
-                    log.error("Retry connection failed:", err);
+                    console.error("Retry connection failed:", err);
                   });
                 }}
                 variant="outlined"

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
+    "@llamaindex/liteparse": "^1.5.2",
     "@nodetool/config": "*",
     "@nodetool/kernel": "*",
     "@nodetool/models": "*",
@@ -23,8 +24,7 @@
     "@types/mailparser": "^3.4.6",
     "imapflow": "^1.2.12",
     "js-tiktoken": "^1.0.18",
-    "mailparser": "^3.9.3",
-    "pdfjs-dist": "^5.5.207"
+    "mailparser": "^3.9.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

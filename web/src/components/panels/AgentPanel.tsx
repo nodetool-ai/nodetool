@@ -46,7 +46,6 @@ import { trpcClient } from "../../trpc/client";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { getAgentSocketClient } from "../../lib/agent/AgentSocketClient";
-import log from "loglevel";
 
 const containerStyles = (_theme: Theme) =>
   css({
@@ -352,7 +351,7 @@ const AgentPanel: React.FC = () => {
       })
       .catch((err) => {
         if (!cancelled) {
-          log.error("Failed to load models:", err);
+          console.error("Failed to load models:", err);
           setDraftModels([]);
         }
       })
@@ -471,7 +470,7 @@ const AgentPanel: React.FC = () => {
       }
       setNewSessionDialogOpen(false);
     } catch (err) {
-      log.error("Failed to start Agent session:", err);
+      console.error("Failed to start Agent session:", err);
     } finally {
       setCreatingSession(false);
     }
@@ -595,7 +594,7 @@ const AgentPanel: React.FC = () => {
     (entryId: string) => () => {
       setResumeAnchorEl(null);
       void handleResumeSession(entryId).catch((err) => {
-        log.error("Failed to resume Agent session:", err);
+        console.error("Failed to resume Agent session:", err);
       });
     },
     [handleResumeSession]

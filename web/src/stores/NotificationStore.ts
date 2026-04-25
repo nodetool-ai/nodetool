@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { uuidv4 } from "./uuidv4";
-import log from "loglevel";
 import { sanitizeDisplayText } from "../utils/sanitizeDisplayText";
 import {
   NOTIFICATION_TIMEOUT_DEFAULT,
@@ -95,16 +94,16 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
     });
 
     if (isDuplicate && !sanitizedNotification.replaceExisting) {
-      log.debug("NOTIFICATION suppressed (duplicate):", sanitizedNotification);
+      console.debug("NOTIFICATION suppressed (duplicate):", sanitizedNotification);
       return;
     }
 
     if (sanitizedNotification.type === "warning") {
-      log.warn("NOTIFICATION:", sanitizedNotification);
+      console.warn("NOTIFICATION:", sanitizedNotification);
     } else if (sanitizedNotification.type === "error") {
-      log.error("NOTIFICATION:", sanitizedNotification);
+      console.error("NOTIFICATION:", sanitizedNotification);
     } else {
-      log.info("NOTIFICATION:", sanitizedNotification);
+      console.info("NOTIFICATION:", sanitizedNotification);
     }
 
     set((state) => {

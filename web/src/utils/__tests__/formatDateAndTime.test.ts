@@ -1,7 +1,6 @@
 /**
  * @jest-environment node
  */
-import log from 'loglevel';
 import {
   secondsToHMS,
   prettyDate,
@@ -80,7 +79,7 @@ describe('formatDateAndTime utilities', () => {
     });
 
     test('returns "Invalid Date" and logs warning on bad input', () => {
-      const warnSpy = jest.spyOn(log, 'warn').mockImplementation(() => {});
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
       expect(prettyDate('not-a-date')).toBe('Invalid Date');
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();

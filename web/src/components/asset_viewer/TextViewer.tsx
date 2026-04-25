@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { useEffect, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { LoadingSpinner, ScrollArea } from "../ui_primitives";
-import log from "loglevel";
+
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 interface TextViewerProps {
@@ -56,7 +56,7 @@ const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
       .then((text) => {
         setDocument(text);
       })
-      .catch(log.error);
+      .catch(console.error);
   }, [asset?.get_url]);
 
   return (

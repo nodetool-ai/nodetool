@@ -15,7 +15,7 @@
  *   7. Error handling in workflow execution
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { unpack } from "msgpackr";
+import { decode } from "@msgpack/msgpack";
 import { initTestDb, Thread, Message, Workflow, Job } from "@nodetool/models";
 import {
   UnifiedWebSocketRunner,
@@ -58,7 +58,7 @@ function setupModels() {
 }
 
 function sentMsgs(ws: MockWS): Record<string, unknown>[] {
-  return ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+  return ws.sentBytes.map((b) => decode(b) as Record<string, unknown>);
 }
 
 /** Executor that reads value from node.properties (mimics real node behavior) */

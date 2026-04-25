@@ -23,15 +23,6 @@ jest.mock("../../../stores/MetadataStore", () => ({
   default: jest.fn()
 }));
 
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn()
-  }
-}));
 
 import { useNodes } from "../../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";

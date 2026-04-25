@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
 import { BASE_URL } from "../../../stores/BASE_URL";
-import log from "loglevel";
 
 /**
  * Base type for typed output values with a type discriminator
@@ -224,7 +223,7 @@ export function useRevokeBlobUrls(urls: string[]) {
             URL.revokeObjectURL(u);
           }
         } catch {
-          log.error("Error revoking blob URL", u);
+          console.error("Error revoking blob URL", u);
         }
       });
     };

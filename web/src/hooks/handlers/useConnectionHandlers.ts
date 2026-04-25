@@ -20,7 +20,6 @@ import {
 import { DYNAMIC_KIE_NODE_TYPE } from "../../components/node/DynamicKieSchemaNode";
 import { wouldCreateCycle } from "../../utils/graphCycle";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
-import log from "loglevel";
 import { shallow } from "zustand/shallow";
 
 const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
@@ -78,19 +77,19 @@ export default function useConnectionHandlers() {
   const onConnectStart: OnConnectStart = useCallback(
     (event, { nodeId, handleId, handleType }) => {
       if (!nodeId || !handleId || !handleType) {
-        log.warn("Missing required data for connection start");
+        console.warn("Missing required data for connection start");
         return;
       }
 
       const node = findNode(nodeId);
       if (!node) {
-        log.warn(`Node with id ${nodeId} not found`);
+        console.warn(`Node with id ${nodeId} not found`);
         return;
       }
 
       const nodeMetadata = getMetadata(node.type || "");
       if (!nodeMetadata) {
-        log.warn(`Metadata for node type ${node.type} not found`);
+        console.warn(`Metadata for node type ${node.type} not found`);
         return;
       }
 
@@ -99,12 +98,12 @@ export default function useConnectionHandlers() {
       try {
         const node = findNode(nodeId);
         if (!node) {
-          log.warn(`Node with id ${nodeId} not found`);
+          console.warn(`Node with id ${nodeId} not found`);
           return;
         }
         startConnecting(node, handleId, handleType, nodeMetadata);
       } catch (error) {
-        log.error("Error starting connection:", error);
+        console.error("Error starting connection:", error);
         endConnecting();
       }
     },
@@ -118,11 +117,11 @@ export default function useConnectionHandlers() {
       const sourceNode = findNode(source);
       const targetNode = findNode(target);
       if (!sourceNode || !targetNode) {
-        log.warn("Invalid source or target node", { source, target });
+        console.warn("Invalid source or target node", { source, target });
         return;
       }
       if (!sourceHandle || !targetHandle) {
-        log.warn(
+        console.warn(
           `Invalid source or target handle. Source: ${sourceHandle}, Target: ${targetHandle}`
         );
         return;
@@ -154,7 +153,7 @@ export default function useConnectionHandlers() {
       const targetMetadata = getMetadata(targetNode.type || "");
 
       if (!sourceMetadata || !targetMetadata) {
-        log.warn("Missing metadata for source or target node");
+        console.warn("Missing metadata for source or target node");
         return;
       }
 
@@ -172,12 +171,12 @@ export default function useConnectionHandlers() {
         targetNode.data.dynamic_properties[targetHandle] !== undefined;
 
       if (!sourceHandleMetadata) {
-        log.warn(`Invalid source handle. Source: ${sourceHandle}`);
+        console.warn(`Invalid source handle. Source: ${sourceHandle}`);
         return;
       }
 
       if (!targetHandleMetadata && !isDynamicProperty) {
-        log.warn(`Invalid target handle. Target: ${targetHandle}`);
+        console.warn(`Invalid target handle. Target: ${targetHandle}`);
         return;
       }
 
@@ -320,7 +319,7 @@ export default function useConnectionHandlers() {
 
         const nodeMetadata = getMetadata(node.type || "");
         if (!nodeMetadata) {
-          log.warn(`Metadata for node type ${node.type} not found`);
+          console.warn(`Metadata for node type ${node.type} not found`);
           return;
         }
 

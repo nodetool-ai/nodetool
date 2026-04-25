@@ -76,7 +76,6 @@ import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { StopGenerationButton } from "./StopGenerationButton";
-import log from "loglevel";
 
 function formatElapsed(seconds: number): string {
   if (seconds < 5) return "Starting…";
@@ -708,13 +707,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const handleRetake = useCallback(() => {
     setPrompt("");
     clearFiles();
-    log.debug("Media composer reset");
+    console.debug("Media composer reset");
   }, [clearFiles]);
 
   const handleMoreClick = useCallback(() => {
     // Placeholder for "More" menu — additional options (seed, negative
     // prompt, guidance scale, etc.) will live here in a follow-up.
-    log.info("Media composer: More options (coming soon)");
+    console.info("Media composer: More options (coming soon)");
   }, []);
 
   const isBusy = isLoading || isStreaming;

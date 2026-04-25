@@ -16,7 +16,6 @@ import { useNotificationStore } from "../stores/NotificationStore";
 import { Node, Edge, Workflow } from "../stores/ApiTypes";
 import { workflowVersionsQueryKey } from "../serverState/useWorkflowVersions";
 import { v4 as uuidv4 } from "uuid";
-import log from "loglevel";
 import { trpcClient } from "../trpc/client";
 
 export interface UseAutosaveOptions {
@@ -64,7 +63,7 @@ export async function triggerAutosaveForWorkflow(
       max_versions: options?.maxVersions ?? 50
     });
   } catch (error) {
-    log.error(`Autosave (${saveType}) failed:`, error);
+    console.error(`Autosave (${saveType}) failed:`, error);
   }
 }
 
@@ -185,7 +184,7 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
         });
       }
     } catch (error) {
-      log.error("Autosave failed:", error);
+      console.error("Autosave failed:", error);
     } finally {
       isSavingRef.current = false;
     }
@@ -231,7 +230,7 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
         graph: workflow.graph
       });
     } catch (error) {
-      log.error("Save before run failed:", error);
+      console.error("Save before run failed:", error);
     }
   }, [
     autosaveSettings?.saveBeforeRun,

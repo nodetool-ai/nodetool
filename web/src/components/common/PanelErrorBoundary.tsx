@@ -1,6 +1,5 @@
 import React from "react";
 import { Text, FlexRow } from "../ui_primitives";
-import log from "loglevel";
 
 interface PanelErrorBoundaryProps {
   fallback?: React.ReactNode;
@@ -34,7 +33,7 @@ export default class PanelErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log panel errors for debugging while preventing the entire app from crashing
-    log.error("Panel crashed:", error, errorInfo);
+    console.error("Panel crashed:", error, errorInfo);
   }
 
   render() {
