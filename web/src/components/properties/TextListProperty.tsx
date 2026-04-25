@@ -13,7 +13,6 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import log from "loglevel";
 
 interface TextItem {
   uri: string;
@@ -325,7 +324,7 @@ const TextListProperty = (props: PropertyProps) => {
         const newTexts = await Promise.all(uploadPromises);
         handleAddTexts(newTexts);
       } catch (error) {
-        log.error("Failed to upload text files:", error);
+        console.error("Failed to upload text files:", error);
       }
     },
     [uploadAsset, handleAddTexts, filteredAssets, globalSearchResults, selectedAssets]
@@ -391,7 +390,7 @@ const TextListProperty = (props: PropertyProps) => {
         handleAddTexts(newTexts);
       }
     } catch (error) {
-      log.error("Error opening file picker:", error);
+      console.error("Error opening file picker:", error);
     }
   }, [uploadAsset, handleAddTexts]);
 
@@ -431,7 +430,7 @@ const TextListProperty = (props: PropertyProps) => {
       const newTexts = await Promise.all(uploadPromises);
       handleAddTexts(newTexts);
     } catch (error) {
-      log.error("Failed to upload text files:", error);
+      console.error("Failed to upload text files:", error);
     }
 
     // Reset input so same file can be selected again

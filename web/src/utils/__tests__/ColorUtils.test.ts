@@ -1,4 +1,3 @@
-import log from "loglevel";
 /**
  * @jest-environment node
  */
@@ -46,7 +45,7 @@ describe("ColorUtils", () => {
     });
 
     it("should handle invalid color gracefully", () => {
-      const consoleSpy = jest.spyOn(log, "error").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
       expect(hexToRgba("invalid", 0.5)).toBe("invalid");
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();

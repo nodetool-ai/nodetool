@@ -5,7 +5,6 @@
  * Fetches node definitions, submits workflows, and streams execution results.
  */
 
-import log from "loglevel";
 
 const COMFY_DEV_PROXY_BASE_URL = "/comfy-api";
 const COMFY_DIRECT_DEFAULT_BASE_URL = "http://localhost:8000/api";
@@ -307,7 +306,7 @@ export class ComfyUIService {
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        log.warn(
+        console.warn(
           `[ComfyUIService] Localhost proxy request failed for ${method} ${url}: ${errorMessage}`
         );
         return {
@@ -376,7 +375,7 @@ export class ComfyUIService {
       });
       return response.ok;
     } catch (error) {
-      log.warn("ComfyUI connection check failed:", error);
+      console.warn("ComfyUI connection check failed:", error);
       return false;
     }
   }
@@ -420,7 +419,7 @@ export class ComfyUIService {
       return data;
     } catch (error) {
       this.objectInfoPromise = null;
-      log.error("Failed to fetch ComfyUI object_info:", error);
+      console.error("Failed to fetch ComfyUI object_info:", error);
       throw error;
     }
   }
@@ -454,7 +453,7 @@ export class ComfyUIService {
         "prompt"
       );
     } catch (error) {
-      log.error("Failed to submit ComfyUI prompt:", error);
+      console.error("Failed to submit ComfyUI prompt:", error);
       throw error;
     }
   }
@@ -473,7 +472,7 @@ export class ComfyUIService {
         throw new Error(`Failed to cancel prompt: HTTP ${response.status}`);
       }
     } catch (error) {
-      log.error("Failed to cancel ComfyUI prompt:", error);
+      console.error("Failed to cancel ComfyUI prompt:", error);
       throw error;
     }
   }
@@ -494,7 +493,7 @@ export class ComfyUIService {
 
       return this.parseJsonValue<ComfyUIQueueResponse>(response.data, "queue");
     } catch (error) {
-      log.error("Failed to get ComfyUI queue:", error);
+      console.error("Failed to get ComfyUI queue:", error);
       throw error;
     }
   }
@@ -516,7 +515,7 @@ export class ComfyUIService {
 
       return this.parseJsonValue<ComfyUIHistoryResponse>(response.data, "history");
     } catch (error) {
-      log.error("Failed to get ComfyUI history:", error);
+      console.error("Failed to get ComfyUI history:", error);
       throw error;
     }
   }
@@ -530,7 +529,7 @@ export class ComfyUIService {
     onClose?: (event: CloseEvent) => void
   ): void {
     if (this.wsConnection?.readyState === WS_OPEN) {
-      log.warn("WebSocket already connected");
+      console.warn("WebSocket already connected");
       return;
     }
 
@@ -580,34 +579,34 @@ export class ComfyUIService {
 
         if (event.event === "open") {
           proxyConnection.readyState = WS_OPEN;
-          log.info("ComfyUI WebSocket connected (proxied)");
+          console.info("ComfyUI WebSocket connected (proxied)");
           return;
         }
 
         if (event.event === "message") {
           if (!event.data) {
-            log.warn("ComfyUI WebSocket proxied message event with empty payload");
+            console.warn("ComfyUI WebSocket proxied message event with empty payload");
             return;
           }
-          log.info(
+          console.info(
             `ComfyUI WebSocket proxied message received (${event.data.length} chars)`
           );
           try {
             const data = JSON.parse(event.data);
             const typed = data as { type?: string; data?: unknown };
-            log.info("ComfyUI WebSocket proxied parsed message", {
+            console.info("ComfyUI WebSocket proxied parsed message", {
               type: typed?.type ?? "unknown",
               hasData: typed?.data !== undefined,
             });
             onMessage(data);
           } catch (error) {
-            log.error("Failed to parse proxied WebSocket message:", error);
+            console.error("Failed to parse proxied WebSocket message:", error);
           }
           return;
         }
 
         if (event.event === "error") {
-          log.error("ComfyUI WebSocket proxy error:", event.error);
+          console.error("ComfyUI WebSocket proxy error:", event.error);
           if (onError) {
             onError(new Event("error"));
           }
@@ -617,7 +616,7 @@ export class ComfyUIService {
         if (event.event === "close") {
           this.wsProxyPendingOpen = false;
           proxyConnection.readyState = WS_CLOSED;
-          log.info("ComfyUI WebSocket closed (proxied)");
+          console.info("ComfyUI WebSocket closed (proxied)");
 
           if (this.wsProxyUnsubscribe) {
             this.wsProxyUnsubscribe();
@@ -657,7 +656,7 @@ export class ComfyUIService {
         .catch((error) => {
           this.wsProxyPendingOpen = false;
           proxyConnection.readyState = WS_CLOSED;
-          log.error("Failed to open proxied ComfyUI WebSocket:", error);
+          console.error("Failed to open proxied ComfyUI WebSocket:", error);
           if (this.wsProxyUnsubscribe) {
             this.wsProxyUnsubscribe();
             this.wsProxyUnsubscribe = null;
@@ -677,45 +676,45 @@ export class ComfyUIService {
       this.wsConnection = browserSocket;
 
       browserSocket.onopen = () => {
-        log.info("ComfyUI WebSocket connected");
+        console.info("ComfyUI WebSocket connected");
       };
 
       browserSocket.onmessage = (event) => {
         const rawData = typeof event.data === "string"
           ? event.data
           : String(event.data);
-        log.info(
+        console.info(
           `ComfyUI WebSocket message received (${rawData.length} chars)`
         );
         try {
           const data = JSON.parse(event.data);
           const typed = data as { type?: string; data?: unknown };
-          log.info("ComfyUI WebSocket parsed message", {
+          console.info("ComfyUI WebSocket parsed message", {
             type: typed?.type ?? "unknown",
             hasData: typed?.data !== undefined,
           });
           onMessage(data);
         } catch (error) {
-          log.error("Failed to parse WebSocket message:", error);
+          console.error("Failed to parse WebSocket message:", error);
         }
       };
 
       browserSocket.onerror = (error) => {
-        log.error("ComfyUI WebSocket error:", error);
+        console.error("ComfyUI WebSocket error:", error);
         if (onError) {
           onError(error);
         }
       };
 
       browserSocket.onclose = (event) => {
-        log.info("ComfyUI WebSocket closed");
+        console.info("ComfyUI WebSocket closed");
         this.wsConnection = null;
         if (onClose) {
           onClose(event);
         }
       };
     } catch (error) {
-      log.error("Failed to connect ComfyUI WebSocket:", error);
+      console.error("Failed to connect ComfyUI WebSocket:", error);
       throw error;
     }
   }

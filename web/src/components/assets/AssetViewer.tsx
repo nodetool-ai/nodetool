@@ -36,7 +36,6 @@ import {
   FlexRow,
   FlexColumn
 } from "../ui_primitives";
-import log from "loglevel";
 
 const containerStyles = css({
   width: "100%",
@@ -343,7 +342,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       }
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      log.error("Failed to copy to clipboard:", error);
+      console.error("Failed to copy to clipboard:", error);
     }
   }, [currentAsset?.get_url, currentAsset?.content_type, currentAsset?.name, url, contentType]);
 

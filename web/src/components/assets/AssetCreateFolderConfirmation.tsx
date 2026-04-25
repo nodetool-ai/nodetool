@@ -5,7 +5,6 @@ import {
 } from "@mui/material";
 import { Text, FlexRow, AlertBanner, Surface } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
-import log from "loglevel";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import useAssets from "../../serverState/useAssets";
@@ -158,7 +157,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       setDialogOpen(false);
       refetchAssetsAndFolders();
     } catch (error) {
-      log.error("Failed to create folder", error);
+      console.error("Failed to create folder", error);
       setShowAlert("Failed to create folder. Please try again.");
     }
   }, [

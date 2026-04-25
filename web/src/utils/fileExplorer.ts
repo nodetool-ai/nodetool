@@ -1,5 +1,4 @@
 import { useNotificationStore } from "../stores/NotificationStore";
-import log from "loglevel";
 
 type ModelDirectory = "huggingface" | "ollama";
 
@@ -35,9 +34,9 @@ function debugLog(message: string, extra?: unknown): void {
     return;
   }
   if (typeof extra === "undefined") {
-    log.debug(LOG_PREFIX, message);
+    console.debug(LOG_PREFIX, message);
   } else {
-    log.debug(LOG_PREFIX, message, extra);
+    console.debug(LOG_PREFIX, message, extra);
   }
 }
 
@@ -111,7 +110,7 @@ function handleExplorerResult(
 function ensureExplorerAvailable(): ExplorerBridge | null {
   const explorer = getExplorerBridge();
   if (!explorer) {
-    log.warn("[fileExplorer] Desktop bridge not available.");
+    console.warn("[fileExplorer] Desktop bridge not available.");
     notify("warning", explorerUnavailableMessage);
   }
   return explorer;
@@ -130,13 +129,13 @@ export function isFileExplorerAvailable(): boolean {
 export async function openInExplorer(path: string): Promise<void> {
   debugLog("openInExplorer request", { path });
   if (!path) {
-    log.warn("[fileExplorer] Tried to open an empty path in explorer.");
+    console.warn("[fileExplorer] Tried to open an empty path in explorer.");
     debugLog("openInExplorer aborted due to empty path");
     return;
   }
 
   if (!isPathValid(path)) {
-    log.warn(
+    console.warn(
       "[fileExplorer] Invalid path supplied, refusing to open explorer:",
       path
     );
@@ -156,7 +155,7 @@ export async function openInExplorer(path: string): Promise<void> {
     handleExplorerResult(result, "Unable to open the requested path.");
     debugLog("openInExplorer completed");
   } catch (error) {
-    log.error("[fileExplorer] Failed to open path in explorer:", error);
+    console.error("[fileExplorer] Failed to open path in explorer:", error);
     debugLog("openInExplorer threw", error);
     notify("error", "Could not open folder in file explorer.");
   }
@@ -178,7 +177,7 @@ export async function openHuggingfacePath(): Promise<void> {
     handleExplorerResult(result, "Could not open HuggingFace folder.");
     debugLog("openHuggingfacePath completed");
   } catch (error) {
-    log.error("[fileExplorer] Failed to open HuggingFace path:", error);
+    console.error("[fileExplorer] Failed to open HuggingFace path:", error);
     debugLog("openHuggingfacePath threw", error);
     notify("error", "Could not open HuggingFace folder.");
   }
@@ -200,7 +199,7 @@ export async function openOllamaPath(): Promise<void> {
     handleExplorerResult(result, "Could not open Ollama folder.");
     debugLog("openOllamaPath completed");
   } catch (error) {
-    log.error("[fileExplorer] Failed to open Ollama path:", error);
+    console.error("[fileExplorer] Failed to open Ollama path:", error);
     debugLog("openOllamaPath threw", error);
     notify("error", "Could not open Ollama folder.");
   }
@@ -223,7 +222,7 @@ export async function openInstallationPath(): Promise<void> {
     handleExplorerResult(result, "Could not open Nodetool installation folder.");
     debugLog("openInstallationPath completed");
   } catch (error) {
-    log.error("[fileExplorer] Failed to open installation path:", error);
+    console.error("[fileExplorer] Failed to open installation path:", error);
     debugLog("openInstallationPath threw", error);
     notify("error", "Could not open Nodetool installation folder.");
   }
@@ -246,7 +245,7 @@ export async function openLogsPath(): Promise<void> {
     handleExplorerResult(result, "Could not open Nodetool logs folder.");
     debugLog("openLogsPath completed");
   } catch (error) {
-    log.error("[fileExplorer] Failed to open logs path:", error);
+    console.error("[fileExplorer] Failed to open logs path:", error);
     debugLog("openLogsPath threw", error);
     notify("error", "Could not open Nodetool logs folder.");
   }
@@ -269,7 +268,7 @@ export async function openAssetsPath(): Promise<void> {
     handleExplorerResult(result, "Could not open Nodetool assets folder.");
     debugLog("openAssetsPath completed");
   } catch (error) {
-    log.error("[fileExplorer] Failed to open assets path:", error);
+    console.error("[fileExplorer] Failed to open assets path:", error);
     debugLog("openAssetsPath threw", error);
     notify("error", "Could not open Nodetool assets folder.");
   }

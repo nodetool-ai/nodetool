@@ -1,4 +1,3 @@
-import log from "loglevel";
 import { Asset } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import { useWorkflowAssetStore } from "./WorkflowAssetStore";
@@ -130,7 +129,7 @@ export const hydrateWorkflowResultsFromAssets = async (
       setOutputResult(workflowId, nodeId, value);
     }
   } catch (error) {
-    log.warn(
+    console.warn(
       `[workflowResultHydration] Failed to hydrate workflow ${workflowId} from assets`,
       error
     );

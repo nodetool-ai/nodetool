@@ -1,5 +1,4 @@
 import { useCallback, useEffect } from "react";
-import log from "loglevel";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useCurrentWorkspaceStore } from "../stores/CurrentWorkspaceStore";
 
@@ -60,7 +59,7 @@ export const useCurrentWorkspace = () => {
       try {
         await saveWorkflow(updated);
       } catch (error) {
-        log.error("Failed to save workspace change:", error);
+        console.error("Failed to save workspace change:", error);
       }
     },
     [currentWorkflow, updateWorkflow, saveWorkflow, setLastUsedWorkspaceId]

@@ -56,12 +56,11 @@ import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
 import { codeHighlightTokenStyles } from "../textEditor/codeHighlightStyles";
 import { NewChatButton } from "../chat";
-import log from "loglevel";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
   onError: (error: Error) => {
-    log.error(error);
+    console.error(error);
   },
   nodes: [
     HeadingNode,

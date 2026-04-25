@@ -15,7 +15,6 @@
 import { create } from "zustand";
 import { Asset } from "./ApiTypes";
 import { trpcClient } from "../trpc/client";
-import log from "loglevel";
 
 interface WorkflowAssetState {
   // Assets grouped by workflow ID
@@ -92,7 +91,7 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
       } catch (error) {
         const err =
           error instanceof Error ? error : new Error("Failed to load assets");
-        log.error("Failed to load workflow assets:", err);
+        console.error("Failed to load workflow assets:", err);
 
         set({
           loadingByWorkflow: {

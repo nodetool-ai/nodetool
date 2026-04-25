@@ -1,4 +1,3 @@
-import log from "loglevel";
 import { act } from "@testing-library/react";
 import { restFetch } from "../../lib/rest-fetch";
 import { trpcClient } from "../../trpc/client";
@@ -17,9 +16,6 @@ jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
 }));
 
-jest.mock("loglevel", () => ({
-  error: jest.fn()
-}));
 
 const listQuery = trpcClient.collections.list.query as jest.Mock;
 const deleteMutate = trpcClient.collections.delete.mutate as jest.Mock;
@@ -312,7 +308,7 @@ describe("CollectionStore", () => {
         await useCollectionStore.getState().handleDrop("collection1")(event);
       });
 
-      expect(log.error).toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalled();
       expect(useCollectionStore.getState().indexErrors).toEqual([
         { file: "bad.txt", error: "network" }
       ]);

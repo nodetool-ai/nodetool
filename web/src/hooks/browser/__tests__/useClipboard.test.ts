@@ -1,14 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { useClipboard } from "../useClipboard";
 
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn()
-  }
-}));
 
 jest.mock("../../../utils/clipboardUtils", () => ({
   copyAssetToClipboard: jest.fn()

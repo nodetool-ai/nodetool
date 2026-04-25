@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { Asset } from "../../stores/ApiTypes";
-import log from "loglevel";
 import { useNodes } from "../../contexts/NodeContext";
 
 export type VideoRecorderProps = {
@@ -39,7 +38,7 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
       setError("No media devices available");
       return;
     }
-    log.info("Fetching video/audio devices");
+    console.info("Fetching video/audio devices");
     const abortCtrl = new AbortController();
     abortControllerRef.current = abortCtrl;
 
@@ -153,7 +152,7 @@ export function useVideoRecorder({ onChange }: VideoRecorderProps) {
       })
       .catch((fetchError) => {
         if (fetchError.name === "AbortError") {
-          log.info("Fetch aborted");
+          console.info("Fetch aborted");
         } else {
           setError(`Error enumerating devices: ${fetchError.message}`);
         }

@@ -4,7 +4,6 @@
  * like Photoshop, Word, etc.
  */
 
-import log from "loglevel";
 import type {} from "../window.d";
 
 /**
@@ -75,7 +74,7 @@ export async function copyAssetToClipboard(
 ): Promise<void> {
   const clipboardType = getClipboardType(contentType);
 
-  log.info(
+  console.info(
     `Copying asset to clipboard: type=${clipboardType}, contentType=${contentType}`
   );
 
@@ -134,16 +133,16 @@ async function copyImageToClipboard(url: string): Promise<void> {
         await window.api.clipboard?.writeImage(dataUrl);
       } catch (e) {
         // If the legacy API fails or isn't present, try writing as text (fallback for some formats)
-        log.warn(
+        console.warn(
           "Clipboard writeImage failed, falling back to writing as text",
           e
         );
       }
     }
 
-    log.info("Image copied to clipboard successfully");
+    console.info("Image copied to clipboard successfully");
   } catch (error) {
-    log.error("Failed to copy image to clipboard:", error);
+    console.error("Failed to copy image to clipboard:", error);
     throw error;
   }
 }
@@ -163,14 +162,14 @@ async function copyHtmlToClipboard(
 
     if (window.api.clipboard?.writeHTML) {
       await window.api.clipboard.writeHTML(htmlContent);
-      log.info("HTML copied to clipboard successfully");
+      console.info("HTML copied to clipboard successfully");
     } else if (window.api.clipboard?.writeText) {
       // Fallback to text if HTML clipboard not available
       await window.api.clipboard.writeText(htmlContent);
-      log.info("HTML copied as text to clipboard (fallback)");
+      console.info("HTML copied as text to clipboard (fallback)");
     }
   } catch (error) {
-    log.error("Failed to copy HTML to clipboard:", error);
+    console.error("Failed to copy HTML to clipboard:", error);
     throw error;
   }
 }
@@ -207,9 +206,9 @@ async function copyTextToClipboard(
       await window.api.clipboard.writeText(textContent);
     }
 
-    log.info("Text copied to clipboard successfully");
+    console.info("Text copied to clipboard successfully");
   } catch (error) {
-    log.error("Failed to copy text to clipboard:", error);
+    console.error("Failed to copy text to clipboard:", error);
     throw error;
   }
 }

@@ -8,7 +8,6 @@
  */
 import { EventEmitter } from "eventemitter3";
 import { encode, decode } from "@msgpack/msgpack";
-import log from "loglevel";
 
 export type ConnectionState =
   | "disconnected"
@@ -100,17 +99,17 @@ export class WebSocketManager extends EventEmitter {
   private transitionTo(action: string): boolean {
     const transition = STATE_TRANSITIONS[action];
     if (!transition) {
-      log.warn(`Invalid state transition action: ${action}`);
+      console.warn(`Invalid state transition action: ${action}`);
       return false;
     }
 
     if (!transition.from.includes(this.state)) {
-      log.warn(`Cannot transition from ${this.state} to ${transition.to}`);
+      console.warn(`Cannot transition from ${this.state} to ${transition.to}`);
       return false;
     }
 
     if (transition.guard && !transition.guard()) {
-      log.warn(
+      console.warn(
         `Guard prevented transition from ${this.state} to ${transition.to}`
       );
       return false;
@@ -119,7 +118,7 @@ export class WebSocketManager extends EventEmitter {
     const previousState = this.state;
     this.state = transition.to;
     this.emit("stateChange", this.state, previousState);
-    log.debug(`State transition: ${previousState} -> ${this.state}`);
+    console.debug(`State transition: ${previousState} -> ${this.state}`);
     return true;
   }
 
@@ -173,7 +172,7 @@ export class WebSocketManager extends EventEmitter {
         this.config.reconnect &&
         (this.state === "connecting" || this.state === "reconnecting")
       ) {
-        log.debug("Queueing message while connecting");
+        console.debug("Queueing message while connecting");
         this.messageQueue.push(message);
         return;
       }
@@ -185,7 +184,7 @@ export class WebSocketManager extends EventEmitter {
       this.ws!.send(encoded);
       this.emit("messageSent", message);
     } catch (error) {
-      log.error("Failed to send message:", error);
+      console.error("Failed to send message:", error);
       this.emit("error", error);
       throw error;
     }
@@ -199,7 +198,7 @@ export class WebSocketManager extends EventEmitter {
     try {
       this.ws!.send(data);
     } catch (error) {
-      log.error("Failed to send raw data:", error);
+      console.error("Failed to send raw data:", error);
       this.emit("error", error);
       throw error;
     }
@@ -217,7 +216,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   private handleOpen(): void {
-    log.info("WebSocket connection opened");
+    console.info("WebSocket connection opened");
     this.clearConnectionTimeout();
     this.reconnectAttempt = 0;
 
@@ -266,18 +265,18 @@ export class WebSocketManager extends EventEmitter {
 
       this.emit("message", data);
     } catch (error) {
-      log.error("Failed to process message:", error);
+      console.error("Failed to process message:", error);
       this.emit("error", error);
     }
   }
 
   private handleError(event: Event): void {
-    log.error("WebSocket error:", event);
+    console.error("WebSocket error:", event);
     this.emit("error", new Error("WebSocket error occurred"));
   }
 
   private handleClose(event: CloseEvent): void {
-    log.info(
+    console.info(
       `WebSocket closed: code=${event.code}, reason=${event.reason}, clean=${event.wasClean}, intentional=${this.intentionalDisconnect}`
     );
 
@@ -305,7 +304,7 @@ export class WebSocketManager extends EventEmitter {
 
     // Handle reconnection
     const shouldReconnect = this.shouldReconnect(event);
-    log.info(
+    console.info(
       `Should reconnect: ${shouldReconnect}, attempts: ${this.reconnectAttempt}/${this.config.reconnectAttempts}`
     );
 
@@ -313,7 +312,7 @@ export class WebSocketManager extends EventEmitter {
       this.scheduleReconnect();
     } else if (!this.intentionalDisconnect) {
       this.transitionTo("failed");
-      log.warn(`Connection failed after ${this.reconnectAttempt} attempts`);
+      console.warn(`Connection failed after ${this.reconnectAttempt} attempts`);
     }
   }
 
@@ -357,7 +356,7 @@ export class WebSocketManager extends EventEmitter {
     const delay = this.getReconnectDelay();
     this.reconnectAttempt++;
 
-    log.info(
+    console.info(
       `Scheduling reconnection attempt ${this.reconnectAttempt}/${this.config.reconnectAttempts} in ${delay}ms`
     );
 
@@ -370,10 +369,10 @@ export class WebSocketManager extends EventEmitter {
   }
 
   private async reconnect(): Promise<void> {
-    log.info(`Attempting to reconnect (attempt ${this.reconnectAttempt})`);
+    console.info(`Attempting to reconnect (attempt ${this.reconnectAttempt})`);
 
     if (!this.transitionTo("reconnect")) {
-      log.warn(`Failed to transition to reconnect state from ${this.state}`);
+      console.warn(`Failed to transition to reconnect state from ${this.state}`);
       return;
     }
 
@@ -385,9 +384,9 @@ export class WebSocketManager extends EventEmitter {
 
     try {
       await this.establishConnection();
-      log.info("Reconnection successful");
+      console.info("Reconnection successful");
     } catch (error) {
-      log.error(`Reconnection attempt ${this.reconnectAttempt} failed:`, error);
+      console.error(`Reconnection attempt ${this.reconnectAttempt} failed:`, error);
       // The close handler will schedule the next attempt if needed
     }
   }
@@ -424,7 +423,7 @@ export class WebSocketManager extends EventEmitter {
   private startConnectionTimeout(): void {
     this.connectionTimer = setTimeout(() => {
       if (this.state === "connecting" || this.state === "reconnecting") {
-        log.error("Connection timeout");
+        console.error("Connection timeout");
         this.handleConnectionError(new Error("Connection timeout"));
         if (this.ws) {
           this.ws.close();
@@ -449,7 +448,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   private handleConnectionError(error: Error): void {
-    log.error("Connection error:", error);
+    console.error("Connection error:", error);
     this.emit("error", error);
 
     if (this.connectionRejector) {
@@ -463,7 +462,7 @@ export class WebSocketManager extends EventEmitter {
   private processMessageQueue(): void {
     if (this.messageQueue.length === 0) {return;}
 
-    log.info(`Processing ${this.messageQueue.length} queued messages`);
+    console.info(`Processing ${this.messageQueue.length} queued messages`);
     const queue = [...this.messageQueue];
     this.messageQueue = [];
 
@@ -471,7 +470,7 @@ export class WebSocketManager extends EventEmitter {
       try {
         this.send(message);
       } catch (error) {
-        log.error("Failed to send queued message:", error);
+        console.error("Failed to send queued message:", error);
         this.emit("error", error);
       }
     }

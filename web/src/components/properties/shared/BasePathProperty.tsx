@@ -8,7 +8,6 @@ import { useTheme } from "@mui/material/styles";
 import { Text } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
-import log from "loglevel";
 
 // Types
 export type PathType = "file_path" | "folder_path";
@@ -153,7 +152,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
         }
       } catch (error) {
         // If native dialog fails, fall back to the custom dialog
-        log.error("Native dialog failed, falling back to custom dialog:", error);
+        console.error("Native dialog failed, falling back to custom dialog:", error);
         setIsFileBrowserOpen(true);
       }
     } else {

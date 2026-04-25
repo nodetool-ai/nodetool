@@ -43,7 +43,6 @@ type IDockviewPanelWithGroup = IDockviewPanel & {
 };
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
 import { formatFileSize } from "../../utils/formatUtils";
-import log from "loglevel";
 
 const panelComponents = {
   "asset-folders": () => (
@@ -197,7 +196,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     if (user) {
       navigateToFolderId(user?.id);
     } else {
-      log.error("User is not logged in");
+      console.error("User is not logged in");
     }
   }
 

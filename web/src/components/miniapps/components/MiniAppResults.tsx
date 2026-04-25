@@ -11,7 +11,6 @@ import OutputRenderer from "../../node/OutputRenderer";
 import { MiniAppResult } from "../types";
 import { Workflow, Node } from "../../../stores/ApiTypes";
 import type { NodeUIProperties } from "../../../stores/nodeUiDefaults";
-import log from "loglevel";
 
 interface MiniAppResultsProps {
   results: MiniAppResult[];
@@ -122,7 +121,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
           setCopiedId(null);
         }, 2000);
       } catch (error) {
-        log.error("Failed to copy:", error);
+        console.error("Failed to copy:", error);
       }
     },
     []

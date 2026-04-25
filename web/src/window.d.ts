@@ -141,8 +141,6 @@ interface ClipboardContentInfo {
 
 declare global {
   interface Window {
-    // Logger instance attached for debugging purposes (loglevel)
-    log?: import("loglevel").Logger;
     api: {
       runApp: (workflowId: string) => Promise<void>;
 
