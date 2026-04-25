@@ -14,6 +14,7 @@ import AssetDeleteConfirmation from "../AssetDeleteConfirmation";
 import useResultsStore from "../../../stores/ResultsStore";
 import WorkflowAssetToolbar from "./WorkflowAssetToolbar";
 import { useSettingsStore } from "../../../stores/SettingsStore";
+import { getAssetCategory } from "../assetGridUtils";
 
 /**
  * WorkflowAssetPanelContent displays assets scoped to the current workflow.
@@ -49,13 +50,20 @@ const WorkflowAssetPanel: React.FC = () => {
 
   // Get sorting preference from settings
   const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
+  const typeFilter = useAssetGridStore((state) => state.typeFilter);
 
-  // Sort assets based on the selected order
+  // Sort + filter assets based on user selection
   const sortedAssets = useMemo(() => {
     if (!assets) {
       return [];
     }
-    return [...assets].sort((a, b) => {
+    const filtered =
+      typeFilter === "all"
+        ? assets
+        : assets.filter(
+            (a) => getAssetCategory(a.content_type || "") === typeFilter
+          );
+    return [...filtered].sort((a, b) => {
       if (assetsOrder === "name") {
         return a.name.localeCompare(b.name);
       } else if (assetsOrder === "date") {
@@ -69,7 +77,7 @@ const WorkflowAssetPanel: React.FC = () => {
       }
       return 0;
     });
-  }, [assets, assetsOrder]);
+  }, [assets, assetsOrder, typeFilter]);
 
   // Track results for the current workflow and refetch when they change
   const prevResultsRef = useRef<{ results: typeof results; outputResults: typeof outputResults } | null>(null);
