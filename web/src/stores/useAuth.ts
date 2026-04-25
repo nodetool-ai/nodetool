@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import log from "loglevel";
 import { createErrorMessage } from "../utils/errorHandling";
 import { supabase } from "../lib/supabaseClient"; // Import Supabase client
 import type { Session, User, Provider } from "@supabase/supabase-js"; // Import Supabase types
@@ -105,7 +104,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
     if (subscription) {
       subscription.unsubscribe();
       set({ _authSubscription: null });
-      log.info("Auth: Subscription cleaned up");
+      console.info("Auth: Subscription cleaned up");
     }
   },
 
@@ -116,14 +115,14 @@ export const useAuth = create<LoginStore>((set, get) => ({
    * - Bypasses Supabase check if `isLocalhost` is true for development convenience.
    */
   initialize: async () => {
-    log.info("Auth: Initializing...");
+    console.info("Auth: Initializing...");
 
     // Clean up any existing subscription before initializing
     get().cleanup();
 
     if (isLocalhost) {
       // Provide a predictable state for local development without requiring login
-      log.info("Auth: Running in localhost mode, setting state to logged_in.");
+      console.info("Auth: Running in localhost mode, setting state to logged_in.");
       set({
         state: "logged_in", // Assume logged in for local dev
         session: null,
@@ -154,14 +153,14 @@ export const useAuth = create<LoginStore>((set, get) => ({
         error: null,
         _authSubscription: null
       });
-      log.info(
+      console.info(
         "Auth: Initial session checked.",
         session ? "Found" : "Not found"
       );
 
       // Subscribe to auth state changes and store the subscription for cleanup
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        log.info(
+        console.info(
           "Auth: State Change Event -",
           event,
           "; Session:",
@@ -179,7 +178,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       set({ _authSubscription: subscription });
     } catch (error: unknown) {
       const errorMessage = createErrorMessage(error, "Auth initialization failed");
-      log.info("Auth: Initialization error", errorMessage);
+      console.info("Auth: Initialization error", errorMessage);
       set({
         state: "error",
         error: errorMessage.message,
@@ -214,7 +213,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       // State update (to 'logged_in') is handled by the onAuthStateChange listener.
     } catch (error: unknown) {
       const errorMessage = createErrorMessage(error, `Failed to sign in with ${provider}`);
-      log.info(`Auth: Sign in with ${provider} error`, errorMessage);
+      console.info(`Auth: Sign in with ${provider} error`, errorMessage);
       set({
         state: "error",
         error: errorMessage.message
@@ -238,7 +237,7 @@ export const useAuth = create<LoginStore>((set, get) => ({
       set({ session: null, user: null, state: "logged_out", error: null });
     } catch (error: unknown) {
       const errorMessage = createErrorMessage(error, "Failed to sign out");
-      log.info("Auth: Sign out error", errorMessage);
+      console.info("Auth: Sign out error", errorMessage);
       // If sign-out fails, remain in an error state but clear session/user
       set({
         state: "error",

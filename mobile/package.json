@@ -30,7 +30,6 @@
     "expo-constants": "~18.0.13",
     "expo-document-picker": "~14.0.8",
     "expo-image-picker": "~17.0.10",
-    "expo-linking": "~8.0.11",
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "~15.0.10",
     "@trpc/client": "^11.0.0",

@@ -23,7 +23,6 @@ import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
 import { FlexColumn, FlexRow, LoadingSpinner, Text } from "../ui_primitives";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -262,7 +261,7 @@ const WorkflowList = () => {
           updateWorkflow({ ...openWorkflow, name: newName });
         }
       } catch (err) {
-        log.error("Failed to rename workflow:", err);
+        console.error("Failed to rename workflow:", err);
       }
     },
     [queryClient, getWorkflow, updateWorkflow]

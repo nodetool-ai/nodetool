@@ -7,12 +7,10 @@ import mockTheme from "../../../__mocks__/themeMock";
 // Mock icons
 const MockIcon = () => <span data-testid="mock-icon">Icon</span>;
 
-// Mock CircularProgress
-jest.mock("@mui/material/CircularProgress", () => ({
+// Mock LoadingSpinner
+jest.mock("../LoadingSpinner", () => ({
   __esModule: true,
-  default: ({ size }: { size: number }) => (
-    <span data-testid="loading-spinner" data-size={size}>Loading</span>
-  )
+  LoadingSpinner: ({ size }: any) => <span data-testid="loading-spinner" data-size={size}>Loading</span>
 }));
 
 // Mock MUI IconButton

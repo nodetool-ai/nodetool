@@ -3,7 +3,6 @@ import { Asset } from "../../stores/ApiTypes";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
-import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import {
   serializeDragData,
@@ -158,7 +157,7 @@ export const useAssetActions = (asset: Asset) => {
       // Use unified deserialization
       const dragData = deserializeDragData(event.dataTransfer);
       if (!dragData) {
-        log.error("Failed to deserialize drag data");
+        console.error("Failed to deserialize drag data");
         return;
       }
 
@@ -182,7 +181,7 @@ export const useAssetActions = (asset: Asset) => {
           refetchAssetsAndFolders();
         }
       } catch (_error) {
-        log.error("Failed to process drop:", _error);
+        console.error("Failed to process drop:", _error);
       }
     },
     [

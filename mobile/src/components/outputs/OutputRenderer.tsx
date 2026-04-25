@@ -17,10 +17,25 @@ import {
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { useTheme } from "../../hooks/useTheme";
+import type { ThemeColors } from "../../utils/theme";
 import { apiService } from "../../services/api";
 
+interface TypedValue {
+  type: string;
+  [key: string]: unknown;
+}
+
+interface TaskStep {
+  description?: string;
+  title?: string;
+}
+
+interface DataframeColumn {
+  name?: string;
+}
+
 type OutputRendererProps = {
-  value: any;
+  value: unknown;
 };
 
 /**
@@ -115,7 +130,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       if (Array.isArray(value?.data)) {
         return (
           <View style={styles.container}>
-            {value.data.map((v: any, i: number) => (
+            {value.data.map((v: unknown, i: number) => (
               <View
                 key={i}
                 style={[styles.arrayItem, { borderLeftColor: colors.border }]}
@@ -295,16 +310,19 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
           )}
           {Array.isArray(value.steps) && value.steps.length > 0 && (
             <View style={styles.taskSteps}>
-              {value.steps.map((step: any, i: number) => (
+              {value.steps.map((step: unknown, i: number) => {
+                const s = step as string | TaskStep;
+                return (
                 <View key={i} style={styles.taskStep}>
                   <Text style={[styles.taskStepBullet, { color: colors.primary }]}>
                     {i + 1}.
                   </Text>
                   <Text style={[styles.taskStepText, { color: colors.text }]}>
-                    {typeof step === "string" ? step : step?.description || step?.title || JSON.stringify(step)}
+                    {typeof s === "string" ? s : (s as TaskStep)?.description || (s as TaskStep)?.title || JSON.stringify(s)}
                   </Text>
                 </View>
-              ))}
+                );
+              })}
             </View>
           )}
         </View>
@@ -320,7 +338,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
               {value.title}
             </Text>
           )}
-          {tasks.map((task: any, i: number) => (
+          {tasks.map((task: TypedValue, i: number) => (
             <View
               key={i}
               style={[styles.arrayItem, { borderLeftColor: colors.primary }]}
@@ -413,7 +431,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
           <View>
             {/* Header row */}
             <View style={[styles.tableRow, { backgroundColor: mode === "dark" ? "#2A2A2A" : "#E8E8E8" }]}>
-              {columns.map((col: any, i: number) => (
+              {columns.map((col: string | DataframeColumn, i: number) => (
                 <Text
                   key={i}
                   style={[
@@ -423,12 +441,12 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                   ]}
                   numberOfLines={1}
                 >
-                  {col.name ?? col}
+                  {typeof col === "object" ? col.name : col}
                 </Text>
               ))}
             </View>
             {/* Data rows (limit to 50 for performance) */}
-            {data.slice(0, 50).map((row: any[], rowIdx: number) => (
+            {data.slice(0, 50).map((row: unknown[] | Record<string, unknown>, rowIdx: number) => (
               <View
                 key={rowIdx}
                 style={[
@@ -438,7 +456,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                     : "transparent" },
                 ]}
               >
-                {(Array.isArray(row) ? row : Object.values(row)).map((cell: any, cellIdx: number) => (
+                {(Array.isArray(row) ? row : Object.values(row)).map((cell: unknown, cellIdx: number) => (
                   <Text
                     key={cellIdx}
                     style={[styles.tableCell, { color: colors.text, borderColor: colors.border }]}
@@ -525,7 +543,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       const firstItem = value[0];
 
       // Array of strings → list
-      if (typeof firstItem === "string" && value.every((v: any) => typeof v === "string")) {
+      if (typeof firstItem === "string" && (value as unknown[]).every((v) => typeof v === "string")) {
         return (
           <View style={styles.container}>
             {value.map((v: string, i: number) => (
@@ -564,22 +582,22 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       if (typeof firstItem === "object" && firstItem !== null) {
         // Chunks
         if (firstItem.type === "chunk") {
-          const allText = value.every(
-            (c: any) =>
+          const allText = (value as TypedValue[]).every(
+            (c) =>
               !c?.content_type ||
               c.content_type === "text" ||
               c.content_type === ""
           );
           if (allText) {
-            const text = value
-              .map((c: any) => (typeof c.content === "string" ? c.content : ""))
+            const text = (value as TypedValue[])
+              .map((c) => (typeof c.content === "string" ? c.content : ""))
               .join("");
             return <MarkdownRenderer content={text} />;
           }
           // Mixed chunks: render each
           return (
             <View style={styles.container}>
-              {value.map((v: any, i: number) => (
+              {(value as unknown[]).map((v: unknown, i: number) => (
                 <OutputRenderer key={i} value={v} />
               ))}
             </View>
@@ -590,7 +608,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
         if (firstItem.type === "image") {
           return (
             <View style={styles.imageGrid}>
-              {value.map((v: any, i: number) => (
+              {(value as unknown[]).map((v: unknown, i: number) => (
                 <OutputRenderer key={i} value={v} />
               ))}
             </View>
@@ -601,7 +619,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
         if (["audio", "video", "html", "task"].includes(firstItem.type)) {
           return (
             <View style={styles.container}>
-              {value.map((v: any, i: number) => (
+              {(value as unknown[]).map((v: unknown, i: number) => (
                 <OutputRenderer key={i} value={v} />
               ))}
             </View>
@@ -626,7 +644,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                       </Text>
                     ))}
                   </View>
-                  {value.slice(0, 50).map((row: any, rowIdx: number) => (
+                  {(value as Record<string, unknown>[]).slice(0, 50).map((row, rowIdx: number) => (
                     <View
                       key={rowIdx}
                       style={[
@@ -662,7 +680,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       // Fallback: render each item recursively
       return (
         <View style={styles.container}>
-          {value.map((item: any, index: number) => (
+          {(value as unknown[]).map((item: unknown, index: number) => (
             <View
               key={index}
               style={[styles.arrayItem, { borderLeftColor: colors.border }]}
@@ -721,9 +739,9 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
  * Render a value as syntax-highlighted JSON.
  */
 function renderJSON(
-  value: any,
-  codeTheme: any,
-  colors: any,
+  value: unknown,
+  codeTheme: Record<string, React.CSSProperties>,
+  colors: ThemeColors,
   mode: string,
   monoFont: string
 ) {

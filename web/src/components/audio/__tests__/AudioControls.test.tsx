@@ -8,14 +8,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import AudioControls from "../AudioControls";
 
-// Mock loglevel
-jest.mock("loglevel", () => ({
-  default: {
-    warn: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn()
-  }
-}));
 
 // Mock TOOLTIP_ENTER_DELAY
 jest.mock("../../../config/constants", () => ({

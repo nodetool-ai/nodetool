@@ -8,7 +8,6 @@ import {
   constantForType,
   contentTypeToNodeType
 } from "../../utils/NodeTypeMapping";
-import log from "loglevel";
 import Papa from "papaparse";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -63,7 +62,7 @@ export const useAddNodeFromAsset = () => {
         };
         addNode(newNode);
       } else {
-        log.error("CSV content is empty or could not be parsed");
+        console.error("CSV content is empty or could not be parsed");
       }
     },
     [createNode, addNode]
@@ -124,7 +123,7 @@ export const useAddNodeFromAsset = () => {
               createDataframeNode(csvContent, position, nodeMetadata);
             })
             .catch((error) => {
-              log.error("Failed to download asset content", error);
+              console.error("Failed to download asset content", error);
             });
           break;
         case "str":
@@ -133,7 +132,7 @@ export const useAddNodeFromAsset = () => {
               createNodeWithAsset("nodetool.constant.String", content);
             })
             .catch((error) => {
-              log.error("Failed to download asset content", error);
+              console.error("Failed to download asset content", error);
             });
           break;
         case "text":
@@ -142,7 +141,7 @@ export const useAddNodeFromAsset = () => {
               createNodeWithAsset("nodetool.constant.Text", content);
             })
             .catch((error) => {
-              log.error("Failed to download asset content", error);
+              console.error("Failed to download asset content", error);
             });
           break;
         case "folder":

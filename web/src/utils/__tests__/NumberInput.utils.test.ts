@@ -1,4 +1,3 @@
-import log from "loglevel";
 
 import {
   calculateStep,
@@ -127,7 +126,7 @@ describe("NumberInput.utils", () => {
     });
 
     it("handles invalid bounds (min > max) by swapping", () => {
-      const logSpy = jest.spyOn(log, "warn").mockImplementation(() => {});
+      const logSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
       const result = applyValueConstraints(50, 100, 50, "int", 0);
       expect(result).toBe(50);
       expect(logSpy).toHaveBeenCalled();

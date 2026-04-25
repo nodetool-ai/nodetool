@@ -9,27 +9,29 @@ import {
   ConvertDocumentTool
 } from "../src/tools/pdf-tools.js";
 
-// Mock pdfjs-dist
-function makeMockPdfDoc(pageTexts: string[]) {
+// Hoist mock variable so it's available inside the vi.mock factory
+const { mockParse } = vi.hoisted(() => ({ mockParse: vi.fn() }));
+
+// Mock @llamaindex/liteparse
+function makeMockParseResult(pageTexts: string[]) {
   return {
-    numPages: pageTexts.length,
-    getPage: vi.fn(async (pageNum: number) => ({
-      getTextContent: vi.fn(async () => ({
-        items: (pageTexts[pageNum - 1] ?? "")
-          .split(" ")
-          .map((str) => ({ str }))
-      }))
+    pages: pageTexts.map((text, i) => ({
+      pageNum: i + 1,
+      text,
+      textItems: [],
+      width: 612,
+      height: 792
     })),
-    destroy: vi.fn()
+    text: pageTexts.join("\n")
   };
 }
 
-const mockGetDocument = vi.fn();
-
-vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
-  getDocument: (...args: unknown[]) => ({
-    promise: mockGetDocument(...args)
-  })
+vi.mock("@llamaindex/liteparse", () => ({
+  LiteParse: class {
+    parse(...args: unknown[]) {
+      return mockParse(...args);
+    }
+  }
 }));
 
 // Mock child_process
@@ -65,6 +67,7 @@ let ctx: ProcessingContext;
 beforeEach(() => {
   vi.clearAllMocks();
   ctx = makeMockContext();
+  mockParse.mockResolvedValue(makeMockParseResult(["Hello World"]));
 });
 
 // ---------------------------------------------------------------------------
@@ -84,7 +87,7 @@ describe("ExtractPDFTextTool", () => {
   it("extracts full text from a PDF", async () => {
     const { readFile } = await import("node:fs/promises");
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
-    mockGetDocument.mockResolvedValue(makeMockPdfDoc(["Hello World"]));
+    mockParse.mockResolvedValue(makeMockParseResult(["Hello World"]));
 
     const result = (await tool.process(ctx, { path: "doc.pdf" })) as Record<string, unknown>;
     expect(result.text).toBe("Hello World");
@@ -96,9 +99,7 @@ describe("ExtractPDFTextTool", () => {
   it("extracts text for a specific page range", async () => {
     const { readFile } = await import("node:fs/promises");
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
-    mockGetDocument.mockResolvedValue(
-      makeMockPdfDoc(["Page0", "Page1", "Page2"])
-    );
+    mockParse.mockResolvedValue(makeMockParseResult(["Page0", "Page1", "Page2"]));
 
     const result = (await tool.process(ctx, {
       path: "doc.pdf",
@@ -150,9 +151,7 @@ describe("ExtractPDFTablesTool", () => {
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
     vi.mocked(writeFile).mockResolvedValue(undefined);
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    mockGetDocument.mockResolvedValue(
-      makeMockPdfDoc(["Name  Age  City\nAlice  30  NYC\nBob  25  LA"])
-    );
+    mockParse.mockResolvedValue(makeMockParseResult(["Name  Age  City\nAlice  30  NYC\nBob  25  LA"]));
 
     const result = (await tool.process(ctx, {
       path: "data.pdf",
@@ -203,9 +202,7 @@ describe("ConvertPDFToMarkdownTool", () => {
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
     vi.mocked(writeFile).mockResolvedValue(undefined);
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    mockGetDocument.mockResolvedValue(
-      makeMockPdfDoc(["# Title\n\nSome content"])
-    );
+    mockParse.mockResolvedValue(makeMockParseResult(["# Title\n\nSome content"]));
 
     const result = (await tool.process(ctx, {
       input_file: "doc.pdf",
@@ -225,9 +222,7 @@ describe("ConvertPDFToMarkdownTool", () => {
     vi.mocked(readFile).mockResolvedValue(Buffer.from("fake-pdf"));
     vi.mocked(writeFile).mockResolvedValue(undefined);
     vi.mocked(mkdir).mockResolvedValue(undefined);
-    mockGetDocument.mockResolvedValue(
-      makeMockPdfDoc(["Page0", "Page1", "Page2"])
-    );
+    mockParse.mockResolvedValue(makeMockParseResult(["Page0", "Page1", "Page2"]));
 
     const result = (await tool.process(ctx, {
       input_file: "doc.pdf",

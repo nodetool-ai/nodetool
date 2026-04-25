@@ -83,6 +83,9 @@ export const requiredSecretForProvider = (provider?: string): string | null => {
   if (p.includes("aime")) {return "AIME_API_KEY";}
   if (p.includes("moonshot") || p.includes("kimi")) {return "KIMI_API_KEY";}
   if (p.includes("minimax")) {return "MINIMAX_API_KEY";}
+  if (p === "cohere") {return "COHERE_API_KEY";}
+  if (p === "voyage" || p === "voyage-ai" || p === "voyageai") {return "VOYAGE_API_KEY";}
+  if (p === "jina" || p === "jina-ai" || p === "jinaai") {return "JINA_API_KEY";}
   if (isAkiProviderIdentifier(p)) {return "AKI_API_KEY";}
   return null;
 };

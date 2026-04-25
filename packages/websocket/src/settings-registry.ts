@@ -239,6 +239,16 @@ sec(
   "Together AI API key for accessing open-source LLMs through Together's inference API"
 );
 sec(
+  "DEEPSEEK_API_KEY",
+  "DeepSeek",
+  "DeepSeek API key for accessing DeepSeek-V3 chat and DeepSeek-R1 reasoning models"
+);
+sec(
+  "XAI_API_KEY",
+  "xAI",
+  "xAI API key for accessing Grok models via xAI's OpenAI-compatible API"
+);
+sec(
   "GROQ_API_KEY",
   "Groq",
   "Groq API key for accessing ultra-fast LLM inference on Groq's LPU hardware"

@@ -36,7 +36,6 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 import { usePanelStore } from "../../stores/PanelStore";
 import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH } from "../../config/constants";
-import log from "loglevel";
 
 const MiniAppPage: React.FC = () => {
   const theme = useTheme();
@@ -141,7 +140,7 @@ const MiniAppPage: React.FC = () => {
 
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
-      log.error("Failed to run workflow", error);
+      console.error("Failed to run workflow", error);
       setSubmitError(
         error instanceof Error ? error.message : "Failed to run workflow"
       );

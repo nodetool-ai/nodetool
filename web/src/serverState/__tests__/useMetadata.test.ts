@@ -34,14 +34,6 @@ jest.mock("../../components/node/BaseNode", () => ({
   default: "MockBaseNode"
 }));
 
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn()
-  }
-}));
 
 import { restFetch } from "../../lib/rest-fetch";
 import useMetadataStore from "../../stores/MetadataStore";

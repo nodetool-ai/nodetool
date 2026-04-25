@@ -21,7 +21,6 @@ import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
 import AppHeader from "../panels/AppHeader";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -296,7 +295,7 @@ const TemplateGrid = memo(function TemplateGrid() {
           detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
         );
       } catch (error) {
-        log.error("Search failed:", error);
+        console.error("Search failed:", error);
         setSearchResults([]); // Clear results on error
       }
     } else if (
@@ -382,7 +381,7 @@ const TemplateGrid = memo(function TemplateGrid() {
         const newWorkflow = await copyTemplateWorkflow(workflow);
         navigate("/editor/" + newWorkflow.id);
       } catch (error) {
-        log.error("Error copying workflow:", error);
+        console.error("Error copying workflow:", error);
         setLoadingWorkflowId(null);
       }
     },
@@ -439,18 +438,29 @@ const TemplateGrid = memo(function TemplateGrid() {
   }, [searchResults]);
 
   const gridScrollRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  useEffect(() => {
-    const el = gridScrollRef.current;
+  const setGridScrollRef = useCallback((el: HTMLDivElement | null) => {
+    resizeObserverRef.current?.disconnect();
+    resizeObserverRef.current = null;
+    gridScrollRef.current = el;
     if (!el) {
       return;
     }
-    const updateWidth = () => setContainerWidth(el.clientWidth);
-    updateWidth();
-    const observer = new ResizeObserver(updateWidth);
+    setContainerWidth(el.clientWidth);
+    const observer = new ResizeObserver(() =>
+      setContainerWidth(el.clientWidth)
+    );
     observer.observe(el);
-    return () => observer.disconnect();
+    resizeObserverRef.current = observer;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
   }, []);
 
   const columns = Math.max(1, calculateColumns(containerWidth));
@@ -520,7 +530,7 @@ const TemplateGrid = memo(function TemplateGrid() {
         {showGrid && (
           <Box className="virtualized-container">
             <div
-              ref={gridScrollRef}
+              ref={setGridScrollRef}
               style={{ height: "100%", width: "100%", overflow: "auto" }}
             >
               <div

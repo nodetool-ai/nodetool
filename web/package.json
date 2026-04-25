@@ -45,7 +45,7 @@
     "fuse.js": "^7.3.0",
     "jszip": "^3.10.1",
     "lexical": "^0.32.1",
-    "loglevel": "^1.9.2",
+
     "monaco-editor": "^0.55.1",
     "papaparse": "^5.4.1",
     "plotly.js": "^3.3.1",
@@ -53,7 +53,6 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-draggable": "^4.4.6",
-    "react-is": "18.3.1",
     "react-markdown": "^9.0.1",
     "react-pdf": "^9.2.1",
     "react-plotly.js": "^2.6.0",
@@ -64,11 +63,11 @@
     "read-excel-file": "^6.0.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.0",
-    "string-to-color": "^2.2.2",
+
     "superjson": "^2.2.2",
     "tabulator-tables": "^6.3.0",
     "three": "^0.172.0",
-    "use-debounce": "^10.0.4",
+
     "uuid": "^11.0.3",
     "wavesurfer.js": "^7.8.10",
     "zod": "^4.3.6",
@@ -116,7 +115,6 @@
     ]
   },
   "overrides": {
-    "react-is": "18.3.1",
     "rollup": "^4.59.0",
     "minimatch": ">=3.1.4",
     "undici": ">=6.24.0",

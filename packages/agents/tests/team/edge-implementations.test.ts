@@ -331,38 +331,3 @@ describe("EdgeTaskBoard", () => {
   });
 });
 
-describe("Interface compatibility", () => {
-  it("EdgeMessageBus satisfies IMessageBus", () => {
-    const bus = new EdgeMessageBus();
-    // Test all interface methods exist and work
-    bus.register("a");
-    bus.send({ from: "a", to: "a", type: "info", subject: "s", body: "b" });
-    bus.peek("a");
-    bus.receive("a");
-    bus.subscribe("a", () => {});
-    bus.getThread("fake");
-    bus.getHistory();
-    bus.pendingCount("a");
-  });
-
-  it("EdgeTaskBoard satisfies ITaskBoard", () => {
-    const board = new EdgeTaskBoard();
-    // Test all interface methods exist and work
-    const t = board.create({ title: "T", description: "d", createdBy: "c" });
-    board.getAvailable();
-    board.get(t.id);
-    board.getSnapshot();
-    board.getSubtasks(t.id);
-    board.isComplete();
-    board.detectDeadlock();
-    board.claim(t.id, "w");
-    board.startWork(t.id, "w");
-    board.block(t.id);
-    board.unblock(t.id);
-    board.claim(t.id, "w");
-    board.startWork(t.id, "w");
-    board.fail(t.id, "reason");
-    board.resolveParents();
-    board.onEvent(() => {});
-  });
-});

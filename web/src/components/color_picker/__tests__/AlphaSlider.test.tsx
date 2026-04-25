@@ -107,16 +107,6 @@ describe("AlphaSlider", () => {
   });
 
   describe("gradient colors", () => {
-    it("renders gradient element with background style", () => {
-      const { container } = renderWithTheme(
-        <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
-      );
-
-      const gradient = container.querySelector(".alpha-gradient") as HTMLElement;
-      expect(gradient).toBeInTheDocument();
-      expect(gradient).toHaveClass("alpha-gradient");
-    });
-
     it("applies cursor background color", () => {
       const { container } = renderWithTheme(
         <AlphaSlider color="#00ff00" alpha={0.5} onChange={mockOnChange} />

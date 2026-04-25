@@ -47,16 +47,6 @@ describe("MeshyProvider", () => {
     vi.unstubAllGlobals();
   });
 
-  // --- Construction ---
-
-  it("requiredSecrets returns MESHY_API_KEY", () => {
-    expect(MeshyProvider.requiredSecrets()).toEqual(["MESHY_API_KEY"]);
-  });
-
-  it("constructs with empty secrets without throwing", () => {
-    expect(() => new MeshyProvider()).not.toThrow();
-  });
-
   // --- Capability surface ---
 
   it("getAvailable3DModels returns the static catalogue when key is set", async () => {

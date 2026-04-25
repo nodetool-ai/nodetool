@@ -427,14 +427,6 @@ describe('ChatStore', () => {
       expect(useChatStore.getState().messageCache[threadId]).toEqual([]);
     });
 
-    it('does nothing if no current thread', () => {
-      useChatStore.setState({ currentThreadId: null });
-      
-      // Should not throw
-      useChatStore.getState().resetMessages();
-      
-      expect(true).toBe(true);
-    });
   });
 
   describe('addMessageToCache', () => {

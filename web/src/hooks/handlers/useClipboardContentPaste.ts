@@ -19,7 +19,6 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import useAuth from "../../stores/useAuth";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Asset } from "../../stores/ApiTypes";
-import log from "loglevel";
 import { isTextInputActive } from "../../utils/browser";
 import { shallow } from "zustand/shallow";
 
@@ -110,7 +109,7 @@ export const useClipboardContentPaste = () => {
         }
       }
     } catch (error) {
-      log.debug("Failed to read image from clipboard:", error);
+      console.debug("Failed to read image from clipboard:", error);
     }
     return null;
   }, []);
@@ -139,7 +138,7 @@ export const useClipboardContentPaste = () => {
         }
       }
     } catch (error) {
-      log.debug("Failed to read HTML from clipboard:", error);
+      console.debug("Failed to read HTML from clipboard:", error);
     }
     return null;
   }, []);
@@ -157,7 +156,7 @@ export const useClipboardContentPaste = () => {
         }
       }
     } catch (error) {
-      log.debug("Failed to read RTF from clipboard:", error);
+      console.debug("Failed to read RTF from clipboard:", error);
     }
     return null;
   }, []);
@@ -191,7 +190,7 @@ export const useClipboardContentPaste = () => {
         }
       }
     } catch (error) {
-      log.debug("Failed to read text from clipboard:", error);
+      console.debug("Failed to read text from clipboard:", error);
     }
     return null;
   }, []);
@@ -205,7 +204,7 @@ export const useClipboardContentPaste = () => {
         return await window.api.clipboard.availableFormats();
       }
     } catch (error) {
-      log.debug("Failed to get clipboard formats:", error);
+      console.debug("Failed to get clipboard formats:", error);
     }
     return [];
   }, []);
@@ -221,12 +220,12 @@ export const useClipboardContentPaste = () => {
       if (window.api?.clipboard?.readFilePaths) {
         const paths = await window.api.clipboard.readFilePaths();
         if (paths && paths.length > 0) {
-          log.debug(`Read ${paths.length} file paths from clipboard`);
+          console.debug(`Read ${paths.length} file paths from clipboard`);
           return paths;
         }
       }
     } catch (error) {
-      log.debug("Failed to read file paths from clipboard:", error);
+      console.debug("Failed to read file paths from clipboard:", error);
     }
     return null;
   }, []);
@@ -240,7 +239,7 @@ export const useClipboardContentPaste = () => {
         return await window.api.clipboard.getContentInfo();
       }
     } catch (error) {
-      log.debug("Failed to get clipboard content info:", error);
+      console.debug("Failed to get clipboard content info:", error);
     }
     return null;
   }, []);
@@ -253,7 +252,7 @@ export const useClipboardContentPaste = () => {
       // Try to get comprehensive content info first (Electron only)
       const contentInfo = await getClipboardContentInfo();
       const formats = contentInfo?.formats ?? (await getAvailableFormats());
-      log.debug("Available clipboard formats:", formats);
+      console.debug("Available clipboard formats:", formats);
 
       // Priority order: files > image > html > rtf > text
       // Check for files first (when content contains actual file references)
@@ -343,14 +342,14 @@ export const useClipboardContentPaste = () => {
     (content: string, position: { x: number; y: number }) => {
       const metadata = getMetadata("nodetool.constant.String");
       if (!metadata) {
-        log.error("Metadata for nodetool.constant.String not found");
+        console.error("Metadata for nodetool.constant.String not found");
         return null;
       }
 
       const newNode = createNode(metadata, position);
       newNode.data.properties.value = content;
       addNode(newNode);
-      log.info("Created String node from clipboard content");
+      console.info("Created String node from clipboard content");
       return newNode;
     },
     [createNode, addNode, getMetadata]
@@ -363,7 +362,7 @@ export const useClipboardContentPaste = () => {
     (asset: Asset, position: { x: number; y: number }) => {
       const metadata = getMetadata("nodetool.constant.Image");
       if (!metadata) {
-        log.error("Metadata for nodetool.constant.Image not found");
+        console.error("Metadata for nodetool.constant.Image not found");
         return null;
       }
 
@@ -375,7 +374,7 @@ export const useClipboardContentPaste = () => {
         temp_id: null
       };
       addNode(newNode);
-      log.info("Created Image node from clipboard content");
+      console.info("Created Image node from clipboard content");
       return newNode;
     },
     [createNode, addNode, getMetadata]
@@ -393,7 +392,7 @@ export const useClipboardContentPaste = () => {
 
     const mousePosition = getMousePosition();
     if (!mousePosition) {
-      log.warn("Mouse position not available for clipboard paste");
+      console.warn("Mouse position not available for clipboard paste");
       return false;
     }
 
@@ -410,7 +409,7 @@ export const useClipboardContentPaste = () => {
           // Handle file paths from clipboard
           // Currently processes only the first file - future enhancement could support multiple files
           const filePaths = content.data as string[];
-          log.info(
+          console.info(
             `Handling ${filePaths.length} file(s) from clipboard (processing first file)`
           );
 
@@ -446,7 +445,7 @@ export const useClipboardContentPaste = () => {
                           alert: true,
                           content: error
                         });
-                        log.error(
+                        console.error(
                           "Failed to upload file from clipboard:",
                           error
                         );
@@ -455,7 +454,7 @@ export const useClipboardContentPaste = () => {
                     return true;
                   }
                 } catch (error) {
-                  log.error("Failed to read file as data URL:", error);
+                  console.error("Failed to read file as data URL:", error);
                 }
               }
             } else {
@@ -501,7 +500,7 @@ export const useClipboardContentPaste = () => {
                 alert: true,
                 content: error
               });
-              log.error("Failed to upload clipboard image:", error);
+              console.error("Failed to upload clipboard image:", error);
             }
           });
           return true;

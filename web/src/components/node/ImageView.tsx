@@ -10,7 +10,6 @@ import { createImageUrl } from "../../utils/imageUtils";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
-import log from "loglevel";
 
 interface ImageViewProps {
   source?: string | Uint8Array;
@@ -134,7 +133,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
         }
       }
     } catch (_e) {
-      log.warn("ImageView: could not determine filename from URL, using default");
+      console.warn("ImageView: could not determine filename from URL, using default");
     }
 
     // Fetch through a fresh blob so cross-origin /api/* URLs still honor `download`,
@@ -150,7 +149,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
       createdUrl = URL.createObjectURL(blob);
       downloadUrl = createdUrl;
     } catch (err) {
-      log.warn("ImageView: fetch for download failed, using raw URL", err);
+      console.warn("ImageView: fetch for download failed, using raw URL", err);
     }
 
     const link = document.createElement("a");

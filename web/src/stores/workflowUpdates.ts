@@ -20,7 +20,6 @@ import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore, { normalizeNodeError } from "./ErrorStore";
-import log from "loglevel";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
@@ -295,7 +294,7 @@ export const handleUpdate = (
     if (planningUpdate.node_id) {
       setPlanningUpdate(workflow.id, planningUpdate.node_id, planningUpdate);
     } else {
-      log.error("PlanningUpdate has no node_id");
+      console.error("PlanningUpdate has no node_id");
     }
   }
   if (data.type === "tool_call_update") {
@@ -327,7 +326,7 @@ export const handleUpdate = (
     if (task.node_id) {
       setTask(workflow.id, task.node_id, task.task);
     } else {
-      log.error("TaskUpdate has no node_id");
+      console.error("TaskUpdate has no node_id");
     }
   }
 
@@ -536,7 +535,7 @@ export const handleUpdate = (
 
     const normalizedNodeError = normalizeNodeError(update.error);
     if (normalizedNodeError) {
-      log.error("WorkflowRunner update error", normalizedNodeError);
+      console.error("WorkflowRunner update error", normalizedNodeError);
       runner.addNotification({
         type: "error",
         alert: true,

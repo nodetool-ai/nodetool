@@ -1,4 +1,3 @@
-import log from "loglevel";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useWorkflowActions } from "../useWorkflowActions";
 import { Workflow } from "../../stores/ApiTypes";
@@ -176,7 +175,7 @@ describe("useWorkflowActions", () => {
 
     it("clears loading state on error", async () => {
       mockCreateWorkflow.mockRejectedValueOnce(new Error("Creation failed"));
-      const consoleSpy = jest.spyOn(log, "error").mockImplementation();
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
       const { result } = renderHook(() => useWorkflowActions());
 
       await result.current.handleExampleClick(mockWorkflow);

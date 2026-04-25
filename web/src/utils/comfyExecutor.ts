@@ -7,7 +7,6 @@
 import { Graph } from "../stores/ApiTypes";
 import { getComfyUIService } from "../services/ComfyUIService";
 import { nodeToolGraphToComfyPrompt, graphHasComfyUINodes } from "./comfyWorkflowConverter";
-import log from "loglevel";
 import { Workflow, WorkflowAttributes } from "../stores/ApiTypes";
 import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
 import { handleUpdate, MsgpackData, getNodeStore } from "../stores/workflowUpdates";
@@ -72,7 +71,7 @@ const emitWorkflowUpdate = (
   workflow: Workflow,
   update: MsgpackData
 ): void => {
-  log.info("[ComfyBridge] dispatching translated update", {
+  console.info("[ComfyBridge] dispatching translated update", {
     workflowId: workflow.id,
     type: update.type
   });
@@ -123,7 +122,7 @@ const finalizeActiveNodes = (
   }
 
   const nodeIds = Array.from(activeNodeIds);
-  log.info("[ComfyBridge] finalizing lingering running nodes", {
+  console.info("[ComfyBridge] finalizing lingering running nodes", {
     workflowId: workflow.id,
     nodeIds
   });
@@ -154,14 +153,14 @@ const translateComfyMessage = (
   const messagePromptId = toStringId(data.prompt_id);
 
   if (messagePromptId && messagePromptId !== promptId) {
-    log.info("[ComfyBridge] skipping message for other prompt", {
+    console.info("[ComfyBridge] skipping message for other prompt", {
       messageType: type,
       promptId: messagePromptId
     });
     return;
   }
 
-  log.info("[ComfyBridge] translating Comfy message", {
+  console.info("[ComfyBridge] translating Comfy message", {
     messageType: type,
     promptId: messagePromptId || promptId
   });
@@ -227,7 +226,7 @@ const translateComfyMessage = (
     case "progress": {
       const nodeId = toStringId(data.node) || currentNodeIdRef.current;
       if (!nodeId) {
-        log.warn("[ComfyBridge] progress message without node id");
+        console.warn("[ComfyBridge] progress message without node id");
         return;
       }
       const value = typeof data.value === "number" ? data.value : 0;
@@ -245,7 +244,7 @@ const translateComfyMessage = (
     case "executed": {
       const nodeId = toStringId(data.node);
       if (!nodeId) {
-        log.warn("[ComfyBridge] executed message without node id");
+        console.warn("[ComfyBridge] executed message without node id");
         return;
       }
       activeNodeIdsRef.current.delete(nodeId);
@@ -315,7 +314,7 @@ const translateComfyMessage = (
       return;
     }
     default: {
-      log.info("[ComfyBridge] unhandled Comfy message type", {
+      console.info("[ComfyBridge] unhandled Comfy message type", {
         messageType: type
       });
       return;
@@ -344,13 +343,13 @@ export async function executeViaComfyUI(
     // Convert graph to ComfyUI prompt format
     const prompt = nodeToolGraphToComfyPrompt(graph);
 
-    log.info("Executing via ComfyUI:", prompt);
+    console.info("Executing via ComfyUI:", prompt);
 
     // Submit prompt to ComfyUI
     const response = await service.submitPrompt(prompt);
     const promptId = response.prompt_id;
 
-    log.info("ComfyUI execution started:", response);
+    console.info("ComfyUI execution started:", response);
     useComfyUIStore.getState().setCurrentPromptId(promptId);
     useComfyUIStore.getState().setExecuting(true);
 
@@ -373,7 +372,7 @@ export async function executeViaComfyUI(
     service.connectWebSocket(
       (data) => {
         const msg = data as { type?: string; data?: unknown };
-        log.info("[ComfyWS] update received", {
+        console.info("[ComfyWS] update received", {
           type: msg?.type ?? "unknown",
           hasData: msg?.data !== undefined,
           keys:
@@ -404,7 +403,7 @@ export async function executeViaComfyUI(
         }
       },
       (error) => {
-        log.error("ComfyUI WebSocket error:", error);
+        console.error("ComfyUI WebSocket error:", error);
         if (workflowForUpdates) {
           emitWorkflowUpdate(workflowForUpdates, {
             type: "job_update",
@@ -419,7 +418,7 @@ export async function executeViaComfyUI(
         }
       },
       (event) => {
-        log.info("ComfyUI WebSocket closed:", event);
+        console.info("ComfyUI WebSocket closed:", event);
         useComfyUIStore.getState().setExecuting(false);
       }
     );
@@ -430,7 +429,7 @@ export async function executeViaComfyUI(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    log.error("Failed to execute via ComfyUI:", error);
+    console.error("Failed to execute via ComfyUI:", error);
     useComfyUIStore.getState().setExecuting(false);
     return {
       success: false,

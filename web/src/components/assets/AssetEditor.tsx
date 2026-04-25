@@ -8,7 +8,6 @@ import { Text, LoadingSpinner, EditorButton, FlexColumn } from "../ui_primitives
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetById } from "../../serverState/useAssetById";
 import { ImageEditor } from "../node/image_editor";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
     css({
@@ -60,7 +59,7 @@ const AssetEditor: React.FC = () => {
             return "No asset ID provided";
         }
         if (queryError) {
-            log.error("[AssetEditor] Failed to fetch asset:", queryError);
+            console.error("[AssetEditor] Failed to fetch asset:", queryError);
             return "Failed to load asset";
         }
         if (!loading && !asset) {
@@ -87,7 +86,7 @@ const AssetEditor: React.FC = () => {
             setIsSaving(true);
 
             try {
-                log.info(`[AssetEditor] Saving edited image for asset: ${asset.id}`);
+                console.info(`[AssetEditor] Saving edited image for asset: ${asset.id}`);
 
                 // Convert blob to base64
                 const base64Data = await blobToBase64(blob);
@@ -105,14 +104,14 @@ const AssetEditor: React.FC = () => {
                     invalidateQueries(["assets", { parent_id: asset.parent_id }]);
                 }
 
-                log.info(
+                console.info(
                     `[AssetEditor] Successfully saved edited image for asset: ${asset.id}`
                 );
 
                 // Navigate back after successful save
                 navigate(-1);
             } catch (err) {
-                log.error("[AssetEditor] Failed to save edited image:", err);
+                console.error("[AssetEditor] Failed to save edited image:", err);
                 // Keep the editor open on error
             } finally {
                 setIsSaving(false);

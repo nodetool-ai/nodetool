@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { shallow } from "zustand/shallow";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
@@ -158,7 +159,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
       setBypass: state.setBypass
-    })
+    }),
+    shallow
   );
 
   // Optimization: Only subscribe to relevant booleans instead of full node/edge arrays

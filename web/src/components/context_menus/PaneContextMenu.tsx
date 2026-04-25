@@ -29,7 +29,6 @@ import {
 } from "../../utils/nodeUtils";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { WORKFLOW_NODE_TYPE } from "../node/WorkflowNode";
-import log from "loglevel";
 import { shallow } from "zustand/shallow";
 
 const PaneContextMenu: React.FC = () => {
@@ -192,7 +191,7 @@ const PaneContextMenu: React.FC = () => {
       }
       const metadata = getMetadata(nodeType);
       if (!metadata) {
-        log.error(`Metadata not found for node type: ${nodeType}`);
+        console.error(`Metadata not found for node type: ${nodeType}`);
         return;
       }
       const position = reactFlowInstance.screenToFlowPosition({

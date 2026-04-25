@@ -17,7 +17,6 @@ import isEqual from "fast-deep-equal";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import log from "loglevel";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface PropertyDropzoneProps {
@@ -247,7 +246,7 @@ const PropertyDropzone = ({
         onChange({ uri: asset.get_url || "", type: contentType });
       },
       onFailed: (error) => {
-        log.error("Failed to upload asset:", error);
+        console.error("Failed to upload asset:", error);
       }
     });
 
@@ -300,7 +299,7 @@ const PropertyDropzone = ({
         const fileData = await window.api.clipboard?.readFileBuffer(filePath);
 
         if (!fileData) {
-          log.error("Failed to read file");
+          console.error("Failed to read file");
           return;
         }
 
@@ -324,12 +323,12 @@ const PropertyDropzone = ({
             onChange({ uri: asset.get_url || "", type: contentType });
           },
           onFailed: (error) => {
-            log.error("Failed to upload asset:", error);
+            console.error("Failed to upload asset:", error);
           }
         });
       }
     } catch (error) {
-      log.error("Error opening file picker:", error);
+      console.error("Error opening file picker:", error);
     }
   }, [contentType, onChange, uploadAssetFn]);
 

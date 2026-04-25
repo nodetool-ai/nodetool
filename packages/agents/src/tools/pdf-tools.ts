@@ -14,7 +14,7 @@ import { Tool } from "./base-tool.js";
 const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------
-// Shared PDF helper using pdfjs-dist
+// Shared PDF helper using @llamaindex/liteparse
 // ---------------------------------------------------------------------------
 
 interface PdfExtraction {
@@ -24,23 +24,15 @@ interface PdfExtraction {
 }
 
 /**
- * Extract text from a PDF buffer using pdfjs-dist.
+ * Extract text from a PDF buffer using @llamaindex/liteparse.
  * Returns per-page text so callers can slice by page range.
  */
 async function extractPdfPages(buffer: Buffer): Promise<PdfExtraction> {
-  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  const data = new Uint8Array(buffer);
-  const doc = await getDocument({ data, useSystemFonts: true }).promise;
-  const pages: string[] = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    const items = content.items as Array<{ str?: string }>;
-    pages.push(items.map((item) => item.str ?? "").join(" "));
-  }
-  const numPages = doc.numPages;
-  void doc.destroy();
-  return { pages, numPages };
+  const { LiteParse } = await import("@llamaindex/liteparse");
+  const parser = new LiteParse({ ocrEnabled: false });
+  const result = await parser.parse(buffer, true);
+  const pages = result.pages.map((p) => p.text);
+  return { pages, numPages: result.pages.length };
 }
 
 export class ExtractPDFTextTool extends Tool {

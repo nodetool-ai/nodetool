@@ -7,7 +7,6 @@ import { Container } from "@mui/material";
 import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
@@ -324,7 +323,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
   const handleAddToAssets = useCallback(async () => {
     if (outputValue === null || outputValue === undefined) {
-      log.warn("No result output to add to assets");
+      console.warn("No result output to add to assets");
       return;
     }
 
@@ -337,7 +336,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         content: `${assetFiles.length} file(s) added to assets successfully`
       });
     } catch (error) {
-      log.error("Error in handleAddToAssets:", error);
+      console.error("Error in handleAddToAssets:", error);
       addNotification({
         type: "error",
         content: "Failed to add output to assets"
@@ -357,7 +356,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         content: "Download started successfully"
       });
     } catch (error) {
-      log.error("Error in handleDownload:", error);
+      console.error("Error in handleDownload:", error);
       addNotification({
         type: "error",
         content: "Failed to start download"

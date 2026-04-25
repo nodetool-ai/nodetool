@@ -1,6 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, DslNode } from "../core.js";
+import type { ImageRef } from "../types.js";
 
 // PDF Page Count — lib.pdf.PageCount
 export interface PageCountInputs {
@@ -104,4 +105,54 @@ export interface PageMetadataOutputs {
 
 export function pageMetadata(inputs: PageMetadataInputs): DslNode<PageMetadataOutputs, "output"> {
   return createNode("lib.pdf.PageMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+}
+
+// PDF Page Screenshot — lib.pdf.Screenshot
+export interface ScreenshotInputs {
+  pdf?: Connectable<unknown>;
+  start_page?: Connectable<number>;
+  end_page?: Connectable<number>;
+  dpi?: Connectable<number>;
+}
+
+export interface ScreenshotOutputs {
+  output: ImageRef[];
+}
+
+export function screenshot(inputs: ScreenshotInputs): DslNode<ScreenshotOutputs, "output"> {
+  return createNode("lib.pdf.Screenshot", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+}
+
+// PDF Search Text — lib.pdf.SearchText
+export interface SearchTextInputs {
+  pdf?: Connectable<unknown>;
+  phrase?: Connectable<string>;
+  case_sensitive?: Connectable<boolean>;
+  start_page?: Connectable<number>;
+  end_page?: Connectable<number>;
+}
+
+export interface SearchTextOutputs {
+  output: Record<string, unknown>[];
+}
+
+export function searchText(inputs: SearchTextInputs): DslNode<SearchTextOutputs, "output"> {
+  return createNode("lib.pdf.SearchText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+}
+
+// PDF Extract Text (OCR) — lib.pdf.ExtractOcr
+export interface ExtractOcrInputs {
+  pdf?: Connectable<unknown>;
+  start_page?: Connectable<number>;
+  end_page?: Connectable<number>;
+  ocr_language?: Connectable<string>;
+  dpi?: Connectable<number>;
+}
+
+export interface ExtractOcrOutputs {
+  output: string;
+}
+
+export function extractOcr(inputs: ExtractOcrInputs): DslNode<ExtractOcrOutputs, "output"> {
+  return createNode("lib.pdf.ExtractOcr", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
