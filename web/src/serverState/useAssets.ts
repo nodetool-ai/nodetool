@@ -6,11 +6,13 @@ import { useSettingsStore } from "../stores/SettingsStore";
 import useAuth from "../stores/useAuth";
 import { useAssetGridStore } from "../stores/AssetGridStore";
 import { SIZE_FILTERS } from "../utils/formatUtils";
+import { getAssetCategory } from "../components/assets/assetGridUtils";
 
 type FilterOptions = {
   searchTerm: string;
   contentType?: string | null;
   sizeFilter?: string;
+  typeFilter?: string;
 };
 
 type AssetUpdate = {
@@ -50,6 +52,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
   );
   const assetSearchTerm = useAssetGridStore((state) => state.assetSearchTerm);
   const sizeFilter = useAssetGridStore((state) => state.sizeFilter);
+  const typeFilter = useAssetGridStore((state) => state.typeFilter);
 
   if (currentUser === null) {
     throw new Error("User not logged");
@@ -165,7 +168,14 @@ export const useAssets = (_initialFolderId: string | null = null) => {
           }
         }
 
-        return nameMatch && typeMatch && sizeMatch;
+        // Asset-category filtering (image / video / audio / etc.)
+        let categoryMatch = true;
+        if (options.typeFilter && options.typeFilter !== "all") {
+          const category = getAssetCategory(asset.content_type || "");
+          categoryMatch = category === options.typeFilter;
+        }
+
+        return nameMatch && typeMatch && sizeMatch && categoryMatch;
       });
     },
     []
@@ -174,9 +184,10 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     return filterAssets(processedAssets, {
       searchTerm: assetSearchTerm || "",
       contentType: null,
-      sizeFilter: sizeFilter
+      sizeFilter: sizeFilter,
+      typeFilter: typeFilter
     });
-  }, [filterAssets, processedAssets, assetSearchTerm, sizeFilter]);
+  }, [filterAssets, processedAssets, assetSearchTerm, sizeFilter, typeFilter]);
 
   // Create folder mutation
   const createFolderMutation = useMutation({
