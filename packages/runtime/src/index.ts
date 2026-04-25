@@ -30,8 +30,26 @@ export {
   type ExecuteResult,
   type ProgressEvent,
   type PythonWorkerLoadError,
-  type PythonWorkerStatus
+  type PythonWorkerStatus,
+  type RealtimeStartSessionRequest,
+  type RealtimeStartSessionResult,
+  type RealtimeUpdateParameterRequest,
+  type RealtimeUpdateParameterResult,
+  type RealtimePushInputFrameRequest,
+  type RealtimePushInputFrameResult,
+  type RealtimeStopSessionRequest,
+  type RealtimeStopSessionResult,
+  type RealtimeOutputFrameEvent
 } from "./python-stdio-bridge.js";
+export {
+  PythonRealtimeSession,
+  type PythonRealtimeSessionOptions,
+  type PythonRealtimeSessionEvents
+} from "./python-realtime-session.js";
+export type {
+  RealtimeMediaTrackPayload,
+  RealtimeSessionInfoPayload
+} from "./python-bridge-types.js";
 export {
   BRIDGE_PROTOCOL_VERSION,
   MIN_NODETOOL_CORE_VERSION

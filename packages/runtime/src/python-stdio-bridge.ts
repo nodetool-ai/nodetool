@@ -31,7 +31,16 @@ import type {
   PythonProviderInfo,
   PythonBridgeOptions,
   PythonWorkerLoadError,
-  PythonWorkerStatus
+  PythonWorkerStatus,
+  RealtimeStartSessionRequest,
+  RealtimeStartSessionResult,
+  RealtimeUpdateParameterRequest,
+  RealtimeUpdateParameterResult,
+  RealtimePushInputFrameRequest,
+  RealtimePushInputFrameResult,
+  RealtimeStopSessionRequest,
+  RealtimeStopSessionResult,
+  RealtimeOutputFrameEvent
 } from "./python-bridge-types.js";
 
 export type {
@@ -43,7 +52,16 @@ export type {
   PythonProviderInfo,
   PythonBridgeOptions,
   PythonWorkerLoadError,
-  PythonWorkerStatus
+  PythonWorkerStatus,
+  RealtimeStartSessionRequest,
+  RealtimeStartSessionResult,
+  RealtimeUpdateParameterRequest,
+  RealtimeUpdateParameterResult,
+  RealtimePushInputFrameRequest,
+  RealtimePushInputFrameResult,
+  RealtimeStopSessionRequest,
+  RealtimeStopSessionResult,
+  RealtimeOutputFrameEvent
 };
 
 interface PendingRequest {
@@ -401,6 +419,11 @@ export class PythonStdioBridge extends EventEmitter {
         pending.onProgress({ request_id: requestId, ...data });
       }
       this.emit("progress", msg.data);
+    } else if (type === "realtime_output_frame") {
+      // Server-pushed event from a live realtime session (no request_id is
+      // attached; the routing key is data.session_id). PythonRealtimeSession
+      // subscribes to this event and dispatches per-session.
+      this.emit("realtimeOutputFrame", msg.data as RealtimeOutputFrameEvent);
     }
   }
 
@@ -785,6 +808,70 @@ export class PythonStdioBridge extends EventEmitter {
   }
 
   private async _providerCall(
+    type: string,
+    data: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const requestId = randomUUID();
+    return new Promise<Record<string, unknown>>((resolve, reject) => {
+      this._pendingStream.set(requestId, {
+        resolve,
+        reject,
+        onChunk: () => {}
+      });
+      this._send({ type, request_id: requestId, data });
+    });
+  }
+
+  // ── Realtime sessions (PLAN-REALTIME.md item 6c) ────────────────────
+  //
+  // The four verbs below speak the wire format implemented by
+  // StdioWorkerServer in nodetool-core/src/nodetool/worker/stdio_server.py.
+  // Each verb is a request/response with a free-form JSON `data` payload, so
+  // they reuse the `_pendingStream` slot (which forwards `msg.data` raw)
+  // rather than the `_pending` slot used by `execute()` (which expects an
+  // `outputs`/`blobs` shape).
+
+  async startRealtimeSession(
+    request: RealtimeStartSessionRequest
+  ): Promise<RealtimeStartSessionResult> {
+    const result = await this._realtimeCall(
+      "start_session",
+      request as unknown as Record<string, unknown>
+    );
+    return result as unknown as RealtimeStartSessionResult;
+  }
+
+  async updateRealtimeParameter(
+    request: RealtimeUpdateParameterRequest
+  ): Promise<RealtimeUpdateParameterResult> {
+    const result = await this._realtimeCall(
+      "update_parameter",
+      request as unknown as Record<string, unknown>
+    );
+    return result as unknown as RealtimeUpdateParameterResult;
+  }
+
+  async pushRealtimeInputFrame(
+    request: RealtimePushInputFrameRequest
+  ): Promise<RealtimePushInputFrameResult> {
+    const result = await this._realtimeCall(
+      "push_input_frame",
+      request as unknown as Record<string, unknown>
+    );
+    return result as unknown as RealtimePushInputFrameResult;
+  }
+
+  async stopRealtimeSession(
+    request: RealtimeStopSessionRequest
+  ): Promise<RealtimeStopSessionResult> {
+    const result = await this._realtimeCall(
+      "stop_session",
+      request as unknown as Record<string, unknown>
+    );
+    return result as unknown as RealtimeStopSessionResult;
+  }
+
+  private async _realtimeCall(
     type: string,
     data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
