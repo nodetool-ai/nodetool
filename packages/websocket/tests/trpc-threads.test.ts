@@ -185,14 +185,12 @@ describe("threads router", () => {
       expect(result.id).toBe("t1");
     });
 
-    it("creates a new thread if one does not exist", async () => {
+    it("throws NOT_FOUND when thread does not exist", async () => {
       (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const createdThread = makeThread({ id: "missing", title: "New Thread" });
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(createdThread);
       const caller = createCaller(makeCtx());
-      const result = await caller.threads.get({ id: "missing" });
-      expect(result.id).toBe("missing");
-      expect(result.title).toBe("New Thread");
+      await expect(
+        caller.threads.get({ id: "missing" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
   });
 

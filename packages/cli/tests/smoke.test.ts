@@ -13,7 +13,7 @@ describe("cli settings and provider helpers", () => {
     expect(DEFAULT_SETTINGS.model).toBe("gpt-4o");
   });
 
-  it("always includes ollama, lmstudio, and any configured env-backed providers", async () => {
+  it("always includes ollama and any configured env-backed providers", async () => {
     vi.resetModules();
     vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic");
     vi.stubEnv("OPENAI_API_KEY", "");
@@ -23,6 +23,6 @@ describe("cli settings and provider helpers", () => {
 
     const { availableProviders } = await import("../src/providers.js");
 
-    expect(availableProviders()).toEqual(["anthropic", "gemini", "ollama", "lmstudio"]);
+    expect(availableProviders()).toEqual(["anthropic", "gemini", "ollama"]);
   });
 });

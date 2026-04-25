@@ -43,11 +43,11 @@ export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 /** Default models for each provider. */
 export const DEFAULT_MODELS: Record<string, string> = {
   anthropic: "claude-sonnet-4-6",
-  openai: "gpt-4o",
+  openai: "gpt-5.4",
   ollama: "qwen-3.5:4b",
   gemini: "gemini-2.5-flash",
   mistral: "mistral-large-latest",
-  lmstudio: "qwen/qwen3.5-9b",
+  lmstudiio: "qwen/qwen3.5-9b",
   groq: "llama-3.3-70b-versatile",
   moonshot: "kimi-k2.5",
   aki: "llama3_chat",
