@@ -18,7 +18,6 @@ import {
 // Initialize the WebSocket bridge for frontend tools — registers handlers
 // that allow the server-side agent to call frontend tools via the renderer.
 import "../lib/tools/frontendToolsIpc";
-import log from "loglevel";
 import { getAgentSocketClient } from "../lib/agent/AgentSocketClient";
 import type {
   AgentMessage as ProtocolAgentMessage,
@@ -198,7 +197,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
         modelsLoading: false
       }));
     } catch (error) {
-      log.error("Failed to load agent models:", error);
+      console.error("Failed to load agent models:", error);
       set({ modelsLoading: false });
     }
   },
@@ -450,7 +449,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
         set({ status: "connected", hasAssistantInCurrentTurn: false });
       })
       .catch((err: unknown) => {
-        log.error("Failed to stop agent execution:", err);
+        console.error("Failed to stop agent execution:", err);
         set({
           status: priorStatus,
           error:
@@ -469,7 +468,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
     if (sessionId) {
       const client = getAgentSocketClient();
       client.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close agent session:", err);
+        console.error("Failed to close agent session:", err);
       });
     }
     set({
@@ -494,7 +493,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
     if (sessionId) {
       const client = getAgentSocketClient();
       await client.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close agent session:", err);
+        console.error("Failed to close agent session:", err);
       });
     }
     set({
@@ -533,7 +532,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
     if (sessionId) {
       const client = getAgentSocketClient();
       await client.closeSession(sessionId).catch((err: unknown) => {
-        log.error("Failed to close agent session:", err);
+        console.error("Failed to close agent session:", err);
       });
     }
 
@@ -556,7 +555,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
           model: "claude-agent"
         }));
       } catch (err) {
-        log.error("Failed to load session transcript:", err);
+        console.error("Failed to load session transcript:", err);
         cachedMessages = [];
       }
     }
@@ -608,7 +607,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
 
       set({ sessionHistory: merged });
     } catch (error) {
-      log.error("Failed to load agent sessions:", error);
+      console.error("Failed to load agent sessions:", error);
     }
   }
 }));

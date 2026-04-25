@@ -10,7 +10,6 @@ import { useAssets } from "../../serverState/useAssets";
 import AssetTree from "./AssetTree";
 import { Asset } from "../../stores/ApiTypes";
 import { useAuth } from "../../stores/useAuth";
-import log from "loglevel";
 import {
   Dialog,
   DialogActionButtons,
@@ -108,9 +107,9 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
     try {
       const response = await mutation.mutateAsync(assets);
       if (response === undefined) {
-        log.error("Received undefined response from server");
+        console.error("Received undefined response from server");
       } else if (typeof response === "object" && response !== null) {
-        log.info("Deleted asset IDs:", (response as { deleted_asset_ids?: string[] }).deleted_asset_ids);
+        console.info("Deleted asset IDs:", (response as { deleted_asset_ids?: string[] }).deleted_asset_ids);
       }
       // Blur focused element to prevent aria-hidden focus warning
       if (document.activeElement instanceof HTMLElement) {
@@ -122,7 +121,7 @@ const AssetDeleteConfirmation: React.FC<AssetDeleteConfirmationProps> = ({
       await refetchAssetsAndFolders();
     } catch (error) {
       if (error instanceof Error) {
-        log.error("Execute deletion error:", error.message);
+        console.error("Execute deletion error:", error.message);
       }
     } finally {
       setIsLoading(false);

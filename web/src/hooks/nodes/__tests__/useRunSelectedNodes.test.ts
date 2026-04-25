@@ -18,15 +18,6 @@ jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: jest.fn()
 }));
 
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn()
-  }
-}));
 
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";

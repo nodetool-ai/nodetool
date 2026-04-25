@@ -25,15 +25,6 @@ jest.mock("../../services/ComfyUIService", () => {
   };
 });
 
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
 
 // Mock localStorage
 const mockLocalStorage = {

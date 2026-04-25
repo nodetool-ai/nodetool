@@ -6,7 +6,6 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useClipboard } from "../browser/useClipboard";
-import log from "loglevel";
 
 import { useNodes } from "../../contexts/NodeContext";
 import {
@@ -111,7 +110,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
 
   const handleCopyMetadataToClipboard = useCallback(() => {
     if (nodeId && nodeData) {
-      log.info("Copying node data to clipboard", nodeData);
+      console.info("Copying node data to clipboard", nodeData);
       addNotification({
         type: "info",
         alert: true,
@@ -156,7 +155,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       const name = match ? match[1].toLowerCase() : "input";
       updateNodeData(nodeId, { properties: { ...nodeData?.properties, name } });
       updateNode(nodeId, { type: targetType });
-      log.info("Converted constant node to input node", {
+      console.info("Converted constant node to input node", {
         from: node.type,
         to: targetType
       });
@@ -185,7 +184,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     if (targetType) {
       updateNodeData(nodeId, { properties: { ...nodeData?.properties } });
       updateNode(nodeId, { type: targetType });
-      log.info("Converted input node to constant node", {
+      console.info("Converted input node to constant node", {
         from: node.type,
         to: targetType
       });

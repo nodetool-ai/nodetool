@@ -65,7 +65,6 @@ const DownloadManagerDialog = React.lazy(
   () => import("./components/hugging_face/DownloadManagerDialog")
 );
 
-import log from "loglevel";
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 const Alert = React.lazy(() => import("./components/node_editor/Alert"));
 import MobileClassProvider from "./components/MobileClassProvider";
@@ -138,19 +137,18 @@ const registerFrontendTools = () => {
     import("./lib/tools/builtin/deleteNode"),
     import("./lib/tools/builtin/deleteEdge")
   ]).catch((error) => {
-    log.error("Failed to register frontend tools:", error);
+    console.error("Failed to register frontend tools:", error);
   });
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
-window.log = log;
 installIpcLogBridge();
 
 if (isLocalhost) {
   useRemoteSettingsStore
     .getState()
     .fetchSettings()
-    .catch((err) => log.error(err));
+    .catch((err) => console.error(err));
 }
 
 const NavigateToStart = () => {
@@ -195,7 +193,7 @@ const NavigateToStart = () => {
             const workflow = await createNewWorkflow();
             navigate(`/editor/${workflow.id}`, { replace: true });
           } catch (error) {
-            log.error("Failed to create workflow:", error);
+            console.error("Failed to create workflow:", error);
             navigate("/dashboard", { replace: true });
           }
         }
@@ -505,7 +503,7 @@ const preloadComfyMetadata = async (): Promise<void> => {
     const objectInfoModule =
       await import("./data/comfy-object-info.json").catch(() => null);
     if (!objectInfoModule) {
-      log.info("[startup] No bundled ComfyUI schema found, skipping preload");
+      console.info("[startup] No bundled ComfyUI schema found, skipping preload");
       return;
     }
     const objectInfo = (objectInfoModule.default ??
@@ -533,11 +531,11 @@ const preloadComfyMetadata = async (): Promise<void> => {
       });
     }
 
-    log.info(
+    console.info(
       `[startup] Loaded ${comfyMetadataCount} ComfyUI node metadata entries from bundled schema`
     );
   } catch (error) {
-    log.warn("[startup] ComfyUI metadata preload skipped", error);
+    console.warn("[startup] ComfyUI metadata preload skipped", error);
   }
 };
 
@@ -577,7 +575,7 @@ const AppWrapper = () => {
         }
       })
       .catch((error) => {
-        log.error("Failed to load metadata:", error);
+        console.error("Failed to load metadata:", error);
         setStatus("error");
       });
   }, [authState]);
@@ -709,4 +707,4 @@ const initialize = async () => {
   root.render(<AppWrapper />);
 };
 
-initialize().catch((err) => log.error(err));
+initialize().catch((err) => console.error(err));

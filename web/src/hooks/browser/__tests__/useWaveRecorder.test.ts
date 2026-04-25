@@ -39,15 +39,6 @@ jest.mock("wavesurfer.js/dist/plugins/record", () => ({
   }
 }));
 
-// Mock loglevel
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn()
-  }
-}));
 
 describe("useWaveRecorder", () => {
   let mockOnChange: jest.Mock;

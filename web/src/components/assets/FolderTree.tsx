@@ -8,7 +8,6 @@ import { SimpleTreeView } from "@mui/x-tree-view/SimpleTreeView";
 import { TreeItem } from "@mui/x-tree-view/TreeItem";
 import { type AssetTreeNode } from "../../stores/AssetStore";
 import { useFolderTree } from "../../serverState/useFolderTree";
-import log from "loglevel";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -81,7 +80,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
 
   const renderTree = useCallback((node: AssetTreeNode): React.ReactNode => {
     if (!node.id) {
-      log.error("Node with undefined id found:", node);
+      console.error("Node with undefined id found:", node);
       return null;
     }
 

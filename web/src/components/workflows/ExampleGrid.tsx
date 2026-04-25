@@ -22,7 +22,6 @@ import WorkflowCard from "./WorkflowCard";
 import AppHeader from "../panels/AppHeader";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeGrid as Grid, GridChildComponentProps } from "react-window";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -297,7 +296,7 @@ const TemplateGrid = memo(function TemplateGrid() {
           detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
         );
       } catch (error) {
-        log.error("Search failed:", error);
+        console.error("Search failed:", error);
         setSearchResults([]); // Clear results on error
       }
     } else if (
@@ -383,7 +382,7 @@ const TemplateGrid = memo(function TemplateGrid() {
         const newWorkflow = await copyTemplateWorkflow(workflow);
         navigate("/editor/" + newWorkflow.id);
       } catch (error) {
-        log.error("Error copying workflow:", error);
+        console.error("Error copying workflow:", error);
         setLoadingWorkflowId(null);
       }
     },

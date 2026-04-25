@@ -6,7 +6,6 @@ import useResultsStore from "../../stores/ResultsStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
-import log from "loglevel";
 
 interface UseRunSelectedNodesReturn {
   runSelectedNodes: () => void;
@@ -73,7 +72,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       existing[targetHandle] = value;
       nodePropertyOverrides.set(targetNodeId, existing);
 
-      log.info(
+      console.info(
         `Run selected nodes: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
         {
           sourceHandle,
@@ -114,7 +113,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       return n;
     });
 
-    log.info("Running workflow from selected nodes", {
+    console.info("Running workflow from selected nodes", {
       startNodeIds: selectedNodes.map((n: Node<NodeData>) => n.id),
       nodeCount: nodesWithCachedValues.length,
       edgeCount: selectedEdges.length

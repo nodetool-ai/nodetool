@@ -7,7 +7,6 @@ import {
   hasExternalFiles,
   extractFiles
 } from "../../../lib/dragdrop";
-import log from "loglevel";
 
 // Generate a unique ID for each file
 const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -113,7 +112,7 @@ export const useDragAndDrop = (
             return;
           }
         } catch (err) {
-          log.error("Failed to process dropped asset", err);
+          console.error("Failed to process dropped asset", err);
         }
       }
 

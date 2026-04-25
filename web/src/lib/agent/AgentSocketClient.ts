@@ -8,7 +8,6 @@
  */
 
 import { EventEmitter } from "eventemitter3";
-import log from "loglevel";
 import { AGENT_WS_URL } from "../../stores/BASE_URL";
 import type {
   AgentClientCommand,
@@ -93,7 +92,7 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
       this.socket = socket;
       let resolved = false;
       socket.onopen = () => {
-        log.info(`[agent-ws] connected to ${this.url}`);
+        console.info(`[agent-ws] connected to ${this.url}`);
         this.connecting = null;
         resolved = true;
         this.emit("open");
@@ -103,10 +102,10 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
         this.handleMessage(ev.data);
       };
       socket.onerror = (event: Event) => {
-        log.warn("[agent-ws] socket error", event);
+        console.warn("[agent-ws] socket error", event);
       };
       socket.onclose = () => {
-        log.info("[agent-ws] socket closed");
+        console.info("[agent-ws] socket closed");
         this.socket = null;
         this.connecting = null;
         this.failAllPending(new Error("Agent WebSocket closed"));
@@ -269,13 +268,13 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
   /** Send a typed outbound message (no response tracking). */
   private sendMessageEnvelope(envelope: AgentClientMessage): void {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      log.warn("[agent-ws] send called but socket is not open", envelope);
+      console.warn("[agent-ws] send called but socket is not open", envelope);
       return;
     }
     try {
       this.socket.send(JSON.stringify(envelope));
     } catch (error) {
-      log.error("[agent-ws] failed to send", error);
+      console.error("[agent-ws] failed to send", error);
     }
   }
 
@@ -285,7 +284,7 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
     try {
       parsed = JSON.parse(raw) as AgentServerMessage;
     } catch (error) {
-      log.warn("[agent-ws] failed to parse message", error);
+      console.warn("[agent-ws] failed to parse message", error);
       return;
     }
 
@@ -347,7 +346,7 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
       if (this.intentionalClose) return;
       this.emit("reconnecting");
       this.connect().catch((error) => {
-        log.warn("[agent-ws] reconnect failed", error);
+        console.warn("[agent-ws] reconnect failed", error);
       });
     }, RECONNECT_INTERVAL_MS);
   }
@@ -362,7 +361,7 @@ export function getAgentSocketClient(): AgentSocketClient {
   if (!singletonClient) {
     singletonClient = new AgentSocketClient();
     void singletonClient.connect().catch((error) => {
-      log.warn("[agent-ws] initial connect failed", error);
+      console.warn("[agent-ws] initial connect failed", error);
     });
   }
   return singletonClient;

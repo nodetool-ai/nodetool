@@ -49,9 +49,6 @@ const EXTERNAL_PACKAGES = [
   "keytar",
 
   // Native optional deps (loaded by bundleable packages)
-  "msgpackr",
-  "msgpackr-extract",
-  "@msgpackr-extract/*",
   "bufferutil",
   "utf-8-validate",
 
