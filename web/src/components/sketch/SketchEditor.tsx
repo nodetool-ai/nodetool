@@ -209,6 +209,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(function 
         onMoveLayerToGroup={session.layerActions.handleMoveLayerToGroup}
         onUngroupLayer={session.layerActions.handleUngroupLayer}
         onGroupSelectedLayers={session.layerActions.handleGroupSelectedLayers}
+        onMergeSelectedLayers={session.layerActions.handleMergeSelectedLayers}
         onDeleteSelectedLayers={session.layerActions.handleDeleteSelectedLayers}
         canvasResizeHandlesEnabled={session.canvasResizeHandlesEnabled}
         onCanvasResizeHandlesEnabledChange={

@@ -9,6 +9,7 @@ import { useCallback, type RefObject } from "react";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { BlendMode, PushHistoryOptions, SketchDocument } from "../types";
 import { useSketchStore } from "../state";
+import { getMergeSelectedLayersPlan } from "../layerMergeSelection";
 
 export interface UseLayerActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
@@ -338,6 +339,38 @@ export function useLayerActions({
     }
   }, [document.layers, pushHistory, removeLayer]);
 
+  const handleMergeSelectedLayers = useCallback(() => {
+    if (!canvasRef.current) {
+      return;
+    }
+
+    const selectedLayerIds = useSketchStore.getState().selectedLayerIds;
+    const plan = getMergeSelectedLayersPlan(document.layers, selectedLayerIds);
+    if (!plan) {
+      return;
+    }
+
+    pushHistory("merge selected");
+
+    for (const upperLayerId of plan.mergeOrder) {
+      const currentLayers = useSketchStore.getState().document.layers;
+      const upperIndex = currentLayers.findIndex((layer) => layer.id === upperLayerId);
+      if (upperIndex <= 0) {
+        return;
+      }
+
+      const lowerLayer = currentLayers[upperIndex - 1];
+      const mergedData = canvasRef.current.mergeLayerDown(
+        upperLayerId,
+        lowerLayer.id
+      );
+      mergeLayerDown(upperLayerId);
+      if (mergedData) {
+        updateLayerData(lowerLayer.id, mergedData);
+      }
+    }
+  }, [canvasRef, document.layers, mergeLayerDown, pushHistory, updateLayerData]);
+
   return {
     handleAddLayer,
     handleRemoveLayer,
@@ -360,6 +393,7 @@ export function useLayerActions({
     handleMoveLayerToGroup,
     handleUngroupLayer,
     handleGroupSelectedLayers,
+    handleMergeSelectedLayers,
     handleDeleteSelectedLayers
   };
 }

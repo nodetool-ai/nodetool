@@ -140,7 +140,8 @@ Deferred selection-context-menu items:
 - [ ] deferred: `Refine Edge`
 
 ### 2.5 - FEATURES
-- [ ] Layers: add option to merge selected, in right click menu and add icon when multiple layers are selected
+- [x] [impl+test] Layers: add option to merge selected, in right click menu and add icon when multiple layers are selected
+  - **Done:** The layers panel now exposes `Merge Selected` in both the multi-select footer chrome and the layer right-click menu. The action intentionally stays narrow for the current runtime/store seam: it only enables for contiguous, unlocked, non-group sibling selections and executes by chaining the existing merge-down primitive from top to bottom.
 - [ ] add one output handle that combines all output layers in a list[image] output
 - [ ] improve Layer visibility toggle: allow toggling layer visibility by presing mouse and holding - moving over several layers. the eye icon part of the layer item should be exempt of dragging
 

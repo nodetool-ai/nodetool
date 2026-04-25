@@ -62,6 +62,7 @@ import LayerItem from "./LayerItem";
 import type { DropPosition } from "./LayerItem";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { useCollapsedSections } from "./useCollapsedSections";
+import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
 
 /**
  * Layer row modifiers: `getModifierState` helps when `draggable` rows omit flags on
@@ -384,6 +385,7 @@ export interface SketchLayersPanelProps {
   onMoveLayerToGroup: (layerId: string, groupId: string | null) => void;
   onUngroupLayer: (groupId: string) => void;
   onGroupSelectedLayers: () => void;
+  onMergeSelectedLayers: () => void;
   onDeleteSelectedLayers: () => void;
 }
 
@@ -429,6 +431,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onMoveLayerToGroup,
   onUngroupLayer,
   onGroupSelectedLayers,
+  onMergeSelectedLayers,
   onDeleteSelectedLayers
 }) => {
   const theme = useTheme();
@@ -712,6 +715,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     !activeLayer || activeLayer.locked || activeLayer.type === "group";
 
   const hasMultiLayerSelection = selectedLayerIds.length >= 2;
+  const canMergeSelectedLayers =
+    getMergeSelectedLayersPlan(layers, selectedLayerIds) !== null;
   const layerIdsInDoc = new Set(layers.map((l) => l.id));
   const selectedLayersPresentCount = selectedLayerIds.filter((id) =>
     layerIdsInDoc.has(id)
@@ -1121,6 +1126,18 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                   <CreateNewFolderIcon sx={{ fontSize: "1.125rem" }} />
                 </IconButton>
               </Tooltip>
+              <Tooltip title="Merge selected layers (contiguous siblings)" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
+                <span>
+                  <IconButton
+                    size="small"
+                    aria-label="Merge Selected Layers"
+                    onClick={onMergeSelectedLayers}
+                    disabled={!canMergeSelectedLayers}
+                  >
+                    <CallMergeIcon sx={{ fontSize: "1.125rem" }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
               <Tooltip title="Delete selected layers" enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
                 <IconButton
                   size="small"
@@ -1512,6 +1529,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           onGroupSelectedLayers();
           handleLayerCtxClose();
         };
+        const handleCtxMergeSelected = () => {
+          onMergeSelectedLayers();
+          handleLayerCtxClose();
+        };
         const handleCtxVisibility = () => {
           if (ctxLayer) {
             onToggleVisibility(ctxLayer.id);
@@ -1640,11 +1661,20 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 Ungroup
               </MenuItem>
             )}
-            {isMulti && (
+            {isMulti ? (
               <MenuItem sx={menuItemSx} onClick={handleCtxGroup}>
                 Group Selected
               </MenuItem>
-            )}
+            ) : null}
+            {isMulti ? (
+              <MenuItem
+                sx={menuItemSx}
+                onClick={handleCtxMergeSelected}
+                disabled={getMergeSelectedLayersPlan(layers, targetIds) === null}
+              >
+                Merge Selected
+              </MenuItem>
+            ) : null}
           </Menu>
         );
       })()}
