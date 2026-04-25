@@ -9,6 +9,7 @@ import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { shallow } from "zustand/shallow";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
+import { HomeNamespaceIcon } from "./NamespaceIcon";
 
 interface NamespacePanelProps {
   namespaceTree: NamespaceTree;
@@ -88,11 +89,24 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .namespace-item": {
       color: theme.vars.palette.text.primary,
-      textTransform: "capitalize",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em",
       whiteSpace: "nowrap",
       overflow: "hidden",
-      textOverflow: "ellipsis",
       userSelect: "none"
+    },
+    "& .namespace-item .namespace-label": {
+      textTransform: "capitalize",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      minWidth: 0
+    },
+    "& .namespace-item .namespace-icon": {
+      color: theme.vars.palette.text.secondary
+    },
+    "& .list-item.selected .namespace-item .namespace-icon": {
+      color: "var(--palette-primary-main)"
     },
     "& .disabled .namespace-item": {
       color: theme.vars.palette.text.disabled
@@ -247,7 +261,12 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
             }
           >
             <div className="namespace-item">
-              {searchTerm.length > minSearchTermLength ? "All results" : "Home"}
+              <HomeNamespaceIcon />
+              <span className="namespace-label">
+                {searchTerm.length > minSearchTermLength
+                  ? "All results"
+                  : "Home"}
+              </span>
             </div>
           </div>
         </div>
