@@ -491,14 +491,18 @@ export const createNodeStore = (
                 change.setAttributes
             );
 
-            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
+            // Treat as internal anything that React Flow emits without an explicit
+            // user drag (`dragging: true`). Position changes with `dragging: false`
+            // are drag-end frames; with `dragging: undefined` they come from
+            // programmatic adjustments like extent constraints or initial measurement
+            // and must not mark the workflow dirty.
             const isOnlyInternalChanges =
               !hasUserResize &&
               changes.every(
                 (change) =>
                   change.type === "dimensions" ||
                   change.type === "select" ||
-                  (change.type === "position" && change.dragging === false)
+                  (change.type === "position" && change.dragging !== true)
               );
 
             // Filter out selection changes for group nodes that have selectable: false

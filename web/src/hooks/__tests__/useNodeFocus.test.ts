@@ -13,7 +13,7 @@ describe("useNodeFocus", () => {
     { id: "node-3", position: { x: 300, y: 300 }, selected: false },
   ] as any;
 
-  const mockSetNodes = jest.fn();
+  const mockSetSelectedNodes = jest.fn();
 
   const mockFocusStore = {
     focusedNodeId: null as string | null,
@@ -34,9 +34,12 @@ describe("useNodeFocus", () => {
     mockFocusStore.focusHistory = [];
     (useNodes as jest.Mock).mockImplementation((selector) => {
       if (typeof selector === "function") {
-        return selector({ nodes: mockNodes, setNodes: mockSetNodes });
+        return selector({
+          nodes: mockNodes,
+          setSelectedNodes: mockSetSelectedNodes,
+        });
       }
-      return { nodes: mockNodes, setNodes: mockSetNodes };
+      return { nodes: mockNodes, setSelectedNodes: mockSetSelectedNodes };
     });
     (useNodeFocusStore as any).mockImplementation((selector: any) => {
       if (typeof selector === "function") {
@@ -147,12 +150,7 @@ describe("useNodeFocus", () => {
       result.current.selectFocused();
     });
 
-    expect(mockSetNodes).toHaveBeenCalledWith(
-      mockNodes.map((node: any) => ({
-        ...node,
-        selected: node.id === "node-2",
-      }))
-    );
+    expect(mockSetSelectedNodes).toHaveBeenCalledWith([mockNodes[1]]);
   });
 
   it("does not update nodes when no focused node", () => {
@@ -163,7 +161,7 @@ describe("useNodeFocus", () => {
       result.current.selectFocused();
     });
 
-    expect(mockSetNodes).not.toHaveBeenCalled();
+    expect(mockSetSelectedNodes).not.toHaveBeenCalled();
   });
 
   it("goes back in focus history", () => {
