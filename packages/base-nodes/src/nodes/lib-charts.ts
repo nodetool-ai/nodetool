@@ -128,9 +128,10 @@ export class ChartRendererLibNode extends BaseNode {
     }
 
     let createCanvas: typeof import("@napi-rs/canvas").createCanvas;
+    let napiPath2D: typeof import("@napi-rs/canvas").Path2D;
     let ChartJS: typeof import("chart.js");
     try {
-      ({ createCanvas } = await import("@napi-rs/canvas"));
+      ({ createCanvas, Path2D: napiPath2D } = await import("@napi-rs/canvas"));
       ChartJS = await import("chart.js");
     } catch (e) {
       throw new Error(
@@ -139,6 +140,15 @@ export class ChartRendererLibNode extends BaseNode {
           `(${e instanceof Error ? e.message : String(e)})`
       );
     }
+
+    // chart.js reads globalThis.Path2D for path caching. Some peer libraries
+    // (e.g. @llamaindex/liteparse, used by ConvertToMarkdown for PDF text
+    // extraction) install a no-op Path2D stub so pdf.js can import in Node;
+    // chart.js then constructs that empty stub and crashes with
+    // "ctx.moveTo is not a function". Restore @napi-rs/canvas's real Path2D
+    // for the duration of rendering.
+    const previousPath2D = (globalThis as { Path2D?: unknown }).Path2D;
+    (globalThis as { Path2D?: unknown }).Path2D = napiPath2D;
 
     const { Chart, registerables } = ChartJS;
     Chart.register(...registerables);
@@ -220,19 +230,28 @@ export class ChartRendererLibNode extends BaseNode {
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Chart.js accepts any canvas-like context
-    const chart = new Chart(ctx as unknown as CanvasRenderingContext2D, {
-      ...chartConfig,
-      options: {
-        ...chartConfig.options,
-        responsive: false,
-        animation: false
-      }
-    });
-    chart.draw();
+    let buffer: Buffer;
+    try {
+      // Chart.js accepts any canvas-like context
+      const chart = new Chart(ctx as unknown as CanvasRenderingContext2D, {
+        ...chartConfig,
+        options: {
+          ...chartConfig.options,
+          responsive: false,
+          animation: false
+        }
+      });
+      chart.draw();
 
-    const buffer = cvs.toBuffer("image/png");
-    chart.destroy();
+      buffer = cvs.toBuffer("image/png");
+      chart.destroy();
+    } finally {
+      if (previousPath2D === undefined) {
+        delete (globalThis as { Path2D?: unknown }).Path2D;
+      } else {
+        (globalThis as { Path2D?: unknown }).Path2D = previousPath2D;
+      }
+    }
 
     const data = Buffer.from(buffer).toString("base64");
 
