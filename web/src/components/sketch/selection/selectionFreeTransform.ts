@@ -9,6 +9,8 @@ export interface PreparedSelectionFreeTransform {
   selectionBounds: LayerContentBounds;
 }
 
+const SELECTION_ALPHA_THRESHOLD = 128;
+
 function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
   const clone = window.document.createElement("canvas");
   clone.width = source.width;
@@ -31,7 +33,6 @@ function clearSelectedPixelsFromCanvas(
   if (!ctx) {
     return;
   }
-  const threshold = 128;
   const maskOriginX = selection.originX ?? 0;
   const maskOriginY = selection.originY ?? 0;
   for (let localY = 0; localY < canvas.height; localY++) {
@@ -48,7 +49,7 @@ function clearSelectedPixelsFromCanvas(
         localX++;
         continue;
       }
-      if (selection.data[maskY * selection.width + maskX] < threshold) {
+      if (selection.data[maskY * selection.width + maskX] < SELECTION_ALPHA_THRESHOLD) {
         localX++;
         continue;
       }
@@ -58,7 +59,7 @@ function clearSelectedPixelsFromCanvas(
         if (
           nextMaskX < 0 ||
           nextMaskX >= selection.width ||
-          selection.data[maskY * selection.width + nextMaskX] < threshold
+          selection.data[maskY * selection.width + nextMaskX] < SELECTION_ALPHA_THRESHOLD
         ) {
           break;
         }
@@ -155,21 +156,25 @@ function getTransformedSelectionAabb(
   const halfHeight = (bounds.height * scaleY) / 2;
   const cos = Math.cos(rotation);
   const sin = Math.sin(rotation);
+  const transformPoint = (x: number, y: number) => ({
+    x: centerX + x * cos - y * sin,
+    y: centerY + x * sin + y * cos
+  });
   const corners = [
-    { x: centerX + (-halfWidth) * cos - (-halfHeight) * sin, y: centerY + (-halfWidth) * sin + (-halfHeight) * cos },
-    { x: centerX + halfWidth * cos - (-halfHeight) * sin, y: centerY + halfWidth * sin + (-halfHeight) * cos },
-    { x: centerX + (-halfWidth) * cos - halfHeight * sin, y: centerY + (-halfWidth) * sin + halfHeight * cos },
-    { x: centerX + halfWidth * cos - halfHeight * sin, y: centerY + halfWidth * sin + halfHeight * cos }
+    transformPoint(-halfWidth, -halfHeight),
+    transformPoint(halfWidth, -halfHeight),
+    transformPoint(-halfWidth, halfHeight),
+    transformPoint(halfWidth, halfHeight)
   ];
   let minX = corners[0].x;
   let minY = corners[0].y;
   let maxX = corners[0].x;
   let maxY = corners[0].y;
-  for (let index = 1; index < corners.length; index++) {
-    minX = Math.min(minX, corners[index].x);
-    minY = Math.min(minY, corners[index].y);
-    maxX = Math.max(maxX, corners[index].x);
-    maxY = Math.max(maxY, corners[index].y);
+  for (let cornerIndex = 1; cornerIndex < corners.length; cornerIndex++) {
+    minX = Math.min(minX, corners[cornerIndex].x);
+    minY = Math.min(minY, corners[cornerIndex].y);
+    maxX = Math.max(maxX, corners[cornerIndex].x);
+    maxY = Math.max(maxY, corners[cornerIndex].y);
   }
   return {
     x: Math.floor(minX),

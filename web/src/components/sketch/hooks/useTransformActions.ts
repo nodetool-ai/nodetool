@@ -47,6 +47,15 @@ export interface UseTransformActionsParams {
   syncSketchOutputsNow: () => void;
 }
 
+interface SelectionFreeTransformSession {
+  layerId: string;
+  originalSnapshot: HTMLCanvasElement;
+  baseSnapshot: HTMLCanvasElement;
+  selectionBounds: LayerContentBounds;
+  originalSelection: ReturnType<typeof cloneSelectionMask>;
+  originalContentBounds: LayerContentBounds;
+}
+
 export function useTransformActions({
   canvasRef,
   document,
@@ -58,15 +67,6 @@ export function useTransformActions({
   setLayerContentBounds,
   syncSketchOutputsNow
 }: UseTransformActionsParams) {
-  interface SelectionFreeTransformSession {
-    layerId: string;
-    originalSnapshot: HTMLCanvasElement;
-    baseSnapshot: HTMLCanvasElement;
-    selectionBounds: LayerContentBounds;
-    originalSelection: ReturnType<typeof cloneSelectionMask>;
-    originalContentBounds: LayerContentBounds;
-  }
-
   /** Original transform saved when the transform tool activates. */
   const transformOriginalRef = useRef<LayerTransform | null>(null);
   const selectionFreeTransformRef = useRef<SelectionFreeTransformSession | null>(null);
