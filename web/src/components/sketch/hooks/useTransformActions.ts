@@ -70,6 +70,8 @@ export function useTransformActions({
   /** Original transform saved when the transform tool activates. */
   const transformOriginalRef = useRef<LayerTransform | null>(null);
   const selectionFreeTransformRef = useRef<SelectionFreeTransformSession | null>(null);
+  const selection = useSketchStore((state) => state.selection);
+  const setSelection = useSketchStore((state) => state.setSelection);
 
   const pushTransformHistory = useCallback(
     (label: string) => {
@@ -98,6 +100,12 @@ export function useTransformActions({
     selectionFreeTransformRef.current = null;
   }, []);
 
+  /**
+   * Restores the original layer pixels/content bounds when a selection-scoped
+   * transform is cancelled or cannot be completed.
+   *
+   * @returns `true` when a selection transform session was restored.
+   */
   const restoreSelectionFreeTransformState = useCallback(() => {
     const session = selectionFreeTransformRef.current;
     const canvas = canvasRef.current;
@@ -106,15 +114,20 @@ export function useTransformActions({
     }
     canvas.restoreLayerCanvas(session.layerId, session.originalSnapshot);
     setLayerContentBounds(session.layerId, session.originalContentBounds);
-    useSketchStore.getState().setSelection(cloneSelectionMask(session.originalSelection));
+    setSelection(cloneSelectionMask(session.originalSelection));
     clearSelectionFreeTransformSession();
     return true;
-  }, [canvasRef, setLayerContentBounds, clearSelectionFreeTransformSession]);
+  }, [canvasRef, setLayerContentBounds, clearSelectionFreeTransformSession, setSelection]);
 
+  /**
+   * Splits the active selection from the current layer so Free Transform can
+   * operate on just the selected pixels instead of the full layer.
+   *
+   * @returns `true` when selection-scoped transform state was prepared.
+   */
   const prepareSelectionFreeTransform = useCallback(() => {
     const activeLayerId = document.activeLayerId;
     const canvas = canvasRef.current;
-    const selection = useSketchStore.getState().selection;
     if (!activeLayerId || !canvas || !selection || !selectionHasAnyPixels(selection)) {
       return false;
     }
@@ -158,6 +171,7 @@ export function useTransformActions({
     document.canvas.height,
     document.canvas.width,
     document.layers,
+    selection,
     setLayerContentBounds
   ]);
 
@@ -200,7 +214,7 @@ export function useTransformActions({
       canvas.restoreLayerCanvas(activeLayerId, finalCanvas);
       updateLayerData(activeLayerId, finalData);
       setLayerContentBounds(activeLayerId, bounds);
-      useSketchStore.getState().setSelection(transformedSelection);
+      setSelection(transformedSelection);
       clearSelectionFreeTransformSession();
       transformOriginalRef.current = null;
       return;
@@ -231,7 +245,8 @@ export function useTransformActions({
     setLayerTransform,
     setLayerContentBounds,
     restoreSelectionFreeTransformState,
-    clearSelectionFreeTransformSession
+    clearSelectionFreeTransformSession,
+    setSelection
   ]);
 
   /** Cancel: restore the original transform. */

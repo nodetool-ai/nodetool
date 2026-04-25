@@ -19,7 +19,11 @@ function cloneCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
   if (bounds) {
     setCanvasRasterBounds(clone, bounds);
   }
-  clone.getContext("2d")?.drawImage(source, 0, 0);
+  const ctx = clone.getContext("2d");
+  if (!ctx) {
+    throw new Error("Unable to acquire 2D context for selection transform canvas clone");
+  }
+  ctx.drawImage(source, 0, 0);
   return clone;
 }
 
@@ -123,7 +127,7 @@ function buildSelectionSourceMaskCanvas(
   canvas.height = Math.max(1, bounds.height);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    return canvas;
+    throw new Error("Unable to acquire 2D context for selection mask transform");
   }
   const imageData = ctx.createImageData(canvas.width, canvas.height);
   for (let y = 0; y < canvas.height; y++) {
@@ -170,11 +174,11 @@ function getTransformedSelectionAabb(
   let minY = corners[0].y;
   let maxX = corners[0].x;
   let maxY = corners[0].y;
-  for (let cornerIndex = 1; cornerIndex < corners.length; cornerIndex++) {
-    minX = Math.min(minX, corners[cornerIndex].x);
-    minY = Math.min(minY, corners[cornerIndex].y);
-    maxX = Math.max(maxX, corners[cornerIndex].x);
-    maxY = Math.max(maxY, corners[cornerIndex].y);
+  for (let i = 1; i < corners.length; i++) {
+    minX = Math.min(minX, corners[i].x);
+    minY = Math.min(minY, corners[i].y);
+    maxX = Math.max(maxX, corners[i].x);
+    maxY = Math.max(maxY, corners[i].y);
   }
   return {
     x: Math.floor(minX),

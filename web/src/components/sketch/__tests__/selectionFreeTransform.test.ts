@@ -19,7 +19,7 @@ function createMask(
   for (const [x, y] of fill) {
     data[y * width + x] = 255;
   }
-  return { width, height, data };
+  return { width, height, data, originX: 0, originY: 0 };
 }
 
 function getAlpha(canvas: HTMLCanvasElement, x: number, y: number): number {
