@@ -22,6 +22,7 @@ import {
   NodeRegistry
 } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerRealtimeNodes } from "@nodetool/realtime-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerKieNodes } from "@nodetool/kie-nodes";
@@ -115,6 +116,7 @@ async function getWorkflowRuntimeEnvironment(
           maxDepth: options.metadataMaxDepth ?? 8
         });
         registerBaseNodes(registry);
+        registerRealtimeNodes(registry);
         registerElevenLabsNodes(registry);
         registerFalNodes(registry);
         registerKieNodes(registry);

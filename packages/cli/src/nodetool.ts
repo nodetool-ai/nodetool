@@ -28,6 +28,7 @@ import { getDefaultDbPath } from "@nodetool/config";
 import { WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerRealtimeNodes } from "@nodetool/realtime-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
@@ -120,9 +121,11 @@ program
       const { resolve } = await import("node:path");
       const { runDslFile } = await import("./run-dsl.js");
       const { registerBaseNodes } = await import("@nodetool/base-nodes");
+      const { registerRealtimeNodes } = await import("@nodetool/realtime-nodes");
       const { NodeRegistry } = await import("@nodetool/node-sdk");
 
       registerBaseNodes(NodeRegistry.global);
+      registerRealtimeNodes(NodeRegistry.global);
 
       const absolutePath = resolve(dslFile);
       const results = await runDslFile(absolutePath);
@@ -383,6 +386,7 @@ workflows
         // Set up node registry
         const registry = new NodeRegistry();
         registerBaseNodes(registry);
+        registerRealtimeNodes(registry);
         registerElevenLabsNodes(registry);
         registerFalNodes(registry);
         registerReplicateNodes(registry);

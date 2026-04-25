@@ -38,6 +38,7 @@
     "@nodetool/models": "*",
     "@nodetool/node-sdk": "*",
     "@nodetool/protocol": "*",
+    "@nodetool/realtime-nodes": "*",
     "@nodetool/replicate-nodes": "*",
     "@nodetool/runtime": "*",
     "@nodetool/security": "*",

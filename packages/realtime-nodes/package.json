@@ -1,0 +1,33 @@
+{
+  "name": "@nodetool/realtime-nodes",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Realtime media and control nodes for the NodeTool workflow runner",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/kernel": "*",
+    "@nodetool/node-sdk": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}

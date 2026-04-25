@@ -17,6 +17,7 @@ export const websocketWorkspaces = [
   "@nodetool/agents",
   "@nodetool/kie-nodes",
   "@nodetool/base-nodes",
+  "@nodetool/realtime-nodes",
   "@nodetool/dsl",
   "@nodetool/chat",
   "@nodetool/websocket",

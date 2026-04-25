@@ -56,6 +56,10 @@ vi.mock("@nodetool/base-nodes", () => ({
   registerBaseNodes: vi.fn()
 }));
 
+vi.mock("@nodetool/realtime-nodes", () => ({
+  registerRealtimeNodes: vi.fn()
+}));
+
 vi.mock("@nodetool/elevenlabs-nodes", () => ({
   registerElevenLabsNodes: vi.fn()
 }));

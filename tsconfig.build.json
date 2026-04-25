@@ -22,6 +22,7 @@
     { "path": "packages/kie-nodes" },
     { "path": "packages/agents" },
     { "path": "packages/base-nodes" },
+    { "path": "packages/realtime-nodes" },
     { "path": "packages/dsl" },
     { "path": "packages/deploy" },
     { "path": "packages/chat" },

@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../kernel"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../runtime"
+    }
+  ]
+}

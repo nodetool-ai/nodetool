@@ -29,17 +29,17 @@ Rules for the remaining work:
 
 ## Next implementation ladder
 
-- [ ] **7a. Wire `RealtimeRunner` into production realtime sessions.**
+- [x] **7a. Wire `RealtimeRunner` into production realtime sessions.**
   - `UnifiedWebSocketRunner.runJob` currently creates `WorkflowRunner` directly; add a realtime-specific path used by `start_realtime_session`.
   - Active realtime jobs should hold a `RealtimeRunner` shell plus its composed `WorkflowRunner`, so command routing still exposes `pushInputValue` / `pushParameter`.
   - Pass the real `RealtimeSessionRecord` / trimmed `RealtimeSessionInfo` into `RealtimeRunner.startRealtimeMode`; hooks must see the real `session_id`, `transport`, `parameters`, and `media_tracks`.
   - Stop reconstructing session info from `RunJobRequest` (`session_id = job_id`, `transport = "websocket"`, empty `media_tracks`).
   - Add TS tests for the production websocket path and for `transport: "webrtc"` + mapped track metadata reaching `onSessionStart`.
-- [ ] **7b. Add TS realtime frame types.**
+- [x] **7b. Add TS realtime frame types.**
   - Create `packages/protocol/src/realtime-frame.ts`.
   - Export `VideoFrame`, `AudioFrame`, and `RealtimeFrame` from `@nodetool/protocol`.
   - Mirror these dataclasses in `nodetool-core/src/nodetool/workflows/realtime.py`.
-- [ ] **7c. Create `packages/realtime-nodes/`.**
+- [x] **7c. Create `packages/realtime-nodes/`.**
   - Add package files, root workspace entry, `tsconfig.build.json` reference, and package dependencies.
   - Export `registerRealtimeNodes(registry)` and wire it into CLI/websocket registry boot paths.
 - [ ] **7d. Implement first `nodetool.realtime` nodes.**
@@ -114,7 +114,7 @@ Based on research into high-performance real-time generative video systems (like
 ## Current code reality
 
 - Realtime session start creates a linked `job_id`, accepts unsaved graph payloads, and starts a workflow-backed runtime.
-- `RealtimeRunner` exists and composes `WorkflowRunner`, but the websocket production path still creates `WorkflowRunner` directly. Step 7a wires the realtime shell into production.
+- `RealtimeRunner` exists, composes `WorkflowRunner`, and is wired into the websocket production path for realtime sessions.
 - `pushParameter(name, value)` routes live control updates to `nodetool.realtime.Parameter` nodes.
 - `/realtime` is still an incubation page. It proves browser capture and signaling, but media is not yet delivered into the backend graph.
 - Server-side WebRTC termination, frame routing, metrics, stop timeouts, and reconnect/session-retention semantics are still pending.
@@ -680,7 +680,7 @@ Completed foundation:
 
 Remaining:
 
-- [ ] Steps 7a-7d: session info, frame types, package, first realtime nodes
+- [ ] Step 7d: first realtime nodes
 - [ ] Steps 8a-8d: WebRTC spike, backend media endpoint, lifecycle, metrics
 - [ ] Step 9: pre-model design pass
 - [ ] Step 10: LongLive

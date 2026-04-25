@@ -10,6 +10,7 @@ import path from "node:path";
 import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
+import { registerRealtimeNodes } from "@nodetool/realtime-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import {
   UnifiedWebSocketRunner,
@@ -1168,6 +1169,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     maxDepth: options.metadataMaxDepth ?? 8
   });
   registerBaseNodes(registry);
+  registerRealtimeNodes(registry);
   registerElevenLabsNodes(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,

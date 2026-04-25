@@ -104,8 +104,9 @@ export class NodeRegistry {
   }
 }
 
-// base-nodes / fal-nodes / replicate-nodes / elevenlabs-nodes
+// base-nodes / realtime-nodes / fal-nodes / replicate-nodes / elevenlabs-nodes
 export const registerBaseNodes = (_reg?: unknown) => {};
+export const registerRealtimeNodes = (_reg?: unknown) => {};
 export const registerElevenLabsNodes = (_reg?: unknown) => {};
 export const registerFalNodes = (_reg?: unknown) => {};
 export const registerReplicateNodes = (_reg?: unknown) => {};

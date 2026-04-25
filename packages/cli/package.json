@@ -22,6 +22,7 @@
     "@trpc/client": "^11.0.0",
     "@trpc/server": "^11.0.0",
     "@nodetool/base-nodes": "*",
+    "@nodetool/realtime-nodes": "*",
     "@nodetool/elevenlabs-nodes": "*",
     "@nodetool/dsl": "*",
     "@nodetool/fal-nodes": "*",
