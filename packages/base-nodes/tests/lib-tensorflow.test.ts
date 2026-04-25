@@ -3,8 +3,9 @@
  *
  * The model classes themselves are skipped because loading the full BERT,
  * MobileNet and COCO-SSD weights from the public TF Hub mirrors over the
- * network is too heavy for the unit-test suite. Heavy end-to-end runs live
- * in tests/e2e/lib-tensorflow.test.ts.
+ * network is too heavy for the unit-test suite. Heavy network/model-loading
+ * coverage should live in repository e2e or integration tests rather than in
+ * this file.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -120,5 +121,69 @@ describe("TensorFlow.js image nodes — input validation", () => {
     const node = new TensorflowCocoSsdDetectNode();
     node.assign({ image: { type: "image" }, max_detections: 1, min_score: 0 });
     await expect(node.process()).rejects.toThrow(/No image data or URI/i);
+  });
+});
+
+describe("TensorFlow.js — image ref decoding", () => {
+  // A 1x1 PNG containing a single red pixel.
+  const RED_PIXEL_PNG_BASE64 =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+
+  it("bytesFromString accepts raw base64", async () => {
+    const { bytesFromString } = await import(
+      "../src/nodes/lib-tensorflow.js"
+    );
+    const bytes = bytesFromString(RED_PIXEL_PNG_BASE64);
+    expect(bytes.length).toBeGreaterThan(0);
+    // PNG signature
+    expect(bytes[0]).toBe(0x89);
+    expect(bytes[1]).toBe(0x50);
+    expect(bytes[2]).toBe(0x4e);
+    expect(bytes[3]).toBe(0x47);
+  });
+
+  it("bytesFromString strips a data:image/png;base64 prefix", async () => {
+    const { bytesFromString } = await import(
+      "../src/nodes/lib-tensorflow.js"
+    );
+    const bytes = bytesFromString(
+      `data:image/png;base64,${RED_PIXEL_PNG_BASE64}`
+    );
+    expect(bytes[0]).toBe(0x89);
+    expect(bytes[3]).toBe(0x47);
+  });
+
+  it("resolveImageBuffer decodes data: URIs in image.uri", async () => {
+    const { resolveImageBuffer } = await import(
+      "../src/nodes/lib-tensorflow.js"
+    );
+    const buf = await resolveImageBuffer({
+      uri: `data:image/png;base64,${RED_PIXEL_PNG_BASE64}`
+    });
+    expect(buf.length).toBeGreaterThan(0);
+    expect(buf[0]).toBe(0x89);
+  });
+
+  it("resolveImageBuffer resolves asset_id through context.storage", async () => {
+    const { resolveImageBuffer } = await import(
+      "../src/nodes/lib-tensorflow.js"
+    );
+    const expected = Buffer.from(RED_PIXEL_PNG_BASE64, "base64");
+    const seen: string[] = [];
+    const context = {
+      storage: {
+        retrieve(key: string) {
+          seen.push(key);
+          if (key.endsWith(".png")) return Promise.resolve(expected);
+          return Promise.resolve(null);
+        }
+      }
+    } as unknown as Parameters<typeof resolveImageBuffer>[1];
+    const buf = await resolveImageBuffer(
+      { type: "image", asset_id: "abc-123" },
+      context
+    );
+    expect(buf.equals(expected)).toBe(true);
+    expect(seen.some((k) => k.includes("abc-123"))).toBe(true);
   });
 });

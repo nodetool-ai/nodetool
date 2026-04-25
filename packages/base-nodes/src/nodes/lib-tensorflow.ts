@@ -19,16 +19,11 @@ import type { ProcessingContext } from "@nodetool/runtime";
 import sharp from "sharp";
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { decodeImage, type ImageRefLike } from "./lib-image-utils.js";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
-
-type ImageRefLike = {
-  uri?: string;
-  data?: Uint8Array | string;
-  asset_id?: string | null;
-};
 
 function uriToFilePath(uri: string): string {
   if (uri.startsWith("file://")) {
@@ -41,24 +36,47 @@ function uriToFilePath(uri: string): string {
   return uri;
 }
 
+export function bytesFromString(value: string): Uint8Array {
+  if (value.startsWith("data:")) {
+    const commaIdx = value.indexOf(",");
+    if (commaIdx === -1) return new Uint8Array();
+    const meta = value.slice("data:".length, commaIdx);
+    const payload = value.slice(commaIdx + 1);
+    if (/(?:^|;)base64(?:;|$)/i.test(meta)) {
+      return Uint8Array.from(Buffer.from(payload, "base64"));
+    }
+    return Uint8Array.from(Buffer.from(decodeURIComponent(payload), "utf8"));
+  }
+  return Uint8Array.from(Buffer.from(value, "base64"));
+}
+
 function asBytes(data: Uint8Array | string | undefined): Uint8Array {
   if (!data) return new Uint8Array();
   if (data instanceof Uint8Array) return data;
-  return Uint8Array.from(Buffer.from(data, "base64"));
+  return bytesFromString(data);
 }
 
-async function resolveImageBuffer(
+export async function resolveImageBuffer(
   image: ImageRefLike,
   context?: ProcessingContext
 ): Promise<Buffer> {
   if (image.data) return Buffer.from(asBytes(image.data));
-  if (typeof image.uri === "string" && image.uri) {
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(image.uri);
-      if (stored !== null) return Buffer.from(stored);
-    }
-    if (image.uri.startsWith("http://") || image.uri.startsWith("https://")) {
-      const response = await fetch(image.uri);
+
+  const uri = typeof image.uri === "string" ? image.uri : "";
+
+  if (uri.startsWith("data:")) {
+    return Buffer.from(bytesFromString(uri));
+  }
+
+  // Delegate asset_id / storage URI resolution to the shared helper so we
+  // pick up the same `/api/storage/<asset_id>.<ext>` candidate logic the rest
+  // of base-nodes uses.
+  const stored = await decodeImage(image, context);
+  if (stored) return stored;
+
+  if (uri) {
+    if (uri.startsWith("http://") || uri.startsWith("https://")) {
+      const response = await fetch(uri);
       if (!response.ok) {
         throw new Error(
           `Failed to fetch image: ${response.status} ${response.statusText}`
@@ -66,7 +84,7 @@ async function resolveImageBuffer(
       }
       return Buffer.from(await response.arrayBuffer());
     }
-    return fs.readFile(uriToFilePath(image.uri));
+    return fs.readFile(uriToFilePath(uri));
   }
   throw new Error("No image data or URI provided");
 }
@@ -91,22 +109,36 @@ async function imageToRgbTensorSource(buf: Buffer): Promise<RgbTensorSource> {
 
 // Lazy module accessors. Each model package is imported on demand so that
 // users who never invoke a TensorFlow node never pay the load cost.
+//
+// Each cache entry is cleared if the underlying promise rejects (e.g. on a
+// transient network failure during the initial weight download) so a later
+// call gets a fresh attempt instead of seeing the same rejected promise.
 
-let tfPromise: Promise<unknown> | null = null;
+function cacheLazy<T>(
+  store: { current: Promise<T> | null },
+  factory: () => Promise<T>
+): Promise<T> {
+  if (store.current) return store.current;
+  const promise = factory();
+  store.current = promise;
+  promise.catch(() => {
+    if (store.current === promise) store.current = null;
+  });
+  return promise;
+}
+
+const tfStore: { current: Promise<any> | null } = { current: null };
 async function loadTf(): Promise<any> {
-  if (!tfPromise) {
-    tfPromise = (async () => {
-      const tf = await import("@tensorflow/tfjs");
-      try {
-        await (tf as any).setBackend("cpu");
-        await (tf as any).ready();
-      } catch {
-        // backend selection is best-effort; default backend remains.
-      }
-      return tf;
-    })();
-  }
-  return tfPromise;
+  return cacheLazy(tfStore, async () => {
+    const tf = await import("@tensorflow/tfjs");
+    try {
+      await (tf as any).setBackend("cpu");
+      await (tf as any).ready();
+    } catch {
+      // backend selection is best-effort; default backend remains.
+    }
+    return tf;
+  });
 }
 
 function tensorFromRgbSource(tf: any, src: RgbTensorSource): any {
@@ -117,16 +149,18 @@ function tensorFromRgbSource(tf: any, src: RgbTensorSource): any {
 // Image classification — MobileNet
 // ---------------------------------------------------------------------------
 
-let mobilenetPromise: Promise<any> | null = null;
+const mobilenetStores = new Map<1 | 2, { current: Promise<any> | null }>();
 async function loadMobileNet(version: 1 | 2 = 2): Promise<any> {
-  if (!mobilenetPromise) {
-    mobilenetPromise = (async () => {
-      await loadTf();
-      const mobilenet = await import("@tensorflow-models/mobilenet");
-      return mobilenet.load({ version, alpha: 1.0 });
-    })();
+  let store = mobilenetStores.get(version);
+  if (!store) {
+    store = { current: null };
+    mobilenetStores.set(version, store);
   }
-  return mobilenetPromise;
+  return cacheLazy(store, async () => {
+    await loadTf();
+    const mobilenet = await import("@tensorflow-models/mobilenet");
+    return mobilenet.load({ version, alpha: 1.0 });
+  });
 }
 
 const IMAGE_INPUT = {
@@ -232,16 +266,13 @@ export class TensorflowMobileNetEmbeddingNode extends BaseNode {
 // Object detection — COCO-SSD
 // ---------------------------------------------------------------------------
 
-let cocoSsdPromise: Promise<any> | null = null;
+const cocoSsdStore: { current: Promise<any> | null } = { current: null };
 async function loadCocoSsd(): Promise<any> {
-  if (!cocoSsdPromise) {
-    cocoSsdPromise = (async () => {
-      await loadTf();
-      const cocoSsd = await import("@tensorflow-models/coco-ssd");
-      return cocoSsd.load({ base: "mobilenet_v2" });
-    })();
-  }
-  return cocoSsdPromise;
+  return cacheLazy(cocoSsdStore, async () => {
+    await loadTf();
+    const cocoSsd = await import("@tensorflow-models/coco-ssd");
+    return cocoSsd.load({ base: "mobilenet_v2" });
+  });
 }
 
 export class TensorflowCocoSsdDetectNode extends BaseNode {
@@ -308,16 +339,13 @@ export class TensorflowCocoSsdDetectNode extends BaseNode {
 // BERT QnA — extractive question answering
 // ---------------------------------------------------------------------------
 
-let qnaPromise: Promise<any> | null = null;
+const qnaStore: { current: Promise<any> | null } = { current: null };
 async function loadQna(): Promise<any> {
-  if (!qnaPromise) {
-    qnaPromise = (async () => {
-      await loadTf();
-      const qna = await import("@tensorflow-models/qna");
-      return qna.load();
-    })();
-  }
-  return qnaPromise;
+  return cacheLazy(qnaStore, async () => {
+    await loadTf();
+    const qna = await import("@tensorflow-models/qna");
+    return qna.load();
+  });
 }
 
 export class TensorflowQnaNode extends BaseNode {
