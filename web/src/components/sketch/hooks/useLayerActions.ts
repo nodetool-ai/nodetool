@@ -36,6 +36,12 @@ export interface UseLayerActionsParams {
   groupLayers: (layerIds: string[]) => void;
 }
 
+interface HandleAddLayerOptions {
+  fillColor?: string | null;
+  name?: string;
+  type?: "raster" | "mask";
+}
+
 export function useLayerActions({
   canvasRef,
   document,
@@ -62,9 +68,10 @@ export function useLayerActions({
   groupLayers
 }: UseLayerActionsParams) {
   const handleAddLayer = useCallback(
-    (fillColor?: string | null) => {
+    (options?: HandleAddLayerOptions) => {
+      const fillColor = options?.fillColor;
       pushHistory("add layer");
-      const newLayerId = addLayer();
+      const newLayerId = addLayer(options?.name, options?.type);
       if (fillColor && canvasRef.current) {
         requestAnimationFrame(() => {
           if (canvasRef.current) {
@@ -76,6 +83,7 @@ export function useLayerActions({
           }
         });
       }
+      return newLayerId;
     },
     [pushHistory, addLayer, updateLayerData, canvasRef]
   );

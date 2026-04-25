@@ -14,6 +14,7 @@ import { useSketchStore } from "../state";
 import { useResolvedToolSettings, useToolChromeActions } from "../hooks";
 import { useTransformAdapter } from "../hooks/useTransformAdapter";
 import type { useSegmentation } from "../hooks/useSegmentation";
+import type { LayerType } from "../types";
 
 export interface ConnectedContextMenuProps {
   open: boolean;
@@ -39,7 +40,7 @@ export interface ConnectedContextMenuProps {
   onClearLayer: () => void;
   onExportPng: () => void;
   onFillSelectionWithForeground: () => void;
-  onNewLayer: () => void;
+  onNewLayer: (type?: Extract<LayerType, "raster" | "mask">) => void;
   onLayerViaCopy: () => void;
   onLayerViaCut: () => void;
   onFreeTransform: () => void;

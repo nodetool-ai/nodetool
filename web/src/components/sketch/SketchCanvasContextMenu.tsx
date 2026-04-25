@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useEffect } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { sketchToolSettingsContainerSx, SKETCH_FONT, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
@@ -33,6 +33,7 @@ import {
   EraserSettings,
   FillSettings,
   GradientSettings,
+  type LayerType,
   PencilSettings,
   SelectSettings,
   SegmentSettings,
@@ -94,10 +95,18 @@ interface SelectionMenuItemProps {
   label: string;
   shortcut?: string;
   disabled?: boolean;
-  onClick: () => void;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  endAdornment?: React.ReactNode;
 }
 
-function SelectionMenuItem({ icon, label, shortcut, disabled, onClick }: SelectionMenuItemProps) {
+function SelectionMenuItem({
+  icon,
+  label,
+  shortcut,
+  disabled,
+  onClick,
+  endAdornment
+}: SelectionMenuItemProps) {
   return (
     <ButtonBase
       onClick={onClick}
@@ -130,6 +139,7 @@ function SelectionMenuItem({ icon, label, shortcut, disabled, onClick }: Selecti
           {shortcut}
         </Typography>
       )}
+      {!shortcut && endAdornment}
     </ButtonBase>
   );
 }
@@ -263,7 +273,7 @@ export interface SketchCanvasContextMenuProps {
   onDeselectSelection: () => void;
   onReselectSelection: () => void;
   onFillSelectionWithForeground: () => void;
-  onNewLayer: () => void;
+  onNewLayer: (type?: Extract<LayerType, "raster" | "mask">) => void;
   onLayerViaCopy: () => void;
   onLayerViaCut: () => void;
   onFreeTransform: () => void;
@@ -374,9 +384,12 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   const activeDefinition = getToolDefinition(activeTool);
   const surfaceSoft = theme.vars.palette.grey[800];
   const ActiveIcon = activeDefinition.Icon;
+  const [newLayerMenuAnchor, setNewLayerMenuAnchor] =
+    useState<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!open) {
+      setNewLayerMenuAnchor(null);
       return undefined;
     }
 
@@ -437,7 +450,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   };
 
   return (
-    <Popover
+    <>
+      <Popover
       open={open}
       onClose={onClose}
       transitionDuration={{ enter: 90, exit: 60 }}
@@ -733,7 +747,21 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   <SelectionMenuItem
                     icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
                     label="New Layer..."
-                    onClick={() => { onNewLayer(); onClose(); }}
+                    endAdornment={
+                      <Typography
+                        aria-hidden="true"
+                        sx={{
+                          fontSize: SKETCH_FONT.md,
+                          fontWeight: 700,
+                          color: "text.secondary"
+                        }}
+                      >
+                        ›
+                      </Typography>
+                    }
+                    onClick={(event) => {
+                      setNewLayerMenuAnchor(event.currentTarget);
+                    }}
                   />
                   <Divider sx={{ my: 0.5, borderColor: surfaceSoft }} />
                   <SelectionMenuItem
@@ -851,7 +879,39 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           </Stack>
         </Box>
       </Box>
-    </Popover>
+      </Popover>
+      <Popover
+        open={Boolean(newLayerMenuAnchor)}
+        anchorEl={newLayerMenuAnchor}
+        onClose={() => setNewLayerMenuAnchor(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        disableRestoreFocus
+      >
+        <Box sx={{ minWidth: 180, p: 0.8 }}>
+          <Stack spacing={0.3}>
+            <SelectionMenuItem
+              icon={<NoteAddIcon sx={{ fontSize: 16 }} />}
+              label="Raster Layer"
+              onClick={() => {
+                setNewLayerMenuAnchor(null);
+                onNewLayer("raster");
+                onClose();
+              }}
+            />
+            <SelectionMenuItem
+              icon={<HighlightAltIcon sx={{ fontSize: 16 }} />}
+              label="Mask Layer"
+              onClick={() => {
+                setNewLayerMenuAnchor(null);
+                onNewLayer("mask");
+                onClose();
+              }}
+            />
+          </Stack>
+        </Box>
+      </Popover>
+    </>
   );
 };
 
