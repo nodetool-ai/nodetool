@@ -13,8 +13,9 @@
   - [x] Basic `/realtime/:workflowId?` page and local preview
 - [x] Phase 1 foundation
 - [ ] Phase 2 first proof
-- [ ] Phase 3 workflow integration
-- [ ] Phase 4 expansion adapters
+- [ ] Phase 3 browser/JS realtime inference
+- [ ] Phase 4 workflow integration
+- [ ] Phase 5 expansion adapters
 
 ## How to use this plan now
 
@@ -79,6 +80,11 @@ Rules for the remaining work:
 - [ ] **11. Build the canonical realtime workflow template.**
   - Camera/source → parameter controls → LongLive/Self-Forcing → sink/preview.
   - Include reconnect/session behavior, metrics display, and save/export hooks where available.
+- [ ] **12. Add browser/JS realtime inference lane.**
+  - Define how TensorFlow.js and Transformers.js inference participates in realtime sessions without becoming a second runtime model.
+  - Add package/runtime boundaries for browser-local, Electron-renderer, and Node-side JS inference.
+  - Route pose, landmarks, captions, classifications, and other analysis outputs through existing session/control/event surfaces instead of the media transport unless they are actual media frames.
+  - Add model loading, cache, backend capability, and metrics surfaces for `webgpu` / `wasm` / `cpu`.
 
 ## Core decisions
 
@@ -91,7 +97,7 @@ Rules for the remaining work:
 - **`nodetool.realtime` is the namespace for new realtime-category nodes.** Use this namespace for nodes that are genuinely specific to realtime execution instead of duplicating ordinary workflow nodes.
 - **`NDI` and `Spout` are committed later goals.** The architecture should reserve clean media adapter boundaries for them from the start. `Syphon`, `MIDI`, `OSC`, `DMX`, and `timecode` follow the same adapter-first model.
 - **Code organization rule: shared files hold primitives and surfaces; dedicated files hold realtime behavior.** Realtime work should not be glued into the existing god-classes. Concretely: `unified-websocket-runner.ts` (already 4,880 lines) and `runner.ts` (1,051 lines) gain only the small primitives/surfaces they need (a delegating switch case, a `RunMode` enum, a bounded buffer); all realtime *behavior* lives in `packages/websocket/src/realtime/*` and `packages/kernel/src/realtime-runner.ts`. Any task that would add more than ~50 lines to a shared file, or a new conceptual responsibility (signaling, frame routing, parameter routing) to one, must extract first.
-- **Substrate lives in core; model nodes live in `nodetool-realtime`.** Core owns runner/session/WebRTC substrate, TS I/O nodes, protocol frame types, bridge verbs, lifecycle hooks, and hardware hints. `nodetool-realtime` owns heavy Python model code, `WeightSource`, Wan2.1 pipelines, GGUF loading, and ML dependencies. This keeps base installs lean and lets model nodes release independently.
+- **Substrate lives in core; model nodes live outside the substrate.** Core owns runner/session/WebRTC substrate, TS I/O nodes, protocol frame types, bridge verbs, lifecycle hooks, and hardware hints. `nodetool-realtime` owns heavy Python model code, `WeightSource`, Wan2.1 pipelines, GGUF loading, and ML dependencies. Browser/JS realtime inference nodes that use TensorFlow.js or Transformers.js live in a separate browser-capable node lane, so lightweight pose/caption/classification models can run close to the operator without bloating the substrate or changing the Python model-node path.
 
 - **Contract** see nodetool/docs/realtime-runtime-contract.md
 
@@ -604,7 +610,32 @@ That's the full surface. No build-system changes; no node-discovery infrastructu
   - Connect source, parameters, model node, sink, preview, metrics, reconnect, and save/export hooks.
   - Document which pieces are generic substrate vs. model-specific.
 
-## Phase 3 - Workflow integration
+## Phase 3 - Browser/JS realtime inference
+
+**Goal**
+
+Make lightweight realtime inference from TensorFlow.js and Transformers.js a first-class part of realtime workflows without moving core session/media responsibilities into the UI.
+
+**Done when**
+
+- browser-local realtime analysis can participate in sessions through the same graph/session model
+- TF.js and Transformers.js model loading, caching, backend selection, and progress reporting have a shared surface
+- pose, landmarks, captions, classifications, embeddings, and similar outputs have explicit event/control contracts instead of ad hoc UI hooks
+- editor validation can distinguish browser-capable, server-capable, and transport/media nodes
+
+**Tasks**
+
+- [ ] Define the runtime placement matrix for JS inference: operator browser, Electron renderer, Node backend, or server worker. Each node declares where it can run and what it requires (`webgpu`, `wasm`, camera frame access, microphone access, local model cache, etc.).
+- [ ] Add node metadata for browser/JS realtime capabilities, separate from the existing media-adapter flags: browser-capable, requires-browser-frame, requires-WebGPU, emits-analysis-event, emits-parameter-update, and emits-media-frame.
+- [ ] Define a model-loading surface for browser/JS nodes: loading progress, selected backend, warm-state readiness, cache hit/miss, model download errors, and fallback backend selection.
+- [ ] Keep analysis outputs off the media plane by default. Pose landmarks, hand/face meshes, captions, detections, classifications, embeddings, and confidence scores flow as realtime analysis/control events and can drive `nodetool.realtime.Parameter` nodes. Only pixel/audio buffers use `VideoFrame` / `AudioFrame`.
+- [ ] Add a package boundary for browser-capable realtime nodes, e.g. `packages/realtime-browser/` or a clearly separated browser lane inside `packages/realtime-vision/`. Do not put TF.js / Transformers.js dependencies into `packages/realtime-nodes/`.
+- [ ] Implement first browser/JS proof nodes: pose or hand landmarks via TF.js/MediaPipe-compatible models, plus one Transformers.js caption/classification node that runs on sampled frames rather than every media frame.
+- [ ] Feed browser/JS inference metrics into `realtime_metrics`: model load time, inference fps, average latency, dropped/skipped frames, backend, and device capability.
+- [ ] Add editor/operator affordances for browser-local nodes: show where they run, warn when the selected browser lacks WebGPU/wasm support, and expose model warmup state before launching a session.
+- [ ] Document how browser-local outputs become graph inputs for server-side model nodes, including timestamp/sequence alignment with the source `VideoFrame` and smoothing/mapping helpers for parameter control.
+
+## Phase 4 - Workflow integration
 
 **Goal**
 
@@ -633,7 +664,7 @@ Make realtime authoring and operation feel native inside NodeTool.
 - [ ] Add live control groups for prompt steering, diffusion strength, ControlNet settings, and LoRA weight (reusing existing UI property components like `NodeSlider`, `TextProperty`, etc.).
 - [ ] Add reusable preprocessor and effects stages that fit the standard workflow model.
 
-## Phase 4 - Expansion adapters
+## Phase 5 - Expansion adapters
 
 **Goal**
 
@@ -687,6 +718,7 @@ Remaining:
 - [ ] Step 10: LongLive
 - [ ] Step 10b: Self-Forcing
 - [ ] Step 11: canonical workflow template
+- [ ] Step 12 / Phase 3: browser/JS realtime inference
 - [ ] Adapter roadmap for `NDI` and `Spout`
 
 ## Follow-up tasks discovered while starting the plan
@@ -705,7 +737,7 @@ Still active:
 
 - [ ] Transport readiness and backend WebRTC connection are tracked in step 8c.
 - [ ] `realtime_metrics` is tracked in step 8d.
-- [ ] Session retention/reconnect is tracked in step 8c and Phase 3.
+- [ ] Session retention/reconnect is tracked in step 8c and Phase 4.
 
 ## Notes / maybe later
 
@@ -722,6 +754,7 @@ Still active:
 - [ ] Check that `NDI` and `Spout` are supported by the adapter design from the start
 - [x] Check that future audio, sync, and control adapters fit the same boundaries
 - [ ] Check that the WebRTC media plane and WebSocket control plane remain cleanly separated and non-blocking
+- [ ] Check that browser/JS inference stays on explicit session/control/event contracts instead of becoming ad hoc UI-only behavior
 
 ## Future ideas
 
@@ -847,8 +880,8 @@ Realtime-suitability flags: ✅ tested realtime (>20 fps for video, <200 ms for 
 |---|---|---|---|---|---|
 | 21 | **werift** (preferred) / `@roamhq/wrtc` | Node-side WebRTC stack | ✅ | Apache 2.0 / MIT | Phase 2 substrate prerequisite (already in plan) |
 | 22 | **PyAV (FFmpeg)** | Codec / container handling for the WebRTC frame router | ✅ | BSD-3 | Backend frame router |
-| 23 | **PyVideoProc** | CUDA-accelerated multi-stream decode → infer → encode pipeline | ✅ | BSD-2 | Reference for headless / server realtime mode (Phase 4) |
-| 24 | **NDI / Spout / Syphon native bindings** | Pro AV interop adapters | ✅ | platform-specific | Phase 4 adapter nodes (already on roadmap) |
+| 23 | **PyVideoProc** | CUDA-accelerated multi-stream decode → infer → encode pipeline | ✅ | BSD-2 | Reference for headless / server realtime mode (Phase 5) |
+| 24 | **NDI / Spout / Syphon native bindings** | Pro AV interop adapters | ✅ | platform-specific | Phase 5 adapter nodes (already on roadmap) |
 | 25 | **Krea Realtime 14B** (and likely distilled/smaller variants when they ship) | High-fidelity diffusion alternative to the 1.3B baseline | ⚠️ (32 GB+ VRAM today; reachable for many users on a 4090/5090/A6000) | various | **Fast-follow after the 1.3B baseline** (the LongLive / Self-Forcing model nodes in Phase 2). Not blocked by anything beyond proving the substrate end-to-end with the smaller model first; pull it forward as soon as a user case calls for the quality bump. Watch for distilled/quantized variants from Krea — those would shift this entry up a tier. |
 | 25b | **FLUX.2 Klein / Hyper-SDXL** and other large diffusion variants | Premium fidelity, larger memory budget | ⚠️ (varies, mostly 24–32 GB+) | various | Exploratory — slot in as additional model nodes once the substrate is proven; same VRAM-aware validation pattern as Krea 14B. |
 | 26 | **Custom TensorRT / CUDA kernels** | Final mile of latency optimization for any of the above | — | — | Only when profiling proves a bottleneck the upstream library can't address |
@@ -873,9 +906,10 @@ To keep the realtime namespace small and let environments install only what they
 
 - `packages/realtime-nodes/` — substrate (Source / Sink / Parameter / SessionInfo) per Phase 2
 - `packages/realtime-vision/` — DA3, SAM 2, RVM, YOLO11, MediaPipe wrappers
+- `packages/realtime-browser/` — TensorFlow.js / Transformers.js browser-capable realtime inference nodes, or an explicit browser lane inside `realtime-vision` / `realtime-vlm` if the dependency graph stays clean
 - `packages/realtime-audio/` — Aubio analysis, Moonshine STT, Kokoro/Piper TTS
 - `packages/realtime-controlnet/` — the five SD2.1 ControlNet preprocessors wired into the diffusion node
 - `packages/realtime-vlm/` — Moondream / SmolVLM
-- `packages/realtime-adapters/` — NDI / Spout / Syphon / MIDI / OSC (Phase 4 home)
+- `packages/realtime-adapters/` — NDI / Spout / Syphon / MIDI / OSC (Phase 5 home)
 
 A VJ rig wants `realtime-audio` + `realtime-vision` + `realtime-controlnet`. An installation wants `realtime-adapters`. A captioner wants `realtime-vlm` + `realtime-audio`. The substrate is required by all.
