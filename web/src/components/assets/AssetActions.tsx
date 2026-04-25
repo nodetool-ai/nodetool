@@ -28,17 +28,12 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import dialogStyles from "../../styles/DialogStyles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import {
-  SIZE_FILTERS,
-  SizeFilterKey,
-  TypeFilterKey
-} from "../../utils/formatUtils";
+import { SIZE_FILTERS, SizeFilterKey } from "../../utils/formatUtils";
 import ViewListIcon from "@mui/icons-material/ViewList";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { UploadButton, Tooltip, LoadingSpinner } from "../ui_primitives";
-import AssetTypeFilter from "./AssetTypeFilter";
 
 interface AssetActionsProps {
   setSelectedAssetIds: (assetIds: string[]) => void;
@@ -255,19 +250,11 @@ const AssetActions = ({
     (state) => [state.sizeFilter, state.setSizeFilter] as const,
     shallow
   );
-  const [typeFilter, setTypeFilter] = useAssetGridStore(
-    (state) => [state.typeFilter, state.setTypeFilter] as const,
-    shallow
-  );
   const [viewMode, setViewMode] = useAssetGridStore(
     (state) => [state.viewMode, state.setViewMode] as const,
     shallow
   );
 
-  const handleTypeFilterChange = useCallback(
-    (next: TypeFilterKey) => setTypeFilter(next),
-    [setTypeFilter]
-  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOrderChange = useCallback((_event: unknown, newOrder: "name" | "date" | "size" | null) => {
@@ -433,11 +420,6 @@ const AssetActions = ({
           <MenuItem value="size">Size</MenuItem>
         </Select>
       </Tooltip>
-
-      <AssetTypeFilter
-        value={typeFilter}
-        onChange={handleTypeFilterChange}
-      />
 
       <Tooltip
         delay={TOOLTIP_ENTER_DELAY}

@@ -49,6 +49,9 @@ interface AssetGridState {
   createFolderDialogOpen: boolean;
   setCreateFolderDialogOpen: (open: boolean) => void;
 
+  foldersVisible: boolean;
+  toggleFoldersVisible: () => void;
+
   isRenaming: string | null;
   setIsRenaming: (isRenaming: string | null) => void;
 
@@ -130,6 +133,10 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
 
   createFolderDialogOpen: false,
   setCreateFolderDialogOpen: (open) => set({ createFolderDialogOpen: open }),
+
+  foldersVisible: true,
+  toggleFoldersVisible: () =>
+    set((state) => ({ foldersVisible: !state.foldersVisible })),
   isRenaming: null,
   setIsRenaming: (isRenaming) => set({ isRenaming }),
 
