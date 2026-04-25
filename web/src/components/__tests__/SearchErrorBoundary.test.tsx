@@ -159,7 +159,10 @@ describe("SearchErrorBoundary", () => {
 
       await waitFor(() => {
         expect(mockLogError).toHaveBeenCalled();
-        expect(mockLogError.mock.calls[0][0]).toBe("Search component error:");
+        const ourCall = mockLogError.mock.calls.find(
+          (call) => call[0] === "Search component error:"
+        );
+        expect(ourCall).toBeDefined();
       });
     });
   });

@@ -8,7 +8,8 @@
  */
 
 import React, { memo, forwardRef, useCallback } from "react";
-import { IconButton, Button, Tooltip, CircularProgress } from "@mui/material";
+import { IconButton, Button, Tooltip } from "@mui/material";
+import { LoadingSpinner } from "./LoadingSpinner";
 import DownloadIcon from "@mui/icons-material/Download";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { useTheme, SxProps, Theme } from "@mui/material/styles";
@@ -121,7 +122,7 @@ export const DownloadButton = memo(
       const Icon = iconVariant === "file" ? FileDownloadIcon : DownloadIcon;
 
       const content = isLoading ? (
-        <CircularProgress size={buttonSize === "small" ? 16 : 20} />
+        <LoadingSpinner inline size={buttonSize === "small" ? 16 : 20} color="inherit" />
       ) : (
         <Icon fontSize={buttonSize} />
       );

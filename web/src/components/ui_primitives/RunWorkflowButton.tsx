@@ -14,7 +14,8 @@
  */
 
 import { forwardRef, memo, useCallback, useMemo } from "react";
-import { Button, ButtonProps, Fab, FabProps, Tooltip, CircularProgress } from "@mui/material";
+import { Button, ButtonProps, Fab, FabProps, Tooltip } from "@mui/material";
+import { LoadingSpinner } from "./LoadingSpinner";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { useTheme } from "@mui/material/styles";
@@ -178,7 +179,7 @@ export const RunWorkflowButton = memo(
       }, [isRunning, theme]);
 
       const content = isLoading ? (
-        <CircularProgress size={size === "small" ? 16 : 20} color="inherit" />
+        <LoadingSpinner inline size={size === "small" ? 16 : 20} color="inherit" />
       ) : (
         <>
           {icon}
