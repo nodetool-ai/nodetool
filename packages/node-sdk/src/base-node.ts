@@ -6,9 +6,24 @@ import type {
   StreamingOutputs
 } from "@nodetool/runtime";
 import { getDeclaredPropertiesForClass } from "./decorators.js";
+import {
+  validateNodeProperties,
+  type NodePropertyValidationIssue
+} from "./validation.js";
 
 export interface DeclaredOutputTypes {
   [name: string]: string;
+}
+
+export interface NodeValidationOptions {
+  /**
+   * Set of property names that are connected to incoming data edges. These
+   * properties are produced at runtime by upstream nodes, so their current
+   * value should not be flagged as missing.
+   */
+  connectedHandles?: ReadonlySet<string> | ReadonlyArray<string>;
+  /** Node id to attach to issues. Defaults to the node's __node_id. */
+  nodeId?: string;
 }
 
 export type NodeClass = {
@@ -39,6 +54,10 @@ export type NodeClass = {
   }>;
   getDeclaredOutputs(): Record<string, string>;
   toDescriptor(id?: string): NodeDescriptor;
+  validateProperties(
+    properties: Record<string, unknown>,
+    options?: NodeValidationOptions
+  ): NodePropertyValidationIssue[];
 };
 
 // ---------------------------------------------------------------------------
@@ -105,6 +124,32 @@ export abstract class BaseNode {
 
   static getDeclaredOutputs(): Record<string, string> {
     return { ...(this.outputTypes ?? {}) };
+  }
+
+  /**
+   * Validate a property bag against this node's declared @prop metadata.
+   *
+   * Flags two classes of problem:
+   *   - Properties declared `required: true` whose value is missing/empty.
+   *   - Properties whose type ends in `_model` whose value carries the
+   *     "empty" provider sentinel or an empty model id.
+   *
+   * Properties listed in `options.connectedHandles` are ignored — those
+   * receive their value from an upstream node at runtime.
+   *
+   * Subclasses may override this to add custom rules. Most nodes won't
+   * need to: declarative `@prop` metadata is enough.
+   */
+  static validateProperties(
+    properties: Record<string, unknown>,
+    options: NodeValidationOptions = {}
+  ): NodePropertyValidationIssue[] {
+    const cls = this as unknown as typeof BaseNode;
+    return validateNodeProperties(cls.getDeclaredProperties(), properties, {
+      connectedHandles: options.connectedHandles,
+      nodeId: options.nodeId,
+      nodeType: cls.nodeType
+    });
   }
 
   assign(properties: Record<string, unknown>): void {
@@ -179,6 +224,23 @@ export abstract class BaseNode {
   async initialize(): Promise<void> {}
   async preProcess(): Promise<void> {}
   async finalize(): Promise<void> {}
+
+  /**
+   * Validate the current property values on this instance.
+   *
+   * Default implementation defers to the class's static validateProperties
+   * over the result of `serialize()`. Subclasses can override to add
+   * runtime-only rules (for example, mutually-exclusive fields).
+   */
+  validate(
+    options: NodeValidationOptions = {}
+  ): NodePropertyValidationIssue[] {
+    const ctor = this.constructor as typeof BaseNode;
+    return ctor.validateProperties(this.serialize(), {
+      connectedHandles: options.connectedHandles,
+      nodeId: options.nodeId ?? (this.__node_id || undefined)
+    });
+  }
 
   abstract process(
     context?: ProcessingContext

@@ -20,6 +20,60 @@
   margin-bottom: 0;
 }
 
+/* Pre-flight validation: a property value is missing or invalid for the
+   declared type. Goal is to draw the eye without overwhelming the node:
+   a thin left accent bar, red label, and a focus-style ring on the input.
+   Hover the row to see the exact message via Tooltip. */
+.node-property.has-validation-error {
+  position: relative;
+  border-radius: 4px;
+  background:
+    linear-gradient(
+      to right,
+      rgba(244, 67, 54, 0.06) 0%,
+      rgba(244, 67, 54, 0) 60%
+    );
+  transition: background-color 200ms ease-out;
+}
+.node-property.has-validation-error::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background-color: var(--palette-error-main, #f44336);
+  box-shadow: 0 0 6px rgba(244, 67, 54, 0.55);
+}
+.node-property.has-validation-error .property-label {
+  color: var(--palette-error-light, #ef9a9a);
+  font-weight: 500;
+}
+.node-property.has-validation-error .property-label::after {
+  content: " ⚠";
+  color: var(--palette-error-main, #f44336);
+  font-size: 0.85em;
+  margin-left: 2px;
+}
+/* Subtle ring on the actual input control inside the row.
+   Targets common MUI/native form controls so the affected widget — not the
+   surrounding row — looks "selected" by validation. */
+.node-property.has-validation-error :is(
+    .MuiInputBase-root,
+    .MuiOutlinedInput-root,
+    .MuiSelect-select,
+    input,
+    textarea,
+    select
+  ) {
+  border-color: var(--palette-error-main, #f44336) !important;
+  box-shadow: 0 0 0 1px rgba(244, 67, 54, 0.45) inset;
+}
+.node-property.has-validation-error .MuiOutlinedInput-notchedOutline {
+  border-color: var(--palette-error-main, #f44336) !important;
+}
+
 .node-property .react-flow__handle {
   margin-top: 2px;
 }

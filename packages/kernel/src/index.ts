@@ -5,6 +5,7 @@
 export {
   Graph,
   GraphValidationError,
+  type GraphValidationIssue,
   type GraphFromDictOptions,
   type GraphLoadOptions,
   type NodeTypeResolver,
@@ -16,7 +17,9 @@ export {
   WorkflowRunner,
   type RunJobRequest,
   type WorkflowRunnerOptions,
-  type RunResult
+  type RunResult,
+  type NodeValidationIssue,
+  type NodeValidator
 } from "./runner.js";
 export { Channel, ChannelManager, type ChannelStats } from "./channel.js";
 export { NodeInputs, NodeOutputs, type NodeOutputsOptions } from "./io.js";

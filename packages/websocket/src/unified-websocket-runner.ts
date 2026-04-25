@@ -14,7 +14,8 @@ import {
   Graph,
   WorkflowRunner,
   type NodeExecutor,
-  type NodeTypeResolver
+  type NodeTypeResolver,
+  type NodeValidator
 } from "@nodetool/kernel";
 import {
   Asset,
@@ -716,6 +717,13 @@ export interface UnifiedWebSocketRunnerOptions {
   }) => Promise<void>;
   /** Resolve node metadata by type — used for auto_save_asset detection. */
   getNodeMetadata?: (nodeType: string) => NodeMetadata | undefined;
+  /**
+   * Optional pre-flight per-node validator. Forwarded to WorkflowRunner so
+   * missing required fields and unset model selections abort the run before
+   * any actor is spawned. `NodeRegistry.createNodeValidator()` from
+   * `@nodetool/node-sdk` produces a compatible callback.
+   */
+  validateNode?: NodeValidator;
 }
 
 export class UnifiedWebSocketRunner {
@@ -734,6 +742,7 @@ export class UnifiedWebSocketRunner {
   private workspaceResolver?: UnifiedWebSocketRunnerOptions["workspaceResolver"];
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
+  private validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
@@ -877,6 +886,7 @@ export class UnifiedWebSocketRunner {
     this.workspaceResolver = options.workspaceResolver;
     this.beforeRunJob = options.beforeRunJob;
     this.getNodeMetadata = options.getNodeMetadata;
+    this.validateNode = options.validateNode;
     this.getSystemStats =
       options.getSystemStats ??
       (() => ({
@@ -1196,7 +1206,8 @@ export class UnifiedWebSocketRunner {
         this.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
         ),
-      executionContext: context
+      executionContext: context,
+      validateNode: this.validateNode
     });
 
     const active: ActiveJob = {
@@ -3515,7 +3526,8 @@ export class UnifiedWebSocketRunner {
           this.resolveExecutor(
             node as { id: string; type: string; [key: string]: unknown }
           ),
-        executionContext: context
+        executionContext: context,
+        validateNode: this.validateNode
       });
 
       const active: ActiveJob = {

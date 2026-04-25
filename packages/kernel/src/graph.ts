@@ -24,10 +24,19 @@ import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool/protocol";
 // Graph errors
 // ---------------------------------------------------------------------------
 
+export interface GraphValidationIssue {
+  nodeId?: string;
+  nodeType?: string;
+  property?: string;
+  message: string;
+}
+
 export class GraphValidationError extends Error {
-  constructor(message: string) {
+  readonly issues: GraphValidationIssue[];
+  constructor(message: string, issues: GraphValidationIssue[] = []) {
     super(message);
     this.name = "GraphValidationError";
+    this.issues = issues;
   }
 }
 
