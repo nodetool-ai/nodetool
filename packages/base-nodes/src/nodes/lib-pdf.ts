@@ -1,11 +1,13 @@
 /**
- * PDF processing nodes — pure TypeScript using pdfjs-dist.
+ * PDF processing nodes using @llamaindex/liteparse.
  *
  * Provides text extraction, markdown conversion, table detection,
- * layout analysis, and metadata reading from PDF documents.
+ * layout analysis, metadata reading, screenshots, text search,
+ * and OCR extraction from PDF documents.
  */
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
+import type { ParseResult } from "@llamaindex/liteparse";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -22,34 +24,32 @@ function asBytes(data: Uint8Array | string | undefined): Uint8Array {
   return Uint8Array.from(Buffer.from(data, "base64"));
 }
 
-async function loadPdfDocument(pdf: DocumentRefLike, context?: ProcessingContext) {
-  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  let pdfData: Uint8Array;
+async function resolvePdfBuffer(
+  pdf: DocumentRefLike,
+  context?: ProcessingContext
+): Promise<Buffer> {
   if (pdf.data) {
-    pdfData = asBytes(pdf.data);
+    return Buffer.from(asBytes(pdf.data));
   } else if (pdf.uri) {
+    const uri = pdf.uri.startsWith("file://") ? pdf.uri.slice(7) : pdf.uri;
     if (context?.storage) {
       const stored = await context.storage.retrieve(pdf.uri);
-      if (stored !== null) {
-        pdfData = new Uint8Array(stored);
-        const loadingTask = pdfjsLib.getDocument({
-          data: pdfData,
-          useSystemFonts: true
-        });
-        return await loadingTask.promise;
-      }
+      if (stored !== null) return Buffer.from(stored);
     }
     const { promises: fs } = await import("node:fs");
-    const uri = pdf.uri.startsWith("file://") ? pdf.uri.slice(7) : pdf.uri;
-    pdfData = new Uint8Array(await fs.readFile(uri));
-  } else {
-    throw new Error("No PDF data or URI provided");
+    return fs.readFile(uri);
   }
-  const loadingTask = pdfjsLib.getDocument({
-    data: pdfData,
-    useSystemFonts: true
-  });
-  return await loadingTask.promise;
+  throw new Error("No PDF data or URI provided");
+}
+
+async function parsePdf(
+  pdf: DocumentRefLike,
+  context?: ProcessingContext
+): Promise<ParseResult> {
+  const { LiteParse } = await import("@llamaindex/liteparse");
+  const pdfBuffer = await resolvePdfBuffer(pdf, context);
+  const parser = new LiteParse({ ocrEnabled: false });
+  return parser.parse(pdfBuffer, true);
 }
 
 function resolvePageRange(
@@ -92,10 +92,11 @@ export class PdfPageCountNode extends BaseNode {
   declare pdf: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
-    const count = doc.numPages;
-    void doc.destroy();
-    return { output: count };
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
+    return { output: result.pages.length };
   }
 }
 
@@ -131,29 +132,22 @@ export class PdfExtractTextNode extends BaseNode {
   declare end_page: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
-      doc.numPages
+      result.pages.length
     );
 
-    let text = "";
+    const parts: string[] = [];
     for (let i = start; i <= end; i++) {
-      const page = await doc.getPage(i + 1);
-      const content = await page.getTextContent();
-      let lastY: number | null = null;
-      for (const item of content.items as any[]) {
-        const y = item.transform[5];
-        if (lastY !== null && Math.abs(y - lastY) > 2) text += "\n";
-        text += item.str;
-        lastY = y;
-      }
-      text += "\n\n";
+      const page = result.pages[i];
+      if (page) parts.push(page.text);
     }
-
-    void doc.destroy();
-    return { output: text.trim() };
+    return { output: parts.join("\n\n").trim() };
   }
 }
 
@@ -189,187 +183,138 @@ export class PdfExtractMarkdownNode extends BaseNode {
   declare end_page: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
-      doc.numPages
+      result.pages.length
     );
 
+    const bulletRe = /^[•‣◦⁃∙\-*]\s*/;
+    const numberedRe = /^(\d+)[.)]\s*/;
     const mdParts: string[] = [];
 
-    // Bullet/numbered list pattern: leading bullet chars or "1.", "2." etc.
-    const bulletRe = /^[\u2022\u2023\u25E6\u2043\u2219\-*]\s*/;
-    const numberedRe = /^(\d+)[.)]\s*/;
-
     for (let i = start; i <= end; i++) {
-      const page = await doc.getPage(i + 1);
-      const content = await page.getTextContent();
+      const page = result.pages[i];
+      if (!page) continue;
 
-      // Collect font sizes to determine heading thresholds
-      const sizes: number[] = [];
-      const fontNames: string[] = [];
-      for (const item of content.items as any[]) {
-        if (item.str?.trim()) {
-          sizes.push(item.height || item.transform?.[0] || 12);
-          fontNames.push(item.fontName || "");
-        }
-      }
-      const avgSize =
-        sizes.length > 0 ? sizes.reduce((a, b) => a + b, 0) / sizes.length : 12;
+      const items = page.textItems
+        .filter((it) => it.str.trim())
+        .sort((a, b) => a.y - b.y || a.x - b.x);
 
-      // Detect minimum X (left margin) for indent detection
-      const xPositions: number[] = [];
-      for (const item of content.items as any[]) {
-        if (item.str?.trim()) xPositions.push(item.transform[4]);
-      }
-      const leftMargin =
-        xPositions.length > 0 ? Math.min(...xPositions) : 0;
-      const indentThreshold = 15; // pixels from left margin to count as indented
+      if (items.length === 0) continue;
 
-      // Collect line data before flushing
+      // Compute average font size for heading thresholds
+      const sizes = items.map((it) => it.fontSize ?? it.height ?? 12);
+      const avgSize = sizes.reduce((a, b) => a + b, 0) / sizes.length;
+
+      // Detect left margin for indent detection
+      const leftMargin = Math.min(...items.map((it) => it.x));
+      const indentThreshold = 15;
+
+      // Group items into lines by Y coordinate
       type LineData = {
         text: string;
         maxSize: number;
         isBold: boolean;
         x: number;
         y: number;
-        prevY: number | null;
       };
+      const lineMap = new Map<number, LineData>();
+      const yTol = 3;
 
-      const lineItems: LineData[] = [];
-      let lastY: number | null = null;
-      let currentLine = "";
-      let currentSize = 0;
-      let currentBold = false;
-      let currentX = 0;
-      let lineStartY = 0;
-      let prevFlushY: number | null = null;
-
-      const flushLine = () => {
-        const trimmed = currentLine.trim();
-        if (trimmed || (lastY !== null && prevFlushY !== null)) {
-          lineItems.push({
-            text: trimmed,
-            maxSize: currentSize,
-            isBold: currentBold,
-            x: currentX,
-            y: lineStartY,
-            prevY: prevFlushY
+      for (const item of items) {
+        const ky = Math.round(item.y / yTol) * yTol;
+        const existing = lineMap.get(ky);
+        const size = item.fontSize ?? item.height ?? 12;
+        const isBold = /bold/i.test(item.fontName ?? "");
+        if (existing) {
+          existing.text += item.str;
+          existing.maxSize = Math.max(existing.maxSize, size);
+          if (isBold) existing.isBold = true;
+        } else {
+          lineMap.set(ky, {
+            text: item.str,
+            maxSize: size,
+            isBold,
+            x: item.x,
+            y: item.y
           });
-          prevFlushY = lineStartY;
         }
-        currentLine = "";
-        currentSize = 0;
-        currentBold = false;
-      };
-
-      for (const item of content.items as any[]) {
-        const y = item.transform[5];
-        const h = item.height || item.transform?.[0] || 12;
-        const fontName: string = item.fontName || "";
-        if (lastY !== null && Math.abs(y - lastY) > 2) flushLine();
-        if (!currentLine) {
-          currentX = item.transform[4];
-          lineStartY = y;
-        }
-        currentLine += item.str;
-        currentSize = Math.max(currentSize, h);
-        // Detect bold from font name (common patterns: Bold, -Bold, _Bold, .Bold)
-        if (/bold/i.test(fontName)) currentBold = true;
-        lastY = y;
       }
-      flushLine();
 
-      // Now convert lineItems to markdown
-      const lines: string[] = [];
+      const lineEntries = Array.from(lineMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([, ld]) => ld);
 
-      // Detect table-like regions: consecutive lines with consistent tab/space separation
-      // We do a simple pass to detect and collect table blocks
-      const tableYTolerance = 3;
-      const yTolerance = 3;
-
-      // Try to detect tables on this page for markdown conversion
-      const pageItems: { x: number; y: number; str: string }[] = [];
-      for (const item of content.items as any[]) {
-        if (!item.str?.trim()) continue;
-        pageItems.push({
-          x: item.transform[4],
-          y: Math.round(item.transform[5] / tableYTolerance) * tableYTolerance,
-          str: item.str.trim()
-        });
+      // Detect table-like rows: groups with consistent multi-column layout
+      const tableYTol = 3;
+      const rowMap = new Map<number, { x: number; str: string }[]>();
+      for (const item of items) {
+        const ky = Math.round(item.y / tableYTol) * tableYTol;
+        if (!rowMap.has(ky)) rowMap.set(ky, []);
+        rowMap.get(ky)!.push({ x: item.x, str: item.str.trim() });
       }
-      const tableRowMap = new Map<number, { x: number; str: string }[]>();
-      for (const it of pageItems) {
-        if (!tableRowMap.has(it.y)) tableRowMap.set(it.y, []);
-        tableRowMap.get(it.y)!.push({ x: it.x, str: it.str });
-      }
-      const tableRowEntries = Array.from(tableRowMap.entries())
-        .sort((a, b) => b[0] - a[0])
-        .map(([y, cells]) => ({
-          y,
-          cells: cells.sort((a, b) => a.x - b.x).map((c) => c.str)
-        }));
+      const rowEntries = Array.from(rowMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([y, cells]) => ({ y, cells: cells.sort((a, b) => a.x - b.x) }));
 
-      // Find runs of rows with same column count >= 2 (tables)
       const tableYRanges: { startY: number; endY: number; rows: string[][] }[] =
         [];
       let runStart = 0;
-      while (runStart < tableRowEntries.length) {
-        const colCount = tableRowEntries[runStart].cells.length;
+      while (runStart < rowEntries.length) {
+        const colCount = rowEntries[runStart].cells.length;
         if (colCount < 2) {
           runStart++;
           continue;
         }
         let runEnd = runStart + 1;
         while (
-          runEnd < tableRowEntries.length &&
-          tableRowEntries[runEnd].cells.length === colCount
+          runEnd < rowEntries.length &&
+          rowEntries[runEnd].cells.length === colCount
         ) {
           runEnd++;
         }
         if (runEnd - runStart >= 2) {
-          const rows = tableRowEntries
-            .slice(runStart, runEnd)
-            .map((r) => r.cells);
           tableYRanges.push({
-            startY: tableRowEntries[runEnd - 1].y,
-            endY: tableRowEntries[runStart].y,
-            rows
+            startY: rowEntries[runStart].y,
+            endY: rowEntries[runEnd - 1].y,
+            rows: rowEntries.slice(runStart, runEnd).map((r) => r.cells.map((c) => c.str))
           });
         }
         runStart = runEnd;
       }
 
-      // Check if a Y position falls within a table range
       const isInTable = (y: number): { rows: string[][] } | null => {
-        const ry = Math.round(y / tableYTolerance) * tableYTolerance;
+        const ry = Math.round(y / tableYTol) * tableYTol;
         for (const range of tableYRanges) {
-          if (ry >= range.startY - yTolerance && ry <= range.endY + yTolerance) {
+          if (ry >= range.startY - tableYTol && ry <= range.endY + tableYTol)
             return range;
-          }
         }
         return null;
       };
 
       const emittedTables = new Set<{ rows: string[][] }>();
+      const lines: string[] = [];
 
-      for (const ld of lineItems) {
-        // Check for paragraph break (large Y gap)
-        if (ld.prevY !== null) {
-          const gap = Math.abs(ld.y - ld.prevY);
-          if (gap > avgSize * 1.8) {
-            lines.push("");
-          }
+      for (let li = 0; li < lineEntries.length; li++) {
+        const ld = lineEntries[li];
+        const text = ld.text.trim();
+        if (!text) continue;
+
+        // Paragraph break detection (large Y gap between lines)
+        if (li > 0) {
+          const prev = lineEntries[li - 1];
+          const gap = ld.y - prev.y;
+          if (gap > avgSize * 1.8) lines.push("");
         }
 
-        if (!ld.text) continue;
-
-        // Check if this line is part of a detected table
         const table = isInTable(ld.y);
         if (table && !emittedTables.has(table)) {
           emittedTables.add(table);
-          // Emit markdown table
           const header = table.rows[0];
           lines.push("| " + header.join(" | ") + " |");
           lines.push("| " + header.map(() => "---").join(" | ") + " |");
@@ -379,41 +324,31 @@ export class PdfExtractMarkdownNode extends BaseNode {
           lines.push("");
           continue;
         }
-        if (table) continue; // already emitted this table
+        if (table) continue;
 
-        // Detect bullet lists (indented + leading bullet character)
-        const isIndented = ld.x - leftMargin > indentThreshold;
-        const bulletMatch = ld.text.match(bulletRe);
-        const numberedMatch = ld.text.match(numberedRe);
+        const bulletMatch = text.match(bulletRe);
+        const numberedMatch = text.match(numberedRe);
 
         if (bulletMatch) {
-          lines.push(`- ${ld.text.replace(bulletRe, "")}`);
-          continue;
-        }
-        if (numberedMatch) {
-          lines.push(`${numberedMatch[1]}. ${ld.text.replace(numberedRe, "")}`);
-          continue;
-        }
-        if (isIndented && !bulletMatch && !numberedMatch) {
-          // Could be a sub-item or indented paragraph
-          // Treat as plain text (preserving it as-is)
-        }
-
-        // Heading detection: large font size OR bold with size above average
-        if (ld.maxSize > avgSize * 1.5) {
-          lines.push(`# ${ld.text}`);
+          lines.push(`- ${text.replace(bulletRe, "")}`);
+        } else if (numberedMatch) {
+          lines.push(`${numberedMatch[1]}. ${text.replace(numberedRe, "")}`);
+        } else if (ld.maxSize > avgSize * 1.5) {
+          lines.push(`# ${text}`);
         } else if (ld.maxSize > avgSize * 1.2) {
-          lines.push(`## ${ld.text}`);
+          lines.push(`## ${text}`);
         } else if (ld.isBold && ld.maxSize >= avgSize) {
-          lines.push(`### ${ld.text}`);
+          lines.push(`### ${text}`);
         } else {
-          lines.push(ld.text);
+          const isIndented = ld.x - leftMargin > indentThreshold;
+          void isIndented;
+          lines.push(text);
         }
       }
+
       mdParts.push(lines.join("\n"));
     }
 
-    void doc.destroy();
     return { output: mdParts.join("\n\n---\n\n") };
   }
 }
@@ -460,46 +395,45 @@ export class PdfExtractTablesNode extends BaseNode {
   declare y_tolerance: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
-      doc.numPages
+      result.pages.length
     );
     const yTolerance = Number(this.y_tolerance ?? 3);
     const tables: Record<string, unknown>[] = [];
 
     for (let pageIdx = start; pageIdx <= end; pageIdx++) {
-      const page = await doc.getPage(pageIdx + 1);
-      const content = await page.getTextContent();
+      const page = result.pages[pageIdx];
+      if (!page) continue;
 
-      // Collect all text items with positions
       const items: { x: number; y: number; w: number; str: string }[] = [];
-      for (const item of content.items as any[]) {
-        if (!item.str?.trim()) continue;
+      for (const item of page.textItems) {
+        if (!item.str.trim()) continue;
         items.push({
-          x: item.transform[4],
-          y: Math.round(item.transform[5] / yTolerance) * yTolerance,
-          w: item.width || 0,
+          x: item.x,
+          y: Math.round(item.y / yTolerance) * yTolerance,
+          w: item.width,
           str: item.str.trim()
         });
       }
 
-      // Group items by Y position (rows)
       const rowMap = new Map<number, { x: number; w: number; str: string }[]>();
       for (const it of items) {
         if (!rowMap.has(it.y)) rowMap.set(it.y, []);
         rowMap.get(it.y)!.push({ x: it.x, w: it.w, str: it.str });
       }
 
-      // Sort rows top-to-bottom (PDF Y is bottom-up)
       const sortedRowEntries = Array.from(rowMap.entries())
-        .sort((a, b) => b[0] - a[0])
+        .sort((a, b) => a[0] - b[0])
         .map(([, cells]) => cells.sort((a, b) => a.x - b.x));
 
       if (sortedRowEntries.length < 2) continue;
 
-      // Find rows with consistent column counts (potential table rows)
       const freq = new Map<number, number>();
       for (const r of sortedRowEntries) {
         freq.set(r.length, (freq.get(r.length) ?? 0) + 1);
@@ -514,13 +448,10 @@ export class PdfExtractTablesNode extends BaseNode {
       }
       if (mostCommonCount < 2 || maxFreq < 2) continue;
 
-      // Filter to rows matching the most common column count
       const candidateRows = sortedRowEntries.filter(
         (r) => r.length === mostCommonCount
       );
 
-      // Detect column boundaries via X-position clustering
-      // Collect all X positions from candidate rows, grouped by column index
       const colXPositions: number[][] = Array.from(
         { length: mostCommonCount },
         () => []
@@ -531,32 +462,26 @@ export class PdfExtractTablesNode extends BaseNode {
         }
       }
 
-      // Compute column boundaries as midpoints between column centers
       const colCenters = colXPositions.map((xs) => {
         const sorted = xs.slice().sort((a, b) => a - b);
-        return sorted[Math.floor(sorted.length / 2)]; // median
+        return sorted[Math.floor(sorted.length / 2)];
       });
 
-      // Verify columns are consistently aligned (low variance)
-      const maxSpread = 15; // max pixel spread within a column
+      const maxSpread = 15;
       let aligned = true;
       for (const xs of colXPositions) {
-        const mn = Math.min(...xs);
-        const mx = Math.max(...xs);
-        if (mx - mn > maxSpread) {
+        if (Math.max(...xs) - Math.min(...xs) > maxSpread) {
           aligned = false;
           break;
         }
       }
       if (!aligned) continue;
 
-      // Build column boundaries for splitting
       const colBoundaries: number[] = [];
       for (let ci = 0; ci < mostCommonCount - 1; ci++) {
         colBoundaries.push((colCenters[ci] + colCenters[ci + 1]) / 2);
       }
 
-      // Assign each cell to its column based on boundaries
       const assignColumn = (x: number): number => {
         for (let bi = 0; bi < colBoundaries.length; bi++) {
           if (x < colBoundaries[bi]) return bi;
@@ -564,10 +489,12 @@ export class PdfExtractTablesNode extends BaseNode {
         return colBoundaries.length;
       };
 
-      // Re-split all candidate rows using detected column boundaries
       const tableRows: string[][] = [];
       for (const row of candidateRows) {
-        const cells: string[] = Array.from({ length: mostCommonCount }, () => "");
+        const cells: string[] = Array.from(
+          { length: mostCommonCount },
+          () => ""
+        );
         for (const cell of row) {
           const ci = assignColumn(cell.x);
           cells[ci] = cells[ci] ? `${cells[ci]} ${cell.str}` : cell.str;
@@ -586,7 +513,6 @@ export class PdfExtractTablesNode extends BaseNode {
       });
     }
 
-    void doc.destroy();
     return { output: tables };
   }
 }
@@ -623,18 +549,22 @@ export class PdfExtractTextBlocksNode extends BaseNode {
   declare end_page: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
-      doc.numPages
+      result.pages.length
     );
     const blocks: Record<string, unknown>[] = [];
 
     for (let i = start; i <= end; i++) {
-      const page = await doc.getPage(i + 1);
-      const content = await page.getTextContent();
-      const viewport = page.getViewport({ scale: 1.0 });
+      const page = result.pages[i];
+      if (!page) continue;
+
+      const items = page.textItems.sort((a, b) => a.y - b.y || a.x - b.x);
 
       let block: {
         text: string;
@@ -652,35 +582,38 @@ export class PdfExtractTextBlocksNode extends BaseNode {
             text: block.text.trim(),
             bbox: {
               x0: block.x0,
-              y0: viewport.height - block.y1,
+              y0: block.y0,
               x1: block.x1,
-              y1: viewport.height - block.y0
+              y1: block.y1
             }
           });
         }
         block = null;
       };
 
-      for (const item of content.items as any[]) {
-        const x = item.transform[4];
-        const y = item.transform[5];
-        const w = item.width || 0;
-        const h = item.height || item.transform[0] || 12;
+      for (const item of items) {
+        const h = item.height ?? 12;
+        if (lastY !== null && Math.abs(item.y - lastY) > h * 1.5) flushBlock();
 
-        if (lastY !== null && Math.abs(y - lastY) > h * 1.5) flushBlock();
-
-        if (!block) block = { text: "", x0: x, y0: y, x1: x + w, y1: y + h };
+        if (!block) {
+          block = {
+            text: "",
+            x0: item.x,
+            y0: item.y,
+            x1: item.x + item.width,
+            y1: item.y + h
+          };
+        }
         block.text += item.str;
-        block.x0 = Math.min(block.x0, x);
-        block.y0 = Math.min(block.y0, y);
-        block.x1 = Math.max(block.x1, x + w);
-        block.y1 = Math.max(block.y1, y + h);
-        lastY = y;
+        block.x0 = Math.min(block.x0, item.x);
+        block.y0 = Math.min(block.y0, item.y);
+        block.x1 = Math.max(block.x1, item.x + item.width);
+        block.y1 = Math.max(block.y1, item.y + h);
+        lastY = item.y;
       }
       flushBlock();
     }
 
-    void doc.destroy();
     return { output: blocks };
   }
 }
@@ -693,7 +626,7 @@ export class PdfExtractStyledTextNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractStyledText";
   static readonly title = "PDF Extract Styled Text";
   static readonly description =
-    "Extract text spans with font name, size, bounding box, and color (best-effort).\n    pdf, text, style, font, size, formatting, color\n\n    Note: Color extraction depends on pdfjs-dist exposing color data in text content items. Not all PDFs provide per-span color; when unavailable the color field will be null.";
+    "Extract text spans with font name, size, bounding box, and color (always null; liteparse does not expose per-span color).\n    pdf, text, style, font, size, formatting, color";
   static readonly metadataOutputTypes = { output: "list[dict]" };
   static readonly exposeAsTool = true;
 
@@ -717,47 +650,39 @@ export class PdfExtractStyledTextNode extends BaseNode {
   declare end_page: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
-      doc.numPages
+      result.pages.length
     );
     const spans: Record<string, unknown>[] = [];
 
     for (let i = start; i <= end; i++) {
-      const page = await doc.getPage(i + 1);
-      const content = await page.getTextContent();
-      for (const item of content.items as any[]) {
-        if (!item.str?.trim()) continue;
-        const x = item.transform[4];
-        const y = item.transform[5];
-        const w = item.width || 0;
-        const h = item.height || item.transform[0] || 12;
-        // Best-effort color extraction: pdfjs-dist may expose color via
-        // item.color (an [r,g,b] array) on some builds/PDFs. When not
-        // available the field is null.
-        let color: string | null = null;
-        if (item.color && Array.isArray(item.color) && item.color.length >= 3) {
-          const [r, g, b] = item.color.map((c: number) =>
-            Math.round(c * 255)
-              .toString(16)
-              .padStart(2, "0")
-          );
-          color = `#${r}${g}${b}`;
-        }
+      const page = result.pages[i];
+      if (!page) continue;
+      for (const item of page.textItems) {
+        if (!item.str.trim()) continue;
+        const h = item.height ?? 12;
         spans.push({
           page: i,
           text: item.str,
-          font: item.fontName || "unknown",
-          size: h,
-          color,
-          bbox: { x0: x, y0: y, x1: x + w, y1: y + h }
+          font: item.fontName ?? "unknown",
+          size: item.fontSize ?? h,
+          color: null,
+          bbox: {
+            x0: item.x,
+            y0: item.y,
+            x1: item.x + item.width,
+            y1: item.y + h
+          }
         });
       }
     }
 
-    void doc.destroy();
     return { output: spans };
   }
 }
@@ -770,7 +695,7 @@ export class PdfPageMetadataNode extends BaseNode {
   static readonly nodeType = "lib.pdf.PageMetadata";
   static readonly title = "PDF Page Metadata";
   static readonly description =
-    "Get dimensions, rotation, and bounding box for each page.\n    pdf, metadata, pages, size, dimensions, rotation";
+    "Get dimensions and bounding box for each page.\n    pdf, metadata, pages, size, dimensions";
   static readonly metadataOutputTypes = { output: "list[dict]" };
 
   @prop(PDF_INPUT)
@@ -793,54 +718,311 @@ export class PdfPageMetadataNode extends BaseNode {
   declare end_page: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const doc = await loadPdfDocument((this.pdf ?? {}) as DocumentRefLike, context);
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
     const [start, end] = resolvePageRange(
       Number(this.start_page ?? 0),
       Number(this.end_page ?? -1),
-      doc.numPages
+      result.pages.length
     );
     const metadata: Record<string, unknown>[] = [];
 
     for (let i = start; i <= end; i++) {
-      const page = await doc.getPage(i + 1);
-      const viewport = page.getViewport({ scale: 1.0 });
+      const page = result.pages[i];
+      if (!page) continue;
 
-      // Compute content bounding box from text items
-      const content = await page.getTextContent();
       let x0 = Infinity;
       let y0 = Infinity;
       let x1 = -Infinity;
       let y1 = -Infinity;
-      for (const item of content.items as any[]) {
-        if (!item.str?.trim()) continue;
-        const x = item.transform[4];
-        const y = item.transform[5];
-        const w = item.width || 0;
-        const h = item.height || item.transform[0] || 12;
-        x0 = Math.min(x0, x);
-        y0 = Math.min(y0, y);
-        x1 = Math.max(x1, x + w);
-        y1 = Math.max(y1, y + h);
+      for (const item of page.textItems) {
+        if (!item.str.trim()) continue;
+        const h = item.height ?? 12;
+        x0 = Math.min(x0, item.x);
+        y0 = Math.min(y0, item.y);
+        x1 = Math.max(x1, item.x + item.width);
+        y1 = Math.max(y1, item.y + h);
       }
       const hasContent = x0 !== Infinity;
       metadata.push({
         page: i,
-        width: viewport.width,
-        height: viewport.height,
-        rotation: page.rotate,
-        bbox: hasContent
-          ? {
-              x0,
-              y0: viewport.height - y1,
-              x1,
-              y1: viewport.height - y0
-            }
-          : null
+        width: page.width,
+        height: page.height,
+        bbox: hasContent ? { x0, y0, x1, y1 } : null
       });
     }
 
-    void doc.destroy();
     return { output: metadata };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Screenshot
+// ---------------------------------------------------------------------------
+
+export class PdfScreenshotNode extends BaseNode {
+  static readonly nodeType = "lib.pdf.Screenshot";
+  static readonly title = "PDF Page Screenshot";
+  static readonly description =
+    "Render PDF pages as PNG images.\n    pdf, screenshot, render, image, pages, png";
+  static readonly metadataOutputTypes = { output: "list[image]" };
+
+  @prop(PDF_INPUT)
+  declare pdf: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page to render (0-based)"
+  })
+  declare start_page: any;
+
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page to render (-1 for all)"
+  })
+  declare end_page: any;
+
+  @prop({
+    type: "int",
+    default: 150,
+    title: "DPI",
+    description: "Rendering resolution in dots per inch",
+    min: 72,
+    max: 600
+  })
+  declare dpi: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    // Bypass liteparse's parser.screenshot(): it loads the same buffer into
+    // pdf.js *and* PDFium, but pdf.js detaches the underlying ArrayBuffer
+    // during its load, leaving PDFium with a detached buffer (→ "File not in
+    // PDF format or corrupted"). Render directly via PDFium + sharp.
+    const [{ PDFiumLibrary }, sharpModule] = await Promise.all([
+      import("@hyzyla/pdfium"),
+      import("sharp")
+    ]);
+    const sharp = sharpModule.default;
+    const pdfBuffer = await resolvePdfBuffer(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
+    const dpi = Number(this.dpi ?? 150);
+    const scale = dpi / 72;
+
+    const lib = await PDFiumLibrary.init();
+    const images: { type: string; data: string }[] = [];
+    let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;
+    try {
+      doc = await lib.loadDocument(Buffer.from(pdfBuffer));
+      const totalPages = doc.getPageCount();
+      const [start, end] = resolvePageRange(
+        Number(this.start_page ?? 0),
+        Number(this.end_page ?? -1),
+        totalPages
+      );
+      for (let i = start; i <= end; i++) {
+        const page = doc.getPage(i);
+        const image = await page.render({
+          scale,
+          render: async (options) =>
+            sharp(options.data, {
+              raw: {
+                width: options.width,
+                height: options.height,
+                channels: 4
+              }
+            })
+              .png({ compressionLevel: 6 })
+              .withMetadata({ density: dpi })
+              .toBuffer()
+        });
+        images.push({
+          type: "image",
+          data: Buffer.from(image.data).toString("base64")
+        });
+      }
+    } finally {
+      if (doc) doc.destroy();
+      lib.destroy();
+    }
+    return { output: images };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SearchText
+// ---------------------------------------------------------------------------
+
+export class PdfSearchTextNode extends BaseNode {
+  static readonly nodeType = "lib.pdf.SearchText";
+  static readonly title = "PDF Search Text";
+  static readonly description =
+    "Search a PDF for a phrase and return each match with its page number and bounding box.\n    pdf, search, find, phrase, text, location, bbox";
+  static readonly metadataOutputTypes = { output: "list[dict]" };
+  static readonly exposeAsTool = true;
+
+  @prop(PDF_INPUT)
+  declare pdf: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Phrase",
+    description: "Text phrase to search for"
+  })
+  declare phrase: any;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Case Sensitive",
+    description: "Whether the search is case-sensitive"
+  })
+  declare case_sensitive: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page to search (0-based)"
+  })
+  declare start_page: any;
+
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page to search (-1 for all)"
+  })
+  declare end_page: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const { searchItems } = await import("@llamaindex/liteparse");
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
+    const [start, end] = resolvePageRange(
+      Number(this.start_page ?? 0),
+      Number(this.end_page ?? -1),
+      result.pages.length
+    );
+    const phrase = String(this.phrase ?? "");
+    const caseSensitive = Boolean(this.case_sensitive ?? false);
+    const matches: Record<string, unknown>[] = [];
+
+    for (let i = start; i <= end; i++) {
+      const page = result.pages[i];
+      if (!page) continue;
+
+      // Convert TextItem (str) to JsonTextItem (text) shape for searchItems
+      const jsonItems = page.textItems.map((it) => ({
+        text: it.str,
+        x: it.x,
+        y: it.y,
+        width: it.width,
+        height: it.height,
+        fontName: it.fontName,
+        fontSize: it.fontSize,
+        confidence: it.confidence
+      }));
+
+      const found = searchItems(jsonItems, { phrase, caseSensitive });
+      for (const m of found) {
+        matches.push({
+          page: i,
+          text: m.text,
+          x: m.x,
+          y: m.y,
+          width: m.width,
+          height: m.height,
+          fontName: m.fontName ?? null,
+          fontSize: m.fontSize ?? null
+        });
+      }
+    }
+
+    return { output: matches };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ExtractOcr
+// ---------------------------------------------------------------------------
+
+export class PdfExtractOcrNode extends BaseNode {
+  static readonly nodeType = "lib.pdf.ExtractOcr";
+  static readonly title = "PDF Extract Text (OCR)";
+  static readonly description =
+    "Extract text from a PDF using OCR, suitable for scanned documents and image-based PDFs.\n    pdf, ocr, scan, text, extract, image-based";
+  static readonly metadataOutputTypes = { output: "str" };
+  static readonly exposeAsTool = true;
+
+  @prop(PDF_INPUT)
+  declare pdf: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page (0-based)"
+  })
+  declare start_page: any;
+
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page (-1 for all)"
+  })
+  declare end_page: any;
+
+  @prop({
+    type: "str",
+    default: "en",
+    title: "OCR Language",
+    description: "ISO 639-1 language code for OCR (e.g. en, fr, de, es)"
+  })
+  declare ocr_language: any;
+
+  @prop({
+    type: "int",
+    default: 150,
+    title: "DPI",
+    description: "Rendering DPI for OCR — higher values improve accuracy on small text",
+    min: 72,
+    max: 600
+  })
+  declare dpi: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const { LiteParse } = await import("@llamaindex/liteparse");
+    const pdfBuffer = await resolvePdfBuffer(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
+    const ocrLanguage = String(this.ocr_language ?? "en");
+    const dpi = Number(this.dpi ?? 150);
+    const parser = new LiteParse({ ocrEnabled: true, ocrLanguage, dpi });
+    const result = await parser.parse(pdfBuffer, true);
+
+    const [start, end] = resolvePageRange(
+      Number(this.start_page ?? 0),
+      Number(this.end_page ?? -1),
+      result.pages.length
+    );
+    const parts: string[] = [];
+    for (let i = start; i <= end; i++) {
+      const page = result.pages[i];
+      if (page) parts.push(page.text);
+    }
+    return { output: parts.join("\n\n").trim() };
   }
 }
 
@@ -855,5 +1037,8 @@ export const LIB_PDF_NODES = [
   PdfExtractTablesNode,
   PdfExtractTextBlocksNode,
   PdfExtractStyledTextNode,
-  PdfPageMetadataNode
+  PdfPageMetadataNode,
+  PdfScreenshotNode,
+  PdfSearchTextNode,
+  PdfExtractOcrNode
 ] as const;
