@@ -19,6 +19,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1029.0",
     "@gltf-transform/core": "^4.3.0",
     "@gltf-transform/functions": "^4.3.0",
+    "@hyzyla/pdfium": "^2.1.12",
     "@k13engineering/rubberband": "^0.0.8",
     "@llamaindex/liteparse": "^1.5.2",
     "@mozilla/readability": "^0.6.0",

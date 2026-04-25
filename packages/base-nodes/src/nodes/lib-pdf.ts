@@ -799,27 +799,58 @@ export class PdfScreenshotNode extends BaseNode {
   declare dpi: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const { LiteParse } = await import("@llamaindex/liteparse");
+    // Bypass liteparse's parser.screenshot(): it loads the same buffer into
+    // pdf.js *and* PDFium, but pdf.js detaches the underlying ArrayBuffer
+    // during its load, leaving PDFium with a detached buffer (→ "File not in
+    // PDF format or corrupted"). Render directly via PDFium + sharp.
+    const [{ PDFiumLibrary }, sharpModule] = await Promise.all([
+      import("@hyzyla/pdfium"),
+      import("sharp")
+    ]);
+    const sharp = sharpModule.default;
     const pdfBuffer = await resolvePdfBuffer(
       (this.pdf ?? {}) as DocumentRefLike,
       context
     );
     const dpi = Number(this.dpi ?? 150);
-    const parser = new LiteParse({ ocrEnabled: false, dpi });
+    const scale = dpi / 72;
 
-    // Screenshot all pages, then slice to the requested range
-    const allShots = await parser.screenshot(pdfBuffer, undefined, true);
-    const [start, end] = resolvePageRange(
-      Number(this.start_page ?? 0),
-      Number(this.end_page ?? -1),
-      allShots.length
-    );
-    const shots = allShots.slice(start, end + 1);
-
-    const images = shots.map((s) => ({
-      type: "image",
-      data: s.imageBuffer.toString("base64")
-    }));
+    const lib = await PDFiumLibrary.init();
+    const images: { type: string; data: string }[] = [];
+    let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;
+    try {
+      doc = await lib.loadDocument(Buffer.from(pdfBuffer));
+      const totalPages = doc.getPageCount();
+      const [start, end] = resolvePageRange(
+        Number(this.start_page ?? 0),
+        Number(this.end_page ?? -1),
+        totalPages
+      );
+      for (let i = start; i <= end; i++) {
+        const page = doc.getPage(i);
+        const image = await page.render({
+          scale,
+          render: async (options) =>
+            sharp(options.data, {
+              raw: {
+                width: options.width,
+                height: options.height,
+                channels: 4
+              }
+            })
+              .png({ compressionLevel: 6 })
+              .withMetadata({ density: dpi })
+              .toBuffer()
+        });
+        images.push({
+          type: "image",
+          data: Buffer.from(image.data).toString("base64")
+        });
+      }
+    } finally {
+      if (doc) doc.destroy();
+      lib.destroy();
+    }
     return { output: images };
   }
 }
