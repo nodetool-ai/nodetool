@@ -25,7 +25,7 @@ Rules for the remaining work:
 
 - [x] **7. First realtime substrate and nodes.** Production sessions now use `RealtimeRunner`; `VideoFrame` / `AudioFrame` types exist; `packages/realtime-nodes/` provides `VideoSource`, `VideoSink`, `AudioSource`, `AudioSink`, `Parameter`, and `SessionInfo`.
 - [x] **8. Backend WebRTC shell, lifecycle, and metrics.** `packages/websocket/src/realtime/` owns signaling delegation, per-session peer objects, frame routing, bounded per-consumer queues, lifecycle/teardown, and `realtime_metrics`. Codec decode/encode remains intentionally unsupported until a real bridge or alternate stack proves raw frame conversion.
-- [ ] **9. Pre-model design pass.**
+- [x] **9. Pre-model design pass.**
   - Pick Wan2.1 upstream source.
   - Define model-loading progress events.
   - Add `LatestPerHandleAccumulator`.
@@ -33,6 +33,10 @@ Rules for the remaining work:
   - Set framerate acceptance thresholds.
   - Add `WeightSource` in `nodetool-realtime`.
   - Extend SystemStats with realtime precision/hardware hints.
+  - 9 result: use **NVlabs/LongLive** as the first concrete model proof and **Wan-AI/Wan2.1-T2V-1.3B** as the base model source. Keep exact performance claims tied to upstream hardware: LongLive reports 20.7 FPS on one H100 and 24.8 FPS with FP8; local acceptance is tiered rather than universal. CPU smoke tests prove construction, lifecycle hooks, fake-frame processing, and error handling only; they do not assert FPS. H100/A100 performance tests are opt-in and record observed fps/latency through `realtime_metrics`.
+  - 9 implementation shape: all heavy model code lands in the existing `nodetool-realtime` skeleton. Thin nodes go under `nodetool-realtime/src/nodetool/nodes/realtime/`, while pipelines, `WeightSource`, hardware/precision helpers, frame converters, fake CPU pipelines, and `LatestPerHandleAccumulator` live under `nodetool-realtime/src/nodetool/realtime/`. Core may receive only small protocol/status surfaces for loading events and hardware hints.
+  - 9 loading/precision contract: model nodes emit structured loading phases (`resolving_weights`, `downloading`, `loading_tokenizer`, `loading_vae`, `loading_transformer`, `warming`, `ready`, `error`) with progress and selected precision/backend. `WeightSource` supports local path, Hugging Face repo/file, and cached/default source. Precision selection prefers native FP8 only on capable Ada/Hopper/Blackwell hardware, uses FP16/BF16 where memory allows, and treats GGUF/INT8 community paths as explicit experimental fallbacks until validated.
+  - 9 realtime loop contract: `LatestPerHandleAccumulator` is the default input coalescer for model nodes. It keeps the most recent value per media/control handle, preserves sequence/timestamp metadata, reports skipped/dropped input counts to metrics, and never blocks the media/control plane waiting for stale frames. Prompt/control updates are applied at the next model iteration and can trigger model-specific cache refresh such as LongLive KV-recache.
 - [ ] **10. Implement LongLive.**
   - Thin node in `nodetool-realtime/src/nodetool/nodes/realtime/longlive.py`.
   - Heavy pipeline in `nodetool-realtime/src/nodetool/realtime/wan21/longlive_pipeline.py`.
@@ -65,6 +69,7 @@ Rules for the remaining work:
 - **NDI and Spout are committed later goals.** Reserve clean media adapter boundaries for NDI, Spout, Syphon, MIDI, OSC, DMX, and timecode.
 - **Shared files hold primitives; dedicated files hold realtime behavior.** `unified-websocket-runner.ts` and `runner.ts` should only gain small surfaces. Realtime behavior lives in `packages/websocket/src/realtime/*` and `packages/kernel/src/realtime-runner.ts`.
 - **Substrate lives in core; model nodes live outside the substrate.** Core owns runner/session/WebRTC substrate, TS I/O nodes, protocol frame types, bridge verbs, lifecycle hooks, and hardware hints. `nodetool-realtime` owns heavy Python model code, `WeightSource`, Wan2.1 pipelines, GGUF loading, and ML dependencies.
+- **Model proof design is now fixed for implementation.** `nodetool-realtime` already exists as the sister package skeleton. Step 10 should add a thin LongLive node plus a fat Wan2.1/LongLive pipeline there, using the step 9 `WeightSource`, precision/hardware hints, loading events, fake CPU smoke tests, and `LatestPerHandleAccumulator` pattern.
 
 Primary contract reference: `docs/realtime-runtime-contract.md`.
 
@@ -95,6 +100,7 @@ Primary contract reference: `docs/realtime-runtime-contract.md`.
 - `/realtime` is still an incubation page. It proves browser capture and loopback signaling by default, and has a guarded backend WebRTC smoke mode via `?webrtcRuntime=backend`.
 - Server-side WebRTC termination and frame-router boundaries exist. Decoded media is not yet delivered into the backend graph because the codec bridge intentionally reports unsupported.
 - Realtime lifecycle, bounded teardown, terminal-session retention, and control-plane metrics exist.
+- `nodetool-realtime` exists as a pre-alpha sister-package skeleton with lean base dependencies, precision extras reserved for `fp8`, `gguf`, and `int8`, thin node stubs under `src/nodetool/nodes/realtime/`, and heavy pipeline/utilities namespace under `src/nodetool/realtime/`.
 - `RealtimeAudioInput` shows the existing streaming-input pattern; `VideoInput` remains an asset/reference input, not a live media source.
 
 ## Existing event-driven primitives we build on
@@ -117,14 +123,93 @@ These contracts are shipped and should be treated as breaking-change surfaces:
 - **Python worker realtime bridge:** `nodetool-core` owns `start_session`, `update_parameter`, `push_input_frame`, `stop_session`, and `realtime_output_frame` over the existing msgpack stdio bridge.
 - **Python model-node repo:** `nodetool-realtime` owns heavy model nodes and pipelines. Keep ML dependencies out of core.
 
-Pinned wire-format rules from the Python bridge:
+### Worker context surface
+
+Python realtime node hooks receive a worker-local context, not the full app `ProcessingContext`.
+
+- `WorkerContext` guarantees secrets lookup (`get_secret`, `get_secret_required`) and a cancellation token.
+- Do not assume storage, database, asset-server, or messaging surfaces are available inside Python realtime workers.
+- Pass node-specific runtime data through `session.parameters`, bridge payload metadata, or explicit model-node fields.
+
+### Bridge message contract
+
+All realtime bridge messages use the existing length-prefixed msgpack stdio transport. Requests/responses use `request_id`; all bodies live under `data`.
+
+```jsonc
+// start_session
+{ "type": "start_session", "request_id": "<uuid>", "data": {
+  "session_id": "<id>",
+  "session": {
+    "session_id": "<id>",
+    "workflow_id": "<id|null>",
+    "transport": "websocket|webrtc",
+    "parameters": {},
+    "media_tracks": [
+      { "track_id": "...", "kind": "video", "node_id": "...", "input_name": "..." }
+    ]
+  },
+  "node_type": "<python node type>",
+  "fields": {},
+  "secrets": {},
+  "input_buffer_size": 2
+} }
+// result: { "session_id": "<id>", "status": "running" }
+
+// update_parameter
+{ "type": "update_parameter", "request_id": "<uuid>", "data": {
+  "session_id": "<id>", "name": "<field>", "value": "<msgpack value>"
+} }
+// result: { "session_id": "<id>", "ok": true, "routed": true }
+
+// push_input_frame
+{ "type": "push_input_frame", "request_id": "<uuid>", "data": {
+  "session_id": "<id>", "handle": "<input>", "payload": "<msgpack value>", "metadata": {}
+} }
+// result: { "session_id": "<id>", "ok": true, "dropped_count": 0 }
+
+// stop_session
+{ "type": "stop_session", "request_id": "<uuid>", "data": {
+  "session_id": "<id>", "timeout": 5.0
+} }
+// result: { "session_id": "<id>", "ok": true, "error": null }
+
+// realtime_output_frame event
+{ "type": "realtime_output_frame", "data": {
+  "session_id": "<id>", "handle": "<output>", "payload": "<msgpack value>", "metadata": {}
+} }
+```
+
+Pinned bridge rules:
 
 - All request/response bodies live under `data`.
-- `data.session_id` is the routing key for every realtime verb.
+- `data.session_id` is the routing key for every realtime verb and must match `data.session.session_id` for `start_session`.
 - `start_session` responds with status `"running"`.
 - `push_input_frame` and `realtime_output_frame` both use `payload`.
 - `stop_session.data.timeout` is in seconds.
 - Frame payloads are msgpack values; no JSON re-encoding step.
+- `routed=false` from `update_parameter` is a soft signal; callers decide whether to escalate.
+
+### Frame-format rules
+
+- `VideoFrame`, `AudioFrame`, and `RealtimeFrame` live in `packages/protocol/src/realtime-frame.ts` and are mirrored by Python dataclasses in `nodetool-core`.
+- `type` is the discriminator every consumer branches on.
+- `data` is always raw `Uint8Array` / Python `bytes`, never base64, data URI, or asset reference.
+- `pixel_format` and `sample_format` are closed string unions, not numeric enums.
+- Frames are CPU-resident on the wire. CPU buffer -> GPU tensor conversion belongs in the model node.
+- `timestamp_ns` is assigned at capture time by the producer.
+- The substrate routes frames; format conversion stays in adapters or model-node preprocessing.
+
+### TS/Python surface map
+
+| Surface | Location | Purpose |
+|---|---|---|
+| `RealtimeStartSessionRequest`, `RealtimeUpdateParameterRequest`, `RealtimePushInputFrameRequest`, `RealtimeStopSessionRequest`, `RealtimeOutputFrameEvent` | `packages/runtime/src/python-bridge-types.ts` | Typed TS mirrors of bridge payloads. |
+| `PythonStdioBridge.startRealtimeSession`, `.updateRealtimeParameter`, `.pushRealtimeInputFrame`, `.stopRealtimeSession` | `packages/runtime/src/python-stdio-bridge.ts` | Async TS wrappers around realtime bridge verbs. |
+| `PythonStdioBridge.on("realtimeOutputFrame")` | `packages/runtime/src/python-stdio-bridge.ts` | Bridge-wide event for output frames; filter by `session_id`. |
+| `PythonRealtimeSession` | `packages/runtime/src/python-realtime-session.ts` | Per-session wrapper with `idle -> starting -> running -> stopping -> stopped` state. |
+| `RealtimeSessionInfo`, `RealtimeMediaTrack` | `nodetool-core/src/nodetool/workflows/realtime.py` | Trimmed session snapshot visible to Python node hooks. |
+| `StdioWorkerServer` realtime handlers | `nodetool-core/src/nodetool/worker/stdio_server.py` | Worker-side verb dispatch and `realtime_output_frame` emit. |
+| `RealtimeNodeInstance` | `nodetool-core/src/nodetool/worker/realtime_session.py` | One warm Python node instance plus processing task per live session. |
 
 ## Phase 1 - Foundation
 
@@ -182,8 +267,10 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 
 **Remaining Phase 2 work**
 
-- [ ] Step 9: pre-model design pass.
+- [x] Step 9: pre-model design pass.
 - [ ] Step 10: LongLive.
+  - Scaffold landed in `nodetool-realtime`: thin `LongLive` node, `WeightSource`, precision selection, `LatestPerHandleAccumulator`, fake CPU LongLive pipeline, and smoke tests.
+  - Still pending for completion: real Wan2.1 / LongLive weight loading, tensor/frame conversion, cache refresh loop, and validated FP8/GGUF/INT8 paths.
 - [ ] Step 10b: Self-Forcing.
 - [ ] Step 11: canonical workflow template.
 
