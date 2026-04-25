@@ -43,8 +43,11 @@ export interface PythonRealtimeSessionOptions {
   /** Secrets resolved by ProcessingContext (kept opaque to the bridge). */
   secrets?: Record<string, string>;
   /**
-   * Per-handle ring-buffer size on the Python NodeInbox. The default mirrors
-   * `DEFAULT_INPUT_BUFFER_SIZE` in `realtime_session.py` (4 frames).
+   * Per-handle ring-buffer size on the Python NodeInbox. When omitted, the
+   * worker falls back to `DEFAULT_INPUT_BUFFER_SIZE` in
+   * `nodetool/worker/realtime_session.py` (currently 2 frames — matches the
+   * TS-side `LATEST_FRAME_WINS_CAPACITY` so drop-oldest behaviour is
+   * symmetric across the bridge boundary).
    */
   inputBufferSize?: number;
 }
@@ -102,6 +105,7 @@ export class PythonRealtimeSession extends EventEmitter {
     this._state = "starting";
     try {
       const result = await this._bridge.startRealtimeSession({
+        session_id: this._session.session_id,
         session: this._session,
         node_type: this._nodeType,
         fields: this._fields,

@@ -80,6 +80,7 @@ describe("PythonStdioBridge realtime verbs", () => {
     const { bridge, sent, reply } = createHarnessBridge();
 
     const request: RealtimeStartSessionRequest = {
+      session_id: "sess-1",
       session: {
         session_id: "sess-1",
         workflow_id: "wf-1",
@@ -98,21 +99,26 @@ describe("PythonStdioBridge realtime verbs", () => {
     expect(sent[0]!.type).toBe("start_session");
     expect(sent[0]!.request_id).toBeTypeOf("string");
     expect(sent[0]!.data).toEqual({
+      session_id: request.session_id,
       session: request.session,
       node_type: request.node_type,
       fields: request.fields,
       secrets: request.secrets
     });
 
-    reply({ session_id: "sess-1", status: "started" });
+    // Worker emits status="running" once pre_process + on_session_start
+    // have completed; pinned by the Python contract test
+    // test_wire_contract_start_session_response_status_is_running.
+    reply({ session_id: "sess-1", status: "running" });
     const result: RealtimeStartSessionResult = await promise;
-    expect(result).toEqual({ session_id: "sess-1", status: "started" });
+    expect(result).toEqual({ session_id: "sess-1", status: "running" });
   });
 
   it("startRealtimeSession includes input_buffer_size only when provided", async () => {
     const { bridge, sent, reply } = createHarnessBridge();
 
     const promise = bridge.startRealtimeSession({
+      session_id: "sess-2",
       session: {
         session_id: "sess-2",
         workflow_id: null,
@@ -125,7 +131,7 @@ describe("PythonStdioBridge realtime verbs", () => {
     });
 
     expect(sent[0]!.data).toMatchObject({ input_buffer_size: 8 });
-    reply({ session_id: "sess-2", status: "started" });
+    reply({ session_id: "sess-2", status: "running" });
     await promise;
   });
 
@@ -194,6 +200,7 @@ describe("PythonStdioBridge realtime verbs", () => {
     const { bridge, sent, push } = createHarnessBridge();
 
     const promise = bridge.startRealtimeSession({
+      session_id: "sess-bad",
       session: {
         session_id: "sess-bad",
         workflow_id: null,
@@ -221,12 +228,17 @@ describe("PythonStdioBridge realtime verbs", () => {
       events.push(event);
     });
 
+    // Wire format: server-pushed events follow the same {type, data: {...}}
+    // envelope as result/error/chunk/progress; the body uses `payload` (not
+    // `data`) for the frame value, matching push_input_frame request shape.
+    // Pinned by the Python contract test
+    // test_wire_contract_push_and_emit_uses_payload_key.
     push({
       type: "realtime_output_frame",
       data: {
         session_id: "sess-1",
         handle: "out",
-        data: { value: 42 }
+        payload: { value: 42 }
       }
     });
 
@@ -234,7 +246,7 @@ describe("PythonStdioBridge realtime verbs", () => {
       {
         session_id: "sess-1",
         handle: "out",
-        data: { value: 42 }
+        payload: { value: 42 }
       }
     ]);
   });

@@ -106,6 +106,10 @@ export interface RealtimeSessionInfoPayload {
 }
 
 export interface RealtimeStartSessionRequest {
+  // Routing key for every subsequent verb on this session. Must equal
+  // `session.session_id` — the worker rewrites session.session_id from this
+  // outer field defensively so the two views can never diverge.
+  session_id: string;
   session: RealtimeSessionInfoPayload;
   node_type: string;
   fields?: Record<string, unknown>;
@@ -115,7 +119,12 @@ export interface RealtimeStartSessionRequest {
 
 export interface RealtimeStartSessionResult {
   session_id: string;
-  status: string; // "started"
+  // Always the literal string "running" — the worker emits this once
+  // pre_process + on_session_start have completed and the runner task
+  // is spawned. Pinned by
+  // tests/worker/test_realtime_session.py::test_wire_contract_start_session_response_status_is_running
+  // in nodetool-core.
+  status: string;
 }
 
 export interface RealtimeUpdateParameterRequest {
@@ -157,6 +166,11 @@ export interface RealtimeStopSessionResult {
 export interface RealtimeOutputFrameEvent {
   session_id: string;
   handle: string;
-  data: unknown;
+  // Symmetric with RealtimePushInputFrameRequest.payload — the worker
+  // ships frames out under the same field name a node would receive on
+  // its inbox. Pinned by
+  // tests/worker/test_realtime_session.py::test_wire_contract_push_and_emit_uses_payload_key
+  // in nodetool-core.
+  payload: unknown;
   metadata?: Record<string, unknown>;
 }

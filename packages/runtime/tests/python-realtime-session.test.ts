@@ -37,7 +37,7 @@ function makeMockBridge(): MockBridge {
     .fn<(req: RealtimeStartSessionRequest) => Promise<RealtimeStartSessionResult>>()
     .mockImplementation(async (req) => ({
       session_id: req.session.session_id,
-      status: "started"
+      status: "running"
     }));
   const push = vi
     .fn<(req: RealtimePushInputFrameRequest) => Promise<RealtimePushInputFrameResult>>()
@@ -110,10 +110,14 @@ describe("PythonRealtimeSession", () => {
     expect(session.state).toBe("idle");
 
     const result = await session.start();
-    expect(result).toEqual({ session_id: "sess-1", status: "started" });
+    expect(result).toEqual({ session_id: "sess-1", status: "running" });
     expect(session.state).toBe("running");
 
+    // The wrapper extracts session_id from session.session_id and sends
+    // both fields so the wire envelope matches what StdioWorkerServer
+    // expects (top-level session_id is the routing key).
     expect(mock.startRealtimeSession).toHaveBeenCalledWith({
+      session_id: "sess-1",
       session: baseSession,
       node_type: "nodetool.realtime.Identity",
       fields: { mode: "passthrough" },
@@ -156,22 +160,22 @@ describe("PythonRealtimeSession", () => {
     mock.emitter.emit("realtimeOutputFrame", {
       session_id: "sess-1",
       handle: "out",
-      data: { v: 1 }
+      payload: { v: 1 }
     });
     mock.emitter.emit("realtimeOutputFrame", {
       session_id: "sess-other",
       handle: "out",
-      data: { v: 99 }
+      payload: { v: 99 }
     });
     mock.emitter.emit("realtimeOutputFrame", {
       session_id: "sess-1",
       handle: "out",
-      data: { v: 2 }
+      payload: { v: 2 }
     });
 
     expect(received).toEqual([
-      { session_id: "sess-1", handle: "out", data: { v: 1 } },
-      { session_id: "sess-1", handle: "out", data: { v: 2 } }
+      { session_id: "sess-1", handle: "out", payload: { v: 1 } },
+      { session_id: "sess-1", handle: "out", payload: { v: 2 } }
     ]);
   });
 
@@ -188,13 +192,13 @@ describe("PythonRealtimeSession", () => {
       mock.emitter.emit("realtimeOutputFrame", {
         session_id: req.session_id,
         handle: "out",
-        data: req.payload
+        payload: req.payload
       });
       return { session_id: req.session_id, ok: true, dropped_count: 0 };
     });
 
     const received: unknown[] = [];
-    session.on("frame", (event) => received.push(event.data));
+    session.on("frame", (event) => received.push(event.payload));
 
     for (let i = 0; i < 100; i++) {
       await session.pushFrame("input", { i });
