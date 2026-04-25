@@ -615,6 +615,10 @@ export {
   LIB_OCR_NODES
 } from "./nodes/lib-ocr.js";
 export {
+  WhisperTranscribeLibNode,
+  LIB_WHISPER_NODES
+} from "./nodes/lib-whisper-nodejs.js";
+export {
   KieAINode,
   KIE_DYNAMIC_NODES,
   resolveKieDynamicSchema
@@ -705,6 +709,7 @@ import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
 import { LIB_EPUB_NODES } from "./nodes/lib-epub.js";
 import { LIB_PPTX_NODES } from "./nodes/lib-pptx.js";
 import { LIB_OCR_NODES } from "./nodes/lib-ocr.js";
+import { LIB_WHISPER_NODES } from "./nodes/lib-whisper-nodejs.js";
 import { LIB_NOTION_NODES } from "./nodes/lib-notion.js";
 import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 import { VECTOR_NODES } from "./nodes/vector.js";
@@ -775,6 +780,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_EPUB_NODES,
   ...LIB_PPTX_NODES,
   ...LIB_OCR_NODES,
+  ...LIB_WHISPER_NODES,
   ...LIB_NOTION_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,

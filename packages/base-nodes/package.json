@@ -50,6 +50,7 @@
     "meshoptimizer": "^1.1.1",
     "natural": "^8.1.1",
     "node-web-audio-api": "^1.0.8",
+    "nodejs-whisper": "^0.3.0",
     "nodemailer": "^8.0.5",
     "office-text-extractor": "^4.0.0",
     "papaparse": "^5.5.3",
