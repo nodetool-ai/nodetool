@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool/models";
 import { getSetting } from "./settings-registry.js";
-import { encode, decode } from "@msgpack/msgpack";
+import { pack, unpack } from "msgpackr";
 import {
   createLogger,
   getDefaultAssetsPath,
@@ -981,7 +981,7 @@ export class UnifiedWebSocketRunner {
     await prev;
     try {
       if (this.mode === "binary") {
-        await this.websocket.sendBytes(encode(payload));
+        await this.websocket.sendBytes(pack(payload));
       } else {
         await this.websocket.sendText(JSON.stringify(payload));
       }
@@ -999,7 +999,7 @@ export class UnifiedWebSocketRunner {
     if (message.type === "websocket.disconnect") return null;
 
     if (message.bytes) {
-      return decode(message.bytes) as Record<string, unknown>;
+      return unpack(message.bytes) as Record<string, unknown>;
     }
     if (message.text) {
       return JSON.parse(message.text) as Record<string, unknown>;

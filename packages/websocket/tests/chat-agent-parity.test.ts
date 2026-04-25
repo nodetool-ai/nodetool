@@ -14,7 +14,7 @@
  *   - dbMessageToProviderMessage filtering
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { decode } from "@msgpack/msgpack";
+import { unpack } from "msgpackr";
 import { initTestDb, Thread, Message } from "@nodetool/models";
 import {
   UnifiedWebSocketRunner,
@@ -84,7 +84,7 @@ function mockProvider(...items: unknown[]) {
 
 /** Extract all sent messages (binary msgpack) as plain objects */
 function sentMsgs(ws: MockWS): Record<string, unknown>[] {
-  return ws.sentBytes.map((b) => decode(b) as Record<string, unknown>);
+  return ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
 }
 
 // ── handleChatMessage ───────────────────────────────────────────────

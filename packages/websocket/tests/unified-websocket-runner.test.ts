@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { decode } from "@msgpack/msgpack";
+import { unpack } from "msgpackr";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
@@ -65,7 +65,7 @@ describe("UnifiedWebSocketRunner", () => {
     await runner.connect(ws);
     await runner.sendMessage({ type: "test", value: "hello" });
     expect(ws.sentBytes).toHaveLength(1);
-    const decoded = decode(ws.sentBytes[0]) as Record<string, unknown>;
+    const decoded = unpack(ws.sentBytes[0]) as Record<string, unknown>;
     expect(decoded.type).toBe("test");
     await runner.disconnect();
   });
@@ -107,7 +107,7 @@ describe("UnifiedWebSocketRunner", () => {
     expect(ws.sentBytes.length + ws.sentText.length).toBeGreaterThan(0);
     const first =
       ws.sentBytes.length > 0
-        ? (decode(ws.sentBytes[0]) as Record<string, unknown>)
+        ? (unpack(ws.sentBytes[0]) as Record<string, unknown>)
         : (JSON.parse(ws.sentText[0]) as Record<string, unknown>);
     expect(first.type).toBe("pong");
     await runner.disconnect();
@@ -125,7 +125,7 @@ describe("UnifiedWebSocketRunner", () => {
 
     const out =
       ws.sentBytes.length > 0
-        ? (decode(ws.sentBytes[0]) as Record<string, unknown>)
+        ? (unpack(ws.sentBytes[0]) as Record<string, unknown>)
         : (JSON.parse(ws.sentText[0]) as Record<string, unknown>);
     expect(Array.isArray(out.active_jobs)).toBe(true);
     await runner.disconnect();
@@ -256,7 +256,7 @@ describe("UnifiedWebSocketRunner", () => {
     });
     await new Promise((r) => setTimeout(r, 30));
 
-    const sent = ws.sentBytes.map((b) => decode(b) as Record<string, unknown>);
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     const updates = sent.filter((m) => m.type === "output_update");
     expect(updates.length).toBe(1);
     expect(updates.some((m) => m.value === "hello world")).toBe(true);
@@ -323,7 +323,7 @@ describe("UnifiedWebSocketRunner", () => {
     });
     await new Promise((r) => setTimeout(r, 30));
 
-    const sent = ws.sentBytes.map((b) => decode(b) as Record<string, unknown>);
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     const nodeUpdates = sent.filter((m) => m.type === "node_update");
 
     expect(
@@ -401,7 +401,7 @@ describe("UnifiedWebSocketRunner", () => {
     });
     await new Promise((r) => setTimeout(r, 30));
 
-    const sent = ws.sentBytes.map((b) => decode(b) as Record<string, unknown>);
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     const terminal = sent
       .filter((m) => m.type === "job_update" && m.status === "completed")
       .at(-1) as Record<string, unknown> | undefined;
