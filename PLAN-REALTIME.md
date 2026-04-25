@@ -273,7 +273,8 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - Real-mode backend boundary landed: `use_fake_pipeline=False` routes through a dependency-guarded LongLive pipeline factory and emits structured loading `error` events when optional ML dependencies are absent, without importing heavy packages in the base install.
   - CPU frame conversion and cache-refresh contracts landed: `VideoFrame` inputs can be validated/normalized into LongLive `rgba8` model inputs, and prompt/negative-prompt changes record when warm caches must refresh on the next iteration.
   - Backend delegation contract landed: `LongLivePipeline` can drive an injected Wan2.1 backend through loading, generation, warm-state reset, and close, while preserving dependency-light base imports.
-  - Still pending for completion: concrete Wan2.1 / LongLive backend implementation, tensor conversion inside the backend, sampler loop, and validated FP8/GGUF/INT8 paths.
+  - Lazy backend adapter landed: the default real-mode factory now resolves optional ML modules and component loaders only during backend load.
+  - Still pending for completion: concrete Wan2.1 / LongLive component loader wiring, tensor conversion inside the backend, sampler loop, and validated FP8/GGUF/INT8 paths.
 - [ ] Step 10b: Self-Forcing.
 - [ ] Step 11: canonical workflow template.
 
