@@ -69,13 +69,15 @@ export const useWorkflowGraphUpdater = () => {
         nodeStore.getState().setNodes(reactFlowNodes);
         nodeStore.getState().setEdges(reactFlowEdges);
 
-        layoutTimeout = setTimeout(() => {
-          nodeStore.getState().autoLayout();
+        // autoLayout runs async via setNodes which marks dirty; reset the flag
+        // *after* the layout pass so the cleared state isn't immediately undone.
+        layoutTimeout = setTimeout(async () => {
+          await nodeStore.getState().autoLayout();
+          nodeStore.getState().setWorkflowDirty(false);
         }, 100);
 
-        // Mark the workflow as clean since this is an update from the server
         nodeStore.getState().setWorkflowDirty(false);
-        
+
       } catch (error) {
         console.error("Error updating workflow graph:", error);
       }

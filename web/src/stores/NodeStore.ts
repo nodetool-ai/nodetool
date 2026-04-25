@@ -482,23 +482,30 @@ export const createNodeStore = (
           setEdgeUpdateSuccessful: (value: boolean): void =>
             set({ edgeUpdateSuccessful: value }),
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]): void => {
-            // Check if any dimension change is a user resize (has setAttributes set)
-            // This indicates the user intentionally resized the node via NodeResizeControl
+            // `resizing: true` is React Flow's signal for an active user resize
+            // via NodeResizer/NodeResizeControl. The `setAttributes` field is
+            // unreliable here because it also fires on initial measurement when
+            // a node has no explicit height, which would dirty every workflow
+            // on app start.
             const hasUserResize = changes.some(
               (change) =>
                 change.type === "dimensions" &&
-                "setAttributes" in change &&
-                change.setAttributes
+                "resizing" in change &&
+                change.resizing === true
             );
 
-            // Check if changes are only internal React Flow updates (dimensions, positions from ResizeObserver, selection)
+            // Treat as internal anything that React Flow emits without an explicit
+            // user drag (`dragging: true`). Position changes with `dragging: false`
+            // are drag-end frames; with `dragging: undefined` they come from
+            // programmatic adjustments like extent constraints or initial measurement
+            // and must not mark the workflow dirty.
             const isOnlyInternalChanges =
               !hasUserResize &&
               changes.every(
                 (change) =>
                   change.type === "dimensions" ||
                   change.type === "select" ||
-                  (change.type === "position" && change.dragging === false)
+                  (change.type === "position" && change.dragging !== true)
               );
 
             // Filter out selection changes for group nodes that have selectable: false
