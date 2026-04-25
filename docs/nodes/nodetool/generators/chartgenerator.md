@@ -32,7 +32,7 @@ LLM Agent to create Plotly Express charts based on natural language descriptions
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `plotly_config` |  |
+| output | `chart_config` |  |
 
 ## Metadata
 

@@ -24,7 +24,6 @@ import type {
   NodeRef,
   NPArray,
   SVGElement,
-  PlotlyConfig,
   Datetime,
   CalendarEvent,
   Asset,
@@ -173,16 +172,6 @@ describe("Media Refs", () => {
     };
     expect(root.children).toHaveLength(1);
     expect(root.attributes?.width).toBe("100");
-  });
-
-  it("PlotlyConfig has data array", () => {
-    const config: PlotlyConfig = {
-      type: "plotly_config",
-      data: [{ type: "scatter", x: [1, 2], y: [3, 4] }],
-      layout: { title: "My Chart" }
-    };
-    expect(config.data).toHaveLength(1);
-    expect(config.layout?.title).toBe("My Chart");
   });
 });
 

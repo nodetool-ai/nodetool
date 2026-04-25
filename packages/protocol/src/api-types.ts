@@ -131,13 +131,6 @@ export interface SVGElement {
   children?: SVGElement[];
 }
 
-export interface PlotlyConfig {
-  type: "plotly_config";
-  data: unknown[];
-  layout?: Record<string, unknown>;
-  config?: Record<string, unknown>;
-}
-
 export interface ChartSeries {
   type?: string;
   x_column?: string | null;

@@ -182,7 +182,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "name": "plotly_config_output"
+          "name": "chart_config_output"
         },
         "ui_properties": {
           "position": {
@@ -239,7 +239,7 @@
         "target": "2e9fd814-61bb-4e47-965f-ce14f300976a",
         "targetHandle": "value",
         "ui_properties": {
-          "className": "plotly_config"
+          "className": "chart_config"
         }
       }
     ]

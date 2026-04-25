@@ -1,13 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { Suspense, lazy, memo, useMemo } from "react";
 import { Box } from "@mui/material";
-import { LoadingSpinner } from "../../ui_primitives";
-import type { PlotlyConfig } from "../../../stores/ApiTypes";
+import { LoadingSpinner, Text } from "../../ui_primitives";
+import type { ChartConfig, ChartSeries } from "../../../stores/ApiTypes";
 import type { ChartData, ChartOptions, ChartType } from "chart.js";
 
-// react-chartjs-2 is split into per-chart entry points, but the umbrella module
-// re-exports them all. Lazy-load to keep the chart bundle out of the initial
-// JS payload (matches the previous Plotly behaviour).
+// react-chartjs-2 + chart.js are lazy-loaded so they stay out of the initial
+// JS payload (matches the previous behaviour for the plot bundle).
 const LazyChart = lazy(async () => {
   const [{ Chart }, chartjs] = await Promise.all([
     import("react-chartjs-2"),
@@ -18,19 +17,8 @@ const LazyChart = lazy(async () => {
 });
 
 interface ChartRendererProps {
-  config: PlotlyConfig;
+  config: ChartConfig;
 }
-
-type AnyTrace = Record<string, unknown>;
-
-const isFiniteNumber = (v: unknown): v is number =>
-  typeof v === "number" && Number.isFinite(v);
-
-const toNumberArray = (v: unknown): number[] =>
-  Array.isArray(v) ? v.map((x) => Number(x)).filter(isFiniteNumber) : [];
-
-const toLabelArray = (v: unknown): string[] =>
-  Array.isArray(v) ? v.map((x) => (x == null ? "" : String(x))) : [];
 
 const palette = [
   "#4e79a7",
@@ -47,170 +35,95 @@ const palette = [
 
 const colorAt = (i: number) => palette[i % palette.length];
 
-/**
- * Map a Plotly trace `type`/`mode` pair onto the closest Chart.js chart type.
- * Anything we don't recognise falls through to "line" so we still render
- * something sensible instead of a blank canvas.
- */
-const inferChartType = (trace: AnyTrace): ChartType => {
-  const t = String(trace.type ?? "scatter").toLowerCase();
-  if (t === "bar") return "bar";
+const isFiniteNumber = (v: unknown): v is number =>
+  typeof v === "number" && Number.isFinite(v);
+
+const toNumberArray = (v: unknown): number[] =>
+  Array.isArray(v) ? v.map((x) => Number(x)).filter(isFiniteNumber) : [];
+
+const toLabelArray = (v: unknown): string[] =>
+  Array.isArray(v) ? v.map((x) => (x == null ? "" : String(x))) : [];
+
+/** Map a series `type` (seaborn / generic plot kind) onto a Chart.js chart type. */
+const inferChartType = (series: ChartSeries): ChartType => {
+  const t = String(series.type ?? "bar").toLowerCase();
+  if (t === "line" || t === "pointplot") return "line";
+  if (t === "scatter") return "scatter";
   if (t === "pie") return "pie";
   if (t === "doughnut") return "doughnut";
-  if (t === "scatter" || t === "scattergl") {
-    const mode = String(trace.mode ?? "lines").toLowerCase();
-    if (mode.includes("lines")) return "line";
-    return "scatter";
-  }
-  if (t === "line") return "line";
   if (t === "bubble") return "bubble";
   if (t === "radar") return "radar";
   if (t === "polar" || t === "polararea") return "polarArea";
-  return "line";
+  // barplot, histplot, countplot, boxplot, …
+  return "bar";
 };
 
 /**
- * Convert a single Plotly trace into a Chart.js dataset. We model:
- *  - bar / line / scatter (with x,y arrays)
- *  - pie / doughnut (with labels,values arrays)
- *  - bubble (x,y,size triples via `marker.size`)
+ * A series can carry inline data via either x/y arrays or labels/values
+ * (depending on producer). Returns null if no inline data is present, in
+ * which case the renderer falls back to a metadata preview.
  */
-const traceToDataset = (
-  trace: AnyTrace,
-  index: number,
-  chartType: ChartType
-): { dataset: Record<string, unknown>; labels?: string[] } => {
-  const color = colorAt(index);
-  const label = (trace.name as string | undefined) ?? `Series ${index + 1}`;
-
-  if (chartType === "pie" || chartType === "doughnut" || chartType === "polarArea") {
-    const labels = toLabelArray(trace.labels);
-    const values = toNumberArray(trace.values);
-    return {
-      labels,
-      dataset: {
-        label,
-        data: values,
-        backgroundColor: values.map((_, i) => colorAt(i))
-      }
-    };
+const inlineSeriesData = (
+  series: ChartSeries
+): { labels: string[]; values: number[] } | null => {
+  const x = (series as Record<string, unknown>).x;
+  const y = (series as Record<string, unknown>).y;
+  if (Array.isArray(x) && Array.isArray(y)) {
+    return { labels: toLabelArray(x), values: toNumberArray(y) };
   }
-
-  if (chartType === "bubble") {
-    const xs = Array.isArray(trace.x) ? trace.x : [];
-    const ys = Array.isArray(trace.y) ? trace.y : [];
-    const marker = (trace.marker as AnyTrace | undefined) ?? {};
-    const sizes = Array.isArray(marker.size) ? marker.size : [];
-    const points = xs.map((x, i) => ({
-      x: Number(x),
-      y: Number(ys[i]),
-      r: Number(sizes[i] ?? 6)
-    }));
-    return {
-      dataset: {
-        label,
-        data: points,
-        backgroundColor: color,
-        borderColor: color
-      }
-    };
+  const labels = (series as Record<string, unknown>).labels;
+  const values = (series as Record<string, unknown>).values;
+  if (Array.isArray(labels) && Array.isArray(values)) {
+    return { labels: toLabelArray(labels), values: toNumberArray(values) };
   }
-
-  if (chartType === "scatter") {
-    const xs = Array.isArray(trace.x) ? trace.x : [];
-    const ys = Array.isArray(trace.y) ? trace.y : [];
-    const points = xs.map((x, i) => ({ x: Number(x), y: Number(ys[i]) }));
-    return {
-      dataset: {
-        label,
-        data: points,
-        backgroundColor: color,
-        borderColor: color,
-        showLine: false
-      }
-    };
-  }
-
-  // bar / line / radar: use parallel labels (x) + values (y)
-  const labels = toLabelArray(trace.x);
-  const values = toNumberArray(trace.y);
-  const dataset: Record<string, unknown> = {
-    label,
-    data: values,
-    backgroundColor: chartType === "bar" ? color : `${color}33`,
-    borderColor: color,
-    borderWidth: 2
-  };
-  if (chartType === "line") {
-    const mode = String(trace.mode ?? "lines").toLowerCase();
-    dataset.tension = 0.2;
-    dataset.fill = false;
-    dataset.pointRadius = mode.includes("markers") ? 3 : 0;
-  }
-  return { dataset, labels };
+  return null;
 };
 
-/**
- * Build full Chart.js (data, options, type) inputs from the wire-format
- * `plotly_config` payload. Mixed trace types fall back to "line" with a Chart.js
- * `type` set per-dataset so each series can render independently.
- */
 const buildChart = (
-  config: PlotlyConfig
-): { type: ChartType; data: ChartData; options: ChartOptions } => {
-  const traces = (config.data as AnyTrace[] | undefined) ?? [];
-  const layout = (config.layout ?? {}) as AnyTrace;
+  config: ChartConfig
+): { type: ChartType; data: ChartData; options: ChartOptions } | null => {
+  const series = config.data?.series ?? [];
+  if (series.length === 0) return null;
 
-  const perTrace = traces.map((trace, i) => {
-    const t = inferChartType(trace);
-    const { dataset, labels } = traceToDataset(trace, i, t);
-    return { t, dataset: { type: t, ...dataset }, labels };
+  const datasets: Record<string, unknown>[] = [];
+  let labels: string[] = [];
+
+  series.forEach((s, i) => {
+    const inline = inlineSeriesData(s);
+    if (!inline) return;
+    if (labels.length === 0) labels = inline.labels;
+    const color = colorAt(i);
+    const chartType = inferChartType(s);
+    const label = (s.label as string | null | undefined) ?? s.y_column ?? `Series ${i + 1}`;
+    datasets.push({
+      type: chartType,
+      label,
+      data: inline.values,
+      backgroundColor: chartType === "bar" ? color : `${color}33`,
+      borderColor: color,
+      borderWidth: 2,
+      ...(chartType === "line" ? { tension: 0.2, fill: false, pointRadius: 3 } : {})
+    });
   });
 
-  const baseType: ChartType = perTrace[0]?.t ?? "line";
-  const labels = perTrace.find((p) => p.labels && p.labels.length > 0)?.labels ?? [];
+  if (datasets.length === 0) return null;
 
-  const title = layout.title;
-  const titleText =
-    typeof title === "string"
-      ? title
-      : typeof (title as AnyTrace | undefined)?.text === "string"
-        ? ((title as AnyTrace).text as string)
-        : undefined;
-
-  const xAxis = (layout.xaxis as AnyTrace | undefined) ?? {};
-  const yAxis = (layout.yaxis as AnyTrace | undefined) ?? {};
-  const xTitle =
-    typeof (xAxis.title as AnyTrace | undefined)?.text === "string"
-      ? ((xAxis.title as AnyTrace).text as string)
-      : typeof xAxis.title === "string"
-        ? (xAxis.title as string)
-        : undefined;
-  const yTitle =
-    typeof (yAxis.title as AnyTrace | undefined)?.text === "string"
-      ? ((yAxis.title as AnyTrace).text as string)
-      : typeof yAxis.title === "string"
-        ? (yAxis.title as string)
-        : undefined;
-
+  const baseType = (datasets[0].type as ChartType) ?? "bar";
   const isCategorical = !["pie", "doughnut", "polarArea", "radar"].includes(baseType);
+  const showLegend = config.legend !== false && (datasets.length > 1 || baseType === "pie" || baseType === "doughnut");
 
   const options: ChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      title: titleText ? { display: true, text: titleText } : { display: false },
-      legend: { display: traces.length > 1 || baseType === "pie" || baseType === "doughnut" }
+      title: config.title ? { display: true, text: config.title } : { display: false },
+      legend: { display: showLegend }
     },
     ...(isCategorical
       ? {
           scales: {
-            x: {
-              title: xTitle ? { display: true, text: xTitle } : { display: false }
-            },
-            y: {
-              title: yTitle ? { display: true, text: yTitle } : { display: false }
-            }
+            x: { title: config.x_label ? { display: true, text: config.x_label } : { display: false } },
+            y: { title: config.y_label ? { display: true, text: config.y_label } : { display: false } }
           }
         }
       : {})
@@ -218,17 +131,43 @@ const buildChart = (
 
   return {
     type: baseType,
-    data: {
-      labels,
-      datasets: perTrace.map((p) => p.dataset) as ChartData["datasets"]
-    },
+    data: { labels, datasets: datasets as unknown as ChartData["datasets"] },
     options
   };
 };
 
+/**
+ * When the chart_config carries no inline data (e.g. ChartGenerator output that
+ * only references dataframe columns), show a compact metadata card instead of
+ * trying to render an empty chart.
+ */
+const ChartConfigPreview: React.FC<{ config: ChartConfig }> = ({ config }) => {
+  const series = config.data?.series ?? [];
+  return (
+    <Box sx={{ p: 2, width: "100%", height: "100%", overflow: "auto" }}>
+      {config.title && (
+        <Text size="big" weight={600}>
+          {config.title}
+        </Text>
+      )}
+      <Text size="small" color="secondary">
+        {series.length} series · x: {config.x_label || "—"} · y: {config.y_label || "—"}
+      </Text>
+      {series.map((s, i) => (
+        <Box key={i} sx={{ mt: 1 }}>
+          <Text size="small">
+            {(s.type ?? "bar")}: {s.x_column ?? "?"} → {s.y_column ?? "?"}
+            {s.label ? ` (${s.label})` : ""}
+          </Text>
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 const ChartRenderer: React.FC<ChartRendererProps> = ({ config }) => {
   const built = useMemo(() => {
-    if (!config?.data) return null;
+    if (!config) return null;
     try {
       return buildChart(config);
     } catch {
@@ -237,7 +176,11 @@ const ChartRenderer: React.FC<ChartRendererProps> = ({ config }) => {
   }, [config]);
 
   if (!built) {
-    return <div>Invalid chart config</div>;
+    return (
+      <div className="render-content" style={{ width: "100%", height: "100%" }}>
+        <ChartConfigPreview config={config} />
+      </div>
+    );
   }
 
   return (

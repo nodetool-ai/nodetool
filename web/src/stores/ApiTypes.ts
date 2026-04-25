@@ -63,7 +63,6 @@ import {
   OutputSlot,
   OutputUpdate,
   PlanningUpdate,
-  PlotlyConfig,
   Prediction,
   PreviewUpdate,
   Property,
@@ -178,7 +177,6 @@ export type { NPArray };
 export type { OutputSlot };
 export type { OutputUpdate };
 export type { PlanningUpdate };
-export type { PlotlyConfig };
 export type { Prediction };
 export type { PreviewUpdate };
 export type { Property };

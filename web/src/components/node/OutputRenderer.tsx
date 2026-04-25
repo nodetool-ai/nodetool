@@ -392,7 +392,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
   const renderContent = useMemo(() => {
     switch (type) {
-      case "plotly_config":
+      case "chart_config":
         return <ChartRenderer config={value} />;
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
