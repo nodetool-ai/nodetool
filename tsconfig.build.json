@@ -18,6 +18,7 @@
     { "path": "packages/replicate-codegen" },
     { "path": "packages/replicate-nodes" },
     { "path": "packages/elevenlabs-nodes" },
+    { "path": "packages/transformers-js-nodes" },
     { "path": "packages/kie-codegen" },
     { "path": "packages/kie-nodes" },
     { "path": "packages/agents" },

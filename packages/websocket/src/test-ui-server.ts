@@ -11,6 +11,7 @@ import { WebSocketServer } from "ws";
 import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection
@@ -1169,6 +1170,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   });
   registerBaseNodes(registry);
   registerElevenLabsNodes(registry);
+  registerTransformersJsNodes(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,

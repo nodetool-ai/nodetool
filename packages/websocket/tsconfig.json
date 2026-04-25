@@ -27,6 +27,9 @@
       "path": "../elevenlabs-nodes"
     },
     {
+      "path": "../transformers-js-nodes"
+    },
+    {
       "path": "../fal-nodes"
     },
     {

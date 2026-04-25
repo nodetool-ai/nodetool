@@ -25,6 +25,7 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool/node-sdk",
     "@nodetool/base-nodes",
     "@nodetool/elevenlabs-nodes",
+    "@nodetool/transformers-js-nodes",
     "@nodetool/fal-nodes",
     "@nodetool/replicate-nodes",
     "@nodetool/dsl",

@@ -349,6 +349,14 @@ export async function run(
   } catch {
     // Some environments do not have the ElevenLabs node package in a runnable state.
   }
+  try {
+    const { registerTransformersJsNodes } = await import(
+      "@nodetool/transformers-js-nodes"
+    );
+    registerTransformersJsNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the Transformers.js node package in a runnable state.
+  }
 
   const resolveExecutor = (node: { id: string; type: string }) => {
     if (opts?.registry?.has(node.type)) {
