@@ -93,10 +93,11 @@ describe("Transformers.js pipeline nodes", () => {
     expect(labels).toEqual(["urgent", "phone"]);
   });
 
-  it("flattens feature-extraction tensor into a vector", async () => {
+  it("flattens pooled 2-D feature-extraction tensor into a vector", async () => {
     stubPipeline(async () => ({
       data: new Float32Array([0.1, 0.2, 0.3]),
-      dims: [1, 3]
+      dims: [1, 3],
+      tolist: () => [[0.1, 0.2, 0.3]]
     }));
     const node = new FeatureExtractionNode({ text: "hi" });
     const result = await node.process();
@@ -104,5 +105,27 @@ describe("Transformers.js pipeline nodes", () => {
     expect(result.dim).toBe(3);
     const embedding = result.embedding as number[];
     expect(embedding[0]).toBeCloseTo(0.1);
+  });
+
+  it("mean-pools a 3-D feature-extraction tensor across the sequence axis", async () => {
+    // Shape [batch=1, seq=2, dim=3] → mean of the two token vectors per dim.
+    stubPipeline(async () => ({
+      tolist: () => [
+        [
+          [0.0, 1.0, 2.0],
+          [2.0, 3.0, 4.0]
+        ]
+      ]
+    }));
+    const node = new FeatureExtractionNode({
+      text: "hi",
+      pooling: "none"
+    });
+    const result = await node.process();
+    expect(result.dim).toBe(3);
+    const embedding = result.embedding as number[];
+    expect(embedding[0]).toBeCloseTo(1.0);
+    expect(embedding[1]).toBeCloseTo(2.0);
+    expect(embedding[2]).toBeCloseTo(3.0);
   });
 });

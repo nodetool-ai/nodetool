@@ -13,35 +13,41 @@ type TtsResult = {
   sampling_rate?: number;
 };
 
-/** Encode mono Float32 audio (range -1..1) as a 16-bit PCM WAV buffer. */
-function floatsToWav(samples: ArrayLike<number>, samplingRate: number): Buffer {
-  const numSamples = samples.length;
-  const dataSize = numSamples * 2;
+/**
+ * Encode mono Float32 audio (range -1..1) as a 16-bit PCM WAV buffer.
+ *
+ * Mirrors `encodeWav` in `@nodetool/base-nodes` (`src/lib/audio-wav.ts`)
+ * bit-for-bit so output stays consistent with the rest of the audio stack.
+ * Inlined here so this package does not have to take a runtime dependency
+ * on the much larger base-nodes pack just for a 25-line WAV writer; if the
+ * canonical encoder ever changes, update both.
+ */
+function encodeWav(
+  samples: ArrayLike<number>,
+  sampleRate: number,
+  numChannels = 1
+): Buffer {
+  const bitsPerSample = 16;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = samples.length * 2;
   const buffer = Buffer.alloc(44 + dataSize);
-
   buffer.write("RIFF", 0);
   buffer.writeUInt32LE(36 + dataSize, 4);
   buffer.write("WAVE", 8);
   buffer.write("fmt ", 12);
-  buffer.writeUInt32LE(16, 16); // PCM chunk size
-  buffer.writeUInt16LE(1, 20); // PCM format
-  buffer.writeUInt16LE(1, 22); // mono
-  buffer.writeUInt32LE(samplingRate, 24);
-  buffer.writeUInt32LE(samplingRate * 2, 28); // byte rate
-  buffer.writeUInt16LE(2, 32); // block align
-  buffer.writeUInt16LE(16, 34); // bits per sample
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20); // PCM
+  buffer.writeUInt16LE(numChannels, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(byteRate, 28);
+  buffer.writeUInt16LE(blockAlign, 32);
+  buffer.writeUInt16LE(bitsPerSample, 34);
   buffer.write("data", 36);
   buffer.writeUInt32LE(dataSize, 40);
-
-  let offset = 44;
-  for (let i = 0; i < numSamples; i++) {
-    let s = samples[i];
-    if (!Number.isFinite(s)) s = 0;
-    if (s > 1) s = 1;
-    if (s < -1) s = -1;
-    const pcm = s < 0 ? s * 0x8000 : s * 0x7fff;
-    buffer.writeInt16LE(pcm | 0, offset);
-    offset += 2;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i] ?? 0));
+    buffer.writeInt16LE(Math.round(s * 0x7fff), 44 + i * 2);
   }
   return buffer;
 }
@@ -127,7 +133,7 @@ export class TextToSpeechNode extends BaseNode {
       throw new Error("Text-to-speech pipeline returned no audio data");
     }
     const samplingRate = result.sampling_rate ?? 16000;
-    const wav = floatsToWav(samples, samplingRate);
+    const wav = encodeWav(samples, samplingRate);
     const base64 = wav.toString("base64");
 
     return {

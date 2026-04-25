@@ -15,24 +15,57 @@ type Tensor = {
   tolist?: () => unknown;
 };
 
+function meanPool(matrix: number[][]): number[] {
+  if (matrix.length === 0) return [];
+  const dim = matrix[0]?.length ?? 0;
+  const out = new Array<number>(dim).fill(0);
+  for (const row of matrix) {
+    for (let i = 0; i < dim; i++) {
+      out[i] += Number(row[i] ?? 0);
+    }
+  }
+  for (let i = 0; i < dim; i++) {
+    out[i] /= matrix.length;
+  }
+  return out;
+}
+
+/**
+ * Reduce a feature-extraction tensor to a single 1-D embedding vector.
+ *
+ * Transformers.js returns differently-shaped tensors depending on whether
+ * the caller asked for pooling:
+ *   - pooled (mean / cls):  shape `[batch, dim]`           → take batch[0]
+ *   - no pooling:           shape `[batch, seq, dim]`      → mean-pool seq
+ *   - already 1-D:          shape `[dim]`                  → pass through
+ *
+ * Falling back to the flat `.data` buffer drops shape information and is
+ * only safe when the tensor is already known to be 1-D.
+ */
 function tensorToVector(tensor: unknown): number[] {
   if (!tensor || typeof tensor !== "object") return [];
   const t = tensor as Tensor;
   if (typeof t.tolist === "function") {
-    const flat = t.tolist();
-    if (Array.isArray(flat)) {
-      const first = flat[0];
+    const nested = t.tolist();
+    if (Array.isArray(nested)) {
+      const first = nested[0];
       if (Array.isArray(first) && Array.isArray(first[0])) {
-        // [batch][seq][dim] — already pooled if pipeline applied pooling.
-        return (first[0] as number[]).map(Number);
+        // [batch][seq][dim] — pool sequence axis to a single vector.
+        return meanPool((first as unknown[]).map((row) => row as number[]));
       }
       if (Array.isArray(first)) {
+        // [batch][dim] — already pooled by the pipeline.
         return (first as number[]).map(Number);
       }
-      return (flat as number[]).map(Number);
+      return (nested as number[]).map(Number);
     }
   }
-  if (t.data) return Array.from(t.data, Number);
+  if (t.data && t.dims && t.dims.length === 1) {
+    return Array.from(t.data, Number);
+  }
+  if (t.data && (!t.dims || t.dims.length === 0)) {
+    return Array.from(t.data, Number);
+  }
   return [];
 }
 

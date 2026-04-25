@@ -195,13 +195,9 @@ export async function loadMediaBytes(
   if (!uri) return new Uint8Array();
 
   if (context?.storage) {
-    try {
-      const stored = await context.storage.retrieve(uri);
-      if (stored !== null && stored !== undefined) {
-        return new Uint8Array(stored);
-      }
-    } catch {
-      // fall through to direct loaders
+    const stored = await context.storage.retrieve(uri);
+    if (stored !== null && stored !== undefined) {
+      return new Uint8Array(stored);
     }
   }
 
