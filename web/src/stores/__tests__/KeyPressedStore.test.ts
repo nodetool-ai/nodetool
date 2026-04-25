@@ -431,6 +431,59 @@ describe("KeyPressedStore", () => {
       unregisterComboCallback("delete");
     });
 
+    it("does not trigger single-key callback when modifier is released while key is held", () => {
+      const singleKeyCallback = jest.fn();
+      const comboCallback = jest.fn();
+      registerComboCallback("1", {
+        callback: singleKeyCallback,
+        preventDefault: false
+      });
+      registerComboCallback("1+meta", {
+        callback: comboCallback,
+        preventDefault: false
+      });
+
+      (document.body as HTMLElement).focus();
+      const { setKeysPressed } = useKeyPressedStore.getState();
+
+      // Press Cmd+1
+      const cmdDown = new KeyboardEvent("keydown", {
+        key: "Meta",
+        metaKey: true
+      });
+      const oneDown = new KeyboardEvent("keydown", {
+        key: "1",
+        metaKey: true
+      });
+      act(() => {
+        setKeysPressed({ meta: true }, cmdDown);
+        setKeysPressed(
+          { "1": true, shift: false, control: false, alt: false, meta: true },
+          oneDown
+        );
+      });
+
+      expect(comboCallback).toHaveBeenCalledTimes(1);
+      expect(singleKeyCallback).not.toHaveBeenCalled();
+
+      // Release Cmd while "1" is still held - must NOT fire single-key "1"
+      const cmdUp = new KeyboardEvent("keyup", {
+        key: "Meta",
+        metaKey: false
+      });
+      act(() => {
+        setKeysPressed(
+          { meta: false, shift: false, control: false, alt: false },
+          cmdUp
+        );
+      });
+
+      expect(singleKeyCallback).not.toHaveBeenCalled();
+
+      unregisterComboCallback("1");
+      unregisterComboCallback("1+meta");
+    });
+
     it("allows backspace callback when canvas is focused", () => {
       const callback = jest.fn();
       registerComboCallback("backspace", { callback, preventDefault: true });
