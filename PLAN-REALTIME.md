@@ -278,7 +278,7 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - Checkpoint applier landed: `longlive_base.pt` resolution/application, EMA/model state-dict extraction, FSDP key cleanup, optional LoRA loading via lazy `peft`, and checkpoint metadata are covered by tests.
   - Sampler boundary landed: LongLive input frames convert to torch-like BCHW tensors, sampler output tensors convert back to realtime `rgba8` frames, metadata/timing/cache state is preserved, and sampler reset/close hooks delegate through the lazy backend.
   - Configurable causal sampler wiring landed: default real-mode backend can build a dependency-lazy imported pipeline factory and pass optional sampler config without importing upstream ML packages at base import time.
-  - Node-facing real pipeline configuration landed: advanced `LongLive` fields can pass an upstream pipeline module/class and sampler options into real mode while keeping default fake-mode behavior unchanged.
+  - Node-facing real pipeline configuration landed: advanced `LongLive` fields can pass an upstream pipeline module/class, constructor kwargs, component/device/dtype pass-through controls, and sampler options into real mode while keeping default fake-mode behavior unchanged.
   - Precision guard landed: real mode defers `auto` precision resolution to the lazy backend so CUDA capability can be used, while unvalidated `fp8`/`gguf`/`int8` paths fail early with structured errors instead of silently falling back.
   - Still pending for completion: validated upstream LongLive pipeline class/call signature against the real package, real end-to-end inference against downloaded weights, and real FP8/GGUF/INT8 loader paths.
 - [ ] Step 10b: Self-Forcing.
