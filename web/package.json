@@ -58,7 +58,6 @@
     "react-pdf": "^9.2.1",
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^7.14.0",
-    "react-simple-code-editor": "^0.14.1",
     "react-simple-keyboard": "^3.8.183",
     "react-syntax-highlighter": "^16.1.0",
     "react-virtualized-auto-sizer": "^1.0.24",
