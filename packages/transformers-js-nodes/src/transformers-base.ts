@@ -31,10 +31,6 @@ type TransformersModule = {
     fromBlob(blob: Blob): Promise<unknown>;
     fromURL(url: string): Promise<unknown>;
   };
-  read_audio?: (
-    src: string | URL | ArrayBuffer | Float32Array,
-    samplingRate: number
-  ) => Promise<Float32Array>;
 };
 
 let cachedModule: Promise<TransformersModule> | null = null;
@@ -103,7 +99,7 @@ export async function loadTransformers(): Promise<TransformersModule> {
 
 /**
  * Override the loaded transformers module. Intended for tests so they can
- * stub `pipeline`, `RawImage`, and `read_audio` without installing the
+ * stub `pipeline` and `RawImage` without installing the
  * heavyweight optional dependency.
  */
 export function __setTransformersModuleForTesting(
@@ -294,7 +290,118 @@ export async function loadRawImage(
   return bytesToRawImage(bytes, ref?.mimeType);
 }
 
-/** Resolve an audio ref into a Float32Array sampled at the requested rate. */
+/**
+ * Parse 16-bit / 8-bit PCM WAV bytes into Float32 samples + metadata.
+ *
+ * Mirrors `parseWavBytes` in `@nodetool/base-nodes` (`src/lib/audio-wav.ts`)
+ * so behavior stays consistent with the rest of the audio stack. Inlined
+ * here so this package does not have to take a runtime dependency on the
+ * much larger base-nodes pack just for a WAV decoder; if the canonical
+ * decoder ever changes, update both.
+ */
+function parseWavBytes(bytes: Uint8Array): {
+  samples: Float32Array;
+  sampleRate: number;
+  numChannels: number;
+} | null {
+  if (bytes.length < 44) return null;
+  const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (
+    buf.toString("ascii", 0, 4) !== "RIFF" ||
+    buf.toString("ascii", 8, 12) !== "WAVE"
+  ) {
+    return null;
+  }
+
+  const sampleRate = buf.readUInt32LE(24);
+  const bitsPerSample = buf.readUInt16LE(34);
+  const numChannels = buf.readUInt16LE(22);
+
+  let dataOffset = 36;
+  while (dataOffset < buf.length - 8) {
+    const chunkId = buf.toString("ascii", dataOffset, dataOffset + 4);
+    const chunkSize = buf.readUInt32LE(dataOffset + 4);
+    if (chunkId === "data") {
+      dataOffset += 8;
+      break;
+    }
+    dataOffset += 8 + chunkSize;
+  }
+
+  const bytesPerSample = bitsPerSample / 8;
+  if (bytesPerSample !== 1 && bytesPerSample !== 2) return null;
+  const totalSamples = Math.floor((buf.length - dataOffset) / bytesPerSample);
+  const samples = new Float32Array(totalSamples);
+
+  for (let i = 0; i < totalSamples; i++) {
+    const pos = dataOffset + i * bytesPerSample;
+    if (bitsPerSample === 16) {
+      samples[i] = buf.readInt16LE(pos) / 0x7fff;
+    } else if (bitsPerSample === 8) {
+      samples[i] = (buf.readUInt8(pos) - 128) / 128;
+    }
+  }
+  return { samples, sampleRate, numChannels };
+}
+
+/** Mix interleaved multi-channel samples down to mono by averaging channels. */
+function mixToMono(
+  interleaved: Float32Array,
+  numChannels: number
+): Float32Array {
+  if (numChannels <= 1) return interleaved;
+  const frames = Math.floor(interleaved.length / numChannels);
+  const mono = new Float32Array(frames);
+  for (let i = 0; i < frames; i++) {
+    let sum = 0;
+    for (let c = 0; c < numChannels; c++) {
+      sum += interleaved[i * numChannels + c];
+    }
+    mono[i] = sum / numChannels;
+  }
+  return mono;
+}
+
+/**
+ * Linear resample mono Float32 samples to a target rate. Good enough for
+ * speech models — Whisper expects 16 kHz mono Float32 and the linear
+ * interpolation artifact is negligible at that target.
+ */
+function resampleLinear(
+  input: Float32Array,
+  fromRate: number,
+  toRate: number
+): Float32Array {
+  if (fromRate === toRate) return input;
+  const ratio = fromRate / toRate;
+  const outLength = Math.floor(input.length / ratio);
+  const out = new Float32Array(outLength);
+  for (let i = 0; i < outLength; i++) {
+    const src = i * ratio;
+    const i0 = Math.floor(src);
+    const i1 = Math.min(i0 + 1, input.length - 1);
+    const t = src - i0;
+    out[i] = input[i0] * (1 - t) + input[i1] * t;
+  }
+  return out;
+}
+
+/**
+ * Resolve an audio ref into a mono Float32Array sampled at the requested
+ * rate.
+ *
+ * Transformers.js's own `read_audio()` helper requires the browser
+ * `AudioContext` API and does not work in Node, even when passed an
+ * ArrayBuffer (it ends up calling `decodeAudioData`). The official guidance
+ * is to decode audio externally and feed the pipeline a Float32Array
+ * directly:
+ *   https://huggingface.co/docs/transformers.js/guides/node-audio-processing
+ *
+ * We accept WAV bytes (16- or 8-bit PCM, any channel count, any sample
+ * rate), mix to mono, and linearly resample to `samplingRate`. Non-WAV
+ * inputs raise an actionable error rather than silently failing inside the
+ * pipeline.
+ */
 export async function loadAudioSamples(
   ref: AudioRefLike | undefined,
   samplingRate: number,
@@ -304,15 +411,16 @@ export async function loadAudioSamples(
   if (!bytes.length) {
     throw new Error("Audio input is empty");
   }
-  const transformers = await loadTransformers();
-  if (!transformers.read_audio) {
+  const wav = parseWavBytes(bytes);
+  if (!wav) {
     throw new Error(
-      "Transformers.js does not expose read_audio; cannot decode audio input."
+      "Transformers.js audio nodes only accept WAV (PCM 8/16-bit) input. " +
+        "Convert to WAV first (e.g. with the Audio → WAV node) before " +
+        "passing it to ASR / audio-classification."
     );
   }
-  const ab = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(ab).set(bytes);
-  return transformers.read_audio(ab, samplingRate);
+  const mono = mixToMono(wav.samples, wav.numChannels);
+  return resampleLinear(mono, wav.sampleRate, samplingRate);
 }
 
 // ---------------------------------------------------------------------------
