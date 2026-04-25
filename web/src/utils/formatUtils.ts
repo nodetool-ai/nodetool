@@ -59,6 +59,24 @@ export const SIZE_FILTERS = [
 export type SizeFilterKey = (typeof SIZE_FILTERS)[number]["key"];
 
 /**
+ * Asset type filter categories with human-readable labels.
+ * Categories match {@link getAssetCategory} buckets so a single MIME type
+ * always maps to exactly one filter.
+ */
+export const TYPE_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "image", label: "Images" },
+  { key: "video", label: "Videos" },
+  { key: "audio", label: "Audio" },
+  { key: "model_3d", label: "3D Models" },
+  { key: "text", label: "Text" },
+  { key: "application", label: "Documents" },
+  { key: "other", label: "Other" }
+] as const;
+
+export type TypeFilterKey = (typeof TYPE_FILTERS)[number]["key"];
+
+/**
  * Format a raw tool name into a human-readable label.
  * Handles MCP-style names like "mcp__nodetool-ui__ui_search_nodes" → "Search Nodes"
  * and plain names like "google_search" → "Google Search".

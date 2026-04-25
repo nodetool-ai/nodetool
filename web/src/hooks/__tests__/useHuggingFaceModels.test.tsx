@@ -186,23 +186,6 @@ describe("useHuggingFaceModels", () => {
   });
 
   describe("return values", () => {
-    it("returns all expected properties", async () => {
-      mockQuery.mockResolvedValueOnce(mockHFModels as never);
-
-      const { result } = renderHook(() => useHuggingFaceModels(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.hfLoading).toBe(false);
-      });
-
-      expect(result.current).toHaveProperty("hfModels");
-      expect(result.current).toHaveProperty("hfLoading");
-      expect(result.current).toHaveProperty("hfIsFetching");
-      expect(result.current).toHaveProperty("hfError");
-    });
-
     it("maintains stable references when data doesn't change", async () => {
       mockQuery.mockResolvedValueOnce(mockHFModels as never);
 

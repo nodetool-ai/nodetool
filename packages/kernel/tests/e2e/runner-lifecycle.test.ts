@@ -509,18 +509,3 @@ describe("RUNNER-046: Non-input source node executes as actor", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Skipped Python-specific scenarios
-// ---------------------------------------------------------------------------
-
-describe.skip("RUNNER-048..051: Job model DB persistence (Python-specific)", () => {
-  it.skip("SQLite job model not available in TypeScript port", () => {});
-});
-
-describe.skip("RUNNER-035: WorkflowSuspendedException (Python-only)", () => {
-  it.skip("Suspension protocol not ported", () => {});
-});
-
-describe.skip("RUNNER-036: CUDA OOM formatting (Python/GPU-specific)", () => {
-  it.skip("GPU-specific error formatting not ported", () => {});
-});

@@ -91,30 +91,4 @@ describe("useDynamicSvgImport", () => {
     expect(result.current).toHaveProperty('loading');
   });
 
-  it("should handle useEffect with different iconName values", () => {
-    // Test that the hook doesn't crash with various inputs
-    const { rerender } = renderHook(
-      ({ iconName }) => useDynamicSvgImport(iconName),
-      { initialProps: { iconName: "test1" } }
-    );
-
-    // Test various icon name changes
-    rerender({ iconName: "test2" });
-    rerender({ iconName: "" });
-    rerender({ iconName: "assistant" });
-    rerender({ iconName: "nonexistent" });
-
-    // If we get here without crashing, the test passes
-    expect(true).toBe(true);
-  });
-
-  it("should handle useEffect cleanup and dependencies", async () => {
-    const { unmount } = renderHook(() => useDynamicSvgImport("test-icon"));
-    
-    // Unmount to test cleanup
-    unmount();
-    
-    // Test should not throw
-    expect(true).toBe(true);
-  });
 });

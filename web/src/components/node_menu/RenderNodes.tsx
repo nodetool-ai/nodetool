@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
-// mui
+import { useVirtualizer } from "@tanstack/react-virtual";
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -14,11 +14,6 @@ import ApiKeyValidation from "../node/ApiKeyValidation";
 import { useCreateNode } from "../../hooks/useCreateNode";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
-import AutoSizer from "react-virtualized-auto-sizer";
-import {
-  ListChildComponentProps,
-  VariableSizeList as VirtualList
-} from "react-window";
 
 interface RenderNodesProps {
   nodes: NodeMetadata[];
@@ -66,68 +61,6 @@ type FlatRow =
       key: string;
       node: NodeMetadata;
     };
-
-interface RowData {
-  rows: FlatRow[];
-  handleDragStart: (
-    node: NodeMetadata,
-    event: React.DragEvent<HTMLDivElement>
-  ) => void;
-  handleNodeClick: (node: NodeMetadata) => void;
-  showCheckboxes: boolean;
-  selectedNodeTypesSet: Set<string>;
-  onToggleSelection?: (nodeType: string) => void;
-  showFavoriteButton: boolean;
-}
-
-const renderVirtualRow = ({
-  index,
-  style,
-  data
-}: ListChildComponentProps<RowData>) => {
-  const row = data.rows[index];
-  if (!row) {
-    return null;
-  }
-
-  if (row.type === "api-validation") {
-    return (
-      <div style={style}>
-        <ApiKeyValidation nodeNamespace={row.namespace} />
-      </div>
-    );
-  }
-
-  if (row.type === "namespace") {
-    return (
-      <Text
-        style={style}
-        key={row.key}
-        size="normal"
-        weight={600}
-        component="div"
-        className="namespace-text"
-      >
-        {row.textForNamespaceHeader}
-      </Text>
-    );
-  }
-
-  return (
-    <div style={style}>
-      <NodeItem
-        key={row.key}
-        node={row.node}
-        onDragStart={data.handleDragStart}
-        onClick={data.handleNodeClick}
-        showCheckbox={data.showCheckboxes}
-        isSelected={data.selectedNodeTypesSet.has(row.node.node_type)}
-        onToggleSelection={data.onToggleSelection}
-        showFavoriteButton={data.showFavoriteButton}
-      />
-    </div>
-  );
-};
 
 const RenderNodes: React.FC<RenderNodesProps> = ({
   nodes,
@@ -241,27 +174,9 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     return rows;
   }, [groupedNodes, selectedPath]);
 
-  const rowData = useMemo<RowData>(() => {
-    return {
-      rows: virtualRows,
-      handleDragStart,
-      handleNodeClick,
-      showCheckboxes,
-      selectedNodeTypesSet,
-      onToggleSelection,
-      showFavoriteButton
-    };
-  }, [
-    virtualRows,
-    handleDragStart,
-    handleNodeClick,
-    showCheckboxes,
-    selectedNodeTypesSet,
-    onToggleSelection,
-    showFavoriteButton
-  ]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const getItemSize = useCallback(
+  const estimateSize = useCallback(
     (index: number): number => {
       const row = virtualRows[index];
       if (!row) {
@@ -278,6 +193,14 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
     [virtualRows]
   );
 
+  const virtualizer = useVirtualizer({
+    count: virtualRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize,
+    overscan: 40,
+    getItemKey: (index) => virtualRows[index]?.key ?? index,
+  });
+
   const style = { height: "100%", overflow: "hidden" };
 
   return (
@@ -286,24 +209,72 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
         searchNodes ? (
           <SearchResultsPanel searchNodes={searchNodes} />
         ) : (
-          <AutoSizer>
-            {({ height, width }) => {
-              const safeHeight = Math.max(height || 0, 100);
-              const safeWidth = Math.max(width || 0, 280);
-              return (
-                <VirtualList
-                  height={safeHeight}
-                  width={safeWidth}
-                  itemCount={virtualRows.length}
-                  itemData={rowData}
-                  itemSize={getItemSize}
-                  overscanCount={40}
-                >
-                  {renderVirtualRow}
-                </VirtualList>
-              );
+          <div
+            ref={scrollRef}
+            style={{
+              height: "100%",
+              width: "100%",
+              overflowY: "auto",
+              overflowX: "hidden",
             }}
-          </AutoSizer>
+          >
+            <div
+              style={{
+                height: virtualizer.getTotalSize(),
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {virtualizer.getVirtualItems().map((vi) => {
+                const row = virtualRows[vi.index];
+                if (!row) {
+                  return null;
+                }
+                const wrapperStyle: React.CSSProperties = {
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: vi.size,
+                  transform: `translateY(${vi.start}px)`,
+                };
+                if (row.type === "api-validation") {
+                  return (
+                    <div key={vi.key} style={wrapperStyle}>
+                      <ApiKeyValidation nodeNamespace={row.namespace} />
+                    </div>
+                  );
+                }
+                if (row.type === "namespace") {
+                  return (
+                    <Text
+                      key={vi.key}
+                      style={wrapperStyle}
+                      size="normal"
+                      weight={600}
+                      component="div"
+                      className="namespace-text"
+                    >
+                      {row.textForNamespaceHeader}
+                    </Text>
+                  );
+                }
+                return (
+                  <div key={vi.key} style={wrapperStyle}>
+                    <NodeItem
+                      node={row.node}
+                      onDragStart={handleDragStart}
+                      onClick={handleNodeClick}
+                      showCheckbox={showCheckboxes}
+                      isSelected={selectedNodeTypesSet.has(row.node.node_type)}
+                      onToggleSelection={onToggleSelection}
+                      showFavoriteButton={showFavoriteButton}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )
       ) : (
         <div className="no-selection">

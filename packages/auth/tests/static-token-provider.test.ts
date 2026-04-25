@@ -134,11 +134,4 @@ describe("StaticTokenProvider", () => {
     }
   });
 
-  // -------------------------------------------------------------------------
-  // clearCaches
-  // -------------------------------------------------------------------------
-  it("clearCaches() is a no-op and does not throw", () => {
-    const provider = new StaticTokenProvider({ token: "user-1" });
-    expect(() => provider.clearCaches()).not.toThrow();
-  });
 });

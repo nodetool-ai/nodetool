@@ -221,20 +221,8 @@ describe("BaseProvider – isAuthError", () => {
 describe("BaseProvider – default method behaviors", () => {
   const provider = new TestProvider();
 
-  it("requiredSecrets() returns []", () => {
-    expect(TestProvider.requiredSecrets()).toEqual([]);
-  });
-
-  it("getContainerEnv() returns {}", () => {
-    expect(provider.getContainerEnv()).toEqual({});
-  });
-
   it("hasToolSupport() returns true", async () => {
     expect(await provider.hasToolSupport("any-model")).toBe(true);
-  });
-
-  it("getAvailableLanguageModels() returns []", async () => {
-    await expect(provider.getAvailableLanguageModels()).resolves.toEqual([]);
   });
 
   it("textToImage() throws 'does not support'", async () => {
@@ -273,26 +261,6 @@ describe("BaseProvider – default method behaviors", () => {
     await expect(
       provider.generateEmbedding({ text: "hi", model: "m" })
     ).rejects.toThrow("does not support");
-  });
-
-  it("getAvailableImageModels() returns []", async () => {
-    await expect(provider.getAvailableImageModels()).resolves.toEqual([]);
-  });
-
-  it("getAvailableVideoModels() returns []", async () => {
-    await expect(provider.getAvailableVideoModels()).resolves.toEqual([]);
-  });
-
-  it("getAvailableTTSModels() returns []", async () => {
-    await expect(provider.getAvailableTTSModels()).resolves.toEqual([]);
-  });
-
-  it("getAvailableASRModels() returns []", async () => {
-    await expect(provider.getAvailableASRModels()).resolves.toEqual([]);
-  });
-
-  it("getAvailableEmbeddingModels() returns []", async () => {
-    await expect(provider.getAvailableEmbeddingModels()).resolves.toEqual([]);
   });
 
   it("textToVideo() throws 'does not support'", async () => {

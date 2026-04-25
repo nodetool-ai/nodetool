@@ -11,11 +11,7 @@ import {
 import { Text } from "../ui_primitives";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-import AutoSizer from "react-virtualized-auto-sizer";
-import {
-  VariableSizeList as VirtualList,
-  ListChildComponentProps
-} from "react-window";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { useNodeTestRunner } from "./useNodeTestRunner";
@@ -42,7 +38,7 @@ function NodeTestPage() {
   } = useNodeTestRunner();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const listRef = useRef<VirtualList>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const flatRows = useMemo(() => {
     const allNodes = Object.values(metadata);
@@ -130,60 +126,21 @@ function NodeTestPage() {
     return { passed, failed, running, queued, total: allNodeMetadata.length };
   }, [results, allNodeMetadata]);
 
-  const renderRow = useCallback(
-    ({ index, style }: ListChildComponentProps) => {
-      const row = flatRows[index];
-      if (row.type === "namespace") {
-        return (
-          <Box
-            key={row.namespace}
-            style={style}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              px: 1,
-              gap: 1,
-              bgcolor: "background.paper",
-              borderBottom: "1px solid",
-              borderColor: "divider"
-            }}
-          >
-            <IconButton
-              size="small"
-              onClick={() => handleRunNamespace(row.namespace)}
-              title={`Run all ${row.nodeCount} nodes in ${row.namespace}`}
-            >
-              <PlayArrowIcon fontSize="small" />
-            </IconButton>
-            <Text size="small" weight={700}>
-              {row.namespace}
-            </Text>
-            <Chip label={row.nodeCount} size="small" />
-          </Box>
-        );
-      }
-
-      return (
-        <NodeTestRow
-          key={row.nodeType}
-          metadata={row.metadata}
-          result={results.get(row.nodeType)}
-          onRun={handleRunSingle}
-          style={style}
-        />
-      );
-    },
-    [flatRows, results, handleRunSingle, handleRunNamespace]
-  );
-
-  const getItemSize = useCallback(
-    (index: number) => {
-      return flatRows[index].type === "namespace"
+  const virtualizer = useVirtualizer({
+    count: flatRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) =>
+      flatRows[index]?.type === "namespace"
         ? NAMESPACE_ROW_HEIGHT
-        : NODE_ROW_HEIGHT;
+        : NODE_ROW_HEIGHT,
+    overscan: 8,
+    getItemKey: (index) => {
+      const row = flatRows[index];
+      return row.type === "namespace"
+        ? `namespace-${row.namespace}`
+        : `node-${row.nodeType}`;
     },
-    [flatRows]
-  );
+  });
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -267,20 +224,69 @@ function NodeTestPage() {
         )}
       </Box>
 
-      <Box sx={{ flex: 1 }}>
-        <AutoSizer>
-          {({ height, width }) => (
-            <VirtualList
-              ref={listRef}
-              height={height}
-              width={width}
-              itemCount={flatRows.length}
-              itemSize={getItemSize}
-            >
-              {renderRow}
-            </VirtualList>
-          )}
-        </AutoSizer>
+      <Box sx={{ flex: 1, overflow: "hidden" }}>
+        <div
+          ref={scrollRef}
+          style={{ height: "100%", width: "100%", overflow: "auto" }}
+        >
+          <div
+            style={{
+              height: virtualizer.getTotalSize(),
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((vi) => {
+              const row = flatRows[vi.index];
+              const itemStyle: React.CSSProperties = {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: vi.size,
+                transform: `translateY(${vi.start}px)`,
+              };
+              if (row.type === "namespace") {
+                return (
+                  <Box
+                    key={vi.key}
+                    style={itemStyle}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      px: 1,
+                      gap: 1,
+                      bgcolor: "background.paper",
+                      borderBottom: "1px solid",
+                      borderColor: "divider"
+                    }}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => handleRunNamespace(row.namespace)}
+                      title={`Run all ${row.nodeCount} nodes in ${row.namespace}`}
+                    >
+                      <PlayArrowIcon fontSize="small" />
+                    </IconButton>
+                    <Text size="small" weight={700}>
+                      {row.namespace}
+                    </Text>
+                    <Chip label={row.nodeCount} size="small" />
+                  </Box>
+                );
+              }
+              return (
+                <NodeTestRow
+                  key={vi.key}
+                  metadata={row.metadata}
+                  result={results.get(row.nodeType)}
+                  onRun={handleRunSingle}
+                  style={itemStyle}
+                />
+              );
+            })}
+          </div>
+        </div>
       </Box>
     </Box>
   );
