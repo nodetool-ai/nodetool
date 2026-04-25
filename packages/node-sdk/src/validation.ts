@@ -63,15 +63,14 @@ function isUnsetModel(value: unknown): boolean {
   if (value === null || value === undefined) return true;
   if (typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  // Only treat the value as a "model object" when it carries a provider key —
-  // this guards against false positives on opaque values flowing through.
-  if (!("provider" in v) && !("id" in v)) return false;
   const provider = v.provider;
   const id = v.id;
-  if (typeof provider === "string" && provider === EMPTY_PROVIDER) return true;
+  // A bare placeholder like `{ type: "language_model" }` (no provider, no id)
+  // is exactly the unselected default we want to flag.
   if (provider == null) return true;
-  if (typeof id === "string" && id.length === 0) return true;
+  if (typeof provider === "string" && provider === EMPTY_PROVIDER) return true;
   if (id == null) return true;
+  if (typeof id === "string" && id.length === 0) return true;
   return false;
 }
 

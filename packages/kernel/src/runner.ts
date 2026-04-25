@@ -328,12 +328,24 @@ export class WorkflowRunner {
       log.error("Workflow failed", { jobId: request.job_id, error: message });
       // Drain active edges on error for front-end cleanup
       this._drainActiveEdges();
+      const validationIssues =
+        err instanceof GraphValidationError && err.issues.length > 0
+          ? err.issues
+              .filter((i): i is typeof i & { nodeId: string } => !!i.nodeId)
+              .map((i) => ({
+                node_id: i.nodeId,
+                node_type: i.nodeType ?? null,
+                property: i.property ?? "",
+                message: i.message
+              }))
+          : null;
       this._emit({
         type: "job_update",
         status: "failed",
         job_id: request.job_id,
         workflow_id: request.workflow_id ?? null,
-        error: message
+        error: message,
+        validation_issues: validationIssues
       });
       return {
         outputs: Object.fromEntries(this._outputs),
@@ -439,7 +451,13 @@ export class WorkflowRunner {
         return `  - ${issue.message}${where}`;
       });
       throw new GraphValidationError(
-        `Graph validation failed with ${issues.length} issue(s):\n${lines.join("\n")}`
+        `Graph validation failed with ${issues.length} issue(s):\n${lines.join("\n")}`,
+        issues.map((issue) => ({
+          nodeId: issue.nodeId,
+          nodeType: issue.nodeType,
+          property: issue.property,
+          message: issue.message
+        }))
       );
     }
   }

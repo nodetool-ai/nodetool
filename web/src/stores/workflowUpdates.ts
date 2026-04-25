@@ -20,6 +20,7 @@ import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore, { normalizeNodeError } from "./ErrorStore";
+import usePropertyValidationStore from "./PropertyValidationStore";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
@@ -383,6 +384,9 @@ export const handleUpdate = (
       if (currentState !== "error") {
         newState = "running";
       }
+      // A new run starts: clear any prior pre-flight validation highlights
+      // so stale red outlines don't linger after the user fixes them.
+      usePropertyValidationStore.getState().clearWorkflow(workflow.id);
     } else if (job.status === "suspended") {
       newState = "suspended";
     } else if (job.status === "paused") {
@@ -450,19 +454,43 @@ export const handleUpdate = (
         clearTimings(workflow.id);
         break;
       case "failed":
-      case "timed_out":
-        runner.addNotification({
-          type: "error",
-          alert: true,
-          content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
-          timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
-        });
+      case "timed_out": {
+        const validationIssues = (
+          job as JobUpdate & {
+            validation_issues?: Array<{
+              node_id: string;
+              property: string;
+              message: string;
+            }> | null;
+          }
+        ).validation_issues;
+        if (validationIssues && validationIssues.length > 0) {
+          usePropertyValidationStore
+            .getState()
+            .setIssues(workflow.id, validationIssues);
+          const noun =
+            validationIssues.length === 1 ? "field" : "fields";
+          runner.addNotification({
+            type: "error",
+            alert: true,
+            content: `Fix ${validationIssues.length} highlighted ${noun} before running.`,
+            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+          });
+        } else {
+          runner.addNotification({
+            type: "error",
+            alert: true,
+            content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
+            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+          });
+        }
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
         clearOutputResults(workflow.id);
         clearTimings(workflow.id);
         break;
+      }
       case "queued":
         runnerStore.setState({
           statusMessage: "Worker is booting (may take a 15 seconds)..."
