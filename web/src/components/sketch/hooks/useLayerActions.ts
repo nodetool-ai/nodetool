@@ -352,21 +352,14 @@ export function useLayerActions({
 
     pushHistory("merge selected");
 
-    for (const upperLayerId of plan.mergeOrder) {
-      const currentLayers = useSketchStore.getState().document.layers;
-      const upperIndex = currentLayers.findIndex((layer) => layer.id === upperLayerId);
-      if (upperIndex <= 0) {
-        return;
-      }
-
-      const lowerLayer = currentLayers[upperIndex - 1];
+    for (const { upperLayerId, lowerLayerId } of plan.mergePairs) {
       const mergedData = canvasRef.current.mergeLayerDown(
         upperLayerId,
-        lowerLayer.id
+        lowerLayerId
       );
       mergeLayerDown(upperLayerId);
       if (mergedData) {
-        updateLayerData(lowerLayer.id, mergedData);
+        updateLayerData(lowerLayerId, mergedData);
       }
     }
   }, [canvasRef, document.layers, mergeLayerDown, pushHistory, updateLayerData]);

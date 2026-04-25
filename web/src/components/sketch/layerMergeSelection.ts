@@ -2,6 +2,7 @@ import type { Layer } from "./types";
 
 export interface MergeSelectedLayersPlan {
   mergeOrder: string[];
+  mergePairs: Array<{ upperLayerId: string; lowerLayerId: string }>;
   survivingLayerId: string;
 }
 
@@ -54,8 +55,16 @@ export function getMergeSelectedLayersPlan(
   }
 
   const orderedIds = indices.map((index) => layers[index].id);
+  const mergeOrder = [...orderedIds].reverse().slice(0, -1);
   return {
+    mergeOrder,
+    mergePairs: mergeOrder.map((upperLayerId) => {
+      const upperIndex = orderedIds.indexOf(upperLayerId);
+      return {
+        upperLayerId,
+        lowerLayerId: orderedIds[upperIndex - 1]
+      };
+    }),
     survivingLayerId: orderedIds[0],
-    mergeOrder: [...orderedIds].reverse().slice(0, -1)
   };
 }

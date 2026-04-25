@@ -14,7 +14,11 @@ describe("getMergeSelectedLayersPlan", () => {
 
     expect(plan).toEqual({
       survivingLayerId: lower.id,
-      mergeOrder: [upper.id, middle.id]
+      mergeOrder: [upper.id, middle.id],
+      mergePairs: [
+        { upperLayerId: upper.id, lowerLayerId: middle.id },
+        { upperLayerId: middle.id, lowerLayerId: lower.id }
+      ]
     });
   });
 
