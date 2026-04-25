@@ -342,7 +342,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       resolveProvider,
       resolveTools,
       getNodeMetadata: (nodeType) => registry.getMetadata(nodeType),
-      validateNode: registry.createNodeValidator()
+      validateNode: registry.createNodeValidator(),
+      nodeRegistry: registry
     });
     log.info("WebSocket client connected");
     void runner.run(new WsAdapter(socket)).catch((error) => {

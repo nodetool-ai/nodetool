@@ -19,11 +19,12 @@
  */
 
 import readline from "node:readline";
-import type { Message } from "@nodetool/runtime";
+import type { BaseProvider, Message } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
 import { processChat } from "@nodetool/chat";
-import { Agent } from "@nodetool/agents";
+import { Agent, MultiModeAgent } from "@nodetool/agents";
 import type { Tool } from "@nodetool/agents/tool";
+import type { NodeRegistry } from "@nodetool/node-sdk";
 import { createProvider, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
 import { getSecret } from "@nodetool/models";
@@ -36,6 +37,14 @@ export interface StdinModeOptions {
   wsUrl?: string;
   /** Pre-built tools (e.g. from --sandbox) appended to the Agent's tool list. */
   extraTools?: Tool[];
+  /**
+   * NodeRegistry for graph-native agent mode. When supplied, agent mode
+   * uses MultiModeAgent + GraphPlanner so the agent can build workflows
+   * with the curated `nodetool.*` core nodes and `find_model` tool.
+   */
+  registry?: NodeRegistry;
+  /** Configured BaseProvider instances by id, exposed via `find_model`. */
+  agentProviders?: Record<string, BaseProvider>;
 }
 
 interface SlashCommand {
@@ -231,15 +240,41 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         ? new WebSocketProvider(wsClient, opts.model, opts.provider)
         : directProvider!;
 
-      const agent = new Agent({
-        name: "stdin-agent",
-        objective: trimmed,
-        provider: prov,
-        model: opts.model,
-        tools: opts.extraTools ?? [],
-        outputFormat: "markdown",
-        maxStepIterations: 20
-      });
+      // When a NodeRegistry is wired up, use the graph-native agent so the
+      // GraphPlanner can build workflows using the curated `nodetool.*`
+      // core nodes plus a `find_model` tool to pick provider/model pairs.
+      const agent = opts.registry
+        ? new MultiModeAgent({
+            name: "stdin-agent",
+            objective: trimmed,
+            provider: prov,
+            model: opts.model,
+            mode: "plan",
+            tools: opts.extraTools ?? [],
+            useGraphPlanner: true,
+            registry: opts.registry,
+            providers: opts.agentProviders,
+            maxStepIterations: 20,
+            outputSchema: {
+              type: "object",
+              properties: {
+                markdown: {
+                  type: "string",
+                  description: "The markdown content of the response"
+                }
+              },
+              required: ["markdown"]
+            }
+          })
+        : new Agent({
+            name: "stdin-agent",
+            objective: trimmed,
+            provider: prov,
+            model: opts.model,
+            tools: opts.extraTools ?? [],
+            outputFormat: "markdown",
+            maxStepIterations: 20
+          });
 
       const ctx = new ProcessingContext({
         jobId: crypto.randomUUID(),
@@ -275,6 +310,22 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
 
       if (taskResult !== null) {
         process.stdout.write(taskResult);
+      } else if (opts.registry) {
+        // Graph-mode agents return their structured result via getResults().
+        const finalResults = (agent as MultiModeAgent).getResults();
+        const finalText =
+          typeof finalResults === "string"
+            ? finalResults
+            : finalResults &&
+                typeof finalResults === "object" &&
+                "markdown" in (finalResults as Record<string, unknown>) &&
+                typeof (finalResults as Record<string, unknown>).markdown ===
+                  "string"
+              ? ((finalResults as Record<string, unknown>).markdown as string)
+              : finalResults != null
+                ? JSON.stringify(finalResults, null, 2)
+                : "";
+        if (finalText) process.stdout.write(finalText);
       }
     } else if (wsClient && !opts.extraTools?.length) {
       // --- Regular chat via WebSocket (server handles everything) ---

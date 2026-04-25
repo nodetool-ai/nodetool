@@ -24,7 +24,7 @@ import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
 import { processChat } from "@nodetool/chat";
-import { Agent } from "@nodetool/agents";
+import { Agent, MultiModeAgent } from "@nodetool/agents";
 import {
   ReadFileTool, WriteFileTool, ListDirectoryTool,
   EditFileTool, GlobTool, GrepTool,
@@ -71,6 +71,17 @@ interface AppProps {
    * Used by --sandbox to inject the 37 sandbox-tools adapter instances.
    */
   extraTools?: import("@nodetool/agents").Tool[];
+  /**
+   * NodeRegistry for graph-native agent mode. When supplied, agent mode
+   * uses MultiModeAgent + GraphPlanner so the agent builds workflows with
+   * the curated `nodetool.*` core nodes plus a `find_model` tool.
+   */
+  registry?: import("@nodetool/node-sdk").NodeRegistry;
+  /** Configured BaseProvider instances by id for `find_model`. */
+  agentProviders?: Record<
+    string,
+    import("@nodetool/runtime").BaseProvider
+  >;
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +227,8 @@ export function App({
   workspaceDir,
   wsUrl,
   extraTools,
+  registry,
+  agentProviders,
 }: AppProps) {
   const { exit } = useApp();
 
@@ -531,15 +544,41 @@ export function App({
           ? new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current)
           : await createProvider(providerRef.current);
 
-        const agent = new Agent({
-          name: "chat-agent",
-          objective: trimmed,
-          provider: prov,
-          model: modelRef.current,
-          tools,
-          outputFormat: "markdown",
-          maxStepIterations: 20,
-        });
+        // When a NodeRegistry is wired up, route through the graph-native
+        // agent so the GraphPlanner builds workflows from the curated
+        // `nodetool.*` core nodes plus the `find_model` tool.
+        const agent = registry
+          ? new MultiModeAgent({
+              name: "chat-agent",
+              objective: trimmed,
+              provider: prov,
+              model: modelRef.current,
+              mode: "plan",
+              tools,
+              useGraphPlanner: true,
+              registry,
+              providers: agentProviders,
+              maxStepIterations: 20,
+              outputSchema: {
+                type: "object",
+                properties: {
+                  markdown: {
+                    type: "string",
+                    description: "The markdown content of the response",
+                  },
+                },
+                required: ["markdown"],
+              },
+            })
+          : new Agent({
+              name: "chat-agent",
+              objective: trimmed,
+              provider: prov,
+              model: modelRef.current,
+              tools,
+              outputFormat: "markdown",
+              maxStepIterations: 20,
+            });
 
         // Feed all messages into the execution tree state.
         let synthesisContent = "";

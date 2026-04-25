@@ -28,43 +28,13 @@ import { FinishGraphTool } from "./tools/finish-graph-tool.js";
 import { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
 import { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
 import { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
+import { FindModelTool } from "./tools/find-model-tool.js";
+import { buildGraphPlannerSystemPrompt } from "./prompts/graph-planner-prompt.js";
 
 const log = createLogger("nodetool.agents.graph-planner");
 
 const MAX_RETRIES = 3;
 const MAX_TOOL_CALLS_PER_TURN = 50;
-
-const DEFAULT_GRAPH_PLANNING_SYSTEM_PROMPT = `You are a WorkflowArchitect. Build a workflow graph to achieve the user's objective.
-
-## Workflow
-1. SEARCH first: Use \`search_nodes\` to find relevant deterministic nodes for the task.
-   Search by capability (e.g. "resize image", "split text", "http request").
-2. INSPECT: Use \`get_node_info\` to see exact input/output names and types before using a node.
-3. BUILD: Use \`add_node\` for each node, \`add_edge\` to connect them.
-4. FINALIZE: Call \`finish_graph\` when done.
-
-## Node Types
-- Deterministic nodes (from registry) — fast, cheap, reproducible. Always prefer these.
-- Agent step nodes (type: "nodetool.agents.AgentStep") — for work requiring LLM reasoning.
-  - Required properties: \`instructions\` (string).
-  - Optional properties: \`tools\` (string array), \`output_schema\` (JSON schema string).
-  - Input handles: "input" (receives upstream data). Output handles: "output" (text result).
-  - IMPORTANT: For LLM tasks, always use "nodetool.agents.AgentStep" — NOT "nodetool.agents.Agent".
-    AgentStep nodes automatically use the configured model. Do NOT use registry Agent nodes
-    as they require a complex model property that cannot be set via \`add_node\`.
-
-## Rules
-- SEARCH before building. Don't guess node types — verify with \`search_nodes\` and \`get_node_info\`.
-- INSPECT before adding. Always call \`get_node_info\` to see exact property names, types, and defaults.
-- SET PROPERTIES: When adding a node, pass all required properties in the "properties" argument.
-  For example, a constant String node needs properties: { "value": "your text here" }.
-  Nodes without correct properties will produce empty/default outputs!
-- MAXIMIZE parallelism: nodes without data dependencies run concurrently automatically.
-- Use deterministic nodes when possible (cheaper, faster, reproducible).
-- Use agent step nodes ONLY when no deterministic node can do the job.
-- Every node needs a unique id (snake_case).
-- Connect outputs to inputs with \`add_edge\`, using the exact handle names from \`get_node_info\`.
-- Call \`finish_graph\` when you're done building.`;
 
 const GRAPH_CREATION_PROMPT_TEMPLATE = `Build a workflow graph to achieve this objective.
 
@@ -86,6 +56,12 @@ export interface GraphPlannerOptions {
   inputs?: Record<string, unknown>;
   maxRetries?: number;
   threadId?: string;
+  /**
+   * Configured BaseProvider instances by id. When supplied, the planner
+   * exposes a `find_model` tool so the agent can pick a real
+   * `{provider, model_id}` for generic AI nodes.
+   */
+  providers?: Record<string, BaseProvider>;
 }
 
 export class GraphPlanner {
@@ -98,18 +74,29 @@ export class GraphPlanner {
   private readonly inputs: Record<string, unknown>;
   private readonly maxRetries: number;
   private readonly threadId?: string;
+  private readonly providers?: Record<string, BaseProvider>;
+  private readonly hasFindModel: boolean;
 
   constructor(opts: GraphPlannerOptions) {
     this.provider = opts.provider;
     this.model = opts.model;
     this.registry = opts.registry;
     this.tools = opts.tools ?? [];
+    this.providers = opts.providers;
+    this.hasFindModel = !!opts.providers && Object.keys(opts.providers).length > 0;
     this.systemPrompt =
-      opts.systemPrompt ?? DEFAULT_GRAPH_PLANNING_SYSTEM_PROMPT;
+      opts.systemPrompt ??
+      buildGraphPlannerSystemPrompt({ hasFindModel: this.hasFindModel });
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
     this.threadId = opts.threadId;
+
+    if (!this.hasFindModel) {
+      log.warn(
+        "GraphPlanner constructed without configured providers — `find_model` tool will not be registered. The agent will fall back to AgentStep for AI work."
+      );
+    }
   }
 
   /**
@@ -246,6 +233,10 @@ export class GraphPlanner {
       addEdgeTool,
       finishGraphTool
     ];
+
+    if (this.hasFindModel && this.providers) {
+      allTools.unshift(new FindModelTool(this.providers));
+    }
 
     const providerTools = allTools.map((t) => t.toProviderTool());
     const toolMap = new Map(allTools.map((t) => [t.name, t]));

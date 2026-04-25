@@ -56,7 +56,7 @@ import type {
   WebSocketMode
 } from "@nodetool/protocol";
 import { Tool } from "@nodetool/agents";
-import type { NodeMetadata } from "@nodetool/node-sdk";
+import type { NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -724,6 +724,12 @@ export interface UnifiedWebSocketRunnerOptions {
    * `@nodetool/node-sdk` produces a compatible callback.
    */
   validateNode?: NodeValidator;
+  /**
+   * Optional NodeRegistry. When supplied, agent-mode chat routes through the
+   * graph-native MultiModeAgent → GraphPlanner path, biasing node selection
+   * toward `nodetool.*` core nodes and exposing a `find_model` tool.
+   */
+  nodeRegistry?: NodeRegistry;
 }
 
 export class UnifiedWebSocketRunner {
@@ -743,6 +749,9 @@ export class UnifiedWebSocketRunner {
   private beforeRunJob?: UnifiedWebSocketRunnerOptions["beforeRunJob"];
   private getNodeMetadata?: UnifiedWebSocketRunnerOptions["getNodeMetadata"];
   private validateNode?: UnifiedWebSocketRunnerOptions["validateNode"];
+  private nodeRegistry?: NodeRegistry;
+  private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
+    new Map();
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
@@ -887,6 +896,7 @@ export class UnifiedWebSocketRunner {
     this.beforeRunJob = options.beforeRunJob;
     this.getNodeMetadata = options.getNodeMetadata;
     this.validateNode = options.validateNode;
+    this.nodeRegistry = options.nodeRegistry;
     this.getSystemStats =
       options.getSystemStats ??
       (() => ({
@@ -3723,6 +3733,39 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Build the map of configured BaseProvider instances for the given user.
+   * Cached per user — invalidate by clearing `configuredProvidersCache`.
+   * Used to expose `find_model` to the GraphPlanner agent so it can pick a
+   * real model+provider for generic AI nodes.
+   */
+  private async getConfiguredProviders(
+    userId: string
+  ): Promise<Record<string, BaseProvider>> {
+    const cached = this.configuredProvidersCache.get(userId);
+    if (cached) return cached;
+
+    const providersMod = await import("@nodetool/runtime");
+    const ids: string[] = providersMod.listRegisteredProviderIds();
+    const result: Record<string, BaseProvider> = {};
+    await Promise.all(
+      ids.map(async (id) => {
+        try {
+          if (await providersMod.isProviderConfigured(id, userId)) {
+            result[id] = await providersMod.getProvider(id, userId);
+          }
+        } catch (err) {
+          log.debug("Skipping provider for find_model", {
+            provider: id,
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
+      })
+    );
+    this.configuredProvidersCache.set(userId, result);
+    return result;
+  }
+
+  /**
    * Handle agent mode messages.
    * Mirrors Python's AgentMessageProcessor.process().
    *
@@ -3755,6 +3798,7 @@ export class UnifiedWebSocketRunner {
     // Resolve tools — matches Python's tool resolution
     const {
       Agent,
+      MultiModeAgent,
       ReadFileTool,
       WriteFileTool,
       BrowserTool,
@@ -3843,26 +3887,58 @@ export class UnifiedWebSocketRunner {
         ? Math.floor(data.max_steps)
         : undefined;
 
+    // When a NodeRegistry is wired up, route agent_mode through the
+    // graph-native MultiModeAgent so the GraphPlanner can build workflows
+    // with the curated `nodetool.*` core nodes and a `find_model` tool.
+    const useGraphPlanner = !!this.nodeRegistry;
+    const configuredProviders = useGraphPlanner
+      ? await this.getConfiguredProviders(userId)
+      : undefined;
+
     try {
-      const agent = new Agent({
-        name: "Assistant",
-        objective,
-        provider,
-        model,
-        tools: selectedTools,
-        maxStepIterations,
-        ...(maxSteps !== undefined ? { maxSteps } : {}),
-        outputSchema: {
-          type: "object",
-          properties: {
-            markdown: {
-              type: "string",
-              description: "The markdown content of the response"
+      const agent = useGraphPlanner
+        ? new MultiModeAgent({
+            name: "Assistant",
+            objective,
+            provider,
+            model,
+            mode: "plan",
+            tools: selectedTools,
+            useGraphPlanner: true,
+            registry: this.nodeRegistry,
+            providers: configuredProviders,
+            maxStepIterations,
+            ...(maxSteps !== undefined ? { maxSteps } : {}),
+            outputSchema: {
+              type: "object",
+              properties: {
+                markdown: {
+                  type: "string",
+                  description: "The markdown content of the response"
+                }
+              },
+              required: ["markdown"]
             }
-          },
-          required: ["markdown"]
-        }
-      });
+          })
+        : new Agent({
+            name: "Assistant",
+            objective,
+            provider,
+            model,
+            tools: selectedTools,
+            maxStepIterations,
+            ...(maxSteps !== undefined ? { maxSteps } : {}),
+            outputSchema: {
+              type: "object",
+              properties: {
+                markdown: {
+                  type: "string",
+                  description: "The markdown content of the response"
+                }
+              },
+              required: ["markdown"]
+            }
+          });
 
       for await (const item of agent.execute(ctx)) {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)

@@ -17,8 +17,11 @@ import React from "react";
 import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
+import { buildConfiguredProviders } from "./providers.js";
 import { initDb, getSecret } from "@nodetool/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool/config";
+import { NodeRegistry } from "@nodetool/node-sdk";
+import { registerBaseNodes } from "@nodetool/base-nodes";
 import {
   DockerSandboxProvider,
   SessionStore,
@@ -193,6 +196,20 @@ if (opts.sandbox) {
   });
 }
 
+// Build a NodeRegistry + configured providers map ONCE per session so the
+// graph-native agent can search core nodes and look up real models.
+// Only built when running locally (no --url): the WebSocket server has its
+// own registry and doesn't need the CLI to provide one.
+let cliRegistry: NodeRegistry | undefined;
+let cliAgentProviders:
+  | Record<string, import("@nodetool/runtime").BaseProvider>
+  | undefined;
+if (!opts.url) {
+  cliRegistry = new NodeRegistry();
+  registerBaseNodes(cliRegistry);
+  cliAgentProviders = await buildConfiguredProviders();
+}
+
 // Stdin mode: activated when stdin is piped (not a TTY)
 if (!process.stdin.isTTY) {
   try {
@@ -202,7 +219,9 @@ if (!process.stdin.isTTY) {
       workspaceDir: workspace,
       agentMode,
       wsUrl: opts.url,
-      extraTools: sandboxExtraTools
+      extraTools: sandboxExtraTools,
+      registry: cliRegistry,
+      agentProviders: cliAgentProviders
     });
   } finally {
     if (sandboxStore) await sandboxStore.close();
@@ -218,7 +237,9 @@ const { waitUntilExit } = render(
     enabledTools,
     workspaceDir: workspace,
     wsUrl: opts.url,
-    extraTools: sandboxExtraTools
+    extraTools: sandboxExtraTools,
+    registry: cliRegistry,
+    agentProviders: cliAgentProviders
   }),
   { exitOnCtrlC: false }
 );

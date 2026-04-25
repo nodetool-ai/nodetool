@@ -106,6 +106,41 @@ export async function createProvider(
   }
 }
 
+/**
+ * Build a map of `{providerId -> BaseProvider}` for use by the agent's
+ * `find_model` tool. Includes local providers (always reachable) plus any
+ * hosted provider with a resolved API key in env or the secrets DB.
+ *
+ * Provider instances are constructed eagerly. If a key is wrong/expired,
+ * the model-listing call inside `FindModelTool` is wrapped in try/catch
+ * and the provider is silently skipped at lookup time.
+ */
+export async function buildConfiguredProviders(): Promise<
+  Record<string, BaseProvider>
+> {
+  const result: Record<string, BaseProvider> = {};
+  // Local providers — always available.
+  result["ollama"] = await createProvider("ollama");
+  result["lmstudio"] = await createProvider("lmstudio");
+  // Hosted — include only when a key resolves.
+  const hostedChecks: Array<[string, string]> = [
+    ["anthropic", "ANTHROPIC_API_KEY"],
+    ["openai", "OPENAI_API_KEY"],
+    ["gemini", "GEMINI_API_KEY"],
+    ["mistral", "MISTRAL_API_KEY"],
+    ["groq", "GROQ_API_KEY"],
+    ["moonshot", "KIMI_API_KEY"],
+    ["aki", "AKI_API_KEY"]
+  ];
+  for (const [id, key] of hostedChecks) {
+    const value = await resolveKey(key);
+    if (value) {
+      result[id] = await createProvider(id);
+    }
+  }
+  return result;
+}
+
 /** Check which providers have API keys configured (env only — fast sync check). */
 export function availableProviders(): string[] {
   const available: string[] = [];

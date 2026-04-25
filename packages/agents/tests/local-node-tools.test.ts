@@ -126,6 +126,71 @@ describe("LocalSearchNodesTool", () => {
 
     expect(result.total).toBe(1);
   });
+
+  it("hides provider nodes by default", async () => {
+    const mixed = [
+      createMetadata({
+        node_type: "nodetool.image.TextToImage",
+        title: "Text To Image",
+        namespace: "nodetool.image"
+      }),
+      createMetadata({
+        node_type: "openai.ImageCreation",
+        title: "Image Creation",
+        namespace: "openai"
+      })
+    ];
+    const tool = new LocalSearchNodesTool(mockRegistry(mixed));
+    const result = (await tool.process(mockContext(), {
+      query: ["image"]
+    })) as Record<string, unknown>;
+    const types = (result.results as Array<{ type: string }>).map(
+      (r) => r.type
+    );
+    expect(types).toEqual(["nodetool.image.TextToImage"]);
+  });
+
+  it("includes provider nodes when include_provider_nodes is true", async () => {
+    const mixed = [
+      createMetadata({
+        node_type: "nodetool.image.TextToImage",
+        title: "Text To Image",
+        namespace: "nodetool.image"
+      }),
+      createMetadata({
+        node_type: "openai.ImageCreation",
+        title: "Image Creation",
+        namespace: "openai"
+      })
+    ];
+    const tool = new LocalSearchNodesTool(mockRegistry(mixed));
+    const result = (await tool.process(mockContext(), {
+      query: ["image"],
+      include_provider_nodes: true
+    })) as Record<string, unknown>;
+    const types = (result.results as Array<{ type: string }>).map(
+      (r) => r.type
+    );
+    expect(types).toContain("nodetool.image.TextToImage");
+    expect(types).toContain("openai.ImageCreation");
+    // Core node should rank ahead of the provider node.
+    expect(types.indexOf("nodetool.image.TextToImage")).toBeLessThan(
+      types.indexOf("openai.ImageCreation")
+    );
+  });
+
+  it("scopes by namespace prefix", async () => {
+    const tool = new LocalSearchNodesTool(mockRegistry(allNodes));
+    const result = (await tool.process(mockContext(), {
+      query: ["text"],
+      namespace: "nodetool.text"
+    })) as Record<string, unknown>;
+    expect(result.total).toBe(2);
+    const types = (result.results as Array<{ type: string }>).map(
+      (r) => r.type
+    );
+    expect(types.every((t) => t.startsWith("nodetool.text."))).toBe(true);
+  });
 });
 
 describe("LocalGetNodeInfoTool", () => {
