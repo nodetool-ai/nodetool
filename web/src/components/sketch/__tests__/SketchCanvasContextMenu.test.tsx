@@ -7,11 +7,13 @@ import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import SketchCanvasContextMenu from "../SketchCanvasContextMenu";
+import { useSketchStore } from "../state/useSketchStore";
 
 function renderContextMenu() {
   const theme = createTheme({ cssVariables: true });
   const onClose = jest.fn();
   const onNewLayer = jest.fn();
+  const toolSettings = useSketchStore.getState().toolSettings;
 
   render(
     <ThemeProvider theme={theme}>
@@ -19,14 +21,14 @@ function renderContextMenu() {
         open
         position={{ x: 120, y: 80 }}
         activeTool="select"
-        brushSettings={{ size: 10, hardness: 1, opacity: 1, spacing: 0.1, flow: 1, smoothing: 0, blendMode: "normal" }}
-        pencilSettings={{ size: 1, opacity: 1, spacing: 1, smoothing: 0 }}
-        eraserSettings={{ size: 10, hardness: 1, opacity: 1, spacing: 0.1, flow: 1, smoothing: 0 }}
-        shapeSettings={{ strokeColor: "#000000", fillColor: "#ffffff", strokeWidth: 1, fill: true, constrainProportions: false }}
-        fillSettings={{ tolerance: 0, contiguous: true, sampleAllLayers: false }}
-        blurSettings={{ size: 8, strength: 0.5 }}
-        gradientSettings={{ startColor: "#000000", endColor: "#ffffff", opacity: 1, type: "linear" }}
-        cloneStampSettings={{ size: 10, hardness: 1, opacity: 1, aligned: true, sampleAllLayers: false }}
+        brushSettings={toolSettings.brush}
+        pencilSettings={toolSettings.pencil}
+        eraserSettings={toolSettings.eraser}
+        shapeSettings={toolSettings.shape}
+        fillSettings={toolSettings.fill}
+        blurSettings={toolSettings.blur}
+        gradientSettings={toolSettings.gradient}
+        cloneStampSettings={toolSettings.cloneStamp}
         foregroundColor="#000000"
         backgroundColor="#ffffff"
         canUndo
@@ -41,7 +43,7 @@ function renderContextMenu() {
         onBlurSettingsChange={jest.fn()}
         onGradientSettingsChange={jest.fn()}
         onCloneStampSettingsChange={jest.fn()}
-        selectSettings={{ mode: "rectangle", magicWandTolerance: 0, featherRadius: 0, borderWidth: 1 }}
+        selectSettings={toolSettings.select}
         hasActiveSelection
         onSelectSettingsChange={jest.fn()}
         onInvertSelection={jest.fn()}

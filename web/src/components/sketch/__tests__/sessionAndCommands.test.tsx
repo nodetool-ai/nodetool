@@ -348,19 +348,19 @@ describe("useEditorCommands", () => {
         syncSketchOutputsNow: jest.fn(),
         handleInvertLayerColors: jest.fn(),
         prepareSelectionFreeTransform: jest.fn()
-      } as Parameters<typeof useEditorCommands>[0]["canvasActions"],
+      } as unknown as Parameters<typeof useEditorCommands>[0]["canvasActions"],
       layerActions: {
         handleAddLayer: jest.fn(() => "layer-new")
-      } as Parameters<typeof useEditorCommands>[0]["layerActions"],
-      colorActions: {} as Parameters<typeof useEditorCommands>[0]["colorActions"],
+      } as unknown as Parameters<typeof useEditorCommands>[0]["layerActions"],
+      colorActions: {} as unknown as Parameters<typeof useEditorCommands>[0]["colorActions"],
       segmentation: {
         runSegmentation: jest.fn()
-      } as Parameters<typeof useEditorCommands>[0]["segmentation"],
+      } as unknown as Parameters<typeof useEditorCommands>[0]["segmentation"],
       canvasStore: {
         setZoom: jest.fn(),
         setMirrorX: jest.fn(),
         setMirrorY: jest.fn()
-      } as Parameters<typeof useEditorCommands>[0]["canvasStore"],
+      } as unknown as Parameters<typeof useEditorCommands>[0]["canvasStore"],
       colorStore: {
         setBrushSettings: jest.fn(),
         setPencilSettings: jest.fn(),
@@ -370,12 +370,12 @@ describe("useEditorCommands", () => {
         setCloneStampSettings: jest.fn(),
         swapColors: jest.fn(),
         resetColors: jest.fn()
-      } as Parameters<typeof useEditorCommands>[0]["colorStore"],
+      } as unknown as Parameters<typeof useEditorCommands>[0]["colorStore"],
       sessionStore: {
         setActiveTool: jest.fn(),
         togglePanelsHidden: jest.fn(),
         setDocument: jest.fn()
-      } as Parameters<typeof useEditorCommands>[0]["sessionStore"]
+      } as unknown as Parameters<typeof useEditorCommands>[0]["sessionStore"]
     };
   };
 

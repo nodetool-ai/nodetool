@@ -14,7 +14,7 @@ export interface UseLayerActionsParams {
   canvasRef: RefObject<SketchCanvasRef | null>;
   document: SketchDocument;
   pushHistory: (label: string, layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>, options?: PushHistoryOptions) => void;
-  addLayer: () => string;
+  addLayer: (name?: string, type?: "raster" | "mask") => string;
   removeLayer: (layerId: string) => void;
   duplicateLayer: (layerId: string) => void;
   reorderLayers: (fromIndex: number, toIndex: number) => void;
