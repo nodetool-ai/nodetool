@@ -116,7 +116,6 @@ export default defineConfig(async ({ mode }) => {
                     "@react-three/drei"
                   ],
                   "vendor-editor": ["@monaco-editor/react", "lexical"],
-                  "vendor-pdf": ["react-pdf"],
                   "vendor-waveform": ["wavesurfer.js"]
                 }
               }

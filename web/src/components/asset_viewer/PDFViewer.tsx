@@ -1,295 +1,33 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import React, { useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import React from "react";
 import { Asset } from "../../stores/ApiTypes";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import {
-  FlexColumn,
-  FlexRow,
-  LoadingSpinner,
-  NodeSlider,
-  Text,
-  ToolbarIconButton
-} from "../ui_primitives";
-import {
-  NavigateBefore,
-  NavigateNext,
-  ZoomIn,
-  ZoomOut,
-  RestartAlt
-} from "@mui/icons-material";
-import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+import { FlexColumn, Text } from "../ui_primitives";
 
 interface PDFViewerProps {
   asset?: Asset;
   url?: string;
 }
 
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      width: "100%",
-      height: "calc(100% - 120px)",
-      marginTop: "1em",
-      position: "relative"
-    },
-    ".content-wrapper": {
-      flex: 1,
-      alignItems: "center",
-      width: "100%",
-      height: "100%",
-      overflow: "hidden",
-      paddingRight: "50px",
-      backgroundColor: "transparent"
-    },
-    ".pdf-document": {
-      width: "calc(100% - 320px)",
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      backgroundColor: "transparent",
-      marginBottom: "1em",
-      overflow: "auto scroll",
-      "& .react-pdf__Page": {
-        marginBottom: "1em",
-        display: "flex",
-        justifyContent: "center",
-        position: "relative",
-        "& canvas": {
-          position: "relative",
-          zIndex: 1,
-          width: "auto !important",
-          height: "auto !important"
-        },
-        "& .react-pdf__Page__annotations": {
-          display: "none",
-          position: "absolute",
-          left: 0,
-          top: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 2
-        },
-        "& .textLayer": {
-          display: "none",
-          position: "absolute",
-          right: "100px",
-          color: theme.vars.palette.grey[1000],
-          top: 0,
-          bottom: 0,
-          zIndex: 3
-        }
-      },
-      "& .react-pdf__Page__canvas": {
-        width: "auto !important",
-        height: "auto !important",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-      }
-    },
-    ".content-type": {
-      marginBottom: "1em",
-      color: theme.vars.palette.text.secondary
-    },
-    ".page-controls": {
-      position: "sticky",
-      bottom: "1em",
-      background: theme.vars.palette.grey[600],
-      padding: "0.8em 1em",
-      borderRadius: "4px 4px 0 0",
-      zIndex: 1,
-      alignItems: "center",
-      gap: "1em",
-      minWidth: "200px",
-      userSelect: "none"
-    },
-    ".zoom-controls": {
-      position: "absolute",
-      right: "230px",
-      bottom: "75px",
-      background: theme.vars.palette.background.paper,
-      padding: "0.2em",
-      borderRadius: "var(--rounded-sm)",
-      zIndex: 1
-    },
-    ".vertical-slider": {
-      position: "absolute",
-      right: "150px",
-      top: "25px",
-      height: "calc(100% - 85px)",
-      padding: "1em 0",
-      display: "flex",
-      alignItems: "center",
-      "& .MuiSlider-root": {
-        height: "100%",
-        width: ".2em",
-        "& .MuiSlider-track": {
-          backgroundColor: theme.vars.palette.grey[500]
-        },
-        "& .MuiSlider-rail": {
-          backgroundColor: theme.vars.palette.grey[800]
-        },
-        "& .MuiSlider-thumb": {
-          backgroundColor: theme.vars.palette.grey[400],
-          width: "16px",
-          height: "16px",
-          "&:hover, &.Mui-focusVisible": {
-            boxShadow: `0px 0px 0px 8px ${theme.vars.palette.grey[600]}40`
-          }
-        },
-        "& .MuiSlider-mark": {
-          backgroundColor: theme.vars.palette.grey[600],
-          borderRadius: "0",
-          width: "4px",
-          height: "4px"
-        }
-      }
-    }
-  });
-
-/**
- * PDFViewer component, used to display a PDF document for a given asset.
- */
 const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
-  const theme = useTheme();
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-  const [, setError] = useState<Error | null>(null);
-  const [scale, setScale] = useState(1);
-
   const pdfUrl = asset?.get_url || url;
 
-  // Memoize callbacks to prevent unnecessary re-renders
-  const onDocumentLoadSuccess = React.useCallback(
-    ({ numPages }: { numPages: number }) => {
-      setNumPages(numPages);
-      setPageNumber(1);
-    },
-    []
-  );
-
-  const onDocumentLoadError = React.useCallback((error: Error) => {
-    setError(error);
-  }, []);
-
-  const goToPrevPage = React.useCallback(() => {
-    setPageNumber((prev) => Math.max(1, prev - 1));
-  }, []);
-
-  const goToNextPage = React.useCallback(() => {
-    setPageNumber((prev) => Math.min(numPages || prev, prev + 1));
-  }, [numPages]);
-
-  const handleSliderChange = React.useCallback(
-    (_event: Event, newValue: number | number[]) => {
-      const actualPage = numPages ? numPages - (newValue as number) + 1 : 1;
-      setPageNumber(actualPage);
-    },
-    [numPages]
-  );
-
-  const zoomIn = React.useCallback(() => {
-    setScale((prev) => Math.min(prev + 0.2, 3));
-  }, []);
-
-  const zoomOut = React.useCallback(() => {
-    setScale((prev) => Math.max(prev - 0.2, 0.2));
-  }, []);
-
-  const resetZoom = React.useCallback(() => {
-    setScale(1);
-  }, []);
-
-  // Memoize the Page component to prevent unnecessary re-renders
-  const pageComponent = React.useMemo(
-    () => <Page pageNumber={pageNumber} scale={scale} />,
-    [pageNumber, scale]
-  );
-
   return (
-    <FlexRow className="pdf-viewer" css={styles(theme)} fullWidth sx={{ height: "calc(100% - 120px)", marginTop: "1em", position: "relative" }}>
-      <FlexColumn className="content-wrapper" fullWidth fullHeight align="center" sx={{ flex: 1, overflow: "hidden", paddingRight: "50px", backgroundColor: "transparent" }}>
-        {asset?.content_type && (
-          <Text size="small" className="content-type">
-            {asset.content_type}
-          </Text>
-        )}
-        <Document
-          className="pdf-document"
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={onDocumentLoadError}
-          loading={<LoadingSpinner />}
-          error={<Text color="error">Failed to load PDF</Text>}
-        >
-          {pageComponent}
-        </Document>
-        <FlexRow className="page-controls" align="center" gap={1} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: "4px 4px 0 0", zIndex: 1, minWidth: "200px", userSelect: "none" }}>
-          <ToolbarIconButton
-            icon={<NavigateBefore />}
-            tooltip="Previous page"
-            onClick={goToPrevPage}
-            disabled={pageNumber <= 1}
-            size="small"
-          />
-          <Text>
-            Page {pageNumber} of {numPages}
-          </Text>
-          <ToolbarIconButton
-            icon={<NavigateNext />}
-            tooltip="Next page"
-            onClick={goToNextPage}
-            disabled={pageNumber >= (numPages || 1)}
-            size="small"
-          />
-        </FlexRow>
-      </FlexColumn>
-      <ActionButtonGroup
-        className="zoom-controls"
-        spacing={0.25}
-        aria-label="Zoom controls"
-        nodrag={false}
-      >
-        <ToolbarIconButton
-          icon={<ZoomIn fontSize="small" />}
-          tooltip="Zoom in"
-          onClick={zoomIn}
-          size="small"
-        />
-        <ToolbarIconButton
-          icon={<ZoomOut fontSize="small" />}
-          tooltip="Zoom out"
-          onClick={zoomOut}
-          size="small"
-        />
-        <ToolbarIconButton
-          icon={<RestartAlt fontSize="small" />}
-          tooltip="Reset zoom"
-          onClick={resetZoom}
-          size="small"
-        />
-      </ActionButtonGroup>
-      <FlexRow className="vertical-slider" align="center" sx={{ position: "absolute", right: "150px", top: "25px", height: "calc(100% - 85px)", padding: "1em 0" }}>
-        <NodeSlider
-          value={numPages ? numPages - pageNumber + 1 : 1}
-          onChange={handleSliderChange}
-          min={1}
-          max={numPages || 1}
-          step={1}
-          marks
-          density="compact"
-          orientation="vertical"
-          aria-label="Page navigation slider"
-        />
-      </FlexRow>
-    </FlexRow>
+    <FlexColumn
+      fullWidth
+      fullHeight
+      sx={{ height: "calc(100% - 120px)", marginTop: "1em" }}
+    >
+      {asset?.content_type && (
+        <Text size="small" color="secondary" sx={{ marginBottom: "0.5em" }}>
+          {asset.content_type}
+        </Text>
+      )}
+      <iframe
+        src={pdfUrl}
+        style={{ width: "100%", flex: 1, border: "none" }}
+        title="PDF Viewer"
+      />
+    </FlexColumn>
   );
 };
 
