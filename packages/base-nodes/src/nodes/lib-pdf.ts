@@ -2,7 +2,8 @@
  * PDF processing nodes using @llamaindex/liteparse.
  *
  * Provides text extraction, markdown conversion, table detection,
- * layout analysis, and metadata reading from PDF documents.
+ * layout analysis, metadata reading, screenshots, text search,
+ * and OCR extraction from PDF documents.
  */
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
@@ -23,33 +24,30 @@ function asBytes(data: Uint8Array | string | undefined): Uint8Array {
   return Uint8Array.from(Buffer.from(data, "base64"));
 }
 
+async function resolvePdfBuffer(
+  pdf: DocumentRefLike,
+  context?: ProcessingContext
+): Promise<Buffer> {
+  if (pdf.data) {
+    return Buffer.from(asBytes(pdf.data));
+  } else if (pdf.uri) {
+    const uri = pdf.uri.startsWith("file://") ? pdf.uri.slice(7) : pdf.uri;
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(pdf.uri);
+      if (stored !== null) return Buffer.from(stored);
+    }
+    const { promises: fs } = await import("node:fs");
+    return fs.readFile(uri);
+  }
+  throw new Error("No PDF data or URI provided");
+}
+
 async function parsePdf(
   pdf: DocumentRefLike,
   context?: ProcessingContext
 ): Promise<ParseResult> {
   const { LiteParse } = await import("@llamaindex/liteparse");
-  let pdfBuffer: Buffer;
-
-  if (pdf.data) {
-    pdfBuffer = Buffer.from(asBytes(pdf.data));
-  } else if (pdf.uri) {
-    const uri = pdf.uri.startsWith("file://") ? pdf.uri.slice(7) : pdf.uri;
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(pdf.uri);
-      if (stored !== null) {
-        pdfBuffer = Buffer.from(stored);
-      } else {
-        const { promises: fs } = await import("node:fs");
-        pdfBuffer = await fs.readFile(uri);
-      }
-    } else {
-      const { promises: fs } = await import("node:fs");
-      pdfBuffer = await fs.readFile(uri);
-    }
-  } else {
-    throw new Error("No PDF data or URI provided");
-  }
-
+  const pdfBuffer = await resolvePdfBuffer(pdf, context);
   const parser = new LiteParse({ ocrEnabled: false });
   return parser.parse(pdfBuffer, true);
 }
@@ -761,6 +759,243 @@ export class PdfPageMetadataNode extends BaseNode {
 }
 
 // ---------------------------------------------------------------------------
+// Screenshot
+// ---------------------------------------------------------------------------
+
+export class PdfScreenshotNode extends BaseNode {
+  static readonly nodeType = "lib.pdf.Screenshot";
+  static readonly title = "PDF Page Screenshot";
+  static readonly description =
+    "Render PDF pages as PNG images.\n    pdf, screenshot, render, image, pages, png";
+  static readonly metadataOutputTypes = { output: "list[image]" };
+
+  @prop(PDF_INPUT)
+  declare pdf: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page to render (0-based)"
+  })
+  declare start_page: any;
+
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page to render (-1 for all)"
+  })
+  declare end_page: any;
+
+  @prop({
+    type: "int",
+    default: 150,
+    title: "DPI",
+    description: "Rendering resolution in dots per inch",
+    min: 72,
+    max: 600
+  })
+  declare dpi: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const { LiteParse } = await import("@llamaindex/liteparse");
+    const pdfBuffer = await resolvePdfBuffer(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
+    const dpi = Number(this.dpi ?? 150);
+    const parser = new LiteParse({ ocrEnabled: false, dpi });
+
+    // Screenshot all pages, then slice to the requested range
+    const allShots = await parser.screenshot(pdfBuffer, undefined, true);
+    const [start, end] = resolvePageRange(
+      Number(this.start_page ?? 0),
+      Number(this.end_page ?? -1),
+      allShots.length
+    );
+    const shots = allShots.slice(start, end + 1);
+
+    const images = shots.map((s) => ({
+      type: "image",
+      data: s.imageBuffer.toString("base64")
+    }));
+    return { output: images };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SearchText
+// ---------------------------------------------------------------------------
+
+export class PdfSearchTextNode extends BaseNode {
+  static readonly nodeType = "lib.pdf.SearchText";
+  static readonly title = "PDF Search Text";
+  static readonly description =
+    "Search a PDF for a phrase and return each match with its page number and bounding box.\n    pdf, search, find, phrase, text, location, bbox";
+  static readonly metadataOutputTypes = { output: "list[dict]" };
+  static readonly exposeAsTool = true;
+
+  @prop(PDF_INPUT)
+  declare pdf: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Phrase",
+    description: "Text phrase to search for"
+  })
+  declare phrase: any;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Case Sensitive",
+    description: "Whether the search is case-sensitive"
+  })
+  declare case_sensitive: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page to search (0-based)"
+  })
+  declare start_page: any;
+
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page to search (-1 for all)"
+  })
+  declare end_page: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const { searchItems } = await import("@llamaindex/liteparse");
+    const result = await parsePdf(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
+    const [start, end] = resolvePageRange(
+      Number(this.start_page ?? 0),
+      Number(this.end_page ?? -1),
+      result.pages.length
+    );
+    const phrase = String(this.phrase ?? "");
+    const caseSensitive = Boolean(this.case_sensitive ?? false);
+    const matches: Record<string, unknown>[] = [];
+
+    for (let i = start; i <= end; i++) {
+      const page = result.pages[i];
+      if (!page) continue;
+
+      // Convert TextItem (str) to JsonTextItem (text) shape for searchItems
+      const jsonItems = page.textItems.map((it) => ({
+        text: it.str,
+        x: it.x,
+        y: it.y,
+        width: it.width,
+        height: it.height,
+        fontName: it.fontName,
+        fontSize: it.fontSize,
+        confidence: it.confidence
+      }));
+
+      const found = searchItems(jsonItems, { phrase, caseSensitive });
+      for (const m of found) {
+        matches.push({
+          page: i,
+          text: m.text,
+          x: m.x,
+          y: m.y,
+          width: m.width,
+          height: m.height,
+          fontName: m.fontName ?? null,
+          fontSize: m.fontSize ?? null
+        });
+      }
+    }
+
+    return { output: matches };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ExtractOcr
+// ---------------------------------------------------------------------------
+
+export class PdfExtractOcrNode extends BaseNode {
+  static readonly nodeType = "lib.pdf.ExtractOcr";
+  static readonly title = "PDF Extract Text (OCR)";
+  static readonly description =
+    "Extract text from a PDF using OCR, suitable for scanned documents and image-based PDFs.\n    pdf, ocr, scan, text, extract, image-based";
+  static readonly metadataOutputTypes = { output: "str" };
+  static readonly exposeAsTool = true;
+
+  @prop(PDF_INPUT)
+  declare pdf: any;
+
+  @prop({
+    type: "int",
+    default: 0,
+    title: "Start Page",
+    description: "First page (0-based)"
+  })
+  declare start_page: any;
+
+  @prop({
+    type: "int",
+    default: -1,
+    title: "End Page",
+    description: "Last page (-1 for all)"
+  })
+  declare end_page: any;
+
+  @prop({
+    type: "str",
+    default: "en",
+    title: "OCR Language",
+    description: "ISO 639-1 language code for OCR (e.g. en, fr, de, es)"
+  })
+  declare ocr_language: any;
+
+  @prop({
+    type: "int",
+    default: 150,
+    title: "DPI",
+    description: "Rendering DPI for OCR — higher values improve accuracy on small text",
+    min: 72,
+    max: 600
+  })
+  declare dpi: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const { LiteParse } = await import("@llamaindex/liteparse");
+    const pdfBuffer = await resolvePdfBuffer(
+      (this.pdf ?? {}) as DocumentRefLike,
+      context
+    );
+    const ocrLanguage = String(this.ocr_language ?? "en");
+    const dpi = Number(this.dpi ?? 150);
+    const parser = new LiteParse({ ocrEnabled: true, ocrLanguage, dpi });
+    const result = await parser.parse(pdfBuffer, true);
+
+    const [start, end] = resolvePageRange(
+      Number(this.start_page ?? 0),
+      Number(this.end_page ?? -1),
+      result.pages.length
+    );
+    const parts: string[] = [];
+    for (let i = start; i <= end; i++) {
+      const page = result.pages[i];
+      if (page) parts.push(page.text);
+    }
+    return { output: parts.join("\n\n").trim() };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
 
@@ -771,5 +1006,8 @@ export const LIB_PDF_NODES = [
   PdfExtractTablesNode,
   PdfExtractTextBlocksNode,
   PdfExtractStyledTextNode,
-  PdfPageMetadataNode
+  PdfPageMetadataNode,
+  PdfScreenshotNode,
+  PdfSearchTextNode,
+  PdfExtractOcrNode
 ] as const;
