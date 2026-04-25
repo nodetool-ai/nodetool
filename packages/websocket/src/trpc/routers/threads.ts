@@ -9,7 +9,6 @@
 import { Thread, Message } from "@nodetool/models";
 import type { Thread as ThreadModel } from "@nodetool/models";
 import { ApiErrorCode } from "../../error-codes.js";
-import { TRPCError } from "@trpc/server";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
@@ -105,13 +104,15 @@ export const threadsRouter = router({
     .output(threadResponse)
     .query(async ({ ctx, input }) => {
       const existing = await Thread.find(ctx.userId, input.id);
-      if (!existing) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: `Thread ${input.id} not found`
-        });
+      if (existing) {
+        return toThreadResponse(existing);
       }
-      return toThreadResponse(existing);
+      const created = (await Thread.create({
+        id: input.id,
+        user_id: ctx.userId,
+        title: "New Thread"
+      })) as unknown as ThreadModel;
+      return toThreadResponse(created);
     }),
 
   create: protectedProcedure

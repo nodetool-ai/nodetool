@@ -28,7 +28,6 @@ import {
   type NodeExecutor
 } from "@nodetool/runtime";
 import { WorkflowRunner } from "@nodetool/kernel";
-import log from "loglevel";
 import type { AgentTransport } from "./agent/transport.js";
 
 export interface McpServerOptions {

@@ -549,12 +549,16 @@ export class Agent extends BaseAgent {
     const allResults = executor.getAllResults();
     const taskCount = Object.keys(allResults).length;
     const singleResult = taskCount === 1 ? Object.values(allResults)[0] : null;
+    const singleIsGoodString =
+      taskCount === 1 &&
+      typeof singleResult === "string" &&
+      singleResult.trim().length > 0;
 
     if (taskCount === 0) {
       this.results = executor.getFinalResult();
-    } else if (taskCount === 1 && singleResult !== undefined) {
+    } else if (singleIsGoodString) {
       this.results =
-        this.outputFormat === "structured" && this.outputSchema && typeof singleResult === "string"
+        this.outputFormat === "structured" && this.outputSchema
           ? { markdown: singleResult }
           : singleResult;
     } else {
