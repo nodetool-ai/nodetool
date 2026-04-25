@@ -71,7 +71,7 @@
     "tabulator-tables": "^6.3.0",
     "three": "^0.172.0",
     "use-debounce": "^10.0.4",
-    "uuid": "^11.0.3",
+    "uuid": "^14.0.0",
     "wavesurfer.js": "^7.8.10",
     "zod": "^4.3.6",
     "zundo": "^2.3.0",
