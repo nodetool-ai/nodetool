@@ -1,7 +1,13 @@
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { tmpdir } from "node:os";
+import { join as joinPath } from "node:path";
 import { getDefaultTransformersJsCacheDir } from "@nodetool/config";
 import type { ProcessingContext } from "@nodetool/runtime";
+
+const execFileP = promisify(execFile);
 
 /**
  * Shared helpers for Transformers.js nodes.
@@ -387,6 +393,64 @@ function resampleLinear(
 }
 
 /**
+ * Convert arbitrary audio bytes (mp3 / m4a / flac / ogg / etc.) to a mono
+ * 16-bit PCM WAV at the requested sample rate by shelling out to ffmpeg.
+ *
+ * `ffmpeg` is one of the runtime tools managed by Nodetool's Package
+ * Manager (alongside yt-dlp, pandoc) and is also a hard requirement for
+ * the existing video / TTS nodes in `@nodetool/base-nodes`, so it is
+ * effectively guaranteed to be on PATH in any environment that runs media
+ * workflows. When it is not available we throw a clear error pointing the
+ * user at the WAV-only fallback so they know how to recover.
+ */
+async function ffmpegToWav(
+  bytes: Uint8Array,
+  targetSampleRate: number
+): Promise<Uint8Array> {
+  const dir = await fs.mkdtemp(joinPath(tmpdir(), "nodetool-tjs-audio-"));
+  const inPath = joinPath(dir, "input.bin");
+  const outPath = joinPath(dir, "output.wav");
+  try {
+    await fs.writeFile(inPath, bytes);
+    await execFileP(
+      "ffmpeg",
+      [
+        "-y",
+        "-loglevel",
+        "error",
+        "-i",
+        inPath,
+        "-ac",
+        "1", // mono
+        "-ar",
+        String(targetSampleRate),
+        "-c:a",
+        "pcm_s16le", // 16-bit PCM
+        "-f",
+        "wav",
+        outPath
+      ],
+      { maxBuffer: 64 * 1024 * 1024 }
+    );
+    return new Uint8Array(await fs.readFile(outPath));
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException & { stderr?: string };
+    if (e?.code === "ENOENT") {
+      throw new Error(
+        "Audio decode failed: input is not WAV and `ffmpeg` is not on PATH. " +
+          "Install ffmpeg (the Package Manager UI can do this for you) or " +
+          "convert the audio to WAV (PCM 8/16-bit) before feeding it to a " +
+          "Transformers.js audio node."
+      );
+    }
+    const stderr = e?.stderr ? `: ${e.stderr.trim()}` : "";
+    throw new Error(`ffmpeg failed to decode audio${stderr}`);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
+/**
  * Resolve an audio ref into a mono Float32Array sampled at the requested
  * rate.
  *
@@ -397,10 +461,14 @@ function resampleLinear(
  * directly:
  *   https://huggingface.co/docs/transformers.js/guides/node-audio-processing
  *
- * We accept WAV bytes (16- or 8-bit PCM, any channel count, any sample
- * rate), mix to mono, and linearly resample to `samplingRate`. Non-WAV
- * inputs raise an actionable error rather than silently failing inside the
- * pipeline.
+ * Decode strategy:
+ *   1. Fast path — if the bytes are already a WAV (PCM 8/16-bit), parse
+ *      them in-process. No subprocess overhead.
+ *   2. Fallback — for any other format (mp3 / m4a / flac / ogg / etc.)
+ *      shell out to ffmpeg to convert to mono 16-bit WAV at the target
+ *      rate, then parse the result. Letting ffmpeg do the resampling
+ *      avoids a second pass and gives much better quality than the linear
+ *      resampler used for the in-process WAV path.
  */
 export async function loadAudioSamples(
   ref: AudioRefLike | undefined,
@@ -411,14 +479,18 @@ export async function loadAudioSamples(
   if (!bytes.length) {
     throw new Error("Audio input is empty");
   }
-  const wav = parseWavBytes(bytes);
+
+  let wav = parseWavBytes(bytes);
   if (!wav) {
-    throw new Error(
-      "Transformers.js audio nodes only accept WAV (PCM 8/16-bit) input. " +
-        "Convert to WAV first (e.g. with the Audio → WAV node) before " +
-        "passing it to ASR / audio-classification."
-    );
+    const converted = await ffmpegToWav(bytes, samplingRate);
+    wav = parseWavBytes(converted);
+    if (!wav) {
+      // ffmpeg succeeded but produced something we can't parse — should
+      // not happen with the explicit `-f wav -c:a pcm_s16le` flags above.
+      throw new Error("ffmpeg produced unparseable WAV output");
+    }
   }
+
   const mono = mixToMono(wav.samples, wav.numChannels);
   return resampleLinear(mono, wav.sampleRate, samplingRate);
 }

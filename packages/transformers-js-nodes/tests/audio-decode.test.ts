@@ -80,10 +80,13 @@ describe("loadAudioSamples (Node-friendly WAV decode)", () => {
     expect(out[2]).toBeCloseTo(0, 3);
   });
 
-  it("throws an actionable error on non-WAV input", async () => {
+  it("falls back to ffmpeg for non-WAV input and throws an actionable error if ffmpeg fails or is missing", async () => {
+    // 5 bytes of garbage: definitely not WAV, definitely not decodable by ffmpeg.
+    // Either ffmpeg surfaces a decode error or — if ffmpeg isn't on PATH at
+    // all — we throw the install-hint error instead. Both paths are correct.
     const garbage = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04]);
     await expect(loadAudioSamples(refFromBytes(garbage), 16000)).rejects.toThrow(
-      /WAV \(PCM 8\/16-bit\) input/
+      /ffmpeg/i
     );
   });
 
