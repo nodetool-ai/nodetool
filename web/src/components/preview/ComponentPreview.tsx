@@ -30,6 +30,7 @@ const ModelListIndex = React.lazy(
 );
 const AssetExplorer = React.lazy(() => import("../assets/AssetExplorer"));
 const Portal = React.lazy(() => import("../portal/Portal"));
+const ChartRenderer = React.lazy(() => import("../node/output/ChartRenderer"));
 
 interface PreviewEntry {
   id: string;
@@ -58,10 +59,10 @@ const PREVIEWS: PreviewEntry[] = [
     viewport: { width: 1920, height: 1080 }
   },
   {
-    id: "assets",
-    label: "Asset Explorer",
-    description: "Asset browser and file manager",
-    viewport: { width: 1920, height: 1080 }
+    id: "chart-renderer",
+    label: "Chart Renderer",
+    description: "Chart.js output renderer with sample line, bar, scatter charts",
+    viewport: { width: 1200, height: 900 }
   }
 ];
 
@@ -104,6 +105,147 @@ const PreviewAssets: React.FC = () => (
     </Suspense>
   </Box>
 );
+
+// ─── Sample chart configs ──────────────────────────────────────────────────────
+
+const LINE_CONFIG = {
+  title: "Monthly Revenue",
+  x_label: "Month",
+  y_label: "Revenue ($)",
+  legend: true,
+  data: {
+    series: [
+      {
+        type: "line",
+        label: "Product A",
+        x: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        y: [12000, 19000, 14000, 22000, 18000, 25000]
+      },
+      {
+        type: "line",
+        label: "Product B",
+        x: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        y: [8000, 11000, 9500, 14000, 13000, 17000]
+      }
+    ]
+  }
+};
+
+const BAR_CONFIG = {
+  title: "Quarterly Sales by Region",
+  x_label: "Quarter",
+  y_label: "Units Sold",
+  legend: true,
+  data: {
+    series: [
+      {
+        type: "bar",
+        label: "North",
+        x: ["Q1", "Q2", "Q3", "Q4"],
+        y: [340, 420, 390, 510]
+      },
+      {
+        type: "bar",
+        label: "South",
+        x: ["Q1", "Q2", "Q3", "Q4"],
+        y: [280, 310, 350, 400]
+      },
+      {
+        type: "bar",
+        label: "West",
+        x: ["Q1", "Q2", "Q3", "Q4"],
+        y: [190, 240, 210, 280]
+      }
+    ]
+  }
+};
+
+const PIE_CONFIG = {
+  title: "Market Share",
+  legend: true,
+  data: {
+    series: [
+      {
+        type: "pie",
+        labels: ["Alpha", "Beta", "Gamma", "Delta", "Other"],
+        values: [38, 27, 18, 11, 6]
+      }
+    ]
+  }
+};
+
+const MIXED_CONFIG = {
+  title: "Visitors vs Conversions",
+  x_label: "Week",
+  y_label: "Count",
+  legend: true,
+  data: {
+    series: [
+      {
+        type: "bar",
+        label: "Visitors",
+        x: ["W1", "W2", "W3", "W4", "W5", "W6"],
+        y: [1200, 1500, 1350, 1700, 1600, 1900]
+      },
+      {
+        type: "line",
+        label: "Conversions",
+        x: ["W1", "W2", "W3", "W4", "W5", "W6"],
+        y: [84, 110, 95, 130, 122, 148]
+      }
+    ]
+  }
+};
+
+const PreviewChartRenderer: React.FC = () => {
+  const theme = useTheme();
+  const configs = [
+    { key: "line", config: LINE_CONFIG },
+    { key: "bar", config: BAR_CONFIG },
+    { key: "pie", config: PIE_CONFIG },
+    { key: "mixed", config: MIXED_CONFIG }
+  ];
+  return (
+    <Box
+      data-preview="chart-renderer"
+      sx={{
+        p: 3,
+        bgcolor: theme.palette.background.default,
+        minHeight: "100vh"
+      }}
+    >
+      <Text size="big" weight={700} sx={{ mb: 3 }}>
+        Chart Renderer — Chart.js Output
+      </Text>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: 3
+        }}
+      >
+        {configs.map(({ key, config }) => (
+          <Box
+            key={key}
+            sx={{
+              height: 320,
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 1,
+              overflow: "hidden",
+              bgcolor: theme.palette.background.paper,
+              p: 1
+            }}
+          >
+            <Suspense fallback={<LoadingSpinner size="small" />}>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              <ChartRenderer config={config as any} />
+            </Suspense>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+};
 
 // ─── Preview index page ────────────────────────────────────────────────────────
 
@@ -186,7 +328,8 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "app-header": PreviewAppHeader,
   dashboard: PreviewDashboard,
   models: PreviewModels,
-  assets: PreviewAssets
+  assets: PreviewAssets,
+  "chart-renderer": PreviewChartRenderer
 };
 
 const ComponentPreview: React.FC = () => {
