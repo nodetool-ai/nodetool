@@ -554,9 +554,11 @@ export class WorkflowRunner {
 
     for (const edge of incomingData) {
       const handle = edge.targetHandle;
+      const sourceNode = this._graph.findNode(edge.source);
       if (!resolved.has(handle) && baseCapacity !== null) {
         resolved.set(handle, { capacity: baseCapacity });
       }
+      applyPolicy(handle, sourceNode?.inputBufferPolicy?.[edge.sourceHandle]);
       applyPolicy(handle, node.inputBufferPolicy?.[handle]);
       applyPolicy(handle, edge.metadata);
     }
@@ -1033,7 +1035,7 @@ export class WorkflowRunner {
    * Broadcast a control event to all controlled nodes.
    */
   async dispatchControlEvent(event: ControlEvent): Promise<void> {
-    for (const node of this._graph.getControlledNodes()) {
+    for (const node of this._graph.nodes.filter((node) => node.is_controlled)) {
       const inbox = this._inboxes.get(node.id);
       if (inbox) {
         await inbox.put("__control__", event);
@@ -1051,6 +1053,18 @@ export class WorkflowRunner {
     const inbox = this._inboxes.get(targetNodeId);
     if (inbox) {
       await inbox.put("__control__", event);
+    }
+  }
+
+  finishControlStreams(): void {
+    for (const node of this._graph.nodes.filter((node) => node.is_controlled)) {
+      const inbox = this._inboxes.get(node.id);
+      if (!inbox) {
+        continue;
+      }
+      while (inbox.isOpen("__control__")) {
+        inbox.markSourceDone("__control__");
+      }
     }
   }
 
@@ -1216,7 +1230,11 @@ export class WorkflowRunner {
    */
   private _isExternalInputNode(node: NodeDescriptor): boolean {
     return (
-      node.type.startsWith("nodetool.input.") || node.type === "test.Input"
+      node.type.startsWith("nodetool.input.") ||
+      node.type === "test.Input" ||
+      (node.type.startsWith("nodetool.realtime.") &&
+        node.is_media_adapter === true &&
+        node.is_streaming_output === true)
     );
   }
 

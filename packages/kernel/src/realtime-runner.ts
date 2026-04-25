@@ -57,6 +57,10 @@ export class RealtimeRunner {
       for (const inputName of this.runner.getMediaAdapterInputNames()) {
         this.runner.finishInputStream(inputName);
       }
+      await this.runner.dispatchControlEvent({
+        event_type: "stop"
+      });
+      this.runner.finishControlStreams();
 
       if (this.processingPromise) {
         await this.processingPromise;

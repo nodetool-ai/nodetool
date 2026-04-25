@@ -42,7 +42,7 @@ Rules for the remaining work:
 - [x] **7c. Create `packages/realtime-nodes/`.**
   - Add package files, root workspace entry, `tsconfig.build.json` reference, and package dependencies.
   - Export `registerRealtimeNodes(registry)` and wire it into CLI/websocket registry boot paths.
-- [ ] **7d. Implement first `nodetool.realtime` nodes.**
+- [x] **7d. Implement first `nodetool.realtime` nodes.**
   - `VideoSource`, `VideoSink`, `AudioSource`, `AudioSink`, `Parameter`, `SessionInfo`.
   - Add loopback tests for frame routing, drop-oldest behavior, parameter routing, and lifecycle hooks.
 - [ ] **8a. Spike server-side WebRTC before committing to full integration.**
@@ -680,7 +680,7 @@ Completed foundation:
 
 Remaining:
 
-- [ ] Step 7d: first realtime nodes
+- [x] Steps 7a-7d: session info, frame types, package, first realtime nodes
 - [ ] Steps 8a-8d: WebRTC spike, backend media endpoint, lifecycle, metrics
 - [ ] Step 9: pre-model design pass
 - [ ] Step 10: LongLive

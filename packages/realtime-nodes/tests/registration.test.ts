@@ -1,14 +1,41 @@
 import { describe, expect, it } from "vitest";
 import { NodeRegistry } from "@nodetool/node-sdk";
-import { REALTIME_NODES, registerRealtimeNodes } from "../src/index.js";
+import {
+  AudioSink,
+  AudioSource,
+  Parameter,
+  REALTIME_NODES,
+  registerRealtimeNodes,
+  SessionInfo,
+  VideoSink,
+  VideoSource
+} from "../src/index.js";
 
 describe("realtime node registration", () => {
-  it("exports the realtime node collection and registration hook", () => {
+  it("exports all first realtime nodes and registers them", () => {
     const registry = new NodeRegistry();
+    const expectedNodeTypes = [
+      "nodetool.realtime.VideoSource",
+      "nodetool.realtime.VideoSink",
+      "nodetool.realtime.AudioSource",
+      "nodetool.realtime.AudioSink",
+      "nodetool.realtime.Parameter",
+      "nodetool.realtime.SessionInfo"
+    ];
 
     registerRealtimeNodes(registry);
 
-    expect(Array.isArray(REALTIME_NODES)).toBe(true);
-    expect(registry.list()).toEqual(REALTIME_NODES.map((node) => node.nodeType));
+    expect(REALTIME_NODES).toEqual([
+      VideoSource,
+      VideoSink,
+      AudioSource,
+      AudioSink,
+      Parameter,
+      SessionInfo
+    ]);
+    expect(registry.list()).toEqual(expectedNodeTypes);
+    for (const nodeType of expectedNodeTypes) {
+      expect(registry.has(nodeType)).toBe(true);
+    }
   });
 });
