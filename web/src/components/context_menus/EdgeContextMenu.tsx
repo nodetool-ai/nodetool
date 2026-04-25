@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, memo } from "react";
+import { shallow } from "zustand/shallow";
 import { Menu } from "@mui/material";
 import ContextMenuItem from "./ContextMenuItem";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -27,7 +28,8 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
       createNode: state.createNode,
       addNode: state.addNode,
       addEdge: state.addEdge
-    })
+    }),
+    shallow
   );
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
