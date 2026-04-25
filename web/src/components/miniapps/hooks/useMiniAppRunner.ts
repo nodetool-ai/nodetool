@@ -200,7 +200,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     // Subscribe to workflow_id for messages that include workflow_id
     const unsubscribeWorkflow = globalWebSocketManager.subscribe(
       workflowKey,
-      (message: any) => {
+      (message) => {
         const currentWorkflow =
           runnerStore.getState().workflow || selectedWorkflow;
         if (currentWorkflow) {
@@ -223,7 +223,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         return;
       }
 
-      unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message: any) => {
+      unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message) => {
         // Avoid double-processing when the backend already provides workflow_id
         if (message?.workflow_id) {
           return;

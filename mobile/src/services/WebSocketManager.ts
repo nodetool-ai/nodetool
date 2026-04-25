@@ -17,7 +17,7 @@ import {
 
 interface WebSocketMessage {
   type: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface WebSocketCallbacks {
@@ -175,7 +175,7 @@ export class WebSocketManager {
 
     this.ws.onopen = () => this.handleOpen();
     this.ws.onmessage = (event) => this.handleMessage(event);
-    this.ws.onerror = (event) => this.handleError(event as any);
+    this.ws.onerror = (event) => this.handleError(event as { message?: string });
     this.ws.onclose = (event) => this.handleClose(event);
   }
 
@@ -203,7 +203,7 @@ export class WebSocketManager {
 
   private async handleMessage(event: WebSocketMessageEvent): Promise<void> {
     try {
-      let data: any;
+      let data: unknown;
 
       if (event.data instanceof ArrayBuffer) {
         data = decode(new Uint8Array(event.data));
