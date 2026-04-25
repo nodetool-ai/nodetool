@@ -14,7 +14,6 @@ const DEFAULT_TAG_SUGGESTIONS = [
   "image",
   "audio",
   "video",
-  "comfy",
   "chat",
   "docs",
   "mail",
@@ -309,7 +308,6 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           options={[
             { value: "workflow", label: "Workflow" },
             { value: "chat", label: "Chat" },
-            { value: "comfy", label: "Comfy" },
             { value: "app", label: "App" },
             { value: "tool", label: "Tool" }
           ]}

@@ -337,10 +337,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
       isInputNode: type.startsWith("nodetool.input"),
-      isOutputNode:
-        type.startsWith("nodetool.output") ||
-        type === "comfy.image.SaveImage" ||
-        type === "comfy.image.PreviewImage",
+      isOutputNode: type.startsWith("nodetool.output"),
       isAgentNode: isAgentNodeType(type)
     }),
     [type]

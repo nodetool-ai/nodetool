@@ -120,7 +120,6 @@ import vercelIcon from "@lobehub/icons-static-svg/icons/vercel.svg";
 import openrouterIcon from "@lobehub/icons-static-svg/icons/openrouter.svg";
 import lobehubColorIcon from "@lobehub/icons-static-svg/icons/lobehub-color.svg";
 import automaticColorIcon from "@lobehub/icons-static-svg/icons/automatic-color.svg";
-import comfyuiColorIcon from "@lobehub/icons-static-svg/icons/comfyui-color.svg";
 import glifIcon from "@lobehub/icons-static-svg/icons/glif.svg";
 import pollinationsIcon from "@lobehub/icons-static-svg/icons/pollinations.svg";
 import ppioColorIcon from "@lobehub/icons-static-svg/icons/ppio-color.svg";
@@ -314,7 +313,6 @@ const providerIconMap: Record<string, string> = {
   automatic: automaticColorIcon,
   "automatic1111": automaticColorIcon,
   "stable-diffusion-webui": automaticColorIcon,
-  comfyui: comfyuiColorIcon,
   glif: glifIcon,
   pollinations: pollinationsIcon,
   ppio: ppioColorIcon,

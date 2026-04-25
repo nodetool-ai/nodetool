@@ -2,7 +2,6 @@
 import { css } from "@emotion/react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import ComfyModelSelect from "./ComfyModelSelect";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import isEqual from "fast-deep-equal";
@@ -93,17 +92,7 @@ const ModelProperty = (props: PropertyProps) => {
 
   // Memoize model select component to avoid recreation on every render
   const modelSelectComponent = useMemo(() => {
-    if (modelType.startsWith("comfy.")) {
-      if (props.nodeType.startsWith("comfy.loaders.")) {
-        return (
-          <ComfyModelSelect
-            modelType={modelType}
-            onChange={props.onChange}
-            value={props.value?.name || ""}
-          />
-        );
-      }
-    } else if (modelType === "language_model") {
+    if (modelType === "language_model") {
       return (
         <LanguageModelSelect
           onChange={props.onChange}
@@ -172,7 +161,7 @@ const ModelProperty = (props: PropertyProps) => {
       );
     }
     return null;
-  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
+  }, [modelType, props.onChange, props.value, imageTask, videoTask, model3dTask]);
 
   if (isConnected) {
     return (

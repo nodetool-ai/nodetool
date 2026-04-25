@@ -53,8 +53,6 @@ import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
-import type { ComfyUIObjectInfo } from "./services/ComfyUIService";
-import { comfyObjectInfoToMetadataMap } from "./utils/comfySchemaConverter";
 import {
   FetchCurrentWorkflow,
   WorkflowManagerProvider
@@ -499,48 +497,6 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
-const preloadComfyMetadata = async (): Promise<void> => {
-  try {
-    // Load bundled ComfyUI schema snapshot (no network request)
-    const objectInfoModule =
-      await import("./data/comfy-object-info.json").catch(() => null);
-    if (!objectInfoModule) {
-      log.info("[startup] No bundled ComfyUI schema found, skipping preload");
-      return;
-    }
-    const objectInfo = (objectInfoModule.default ??
-      objectInfoModule) as unknown as ComfyUIObjectInfo;
-    const comfyMetadata = comfyObjectInfoToMetadataMap(objectInfo);
-    const comfyMetadataCount = Object.keys(comfyMetadata).length;
-    if (comfyMetadataCount === 0) {
-      return;
-    }
-
-    const metadataStore = useMetadataStore.getState();
-    metadataStore.setMetadata({
-      ...metadataStore.metadata,
-      ...comfyMetadata
-    });
-
-    const registeredNodeTypes = metadataStore.nodeTypes;
-    const baseNodeComponent =
-      registeredNodeTypes["nodetool.workflows.base_node.Preview"] ||
-      Object.values(registeredNodeTypes)[0];
-
-    if (baseNodeComponent) {
-      Object.keys(comfyMetadata).forEach((nodeType) => {
-        metadataStore.addNodeType(nodeType, baseNodeComponent);
-      });
-    }
-
-    log.info(
-      `[startup] Loaded ${comfyMetadataCount} ComfyUI node metadata entries from bundled schema`
-    );
-  } catch (error) {
-    log.warn("[startup] ComfyUI metadata preload skipped", error);
-  }
-};
-
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   const authState = useAuth((s) => s.state);
@@ -570,11 +526,6 @@ const AppWrapper = () => {
     loadMetadata()
       .then((data) => {
         setStatus(data);
-        if (data === "success") {
-          // Load Comfy metadata in the background so imported comfy workflows
-          // are immediately recognized without manual connect steps.
-          void preloadComfyMetadata();
-        }
       })
       .catch((error) => {
         log.error("Failed to load metadata:", error);

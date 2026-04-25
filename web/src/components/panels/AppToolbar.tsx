@@ -25,7 +25,6 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { Workflow } from "../../stores/ApiTypes";
 import { isLocalhost } from "../../lib/env";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import { executeComfyWorkflow } from "../../utils/comfyExecutor";
 import { shallow } from "zustand/shallow";
 
 // Icons
@@ -474,9 +473,6 @@ const WorkflowModeSelect = memo(function WorkflowModeSelect() {
           <MenuItem tabIndex={-1} value="chat">
             Chat
           </MenuItem>
-          <MenuItem tabIndex={-1} value="comfy">
-            Comfy
-          </MenuItem>
           <MenuItem tabIndex={-1} value="tool">
             Tool
           </MenuItem>
@@ -520,16 +516,8 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
   const handleRun = useCallback(async () => {
     if (!isBusy) {
       const currentState = nodeStore.getState();
-      const currentWorkflow = currentState.getWorkflow();
-      const shouldRunViaComfy =
-        currentWorkflow.run_mode === "comfy" || currentState.isComfyWorkflow();
-
-      if (shouldRunViaComfy) {
-        await executeComfyWorkflow(currentWorkflow.graph, undefined, currentWorkflow);
-      } else {
-        // Access current state directly when running, not in render
-        run({}, workflow, currentState.nodes, currentState.edges);
-      }
+      // Access current state directly when running, not in render
+      run({}, workflow, currentState.nodes, currentState.edges);
     }
     // Clear previous timeout if exists
     if (saveTimeoutRef.current) {

@@ -123,13 +123,6 @@ s(
   "Number of days to keep autosave versions before cleanup (default: 7)"
 );
 
-// ComfyUI
-s(
-  "COMFYUI_ADDR",
-  "ComfyUI",
-  "ComfyUI server address for API/WebSocket access (e.g., 127.0.0.1:8188)."
-);
-
 // Provider endpoints
 s(
   "VLLM_BASE_URL",

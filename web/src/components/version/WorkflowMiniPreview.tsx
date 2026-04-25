@@ -77,7 +77,7 @@ const getNodeColor = (nodeType: string): string => {
   if (type.includes("input") || type.includes("chatinput")) { return NodeColors.input; }
   if (type.includes("output") || type.includes("chatoutput") || type.includes("preview")) { return NodeColors.output; }
   if (type.includes("llm") || type.includes("chatgpt") || type.includes("claude") || type.includes("ollama") || type.includes("openai")) { return NodeColors.llm; }
-  if (type.includes("model") || type.includes("comfy")) { return NodeColors.model; }
+  if (type.includes("model")) { return NodeColors.model; }
   if (type.includes("image") || type.includes("diffusion") || type.includes("stable")) { return NodeColors.image; }
   if (type.includes("text") || type.includes("string") || type.includes("prompt")) { return NodeColors.text; }
   if (type.includes("audio") || type.includes("speech") || type.includes("tts")) { return NodeColors.audio; }

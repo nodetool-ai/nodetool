@@ -145,7 +145,6 @@ const whatsNewData = [
           "Added more AI models and expanded model support",
           "Enhanced vector search capabilities with sqlite-vec",
           "Improved Llama.cpp support",
-          "Fixed Comfy loaders and workflows",
           "Implemented cost calculation for OpenAI and Replicate",
         ],
       },

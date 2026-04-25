@@ -145,8 +145,8 @@ function mapTypeString(t: string): WidgetType {
     case "model_3d":
       return "asset_ref";
     default:
-      // Model types: *_model, comfy.*, hf.*
-      if (t.endsWith("_model") || t.startsWith("comfy.") || t.startsWith("hf."))
+      // Model types: *_model, hf.*
+      if (t.endsWith("_model") || t.startsWith("hf."))
         return "model";
       // List subtypes
       if (

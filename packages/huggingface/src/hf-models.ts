@@ -122,11 +122,10 @@ export const KNOWN_REPO_PATTERNS: Readonly<Record<string, readonly string[]>> =
     ],
     flux_vae: ["ffxvs/vae-flux"],
     qwen_image: [
-      "Comfy-Org/Qwen-Image_ComfyUI",
       "city96/Qwen-Image-gguf",
       "nunchaku-tech/nunchaku-qwen-image"
     ],
-    qwen_image_edit: ["Comfy-Org/Qwen-Image-Edit_ComfyUI"],
+    qwen_image_edit: [],
     sd35: ["Comfy-Org/stable-diffusion-3.5-fp8"]
   };
 
@@ -1208,7 +1207,7 @@ export function _derivePipelineTag(
   return effectiveSlug.replace(/_/g, "-");
 }
 
-/** Check if a repo id matches any hard-coded comfy-type mappings for a model type. */
+/** Check if a repo id matches any hard-coded repo-type mappings for a model type. */
 export function _matchesRepoForType(
   normalizedType: string,
   repoId: string,

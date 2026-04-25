@@ -41,12 +41,5 @@ export {
   type StreamingInputs,
   type StreamingOutputs
 } from "./node-executor.js";
-export { executeComfy } from "./comfy-executor.js";
-export type {
-  ComfyExecutorResult,
-  ComfyImage,
-  ComfyProgressEvent,
-  ComfyExecutionHandle
-} from "./comfy-executor.js";
 export { RECOMMENDED_MODELS } from "./recommended-models.js";
 export type { RecommendedUnifiedModel } from "./recommended-models.js";

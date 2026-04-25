@@ -141,12 +141,12 @@ describe("settings router", () => {
 
       const caller = createCaller(makeCtx());
       await caller.settings.update({
-        settings: { COMFYUI_ADDR: "127.0.0.1:8188", FONT_PATH: "/fonts" }
+        settings: { VLLM_BASE_URL: "127.0.0.1:8188", FONT_PATH: "/fonts" }
       });
       expect(Setting.upsert).toHaveBeenCalledTimes(2);
       expect(Setting.upsert).toHaveBeenCalledWith({
         userId: "user-1",
-        key: "COMFYUI_ADDR",
+        key: "VLLM_BASE_URL",
         value: "127.0.0.1:8188"
       });
       expect(Setting.upsert).toHaveBeenCalledWith({
@@ -195,7 +195,7 @@ describe("settings router", () => {
 
       const caller = createCaller(makeCtx());
       await caller.settings.update({
-        settings: { COMFYUI_ADDR: "host" }
+        settings: { VLLM_BASE_URL: "host" }
       });
       expect(clearProviderCache).not.toHaveBeenCalled();
     });

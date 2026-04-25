@@ -214,23 +214,15 @@ const Help = ({
     setHelpIndex(newValue);
   };
   const [expandedNodetool, setExpandedNodetool] = useState(true);
-  const [expandedComfy, setExpandedComfy] = useState(false);
 
   const theme = useTheme();
 
-  const nodetoolTypes = DATA_TYPES.filter(
-    (type) => !type.value.startsWith("comfy.")
-  );
-  const comfyTypes = DATA_TYPES.filter((type) =>
-    type.value.startsWith("comfy.")
-  );
+  const nodetoolTypes = DATA_TYPES;
 
   const handleAccordionChange =
     (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
       if (panel === "nodetool") {
         setExpandedNodetool(isExpanded);
-      } else if (panel === "comfy") {
-        setExpandedComfy(isExpanded);
       }
     };
 
@@ -289,12 +281,6 @@ const Help = ({
                   dataTypes={nodetoolTypes}
                   expanded={expandedNodetool}
                   onChange={handleAccordionChange("nodetool")}
-                />
-                <DataTypesList
-                  title="Comfy Data Types"
-                  dataTypes={comfyTypes}
-                  expanded={expandedComfy}
-                  onChange={handleAccordionChange("comfy")}
                 />
               </TabPanel>
             </div>

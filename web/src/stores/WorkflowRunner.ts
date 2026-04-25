@@ -15,7 +15,6 @@ import { isLocalhost } from "../lib/env";
 import { NodeData } from "./NodeData";
 import { BASE_URL } from "./BASE_URL";
 import useResultsStore from "./ResultsStore";
-import { useComfyUIStore } from "./ComfyUIStore";
 import { Edge, Node } from "@xyflow/react";
 import log from "loglevel";
 import {

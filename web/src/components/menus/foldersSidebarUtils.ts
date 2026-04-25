@@ -19,7 +19,7 @@ export const getFoldersSidebarSections = (settings: SettingWithValue[]) => {
     ];
   }
 
-  const desiredLabels = ["Font Path", "Comfy Folder", "Vector DB Path"];
+  const desiredLabels = ["Font Path", "Vector DB Path"];
   const sectionId = "folders-settings"; // Static ID for the "Folders" section group
 
   const items = folderGroupSettings

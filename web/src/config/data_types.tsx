@@ -42,8 +42,6 @@ import np_array from "../icons/data_types/nodetool/np_array.svg?react";
 import datetime from "../icons/data_types/nodetool/datetime.svg?react";
 import date from "../icons/data_types/nodetool/date.svg?react";
 
-import { COMFY_DATA_TYPES, comfyIconMap } from "./comfy_data_types";
-
 /**
  * SpectraNode palette — core "500" tone for each conceptual category
  * Most node types are mapped to these category buckets.
@@ -105,8 +103,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   np_array,
   json: dict,
   document: documentIcon,
-  model_3d,
-  ...comfyIconMap
+  model_3d
 };
 
 export { iconMap };
@@ -589,7 +586,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
   }
 ];
 
-let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES, ...COMFY_DATA_TYPES];
+let DATA_TYPES: DataType[] = [...NODETOOL_DATA_TYPES];
 const DATA_TYPE_MAP: Record<string, DataType> = {};
 
 type IconProps = React.SVGProps<SVGSVGElement> & {

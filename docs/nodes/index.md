@@ -7,12 +7,6 @@ Complete reference documentation for all 698 NodeTool nodes across 113 namespace
 
 ## Namespaces
 
-### comfy
-
-- **[comfy.image_to_image](comfy/image_to_image/)** - 5 node(s)
-- **[comfy.lora](comfy/lora/)** - 1 node(s)
-- **[comfy.text_to_image](comfy/text_to_image/)** - 6 node(s)
-
 ### gemini
 
 - **[gemini.audio](gemini/audio/)** - 1 node(s)

@@ -15,12 +15,6 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNavigate } from "react-router-dom";
 import { createErrorMessage, AppError } from "../../utils/errorHandling";
-import {
-  comfyWorkflowToNodeToolGraph,
-  comfyPromptToNodeToolGraph,
-  COMFY_WORKFLOW_FLAG
-} from "../../utils/comfyWorkflowConverter";
-import { ComfyUIWorkflow, ComfyUIPrompt } from "../../services/ComfyUIService";
 import { Graph, Workflow } from "../../stores/ApiTypes";
 import log from "loglevel";
 import { shallow } from "zustand/shallow";
@@ -31,94 +25,8 @@ export type FileHandlerResult = {
   error?: string;
 };
 
-export const extractWorkflowFromPng = async (
-  file: File
-): Promise<ComfyUIWorkflow | null> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = function (event: ProgressEvent<FileReader>) {
-      const arrayBuffer = event.target?.result as ArrayBuffer;
-      const uint8Array = new Uint8Array(arrayBuffer);
-
-      const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
-      let offset = pngSignature.length;
-
-      while (offset < uint8Array.length) {
-        const chunkLength =
-          uint8Array[offset] * 16777216 +
-          uint8Array[offset + 1] * 65536 +
-          uint8Array[offset + 2] * 256 +
-          uint8Array[offset + 3];
-        offset += 4;
-
-        const chunkType = String.fromCharCode(
-          uint8Array[offset],
-          uint8Array[offset + 1],
-          uint8Array[offset + 2],
-          uint8Array[offset + 3]
-        );
-        offset += 4;
-
-        if (chunkType === "tEXt") {
-          let keywordEnd = offset;
-          while (
-            uint8Array[keywordEnd] !== 0 &&
-            keywordEnd < offset + chunkLength
-          ) {
-            keywordEnd++;
-          }
-
-          const keyword = String.fromCharCode(
-            ...uint8Array.slice(offset, keywordEnd)
-          );
-
-          if (keyword === "workflow") {
-            const textContent = new TextDecoder().decode(
-              uint8Array.slice(keywordEnd + 1, offset + chunkLength)
-            );
-            try {
-              const workflow = JSON.parse(textContent) as ComfyUIWorkflow;
-              resolve(workflow);
-              return;
-            } catch {
-              reject(new Error("Failed to parse workflow JSON"));
-              return;
-            }
-          }
-        }
-
-        offset += chunkLength + 4; // Skip CRC
-      }
-
-      resolve(null); // No workflow found
-    };
-
-    reader.onerror = function () {
-      reject(new Error("Error reading file"));
-    };
-
-    reader.readAsArrayBuffer(file);
-  });
-};
-
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
-};
-
-export const isComfyWorkflowJson = (
-  json: unknown
-): json is ComfyUIWorkflow => {
-  if (!isRecord(json)) {
-    return false;
-  }
-
-  const hasLastNodeId = typeof json.last_node_id === "number";
-  const hasLastLinkId = typeof json.last_link_id === "number";
-  const hasNodes = Array.isArray(json.nodes);
-  const hasLinks = Array.isArray(json.links);
-
-  return hasLastNodeId && hasLastLinkId && hasNodes && hasLinks;
 };
 
 export const isNodetoolWorkflowJson = (
@@ -129,28 +37,6 @@ export const isNodetoolWorkflowJson = (
   }
 
   return Array.isArray(json.graph.nodes) && Array.isArray(json.graph.edges);
-};
-
-export const isComfyPromptJson = (json: unknown): json is ComfyUIPrompt => {
-  if (!isRecord(json) || Array.isArray(json)) {
-    return false;
-  }
-
-  const entries = Object.entries(json);
-  if (entries.length === 0) {
-    return false;
-  }
-
-  return entries.every(([key, value]) => {
-    if (!/^\d+$/.test(key) || !isRecord(value)) {
-      return false;
-    }
-
-    return (
-      typeof value.class_type === "string" &&
-      isRecord(value.inputs)
-    );
-  });
 };
 
 export const useFileHandlers = () => {
@@ -229,42 +115,9 @@ export const useFileHandlers = () => {
 
   const handlePngFile = useCallback(
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
-      try {
-        const workflow = await extractWorkflowFromPng(file);
-
-        if (workflow) {
-          try {
-            const graph = comfyWorkflowToNodeToolGraph(workflow);
-            const createdWorkflow = await createWorkflow({
-              name: file.name,
-              description: "created from comfy",
-              access: "private",
-              graph,
-              settings: {
-                [COMFY_WORKFLOW_FLAG]: true
-              }
-            });
-            navigate(`/editor/${createdWorkflow.id}`);
-            return { success: true, data: createdWorkflow };
-          } catch (error) {
-            const err = createErrorMessage(error, "Failed to create workflow");
-            return {
-              success: false,
-              error: err instanceof AppError ? err.detail : err.message
-            };
-          }
-        } else {
-          return await handleGenericFile(file, position);
-        }
-      } catch (error) {
-        const err = createErrorMessage(error, "Failed to process PNG file");
-        return {
-          success: false,
-          error: err instanceof AppError ? err.detail : err.message
-        };
-      }
+      return await handleGenericFile(file, position);
     },
-    [createWorkflow, handleGenericFile, navigate]
+    [handleGenericFile]
   );
 
   const handleJsonFile = useCallback(
@@ -273,35 +126,7 @@ export const useFileHandlers = () => {
         log.info("[drop/json] Reading JSON file", { name: file.name });
         const jsonContent = await file.text();
         const jsonData = JSON.parse(jsonContent) as unknown;
-        if (isComfyWorkflowJson(jsonData)) {
-          log.info("[drop/json] Detected ComfyUI workflow JSON", {
-            name: file.name
-          });
-          try {
-            const graph = comfyWorkflowToNodeToolGraph(jsonData);
-            const createdWorkflow = await createWorkflow({
-              name: file.name,
-              description: "created from comfy",
-              access: "private",
-              graph,
-              settings: {
-                [COMFY_WORKFLOW_FLAG]: true
-              }
-            });
-            navigate(`/editor/${createdWorkflow.id}`);
-            return { success: true, data: createdWorkflow };
-          } catch (error) {
-            log.error("[drop/json] Failed creating workflow from Comfy JSON", {
-              name: file.name,
-              error
-            });
-            const err = createErrorMessage(error, "Failed to create workflow");
-            return {
-              success: false,
-              error: err instanceof AppError ? err.detail : err.message
-            };
-          }
-        } else if (isNodetoolWorkflowJson(jsonData)) {
+        if (isNodetoolWorkflowJson(jsonData)) {
           log.info("[drop/json] Detected NodeTool workflow JSON", {
             name: file.name
           });
@@ -320,37 +145,6 @@ export const useFileHandlers = () => {
               error
             });
             const err = createErrorMessage(error, "Failed to create workflow");
-            return {
-              success: false,
-              error: err instanceof AppError ? err.detail : err.message
-            };
-          }
-        } else if (isComfyPromptJson(jsonData)) {
-          log.info("[drop/json] Detected ComfyUI prompt JSON (API format)", {
-            name: file.name
-          });
-          try {
-            const graph = comfyPromptToNodeToolGraph(jsonData);
-            const createdWorkflow = await createWorkflow({
-              name: file.name,
-              description: "created from comfy prompt json",
-              access: "private",
-              graph,
-              settings: {
-                [COMFY_WORKFLOW_FLAG]: true
-              }
-            });
-            navigate(`/editor/${createdWorkflow.id}`);
-            return { success: true, data: createdWorkflow };
-          } catch (error) {
-            log.error("[drop/json] Failed creating workflow from Comfy prompt JSON", {
-              name: file.name,
-              error
-            });
-            const err = createErrorMessage(
-              error,
-              "Failed to create workflow from Comfy prompt"
-            );
             return {
               success: false,
               error: err instanceof AppError ? err.detail : err.message

@@ -340,7 +340,7 @@ function handleListType(
 }
 
 function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
-  const modelPrefixes = ["comfy.", "hf."];
+  const modelPrefixes = ["hf."];
 
   if (type.endsWith("_model")) {
     return ModelProperty;

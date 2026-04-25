@@ -40,8 +40,7 @@ export const getRemoteSidebarSections = (settings: SettingWithValue[]) => {
             .replace(/\b\w/g, (char: string) => char.toUpperCase());
 
           // Exclude specific labels
-          const isExcludedLabel =
-            label === "Font Path" || label === "Comfy Folder";
+          const isExcludedLabel = label === "Font Path";
 
           if (!isExcludedLabel) {
             acc.push({ id: sectionId, label });

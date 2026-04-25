@@ -105,7 +105,7 @@ Generic nodes in the `nodetool.*` namespace accept a `model` parameter and route
 | Node | Switch between |
 |------|---------------|
 | `nodetool.agents.Agent` | OpenAI, Anthropic, Gemini, Ollama, any LLM |
-| `nodetool.image.TextToImage` | FLUX.2, Nano Banana Pro, DALL-E, HuggingFace, ComfyUI, MLX |
+| `nodetool.image.TextToImage` | FLUX.2, Nano Banana Pro, DALL-E, HuggingFace, MLX |
 | `nodetool.image.ImageToImage` | HuggingFace, local servers, cloud services |
 | `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 2.6, HuggingFace |
 | `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 2.6, Stability AI |

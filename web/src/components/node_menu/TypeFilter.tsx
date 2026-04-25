@@ -18,7 +18,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { useComfyUIStore } from "../../stores/ComfyUIStore";
 
 interface TypeFilterProps {
   selectedInputType: string;
@@ -35,16 +34,10 @@ const TypeFilter = memo(({
 }: TypeFilterProps) => {
   const theme = useTheme();
   const nodeTypes = DATA_TYPES;
-  const isComfyConnected = useComfyUIStore((state) => state.isConnected);
-  const comfyTypes = isComfyConnected
-    ? nodeTypes.filter((t) => t.value.startsWith("comfy"))
-    : [];
-  const otherTypes = nodeTypes.filter((t) => !t.value.startsWith("comfy"));
+  const otherTypes = nodeTypes;
 
   const [showNodetoolInput, setShowNodetoolInput] = useState(true);
-  const [showComfyInput, setShowComfyInput] = useState(false);
   const [showNodetoolOutput, setShowNodetoolOutput] = useState(true);
-  const [showComfyOutput, setShowComfyOutput] = useState(false);
 
   const [inputHover, setInputHover] = useState(false);
   const [outputHover, setOutputHover] = useState(false);
@@ -57,49 +50,13 @@ const TypeFilter = memo(({
   const toggleNodetoolInput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setShowNodetoolInput((prev) => {
-      const newState = !prev;
-      if (newState) {
-        setShowComfyInput(false);
-      }
-      return newState;
-    });
-  }, []);
-
-  const toggleComfyInput = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowComfyInput((prev) => {
-      const newState = !prev;
-      if (newState) {
-        setShowNodetoolInput(false);
-      }
-      return newState;
-    });
+    setShowNodetoolInput((prev) => !prev);
   }, []);
 
   const toggleNodetoolOutput = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setShowNodetoolOutput((prev) => {
-      const newState = !prev;
-      if (newState) {
-        setShowComfyOutput(false);
-      }
-      return newState;
-    });
-  }, []);
-
-  const toggleComfyOutput = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowComfyOutput((prev) => {
-      const newState = !prev;
-      if (newState) {
-        setShowNodetoolOutput(false);
-      }
-      return newState;
-    });
+    setShowNodetoolOutput((prev) => !prev);
   }, []);
 
   const handleInputChange = useCallback((e: SelectChangeEvent<string>) => {
@@ -301,41 +258,6 @@ const TypeFilter = memo(({
                   {option.label}
                 </MenuItem>
               ))}
-
-              {/* Comfy section */}
-              {comfyTypes.length > 0 && [
-                <ListSubheader
-                  onMouseDown={toggleComfyInput}
-                  sx={subheaderSx}
-                  key="comfy-header-input"
-                  disableSticky
-                >
-                  <ListItemIcon sx={listItemIconSx}>
-                    {showComfyInput ? (
-                      <ExpandLessIcon fontSize="small" />
-                    ) : (
-                      <ExpandMoreIcon fontSize="small" />
-                    )}
-                  </ListItemIcon>
-                  Comfy Types
-                </ListSubheader>,
-                ...comfyTypes.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    value={option.value}
-                    className={`${option.value} type-filter-item comfy-type`}
-                    sx={menuItemSx(showComfyInput)}
-                  >
-                    <ListItemIcon>
-                      <IconForType
-                        iconName={option.value}
-                        containerStyle={{ width: 20, height: 20 }}
-                      />
-                    </ListItemIcon>
-                    {option.label}
-                  </MenuItem>
-                ))
-              ]}
             </Select>
           </div>
         </Tooltip>
@@ -406,41 +328,6 @@ const TypeFilter = memo(({
                   {option.label}
                 </MenuItem>
               ))}
-
-              {/* Comfy section */}
-              {comfyTypes.length > 0 && [
-                <ListSubheader
-                  onMouseDown={toggleComfyOutput}
-                  sx={subheaderSx}
-                  key="comfy-header-output"
-                  disableSticky
-                >
-                  <ListItemIcon sx={listItemIconSx}>
-                    {showComfyOutput ? (
-                      <ExpandLessIcon fontSize="small" />
-                    ) : (
-                      <ExpandMoreIcon fontSize="small" />
-                    )}
-                  </ListItemIcon>
-                  Comfy Types
-                </ListSubheader>,
-                ...comfyTypes.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    value={option.value}
-                    className={`${option.value} type-filter-item comfy-type`}
-                    sx={menuItemSx(showComfyOutput)}
-                  >
-                    <ListItemIcon>
-                      <IconForType
-                        iconName={option.value}
-                        containerStyle={{ width: 20, height: 20 }}
-                      />
-                    </ListItemIcon>
-                    {option.label}
-                  </MenuItem>
-                ))
-              ]}
             </Select>
           </div>
         </Tooltip>

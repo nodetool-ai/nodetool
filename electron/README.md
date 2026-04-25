@@ -127,8 +127,6 @@ Falling back to CPU-only installation
 DirectML support required for this platform
 ```
 
-Note: ComfyUI nodes need `--directml` flag, auto-configured.
-
 **Manual override:**
 
 ```bash

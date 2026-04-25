@@ -532,7 +532,7 @@ describe("_buildSearchConfigForType", () => {
   });
 
   it("returns null for non-hf.* types that are not known", () => {
-    const config = _buildSearchConfigForType("comfy.some_type");
+    const config = _buildSearchConfigForType("other.some_type");
     expect(config).toBeNull();
   });
 });
