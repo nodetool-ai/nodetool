@@ -1,15 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useState } from "react";
-import Editor from "react-simple-code-editor";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import type * as monaco from "monaco-editor";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "fast-deep-equal";
-import Prism from "prismjs";
-import "prismjs/components/prism-json";
-import { CopyButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { CopyButton, LoadingSpinner, ToolbarIconButton } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import TextEditorModal from "./TextEditorModal";
+import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 
 const JSONProperty = (props: PropertyProps) => {
   const id = `json-${props.property.name}-${props.propertyIndex}`;
@@ -21,6 +20,9 @@ const JSONProperty = (props: PropertyProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
+  const { MonacoEditor, monacoLoadError, loadMonacoIfNeeded, monacoOnMount } =
+    useMonacoEditor();
+
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
       const next = !prev;
@@ -31,52 +33,61 @@ const JSONProperty = (props: PropertyProps) => {
     });
   }, []);
 
+  const onChange = props.onChange;
   const validateJSON = useCallback(
     (code: string) => {
       try {
         JSON.parse(code);
         setError(null);
-        props.onChange({
-          type: "json",
-          data: code
-        });
       } catch (e) {
         const errorMessage = (e as Error).message;
         const lineMatch = errorMessage.match(/line (\d+)/);
-        const lineNumber = lineMatch ? parseInt(lineMatch[1]) : 1;
-
+        const lineNumber = lineMatch ? parseInt(lineMatch[1], 10) : 1;
         setError({ message: errorMessage, line: lineNumber });
-        props.onChange({
-          type: "json",
-          data: code
-        });
       }
+      onChange({
+        type: "json",
+        data: code
+      });
     },
-    [props]
+    [onChange]
   );
 
-  const handleChange = useCallback((code: string) => {
-    setValue(code);
+  // Refs keep Monaco event listeners pointing at the latest callbacks so
+  // they don't capture stale closures when parent passes inline lambdas.
+  const validateJSONRef = useRef(validateJSON);
+  useEffect(() => {
+    validateJSONRef.current = validateJSON;
+  }, [validateJSON]);
+
+  const handleChange = useCallback((code: string | undefined) => {
+    setValue(code ?? "");
   }, []);
 
-  const highlightWithErrors = useCallback(
-    (code: string) => {
-      const highlighted = Prism.highlight(code, Prism.languages.json, "json");
-      if (!error) {
-        return highlighted;
-      }
-
-      const lines = highlighted.split("\n");
-      return lines
-        .map((line, i) =>
-          i === error.line - 1
-            ? `<span class="error-line">${line}</span>`
-            : line
-        )
-        .join("\n");
+  const handleEditorMount = useCallback(
+    (editor: monaco.editor.IStandaloneCodeEditor) => {
+      monacoOnMount(editor);
+      const blur = editor.onDidBlurEditorText(() => {
+        setIsFocused(false);
+        validateJSONRef.current(editor.getValue());
+      });
+      const focus = editor.onDidFocusEditorText(() => {
+        setIsFocused(true);
+      });
+      editor.onDidDispose(() => {
+        blur.dispose();
+        focus.dispose();
+      });
     },
-    [error]
+    [monacoOnMount]
   );
+
+  // Defer Monaco loading until the user shows interest — hovering the
+  // field is enough signal that they may edit it. This keeps the heavy
+  // editor bundle out of the initial render path for read-only views.
+  const handleInteract = useCallback(() => {
+    void loadMonacoIfNeeded();
+  }, [loadMonacoIfNeeded]);
 
   return (
     <div
@@ -105,36 +116,45 @@ const JSONProperty = (props: PropertyProps) => {
         ".json-action-buttons .MuiIconButton-root svg": {
           fontSize: "0.75rem"
         },
-        ".editor": {
-          fontFamily: "monospace",
-          fontSize: "var(--fontSizeSmaller)",
-          lineHeight: "1.25em",
-          minHeight: "100px",
-          maxHeight: "200px",
-          overflow: "auto !important"
-        },
-        ".editor textarea": {
-          resize: "none",
-          padding: "4px 8px 0 8px",
-          lineHeight: "18px",
-          boxSizing: "content-box"
-        },
-        ".editor:focus-within": {
-          borderColor: "var(--palette-grey-400) !important"
-        },
         ".editor-wrapper": {
-          minHeight: "100px",
-          maxHeight: "200px",
+          height: "120px",
           overflow: "hidden",
           backgroundColor: "var(--palette-grey-600)",
           border: "1px solid var(--palette-grey-500)",
           borderRadius: "var(--rounded-sm)"
+        },
+        ".editor-wrapper:focus-within": {
+          borderColor: "var(--palette-grey-400)"
+        },
+        ".editor-loading, .editor-error, .editor-placeholder": {
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "var(--fontSizeSmaller)",
+          color: "var(--palette-text-secondary)"
+        },
+        ".editor-placeholder": {
+          padding: "0 8px",
+          fontFamily: "monospace",
+          whiteSpace: "pre-wrap",
+          overflow: "hidden",
+          alignItems: "flex-start",
+          paddingTop: "6px",
+          cursor: "text"
+        },
+        ".error-message": {
+          fontSize: "var(--fontSizeSmaller)",
+          color: "var(--palette-error-main)"
         }
       })}
     >
       <div
         className="property-row"
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          handleInteract();
+        }}
         onMouseLeave={() => setIsHovered(false)}
       >
         <PropertyLabel
@@ -144,7 +164,12 @@ const JSONProperty = (props: PropertyProps) => {
         />
         {isHovered && (
           <div className="json-action-buttons">
-            <ToolbarIconButton tooltip="Open Editor" icon={<OpenInFullIcon />} onClick={toggleExpand} size="small" />
+            <ToolbarIconButton
+              tooltip="Open Editor"
+              icon={<OpenInFullIcon />}
+              onClick={toggleExpand}
+              size="small"
+            />
             <CopyButton value={value} buttonSize="small" />
           </div>
         )}
@@ -155,22 +180,47 @@ const JSONProperty = (props: PropertyProps) => {
         >
           <div
             className={`editor-wrapper nodrag ${isFocused ? "nowheel" : ""}`}
+            onFocus={handleInteract}
+            onClick={handleInteract}
           >
-            <Editor
-              value={value}
-              onValueChange={handleChange}
-              onBlur={() => {
-                validateJSON(value);
-                setIsFocused(false);
-              }}
-              onFocus={() => setIsFocused(true)}
-              highlight={highlightWithErrors}
-              padding={10}
-              textareaClassName={`textarea nodrag ${
-                isFocused ? "nowheel" : ""
-              }`}
-              className="editor"
-            />
+            {MonacoEditor ? (
+              <MonacoEditor
+                value={value}
+                onChange={handleChange}
+                language="json"
+                theme="vs-dark"
+                width="100%"
+                height="100%"
+                onMount={handleEditorMount}
+                options={{
+                  minimap: { enabled: false },
+                  automaticLayout: true,
+                  scrollBeyondLastLine: false,
+                  lineNumbers: "off",
+                  folding: false,
+                  glyphMargin: false,
+                  lineDecorationsWidth: 4,
+                  lineNumbersMinChars: 0,
+                  fontSize: 12,
+                  wordWrap: "on",
+                  renderLineHighlight: "none",
+                  scrollbar: {
+                    verticalScrollbarSize: 8,
+                    horizontalScrollbarSize: 8
+                  }
+                }}
+              />
+            ) : monacoLoadError ? (
+              <div className="editor-error">{monacoLoadError}</div>
+            ) : value ? (
+              <div className="editor-placeholder" tabIndex={0}>
+                {value}
+              </div>
+            ) : (
+              <div className="editor-loading">
+                <LoadingSpinner />
+              </div>
+            )}
           </div>
         </div>
         {error && <div className="error-message">{error.message}</div>}
