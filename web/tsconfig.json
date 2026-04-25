@@ -11,6 +11,10 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@nodetool/websocket/trpc": ["../packages/websocket/src/trpc/router.ts"]
+    },
     "types": ["jest", "@testing-library/jest-dom"],
     "resolveJsonModule": true,
     "isolatedModules": true,
