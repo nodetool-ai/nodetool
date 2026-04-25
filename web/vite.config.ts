@@ -109,7 +109,7 @@ export default defineConfig(async ({ mode }) => {
                     "@emotion/react",
                     "@emotion/styled"
                   ],
-                  "vendor-plotly": ["react-plotly.js"],
+                  "vendor-chartjs": ["chart.js", "react-chartjs-2"],
                   "vendor-three": [
                     "three",
                     "@react-three/fiber",

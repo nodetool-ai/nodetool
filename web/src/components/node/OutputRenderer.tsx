@@ -51,7 +51,7 @@ import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
-import PlotlyRenderer from "./output/PlotlyRenderer";
+import ChartRenderer from "./output/ChartRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
 
@@ -393,7 +393,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   const renderContent = useMemo(() => {
     switch (type) {
       case "plotly_config":
-        return <PlotlyRenderer config={value} />;
+        return <ChartRenderer config={value} />;
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":
