@@ -561,6 +561,8 @@ export class Agent extends BaseAgent {
         this.outputFormat === "structured" && this.outputSchema
           ? { markdown: singleResult }
           : singleResult;
+    } else if (taskCount === 1) {
+        this.results = Object.values(allResults)[0];
     } else {
       yield* this.synthesizeFinalResponse(context, allResults, taskPlan);
     }
