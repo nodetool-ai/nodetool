@@ -45,10 +45,11 @@ Rules for the remaining work:
 - [x] **7d. Implement first `nodetool.realtime` nodes.**
   - `VideoSource`, `VideoSink`, `AudioSource`, `AudioSink`, `Parameter`, `SessionInfo`.
   - Add loopback tests for frame routing, drop-oldest behavior, parameter routing, and lifecycle hooks.
-- [ ] **8a. Spike server-side WebRTC before committing to full integration.**
+- [x] **8a. Spike server-side WebRTC before committing to full integration.**
   - Prove browser/node offer-answer, inbound RTP/frame assembly, pixel decode to `VideoFrame`, outbound encode/packetization, and clean teardown.
   - `werift` supports WebRTC, RTP, and codec payload parsing, but payload parsing is not the same as guaranteed pixel decode/encode. Treat codec handling as the risky part of the spike.
   - If `werift` cannot expose decoded/encoded frames cleanly enough, switch to `@roamhq/wrtc` or isolate a codec bridge before building the full server.
+  - Spike result: `werift` proves offer-answer, ICE connection, inbound RTP delivery, and clean teardown in `packages/websocket/tests/realtime-webrtc-spike.test.ts`. Pure `werift` does not decode RTP payloads into raw `VideoFrame` pixels or encode raw frames into RTP; browser-node interop and RTP frame assembly remain unproven. 8b must include either a codec bridge or an alternate WebRTC stack before production media routing.
 - [ ] **8b. Stand up `RealtimeWebRTCServer` and `frame-router`.**
   - Own per-session peers, SDP/ICE handling, track mapping, frame decode/encode, outbound sink tracks, and metrics.
   - Replace the `/realtime` in-browser loopback with one operator peer connected to the backend.
@@ -572,12 +573,12 @@ That's the full surface. No build-system changes; no node-discovery infrastructu
 
 *Remaining Phase 2 work is implemented from the "Next implementation ladder" at the top of this file. Compact details follow for reference.*
 
-- [ ] **7a-7d: First `nodetool.realtime` nodes.**
+- [x] **7a-7d: First `nodetool.realtime` nodes.**
   - Package: `packages/realtime-nodes/`, hand-written like `base-nodes`.
   - Nodes: `VideoSource`, `VideoSink`, `AudioSource`, `AudioSink`, `Parameter`, `SessionInfo`.
   - Tests: package registration, frame loopback, drop-oldest behavior, parameter routing, lifecycle hooks.
-- [ ] **8a-8d: Backend media integration.**
-  - Add a WebRTC spike before full integration.
+- [ ] **8b-8d: Backend media integration.**
+  - WebRTC spike result: `werift` handles peer connection and RTP, but codec decode/encode needs a bridge or alternate stack before full integration.
   - Implement `packages/websocket/src/realtime/webrtc-server.ts` and `frame-router.ts`.
   - Route inbound tracks to `RealtimeRunner.pushInputValue`; expose outbound sink tracks.
   - Fix session readiness, stop timeouts, stopped-session retention, and `realtime_metrics`.
@@ -681,7 +682,7 @@ Completed foundation:
 Remaining:
 
 - [x] Steps 7a-7d: session info, frame types, package, first realtime nodes
-- [ ] Steps 8a-8d: WebRTC spike, backend media endpoint, lifecycle, metrics
+- [ ] Steps 8b-8d: backend media endpoint, lifecycle, metrics
 - [ ] Step 9: pre-model design pass
 - [ ] Step 10: LongLive
 - [ ] Step 10b: Self-Forcing
