@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import type * as monaco from "monaco-editor";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "fast-deep-equal";
@@ -22,10 +23,6 @@ const JSONProperty = (props: PropertyProps) => {
   const { MonacoEditor, monacoLoadError, loadMonacoIfNeeded, monacoOnMount } =
     useMonacoEditor();
 
-  useEffect(() => {
-    void loadMonacoIfNeeded();
-  }, [loadMonacoIfNeeded]);
-
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
       const next = !prev;
@@ -36,6 +33,7 @@ const JSONProperty = (props: PropertyProps) => {
     });
   }, []);
 
+  const onChange = props.onChange;
   const validateJSON = useCallback(
     (code: string) => {
       try {
@@ -44,37 +42,52 @@ const JSONProperty = (props: PropertyProps) => {
       } catch (e) {
         const errorMessage = (e as Error).message;
         const lineMatch = errorMessage.match(/line (\d+)/);
-        const lineNumber = lineMatch ? parseInt(lineMatch[1]) : 1;
+        const lineNumber = lineMatch ? parseInt(lineMatch[1], 10) : 1;
         setError({ message: errorMessage, line: lineNumber });
       }
-      props.onChange({
+      onChange({
         type: "json",
         data: code
       });
     },
-    [props]
+    [onChange]
   );
+
+  // Refs keep Monaco event listeners pointing at the latest callbacks so
+  // they don't capture stale closures when parent passes inline lambdas.
+  const validateJSONRef = useRef(validateJSON);
+  useEffect(() => {
+    validateJSONRef.current = validateJSON;
+  }, [validateJSON]);
 
   const handleChange = useCallback((code: string | undefined) => {
     setValue(code ?? "");
   }, []);
 
   const handleEditorMount = useCallback(
-    (
-      editor: Parameters<typeof monacoOnMount>[0],
-      _monaco: unknown
-    ) => {
+    (editor: monaco.editor.IStandaloneCodeEditor) => {
       monacoOnMount(editor);
-      editor.onDidBlurEditorText(() => {
+      const blur = editor.onDidBlurEditorText(() => {
         setIsFocused(false);
-        validateJSON(editor.getValue());
+        validateJSONRef.current(editor.getValue());
       });
-      editor.onDidFocusEditorText(() => {
+      const focus = editor.onDidFocusEditorText(() => {
         setIsFocused(true);
       });
+      editor.onDidDispose(() => {
+        blur.dispose();
+        focus.dispose();
+      });
     },
-    [monacoOnMount, validateJSON]
+    [monacoOnMount]
   );
+
+  // Defer Monaco loading until the user shows interest — hovering the
+  // field is enough signal that they may edit it. This keeps the heavy
+  // editor bundle out of the initial render path for read-only views.
+  const handleInteract = useCallback(() => {
+    void loadMonacoIfNeeded();
+  }, [loadMonacoIfNeeded]);
 
   return (
     <div
@@ -113,13 +126,22 @@ const JSONProperty = (props: PropertyProps) => {
         ".editor-wrapper:focus-within": {
           borderColor: "var(--palette-grey-400)"
         },
-        ".editor-loading, .editor-error": {
+        ".editor-loading, .editor-error, .editor-placeholder": {
           height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontSize: "var(--fontSizeSmaller)",
           color: "var(--palette-text-secondary)"
+        },
+        ".editor-placeholder": {
+          padding: "0 8px",
+          fontFamily: "monospace",
+          whiteSpace: "pre-wrap",
+          overflow: "hidden",
+          alignItems: "flex-start",
+          paddingTop: "6px",
+          cursor: "text"
         },
         ".error-message": {
           fontSize: "var(--fontSizeSmaller)",
@@ -129,7 +151,10 @@ const JSONProperty = (props: PropertyProps) => {
     >
       <div
         className="property-row"
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          handleInteract();
+        }}
         onMouseLeave={() => setIsHovered(false)}
       >
         <PropertyLabel
@@ -155,6 +180,8 @@ const JSONProperty = (props: PropertyProps) => {
         >
           <div
             className={`editor-wrapper nodrag ${isFocused ? "nowheel" : ""}`}
+            onFocus={handleInteract}
+            onClick={handleInteract}
           >
             {MonacoEditor ? (
               <MonacoEditor
@@ -185,6 +212,10 @@ const JSONProperty = (props: PropertyProps) => {
               />
             ) : monacoLoadError ? (
               <div className="editor-error">{monacoLoadError}</div>
+            ) : value ? (
+              <div className="editor-placeholder" tabIndex={0}>
+                {value}
+              </div>
             ) : (
               <div className="editor-loading">
                 <LoadingSpinner />
