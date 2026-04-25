@@ -32,6 +32,7 @@ import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { ProcessingContext } from "@nodetool/runtime";
+import { registerPackageCommands } from "./commands/package.js";
 import {
   registerDeployCommands,
   registerListGcpOptions
@@ -1317,6 +1318,12 @@ mcp
     printTable(results);
     console.log();
   });
+
+// ---------------------------------------------------------------------------
+// package
+// ---------------------------------------------------------------------------
+
+registerPackageCommands(program);
 
 // ---------------------------------------------------------------------------
 // deploy / list-gcp-options — registered from commands/deploy.ts
