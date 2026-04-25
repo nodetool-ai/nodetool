@@ -36,9 +36,27 @@ export { TextToSpeechNode } from "./nodes/text-to-speech.js";
 
 export {
   clearPipelineCache,
+  extractRepoId,
   getPipeline,
-  loadTransformers
+  getTransformersJsCacheDir,
+  loadTransformers,
+  setTransformersJsCacheDir,
+  tjsModelDefault,
+  type HfModelRef
 } from "./transformers-base.js";
+
+export {
+  TJS_MODEL_TYPES,
+  defaultRepoFor,
+  recommendedFor,
+  type TjsModelRef
+} from "./recommended-models.js";
+
+export {
+  isRepoCached,
+  scanTransformersJsCache,
+  type CachedTjsModel
+} from "./cache-scan.js";
 
 export const TRANSFORMERS_JS_NODES: readonly NodeClass[] = [
   ...TEXT_CLASSIFICATION_NODES,

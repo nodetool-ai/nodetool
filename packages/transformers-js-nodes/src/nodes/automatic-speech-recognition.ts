@@ -5,10 +5,15 @@ import {
   DEVICE_VALUES,
   DTYPE_VALUES,
   asString,
+  extractRepoId,
   getPipeline,
+  tjsModelDefault,
   loadAudioSamples,
   normalizeOption
 } from "../transformers-base.js";
+import { defaultRepoFor } from "../recommended-models.js";
+
+const TJS_TYPE = "tjs.automatic_speech_recognition";
 
 type AsrResult = {
   text?: string;
@@ -41,10 +46,10 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   declare audio: any;
 
   @prop({
-    type: "str",
-    default: "Xenova/whisper-tiny.en",
+    type: TJS_TYPE,
+    default: tjsModelDefault(TJS_TYPE, defaultRepoFor(TJS_TYPE)),
     title: "Model",
-    description: "Hugging Face model id (must be transformers.js-compatible)."
+    description: "Transformers.js model (ONNX-compatible)."
   })
   declare model: any;
 
@@ -103,7 +108,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
     const pipeline = (await getPipeline({
       task: "automatic-speech-recognition",
-      model: asString(this.model) || undefined,
+      model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (

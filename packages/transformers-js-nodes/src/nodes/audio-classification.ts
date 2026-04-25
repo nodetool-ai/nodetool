@@ -7,10 +7,15 @@ import {
   asNumber,
   asString,
   ensureArray,
+  extractRepoId,
   getPipeline,
+  tjsModelDefault,
   loadAudioSamples,
   normalizeOption
 } from "../transformers-base.js";
+import { defaultRepoFor } from "../recommended-models.js";
+
+const TJS_TYPE = "tjs.audio_classification";
 
 type AudioClassificationResult = { label: string; score: number };
 
@@ -41,10 +46,10 @@ export class AudioClassificationNode extends BaseNode {
   declare audio: any;
 
   @prop({
-    type: "str",
-    default: "Xenova/wav2vec2-base-superb-er",
+    type: TJS_TYPE,
+    default: tjsModelDefault(TJS_TYPE, defaultRepoFor(TJS_TYPE)),
     title: "Model",
-    description: "Hugging Face model id (must be transformers.js-compatible)."
+    description: "Transformers.js model (ONNX-compatible)."
   })
   declare model: any;
 
@@ -94,7 +99,7 @@ export class AudioClassificationNode extends BaseNode {
 
     const pipeline = (await getPipeline({
       task: "audio-classification",
-      model: asString(this.model) || undefined,
+      model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (

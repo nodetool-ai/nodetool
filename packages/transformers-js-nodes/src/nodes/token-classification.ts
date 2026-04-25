@@ -5,9 +5,14 @@ import {
   DTYPE_VALUES,
   asString,
   ensureArray,
+  extractRepoId,
   getPipeline,
+  tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import { defaultRepoFor } from "../recommended-models.js";
+
+const TJS_TYPE = "tjs.token_classification";
 
 type TokenEntity = {
   entity?: string;
@@ -41,10 +46,10 @@ export class TokenClassificationNode extends BaseNode {
   declare text: any;
 
   @prop({
-    type: "str",
-    default: "Xenova/bert-base-multilingual-cased-ner-hrl",
+    type: TJS_TYPE,
+    default: tjsModelDefault(TJS_TYPE, defaultRepoFor(TJS_TYPE)),
     title: "Model",
-    description: "Hugging Face model id (must be transformers.js-compatible)."
+    description: "Transformers.js model (ONNX-compatible)."
   })
   declare model: any;
 
@@ -81,7 +86,7 @@ export class TokenClassificationNode extends BaseNode {
 
     const pipeline = (await getPipeline({
       task: "token-classification",
-      model: asString(this.model) || undefined,
+      model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (

@@ -6,9 +6,14 @@ import {
   asNumber,
   asString,
   ensureArray,
+  extractRepoId,
   getPipeline,
+  tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import { defaultRepoFor } from "../recommended-models.js";
+
+const TJS_TYPE = "tjs.fill_mask";
 
 type FillMaskResult = {
   sequence?: string;
@@ -41,10 +46,10 @@ export class FillMaskNode extends BaseNode {
   declare text: any;
 
   @prop({
-    type: "str",
-    default: "Xenova/bert-base-uncased",
+    type: TJS_TYPE,
+    default: tjsModelDefault(TJS_TYPE, defaultRepoFor(TJS_TYPE)),
     title: "Model",
-    description: "Hugging Face model id (must be transformers.js-compatible)."
+    description: "Transformers.js model (ONNX-compatible)."
   })
   declare model: any;
 
@@ -82,7 +87,7 @@ export class FillMaskNode extends BaseNode {
 
     const pipeline = (await getPipeline({
       task: "fill-mask",
-      model: asString(this.model) || undefined,
+      model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (

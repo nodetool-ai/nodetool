@@ -6,9 +6,14 @@ import {
   asNumber,
   asString,
   ensureArray,
+  extractRepoId,
   getPipeline,
+  tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import { defaultRepoFor } from "../recommended-models.js";
+
+const TJS_TYPE = "tjs.text_generation";
 
 type GenerationResult = { generated_text: string | unknown };
 
@@ -42,10 +47,10 @@ export class TextGenerationNode extends BaseNode {
   declare prompt: any;
 
   @prop({
-    type: "str",
-    default: "onnx-community/Llama-3.2-1B-Instruct",
+    type: TJS_TYPE,
+    default: tjsModelDefault(TJS_TYPE, defaultRepoFor(TJS_TYPE)),
     title: "Model",
-    description: "Hugging Face model id (must be transformers.js-compatible)."
+    description: "Transformers.js model (ONNX-compatible)."
   })
   declare model: any;
 
@@ -131,7 +136,7 @@ export class TextGenerationNode extends BaseNode {
 
     const pipeline = (await getPipeline({
       task: "text-generation",
-      model: asString(this.model) || undefined,
+      model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (

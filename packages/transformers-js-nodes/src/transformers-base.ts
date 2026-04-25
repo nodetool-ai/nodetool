@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { getDefaultTransformersJsCacheDir } from "@nodetool/config";
 import type { ProcessingContext } from "@nodetool/runtime";
 
 /**
@@ -17,8 +18,15 @@ type PipelineFn = (
   options?: Record<string, unknown>
 ) => Promise<unknown>;
 
+type TransformersEnv = {
+  cacheDir?: string;
+  allowRemoteModels?: boolean;
+  allowLocalModels?: boolean;
+};
+
 type TransformersModule = {
   pipeline: PipelineFn;
+  env?: TransformersEnv;
   RawImage?: {
     fromBlob(blob: Blob): Promise<unknown>;
     fromURL(url: string): Promise<unknown>;
@@ -30,18 +38,42 @@ type TransformersModule = {
 };
 
 let cachedModule: Promise<TransformersModule> | null = null;
+let cacheDirOverride: string | null = null;
+
+/**
+ * Override the Transformers.js cache directory at runtime. Pass `null` to
+ * revert to the default resolved by `getDefaultTransformersJsCacheDir()`.
+ *
+ * Must be called before the first `loadTransformers()` to take effect, since
+ * `env.cacheDir` is set on the singleton module on first import.
+ */
+export function setTransformersJsCacheDir(dir: string | null): void {
+  cacheDirOverride = dir;
+}
+
+/** Resolve the cache directory: explicit override → env var → data-dir default. */
+export function getTransformersJsCacheDir(): string {
+  return cacheDirOverride ?? getDefaultTransformersJsCacheDir();
+}
 
 /**
  * Lazily import `@huggingface/transformers`. Cached after first load.
+ *
+ * On first load we point `env.cacheDir` at the resolved Nodetool cache
+ * directory (default: `<data-dir>/transformers-js-cache`) and ensure the
+ * directory exists. This keeps downloaded ONNX models in a predictable,
+ * persistent location instead of a transient `./.cache` next to cwd.
+ *
  * Throws a clear error if the package is not installed.
  */
 export async function loadTransformers(): Promise<TransformersModule> {
   if (!cachedModule) {
     cachedModule = (async () => {
+      let mod: TransformersModule;
       try {
         // Use a variable so bundlers don't try to resolve at build time.
         const moduleName = "@huggingface/transformers";
-        return (await import(moduleName)) as TransformersModule;
+        mod = (await import(moduleName)) as TransformersModule;
       } catch (err) {
         throw new Error(
           "The '@huggingface/transformers' package is required to run " +
@@ -49,6 +81,21 @@ export async function loadTransformers(): Promise<TransformersModule> {
             `Original error: ${(err as Error)?.message ?? err}`
         );
       }
+
+      const cacheDir = getTransformersJsCacheDir();
+      try {
+        await fs.mkdir(cacheDir, { recursive: true });
+      } catch {
+        // Permissions/IO failures here are non-fatal — Transformers.js will
+        // surface a clearer error on the first download attempt.
+      }
+      if (mod.env) {
+        mod.env.cacheDir = cacheDir;
+        mod.env.allowRemoteModels = true;
+        mod.env.allowLocalModels = true;
+      }
+
+      return mod;
     })();
   }
   return cachedModule;
@@ -285,4 +332,56 @@ export function asNumber(value: unknown, fallback: number): number {
 export function asString(value: unknown, fallback = ""): string {
   if (value === undefined || value === null) return fallback;
   return String(value);
+}
+
+// ---------------------------------------------------------------------------
+// Hugging Face model ref helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Shape of an `hf.*` typed model value as produced by the web Hugging Face
+ * model picker. The picker emits an object; legacy graphs may still hold a
+ * plain string repo id, so we accept both.
+ */
+export type HfModelRef = {
+  type?: string;
+  repo_id?: string;
+  path?: string | null;
+  variant?: string | null;
+  allow_patterns?: string[] | null;
+  ignore_patterns?: string[] | null;
+};
+
+/**
+ * Extract a Hugging Face repo id from a property value. Accepts either the
+ * object emitted by the model picker (`{ repo_id, ... }`) or a bare string
+ * for backwards compatibility with graphs that predate the picker.
+ */
+export function extractRepoId(value: unknown): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    const ref = value as HfModelRef;
+    if (typeof ref.repo_id === "string") return ref.repo_id;
+  }
+  return "";
+}
+
+/**
+ * Build a default value for a `tjs.<task>` typed `model` prop. The web UI
+ * uses the `type` discriminator to render the matching model picker.
+ */
+export function tjsModelDefault(
+  type: string,
+  repoId: string
+): Required<Pick<HfModelRef, "type" | "repo_id">> &
+  Pick<HfModelRef, "path" | "variant" | "allow_patterns" | "ignore_patterns"> {
+  return {
+    type,
+    repo_id: repoId,
+    path: null,
+    variant: null,
+    allow_patterns: null,
+    ignore_patterns: null
+  };
 }

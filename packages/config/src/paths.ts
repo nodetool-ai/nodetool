@@ -58,6 +58,21 @@ export function getDefaultAssetsPath(): string {
 }
 
 /**
+ * Default cache directory for the `@huggingface/transformers` (Transformers.js)
+ * runtime. Override with TRANSFORMERS_JS_CACHE_DIR.
+ *
+ * Transformers.js uses its own flat layout (`{cacheDir}/{repo_id}/{file_path}`)
+ * which is incompatible with the Python `huggingface_hub` cache, so we keep it
+ * under the Nodetool data directory rather than alongside `~/.cache/huggingface`.
+ */
+export function getDefaultTransformersJsCacheDir(): string {
+  return (
+    process.env["TRANSFORMERS_JS_CACHE_DIR"] ??
+    join(getNodetoolDataDir(), "transformers-js-cache")
+  );
+}
+
+/**
  * Public domain for permanent assets (set via ASSET_DOMAIN env var).
  *
  * When set, asset URLs are built as `https://<domain>/<key>` instead of

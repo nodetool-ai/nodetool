@@ -17,6 +17,9 @@
   "references": [
     {
       "path": "../node-sdk"
+    },
+    {
+      "path": "../config"
     }
   ]
 }

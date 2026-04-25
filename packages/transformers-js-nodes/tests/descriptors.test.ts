@@ -9,7 +9,7 @@ describe("Transformers.js node descriptors", () => {
   it("declares string text input for text classification", () => {
     const desc = TextClassificationNode.toDescriptor();
     expect(desc.propertyTypes?.text).toBe("str");
-    expect(desc.propertyTypes?.model).toBe("str");
+    expect(desc.propertyTypes?.model).toBe("tjs.text_classification");
     expect(desc.propertyTypes?.top_k).toBe("int");
     expect(desc.propertyTypes?.dtype).toBe("enum");
   });
@@ -17,11 +17,13 @@ describe("Transformers.js node descriptors", () => {
   it("declares image input for vision nodes", () => {
     const desc = ImageClassificationNode.toDescriptor();
     expect(desc.propertyTypes?.image).toBe("image");
+    expect(desc.propertyTypes?.model).toBe("tjs.image_classification");
   });
 
   it("declares audio input for audio nodes", () => {
     const asr = AutomaticSpeechRecognitionNode.toDescriptor();
     expect(asr.propertyTypes?.audio).toBe("audio");
+    expect(asr.propertyTypes?.model).toBe("tjs.automatic_speech_recognition");
   });
 
   it("declares audio output for text-to-speech and marks autoSaveAsset", () => {

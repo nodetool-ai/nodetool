@@ -12,16 +12,10 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.7.6",
+    "@nodetool/config": "*",
     "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*"
-  },
-  "peerDependencies": {
-    "@huggingface/transformers": "^3.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@huggingface/transformers": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

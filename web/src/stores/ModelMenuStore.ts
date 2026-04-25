@@ -332,6 +332,13 @@ export const useHuggingFaceImageModelMenuStore =
 export const useHuggingFaceImageModelMenuData =
   huggingFaceImageModelMenu.useData;
 
+// Transformers.js models reuse the ImageModel slot (same UnifiedModel shape).
+const transformersJsModelMenu = createModelMenuSelector<ImageModel>();
+export const useTransformersJsModelMenuStore =
+  transformersJsModelMenu.useStore;
+export const useTransformersJsModelMenuData =
+  transformersJsModelMenu.useData;
+
 // Embedding models use EmbeddingModel type
 const embeddingModelMenu = createModelMenuSelector<EmbeddingModel>();
 export const useEmbeddingModelMenuStore = embeddingModelMenu.useStore;

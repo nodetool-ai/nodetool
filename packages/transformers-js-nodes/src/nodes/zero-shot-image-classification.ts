@@ -4,12 +4,16 @@ import type { ProcessingContext } from "@nodetool/runtime";
 import {
   DEVICE_VALUES,
   DTYPE_VALUES,
-  asString,
   ensureArray,
+  extractRepoId,
   getPipeline,
+  tjsModelDefault,
   loadRawImage,
   normalizeOption
 } from "../transformers-base.js";
+import { defaultRepoFor } from "../recommended-models.js";
+
+const TJS_TYPE = "tjs.zero_shot_image_classification";
 
 type ClassificationResult = { label: string; score: number };
 
@@ -56,10 +60,10 @@ export class ZeroShotImageClassificationNode extends BaseNode {
   declare candidate_labels: any;
 
   @prop({
-    type: "str",
-    default: "Xenova/clip-vit-base-patch32",
+    type: TJS_TYPE,
+    default: tjsModelDefault(TJS_TYPE, defaultRepoFor(TJS_TYPE)),
     title: "Model",
-    description: "Hugging Face CLIP-compatible model id."
+    description: "Transformers.js model (ONNX-compatible)."
   })
   declare model: any;
 
@@ -92,7 +96,7 @@ export class ZeroShotImageClassificationNode extends BaseNode {
 
     const pipeline = (await getPipeline({
       task: "zero-shot-image-classification",
-      model: asString(this.model) || undefined,
+      model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (

@@ -7,10 +7,15 @@ import {
   asNumber,
   asString,
   ensureArray,
+  extractRepoId,
   getPipeline,
+  tjsModelDefault,
   loadRawImage,
   normalizeOption
 } from "../transformers-base.js";
+import { defaultRepoFor } from "../recommended-models.js";
+
+const TJS_TYPE = "tjs.image_to_text";
 
 type CaptionResult = { generated_text: string };
 
@@ -35,10 +40,10 @@ export class ImageToTextNode extends BaseNode {
   declare image: any;
 
   @prop({
-    type: "str",
-    default: "Xenova/vit-gpt2-image-captioning",
+    type: TJS_TYPE,
+    default: tjsModelDefault(TJS_TYPE, defaultRepoFor(TJS_TYPE)),
     title: "Model",
-    description: "Hugging Face model id (must be transformers.js-compatible)."
+    description: "Transformers.js model (ONNX-compatible)."
   })
   declare model: any;
 
@@ -77,7 +82,7 @@ export class ImageToTextNode extends BaseNode {
 
     const pipeline = (await getPipeline({
       task: "image-to-text",
-      model: asString(this.model) || undefined,
+      model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (

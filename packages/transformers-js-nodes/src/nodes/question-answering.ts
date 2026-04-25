@@ -6,9 +6,14 @@ import {
   asNumber,
   asString,
   ensureArray,
+  extractRepoId,
   getPipeline,
+  tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
+import { defaultRepoFor } from "../recommended-models.js";
+
+const TJS_TYPE = "tjs.question_answering";
 
 type QAResult = {
   answer: string;
@@ -52,10 +57,10 @@ export class QuestionAnsweringNode extends BaseNode {
   declare context: any;
 
   @prop({
-    type: "str",
-    default: "Xenova/distilbert-base-uncased-distilled-squad",
+    type: TJS_TYPE,
+    default: tjsModelDefault(TJS_TYPE, defaultRepoFor(TJS_TYPE)),
     title: "Model",
-    description: "Hugging Face model id (must be transformers.js-compatible)."
+    description: "Transformers.js model (ONNX-compatible)."
   })
   declare model: any;
 
@@ -95,7 +100,7 @@ export class QuestionAnsweringNode extends BaseNode {
 
     const pipeline = (await getPipeline({
       task: "question-answering",
-      model: asString(this.model) || undefined,
+      model: extractRepoId(this.model) || undefined,
       dtype: normalizeOption(this.dtype),
       device: normalizeOption(this.device)
     })) as (
