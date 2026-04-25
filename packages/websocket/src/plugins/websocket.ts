@@ -220,6 +220,101 @@ async function resolveProvider(providerId: string, userId: string) {
 
 const isProduction = process.env["NODETOOL_ENV"] === "production";
 
+/**
+ * Drive a Transformers.js download to completion, forwarding progress events
+ * to the connected websocket in the same shape the HF download manager emits.
+ *
+ * The TJS runtime gives us per-file progress (file/loaded/total). We sum
+ * loaded/total across files we've seen so the UI's aggregate bar tracks the
+ * total bytes pulled from the Hub.
+ */
+interface WsSendable {
+  send: (data: string) => void;
+}
+
+async function handleTjsDownload(
+  socket: WsSendable,
+  repoId: string,
+  modelType: string,
+  aborts: Map<string, AbortController>
+): Promise<void> {
+  const tjs = await import("@nodetool/transformers-js-nodes");
+  const abort = new AbortController();
+  aborts.set(repoId, abort);
+
+  // Track total/loaded across all files the TJS runtime touches.
+  const fileTotals = new Map<string, { loaded: number; total: number }>();
+  const completedFiles = new Set<string>();
+
+  const sendProgress = (status: string, error?: string) => {
+    let downloadedBytes = 0;
+    let totalBytes = 0;
+    for (const { loaded, total } of fileTotals.values()) {
+      downloadedBytes += loaded;
+      totalBytes += total;
+    }
+    const payload: Record<string, unknown> = {
+      status,
+      repo_id: repoId,
+      path: null,
+      model_type: modelType,
+      downloaded_bytes: downloadedBytes,
+      total_bytes: totalBytes,
+      downloaded_files: completedFiles.size,
+      current_files: Array.from(fileTotals.keys()).filter(
+        (f) => !completedFiles.has(f)
+      ),
+      total_files: fileTotals.size
+    };
+    if (error) payload["error"] = error;
+    try {
+      socket.send(JSON.stringify(payload));
+    } catch {
+      /* socket gone */
+    }
+  };
+
+  sendProgress("start");
+
+  try {
+    await tjs.downloadTransformersJsModel(repoId, {
+      modelType,
+      signal: abort.signal,
+      onProgress: (info) => {
+        if (!info.file) return;
+        if (info.status === "initiate" || info.status === "download") {
+          if (!fileTotals.has(info.file)) {
+            fileTotals.set(info.file, { loaded: 0, total: info.total ?? 0 });
+          }
+        } else if (info.status === "progress") {
+          const entry = fileTotals.get(info.file) ?? { loaded: 0, total: 0 };
+          entry.loaded = info.loaded ?? entry.loaded;
+          entry.total = info.total ?? entry.total;
+          fileTotals.set(info.file, entry);
+        } else if (info.status === "done") {
+          const entry = fileTotals.get(info.file) ?? { loaded: 0, total: 0 };
+          if (entry.total > 0 && entry.loaded < entry.total) {
+            entry.loaded = entry.total;
+          }
+          fileTotals.set(info.file, entry);
+          completedFiles.add(info.file);
+        }
+        sendProgress("progress");
+      }
+    });
+    sendProgress("completed");
+  } catch (err) {
+    if (abort.signal.aborted) {
+      sendProgress("cancelled");
+    } else {
+      const message = err instanceof Error ? err.message : String(err);
+      sendProgress("error", message);
+    }
+  } finally {
+    aborts.delete(repoId);
+  }
+}
+
 const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
   app,
   opts
@@ -364,17 +459,26 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
 
       import("@nodetool/huggingface")
         .then(({ getDownloadManager }) => {
+          // TJS downloads are bookkept here so cancel can abort them.
+          const tjsAborts = new Map<string, AbortController>();
+
           socket.on("message", async (raw: Buffer | ArrayBuffer | Buffer[]) => {
             try {
               const msg = JSON.parse(raw.toString());
               if (msg.command === "start_download") {
+                const repoId: string = msg.repo_id ?? "";
+                const modelType: string | null = msg.model_type ?? null;
+                if (modelType && modelType.startsWith("tjs.")) {
+                  await handleTjsDownload(socket, repoId, modelType, tjsAborts);
+                  return;
+                }
                 const manager = await getDownloadManager();
-                await manager.startDownload(msg.repo_id ?? "", {
+                await manager.startDownload(repoId, {
                   path: msg.path ?? null,
                   allowPatterns: msg.allow_patterns ?? null,
                   ignorePatterns: msg.ignore_patterns ?? null,
                   cacheDir: msg.cache_dir ?? null,
-                  modelType: msg.model_type ?? null,
+                  modelType,
                   onProgress: (update) => {
                     try {
                       socket.send(JSON.stringify(update));
@@ -384,8 +488,15 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                   }
                 });
               } else if (msg.command === "cancel_download") {
+                const id: string = msg.repo_id ?? msg.id ?? "";
+                const tjsAbort = tjsAborts.get(id);
+                if (tjsAbort) {
+                  tjsAbort.abort();
+                  tjsAborts.delete(id);
+                  return;
+                }
                 const manager = await getDownloadManager();
-                manager.cancelDownload(msg.repo_id ?? msg.id ?? "");
+                manager.cancelDownload(id);
               }
             } catch (err) {
               const error = err instanceof Error ? err.message : String(err);

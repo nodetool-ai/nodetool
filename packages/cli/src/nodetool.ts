@@ -29,6 +29,7 @@ import { WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
 import { ProcessingContext } from "@nodetool/runtime";
@@ -391,6 +392,7 @@ workflows
         const registry = new NodeRegistry();
         registerBaseNodes(registry);
         registerElevenLabsNodes(registry);
+        registerTransformersJsNodes(registry);
         registerFalNodes(registry);
         registerReplicateNodes(registry);
 

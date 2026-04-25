@@ -74,6 +74,23 @@ vi.mock("node:fs/promises", async (orig) => {
 
 import { access, readdir } from "node:fs/promises";
 
+// ── Mock @nodetool/transformers-js-nodes (cache-scan + path helpers) ──────
+
+vi.mock("@nodetool/transformers-js-nodes", async (orig) => {
+  const actual = await orig<typeof import("@nodetool/transformers-js-nodes")>();
+  return {
+    ...actual,
+    scanTransformersJsCache: vi.fn().mockResolvedValue([]),
+    isRepoCached: vi.fn().mockResolvedValue(false),
+    getTransformersJsCacheDir: vi.fn().mockReturnValue("/tmp/tjs-cache")
+  };
+});
+
+import {
+  scanTransformersJsCache,
+  isRepoCached
+} from "@nodetool/transformers-js-nodes";
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const createCaller = createCallerFactory(appRouter);
@@ -130,6 +147,8 @@ describe("models router", () => {
       Object.assign(new Error("ENOENT"), { code: "ENOENT" })
     );
     (readdir as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (isRepoCached as ReturnType<typeof vi.fn>).mockResolvedValue(false);
   });
 
   afterEach(() => {
@@ -373,6 +392,208 @@ describe("models router", () => {
         model_type: "diffusers"
       });
       expect(result).toEqual([]);
+    });
+  });
+
+  // ── transformersJsByType ─────────────────────────────────────────────────
+
+  describe("transformersJsByType", () => {
+    it("returns the curated recommended list with downloaded=false when cache is empty", async () => {
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsByType({
+        model_type: "tjs.text_classification"
+      });
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0].provider).toBe("transformers_js");
+      expect(result[0].type).toBe("tjs.text_classification");
+      expect(result.every((m) => m.downloaded === false)).toBe(true);
+    });
+
+    it("marks recommended entries as downloaded when present in cache", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          repo_id: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+          dir: "/tmp/tjs-cache/Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+          size_bytes: 1234567
+        }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsByType({
+        model_type: "tjs.text_classification"
+      });
+      const first = result.find(
+        (m) =>
+          m.repo_id === "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
+      );
+      expect(first?.downloaded).toBe(true);
+      expect(first?.size_on_disk).toBe(1234567);
+    });
+
+    it("surfaces off-list cached repos that aren't recommended anywhere", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          repo_id: "user/random-onnx-model",
+          dir: "/tmp/tjs-cache/user/random-onnx-model",
+          size_bytes: 99
+        }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsByType({
+        model_type: "tjs.text_classification"
+      });
+      expect(result.find((m) => m.repo_id === "user/random-onnx-model"))
+        .toBeDefined();
+    });
+
+    it("does NOT cross-list a repo that is recommended under a different type", async () => {
+      // whisper-tiny.en is recommended for tjs.automatic_speech_recognition,
+      // not tjs.text_classification. It must not appear when querying TC.
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          repo_id: "Xenova/whisper-tiny.en",
+          dir: "/tmp/tjs-cache/Xenova/whisper-tiny.en",
+          size_bytes: 100
+        }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsByType({
+        model_type: "tjs.text_classification"
+      });
+      expect(result.find((m) => m.repo_id === "Xenova/whisper-tiny.en"))
+        .toBeUndefined();
+    });
+
+    it("returns recommended list (with downloaded=false) on scan failure", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("scan failed")
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsByType({
+        model_type: "tjs.text_classification"
+      });
+      expect(result.length).toBeGreaterThan(0);
+      expect(result.every((m) => m.downloaded === false)).toBe(true);
+    });
+
+    it("returns empty for an unknown tjs.* type when cache is also empty", async () => {
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsByType({
+        model_type: "tjs.does_not_exist"
+      });
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ── transformersJsRecommended ────────────────────────────────────────────
+
+  describe("transformersJsRecommended", () => {
+    it("returns the curated list with downloaded=false when cache is empty", async () => {
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsRecommended({
+        model_type: "tjs.text_classification"
+      });
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0].provider).toBe("transformers_js");
+      expect(result[0].type).toBe("tjs.text_classification");
+      expect(result.every((m) => m.downloaded === false)).toBe(true);
+    });
+
+    it("marks downloaded=true for recommended repos present in cache", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          repo_id: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+          dir: "/tmp/tjs-cache/Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+          size_bytes: 7777
+        }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsRecommended({
+        model_type: "tjs.text_classification"
+      });
+      const hit = result.find(
+        (m) =>
+          m.repo_id === "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
+      );
+      expect(hit?.downloaded).toBe(true);
+      expect(hit?.size_on_disk).toBe(7777);
+    });
+
+    it("does NOT include off-list cached repos (unlike transformersJsByType)", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          repo_id: "user/random-onnx-model",
+          dir: "/tmp/tjs-cache/user/random-onnx-model",
+          size_bytes: 99
+        }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsRecommended({
+        model_type: "tjs.text_classification"
+      });
+      expect(result.find((m) => m.repo_id === "user/random-onnx-model"))
+        .toBeUndefined();
+    });
+
+    it("returns empty for unknown tjs.* types", async () => {
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsRecommended({
+        model_type: "tjs.does_not_exist"
+      });
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ── transformersJsList ───────────────────────────────────────────────────
+
+  describe("transformersJsList", () => {
+    it("returns every cached repo with downloaded=true", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          repo_id: "Xenova/whisper-tiny.en",
+          dir: "/tmp/tjs-cache/Xenova/whisper-tiny.en",
+          size_bytes: 1000
+        },
+        {
+          repo_id: "user/custom-model",
+          dir: "/tmp/tjs-cache/user/custom-model",
+          size_bytes: 2000
+        }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.transformersJsList();
+      expect(result).toHaveLength(2);
+      expect(result.every((m) => m.downloaded === true)).toBe(true);
+      expect(result.every((m) => m.provider === "transformers_js")).toBe(true);
+      expect(result.find((m) => m.repo_id === "Xenova/whisper-tiny.en")
+        ?.size_on_disk).toBe(1000);
+    });
+
+    it("returns empty array when scan throws", async () => {
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("nope")
+      );
+      const caller = createCaller(makeCtx());
+      expect(await caller.models.transformersJsList()).toEqual([]);
+    });
+  });
+
+  // ── transformersJsIsCached ───────────────────────────────────────────────
+
+  describe("transformersJsIsCached", () => {
+    it("returns true when isRepoCached resolves true", async () => {
+      (isRepoCached as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      const caller = createCaller(makeCtx());
+      expect(
+        await caller.models.transformersJsIsCached({ repo_id: "Xenova/foo" })
+      ).toBe(true);
+    });
+
+    it("returns false on error", async () => {
+      (isRepoCached as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("x"));
+      const caller = createCaller(makeCtx());
+      expect(
+        await caller.models.transformersJsIsCached({ repo_id: "Xenova/foo" })
+      ).toBe(false);
     });
   });
 

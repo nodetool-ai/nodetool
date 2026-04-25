@@ -73,8 +73,13 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
 
   const displayModels = useMemo(() => {
     return filteredModels.map((model) => {
+      // Trust an explicit `downloaded` flag from the backend (used by
+      // Transformers.js, where cache state is resolved server-side and the
+      // HF cache lookup below would always miss).
       const downloaded =
-        model.type === "llama_model" || !!cacheStatuses[getHfCacheKey(model)];
+        model.downloaded === true ||
+        model.type === "llama_model" ||
+        !!cacheStatuses[getHfCacheKey(model)];
       return { ...model, downloaded } as UnifiedModel & { downloaded: boolean };
     });
   }, [cacheStatuses, filteredModels]);

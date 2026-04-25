@@ -20,6 +20,7 @@ import { uiToolSchemas } from "@nodetool/protocol";
 import { NodeRegistry, type NodeMetadata } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerKieNodes } from "@nodetool/kie-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
@@ -81,6 +82,7 @@ function getRuntimeEnvironment(
       });
       registerBaseNodes(registry);
       registerElevenLabsNodes(registry);
+      registerTransformersJsNodes(registry);
       registerFalNodes(registry);
       registerKieNodes(registry);
       registerReplicateNodes(registry);

@@ -30,6 +30,7 @@
     "@nodetool/config": "*",
     "@nodetool/dsl": "*",
     "@nodetool/elevenlabs-nodes": "*",
+    "@nodetool/transformers-js-nodes": "*",
     "@nodetool/fal-nodes": "*",
     "@nodetool/kie-nodes": "*",
     "@nodetool/huggingface": "*",

@@ -651,6 +651,48 @@ describe("getNodeMetadata – outputTypes support", () => {
     expect(messageOut!.type.type).toBe("str");
   });
 
+  it("treats `tjs.*`-typed model props as basic fields by default", () => {
+    class TjsLikeNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.TjsLike";
+      static readonly title = "TJS-like";
+      static readonly description = "";
+
+      @prop({ type: "str", default: "hello", title: "Text" })
+      declare text: any;
+
+      @prop({
+        type: "tjs.text_classification",
+        default: { type: "tjs.text_classification", repo_id: "Xenova/foo" },
+        title: "Model"
+      })
+      declare model: any;
+
+      @prop({ type: "int", default: 1, title: "Top K" })
+      declare top_k: any;
+
+      @prop({ type: "enum", default: "auto", title: "Quantization", values: ["auto", "fp16"] })
+      declare dtype: any;
+
+      @prop({ type: "enum", default: "auto", title: "Device", values: ["auto", "cpu"] })
+      declare device: any;
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(
+      TjsLikeNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    // 5 props total — heuristic kicks in (not the ≤3 fall-through).
+    // `model` (tjs.* selector) and `text` (str / primary input) must be basic;
+    // `top_k`, `dtype`, `device` should remain advanced.
+    expect(meta.basic_fields).toEqual(expect.arrayContaining(["model", "text"]));
+    expect(meta.basic_fields).not.toContain("top_k");
+    expect(meta.basic_fields).not.toContain("dtype");
+    expect(meta.basic_fields).not.toContain("device");
+  });
+
   it("marks outputs as streaming when isStreamingOutput is true", () => {
     class StreamingOutputNode extends BaseNode {
       static readonly nodeType = "nodetool.test.StreamingOutput";

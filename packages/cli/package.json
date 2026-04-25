@@ -26,6 +26,7 @@
     "@trpc/server": "^11.0.0",
     "@nodetool/base-nodes": "*",
     "@nodetool/elevenlabs-nodes": "*",
+    "@nodetool/transformers-js-nodes": "*",
     "@nodetool/dsl": "*",
     "@nodetool/fal-nodes": "*",
     "@nodetool/replicate-nodes": "*",

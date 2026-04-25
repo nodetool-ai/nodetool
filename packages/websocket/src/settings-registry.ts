@@ -94,6 +94,11 @@ s(
   "Folders",
   "Path to users.yaml file for multi-user bearer token authentication. Defaults to ~/.config/nodetool/users.yaml for local deployments."
 );
+s(
+  "TRANSFORMERS_JS_CACHE_DIR",
+  "TransformersJs",
+  "Cache directory for Transformers.js (@huggingface/transformers) model downloads. Defaults to <data-dir>/transformers-js-cache. This is separate from the Python HuggingFace Hub cache because the on-disk layout differs."
+);
 
 // Autosave
 s(

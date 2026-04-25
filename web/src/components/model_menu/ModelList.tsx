@@ -342,8 +342,8 @@ function ModelList<TModel extends ModelSelectorModel>({
           <InfoOutlinedIcon color="warning" fontSize="medium" />
           <Text>
             {searchTerm.trim().length === 0
-              ? "No models available. Select or enable providers in the left sidebar to see models."
-              : `No models found for "${searchTerm}". Try a different term or enable more providers.`}
+              ? "No models available. Enable providers in the left sidebar, or download a local model from the Recommended downloads tab."
+              : `No models found for "${searchTerm}". Try a different term, enable more providers, or download a local model from the Recommended downloads tab.`}
           </Text>
         </Box>
       ) : (

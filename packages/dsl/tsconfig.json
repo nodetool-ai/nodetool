@@ -20,6 +20,9 @@
       "path": "../elevenlabs-nodes"
     },
     {
+      "path": "../transformers-js-nodes"
+    },
+    {
       "path": "../kernel"
     },
     {
