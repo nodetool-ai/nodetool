@@ -53,7 +53,7 @@ Rules for the remaining work:
   - Route pose, landmarks, captions, classifications, and other analysis outputs through existing session/control/event surfaces instead of the media transport unless they are actual media frames.
   - Add model loading, cache, backend capability, and metrics surfaces for `webgpu` / `wasm` / `cpu`.
 - [ ] **13. Make realtime work from deployed NodeTool workers.**
-  - Treat this as deployment hardening for the existing NodeTool deploy path, not a separate Scope-style cloud runner.
+  - Treat this as deployment hardening for the existing NodeTool deploy path, not a separate cloud runner.
   - Must-have: HTTPS/WSS, auth, proxy, ICE/STUN/TURN, worker placement, metrics, reconnect, and public output URL behavior.
   - Nice-to-have: WHIP/WHEP, remote media brokering, entitlements, multi-region routing, and richer operations dashboards.
 
@@ -89,7 +89,7 @@ Primary contract reference: `docs/realtime-runtime-contract.md`.
 - **Native FP8:** NVIDIA Transformer Engine documents FP8 support on Ada/Hopper/Blackwell with compute capability 8.9+. Ampere should route to GGUF/FP16/INT8 fallbacks.
 - **WebRTC bitrate:** browser sender bitrate should be tuned via `RTCRtpSender.getParameters()` -> mutate `encodings[0].maxBitrate` -> `setParameters()`, with Safari/Firefox fallback handling.
 - **werift:** good Node-first choice for WebRTC/RTP and now owns the first backend peer/session shell. Pixel decode/encode remains behind `UnsupportedCodecBridge`.
-- **Scope architecture sanity check:** `daydreamlive/scope` validates the broad split: thin UI shell, long-lived media service/session objects, bounded queues, per-consumer output queues, explicit packet types, deterministic teardown, pacing helpers, and structured metrics. Use this as architecture inspiration, not code to copy.
+- **External architecture sanity check:** Keep the broad split: thin UI shell, long-lived media service/session objects, bounded queues, per-consumer output queues, explicit packet types, deterministic teardown, pacing helpers, and structured metrics.
 - **Self-Forcing community weights:** FP8/GGUF low-VRAM artifacts exist, but treat them as experimental until source, license, and quality are validated.
 
 ## Current code reality
@@ -279,11 +279,13 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - Sampler boundary landed: LongLive input frames convert to torch-like BCHW tensors with RGB default and optional alpha, sampler output tensors convert back to realtime `rgba8` frames, metadata/timing/cache state is preserved, and sampler reset/close hooks delegate through the lazy backend. The causal sampler factory now returns the backend-ready adapter instead of the raw sampler, so real backends receive `LongLiveGenerationInputs` through the same conversion path; adapter and causal sampler lifecycle methods delegate to wrapped samplers/upstream pipelines.
   - Configurable causal sampler wiring landed: default real-mode backend can build a dependency-lazy imported pipeline factory and pass optional sampler config without importing upstream ML packages at base import time.
   - Node-facing real pipeline configuration landed: advanced `LongLive` fields can pass an upstream pipeline module/class, constructor kwargs, component/device/dtype pass-through controls, constructor argument-name mapping, sampler call/inference argument-name mapping, input-channel and noise-shape selection, and sampler options into real mode while keeping default fake-mode behavior unchanged.
-  - Upstream pipeline interface guard landed: configured causal samplers now validate `inference` vs callable pipeline shapes during sampler construction, and backend load reports mismatches as structured sampler errors.
+  - Upstream pipeline interface guard landed: configured causal samplers now validate `inference` vs callable pipeline shapes during sampler construction, inspect configured constructor/call/inference keyword names when upstream signatures are introspectable, and backend load reports mismatches as structured sampler errors.
   - Async upstream call support landed: causal samplers can await either `.inference(...)` or callable pipeline results before converting output video tensors into realtime frames.
   - Upstream output normalization landed: causal samplers can extract video tensors from raw outputs, dict wrappers (`video`/`videos`/`frames`), and object wrappers (`.video`/`.videos`/`.frames`), then select frames from batched, time-first, or single-frame `CHW`/`HWC` outputs before realtime conversion. Both normalized float channels and byte-scale channels are accepted, and missing/empty upstream video outputs produce clear errors.
   - Precision guard landed: real mode defers `auto` precision resolution to the lazy backend so CUDA capability can be used, while unvalidated `fp8`/`gguf`/`int8` paths fail early with structured errors instead of silently falling back.
-  - Still pending for completion: validating the configurable interface against the real upstream LongLive package at runtime, real end-to-end inference against downloaded weights, and real FP8/GGUF/INT8 loader paths.
+  - Real smoke-test scaffolding landed: `nodetool-realtime` now has an opt-in `NODETOOL_LONGLIVE_REAL_SMOKE=1` path that parses user-provided upstream module/class, constructor kwargs, constructor/call/inference argument-name mappings, sampler config, prompt, and weight settings without triggering downloads in the normal test suite.
+  - Quantized loader guard metadata landed: explicit `fp8`/`gguf`/`int8` requests still fail early until real loaders exist, but the structured error now identifies the matching install extra and reports the loader status instead of silently falling back.
+  - Still pending for completion: running real end-to-end inference against downloaded weights and implementing real FP8/GGUF/INT8 loader paths.
 - [ ] Step 10b: Self-Forcing.
 - [ ] Step 11: canonical workflow template.
 
