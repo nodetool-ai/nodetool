@@ -28,10 +28,7 @@ import {
   type NodeExecutor
 } from "@nodetool/runtime";
 import { WorkflowRunner } from "@nodetool/kernel";
-import { createLogger } from "@nodetool/config";
 import type { AgentTransport } from "./agent/transport.js";
-
-const log = createLogger("nodetool.websocket.mcp");
 
 export interface McpServerOptions {
   metadataRoots?: string[];

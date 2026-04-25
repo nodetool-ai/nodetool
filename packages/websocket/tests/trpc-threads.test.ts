@@ -185,15 +185,16 @@ describe("threads router", () => {
       expect(result.id).toBe("t1");
     });
 
-    it("creates a new thread when thread does not exist", async () => {
+    it("auto-creates a thread when it does not exist (like ChatView expects)", async () => {
       (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(
-        makeThread({ id: "missing", title: "New Thread" })
-      );
+      const newThread = makeThread({ id: "missing" });
+      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(newThread);
+
       const caller = createCaller(makeCtx());
       const result = await caller.threads.get({ id: "missing" });
+
+      expect(Thread.create).toHaveBeenCalled();
       expect(result.id).toBe("missing");
-      expect(result.title).toBe("New Thread");
     });
   });
 

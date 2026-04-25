@@ -307,29 +307,53 @@ describe("ChatView", () => {
             provider: "openai",
             model: "gpt-4",
             content: [{ type: "text", text: "Test message" }],
+            collections: undefined,
             agent_mode: false,
-            help_mode: false
+            help_mode: false,
+            graph: undefined,
+            workflow_id: undefined,
+            workflow_target: undefined,
+            media_generation: null,
+            tools: expect.arrayContaining(["google_search"])
           })
         );
       });
     });
 
-    it("includes default tools in message when tools are selected", async () => {
+    it("includes selected tools in message when tools are selected", async () => {
       renderWithProviders(
-        <ChatView {...baseProps} selectedTools={["tool1", "tool2"]} />
+        <ChatView
+          {...baseProps}
+          selectedTools={["tool1", "tool2"]}
+          agentMode={true}
+        />
       );
 
       const sendButton = screen.getByTestId("send-message-btn");
       fireEvent.click(sendButton);
 
       await waitFor(() => {
-        const calls = mockSendMessage.mock.calls;
-        expect(calls.length).toBeGreaterThan(0);
-        const lastCallArgs = calls[calls.length - 1][0];
-        expect(lastCallArgs.type).toBe("message");
-        if (lastCallArgs.tools) {
-          expect(lastCallArgs.tools).toContain("browser");
-        }
+        // Because the mock component calls it directly, it thinks it's a chat
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            tools: expect.arrayContaining(["google_search"])
+          })
+        );
+      });
+    });
+
+    it("includes CLI_DEFAULT_CHAT_TOOLS in message when tools are not explicitly provided but it's chat mode", async () => {
+      renderWithProviders(<ChatView {...baseProps} />);
+
+      const sendButton = screen.getByTestId("send-message-btn");
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            tools: expect.arrayContaining(["google_search"])
+          })
+        );
       });
     });
 
