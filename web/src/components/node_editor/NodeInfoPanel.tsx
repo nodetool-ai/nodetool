@@ -2,17 +2,18 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import {
   Box
 } from "@mui/material";
 import { Tooltip, Text, EditorButton, FlexRow, CloseButton } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, useViewport } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
+import { useNodes } from "../../contexts/NodeContext";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
@@ -56,14 +57,16 @@ interface NodeInfo {
   executionStatus: "pending" | "running" | "completed" | "error" | undefined;
 }
 
+const PANEL_WIDTH = 320;
+const PANEL_GAP = 16;
+const VIEWPORT_MARGIN = 16;
+const MIN_PANEL_HEIGHT = 200;
+
 const styles = (theme: Theme) =>
   css({
     "&.node-info-panel": {
       position: "fixed",
-      top: "80px",
-      right: "50px",
-      width: "320px",
-      maxHeight: "calc(100vh - 150px)",
+      width: `${PANEL_WIDTH}px`,
       zIndex: 15000,
       display: "flex",
       flexDirection: "column",
@@ -196,10 +199,79 @@ const styles = (theme: Theme) =>
 
 const NodeInfoPanel: React.FC = memo(() => {
   const theme = useTheme();
-  const { getNode, setCenter } = useReactFlow();
+  const { getNode, setCenter, flowToScreenPosition } = useReactFlow();
+  const { x: viewportX, y: viewportY, zoom } = useViewport();
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+
+  const inspectedNodeBounds = useNodes((state) => {
+    if (!inspectedNodeId) {
+      return null;
+    }
+    const node = state.findNode(inspectedNodeId);
+    if (!node) {
+      return null;
+    }
+    return {
+      x: node.position.x,
+      y: node.position.y,
+      width: node.measured?.width ?? node.width ?? 200,
+      height: node.measured?.height ?? node.height ?? 100
+    };
+  });
+
+  const [windowSize, setWindowSize] = useState(() => ({
+    width: typeof window === "undefined" ? 1920 : window.innerWidth,
+    height: typeof window === "undefined" ? 1080 : window.innerHeight
+  }));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const panelStyle = useMemo<React.CSSProperties | undefined>(() => {
+    if (!inspectedNodeBounds) {
+      return undefined;
+    }
+    const { x, y, width } = inspectedNodeBounds;
+    const topRight = flowToScreenPosition({ x: x + width, y });
+    const topLeft = flowToScreenPosition({ x, y });
+    const { width: vw, height: vh } = windowSize;
+
+    let left = topRight.x + PANEL_GAP;
+    if (left + PANEL_WIDTH + VIEWPORT_MARGIN > vw) {
+      left = topLeft.x - PANEL_GAP - PANEL_WIDTH;
+    }
+    left = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(left, vw - PANEL_WIDTH - VIEWPORT_MARGIN)
+    );
+
+    let top = topRight.y;
+    top = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(top, vh - MIN_PANEL_HEIGHT - VIEWPORT_MARGIN)
+    );
+    const maxHeight = vh - top - VIEWPORT_MARGIN;
+
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      maxHeight: `${maxHeight}px`
+    };
+  }, [
+    inspectedNodeBounds,
+    flowToScreenPosition,
+    viewportX,
+    viewportY,
+    zoom,
+    windowSize
+  ]);
 
   const nodeInfo = useMemo((): NodeInfo | null => {
     if (!inspectedNodeId) {
@@ -273,7 +345,7 @@ const NodeInfoPanel: React.FC = memo(() => {
   }
 
   return (
-    <Box className="node-info-panel" css={styles(theme)}>
+    <Box className="node-info-panel" css={styles(theme)} style={panelStyle}>
       <Box className="panel-content">
         <FlexRow align="center" justify="space-between" sx={{ mb: 1 }}>
           <Text className="node-name">{nodeInfo.label}</Text>
