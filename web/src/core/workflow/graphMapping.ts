@@ -1,5 +1,4 @@
 import { Edge, Node } from "@xyflow/react";
-import log from "loglevel";
 
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { NodeData } from "../../stores/NodeData";
@@ -19,7 +18,7 @@ export const isValidEdge = (
   const targetNode = nodeMap.get(edge.target);
 
   if (!sourceNode || !targetNode || !sourceNode.type || !targetNode.type) {
-    log.debug("isValidEdge failed: missing nodes or types", {
+    console.debug("isValidEdge failed: missing nodes or types", {
       sourceNode,
       targetNode,
       edge
@@ -31,7 +30,7 @@ export const isValidEdge = (
   const targetMetadata = metadata[targetNode.type];
 
   if (!edge.sourceHandle || !edge.targetHandle) {
-    log.debug("isValidEdge failed: missing handles", { edge });
+    console.debug("isValidEdge failed: missing handles", { edge });
     return false;
   }
 
@@ -71,7 +70,7 @@ export const sanitizeGraph = (
   const sanitizedNodes = nodes.map((node) => {
     const sanitizedNode = { ...node };
     if (sanitizedNode.parentId && !nodeMap.has(sanitizedNode.parentId)) {
-      log.warn(
+      console.warn(
         `Node ${sanitizedNode.id} references non-existent parent ${sanitizedNode.parentId}. Removing parent reference.`
       );
       delete sanitizedNode.parentId;
@@ -88,7 +87,7 @@ export const sanitizeGraph = (
     const targetNode = nodeMap.get(edge.target);
 
     if (!sourceNode || !targetNode) {
-      log.warn(
+      console.warn(
         `Edge ${edge.id} references non-existent nodes. Source: ${
           edge.source
         } (${sourceNode ? "exists" : "missing"}), Target: ${edge.target} (${
@@ -96,7 +95,7 @@ export const sanitizeGraph = (
         }). Removing edge.`
       );
     } else if (!sourceNode.type || !targetNode.type) {
-      log.warn(
+      console.warn(
         `Edge ${edge.id} connects nodes without types. Source type: ${sourceNode.type}, Target type: ${targetNode.type}. Removing edge.`
       );
     } else {
@@ -104,7 +103,7 @@ export const sanitizeGraph = (
       const targetMetadata = metadata[targetNode.type];
 
       if (!edge.sourceHandle || !edge.targetHandle) {
-        log.warn(
+        console.warn(
           `Edge ${edge.id} missing handle. Source: ${edge.sourceHandle}, Target: ${edge.targetHandle}. Removing edge.`
         );
         return false;
@@ -129,7 +128,7 @@ export const sanitizeGraph = (
 
       if (!sourceHasValidHandle) {
         const sourceDynamicOutputs = sourceNode.data.dynamic_outputs || {};
-        log.warn(
+        console.warn(
           `Edge ${edge.id} references invalid source handle "${
             edge.sourceHandle
           }" on node ${edge.source} (type: ${
@@ -141,7 +140,7 @@ export const sanitizeGraph = (
         );
       } else if (!targetHasValidHandle) {
         const dynamicProperties = targetNode.data.dynamic_properties || {};
-        log.warn(
+        console.warn(
           `Edge ${edge.id} references invalid target handle "${
             edge.targetHandle
           }" on node ${edge.target} (type: ${
@@ -159,7 +158,7 @@ export const sanitizeGraph = (
 
   const removedEdgeCount = edges.length - sanitizedEdges.length;
   if (removedEdgeCount > 0) {
-    log.info(
+    console.info(
       `Sanitized graph: removed ${removedEdgeCount} invalid edge(s) out of ${edges.length} total edges.`
     );
   }

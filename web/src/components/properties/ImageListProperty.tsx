@@ -13,7 +13,6 @@ import ImageDimensions from "../node/ImageDimensions";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import log from "loglevel";
 
 interface ImageItem {
   uri: string;
@@ -334,7 +333,7 @@ const ImageListProperty = (props: PropertyProps) => {
         const newImages = await Promise.all(uploadPromises);
         handleAddImages(newImages);
       } catch (error) {
-        log.error("Failed to upload images:", error);
+        console.error("Failed to upload images:", error);
       }
     },
     [uploadAsset, handleAddImages, filteredAssets, globalSearchResults, selectedAssets]
@@ -398,7 +397,7 @@ const ImageListProperty = (props: PropertyProps) => {
         handleAddImages(newImages);
       }
     } catch (error) {
-      log.error("Error opening file picker:", error);
+      console.error("Error opening file picker:", error);
     }
   }, [uploadAsset, handleAddImages]);
 
@@ -440,7 +439,7 @@ const ImageListProperty = (props: PropertyProps) => {
       const newImages = await Promise.all(uploadPromises);
       handleAddImages(newImages);
     } catch (error) {
-      log.error("Failed to upload images:", error);
+      console.error("Failed to upload images:", error);
     }
 
     // Reset input so same file can be selected again

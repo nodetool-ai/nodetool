@@ -16,7 +16,6 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import log from "loglevel";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -40,7 +39,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu: state.closeContextMenu,
     type: state.type,
     handleId: state.handleId
-  }));
+  }), shallow);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -59,21 +58,17 @@ const OutputContextMenu: React.FC = () => {
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<unknown>();
   const {
     showMenu,
-    typeMetadata: _typeMetadata,
     setSourceHandle,
-    setTargetHandle: _setTargetHandle,
     setNodeId,
     setFilterType,
     setConnectableType
   } = useConnectableNodesStore((state) => ({
     showMenu: state.showMenu,
-    typeMetadata: state.typeMetadata,
     setSourceHandle: state.setSourceHandle,
-    setTargetHandle: state.setTargetHandle,
     setNodeId: state.setNodeId,
     setFilterType: state.setFilterType,
     setConnectableType: state.setTypeMetadata
-  }));
+  }), shallow);
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(
@@ -96,7 +91,7 @@ const OutputContextMenu: React.FC = () => {
 
   const fetchMetadata = useCallback(
     (nodeType: string) => {
-      log.info(`Fetching metadata for node type: ${nodeType}`);
+      console.info(`Fetching metadata for node type: ${nodeType}`);
       const datatypeLabel = labelForType(nodeType || "").replaceAll(" ", "");
       const adjustedLabel = datatypeLabel === "String" ? "Text" : datatypeLabel;
       
@@ -126,7 +121,7 @@ const OutputContextMenu: React.FC = () => {
       targetHandle: string | null = null
     ) => {
       if (!metadata) {
-        log.info("Metadata is undefined, cannot create node.");
+        console.info("Metadata is undefined, cannot create node.");
         return;
       }
 

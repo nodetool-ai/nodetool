@@ -24,7 +24,6 @@ import "./builtin/searchNodes";
 import "./builtin/deleteNode";
 import "./builtin/deleteEdge";
 import "./builtin/uiActions";
-import log from "loglevel";
 import { getAgentSocketClient } from "../agent/AgentSocketClient";
 import type {
   ToolCallRequestEvent,
@@ -67,7 +66,7 @@ export function initFrontendToolsBridge(): void {
   const client = getAgentSocketClient();
 
   const manifest = FrontendToolRegistry.getManifest();
-  log.info(
+  console.info(
     `[frontend-tools] Registered ${manifest.length} tools: ${manifest
       .map((tool) => tool.name)
       .join(", ")}`
@@ -77,7 +76,7 @@ export function initFrontendToolsBridge(): void {
     "toolsManifestRequest",
     (request: ToolsManifestRequestEvent): void => {
       const currentManifest = FrontendToolRegistry.getManifest();
-      log.debug(
+      console.debug(
         `[frontend-tools] Manifest requested (session=${request.sessionId}, requestId=${request.requestId}) -> ${currentManifest.length} tools`
       );
       client.sendToolsManifestResponse(request.requestId, currentManifest);
@@ -86,12 +85,12 @@ export function initFrontendToolsBridge(): void {
 
   client.on("toolCallRequest", async (request: ToolCallRequestEvent): Promise<void> => {
     const { requestId, sessionId, toolCallId, name, args } = request;
-    log.debug(
+    console.debug(
       `[frontend-tools] Tool call requested: ${name} (session=${sessionId}, callId=${toolCallId}, requestId=${requestId})`
     );
 
     if (!FrontendToolRegistry.has(name)) {
-      log.warn(
+      console.warn(
         `[frontend-tools] Unknown tool requested: ${name} (session=${sessionId}, callId=${toolCallId})`
       );
       client.sendToolCallResponse(requestId, {
@@ -128,11 +127,11 @@ export function initFrontendToolsBridge(): void {
         result,
         isError: false
       });
-      log.debug(
+      console.debug(
         `[frontend-tools] Tool call succeeded: ${name} (session=${sessionId}, callId=${toolCallId})`
       );
     } catch (error) {
-      log.error(
+      console.error(
         `[frontend-tools] Tool call failed: ${name} (session=${sessionId}, callId=${toolCallId})`,
         error
       );
@@ -145,7 +144,7 @@ export function initFrontendToolsBridge(): void {
   });
 
   client.on("toolCallAbort", (event: { sessionId: string }): void => {
-    log.info(`[frontend-tools] Abort requested (session=${event.sessionId})`);
+    console.info(`[frontend-tools] Abort requested (session=${event.sessionId})`);
     FrontendToolRegistry.abortAll();
   });
 }

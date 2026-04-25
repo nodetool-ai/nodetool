@@ -1,4 +1,3 @@
-import log from "loglevel";
 import React from "react";
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -354,7 +353,7 @@ describe("ChatView", () => {
 
     it("handles sendMessage errors gracefully", async () => {
       const consoleSpy = jest
-        .spyOn(log, "error")
+        .spyOn(console, "error")
         .mockImplementation(() => {});
       mockSendMessage.mockRejectedValueOnce(new Error("Send failed"));
 

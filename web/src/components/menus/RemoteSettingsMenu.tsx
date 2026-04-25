@@ -22,7 +22,6 @@ import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ExternalLink from "../common/ExternalLink";
 import { isElectron } from "../../lib/env";
 import { restFetch } from "../../lib/rest-fetch";
-import log from "loglevel";
 
 const SETTING_LINKS: Record<string, string> = {
   OPENAI_API_KEY: "https://platform.openai.com/api-keys",
@@ -330,7 +329,7 @@ const RemoteSettings = () => {
         window.open(authUrl, "_blank", "noopener,noreferrer,width=600,height=700");
       }
     } catch (error) {
-      log.error("OAuth initiation failed:", error);
+      console.error("OAuth initiation failed:", error);
       setHfOAuthLoading(false);
       addNotification({
         content: "Failed to initiate HuggingFace login",

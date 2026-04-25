@@ -19,7 +19,6 @@ import {
 import { trpc } from "../../../lib/trpc";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModels } from "./useModels";
-import log from "loglevel";
 
 interface DeleteModelDialogProps {
   modelId: string | null;
@@ -53,7 +52,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
     // Ollama DELETE is not implemented in tRPC (no streaming needed for delete);
     // for now this is a no-op that resolves immediately.
     // TODO: add models.ollamaDelete tRPC procedure when Ollama delete is ported.
-    log.warn("Ollama model delete not yet available via tRPC", modelName);
+    console.warn("Ollama model delete not yet available via tRPC", modelName);
     return modelName;
   };
 
@@ -116,7 +115,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         }
         onClose();
       } catch (error: any) {
-        log.error("Deletion error:", error);
+        console.error("Deletion error:", error);
 
         // Extract error message
         const errorMessage = error.message || "Unknown error";

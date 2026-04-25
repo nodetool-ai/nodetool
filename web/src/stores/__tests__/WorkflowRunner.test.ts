@@ -1,6 +1,5 @@
 import { createWorkflowRunnerStore } from "../WorkflowRunner";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
-import log from "loglevel";
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
@@ -240,7 +239,7 @@ describe("WorkflowRunner", () => {
     });
 
     it("warns when streaming without active job", async () => {
-      const logSpy = jest.spyOn(log, "warn").mockImplementation();
+      const logSpy = jest.spyOn(console, "warn").mockImplementation();
       
       store.setState({ job_id: null });
       await store.getState().streamInput("text", "Hello");

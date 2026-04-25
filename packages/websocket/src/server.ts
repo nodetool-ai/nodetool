@@ -80,6 +80,28 @@ import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 
+// @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
+// resolves to false inside Electron utilityProcess (process.type === "utility"),
+// causing it to take browser-only code paths that reference the global `document`
+// and throw `ReferenceError: document is not defined` on parse(). Reporting
+// process.type as "browser" — the value Electron's main process uses — flips
+// the heuristic back to Node mode so NodeBinaryDataFactory / fs-based asset
+// loading is selected. No-op outside Electron.
+{
+  const proc = process as unknown as { type?: string; versions: { electron?: string } };
+  if (proc.versions?.electron && proc.type && proc.type !== "browser") {
+    try {
+      Object.defineProperty(process, "type", {
+        value: "browser",
+        writable: true,
+        configurable: true
+      });
+    } catch {
+      // Property is non-configurable in some Electron builds; ignore.
+    }
+  }
+}
+
 const log = createLogger("nodetool.websocket.server");
 const startupT0 = performance.now();
 function startupMs(): string {

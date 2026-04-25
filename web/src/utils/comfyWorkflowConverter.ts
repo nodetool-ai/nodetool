@@ -11,7 +11,6 @@ import {
   ComfyUIPrompt
 } from "../services/ComfyUIService";
 import { Graph, Node as GraphNode, Edge as GraphEdge } from "../stores/ApiTypes";
-import log from "loglevel";
 
 export const COMFY_WORKFLOW_FLAG = "is_comfy_workflow";
 
@@ -330,7 +329,7 @@ export function nodeToolGraphToComfyPrompt(graph: Graph): ComfyUIPrompt {
   graph.nodes.forEach((node) => {
     // Skip if not a ComfyUI node
     if (!node.type.startsWith("comfy.")) {
-      log.warn(`Skipping non-ComfyUI node: ${node.type}`);
+      console.warn(`Skipping non-ComfyUI node: ${node.type}`);
       return;
     }
 

@@ -3,7 +3,6 @@
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
 import { uuidv4 } from "../../stores/uuidv4";
-import log from "loglevel";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
@@ -80,7 +79,7 @@ export const useCopyPaste = () => {
         try {
           await navigator.clipboard.writeText(serializedData);
         } catch (error) {
-          log.debug("Browser clipboard write failed:", error);
+          console.debug("Browser clipboard write failed:", error);
         }
       }
 
@@ -173,7 +172,7 @@ export const useCopyPaste = () => {
       }
 
       // No valid clipboard content found
-      log.debug("No valid data found in clipboard");
+      console.debug("No valid data found in clipboard");
       return;
     }
 
@@ -199,7 +198,7 @@ export const useCopyPaste = () => {
 
     const mousePosition = getMousePosition();
     if (!mousePosition) {
-      log.warn("Mouse position not available");
+      console.warn("Mouse position not available");
       return;
     }
 
@@ -227,7 +226,7 @@ export const useCopyPaste = () => {
     });
 
     if (!firstNodePosition) {
-      log.warn("Failed to calculate paste position");
+      console.warn("Failed to calculate paste position");
       return;
     }
 

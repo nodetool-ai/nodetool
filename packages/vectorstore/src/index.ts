@@ -22,6 +22,9 @@ export {
   OllamaEmbeddingFunction,
   GeminiEmbeddingFunction,
   MistralEmbeddingFunction,
+  CohereEmbeddingFunction,
+  VoyageEmbeddingFunction,
+  JinaEmbeddingFunction,
   getProviderEmbeddingFunction,
   type EmbeddingProvider,
   type ProviderEmbeddingOptions

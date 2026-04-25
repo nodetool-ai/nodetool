@@ -3,7 +3,6 @@ import { devtools } from "zustand/middleware";
 import { restFetch } from "../lib/rest-fetch";
 import { CollectionList as CollectionListType } from "./ApiTypes";
 import { trpcClient } from "../trpc/client";
-import log from "loglevel";
 
 interface IndexResponseData {
   path: string;
@@ -170,7 +169,7 @@ export const useCollectionStore = create<CollectionStore>()(
               });
             }
           } catch (err: unknown) {
-            log.error(`Failed to index file ${file.name}:`, err);
+            console.error(`Failed to index file ${file.name}:`, err);
             errors.push({
               file: file.name,
               error: err instanceof Error ? err.message : String(err)

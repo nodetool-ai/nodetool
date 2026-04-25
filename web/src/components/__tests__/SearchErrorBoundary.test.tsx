@@ -8,29 +8,26 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import log from "loglevel";
 import { ThemeProvider } from "@emotion/react";
 import mockTheme from "../../__mocks__/themeMock";
 import SearchErrorBoundary from "../SearchErrorBoundary";
 
-// Mock loglevel to avoid console output in tests
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    error: jest.fn(),
-  },
-}));
 
-const mockLogError = log.error as jest.MockedFunction<typeof log.error>;
+let mockLogError: jest.SpyInstance;
 
 // Add missing palette properties used by SearchErrorBoundary
 beforeEach(() => {
+  mockLogError = jest.spyOn(console, "error").mockImplementation(() => {});
   (mockTheme as any).vars.palette.c_gray0 = "#ffffff";
   (mockTheme as any).vars.palette.c_gray1 = "#e0e0e0";
   (mockTheme as any).vars.palette.c_gray4 = "#757575";
   (mockTheme as any).vars.palette.c_hl1 = "#2196f3";
   (mockTheme as any).vars.palette.c_hl2 = "#1976d2";
   (mockTheme as any).vars.palette.grey[1000] = "#000000";
+});
+
+afterEach(() => {
+  mockLogError?.mockRestore();
 });
 
 // Wrapper with Emotion theme (required by SearchErrorBoundary)
@@ -147,7 +144,7 @@ describe("SearchErrorBoundary", () => {
       });
     });
 
-    it("should log error to loglevel", async () => {
+    it("should log error to console", async () => {
       const ThrowError = () => {
         throw new Error("Test error");
       };

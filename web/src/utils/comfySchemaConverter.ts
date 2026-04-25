@@ -6,7 +6,6 @@
 
 import { ComfyUINodeSchema, ComfyUIObjectInfo } from "../services/ComfyUIService";
 import { NodeMetadata, Property, OutputSlot } from "../stores/ApiTypes";
-import log from "loglevel";
 
 type ComfyInputSpec = [unknown, unknown?];
 
@@ -204,7 +203,7 @@ export function comfyObjectInfoToMetadataMap(
       const metadata = comfySchemaToNodeMetadata(nodeName, schema);
       metadataMap[metadata.node_type] = metadata;
     } catch (error) {
-      log.error(`Failed to convert ComfyUI schema for ${nodeName}:`, error);
+      console.error(`Failed to convert ComfyUI schema for ${nodeName}:`, error);
     }
   });
 

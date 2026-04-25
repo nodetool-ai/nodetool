@@ -39,9 +39,6 @@ import PlaceholderNode from "./components/node_types/PlaceholderNode";
 import CustomEdge from "./components/node_editor/CustomEdge";
 import ControlEdge from "./components/node_editor/ControlEdge";
 
-// Logging
-import log from "loglevel";
-
 // Node CSS
 import "./styles/base.css";
 import "./styles/nodes.css";
@@ -408,7 +405,7 @@ function App() {
           workflow
         });
       } catch (err) {
-        log.error(err);
+        console.error(err);
         setError(String(err));
       }
     })();

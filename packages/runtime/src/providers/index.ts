@@ -20,6 +20,8 @@ import { MoonshotProvider } from "./moonshot-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import { CerebrasProvider } from "./cerebras-provider.js";
+import { DeepSeekProvider } from "./deepseek-provider.js";
+import { XAIProvider } from "./xai-provider.js";
 import { LMStudioProvider } from "./lmstudio-provider.js";
 import { VLLMProvider } from "./vllm-provider.js";
 import { HuggingFaceProvider } from "./huggingface-provider.js";
@@ -31,6 +33,9 @@ import { KieProvider } from "./kie-provider.js";
 import { AkiProvider } from "./aki-provider.js";
 import { MeshyProvider } from "./meshy-provider.js";
 import { RodinProvider } from "./rodin-provider.js";
+import { CohereProvider } from "./cohere-provider.js";
+import { VoyageProvider } from "./voyage-provider.js";
+import { JinaProvider } from "./jina-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
@@ -54,6 +59,8 @@ export { MoonshotProvider };
 export { OpenRouterProvider };
 export { TogetherProvider };
 export { CerebrasProvider };
+export { DeepSeekProvider };
+export { XAIProvider };
 export { LMStudioProvider };
 export { VLLMProvider };
 export { HuggingFaceProvider };
@@ -64,6 +71,9 @@ export { KieProvider };
 export { AkiProvider };
 export { MeshyProvider };
 export { RodinProvider };
+export { CohereProvider };
+export { VoyageProvider };
+export { JinaProvider };
 export {
   FakeProvider,
   createFakeToolCall,
@@ -175,6 +185,21 @@ registerBuiltinProvider("together", TogetherProvider, {
 });
 registerBuiltinProvider("cerebras", CerebrasProvider, {
   CEREBRAS_API_KEY: process.env["CEREBRAS_API_KEY"]
+});
+registerBuiltinProvider("cohere", CohereProvider, {
+  COHERE_API_KEY: process.env["COHERE_API_KEY"]
+});
+registerBuiltinProvider("voyage", VoyageProvider, {
+  VOYAGE_API_KEY: process.env["VOYAGE_API_KEY"]
+});
+registerBuiltinProvider("jina", JinaProvider, {
+  JINA_API_KEY: process.env["JINA_API_KEY"]
+});
+registerBuiltinProvider("deepseek", DeepSeekProvider, {
+  DEEPSEEK_API_KEY: process.env["DEEPSEEK_API_KEY"]
+});
+registerBuiltinProvider("xai", XAIProvider, {
+  XAI_API_KEY: process.env["XAI_API_KEY"]
 });
 
 // Local-only providers — require local servers/CLIs, skip in production

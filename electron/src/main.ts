@@ -145,9 +145,10 @@ async function notifyPackageUpdates(): Promise<void> {
       return;
     }
     mainWindow.webContents.send(IpcChannels.PACKAGE_UPDATES_AVAILABLE, updates);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     logMessage(
-      `Failed to notify package updates: ${error.message ?? String(error)}`,
+      `Failed to notify package updates: ${message}`,
       "warn",
     );
   }
@@ -191,9 +192,10 @@ async function checkAndInstallExpectedPackages(): Promise<boolean> {
 
     logMessage("=== Expected Package Version Check Complete ===");
     return result.success && result.packagesUpdated > 0;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     logMessage(
-      `Failed to check/install expected packages: ${error.message ?? String(error)}`,
+      `Failed to check/install expected packages: ${message}`,
       "warn",
     );
     return false;
