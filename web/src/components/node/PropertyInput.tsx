@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo } from "react";
+import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
 import useContextMenu from "../../stores/ContextMenuStore";
@@ -407,7 +408,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       updateNodeProperties: state.updateNodeProperties,
       updateNodeData: state.updateNodeData,
       findNode: state.findNode
-    })
+    }),
+    shallow
   );
   const metadata = useMetadataStore((state) => state.metadata);
 

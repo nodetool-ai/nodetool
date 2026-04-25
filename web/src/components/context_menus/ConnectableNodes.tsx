@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo, useState } from "react";
+import { shallow } from "zustand/shallow";
 import {
   Menu,
   MenuItem,
@@ -201,7 +202,8 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
       addNode: state.addNode,
       addEdge: state.addEdge,
       generateEdgeId: state.generateEdgeId
-    })
+    }),
+    shallow
   );
 
   const createConnectableNode = useCallback(

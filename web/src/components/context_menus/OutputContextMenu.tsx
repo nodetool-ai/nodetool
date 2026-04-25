@@ -39,7 +39,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu: state.closeContextMenu,
     type: state.type,
     handleId: state.handleId
-  }));
+  }), shallow);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -58,21 +58,17 @@ const OutputContextMenu: React.FC = () => {
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<unknown>();
   const {
     showMenu,
-    typeMetadata: _typeMetadata,
     setSourceHandle,
-    setTargetHandle: _setTargetHandle,
     setNodeId,
     setFilterType,
     setConnectableType
   } = useConnectableNodesStore((state) => ({
     showMenu: state.showMenu,
-    typeMetadata: state.typeMetadata,
     setSourceHandle: state.setSourceHandle,
-    setTargetHandle: state.setTargetHandle,
     setNodeId: state.setNodeId,
     setFilterType: state.setFilterType,
     setConnectableType: state.setTypeMetadata
-  }));
+  }), shallow);
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(
