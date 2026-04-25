@@ -8,13 +8,76 @@
   - [x] Protocol message types for realtime sessions
   - [x] Backend realtime session manager
   - [x] WebSocket commands for start, update, and stop session (plus `signal_realtime_session` for WebRTC)
-  - [x] HTTP endpoints for listing and fetching sessions (currently REST in `packages/websocket/src/realtime/routes.ts`; the rest of the codebase has standardized on tRPC, so these should migrate — see Follow-up tasks)
+  - [x] tRPC endpoints for listing and fetching sessions
   - [x] Frontend realtime session client and store
   - [x] Basic `/realtime/:workflowId?` page and local preview
 - [x] Phase 1 foundation
 - [ ] Phase 2 first proof
 - [ ] Phase 3 workflow integration
 - [ ] Phase 4 expansion adapters
+
+## How to use this plan now
+
+Implement from **Next implementation ladder** downward. Earlier sections capture context and frozen contracts; do not re-decide them unless implementation evidence proves they are wrong.
+
+Rules for the remaining work:
+
+- Keep realtime behavior out of `packages/websocket/src/unified-websocket-runner.ts` and `packages/kernel/src/runner.ts`; those files only get small delegation or primitive changes.
+- Use the existing workflow runner, inbox, node registry, WebSocket control plane, and job/session model.
+- Treat WebRTC/media transport and websocket/control messages as separate planes.
+- Prefer short PRs in ladder order. Each step should leave tests passing for the package it touches.
+
+## Next implementation ladder
+
+- [ ] **7a. Wire `RealtimeRunner` into production realtime sessions.**
+  - `UnifiedWebSocketRunner.runJob` currently creates `WorkflowRunner` directly; add a realtime-specific path used by `start_realtime_session`.
+  - Active realtime jobs should hold a `RealtimeRunner` shell plus its composed `WorkflowRunner`, so command routing still exposes `pushInputValue` / `pushParameter`.
+  - Pass the real `RealtimeSessionRecord` / trimmed `RealtimeSessionInfo` into `RealtimeRunner.startRealtimeMode`; hooks must see the real `session_id`, `transport`, `parameters`, and `media_tracks`.
+  - Stop reconstructing session info from `RunJobRequest` (`session_id = job_id`, `transport = "websocket"`, empty `media_tracks`).
+  - Add TS tests for the production websocket path and for `transport: "webrtc"` + mapped track metadata reaching `onSessionStart`.
+- [ ] **7b. Add TS realtime frame types.**
+  - Create `packages/protocol/src/realtime-frame.ts`.
+  - Export `VideoFrame`, `AudioFrame`, and `RealtimeFrame` from `@nodetool/protocol`.
+  - Mirror these dataclasses in `nodetool-core/src/nodetool/workflows/realtime.py`.
+- [ ] **7c. Create `packages/realtime-nodes/`.**
+  - Add package files, root workspace entry, `tsconfig.build.json` reference, and package dependencies.
+  - Export `registerRealtimeNodes(registry)` and wire it into CLI/websocket registry boot paths.
+- [ ] **7d. Implement first `nodetool.realtime` nodes.**
+  - `VideoSource`, `VideoSink`, `AudioSource`, `AudioSink`, `Parameter`, `SessionInfo`.
+  - Add loopback tests for frame routing, drop-oldest behavior, parameter routing, and lifecycle hooks.
+- [ ] **8a. Spike server-side WebRTC before committing to full integration.**
+  - Prove browser/node offer-answer, inbound RTP/frame assembly, pixel decode to `VideoFrame`, outbound encode/packetization, and clean teardown.
+  - `werift` supports WebRTC, RTP, and codec payload parsing, but payload parsing is not the same as guaranteed pixel decode/encode. Treat codec handling as the risky part of the spike.
+  - If `werift` cannot expose decoded/encoded frames cleanly enough, switch to `@roamhq/wrtc` or isolate a codec bridge before building the full server.
+- [ ] **8b. Stand up `RealtimeWebRTCServer` and `frame-router`.**
+  - Own per-session peers, SDP/ICE handling, track mapping, frame decode/encode, outbound sink tracks, and metrics.
+  - Replace the `/realtime` in-browser loopback with one operator peer connected to the backend.
+- [ ] **8c. Tighten realtime lifecycle and teardown.**
+  - `starting → running` waits for runtime startup plus WebRTC readiness when `transport: "webrtc"`.
+  - Add TS stop timeout/cancellation so `stopRealtimeMode()` cannot hang forever on long-lived nodes.
+  - Keep stopped/error sessions visible long enough for history/reconnect; add a sweeper instead of immediate deletion.
+- [ ] **8d. Add `realtime_metrics`.**
+  - Add the control-plane message in `packages/protocol/src/messages.ts`.
+  - Emit fps, queue depth, dropped frames, and peer state every ~500 ms.
+  - Feed the store and `SessionInfo` node from the same data.
+- [ ] **9. Pre-model design pass.**
+  - Pick Wan2.1 upstream source.
+  - Define model-loading progress events.
+  - Add `LatestPerHandleAccumulator`.
+  - Define CPU-only model-node smoke tests.
+  - Set framerate acceptance thresholds.
+  - Add `WeightSource` in `nodetool-realtime`.
+  - Extend SystemStats with realtime precision/hardware hints.
+- [ ] **10. Implement LongLive.**
+  - Thin node in `nodetool-realtime/src/nodetool/nodes/realtime/longlive.py`.
+  - Heavy pipeline in `nodetool-realtime/src/nodetool/realtime/wan21/longlive_pipeline.py`.
+  - Use the frame contract, loading lifecycle, hardware precision hints, `WeightSource`, and smoke-test pattern from step 9.
+- [ ] **10b. Implement Self-Forcing.**
+  - Validate GGUF/community pre-quantized weights on Ampere/low-VRAM hardware.
+  - Treat community Self-Forcing/VACE FP8/GGUF weights as experimental until license, provenance, and quality are checked for the exact selected source.
+- [ ] **11. Build the canonical realtime workflow template.**
+  - Camera/source → parameter controls → LongLive/Self-Forcing → sink/preview.
+  - Include reconnect/session behavior, metrics display, and save/export hooks where available.
 
 ## Core decisions
 
@@ -27,10 +90,7 @@
 - **`nodetool.realtime` is the namespace for new realtime-category nodes.** Use this namespace for nodes that are genuinely specific to realtime execution instead of duplicating ordinary workflow nodes.
 - **`NDI` and `Spout` are committed later goals.** The architecture should reserve clean media adapter boundaries for them from the start. `Syphon`, `MIDI`, `OSC`, `DMX`, and `timecode` follow the same adapter-first model.
 - **Code organization rule: shared files hold primitives and surfaces; dedicated files hold realtime behavior.** Realtime work should not be glued into the existing god-classes. Concretely: `unified-websocket-runner.ts` (already 4,880 lines) and `runner.ts` (1,051 lines) gain only the small primitives/surfaces they need (a delegating switch case, a `RunMode` enum, a bounded buffer); all realtime *behavior* lives in `packages/websocket/src/realtime/*` and `packages/kernel/src/realtime-runner.ts`. Any task that would add more than ~50 lines to a shared file, or a new conceptual responsibility (signaling, frame routing, parameter routing) to one, must extract first.
-- **Substrate lives in core; model nodes live in a sister Python package — sister repo from day one (decided).** Mirrors the existing precedent where `packages/huggingface/` (TS bridge/types) lives in `nodetool-core` while `nodetool-huggingface` (Python ML nodes) is a sibling repo, and the same again for fal/kie/replicate/elevenlabs. The packaging trade-off was considered three ways — (A) sister repo from day one, (B) subpackage in the main `nodetool` repo with installable extras, (C) bootstrap in core then extract — and (A) won on install bloat isolation, release cadence independence, CI scope correctness (model nodes need GPU CI; substrate doesn't), and matching the existing multi-repo workflow that's already in muscle memory. Concretely:
-  - **In `nodetool-core` (this repo):** `packages/kernel/src/realtime-runner.ts`, `packages/websocket/src/realtime/*` (session manager, command handler, WebRTC server), `packages/realtime-nodes/` (TS — `VideoSource` / `VideoSink` / `AudioSource` / `AudioSink` / `Parameter` / `SessionInfo`; pure I/O nodes that talk to the WebRTC server, no PyTorch), `packages/realtime/` (TS — frame format encoding, session-protocol shapes, the bridge-side glue analogous to `packages/huggingface/`). Python side **also** in core: `BaseNode` realtime hooks (`on_session_start` / `on_session_stop` / `reset_warm_state`), `nodetool.worker` bridge protocol verbs (`start_session` / `update_parameter` / `push_input_frame` / `stop_session` request/response + `realtime_output_frame` server-pushed event), the `LatestPerHandleAccumulator` utility, the frame-format dataclass, and the hardware-detection helper extending SystemStats.
-  - **In a new sister `nodetool-realtime` Python repo:** all model-pipeline code (LongLive, Self-Forcing, StreamDiffusion V2, MemFlow, RewardForcing, Krea, streaming VACE), the `WeightSource` resolver, the GGUF loader, the Wan2.1 base, and the `RealtimePipelineNode` base class (analogue of `HuggingFacePipelineNode`). Heavy ML deps (`diffusers`, `transformer_engine`, `flash-attn`, `gguf`, `bitsandbytes`) only appear here as pyproject extras — `nodetool-core` install stays lean.
-  - **Why this split matters:** core stays small enough to ship in any deployment; users who don't want realtime model nodes don't pay the install/disk cost; model nodes can release on their own cadence and churn faster than the substrate; the substrate gets validated end-to-end by the first model node in the sister package without needing to live in the same repo.
+- **Substrate lives in core; model nodes live in `nodetool-realtime`.** Core owns runner/session/WebRTC substrate, TS I/O nodes, protocol frame types, bridge verbs, lifecycle hooks, and hardware hints. `nodetool-realtime` owns heavy Python model code, `WeightSource`, Wan2.1 pipelines, GGUF loading, and ML dependencies. This keeps base installs lean and lets model nodes release independently.
 
 - **Contract** see nodetool/docs/realtime-runtime-contract.md
 
@@ -43,21 +103,22 @@ Based on research into high-performance real-time generative video systems (like
 3. **Separation of Parameter and Media Queues:** Control signals (UI slider changes, prompt updates) should flow through a dedicated parameter queue or state object, separate from the high-volume media queues. This ensures control updates are applied immediately on the next execution cycle, rather than waiting behind a backlog of video frames.
 4. **WebRTC Bitrate Tuning:** Default WebRTC bitrates are tuned for video conferencing (e.g., 1-2 Mbps), which degrades generative AI output quality. The WebRTC implementation must be explicitly configured for high maximum bitrates (e.g., 5-10 Mbps) and hardware-accelerated codecs.
 
-## Current code reality & MVP Corrections
+## External assumption checks
 
-- The realtime session substrate now launches a live workflow-backed runtime instead of staying metadata-only.
-  - `start_realtime_session` creates a realtime session with a linked `job_id`, accepts an optional `graph` payload for unsaved editor launches, and starts execution through the standard `WorkflowRunner`.
-  - When the database is available, realtime linkage is persisted onto the backing `Job` so history and diagnostics stay workflow-native.
-  - *Correction still needed:* wrap the existing `WorkflowRunner` (`packages/kernel/src/runner.ts`) in a sibling `RealtimeRunner` rather than replacing or subclassing it — composition. Only small primitives land in `runner.ts` (a `runMode` option, bounded ring buffers, an init-pipeline accessor); long-lived realtime behavior lives in `packages/kernel/src/realtime-runner.ts`. The current event-driven primitives (`isStreamingInput`+`run()`, `isStreamingOutput`+`genProcess()`, `isControlled`, and `NodeInbox(bufferLimit)`) already cover most of the loop; what's missing is bounded/latest-frame-wins inbox policy, warm-state lifecycle hooks, and frame-tick metrics. See "Existing event-driven primitives" below.
-  - *Correction still needed:* keep the `"starting"` → `"running"` transition tied to actual media-transport readiness once WebRTC signaling exists; the current readiness gate is runtime startup only.
-  - `update_realtime_session` routes parameter changes into live workflow inputs via `pushInputValue`.
-  - *Correction still needed:* promote those ad-hoc input pushes into an explicit parameter/control queue (separate from the media inbox) once the runner extension lands.
-  - `/realtime` is the **incubation surface only**, not the long-term home. It captures the camera, negotiates WebRTC offer/answer/ICE through the websocket signaling channel, declares browser-track-to-node mappings on the session record, and runs an in-browser loopback (operator + runtime peers in the same tab) as a transport proof while showing session/job state. Long-term, realtime authoring/operating belongs inside the editor (as a realtime mode) and the existing operator surfaces (`MiniAppPage`, `html_app`); `/realtime` exists to keep the first proof isolated until the runner and capability model are stable.
-    - *Correction still needed:* there is no server-side WebRTC termination yet, so the mapped tracks are not actually delivered into the live graph. The backend must add a Node-side WebRTC endpoint (preferred: `werift` — actively maintained pure-TS WebRTC; fallback: `node-webrtc`/`@roamhq/wrtc`) that accepts the operator offer and routes incoming tracks into the corresponding `nodetool.realtime` input nodes. Python `aiortc` is only a fallback if the Node options can't deliver acceptable encode/decode latency.
-- Live graph streaming is still tied to an active `job_id`.
-- `RealtimeAudioInput` already demonstrates a streaming input pattern.
-- `VideoInput` is still a standard asset/video reference input.
-- `MiniAppPage`, `html_app`, workflow previews, and editor flows already provide workflow-native surfaces that realtime should grow into.
+- **LongLive:** NVlabs LongLive is public, Apache 2.0, Wan2.1-based, and reports 20.7 FPS on one H100 plus 24.8 FPS with FP8 quantization. Keep exact FPS claims tied to upstream hardware, not consumer GPUs.
+- **Native FP8:** NVIDIA Transformer Engine documents FP8 support on Ada/Hopper/Blackwell with compute capability 8.9+. Ampere should route to GGUF/FP16/INT8 fallbacks.
+- **WebRTC bitrate:** browser sender bitrate should be tuned via `RTCRtpSender.getParameters()` → mutate `encodings[0].maxBitrate` → `setParameters()`, with Safari/Firefox fallback handling.
+- **werift:** good Node-first choice for WebRTC/RTP, but pixel decode/encode still needs a spike before full implementation.
+- **Self-Forcing community weights:** FP8/GGUF low-VRAM artifacts exist, including ComfyUI-oriented 6 GB VRAM workflows, but treat them as experimental until source, license, and quality are validated.
+
+## Current code reality
+
+- Realtime session start creates a linked `job_id`, accepts unsaved graph payloads, and starts a workflow-backed runtime.
+- `RealtimeRunner` exists and composes `WorkflowRunner`, but the websocket production path still creates `WorkflowRunner` directly. Step 7a wires the realtime shell into production.
+- `pushParameter(name, value)` routes live control updates to `nodetool.realtime.Parameter` nodes.
+- `/realtime` is still an incubation page. It proves browser capture and signaling, but media is not yet delivered into the backend graph.
+- Server-side WebRTC termination, frame routing, metrics, stop timeouts, and reconnect/session-retention semantics are still pending.
+- `RealtimeAudioInput` shows the existing streaming-input pattern; `VideoInput` remains an asset/reference input, not a live media source.
 
 ## Existing event-driven primitives we build on
 
@@ -66,7 +127,7 @@ The realtime runner is an **extension of existing primitives**, not a parallel s
 - **`isStreamingInput=true` + `async run(inputs, outputs, ctx)`** (`packages/kernel/src/actor.ts`, `packages/kernel/src/io.ts`). A node implements its own loop and drains the inbox via `NodeInputs.any()` / `NodeInputs.stream(handle)`. Canonical example: `ManualTriggerNode` in `packages/base-nodes/src/nodes/triggers.ts` — runs forever, processes each event pushed via `pushInputValue`, emits via `NodeOutputs.emit`. This is the pattern realtime media source nodes should follow.
 - **`isStreamingOutput=true` + `async *genProcess()`**. A node yields outputs over time (e.g. `IntervalTriggerNode`'s `while (true) { … yield … }`). Suitable for clock/tick/heartbeat nodes inside a realtime graph.
 - **`isControlled` + `_runControlled`** (`packages/kernel/src/actor.ts`). A node waits for `ControlEvent` items on the `__control__` handle, fires processing on each event, terminates on `stop`. Suitable for parameter/control-driven nodes whose data inputs are cached and replayed each tick.
-- **`NodeInbox(bufferLimit)`** (`packages/kernel/src/inbox.ts`) already supports a per-handle buffer limit with **block-on-full backpressure** (`_putWaiters`). The realtime path needs to add a **drop-oldest / latest-frame-wins** policy variant on top of this — not a new inbox.
+- **`NodeInbox(bufferLimit)`** (`packages/kernel/src/inbox.ts`) supports per-handle buffer policy, including drop-oldest / latest-frame-wins behavior.
 - **`pushInputValue(inputName, value, sourceHandle)`** + **`finishInputStream(inputName, sourceHandle)`** (`packages/kernel/src/runner.ts`) already give realtime sessions a clean way to inject media chunks and parameter updates into a live graph; `update_realtime_session` and the future server-side WebRTC endpoint should both route through this.
 
 Implication: most "realtime runner" work is **extending these surfaces** with bounded/lossy semantics, warm-state lifecycle, and per-frame metrics — not building a parallel runner.
@@ -344,10 +405,139 @@ All of the above are exported from `@nodetool/runtime` (`packages/runtime/src/in
 
 #### What's not yet decided / shipped (the agent working on the next ladder rung needs to land these)
 
-- **Frame format dataclass** — concrete shape of `payload` for video/audio (lives next to the first model node in `nodetool-realtime`; design-pass output, not bridge work).
+- **Frame format dataclass** — **decided**, see "Step (7) decisions" subsection below. `VideoFrame` / `AudioFrame` interfaces in `@nodetool/protocol` + Python dataclass mirror in `nodetool-core/src/nodetool/workflows/realtime.py`. Implementation pending alongside step (7).
 - **`LatestPerHandleAccumulator`** Python utility (Phase 2 design pass — see "Pre-model design pass" below).
 - **`WeightSource` resolver** — lives in `nodetool-realtime`, not in core (see Python integration architecture above).
 - **TS-side `node-executor.ts` import bug** (pre-existing, from PR #2766) — `import type { RealtimeSessionInfo } from "@nodetool/protocol"` should be `RealtimeSessionRecord`. Out of scope for the bridge work; will be fixed when the realtime runner branch lands its full type cleanup.
+
+### Step (7) decisions — frame format + package layout (frozen)
+
+These are the two "decide first" gates inside Phase 2 step (7) ("Create the first `nodetool.realtime` nodes"). Both are now locked in. The actual implementation lands as part of step (7); these subsections are the contract every later step (8–11) consumes.
+
+#### Frame-format contract
+
+**Where it lives.** Two places — same field names, mechanically convertible by msgpack:
+
+- **TS:** `packages/protocol/src/realtime-frame.ts`, exported from `@nodetool/protocol`. Both the in-process inbox path (`VideoSource → VideoSink` loopback) and the stdio bridge path (`VideoSource → Python model node → VideoSink`) use this exact type. Crossing the bridge is a no-op transformation: msgpack ships the object as-is, and the `data: Uint8Array` field becomes a Python `bytes` object.
+- **Python:** `nodetool-core/src/nodetool/workflows/realtime.py`, alongside the existing `RealtimeMediaTrack` / `RealtimeSessionInfo` dataclasses. Pure-Python dataclass; no `torch` dependency at the substrate level.
+
+**Shape:**
+
+```typescript
+export interface VideoFrame {
+  type: "realtime_video_frame";
+  // Pixel buffer. msgpack ships this as a length-prefixed binary blob (no
+  // base64, no JSON escaping). Layout described by pixel_format + width +
+  // height + stride.
+  data: Uint8Array;
+  width: number;
+  height: number;
+  // Bytes per row. ≥ width * bytes_per_pixel; equals when packed.
+  // Many hardware decoders produce strided buffers (YUV/NV12) where
+  // width × bytes_per_pixel < stride. Required so the Python side
+  // reshapes correctly without surprises.
+  stride: number;
+  // Closed string union — pinned formats only. Adapters convert at the
+  // boundary if a model wants something else. RGBA8 / RGB8 cover the
+  // browser-source path; YUV420P / NV12 cover the hardware-decoder path.
+  pixel_format: "rgba8" | "rgb8" | "yuv420p" | "nv12";
+  // Producer-assigned monotonic capture timestamp (CLOCK_MONOTONIC_RAW or
+  // performance.now() × 1e6). Informational — used for fps/age metrics,
+  // not for ordering. NodeInbox drops by arrival order, not by timestamp.
+  timestamp_ns: number;
+  // Producer-assigned sequence number. Useful for "did I miss any frames?"
+  // diagnostics; not used for ordering or scheduling.
+  sequence: number;
+}
+
+export interface AudioFrame {
+  type: "realtime_audio_frame";
+  data: Uint8Array;            // PCM samples, interleaved if channels > 1
+  sample_rate: number;         // 48000, 44100, 16000, etc.
+  channels: number;            // 1, 2
+  sample_format: "s16le" | "f32le";
+  samples: number;             // samples per channel in this chunk
+  timestamp_ns: number;
+  sequence: number;
+}
+
+export type RealtimeFrame = VideoFrame | AudioFrame;
+```
+
+**Pinned rules:**
+
+- `type` discriminator is the **first** field every consumer branches on. Mirrors the `ImageRef` / `AudioRef` / `VideoRef` convention already in `@nodetool/protocol`.
+- `data` is **always raw `Uint8Array`** (Python `bytes`) — never base64, never a data URI, never an `ImageRef`. Realtime is the hot path; the wire stays binary.
+- `pixel_format` / `sample_format` are **closed string unions, not numeric enums**. Easier msgpack round-trip; adding a format is a TS type-union edit.
+- All frames are **CPU-resident on the wire**. CPU buffer → GPU tensor conversion is the **model node's** job (in its `pre_process`), not the substrate's. Mirrors the existing `BaseNode.move_to_device` separation. No `device` / `dtype` field on the frame.
+- `timestamp_ns` is producer-assigned at **capture**, not at inbox enqueue. The inbox doesn't know when the frame was captured; the producer does.
+- The substrate **does not interpret** frame contents — it routes them. Format conversion (e.g. NV12 → RGB) is a node-level concern, not an inbox/runner concern.
+
+**Non-rules (deliberately not pinned):**
+
+- **No `colorspace` / `color_range` field.** All four pinned `pixel_format` values imply BT.709 limited-range when sourced from a browser/WebRTC peer. Add explicit fields only when a model empirically needs full-range or BT.601 — defer until evidence.
+- **No "keyframe" / priority field.** Drop-oldest is unconditional. If a model needs keyframe handling, its `pre_process` detects it (e.g. by sequence-modulo).
+- **The `metadata?: Record<string, unknown>` envelope** carried by the bridge's `RealtimePushInputFrameRequest` / `RealtimeOutputFrameEvent` is unchanged and unrelated to frame contents — node-defined per-call extras, not interpreted by the substrate.
+
+**Conversion helpers** (sit on top of the contract, not part of it):
+
+- TS: `packages/realtime-nodes/src/utils/frame-conversions.ts` — `videoFrameToImageRef(frame, asset)` / `imageRefToVideoFrame(ref)`. Used by the loopback proof and by any "save current frame as asset" affordance.
+- Python: `nodetool-realtime/src/nodetool/realtime/utils/frame_torch.py` — `frame_to_torch(frame, device, dtype) -> torch.Tensor` / `torch_to_frame(tensor, pixel_format) -> VideoFrame`. Lives in the sister repo so core stays PyTorch-free.
+
+#### Package layout & registry discovery
+
+**Decision: hand-written `packages/realtime-nodes/` mirroring `base-nodes`. No manifest, no codegen, explicit `register*Nodes(registry)` registration at the same wire-up spots as every other `*-nodes` package.**
+
+**Folder structure** (mirrors `packages/base-nodes/`):
+
+```
+packages/realtime-nodes/
+├── package.json              ← deps: @nodetool/node-sdk, @nodetool/protocol, @nodetool/runtime, @nodetool/kernel
+├── tsconfig.json             ← refs node-sdk, protocol, runtime, kernel
+├── vitest.config.ts
+├── src/
+│   ├── index.ts              ← exports REALTIME_NODES + registerRealtimeNodes(registry)
+│   ├── nodes/
+│   │   ├── video-source.ts
+│   │   ├── video-sink.ts
+│   │   ├── audio-source.ts
+│   │   ├── audio-sink.ts
+│   │   ├── parameter.ts
+│   │   └── session-info.ts
+│   └── utils/
+│       ├── frame-conversions.ts   ← VideoFrame ↔ ImageRef
+│       └── latest-per-handle.ts   ← TS counterpart of the Python utility (added when first TS multi-input realtime node lands)
+└── tests/
+    └── loopback.test.ts      ← VideoSource → identity → VideoSink with a stub WebRTC server
+```
+
+**Why hand-written and not manifest-driven:** six nodes total (and unlikely to grow past ~15 even after audio adapters land). Manifest pattern (`replicate-nodes` / `fal-nodes`) buys nothing here and adds rebuild friction. `base-nodes` is the right template — it's a hand-curated `ALL_BASE_NODES` array of `NodeClass` references.
+
+**Registry discovery is explicit, not automatic.** The codebase has zero auto-discovery — every `*-nodes` package is registered by hand. Wiring `realtime-nodes` in requires touching exactly these spots:
+
+| Spot | Why |
+|---|---|
+| `package.json` (root) workspaces array | npm needs to know the package exists |
+| `tsconfig.build.json` references | `tsc --build` needs to know to compile it |
+| `scripts/websocket-workspaces.mjs` | websocket package's allow-list for boot |
+| `packages/cli/package.json` deps | `"@nodetool/realtime-nodes": "*"` |
+| `packages/websocket/package.json` deps | same |
+| `packages/cli/src/nodetool.ts` | 3 spots: top-level import, dynamic import in DSL boot, register call in CLI server-start path |
+| `packages/websocket/src/server.ts` | import + `registerRealtimeNodes(registry)` |
+| `packages/websocket/src/http-api.ts` | import + register (HTTP API node listing) |
+| `packages/websocket/src/mcp-server.ts` | import + register (MCP exposure of nodes) |
+
+That's the full surface. No build-system changes; no node-discovery infrastructure to add.
+
+**Dev-loop: `nodetool-dev` exports condition (no rebuild needed).** Reuse the existing convention `base-nodes`/`runtime`/etc. already use:
+
+- The `package.json` exports map ships a `nodetool-dev` condition that points at `src/index.ts` (instead of `dist/index.js`).
+- Dev scripts (`dev:nodetool`, `dev:server`, etc.) run `tsx` with `NODE_OPTIONS='--conditions=nodetool-dev'`, so source changes are live without a rebuild step.
+- For the production / electron path, `npm run build:packages` (turbo) compiles `dist/` and the standard exports take over.
+
+**Independent versioning / publish:** the package shape (`exports` map, `main`, `types`, version `0.1.0`) matches the other `*-nodes` packages so it can be published independently to npm later if needed — same release path as `replicate-nodes` / `fal-nodes` already use.
+
+
 
 - [x] **Decide the Python package layout for realtime nodes.** *(done — sister repo bootstrapped at `../nodetool-realtime`, root commit `44eccf5`. Skeleton mirrors `nodetool-huggingface`: `src/nodetool/nodes/realtime/` for thin nodes, `src/nodetool/realtime/` for fat pipelines, `package_metadata/nodetool-realtime.json` stub, hatchling build, lint+publish-wheel+copilot-setup CI workflows, smoke tests that pass without torch. Base install only depends on `nodetool-core`; precision-specific deps are placeholder `[fp8]` / `[gguf]` / `[int8]` / `[all]` extras that fill in as model nodes land. `[tool.uv.sources]` points at the local `../nodetool-core` checkout for editable dev.)* Mirror the `nodetool-huggingface` precedent exactly so anyone who can build an HF node can build a realtime node:
   - **Sister repo `nodetool-realtime`:**
@@ -378,105 +568,40 @@ All of the above are exported from `@nodetool/runtime` (`packages/runtime/src/in
   - **In `nodetool-core` `packages/realtime-nodes/` (TS):** the I/O-facing nodes that don't need PyTorch — `VideoSource`, `VideoSink`, `AudioSource`, `AudioSink`, `Parameter`, `SessionInfo`. They talk directly to the WebRTC server in TS and don't round-trip through the bridge. (See the next subsection — the existing checkbox already covers these.)
   - **In `nodetool-core` `packages/realtime/` (TS, optional):** any TS-side bridge glue specific to realtime model nodes (frame-format encoding/decoding, session-protocol shape) — analogous to how `packages/huggingface/` is the TS-side companion to `nodetool-huggingface`. Only create this if there's a non-trivial amount of glue; otherwise let it live in `packages/runtime/` next to the existing bridge.
   - **Why split this way:** core install stays lean (no `diffusers` / `transformer_engine` / `flash-attn` / `gguf` / `bitsandbytes` required); model nodes release on their own cadence; the substrate is validated end-to-end by `nodetool-realtime` without needing to live in the same repo. Identical to the HuggingFace precedent that already works.
-- [ ] **Re-label existing plan references to `packages/realtime-nodes/`.** Wherever the plan currently uses `packages/realtime-nodes/` for model code (LongLive, Self-Forcing, etc.), the actual home is `nodetool-realtime/src/nodetool/nodes/realtime/`. The `packages/realtime-nodes/` path is reserved for the TS-side I/O nodes only. (Mostly a doc-pass — adjust the wording on the model-node tasks below as part of this checkbox.)
+- [x] **Re-label existing plan references to `packages/realtime-nodes/`.** Swept the plan: every remaining reference to `packages/realtime-nodes/` is the TS-side I/O nodes only (Status section, Python integration architecture, the step (7) checkbox itself, the Immediate next tasks ladder, and the Reference / suggested package layout appendix); model-code paths consistently use `nodetool-realtime/src/nodetool/nodes/realtime/` per the sister-repo decision above. The `LatestPerHandleAccumulator` ownership clause was clarified inline in its design-pass bullet (Python utility lives in core; the `packages/realtime-nodes/src/utils/` path is reserved for the TS-side counterpart only).
 
-*First `nodetool.realtime` nodes (depend on substrate, gate the model nodes):*
+*Remaining Phase 2 work is implemented from the "Next implementation ladder" at the top of this file. Compact details follow for reference.*
 
-- [ ] **Create the first `nodetool.realtime` nodes.** Land in a new `packages/realtime-nodes/src/nodes/` package (sibling to `base-nodes`; mirrors how `replicate-nodes`/`fal-nodes` are organized) so realtime nodes can be omitted from environments that don't need them.
-  - **Decide first (blocks node code):**
-    - **Frame format contract.** The Python type that flows on `frame` edges between `VideoSource` → model node → `VideoSink`, and that the WebRTC frame router converts to/from. Recommend a small dataclass wrapping a `torch.Tensor` (uint8, NHWC, on CPU by default with explicit device hand-off helpers) plus shape/dtype/colorspace/timestamp fields. **Decide once and reuse** — every model node and every adapter consumes this contract; changing it mid-flight ripples through every realtime node. Document in `packages/realtime-nodes/src/types.ts` (or equivalent Python module) before any node implementation.
-    - **Package layout & registry discovery.** Confirm the node-registry picks up nodes from the new sibling package without changes to the discovery code (model is `replicate-nodes`/`fal-nodes`). Decide pyproject.toml vs monorepo build integration, dev-loop iteration speed (hot-reload? restart?). The first node sets the template — get it right and steps 8/10/11 are mechanical.
-  - **`nodetool.realtime.VideoSource`** — `isStreamingInput = true`, `isRealtimeCapable = true`, `isMediaAdapter = true`, `inputBufferPolicy = { frame: { capacity: 2, overflowPolicy: "drop_oldest" } }`. `run(inputs, outputs, ctx)` does `for await ([handle, frame] of inputs.any()) { await outputs.emit("frame", frame); }`. Inbox is fed by `RealtimeWebRTCServer` via `pushInputValue("video_source_<id>", frame)`. Properties: `name` (the input-name the WebRTC router maps to), `target_fps` (informational/diagnostic — actual rate is producer-driven).
-  - **`nodetool.realtime.VideoSink`** — `isRealtimeCapable = true`, `isMediaAdapter = true`, `ownsWarmState = true` (holds the encoder). Implements `onSessionStart` to acquire an outbound WebRTC track from `RealtimeWebRTCServer.getOutboundTrack(sessionId, sinkName)`, `process({frame})` to encode and write that frame to the track, and `onSessionStop` to release the track. This is the egress node the operator preview attaches to in the loopback path.
-  - **`nodetool.realtime.AudioSource`** / **`AudioSink`** — same pattern as video, distinct so audio can be wired independently. Required for any voice/music workflow but optional for the StreamDiffusion proof.
-  - **`nodetool.realtime.Parameter`** — `isControlled = true`, `isRealtimeCapable = true`. Holds a typed value (`float` / `string` / `int` / `bool`), receives updates via `pushParameter(name, value)` on the `__control__` handle, emits the latest value downstream on each event. This is what `update_realtime_session` writes into and what live UI controls (sliders, prompt boxes) bind to. Without this node, parameter routing has nowhere to land in the graph.
-  - **`nodetool.realtime.SessionInfo`** — `isStreamingOutput = true`, `isRealtimeCapable = true`. Yields the latest `realtime_metrics` snapshot (fps, queue depth, dropped frames, peer state) so workflows can branch on session health (e.g., switch to a lower-fidelity LoRA when fps drops). Optional for the first proof but explicitly the "session utility" role from the contract.
-  - **Tests:** in-process loopback (mocked WebRTC server pushing frames into a `VideoSource → identity-passthrough → VideoSink` graph) verifying frame conservation, drop_oldest behavior under load, parameter routing latency, and `onSessionStart`/`onSessionStop` invocation.
-
-*Integration (wires the substrate to the network — depends on everything above):*
-
-- [ ] **Stand up the server-side WebRTC endpoint and frame router.** Land the chosen stack as `packages/websocket/src/realtime/webrtc-server.ts` (alongside the `command-handler.ts` and `session-manager.ts` from the refactor), with frame-routing concerns split into `packages/websocket/src/realtime/frame-router.ts` if the server file would otherwise grow past ~500 lines. Export a `RealtimeWebRTCServer` with these responsibilities:
-  - Lifecycle is **per session, not singleton**: `start(sessionId, transportConfig)` is called from `RealtimeCommandHandler.handleStart` after `RealtimeRunner.startRealtimeMode` resolves; `stop(sessionId)` is called on terminal transitions.
-  - Consumes the existing `signal_realtime_session` command (now routed through `RealtimeCommandHandler.handleSignal`) to receive operator SDP/ICE, produces answer SDP/ICE, and replies through the same command (no new websocket commands needed for signaling).
-  - Reads `transport.tracks` (the existing track→node mapping on the session record) to know which inbound track feeds which `nodetool.realtime` source node and input name.
-  - For each inbound media track, decodes frames and calls `realtimeRunner.pushInputValue(inputName, frame, sourceHandle?)` on the session's `RealtimeRunner`. The runner instance is obtained via `RealtimeSessionManager.getRunner(sessionId)` (added as part of the refactor task — the `RealtimeRunner` reference is stored on the session record at start time).
-  - Runs WebRTC peer work off the runner's main async loop (Worker thread or scheduler-yielded async) to honor "Async I/O vs. Synchronous Inference Boundary" in Core Technical Assumptions.
-  - Exposes outbound tracks for `nodetool.realtime.VideoSink`/`AudioSink` to write encoded frames into via `getOutboundTrack(sessionId, sinkName)` (matches the sink node's `onSessionStart` call from the previous task).
-  - Emits a `realtime_metrics` snapshot (see follow-up task) every N seconds with fps in/out, peer state, and dropped-frame count.
-  - **Replaces the in-browser loopback path** in the `/realtime` proof: after this lands, the operator browser only opens one peer connection (to the server), not two; the second loopback peer is removed.
-  - **Tests:** real WebRTC handshake against the chosen stack in a Node test (no browser needed); end-to-end test pushing frames from a stub source through the runner into a sink track and reading them back on a peer.
-
-*Pre-model design pass (decide before the first model node — written-down decisions, not code):*
-
-- [ ] **Pick the Wan2.1 upstream dependency.** Three options, each with different trade-offs:
-  - **`diffusers` library** — cleanest integration, but Wan2.1 streaming-distillation support varies and may not cover LongLive/MemFlow/Krea/VACE
-  - **Daydream's [Scope](https://github.com/livepeer/scope) reference implementation** — closest to what we want, includes StreamDiffusion V2 + LongLive + Krea + streaming VACE integrations, validated end-to-end. Need to check licensing and decide whether to vendor the modules or take a runtime dependency
-  - **Direct from research repos** — most flexibility, most work, fragile to upstream churn
-
-  Output: a one-paragraph note on which path was chosen and why; commit it next to this checkbox.
-- [ ] **Define the model-loading lifecycle on the `starting` path.** With `onSessionStart` wired, the obvious pattern is "load model in `onSessionStart`, run inference in `process()`", but Wan2.1 1.3B is ~20 GB — load takes seconds and the session sits in `starting` the whole time. Recommended pattern:
-  - **Emit `processing_message` events with download/load progress** during `onSessionStart` so the operator UI shows a real progress bar instead of a spinner.
-  - The `starting → running` gate already waits for `startRealtimeMode` to resolve (which awaits all `onSessionStart` calls), so progress events are the right surface for "what is taking so long".
-  - Free model weights in `onSessionStop`, reset per-session state (KV cache, frame counter, RNG seed) in `resetWarmState()`.
-
-  Land this as a small helper (`emitLoadProgress(ctx, label, fraction)`) in the realtime-nodes package so every model node uses the same shape and the editor overlay can rely on it.
-- [ ] **Add a `LatestPerHandleAccumulator` utility for multi-input realtime nodes.** A diffusion node has 3+ live inputs (`prompt` from a `Parameter`, `frame` from a `VideoSource`, optional ControlNet condition). The realtime contract is "latest of each", which falls out of `inbox.any()` + `drop_oldest`, but each model node needs to **explicitly track per-handle latest values** rather than blocking on any one handle. A shared 30-line utility prevents every model node from reinventing this and getting it subtly wrong (e.g., emitting before all required inputs have arrived once). Lives in `packages/realtime-nodes/src/utils/`.
-- [ ] **Establish a CPU-only smoke-test pattern for model nodes.** GPU inference can't run in CI. Define a test harness that:
-  - Validates the node's descriptor / metadata / capability flags (registry round-trip)
-  - Validates the lifecycle hook ordering (`onSessionStart` → frames → `onSessionStop`) by stubbing the actual model with an identity passthrough
-  - Validates `LatestPerHandleAccumulator` semantics (latest-of-each, no-emit-before-required-inputs)
-  - Validates `resetWarmState` actually clears the per-session state
-
-  Without this, every model-node regression has to be caught by hand on a GPU box.
-- [ ] **Set the framerate acceptance threshold (per model).** The plan committed to pure-PyTorch (no TRT) — that's a friction win, but the resulting framerate is the open empirical question. Set explicit thresholds in each model-node task. Suggested baselines: **LongLive ≥20 fps on a 4090 at 512×512 (FP8)** — LongLive's official FP8 path is the lead model and sets the bar; **Self-Forcing ≥12 fps on a 3060 12 GB at 384×384 via the community GGUF build** — explicit Ampere/low-VRAM acceptance criterion (this is the test that proves the GGUF route actually unlocks the consumer audience); secondary LongLive target on Ampere ("≥10 fps on a 3060 12 GB at 384×384, FP16" — no FP8 hardware on Ampere); **StreamDiffusion V2 ≥15 fps on a 4090 at 512×512 (FP16)**; **MemFlow / RewardForcing ≥12 fps at 480p on a 4090 (FP16)** until upstream FP8 lands. "Shipped" is unambiguous so we don't ship a node that technically loads but feels broken.
-- [ ] **Decide the community pre-quantized weights story** (one-paragraph note next to this checkbox; affects every Wan2.1 model node). Two distinct weight sources exist for the same model:
-  - **Official upstream weights** — full-precision `.safetensors` from the model author's HuggingFace repo. We quantize at load time using `transformer_engine` (FP8) or `bitsandbytes` (INT8), gated by hardware detection.
-  - **Community pre-quantized weights** — `.safetensors` (FP8 e4m3fn) and `.gguf` builds distributed via ComfyUI / Civitai / Patreon, e.g. `Wan2.1-T2V-1.3B-Self-Forcing-DMD-VACE-FP8_e4m3fn.safetensors` (~6 GB VRAM target). **GGUF specifically dissolves the "no FP8 on Ampere" problem** because dequant happens in software at load — the same weights run on RTX 30-series, Turing, anything with enough VRAM. The community is also bundling adapters (DMD distillation, VACE control) directly into the weights, which short-circuits parts of our integration.
-
-  Decision shape: introduce a `WeightSource` resolver at `nodetool-realtime/src/nodetool/realtime/weight_source.py` (sister Python package — see Python integration architecture above) that takes `(model_id, precision_hint, hardware_caps)` and returns a concrete weight URL + format. Order of preference: native FP8 (if hardware-supported and an official build exists) → GGUF (if a community build is cached or available) → FP16 official → INT8 fallback. Wire `WeightSource` into the `precision = "auto"` path of every Wan2.1 model node so the choice is centralized, not duplicated. Land the resolver as part of the design pass; the LongLive node consumes it; subsequent nodes inherit. The `hardware_caps` argument comes from the core-side hardware-detection helper (which lives in `nodetool-core`'s Python codebase, alongside the existing SystemStats source). **Out-of-scope for the design pass:** building the actual GGUF loader — that lands with the Self-Forcing node, which is the first node where GGUF is the primary path.
-- [ ] **Extend the existing hardware-detection pipeline with realtime-relevant capabilities** (do **not** build a parallel utility). Today's surface:
-  - `electron/src/systemInfo.ts` shells out to `nvidia-smi` / `lspci` / `system_profiler` at boot and returns CUDA availability + driver version.
-  - `electron/src/torchruntime.ts` calls the `torchruntime~=2.0` Python package at boot to pick a `TorchPlatform` (`cu118|cu124|cu128|cu129|rocm5.x|rocm6.x|mps|cpu`) and the matching PyTorch wheel index. This is the canonical place for "what kind of accelerator do we have."
-  - `packages/protocol/src/api-types.ts` SystemStats already carries `vram_total_gb` and `vram_percent`, plumbed through `web/src/stores/systemStatsHandler.ts` → `web/src/components/panels/SystemStats.tsx`.
-
-  What's missing for FP8 routing: **compute capability** (8.9+ → native FP8) and a recommendation field. Add (server-side, in the Python runtime so it sees the live `torch.cuda` device, not just boot-time wheel platform):
-  - `device_capability: [int, int] | null` (from `torch.cuda.get_device_capability(0)`)
-  - `device_name: str | null` (from `torch.cuda.get_device_name(0)`)
-  - `fp8_native: bool` (compute capability ≥ (8, 9))
-  - `int8_via_bnb: bool` (`bitsandbytes` import succeeds)
-  - `gguf_loader_available: bool` (a Wan2.1-aware GGUF loader is importable — the universal-hardware low-VRAM path used by the `Self-Forcing` node and by `precision = "auto"` on Ampere)
-  - `recommended_precision: "fp16" | "fp8" | "gguf" | "int8"` (one helper used by `WeightSource` and by every model node when `precision = "auto"`; also surfaces in the editor as a UI hint, e.g. "FP8 native available" or "Low-VRAM GGUF builds available")
-
-  These extend the existing SystemStats payload (one place to look, one type to update — `vram_total_gb`/`vram_percent` already prove the wiring works). Do not introduce a separate `hardware.py` module that duplicates `torchruntime`'s job; co-locate this with whatever helper currently produces `vram_total_gb`. Output: PR that adds the four fields end-to-end (Python helper → `api-types.ts` → `systemStatsHandler.ts` → `SystemStats.tsx` shows "FP8: yes" line) with one unit test covering each precision-recommendation branch.
-
-*Model nodes (depend on the substrate + realtime nodes + integration + design pass above):*
-
-- [ ] **(First model node) Implement LongLive (Wan2.1 1.3B)** as `nodetool-realtime/src/nodetool/nodes/realtime/longlive.py` (thin node) backed by `nodetool-realtime/src/nodetool/realtime/wan21/longlive_pipeline.py` (fat pipeline) — see the Python integration architecture subsection above for the full layout. Chosen first because it forces the precision/hardware-detection surface to be designed from day one — every subsequent model node clones this template. Source: `https://github.com/NVlabs/LongLive` (Apache 2.0, ICLR 2026, NVIDIA-published, actively maintained). Same warm-state ownership pattern that all Wan2.1 distillations will share (autoregressive state lives on the node instance, freed in `onSessionStop`, cleared in `resetWarmState`).
-  - **Why first:** the only Wan2.1 distillation with **official FP8 quantization shipped upstream** — README reports 20.7 FPS on a single H100 at FP16 and 24.8 FPS with FP8 with marginal quality loss; short-window-attention-with-frame-sink adds another 28% inference speedup and 17% lower peak memory vs. the 21-frame baseline. The short-window mechanic is itself inherited from **Self-Forcing** (the underlying Wan2.1 distillation lineage shared across LongLive / StreamDiffusion V2 / MemFlow / RewardForcing), which is the same reason the community pre-quantized weight ecosystem (FP8 / GGUF builds for ComfyUI) loads cleanly into any of these nodes — see the design-pass entry on community quantized weights.
-  - **Realistic audience map (revised):** Three independent hardware paths, surfaced via `precision = "auto"`:
-    - **Native FP8:** Ada (RTX 40-series) + Blackwell (RTX 50-series) + Hopper (datacenter, compute capability ≥8.9). Hits LongLive's official FP8 numbers above.
-    - **GGUF (software dequant):** Ampere (RTX 30-series), Turing, anything modern. The community `Wan2.1-T2V-1.3B-Self-Forcing-DMD-VACE-FP8_e4m3fn` GGUF/FP8 builds were quantized specifically for low-VRAM consumer cards (~6 GB target via ComfyUI workflows) — software dequant on load means the same weights run on cards without hardware FP8. Slower than native FP8 but unlocks the Ampere installed base, which is the volume audience.
-    - **FP16:** universal fallback. ~10–12 GB working set; safe everywhere FP16 PyTorch runs.
-  - **Node properties:** `prompt` (live, via `nodetool.realtime.Parameter`); `precision` (`"auto" | "fp16" | "fp8" | "gguf" | "int8"`, defaulting to `"auto"` — `gguf` selects a community pre-quantized build via the `WeightSource` resolver from the design pass); `attention_window` (int — exposed because it's a real quality/perf knob); `inference_steps` (LongLive uses few-step sampling); `seed`; `width`/`height`; `guidance_scale`.
-  - **Lifecycle:** `onSessionStart` reads the hardware-detection surface (see design pass) → picks precision if `auto` (`fp8` if `fp8_native`, else `gguf` if a community build is cached/available, else `fp16`) → emits `processing_message` "Loading Wan2.1 1.3B base..." with progress → loads weights at chosen precision (download via `ModelsManager` if not cached) → initializes KV cache + RNG → emits "Ready". `process()` runs one autoregressive step per call via `LatestPerHandleAccumulator`. `resetWarmState()` clears KV cache but keeps weights loaded for fast re-arm.
-  - **Python deps (added to the new `nodetool-realtime` sister package, NOT to core):** `torch >= 2.1` + CUDA 12.1+ (already required by NodeTool's PyTorch nodes); `transformers`, `diffusers`, `safetensors`, `flash-attn`. FP8 path uses `transformer_engine[pytorch]` (Linux + WSL2 official; Windows-native limited). GGUF path uses `gguf` + a Wan2.1-aware loader (probably `ComfyUI-GGUF`-equivalent code, vendored or pip-from-git — design-pass output). INT8 fallback uses `bitsandbytes`. Shipped as pyproject extras (`nodetool-realtime[fp8]`, `nodetool-realtime[gguf]`, `nodetool-realtime[int8]`) defaulting to FP16-only when none are selected. `nodetool-core` install stays lean — these heavy deps only appear in the sister package.
-  - **Cross-platform:** Linux full support; WSL2 full support; Windows-native FP16 + GGUF work, native FP8 install is touchier (likely WSL2 in practice); macOS/MPS out of scope for the first integration.
-  - **Upstream packaging decision (record next to this checkbox):** vendor under `nodetool-realtime/src/nodetool/realtime/wan21/vendor/longlive/` vs. pip-from-git pinned to a commit hash vs. git submodule. Recommend pip-from-git for the first integration; promote to vendoring if upstream churns hard.
-- [ ] Implement **Self-Forcing (Wan2.1 1.3B)** as `nodetool-realtime/src/nodetool/nodes/realtime/self_forcing.py` + `nodetool-realtime/src/nodetool/realtime/wan21/self_forcing_pipeline.py` — the explicit low-VRAM consumer node, immediately after LongLive. Self-Forcing is the underlying distillation technique LongLive's short-window mechanic is built on — exposing it as its own node makes the **community pre-quantized weight ecosystem** the headline feature instead of a footnote. Specifically targets the `Wan2.1-T2V-1.3B-Self-Forcing-DMD-VACE-FP8_e4m3fn.safetensors` family (and equivalent GGUF builds) that the ComfyUI / Patreon community has been quantizing for **~6 GB VRAM** consumer cards. Notable that this build also bundles VACE — the structural-control adapter ships with the weights, so this single node also covers the depth/scribble/inpaint/outpaint use case for low-VRAM users without depending on the separate streaming-VACE node landing first. Reuses the LongLive node template wholesale (precision auto-selection via the same design-pass surface, lifecycle, accumulator, smoke tests). Worth landing right after LongLive specifically to validate that the `WeightSource` resolver and `gguf` precision path actually work end-to-end on an Ampere card — if it does, we have a real consumer story for Wan2.1 across the entire installed base, not just Ada+ owners.
-- [ ] Implement **StreamDiffusion V2 (Wan2.1 1.3B)** as a follow-on after LongLive + Self-Forcing. Reuses the LongLive node template wholesale (precision auto-selection, lifecycle, accumulator, smoke tests). Pure PyTorch, ~20 GB VRAM at FP16, no TensorRT compilation required. TAEHV (tiny autoencoder) shipped for faster decode; **FP8 quantization listed as "to do" upstream but not yet shipped** — VRAM target on a 24 GB card is borderline at FP16 until upstream FP8 lands (or until a community FP8/GGUF build appears, in which case the `WeightSource` resolver picks it up automatically).
-- [ ] Implement **MemFlow (Wan2.1 1.3B)**. Cross-frame memory bank lives on the node instance via `ownsWarmState = true`; the existing capability model already covers it (no new flags needed) — `resetWarmState` clears the bank when the operator wants a clean re-start without a full session restart. Performance: 18.7 FPS at 832×480 with only ~7.9% added compute over the base Wan2.1 1.3B (designed as a thin module). **No FP8 path published yet** — research-grade repo, ~10–12 GB working set at 480p (borderline on 12 GB cards; comfortable on 24 GB).
-- [ ] Implement **RewardForcing (Wan2.1 1.3B)** — `Reward-Forcing-T2V-1.3B` for short-form (~5 s) video inference. Same warm-state pattern as the other 1.3B distillations. **Newer and less battle-tested:** no quantization story yet, less optimized than LongLive/MemFlow, but worth a node so users can A/B reward-tuned generation against the others. Defer until the first three 1.3B nodes land — same template, low marginal cost.
-- [ ] Implement **Krea Realtime (Wan2.1 14B)** as a high-fidelity option. **Hard-warn (not info) below 32 GB VRAM:** consumer-grade RTX 4090 / 5090 max at 24 GB, so this node effectively targets RTX A6000 / RTX 6000 Ada / H100-class hardware. Land the LongLive 1.3B baseline first, validate the substrate end-to-end, then add Krea behind the VRAM gate. Watch for Krea distilled/quantized variants — those would change the audience materially.
-- [ ] Implement **streaming VACE** as a structural-control node that wraps any of the Wan2.1 diffusion model nodes above. Adds reference-guided generation, depth/scribble/pose control, inpainting, and outpainting on top of streaming models. Per Daydream's research the same adapter validates across Wan2.1 1.3B and 14B without per-model modifications, with ~20–30% latency overhead and negligible VRAM cost relative to the base model. Land as a single `nodetool.realtime.VACE` node that takes a base diffusion node + a control map (depth / scribble / pose / mask) and a reference image; depends on at least one Wan2.1 model node from above being live so the wrapping contract can be validated.
-- [ ] Reuse existing model compatibility and selection for ControlNet-enabled guidance (leveraging existing `ModelsManager` and `UnifiedModel` patterns)
-- [ ] Reuse existing model compatibility and selection for LoRA-enabled styling (leveraging existing `ModelsManager` and `UnifiedModel` patterns). **Wan2.1 LoRA portability:** community LoRAs trained on Wan2.1 work across the autoregressive distillations (LongLive, Self-Forcing, StreamDiffusion V2, MemFlow, RewardForcing, Krea Realtime 14B) without per-model retraining — the model selector should expose a single Wan2.1 LoRA pool rather than per-distillation pools.
-- [ ] Implement dynamic weight injection for ControlNet/LoRA swaps (leveraging the pure-PyTorch backend to avoid recompilation delays).
-- [ ] Connect the workflow template to realtime session start, stop, and reconnect
-- [x] Add one preview/output surface that reflects the realtime session state
-  - `/realtime/:workflowId?` now provides a first operator surface with local preview, active-session state, and workflow session history; media transport into the graph is still pending.
-- [x] Add live parameter updates and session diagnostics
-  - The `/realtime` surface now pushes live brightness updates through `update_realtime_session` and exposes session status, timestamps, job linkage, and current parameters.
-- [ ] Document which parts of the proof are generic realtime substrate and which parts are model-specific
+- [ ] **7a-7d: First `nodetool.realtime` nodes.**
+  - Package: `packages/realtime-nodes/`, hand-written like `base-nodes`.
+  - Nodes: `VideoSource`, `VideoSink`, `AudioSource`, `AudioSink`, `Parameter`, `SessionInfo`.
+  - Tests: package registration, frame loopback, drop-oldest behavior, parameter routing, lifecycle hooks.
+- [ ] **8a-8d: Backend media integration.**
+  - Add a WebRTC spike before full integration.
+  - Implement `packages/websocket/src/realtime/webrtc-server.ts` and `frame-router.ts`.
+  - Route inbound tracks to `RealtimeRunner.pushInputValue`; expose outbound sink tracks.
+  - Fix session readiness, stop timeouts, stopped-session retention, and `realtime_metrics`.
+- [ ] **9: Pre-model design pass.**
+  - Decide Wan2.1 upstream source.
+  - Define model load progress events and CPU-only smoke tests.
+  - Add `LatestPerHandleAccumulator`.
+  - Set fps thresholds.
+  - Add `WeightSource`.
+  - Extend SystemStats with `device_capability`, `fp8_native`, `int8_via_bnb`, `gguf_loader_available`, and `recommended_precision`.
+- [ ] **10: LongLive first model node.**
+  - Thin node: `nodetool-realtime/src/nodetool/nodes/realtime/longlive.py`.
+  - Pipeline: `nodetool-realtime/src/nodetool/realtime/wan21/longlive_pipeline.py`.
+  - Properties: `prompt`, `precision`, `attention_window`, `inference_steps`, `seed`, `width`, `height`, `guidance_scale`.
+  - Precision order for `auto`: native FP8 → GGUF → FP16 → INT8.
+- [ ] **10b: Self-Forcing.**
+  - Target Ampere/low-VRAM hardware through GGUF/community pre-quantized weights.
+  - Reuse LongLive lifecycle, accumulator, smoke tests, and `WeightSource`.
+- [ ] **Later model nodes.**
+  - StreamDiffusion V2, MemFlow, RewardForcing, Krea Realtime 14B, and streaming VACE reuse the LongLive template.
+  - Keep ControlNet/LoRA selection centralized through existing `ModelsManager` / `UnifiedModel` paths.
+- [ ] **11: Canonical workflow template.**
+  - Connect source, parameters, model node, sink, preview, metrics, reconnect, and save/export hooks.
+  - Document which pieces are generic substrate vs. model-specific.
 
 ## Phase 3 - Workflow integration
 
@@ -544,43 +669,49 @@ Extend the realtime system through clear media and control adapters after the fi
 
 ## Immediate next tasks
 
-- [x] Write the short execution contract for the separate but workflow-native realtime runtime
-- [x] Choose the first operator surface and define the path from incubation to workflow-native usage
-- [x] Define the initial `nodetool.realtime` node set for the first proof
-- [x] **(1)–(6c) Realtime substrate (TS + Python)** — command-handler extraction, `RealtimeRunner` skeleton, `werift` chosen, `overflowPolicy` on `NodeInbox`, `BaseNode` capability flags + hooks (TS + Python mirror), long-lived realtime mode in `RealtimeRunner`, and the stdio bridge protocol with session-scoped verbs. **All shipped — see Phase 2 substrate prerequisites for per-step commits and the "Realtime substrate surface — frozen contract" section for the authoritative API and wire-format.**
-- [ ] **(7) Create the first `nodetool.realtime` nodes** (`VideoSource`, `VideoSink`, `AudioSource`/`Sink`, `Parameter`, `SessionInfo`) in a new `packages/realtime-nodes/` package (TS — these don't need PyTorch, they talk to the WebRTC server in-process) — gates the WebRTC server (it needs source nodes to push frames into) and the model nodes. **Decide first inside this step:** frame format contract + package layout / registry discovery (see Phase 2 task)
-- [ ] **(8) Stand up the backend WebRTC endpoint** using the stack from step 3 to receive mapped media tracks and feed them into the live graph via `RealtimeRunner.pushInputValue` — replaces the `/realtime` in-browser loopback. Closes the transport-readiness half of the `starting → running` gate by waiting for the WebRTC peer to report `connected` before promoting
-- [ ] **(9) Pre-model design pass** — Wan2.1 upstream choice (Scope vs `diffusers` vs research), model-loading lifecycle on the `starting` path (with progress events), `LatestPerHandleAccumulator` utility (in core, alongside the bridge), CPU-only smoke-test pattern, framerate acceptance threshold, **the `WeightSource` resolver for community pre-quantized weights** in the `nodetool-realtime` sister package (FP8 e4m3fn / GGUF builds — the universal-hardware low-VRAM path), and **extending the existing hardware-detection pipeline** (SystemStats payload from `electron/src/torchruntime.ts` + `systemInfo.ts` + `protocol/api-types.ts`) with `device_capability` / `fp8_native` / `gguf_loader_available` / `recommended_precision`. All written-down decisions / one small wiring PR + the `WeightSource` resolver, not full model code; gates step 10
-- [ ] **(10) Implement the first model node — LongLive (Wan2.1 1.3B)** in the new sister `nodetool-realtime` Python package (`src/nodetool/nodes/realtime/longlive.py` thin node + `src/nodetool/realtime/wan21/longlive_pipeline.py` fat pipeline) per the design-pass decisions. Chosen first because it has official FP8 upstream, which forces the precision/hardware-detection surface to be designed properly from day one; every subsequent model node (Self-Forcing / StreamDiffusion V2 / MemFlow / RewardForcing / Krea / VACE) clones this template
-- [ ] **(10b) Implement Self-Forcing (Wan2.1 1.3B)** in `nodetool-realtime/src/nodetool/nodes/realtime/self_forcing.py` as the second model node, immediately after LongLive. Validates the `WeightSource` resolver and the GGUF path on Ampere consumer hardware (the volume audience). If this node hits its framerate threshold on a 3060 12 GB, the realtime substrate has a credible low-VRAM consumer story.
-- [ ] **(11) Build the canonical realtime video diffusion workflow template** using the capability model — Phase 2 "done when" milestone
-- [x] Write the session/runtime spec with control-plane and media-plane boundaries (incorporating WebRTC for web clients)
-- [ ] Define the first adapter roadmap for `NDI` and `Spout`
+The authoritative sequence is **Next implementation ladder** near the top of this file. Start at **7a**.
+
+Completed foundation:
+
+- [x] Runtime/session contract
+- [x] Initial operator surface
+- [x] Initial `nodetool.realtime` node roles
+- [x] TS + Python substrate through step 6c
+
+Remaining:
+
+- [ ] Steps 7a-7d: session info, frame types, package, first realtime nodes
+- [ ] Steps 8a-8d: WebRTC spike, backend media endpoint, lifecycle, metrics
+- [ ] Step 9: pre-model design pass
+- [ ] Step 10: LongLive
+- [ ] Step 10b: Self-Forcing
+- [ ] Step 11: canonical workflow template
+- [ ] Adapter roadmap for `NDI` and `Spout`
 
 ## Follow-up tasks discovered while starting the plan
 
-- [x] Change realtime session startup so `start_realtime_session` creates and links a `Job` (instead of only tracking metadata) and launches live execution via the standard `WorkflowRunner`.
-- [x] Add optional graph payload support to realtime session start so live editor previews can launch unsaved graph state.
-- [x] Add a `"starting"` lifecycle state and only flip to `"running"` once workflow runtime startup completes. (Transport-readiness half — waiting for WebRTC peer `connected` — tracked under the WebRTC integration task.)
-- [x] Push `update_realtime_session` changes into the live workflow runner via `pushInputValue`, with `unrouted_parameters` reported back for unmapped keys. (Superseded by `pushParameter` below.)
-- [x] Add WebRTC signaling plus media-track-to-node mapping for the `/realtime` proof — session metadata carries `webrtc` transport details, media-track mappings, and signaling state; `/realtime` runs an in-browser loopback as a transport proof.
-- [x] Split reusable browser capture/device logic from recording/upload logic in `useVideoRecorder`/`VideoRecorder` — landed as `web/src/hooks/browser/useVideoCapture.ts`, used by both the recorder flow and `/realtime`.
-- [x] Migrate the realtime list/get HTTP endpoints from REST to a tRPC `realtime` router (`packages/websocket/src/trpc/routers/realtime.ts`) and switch `RealtimeSessionClient.listSessions` to the typed tRPC client. Removed the one-off Fastify realtime REST routes.
-- [x] Tighten the `starting` → `running` gate — `RealtimeCommandHandler.handleStart` now fails startup if `runJob(...)` returns without a registered active job, preventing a false `"running"` promotion.
-- [x] Add a `pushParameter(name, value)` API on `WorkflowRunner` (`async pushParameter(name, value): Promise<{ routed; nodeIds }>`) — resolves to `is_controlled` nodes and writes a `ControlEvent` on `__control__`; `RealtimeCommandHandler.handleUpdate` reports `routed_parameters` + `unrouted_parameters`.
-- [ ] Once the runner extension lands, add a `realtime_metrics` message on the existing websocket control plane (`packages/protocol/src/messages.ts`). Shape: `{ type: "realtime_metrics", session_id: string, job_id: string, ts_ms: number, fps_in: number, fps_out: number, queue_depth: Record<string /* "node_id:handle" */, number>, dropped_frames: Record<string, number>, peer_state: "new" | "connecting" | "connected" | "disconnected" | "failed" }`. Emitted by `RealtimeWebRTCServer` (peer state, fps_in) and the runner (queue depth, dropped frames, fps_out) every ~500ms while a session is `running`. The operator UI subscribes through the existing `useRealtimeSessionStore` websocket subscription. Maps to the "session utility" role; consumed by the editor-mode overlay and by the `nodetool.realtime.SessionInfo` node.
+Completed:
+
+- [x] `start_realtime_session` creates a linked `Job` and launches workflow execution.
+- [x] Realtime start accepts unsaved graph payloads.
+- [x] `"starting"` lifecycle state exists; runtime startup is gated on an active job.
+- [x] WebRTC signaling and media-track mapping exist for the `/realtime` incubation page.
+- [x] Browser capture logic moved to `web/src/hooks/browser/useVideoCapture.ts`.
+- [x] Realtime list/get moved to tRPC.
+- [x] `WorkflowRunner.pushParameter(name, value)` routes live controls through `ControlEvent`.
+
+Still active:
+
+- [ ] Transport readiness and backend WebRTC connection are tracked in step 8c.
+- [ ] `realtime_metrics` is tracked in step 8d.
+- [ ] Session retention/reconnect is tracked in step 8c and Phase 3.
 
 ## Notes / maybe later
 
-Captured here so they aren't lost, but not worth promoting to actionable tasks until the surrounding work demands them.
-
-- **Stopped sessions disappear from the manager immediately.** `RealtimeSessionManager.stopSession` deletes the row right after returning the public record, so REST/tRPC `list`/`get` lose the session as soon as it stops. The `Job` row still persists. If/when reconnect or session history surfaces are built (Phase 3), keep the row around briefly with `status: "stopped" | "error"` and add a sweeper.
-- **WebRTC peer config is empty.** `useRealtimeSessionWebRTC` calls `new RTCPeerConnection()` with no `iceServers` and no bitrate tuning. Fine for the in-browser loopback proof; revisit when a real out-of-process runtime peer arrives (Phase 2 / "Core Technical Assumptions" item 4).
-- **Per-track WebRTC mapping UI.** `RealtimeStreamPage` collects a single `node_id`/`input_name` and applies it to every video track. Extend to per-track mapping (and add audio rows) once more than one camera/mic input is realistic.
-- **Brightness slider sync ignores `0`.** The `useEffect` that syncs `activeSession.parameters.brightness` into local state checks truthiness, so `0` is dropped. Switch to `!== undefined` if/when a brightness-of-zero is meaningful, or once realtime parameters are generalized beyond this MVP slider.
-- **Test noise from missing DB.** Realtime runner tests log `Database not initialized` warnings because `runJob`/`Job.markCompleted` are best-effort persisted. Not failing assertions; revisit if the tests grow assertions about persisted realtime job metadata.
-- **Session presence & reconnect contract is undefined.** Standard jobs already have `reconnect_job`; realtime sessions have `session_id` and a backing job. Open questions: does a realtime session keep running when the operator's tab closes, pause, or stop? Does reconnect re-attach control only or also re-negotiate WebRTC? Should the editor's realtime-mode toggle adopt an existing session for the same workflow_id when one is active? Worth a short contract section in `docs/realtime-runtime-contract.md` once the runner extension lands and there's a real session to reconnect to. Until then, "operator-bound, stops on disconnect" is the implicit default.
-- **Session utility / diagnostics surface.** The contract reserves a "session utility" role for fps/queue-depth/lifecycle nodes, and the `realtime_metrics` follow-up adds the data feed. Worth eventually surfacing as a small toolbar widget in the editor's realtime mode and as a normal node so workflows can branch on health (e.g., switch to a lower-fidelity LoRA when fps drops). Defer until the metrics feed exists.
+- **WebRTC peer config:** add ICE servers and bitrate tuning when backend WebRTC replaces the in-browser loopback.
+- **Per-track mapping UI:** `RealtimeStreamPage` currently maps all video tracks to one node/input.
+- **Brightness slider:** current sync ignores `0`; fix when the MVP slider becomes generalized realtime parameters.
+- **Test noise:** realtime runner tests can log `Database not initialized` warnings because persistence is best-effort.
 
 ## Review checks
 
