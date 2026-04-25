@@ -482,13 +482,16 @@ export const createNodeStore = (
           setEdgeUpdateSuccessful: (value: boolean): void =>
             set({ edgeUpdateSuccessful: value }),
           onNodesChange: (changes: NodeChange<Node<NodeData>>[]): void => {
-            // Check if any dimension change is a user resize (has setAttributes set)
-            // This indicates the user intentionally resized the node via NodeResizeControl
+            // `resizing: true` is React Flow's signal for an active user resize
+            // via NodeResizer/NodeResizeControl. The `setAttributes` field is
+            // unreliable here because it also fires on initial measurement when
+            // a node has no explicit height, which would dirty every workflow
+            // on app start.
             const hasUserResize = changes.some(
               (change) =>
                 change.type === "dimensions" &&
-                "setAttributes" in change &&
-                change.setAttributes
+                "resizing" in change &&
+                change.resizing === true
             );
 
             // Treat as internal anything that React Flow emits without an explicit
