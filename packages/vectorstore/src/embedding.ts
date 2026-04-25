@@ -2,7 +2,7 @@
  * Provider-based embedding functions.
  *
  * Implements the EmbeddingFunction interface using provider APIs
- * (OpenAI, Ollama, Gemini, Mistral).
+ * (OpenAI, Ollama, Gemini, Mistral, Cohere, Voyage AI, Jina AI).
  */
 
 import { createLogger } from "@nodetool/config";
@@ -15,7 +15,14 @@ const log = createLogger("nodetool.vectorstore.embedding");
 // Types
 // ---------------------------------------------------------------------------
 
-export type EmbeddingProvider = "openai" | "ollama" | "gemini" | "mistral";
+export type EmbeddingProvider =
+  | "openai"
+  | "ollama"
+  | "gemini"
+  | "mistral"
+  | "cohere"
+  | "voyage"
+  | "jina";
 
 export interface ProviderEmbeddingOptions {
   provider: EmbeddingProvider;
@@ -55,7 +62,10 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
       openai: "OPENAI_API_KEY",
       ollama: "OLLAMA_API_URL",
       gemini: "GEMINI_API_KEY",
-      mistral: "MISTRAL_API_KEY"
+      mistral: "MISTRAL_API_KEY",
+      cohere: "COHERE_API_KEY",
+      voyage: "VOYAGE_API_KEY",
+      jina: "JINA_API_KEY"
     };
 
     const envKey = envKeyMap[this.provider];
@@ -78,6 +88,12 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
         return this._generateGemini(texts);
       case "mistral":
         return this._generateMistral(texts);
+      case "cohere":
+        return this._generateCohere(texts);
+      case "voyage":
+        return this._generateVoyage(texts);
+      case "jina":
+        return this._generateJina(texts);
       default:
         throw new Error(`Unsupported embedding provider: ${this.provider}`);
     }
@@ -200,6 +216,118 @@ export class ProviderEmbeddingFunction implements EmbeddingFunction {
       .sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0))
       .map((d) => d.embedding);
   }
+
+  // ── Cohere ───────────────────────────────────────────────────────────
+
+  private async _generateCohere(texts: string[]): Promise<number[][]> {
+    const apiKey = await this.resolveApiKey();
+    if (!apiKey) throw new Error("COHERE_API_KEY not configured");
+
+    const body: Record<string, unknown> = {
+      model: this.model,
+      texts,
+      input_type: "search_document",
+      embedding_types: ["float"]
+    };
+    if (this.dimensions) body.output_dimension = this.dimensions;
+
+    const resp = await fetch("https://api.cohere.com/v2/embed", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text().catch(() => "");
+      throw new Error(`Cohere embedding failed (${resp.status}): ${err}`);
+    }
+
+    const data = (await resp.json()) as {
+      embeddings?: { float?: number[][] } | number[][];
+    };
+
+    if (Array.isArray(data.embeddings)) return data.embeddings;
+    const floats = data.embeddings?.float;
+    if (!Array.isArray(floats)) {
+      throw new Error("Cohere embedding response missing float embeddings");
+    }
+    return floats;
+  }
+
+  // ── Voyage AI ────────────────────────────────────────────────────────
+
+  private async _generateVoyage(texts: string[]): Promise<number[][]> {
+    const apiKey = await this.resolveApiKey();
+    if (!apiKey) throw new Error("VOYAGE_API_KEY not configured");
+
+    const body: Record<string, unknown> = {
+      model: this.model,
+      input: texts,
+      input_type: "document"
+    };
+    if (this.dimensions) body.output_dimension = this.dimensions;
+
+    const resp = await fetch("https://api.voyageai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text().catch(() => "");
+      throw new Error(`Voyage embedding failed (${resp.status}): ${err}`);
+    }
+
+    const data = (await resp.json()) as {
+      data: Array<{ embedding: number[]; index?: number }>;
+    };
+    return data.data
+      .sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0))
+      .map((d) => d.embedding);
+  }
+
+  // ── Jina AI ──────────────────────────────────────────────────────────
+
+  private async _generateJina(texts: string[]): Promise<number[][]> {
+    const apiKey = await this.resolveApiKey();
+    if (!apiKey) throw new Error("JINA_API_KEY not configured");
+
+    const body: Record<string, unknown> = {
+      model: this.model,
+      input: texts
+    };
+    if (this.model.startsWith("jina-embeddings-v3")) {
+      body.task = "retrieval.passage";
+    }
+    if (this.dimensions) body.dimensions = this.dimensions;
+
+    const resp = await fetch("https://api.jina.ai/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+      const err = await resp.text().catch(() => "");
+      throw new Error(`Jina embedding failed (${resp.status}): ${err}`);
+    }
+
+    const data = (await resp.json()) as {
+      data: Array<{ embedding: number[]; index?: number }>;
+    };
+    return data.data
+      .sort((a: any, b: any) => (a.index ?? 0) - (b.index ?? 0))
+      .map((d) => d.embedding);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +379,39 @@ export class MistralEmbeddingFunction extends ProviderEmbeddingFunction {
   }
 }
 
+/**
+ * Cohere embedding function.
+ *
+ * @param model Defaults to `embed-v4.0`.
+ */
+export class CohereEmbeddingFunction extends ProviderEmbeddingFunction {
+  constructor(model = "embed-v4.0", dimensions?: number) {
+    super({ provider: "cohere", model, dimensions });
+  }
+}
+
+/**
+ * Voyage AI embedding function.
+ *
+ * @param model Defaults to `voyage-3.5`.
+ */
+export class VoyageEmbeddingFunction extends ProviderEmbeddingFunction {
+  constructor(model = "voyage-3.5", dimensions?: number) {
+    super({ provider: "voyage", model, dimensions });
+  }
+}
+
+/**
+ * Jina AI embedding function.
+ *
+ * @param model Defaults to `jina-embeddings-v3`.
+ */
+export class JinaEmbeddingFunction extends ProviderEmbeddingFunction {
+  constructor(model = "jina-embeddings-v3", dimensions?: number) {
+    super({ provider: "jina", model, dimensions });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -291,6 +452,18 @@ export function getProviderEmbeddingFunction(
 
   if (embeddingModel.startsWith("mistral-embed")) {
     return new MistralEmbeddingFunction(embeddingModel);
+  }
+
+  if (embeddingModel.startsWith("embed-")) {
+    return new CohereEmbeddingFunction(embeddingModel);
+  }
+
+  if (embeddingModel.startsWith("voyage-")) {
+    return new VoyageEmbeddingFunction(embeddingModel);
+  }
+
+  if (embeddingModel.startsWith("jina-")) {
+    return new JinaEmbeddingFunction(embeddingModel);
   }
 
   // Default to Ollama for local models (nomic-embed-text, all-minilm, mxbai-embed-large, etc.)
