@@ -60,14 +60,22 @@ jest.mock("@mui/icons-material/DataObject", () => {
   return DataObjectIcon;
 });
 
-// jsdom has no ResizeObserver — provide a no-op shim before the component
-// imports anything that might capture a reference.
+// jsdom has no ResizeObserver. Save the prior value (if any) so we don't
+// leak a shim into unrelated suites running in the same Jest worker.
 class ResizeObserverShim {
   observe() {}
   unobserve() {}
   disconnect() {}
 }
-(global as any).ResizeObserver = ResizeObserverShim;
+const PREVIOUS_RESIZE_OBSERVER = (global as any).ResizeObserver;
+beforeAll(() => {
+  if ((global as any).ResizeObserver === undefined) {
+    (global as any).ResizeObserver = ResizeObserverShim;
+  }
+});
+afterAll(() => {
+  (global as any).ResizeObserver = PREVIOUS_RESIZE_OBSERVER;
+});
 
 // Bypass virtualization in tests: render every row synchronously.
 // jsdom has no layout engine, so @tanstack/react-virtual's measurements

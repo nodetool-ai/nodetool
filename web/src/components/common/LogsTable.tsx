@@ -209,7 +209,8 @@ type RowItemProps = {
   isExpanded: boolean;
   showTimestampColumn: boolean;
   columns: string;
-  style: React.CSSProperties;
+  size: number;
+  start: number;
   onToggle: (key: string) => void;
 };
 
@@ -219,13 +220,34 @@ const RowItem = memo(({
   isExpanded,
   showTimestampColumn,
   columns,
-  style,
+  size,
+  start,
   onToggle
 }: RowItemProps) => {
   const theme = useTheme();
   const colors = SEVERITY_COLORS(theme)[row.severity];
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const timeTooltip = showTimestampColumn ? "" : formatTime(row.timestamp);
+
+  const wrapperStyle = useMemo<React.CSSProperties>(
+    () => ({
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: size,
+      transform: `translateY(${start}px)`,
+    }),
+    [size, start]
+  );
+
+  const rowStyle = useMemo<React.CSSProperties>(
+    () => ({
+      gridTemplateColumns: columns,
+      borderLeftColor: colors.text,
+    }),
+    [columns, colors.text]
+  );
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -253,13 +275,10 @@ const RowItem = memo(({
   const open = Boolean(anchorEl);
 
   return (
-    <div style={style}>
+    <div role="listitem" style={wrapperStyle}>
       <div
         className={`row row-${row.severity}${isExpanded ? " expanded" : ""}`}
-        style={{
-          gridTemplateColumns: columns,
-          borderLeftColor: colors.text
-        }}
+        style={rowStyle}
         onClick={handleRowClick}
       >
         <Tooltip
@@ -417,6 +436,12 @@ export const LogsTable: React.FC<LogsTableProps> = ({
     getItemKey: (index) => rowKeys[index] ?? index,
   });
 
+  // estimateSize closes over expandedKeys/listWidth, but the virtualizer
+  // caches per-index sizes. Force re-measurement when those inputs change.
+  useEffect(() => {
+    virtualizer.measure();
+  }, [expandedKeys, listWidth, rowKeys, virtualizer]);
+
   // Auto-scroll to bottom when new logs arrive (if at bottom)
   useEffect(() => {
     if (autoScroll && isAtBottom && filteredRows.length > prevRowCountRef.current) {
@@ -468,6 +493,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
                 }}
               >
                 <div
+                  role="list"
                   style={{
                     height: virtualizer.getTotalSize(),
                     width: "100%",
@@ -485,15 +511,9 @@ export const LogsTable: React.FC<LogsTableProps> = ({
                         isExpanded={expandedKeys.has(rowKey)}
                         showTimestampColumn={showTimestampColumn}
                         columns={columns}
+                        size={vi.size}
+                        start={vi.start}
                         onToggle={toggleExpand}
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          height: vi.size,
-                          transform: `translateY(${vi.start}px)`,
-                        }}
                       />
                     );
                   })}

@@ -156,7 +156,7 @@ function ModelList<TModel extends ModelSelectorModel>({
               ? "Add API key in Settings to use this model"
               : "";
       return (
-        <div style={style}>
+        <div role="listitem" style={style}>
           <Tooltip disableInteractive title={tooltipTitle}>
             <ListItemButton
               className={`model-menu__model-item ${available ? "" : "is-unavailable"
@@ -359,6 +359,7 @@ function ModelList<TModel extends ModelSelectorModel>({
           }}
         >
           <div
+            role="list"
             style={{
               height: virtualizer.getTotalSize(),
               width: "100%",
