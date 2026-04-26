@@ -117,8 +117,12 @@ class UiBridgeTool extends Tool {
 interface LlmAgentSessionOptions {
   chatProviderId: string;
   model: string;
+  /**
+   * Authenticated user owning this session. Required so persisted threads
+   * are scoped to the right user — there is no fallback / default user.
+   */
+  userId: string;
   systemPrompt?: string;
-  userId?: string;
   /** Existing thread id to resume; otherwise a new thread is created lazily. */
   threadId?: string;
 }
@@ -165,10 +169,13 @@ class LlmAgentSession implements AgentQuerySession {
   private threadId: string;
 
   constructor(opts: LlmAgentSessionOptions) {
+    if (!opts.userId) {
+      throw new Error("LlmAgentSession requires an authenticated userId");
+    }
     this.chatProviderId = opts.chatProviderId;
     this.model = opts.model;
     this.systemPrompt = opts.systemPrompt ?? SYSTEM_PROMPT;
-    this.userId = opts.userId ?? "1";
+    this.userId = opts.userId;
     // Lazy: thread row is created on first send so we don't write to the DB
     // for sessions the user opens but never sends a message in.
     this.threadId = opts.threadId ?? "";
@@ -402,7 +409,7 @@ class LlmAgentSession implements AgentQuerySession {
  * the "llm" agent provider.
  */
 async function listAllToolCapableLanguageModels(
-  userId = "1",
+  userId: string,
 ): Promise<AgentModelDescriptor[]> {
   const providerIds = listRegisteredProviderIds();
   const out: AgentModelDescriptor[] = [];
@@ -454,22 +461,31 @@ async function listAllToolCapableLanguageModels(
 export class LlmAgentSdkProvider implements AgentSdkProvider {
   readonly name = "llm";
 
-  async listModels(_workspacePath?: string): Promise<AgentModelDescriptor[]> {
-    return listAllToolCapableLanguageModels();
+  async listModels(
+    userId: string,
+    _workspacePath?: string,
+  ): Promise<AgentModelDescriptor[]> {
+    if (!userId) {
+      throw new Error("listModels requires an authenticated userId");
+    }
+    return listAllToolCapableLanguageModels(userId);
   }
 
   createSession(options: {
     model: string;
     workspacePath: string;
+    userId: string;
     resumeSessionId?: string;
     systemPrompt?: string;
     chatProviderId?: string;
-    userId?: string;
   }): AgentQuerySession {
     if (!options.chatProviderId) {
       throw new Error(
         "LLM agent session requires `chatProviderId` (e.g. 'anthropic', 'openai').",
       );
+    }
+    if (!options.userId) {
+      throw new Error("LLM agent session requires an authenticated userId");
     }
     return new LlmAgentSession({
       chatProviderId: options.chatProviderId,
@@ -484,13 +500,16 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
 
   async listSessions(
     options: AgentListSessionsRequest,
+    userId: string,
   ): Promise<AgentSessionInfoEntry[]> {
+    if (!userId) {
+      throw new Error("listSessions requires an authenticated userId");
+    }
     // listSessions() in the harness providers returns sessions stored by their
     // SDK (e.g. ~/.claude). For LLM sessions we own the storage — query the
     // `nodetool_messages` table for threads marked with LLM_AGENT_MARKER and
     // hydrate the most recent message of each as a summary.
     try {
-      const userId = "1"; // Server is single-user today; matches harness paths.
       const limit = options.limit ?? 50;
 
       // Drizzle-ORM access goes through the @nodetool/models package. To keep
@@ -535,15 +554,28 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
     }
   }
 
-  async getSessionMessages(options: {
-    sessionId: string;
-  }): Promise<AgentTranscriptMessage[]> {
+  async getSessionMessages(
+    options: { sessionId: string },
+    userId: string,
+  ): Promise<AgentTranscriptMessage[]> {
+    if (!userId) {
+      throw new Error(
+        "getSessionMessages requires an authenticated userId",
+      );
+    }
     try {
+      // Verify ownership before reading messages — Thread.find filters by
+      // userId, so a user can't read another user's transcript by guessing
+      // a thread id.
+      const thread = await DbThread.find(userId, options.sessionId);
+      if (!thread) return [];
+
       const [rows] = await DbMessage.paginate(options.sessionId, {
         limit: 1000,
       });
       const out: AgentTranscriptMessage[] = [];
       for (const row of rows) {
+        if (row.user_id !== userId) continue;
         if (row.agent_execution_id !== LLM_AGENT_MARKER) continue;
         if (row.role !== "user" && row.role !== "assistant") continue;
         const text =

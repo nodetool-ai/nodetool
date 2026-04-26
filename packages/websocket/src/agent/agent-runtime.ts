@@ -365,10 +365,23 @@ class ClaudeAgentSession implements AgentQuerySession {
 /** Provider interface for agent SDKs (Claude, Codex, OpenCode, LLM). */
 export interface AgentSdkProvider {
   readonly name: string;
-  listModels(workspacePath?: string): Promise<AgentModelDescriptor[]>;
+  /**
+   * `userId` is required so the LLM provider can look up the right user's
+   * configured chat-provider secrets. Harness providers may ignore it.
+   */
+  listModels(
+    userId: string,
+    workspacePath?: string,
+  ): Promise<AgentModelDescriptor[]>;
   createSession(options: {
     model: string;
     workspacePath: string;
+    /**
+     * Authenticated user owning this session. Required — the agent socket
+     * route refuses unauthenticated connections, and providers that persist
+     * (LLM) must scope writes to this user. Harness providers may ignore it.
+     */
+    userId: string;
     resumeSessionId?: string;
     systemPrompt?: string;
     modelParams?: AgentModelParams;
@@ -380,9 +393,11 @@ export interface AgentSdkProvider {
   }): AgentQuerySession;
   listSessions(
     options: AgentListSessionsRequest,
+    userId: string,
   ): Promise<AgentSessionInfoEntry[]>;
   getSessionMessages(
     options: AgentGetSessionMessagesRequest,
+    userId: string,
   ): Promise<AgentTranscriptMessage[]>;
 }
 
@@ -411,13 +426,17 @@ const DEFAULT_CLAUDE_MODELS: AgentModelDescriptor[] = [
 class ClaudeSdkProvider implements AgentSdkProvider {
   readonly name = "claude";
 
-  async listModels(): Promise<AgentModelDescriptor[]> {
+  async listModels(
+    _userId: string,
+    _workspacePath?: string,
+  ): Promise<AgentModelDescriptor[]> {
     return DEFAULT_CLAUDE_MODELS;
   }
 
   createSession(options: {
     model: string;
     workspacePath: string;
+    userId: string;
     resumeSessionId?: string;
     systemPrompt?: string;
     modelParams?: AgentModelParams;
@@ -432,6 +451,7 @@ class ClaudeSdkProvider implements AgentSdkProvider {
 
   async listSessions(
     options: AgentListSessionsRequest,
+    _userId: string,
   ): Promise<AgentSessionInfoEntry[]> {
     try {
       const sdkSessions: SDKSessionInfo[] = await listSessions({
@@ -462,6 +482,7 @@ class ClaudeSdkProvider implements AgentSdkProvider {
 
   async getSessionMessages(
     options: AgentGetSessionMessagesRequest,
+    _userId: string,
   ): Promise<AgentTranscriptMessage[]> {
     try {
       const sdkMessages: SessionMessage[] = await getSessionMessages(
@@ -508,13 +529,17 @@ class ClaudeSdkProvider implements AgentSdkProvider {
 class CodexSdkProvider implements AgentSdkProvider {
   readonly name = "codex";
 
-  async listModels(): Promise<AgentModelDescriptor[]> {
+  async listModels(
+    _userId: string,
+    _workspacePath?: string,
+  ): Promise<AgentModelDescriptor[]> {
     return listCodexModels();
   }
 
   createSession(options: {
     model: string;
     workspacePath: string;
+    userId: string;
     resumeSessionId?: string;
     systemPrompt?: string;
     modelParams?: AgentModelParams;
@@ -526,11 +551,17 @@ class CodexSdkProvider implements AgentSdkProvider {
     });
   }
 
-  async listSessions(): Promise<AgentSessionInfoEntry[]> {
+  async listSessions(
+    _options: AgentListSessionsRequest,
+    _userId: string,
+  ): Promise<AgentSessionInfoEntry[]> {
     return [];
   }
 
-  async getSessionMessages(): Promise<AgentTranscriptMessage[]> {
+  async getSessionMessages(
+    _options: AgentGetSessionMessagesRequest,
+    _userId: string,
+  ): Promise<AgentTranscriptMessage[]> {
     return [];
   }
 }
@@ -538,13 +569,17 @@ class CodexSdkProvider implements AgentSdkProvider {
 class OpenCodeSdkProvider implements AgentSdkProvider {
   readonly name = "opencode";
 
-  async listModels(workspacePath?: string): Promise<AgentModelDescriptor[]> {
+  async listModels(
+    _userId: string,
+    workspacePath?: string,
+  ): Promise<AgentModelDescriptor[]> {
     return listOpenCodeModels(workspacePath);
   }
 
   createSession(options: {
     model: string;
     workspacePath: string;
+    userId: string;
     resumeSessionId?: string;
     systemPrompt?: string;
     modelParams?: AgentModelParams;
@@ -557,12 +592,14 @@ class OpenCodeSdkProvider implements AgentSdkProvider {
 
   async listSessions(
     options: AgentListSessionsRequest,
+    _userId: string,
   ): Promise<AgentSessionInfoEntry[]> {
     return listOpenCodeSessions(options);
   }
 
   async getSessionMessages(
     options: AgentGetSessionMessagesRequest,
+    _userId: string,
   ): Promise<AgentTranscriptMessage[]> {
     return getOpenCodeSessionMessages(options);
   }
@@ -571,13 +608,17 @@ class OpenCodeSdkProvider implements AgentSdkProvider {
 class PiSdkProvider implements AgentSdkProvider {
   readonly name = "pi";
 
-  async listModels(): Promise<AgentModelDescriptor[]> {
+  async listModels(
+    _userId: string,
+    _workspacePath?: string,
+  ): Promise<AgentModelDescriptor[]> {
     return listPiModels();
   }
 
   createSession(options: {
     model: string;
     workspacePath: string;
+    userId: string;
     resumeSessionId?: string;
     systemPrompt?: string;
     modelParams?: AgentModelParams;
@@ -590,12 +631,14 @@ class PiSdkProvider implements AgentSdkProvider {
 
   async listSessions(
     options: AgentListSessionsRequest,
+    _userId: string,
   ): Promise<AgentSessionInfoEntry[]> {
     return listPiSessions(options);
   }
 
   async getSessionMessages(
     options: AgentGetSessionMessagesRequest,
+    _userId: string,
   ): Promise<AgentTranscriptMessage[]> {
     return getPiSessionMessages(options);
   }
@@ -618,13 +661,45 @@ function getProvider(name?: string): AgentSdkProvider {
  *
  * One instance is shared per process. Each WebSocket connection routes its
  * commands through this runtime; sessions are addressable by their sessionId
- * from any connection (so a user can reconnect mid-stream).
+ * from any connection (so a user can reconnect mid-stream), but every
+ * mutating operation is gated by the calling user's id — sessionIds are
+ * predictable (counter-based for the temp id; thread-id for LLM after the
+ * first turn) so the runtime must enforce ownership rather than rely on
+ * sessionId being a secret.
  */
 class AgentRuntime {
   private readonly activeSessions = new Map<string, AgentQuerySession>();
+  /** Owning userId for each entry in `activeSessions`. */
+  private readonly sessionOwners = new Map<string, string>();
   private sessionCounter = 0;
 
-  async createSession(options: AgentSessionOptions): Promise<string> {
+  /**
+   * Throw a uniform "not yours" error so callers can't probe session ids.
+   * Returns the session if the caller owns it, otherwise throws.
+   */
+  private getOwnedSession(
+    sessionId: string,
+    userId: string,
+  ): AgentQuerySession {
+    const session = this.activeSessions.get(sessionId);
+    const owner = this.sessionOwners.get(sessionId);
+    if (!session || !owner || owner !== userId) {
+      // Same error whether the session doesn't exist or belongs to someone
+      // else — don't leak existence to other users.
+      throw new Error(`No active agent session with ID: ${sessionId}`);
+    }
+    return session;
+  }
+
+  async createSession(
+    options: AgentSessionOptions,
+    userId: string,
+  ): Promise<string> {
+    if (!userId) {
+      throw new Error(
+        "createSession requires an authenticated userId — agent socket must be authenticated",
+      );
+    }
     // The "llm" provider runs in-process with only ui_* tools — no file
     // system access, so a workspace is irrelevant. Every other provider
     // (CLI harness) must have one.
@@ -644,7 +719,7 @@ class AgentRuntime {
     const tempId = `${provider.name}-session-${++this.sessionCounter}`;
     const sessionMode = options.resumeSessionId ? "resuming" : "creating";
     log.info(
-      `${sessionMode} ${provider.name} agent session with model: ${options.model}${
+      `${sessionMode} ${provider.name} agent session for user ${userId} with model: ${options.model}${
         options.workspacePath ? ` (workspace: ${options.workspacePath})` : ""
       }`,
     );
@@ -652,12 +727,14 @@ class AgentRuntime {
     const session = provider.createSession({
       model: options.model,
       workspacePath: options.workspacePath ?? "",
+      userId,
       resumeSessionId: options.resumeSessionId,
       modelParams: options.modelParams,
       chatProviderId: options.chatProviderId,
     });
 
     this.activeSessions.set(tempId, session);
+    this.sessionOwners.set(tempId, userId);
     log.info(`${provider.name} agent session created: ${tempId}`);
     return tempId;
   }
@@ -670,11 +747,9 @@ class AgentRuntime {
     sessionId: string,
     message: string,
     transport: AgentTransport,
+    userId: string,
   ): Promise<void> {
-    const session = this.activeSessions.get(sessionId);
-    if (!session) {
-      throw new Error(`No active agent session with ID: ${sessionId}`);
-    }
+    const session = this.getOwnedSession(sessionId, userId);
 
     log.info(`Sending message to agent session ${sessionId} (streaming)`);
 
@@ -717,7 +792,12 @@ class AgentRuntime {
           serialized.session_id !== sessionId &&
           !this.activeSessions.has(serialized.session_id)
         ) {
+          // The SDK / LLM session resolved its real id (e.g. Claude session
+          // id, our DB thread id). Re-key under that id and stamp ownership
+          // so subsequent commands targeted at the real id stay scoped to
+          // the same user.
           this.activeSessions.set(serialized.session_id, session);
+          this.sessionOwners.set(serialized.session_id, userId);
         }
         messageCount++;
         transport.streamMessage(sessionId, serialized, false);
@@ -740,22 +820,21 @@ class AgentRuntime {
     );
   }
 
-  async stopExecution(sessionId: string): Promise<void> {
-    const session = this.activeSessions.get(sessionId);
-    if (!session) {
-      throw new Error(`No active agent session with ID: ${sessionId}`);
-    }
+  async stopExecution(sessionId: string, userId: string): Promise<void> {
+    const session = this.getOwnedSession(sessionId, userId);
     await session.interrupt();
   }
 
-  closeSession(sessionId: string): void {
+  closeSession(sessionId: string, userId: string): void {
     const session = this.activeSessions.get(sessionId);
-    if (!session) return;
+    const owner = this.sessionOwners.get(sessionId);
+    if (!session || owner !== userId) return;
     log.info(`Closing agent session: ${sessionId}`);
     session.close();
     for (const [id, s] of this.activeSessions.entries()) {
       if (s === session) {
         this.activeSessions.delete(id);
+        this.sessionOwners.delete(id);
       }
     }
   }
@@ -767,35 +846,39 @@ class AgentRuntime {
       session.close();
     }
     this.activeSessions.clear();
+    this.sessionOwners.clear();
     closeOpenCodeServer();
     stopMcpToolServer();
   }
 
   async listModels(
     options: AgentModelsRequest,
+    userId: string,
   ): Promise<AgentModelDescriptor[]> {
     const provider = getProvider(options.provider);
-    return provider.listModels(options.workspacePath);
+    return provider.listModels(userId, options.workspacePath);
   }
 
   async listSessionsForRequest(
     options: AgentListSessionsRequest,
+    userId: string,
   ): Promise<AgentSessionInfoEntry[]> {
     if (options.provider) {
       const provider = getProvider(options.provider);
-      return provider.listSessions(options);
+      return provider.listSessions(options, userId);
     }
     const results = await Promise.all(
-      Object.values(providers).map((p) => p.listSessions(options)),
+      Object.values(providers).map((p) => p.listSessions(options, userId)),
     );
     return results.flat();
   }
 
   async getSessionMessagesForRequest(
     options: AgentGetSessionMessagesRequest,
+    userId: string,
   ): Promise<AgentTranscriptMessage[]> {
     for (const provider of Object.values(providers)) {
-      const messages = await provider.getSessionMessages(options);
+      const messages = await provider.getSessionMessages(options, userId);
       if (messages.length > 0) {
         return messages;
       }

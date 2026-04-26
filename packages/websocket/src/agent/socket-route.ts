@@ -163,11 +163,26 @@ class AgentSocketTransport implements AgentTransport {
 }
 
 const agentSocketRoute: FastifyPluginAsync = async (app) => {
-  app.get("/ws/agent", { websocket: true }, (socket, _req) => {
+  app.get("/ws/agent", { websocket: true }, (socket, req) => {
+    // The global auth preHandler in server.ts populates req.userId — reject
+    // the connection if it ever leaks through unauthenticated. Belt and
+    // suspenders: defaults like a misconfigured local dev server should
+    // never become an unauthenticated agent endpoint.
+    const userId = req.userId;
+    if (!userId) {
+      log.warn("Agent WebSocket connection rejected: no userId on request");
+      try {
+        socket.close(1008, "Authentication required");
+      } catch {
+        // socket may already be closing — best effort
+      }
+      return;
+    }
+
     const transport = new AgentSocketTransport(socket);
     const runtime = getAgentRuntime();
 
-    log.info("Agent WebSocket client connected");
+    log.info(`Agent WebSocket client connected (user ${userId})`);
 
     const sendResponse = (
       requestId: string,
@@ -186,7 +201,7 @@ const agentSocketRoute: FastifyPluginAsync = async (app) => {
       try {
         switch (msg.command) {
           case "create_session": {
-            const sessionId = await runtime.createSession(msg.options);
+            const sessionId = await runtime.createSession(msg.options, userId);
             sendResponse(msg.request_id, sessionId);
             return;
           }
@@ -199,6 +214,7 @@ const agentSocketRoute: FastifyPluginAsync = async (app) => {
                 msg.session_id,
                 msg.message,
                 transport,
+                userId,
               );
             } catch (error) {
               const message =
@@ -220,28 +236,32 @@ const agentSocketRoute: FastifyPluginAsync = async (app) => {
             return;
           }
           case "stop_execution": {
-            await runtime.stopExecution(msg.session_id);
+            await runtime.stopExecution(msg.session_id, userId);
             sendResponse(msg.request_id);
             return;
           }
           case "close_session": {
-            runtime.closeSession(msg.session_id);
+            runtime.closeSession(msg.session_id, userId);
             sendResponse(msg.request_id);
             return;
           }
           case "list_models": {
-            const models = await runtime.listModels(msg.options);
+            const models = await runtime.listModels(msg.options, userId);
             sendResponse(msg.request_id, models);
             return;
           }
           case "list_sessions": {
-            const sessions = await runtime.listSessionsForRequest(msg.options);
+            const sessions = await runtime.listSessionsForRequest(
+              msg.options,
+              userId,
+            );
             sendResponse(msg.request_id, sessions);
             return;
           }
           case "get_session_messages": {
             const messages = await runtime.getSessionMessagesForRequest(
               msg.options,
+              userId,
             );
             sendResponse(msg.request_id, messages);
             return;
