@@ -69,7 +69,7 @@ export function initTestDb(): BetterSQLite3Database<typeof schema> {
 export function getDb(): BetterSQLite3Database<typeof schema> {
   if (!_db)
     throw new Error(
-      "Database not initialized. Call initDb() or initTestDb() first."
+      "Database not initialized."
     );
   return _db;
 }
@@ -80,7 +80,7 @@ export function getDb(): BetterSQLite3Database<typeof schema> {
 export function getRawDb(): Database.Database {
   if (!_sqlite)
     throw new Error(
-      "Database not initialized. Call initDb() or initTestDb() first."
+      "Database not initialized."
     );
   return _sqlite;
 }

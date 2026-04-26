@@ -365,7 +365,6 @@ export function App({
       // HTTP
       download_file: new DownloadFileTool(),
       http_request: new HttpRequestTool(),
-      http_get: new HttpRequestTool(),
       // Search (SERPAPI)
       google_search: new GoogleSearchTool(),
       google_news: new GoogleNewsTool(),
