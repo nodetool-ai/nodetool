@@ -60,7 +60,7 @@ import {
   SYSTEM_PROMPT,
   type AgentQuerySession,
   type AgentSdkProvider,
-} from "./agent-runtime.js";
+} from "./sdk-provider.js";
 import type { AgentTransport } from "./transport.js";
 
 const log = createLogger("nodetool.websocket.agent.llm");

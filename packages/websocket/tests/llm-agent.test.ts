@@ -207,8 +207,11 @@ describe("LlmAgentSession persistence", () => {
     const [threads] = await Thread.paginate("alice", { limit: 10 });
     const aliceThreadId = threads[0].id;
 
-    // Bob tries to resume Alice's thread. The transport should receive an
-    // error result; the original thread must remain Alice's.
+    // Bob tries to resume Alice's thread. send() returns an error result
+    // (and emits it via onMessage if provided) rather than throwing — the
+    // renderer surfaces the error to the user. AgentRuntime.sendMessageStreaming
+    // is what bridges onMessage to transport.streamMessage; we test the
+    // session in isolation here, so assert on the return value directly.
     const bobSession = new LlmAgentSdkProvider().createSession({
       model: "m",
       workspacePath: "",
@@ -216,15 +219,11 @@ describe("LlmAgentSession persistence", () => {
       chatProviderId: "anthropic",
       resumeSessionId: aliceThreadId,
     });
-    const bobTransport = makeTransport();
-    await bobSession.send("steal?", bobTransport, "tmp", []);
+    const out = await bobSession.send("steal?", makeTransport(), "tmp", []);
 
-    // The session emits an "error" result rather than throwing — the
-    // renderer surfaces the error to the user.
-    const errorCalls = bobTransport.streamMessage.mock.calls.filter(
-      ([, msg]) => (msg as { is_error?: boolean }).is_error === true,
-    );
-    expect(errorCalls.length).toBeGreaterThan(0);
+    const errorMsgs = out.filter((m) => m.is_error === true);
+    expect(errorMsgs.length).toBeGreaterThan(0);
+    expect(errorMsgs[0].errors?.[0]).toMatch(/not found for user bob/);
 
     // Ensure no rows got stamped under bob in Alice's thread.
     const [rows] = await Message.paginate(aliceThreadId, { limit: 100 });
