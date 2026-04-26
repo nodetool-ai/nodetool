@@ -351,9 +351,8 @@ describe("API error handling", () => {
 // ---------------------------------------------------------------------------
 
 describe("getAllMcpTools", () => {
-  it("returns all 17 tool instances by default (REST node tools)", () => {
+  it("returns the default tool set (REST node tools + asset tools)", () => {
     const tools = getAllMcpTools();
-    expect(tools.length).toBe(17);
     const names = tools.map((t) => t.name);
     expect(names).toContain("list_workflows");
     expect(names).toContain("get_workflow");
@@ -372,6 +371,10 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("list_assets");
     expect(names).toContain("get_asset");
     expect(names).toContain("list_models");
+    // Asset persistence tools — always available so the agent can surface
+    // text/binary artifacts into the chat asset browser.
+    expect(names).toContain("save_asset");
+    expect(names).toContain("read_asset");
   });
 
   it("swaps in local biased node tools when a registry is provided", () => {

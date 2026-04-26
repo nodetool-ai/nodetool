@@ -36,11 +36,23 @@ interface PredictCall {
   params: Record<string, unknown>;
 }
 
+interface AssetCreateCall {
+  name: string;
+  contentType: string;
+  content: Uint8Array;
+}
+
 function makeContext(stub: {
   run?: (req: PredictCall) => unknown;
   stream?: (req: PredictCall) => AsyncGenerator<unknown>;
+  /**
+   * When set, `context.createAsset` is exposed and records each call in
+   * `assetCalls`. Returns a fake asset with id `asset-<n>`.
+   */
+  assetMode?: "enabled";
+  assetCalls?: AssetCreateCall[];
 }): ProcessingContext {
-  return {
+  const ctx: Record<string, unknown> = {
     workspaceDir,
     runProviderPrediction: vi.fn(async (req: PredictCall) => {
       if (!stub.run) throw new Error("runProviderPrediction not stubbed");
@@ -50,7 +62,16 @@ function makeContext(stub: {
       if (!stub.stream) throw new Error("streamProviderPrediction not stubbed");
       return stub.stream(req);
     })
-  } as unknown as ProcessingContext;
+  };
+  if (stub.assetMode === "enabled") {
+    let n = 0;
+    ctx.createAsset = vi.fn(async (args: AssetCreateCall) => {
+      stub.assetCalls?.push(args);
+      n += 1;
+      return { id: `asset-${n}` };
+    });
+  }
+  return ctx as unknown as ProcessingContext;
 }
 
 beforeEach(() => {
@@ -62,8 +83,11 @@ afterEach(() => {
 });
 
 describe("GenerateImageTool", () => {
-  it("dispatches text_to_image and writes the bytes to workspace", async () => {
-    const bytes = new Uint8Array([1, 2, 3, 4, 5]);
+  it("dispatches text_to_image and falls back to workspace when no asset interface", async () => {
+    // PNG signature so MIME inference returns image/png.
+    const bytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xaa, 0xbb
+    ]);
     let captured: PredictCall | null = null;
     const ctx = makeContext({
       run: (req) => {
@@ -87,9 +111,57 @@ describe("GenerateImageTool", () => {
     expect(captured!.params.width).toBe(512);
 
     expect(result.type).toBe("image");
-    expect(result.bytes).toBe(5);
+    expect(result.bytes).toBe(bytes.length);
+    expect(result.mime_type).toBe("image/png");
+    expect(result.asset_id).toBeUndefined();
     const written = fs.readFileSync(result.path as string);
-    expect(Array.from(written)).toEqual([1, 2, 3, 4, 5]);
+    expect(Array.from(written)).toEqual(Array.from(bytes));
+  });
+
+  it("saves the generated image as an asset when createAsset is wired", async () => {
+    const bytes = new Uint8Array([
+      0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46
+    ]); // JPEG signature
+    const assetCalls: AssetCreateCall[] = [];
+    const ctx = makeContext({
+      run: () => bytes,
+      assetMode: "enabled",
+      assetCalls
+    });
+    const result = (await new GenerateImageTool().process(ctx, {
+      provider: "openai",
+      model: "gpt-image-1",
+      prompt: "a cat"
+    })) as Record<string, unknown>;
+
+    expect(assetCalls).toHaveLength(1);
+    expect(assetCalls[0].contentType).toBe("image/jpeg");
+    expect(Array.from(assetCalls[0].content)).toEqual(Array.from(bytes));
+    expect(result.asset_id).toBe("asset-1");
+    expect(result.asset_uri).toBe("asset://asset-1.jpg");
+    // No workspace file because output_file wasn't supplied.
+    expect(result.path).toBeUndefined();
+  });
+
+  it("saves to BOTH asset and workspace when output_file is given", async () => {
+    const bytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2
+    ]);
+    const assetCalls: AssetCreateCall[] = [];
+    const ctx = makeContext({
+      run: () => bytes,
+      assetMode: "enabled",
+      assetCalls
+    });
+    const result = (await new GenerateImageTool().process(ctx, {
+      provider: "openai",
+      model: "gpt-image-1",
+      prompt: "a cat",
+      output_file: "cat.png"
+    })) as Record<string, unknown>;
+    expect(result.asset_id).toBe("asset-1");
+    expect(result.path).toBeTruthy();
+    expect(fs.existsSync(result.path as string)).toBe(true);
   });
 
   it("returns error when required args are missing", async () => {
@@ -114,10 +186,12 @@ describe("GenerateImageTool", () => {
 });
 
 describe("EditImageTool", () => {
-  it("reads source image, dispatches image_to_image, writes result", async () => {
+  it("reads source image, dispatches image_to_image, persists result", async () => {
     const sourcePath = path.join(workspaceDir, "src.png");
     fs.writeFileSync(sourcePath, Buffer.from([10, 20, 30]));
-    const out = new Uint8Array([99, 88, 77]);
+    const out = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 99, 88, 77
+    ]);
     let captured: PredictCall | null = null;
     const ctx = makeContext({
       run: (req) => {
@@ -140,28 +214,32 @@ describe("EditImageTool", () => {
     expect(Array.from(passedImage)).toEqual([10, 20, 30]);
     expect(result.type).toBe("image");
     const written = fs.readFileSync(result.path as string);
-    expect(Array.from(written)).toEqual([99, 88, 77]);
+    expect(Array.from(written)).toEqual(Array.from(out));
   });
 });
 
 describe("GenerateVideoTool / AnimateImageTool", () => {
-  it("dispatches text_to_video", async () => {
+  it("dispatches text_to_video and saves result as asset", async () => {
     let captured: PredictCall | null = null;
+    const assetCalls: AssetCreateCall[] = [];
     const ctx = makeContext({
       run: (req) => {
         captured = req;
-        return new Uint8Array([1]);
-      }
+        return new Uint8Array([1, 2, 3]);
+      },
+      assetMode: "enabled",
+      assetCalls
     });
     const tool = new GenerateVideoTool();
-    await tool.process(ctx, {
+    const r = (await tool.process(ctx, {
       provider: "fal_ai",
       model: "runway",
-      prompt: "a cat skiing",
-      output_file: "v.mp4"
-    });
+      prompt: "a cat skiing"
+    })) as Record<string, unknown>;
     expect(captured!.capability).toBe("text_to_video");
     expect(captured!.params.prompt).toBe("a cat skiing");
+    expect(assetCalls[0].contentType).toBe("video/mp4");
+    expect(r.asset_uri).toBe("asset://asset-1.mp4");
   });
 
   it("dispatches image_to_video with source image bytes", async () => {
@@ -188,8 +266,9 @@ describe("GenerateVideoTool / AnimateImageTool", () => {
 });
 
 describe("GenerateSpeechTool", () => {
-  it("concatenates streamed bytes and writes to workspace", async () => {
+  it("concatenates streamed bytes and saves as an asset", async () => {
     let captured: PredictCall | null = null;
+    const assetCalls: AssetCreateCall[] = [];
     const ctx = makeContext({
       stream: (req) => {
         captured = req;
@@ -197,22 +276,43 @@ describe("GenerateSpeechTool", () => {
           yield { data: new Uint8Array([1, 2]), mimeType: "audio/mp3" };
           yield { data: new Uint8Array([3, 4, 5]), mimeType: "audio/mp3" };
         })();
-      }
+      },
+      assetMode: "enabled",
+      assetCalls
     });
     const tool = new GenerateSpeechTool();
     const result = (await tool.process(ctx, {
       provider: "openai",
       model: "tts-1",
       text: "hello",
-      voice: "alloy",
-      output_file: "out/hello.mp3"
+      voice: "alloy"
     })) as Record<string, unknown>;
     expect(captured!.capability).toBe("text_to_speech");
     expect(result.type).toBe("audio");
     expect(result.mime_type).toBe("audio/mp3");
     expect(result.bytes).toBe(5);
-    const written = fs.readFileSync(result.path as string);
-    expect(Array.from(written)).toEqual([1, 2, 3, 4, 5]);
+    expect(assetCalls[0].contentType).toBe("audio/mp3");
+    expect(Array.from(assetCalls[0].content)).toEqual([1, 2, 3, 4, 5]);
+    expect(result.asset_uri).toBe("asset://asset-1.mp3");
+    // No workspace file when output_file omitted.
+    expect(result.path).toBeUndefined();
+  });
+
+  it("falls back to workspace file when no createAsset interface", async () => {
+    const ctx = makeContext({
+      stream: () =>
+        (async function* () {
+          yield { data: new Uint8Array([7, 8, 9]) };
+        })()
+    });
+    const r = (await new GenerateSpeechTool().process(ctx, {
+      provider: "openai",
+      model: "tts-1",
+      text: "hi",
+      output_file: "out/x.mp3"
+    })) as Record<string, unknown>;
+    expect(r.path).toBeTruthy();
+    expect(fs.existsSync(r.path as string)).toBe(true);
   });
 
   it("returns error when stream yields nothing", async () => {

@@ -79,7 +79,21 @@ const DEFAULT_PLANNING_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objec
 ## Output Schemas
 - Include \`output_schema\` (as a JSON schema string) for steps that produce structured data.
 - The aggregation step MUST have an \`output_schema\` matching the plan's overall output schema.
-- Use type "object" at the top level.`;
+- Use type "object" at the top level.
+
+## Models & Media (use the right tools)
+- Before generating media, call \`find_model\` once for the relevant capability
+  (text_to_image, text_to_video, text_to_speech, automatic_speech_recognition,
+  generate_embedding) and pass the resulting \`provider\` + \`model\` to the
+  generation tool.
+- Generation tools: \`generate_image\`, \`edit_image\`, \`generate_video\`,
+  \`animate_image\`, \`generate_speech\`, \`transcribe_audio\`, \`embed_text\`.
+- These tools save outputs as ASSETS automatically — the result includes
+  \`asset_id\` and \`asset_uri\` ("asset://<id>.<ext>"). Reference those in
+  later steps and in the final response so the chat UI can show them.
+- For non-media artifacts the user should keep (reports, JSON, manifests),
+  call \`save_asset\` with \`name\` + \`content\` (text) or \`content_base64\`
+  (binary). Use \`read_asset\` / \`list_assets\` / \`get_asset\` to retrieve.`;
 
 const DEFAULT_SINGLE_TASK_SYSTEM_PROMPT = `You are a TaskArchitect. Decompose objectives into executable step plans.
 

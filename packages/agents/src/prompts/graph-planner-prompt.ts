@@ -223,5 +223,14 @@ ${tools}
   Optional: \`tools\` (string array), \`output_schema\` (JSON schema string).
   Input handle: \`input\`. Output handle: \`output\`.
 - Do NOT use \`nodetool.agents.Agent\` (the registry node) — it requires a
-  complex model property that cannot be set via \`add_node\`.`;
+  complex model property that cannot be set via \`add_node\`.
+
+# Persistence
+
+- Workflow outputs are persisted by their nodes. For images/audio/video the
+  generic AI nodes auto-save assets; you do NOT need a separate save node.
+- For text artifacts an AgentStep produces (reports, summaries, JSON), use
+  the \`nodetool.workspace.WriteTextFile\` deterministic node OR have the
+  AgentStep call \`save_asset\` with \`name\` + \`content\` from its tool list
+  so the artifact shows up in the chat asset browser.`;
 }

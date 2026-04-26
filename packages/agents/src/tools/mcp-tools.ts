@@ -23,6 +23,7 @@ import {
   TranscribeAudioTool,
   EmbedTextTool
 } from "./media-tools.js";
+import { SaveAssetTool, ReadAssetTool } from "./asset-tools.js";
 
 const DEFAULT_API_URL = "http://localhost:7777";
 
@@ -775,7 +776,13 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new StartBackgroundJobTool(),
     new ListAssetsTool(),
     new GetAssetTool(),
-    new ListModelsTool()
+    new ListModelsTool(),
+    // Asset persistence — used by the agent to surface artifacts (text
+    // reports, images, audio) into the chat. Media-generation tools save
+    // their outputs as assets automatically; use save_asset for anything
+    // else worth keeping.
+    new SaveAssetTool(),
+    new ReadAssetTool()
   ];
 
   if (options.registry) {
