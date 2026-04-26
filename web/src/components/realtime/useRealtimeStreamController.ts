@@ -23,7 +23,7 @@ import {
 } from "../../hooks/browser/useRealtimeSessionWebRTC";
 import { useRealtimeSessionStore } from "../../stores/RealtimeSessionStore";
 
-interface RealtimeStreamController {
+export interface RealtimeStreamController {
   workflowId: string | undefined;
   workflow: Workflow | undefined;
   workflowError: Error | null;
@@ -67,11 +67,15 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
 
   const sessions = useRealtimeSessionStore((state) => state.sessions);
   const metrics = useRealtimeSessionStore((state) => state.metrics);
-  const activeSessionId = useRealtimeSessionStore((state) => state.activeSessionId);
+  const activeSessionId = useRealtimeSessionStore(
+    (state) => state.activeSessionId
+  );
   const isLoadingSessions = useRealtimeSessionStore((state) => state.isLoading);
   const sessionError = useRealtimeSessionStore((state) => state.error);
   const hydrated = useRealtimeSessionStore((state) => state.hydrated);
-  const hydrateSessions = useRealtimeSessionStore((state) => state.hydrateSessions);
+  const hydrateSessions = useRealtimeSessionStore(
+    (state) => state.hydrateSessions
+  );
   const startSession = useRealtimeSessionStore((state) => state.startSession);
   const updateSession = useRealtimeSessionStore((state) => state.updateSession);
   const stopSession = useRealtimeSessionStore((state) => state.stopSession);

@@ -1,4 +1,10 @@
-import { Card, FlexColumn, FlexRow, LoadingSpinner, Text } from "../ui_primitives";
+import {
+  Card,
+  FlexColumn,
+  FlexRow,
+  LoadingSpinner,
+  Text
+} from "../ui_primitives";
 import VideoPreview from "./VideoPreview";
 import { RealtimeSessionControlsCard } from "./RealtimeSessionControlsCard";
 import { RealtimeSessionDetailsCard } from "./RealtimeSessionDetailsCard";
@@ -35,7 +41,8 @@ const RealtimeStreamPage = () => {
       {controller.workflowError && (
         <Card padding="normal" variant="outlined">
           <Text color="error">
-            {controller.workflowError.message || "Failed to load the realtime workflow"}
+            {controller.workflowError.message ||
+              "Failed to load the realtime workflow"}
           </Text>
         </Card>
       )}

@@ -1,6 +1,6 @@
+import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import type { ReactNode } from "react";
 
 import type { RealtimeMetrics, RealtimeSessionRecord } from "@nodetool/protocol";
 
@@ -8,7 +8,9 @@ import mockTheme from "../../../__mocks__/themeMock";
 import { RealtimeSessionDetailsCard } from "../RealtimeSessionDetailsCard";
 import { RealtimeSessionListCard } from "../RealtimeSessionListCard";
 
-const session = (overrides: Partial<RealtimeSessionRecord> = {}): RealtimeSessionRecord => ({
+const session = (
+  overrides: Partial<RealtimeSessionRecord> = {}
+): RealtimeSessionRecord => ({
   session_id: "session-1",
   workflow_id: "workflow-1",
   job_id: "job-1",
@@ -100,7 +102,9 @@ describe("Realtime session cards", () => {
     expect(screen.getByText("Active Session")).toBeInTheDocument();
     expect(screen.getByText("Session id: session-1")).toBeInTheDocument();
     expect(screen.getByText("Transport: webrtc")).toBeInTheDocument();
-    expect(screen.getByText("Frames: inbound 2, routed 1, dropped 1")).toBeInTheDocument();
+    expect(
+      screen.getByText("Frames: inbound 2, routed 1, dropped 1")
+    ).toBeInTheDocument();
     expect(screen.getByText("Queue depth: 3")).toBeInTheDocument();
   });
 

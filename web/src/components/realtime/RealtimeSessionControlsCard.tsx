@@ -71,7 +71,10 @@ export const RealtimeSessionControlsCard = ({
           >
             Start Realtime Session
           </EditorButton>
-          <EditorButton onClick={() => void onStopSession()} disabled={!hasActiveSession}>
+          <EditorButton
+            onClick={() => void onStopSession()}
+            disabled={!hasActiveSession}
+          >
             Stop Session
           </EditorButton>
         </FlexRow>
@@ -112,7 +115,9 @@ export const RealtimeSessionControlsCard = ({
         </FlexColumn>
 
         {previewError ? <Text color="error">{previewError}</Text> : null}
-        {webrtcConfigError ? <Text color="error">{webrtcConfigError}</Text> : null}
+        {webrtcConfigError ? (
+          <Text color="error">{webrtcConfigError}</Text>
+        ) : null}
         {webrtcError ? <Text color="error">{webrtcError}</Text> : null}
         {sessionError ? <Text color="error">{sessionError}</Text> : null}
       </FlexColumn>
