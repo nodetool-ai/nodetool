@@ -11,6 +11,9 @@ import * as path from "path";
 import * as os from "os";
 import * as crypto from "crypto";
 import * as yaml from "js-yaml";
+import { createLogger } from "@nodetool/config";
+
+const log = createLogger("nodetool.deploy.config");
 
 // ============================================================================
 // Enums
@@ -608,11 +611,16 @@ export async function saveDeploymentConfig(
     await fs.writeFile(tempPath, yamlStr, { encoding: "utf-8", mode: 0o600 });
     await fs.rename(tempPath, configPath);
   } catch (err) {
-    try {
-      await fs.unlink(tempPath);
-    } catch {
-      // ignore cleanup errors
-    }
+    await fs.unlink(tempPath).catch((cleanupErr: NodeJS.ErrnoException) => {
+      // ENOENT means the temp file was never created — expected. Anything
+      // else is worth knowing about.
+      if (cleanupErr.code !== "ENOENT") {
+        log.warn(
+          `Failed to clean up temp config file ${tempPath} after write error`,
+          cleanupErr
+        );
+      }
+    });
     throw err;
   }
 }

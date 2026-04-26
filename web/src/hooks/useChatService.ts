@@ -56,42 +56,34 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
   const handleSendMessage = useCallback(
     async (message: Message) => {
       if (!selectedModel) {
-        console.error("No model selected");
+        useGlobalChatStore.setState({ error: "No model selected" });
         return;
       }
 
-      try {
-        const messageWithModel = {
-          ...message,
-          model: selectedModel.id
-        };
+      const messageWithModel = {
+        ...message,
+        model: selectedModel.id
+      };
 
-        // Use existing thread if available, otherwise create new one
-        let threadId = currentThreadId;
-        if (!threadId) {
-          threadId = await createNewThread();
-          switchThread(threadId);
-        } else {
-          // Verify thread exists in store before sending message
-          if (!threads[threadId]) {
-            console.warn(
-              `Current thread ${threadId} not found in store, creating new thread`
-            );
-            threadId = await createNewThread();
-            switchThread(threadId);
-          }
-        }
-
-        await sendMessage(messageWithModel);
-
-        // Navigate after a short delay to allow message processing
-        const targetThreadId = threadId; // capture for closure
-        setTimeout(() => {
-          navigate(`/chat/${targetThreadId}`);
-        }, 100);
-      } catch (error) {
-        console.error("Failed to send message:", error);
+      // Use existing thread if available, otherwise create new one
+      let threadId = currentThreadId;
+      if (!threadId || !threads[threadId]) {
+        threadId = await createNewThread();
+        switchThread(threadId);
       }
+
+      // sendMessage logs and sets store.error on failure. Swallow the rejection
+      // here because most callers (e.g. useMessageQueue.sendMessageNow) invoke
+      // this fire-and-forget; the UI already reacts to store.error.
+      const targetThreadId = threadId;
+      await sendMessage(messageWithModel).then(
+        () => {
+          setTimeout(() => navigate(`/chat/${targetThreadId}`), 100);
+        },
+        () => {
+          // store.error is already set by sendMessage; nothing more to do.
+        }
+      );
     },
     [
       selectedModel,
@@ -113,13 +105,9 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
   );
 
   const handleNewThread = useCallback(async () => {
-    try {
-      const newThreadId = await createNewThread();
-      switchThread(newThreadId);
-      navigate(`/chat/${newThreadId}`);
-    } catch (error) {
-      console.error("Failed to create new thread:", error);
-    }
+    const newThreadId = await createNewThread();
+    switchThread(newThreadId);
+    navigate(`/chat/${newThreadId}`);
   }, [createNewThread, switchThread, navigate]);
 
   const getThreadPreview = useCallback(

@@ -13,6 +13,10 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 
+import { createLogger } from "@nodetool/config";
+
+const log = createLogger("nodetool.deploy.railway");
+
 import { loadImageSpec } from "./image-spec.js";
 import { generateDockerfile } from "./image-builder.js";
 import { StateManager } from "./state.js";
@@ -220,7 +224,9 @@ export class RailwayDeployer {
 
       throw e;
     } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch((err) => {
+        log.debug(`Failed to clean up Railway temp dir ${tmpDir}`, err);
+      });
     }
 
     return results;
@@ -269,7 +275,9 @@ export class RailwayDeployer {
       );
       throw e;
     } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch((err) => {
+        log.debug(`Failed to clean up Railway temp dir ${tmpDir}`, err);
+      });
     }
 
     return results;
@@ -307,7 +315,9 @@ export class RailwayDeployer {
       statusInfo["live_status_error"] =
         e instanceof Error ? e.message : String(e);
     } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch((err) => {
+        log.debug(`Failed to clean up Railway temp dir ${tmpDir}`, err);
+      });
     }
 
     return statusInfo;
@@ -346,7 +356,9 @@ export class RailwayDeployer {
       const msg = e instanceof Error ? e.message : String(e);
       throw new Error(`Failed to fetch Railway logs: ${msg}`);
     } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch((err) => {
+        log.debug(`Failed to clean up Railway temp dir ${tmpDir}`, err);
+      });
     }
   }
 }
