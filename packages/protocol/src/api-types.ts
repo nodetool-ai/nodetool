@@ -6,7 +6,7 @@
  * Used by both the backend HTTP handlers and the frontend stores.
  */
 
-import type { Edge } from "./graph.js";
+import type { Edge, InputBufferPolicy, RealtimeNodeProfile } from "./graph.js";
 
 // ---------------------------------------------------------------------------
 // Media Refs
@@ -550,7 +550,14 @@ export interface NodeMetadata {
   basic_fields: string[];
   required_settings: string[];
   is_dynamic: boolean;
+  is_streaming_input?: boolean;
   is_streaming_output: boolean;
+  is_controlled?: boolean;
+  is_realtime_capable?: boolean;
+  owns_warm_state?: boolean;
+  is_media_adapter?: boolean;
+  realtime_profile?: RealtimeNodeProfile;
+  input_buffer_policy?: Record<string, InputBufferPolicy>;
   expose_as_tool: boolean;
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
