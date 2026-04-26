@@ -42,7 +42,15 @@ Rules for the remaining work:
   - Heavy pipeline in `nodetool-realtime/src/nodetool/realtime/wan21/longlive_pipeline.py`.
   - Use the frame contract, loading lifecycle, hardware precision hints, `WeightSource`, and smoke-test pattern from step 9.
 - [ ] **10b. Implement Self-Forcing.**
-  - Validate GGUF/community pre-quantized weights on Ampere/low-VRAM hardware.
+  - Start with a provenance gate: identify the exact upstream Self-Forcing source, license, base-model compatibility, required files, and whether any FP8/GGUF/INT8 artifacts are official or community-only.
+  - Provenance gate current finding: canonical candidate is `guandeh17/Self-Forcing` / `gdhe17/Self-Forcing`, licensed Apache-2.0, built on `Wan-AI/Wan2.1-T2V-1.3B`, with the documented inference checkpoint `checkpoints/self_forcing_dmd.pt`.
+  - Official quickstart expects Linux, Python 3.10, CUDA GPU with at least 24 GB memory, Wan2.1 T2V 1.3B base files, and the Self-Forcing checkpoint. Treat Windows/local support as unvalidated until tested.
+  - Community GGUF variants such as `Nichonauta/Self-Forcing2.1-T2V-1.3B-GGUF` exist, but are not the official path. They require a compatible video-diffusion GGUF runtime and must stay behind explicit experimental loader hooks.
+  - Reuse the LongLive realtime contracts rather than inventing a parallel stack: `WeightSource`, loading phases, precision guards, `LatestPerHandleAccumulator`, frame conversion, sampler adapter lifecycle, opt-in real smoke tests, and dependency-lazy imports.
+  - Thin node scaffold landed: `SelfForcing` exists under `nodetool-realtime/src/nodetool/nodes/realtime/`, uses the dependency-lazy pipeline/backend boundary, reports pending loaders by default, and forwards prompt/negative-prompt values through the same latest-value realtime accumulator pattern without adding fake model-output behavior.
+  - Add a dependency-lazy Self-Forcing backend boundary with explicit loader/checkpoint/sampler hook points, mirroring the LongLive factory shape where it fits and documenting any real interface differences.
+  - Backend boundary landed: `nodetool-realtime` now has a dependency-lazy Self-Forcing backend scaffold that reports pending default loaders without importing heavy modules, and can reach `ready` through explicit base-model loader, checkpoint applier, and sampler hooks.
+  - Validate GGUF/community pre-quantized weights on Ampere/low-VRAM hardware only through opt-in tests or scripts, never in the default suite.
   - Treat community Self-Forcing/VACE FP8/GGUF weights as experimental until license, provenance, and quality are checked for the exact selected source.
 - [ ] **11. Build the canonical realtime workflow template.**
   - Camera/source -> parameter controls -> LongLive/Self-Forcing -> sink/preview.
@@ -284,9 +292,12 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - Upstream output normalization landed: causal samplers can extract video tensors from raw outputs, dict wrappers (`video`/`videos`/`frames`), and object wrappers (`.video`/`.videos`/`.frames`), then select frames from batched, time-first, or single-frame `CHW`/`HWC` outputs before realtime conversion. Both normalized float channels and byte-scale channels are accepted, and missing/empty upstream video outputs produce clear errors.
   - Precision guard landed: real mode defers `auto` precision resolution to the lazy backend so CUDA capability can be used, while unvalidated `fp8`/`gguf`/`int8` paths fail early with structured errors instead of silently falling back.
   - Real smoke-test scaffolding landed: `nodetool-realtime` now has an opt-in `NODETOOL_LONGLIVE_REAL_SMOKE=1` path that parses user-provided upstream module/class, constructor kwargs, constructor/call/inference argument-name mappings, sampler config, prompt, and weight settings without triggering downloads in the normal test suite.
-  - Quantized loader guard metadata landed: explicit `fp8`/`gguf`/`int8` requests still fail early until real loaders exist, but the structured error now identifies the matching install extra and reports the loader status instead of silently falling back.
+  - Quantized loader guard metadata landed: explicit `fp8`/`gguf`/`int8` requests still fail early until real loaders exist, but the structured error now identifies the matching install extra and reports the loader status instead of silently falling back. The pipeline and backend factories can now accept explicit loader/checkpoint hooks and an expanded validated-precision set, so real quantized loaders can be plugged in without bypassing the lazy backend lifecycle.
   - Still pending for completion: running real end-to-end inference against downloaded weights and implementing real FP8/GGUF/INT8 loader paths.
 - [ ] Step 10b: Self-Forcing.
+  - Next implementation order: provenance/license/source gate, dependency-lazy backend contract, thin realtime node scaffold, opt-in real smoke path, then hardware-specific quantized loader validation.
+  - Provenance gate, dependency-lazy backend boundary, and thin node scaffold are landed. Still pending: selected-upstream sampler adapter, opt-in real smoke path, and hardware-specific quantized loader validation.
+  - Do not create fake behavioral parity with LongLive. Reuse shared realtime contracts where they fit, and wait for the selected upstream interface before adding model-output assertions.
 - [ ] Step 11: canonical workflow template.
 
 ## Phase 3 - Browser/JS realtime inference
