@@ -9,6 +9,10 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
+import { isProduction } from "../../lib/env";
+import { getIsElectronDetails } from "../../utils/browser";
+
+const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
 
 const DEFAULT_TAG_SUGGESTIONS = [
   "image",
@@ -321,14 +325,18 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
       <div className="settings-section">
         <Text className="section-title">Advanced</Text>
         <Caption sx={{ display: "block", mb: 2 }}>
-          Advanced configuration for workspaces and API/tool usage
+          {workspacesEnabled
+            ? "Advanced configuration for workspaces and API/tool usage"
+            : "Advanced configuration for API/tool usage"}
         </Caption>
 
-        <WorkspaceSelect
-          value={localWorkflow.workspace_id ?? undefined}
-          onChange={handleWorkspaceChange}
-          helperText="Associate a workspace folder with this workflow for agent access"
-        />
+        {workspacesEnabled && (
+          <WorkspaceSelect
+            value={localWorkflow.workspace_id ?? undefined}
+            onChange={handleWorkspaceChange}
+            helperText="Associate a workspace folder with this workflow for agent access"
+          />
+        )}
 
         <TextInput
           label="Tool Name"

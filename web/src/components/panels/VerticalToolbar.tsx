@@ -2,6 +2,10 @@ import { memo } from "react";
 import { SxProps } from "@mui/material";
 import { Divider, ToolbarIconButton } from "../ui_primitives";
 import { getShortcutTooltip } from "../../config/shortcuts";
+import { isProduction } from "../../lib/env";
+import { getIsElectronDetails } from "../../utils/browser";
+
+const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
 
 const spacerStyle = { flexGrow: 1 } as const;
 const dividerSx: SxProps = { my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" };
@@ -79,15 +83,17 @@ function VerticalToolbar({
                 active={isActive("agent")}
             />
 
-            <ToolbarIconButton
-                icon={<FolderIcon />}
-                tooltip="Workspace"
-                tooltipPlacement="left-start"
-                onClick={handleWorkspaceToggle}
-                ariaLabel="Toggle Workspace panel"
-                className="workspace"
-                active={isActive("workspace")}
-            />
+            {workspacesEnabled && (
+                <ToolbarIconButton
+                    icon={<FolderIcon />}
+                    tooltip="Workspace"
+                    tooltipPlacement="left-start"
+                    onClick={handleWorkspaceToggle}
+                    ariaLabel="Toggle Workspace panel"
+                    className="workspace"
+                    active={isActive("workspace")}
+                />
+            )}
 
             <ToolbarIconButton
                 icon={<HistoryIcon />}
