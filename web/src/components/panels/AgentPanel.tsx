@@ -1,6 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, memo, useEffect, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   Button,
   Menu,
@@ -20,8 +27,13 @@ import DesktopWindowsOutlinedIcon from "@mui/icons-material/DesktopWindowsOutlin
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import ChatView from "../chat/containers/ChatView";
 import useAgentStore from "../../stores/AgentStore";
-import type { Message, WorkspaceResponse } from "../../stores/ApiTypes";
+import type {
+  LanguageModel,
+  Message,
+  WorkspaceResponse
+} from "../../stores/ApiTypes";
 import type { AgentProvider, AgentModelDescriptor } from "../../stores/AgentStore";
+import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 import {
   Text,
@@ -242,6 +254,22 @@ const AgentPanel: React.FC = () => {
   const [draftModel, setDraftModel] = useState<string>("");
   const [draftModels, setDraftModels] = useState<AgentModelDescriptor[]>([]);
   const [draftModelsLoading, setDraftModelsLoading] = useState(false);
+  /**
+   * For provider === "llm" only: the underlying chat provider id of the
+   * currently-picked model, captured at the moment the user picks from
+   * `LanguageModelMenuDialog` (which returns full LanguageModels). The
+   * harness flow leaves this null and falls through to the existing
+   * descriptor-list lookup.
+   */
+  const [draftChatProviderId, setDraftChatProviderId] = useState<string | null>(
+    null
+  );
+  /** Anchor for the LLM language-model dialog opened from the new-session form. */
+  const draftLlmDialogAnchor = useRef<HTMLButtonElement | null>(null);
+  const [draftLlmDialogOpen, setDraftLlmDialogOpen] = useState(false);
+  /** Anchor for the LLM language-model dialog opened from the chat toolbar. */
+  const toolbarLlmDialogAnchor = useRef<HTMLButtonElement | null>(null);
+  const [toolbarLlmDialogOpen, setToolbarLlmDialogOpen] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const [resumeAnchorEl, setResumeAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -265,7 +293,7 @@ const AgentPanel: React.FC = () => {
     setProvider,
     model,
     setModel,
-    setChatProviderId,
+    chatProviderId,
     availableModels,
     modelsLoading,
     loadModels,
@@ -291,7 +319,7 @@ const AgentPanel: React.FC = () => {
         setProvider: state.setProvider,
         model: state.model,
         setModel: state.setModel,
-        setChatProviderId: state.setChatProviderId,
+        chatProviderId: state.chatProviderId,
         availableModels: state.availableModels,
         modelsLoading: state.modelsLoading,
         loadModels: state.loadModels,
@@ -413,16 +441,18 @@ const AgentPanel: React.FC = () => {
     setDraftWorkspaceId(workspaceId);
     setDraftWorkspacePath(workspacePath);
     setDraftModel(model);
+    setDraftChatProviderId(chatProviderId);
     setNewSessionDialogOpen(true);
-  }, [provider, workspaceId, workspacePath, model]);
+  }, [provider, workspaceId, workspacePath, model, chatProviderId]);
 
   const handleCreateNewSession = useCallback(() => {
     setDraftProvider(provider);
     setDraftWorkspaceId(workspaceId);
     setDraftWorkspacePath(workspacePath);
     setDraftModel(model);
+    setDraftChatProviderId(chatProviderId);
     setNewSessionDialogOpen(true);
-  }, [provider, workspaceId, workspacePath, model]);
+  }, [provider, workspaceId, workspacePath, model, chatProviderId]);
 
   const handleResumeSession = useCallback(
     async (targetSessionId: string) => {
@@ -462,7 +492,9 @@ const AgentPanel: React.FC = () => {
   const providerLabel = PROVIDER_LABELS[provider];
   const draftProviderLabel = PROVIDER_LABELS[draftProvider];
   const canCreateSession =
-    (isDraftLlmProvider || Boolean(draftWorkspacePath)) &&
+    (isDraftLlmProvider
+      ? Boolean(draftChatProviderId)
+      : Boolean(draftWorkspacePath)) &&
     Boolean(draftModel) &&
     !draftModelsLoading &&
     !creatingSession;
@@ -485,19 +517,20 @@ const AgentPanel: React.FC = () => {
     if (!isDraftLlmProvider && !draftWorkspacePath) {
       return;
     }
+    if (isDraftLlmProvider && !draftChatProviderId) {
+      return;
+    }
     setCreatingSession(true);
     try {
       setProvider(draftProvider);
-      setModel(draftModel);
-      // setProvider kicks off an async loadModels. Until that finishes, the
-      // store's `availableModels` won't include the draft model, so the
-      // chatProviderId auto-stamp inside setModel can't resolve. Re-stamp
-      // it explicitly from the dialog's draftModels list (always populated
-      // by the draft-side loader before the user can confirm).
-      if (isDraftLlmProvider) {
-        const descriptor = draftModels.find((m) => m.id === draftModel);
-        setChatProviderId(descriptor?.chatProviderId ?? null);
-      }
+      // For LLM, pass chatProviderId explicitly — the LanguageModelMenuDialog
+      // returns full LanguageModels that aren't in `availableModels` (which
+      // is populated from the AgentSdkProvider list, not the tRPC aggregate),
+      // so the descriptor-lookup branch inside setModel would resolve null.
+      setModel(
+        draftModel,
+        isDraftLlmProvider ? draftChatProviderId ?? undefined : undefined
+      );
       if (!isDraftLlmProvider) {
         setWorkspaceContext(draftWorkspaceId, draftWorkspacePath);
       }
@@ -522,6 +555,7 @@ const AgentPanel: React.FC = () => {
     }
   }, [
     createSession,
+    draftChatProviderId,
     draftModel,
     draftModels,
     draftProvider,
@@ -529,7 +563,6 @@ const AgentPanel: React.FC = () => {
     draftWorkspacePath,
     hasRunningSession,
     isDraftLlmProvider,
-    setChatProviderId,
     setModel,
     setProvider,
     setWorkspaceContext,
@@ -848,17 +881,59 @@ const AgentPanel: React.FC = () => {
             />
           </div>
 
-          <div css={dialogFieldStyles}>
-            <SelectField
-              label="Model"
-              value={draftModel}
-              onChange={handleDraftModelChange}
-              options={modelOptions}
-              disabled={draftModelsLoading || draftModels.length === 0}
-              size="small"
-              variant="outlined"
-            />
-          </div>
+          {isDraftLlmProvider ? (
+            // The non-harness "llm" provider runs against any registered
+            // chat provider, so its model catalog comes from the regular
+            // tRPC `models.llmByProvider` aggregate (with tool-call
+            // filtering) rather than the AgentSdkProvider list. Use the
+            // shared LanguageModelMenuDialog so users get the same rich
+            // picker the rest of the app uses.
+            <div css={dialogFieldStyles}>
+              <Caption size="smaller" sx={{ display: "block", mb: 0.5 }}>
+                Model
+              </Caption>
+              <Button
+                ref={draftLlmDialogAnchor}
+                size="small"
+                variant="outlined"
+                onClick={() => setDraftLlmDialogOpen(true)}
+                sx={{
+                  textTransform: "none",
+                  justifyContent: "flex-start",
+                  width: "100%"
+                }}
+              >
+                {draftModel
+                  ? `${draftModel}${
+                      draftChatProviderId ? ` (${draftChatProviderId})` : ""
+                    }`
+                  : "Select model…"}
+              </Button>
+              <LanguageModelMenuDialog
+                open={draftLlmDialogOpen}
+                anchorEl={draftLlmDialogAnchor.current}
+                onClose={() => setDraftLlmDialogOpen(false)}
+                requireToolSupport
+                onModelChange={(m: LanguageModel) => {
+                  setDraftModel(m.id);
+                  setDraftChatProviderId(m.provider ?? null);
+                  setDraftLlmDialogOpen(false);
+                }}
+              />
+            </div>
+          ) : (
+            <div css={dialogFieldStyles}>
+              <SelectField
+                label="Model"
+                value={draftModel}
+                onChange={handleDraftModelChange}
+                options={modelOptions}
+                disabled={draftModelsLoading || draftModels.length === 0}
+                size="small"
+                variant="outlined"
+              />
+            </div>
+          )}
 
           {!isDraftLlmProvider && (
             <div css={dialogFieldStyles}>
@@ -913,13 +988,49 @@ const AgentPanel: React.FC = () => {
               disabled={hasRunningSession}
               searchable={false}
             />
-            <AgentModelSelect
-              value={model}
-              options={availableModels}
-              onChange={setModel}
-              disabled={hasRunningSession || availableModels.length === 0}
-              loading={modelsLoading}
-            />
+            {isLlmProvider ? (
+              // The non-harness "llm" provider uses the regular tRPC
+              // language-model catalog instead of the AgentSdkProvider list,
+              // so render the same picker the rest of the app uses.
+              <>
+                <Button
+                  ref={toolbarLlmDialogAnchor}
+                  size="small"
+                  variant="outlined"
+                  disabled={hasRunningSession}
+                  onClick={() => setToolbarLlmDialogOpen(true)}
+                  sx={{
+                    textTransform: "none",
+                    fontSize: theme.fontSizeSmaller,
+                    fontFamily: theme.fontFamily2,
+                    borderColor: theme.vars.palette.divider,
+                    color: theme.vars.palette.text.secondary
+                  }}
+                >
+                  {model
+                    ? `${model}${chatProviderId ? ` (${chatProviderId})` : ""}`
+                    : "Select model…"}
+                </Button>
+                <LanguageModelMenuDialog
+                  open={toolbarLlmDialogOpen}
+                  anchorEl={toolbarLlmDialogAnchor.current}
+                  onClose={() => setToolbarLlmDialogOpen(false)}
+                  requireToolSupport
+                  onModelChange={(m: LanguageModel) => {
+                    setModel(m.id, m.provider ?? undefined);
+                    setToolbarLlmDialogOpen(false);
+                  }}
+                />
+              </>
+            ) : (
+              <AgentModelSelect
+                value={model}
+                options={availableModels}
+                onChange={setModel}
+                disabled={hasRunningSession || availableModels.length === 0}
+                loading={modelsLoading}
+              />
+            )}
           </FlexRow>
         }
       />

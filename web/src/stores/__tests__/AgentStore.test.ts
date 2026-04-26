@@ -231,6 +231,30 @@ describe("AgentStore", () => {
 
   // ── LLM provider — chatProviderId plumbing + workspace bypass ───────
 
+  it("setModel with an explicit chatProviderId wins over availableModels lookup", async () => {
+    // The LanguageModelMenuDialog returns full LanguageModels that aren't
+    // necessarily in `availableModels` (which is populated from the
+    // AgentSdkProvider list, not the tRPC aggregate). The explicit second
+    // arg lets the caller pass the chat provider directly.
+    const useAgentStore = await loadStore();
+    useAgentStore.setState({
+      // Deliberately stale availableModels so the lookup branch would resolve
+      // a different (or no) chatProviderId — the explicit arg must win.
+      availableModels: [
+        {
+          id: "gpt-4o",
+          label: "(stale)",
+          provider: "llm",
+          chatProviderId: "openai"
+        }
+      ]
+    });
+
+    useAgentStore.getState().setModel("brand-new-model", "anthropic");
+    expect(useAgentStore.getState().model).toBe("brand-new-model");
+    expect(useAgentStore.getState().chatProviderId).toBe("anthropic");
+  });
+
   it("setModel auto-stamps chatProviderId from the picked descriptor", async () => {
     const useAgentStore = await loadStore();
     useAgentStore.setState({

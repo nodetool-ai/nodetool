@@ -103,8 +103,15 @@ interface AgentState {
   stopGeneration: () => void;
   /** Reset the store and start a new chat */
   newChat: () => void;
-  /** Set the model to use */
-  setModel: (model: string) => void;
+  /**
+   * Set the model. The optional `chatProviderId` lets the LLM-provider flow
+   * pass the underlying chat provider directly (the rich
+   * LanguageModelMenuDialog returns a full LanguageModel that may not be in
+   * `availableModels`, since we surface tRPC-fetched models there). When
+   * omitted, falls back to looking the descriptor up in `availableModels`
+   * — preserves the existing harness behavior.
+   */
+  setModel: (model: string, chatProviderId?: string) => void;
   /** Set provider to use for the session */
   setProvider: (provider: AgentProvider) => void;
   /**
@@ -173,10 +180,15 @@ const useAgentStore = create<AgentState>((set, get) => ({
   sessionMessages: {},
   chatProviderId: null,
 
-  setModel: (model: string) => {
-    // When picking a model, look up its descriptor and stamp chatProviderId
-    // automatically — the LLM agent provider sets this on each descriptor
-    // it returns, the harness providers leave it undefined.
+  setModel: (model: string, chatProviderId?: string) => {
+    // Prefer the explicitly passed chatProviderId (the LanguageModelMenuDialog
+    // returns full LanguageModels that may not be in `availableModels`).
+    // Otherwise look it up in availableModels — the harness providers leave
+    // it undefined, the backend's LlmAgentSdkProvider.listModels stamps it.
+    if (chatProviderId !== undefined) {
+      set({ model, chatProviderId: chatProviderId || null });
+      return;
+    }
     const descriptor = get().availableModels.find((m) => m.id === model);
     set({
       model,
