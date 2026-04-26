@@ -21,6 +21,7 @@ import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
+import { useSettingsStore } from "../stores/SettingsStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
@@ -28,7 +29,6 @@ import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
-import log from "loglevel";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -259,7 +259,7 @@ export const useNodeEditorShortcuts = (
           alert: true
         });
       } catch (error) {
-        log.error("Failed to save workflow:", error);
+        console.error("Failed to save workflow:", error);
         addNotification({
           content: `Failed to save workflow: ${error instanceof Error ? error.message : "Server unreachable"}`,
           type: "error",
@@ -490,6 +490,9 @@ export const useNodeEditorShortcuts = (
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
+      openSettings: {
+        callback: () => useSettingsStore.getState().setMenuOpen(true)
+      },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
       newWorkflow: { callback: handleNewWorkflow },

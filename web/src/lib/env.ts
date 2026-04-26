@@ -1,4 +1,3 @@
-import log from "loglevel";
 import { isElectron as browserIsElectron } from "../utils/browser";
 
 const getForcedLocalhost = (): boolean | null => {
@@ -69,7 +68,7 @@ export const setForceLocalhost = (force: boolean | null): void => {
     }
     window.location.reload();
   } catch (error) {
-    log.warn("Failed to set forceLocalhost preference:", error);
+    console.warn("Failed to set forceLocalhost preference:", error);
   }
 };
 

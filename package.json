@@ -17,6 +17,8 @@
     "packages/replicate-codegen",
     "packages/replicate-nodes",
     "packages/elevenlabs-nodes",
+    "packages/transformers-js-nodes",
+    "packages/transformers-js-provider",
     "packages/websocket",
     "packages/agents",
     "packages/chat",

@@ -277,6 +277,7 @@ export const MODEL_TO_TIER: Record<string, string> = {
   "openai:gpt-4-1106-preview": "gpt4Turbo",
   "openai:computer-use-preview": "topTierChat",
   // Image models - OpenAI specific
+  "openai:gpt-image-2": "imageGpt15",
   "openai:gpt-image-1.5": "imageGpt15",
   // Whisper / Speech-to-Text - OpenAI specific
   "openai:whisper-1": "whisperStandard",

@@ -19,37 +19,6 @@ import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
 } from "../types/media.types";
-import log from "loglevel";
-
-const CLI_DEFAULT_CHAT_TOOLS = [
-  // Search
-  "google_search",
-  "google_news",
-  "google_images",
-  "google_grounded_search",
-  "openai_web_search",
-  "dataforseo_search",
-  "dataforseo_news",
-  "dataforseo_images",
-  // Generation
-  "google_image_generation",
-  "openai_image_generation",
-  "openai_text_to_speech",
-  // Web
-  "browser",
-  "take_screenshot",
-  "http_request",
-  // Math & code
-  "calculate",
-  "run_code",
-  "statistics",
-  "geometry",
-  "unit_conversion",
-  // Email
-  "search_email",
-  "archive_email",
-  "add_label_to_email"
-] as const;
 
 const styles = (theme: Theme) =>
   css({
@@ -129,6 +98,10 @@ type ChatViewProps = {
   onNewChat?: () => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  agentPlanner?: import("../composer/AgentModeSelector").AgentPlanner;
+  onAgentPlannerChange?: (
+    planner: import("../composer/AgentModeSelector").AgentPlanner
+  ) => void;
   helpMode?: boolean;
   workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
@@ -177,6 +150,8 @@ const ChatView = ({
   onNewChat,
   agentMode,
   onAgentModeToggle,
+  agentPlanner,
+  onAgentPlannerChange,
   helpMode = false,
   currentPlanningUpdate,
   currentTaskUpdate,
@@ -200,13 +175,6 @@ const ChatView = ({
       mediaGeneration?: MediaGenerationRequest
     ) => {
       try {
-        const isChatMode = !mediaGeneration || mediaGeneration.mode === "chat";
-        const tools = isChatMode
-          ? [...CLI_DEFAULT_CHAT_TOOLS]
-          : selectedTools.length > 0
-            ? selectedTools
-            : undefined;
-
         const outgoing: ChatOutgoingMessage = {
           type: "message",
           name: "",
@@ -221,7 +189,7 @@ const ChatView = ({
               ? mediaGeneration.model ?? model?.id
               : model?.id,
           content: content,
-          tools,
+          tools: selectedTools.length > 0 ? selectedTools : undefined,
           collections:
             selectedCollections.length > 0 ? selectedCollections : undefined,
           agent_mode: messageAgentMode,
@@ -236,7 +204,7 @@ const ChatView = ({
         };
         await sendMessage(outgoing);
       } catch (error) {
-        log.error("Error sending message:", error);
+        console.error("Error sending message:", error);
       }
     },
     [
@@ -286,6 +254,8 @@ const ChatView = ({
         onModelChange={onModelChange}
         agentMode={agentMode}
         onAgentModeToggle={onAgentModeToggle}
+        agentPlanner={agentPlanner}
+        onAgentPlannerChange={onAgentPlannerChange}
         allowedProviders={allowedProviders}
         variant={composerVariant}
         composerToolbar={composerToolbar}

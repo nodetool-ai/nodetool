@@ -31,7 +31,6 @@ import {
   isTRPCErrorWithCode,
   ApiErrorCode
 } from "@nodetool/protocol/api-schemas";
-import log from "loglevel";
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
@@ -102,6 +101,16 @@ export interface GlobalChatState {
   // Agent mode
   agentMode: boolean;
   setAgentMode: (enabled: boolean) => void;
+  /**
+   * Which planner to use when `agentMode` is true:
+   * - `"graph"` — GraphPlanner builds a workflow DAG of nodes (preferred when
+   *   the server has a NodeRegistry; uses the curated `nodetool.*` core
+   *   nodes plus `find_model`).
+   * - `"multi"` — TaskPlanner builds a parallel task DAG; each task is an
+   *   LLM step run by ParallelTaskExecutor.
+   */
+  agentPlanner: "multi" | "graph";
+  setAgentPlanner: (planner: "multi" | "graph") => void;
 
   // Agent execution trace
   agentExecutionToolCalls: AgentExecutionToolCalls;
@@ -215,6 +224,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Agent mode
       agentMode: false,
       setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
+      agentPlanner: "graph",
+      setAgentPlanner: (planner) => set({ agentPlanner: planner }),
 
       // Agent execution trace
       agentExecutionToolCalls: {},
@@ -277,7 +288,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       loadMessagesTimeoutId: null,
 
       connect: async () => {
-        log.info("Connecting to global chat");
+        console.info("Connecting to global chat");
 
         const state = get();
 
@@ -295,7 +306,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         try {
           await globalWebSocketManager.ensureConnection();
         } catch (error) {
-          log.error("Failed to establish WebSocket connection:", error);
+          console.error("Failed to establish WebSocket connection:", error);
           set({
             error: "Failed to connect to chat service",
             status: "failed"
@@ -371,7 +382,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 type: "client_tools_manifest",
                 tools: manifest
               })
-              .catch((e) => log.error("Failed to send manifest:", e));
+              .catch((e) => console.error("Failed to send manifest:", e));
           }
         };
 
@@ -385,7 +396,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         eventUnsubscribes.push(
           globalWebSocketManager.subscribeEvent("error", (error: Error) => {
-            log.error("WebSocket error:", error);
+            console.error("WebSocket error:", error);
             let errorMessage = error.message;
 
             if (!isLocalhost) {
@@ -421,7 +432,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         // Connection is automatic via globalWebSocketManager
         // Subscriptions will trigger connection if not already connected
-        log.info("Global chat subscriptions set up");
+        console.info("Global chat subscriptions set up");
       },
 
       disconnect: () => {
@@ -461,6 +472,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           currentThreadId,
           workflowId,
           agentMode,
+          agentPlanner,
           selectedModel,
           selectedTools,
           selectedCollections,
@@ -480,8 +492,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Ensure WebSocket connection is established before sending
         try {
           await globalWebSocketManager.ensureConnection();
-        } catch (_connError) {
-          set({ error: "Not connected to chat service" });
+        } catch (connError) {
+          const detail =
+            connError instanceof Error ? connError.message : String(connError);
+          set({ error: `Not connected to chat service: ${detail}` });
           return;
         }
 
@@ -530,6 +544,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           ...message,
           thread_id: threadId,
           agent_mode: agentMode,
+          agent_planner: agentMode ? agentPlanner : undefined,
           ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
         } as Message;
 
@@ -544,6 +559,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           workflow_id: message.workflow_id ?? workflowId ?? null,
           thread_id: threadId,
           agent_mode: agentMode,
+          // Only send agent_planner when agent_mode is on; the server picks a
+          // sensible default otherwise.
+          agent_planner: agentMode ? agentPlanner : undefined,
           model: isMediaGeneration
             ? mediaGeneration?.model ?? message.model ?? selectedModel?.id
             : selectedModel?.id,
@@ -580,7 +598,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
               currentState.status === "loading" ||
               currentState.status === "streaming"
             ) {
-              log.warn("Generation timeout - resetting status to connected");
+              console.warn("Generation timeout - resetting status to connected");
               set({
                 status: "connected",
                 progress: { current: 0, total: 0 },
@@ -600,7 +618,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             clearTimeout(currentTimeoutId);
             set({ sendMessageTimeoutId: null });
           }
-          log.error("Failed to send message:", error);
+          console.error("Failed to send message:", error);
           set({
             error:
               error instanceof Error ? error.message : "Failed to send message"
@@ -631,10 +649,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
             threadsRecord[thread.id] = thread as unknown as Thread;
           });
 
-          set({ threads: threadsRecord, threadsLoaded: true });
+          set({ threads: threadsRecord, threadsLoaded: true, error: null });
         } catch (error) {
-          log.error("Failed to fetch threads:", error);
-          set({ threadsLoaded: true });
+          console.error("Failed to fetch threads:", error);
+          set({
+            threadsLoaded: true,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to load chat threads"
+          });
         } finally {
           set({ isLoadingThreads: false });
         }
@@ -660,7 +684,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ApiErrorCode.NOT_FOUND
           );
           if (!isNotFound) {
-            log.error("Failed to fetch thread:", error);
+            console.error("Failed to fetch thread:", error);
           }
           return null;
         }
@@ -815,7 +839,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             await get().createNewThread();
           }
         } catch (error) {
-          log.error("Failed to delete thread:", error);
+          console.error("Failed to delete thread:", error);
           throw error;
         }
       },
@@ -886,7 +910,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             ? [...(messageCache[threadId] || []), ...messages]
             : messages;
         } catch (error) {
-          log.error("Failed to load messages:", error);
+          console.error("Failed to load messages:", error);
           set({
             error:
               error instanceof Error
@@ -921,7 +945,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         try {
           await trpcClient.threads.update.mutate({ id: threadId, title });
         } catch (error) {
-          log.error("Failed to update thread title:", error);
+          console.error("Failed to update thread title:", error);
           // Do not throw to keep optimistic UI
         }
       },
@@ -958,9 +982,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
             return state;
           });
 
-          log.info(`Thread ${threadId} summarized successfully`);
+          console.info(`Thread ${threadId} summarized successfully`);
         } catch (error) {
-          log.error("Failed to summarize thread:", error);
+          console.error("Failed to summarize thread:", error);
           // Don't throw error - summarization is not critical
         }
       },
@@ -1026,7 +1050,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           return;
         }
 
-        log.info("Sending stop signal to workflow");
+        console.info("Sending stop signal to workflow");
 
         try {
           // Use command wrapper as per unified WebSocket API
@@ -1036,7 +1060,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
               data: { thread_id: currentThreadId }
             })
             .catch((error) => {
-              log.error("Failed to send stop signal:", error);
+              console.error("Failed to send stop signal:", error);
             });
 
           set({
@@ -1050,7 +1074,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             loadMessagesTimeoutId: null
           });
         } catch (error) {
-          log.error("Failed to send stop signal:", error);
+          console.error("Failed to send stop signal:", error);
           set({
             error: "Failed to stop generation",
             status: "error",
@@ -1102,7 +1126,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
             setTimeout(() => {
               const store = useGlobalChatStore.getState();
               store.fetchThreads().catch((error) => {
-                log.error(
+                console.error(
                   "Failed to load threads during initialization:",
                   error
                 );
@@ -1137,7 +1161,7 @@ const registerGlobalChatListeners = () => {
   const handleOnline = () => {
     const state = useGlobalChatStore.getState();
     if (state.status === "disconnected" || state.status === "failed") {
-      log.info(
+      console.info(
         "Network came online, connection will be established automatically"
       );
       // globalWebSocketManager handles reconnection automatically
@@ -1145,7 +1169,7 @@ const registerGlobalChatListeners = () => {
   };
 
   const handleOffline = () => {
-    log.info("Network went offline");
+    console.info("Network went offline");
     // The WebSocket will close automatically, triggering our reconnection logic
   };
 
@@ -1153,7 +1177,7 @@ const registerGlobalChatListeners = () => {
     if (document.visibilityState === "visible") {
       const state = useGlobalChatStore.getState();
       if (state.status === "disconnected" || state.status === "failed") {
-        log.info(
+        console.info(
           "Tab became visible, connection will be established automatically"
         );
         // globalWebSocketManager handles reconnection automatically
@@ -1189,7 +1213,7 @@ export const useThreadsQuery = () => {
     queryKey: ["threads"],
     queryFn: async () => {
       const data = await trpcClient.threads.list.query({ limit: 100 });
-      log.debug("Threads fetched:", data);
+      console.debug("Threads fetched:", data);
       return data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -1219,7 +1243,7 @@ export const useThreadsQuery = () => {
         threadsLoaded: true,
         isLoadingThreads: false
       });
-      log.error("Failed to fetch threads:", query.error);
+      console.error("Failed to fetch threads:", query.error);
     }
   }, [query.isError, query.error]);
 

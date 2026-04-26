@@ -2,7 +2,12 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { LanguageModel, LanguageModelValue } from "../../stores/ApiTypes";
+import type {
+  LanguageModel,
+  LanguageModelValue,
+  ModelPack,
+  UnifiedModel
+} from "../../stores/ApiTypes";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
@@ -10,12 +15,16 @@ interface LanguageModelSelectProps {
   onChange: (value: LanguageModelValue) => void;
   value: string;
   allowedProviders?: string[];
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   onChange,
   value,
-  allowedProviders
+  allowedProviders,
+  recommendedModels,
+  modelPacks
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -74,6 +83,8 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         allowedProviders={allowedProviders}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </>
   );

@@ -14,7 +14,15 @@ import { Text, Caption, EditorButton } from "../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
-const searchModels = async (query: string) => {
+interface HuggingFaceSearchResult {
+  id: string;
+  modelId: string;
+  pipeline_tag?: string;
+  description?: string;
+  downloads: number;
+}
+
+const searchModels = async (query: string): Promise<HuggingFaceSearchResult[]> => {
   if (query.length < 2) {
     return [];
   }
@@ -25,7 +33,7 @@ const searchModels = async (query: string) => {
   if (!response.ok) {
     throw new Error("Failed to fetch models");
   }
-  const data = await response.json();
+  const data: HuggingFaceSearchResult[] = await response.json();
   return data;
 };
 
@@ -126,7 +134,7 @@ const HuggingFaceModelSearch: React.FC = () => {
         {isLoading ? (
           <Text>Searching...</Text>
         ) : (
-          data?.map((model: any) => (
+          data?.map((model) => (
             <Grid
               sx={{ gridColumn: { xs: "span 12", sm: "span 6", md: "span 4" } }}
               key={model.id}

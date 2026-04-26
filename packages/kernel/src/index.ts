@@ -5,6 +5,7 @@
 export {
   Graph,
   GraphValidationError,
+  type GraphValidationIssue,
   type GraphFromDictOptions,
   type GraphLoadOptions,
   type NodeTypeResolver,
@@ -25,6 +26,8 @@ export {
   type WorkflowRunnerOptions,
   type ParameterUpdateResult,
   type RunResult,
+  type NodeValidationIssue,
+  type NodeValidator,
   REALTIME_MESSAGE_BUFFER_LIMIT,
   REALTIME_OUTPUT_BUFFER_LIMIT
 } from "./runner.js";

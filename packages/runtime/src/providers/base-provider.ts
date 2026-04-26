@@ -23,6 +23,15 @@ import type {
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
+import {
+  withUsageCapture,
+  setLastUsage,
+  consumeLastUsage,
+  peekLastUsage,
+  createUsageSlot,
+  type LlmUsage
+} from "../tracing-helpers.js";
+import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { createLogger, getAssetFilePath } from "@nodetool/config";
 
@@ -136,6 +145,12 @@ export abstract class BaseProvider {
   trackUsage(model: string, usage: UsageInfo): number {
     const cost = CostCalculator.calculate(model, usage, this.provider);
     this._cost += cost;
+    setLastUsage({
+      inputTokens: usage.inputTokens ?? 0,
+      outputTokens: usage.outputTokens ?? 0,
+      cachedInputTokens: usage.cachedTokens,
+      cost
+    });
     log.debug("Cost tracked", { model, cost, total: this._cost });
     return cost;
   }
@@ -263,14 +278,7 @@ export abstract class BaseProvider {
       return tracer.startActiveSpan(
         `llm.chat ${this.provider}/${args.model}`,
         async (span) => {
-          span.setAttributes({
-            "llm.provider": this.provider,
-            "llm.model": args.model,
-            "llm.request.message_count": args.messages.length,
-            "llm.request.tools_count": args.tools?.length ?? 0,
-            "llm.request.max_tokens": args.maxTokens ?? 0,
-            "llm.request.stream": false
-          });
+          this.applyLlmRequestAttributes(span, args, false);
           try {
             const result = await this.generateMessage(args);
             const content =
@@ -292,6 +300,7 @@ export abstract class BaseProvider {
             span.recordException(err as Error);
             throw err;
           } finally {
+            applyUsageAttributes(span, peekLastUsage());
             span.end();
           }
         }
@@ -300,8 +309,15 @@ export abstract class BaseProvider {
 
     let result: Message | undefined;
     let error: string | undefined;
+    let usage: LlmUsage | null = null;
     try {
-      result = await doCall();
+      // withUsageCapture creates a per-call AsyncLocalStorage slot so
+      // trackUsage() in the provider hands its numbers back to us.
+      result = await withUsageCapture(async () => {
+        const r = await doCall();
+        usage = consumeLastUsage();
+        return r;
+      });
       return result;
     } catch (err) {
       error = String(err);
@@ -323,14 +339,39 @@ export abstract class BaseProvider {
             name: tc.name,
             args: tc.args
           })) ?? null,
-        tokens_input: null,
-        tokens_output: null,
-        cost: null,
+        tokens_input: usage ? (usage as LlmUsage).inputTokens : null,
+        tokens_output: usage ? (usage as LlmUsage).outputTokens : null,
+        cost: usage ? ((usage as LlmUsage).cost ?? null) : null,
         duration_ms: Date.now() - startTime,
         error: error ?? null,
         timestamp: new Date(startTime).toISOString()
       });
     }
+  }
+
+  private applyLlmRequestAttributes(
+    span: Span,
+    args: { messages: unknown[]; model: string; tools?: unknown[]; maxTokens?: number; temperature?: number },
+    streaming: boolean
+  ): void {
+    span.setAttributes({
+      "llm.provider": this.provider,
+      "llm.model": args.model,
+      "gen_ai.system": this.provider,
+      "gen_ai.request.model": args.model,
+      "gen_ai.operation.name": streaming ? "chat.stream" : "chat",
+      "llm.request.message_count": args.messages.length,
+      "llm.request.tools_count": args.tools?.length ?? 0,
+      "llm.request.stream": streaming,
+      // Only emit max_tokens / temperature when the caller actually set them —
+      // a literal 0 is a valid value and shouldn't be confused with "unset".
+      ...(args.maxTokens !== undefined && {
+        "llm.request.max_tokens": args.maxTokens
+      }),
+      ...(args.temperature !== undefined && {
+        "llm.request.temperature": args.temperature
+      })
+    });
   }
 
   /** Traced wrapper around generateMessages. Use this instead of calling generateMessages directly. */
@@ -346,7 +387,6 @@ export abstract class BaseProvider {
         : 0,
       hasOnToolCall: !!(args as Record<string, unknown>).onToolCall
     });
-    const tracer = getTracer();
 
     let fullResponse = "";
     const collectedToolCalls: Array<{
@@ -356,21 +396,34 @@ export abstract class BaseProvider {
     }> = [];
     let error: string | undefined;
 
-    try {
-      const source = tracer
-        ? this._tracedStream(args, tracer)
-        : this.generateMessages(args);
+    // Per-call usage slot survives across the generator's yields by wrapping
+    // each `next()` call in `runInSlot`.
+    const { runInSlot, getUsage } = createUsageSlot();
+    const tracer = getTracer();
+    const source = tracer
+      ? this._tracedStream(args, tracer)
+      : this.generateMessages(args);
+    let exhausted = false;
 
-      for await (const item of source) {
-        // Accumulate text content from chunks
+    try {
+      while (true) {
+        const result = await runInSlot(() => source.next());
+        if (result.done) {
+          exhausted = true;
+          break;
+        }
+        const item = result.value;
         if ("type" in item && (item as { type: string }).type === "chunk") {
           const chunk = item as { content?: string };
           if (chunk.content) fullResponse += chunk.content;
         }
-        // Collect tool calls
         if ("id" in item && "name" in item && "args" in item) {
           const tc = item as { id: string; name: string; args: unknown };
-          collectedToolCalls.push({ id: tc.id, name: tc.name, args: tc.args });
+          collectedToolCalls.push({
+            id: tc.id,
+            name: tc.name,
+            args: tc.args
+          });
         }
         yield item;
       }
@@ -382,6 +435,15 @@ export abstract class BaseProvider {
       error = String(err);
       throw err;
     } finally {
+      // If the consumer cancelled early (broke out of for-await, threw, or
+      // called return()), give the underlying generator a chance to close
+      // so _tracedStream's finally runs and the LLM stream span ends.
+      if (!exhausted) {
+        await runInSlot(() =>
+          source.return?.(undefined as never) ?? Promise.resolve({ done: true, value: undefined } as IteratorResult<ProviderStreamItem>)
+        ).catch(() => {});
+      }
+      const usage = getUsage();
       this.emitMessage({
         type: "llm_call",
         node_id: "",
@@ -393,9 +455,9 @@ export abstract class BaseProvider {
         })),
         response: fullResponse || null,
         tool_calls: collectedToolCalls.length > 0 ? collectedToolCalls : null,
-        tokens_input: null,
-        tokens_output: null,
-        cost: null,
+        tokens_input: usage?.inputTokens ?? null,
+        tokens_output: usage?.outputTokens ?? null,
+        cost: usage?.cost ?? null,
         duration_ms: Date.now() - startTime,
         error: error ?? null,
         timestamp: new Date(startTime).toISOString()
@@ -409,14 +471,7 @@ export abstract class BaseProvider {
     tracer: ReturnType<typeof getTracer> & object
   ): AsyncGenerator<ProviderStreamItem> {
     const span = tracer.startSpan(`llm.stream ${this.provider}/${args.model}`);
-    span.setAttributes({
-      "llm.provider": this.provider,
-      "llm.model": args.model,
-      "llm.request.message_count": args.messages.length,
-      "llm.request.tools_count": args.tools?.length ?? 0,
-      "llm.request.max_tokens": args.maxTokens ?? 0,
-      "llm.request.stream": true
-    });
+    this.applyLlmRequestAttributes(span, args, true);
     let chunkCount = 0;
     try {
       for await (const item of this.generateMessages(args)) {
@@ -430,6 +485,7 @@ export abstract class BaseProvider {
       span.recordException(err as Error);
       throw err;
     } finally {
+      applyUsageAttributes(span, peekLastUsage());
       span.end();
     }
   }
@@ -654,6 +710,20 @@ export abstract class BaseProvider {
 
     return uri;
   }
+}
+
+/** Attach gen_ai usage attributes to a span (no-op if usage is null). */
+function applyUsageAttributes(span: Span, usage: LlmUsage | null): void {
+  if (!usage) return;
+  span.setAttributes({
+    "gen_ai.usage.input_tokens": usage.inputTokens,
+    "gen_ai.usage.output_tokens": usage.outputTokens,
+    "gen_ai.usage.total_tokens": usage.inputTokens + usage.outputTokens,
+    ...(usage.cachedInputTokens !== undefined && {
+      "gen_ai.usage.cached_input_tokens": usage.cachedInputTokens
+    }),
+    ...(usage.cost !== undefined && { "gen_ai.usage.cost_credits": usage.cost })
+  });
 }
 
 const EXT_TO_MIME: Record<string, string> = {

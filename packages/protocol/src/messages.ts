@@ -111,6 +111,20 @@ export interface JobUpdate {
   traceback?: string | null;
   run_state?: RunStateInfo | null;
   duration?: number | null;
+  /**
+   * Per-property issues from pre-flight graph validation. Present when
+   * `status === "failed"` and the failure was caused by a validation error
+   * (not a runtime exception). Frontend uses this to highlight specific
+   * fields on the offending nodes instead of showing a node-level banner.
+   */
+  validation_issues?: ValidationIssue[] | null;
+}
+
+export interface ValidationIssue {
+  node_id: string;
+  node_type?: string | null;
+  property: string;
+  message: string;
 }
 
 export interface NodeUpdate {

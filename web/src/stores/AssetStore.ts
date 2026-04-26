@@ -6,7 +6,6 @@ import { restFetch } from "../lib/rest-fetch";
 import { BASE_URL } from "./BASE_URL";
 import { trpcClient } from "../trpc/client";
 import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
-import log from "loglevel";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
 import { useAssetGridStore } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
@@ -429,7 +428,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
    */
 
   download: async (ids: string[]): Promise<boolean> => {
-    log.info(`[AssetStore] Attempting to download assets: ${ids.join(", ")}`);
+    console.info(`[AssetStore] Attempting to download assets: ${ids.join(", ")}`);
     try {
       const headers = await authHeader();
 
@@ -449,7 +448,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         try {
           const errorBuffer = await response.arrayBuffer();
           errorDetail = JSON.parse(new TextDecoder().decode(errorBuffer));
-          log.error("[AssetStore] Decoded server error message:", errorDetail);
+          console.error("[AssetStore] Decoded server error message:", errorDetail);
         } catch {
           // Could not parse error response
         }
@@ -505,7 +504,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       get().invalidateQueries(["assets"]);
       return true;
     } catch (error) {
-      log.error(
+      console.error(
         "[AssetStore] CATCH BLOCK: An error occurred during download.",
         error
       );
@@ -565,7 +564,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   ) => {
     try {
       const preparedFile = await prepareUploadFile(file, source);
-      log.debug("[AssetStore] upload-construction", {
+      console.debug("[AssetStore] upload-construction", {
         source,
         declaredMime: preparedFile.declaredMime || null,
         sniffedMime: preparedFile.sniffedMime,

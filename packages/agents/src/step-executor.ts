@@ -18,6 +18,7 @@ import type {
   ToolCall,
   ProviderStreamItem
 } from "@nodetool/runtime";
+import { withAgentSpanGen } from "@nodetool/runtime";
 import { createLogger } from "@nodetool/config";
 import {
   TaskUpdateEvent,
@@ -844,6 +845,23 @@ export class StepExecutor {
    * Execute the step, yielding ProcessingMessages as progress updates.
    */
   async *execute(): AsyncGenerator<ProcessingMessage> {
+    yield* withAgentSpanGen(
+      "step",
+      {
+        provider: this.provider.provider,
+        model: this.model,
+        task: this.step.instructions,
+        toolsCount: this.tools.length,
+        extra: {
+          "agent.step.id": this.step.id,
+          "agent.task.id": this.task.id
+        }
+      },
+      () => this._executeImpl()
+    );
+  }
+
+  private async *_executeImpl(): AsyncGenerator<ProcessingMessage> {
     log.debug("Step started", {
       stepId: this.step.id,
       instructions: this.step.instructions.slice(0, 60)

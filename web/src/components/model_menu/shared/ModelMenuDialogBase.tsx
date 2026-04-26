@@ -17,10 +17,12 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 
 import StarIcon from "@mui/icons-material/Star"; // Favorite
 import HistoryIcon from "@mui/icons-material/History"; // Recent
+import DownloadIcon from "@mui/icons-material/Download"; // Downloads
 import SearchInput from "../../search/SearchInput";
 import ModelFiltersBar from "../ModelFiltersBar";
 import ProviderList from "../ProviderList";
 import ModelList from "../ModelList";
+import RecommendedModelsView from "./RecommendedModelsView";
 import useModelFiltersStore from "../../../stores/ModelFiltersStore";
 import {
   applyAdvancedModelFilters,
@@ -30,6 +32,7 @@ import {
   ModelMenuStoreHook,
   useModelMenuData
 } from "../../../stores/ModelMenuStore";
+import type { ModelPack, UnifiedModel } from "../../../stores/ApiTypes";
 
 export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   open: boolean;
@@ -48,6 +51,8 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   title?: string;
   searchPlaceholder?: string;
   storeHook: ModelMenuStoreHook<TModel>;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
@@ -58,7 +63,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   onModelChange,
   title: _title = "Select Model",
   searchPlaceholder = "Search models...",
-  storeHook
+  storeHook,
+  recommendedModels = [],
+  modelPacks = []
 }: ModelMenuBaseProps<TModel>) {
   const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress, refetch } = modelData;
 
@@ -72,9 +79,10 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const selectedProvider = storeHook((s) => s.selectedProvider);
   const setSelectedProvider = storeHook((s) => s.setSelectedProvider);
 
-  const [customView, setCustomView] = useState<"favorites" | "recent" | null>(
-    null
-  );
+  const [customView, setCustomView] = useState<
+    "favorites" | "recent" | "downloads" | null
+  >(null);
+  const hasDownloads = recommendedModels.length > 0 || modelPacks.length > 0;
 
   const isIconOnly = true;
 
@@ -126,6 +134,11 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const handleSetRecentView = useCallback(() => {
     setCustomView("recent");
+    setSelectedProvider(null);
+  }, [setSelectedProvider]);
+
+  const handleSetDownloadsView = useCallback(() => {
+    setCustomView("downloads");
     setSelectedProvider(null);
   }, [setSelectedProvider]);
 
@@ -472,6 +485,87 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 </>
               )}
             </ListItemButton>
+            {hasDownloads && (
+              <ListItemButton
+                disableRipple
+                selected={customView === "downloads"}
+                onClick={handleSetDownloadsView}
+                sx={{
+                  py: isIconOnly ? 1 : 0.25,
+                  borderRadius: 1,
+                  mx: 0,
+                  mt: 0.5,
+                  justifyContent: isIconOnly ? "center" : "flex-start",
+                  minHeight: isIconOnly ? 40 : "auto",
+                  px: isIconOnly ? 0 : 2
+                }}
+              >
+                {isIconOnly ? (
+                  <Tooltip title="Recommended downloads" placement="right">
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: "var(--rounded-circle)",
+                        bgcolor:
+                          customView === "downloads"
+                            ? "primary.main"
+                            : "action.selected",
+                        border: `1px solid ${customView === "downloads" ? "transparent" : theme.vars.palette.divider}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                    >
+                      <DownloadIcon
+                        fontSize="small"
+                        sx={{
+                          fontSize: "1.25rem",
+                          color:
+                            customView === "downloads"
+                              ? "primary.contrastText"
+                              : "text.primary"
+                        }}
+                      />
+                    </Box>
+                  </Tooltip>
+                ) : (
+                  <>
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 28,
+                          height: 28,
+                          borderRadius: "var(--rounded-sm)",
+                          bgcolor: "rgba(0,0,0,0.04)"
+                        }}
+                      >
+                        <DownloadIcon
+                          fontSize="small"
+                          sx={{
+                            fontSize: "1.2rem",
+                            color:
+                              customView === "downloads"
+                                ? "primary.main"
+                                : "text.secondary"
+                          }}
+                        />
+                      </Box>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Downloads"
+                      primaryTypographyProps={{
+                        fontSize: "0.85rem",
+                        fontWeight: customView === "downloads" ? 600 : 400
+                      }}
+                    />
+                  </>
+                )}
+              </ListItemButton>
+            )}
           </List>
 
           <Divider sx={{ mx: 2, mb: 1, opacity: 0.6 }} />
@@ -522,11 +616,19 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           }}
         >
           <Box sx={{ flex: 1, overflow: "hidden" }}>
-            <ModelList<TModel>
-              models={filteredModelsAdvanced}
-              onSelect={handleSelectModel}
-              searchTerm={search}
-            />
+            {customView === "downloads" ? (
+              <RecommendedModelsView
+                recommendedModels={recommendedModels}
+                modelPacks={modelPacks}
+                searchQuery={search}
+              />
+            ) : (
+              <ModelList<TModel>
+                models={filteredModelsAdvanced}
+                onSelect={handleSelectModel}
+                searchTerm={search}
+              />
+            )}
           </Box>
           {/* Footer removed */}
         </Box>

@@ -7,8 +7,23 @@
  * Port of src/nodetool/agents/tools/mcp_tools.py
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { BaseProvider, ProcessingContext } from "@nodetool/runtime";
+import type { NodeRegistry } from "@nodetool/node-sdk";
 import { Tool } from "./base-tool.js";
+import { LocalListNodesTool } from "./local-list-nodes-tool.js";
+import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
+import { LocalGetNodeInfoTool } from "./local-get-node-info-tool.js";
+import { FindModelTool } from "./find-model-tool.js";
+import {
+  GenerateImageTool,
+  EditImageTool,
+  GenerateVideoTool,
+  AnimateImageTool,
+  GenerateSpeechTool,
+  TranscribeAudioTool,
+  EmbedTextTool
+} from "./media-tools.js";
+import { SaveAssetTool, ReadAssetTool } from "./asset-tools.js";
 
 const DEFAULT_API_URL = "http://localhost:7777";
 
@@ -725,8 +740,29 @@ export class ListModelsTool extends Tool {
 // Helper
 // ============================================================================
 
-export function getAllMcpTools(): Tool[] {
-  return [
+export interface GetAllMcpToolsOptions {
+  /**
+   * In-process NodeRegistry. When supplied, the REST-based
+   * ListNodesTool / SearchNodesTool / GetNodeInfoTool are replaced with the
+   * local biased counterparts so any agent reaching for `search_nodes`
+   * gets the same namespace-aware ranking as the GraphPlanner.
+   */
+  registry?: NodeRegistry;
+  /**
+   * Configured BaseProvider instances by id. When supplied, the agent gets:
+   * - `find_model` — pick a `{provider, model_id}` for any capability.
+   * - `generate_image` / `edit_image` / `generate_video` / `animate_image` /
+   *   `generate_speech` / `transcribe_audio` / `embed_text` — direct
+   *   provider-backed media generation tools usable from any agent loop.
+   *
+   * Independent of `registry`: the multi-task planner doesn't need a
+   * registry but still benefits from these tools.
+   */
+  providers?: Record<string, BaseProvider>;
+}
+
+export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
+  const tools: Tool[] = [
     new ListWorkflowsTool(),
     new GetWorkflowTool(),
     new CreateWorkflowTool(),
@@ -734,15 +770,47 @@ export function getAllMcpTools(): Tool[] {
     new ValidateWorkflowTool(),
     new GetExampleWorkflowTool(),
     new ExportWorkflowDigraphTool(),
-    new ListNodesTool(),
-    new SearchNodesTool(),
-    new GetNodeInfoTool(),
     new ListJobsTool(),
     new GetJobTool(),
     new GetJobLogsTool(),
     new StartBackgroundJobTool(),
     new ListAssetsTool(),
     new GetAssetTool(),
-    new ListModelsTool()
+    new ListModelsTool(),
+    // Asset persistence — used by the agent to surface artifacts (text
+    // reports, images, audio) into the chat. Media-generation tools save
+    // their outputs as assets automatically; use save_asset for anything
+    // else worth keeping.
+    new SaveAssetTool(),
+    new ReadAssetTool()
   ];
+
+  if (options.registry) {
+    tools.push(
+      new LocalListNodesTool(options.registry),
+      new LocalSearchNodesTool(options.registry),
+      new LocalGetNodeInfoTool(options.registry)
+    );
+  } else {
+    tools.push(
+      new ListNodesTool(),
+      new SearchNodesTool(),
+      new GetNodeInfoTool()
+    );
+  }
+
+  if (options.providers && Object.keys(options.providers).length > 0) {
+    tools.push(
+      new FindModelTool(options.providers),
+      new GenerateImageTool(),
+      new EditImageTool(),
+      new GenerateVideoTool(),
+      new AnimateImageTool(),
+      new GenerateSpeechTool(),
+      new TranscribeAudioTool(),
+      new EmbedTextTool()
+    );
+  }
+
+  return tools;
 }

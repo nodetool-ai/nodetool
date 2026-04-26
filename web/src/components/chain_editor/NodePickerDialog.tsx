@@ -5,11 +5,12 @@
  */
 
 import { css } from "@emotion/react";
-import React, { useState, useMemo, useCallback, type CSSProperties } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Dialog } from "../ui_primitives/Dialog";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { Text } from "../ui_primitives/Text";
@@ -22,7 +23,6 @@ import {
   type QuickActionDefinition,
 } from "../node_menu/QuickActionTiles";
 import type { NodeMetadata } from "../../stores/ApiTypes";
-import { FixedSizeList } from "react-window";
 
 interface NodePickerDialogProps {
   open: boolean;
@@ -127,43 +127,13 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
   const ROW_HEIGHT = 32;
   const LIST_HEIGHT = 400;
 
-  const ResultRow = useCallback(
-    ({ index, style }: { index: number; style: CSSProperties }) => {
-      const node = searchResults[index];
-      return (
-        <div
-          style={{
-            ...style,
-            padding: "0 8px",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            borderRadius: "var(--rounded-sm)",
-          }}
-          onClick={() => handleSelect(node)}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor =
-              theme.vars.palette.action.hover as string;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-          }}
-        >
-          <Text size="small" weight={500} component="span">
-            <HighlightText
-              text={node.title}
-              query={searchQuery}
-              matchStyle="primary"
-            />
-          </Text>
-        </div>
-      );
-    },
-    [searchResults, searchQuery, handleSelect, theme]
-  );
+  const listScrollRef = useRef<HTMLDivElement>(null);
+  const resultsVirtualizer = useVirtualizer({
+    count: searchResults.length,
+    getScrollElement: () => listScrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 8,
+  });
 
   return (
     <Dialog open={open} onClose={onClose} title="Add Node" minWidth={520}>
@@ -227,17 +197,66 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                 {searchResults.length}{" "}
                 {searchResults.length === 1 ? "result" : "results"}
               </Text>
-              <FixedSizeList
-                height={Math.min(
-                  LIST_HEIGHT,
-                  searchResults.length * ROW_HEIGHT
-                )}
-                itemCount={searchResults.length}
-                itemSize={ROW_HEIGHT}
-                width="100%"
+              <div
+                ref={listScrollRef}
+                style={{
+                  height: Math.min(
+                    LIST_HEIGHT,
+                    searchResults.length * ROW_HEIGHT
+                  ),
+                  width: "100%",
+                  overflow: "auto",
+                }}
               >
-                {ResultRow}
-              </FixedSizeList>
+                <div
+                  style={{
+                    height: resultsVirtualizer.getTotalSize(),
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {resultsVirtualizer.getVirtualItems().map((vi) => {
+                    const node = searchResults[vi.index];
+                    return (
+                      <div
+                        key={vi.key}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: vi.size,
+                          transform: `translateY(${vi.start}px)`,
+                          padding: "0 8px",
+                          display: "flex",
+                          alignItems: "center",
+                          cursor: "pointer",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          borderRadius: "var(--rounded-sm)",
+                        }}
+                        onClick={() => handleSelect(node)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = theme.vars
+                            .palette.action.hover as string;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <Text size="small" weight={500} component="span">
+                          <HighlightText
+                            text={node.title}
+                            query={searchQuery}
+                            matchStyle="primary"
+                          />
+                        </Text>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </FlexColumn>
           )}
         </Box>

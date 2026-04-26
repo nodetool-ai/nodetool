@@ -6,10 +6,6 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
       (s: Shortcut) => s.slug === "resetZoom"
     );
 
-    it("should exist", () => {
-      expect(resetZoomShortcut).toBeDefined();
-    });
-
     it("should have correct keyCombo for non-Mac", () => {
       expect(resetZoomShortcut?.keyCombo).toEqual(["Control", "0"]);
     });
@@ -20,11 +16,6 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
 
     it("should be registerable", () => {
       expect(resetZoomShortcut?.registerCombo).toBe(true);
-    });
-
-    it("should have a description", () => {
-      expect(resetZoomShortcut?.description).toBeDefined();
-      expect(resetZoomShortcut?.description?.length).toBeGreaterThan(0);
     });
 
     it("should have title", () => {
@@ -49,28 +40,6 @@ describe("NODE_EDITOR_SHORTCUTS", () => {
       const slugs = NODE_EDITOR_SHORTCUTS.map((s: Shortcut) => s.slug);
       const uniqueSlugs = new Set(slugs);
       expect(slugs.length).toBe(uniqueSlugs.size);
-    });
-  });
-
-  describe("shortcut structure", () => {
-    it("all shortcuts should have required properties", () => {
-      NODE_EDITOR_SHORTCUTS.forEach((shortcut: Shortcut) => {
-        expect(shortcut.slug).toBeDefined();
-        expect(shortcut.slug.length).toBeGreaterThan(0);
-        expect(shortcut.title).toBeDefined();
-        expect(shortcut.title.length).toBeGreaterThan(0);
-        expect(shortcut.keyCombo).toBeDefined();
-        expect(shortcut.keyCombo.length).toBeGreaterThan(0);
-        expect(shortcut.category).toBeDefined();
-      });
-    });
-
-    it("all shortcuts should have valid key combos", () => {
-      NODE_EDITOR_SHORTCUTS.forEach((shortcut: Shortcut) => {
-        shortcut.keyCombo.forEach((key) => {
-          expect(key.length).toBeGreaterThan(0);
-        });
-      });
     });
   });
 

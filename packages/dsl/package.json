@@ -24,6 +24,7 @@
   "dependencies": {
     "@nodetool/base-nodes": "*",
     "@nodetool/elevenlabs-nodes": "*",
+    "@nodetool/transformers-js-nodes": "*",
     "@nodetool/protocol": "*",
     "@nodetool/kernel": "*",
     "@nodetool/node-sdk": "*",

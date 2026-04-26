@@ -3,8 +3,8 @@ import { Asset } from "../../stores/ApiTypes";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
-import log from "loglevel";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { shallow } from "zustand/shallow";
 import {
   serializeDragData,
   deserializeDragData,
@@ -16,18 +16,21 @@ export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
   const { openContextMenu } = useContextMenu();
-  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const setSelectedAssetIds = useAssetGridStore(
-    (state) => state.setSelectedAssetIds
-  );
-  const setSelectedAssets = useAssetGridStore(
-    (state) => state.setSelectedAssets
-  );
-  const setDeleteDialogOpen = useAssetGridStore(
-    (state) => state.setDeleteDialogOpen
-  );
-  const setMoveToFolderDialogOpen = useAssetGridStore(
-    (state) => state.setMoveToFolderDialogOpen
+  const {
+    selectedAssetIds,
+    setSelectedAssetIds,
+    setSelectedAssets,
+    setDeleteDialogOpen,
+    setMoveToFolderDialogOpen
+  } = useAssetGridStore(
+    (state) => ({
+      selectedAssetIds: state.selectedAssetIds,
+      setSelectedAssetIds: state.setSelectedAssetIds,
+      setSelectedAssets: state.setSelectedAssets,
+      setDeleteDialogOpen: state.setDeleteDialogOpen,
+      setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen
+    }),
+    shallow
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
@@ -158,7 +161,7 @@ export const useAssetActions = (asset: Asset) => {
       // Use unified deserialization
       const dragData = deserializeDragData(event.dataTransfer);
       if (!dragData) {
-        log.error("Failed to deserialize drag data");
+        console.error("Failed to deserialize drag data");
         return;
       }
 
@@ -182,7 +185,7 @@ export const useAssetActions = (asset: Asset) => {
           refetchAssetsAndFolders();
         }
       } catch (_error) {
-        log.error("Failed to process drop:", _error);
+        console.error("Failed to process drop:", _error);
       }
     },
     [

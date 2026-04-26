@@ -33,13 +33,30 @@ async function main() {
   }
 
   const data = await resp.json();
-  const nodeCount = Object.keys(data).length;
+  const totalCount = Object.keys(data).length;
+
+  // Strip ComfyUI's bundled API-node wrappers (comfy_api_nodes.*). These call
+  // paid third-party services through Comfy.org's hosted API and require an
+  // api_key_comfy_org token; NodeTool integrates those providers directly
+  // instead of going through the Comfy proxy.
+  const filtered = {};
+  let removed = 0;
+  for (const [key, value] of Object.entries(data)) {
+    if (
+      typeof value?.python_module === "string" &&
+      value.python_module.startsWith("comfy_api_nodes")
+    ) {
+      removed++;
+      continue;
+    }
+    filtered[key] = value;
+  }
 
   mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
-  writeFileSync(OUTPUT_PATH, JSON.stringify(data, null, 2) + "\n");
+  writeFileSync(OUTPUT_PATH, JSON.stringify(filtered, null, 2) + "\n");
 
   console.log(
-    `Saved ${nodeCount} node definitions to ${OUTPUT_PATH}`
+    `Saved ${Object.keys(filtered).length} node definitions to ${OUTPUT_PATH} (filtered out ${removed} comfy_api_nodes entries from ${totalCount} total)`
   );
 }
 

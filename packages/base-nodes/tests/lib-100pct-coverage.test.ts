@@ -601,20 +601,6 @@ describe("lib-pedalboard-extra coverage", () => {
   });
 });
 
-// ── lib-pdf: use real minimal PDFs for table and markdown extraction ──
-
-describe("lib-pdf table extraction coverage", () => {
-  it.skip("ExtractTables with a multi-page PDF with tabular content (node class removed)", async () => {
-    // ExtractTablesPdfPlumberNode no longer exists
-  });
-});
-
-describe("lib-pdf markdown extraction coverage", () => {
-  it.skip("ExtractMarkdownPyMuPdf with varied font sizes (node class removed)", async () => {
-    // ExtractMarkdownPyMuPdfNode no longer exists
-  });
-});
-
 // ── lib-os: openPath ─────────────────────────────────────────────
 
 describe("lib-os OpenWorkspaceDirectory coverage", () => {
@@ -630,10 +616,6 @@ describe("lib-os OpenWorkspaceDirectory coverage", () => {
     expect(result).toEqual({});
   });
 
-  it.skip("OpenWorkspaceDirectory calls openPath with dir — skipped to avoid opening Finder", () => {
-    // This test spawns the platform "open" command which opens a Finder window.
-    // The early-return paths (no context, no workspaceDir) are covered above.
-  });
 });
 
 

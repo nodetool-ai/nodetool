@@ -231,8 +231,8 @@ async function removeStaleMicromambaLock(
 
   try {
     stats = await fs.stat(lockPath);
-  } catch (error: any) {
-    if (error?.code === "ENOENT") {
+  } catch (error: unknown) {
+    if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
       return;
     }
     logMessage(
@@ -770,18 +770,19 @@ async function installCondaEnvironment(): Promise<void> {
     await provisionCondaEnvironment(location, modelBackend, {
       installLlamaCpp,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logMessage(
-      `Failed to install Python environment: ${error.message}`,
+      `Failed to install Python environment: ${errorMessage}`,
       "error"
     );
     // Provide a consolidated, user-friendly message when installation fails early
-    if (error?.message?.includes("install-to-location")) {
+    if (errorMessage.includes("install-to-location")) {
       dialog.showErrorBox(
         "Installer Error",
         "The installer encountered an internal conflict while waiting for your selection. Please close any duplicate windows and try again."
       );
-    } else if (error?.message?.toLowerCase().includes("micromamba")) {
+    } else if (errorMessage.toLowerCase().includes("micromamba")) {
       dialog.showErrorBox(
         "Micromamba Required",
         "Nodetool now provisions its runtime with micromamba. We attempted to download micromamba automatically but failed. Please install micromamba manually or set the MICROMAMBA_EXE environment variable, then retry the installation."

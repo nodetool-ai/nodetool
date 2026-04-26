@@ -31,6 +31,8 @@
     "@nodetool/config": "*",
     "@nodetool/dsl": "*",
     "@nodetool/elevenlabs-nodes": "*",
+    "@nodetool/transformers-js-nodes": "*",
+    "@nodetool/transformers-js-provider": "*",
     "@nodetool/fal-nodes": "*",
     "@nodetool/huggingface": "*",
     "@nodetool/kernel": "*",

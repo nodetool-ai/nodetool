@@ -15,7 +15,6 @@ import isEqual from "fast-deep-equal";
 import { CopyButton, Text, Chip, EditorButton } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
-import log from "loglevel";
 
 type NodeLogsProps = {
   id: string;

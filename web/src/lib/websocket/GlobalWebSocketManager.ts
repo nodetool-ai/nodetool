@@ -1,5 +1,4 @@
-import { EventEmitter } from "eventemitter3";
-import log from "loglevel";
+import { EventEmitter } from "../EventEmitter";
 import { isLocalhost } from "../env";
 import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { handleResourceChange } from "../../stores/resourceChangeHandler";
@@ -97,7 +96,7 @@ class GlobalWebSocketManager extends EventEmitter {
 
     try {
       const wsUrl = await this.buildAuthenticatedUrl();
-      log.info("GlobalWebSocketManager: Establishing connection");
+      console.info("GlobalWebSocketManager: Establishing connection");
 
       this.wsManager = new WebSocketManager({
         url: wsUrl,
@@ -108,7 +107,7 @@ class GlobalWebSocketManager extends EventEmitter {
       });
 
       this.wsManager.on("open", () => {
-        log.info("GlobalWebSocketManager: Connected");
+        console.info("GlobalWebSocketManager: Connected");
         this.isConnected = true;
         this.isConnecting = false;
         this.emit("open");
@@ -124,12 +123,12 @@ class GlobalWebSocketManager extends EventEmitter {
       });
 
       this.wsManager.on("error", (error: Error) => {
-        log.error("GlobalWebSocketManager: Error:", error);
+        console.error("GlobalWebSocketManager: Error:", error);
         this.emit("error", error);
       });
 
       this.wsManager.on("close", (code?: number, reason?: string) => {
-        log.info("GlobalWebSocketManager: Disconnected");
+        console.info("GlobalWebSocketManager: Disconnected");
         this.isConnected = false;
         this.isConnecting = false;
         this.emit("close", code, reason);
@@ -138,7 +137,7 @@ class GlobalWebSocketManager extends EventEmitter {
       this.wsManager.on(
         "reconnecting",
         (attempt: number, maxAttempts: number) => {
-          log.info(
+          console.info(
             `GlobalWebSocketManager: Reconnecting ${attempt}/${maxAttempts}`
           );
           this.isConnecting = true;
@@ -152,7 +151,7 @@ class GlobalWebSocketManager extends EventEmitter {
 
       await this.wsManager.connect();
     } catch (error) {
-      log.error("GlobalWebSocketManager: Failed to connect:", error);
+      console.error("GlobalWebSocketManager: Failed to connect:", error);
       this.isConnecting = false;
       throw error;
     }
@@ -172,7 +171,7 @@ class GlobalWebSocketManager extends EventEmitter {
       try {
         handleResourceChange(message as unknown as ResourceChangeUpdate);
       } catch (error) {
-        log.error("GlobalWebSocketManager: Error handling resource change:", error);
+        console.error("GlobalWebSocketManager: Error handling resource change:", error);
       }
       // Resource change messages are not routed to specific handlers
       // They only trigger cache invalidation
@@ -184,7 +183,7 @@ class GlobalWebSocketManager extends EventEmitter {
       try {
         handleSystemStats(message as unknown as Parameters<typeof handleSystemStats>[0]);
       } catch (error) {
-        log.error("GlobalWebSocketManager: Error handling system stats:", error);
+        console.error("GlobalWebSocketManager: Error handling system stats:", error);
       }
       return;
     }
@@ -208,7 +207,7 @@ class GlobalWebSocketManager extends EventEmitter {
     }
 
     if (routingKeys.size === 0) {
-      log.debug(
+      console.debug(
         "GlobalWebSocketManager: Message without routing key (job_id/session_id/workflow_id/thread_id)",
         message
       );
@@ -231,11 +230,11 @@ class GlobalWebSocketManager extends EventEmitter {
           try {
             handler(message);
           } catch (error) {
-            log.error("GlobalWebSocketManager: Handler error:", error);
+            console.error("GlobalWebSocketManager: Handler error:", error);
           }
         });
       } else {
-        log.debug(
+        console.debug(
           `GlobalWebSocketManager: No handlers for ${routingKey}`,
           message
         );
@@ -252,7 +251,7 @@ class GlobalWebSocketManager extends EventEmitter {
     }
     this.messageHandlers.get(key)!.add(handler);
 
-    log.debug(`GlobalWebSocketManager: Subscribed handler for ${key}`);
+    console.debug(`GlobalWebSocketManager: Subscribed handler for ${key}`);
 
     // Return unsubscribe function
     return () => {
@@ -261,7 +260,7 @@ class GlobalWebSocketManager extends EventEmitter {
         handlers.delete(handler);
         if (handlers.size === 0) {
           this.messageHandlers.delete(key);
-          log.debug(`GlobalWebSocketManager: Removed all handlers for ${key}`);
+          console.debug(`GlobalWebSocketManager: Removed all handlers for ${key}`);
         }
       }
     };
@@ -277,7 +276,7 @@ class GlobalWebSocketManager extends EventEmitter {
       throw new Error("WebSocket not connected");
     }
 
-    log.debug("GlobalWebSocketManager: Sending message", message);
+    console.debug("GlobalWebSocketManager: Sending message", message);
     this.wsManager.send(message);
   }
 
@@ -286,7 +285,7 @@ class GlobalWebSocketManager extends EventEmitter {
    */
   disconnect(): void {
     if (this.wsManager) {
-      log.info("GlobalWebSocketManager: Disconnecting");
+      console.info("GlobalWebSocketManager: Disconnecting");
       this.wsManager.disconnect();
       this.wsManager = null;
       this.isConnected = false;
@@ -339,14 +338,14 @@ class GlobalWebSocketManager extends EventEmitter {
   private sendToolsManifest(): void {
     const manifest = FrontendToolRegistry.getManifest();
     if (manifest.length > 0 && this.wsManager) {
-      log.info(`GlobalWebSocketManager: Sending tools manifest (${manifest.length} tools)`);
+      console.info(`GlobalWebSocketManager: Sending tools manifest (${manifest.length} tools)`);
       try {
         this.wsManager.send({
           type: "client_tools_manifest",
           tools: manifest
         });
       } catch (error) {
-        log.error("GlobalWebSocketManager: Failed to send tools manifest:", error);
+        console.error("GlobalWebSocketManager: Failed to send tools manifest:", error);
       }
     }
   }
@@ -362,20 +361,20 @@ class GlobalWebSocketManager extends EventEmitter {
     this.networkListenersSetup = true;
 
     const handleOnline = () => {
-      log.info("GlobalWebSocketManager: Network came online, attempting reconnection");
+      console.info("GlobalWebSocketManager: Network came online, attempting reconnection");
       if (!this.isConnected && !this.isConnecting) {
         this.ensureConnection().catch((err) => {
-          log.error("GlobalWebSocketManager: Failed to reconnect after network online:", err);
+          console.error("GlobalWebSocketManager: Failed to reconnect after network online:", err);
         });
       }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        log.info("GlobalWebSocketManager: Tab became visible, checking connection");
+        console.info("GlobalWebSocketManager: Tab became visible, checking connection");
         if (!this.isConnected && !this.isConnecting) {
           this.ensureConnection().catch((err) => {
-            log.error("GlobalWebSocketManager: Failed to reconnect after visibility change:", err);
+            console.error("GlobalWebSocketManager: Failed to reconnect after visibility change:", err);
           });
         }
       }
@@ -405,7 +404,7 @@ class GlobalWebSocketManager extends EventEmitter {
         return `${UNIFIED_WS_URL}?api_key=${session.access_token}`;
       }
     } catch (error) {
-      log.error("GlobalWebSocketManager: Failed to resolve auth token", error);
+      console.error("GlobalWebSocketManager: Failed to resolve auth token", error);
     }
 
     return UNIFIED_WS_URL;

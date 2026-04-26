@@ -1,12 +1,15 @@
 /**
- * LocalSearchNodesTool -- search the NodeRegistry by keyword.
+ * LocalSearchNodesTool — namespace-aware search over the NodeRegistry.
  *
- * Local version of SearchNodesTool (from mcp-tools.ts) that queries
- * the registry directly instead of via REST API.
+ * Hides provider-specific nodes (`openai.*`, `anthropic.*`, etc.) by default
+ * so the agent reaches for `nodetool.*` core nodes first. Set
+ * `include_provider_nodes: true` only when the user explicitly named a
+ * provider.
  */
 
 import type { ProcessingContext } from "@nodetool/runtime";
 import type { NodeRegistry, NodeMetadata } from "@nodetool/node-sdk";
+import { rankNodeMetadata } from "@nodetool/node-sdk";
 import { Tool } from "./base-tool.js";
 
 function typeMetaToString(
@@ -22,32 +25,21 @@ function firstSentence(text: string): string {
   return text.length > 120 ? text.slice(0, 117) + "..." : text;
 }
 
-function matchesQuery(meta: NodeMetadata, terms: string[]): boolean {
-  const haystack = [
-    meta.node_type,
-    meta.title,
-    meta.description,
-    meta.namespace
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return terms.every((term) => haystack.includes(term.toLowerCase()));
-}
-
 interface CompactSearchResult {
   type: string;
   title: string;
   description: string;
+  score: number;
   inputs: Array<{ name: string; type: string }>;
   outputs: Array<{ name: string; type: string }>;
 }
 
-function toCompact(meta: NodeMetadata): CompactSearchResult {
+function toCompact(meta: NodeMetadata, score: number): CompactSearchResult {
   return {
     type: meta.node_type,
     title: meta.title,
     description: firstSentence(meta.description),
+    score,
     inputs: meta.properties.map((p: NodeMetadata["properties"][number]) => ({
       name: p.name,
       type: typeMetaToString(p.type)
@@ -66,20 +58,31 @@ const SEARCH_NODES_INPUT_SCHEMA = {
       type: "array" as const,
       items: { type: "string" as const },
       description:
-        "Search terms to match against node type, title, and description"
+        "Search terms matched against title, node_type, namespace, and description."
     },
     n_results: {
       type: "number" as const,
-      description: "Maximum number of results to return (default 10)",
+      description: "Maximum number of results to return (default 10).",
       default: 10
+    },
+    namespace: {
+      type: "string" as const,
+      description:
+        "Optional namespace prefix to scope the search (e.g. 'nodetool.control')."
     },
     input_type: {
       type: "string" as const,
-      description: "Optional filter: only nodes with this input type"
+      description: "Optional filter: only nodes that accept this input type."
     },
     output_type: {
       type: "string" as const,
-      description: "Optional filter: only nodes with this output type"
+      description: "Optional filter: only nodes that emit this output type."
+    },
+    include_provider_nodes: {
+      type: "boolean" as const,
+      description:
+        "Include provider-specific nodes (openai.*, anthropic.*, etc.) in results. Set to true ONLY when the user explicitly named a provider. Default: false.",
+      default: false
     }
   },
   required: ["query"] as string[]
@@ -88,7 +91,7 @@ const SEARCH_NODES_INPUT_SCHEMA = {
 export class LocalSearchNodesTool extends Tool {
   readonly name = "search_nodes";
   readonly description =
-    "Search for available nodes by keyword. Use this to find deterministic nodes before building the graph.";
+    "Search for available nodes by keyword. Provider-specific nodes are hidden by default — set include_provider_nodes:true only when the user named a provider. Use namespace to scope to e.g. 'nodetool.control'.";
   readonly inputSchema: Record<string, unknown> = SEARCH_NODES_INPUT_SCHEMA;
 
   constructor(private readonly registry: NodeRegistry) {
@@ -104,16 +107,21 @@ export class LocalSearchNodesTool extends Tool {
       typeof params["n_results"] === "number" ? params["n_results"] : 10;
     const inputType = params["input_type"] as string | undefined;
     const outputType = params["output_type"] as string | undefined;
+    const namespace = params["namespace"] as string | undefined;
+    const includeProviderNodes = params["include_provider_nodes"] === true;
 
     if (queryArr.length === 0) {
       return { status: "error", errors: ["query must be a non-empty array"] };
     }
 
     const allMetadata = this.registry.listMetadata();
-    let results = allMetadata.filter((meta: NodeMetadata) => matchesQuery(meta, queryArr));
+    let ranked = rankNodeMetadata(allMetadata, queryArr, {
+      includeProviderNodes,
+      namespacePrefix: namespace
+    });
 
     if (inputType) {
-      results = results.filter((meta: NodeMetadata) =>
+      ranked = ranked.filter(({ meta }) =>
         meta.properties.some(
           (p: NodeMetadata["properties"][number]) =>
             typeMetaToString(p.type).toLowerCase() === inputType.toLowerCase()
@@ -122,7 +130,7 @@ export class LocalSearchNodesTool extends Tool {
     }
 
     if (outputType) {
-      results = results.filter((meta: NodeMetadata) =>
+      ranked = ranked.filter(({ meta }) =>
         meta.outputs.some(
           (o: NodeMetadata["outputs"][number]) =>
             typeMetaToString(o.type).toLowerCase() === outputType.toLowerCase()
@@ -130,10 +138,10 @@ export class LocalSearchNodesTool extends Tool {
       );
     }
 
-    const limited = results.slice(0, maxResults);
+    const limited = ranked.slice(0, maxResults);
     return {
-      total: results.length,
-      results: limited.map(toCompact)
+      total: ranked.length,
+      results: limited.map(({ meta, score }) => toCompact(meta, score))
     };
   }
 

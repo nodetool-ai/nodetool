@@ -271,6 +271,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
+          aria-label="Show workflows"
           onClick={handleWorkflowViewClick}
           className={
             activeView === "workflowGrid" && panelVisible ? "active" : ""
@@ -286,6 +287,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
+          aria-label="Show assets"
           onClick={handleAssetsViewClick}
           className={activeView === "assets" && panelVisible ? "active" : ""}
         >
@@ -305,6 +307,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       >
         <IconButton
           tabIndex={-1}
+          aria-label="Open collections"
           onClick={handleCollectionsClick}
         >
           <DatasetIcon />
@@ -320,6 +323,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           >
             <IconButton
               tabIndex={-1}
+              aria-label="Open model manager"
               onClick={handleModelsClick}
             >
               <IconForType iconName="model" showTooltip={false} iconSize="small" />
@@ -332,6 +336,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
           >
             <IconButton
               tabIndex={-1}
+              aria-label="Open workspaces manager"
               onClick={handleWorkspacesClick}
             >
               <FolderOpenIcon />
@@ -343,7 +348,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
-        <IconButton tabIndex={-1} onClick={handlePanelToggleClick}>
+        <IconButton tabIndex={-1} aria-label="Toggle panel" onClick={handlePanelToggleClick}>
           <CodeIcon />
         </IconButton>
       </Tooltip>

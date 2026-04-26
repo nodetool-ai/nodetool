@@ -6,9 +6,14 @@ import { BASE_URL } from "../../stores/BASE_URL";
 
 type ComfyModelItem = { name?: string; path?: string; repo_id?: string; downloaded?: boolean };
 
+interface ComfyModelSelection {
+  type: string;
+  name: string;
+}
+
 interface ComfyModelSelectProps {
   modelType: string;
-  onChange: (value: any) => void;
+  onChange: (value: ComfyModelSelection) => void;
   value: string;
 }
 

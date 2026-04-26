@@ -118,58 +118,6 @@ describe('BaseNode Performance Optimizations', () => {
       expect(sxCreationCount).toBe(2); // Should recreate
     });
 
-    it.skip('should demonstrate performance gain with 100 nodes', () => {
-      const baseColor = '#ff0000';
-      const isLoading = false;
-      const selected = false;
-
-      // Simulate 100 nodes
-      const nodes = Array.from({ length: 100 }, (_, i) => ({
-        id: `node-${i}`,
-        baseColor,
-        isLoading,
-        selected
-      }));
-
-      // Without memoization
-      const start1 = performance.now();
-      nodes.forEach(() => {
-        // Create new object each time (BAD)
-        const sx = {
-          display: 'flex',
-          border: isLoading ? 'none' : `1px solid ${baseColor}`,
-          boxShadow: selected ? `0 0 0 2px ${baseColor}` : 'none'
-        };
-        // Use sx to avoid unused variable warning
-        if (sx.display === 'undefined') {
-          console.log(sx);
-        }
-      });
-      const duration1 = performance.now() - start1;
-
-      // With memoization
-      let cachedSx: any = null;
-      const start2 = performance.now();
-      nodes.forEach(() => {
-        if (!cachedSx) {
-          cachedSx = {
-            display: 'flex',
-            border: isLoading ? 'none' : `1px solid ${baseColor}`,
-            boxShadow: selected ? `0 0 0 2px ${baseColor}` : 'none'
-          };
-        }
-        // Reuse cached object (GOOD)
-      });
-      const duration2 = performance.now() - start2;
-
-      console.log(`[PERF] Without memo (100 nodes): ${duration1.toFixed(3)}ms`);
-      console.log(`[PERF] With memo (100 nodes): ${duration2.toFixed(3)}ms`);
-      console.log(`[PERF] Improvement: ${((1 - duration2 / duration1) * 100).toFixed(1)}%`);
-
-      // Memoized approach should generally be faster or at least not significantly slower
-      // Use a lenient threshold to account for CI environment variability
-      expect(duration2).toBeLessThan(duration1 * 1.5);
-    });
   });
 
   describe('Memo Comparison Optimization', () => {
@@ -319,60 +267,6 @@ describe('NodeInputs Performance Optimizations', () => {
       console.log(`[PERF] Array rebuilds: ${arrayBuildCount} (out of 3 renders)`);
     });
 
-    it.skip('should demonstrate performance with complex property filtering', () => {
-      const largePropertyList = Array.from({ length: 100 }, (_, i) => ({
-        name: `prop-${i}`,
-        type: 'string',
-        basic: i < 20 // 20 basic, 80 advanced
-      }));
-
-      let operationCount = 0;
-
-      const filterProperties = (props: any[], showAdvanced: boolean) => {
-        const basic: any[] = [];
-        const advanced: any[] = [];
-
-        props.forEach((prop) => {
-          operationCount++;
-          if (prop.basic) {
-            basic.push(prop);
-          } else if (showAdvanced) {
-            advanced.push(prop);
-          }
-        });
-
-        return { basic, advanced };
-      };
-
-      // Without memoization (simulating 100 re-renders)
-      const start1 = performance.now();
-      for (let i = 0; i < 100; i++) {
-        filterProperties(largePropertyList, false);
-      }
-      const duration1 = performance.now() - start1;
-      const operationsWithoutMemo = operationCount;
-
-      // With memoization (cached result)
-      let cached: any = null;
-      operationCount = 0;
-      const start2 = performance.now();
-      for (let i = 0; i < 100; i++) {
-        if (!cached) {
-          cached = filterProperties(largePropertyList, false);
-        }
-      }
-      const duration2 = performance.now() - start2;
-      const operationsWithMemo = operationCount;
-
-      console.log(`[PERF] Without memo (100 calls): ${duration1.toFixed(2)}ms`);
-      console.log(`[PERF] With memo (100 calls): ${duration2.toFixed(2)}ms`);
-      console.log(
-        `[PERF] Operation reduction: ${operationsWithoutMemo}/${operationsWithMemo}`
-      );
-
-      expect(operationsWithoutMemo).toBe(100 * largePropertyList.length);
-      expect(operationsWithMemo).toBe(largePropertyList.length);
-    });
   });
 
   describe('Dynamic Inputs Computation', () => {

@@ -30,9 +30,18 @@ import { NodeRegistry } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerRealtimeNodes } from "@nodetool/realtime-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
-import { ProcessingContext } from "@nodetool/runtime";
+import { ProcessingContext, initTelemetry } from "@nodetool/runtime";
+import { registerPackageCommands } from "./commands/package.js";
+import {
+  registerDeployCommands,
+  registerListGcpOptions
+} from "./commands/deploy.js";
+import { registerHfCommands } from "./commands/models-hf.js";
+import { registerRecommendedCommand } from "./commands/models-recommended.js";
+import { registerAgentCommands } from "./commands/agent.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,11 +51,7 @@ const __dirname = dirname(__filename);
 // ---------------------------------------------------------------------------
 
 async function setupDb(): Promise<void> {
-  try {
-    initDb(getDefaultDbPath());
-  } catch {
-    // fall back to env vars
-  }
+  initDb(getDefaultDbPath());
 }
 
 // ---------------------------------------------------------------------------
@@ -106,7 +111,48 @@ function asJson(data: unknown): void {
 // info
 // ---------------------------------------------------------------------------
 
-program.name("nodetool").description("NodeTool CLI").version("0.1.0");
+program
+  .name("nodetool")
+  .description("NodeTool CLI")
+  .version("0.1.0")
+  .option(
+    "--trace-file <path>",
+    "Append every LLM/agent/workflow span as JSONL to <path>"
+  )
+  .option(
+    "--trace-stdout [format]",
+    "Stream spans to stdout: 'pretty' (default) or 'json' (JSONL)"
+  )
+  .option(
+    "--no-trace-stdout",
+    "Disable stdout span output (overrides NODETOOL_TRACE_STDOUT)"
+  )
+  .hook("preAction", async (thisCommand) => {
+    const opts = thisCommand.opts<{
+      traceFile?: string;
+      traceStdout?: string | boolean;
+    }>();
+    await initTelemetry({
+      ...(opts.traceFile && { traceFile: opts.traceFile }),
+      ...(opts.traceStdout !== undefined && {
+        stdout: parseTraceStdout(opts.traceStdout)
+      })
+    });
+  });
+
+function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
+  if (v === false) return false;
+  if (v === true) return "pretty";
+  if (typeof v === "string") {
+    const lower = v.toLowerCase();
+    if (lower === "false" || lower === "0" || lower === "no") return false;
+    if (lower === "json") return "json";
+    if (lower === "pretty" || lower === "true" || lower === "1") return "pretty";
+  }
+  throw new Error(
+    `--trace-stdout must be 'pretty' or 'json' (got ${JSON.stringify(v)})`
+  );
+}
 
 // ---------------------------------------------------------------------------
 // run — execute a TypeScript/JavaScript DSL workflow file
@@ -388,6 +434,7 @@ workflows
         registerBaseNodes(registry);
         registerRealtimeNodes(registry);
         registerElevenLabsNodes(registry);
+        registerTransformersJsNodes(registry);
         registerFalNodes(registry);
         registerReplicateNodes(registry);
 
@@ -651,6 +698,190 @@ assets
           url: a["url"]
         }
       ]);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+// ---------------------------------------------------------------------------
+// models
+// ---------------------------------------------------------------------------
+
+const models = program.command("models").description("Model management");
+
+const modelKinds = ["llm", "image", "tts", "asr", "video", "embedding"] as const;
+type ModelKind = (typeof modelKinds)[number];
+
+const byProviderRoute: Record<ModelKind, string> = {
+  llm: "llmByProvider",
+  image: "imageByProvider",
+  tts: "ttsByProvider",
+  asr: "asrByProvider",
+  video: "videoByProvider",
+  embedding: "embeddingByProvider"
+};
+
+function modelRow(m: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: m["id"],
+    name: m["name"],
+    provider: m["provider"] ?? "",
+    type: m["type"] ?? "",
+    repo_id: m["repo_id"] ?? ""
+  };
+}
+
+models
+  .command("list")
+  .description("List all models (recommended + provider + HF cached)")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.all.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("providers")
+  .description("List configured providers and their capabilities")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.providers.query();
+      if (opts.json) {
+        asJson(data);
+        return;
+      }
+      printTable(
+        data.map((p) => ({
+          provider: p.provider,
+          capabilities: p.capabilities.join(", ")
+        }))
+      );
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+registerRecommendedCommand(models);
+registerHfCommands(models);
+
+models
+  .command("ollama")
+  .description("List Ollama models")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data = await client.models.ollama.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("huggingface")
+  .description("List HuggingFace cached models")
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--query <q>", "Search query")
+  .option("--type <t>", "Filter by HF model type")
+  .option("--json", "Output as JSON")
+  .action(async (opts) => {
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const data =
+        opts.query || opts.type
+          ? await client.models.huggingfaceSearch.query({
+              ...(opts.query ? { query: String(opts.query) } : {}),
+              ...(opts.type ? { type: String(opts.type) } : {})
+            })
+          : await client.models.huggingfaceList.query();
+      const rows = data as unknown as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
+models
+  .command("by-provider <provider>")
+  .description(
+    `List models for a provider. --kind one of: ${modelKinds.join(", ")}`
+  )
+  .option(
+    "--api-url <url>",
+    "API base URL",
+    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+  )
+  .option("--kind <kind>", "Model kind", "llm")
+  .option("--json", "Output as JSON")
+  .action(async (provider, opts) => {
+    const kind = opts.kind as ModelKind;
+    if (!modelKinds.includes(kind)) {
+      console.error(
+        `Invalid --kind '${opts.kind}'. Must be one of: ${modelKinds.join(", ")}`
+      );
+      process.exit(1);
+    }
+    try {
+      const client = createApiClient(opts.apiUrl);
+      const route = byProviderRoute[kind];
+      const data = await (
+        client.models as unknown as Record<
+          string,
+          { query: (input: { provider: string }) => Promise<unknown[]> }
+        >
+      )[route]!.query({ provider });
+      const rows = data as Record<string, unknown>[];
+      if (opts.json) {
+        asJson(rows);
+        return;
+      }
+      printTable(rows.map(modelRow));
     } catch (e) {
       console.error(String(e));
       process.exit(1);
@@ -1131,6 +1362,20 @@ mcp
     printTable(results);
     console.log();
   });
+
+// ---------------------------------------------------------------------------
+// package
+// ---------------------------------------------------------------------------
+
+registerPackageCommands(program);
+
+// ---------------------------------------------------------------------------
+// deploy / list-gcp-options — registered from commands/deploy.ts
+// ---------------------------------------------------------------------------
+
+registerDeployCommands(program);
+registerListGcpOptions(program);
+registerAgentCommands(program);
 
 // ---------------------------------------------------------------------------
 

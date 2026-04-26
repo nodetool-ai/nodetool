@@ -10,10 +10,10 @@ import PushPinIcon from "@mui/icons-material/PushPin";
 import HubIcon from "@mui/icons-material/Hub";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 //store
+import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import log from "loglevel";
 import { labelForType } from "../../config/data_types";
 import useMetadataStore from "../../stores/MetadataStore";
 import { Edge, useReactFlow } from "@xyflow/react";
@@ -255,7 +255,8 @@ const InputContextMenu: React.FC = () => {
       edges: state.edges,
       setEdges: state.setEdges,
       generateEdgeId: state.generateEdgeId
-    })
+    }),
+    shallow
   );
   const createConstantNode = useCallback(
     (event: React.MouseEvent) => {
@@ -371,7 +372,7 @@ const InputContextMenu: React.FC = () => {
         event.stopPropagation();
         createConstantNode(event);
       }
-      log.info("Create Constant Node");
+      console.info("Create Constant Node");
       closeContextMenu();
     },
     [createConstantNode, closeContextMenu]

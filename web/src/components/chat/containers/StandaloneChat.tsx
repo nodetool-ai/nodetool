@@ -20,7 +20,6 @@ import { NewChatButton } from "../thread/NewChatButton";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { useShallow } from "zustand/react/shallow";
-import log from "loglevel";
 
 /**
  * StandaloneChat is a version of GlobalChat without app chrome (no AppHeader, no PanelRight).
@@ -54,6 +53,8 @@ const StandaloneChat: React.FC = () => {
     // Agent mode
     agentMode,
     setAgentMode,
+    agentPlanner,
+    setAgentPlanner,
     // Task updates
     currentPlanningUpdate,
     currentTaskUpdate,
@@ -93,6 +94,8 @@ const StandaloneChat: React.FC = () => {
         // Agent mode
         agentMode: state.agentMode,
         setAgentMode: state.setAgentMode,
+        agentPlanner: state.agentPlanner,
+        setAgentPlanner: state.setAgentPlanner,
         // Task updates
         currentPlanningUpdate: state.currentPlanningUpdate,
         currentTaskUpdate: state.currentTaskUpdate,
@@ -131,14 +134,14 @@ const StandaloneChat: React.FC = () => {
   // Initialize GlobalChatStore connection on mount
   useEffect(() => {
     connect().catch((err) => {
-      log.error("Failed to connect GlobalChatStore:", err);
+      console.error("Failed to connect GlobalChatStore:", err);
     });
 
     return () => {
       try {
         disconnect();
       } catch (err) {
-        log.error("Error during GlobalChatStore disconnect:", err);
+        console.error("Error during GlobalChatStore disconnect:", err);
       }
     };
   }, [connect, disconnect]);
@@ -234,7 +237,7 @@ const StandaloneChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          log.error("Failed to handle thread logic:", error);
+          console.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -316,7 +319,7 @@ const StandaloneChat: React.FC = () => {
       switchThread(newThreadId);
       navigate(`/standalone-chat/${newThreadId}`);
     } catch (error) {
-      log.error("Failed to create new thread:", error);
+      console.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 
@@ -481,6 +484,8 @@ const StandaloneChat: React.FC = () => {
             onNewChat={handleNewChat}
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}
+            agentPlanner={agentPlanner}
+            onAgentPlannerChange={setAgentPlanner}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={taskUpdateForDisplay}
             currentLogUpdate={currentLogUpdate}

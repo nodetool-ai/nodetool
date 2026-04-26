@@ -13,6 +13,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { createLogger } from "@nodetool/config";
 import type { BaseProvider } from "@nodetool/runtime";
+import { withAgentSpanGen } from "@nodetool/runtime";
 
 const log = createLogger("nodetool.agents.agent");
 import type { Message, ProcessingContext } from "@nodetool/runtime";
@@ -410,6 +411,22 @@ export class Agent extends BaseAgent {
   async *execute(
     context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage> {
+    yield* withAgentSpanGen(
+      "execute",
+      {
+        objective: this.objective,
+        provider: this.provider.provider,
+        model: this.model,
+        toolsCount: this.tools.length,
+        extra: { "agent.name": this.name }
+      },
+      () => this._executeImpl(context)
+    );
+  }
+
+  private async *_executeImpl(
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage> {
     log.info("Agent started", {
       name: this.name,
       objective: this.objective.slice(0, 80)
@@ -544,23 +561,28 @@ export class Agent extends BaseAgent {
 
     // After execution, synthesize a final response so the user gets one
     // coherent, readable answer regardless of what the planner/executor
-    // produced. Skip only when the single-task result is already a usable
-    // non-empty string (the common happy path for simple queries).
+    // produced. Skip when there is a single task — its result (string or
+    // structured) already represents the final answer for that objective.
     const allResults = executor.getAllResults();
     const taskCount = Object.keys(allResults).length;
-    const singleResult = taskCount === 1 ? Object.values(allResults)[0] : null;
-    const singleIsGoodString =
-      taskCount === 1 &&
-      typeof singleResult === "string" &&
-      singleResult.trim().length > 0;
 
     if (taskCount === 0) {
       this.results = executor.getFinalResult();
-    } else if (singleIsGoodString) {
-      this.results =
-        this.outputFormat === "structured" && this.outputSchema
-          ? { markdown: singleResult }
-          : singleResult;
+    } else if (taskCount === 1) {
+      const singleResult = Object.values(allResults)[0];
+      const isEmptyString =
+        typeof singleResult === "string" && singleResult.trim().length === 0;
+      if (singleResult == null || isEmptyString) {
+        yield* this.synthesizeFinalResponse(context, allResults, taskPlan);
+      } else if (
+        this.outputFormat === "structured" &&
+        this.outputSchema &&
+        typeof singleResult === "string"
+      ) {
+        this.results = { markdown: singleResult };
+      } else {
+        this.results = singleResult;
+      }
     } else {
       yield* this.synthesizeFinalResponse(context, allResults, taskPlan);
     }

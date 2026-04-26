@@ -64,6 +64,10 @@ vi.mock("@nodetool/elevenlabs-nodes", () => ({
   registerElevenLabsNodes: vi.fn()
 }));
 
+vi.mock("@nodetool/transformers-js-nodes", () => ({
+  registerTransformersJsNodes: vi.fn()
+}));
+
 vi.mock("@nodetool/fal-nodes", () => ({
   registerFalNodes: vi.fn()
 }));

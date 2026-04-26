@@ -3,7 +3,12 @@ export * from "./registry.js";
 export * from "./metadata.js";
 export * from "./node-metadata.js";
 export * from "./decorators.js";
+export * from "./search.js";
+export * from "./validation.js";
 export * from "./nodes/test-nodes.js";
+export * from "./package-registry-client.js";
+export * from "./docs/index.js";
+export * from "./python-package-scan.js";
 export type {
   ExecutionContext,
   StreamingInputs,

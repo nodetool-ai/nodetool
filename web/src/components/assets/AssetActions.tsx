@@ -254,6 +254,7 @@ const AssetActions = ({
     (state) => [state.viewMode, state.setViewMode] as const,
     shallow
   );
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOrderChange = useCallback((_event: unknown, newOrder: "name" | "date" | "size" | null) => {

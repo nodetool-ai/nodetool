@@ -30,7 +30,6 @@ import {
   drawShape,
   drawArrow
 } from "./canvasUtils";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -374,7 +373,7 @@ const ImageEditorCanvas = forwardRef<ImageEditorCanvasRef, ImageEditorCanvasProp
           // Setting imageSize will trigger the render effect
           setImageSize({ width: img.width, height: img.height });
         } catch (error) {
-          log.error("Failed to load image:", error);
+          console.error("Failed to load image:", error);
         }
       };
 

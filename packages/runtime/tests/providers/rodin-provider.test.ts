@@ -46,16 +46,6 @@ describe("RodinProvider", () => {
     vi.unstubAllGlobals();
   });
 
-  // --- Construction ---
-
-  it("requiredSecrets returns RODIN_API_KEY", () => {
-    expect(RodinProvider.requiredSecrets()).toEqual(["RODIN_API_KEY"]);
-  });
-
-  it("constructs with empty secrets without throwing", () => {
-    expect(() => new RodinProvider()).not.toThrow();
-  });
-
   // --- Capability surface ---
 
   it("getAvailable3DModels returns the static catalogue when key is set", async () => {

@@ -376,7 +376,7 @@ export interface TTSModelValue {
 }
 
 export interface HuggingFaceModelValue {
-  type: "hf.text_to_image" | "hf.image_to_image";
+  type: string;
   repo_id: string;
   path?: string;
 }

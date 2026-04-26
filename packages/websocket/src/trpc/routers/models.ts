@@ -17,6 +17,14 @@ import {
   deleteCachedHfModel,
   getHuggingfaceFileInfos
 } from "@nodetool/huggingface";
+import {
+  getTransformersJsCacheDir,
+  isRepoCached,
+  recommendedFor,
+  scanTransformersJsCache,
+  TJS_MODEL_TYPES,
+  type TjsModelRef
+} from "@nodetool/transformers-js-nodes";
 import type { UnifiedModel } from "@nodetool/protocol";
 import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
@@ -151,6 +159,10 @@ const hfSearchInput = z.object({
 });
 
 const hfByTypeInput = z.object({
+  model_type: z.string().min(1)
+});
+
+const tjsByTypeInput = z.object({
   model_type: z.string().min(1)
 });
 
@@ -489,7 +501,11 @@ async function instantiateProvider(
   try {
     return await getProvider(provider, userId);
   } catch (error) {
-    log.warn("Provider instantiation failed", { provider, error });
+    log.warn("Provider instantiation failed", {
+      provider,
+      userId,
+      error: summarizeError(error)
+    });
     return null;
   }
 }
@@ -498,6 +514,53 @@ async function instantiateProvider(
  * Run `fn`, log and return `fallback` on error. Unmasks silent provider
  * failures so the server log shows why a `*ByProvider` query came back empty.
  */
+function summarizeError(error: unknown): Record<string, unknown> {
+  if (!(error instanceof Error)) {
+    return { message: String(error) };
+  }
+
+  const summary: Record<string, unknown> = {
+    name: error.name,
+    message: error.message
+  };
+
+  const cause = error.cause;
+  if (cause instanceof Error) {
+    const causeSummary: Record<string, unknown> = {
+      name: cause.name,
+      message: cause.message
+    };
+
+    const causeWithFields = cause as Error & {
+      code?: string;
+      errno?: number;
+      syscall?: string;
+      address?: string;
+      port?: number;
+    };
+
+    if (causeWithFields.code) {
+      causeSummary.code = causeWithFields.code;
+    }
+    if (causeWithFields.errno != null) {
+      causeSummary.errno = causeWithFields.errno;
+    }
+    if (causeWithFields.syscall) {
+      causeSummary.syscall = causeWithFields.syscall;
+    }
+    if (causeWithFields.address) {
+      causeSummary.address = causeWithFields.address;
+    }
+    if (causeWithFields.port != null) {
+      causeSummary.port = causeWithFields.port;
+    }
+
+    summary.cause = causeSummary;
+  }
+
+  return summary;
+}
+
 async function safeProviderCall<T>(
   label: string,
   context: Record<string, unknown>,
@@ -507,7 +570,7 @@ async function safeProviderCall<T>(
   try {
     return await fn();
   } catch (error) {
-    log.warn(`${label} failed`, { ...context, error });
+    log.warn(`${label} failed`, { ...context, error: summarizeError(error) });
     return fallback;
   }
 }
@@ -579,6 +642,40 @@ function selectRecommended(
   );
 }
 
+// ── Transformers.js helpers ────────────────────────────────────────
+
+function tjsRefToUnified(
+  ref: TjsModelRef,
+  modelType: string,
+  downloaded: boolean,
+  sizeBytes: number | null
+): UnifiedModel {
+  return {
+    id: ref.repo_id,
+    type: modelType,
+    name: ref.repo_id,
+    provider: "transformers_js",
+    repo_id: ref.repo_id,
+    path: ref.path ?? null,
+    downloaded,
+    size_on_disk: sizeBytes ?? null
+  };
+}
+
+/**
+ * Find which `tjs.<task>` types each cached repo is recommended under.
+ * A repo can match multiple types if listed in several recommended lists
+ * (rare, but supported); we just return the set of (type, ref) pairings.
+ */
+function tjsCachedAsRecommended(repoId: string): TjsModelRef[] {
+  const out: TjsModelRef[] = [];
+  for (const type of TJS_MODEL_TYPES) {
+    const match = recommendedFor(type).find((r) => r.repo_id === repoId);
+    if (match) out.push(match);
+  }
+  return out;
+}
+
 function toUnifiedLanguageModel(model: {
   id: string;
   name: string;
@@ -647,6 +744,24 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
       all.push(...hfModels);
     } catch {
       // HF models unavailable — continue without them
+    }
+
+    try {
+      const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
+      for (const c of cached) {
+        // Surface each cached repo under its first matched recommended type
+        // (e.g. "tjs.text_generation") so it lands in the right sidebar bucket;
+        // fall back to "tjs.cached" for repos not in any recommended list.
+        const recommendedTypes = TJS_MODEL_TYPES.filter((t) =>
+          recommendedFor(t).some((r) => r.repo_id === c.repo_id)
+        );
+        const modelType = recommendedTypes[0] ?? "tjs.cached";
+        all.push(
+          tjsRefToUnified({ repo_id: c.repo_id }, modelType, true, c.size_bytes)
+        );
+      }
+    } catch {
+      // Transformers.js cache unavailable — continue without it
     }
   }
 
@@ -842,6 +957,126 @@ export const modelsRouter = router({
         return await getModelsByHfType(input.model_type);
       } catch {
         return [];
+      }
+    }),
+
+  /**
+   * Transformers.js cached models (everything in the configured cache dir).
+   */
+  transformersJsList: protectedProcedure
+    .output(modelsListOutput)
+    .query(async () => {
+      try {
+        const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
+        return cached.map((c) =>
+          tjsRefToUnified(
+            { repo_id: c.repo_id },
+            "tjs.cached",
+            true,
+            c.size_bytes
+          )
+        );
+      } catch {
+        return [];
+      }
+    }),
+
+  /**
+   * Transformers.js models for a given `tjs.<task>` type.
+   *
+   * Merges the curated recommended list with anything already present in the
+   * Transformers.js cache directory. Recommended entries always appear,
+   * marked `downloaded` based on cache presence; off-list cached repos that
+   * happen to be recommended under another type are NOT shown here (they only
+   * show up under their own type or via `transformersJsList`).
+   */
+  transformersJsByType: protectedProcedure
+    .input(tjsByTypeInput)
+    .output(modelsListOutput)
+    .query(async ({ input }) => {
+      const modelType = input.model_type;
+      const recs = recommendedFor(modelType);
+      const cacheDir = getTransformersJsCacheDir();
+
+      const cached = await scanTransformersJsCache(cacheDir).catch(() => []);
+      const cacheSizes = new Map(cached.map((c) => [c.repo_id, c.size_bytes]));
+
+      const out: UnifiedModel[] = [];
+      const seen = new Set<string>();
+
+      for (const ref of recs) {
+        out.push(
+          tjsRefToUnified(
+            ref,
+            modelType,
+            cacheSizes.has(ref.repo_id),
+            cacheSizes.get(ref.repo_id) ?? null
+          )
+        );
+        seen.add(ref.repo_id);
+      }
+
+      // Surface any cached repo that isn't recommended for this type but
+      // also doesn't have a "home" type — so users see everything they
+      // downloaded for this task without losing the recommended sort.
+      for (const c of cached) {
+        if (seen.has(c.repo_id)) continue;
+        const homes = tjsCachedAsRecommended(c.repo_id);
+        if (homes.length > 0) continue;
+        out.push(
+          tjsRefToUnified(
+            { repo_id: c.repo_id },
+            modelType,
+            true,
+            c.size_bytes
+          )
+        );
+      }
+
+      return out;
+    }),
+
+  /**
+   * Recommended Transformers.js models for a given `tjs.<task>` type.
+   *
+   * Same curated list as the recommended-first half of `transformersJsByType`,
+   * minus the off-list cached repos. Used by the model picker's
+   * "Recommended downloads" panel so users can see what's worth fetching even
+   * if nothing is cached yet.
+   */
+  transformersJsRecommended: protectedProcedure
+    .input(tjsByTypeInput)
+    .output(modelsListOutput)
+    .query(async ({ input }) => {
+      const modelType = input.model_type;
+      const recs = recommendedFor(modelType);
+      if (recs.length === 0) return [];
+
+      const cacheDir = getTransformersJsCacheDir();
+      const cached = await scanTransformersJsCache(cacheDir).catch(() => []);
+      const cacheSizes = new Map(cached.map((c) => [c.repo_id, c.size_bytes]));
+
+      return recs.map((ref) =>
+        tjsRefToUnified(
+          ref,
+          modelType,
+          cacheSizes.has(ref.repo_id),
+          cacheSizes.get(ref.repo_id) ?? null
+        )
+      );
+    }),
+
+  /**
+   * Check whether a single Transformers.js repo is present in the cache.
+   */
+  transformersJsIsCached: protectedProcedure
+    .input(z.object({ repo_id: z.string().min(1) }))
+    .output(z.boolean())
+    .query(async ({ input }) => {
+      try {
+        return await isRepoCached(getTransformersJsCacheDir(), input.repo_id);
+      } catch {
+        return false;
       }
     }),
 

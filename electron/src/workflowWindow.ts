@@ -12,8 +12,8 @@ let chatWindow: BrowserWindow | null = null;
 
 const webDevBaseUrl = getWebDevServerUrl();
 
-export const appPort = app.isPackaged ? getServerPort() : 3000;
-export const baseUrl = app.isPackaged
+const appPort = app.isPackaged ? getServerPort() : 3000;
+const baseUrl = app.isPackaged
   ? `http://127.0.0.1:${appPort}/apps/index.html`
   : `${webDevBaseUrl}/index.html`;
 

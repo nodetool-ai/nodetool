@@ -294,7 +294,7 @@ export interface JSONSchema {
   label?: string;
   description?: string;
   format?: string;
-  default?: any;
+  default?: unknown;
   required?: boolean;
   minimum?: number;
   maximum?: number;
@@ -321,19 +321,18 @@ export interface Node {
   data: Record<string, any>;
 }
 
-// Node metadata/types from package registry
 export interface NodeProperty {
   name: string;
   label?: string;
-  type?: any;
-  default?: any;
+  type?: string;
+  default?: unknown;
   required?: boolean;
   description?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface NodeOutputSlot {
-  type: any;
+  type: string;
   name: string;
   stream?: boolean;
 }
@@ -347,7 +346,7 @@ export interface PackageNode {
   properties?: NodeProperty[];
   outputs?: NodeOutputSlot[];
 
-  recommended_models?: any[];
+  recommended_models?: unknown[];
   basic_fields?: string[];
   is_dynamic?: boolean;
   expose_as_tool?: boolean;
@@ -877,8 +876,8 @@ export interface PackageModel {
   authors: string[];
   repo_id: string;
   nodes?: PackageNode[];
-  examples?: any[];
-  assets?: any[];
+  examples?: unknown[];
+  assets?: unknown[];
   source_folder?: string;
   // Upgrade availability info
   latestVersion?: string;

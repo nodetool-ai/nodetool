@@ -228,6 +228,12 @@ export class OpenAIProvider extends BaseProvider {
   async getAvailableImageModels(): Promise<ImageModel[]> {
     return [
       {
+        id: "gpt-image-2",
+        name: "GPT Image 2",
+        provider: "openai",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      },
+      {
         id: "gpt-image-1.5",
         name: "GPT Image 1.5",
         provider: "openai",

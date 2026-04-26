@@ -14,7 +14,6 @@ import { Text, LoadingSpinner } from "../ui_primitives";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
-import log from "loglevel";
 import { IconForType } from "../../config/data_types";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -116,7 +115,7 @@ const AssetTree: React.FC<AssetTreeProps> = ({
         );
         onTotalAssetsCalculated(total);
       } catch (error) {
-        log.error("Error fetching asset tree:", error);
+        console.error("Error fetching asset tree:", error);
         setAssetTree([]);
         onTotalAssetsCalculated(0);
       } finally {

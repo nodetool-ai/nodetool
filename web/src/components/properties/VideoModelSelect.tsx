@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { VideoModel } from "../../stores/ApiTypes";
+import type { ModelPack, UnifiedModel, VideoModel } from "../../stores/ApiTypes";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
@@ -21,12 +21,16 @@ interface VideoModelSelectProps {
   onChange: (value: VideoModelValue) => void;
   value: string;
   task?: "text_to_video" | "image_to_video";
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   onChange,
   value,
-  task
+  task,
+  recommendedModels,
+  modelPacks
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -86,6 +90,8 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         task={task}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </>
   );

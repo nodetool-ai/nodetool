@@ -33,6 +33,7 @@ export {
   getDefaultDbPath,
   getDefaultVectorstoreDbPath,
   getDefaultAssetsPath,
+  getDefaultTransformersJsCacheDir,
   getAssetFilePath,
   getAssetDomain,
   getTempDomain,

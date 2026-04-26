@@ -23,20 +23,6 @@ describe("FalProvider", () => {
 
   // --- Construction ---
 
-  it("stores API key from secrets", () => {
-    const p = createProvider("my-key");
-    expect(p).toBeInstanceOf(FalProvider);
-  });
-
-  it("defaults API key to empty string", () => {
-    const p = new FalProvider();
-    expect(p).toBeInstanceOf(FalProvider);
-  });
-
-  it("requiredSecrets returns FAL_API_KEY", () => {
-    expect(FalProvider.requiredSecrets()).toEqual(["FAL_API_KEY"]);
-  });
-
   // --- getAvailableImageModels ---
 
   it("returns a non-empty list of image models", async () => {

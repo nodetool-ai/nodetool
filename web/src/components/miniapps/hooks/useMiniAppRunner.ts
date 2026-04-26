@@ -24,7 +24,6 @@ import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketMa
 // Stable empty fallbacks — reused across renders so shallow equality can bail
 // out instead of always seeing a new array/null reference.
 const EMPTY_RESULTS: MiniAppResult[] = [];
-import log from "loglevel";
 
 type WorkflowRunnerState = ReturnType<WorkflowRunnerStore["getState"]>;
 type RunWorkflowFn = WorkflowRunnerState["run"];
@@ -80,7 +79,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
       try {
         originalHandler(workflow, data);
       } catch (error) {
-        log.error("MiniAppRunner: originalHandler error:", error);
+        console.error("MiniAppRunner: originalHandler error:", error);
       }
 
       if (!selectedWorkflow || workflow.id !== selectedWorkflow.id) {
@@ -114,7 +113,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
           upsertResult(workflow.id, result);
         } catch (error) {
-          log.error("MiniAppRunner: output_update error:", error);
+          console.error("MiniAppRunner: output_update error:", error);
         }
       }
 
@@ -142,7 +141,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
 
           upsertResult(workflow.id, result);
         } catch (error) {
-          log.error("MiniAppRunner: preview_update error:", error);
+          console.error("MiniAppRunner: preview_update error:", error);
         }
       }
 
@@ -201,7 +200,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     // Subscribe to workflow_id for messages that include workflow_id
     const unsubscribeWorkflow = globalWebSocketManager.subscribe(
       workflowKey,
-      (message: any) => {
+      (message) => {
         const currentWorkflow =
           runnerStore.getState().workflow || selectedWorkflow;
         if (currentWorkflow) {
@@ -224,7 +223,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         return;
       }
 
-      unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message: any) => {
+      unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message) => {
         // Avoid double-processing when the backend already provides workflow_id
         if (message?.workflow_id) {
           return;

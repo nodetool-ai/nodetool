@@ -10,7 +10,6 @@ import { graphNodeToReactFlowNode } from "../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../stores/graphEdgeToReactFlowEdge";
 import { Node as GraphNode, Edge as GraphEdge } from "../stores/ApiTypes";
 import type { WorkflowCreatedUpdate, WorkflowUpdatedUpdate } from "../core/chat/chatProtocol";
-import log from "loglevel";
 
 type WorkflowGraphUpdate = WorkflowCreatedUpdate | WorkflowUpdatedUpdate;
 
@@ -44,14 +43,14 @@ export const useWorkflowGraphUpdater = () => {
       const currentWorkflow = getCurrentWorkflow();
       
       if (!currentWorkflow) {
-        log.warn("No current workflow found to update");
+        console.warn("No current workflow found to update");
         return;
       }
 
       const nodeStore = getNodeStore(currentWorkflow.id);
       
       if (!nodeStore) {
-        log.warn(`No node store found for workflow ${currentWorkflow.id}`);
+        console.warn(`No node store found for workflow ${currentWorkflow.id}`);
         return;
       }
 
@@ -70,15 +69,17 @@ export const useWorkflowGraphUpdater = () => {
         nodeStore.getState().setNodes(reactFlowNodes);
         nodeStore.getState().setEdges(reactFlowEdges);
 
-        layoutTimeout = setTimeout(() => {
-          nodeStore.getState().autoLayout();
+        // autoLayout runs async via setNodes which marks dirty; reset the flag
+        // *after* the layout pass so the cleared state isn't immediately undone.
+        layoutTimeout = setTimeout(async () => {
+          await nodeStore.getState().autoLayout();
+          nodeStore.getState().setWorkflowDirty(false);
         }, 100);
 
-        // Mark the workflow as clean since this is an update from the server
         nodeStore.getState().setWorkflowDirty(false);
-        
+
       } catch (error) {
-        log.error("Error updating workflow graph:", error);
+        console.error("Error updating workflow graph:", error);
       }
     });
 

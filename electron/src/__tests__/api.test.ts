@@ -1,4 +1,4 @@
-import { fetchWorkflows, startPeriodicHealthCheck, stopPeriodicHealthCheck, isConnected } from '../api';
+import { fetchWorkflows } from '../api';
 import { serverState } from '../state';
 
 const mockWorkflowsQuery = jest.fn();
@@ -15,24 +15,10 @@ jest.mock('@trpc/client', () => ({
   httpBatchLink: (...args: unknown[]) => mockHttpBatchLink(...args)
 }));
 
-// Mock the fetch global
-global.fetch = jest.fn();
-const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
-
-// Mock timers for setInterval/clearInterval
-jest.useFakeTimers();
-
 describe('API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.clearAllTimers();
-    // Reset server state
     serverState.serverPort = 7777;
-  });
-
-  afterEach(() => {
-    stopPeriodicHealthCheck();
-    jest.clearAllTimers();
   });
 
   describe('fetchWorkflows', () => {
@@ -86,103 +72,6 @@ describe('API', () => {
       const result = await fetchWorkflows();
 
       expect(result).toEqual([]);
-    });
-  });
-
-  describe('health check', () => {
-    it('should start periodic health check and call onStatusChange', async () => {
-      const onStatusChange = jest.fn();
-      
-      // Mock successful health check
-      mockFetch.mockResolvedValue({
-        ok: true
-      } as any);
-
-      startPeriodicHealthCheck(onStatusChange);
-
-      // Advance timers to trigger initial check
-      await jest.advanceTimersByTimeAsync(0);
-
-      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:7777/health/');
-      expect(onStatusChange).toHaveBeenCalledWith(true);
-    });
-
-    it('should use custom server port for health check', async () => {
-      serverState.serverPort = 9000;
-      
-      mockFetch.mockResolvedValue({
-        ok: true
-      } as any);
-
-      startPeriodicHealthCheck();
-      await jest.advanceTimersByTimeAsync(0);
-
-      expect(mockFetch).toHaveBeenCalledWith('http://127.0.0.1:9000/health/');
-    });
-
-    it('should handle health check failures', async () => {
-      const onStatusChange = jest.fn();
-      
-      // Mock failed health check
-      mockFetch.mockRejectedValue(new Error('Connection refused'));
-
-      startPeriodicHealthCheck(onStatusChange);
-      await jest.advanceTimersByTimeAsync(0);
-
-      expect(onStatusChange).toHaveBeenCalledWith(false);
-    });
-
-    it('should only call onStatusChange when status changes', async () => {
-      const onStatusChange = jest.fn();
-      
-      // Mock successful health check
-      mockFetch.mockResolvedValue({
-        ok: true
-      } as any);
-
-      startPeriodicHealthCheck(onStatusChange);
-      
-      // Run initial health check
-      await jest.advanceTimersByTimeAsync(0);
-      
-      // Run second health check
-      jest.advanceTimersByTime(10000);
-      await jest.advanceTimersByTimeAsync(0);
-
-      // Should only be called once since status didn't change
-      expect(onStatusChange).toHaveBeenCalledTimes(1);
-    });
-
-    it('should clear previous timer when starting new health check', () => {
-      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
-      
-      startPeriodicHealthCheck();
-      startPeriodicHealthCheck(); // Start again
-
-      expect(clearIntervalSpy).toHaveBeenCalled();
-    });
-
-    it('should stop periodic health check', () => {
-      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
-      
-      startPeriodicHealthCheck();
-      stopPeriodicHealthCheck();
-
-      expect(clearIntervalSpy).toHaveBeenCalled();
-    });
-
-    it('should handle stopping health check when no timer is active', () => {
-      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
-      
-      stopPeriodicHealthCheck(); // Stop without starting
-
-      expect(clearIntervalSpy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('isConnected variable', () => {
-    it('should expose isConnected variable', () => {
-      expect(typeof isConnected).toBe('boolean');
     });
   });
 });

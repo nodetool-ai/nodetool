@@ -94,6 +94,11 @@ s(
   "Folders",
   "Path to users.yaml file for multi-user bearer token authentication. Defaults to ~/.config/nodetool/users.yaml for local deployments."
 );
+s(
+  "TRANSFORMERS_JS_CACHE_DIR",
+  "TransformersJs",
+  "Cache directory for Transformers.js (@huggingface/transformers) model downloads. Defaults to <data-dir>/transformers-js-cache. This is separate from the Python HuggingFace Hub cache because the on-disk layout differs."
+);
 
 // Autosave
 s(
@@ -237,6 +242,16 @@ sec(
   "TOGETHER_API_KEY",
   "Together",
   "Together AI API key for accessing open-source LLMs through Together's inference API"
+);
+sec(
+  "DEEPSEEK_API_KEY",
+  "DeepSeek",
+  "DeepSeek API key for accessing DeepSeek-V3 chat and DeepSeek-R1 reasoning models"
+);
+sec(
+  "XAI_API_KEY",
+  "xAI",
+  "xAI API key for accessing Grok models via xAI's OpenAI-compatible API"
 );
 sec(
   "GROQ_API_KEY",

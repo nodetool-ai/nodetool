@@ -68,14 +68,6 @@ global.fetch = jest.fn(() =>
   })
 ) as jest.Mock;
 
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn()
-  }
-}));
 
 // Mock requestAnimationFrame
 global.requestAnimationFrame = jest.fn(cb => setTimeout(cb, 0));

@@ -551,78 +551,71 @@ describe("dbMessageToProviderMessage filtering", () => {
 
 // Mock the @nodetool/agents module
 vi.mock("@nodetool/agents", () => {
+  // Same fixture serves both Agent (legacy) and MultiModeAgent (new graph
+  // path). Tests that don't pass `nodeRegistry` to the runner stay on Agent;
+  // tests that do pass it would use MultiModeAgent.
+  class MockAgentBase {
+    options: any;
+    _results: unknown = null;
+
+    constructor(opts: any) {
+      this.options = opts;
+    }
+
+    async *execute() {
+      yield {
+        type: "planning_update",
+        phase: "Planning",
+        status: "InProgress",
+        content: "Thinking..."
+      };
+      yield {
+        type: "planning_update",
+        phase: "Planning",
+        status: "Success",
+        content: "Plan done"
+      };
+      yield { type: "task_update", event: "started", task: { id: "task-1" } };
+      yield {
+        type: "tool_call_update",
+        name: "read_file",
+        args: { path: "/tmp/test" },
+        tool_call_id: "tc-agent-1"
+      };
+      yield {
+        type: "log_update",
+        node_id: "step-1",
+        node_name: "Step 1",
+        content: "Working...",
+        severity: "info"
+      };
+      yield {
+        type: "step_result",
+        step: { id: "step-1" },
+        result: { output: "done" },
+        is_task_result: false
+      };
+      yield {
+        type: "step_result",
+        step: { id: "final" },
+        result: { markdown: "Final output" },
+        is_task_result: true
+      };
+      yield { type: "chunk", content: "Hello " };
+      yield { type: "chunk", content: "world" };
+
+      this._results = { markdown: "Final agent output" };
+    }
+
+    getResults() {
+      return this._results;
+    }
+  }
+
   return {
     Tool: class {},
-    Agent: class MockAgent {
-      options: any;
-      _results: unknown = null;
-
-      constructor(opts: any) {
-        this.options = opts;
-      }
-
-      async *execute() {
-        // Yield a planning update
-        yield {
-          type: "planning_update",
-          phase: "Planning",
-          status: "InProgress",
-          content: "Thinking..."
-        };
-        yield {
-          type: "planning_update",
-          phase: "Planning",
-          status: "Success",
-          content: "Plan done"
-        };
-
-        // Yield a task update
-        yield { type: "task_update", event: "started", task: { id: "task-1" } };
-
-        // Yield a tool call update
-        yield {
-          type: "tool_call_update",
-          name: "read_file",
-          args: { path: "/tmp/test" },
-          tool_call_id: "tc-agent-1"
-        };
-
-        // Yield a log update
-        yield {
-          type: "log_update",
-          node_id: "step-1",
-          node_name: "Step 1",
-          content: "Working...",
-          severity: "info"
-        };
-
-        // Yield a step result (non-task)
-        yield {
-          type: "step_result",
-          step: { id: "step-1" },
-          result: { output: "done" },
-          is_task_result: false
-        };
-
-        // Yield a step result that IS a task result (should be skipped)
-        yield {
-          type: "step_result",
-          step: { id: "final" },
-          result: { markdown: "Final output" },
-          is_task_result: true
-        };
-
-        // Yield some text chunks
-        yield { type: "chunk", content: "Hello " };
-        yield { type: "chunk", content: "world" };
-
-        this._results = { markdown: "Final agent output" };
-      }
-
-      getResults() {
-        return this._results;
-      }
-    },
+    Agent: MockAgentBase,
+    MultiModeAgent: MockAgentBase,
     ReadFileTool: class {
       name = "read_file";
     },
@@ -828,12 +821,14 @@ describe("handleAgentMessage: error handling", () => {
   });
 
   it("sends error + done chunk + error assistant message on agent failure", async () => {
-    // Override the mock agent to throw
+    // Override the mock agent to throw. The runner now constructs a
+    // MultiModeAgent (with useGraphPlanner inferred from the registry), so
+    // override that class — Agent is no longer used in the agent path.
     const originalMock = vi.mocked(await import("@nodetool/agents"));
-    const OrigAgent = originalMock.Agent;
+    const OrigAgent = originalMock.MultiModeAgent;
 
     // Create a throwing agent class
-    originalMock.Agent = class extends OrigAgent {
+    originalMock.MultiModeAgent = class extends OrigAgent {
       async *execute() {
         throw new Error("Agent exploded");
       }
@@ -880,7 +875,7 @@ describe("handleAgentMessage: error handling", () => {
     expect(errorAssistant).toBeDefined();
 
     // Restore
-    originalMock.Agent = OrigAgent;
+    originalMock.MultiModeAgent = OrigAgent;
 
     await runner.disconnect();
   });

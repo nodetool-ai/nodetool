@@ -1,10 +1,7 @@
-import React from "react";
-import { Box, List } from "@mui/material";
+import React, { useRef } from "react";
+import { Box } from "@mui/material";
 import { Text } from "../../ui_primitives";
-import {
-  FixedSizeList as VirtualList,
-  ListChildComponentProps
-} from "react-window";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import ModelListItem from "./ModelListItem";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
@@ -16,6 +13,9 @@ interface ModelDisplayProps {
   handleDeleteClick: (modelId: string) => void;
 }
 
+const ITEM_SIZE = 130;
+const MAX_LIST_HEIGHT = 600;
+
 const ModelDisplay: React.FC<ModelDisplayProps> = ({
   models,
   handleDeleteClick
@@ -25,9 +25,14 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
   const startDownload = useModelDownloadStore((state) => state.startDownload);
   const openDialog = useModelDownloadStore((state) => state.openDialog);
 
-  // react-window configuration
-  const ITEM_SIZE = 130; // px per row; adjust if list item height changes
-  const MAX_LIST_HEIGHT = 600; // max viewport height
+  const listScrollRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: models.length,
+    getScrollElement: () => listScrollRef.current,
+    estimateSize: () => ITEM_SIZE,
+    overscan: 5,
+    getItemKey: (index) => `${models[index].id}-${index}`,
+  });
   const LIST_HEIGHT = Math.min(models.length * ITEM_SIZE, MAX_LIST_HEIGHT);
 
   const handleStartDownload = React.useCallback(
@@ -58,35 +63,56 @@ const ModelDisplay: React.FC<ModelDisplayProps> = ({
 
   return (
     <Box sx={{ width: "100%" }}>
-      <VirtualList
-        height={LIST_HEIGHT}
-        width={"100%"}
-        itemCount={models.length}
-        itemSize={ITEM_SIZE}
-        outerElementType={List as unknown as React.ComponentType<unknown>}
-        itemKey={(index) => `${models[index].id}-${index}`}
-      >
-        {({ index, style }: ListChildComponentProps) => {
-          const model = models[index];
-          return (
-            <Box style={style} sx={{ px: 0 }}>
-              <ModelListItem
-                model={model}
-                handleModelDelete={
-                  model.downloaded ? handleDeleteClick : undefined
-                }
-                onDownload={
-                  !model.downloaded ? () => handleStartDownload(model) : undefined
-                }
-                handleShowInExplorer={
-                  model.downloaded ? handleShowInExplorer : undefined
-                }
-                showModelStats={true}
-              />
-            </Box>
-          );
+      <div
+        ref={listScrollRef}
+        style={{
+          height: LIST_HEIGHT,
+          width: "100%",
+          overflow: "auto",
         }}
-      </VirtualList>
+      >
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {virtualizer.getVirtualItems().map((vi) => {
+            const model = models[vi.index];
+            return (
+              <Box
+                key={vi.key}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: vi.size,
+                  transform: `translateY(${vi.start}px)`,
+                }}
+                sx={{ px: 0 }}
+              >
+                <ModelListItem
+                  model={model}
+                  handleModelDelete={
+                    model.downloaded ? handleDeleteClick : undefined
+                  }
+                  onDownload={
+                    !model.downloaded
+                      ? () => handleStartDownload(model)
+                      : undefined
+                  }
+                  handleShowInExplorer={
+                    model.downloaded ? handleShowInExplorer : undefined
+                  }
+                  showModelStats={true}
+                />
+              </Box>
+            );
+          })}
+        </div>
+      </div>
     </Box>
   );
 };

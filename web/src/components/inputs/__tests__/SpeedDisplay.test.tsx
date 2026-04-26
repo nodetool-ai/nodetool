@@ -9,7 +9,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { createPortal } from "react-dom";
-import log from "loglevel";
 import { SpeedDisplay } from "../SpeedDisplay";
 
 // Mock createPortal to control its behavior
@@ -18,25 +17,23 @@ jest.mock("react-dom", () => ({
   createPortal: jest.fn()
 }));
 
-// Mock loglevel
-jest.mock("loglevel", () => ({
-  __esModule: true,
-  default: {
-    warn: jest.fn()
-  }
-}));
 
 const mockCreatePortal = createPortal as jest.MockedFunction<typeof createPortal>;
-const mockLogWarn = log.warn as jest.MockedFunction<typeof log.warn>;
+let mockLogWarn: jest.SpyInstance;
 
 describe("SpeedDisplay", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLogWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
     // Default: createPortal works normally
     mockCreatePortal.mockImplementation((node, _container) => {
       // Return the node directly for testing
       return node as React.ReactPortal;
     });
+  });
+
+  afterEach(() => {
+    mockLogWarn?.mockRestore();
   });
 
   describe("Visibility behavior", () => {

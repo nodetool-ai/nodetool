@@ -4,7 +4,8 @@ import React, { memo, useId } from "react";
 import {
   Tabs,
   Tab,
-  Box
+  Box,
+  useMediaQuery
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -327,6 +328,7 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
   void secrets;
 
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
     <div className="settings">
@@ -347,11 +349,20 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
         open={isMenuOpen}
         onClose={handleClose}
         fullWidth
+        fullScreen={isMobile}
         maxWidth="lg"
+        className={`settings-dialog${isMobile ? " settings-dialog--mobile" : ""}`}
         sx={{
           "& .MuiPaper-root": {
-            height: "85vh",
-            overflow: "hidden"
+            height: isMobile ? "100dvh" : "85vh",
+            maxHeight: isMobile ? "100dvh" : undefined,
+            overflow: "hidden",
+            ...(isMobile && {
+              margin: 0,
+              borderRadius: 0,
+              maxWidth: "100vw",
+              width: "100vw"
+            })
           },
           "& .dialog-content": {
             padding: 0,
@@ -384,20 +395,22 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
             </div>
 
             <div className="settings-container">
-              <SettingsSidebar
-                key={`sidebar-${settingsTab}`}
-                activeSection={activeSection}
-                sections={
-                  settingsTab === 0
-                    ? generalSidebarSections
-                    : settingsTab === 1
-                      ? apiKeysSidebarSections
-                      : settingsTab === 2
-                        ? getAboutSidebarSections()
-                        : []
-                }
-                onSectionClick={scrollToSection}
-              />
+              {!isMobile && (
+                <SettingsSidebar
+                  key={`sidebar-${settingsTab}`}
+                  activeSection={activeSection}
+                  sections={
+                    settingsTab === 0
+                      ? generalSidebarSections
+                      : settingsTab === 1
+                        ? apiKeysSidebarSections
+                        : settingsTab === 2
+                          ? getAboutSidebarSections()
+                          : []
+                  }
+                  onSectionClick={scrollToSection}
+                />
+              )}
 
               <div className="settings-content" ref={settingsContentRef}>
                 {/* Tab 0: General */}

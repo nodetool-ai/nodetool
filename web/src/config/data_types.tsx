@@ -7,8 +7,16 @@ import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
+function stringToColor(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    hash |= 0;
+  }
+  return `#${((hash >>> 0) & 0xffffff).toString(16).padStart(6, "0")}`;
+}
+
 // icons
-import stc from "string-to-color";
 import any from "../icons/data_types/nodetool/any.svg?react";
 import notype from "../icons/data_types/nodetool/notype.svg?react";
 import asset from "../icons/data_types/nodetool/asset.svg?react";
@@ -704,7 +712,7 @@ isEqual);
 export function colorForType(type: string): string {
   const normalizedType = normalizeTypeName(type);
   const foundType = DATA_TYPE_MAP[normalizedType];
-  return foundType?.color || stc(type);
+  return foundType?.color || stringToColor(type);
 }
 
 export function textColorForType(type: string): string {
@@ -783,7 +791,7 @@ DATA_TYPES = DATA_TYPES.map((node): DataType => {
 
 // Auto‑derive text colour + register CSS variables
 DATA_TYPES = DATA_TYPES.map((type: DataType) => {
-  const color = type.color || stc(type.value);
+  const color = type.color || stringToColor(type.value);
   const { namespace, name, slug } = getNames(type.value);
   const rgbColor = hexToRgb(color);
   const luminance = rgbColor ? getLuminance(rgbColor) : 0;
@@ -799,7 +807,7 @@ DATA_TYPES = DATA_TYPES.map((type: DataType) => {
 });
 
 DATA_TYPES.forEach((type) => {
-  const color: string = type.color || stc(type.value);
+  const color: string = type.color || stringToColor(type.value);
   document.documentElement.style.setProperty(`--c_${type.slug}`, color);
   document.documentElement.style.setProperty(
     `--c_${type.slug}_text`,

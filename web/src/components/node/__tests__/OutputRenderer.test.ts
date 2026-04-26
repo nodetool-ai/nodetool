@@ -1,6 +1,24 @@
-import { isTextLikeChunk } from "../outputChunkUtils";
+import { isAudioChunkLike, isTextLikeChunk } from "../outputChunkUtils";
 
 describe("OutputRenderer chunk classification", () => {
+  it("detects Whisper-style audio chunks", () => {
+    expect(
+      isAudioChunkLike({
+        timestamp: [0, 1.25],
+        text: "hello world"
+      })
+    ).toBe(true);
+  });
+
+  it("rejects malformed Whisper-style audio chunks", () => {
+    expect(
+      isAudioChunkLike({
+        timestamp: [0],
+        text: "hello world"
+      })
+    ).toBe(false);
+  });
+
   it("treats missing content_type as text for Python-style chunks", () => {
     expect(
       isTextLikeChunk({

@@ -20,7 +20,6 @@ import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
-import log from "loglevel";
 
 const ALLOWED_PROVIDERS = ["OpenAI", "MiniMax", "Anthropic", "Google", "Gemini"];
 const EMPTY_COLLECTIONS: string[] = [];
@@ -288,7 +287,7 @@ const WorkflowAssistantChat: React.FC = () => {
         setThreadListAnchorEl(null);
       })
       .catch((createError) => {
-        log.error("Failed to create new thread:", createError);
+        console.error("Failed to create new thread:", createError);
       });
   }, [createNewThread, switchThread]);
 
@@ -314,7 +313,7 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((deleteError) => {
-        log.error("Failed to delete thread:", deleteError);
+        console.error("Failed to delete thread:", deleteError);
       });
     },
     [deleteThread]
@@ -363,7 +362,7 @@ const WorkflowAssistantChat: React.FC = () => {
           switchThread(newThreadId);
         })
         .catch((createError) => {
-          log.error("Failed to create new thread:", createError);
+          console.error("Failed to create new thread:", createError);
         });
     }
   }, [currentThreadId, status, createNewThread, switchThread]);
@@ -411,18 +410,18 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleAddMessageInput = useCallback(() => {
     const workflowId = currentWorkflowId;
     if (!workflowId) {
-      log.error("No current workflow ID");
+      console.error("No current workflow ID");
       return;
     }
     const currentNodeStore = getNodeStore(workflowId);
     if (!currentNodeStore) {
-      log.error("No node store found for current workflow");
+      console.error("No node store found for current workflow");
       return;
     }
 
     const metadata = nodeMetadata["nodetool.input.MessageInput"];
     if (!metadata) {
-      log.error("MessageInput node metadata not found");
+      console.error("MessageInput node metadata not found");
       return;
     }
 

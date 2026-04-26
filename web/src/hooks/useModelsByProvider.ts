@@ -413,3 +413,56 @@ const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
     supported_tasks: pipelineTask ? [pipelineTask] : []
   };
 };
+
+/**
+ * Hook to fetch Transformers.js models for a given `tjs.<task>` type.
+ *
+ * The backend merges the curated recommended list with anything cached locally
+ * in the Transformers.js cache directory. Recommended-but-uncached entries are
+ * returned with `downloaded: false` so the picker can show them as
+ * downloadable.
+ */
+export const useTransformersJsModelsByType = (opts?: {
+  modelType?: string;
+}) => {
+  const query = useQuery({
+    queryKey: ["tjs-models", opts?.modelType ?? "none"],
+    enabled: !!opts?.modelType,
+    queryFn: async () => {
+      if (!opts?.modelType) return [] as ImageModel[];
+      const models = (await trpc.models.transformersJsByType.query({
+        model_type: opts.modelType
+      })) as UnifiedModel[];
+      return models.map(convertUnifiedToTransformersJsModel);
+    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always"
+  });
+
+  return {
+    models: query.data ?? [],
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    refetch: query.refetch
+  };
+};
+
+const convertUnifiedToTransformersJsModel = (
+  model: UnifiedModel
+): ImageModel => {
+  // Preserve `downloaded` / `size_on_disk` past the conversion — the picker
+  // filters by `downloaded === true` and these fields don't live on the
+  // ImageModel interface, so we widen via cast.
+  return {
+    type: "image_model",
+    provider: "transformers_js" as ImageModel["provider"],
+    id: model.id || model.repo_id || "",
+    name: model.name || model.repo_id || model.id || "",
+    path: model.path || undefined,
+    supported_tasks: [],
+    downloaded: model.downloaded ?? false,
+    size_on_disk: model.size_on_disk ?? null
+  } as ImageModel;
+};

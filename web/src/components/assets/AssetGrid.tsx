@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, memo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
 import { Box } from "@mui/material";
 import { Text, Tooltip, Divider } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -31,6 +31,7 @@ import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import StorageAnalytics from "./StorageAnalytics";
 import {
+  DockviewApi,
   DockviewReact,
   DockviewReadyEvent,
   IDockviewPanelProps,
@@ -43,7 +44,6 @@ type IDockviewPanelWithGroup = IDockviewPanel & {
 };
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
 import { formatFileSize } from "../../utils/formatUtils";
-import log from "loglevel";
 
 const panelComponents = {
   "asset-folders": () => (
@@ -133,6 +133,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const currentAudioAsset = useAssetGridStore((state) => state.currentAudioAsset);
   const currentFolderId = useAssetGridStore((state) => state.currentFolderId);
   const currentFolder = useAssetGridStore((state) => state.currentFolder);
+  const foldersVisible = useAssetGridStore((state) => state.foldersVisible);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
@@ -197,15 +198,58 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     if (user) {
       navigateToFolderId(user?.id);
     } else {
-      log.error("User is not logged in");
+      console.error("User is not logged in");
     }
   }
 
   // Dockview panels are defined as top-level components (see above)
 
+  const dockviewApiRef = useRef<DockviewApi | null>(null);
+
+  const addFoldersPanel = useCallback(
+    (api: DockviewApi) => {
+      const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
+        id: "asset-folders",
+        component: "asset-folders",
+        title: "Folders",
+        position: api.getPanel("asset-files")
+          ? {
+              referencePanel: "asset-files",
+              direction: isFullscreenAssets ? "left" : "above"
+            }
+          : undefined,
+        ...(isFullscreenAssets
+          ? { initialWidth: FOLDERS_PANEL_WIDTH }
+          : { initialHeight: FOLDERS_PANEL_HEIGHT })
+      });
+
+      const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
+      if (groupApi && typeof groupApi.setSize === "function") {
+        if (isFullscreenAssets) {
+          groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });
+        } else {
+          groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
+        }
+      }
+    },
+    [isFullscreenAssets]
+  );
+
+  useEffect(() => {
+    const api = dockviewApiRef.current;
+    if (!api || isMobile) return;
+    const existing = api.getPanel("asset-folders");
+    if (foldersVisible && !existing) {
+      addFoldersPanel(api);
+    } else if (!foldersVisible && existing) {
+      api.removePanel(existing);
+    }
+  }, [foldersVisible, isMobile, addFoldersPanel]);
+
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
+      dockviewApiRef.current = api;
 
       if (isMobile) {
         // On mobile, skip the folders panel — just show files with breadcrumb nav

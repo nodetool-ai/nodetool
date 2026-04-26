@@ -3,7 +3,10 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
-import { AgentModeSelector } from "../composer/AgentModeSelector";
+import {
+  AgentModeSelector,
+  type AgentPlanner
+} from "../composer/AgentModeSelector";
 import WorkflowToolsSelector from "../composer/WorkflowToolsSelector";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import NodeToolsSelector from "../composer/NodeToolsSelector";
@@ -105,6 +108,8 @@ interface ChatToolBarProps {
   onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  agentPlanner?: AgentPlanner;
+  onAgentPlannerChange?: (planner: AgentPlanner) => void;
   selectedCollections?: string[];
   onCollectionsChange?: (collections: string[]) => void;
   allowedProviders?: string[];
@@ -118,6 +123,8 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   onModelChange,
   agentMode,
   onAgentModeToggle,
+  agentPlanner,
+  onAgentPlannerChange,
   selectedCollections,
   onCollectionsChange,
   allowedProviders,
@@ -191,6 +198,8 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
             <AgentModeSelector
               agentMode={agentMode || false}
               onToggle={onAgentModeToggle}
+              agentPlanner={agentPlanner}
+              onPlannerChange={onAgentPlannerChange}
             />
           </div>
         </>

@@ -22,6 +22,26 @@ export {
   getTracer,
   type TelemetryOptions
 } from "./telemetry.js";
+export {
+  spanToRecord,
+  JsonlFileSpanExporter,
+  StdoutSpanExporter,
+  type TraceRecord,
+  type StdoutFormat
+} from "./trace-exporters.js";
+export {
+  withAgentSpan,
+  withAgentSpanGen,
+  withWorkflowSpan,
+  withNodeSpan,
+  withSpanGen,
+  setLastUsage,
+  consumeLastUsage,
+  peekLastUsage,
+  createUsageSlot,
+  type AgentSpanKind,
+  type LlmUsage
+} from "./tracing-helpers.js";
 export { packContext, type PackedContext } from "./context-packer.js";
 export {
   PythonStdioBridge,
@@ -67,3 +87,5 @@ export type {
   ComfyProgressEvent,
   ComfyExecutionHandle
 } from "./comfy-executor.js";
+export { RECOMMENDED_MODELS } from "./recommended-models.js";
+export type { RecommendedUnifiedModel } from "./recommended-models.js";

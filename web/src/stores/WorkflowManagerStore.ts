@@ -24,7 +24,6 @@ import {
 } from "../serverState/useWorkflow";
 import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeStore } from "./workflowUpdates";
 import { getWorkflowRunnerStore } from "./WorkflowRunner";
-import log from "loglevel";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
@@ -242,6 +241,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             throw createErrorMessage(err, "Failed to save workflow");
           }
 
+          // Version snapshot is best-effort — the main save already succeeded.
           try {
             await trpcClient.workflows.versions.create.mutate({
               id: workflow.id,
@@ -249,7 +249,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               description: `Manual save: ${new Date().toISOString()}`
             });
           } catch (err) {
-            log.warn("[saveWorkflow] Failed to create version:", err);
+            console.warn(
+              "[saveWorkflow] Workflow saved but version snapshot failed:",
+              err
+            );
           }
 
           const persistedWorkflow: Workflow = {
@@ -409,7 +412,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           const data = await trpcClient.workflows.examples.query({ query });
           return data as unknown as WorkflowList;
         } catch (err) {
-          log.error("[WorkflowManagerStore] searchTemplates error:", err);
+          console.error("[WorkflowManagerStore] searchTemplates error:", err);
           throw createErrorMessage(err, "Failed to search templates");
         }
       },
@@ -524,7 +527,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       addWorkflow: (workflow: Workflow) => {
         const existingStore = get().getNodeStore(workflow.id);
         if (existingStore) {
-          log.warn(
+          console.warn(
             `[WorkflowManager] A store for workflow ${workflow.id} already exists. Skipping creation.`
           );
           return;
@@ -665,7 +668,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           await hydrateWorkflowResultsFromAssets(data.id);
           return data;
         } catch (e) {
-          log.error(
+          console.error(
             `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
             e
           );

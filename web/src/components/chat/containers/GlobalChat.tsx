@@ -29,12 +29,12 @@ import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
 import type { ThreadInfo } from "../types/thread.types";
+import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 import { useShallow } from "zustand/react/shallow";
-import log from "loglevel";
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -68,6 +68,10 @@ const GlobalChat: React.FC = () => {
   // Agent mode and settings (change less frequently)
   const agentMode = useGlobalChatStore((state) => state.agentMode);
   const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
+  const agentPlanner = useGlobalChatStore((state) => state.agentPlanner);
+  const setAgentPlanner = useGlobalChatStore(
+    (state) => state.setAgentPlanner
+  );
 
   // Task updates (change during execution)
   const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
@@ -94,14 +98,14 @@ const GlobalChat: React.FC = () => {
   // Initialize GlobalChatStore connection on mount
   useEffect(() => {
     connect().catch((err) => {
-      log.error("Failed to connect GlobalChatStore:", err);
+      console.error("Failed to connect GlobalChatStore:", err);
     });
 
     return () => {
       try {
         disconnect();
       } catch (err) {
-        log.error("Error during GlobalChatStore disconnect:", err);
+        console.error("Error during GlobalChatStore disconnect:", err);
       }
     };
   }, [connect, disconnect]);
@@ -222,7 +226,7 @@ const GlobalChat: React.FC = () => {
       } catch (error) {
         // Only log errors if the operation wasn't cancelled
         if (!abortController.signal.aborted) {
-          log.error("Failed to handle thread logic:", error);
+          console.error("Failed to handle thread logic:", error);
         }
       }
     };
@@ -309,7 +313,7 @@ const GlobalChat: React.FC = () => {
       switchThread(newThreadId);
       navigate(`/chat/${newThreadId}`);
     } catch (error) {
-      log.error("Failed to create new thread:", error);
+      console.error("Failed to create new thread:", error);
     }
   }, [createNewThread, switchThread, navigate]);
 
@@ -341,7 +345,7 @@ const GlobalChat: React.FC = () => {
           selectedCollections.length > 0 ? selectedCollections : undefined,
         agent_mode: agentMode
       }).catch((err) => {
-        log.error("Failed to send suggestion:", err);
+        console.error("Failed to send suggestion:", err);
       });
     },
     [sendMessage, selectedModel, selectedTools, selectedCollections, agentMode]
@@ -355,7 +359,7 @@ const GlobalChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((error) => {
-        log.error("Failed to delete thread:", error);
+        console.error("Failed to delete thread:", error);
       });
     },
     [deleteThread]
@@ -383,7 +387,7 @@ const GlobalChat: React.FC = () => {
       }
 
       const firstUserMessage = threadMessages.find(
-        (msg: any) => msg.role === "user"
+        (msg: Message) => msg.role === "user"
       );
       if (firstUserMessage) {
         const content =
@@ -391,7 +395,7 @@ const GlobalChat: React.FC = () => {
             ? firstUserMessage.content
             : Array.isArray(firstUserMessage.content) &&
               firstUserMessage.content[0]?.type === "text"
-              ? (firstUserMessage.content[0] as any).text
+              ? (firstUserMessage.content[0] as MessageTextContent).text
               : "[Media message]";
         return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
       }
@@ -505,7 +509,7 @@ const GlobalChat: React.FC = () => {
                 onClick={() => {
                   setAlertDismissed(true);
                   connect().catch((err) => {
-                    log.error("Retry connection failed:", err);
+                    console.error("Retry connection failed:", err);
                   });
                 }}
                 variant="outlined"
@@ -640,6 +644,8 @@ const GlobalChat: React.FC = () => {
               onNewChat={handleNewChat}
               agentMode={agentMode}
               onAgentModeToggle={setAgentMode}
+              agentPlanner={agentPlanner}
+              onAgentPlannerChange={setAgentPlanner}
               currentPlanningUpdate={currentPlanningUpdate}
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}

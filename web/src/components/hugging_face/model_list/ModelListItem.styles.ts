@@ -23,7 +23,32 @@ const modelListItemStyles = (theme: Theme) =>
       },
 
       "&.compact": {
-        padding: ".5em .75em"
+        padding: ".5em .75em",
+
+        "& .model-top-row": {
+          gap: "0.5em",
+          minHeight: 0
+        },
+        "& .model-name": {
+          WebkitLineClamp: 1,
+          fontSize: "0.95rem",
+          wordBreak: "normal",
+          overflowWrap: "anywhere"
+        },
+        "& .model-owner": {
+          fontSize: "0.75rem"
+        },
+        "& .actions-container": {
+          minWidth: 0,
+          gap: "0.5em"
+        },
+        "& .model-size": {
+          minWidth: 0,
+          fontSize: "var(--fontSizeSmaller)"
+        },
+        "& .model-info-container > .model-details": {
+          display: "none"
+        }
       },
 
       "& .model-content": {

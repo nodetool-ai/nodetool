@@ -11,7 +11,6 @@ import AudioViewer from "../asset_viewer/AudioViewer";
 import VideoViewer from "../asset_viewer/VideoViewer";
 import LazyPDFViewer from "../asset_viewer/LazyPDFViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
-import log from "loglevel";
 
 const isModel3D = (type: string, url?: string): boolean => {
   if (
@@ -164,7 +163,7 @@ const FileTabContent: React.FC<FileTabContentProps> = ({ asset }) => {
       .then((text) => {
         setTextContent(text);
       })
-      .catch(log.error)
+      .catch(console.error)
       .finally(() => setIsLoading(false));
   }, [asset.get_url, isTextFile]);
 

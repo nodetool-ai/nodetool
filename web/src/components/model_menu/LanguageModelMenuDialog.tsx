@@ -1,6 +1,6 @@
 import { memo } from "react";
 import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
-import type { LanguageModel } from "../../stores/ApiTypes";
+import type { LanguageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useLanguageModelMenuStore } from "../../stores/ModelMenuStore";
 import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 
@@ -10,6 +10,8 @@ export interface LanguageModelMenuDialogProps {
   onModelChange?: (model: LanguageModel) => void;
   allowedProviders?: string[];
   anchorEl?: HTMLElement | null;
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 function LanguageModelMenuDialog({
@@ -17,7 +19,9 @@ function LanguageModelMenuDialog({
   onClose,
   onModelChange,
   allowedProviders,
-  anchorEl
+  anchorEl,
+  recommendedModels,
+  modelPacks
 }: LanguageModelMenuDialogProps) {
   const modelData = useLanguageModelsByProvider({ allowedProviders });
   return (
@@ -30,6 +34,8 @@ function LanguageModelMenuDialog({
       title="Select Language Model"
       searchPlaceholder="Search language models..."
       storeHook={useLanguageModelMenuStore}
+      recommendedModels={recommendedModels}
+      modelPacks={modelPacks}
     />
   );
 }

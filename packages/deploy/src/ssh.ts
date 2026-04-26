@@ -13,6 +13,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
+import { createLogger } from "@nodetool/config";
+
+const log = createLogger("nodetool.deploy.ssh");
 
 // ---------------------------------------------------------------------------
 // ssh2 types — we define minimal interfaces so the module compiles even when
@@ -250,8 +253,8 @@ export class SSHConnection {
     if (this.sftp) {
       try {
         this.sftp.end();
-      } catch {
-        // ignore
+      } catch (err) {
+        log.debug(`SFTP end() threw on disconnect from ${this.host}`, err);
       }
       this.sftp = null;
     }
@@ -259,8 +262,8 @@ export class SSHConnection {
     if (this.client) {
       try {
         this.client.end();
-      } catch {
-        // ignore
+      } catch (err) {
+        log.debug(`SSH client end() threw on disconnect from ${this.host}`, err);
       }
       this.client = null;
     }

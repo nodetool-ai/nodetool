@@ -115,6 +115,27 @@ export {
   WorkspaceListTool
 } from "./tools/workspace-tools.js";
 export { ListProviderModelsTool } from "./tools/model-tools.js";
+export { FindModelTool } from "./tools/find-model-tool.js";
+export {
+  GenerateImageTool,
+  EditImageTool,
+  GenerateVideoTool,
+  AnimateImageTool,
+  GenerateSpeechTool,
+  TranscribeAudioTool,
+  EmbedTextTool
+} from "./tools/media-tools.js";
+export {
+  GENERIC_AI_NODES,
+  CORE_BASELINE_NAMESPACES,
+  PROVIDER_NAMESPACES,
+  buildGraphPlannerSystemPrompt
+} from "./prompts/graph-planner-prompt.js";
+export type {
+  GenericAINode,
+  GenericNodeCapability,
+  BuildPromptOptions
+} from "./prompts/graph-planner-prompt.js";
 export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";

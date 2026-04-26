@@ -5,7 +5,6 @@
 import { useCallback } from "react";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
-import log from "loglevel";
 
 interface UseAssetImageEditorResult {
   saveEditedImage: (
@@ -42,7 +41,7 @@ export const useAssetImageEditor = (): UseAssetImageEditorResult => {
   const saveEditedImage = useCallback(
     async (asset: Asset, blob: Blob) => {
       try {
-        log.info(`[useAssetImageEditor] Saving edited image for asset: ${asset.id}`);
+        console.info(`[useAssetImageEditor] Saving edited image for asset: ${asset.id}`);
 
         // Convert blob to base64 data URL
         const base64Data = await blobToBase64(blob);
@@ -59,9 +58,9 @@ export const useAssetImageEditor = (): UseAssetImageEditorResult => {
           invalidateQueries(["assets", { parent_id: asset.parent_id }]);
         }
 
-        log.info(`[useAssetImageEditor] Successfully saved edited image for asset: ${asset.id}`);
+        console.info(`[useAssetImageEditor] Successfully saved edited image for asset: ${asset.id}`);
       } catch (error) {
-        log.error("[useAssetImageEditor] Failed to save edited image:", error);
+        console.error("[useAssetImageEditor] Failed to save edited image:", error);
         throw error;
       }
     },

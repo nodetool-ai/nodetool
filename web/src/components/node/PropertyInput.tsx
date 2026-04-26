@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, createElement, memo } from "react";
+import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyLabel from "./PropertyLabel";
 import useContextMenu from "../../stores/ContextMenuStore";
@@ -340,7 +341,7 @@ function handleListType(
 }
 
 function handleModelTypes(type: string): React.ComponentType<PropertyProps> {
-  const modelPrefixes = ["comfy.", "hf."];
+  const modelPrefixes = ["comfy.", "hf.", "tjs."];
 
   if (type.endsWith("_model")) {
     return ModelProperty;
@@ -407,7 +408,8 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       updateNodeProperties: state.updateNodeProperties,
       updateNodeData: state.updateNodeData,
       findNode: state.findNode
-    })
+    }),
+    shallow
   );
   const metadata = useMetadataStore((state) => state.metadata);
 
