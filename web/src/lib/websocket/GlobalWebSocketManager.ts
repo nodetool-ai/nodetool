@@ -1,4 +1,4 @@
-import { EventEmitter } from "eventemitter3";
+import { EventEmitter } from "../EventEmitter";
 import { isLocalhost } from "../env";
 import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { handleResourceChange } from "../../stores/resourceChangeHandler";

@@ -1,5 +1,5 @@
 import type { Message } from "../ApiTypes";
-import { EventEmitter } from "eventemitter3";
+import { EventEmitter } from "../../lib/EventEmitter";
 
 describe("AgentStore", () => {
   const createSessionMock = jest.fn<

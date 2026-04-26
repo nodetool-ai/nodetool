@@ -6,7 +6,7 @@
  * messages until connected, retries with exponential-ish backoff, and enforces
  * valid transitions to avoid double-connect/disconnect races.
  */
-import { EventEmitter } from "eventemitter3";
+import { EventEmitter } from "../EventEmitter";
 import { encode, decode } from "@msgpack/msgpack";
 
 export type ConnectionState =

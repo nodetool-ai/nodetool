@@ -7,7 +7,7 @@
  * agent SDK in the Electron main process.
  */
 
-import { EventEmitter } from "eventemitter3";
+import { EventEmitter } from "../EventEmitter";
 import { AGENT_WS_URL } from "../../stores/BASE_URL";
 import type {
   AgentClientCommand,
