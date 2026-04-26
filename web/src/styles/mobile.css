@@ -178,11 +178,14 @@
     max-width: 100% !important;
   }
 
-  /* Model Menu (LanguageModelSelect) Mobile Trims */
+  /* Model Menu fullscreen on mobile — match Settings dialog pattern. */
   .mobile .model-menu__dialog .MuiDialog-paper {
-    width: 98% !important;
-    max-width: 100% !important;
-    margin: 8px !important;
+    margin: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
   }
 
   /* Collapse complex 3-column grid → single column */
@@ -321,10 +324,13 @@
     display: none !important;
   }
 
-  /* Keep header fixed at the very top on mobile */
+  /* Header pinned to top; honour iOS safe-area so it clears the notch. */
   .mobile .app-header {
     position: fixed !important;
     top: 0 !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-left: env(safe-area-inset-left, 0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
     z-index: 1400 !important; /* Higher than panels */
   }
 
@@ -359,6 +365,12 @@
   /* Panel Right Mobile Styles - Hide entire right panel container on mobile */
   .mobile .panel-right,
   .mobile .panel-right .panel-container {
+    display: none !important;
+  }
+
+  /* Bottom trace panel is desktop-only; would overlap mobile bottom sheets. */
+  .mobile .panel-bottom-drawer,
+  .mobile .panel-bottom-drawer .MuiDrawer-paper {
     display: none !important;
   }
 
@@ -765,5 +777,46 @@
   .mobile .chat-composer .compose-message textarea {
     padding: 8px 10px 4px 6px;
     min-height: 36px;
+  }
+}
+
+/* Honour iOS safe-area bottom (home indicator) on bottom-anchored elements. */
+@media (max-width: 599.95px) {
+  .mobile .panel-bottom-drawer .MuiDrawer-paper,
+  .mobile .panel-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  .mobile .chat-input-section,
+  .mobile .global-chat-container .chat-input-section {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .mobile .mobile-bottom-sheet,
+  .mobile [data-mobile-bottom-sheet] {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  /* Inputs >=16px so iOS Safari doesn't auto-zoom on focus. */
+  .mobile input[type="text"],
+  .mobile input[type="search"],
+  .mobile input[type="number"],
+  .mobile input[type="email"],
+  .mobile input[type="url"],
+  .mobile input[type="tel"],
+  .mobile input[type="password"],
+  .mobile textarea,
+  .mobile select {
+    font-size: max(16px, 1em) !important;
+  }
+
+  .mobile .app-header .toolbar,
+  .mobile .tabs-container,
+  .mobile [data-mobile-scroll-x] {
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .mobile .MuiDialog-root .MuiDialogActions-root {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }

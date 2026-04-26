@@ -4,8 +4,14 @@
     <style>
       html,
       body,
-      #rooot {
+      #root {
         background-color: var(--palette-background-default, #181a1b);
+      }
+      html,
+      body {
+        /* Match doc bg under iOS dynamic toolbars; block rubber-band scroll. */
+        background-color: var(--palette-background-default, #181a1b);
+        overscroll-behavior-y: none;
       }
     </style>
     <meta charset="utf-8" />

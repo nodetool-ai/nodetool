@@ -131,7 +131,8 @@ const styles = (theme: Theme) =>
       top: 0,
       left: 0,
       width: "100vw",
-      height: "100vh",
+      // dvh: avoid the gap iOS Safari leaves when the URL bar collapses.
+      height: "100dvh",
       padding: 0,
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.85)`
     },
@@ -554,6 +555,49 @@ const styles = (theme: Theme) =>
       ".button": {
         minWidth: "34px",
         minHeight: "34px"
+      }
+    },
+    // Phones: edge-to-edge — desktop layout leaves a 51px dead band on the left.
+    "@media (max-width: 599.95px)": {
+      ".modal-overlay": {
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100dvh",
+        maxHeight: "100dvh",
+        padding: 0,
+        alignItems: "stretch"
+      },
+      ".modal-content, .modal-content.fullscreen": {
+        width: "100vw",
+        maxWidth: "100vw",
+        height: "100dvh !important",
+        maxHeight: "100dvh",
+        margin: 0,
+        borderRadius: 0,
+        border: "none",
+        animation: "none"
+      },
+      ".resize-handle": {
+        display: "none"
+      },
+      ".language-select": {
+        display: "none"
+      },
+      ".modal-header": {
+        padding: "0.4em 0.6em",
+        minHeight: "2.6em"
+      },
+      ".description": {
+        display: "none"
+      },
+      ".toolbar-group": {
+        padding: "2px 4px"
+      },
+      ".button": {
+        minWidth: "32px",
+        minHeight: "32px",
+        padding: "4px"
       }
     }
   });
