@@ -355,15 +355,17 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - [ ] Quarantine or explicitly mark `packages/websocket/src/realtime/webrtc-spike.ts` as test-only if it remains only spike/test support.
   - Do not destabilize LongLive/Self-Forcing real smoke, VACE, or community LoRA paths while they remain opt-in/experimental.
 
-- [ ] Define the runtime placement matrix for JS inference: operator browser, Electron renderer, Node backend, or server worker.
-- [ ] Add node metadata for browser/JS realtime capabilities: browser-capable, requires-browser-frame, requires-WebGPU, emits-analysis-event, emits-parameter-update, and emits-media-frame.
-- [ ] Define model-loading surface: progress, selected backend, warm-state readiness, cache hit/miss, model download errors, and fallback backend selection.
-- [ ] Keep analysis outputs off the media plane by default. Only pixel/audio buffers use `VideoFrame` / `AudioFrame`.
-- [ ] Add a package boundary for browser-capable realtime nodes, such as `packages/realtime-browser/`.
-- [ ] Implement first proof nodes: pose or hand landmarks via TF.js/MediaPipe-compatible models, plus one Transformers.js caption/classification node sampled from frames.
-- [ ] Feed browser/JS inference metrics into `realtime_metrics`.
-- [ ] Add editor/operator affordances for browser-local nodes.
-- [ ] Document how browser-local outputs become graph inputs for server-side model nodes.
+- [ ] Phase 3 implementation sequence for browser/JS realtime inference:
+  - [x] Protocol foundation exists: `RealtimeInferencePlacement`, `RealtimeInferenceMetrics`, loading/cache/backend state, and `RealtimeNodeProfile` are defined in shared protocol/SDK metadata.
+  - [x] Media-plane foundation exists: `RealtimeFrame` remains pixel/audio only (`VideoFrame` / `AudioFrame`), so analysis outputs must use control/event messages rather than frame routing.
+  - [ ] Add missing Python bridge descriptor parity for `realtime_profile` so TS and Python node metadata expose the same realtime capability surface.
+  - [ ] Define and document the runtime placement matrix for JS inference: operator browser, Electron renderer, Node backend, or server worker, including allowed engines/backends and validation rules.
+  - [ ] Add a browser-only package boundary for browser-capable realtime nodes, such as `packages/realtime-browser/`; do not mix TF.js/MediaPipe/Transformers.js dependencies into server realtime nodes.
+  - [ ] Implement first proof nodes behind mocked-by-default loaders: pose or hand landmarks via MediaPipe/TF.js-compatible models, plus one Transformers.js caption/classification node sampled from frames.
+  - [ ] Add a typed analysis/control event path for browser-local outputs and parameter updates while keeping media buffers on the media plane only.
+  - [ ] Wire browser/JS inference metrics through the realtime session client/store and session broadcast path as `realtime_inference_metrics`, beside transport `realtime_metrics`.
+  - [ ] Add editor/operator affordances for browser-local nodes: browser-local badges, WebGPU/browser-frame warnings, loading/cache/backend state, and placement validation.
+  - [ ] Document how browser-local outputs become graph inputs for server-side model nodes.
 
 ## Phase 4 - Workflow integration
 
