@@ -17,7 +17,8 @@ import type {
   GraphData,
   ProcessingMessage,
   Chunk,
-  PlanningUpdate
+  PlanningUpdate,
+  ToolCallUpdate
 } from "@nodetool/protocol";
 
 import type { Tool } from "./tools/base-tool.js";
@@ -309,6 +310,16 @@ export class GraphPlanner {
       for (const tc of pendingToolCalls) {
         totalToolCalls++;
         log.debug("Tool call", { name: tc.name, args: tc.args });
+
+        yield {
+          type: "tool_call_update",
+          tool_call_id: tc.id,
+          name: tc.name,
+          args: tc.args,
+          message: this.formatToolCallMessage(tc.name, tc.args),
+          node_id: "graph_planner"
+        } satisfies ToolCallUpdate;
+
         const tool = toolMap.get(tc.name);
         if (!tool) {
           messages.push({
@@ -344,6 +355,30 @@ export class GraphPlanner {
     return {
       error: `Exceeded maximum tool calls (${MAX_TOOL_CALLS_PER_TURN})`
     };
+  }
+
+  private formatToolCallMessage(
+    name: string,
+    args: Record<string, unknown>
+  ): string {
+    switch (name) {
+      case "search_nodes":
+        return `Searching nodes for "${String(args.query ?? "")}"`;
+      case "get_node_info":
+        return `Inspecting ${String(args.node_type ?? "node")}`;
+      case "list_nodes":
+        return `Listing nodes in ${String(args.namespace ?? "all")}`;
+      case "find_model":
+        return `Finding model for ${String(args.task ?? args.capability ?? "task")}`;
+      case "add_node":
+        return `Adding node ${String(args.node_type ?? "")}${args.id ? ` (${String(args.id)})` : ""}`;
+      case "add_edge":
+        return `Connecting ${String(args.source ?? "")} → ${String(args.target ?? "")}`;
+      case "finish_graph":
+        return "Finalizing graph";
+      default:
+        return `Calling ${name}`;
+    }
   }
 
   private formatToolsInfo(): string {
