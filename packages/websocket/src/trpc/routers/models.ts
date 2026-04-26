@@ -63,7 +63,8 @@ const unifiedModelSchema = z.object({
   likes: z.number().nullish(),
   supported_tasks: z.array(z.string()).nullish(),
   trending_score: z.number().nullish(),
-  image: z.string().nullish()
+  image: z.string().nullish(),
+  supports_tools: z.boolean().nullish()
 });
 
 const modelsListOutput = z.array(unifiedModelSchema);
@@ -676,11 +677,14 @@ function tjsCachedAsRecommended(repoId: string): TjsModelRef[] {
   return out;
 }
 
-function toUnifiedLanguageModel(model: {
-  id: string;
-  name: string;
-  provider: string;
-}): UnifiedModel {
+function toUnifiedLanguageModel(
+  model: {
+    id: string;
+    name: string;
+    provider: string;
+  },
+  supportsTools?: boolean | null
+): UnifiedModel {
   return {
     id: model.id,
     type: "language_model",
@@ -689,7 +693,8 @@ function toUnifiedLanguageModel(model: {
     repo_id: null,
     path: model.id,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
-    tags: [model.provider]
+    tags: [model.provider],
+    supports_tools: supportsTools ?? null
   };
 }
 
@@ -732,7 +737,16 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
       const instance = await instantiateProvider(providerId, userId);
       if (!instance) continue;
       const models = await instance.getAvailableLanguageModels();
-      all.push(...models.map(toUnifiedLanguageModel));
+      const toolFlags = await Promise.all(
+        models.map((m) =>
+          instance
+            .hasToolSupport(m.id)
+            .catch(() => null as boolean | null)
+        )
+      );
+      models.forEach((m, i) => {
+        all.push(toUnifiedLanguageModel(m, toolFlags[i]));
+      });
     } catch {
       // Provider unavailable — skip
     }
@@ -1116,7 +1130,16 @@ export const modelsRouter = router({
           );
           if (!instance) return [];
           const models = await instance.getAvailableLanguageModels();
-          return models.map(toUnifiedLanguageModel);
+          const toolFlags = await Promise.all(
+            models.map((m) =>
+              instance
+                .hasToolSupport(m.id)
+                .catch(() => null as boolean | null)
+            )
+          );
+          return models.map((m, i) =>
+            toUnifiedLanguageModel(m, toolFlags[i])
+          );
         },
         []
       )

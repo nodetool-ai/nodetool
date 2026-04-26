@@ -126,6 +126,8 @@ export interface MediaChatComposerProps {
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;
   allowedProviders?: string[];
+  /** Hide non-tool-capable models in the language model picker. */
+  requireToolSupport?: boolean;
 }
 
 /**
@@ -157,7 +159,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   onAgentPlannerChange,
   selectedModel,
   onModelChange,
-  allowedProviders
+  allowedProviders,
+  requireToolSupport
 }) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -826,6 +829,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                   setLanguageModelOpen(false);
                 }}
                 allowedProviders={allowedProviders}
+                requireToolSupport={requireToolSupport || agentMode}
               />
             </>
           )}

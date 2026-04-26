@@ -115,6 +115,12 @@ type ChatViewProps = {
   noMessagesPlaceholder?: React.ReactNode;
   onInsertCode?: (text: string, language?: string) => void;
   allowedProviders?: string[];
+  /**
+   * Hide non-tool-capable models in the composer's language model picker.
+   * The composer auto-enables this whenever `agentMode` is on; pass `true`
+   * here to force-filter regardless of agent mode.
+   */
+  requireToolSupport?: boolean;
   workflowId?: string | null;
   /**
    * Controls which composer is rendered below the thread.
@@ -162,6 +168,7 @@ const ChatView = ({
   runningToolCallId,
   runningToolMessage,
   allowedProviders,
+  requireToolSupport,
   workflowId,
   composerVariant,
   composerToolbar
@@ -257,6 +264,7 @@ const ChatView = ({
         agentPlanner={agentPlanner}
         onAgentPlannerChange={onAgentPlannerChange}
         allowedProviders={allowedProviders}
+        requireToolSupport={requireToolSupport}
         variant={composerVariant}
         composerToolbar={composerToolbar}
       />

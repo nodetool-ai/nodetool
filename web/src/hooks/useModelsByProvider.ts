@@ -39,6 +39,12 @@ import {
  */
 export const useLanguageModelsByProvider = (options?: {
   allowedProviders?: string[];
+  /**
+   * When true, drop models whose `supports_tools` is explicitly `false`.
+   * Models with `supports_tools` unset/null are kept (unknown is assumed
+   * to support tools — matches the BaseProvider default).
+   */
+  requireToolSupport?: boolean;
 }) => {
   const { providers: allProviders, isLoading: providersLoading } =
     useLanguageModelProviders();
@@ -72,9 +78,13 @@ export const useLanguageModelsByProvider = (options?: {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries
+  const aggregatedLanguageModels = queries
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
+
+  const allModels = options?.requireToolSupport
+    ? aggregatedLanguageModels.filter((m) => m.supports_tools !== false)
+    : aggregatedLanguageModels;
 
   // Track per-provider errors for debugging feedback
   const providerErrors = useMemo(() => {
