@@ -17,7 +17,11 @@ import {
   toWorkflowResponse
 } from "./http-api.js";
 import { uiToolSchemas } from "@nodetool/protocol";
-import { NodeRegistry, type NodeMetadata } from "@nodetool/node-sdk";
+import {
+  NodeRegistry,
+  rankNodeMetadata,
+  type NodeMetadata
+} from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
@@ -674,36 +678,38 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
 
   server.tool(
     "search_nodes",
-    "Search for nodes by name, description, or tags.",
+    "Search for nodes by name, description, or tags. Provider-specific nodes (openai.*, anthropic.*, etc.) are hidden by default; set include_provider_nodes:true to include them.",
     {
       query: z.array(z.string()).describe("Search keywords"),
-      n_results: z.number().optional().default(10).describe("Maximum results")
+      n_results: z.number().optional().default(10).describe("Maximum results"),
+      namespace: z
+        .string()
+        .optional()
+        .describe(
+          "Optional namespace prefix to scope the search (e.g. 'nodetool.control')."
+        ),
+      include_provider_nodes: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          "Include provider-specific nodes. Default false — set true only when the user named a provider."
+        )
     },
-    async ({ query, n_results }) => {
+    async ({ query, n_results, namespace, include_provider_nodes }) => {
       try {
         const nodes = await getUnifiedNodeMetadata(options);
-        const lowerQuery = query.map((q) => q.toLowerCase());
-
-        const scored = nodes.map((n) => {
-          let score = 0;
-          const searchable =
-            `${n.title} ${n.description} ${n.node_type} ${n.namespace}`.toLowerCase();
-          for (const q of lowerQuery) {
-            if (searchable.includes(q)) score++;
-          }
-          return { node: n, score };
+        const ranked = rankNodeMetadata(nodes, query, {
+          includeProviderNodes: include_provider_nodes,
+          namespacePrefix: namespace
         });
-
-        const matches = scored
-          .filter((s) => s.score > 0)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, n_results)
-          .map((s) => ({
-            node_type: s.node.node_type,
-            title: s.node.title,
-            description: s.node.description,
-            namespace: s.node.namespace
-          }));
+        const matches = ranked.slice(0, n_results).map(({ meta, score }) => ({
+          node_type: meta.node_type,
+          title: meta.title,
+          description: meta.description,
+          namespace: meta.namespace,
+          score
+        }));
 
         return {
           content: [{ type: "text" as const, text: JSON.stringify(matches) }]

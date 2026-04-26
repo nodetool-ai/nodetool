@@ -2,6 +2,7 @@
  * Tests for T-AG-4: Asset tools (SaveAssetTool, ReadAssetTool).
  */
 
+import { Buffer } from "node:buffer";
 import { describe, it, expect, vi } from "vitest";
 import { SaveAssetTool } from "../../src/tools/asset-tools.js";
 import { ReadAssetTool } from "../../src/tools/asset-tools.js";
@@ -29,7 +30,7 @@ describe("SaveAssetTool", () => {
 
   it("has correct name and description", () => {
     expect(tool.name).toBe("save_asset");
-    expect(tool.description).toBe("Save content as an asset file");
+    expect(tool.description).toMatch(/Save content as an asset/);
   });
 
   it("saves content with default content_type", async () => {
@@ -77,7 +78,7 @@ describe("SaveAssetTool", () => {
     expect(result.error).toMatch(/name/i);
   });
 
-  it("returns error when content is missing", async () => {
+  it("returns error when no content nor content_base64 is given", async () => {
     const ctx = makeContext();
     const result = (await tool.process(ctx, {
       name: "test.txt"
@@ -85,6 +86,48 @@ describe("SaveAssetTool", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/content/i);
+  });
+
+  it("saves binary content via content_base64 to createAsset when wired", async () => {
+    const calls: Array<{
+      name: string;
+      contentType: string;
+      content: Uint8Array;
+    }> = [];
+    const ctx = {
+      createAsset: vi.fn(async (args) => {
+        calls.push(args);
+        return { id: "abc123" };
+      })
+    } as unknown as ProcessingContext;
+
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+    const b64 = Buffer.from(bytes).toString("base64");
+    const result = (await tool.process(ctx, {
+      name: "img.png",
+      content_base64: b64,
+      content_type: "image/png"
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.asset_id).toBe("abc123");
+    expect(result.asset_uri).toBe("asset://abc123");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].contentType).toBe("image/png");
+    expect(Array.from(calls[0].content)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("prefers createAsset over storage for text content too", async () => {
+    const ctx = {
+      createAsset: vi.fn(async () => ({ id: "txt-1" })),
+      storage: { store: vi.fn() }
+    } as unknown as ProcessingContext;
+    const result = (await tool.process(ctx, {
+      name: "report.md",
+      content: "# Title",
+      content_type: "text/markdown"
+    })) as Record<string, unknown>;
+    expect(result.asset_id).toBe("txt-1");
   });
 
   it("returns error when no storage adapter is configured", async () => {

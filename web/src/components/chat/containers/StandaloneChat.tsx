@@ -53,6 +53,8 @@ const StandaloneChat: React.FC = () => {
     // Agent mode
     agentMode,
     setAgentMode,
+    agentPlanner,
+    setAgentPlanner,
     // Task updates
     currentPlanningUpdate,
     currentTaskUpdate,
@@ -92,6 +94,8 @@ const StandaloneChat: React.FC = () => {
         // Agent mode
         agentMode: state.agentMode,
         setAgentMode: state.setAgentMode,
+        agentPlanner: state.agentPlanner,
+        setAgentPlanner: state.setAgentPlanner,
         // Task updates
         currentPlanningUpdate: state.currentPlanningUpdate,
         currentTaskUpdate: state.currentTaskUpdate,
@@ -480,6 +484,8 @@ const StandaloneChat: React.FC = () => {
             onNewChat={handleNewChat}
             agentMode={agentMode}
             onAgentModeToggle={setAgentMode}
+            agentPlanner={agentPlanner}
+            onAgentPlannerChange={setAgentPlanner}
             currentPlanningUpdate={currentPlanningUpdate}
             currentTaskUpdate={taskUpdateForDisplay}
             currentLogUpdate={currentLogUpdate}

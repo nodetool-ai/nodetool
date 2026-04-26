@@ -24,7 +24,7 @@ import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
 import { processChat } from "@nodetool/chat";
-import { Agent } from "@nodetool/agents";
+import { MultiModeAgent } from "@nodetool/agents";
 import {
   ReadFileTool, WriteFileTool, ListDirectoryTool,
   EditFileTool, GlobTool, GrepTool,
@@ -63,6 +63,8 @@ interface AppProps {
   initialProvider: string;
   initialModel: string;
   initialAgentMode: boolean;
+  /** Initial agent planner type ("graph" or "multi"). Default "graph". */
+  initialAgentPlanner?: "multi" | "graph";
   enabledTools: string[];
   workspaceDir: string;
   wsUrl?: string;
@@ -71,6 +73,17 @@ interface AppProps {
    * Used by --sandbox to inject the 37 sandbox-tools adapter instances.
    */
   extraTools?: import("@nodetool/agents").Tool[];
+  /**
+   * NodeRegistry for graph-native agent mode. When supplied, agent mode
+   * uses MultiModeAgent + GraphPlanner so the agent builds workflows with
+   * the curated `nodetool.*` core nodes plus a `find_model` tool.
+   */
+  registry?: import("@nodetool/node-sdk").NodeRegistry;
+  /** Configured BaseProvider instances by id for `find_model`. */
+  agentProviders?: Record<
+    string,
+    import("@nodetool/runtime").BaseProvider
+  >;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +96,7 @@ const COMMANDS = {
   "/model":    "Set model: /model <model-id>",
   "/provider": "Set provider: /provider <name>",
   "/agent":    "Toggle agent mode",
+  "/planner":  "Set agent planner: /planner graph|multi",
   "/tools":    "List enabled tools",
   "/exit":     "Exit the chat",
   "/quit":     "Exit the chat",
@@ -212,10 +226,13 @@ export function App({
   initialProvider,
   initialModel,
   initialAgentMode,
+  initialAgentPlanner = "graph",
   enabledTools,
   workspaceDir,
   wsUrl,
   extraTools,
+  registry,
+  agentProviders,
 }: AppProps) {
   const { exit } = useApp();
 
@@ -223,6 +240,8 @@ export function App({
   const [provider, setProvider] = useState(initialProvider);
   const [model, setModel] = useState(initialModel);
   const [agentMode, setAgentMode] = useState(initialAgentMode);
+  const [agentPlanner, setAgentPlanner] =
+    useState<"multi" | "graph">(initialAgentPlanner);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -268,6 +287,7 @@ export function App({
   const providerRef = useRef(provider);
   const modelRef = useRef(model);
   const agentModeRef = useRef(agentMode);
+  const agentPlannerRef = useRef(agentPlanner);
   const abortRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   // Guard against double-submit: useInput autocomplete Enter + TextInput onSubmit fire for the same keypress
@@ -277,6 +297,7 @@ export function App({
   useEffect(() => { providerRef.current = provider; }, [provider]);
   useEffect(() => { modelRef.current = model; }, [model]);
   useEffect(() => { agentModeRef.current = agentMode; }, [agentMode]);
+  useEffect(() => { agentPlannerRef.current = agentPlanner; }, [agentPlanner]);
   useEffect(() => { setAcIndex(0); }, [inputValue]);
 
   // Connect WebSocket when --url is provided
@@ -374,7 +395,13 @@ export function App({
       archive_email: new ArchiveEmailTool(),
     };
     // NodeTool MCP tools (workflows, nodes, jobs, assets, models).
-    for (const tool of getAllMcpTools()) {
+    // When a NodeRegistry is in process, this swaps the REST node-search
+    // tools for the local biased versions (and adds `find_model`) so any
+    // agent loop gets the same node-selection bias as the GraphPlanner.
+    for (const tool of getAllMcpTools({
+      registry,
+      providers: agentProviders,
+    })) {
       toolMap[tool.name] = tool;
     }
     // When sandbox tools are present, exclude host tools that have sandbox
@@ -431,7 +458,7 @@ export function App({
 
       case "/exit":
       case "/quit":
-        await saveSettings({ provider, model, agentMode });
+        await saveSettings({ provider, model, agentMode, agentPlanner });
         exit();
         return true;
 
@@ -442,6 +469,26 @@ export function App({
           return next;
         });
         return true;
+
+      case "/planner": {
+        const arg = args[0]?.toLowerCase();
+        if (arg === "graph" || arg === "multi") {
+          setAgentPlanner(arg);
+          await saveSettings({ agentPlanner: arg });
+          addMessage(
+            "system",
+            arg === "graph"
+              ? "Planner set to graph (workflow builder)."
+              : "Planner set to multi (parallel task plan)."
+          );
+        } else {
+          addMessage(
+            "system",
+            `Current planner: ${agentPlanner}. Usage: /planner graph|multi`
+          );
+        }
+        return true;
+      }
 
       case "/model":
         if (args[0]) {
@@ -531,14 +578,32 @@ export function App({
           ? new WebSocketProvider(wsClientRef.current, modelRef.current, providerRef.current)
           : await createProvider(providerRef.current);
 
-        const agent = new Agent({
+        // Pick the planner. The "graph" planner needs a registry; without
+        // one we silently downgrade to the multi-task planner.
+        const useGraphPlanner =
+          agentPlannerRef.current === "graph" && !!registry;
+        const markdownOutputSchema = {
+          type: "object",
+          properties: {
+            markdown: {
+              type: "string",
+              description: "The markdown content of the response",
+            },
+          },
+          required: ["markdown"],
+        } as const;
+        const agent = new MultiModeAgent({
           name: "chat-agent",
           objective: trimmed,
           provider: prov,
           model: modelRef.current,
+          mode: "plan",
           tools,
-          outputFormat: "markdown",
+          useGraphPlanner,
+          registry: useGraphPlanner ? registry : undefined,
+          providers: useGraphPlanner ? agentProviders : undefined,
           maxStepIterations: 20,
+          outputSchema: markdownOutputSchema,
         });
 
         // Feed all messages into the execution tree state.
@@ -854,7 +919,7 @@ export function App({
   const statusParts = [
     provider,
     model,
-    agentMode ? "agent" : null,
+    agentMode ? `agent:${agentPlanner}` : null,
     wsUrl ? "ws" : null,
   ].filter(Boolean).join("  ");
 

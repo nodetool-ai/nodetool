@@ -98,6 +98,10 @@ type ChatViewProps = {
   onNewChat?: () => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  agentPlanner?: import("../composer/AgentModeSelector").AgentPlanner;
+  onAgentPlannerChange?: (
+    planner: import("../composer/AgentModeSelector").AgentPlanner
+  ) => void;
   helpMode?: boolean;
   workflowAssistant?: boolean;
   currentPlanningUpdate?: PlanningUpdate | null;
@@ -146,6 +150,8 @@ const ChatView = ({
   onNewChat,
   agentMode,
   onAgentModeToggle,
+  agentPlanner,
+  onAgentPlannerChange,
   helpMode = false,
   currentPlanningUpdate,
   currentTaskUpdate,
@@ -248,6 +254,8 @@ const ChatView = ({
         onModelChange={onModelChange}
         agentMode={agentMode}
         onAgentModeToggle={onAgentModeToggle}
+        agentPlanner={agentPlanner}
+        onAgentPlannerChange={onAgentPlannerChange}
         allowedProviders={allowedProviders}
         variant={composerVariant}
         composerToolbar={composerToolbar}

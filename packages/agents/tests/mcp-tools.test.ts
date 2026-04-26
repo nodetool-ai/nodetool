@@ -351,9 +351,8 @@ describe("API error handling", () => {
 // ---------------------------------------------------------------------------
 
 describe("getAllMcpTools", () => {
-  it("returns all 17 tool instances", () => {
+  it("returns the default tool set (REST node tools + asset tools)", () => {
     const tools = getAllMcpTools();
-    expect(tools.length).toBe(17);
     const names = tools.map((t) => t.name);
     expect(names).toContain("list_workflows");
     expect(names).toContain("get_workflow");
@@ -372,6 +371,65 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("list_assets");
     expect(names).toContain("get_asset");
     expect(names).toContain("list_models");
+    // Asset persistence tools — always available so the agent can surface
+    // text/binary artifacts into the chat asset browser.
+    expect(names).toContain("save_asset");
+    expect(names).toContain("read_asset");
+  });
+
+  it("swaps in local biased node tools when a registry is provided", () => {
+    const registry = {
+      listMetadata: () => [],
+      getMetadata: () => undefined
+    } as unknown as Parameters<typeof getAllMcpTools>[0]["registry"];
+    const tools = getAllMcpTools({ registry });
+    const names = tools.map((t) => t.name);
+    // Local versions still expose the same agent-facing names.
+    expect(names.filter((n) => n === "list_nodes").length).toBe(1);
+    expect(names.filter((n) => n === "search_nodes").length).toBe(1);
+    expect(names.filter((n) => n === "get_node_info").length).toBe(1);
+    // No find_model unless providers are also passed.
+    expect(names).not.toContain("find_model");
+  });
+
+  it("adds find_model + media tools when providers are supplied (with registry)", () => {
+    const registry = {
+      listMetadata: () => [],
+      getMetadata: () => undefined
+    } as unknown as Parameters<typeof getAllMcpTools>[0]["registry"];
+    const names = getAllMcpTools({
+      registry,
+      providers: { fake: {} as any }
+    }).map((t) => t.name);
+    expect(names).toContain("find_model");
+    expect(names).toContain("generate_image");
+    expect(names).toContain("edit_image");
+    expect(names).toContain("generate_video");
+    expect(names).toContain("animate_image");
+    expect(names).toContain("generate_speech");
+    expect(names).toContain("transcribe_audio");
+    expect(names).toContain("embed_text");
+  });
+
+  it("adds find_model + media tools when providers supplied WITHOUT a registry (multi-task path)", () => {
+    const names = getAllMcpTools({ providers: { fake: {} as any } }).map(
+      (t) => t.name
+    );
+    // REST node tools are still used (no registry to swap them in for).
+    expect(names).toContain("list_nodes");
+    expect(names).toContain("search_nodes");
+    // The provider-backed tools must still appear.
+    expect(names).toContain("find_model");
+    expect(names).toContain("generate_image");
+    expect(names).toContain("generate_speech");
+    expect(names).toContain("embed_text");
+  });
+
+  it("omits find_model and media tools when no providers are supplied", () => {
+    const names = getAllMcpTools().map((t) => t.name);
+    expect(names).not.toContain("find_model");
+    expect(names).not.toContain("generate_image");
+    expect(names).not.toContain("generate_speech");
   });
 
   it("all tools have valid toProviderTool()", () => {

@@ -43,26 +43,13 @@ export class AgentWorkflowRunner {
   }
 
   /**
-   * Execute a graph plan and yield ProcessingMessages.
+   * Execute a graph plan and yield ProcessingMessages live as the kernel emits them.
    */
   async *execute(
     graphData: GraphData
   ): AsyncGenerator<ProcessingMessage> {
     const jobId = randomUUID();
     const { provider, model, registry, tools, context } = this.opts;
-    const collectedMessages: ProcessingMessage[] = [];
-
-    // Capture messages emitted during execution
-    const originalOnMessage = (context as unknown as Record<string, unknown>)[
-      "_onMessage"
-    ] as ((msg: ProcessingMessage) => void) | null;
-
-    const captureMessage = (msg: ProcessingMessage): void => {
-      collectedMessages.push(msg);
-      if (originalOnMessage) {
-        originalOnMessage(msg);
-      }
-    };
 
     const runner = new WorkflowRunner(jobId, {
       resolveExecutor: (node: { id: string; type: string }) => {
@@ -87,28 +74,66 @@ export class AgentWorkflowRunner {
       edges: graphData.edges.length
     });
 
-    const result = await runner.run(
-      { job_id: jobId, params: this.opts.inputs },
-      graphData
-    );
+    // Intercept context.emit to stream kernel messages live to our generator.
+    const queue: ProcessingMessage[] = [];
+    let waiter: (() => void) | null = null;
+    const wake = (): void => {
+      const w = waiter;
+      waiter = null;
+      w?.();
+    };
+    const ctx = context as unknown as {
+      emit: (msg: ProcessingMessage) => void;
+    };
+    const origEmit = ctx.emit.bind(context);
+    ctx.emit = (msg: ProcessingMessage) => {
+      origEmit(msg);
+      queue.push(msg);
+      wake();
+    };
 
-    // Yield all collected messages
-    for (const msg of collectedMessages) {
-      yield msg;
+    let runError: unknown = null;
+    let done = false;
+    const runPromise = runner
+      .run({ job_id: jobId, params: this.opts.inputs }, graphData)
+      .catch((err) => {
+        runError = err;
+        return undefined;
+      })
+      .finally(() => {
+        done = true;
+        wake();
+      });
+
+    try {
+      while (true) {
+        while (queue.length > 0) {
+          yield queue.shift()!;
+        }
+        if (done) break;
+        await new Promise<void>((resolve) => {
+          waiter = resolve;
+        });
+      }
+    } finally {
+      ctx.emit = origEmit;
     }
 
-    // Yield messages from the runner result
-    if (result.messages) {
-      for (const msg of result.messages) {
-        yield msg;
-      }
+    if (runError) {
+      throw runError instanceof Error
+        ? runError
+        : new Error(String(runError));
+    }
+
+    const result = await runPromise;
+    if (!result) {
+      throw new Error("Workflow execution produced no result");
     }
 
     if (result.status === "failed") {
       throw new Error(result.error ?? "Workflow execution failed");
     }
 
-    // Surface node-level errors
     const nodeErrors = (result.messages ?? []).filter(
       (m: ProcessingMessage): m is NodeUpdate =>
         m.type === "node_update" && (m as NodeUpdate).status === "error"

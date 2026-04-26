@@ -4,33 +4,45 @@
  * Port of src/nodetool/agents/tools/asset_tools.py
  *
  * Provides:
- * - SaveAssetTool: Save text content as an asset file via storage adapter
- * - ReadAssetTool: Read content from a stored asset file
+ * - SaveAssetTool: Save text or binary (base64) content as an asset.
+ *   Prefers `context.createAsset` (DB + storage, returns asset:// URI) and
+ *   falls back to the lower-level storage adapter for plain text/key-value.
+ * - ReadAssetTool: Read content from a stored asset file.
  */
 
+import { Buffer } from "node:buffer";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { Tool } from "./base-tool.js";
 
 export class SaveAssetTool extends Tool {
   readonly name = "save_asset";
-  readonly description = "Save content as an asset file";
+  readonly description =
+    "Save content as an asset. Use this for any artifact you want to surface in the chat (text reports, JSON, manifests, images, audio). Pass `content_base64` for binary data and `content` for text. Returns an asset_id and asset:// URI you can reference in later steps.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
       name: {
         type: "string" as const,
-        description: "Name of the asset file to save"
+        description:
+          "Display name of the asset (e.g. 'summary.md', 'report.json', 'cover.png')."
       },
       content: {
         type: "string" as const,
-        description: "Text content to save"
+        description:
+          "Text content. Use this for text/markdown/JSON. Mutually exclusive with content_base64."
+      },
+      content_base64: {
+        type: "string" as const,
+        description:
+          "Binary content as a base64 string. Use this for images/audio/video bytes returned by other tools."
       },
       content_type: {
         type: "string" as const,
-        description: "MIME type of the content (defaults to text/plain)"
+        description:
+          "MIME type (e.g. 'text/markdown', 'application/json', 'image/png'). Defaults to text/plain for text and application/octet-stream for binary."
       }
     },
-    required: ["name", "content"] as string[]
+    required: ["name"] as string[]
   };
 
   async process(
@@ -40,7 +52,8 @@ export class SaveAssetTool extends Tool {
     try {
       const name = params.name;
       const content = params.content;
-      const contentType = params.content_type;
+      const contentBase64 = params.content_base64;
+      const contentTypeArg = params.content_type;
 
       if (typeof name !== "string" || !name) {
         return {
@@ -48,22 +61,57 @@ export class SaveAssetTool extends Tool {
           error: "name is required and must be a string"
         };
       }
-      if (typeof content !== "string") {
-        return { success: false, error: "content must be a string" };
+      const hasText = typeof content === "string";
+      const hasBinary = typeof contentBase64 === "string" && contentBase64;
+      if (!hasText && !hasBinary) {
+        return {
+          success: false,
+          error:
+            "Either `content` (text) or `content_base64` (binary) is required"
+        };
       }
 
-      if (!context.storage) {
-        return { success: false, error: "No storage adapter configured" };
-      }
-
+      const data = hasBinary
+        ? new Uint8Array(Buffer.from(contentBase64 as string, "base64"))
+        : new TextEncoder().encode(content as string);
       const mime =
-        typeof contentType === "string" && contentType
-          ? contentType
-          : "text/plain";
-      const data = new TextEncoder().encode(content);
+        typeof contentTypeArg === "string" && contentTypeArg
+          ? contentTypeArg
+          : hasBinary
+            ? "application/octet-stream"
+            : "text/plain";
+
+      // Prefer the model interface (DB + storage). This is what the chat
+      // UI surfaces in the asset browser and what other tools can reference
+      // by `asset://<id>.<ext>` URIs.
+      if (typeof context.createAsset === "function") {
+        const asset = (await context.createAsset({
+          name,
+          contentType: mime,
+          content: data
+        })) as { id?: string };
+        if (asset && typeof asset.id === "string") {
+          return {
+            success: true,
+            name,
+            asset_id: asset.id,
+            asset_uri: `asset://${asset.id}`,
+            content_type: mime,
+            size: data.byteLength
+          };
+        }
+      }
+
+      // Fallback: write to the storage adapter directly.
+      if (!context.storage) {
+        return {
+          success: false,
+          error:
+            "No storage adapter or createAsset interface available — cannot persist asset"
+        };
+      }
       const key = `assets/${name}`;
       const uri = await context.storage.store(key, data, mime);
-
       return {
         success: true,
         name,

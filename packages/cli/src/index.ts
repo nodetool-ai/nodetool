@@ -17,8 +17,11 @@ import React from "react";
 import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
+import { buildConfiguredProviders } from "./providers.js";
 import { initDb, getSecret } from "@nodetool/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool/config";
+import { NodeRegistry } from "@nodetool/node-sdk";
+import { registerBaseNodes } from "@nodetool/base-nodes";
 import {
   DockerSandboxProvider,
   SessionStore,
@@ -61,6 +64,10 @@ program
   .option("-a, --agent", "Start in agent mode")
   .option("--no-agent", "Disable agent mode (overrides saved settings)")
   .option(
+    "--planner <type>",
+    "Agent planner: 'graph' (workflow builder, default) or 'multi' (parallel tasks)"
+  )
+  .option(
     "-w, --workspace <path>",
     "Workspace directory (default: current directory)"
   )
@@ -85,6 +92,7 @@ const opts = program.opts<{
   provider?: string;
   model?: string;
   agent?: boolean;
+  planner?: string;
   workspace?: string;
   tools?: string;
   url?: string;
@@ -106,6 +114,10 @@ const provider = opts.provider ?? settings.provider;
 const model = opts.model ?? settings.model;
 // When connecting to a WS server, default to regular chat mode unless --agent is explicit
 const agentMode = opts.agent ?? (opts.url ? false : settings.agentMode);
+const agentPlanner: "multi" | "graph" =
+  opts.planner === "multi" || opts.planner === "graph"
+    ? opts.planner
+    : settings.agentPlanner;
 const workspace = opts.workspace ?? settings.workspace;
 const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
@@ -193,6 +205,21 @@ if (opts.sandbox) {
   });
 }
 
+// Build a NodeRegistry once per session for the graph-native agent. Only
+// when running locally (no --url): the WebSocket server has its own
+// registry and doesn't need the CLI to provide one.
+let cliRegistry: NodeRegistry | undefined;
+if (!opts.url) {
+  cliRegistry = new NodeRegistry();
+  registerBaseNodes(cliRegistry);
+}
+
+// Build configured providers unconditionally so `find_model` and the
+// media-generation tools (generate_image, generate_speech, etc.) are
+// available to ANY agent loop — multi-task or graph — even without a
+// registry.
+const cliAgentProviders = await buildConfiguredProviders();
+
 // Stdin mode: activated when stdin is piped (not a TTY)
 if (!process.stdin.isTTY) {
   try {
@@ -201,8 +228,11 @@ if (!process.stdin.isTTY) {
       model,
       workspaceDir: workspace,
       agentMode,
+      agentPlanner,
       wsUrl: opts.url,
-      extraTools: sandboxExtraTools
+      extraTools: sandboxExtraTools,
+      registry: cliRegistry,
+      agentProviders: cliAgentProviders
     });
   } finally {
     if (sandboxStore) await sandboxStore.close();
@@ -215,10 +245,13 @@ const { waitUntilExit } = render(
     initialProvider: provider,
     initialModel: model,
     initialAgentMode: agentMode,
+    initialAgentPlanner: agentPlanner,
     enabledTools,
     workspaceDir: workspace,
     wsUrl: opts.url,
-    extraTools: sandboxExtraTools
+    extraTools: sandboxExtraTools,
+    registry: cliRegistry,
+    agentProviders: cliAgentProviders
   }),
   { exitOnCtrlC: false }
 );

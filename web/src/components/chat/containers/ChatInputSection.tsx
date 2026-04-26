@@ -7,6 +7,7 @@ import MediaChatComposer from "../composer/MediaChatComposer";
 import ChatComposer from "../composer/ChatComposer";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 import type { MediaGenerationRequest } from "../types/media.types";
+import type { AgentPlanner } from "../composer/AgentModeSelector";
 
 export type ChatComposerVariant = "media" | "simple";
 
@@ -61,6 +62,8 @@ type ChatInputSectionProps = {
   onModelChange?: (model: LanguageModel) => void;
   agentMode?: boolean;
   onAgentModeToggle?: (enabled: boolean) => void;
+  agentPlanner?: AgentPlanner;
+  onAgentPlannerChange?: (planner: AgentPlanner) => void;
   allowedProviders?: string[];
   variant?: ChatComposerVariant;
   /**
@@ -79,6 +82,8 @@ const ChatInputSection = ({
   onModelChange,
   agentMode,
   onAgentModeToggle,
+  agentPlanner,
+  onAgentPlannerChange,
   allowedProviders,
   variant = "media",
   composerToolbar
@@ -110,6 +115,8 @@ const ChatInputSection = ({
             onModelChange={onModelChange}
             agentMode={agentMode}
             onAgentModeToggle={onAgentModeToggle}
+            agentPlanner={agentPlanner}
+            onAgentPlannerChange={onAgentPlannerChange}
             allowedProviders={allowedProviders}
           />
         )}

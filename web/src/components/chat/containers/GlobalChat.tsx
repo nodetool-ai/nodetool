@@ -68,6 +68,10 @@ const GlobalChat: React.FC = () => {
   // Agent mode and settings (change less frequently)
   const agentMode = useGlobalChatStore((state) => state.agentMode);
   const setAgentMode = useGlobalChatStore((state) => state.setAgentMode);
+  const agentPlanner = useGlobalChatStore((state) => state.agentPlanner);
+  const setAgentPlanner = useGlobalChatStore(
+    (state) => state.setAgentPlanner
+  );
 
   // Task updates (change during execution)
   const currentPlanningUpdate = useGlobalChatStore((state) => state.currentPlanningUpdate);
@@ -640,6 +644,8 @@ const GlobalChat: React.FC = () => {
               onNewChat={handleNewChat}
               agentMode={agentMode}
               onAgentModeToggle={setAgentMode}
+              agentPlanner={agentPlanner}
+              onAgentPlannerChange={setAgentPlanner}
               currentPlanningUpdate={currentPlanningUpdate}
               currentTaskUpdate={taskUpdateForDisplay}
               currentLogUpdate={currentLogUpdate}

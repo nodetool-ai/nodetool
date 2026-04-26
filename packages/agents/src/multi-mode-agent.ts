@@ -62,6 +62,12 @@ export interface MultiModeAgentOptions {
   useGraphPlanner?: boolean;
   /** Node registry for graph planner (required when useGraphPlanner is true). */
   registry?: NodeRegistry;
+  /**
+   * Configured BaseProvider instances by id. When supplied, the GraphPlanner
+   * exposes a `find_model` tool so the agent can pick a real model+provider
+   * for generic AI nodes (TextToImage, TextToVideo, etc.).
+   */
+  providers?: Record<string, BaseProvider>;
 
   // --- Loop mode options ---
   /** Maximum iterations for loop mode. */
@@ -92,6 +98,7 @@ export class MultiModeAgent extends BaseAgent {
   private readonly maxConcurrency: number;
   private readonly useGraphPlanner: boolean;
   private readonly registry?: NodeRegistry;
+  private readonly providers?: Record<string, BaseProvider>;
 
   constructor(opts: MultiModeAgentOptions) {
     super({
@@ -117,6 +124,7 @@ export class MultiModeAgent extends BaseAgent {
     this.maxConcurrency = opts.maxConcurrency ?? 5;
     this.useGraphPlanner = opts.useGraphPlanner ?? false;
     this.registry = opts.registry;
+    this.providers = opts.providers;
 
     if (opts.task) {
       this.task = opts.task;
@@ -340,7 +348,8 @@ export class MultiModeAgent extends BaseAgent {
       tools: this.tools,
       systemPrompt: this.systemPrompt || undefined,
       outputSchema: this.outputSchema,
-      inputs: this.inputs
+      inputs: this.inputs,
+      providers: this.providers
     });
 
     const planGen = planner.plan(this.objective, context);

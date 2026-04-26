@@ -101,6 +101,16 @@ export interface GlobalChatState {
   // Agent mode
   agentMode: boolean;
   setAgentMode: (enabled: boolean) => void;
+  /**
+   * Which planner to use when `agentMode` is true:
+   * - `"graph"` — GraphPlanner builds a workflow DAG of nodes (preferred when
+   *   the server has a NodeRegistry; uses the curated `nodetool.*` core
+   *   nodes plus `find_model`).
+   * - `"multi"` — TaskPlanner builds a parallel task DAG; each task is an
+   *   LLM step run by ParallelTaskExecutor.
+   */
+  agentPlanner: "multi" | "graph";
+  setAgentPlanner: (planner: "multi" | "graph") => void;
 
   // Agent execution trace
   agentExecutionToolCalls: AgentExecutionToolCalls;
@@ -214,6 +224,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Agent mode
       agentMode: false,
       setAgentMode: (enabled: boolean) => set({ agentMode: enabled }),
+      agentPlanner: "graph",
+      setAgentPlanner: (planner) => set({ agentPlanner: planner }),
 
       // Agent execution trace
       agentExecutionToolCalls: {},
@@ -460,6 +472,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           currentThreadId,
           workflowId,
           agentMode,
+          agentPlanner,
           selectedModel,
           selectedTools,
           selectedCollections,
@@ -529,6 +542,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           ...message,
           thread_id: threadId,
           agent_mode: agentMode,
+          agent_planner: agentMode ? agentPlanner : undefined,
           ...(mediaGeneration ? { media_generation: mediaGeneration } : {})
         } as Message;
 
@@ -543,6 +557,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           workflow_id: message.workflow_id ?? workflowId ?? null,
           thread_id: threadId,
           agent_mode: agentMode,
+          // Only send agent_planner when agent_mode is on; the server picks a
+          // sensible default otherwise.
+          agent_planner: agentMode ? agentPlanner : undefined,
           model: isMediaGeneration
             ? mediaGeneration?.model ?? message.model ?? selectedModel?.id
             : selectedModel?.id,

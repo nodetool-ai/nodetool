@@ -14,6 +14,7 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 import TuneIcon from "@mui/icons-material/Tune";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import CheckIcon from "@mui/icons-material/Check";
 import {
   Caption,
@@ -22,6 +23,7 @@ import {
   Text
 } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
+import type { AgentPlanner } from "./AgentModeSelector";
 
 interface MediaModeMenuProps {
   anchorEl: HTMLElement | null;
@@ -29,14 +31,20 @@ interface MediaModeMenuProps {
   onClose: () => void;
   value: MediaMode;
   agentMode: boolean;
-  onChange: (mode: MediaMode, agentMode: boolean) => void;
+  agentPlanner?: AgentPlanner;
+  onChange: (
+    mode: MediaMode,
+    agentMode: boolean,
+    agentPlanner?: AgentPlanner
+  ) => void;
 }
 
-type ModeItemId = MediaMode | "agent";
+type ModeItemId = MediaMode | "agent_multi" | "agent_graph";
 
 interface ModeItem {
   id: ModeItemId;
   label: string;
+  description?: string;
   icon: React.ReactNode;
   enabled: boolean;
 }
@@ -49,9 +57,17 @@ const MODES: ModeItem[] = [
     enabled: true
   },
   {
-    id: "agent",
-    label: "Agent",
+    id: "agent_multi",
+    label: "Agent (Multi-task)",
+    description: "Plan and run parallel LLM tasks",
     icon: <PsychologyIcon fontSize="small" />,
+    enabled: true
+  },
+  {
+    id: "agent_graph",
+    label: "Agent (Graph builder)",
+    description: "Build a workflow from core nodes",
+    icon: <AccountTreeIcon fontSize="small" />,
     enabled: true
   },
   {
@@ -160,6 +176,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   onClose,
   value,
   agentMode,
+  agentPlanner = "graph",
   onChange
 }) => {
   const theme = useTheme();
@@ -182,11 +199,13 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
         </Caption>
         {MODES.map((m) => {
           const selected =
-            m.id === "agent"
-              ? value === "chat" && agentMode
-              : m.id === "chat"
-                ? value === "chat" && !agentMode
-                : m.id === value;
+            m.id === "agent_multi"
+              ? value === "chat" && agentMode && agentPlanner === "multi"
+              : m.id === "agent_graph"
+                ? value === "chat" && agentMode && agentPlanner === "graph"
+                : m.id === "chat"
+                  ? value === "chat" && !agentMode
+                  : m.id === value;
           return (
             <div
               key={m.id}
@@ -198,10 +217,12 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
                 if (!m.enabled) {
                   return;
                 }
-                if (m.id === "agent") {
-                  onChange("chat", true);
+                if (m.id === "agent_multi") {
+                  onChange("chat", true, "multi");
+                } else if (m.id === "agent_graph") {
+                  onChange("chat", true, "graph");
                 } else {
-                  onChange(m.id, false);
+                  onChange(m.id as MediaMode, false);
                 }
                 onClose();
               }}
@@ -215,6 +236,11 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
                 <Text size="normal" weight={500} sx={{ color: "inherit" }}>
                   {m.label}
                 </Text>
+                {m.description && (
+                  <Caption size="tiny" color="secondary">
+                    {m.description}
+                  </Caption>
+                )}
                 {!m.enabled && (
                   <Caption size="tiny" color="secondary">
                     soon
