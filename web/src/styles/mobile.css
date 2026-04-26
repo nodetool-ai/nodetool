@@ -125,6 +125,59 @@
   .mobile .models-manager-dialog .model-list-item .show-in-explorer-button {
     display: none !important;
   }
+  /* Settings Dialog Mobile - fullscreen, edge-to-edge, no sidebar */
+  .mobile .settings-dialog .MuiPaper-root {
+    margin: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+  }
+
+  .mobile .settings-dialog .top {
+    padding: 0.6em 0.75em !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background-color: var(--palette-background-paper) !important;
+  }
+
+  .mobile .settings-dialog .settings-tabs {
+    margin-bottom: 0.5em !important;
+  }
+
+  .mobile .settings-dialog .settings-tabs .MuiTab-root {
+    min-width: auto !important;
+    min-height: 44px !important;
+    padding: 6px 12px !important;
+    font-size: 0.85rem !important;
+    flex: 1 !important;
+  }
+
+  .mobile .settings-dialog .sticky-header {
+    padding: 0 0.5em !important;
+  }
+
+  .mobile .settings-dialog .settings-content {
+    padding: 0 0.75em 1.5em !important;
+  }
+
+  .mobile .settings-dialog .settings-section {
+    padding: 0.5em 0.75em 0.75em !important;
+    margin: 1em 0 !important;
+  }
+
+  /* Stack settings item label and control instead of side-by-side */
+  .mobile .settings-dialog .settings-item .MuiInputBase-root {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .mobile .settings-dialog .settings-item .MuiFormControl-root .MuiInputBase-root {
+    max-width: 100% !important;
+  }
+
   /* Model Menu (LanguageModelSelect) Mobile Trims */
   .mobile .model-menu__dialog .MuiDialog-paper {
     width: 98% !important;
@@ -227,7 +280,45 @@
 
   /* Adjust logo spacing on mobile */
   .mobile .app-header .logo-container {
-    margin-right: 12px !important;
+    margin-right: 6px !important;
+  }
+
+  /* Tighten toolbar padding on mobile */
+  .mobile .app-header .toolbar {
+    padding: 0 4px 0 6px !important;
+  }
+
+  /* Compact mode pills on mobile to free up space */
+  .mobile .app-header .mode-pills {
+    height: 1.5em !important;
+  }
+
+  .mobile .app-header .mode-pill {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    letter-spacing: 0.01em !important;
+  }
+
+  /* Compact buttons-right gap and margins on mobile */
+  .mobile .app-header .buttons-right {
+    gap: 2px !important;
+    margin-left: 4px !important;
+  }
+
+  /* Templates button: icon-only square on mobile */
+  .mobile .app-header .templates-button {
+    padding: 4px 6px !important;
+    min-width: 32px !important;
+  }
+
+  /* Hide Help button on mobile to save space (still accessible via shortcut) */
+  .mobile .app-header .help-button {
+    display: none !important;
+  }
+
+  /* Hide notification badge button on mobile to save space */
+  .mobile .app-header .notification-button {
+    display: none !important;
   }
 
   /* Keep header fixed at the very top on mobile */
