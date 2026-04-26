@@ -73,7 +73,8 @@ export async function createProvider(
       });
     case "ollama":
       return new OllamaProvider({
-        OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL")
+        OLLAMA_API_URL:
+          (await resolveKey("OLLAMA_API_URL")) ?? "http://127.0.0.1:11434"
       });
     case "gemini":
       return new GeminiProvider({
@@ -101,7 +102,8 @@ export async function createProvider(
       return new ClaudeAgentProvider();
     default:
       return new OllamaProvider({
-        OLLAMA_API_URL: await resolveKey("OLLAMA_API_URL")
+        OLLAMA_API_URL:
+          (await resolveKey("OLLAMA_API_URL")) ?? "http://127.0.0.1:11434"
       });
   }
 }
