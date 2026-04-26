@@ -6,8 +6,15 @@ import type { EmbeddingModel, ModelPack, UnifiedModel } from "../../stores/ApiTy
 import { useEmbeddingModelsByProvider } from "../../hooks/useEmbeddingModels";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
+interface EmbeddingModelSelection {
+  type: "embedding_model";
+  id: string;
+  name: string;
+  provider: string;
+}
+
 interface EmbeddingModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: EmbeddingModelSelection) => void;
   value: string;
   allowedProviders?: string[];
   recommendedModels?: UnifiedModel[];

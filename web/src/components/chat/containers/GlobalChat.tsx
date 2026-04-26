@@ -29,6 +29,7 @@ import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
 import type { ThreadInfo } from "../types/thread.types";
+import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
@@ -382,7 +383,7 @@ const GlobalChat: React.FC = () => {
       }
 
       const firstUserMessage = threadMessages.find(
-        (msg: any) => msg.role === "user"
+        (msg: Message) => msg.role === "user"
       );
       if (firstUserMessage) {
         const content =
@@ -390,7 +391,7 @@ const GlobalChat: React.FC = () => {
             ? firstUserMessage.content
             : Array.isArray(firstUserMessage.content) &&
               firstUserMessage.content[0]?.type === "text"
-              ? (firstUserMessage.content[0] as any).text
+              ? (firstUserMessage.content[0] as MessageTextContent).text
               : "[Media message]";
         return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
       }

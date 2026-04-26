@@ -6,8 +6,15 @@ import type { ASRModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+interface ASRModelSelection {
+  type: "asr_model";
+  id: string;
+  provider: string;
+  name: string;
+}
+
 interface ASRModelSelectProps {
-  onChange: (value: any) => void;
+  onChange: (value: ASRModelSelection) => void;
   value: string;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];

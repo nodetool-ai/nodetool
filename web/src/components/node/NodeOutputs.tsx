@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useState, useCallback, useMemo } from "react";
 import DynamicOutputItem from "./DynamicOutputItem";
-import { Property, OutputSlot } from "../../stores/ApiTypes";
+import { Property, OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import {
   TextField,
   Dialog,
@@ -114,7 +114,7 @@ export const NodeOutputs: React.FC<NodeOutputsProps> = ({ id, outputs, isStreami
       return;
     }
 
-    const currentDynamic: Record<string, any> = {
+    const currentDynamic: Record<string, TypeMetadata> = {
       ...(dynamicOutputs || {})
     };
     if (newName !== renameTarget) {
