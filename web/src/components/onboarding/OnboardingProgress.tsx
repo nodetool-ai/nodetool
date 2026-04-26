@@ -67,8 +67,16 @@ const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
   onJump
 }) => {
   const theme = useTheme();
+  const completedCount = ONBOARDING_STEP_ORDER.reduce(
+    (acc, id) => acc + (completed[id] ? 1 : 0),
+    0
+  );
   return (
-    <div css={styles(theme)} role="progressbar" aria-label="Onboarding progress">
+    <div
+      css={styles(theme)}
+      role="group"
+      aria-label={`Onboarding steps — ${completedCount} of ${ONBOARDING_STEP_ORDER.length} completed`}
+    >
       {ONBOARDING_STEP_ORDER.map((id, idx) => {
         const isDone = completed[id];
         const isActive = idx === currentStep;

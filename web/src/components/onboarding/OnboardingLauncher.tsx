@@ -39,15 +39,22 @@ const OnboardingLauncher: React.FC<OnboardingLauncherProps> = ({
 }) => {
   const theme = useTheme();
   const start = useOnboardingStore((s) => s.start);
+  const resume = useOnboardingStore((s) => s.resume);
   const completedCount = useOnboardingStore((s) =>
     Object.values(s.completed).filter(Boolean).length
   );
 
-  const handleClick = useCallback(() => {
-    start();
-  }, [start]);
+  const hasProgress = completedCount > 0;
 
-  const finalLabel = label ?? (completedCount > 0 ? "Resume tour" : "Take the tour");
+  const handleClick = useCallback(() => {
+    if (hasProgress) {
+      resume();
+    } else {
+      start();
+    }
+  }, [hasProgress, resume, start]);
+
+  const finalLabel = label ?? (hasProgress ? "Resume tour" : "Take the tour");
 
   return (
     <Button

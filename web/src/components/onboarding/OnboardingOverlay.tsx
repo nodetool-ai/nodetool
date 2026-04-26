@@ -39,6 +39,12 @@ const resolveEditorRoute = async (
   return `${EDITOR_ROUTE_PREFIX}${wf.id}`;
 };
 
+/**
+ * Find the element matching `selector` and update if it appears, disappears,
+ * or is replaced. Event-driven: a MutationObserver watches the document for
+ * subtree mutations rather than polling on a timer. The target may not be
+ * mounted yet right after navigation, so we re-query on every mutation.
+ */
 const useTargetElement = (selector: string | undefined): HTMLElement | null => {
   const [el, setEl] = useState<HTMLElement | null>(null);
 
@@ -47,19 +53,23 @@ const useTargetElement = (selector: string | undefined): HTMLElement | null => {
       setEl(null);
       return;
     }
-    let cancelled = false;
-    const find = (): void => {
-      if (cancelled) return;
+
+    let current: HTMLElement | null = null;
+    const sync = (): void => {
       const found = document.querySelector(selector) as HTMLElement | null;
-      setEl(found);
+      if (found !== current) {
+        current = found;
+        setEl(found);
+      }
     };
-    find();
-    // The target may not be mounted yet if we just navigated; poll briefly.
-    const interval = window.setInterval(find, 250);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
+    sync();
+
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    return () => observer.disconnect();
   }, [selector]);
 
   return el;

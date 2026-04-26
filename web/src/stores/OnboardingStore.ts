@@ -47,6 +47,8 @@ export interface OnboardingState {
   dismissed: boolean;
 
   start: () => void;
+  /** Resume the tour at the first incomplete step (falls back to 0). */
+  resume: () => void;
   startAt: (stepId: OnboardingStepId) => void;
   beginAction: () => void;
   next: () => void;
@@ -82,6 +84,19 @@ export const useOnboardingStore = create<OnboardingState>()(
           phase: "intro",
           dismissed: false
         }),
+
+      resume: () => {
+        const { completed } = get();
+        const firstIncomplete = ONBOARDING_STEP_ORDER.findIndex(
+          (id) => !completed[id]
+        );
+        set({
+          active: true,
+          currentStep: firstIncomplete === -1 ? 0 : firstIncomplete,
+          phase: "intro",
+          dismissed: false
+        });
+      },
 
       startAt: (stepId) => {
         const idx = ONBOARDING_STEP_ORDER.indexOf(stepId);

@@ -12,14 +12,16 @@
  * The hook only auto-advances when the user is in the "action" phase of the
  * matching step; it still records completion in the background regardless,
  * so the launcher can show progress.
+ *
+ * All subscriptions are event-driven: per-NodeStore and per-WorkflowRunner
+ * listeners are attached on demand and torn down when the workflow id is
+ * removed from `nodeStores`, so closing tabs reclaims memory.
  */
 import { useEffect, useRef } from "react";
 import useSecretsStore from "../../stores/SecretsStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import useMediaGenerationStore from "../../stores/MediaGenerationStore";
-import {
-  useWorkflowManagerStore
-} from "../../contexts/WorkflowManagerContext";
+import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import {
@@ -40,47 +42,10 @@ const PROVIDER_KEYS = new Set([
 
 const IMAGE_MODES = new Set(["image", "image_edit"]);
 
-const totalUserMessages = (
-  cache: Record<string, { role?: string }[]>
-): number => {
-  let total = 0;
-  for (const messages of Object.values(cache)) {
-    for (const m of messages) {
-      if (m && (m as { role?: string }).role === "user") total += 1;
-    }
-  }
-  return total;
-};
-
-const sumNodeCount = (state: WorkflowManagerState): number => {
-  let total = 0;
-  const stores = state.nodeStores as
-    | Record<string, { getState: () => { nodes: unknown[] } }>
-    | undefined;
-  if (!stores) return 0;
-  for (const id of Object.keys(stores)) {
-    const s = stores[id];
-    if (s && typeof s.getState === "function") {
-      total += s.getState().nodes?.length ?? 0;
-    }
-  }
-  return total;
-};
-
-const sumEdgeCount = (state: WorkflowManagerState): number => {
-  let total = 0;
-  const stores = state.nodeStores as
-    | Record<string, { getState: () => { edges: unknown[] } }>
-    | undefined;
-  if (!stores) return 0;
-  for (const id of Object.keys(stores)) {
-    const s = stores[id];
-    if (s && typeof s.getState === "function") {
-      total += s.getState().edges?.length ?? 0;
-    }
-  }
-  return total;
-};
+interface NodeStoreLike {
+  getState: () => { nodes: unknown[]; edges: unknown[] };
+  subscribe: (listener: (state: { nodes: unknown[]; edges: unknown[] }) => void) => () => void;
+}
 
 /**
  * Mounts all detector subscriptions for the lifetime of the onboarding tour.
@@ -130,6 +95,7 @@ export const useOnboardingDetectors = (): void => {
   // ---- providers ---------------------------------------------------------
   useEffect(() => {
     const evaluate = (): void => {
+      if (completedRef.current.providers) return;
       const secrets = useSecretsStore.getState().secrets;
       if (!secrets) return;
       const hasProvider = secrets.some(
@@ -138,86 +104,144 @@ export const useOnboardingDetectors = (): void => {
       if (hasProvider) onCompleteRef.current("providers");
     };
     evaluate();
-    const unsub = useSecretsStore.subscribe(evaluate);
-    return unsub;
+    return useSecretsStore.subscribe(evaluate);
   }, []);
 
   // ---- chat & image ------------------------------------------------------
+  // GlobalChatStore updates very frequently during streaming. Track the last
+  // message-length we saw per thread, so we only scan threads whose length
+  // changed and only count messages added since the last check. Once both
+  // chat and image are completed there's no reason to keep evaluating.
   useEffect(() => {
-    let lastTotal = totalUserMessages(
-      useGlobalChatStore.getState().messageCache
-    );
-    const unsub = useGlobalChatStore.subscribe((state) => {
-      const total = totalUserMessages(state.messageCache);
-      if (total > lastTotal) {
-        lastTotal = total;
+    const lastByThread = new Map<string, number>();
+    const initial = useGlobalChatStore.getState().messageCache;
+    for (const [threadId, messages] of Object.entries(initial)) {
+      lastByThread.set(threadId, messages?.length ?? 0);
+    }
+
+    return useGlobalChatStore.subscribe((state) => {
+      if (completedRef.current.chat && completedRef.current.image) return;
+
+      let sawNewUserMessage = false;
+      const cache = state.messageCache;
+
+      for (const [threadId, messages] of Object.entries(cache)) {
+        const len = messages?.length ?? 0;
+        const prev = lastByThread.get(threadId) ?? 0;
+        if (len === prev) continue;
+        if (len > prev && !sawNewUserMessage) {
+          for (let i = prev; i < len; i++) {
+            const role = (messages[i] as { role?: string } | undefined)?.role;
+            if (role === "user") {
+              sawNewUserMessage = true;
+              break;
+            }
+          }
+        }
+        lastByThread.set(threadId, len);
+      }
+
+      // Drop entries for deleted threads so the map doesn't grow unbounded.
+      for (const threadId of lastByThread.keys()) {
+        if (!(threadId in cache)) lastByThread.delete(threadId);
+      }
+
+      if (sawNewUserMessage) {
         onCompleteRef.current("chat");
         const mode = useMediaGenerationStore.getState().mode;
         if (IMAGE_MODES.has(mode)) onCompleteRef.current("image");
-      } else {
-        lastTotal = total;
       }
     });
-    return unsub;
   }, []);
 
   // ---- nodes & connect ---------------------------------------------------
+  // Subscribe directly to each NodeStore. Attach when a workflow opens,
+  // detach when it's removed from `nodeStores`. No polling.
   useEffect(() => {
-    let lastNodes = sumNodeCount(managerStore.getState());
-    let lastEdges = sumEdgeCount(managerStore.getState());
+    const nodeSubs = new Map<string, () => void>();
+    const lastCounts = new Map<string, { nodes: number; edges: number }>();
 
-    const evaluate = (): void => {
-      const nodes = sumNodeCount(managerStore.getState());
-      const edges = sumEdgeCount(managerStore.getState());
-      if (nodes > lastNodes) onCompleteRef.current("nodes");
-      if (edges > lastEdges) onCompleteRef.current("connect");
-      lastNodes = nodes;
-      lastEdges = edges;
+    const attachNodeStore = (workflowId: string, ns: NodeStoreLike): void => {
+      if (nodeSubs.has(workflowId)) return;
+      const initial = ns.getState();
+      lastCounts.set(workflowId, {
+        nodes: initial.nodes?.length ?? 0,
+        edges: initial.edges?.length ?? 0
+      });
+      const unsub = ns.subscribe((s) => {
+        const prev = lastCounts.get(workflowId);
+        if (!prev) return;
+        const n = s.nodes?.length ?? 0;
+        const e = s.edges?.length ?? 0;
+        if (n > prev.nodes) onCompleteRef.current("nodes");
+        if (e > prev.edges) onCompleteRef.current("connect");
+        lastCounts.set(workflowId, { nodes: n, edges: e });
+      });
+      nodeSubs.set(workflowId, unsub);
     };
 
-    // Workflow manager mounts/unmounts node stores as workflows open and
-    // close. Re-attach to all current node stores any time the manager
-    // updates. A small interval picks up node/edge changes inside those
-    // stores without us needing to subscribe to each one individually.
-    const unsubMgr = managerStore.subscribe(evaluate);
-    const id = window.setInterval(evaluate, 800);
+    const reconcileNodeStores = (state: WorkflowManagerState): void => {
+      const stores = (state.nodeStores ?? {}) as Record<string, NodeStoreLike>;
+      for (const wfId of Object.keys(stores)) {
+        if (stores[wfId]) attachNodeStore(wfId, stores[wfId]);
+      }
+      for (const wfId of Array.from(nodeSubs.keys())) {
+        if (!stores[wfId]) {
+          nodeSubs.get(wfId)?.();
+          nodeSubs.delete(wfId);
+          lastCounts.delete(wfId);
+        }
+      }
+    };
+
+    reconcileNodeStores(managerStore.getState());
+    const unsubMgr = managerStore.subscribe(reconcileNodeStores);
+
     return () => {
       unsubMgr();
-      window.clearInterval(id);
+      for (const u of nodeSubs.values()) u();
+      nodeSubs.clear();
+      lastCounts.clear();
     };
   }, [managerStore]);
 
   // ---- run ---------------------------------------------------------------
+  // One subscription per workflow runner store, attached/detached as
+  // workflows open and close.
   useEffect(() => {
-    const unsubs: Array<() => void> = [];
-    const seen = new Set<string>();
+    const runnerSubs = new Map<string, () => void>();
 
     const attachRunner = (workflowId: string): void => {
-      if (seen.has(workflowId)) return;
-      seen.add(workflowId);
+      if (runnerSubs.has(workflowId)) return;
       try {
         const store = getWorkflowRunnerStore(workflowId);
         const unsub = store.subscribe((state) => {
           if (state.state !== "idle") onCompleteRef.current("run");
         });
-        unsubs.push(unsub);
+        runnerSubs.set(workflowId, unsub);
       } catch {
-        // Runner not yet created for this workflow — fine, evaluate again
-        // next time the manager updates.
+        // Runner not yet ready — try again on the next manager update.
       }
     };
 
-    const sweep = (): void => {
-      const stores = managerStore.getState().nodeStores;
-      if (!stores) return;
+    const reconcileRunners = (state: WorkflowManagerState): void => {
+      const stores = (state.nodeStores ?? {}) as Record<string, unknown>;
       for (const wfId of Object.keys(stores)) attachRunner(wfId);
+      for (const wfId of Array.from(runnerSubs.keys())) {
+        if (!(wfId in stores)) {
+          runnerSubs.get(wfId)?.();
+          runnerSubs.delete(wfId);
+        }
+      }
     };
-    sweep();
 
-    const unsubMgr = managerStore.subscribe(sweep);
+    reconcileRunners(managerStore.getState());
+    const unsubMgr = managerStore.subscribe(reconcileRunners);
+
     return () => {
       unsubMgr();
-      for (const u of unsubs) u();
+      for (const u of runnerSubs.values()) u();
+      runnerSubs.clear();
     };
   }, [managerStore]);
 };

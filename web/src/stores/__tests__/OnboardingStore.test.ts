@@ -93,6 +93,41 @@ describe("OnboardingStore", () => {
     expect(s.dismissed).toBe(true);
   });
 
+  describe("resume()", () => {
+    it("activates the tour at step 0 when no progress", () => {
+      useOnboardingStore.getState().resume();
+      const s = useOnboardingStore.getState();
+      expect(s.active).toBe(true);
+      expect(s.currentStep).toBe(0);
+      expect(s.phase).toBe("intro");
+    });
+
+    it("jumps to the first incomplete step when progress exists", () => {
+      const { markComplete, resume } = useOnboardingStore.getState();
+      markComplete("providers");
+      markComplete("chat");
+      resume();
+      expect(useOnboardingStore.getState().currentStep).toBe(
+        ONBOARDING_STEP_ORDER.indexOf("image")
+      );
+    });
+
+    it("resumes through gaps in completed steps", () => {
+      const { markComplete, resume } = useOnboardingStore.getState();
+      // Mark a non-contiguous step done; first incomplete is still "providers".
+      markComplete("nodes");
+      resume();
+      expect(useOnboardingStore.getState().currentStep).toBe(0);
+    });
+
+    it("falls back to step 0 when every step is already complete", () => {
+      useOnboardingStore.getState().finish();
+      useOnboardingStore.getState().resume();
+      expect(useOnboardingStore.getState().currentStep).toBe(0);
+      expect(useOnboardingStore.getState().active).toBe(true);
+    });
+  });
+
   it("reset() returns to defaults", () => {
     const { start, markComplete, reset } = useOnboardingStore.getState();
     start();

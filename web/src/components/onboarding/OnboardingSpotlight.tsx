@@ -63,13 +63,10 @@ const useTargetRect = (target: HTMLElement | null): DOMRect | null => {
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
 
-    const interval = window.setInterval(update, 500);
-
     return () => {
       ro.disconnect();
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
-      window.clearInterval(interval);
     };
   }, [target]);
 

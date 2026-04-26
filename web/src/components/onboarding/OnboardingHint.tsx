@@ -209,13 +209,20 @@ const OnboardingHint: React.FC<OnboardingHintProps> = ({
       setPosition(computePosition(rect, step.hintPlacement));
     };
     update();
+
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
-    const interval = window.setInterval(update, 500);
+
+    let ro: ResizeObserver | null = null;
+    if (target) {
+      ro = new ResizeObserver(update);
+      ro.observe(target);
+    }
+
     return () => {
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
-      window.clearInterval(interval);
+      ro?.disconnect();
     };
   }, [target, step.hintPlacement]);
 
