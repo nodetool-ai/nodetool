@@ -1,5 +1,5 @@
 import { BrowserWindow, Menu, app } from 'electron';
-import { createWorkflowWindow, isWorkflowWindow, baseUrl } from '../workflowWindow';
+import { createWorkflowWindow, isWorkflowWindow } from '../workflowWindow';
 
 jest.mock('electron', () => {
   const mockBrowserWindow = jest.fn().mockImplementation(() => ({
@@ -59,7 +59,7 @@ describe('workflowWindow', () => {
     expect(Menu.setApplicationMenu).toHaveBeenCalledWith(null);
     expect(BrowserWindow).toHaveBeenCalled();
     expect(win.setBackgroundColor).toHaveBeenCalledWith('#111111');
-    expect(win.loadURL).toHaveBeenCalledWith(`${baseUrl}?workflow_id=123`);
+    expect(win.loadURL).toHaveBeenCalledWith('http://127.0.0.1:3000/index.html?workflow_id=123');
     expect(isWorkflowWindow(win)).toBe(true);
 
     const closedHandler = (win.on as jest.Mock).mock.calls.find(([e]) => e === 'closed')[1];
