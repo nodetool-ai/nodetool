@@ -25,22 +25,22 @@ describe("RunCodeTool", () => {
     expect(result.stdout).toContain("hello from js");
   });
 
-  it("returns error for Python since only js is supported", async () => {
+  it("executes Python print", async () => {
     const result = await tool.process(mockContext, {
       language: "python",
       code: 'print("hello from python")'
     });
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain("Unsupported language");
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("hello from python");
   });
 
-  it("returns error for Bash since only js is supported", async () => {
+  it("executes Bash echo", async () => {
     const result = await tool.process(mockContext, {
       language: "bash",
       code: 'echo "hello from bash"'
     });
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain("Unsupported language");
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("hello from bash");
   });
 
   it("captures stderr", async () => {
@@ -49,25 +49,25 @@ describe("RunCodeTool", () => {
       code: 'console.error("oops")'
     });
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("oops"); // QuickJS maps console.error to stdout in our implementation
+    expect(result.stderr).toContain("oops");
   });
 
   it("returns non-zero exit code on error", async () => {
     const result = await tool.process(mockContext, {
       language: "javascript",
-      code: "throw new Error('boom')"
+      code: "process.exit(42)"
     });
     expect(result.exitCode).not.toBe(0);
   });
 
   it("handles timeout", async () => {
-    const shortTimeoutTool = new RunCodeTool({ timeoutMs: 50 });
+    const shortTimeoutTool = new RunCodeTool({ timeoutMs: 500 });
     const result = await shortTimeoutTool.process(mockContext, {
       language: "javascript",
-      code: "while(true) {} // hang"
+      code: "setTimeout(() => {}, 60000); // hang for 60s"
     });
     expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain("interrupted");
+    expect(result.stderr).toContain("timeout");
   }, 10_000);
 
   it("returns error for empty code", async () => {
@@ -89,16 +89,16 @@ describe("RunCodeTool", () => {
   });
 
   it("userMessage includes language", () => {
-    const msg = tool.userMessage({ language: "javascript", code: "x = 1" });
-    expect(msg).toContain("javascript");
+    const msg = tool.userMessage({ language: "python", code: "x = 1" });
+    expect(msg).toContain("python");
   });
 
   it("userMessage shows short code snippets", () => {
     const msg = tool.userMessage({
-      language: "javascript",
-      code: "console.log('hi')"
+      language: "bash",
+      code: "echo hi"
     });
-    expect(msg).toContain("console.log('hi')");
+    expect(msg).toContain("echo hi");
   });
 
   it("userMessage uses ellipsis for long code", () => {
@@ -112,12 +112,12 @@ describe("RunCodeTool", () => {
 
   it("userMessage handles missing params", () => {
     const msg = tool.userMessage({});
-    expect(msg).toBe("Executing javascript...");
+    expect(msg).toBe("Executing code...");
   });
 
   it("userMessage handles empty code", () => {
-    const msg = tool.userMessage({ language: "javascript", code: "" });
-    expect(msg).toBe("Executing javascript...");
+    const msg = tool.userMessage({ language: "python", code: "" });
+    expect(msg).toBe("Executing python...");
   });
 
   it("returns error for undefined code", async () => {
