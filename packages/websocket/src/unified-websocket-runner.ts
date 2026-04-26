@@ -3811,12 +3811,12 @@ export class UnifiedWebSocketRunner {
       ? (data.tools as string[]).filter((t) => typeof t === "string")
       : [];
 
-    // Build configured providers up-front when a registry is available, so
-    // both `getAllMcpTools` (default tool set) and the MultiModeAgent below
-    // can share the same map. Cached per-user in `getConfiguredProviders`.
-    const agentProviders = this.nodeRegistry
-      ? await this.getConfiguredProviders(userId)
-      : undefined;
+    // Build configured providers up-front so both `getAllMcpTools` and the
+    // MultiModeAgent below share the same map. Cached per-user in
+    // `getConfiguredProviders`. Independent of the NodeRegistry — the
+    // multi-task planner needs `find_model` and the media-generation tools
+    // even when no registry is wired (i.e. graph mode is unavailable).
+    const agentProviders = await this.getConfiguredProviders(userId);
 
     if (rawToolNames.length > 0) {
       // User explicitly specified tools — resolve by name

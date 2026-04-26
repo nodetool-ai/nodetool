@@ -117,6 +117,15 @@ export {
 export { ListProviderModelsTool } from "./tools/model-tools.js";
 export { FindModelTool } from "./tools/find-model-tool.js";
 export {
+  GenerateImageTool,
+  EditImageTool,
+  GenerateVideoTool,
+  AnimateImageTool,
+  GenerateSpeechTool,
+  TranscribeAudioTool,
+  EmbedTextTool
+} from "./tools/media-tools.js";
+export {
   GENERIC_AI_NODES,
   CORE_BASELINE_NAMESPACES,
   PROVIDER_NAMESPACES,

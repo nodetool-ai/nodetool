@@ -14,6 +14,15 @@ import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
 import { LocalGetNodeInfoTool } from "./local-get-node-info-tool.js";
 import { FindModelTool } from "./find-model-tool.js";
+import {
+  GenerateImageTool,
+  EditImageTool,
+  GenerateVideoTool,
+  AnimateImageTool,
+  GenerateSpeechTool,
+  TranscribeAudioTool,
+  EmbedTextTool
+} from "./media-tools.js";
 
 const DEFAULT_API_URL = "http://localhost:7777";
 
@@ -739,9 +748,14 @@ export interface GetAllMcpToolsOptions {
    */
   registry?: NodeRegistry;
   /**
-   * Configured BaseProvider instances by id. When supplied alongside a
-   * registry, `find_model` is included so the agent can resolve a real
-   * `{provider, model_id}` for generic AI nodes from any agent loop.
+   * Configured BaseProvider instances by id. When supplied, the agent gets:
+   * - `find_model` — pick a `{provider, model_id}` for any capability.
+   * - `generate_image` / `edit_image` / `generate_video` / `animate_image` /
+   *   `generate_speech` / `transcribe_audio` / `embed_text` — direct
+   *   provider-backed media generation tools usable from any agent loop.
+   *
+   * Independent of `registry`: the multi-task planner doesn't need a
+   * registry but still benefits from these tools.
    */
   providers?: Record<string, BaseProvider>;
 }
@@ -770,14 +784,24 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
       new LocalSearchNodesTool(options.registry),
       new LocalGetNodeInfoTool(options.registry)
     );
-    if (options.providers && Object.keys(options.providers).length > 0) {
-      tools.push(new FindModelTool(options.providers));
-    }
   } else {
     tools.push(
       new ListNodesTool(),
       new SearchNodesTool(),
       new GetNodeInfoTool()
+    );
+  }
+
+  if (options.providers && Object.keys(options.providers).length > 0) {
+    tools.push(
+      new FindModelTool(options.providers),
+      new GenerateImageTool(),
+      new EditImageTool(),
+      new GenerateVideoTool(),
+      new AnimateImageTool(),
+      new GenerateSpeechTool(),
+      new TranscribeAudioTool(),
+      new EmbedTextTool()
     );
   }
 

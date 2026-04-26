@@ -205,19 +205,20 @@ if (opts.sandbox) {
   });
 }
 
-// Build a NodeRegistry + configured providers map ONCE per session so the
-// graph-native agent can search core nodes and look up real models.
-// Only built when running locally (no --url): the WebSocket server has its
-// own registry and doesn't need the CLI to provide one.
+// Build a NodeRegistry once per session for the graph-native agent. Only
+// when running locally (no --url): the WebSocket server has its own
+// registry and doesn't need the CLI to provide one.
 let cliRegistry: NodeRegistry | undefined;
-let cliAgentProviders:
-  | Record<string, import("@nodetool/runtime").BaseProvider>
-  | undefined;
 if (!opts.url) {
   cliRegistry = new NodeRegistry();
   registerBaseNodes(cliRegistry);
-  cliAgentProviders = await buildConfiguredProviders();
 }
+
+// Build configured providers unconditionally so `find_model` and the
+// media-generation tools (generate_image, generate_speech, etc.) are
+// available to ANY agent loop — multi-task or graph — even without a
+// registry.
+const cliAgentProviders = await buildConfiguredProviders();
 
 // Stdin mode: activated when stdin is piped (not a TTY)
 if (!process.stdin.isTTY) {

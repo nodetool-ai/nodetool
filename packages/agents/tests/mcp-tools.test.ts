@@ -389,13 +389,44 @@ describe("getAllMcpTools", () => {
     expect(names).not.toContain("find_model");
   });
 
-  it("adds find_model when providers are supplied alongside the registry", () => {
+  it("adds find_model + media tools when providers are supplied (with registry)", () => {
     const registry = {
       listMetadata: () => [],
       getMetadata: () => undefined
     } as unknown as Parameters<typeof getAllMcpTools>[0]["registry"];
-    const tools = getAllMcpTools({ registry, providers: { fake: {} as any } });
-    expect(tools.map((t) => t.name)).toContain("find_model");
+    const names = getAllMcpTools({
+      registry,
+      providers: { fake: {} as any }
+    }).map((t) => t.name);
+    expect(names).toContain("find_model");
+    expect(names).toContain("generate_image");
+    expect(names).toContain("edit_image");
+    expect(names).toContain("generate_video");
+    expect(names).toContain("animate_image");
+    expect(names).toContain("generate_speech");
+    expect(names).toContain("transcribe_audio");
+    expect(names).toContain("embed_text");
+  });
+
+  it("adds find_model + media tools when providers supplied WITHOUT a registry (multi-task path)", () => {
+    const names = getAllMcpTools({ providers: { fake: {} as any } }).map(
+      (t) => t.name
+    );
+    // REST node tools are still used (no registry to swap them in for).
+    expect(names).toContain("list_nodes");
+    expect(names).toContain("search_nodes");
+    // The provider-backed tools must still appear.
+    expect(names).toContain("find_model");
+    expect(names).toContain("generate_image");
+    expect(names).toContain("generate_speech");
+    expect(names).toContain("embed_text");
+  });
+
+  it("omits find_model and media tools when no providers are supplied", () => {
+    const names = getAllMcpTools().map((t) => t.name);
+    expect(names).not.toContain("find_model");
+    expect(names).not.toContain("generate_image");
+    expect(names).not.toContain("generate_speech");
   });
 
   it("all tools have valid toProviderTool()", () => {
