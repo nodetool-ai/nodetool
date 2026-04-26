@@ -90,6 +90,9 @@ describe("useChatService", () => {
   });
 
   beforeEach(() => {
+    // Restore real timers first so fake-timer state from a previous test can't
+    // leak into the next one (e.g. suppressed microtask / Promise resolution).
+    jest.useRealTimers();
     jest.clearAllMocks();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
@@ -160,6 +163,14 @@ describe("useChatService", () => {
   });
 
   describe("sendMessage", () => {
+    // Shared spy so cleanup always runs even if the assertion throws.
+    let consoleErrorSpy: jest.SpyInstance;
+    beforeEach(() => {
+      consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    });
+    afterEach(() => {
+      consoleErrorSpy.mockRestore();
+    });
     it("should send message with selected model", async () => {
       const mockSendMessage = jest.fn().mockResolvedValue(undefined);
       mockGlobalChatStore.mockImplementation((selector: any) => {
@@ -278,10 +289,6 @@ describe("useChatService", () => {
     });
 
     it("should not send message if no model selected", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
       const { result } = renderHook(() => useChatService(null), {
         wrapper: MemoryRouter
       });
@@ -294,15 +301,9 @@ describe("useChatService", () => {
       await result.current.sendMessage(message);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith("No model selected");
-
-      consoleErrorSpy.mockRestore();
     });
 
     it("should handle errors when sending message", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
       const mockSendMessage = jest.fn().mockRejectedValue(new Error("Send failed"));
 
       mockGlobalChatStore.mockImplementation((selector: any) => {
@@ -328,12 +329,19 @@ describe("useChatService", () => {
         "Failed to send message:",
         expect.any(Error)
       );
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
   describe("onNewThread", () => {
+    // Shared spy so cleanup always runs even if the assertion throws.
+    let consoleErrorSpy: jest.SpyInstance;
+    beforeEach(() => {
+      consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    });
+    afterEach(() => {
+      consoleErrorSpy.mockRestore();
+    });
+
     it("should create new thread and navigate to it", async () => {
       const mockCreateNewThread = jest.fn().mockResolvedValue("new-thread-id");
       const mockSwitchThread = jest.fn();
@@ -364,10 +372,6 @@ describe("useChatService", () => {
     });
 
     it("should handle errors when creating new thread", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
       const mockCreateNewThread = jest.fn().mockRejectedValue(new Error("Create failed"));
 
       mockGlobalChatStore.mockImplementation((selector: any) => {
@@ -393,8 +397,6 @@ describe("useChatService", () => {
         "Failed to create new thread:",
         expect.any(Error)
       );
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
