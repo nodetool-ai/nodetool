@@ -4,11 +4,12 @@
 
 - [x] Phase 1 foundation: contract, session substrate, control plane, first operator surface.
 - [x] Phase 2 substrate through backend WebRTC shell, realtime nodes, lifecycle, and metrics.
-- [ ] Phase 2 first model proof: LongLive/Self-Forcing real smoke and validated low-VRAM loader paths.
+- [ ] Phase 2 first model proof: first runnable RTX 3060 smoke, then LongLive/Self-Forcing validation and low-VRAM loader paths.
 - [ ] Phase 3 browser-local realtime analysis contracts.
 - [ ] Phase 4 workflow integration.
-- [ ] Phase 5 deployed realtime worker readiness.
-- [ ] Phase 6 expansion adapters.
+- [ ] Phase 5 browser-local inference hardening.
+- [ ] Phase 6 deployed realtime worker readiness.
+- [ ] Phase 7 expansion adapters.
 
 ## How to use this plan now
 
@@ -34,11 +35,22 @@ Rules for the remaining work:
   - Set framerate acceptance thresholds.
   - Add `WeightSource` in `nodetool-realtime`.
   - Extend SystemStats with realtime precision/hardware hints.
-  - 9 result: use **NVlabs/LongLive** as the first concrete model proof and **Wan-AI/Wan2.1-T2V-1.3B** as the base model source. Keep exact performance claims tied to upstream hardware: LongLive reports 20.7 FPS on one H100 and 24.8 FPS with FP8; local acceptance is tiered rather than universal. CPU smoke tests prove construction, lifecycle hooks, fake-frame processing, and error handling only; they do not assert FPS. H100/A100 performance tests are opt-in and record observed fps/latency through `realtime_metrics`.
+  - 9 result: use **Wan-AI/Wan2.1-T2V-1.3B** as the base model source, run the first visible proof on the lightest viable RTX 3060 path, and keep **NVlabs/LongLive** as the first full canonical model-validation path. Keep exact performance claims tied to upstream hardware: LongLive reports 20.7 FPS on one H100 and 24.8 FPS with FP8; local acceptance is tiered rather than universal. CPU smoke tests prove construction, lifecycle hooks, fake-frame processing, and error handling only; they do not assert FPS. H100/A100 performance tests are opt-in and record observed fps/latency through `realtime_metrics`.
   - 9 implementation shape: all heavy model code lands in the existing `nodetool-realtime` skeleton. Thin nodes go under `nodetool-realtime/src/nodetool/nodes/realtime/`, while pipelines, `WeightSource`, hardware/precision helpers, frame converters, fake CPU pipelines, and `LatestPerHandleAccumulator` live under `nodetool-realtime/src/nodetool/realtime/`. Core may receive only small protocol/status surfaces for loading events and hardware hints.
   - 9 loading/precision contract: model nodes emit structured loading phases (`resolving_weights`, `downloading`, `loading_tokenizer`, `loading_vae`, `loading_transformer`, `warming`, `ready`, `error`) with progress and selected precision/backend. `WeightSource` supports local path, Hugging Face repo/file, and cached/default source. Precision selection prefers native FP8 only on capable Ada/Hopper/Blackwell hardware, uses FP16/BF16 where memory allows, and treats GGUF/INT8 community paths as explicit experimental fallbacks until validated.
   - 9 realtime loop contract: `LatestPerHandleAccumulator` is the default input coalescer for model nodes. It keeps the most recent value per media/control handle, preserves sequence/timestamp metadata, reports skipped/dropped input counts to metrics, and never blocks the media/control plane waiting for stale frames. Prompt/control updates are applied at the next model iteration and can trigger model-specific cache refresh such as LongLive KV-recache.
-- [ ] **10. Finish LongLive real validation.**
+- [ ] **10. First runnable RTX 3060 realtime smoke.**
+  - Goal: get the canonical realtime workflow visibly running with the lightest viable RTX 3060 model path before doing broader model-family validation.
+  - Use the existing low-VRAM notes as the starting point: `Wan-AI/Wan2.1-T2V-1.3B`, Self-Forcing RTX 3060 path if it is the lightest runnable option, `city96/umt5-xxl-encoder-gguf` (`Q5_K_M` or larger preferred), Wan 2.1 VAE safetensors, and community FP8 Self-Forcing 1.3B safetensors only as explicit opt-in candidates.
+  - Low FPS is acceptable. The pass/fail bar is visible execution, not production throughput.
+  - Completion criteria:
+    - [ ] Resolve or download the required artifacts through the existing `nodetool-realtime` manifest/loader path, or through an explicit temporary smoke script if the manifest path is not ready enough.
+    - [ ] Launch the canonical realtime workflow template with the chosen lightweight model path.
+    - [ ] Observe one prompt/control update and one generated output path, even if generation is very slow.
+    - [ ] Record loading phases, selected precision/backend, memory/offload state, errors, and rough latency/fps through logs or metrics.
+    - [ ] Stop the session cleanly without leaving stuck runners, workers, or model state.
+  - Defer full LongLive canonical validation, full Self-Forcing official-quality validation, the FP8/GGUF/INT8 matrix, browser-local inference, deployment, Electron packaging, persistent cache UX, and multi-adapter expansion until this smoke has run.
+- [ ] **10a. Finish LongLive real validation.**
   - Foundation landed: thin node, dependency-lazy backend boundary, `WeightSource`, precision selection, `LatestPerHandleAccumulator`, fake CPU pipeline, frame conversion, sampler boundary, upstream output normalization, loading/error events, package metadata, and opt-in real-smoke config.
   - Remaining completion criteria:
     - [ ] Run real end-to-end inference against downloaded upstream weights.
@@ -72,7 +84,7 @@ Rules for the remaining work:
 
 - **Realtime is a workflow execution mode.** It belongs to the normal NodeTool workflow model, editor, persistence, and operator surfaces. Realtime sessions should be tracked as standard Jobs, and outputs should be savable as standard Assets.
 - **The first runtime stays separate internally.** It should align with workflow identity, preview routing, and control semantics so later convergence remains straightforward.
-- **LongLive is the first model proof.** Start with a Wan2.1 1.3B autoregressive model node, then reuse the same shape for Self-Forcing, StreamDiffusion V2, MemFlow, RewardForcing, Krea, and streaming VACE.
+- **The first visible model proof targets RTX 3060.** Start by making one lightest viable Wan2.1 1.3B path run end-to-end, even slowly, then harden LongLive and Self-Forcing validation paths before expanding to StreamDiffusion V2, MemFlow, RewardForcing, Krea, and streaming VACE.
 - **Control plane and media plane are separate.** Session lifecycle, control updates, diagnostics, preview notifications, and status stay on the workflow/websocket control plane. High-rate media uses a dedicated adapter boundary.
 - **WebRTC is the web media adapter boundary.** High-framerate web audio/video should use WebRTC or a similar UDP-based protocol rather than the WebSocket control plane.
 - **Existing workflow nodes remain the default building blocks.** Add realtime-specific nodes only for distinct live source, sink, adapter, or control roles.
@@ -80,7 +92,7 @@ Rules for the remaining work:
 - **NDI and Spout are committed later goals.** Reserve clean media adapter boundaries for NDI, Spout, Syphon, MIDI, OSC, DMX, and timecode.
 - **Shared files hold primitives; dedicated files hold realtime behavior.** `unified-websocket-runner.ts` and `runner.ts` should only gain small surfaces. Realtime behavior lives in `packages/websocket/src/realtime/*` and `packages/kernel/src/realtime-runner.ts`.
 - **Substrate lives in core; model nodes live outside the substrate.** Core owns runner/session/WebRTC substrate, TS I/O nodes, protocol frame types, bridge verbs, lifecycle hooks, and hardware hints. `nodetool-realtime` owns heavy Python model code, `WeightSource`, Wan2.1 pipelines, GGUF loading, and ML dependencies.
-- **Model proof design is now fixed for implementation.** `nodetool-realtime` already exists as the sister package skeleton. Step 10 should add a thin LongLive node plus a fat Wan2.1/LongLive pipeline there, using the step 9 `WeightSource`, precision/hardware hints, loading events, fake CPU smoke tests, and `LatestPerHandleAccumulator` pattern.
+- **Model proof design is now fixed for implementation.** `nodetool-realtime` already exists as the sister package skeleton. Step 10 should prove one lightest viable RTX 3060 model path through the canonical realtime workflow before full LongLive and Self-Forcing validation, using the step 9 `WeightSource`, precision/hardware hints, loading events, fake CPU smoke tests, and `LatestPerHandleAccumulator` pattern.
 
 Primary contract reference: `docs/realtime-runtime-contract.md`.
 
@@ -279,32 +291,62 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 **Remaining Phase 2 work**
 
 - [x] Step 9: pre-model design pass.
-- [ ] Step 10: LongLive.
-  - Scaffold landed in `nodetool-realtime`: thin `LongLive` node, `WeightSource`, precision selection, `LatestPerHandleAccumulator`, fake CPU LongLive pipeline, and smoke tests.
-  - Real-mode backend boundary landed: `use_fake_pipeline=False` routes through a dependency-guarded LongLive pipeline factory and emits structured loading `error` events when optional ML dependencies are absent, without importing heavy packages in the base install.
-  - CPU frame conversion and cache-refresh contracts landed: `VideoFrame` inputs can be validated/normalized into LongLive `rgba8` model inputs, and prompt/negative-prompt changes record when warm caches must refresh on the next iteration.
-  - Backend delegation contract landed: `LongLivePipeline` can drive an injected Wan2.1 backend through loading, generation, warm-state reset, and close, while preserving dependency-light base imports.
-  - Lazy backend adapter landed: the default real-mode factory now resolves optional ML modules and component loaders only during backend load.
-  - Component load plan landed: tokenizer/VAE/transformer loading is mapped to `Wan-AI/Wan2.1-T2V-1.3B-Diffusers`, with the selected LongLive weight source retained for checkpoint application.
-  - Checkpoint applier landed: `longlive_base.pt` resolution/application, EMA/model state-dict extraction, FSDP key cleanup, optional LoRA loading via lazy `peft`, and checkpoint metadata are covered by tests.
-  - Package metadata discoverability landed: realtime node fields are scanner-compatible, generated `nodetool-realtime` package metadata now includes `LongLive` and `SelfForcing`, and a scanner regression test covers both nodes with no metadata warnings.
-  - Sampler boundary landed: LongLive input frames convert to torch-like BCHW tensors with RGB default and optional alpha, sampler output tensors convert back to realtime `rgba8` frames, metadata/timing/cache state is preserved, and sampler reset/close hooks delegate through the lazy backend. The causal sampler factory now returns the backend-ready adapter instead of the raw sampler, so real backends receive `LongLiveGenerationInputs` through the same conversion path; adapter and causal sampler lifecycle methods delegate to wrapped samplers/upstream pipelines.
-  - Configurable causal sampler wiring landed: default real-mode backend can build a dependency-lazy imported pipeline factory and pass optional sampler config without importing upstream ML packages at base import time.
-  - Node-facing real pipeline configuration landed: advanced `LongLive` fields can pass an upstream pipeline module/class, constructor kwargs, component/device/dtype pass-through controls, constructor argument-name mapping, sampler call/inference argument-name mapping, input-channel and noise-shape selection, and sampler options into real mode while keeping default fake-mode behavior unchanged.
-  - Upstream pipeline interface guard landed: configured causal samplers now validate `inference` vs callable pipeline shapes during sampler construction, inspect configured constructor/call/inference keyword names when upstream signatures are introspectable, and backend load reports mismatches as structured sampler errors.
-  - Async upstream call support landed: causal samplers can await either `.inference(...)` or callable pipeline results before converting output video tensors into realtime frames.
-  - Upstream output normalization landed: causal samplers can extract video tensors from raw outputs, dict wrappers (`video`/`videos`/`frames`), and object wrappers (`.video`/`.videos`/`.frames`), then select frames from batched, time-first, or single-frame `CHW`/`HWC` outputs before realtime conversion. Both normalized float channels and byte-scale channels are accepted, and missing/empty upstream video outputs produce clear errors.
-  - Precision guard landed: real mode defers `auto` precision resolution to the lazy backend so CUDA capability can be used, while unvalidated `fp8`/`gguf`/`int8` paths fail early with structured errors instead of silently falling back.
-  - Real smoke-test scaffolding landed: `nodetool-realtime` now has an opt-in `NODETOOL_LONGLIVE_REAL_SMOKE=1` path that parses user-provided upstream module/class, constructor kwargs, constructor/call/inference argument-name mappings, sampler config, prompt, and weight settings without triggering downloads in the normal test suite.
-  - Quantized loader guard metadata landed: explicit `fp8`/`gguf`/`int8` requests still fail early until real loaders exist, but the structured error now identifies the matching install extra and reports the loader status instead of silently falling back. The pipeline and backend factories can now accept explicit loader/checkpoint hooks and an expanded validated-precision set, so real quantized loaders can be plugged in without bypassing the lazy backend lifecycle.
-  - Still pending for completion: running real end-to-end inference against downloaded weights and implementing real FP8/GGUF/INT8 loader paths.
-- [ ] Step 10b: Self-Forcing.
-  - Next implementation order: provenance/license/source gate, dependency-lazy backend contract, thin realtime node scaffold, selected-upstream sampler adapter, then real smoke execution through the shared model-handling tasks in Step 10c.
-  - Provenance gate, dependency-lazy backend boundary, thin node scaffold, package metadata discoverability, precision guard, selected-upstream sampler adapter, and opt-in smoke config parsing are landed. Still pending: real smoke execution against downloaded upstream weights after Step 10c artifact/loader handling is in place.
-  - Selected-upstream sampler adapter landed: the first real adapter targets the official `CausalInferencePipeline.inference(noise=..., text_prompts=..., return_latents=True, low_memory=...)` surface from the Self-Forcing CLI path, reuses the existing realtime frame conversion contract, records prompt/cache/latents metadata, delegates reset/close to the selected pipeline, and can be enabled through explicit lazy backend loader hooks plus sampler config.
-  - Precision guard landed: explicit Self-Forcing `fp8`/`gguf`/`int8` requests fail before optional ML imports unless loader hooks explicitly mark the precision as validated; `auto` resolves through the same CUDA-aware precision helper used by LongLive.
-  - Real smoke config scaffold landed: `NODETOOL_SELF_FORCING_REAL_SMOKE=1` parses the official Self-Forcing checkpoint, precision, prompt, and negative prompt without importing runtime ML packages in the default suite. The executable real smoke remains skipped until real loader/checkpoint hooks are wired against downloaded upstream weights.
-  - Do not create fake behavioral parity with LongLive. Reuse shared realtime contracts where they fit, and wait for the selected upstream interface before adding model-output assertions.
+- [ ] Step 10: first runnable RTX 3060 realtime smoke.
+  - Purpose: prove that a real lightweight model path can visibly run through the canonical realtime workflow on the target RTX 3060 machine before spending more time on broad model validation.
+  - Starting candidates:
+    - `Wan-AI/Wan2.1-T2V-1.3B` as the smallest selected base family.
+    - Self-Forcing RTX 3060 path first if it is the lightest available runnable option.
+    - `city96/umt5-xxl-encoder-gguf` (`Q5_K_M` or larger preferred), Wan 2.1 VAE safetensors, and community FP8 Self-Forcing 1.3B safetensors as explicit opt-in low-VRAM candidates.
+  - Acceptance criteria:
+    - [ ] Resolve or download required artifacts through the existing `nodetool-realtime` manifest/loader path, or through an explicit temporary smoke script if needed.
+    - [ ] Launch the canonical realtime workflow template with the chosen lightweight model path.
+    - [ ] Observe one prompt/control update and one generated output path, even if generation is very slow.
+    - [ ] Record loading phases, selected precision/backend, memory/offload state, errors, and rough latency/fps through logs or metrics.
+    - [ ] Stop the session cleanly without leaving stuck runners, workers, or model state.
+  - Defer:
+    - Full LongLive canonical validation.
+    - Full Self-Forcing official-quality validation.
+    - FP8/GGUF/INT8 matrix hardening beyond the single chosen path.
+    - Browser-local realtime inference.
+    - Deployment, Electron packaging, persistent cache UX, and multi-adapter expansion.
+- [ ] Step 10a: LongLive real validation.
+  - Purpose: prove the first heavy Python realtime video model against real downloaded weights while keeping normal tests dependency-light.
+  - Landed foundation:
+    - [x] Thin `LongLive` node, `WeightSource`, precision selection, `LatestPerHandleAccumulator`, fake CPU pipeline, and smoke tests.
+    - [x] Real-mode backend boundary with dependency-guarded loading and structured loading `error` events when optional ML dependencies are absent.
+    - [x] CPU `VideoFrame` conversion, prompt/negative-prompt cache-refresh tracking, sampler input/output conversion, sampler reset/close delegation, and upstream output normalization.
+    - [x] Lazy Wan2.1 component loading plan for tokenizer/VAE/transformer plus `longlive_base.pt` checkpoint application and metadata.
+    - [x] Configurable upstream pipeline/sampler interface with constructor/call/inference argument-name mapping, signature guards, async call support, and clear mismatch errors.
+    - [x] Package metadata discoverability for `LongLive` and `SelfForcing`.
+    - [x] Opt-in `NODETOOL_LONGLIVE_REAL_SMOKE=1` config parsing without downloads in the normal test suite.
+    - [x] Quantized loader guard metadata and explicit loader/checkpoint hook points for future FP8/GGUF/INT8 paths.
+  - Open tasks:
+    - [ ] Run real end-to-end inference against downloaded upstream weights.
+    - [ ] Validate the canonical smoke path with `Wan-AI/Wan2.1-T2V-1.3B` plus the selected LongLive checkpoint.
+    - [ ] Implement and validate real FP8/GGUF/INT8 loader paths only through explicit loader hooks and opt-in smoke tiers.
+    - [ ] Record observed latency/fps, loading lifecycle, cache refresh, dropped/skipped handle counts, and memory/offload data through existing metrics surfaces.
+  - Constraints:
+    - Keep heavy ML imports dependency-lazy.
+    - Do not silently fall back from explicitly requested experimental precision paths.
+    - Do not turn opt-in real smoke into default test-suite behavior.
+- [ ] Step 10b: Self-Forcing real validation.
+  - Purpose: prove the selected upstream Self-Forcing path using the shared realtime/model-loading contracts rather than inventing a parallel stack.
+  - Landed foundation:
+    - [x] Provenance gate for `guandeh17/Self-Forcing` / `gdhe17/Self-Forcing`, Apache-2.0, Wan2.1 T2V 1.3B compatibility, and documented checkpoint `checkpoints/self_forcing_dmd.pt`.
+    - [x] Thin `SelfForcing` node scaffold with dependency-lazy pipeline/backend boundary and latest-value prompt/negative-prompt handling.
+    - [x] Backend scaffold with explicit base-model loader, checkpoint applier, and sampler hooks.
+    - [x] Selected-upstream sampler adapter for the official `CausalInferencePipeline.inference(noise=..., text_prompts=..., return_latents=True, low_memory=...)` surface.
+    - [x] Precision guard using the same CUDA-aware `auto` path as LongLive, with explicit hook validation for FP8/GGUF/INT8.
+    - [x] Opt-in `NODETOOL_SELF_FORCING_REAL_SMOKE=1` config parsing without importing heavy modules in the default suite.
+  - Open tasks:
+    - [ ] Wire real loader/checkpoint hooks against downloaded upstream weights.
+    - [ ] Run opt-in real smoke through the official Self-Forcing checkpoint and selected sampler interface.
+    - [ ] Validate GGUF/community pre-quantized weights on Ampere/low-VRAM hardware only through opt-in tests or scripts.
+    - [ ] Add model-output assertions only after the selected upstream interface is actually running.
+  - Constraints:
+    - Reuse LongLive contracts where they fit: `WeightSource`, loading phases, precision guards, `LatestPerHandleAccumulator`, frame conversion, sampler lifecycle, opt-in real smoke, and dependency-lazy imports.
+    - Keep community Self-Forcing/VACE FP8/GGUF weights experimental until source, license, compatibility, and quality are checked for the exact selected source.
+    - Do not create fake behavioral parity with LongLive.
 - [x] Step 10c: Model artifact and loader handling for realtime video backends.
   - Goal: make LongLive and Self-Forcing model handling explicit, auditable, and low-VRAM-testable before more user-facing realtime nodes depend on it.
   - [x] Artifact manifest task: typed manifests cover base model, checkpoint, text encoder, VAE, VACE/control, LoRA/adapters, configs, formats, source, license notes, and hardware profile.
@@ -361,10 +403,13 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - [x] Extend `packages/protocol/src/messages.ts` with a namespaced inference metrics/loading surface instead of overloading transport-heavy `RealtimeMetrics`; `RealtimeInferenceMetrics` now carries placement, engine/backend, model source, loading/cache/warm state, and throughput telemetry.
   - [x] Add opt-in realtime/browser capability metadata across `packages/node-sdk`, `packages/protocol`, graph serialization, and Python descriptor parity; `realtime_profile` now carries browser capability, browser-frame/WebGPU requirements, and realtime analysis/parameter/media emission hints.
   - [x] Break `web/src/components/realtime/RealtimeStreamPage.tsx` into shell hooks and presentational controls so Phase 4 can reuse it inside editor realtime mode; `useRealtimeStreamController` now owns route/session/WebRTC state and the page composes reusable workflow, controls, active-session, and session-list cards.
-  - [ ] Introduce a narrow realtime control-plane client layer around `RealtimeSessionStore`, `RealtimeSessionClient`, and `useRealtimeSessionWebRTC` for session updates plus future analysis events.
-  - [ ] Split `packages/websocket/src/realtime/command-handler.ts` into session CRUD/persistence and signaling/transport responsibilities before adding browser inference control verbs.
-  - [ ] Split or map `nodetool-realtime/src/nodetool/realtime/model_artifacts.py` into cross-runtime contracts vs Python-only artifact/loader helpers; keep Wan2.1-specific logic scoped away from browser model cache work.
-  - [ ] Quarantine or explicitly mark `packages/websocket/src/realtime/webrtc-spike.ts` as test-only if it remains only spike/test support.
+  - [x] Introduce a narrow realtime control-plane client layer around `RealtimeSessionStore`, `RealtimeSessionClient`, and `useRealtimeSessionWebRTC` for session updates, metrics, signaling state, and future analysis events. `useRealtimeControlPlane` is now the frontend session/control surface; the incubation page and WebRTC hook consume it instead of reaching into store/client internals directly.
+  - [x] Split `packages/websocket/src/realtime/command-handler.ts` into session CRUD/persistence, runner parameter routing, and signaling/transport responsibilities before adding browser inference control verbs. `RealtimeSessionCommandService` owns start/stop and job metadata persistence, `routeRealtimeParameterUpdates` owns live runner updates, and `RealtimeSignalingTransport` owns WebRTC/control signaling.
+  - [x] Quarantine or explicitly mark `packages/websocket/src/realtime/webrtc-spike.ts` as test-only if it remains only spike/test support. The werift spike now lives under `packages/websocket/src/realtime/test-support/` and is only imported by its spike test.
+  - [x] Map `nodetool-realtime/src/nodetool/realtime/model_artifacts.py` boundaries before doing a deep split: identify cross-runtime contracts, Python-only artifact/loader helpers, and Wan2.1-specific manifest/runtime logic. Only extract modules when real loader/cache work needs the split.
+    - Cross-runtime contract candidates: frozen dataclasses and public helpers for `ModelArtifact`, `ArtifactManifest`, `ResolvedArtifact`, `ResolveSummary`, compatibility reports, loader plans/results, LoRA/VACE/quantization contracts, memory telemetry reports, lifecycle keys/events, smoke tiers, and smoke command plans.
+    - Python-only artifact/loader helpers: `resolve_artifact_manifest`, `load_artifacts_from_plan`, `load_resolved_artifact`, loader hook dispatch, pickle opt-in, `safetensors`/torch/GGUF path-reference handling, local/Hugging Face resolution, runtime memory hooks, and low-VRAM fallback decisions.
+    - Wan2.1/model-specific manifests and runtime policy: `default_longlive_artifact_manifest`, `default_self_forcing_artifact_manifest`, `rtx3060_self_forcing_artifact_manifest`, Self-Forcing smoke tiers/commands, VACE opt-in gating, community FP8/GGUF candidates, and compatibility checks for target family/size.
   - Do not destabilize LongLive/Self-Forcing real smoke, VACE, or community LoRA paths while they remain opt-in/experimental.
 
 - [ ] Phase 3 implementation sequence for browser-local realtime analysis:
@@ -377,12 +422,27 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - [x] Typed analysis/control event path exists as `realtime_analysis_event`; keep media buffers on the media plane only.
   - [x] Browser/JS inference metrics can be represented as `realtime_inference_metrics` beside transport `realtime_metrics`.
   - [x] Initial documentation exists in `docs/REALTIME-BROWSER-JS-INFERENCE.md` for placement, package boundary, and browser-output-to-server-graph flow.
-  - [ ] Integrate the narrow realtime control-plane client around `RealtimeSessionStore`, `RealtimeSessionClient`, and `useRealtimeSessionWebRTC` so session updates, analysis events, and inference metrics use one predictable client surface.
-  - [ ] Decide how `packages/realtime-browser/` consumes or wraps parallel TF.js and Transformers.js package work without duplicating model registries, cache semantics, or provider responsibilities.
-  - [ ] Add editor/operator affordances for browser-local nodes: browser-local badges, WebGPU/browser-frame warnings, loading/cache/backend state, and placement validation.
-  - [ ] Add the first real browser-local model integration only after the contracts are stable: prefer one MediaPipe/TF.js landmarks path and one Transformers.js sampled-frame classification/caption path with mocked default tests and explicit opt-in loading.
-  - [ ] Define the graph mapping from `realtime_analysis_event` payloads to server-side parameter updates, including validation for event schema, node target, and stale frame handling.
-  - [ ] Keep production hardening separate from this phase: Electron packaging details, persistent browser model cache UX, remote deployment behavior, and worker routing belong after the contracts and editor integration are proven.
+  - [x] Integrate the narrow realtime control-plane client around `RealtimeSessionStore`, `RealtimeSessionClient`, and `useRealtimeSessionWebRTC` so session updates, analysis events, and inference metrics use one predictable client surface.
+  - [ ] Write the minimal browser inference ownership matrix before wiring real models:
+    - `packages/realtime-browser/` owns realtime loader state, frame sampling, analysis-event construction, proof adapter interfaces, and metrics helpers only.
+    - `packages/transformers-js-nodes/` owns Transformers.js model IDs, pipeline tasks, cache path/download helpers, and `getPipeline`/`loadTransformers` semantics.
+    - `packages/transformers-js-provider/` remains the only Transformers.js `BaseProvider` for chat/audio/embeddings/provider discovery.
+    - Existing TF.js workflow nodes remain in `packages/base-nodes/src/nodes/lib-tensorflow.ts`; browser realtime should use injected detectors/adapters or a documented browser-safe wrapper instead of duplicating the Node/sharp image path.
+    - Add `packages/realtime-browser` to build/web/electron references only when a shipping target imports it.
+  - [ ] Wire the minimum editor/operator affordance needed to identify browser-local nodes:
+    - Add a `RealtimeNodeBadges` or equivalent node-header component that consumes `getRealtimeNodeBadges(metadata)`.
+    - Add static metadata warnings for `requires_webgpu` and `requires_browser_frame`; defer live `navigator.gpu` and camera-permission checks to Phase 5.
+    - Show only enough `realtime_inference_metrics` state to debug the proof path: loading status, selected backend, cache hit/miss, and error text.
+    - Call `validateRealtimeNodePlacement` where placement/engine/backend can be selected, and show validation reasons using existing warning/validation UI patterns.
+  - [ ] Implement the simplest `realtime_analysis_event` -> parameter-update mapping that can support one proof adapter:
+    - Define allowed `event` names and payload schemas per browser-local `node_type`, with optional payload versioning.
+    - Prefer a client-side mapper that calls `update_realtime_session` unless implementation evidence requires a server-owned command.
+    - Define how mapper outputs target `nodetool.realtime.Parameter` names, and validate session ownership, active job, emitting node, event allowlist, payload shape, and payload size.
+    - Use latest-value-wins for stale frames; defer advanced ack/failure protocols to Phase 5 unless unrouted keys block the proof.
+  - [ ] Add one real browser-local model adapter after the ownership matrix and mapping are stable:
+    - Choose one proof path, not two: prefer a MediaPipe/TF.js landmarks detector if the goal is camera analysis, or a Transformers.js sampled-frame classifier/captioner if the goal is package reuse.
+    - Use injected loader/model interfaces, mocked default tests, explicit opt-in loading, and `BrowserRealtimeModelLoader` metrics.
+    - Acceptance check: no duplicate model catalog, cache root, or provider discovery path is introduced.
 
 ## Phase 4 - Workflow integration
 
@@ -407,7 +467,28 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 - [ ] Add live control groups for prompt steering, diffusion strength, ControlNet settings, and LoRA weight.
 - [ ] Add reusable preprocessor and effects stages that fit the standard workflow model.
 
-## Phase 5 - Deployed realtime worker readiness
+## Phase 5 - Browser-local inference hardening
+
+**Goal:** Harden browser/Electron local inference after the minimal analysis path proves useful.
+
+This phase is deliberately after Phase 3 and Phase 4. Do not pull it into the first proof unless the proof cannot run without it.
+
+**Done when**
+
+- Browser-local nodes report useful runtime capability and loading state.
+- Model cache behavior is understandable and does not duplicate existing TF.js or Transformers.js ownership.
+- Operator failures are visible without breaking server/Python realtime sessions.
+
+**Tasks**
+
+- [ ] Add runtime-aware browser capability checks: `navigator.gpu`, camera permission/media-stream state, and Electron renderer differences.
+- [ ] Expand per-node inference UI beyond the proof path: placement, engine, selected backend, fallback backend, loading progress, cache state, warm state, throughput, and errors.
+- [ ] Decide whether any server-owned analysis mapping command is needed after the client-side mapper proves or fails; add explicit ack/failure behavior only if needed.
+- [ ] Define persistent browser model cache UX and cleanup policy.
+- [ ] Add a second browser-local adapter only after the first one proves the package boundary and graph mapping.
+- [ ] Add Electron packaging notes for browser-local model assets, WASM/WebGPU requirements, and offline behavior.
+
+## Phase 6 - Deployed realtime worker readiness
 
 **Goal:** Make realtime sessions work reliably when NodeTool is running as a deployed instance with remote browsers, authenticated users, reverse proxies, and potentially separate GPU/model workers.
 
@@ -441,7 +522,7 @@ This is deployment hardening for the existing NodeTool deploy path, not a new cl
 - [ ] Add an operations dashboard for active realtime sessions, peer state, worker load, GPU memory, queue depth, and TURN usage.
 - [ ] Add admin controls to evict stuck sessions, drain a worker, or force reconnect operators to a replacement worker.
 
-## Phase 6 - Expansion adapters
+## Phase 7 - Expansion adapters
 
 **Goal:** Extend the realtime system through clear media and control adapters after the first proof is stable.
 
@@ -460,8 +541,8 @@ This is deployment hardening for the existing NodeTool deploy path, not a new cl
 - [ ] Add `Spout` output and routing adapters.
 - [ ] Add `Syphon` adapters using the same media-adapter model.
 - [ ] Add `MIDI`, `OSC`, `DMX`, and `timecode` control or sync adapters.
-- [ ] Integrate WHIP/WHEP endpoints from Phase 5 into adapter discovery and workflow templates.
-- [ ] Add optional remote brokering and entitlement layers if Phase 5 proves they are needed beyond deployment hardening.
+- [ ] Integrate WHIP/WHEP endpoints from Phase 6 into adapter discovery and workflow templates.
+- [ ] Add optional remote brokering and entitlement layers if Phase 6 proves they are needed beyond deployment hardening.
 - [ ] Add NVIDIA Lyra 2.0 world model generator
 
 ## Namespace policy
