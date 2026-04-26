@@ -21,7 +21,7 @@ import {
   useRealtimeSessionWebRTC,
   type RealtimeWebRTCRuntimeMode
 } from "../../hooks/browser/useRealtimeSessionWebRTC";
-import { useRealtimeSessionStore } from "../../stores/RealtimeSessionStore";
+import { useRealtimeControlPlane } from "../../hooks/realtime/useRealtimeControlPlane";
 
 export interface RealtimeStreamController {
   workflowId: string | undefined;
@@ -64,24 +64,19 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const { workflowId } = useParams<{ workflowId?: string }>();
   const location = useLocation();
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
-
-  const sessions = useRealtimeSessionStore((state) => state.sessions);
-  const metrics = useRealtimeSessionStore((state) => state.metrics);
-  const activeSessionId = useRealtimeSessionStore(
-    (state) => state.activeSessionId
-  );
-  const isLoadingSessions = useRealtimeSessionStore((state) => state.isLoading);
-  const sessionError = useRealtimeSessionStore((state) => state.error);
-  const hydrated = useRealtimeSessionStore((state) => state.hydrated);
-  const hydrateSessions = useRealtimeSessionStore(
-    (state) => state.hydrateSessions
-  );
-  const startSession = useRealtimeSessionStore((state) => state.startSession);
-  const updateSession = useRealtimeSessionStore((state) => state.updateSession);
-  const stopSession = useRealtimeSessionStore((state) => state.stopSession);
-  const setActiveSession = useRealtimeSessionStore(
-    (state) => state.setActiveSession
-  );
+  const {
+    sessions,
+    metrics,
+    activeSessionId,
+    isLoading: isLoadingSessions,
+    error: sessionError,
+    hydrated,
+    hydrateSessions,
+    startSession,
+    updateSession,
+    stopSession,
+    setActiveSession
+  } = useRealtimeControlPlane();
 
   const [brightness, setBrightness] = useState<number>(100);
   const [videoTargetNodeId, setVideoTargetNodeId] = useState<string>("camera");

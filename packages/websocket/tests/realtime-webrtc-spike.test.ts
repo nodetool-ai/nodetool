@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   runWeriftMediaSpike,
   type WebRtcSpikeResult
-} from "../src/realtime/webrtc-spike.js";
+} from "../src/realtime/test-support/webrtc-spike.js";
 
 describe("server-side WebRTC spike", () => {
   it("proves werift offer-answer, ICE connection, and clean teardown", async () => {

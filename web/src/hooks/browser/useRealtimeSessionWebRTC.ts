@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import log from "loglevel";
 import type { RealtimeSignalingStatus } from "@nodetool/protocol";
 
-import { realtimeSessionClient } from "../../lib/websocket/RealtimeSessionClient";
+import { useRealtimeControlPlane } from "../realtime/useRealtimeControlPlane";
 
 export type RealtimeWebRTCRuntimeMode = "loopback" | "backend";
 type RealtimeWebRTCCodecStatus = "loopback" | "unsupported";
@@ -31,6 +31,7 @@ export const useRealtimeSessionWebRTC = ({
   enabled,
   runtimeMode = "loopback"
 }: UseRealtimeSessionWebRTCOptions): UseRealtimeSessionWebRTCResult => {
+  const { signalSession, subscribeToSignals } = useRealtimeControlPlane();
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [signalingStatus, setSignalingStatus] =
     useState<RealtimeSignalingStatus>("idle");
@@ -68,11 +69,10 @@ export const useRealtimeSessionWebRTC = ({
 
       setSignalingStatus(status);
       setError(nextError ?? null);
-      void realtimeSessionClient
-        .signalSession(sessionId, workflowId, {
-          signalingStatus: status,
-          error: nextError ?? null
-        })
+      void signalSession(sessionId, workflowId, {
+        signalingStatus: status,
+        error: nextError ?? null
+      })
         .catch((statusError) => {
           log.warn("Failed to publish realtime signaling status", statusError);
         });
@@ -131,19 +131,18 @@ export const useRealtimeSessionWebRTC = ({
         return;
       }
 
-      void realtimeSessionClient
-        .signalSession(sessionId, workflowId, {
-          signal: {
-            signal_type: "ice_candidate",
-            source: "operator",
-            target: "runtime",
-            candidate: {
-              candidate: event.candidate.candidate,
-              sdpMid: event.candidate.sdpMid,
-              sdpMLineIndex: event.candidate.sdpMLineIndex
-            }
+      void signalSession(sessionId, workflowId, {
+        signal: {
+          signal_type: "ice_candidate",
+          source: "operator",
+          target: "runtime",
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex
           }
-        })
+        }
+      })
         .catch((signalError) => {
           log.warn("Failed to relay operator ICE candidate", signalError);
         });
@@ -155,26 +154,25 @@ export const useRealtimeSessionWebRTC = ({
           return;
         }
 
-        void realtimeSessionClient
-          .signalSession(sessionId, workflowId, {
-            signal: {
-              signal_type: "ice_candidate",
-              source: "runtime",
-              target: "operator",
-              candidate: {
-                candidate: event.candidate.candidate,
-                sdpMid: event.candidate.sdpMid,
-                sdpMLineIndex: event.candidate.sdpMLineIndex
-              }
+        void signalSession(sessionId, workflowId, {
+          signal: {
+            signal_type: "ice_candidate",
+            source: "runtime",
+            target: "operator",
+            candidate: {
+              candidate: event.candidate.candidate,
+              sdpMid: event.candidate.sdpMid,
+              sdpMLineIndex: event.candidate.sdpMLineIndex
             }
-          })
+          }
+        })
           .catch((signalError) => {
             log.warn("Failed to relay runtime ICE candidate", signalError);
           });
       };
     }
 
-    const unsubscribe = realtimeSessionClient.subscribeToSignals(
+    const unsubscribe = subscribeToSignals(
       sessionId,
       (message) => {
         void (async () => {
@@ -201,7 +199,7 @@ export const useRealtimeSessionWebRTC = ({
                 if (!answer.sdp) {
                   throw new Error("Realtime runtime peer produced an empty answer");
                 }
-                await realtimeSessionClient.signalSession(sessionId, workflowId, {
+                await signalSession(sessionId, workflowId, {
                   signal: {
                     signal_type: "answer",
                     source: "runtime",
@@ -268,7 +266,7 @@ export const useRealtimeSessionWebRTC = ({
           throw new Error("Realtime operator peer produced an empty offer");
         }
 
-        await realtimeSessionClient.signalSession(sessionId, workflowId, {
+        await signalSession(sessionId, workflowId, {
           signalingStatus: "negotiating",
           signal: {
             signal_type: "offer",
@@ -297,7 +295,15 @@ export const useRealtimeSessionWebRTC = ({
       nextRemoteStream.getTracks().forEach((track) => track.stop());
       setConnectionState("closed");
     };
-  }, [enabled, localStream, runtimeMode, sessionId, workflowId]);
+  }, [
+    enabled,
+    localStream,
+    runtimeMode,
+    sessionId,
+    signalSession,
+    subscribeToSignals,
+    workflowId
+  ]);
 
   return {
     remoteStream,
