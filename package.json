@@ -9,6 +9,7 @@
     "packages/node-sdk",
     "packages/base-nodes",
     "packages/realtime-nodes",
+    "packages/realtime-browser",
     "packages/dsl",
     "packages/code-runners",
     "packages/fal-codegen",

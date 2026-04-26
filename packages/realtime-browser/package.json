@@ -1,0 +1,30 @@
+{
+  "name": "@nodetool/realtime-browser",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Browser-local realtime inference contracts and proof nodes for NodeTool",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "vitest run --root ../.. packages/realtime-browser/tests/**/*.test.ts",
+    "test:watch": "vitest --root ../.. packages/realtime-browser/tests/**/*.test.ts",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodetool/protocol": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  }
+}

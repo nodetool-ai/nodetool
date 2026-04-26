@@ -1,3 +1,5 @@
+import type { RealtimeNodeProfile } from "@nodetool/protocol";
+
 export interface NodeMetadataProperty {
   name: string;
   type: { type: string; type_args?: Array<{ type: string }> };
@@ -26,6 +28,7 @@ export interface PythonNodeMetadata {
   is_realtime_capable?: boolean;
   owns_warm_state?: boolean;
   is_media_adapter?: boolean;
+  realtime_profile?: RealtimeNodeProfile;
 }
 
 export interface ExecuteResult {
