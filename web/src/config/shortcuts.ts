@@ -618,6 +618,16 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   },
 
+  // ---------- SETTINGS ------------------------------------------------------
+  {
+    title: "Open Settings",
+    slug: "openSettings",
+    keyCombo: ["Control", ","],
+    category: "editor",
+    description: "Open application settings",
+    registerCombo: true
+  },
+
   // ---------- FIND IN WORKFLOW ---------------------------------------------
   {
     title: "Find in Workflow",
