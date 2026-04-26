@@ -48,11 +48,7 @@ const __dirname = dirname(__filename);
 // ---------------------------------------------------------------------------
 
 async function setupDb(): Promise<void> {
-  try {
-    initDb(getDefaultDbPath());
-  } catch {
-    // fall back to env vars
-  }
+  initDb(getDefaultDbPath());
 }
 
 // ---------------------------------------------------------------------------
