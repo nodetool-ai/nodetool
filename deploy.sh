@@ -9,14 +9,14 @@ set -euo pipefail
 # TLS — origin runs plain HTTP by default.
 #
 # TLS modes:
-#   (default)       Plain HTTP origin — Cloudflare "Flexible" SSL
+#   (default)       Bring cert.pem + key.pem — Cloudflare "Full (Strict)"
 #   --self-signed   Auto-generated cert — Cloudflare "Full" SSL
-#   --certs         Bring cert.pem + key.pem — Cloudflare "Full (Strict)"
+#   --no-tls        Plain HTTP origin — Cloudflare "Flexible" SSL
 #
 # Usage:
-#   ./deploy.sh                  # Pull + deploy (HTTP, behind Cloudflare)
+#   ./deploy.sh                  # Pull + deploy (HTTPS, requires cert.pem + key.pem)
 #   ./deploy.sh --self-signed    # Auto-generate TLS cert for origin
-#   ./deploy.sh --certs          # Use existing cert.pem + key.pem
+#   ./deploy.sh --no-tls         # Plain HTTP origin (Cloudflare Flexible)
 #   ./deploy.sh --tag <tag>      # Pull a specific image tag (default: auto from git HEAD)
 #   ./deploy.sh --no-pull        # Deploy existing local image (skip pull)
 #   ./deploy.sh --no-wait        # Don't wait for CI to publish the image
@@ -43,7 +43,7 @@ IMAGE_WAIT_INTERVAL=15
 # Parse flags
 NO_PULL=0
 NO_WAIT=0
-TLS_MODE="none"  # none | self-signed | certs
+TLS_MODE="certs"  # none | self-signed | certs (default: certs for Cloudflare Full Strict)
 
 while (( $# )); do
   arg="$1"
@@ -93,6 +93,7 @@ while (( $# )); do
       ;;
     --self-signed) TLS_MODE="self-signed" ;;
     --certs)       TLS_MODE="certs" ;;
+    --no-tls)      TLS_MODE="none" ;;
     --help|-h)
       sed -n '3,22p' "$0" | sed 's/^# \?//'
       exit 0
