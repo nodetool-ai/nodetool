@@ -19,6 +19,7 @@ import type { NodeMetadata } from "@nodetool/node-sdk";
 import { registerBaseNodes } from "@nodetool/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
+import { registerTransformersJsProvider } from "@nodetool/transformers-js-provider";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerKieNodes } from "@nodetool/kie-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
@@ -313,6 +314,7 @@ registerTransformersJsNodes(registry);
 registerFalNodes(registry);
 registerKieNodes(registry);
 registerReplicateNodes(registry);
+registerTransformersJsProvider();
 log.info(`Node registry ready [${startupMs()}]`);
 
 // ---------------------------------------------------------------------------
