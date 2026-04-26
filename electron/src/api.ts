@@ -5,9 +5,6 @@ import { Workflow } from "./types";
 import { logMessage } from "./logger";
 import { getServerUrl } from "./utils";
 
-export let isConnected = false;
-let healthCheckTimer: NodeJS.Timeout | null = null;
-
 function createApiClient() {
   return createTRPCClient<AppRouter>({
     links: [
@@ -36,47 +33,5 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
       logMessage(`Failed to fetch workflows: ${error.message}`, "error");
     }
     return [];
-  }
-}
-
-async function checkHealth(): Promise<boolean> {
-  try {
-    const response = await fetch(getServerUrl("/health/"));
-    logMessage(`Health check response: ${response.ok}`);
-    return response.ok;
-  } catch (error) {
-    return false;
-  }
-}
-
-export function startPeriodicHealthCheck(
-  onStatusChange?: (connected: boolean) => void
-): void {
-  if (healthCheckTimer) {
-    clearInterval(healthCheckTimer);
-    healthCheckTimer = null;
-  }
-
-  const runCheck = async () => {
-    const previousConnectionStatus = isConnected;
-    isConnected = await checkHealth();
-    if (previousConnectionStatus !== isConnected && onStatusChange) {
-      onStatusChange(isConnected);
-    }
-    if (!isConnected) {
-      logMessage("Server is not responding.", "error");
-    }
-  };
-
-  // Run an immediate check when starting
-  void runCheck();
-
-  healthCheckTimer = setInterval(runCheck, 10000);
-}
-
-export function stopPeriodicHealthCheck(): void {
-  if (healthCheckTimer) {
-    clearInterval(healthCheckTimer);
-    healthCheckTimer = null;
   }
 }
