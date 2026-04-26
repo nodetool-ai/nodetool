@@ -278,10 +278,6 @@ describe("useChatService", () => {
     });
 
     it("should not send message if no model selected", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
       const { result } = renderHook(() => useChatService(null), {
         wrapper: MemoryRouter
       });
@@ -293,16 +289,13 @@ describe("useChatService", () => {
 
       await result.current.sendMessage(message);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith("No model selected");
-
-      consoleErrorSpy.mockRestore();
+      // When no model is selected, the hook sets store error and returns early
+      expect(mockGlobalChatStore.setState).toHaveBeenCalledWith({
+        error: "No model selected"
+      });
     });
 
     it("should handle errors when sending message", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
       const mockSendMessage = jest.fn().mockRejectedValue(new Error("Send failed"));
 
       mockGlobalChatStore.mockImplementation((selector: any) => {
@@ -324,12 +317,15 @@ describe("useChatService", () => {
 
       await result.current.sendMessage(message);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to send message:",
-        expect.any(Error)
+      // sendMessage is called with the message + model; error is swallowed
+      // because the store already sets store.error on failure
+      expect(mockSendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: "user",
+          content: "Test message",
+          model: "openai/gpt-4"
+        })
       );
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
