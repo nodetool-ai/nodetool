@@ -14,6 +14,7 @@ import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
 
 interface TypeFilterChipsProps {
   selectedInputType: string;
@@ -207,7 +208,8 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
       (state) => ({
         selectedProviderType: state.selectedProviderType,
         setSelectedProviderType: state.setSelectedProviderType
-      })
+      }),
+      shallow
     );
     const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
     const metadata = useMetadataStore((state) => state.metadata);
