@@ -205,6 +205,7 @@ build_run_args() {
     -e HOST=0.0.0.0 -e PORT=7777
     -e NODETOOL_ENV=production
     -e STATIC_FOLDER=/app/web/dist
+    -v "$SCRIPT_DIR/web/dist:/app/web/dist:ro"
     --memory=4g --cpus=2
   )
 
