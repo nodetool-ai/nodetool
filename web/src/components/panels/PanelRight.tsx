@@ -31,6 +31,10 @@ import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
 import AgentPanel from "./AgentPanel";
 import { MobileBottomSheet, ToolbarIconButton } from "../ui_primitives";
+import { isProduction } from "../../lib/env";
+import { getIsElectronDetails } from "../../utils/browser";
+
+const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
 
 // Icons for mobile tab rail
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -293,7 +297,8 @@ const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
               <SvgFileIcon iconName="assistant" svgProp={{ width: 18, height: 18 }} />
             )}
             {renderTabButton("agent", "Agent", <SmartToyIcon />)}
-            {renderTabButton("workspace", "Workspace", <FolderIcon />)}
+            {workspacesEnabled &&
+              renderTabButton("workspace", "Workspace", <FolderIcon />)}
             {renderTabButton("workflow", "Settings", <SettingsIcon />)}
             {renderTabButton("workflowAssets", "Assets", <FolderSpecialIcon />)}
             {renderTabButton("versions", "Versions", <HistoryIcon />)}
@@ -335,6 +340,14 @@ const PanelRight: React.FC = () => {
   const activeView = useRightPanelStore((state) => state.panel.activeView);
   const setActiveView = useRightPanelStore((state) => state.setActiveView);
   const setVisibility = useRightPanelStore((state) => state.setVisibility);
+
+  // If a previous session persisted "workspace" but workspaces are disabled
+  // (production web), fall back to a safe default view.
+  useEffect(() => {
+    if (!workspacesEnabled && activeView === "workspace") {
+      setActiveView("inspector");
+    }
+  }, [activeView, setActiveView]);
 
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
@@ -579,7 +592,7 @@ const PanelRight: React.FC = () => {
             <PanelHeadline title="Jobs" />
             <JobsPanel />
           </Box>
-        ) : activeView === "workspace" ? (
+        ) : activeView === "workspace" && workspacesEnabled ? (
           <Box
             className="workspace-panel"
             sx={{

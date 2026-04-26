@@ -13,6 +13,10 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { FlexRow, Tooltip } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
+import { isProduction } from "../../lib/env";
+import { getIsElectronDetails } from "../../utils/browser";
+
+const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
 
 const styles = (theme: Theme) =>
   css({
@@ -327,7 +331,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
         <div className="buttons-right">
-          <HeaderWorkspaceSelector />
+          {workspacesEnabled && <HeaderWorkspaceSelector />}
           <TemplatesButton isActive={path.startsWith("/templates")} />
           <RightSideButtons />
         </div>
