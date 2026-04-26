@@ -141,6 +141,7 @@ const registerFrontendTools = () => {
   });
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
+import OnboardingRoot from "./components/onboarding/OnboardingRoot";
 
 installIpcLogBridge();
 
@@ -473,7 +474,16 @@ function getRoutes() {
     route.ErrorBoundary = ErrorBoundary;
   });
 
-  return routes;
+  // Wrap all routes in a layout that mounts the onboarding overlay and
+  // detector subscriptions, so the guided tour can render on top of any
+  // page and record progress as the user explores the real product.
+  return [
+    {
+      element: <OnboardingRoot />,
+      children: routes,
+      ErrorBoundary
+    }
+  ] satisfies RouteObject[];
 }
 
 useAssetStore.getState().setQueryClient(queryClient);

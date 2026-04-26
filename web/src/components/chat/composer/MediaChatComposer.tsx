@@ -782,7 +782,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           </FlexRow>
         )}
 
-        <div className="media-chip-row">
+        <div className="media-chip-row" data-onboarding-target="media-mode-chip">
           {/* Mode selector chip */}
           <MediaControlChip
             icon={modeIcon}

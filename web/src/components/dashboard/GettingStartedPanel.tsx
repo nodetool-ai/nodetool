@@ -31,6 +31,7 @@ import { DownloadProgress } from "../hugging_face/DownloadProgress";
 import { useGettingStartedStore } from "../../stores/GettingStartedStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { FlexColumn, FlexRow, Card, Text, Caption, Tooltip, Chip } from "../ui_primitives";
+import OnboardingLauncher from "../onboarding/OnboardingLauncher";
 
 interface GettingStartedPanelProps {
   sortedWorkflows: Workflow[];
@@ -455,7 +456,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
     <FlexColumn gap={0} padding={4} fullHeight css={panelStyles(theme)} className="getting-started-panel">
       <FlexRow gap={3} align="center" className="panel-header">
         <RocketLaunchIcon className="header-icon" />
-        <FlexColumn gap={0.5}>
+        <FlexColumn gap={0.5} sx={{ flex: 1 }}>
           <Text size="big" weight={600}>Getting Started</Text>
           <Caption size="small">
             {progressPercentage < 100
@@ -463,6 +464,7 @@ const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
               : "All set, welcome to NodeTool!"}
           </Caption>
         </FlexColumn>
+        <OnboardingLauncher />
       </FlexRow>
 
       {progressPercentage < 100 && (

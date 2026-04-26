@@ -287,7 +287,11 @@ const ProviderSetupPanel: React.FC = () => {
   }, [handleOpenLink]);
 
   return (
-    <Box css={panelStyles(theme)} className="provider-setup-panel">
+    <Box
+      css={panelStyles(theme)}
+      className="provider-setup-panel"
+      data-onboarding-target="provider-setup"
+    >
       <div className="scrollable-content">
         <Box className="provider-setup-container">
           <CollapsibleSection
