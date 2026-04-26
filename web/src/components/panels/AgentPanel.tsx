@@ -28,7 +28,20 @@ const PROVIDER_LABELS: Record<AgentProvider, string> = {
   codex: "Codex",
   opencode: "OpenCode",
   pi: "Pi",
+  llm: "LLM"
 };
+
+const ALL_PROVIDERS: AgentProvider[] = [
+  "claude",
+  "codex",
+  "opencode",
+  "pi",
+  "llm"
+];
+
+function isAgentProvider(value: string): value is AgentProvider {
+  return (ALL_PROVIDERS as string[]).includes(value);
+}
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 import {
   Text,
@@ -252,6 +265,7 @@ const AgentPanel: React.FC = () => {
     setProvider,
     model,
     setModel,
+    setChatProviderId,
     availableModels,
     modelsLoading,
     loadModels,
@@ -277,6 +291,7 @@ const AgentPanel: React.FC = () => {
         setProvider: state.setProvider,
         model: state.model,
         setModel: state.setModel,
+        setChatProviderId: state.setChatProviderId,
         availableModels: state.availableModels,
         modelsLoading: state.modelsLoading,
         loadModels: state.loadModels,
@@ -305,6 +320,9 @@ const AgentPanel: React.FC = () => {
   });
 
   const mcpInstalledForProvider = useMemo(() => {
+    // The LLM provider runs in-process and doesn't need an MCP install on
+    // the host — its tools are dispatched directly over the agent socket.
+    if (provider === "llm") return true;
     if (!mcpStatus?.targets) return true;
     const entry = mcpStatus.targets.find((t) => t.target === provider);
     return entry?.installed ?? true;
@@ -313,6 +331,8 @@ const AgentPanel: React.FC = () => {
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
 
   const hasRunningSession = Boolean(sessionId);
+  const isLlmProvider = provider === "llm";
+  const isDraftLlmProvider = draftProvider === "llm";
 
   useEffect(() => {
     useAgentStore.getState().loadSessions();
@@ -331,7 +351,11 @@ const AgentPanel: React.FC = () => {
   }, [workspaces, workspaceId, setWorkspaceContext]);
 
   useEffect(() => {
-    if (!newSessionDialogOpen || !draftWorkspacePath) {
+    // The harness providers' model lists depend on the workspace (e.g. Claude
+    // Code reads `~/.config`). The "llm" provider aggregates from registered
+    // chat providers and ignores the workspace, so we don't gate on it.
+    const isLlm = draftProvider === "llm";
+    if (!newSessionDialogOpen || (!isLlm && !draftWorkspacePath)) {
       setDraftModels([]);
       setDraftModelsLoading(false);
       return;
@@ -341,7 +365,7 @@ const AgentPanel: React.FC = () => {
     getAgentSocketClient()
       .listModels({
         provider: draftProvider,
-        workspacePath: draftWorkspacePath
+        workspacePath: isLlm ? undefined : draftWorkspacePath ?? undefined
       })
       .then((models) => {
         if (cancelled) {
@@ -438,7 +462,7 @@ const AgentPanel: React.FC = () => {
   const providerLabel = PROVIDER_LABELS[provider];
   const draftProviderLabel = PROVIDER_LABELS[draftProvider];
   const canCreateSession =
-    Boolean(draftWorkspacePath) &&
+    (isDraftLlmProvider || Boolean(draftWorkspacePath)) &&
     Boolean(draftModel) &&
     !draftModelsLoading &&
     !creatingSession;
@@ -455,21 +479,39 @@ const AgentPanel: React.FC = () => {
   );
 
   const handleConfirmNewSession = useCallback(async () => {
-    if (!draftWorkspacePath || !draftModel) {
+    if (!draftModel) {
+      return;
+    }
+    if (!isDraftLlmProvider && !draftWorkspacePath) {
       return;
     }
     setCreatingSession(true);
     try {
       setProvider(draftProvider);
       setModel(draftModel);
-      setWorkspaceContext(draftWorkspaceId, draftWorkspacePath);
+      // setProvider kicks off an async loadModels. Until that finishes, the
+      // store's `availableModels` won't include the draft model, so the
+      // chatProviderId auto-stamp inside setModel can't resolve. Re-stamp
+      // it explicitly from the dialog's draftModels list (always populated
+      // by the draft-side loader before the user can confirm).
+      if (isDraftLlmProvider) {
+        const descriptor = draftModels.find((m) => m.id === draftModel);
+        setChatProviderId(descriptor?.chatProviderId ?? null);
+      }
+      if (!isDraftLlmProvider) {
+        setWorkspaceContext(draftWorkspaceId, draftWorkspacePath);
+      }
 
       if (hasRunningSession) {
         await startNewSession();
       } else {
         await createSession({
-          workspacePath: draftWorkspacePath,
-          workspaceId: draftWorkspaceId ?? undefined
+          workspacePath: isDraftLlmProvider
+            ? undefined
+            : draftWorkspacePath ?? undefined,
+          workspaceId: isDraftLlmProvider
+            ? undefined
+            : draftWorkspaceId ?? undefined
         });
       }
       setNewSessionDialogOpen(false);
@@ -481,10 +523,13 @@ const AgentPanel: React.FC = () => {
   }, [
     createSession,
     draftModel,
+    draftModels,
     draftProvider,
     draftWorkspaceId,
     draftWorkspacePath,
     hasRunningSession,
+    isDraftLlmProvider,
+    setChatProviderId,
     setModel,
     setProvider,
     setWorkspaceContext,
@@ -553,7 +598,7 @@ const AgentPanel: React.FC = () => {
               variant="outlined"
               size="small"
               onClick={handleStartSession}
-              disabled={!workspacePath}
+              disabled={!isLlmProvider && !workspacePath}
               startIcon={<PlayArrowRoundedIcon />}
               css={startButtonStyles(theme)}
             >
@@ -612,28 +657,15 @@ const AgentPanel: React.FC = () => {
   }, [creatingSession]);
 
   // Stable handler for provider change in dialog
-  const handleDraftProviderChange = useCallback(
-    (value: string) => {
-      if (
-        value === "claude" ||
-        value === "codex" ||
-        value === "opencode" ||
-        value === "pi"
-      ) {
-        setDraftProvider(value);
-      }
-    },
-    []
-  );
+  const handleDraftProviderChange = useCallback((value: string) => {
+    if (isAgentProvider(value)) {
+      setDraftProvider(value);
+    }
+  }, []);
 
   const handleProviderSelectChange = useCallback(
     (value: string) => {
-      if (
-        value === "claude" ||
-        value === "codex" ||
-        value === "opencode" ||
-        value === "pi"
-      ) {
+      if (isAgentProvider(value)) {
         setProvider(value);
       }
     },
@@ -643,12 +675,7 @@ const AgentPanel: React.FC = () => {
   const providerSelectOptions = useMemo<
     Array<{ id: string; label: string }>
   >(
-    () => [
-      { id: "claude", label: "Claude" },
-      { id: "codex", label: "Codex" },
-      { id: "opencode", label: "OpenCode" },
-      { id: "pi", label: "Pi" }
-    ],
+    () => ALL_PROVIDERS.map((id) => ({ id, label: PROVIDER_LABELS[id] })),
     []
   );
 
@@ -699,12 +726,8 @@ const AgentPanel: React.FC = () => {
   );
 
   const providerOptions = useMemo(
-    () => [
-      { value: "claude", label: "Claude" },
-      { value: "codex", label: "Codex" },
-      { value: "opencode", label: "OpenCode" },
-      { value: "pi", label: "Pi" }
-    ],
+    () =>
+      ALL_PROVIDERS.map((id) => ({ value: id, label: PROVIDER_LABELS[id] })),
     []
   );
 
@@ -745,7 +768,7 @@ const AgentPanel: React.FC = () => {
             <IconButton
               size="small"
               onClick={handleCreateNewSession}
-              disabled={!isAvailable || !workspacePath}
+              disabled={!isAvailable || (!isLlmProvider && !workspacePath)}
               aria-label="New session"
               sx={toolbarButtonSx}
             >
@@ -837,16 +860,18 @@ const AgentPanel: React.FC = () => {
             />
           </div>
 
-          <div css={dialogFieldStyles}>
-            <SelectField
-              label="Workspace"
-              value={draftWorkspaceId ?? ""}
-              onChange={handleWorkspaceChange}
-              options={workspaceOptions}
-              size="small"
-              variant="outlined"
-            />
-          </div>
+          {!isDraftLlmProvider && (
+            <div css={dialogFieldStyles}>
+              <SelectField
+                label="Workspace"
+                value={draftWorkspaceId ?? ""}
+                onChange={handleWorkspaceChange}
+                options={workspaceOptions}
+                size="small"
+                variant="outlined"
+              />
+            </div>
+          )}
 
           {draftModelsLoading && (
             <FlexRow align="center" gap={1} sx={{ marginTop: "8px" }}>

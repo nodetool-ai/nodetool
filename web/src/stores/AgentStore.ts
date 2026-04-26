@@ -107,6 +107,14 @@ interface AgentState {
   setModel: (model: string) => void;
   /** Set provider to use for the session */
   setProvider: (provider: AgentProvider) => void;
+  /**
+   * Underlying chat provider id when `provider === "llm"`. Set when the user
+   * picks a model from the aggregated llm provider list — each
+   * AgentModelDescriptor carries its own `chatProviderId`. Ignored by the
+   * harness providers (claude/codex/opencode/pi).
+   */
+  chatProviderId: string | null;
+  setChatProviderId: (id: string | null) => void;
   /** Load models for current provider/workspace */
   loadModels: () => Promise<void>;
   /** Load previous sessions from the agent runtime */
@@ -163,13 +171,27 @@ const useAgentStore = create<AgentState>((set, get) => ({
   workspaceId: null,
   sessionHistory: [],
   sessionMessages: {},
+  chatProviderId: null,
 
   setModel: (model: string) => {
-    set({ model });
+    // When picking a model, look up its descriptor and stamp chatProviderId
+    // automatically — the LLM agent provider sets this on each descriptor
+    // it returns, the harness providers leave it undefined.
+    const descriptor = get().availableModels.find((m) => m.id === model);
+    set({
+      model,
+      chatProviderId: descriptor?.chatProviderId ?? null
+    });
+  },
+
+  setChatProviderId: (id: string | null) => {
+    set({ chatProviderId: id });
   },
 
   setProvider: (provider: AgentProvider) => {
-    set({ provider });
+    // Switching providers invalidates the previously-resolved chat provider id;
+    // it gets re-stamped when the user picks a new model from the new catalog.
+    set({ provider, chatProviderId: null });
     void get().loadModels();
   },
 
@@ -207,23 +229,41 @@ const useAgentStore = create<AgentState>((set, get) => ({
   },
 
   createSession: async (options) => {
-    const { model, provider, streamUnsubscribe, workspacePath, workspaceId } =
-      get();
+    const {
+      model,
+      provider,
+      streamUnsubscribe,
+      workspacePath,
+      workspaceId,
+      chatProviderId
+    } = get();
     const preserveMessages = options?.preserveMessages ?? false;
     const preserveStatus = options?.preserveStatus ?? false;
     const selectedWorkspacePath = options?.workspacePath ?? workspacePath;
     const selectedWorkspaceId = options?.workspaceId ?? workspaceId;
     const resumeSessionId = options?.resumeSessionId;
+    const isLlm = provider === "llm";
 
     if (streamUnsubscribe) {
       streamUnsubscribe();
       set({ streamUnsubscribe: null });
     }
 
-    if (!selectedWorkspacePath) {
+    // The LLM provider runs in-process with only ui_* tools — no workspace
+    // is needed. Every other provider (CLI harness) does need one.
+    if (!isLlm && !selectedWorkspacePath) {
       set({
         status: "error",
         error: "Select a workspace before starting an agent session."
+      });
+      return;
+    }
+
+    if (isLlm && !chatProviderId) {
+      set({
+        status: "error",
+        error:
+          "Pick an LLM model first — its provider determines which API to call."
       });
       return;
     }
@@ -238,8 +278,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
       const sessionId = await client.createSession({
         provider,
         model,
-        workspacePath: selectedWorkspacePath,
-        resumeSessionId
+        workspacePath: selectedWorkspacePath ?? undefined,
+        resumeSessionId,
+        chatProviderId: isLlm ? chatProviderId ?? undefined : undefined
       });
       const now = new Date().toISOString();
 
@@ -248,7 +289,7 @@ const useAgentStore = create<AgentState>((set, get) => ({
           id: resumeSessionId ?? sessionId,
           provider,
           model,
-          workspacePath: selectedWorkspacePath,
+          workspacePath: selectedWorkspacePath ?? "",
           workspaceId: selectedWorkspaceId ?? undefined,
           createdAt: now,
           lastUsedAt: now

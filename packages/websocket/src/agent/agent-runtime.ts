@@ -39,6 +39,7 @@ import {
 import {
   stopMcpToolServer,
 } from "./mcp-tool-server.js";
+import { LlmAgentSdkProvider } from "./llm-agent.js";
 import {
   getLocalMcpServerUrl,
   setMcpFrontendTransport,
@@ -59,7 +60,7 @@ import type {
 
 const log = createLogger("nodetool.websocket.agent.runtime");
 
-const SYSTEM_PROMPT = [
+export const SYSTEM_PROMPT = [
   "You are a Nodetool workflow assistant. Build workflows as DAGs where nodes are operations and edges are typed data flows.",
   "Use only frontend UI tools from this session manifest (`ui_*`). Never create/edit workflow files.",
   "",
@@ -361,7 +362,7 @@ class ClaudeAgentSession implements AgentQuerySession {
   }
 }
 
-/** Provider interface for agent SDKs (Claude, Codex, OpenCode). */
+/** Provider interface for agent SDKs (Claude, Codex, OpenCode, LLM). */
 export interface AgentSdkProvider {
   readonly name: string;
   listModels(workspacePath?: string): Promise<AgentModelDescriptor[]>;
@@ -371,6 +372,11 @@ export interface AgentSdkProvider {
     resumeSessionId?: string;
     systemPrompt?: string;
     modelParams?: AgentModelParams;
+    /**
+     * For the "llm" provider only — picks the underlying chat provider
+     * (anthropic / openai / gemini / …). Ignored by harness providers.
+     */
+    chatProviderId?: string;
   }): AgentQuerySession;
   listSessions(
     options: AgentListSessionsRequest,
@@ -600,6 +606,7 @@ const providers: Record<string, AgentSdkProvider> = {
   codex: new CodexSdkProvider(),
   opencode: new OpenCodeSdkProvider(),
   pi: new PiSdkProvider(),
+  llm: new LlmAgentSdkProvider(),
 };
 
 function getProvider(name?: string): AgentSdkProvider {
@@ -618,27 +625,36 @@ class AgentRuntime {
   private sessionCounter = 0;
 
   async createSession(options: AgentSessionOptions): Promise<string> {
-    if (!options.resumeSessionId && !options.workspacePath) {
-      throw new Error(
-        "workspacePath is required when creating a new agent session",
-      );
-    }
-    if (!options.workspacePath) {
-      throw new Error("workspacePath is required");
+    // The "llm" provider runs in-process with only ui_* tools — no file
+    // system access, so a workspace is irrelevant. Every other provider
+    // (CLI harness) must have one.
+    const requiresWorkspace = options.provider !== "llm";
+    if (requiresWorkspace) {
+      if (!options.resumeSessionId && !options.workspacePath) {
+        throw new Error(
+          "workspacePath is required when creating a new agent session",
+        );
+      }
+      if (!options.workspacePath) {
+        throw new Error("workspacePath is required");
+      }
     }
 
     const provider = getProvider(options.provider);
     const tempId = `${provider.name}-session-${++this.sessionCounter}`;
     const sessionMode = options.resumeSessionId ? "resuming" : "creating";
     log.info(
-      `${sessionMode} ${provider.name} agent session with model: ${options.model} (workspace: ${options.workspacePath})`,
+      `${sessionMode} ${provider.name} agent session with model: ${options.model}${
+        options.workspacePath ? ` (workspace: ${options.workspacePath})` : ""
+      }`,
     );
 
     const session = provider.createSession({
       model: options.model,
-      workspacePath: options.workspacePath,
+      workspacePath: options.workspacePath ?? "",
       resumeSessionId: options.resumeSessionId,
       modelParams: options.modelParams,
+      chatProviderId: options.chatProviderId,
     });
 
     this.activeSessions.set(tempId, session);

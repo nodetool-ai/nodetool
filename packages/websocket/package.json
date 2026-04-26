@@ -27,6 +27,7 @@
     "@nodetool/agents": "*",
     "@nodetool/auth": "*",
     "@nodetool/base-nodes": "*",
+    "@nodetool/chat": "*",
     "@nodetool/config": "*",
     "@nodetool/dsl": "*",
     "@nodetool/elevenlabs-nodes": "*",
