@@ -248,6 +248,18 @@ const styles = (theme: Theme) =>
     }
   });
 
+const videoIconOverlayStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  color: "white",
+  fontSize: "3em",
+  opacity: 0.8,
+  filter: "drop-shadow(0px 0px 4px rgba(0,0,0,0.5))",
+  zIndex: 10
+};
+
 export type AssetItemProps = {
   asset: Asset;
   draggable?: boolean;
@@ -450,19 +462,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
             {/* Always show icon overlay for video if we have a thumbnail to indicate it's playble/video */}
             {(asset.thumb_url || asset.get_url) && (
-              <VideoFileIcon
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  color: "white",
-                  fontSize: "3em",
-                  opacity: 0.8,
-                  filter: "drop-shadow(0px 0px 4px rgba(0,0,0,0.5))",
-                  zIndex: 10
-                }}
-              />
+              <VideoFileIcon style={videoIconOverlayStyle} />
             )}
 
             {showDuration && asset.duration && assetItemSize > 1 && (

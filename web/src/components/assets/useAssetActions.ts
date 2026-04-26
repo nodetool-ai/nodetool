@@ -4,6 +4,7 @@ import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { shallow } from "zustand/shallow";
 import {
   serializeDragData,
   deserializeDragData,
@@ -15,18 +16,21 @@ export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
   const { openContextMenu } = useContextMenu();
-  const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
-  const setSelectedAssetIds = useAssetGridStore(
-    (state) => state.setSelectedAssetIds
-  );
-  const setSelectedAssets = useAssetGridStore(
-    (state) => state.setSelectedAssets
-  );
-  const setDeleteDialogOpen = useAssetGridStore(
-    (state) => state.setDeleteDialogOpen
-  );
-  const setMoveToFolderDialogOpen = useAssetGridStore(
-    (state) => state.setMoveToFolderDialogOpen
+  const {
+    selectedAssetIds,
+    setSelectedAssetIds,
+    setSelectedAssets,
+    setDeleteDialogOpen,
+    setMoveToFolderDialogOpen
+  } = useAssetGridStore(
+    (state) => ({
+      selectedAssetIds: state.selectedAssetIds,
+      setSelectedAssetIds: state.setSelectedAssetIds,
+      setSelectedAssets: state.setSelectedAssets,
+      setDeleteDialogOpen: state.setDeleteDialogOpen,
+      setMoveToFolderDialogOpen: state.setMoveToFolderDialogOpen
+    }),
+    shallow
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
