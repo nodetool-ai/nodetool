@@ -110,12 +110,7 @@ export class OpenAIImageGenerationTool extends Tool {
       const b64Image = imageData.b64_json as string | undefined;
       if (!b64Image) return { error: "No image data received from OpenAI" };
 
-      const workspace = (context as unknown as Record<string, unknown>)[
-        "workspace"
-      ] as string | undefined;
-      const filePath = workspace
-        ? path.join(workspace, outputFile)
-        : outputFile;
+      const filePath = context.resolveWorkspacePath(outputFile);
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, Buffer.from(b64Image, "base64"));
 
