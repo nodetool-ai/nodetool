@@ -362,9 +362,15 @@ export abstract class BaseProvider {
       "gen_ai.operation.name": streaming ? "chat.stream" : "chat",
       "llm.request.message_count": args.messages.length,
       "llm.request.tools_count": args.tools?.length ?? 0,
-      "llm.request.max_tokens": args.maxTokens ?? 0,
-      "llm.request.temperature": args.temperature ?? 0,
-      "llm.request.stream": streaming
+      "llm.request.stream": streaming,
+      // Only emit max_tokens / temperature when the caller actually set them —
+      // a literal 0 is a valid value and shouldn't be confused with "unset".
+      ...(args.maxTokens !== undefined && {
+        "llm.request.max_tokens": args.maxTokens
+      }),
+      ...(args.temperature !== undefined && {
+        "llm.request.temperature": args.temperature
+      })
     });
   }
 
@@ -397,11 +403,15 @@ export abstract class BaseProvider {
     const source = tracer
       ? this._tracedStream(args, tracer)
       : this.generateMessages(args);
+    let exhausted = false;
 
     try {
       while (true) {
         const result = await runInSlot(() => source.next());
-        if (result.done) break;
+        if (result.done) {
+          exhausted = true;
+          break;
+        }
         const item = result.value;
         if ("type" in item && (item as { type: string }).type === "chunk") {
           const chunk = item as { content?: string };
@@ -425,6 +435,14 @@ export abstract class BaseProvider {
       error = String(err);
       throw err;
     } finally {
+      // If the consumer cancelled early (broke out of for-await, threw, or
+      // called return()), give the underlying generator a chance to close
+      // so _tracedStream's finally runs and the LLM stream span ends.
+      if (!exhausted) {
+        await runInSlot(() =>
+          source.return?.(undefined as never) ?? Promise.resolve({ done: true, value: undefined } as IteratorResult<ProviderStreamItem>)
+        ).catch(() => {});
+      }
       const usage = getUsage();
       this.emitMessage({
         type: "llm_call",

@@ -47,8 +47,15 @@ export interface TraceRecord {
 const SPAN_KINDS = ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"];
 const STATUS_CODES = ["UNSET", "OK", "ERROR"];
 
+/**
+ * Convert an OTel hrTime ([seconds, nanoseconds]) to integer unix-epoch ms.
+ *
+ * We round (rather than truncate) so a 0.6ms span doesn't read as 0ms, and
+ * we keep the schema integer-typed for downstream JSONL consumers that
+ * assume `start_time_ms`/`end_time_ms`/`duration_ms` are whole numbers.
+ */
 function hrTimeToMs(hrTime: [number, number]): number {
-  return hrTime[0] * 1000 + hrTime[1] / 1_000_000;
+  return Math.round(hrTime[0] * 1000 + hrTime[1] / 1_000_000);
 }
 
 export function spanToRecord(span: ReadableSpan): TraceRecord {
@@ -83,6 +90,10 @@ export function spanToRecord(span: ReadableSpan): TraceRecord {
  *
  * Spans are written as soon as `export()` is called (use a SimpleSpanProcessor
  * for immediate flush, BatchSpanProcessor for buffered).
+ *
+ * Honors stream backpressure: each batch awaits the underlying `write`
+ * callback (and a `drain` event when the stream reports it's full) before
+ * reporting SUCCESS, so high trace volume can't accumulate unbounded.
  */
 export class JsonlFileSpanExporter implements SpanExporter {
   private stream: WriteStream | null = null;
@@ -100,10 +111,10 @@ export class JsonlFileSpanExporter implements SpanExporter {
     resultCallback: (result: ExportResult) => void
   ): void {
     void this.streamReady
-      .then(() => {
+      .then(async () => {
         if (!this.stream) throw new Error("trace stream not initialized");
         for (const span of spans) {
-          this.stream.write(JSON.stringify(spanToRecord(span)) + "\n");
+          await writeLine(this.stream, JSON.stringify(spanToRecord(span)) + "\n");
         }
         resultCallback({ code: ExportResultCode.SUCCESS });
       })
@@ -123,6 +134,46 @@ export class JsonlFileSpanExporter implements SpanExporter {
   async forceFlush(): Promise<void> {
     // WriteStream auto-flushes on write; nothing to do.
   }
+}
+
+/**
+ * Write a single line to a WriteStream, respecting backpressure.
+ *
+ * Resolves once the write callback has fired AND the stream has drained
+ * (if `write()` returned false). Rejects on any stream error during the
+ * write — caller is responsible for re-attaching listeners afterwards.
+ */
+function writeLine(stream: WriteStream, line: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let written = false;
+    let drained = false;
+    let needsDrain = false;
+    const onError = (err: Error) => {
+      stream.off("drain", onDrain);
+      reject(err);
+    };
+    const onDrain = () => {
+      drained = true;
+      maybeDone();
+    };
+    const maybeDone = () => {
+      if (written && (!needsDrain || drained)) {
+        stream.off("error", onError);
+        stream.off("drain", onDrain);
+        resolve();
+      }
+    };
+    stream.once("error", onError);
+    const ok = stream.write(line, (err) => {
+      if (err) return onError(err);
+      written = true;
+      maybeDone();
+    });
+    if (!ok) {
+      needsDrain = true;
+      stream.once("drain", onDrain);
+    }
+  });
 }
 
 export type StdoutFormat = "pretty" | "json";

@@ -150,7 +150,11 @@ export async function initTelemetry(
     spanProcessors: processors as never
   });
 
-  sdk.start();
+  // sdk.start() is typed as void in current SDK versions, but historically
+  // returned a Promise — `await` is a no-op on non-thenable values, so this
+  // is safe across versions and avoids racing the first spans on any
+  // version that does init asynchronously.
+  await sdk.start();
   _tracer = otelApi.trace.getTracer("nodetool", "0.1.0");
   _initialized = true;
 

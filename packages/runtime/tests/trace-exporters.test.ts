@@ -90,6 +90,20 @@ describe("spanToRecord", () => {
     expect(rec.status.code).toBe("ERROR");
     expect(rec.status.message).toBe("boom");
   });
+
+  it("rounds sub-millisecond timestamps to integer milliseconds", () => {
+    // Construct a span whose endTime carries 600_000 ns (0.6ms) past the second.
+    const span = {
+      ...makeSpan(),
+      // raw hrTime: 1000s + 600µs → exactly 1_000_000.6 ms
+      startTime: [1000, 600_000] as [number, number],
+      endTime: [1000, 1_000_000] as [number, number]
+    };
+    const rec = spanToRecord(span as Parameters<typeof spanToRecord>[0]);
+    expect(Number.isInteger(rec.start_time_ms)).toBe(true);
+    expect(Number.isInteger(rec.end_time_ms)).toBe(true);
+    expect(Number.isInteger(rec.duration_ms)).toBe(true);
+  });
 });
 
 describe("JsonlFileSpanExporter", () => {

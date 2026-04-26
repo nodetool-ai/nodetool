@@ -86,6 +86,24 @@ describe("with*Span (no tracer configured)", () => {
     await wrapped.next();
     await expect(wrapped.next()).rejects.toThrow("boom");
   });
+
+  it("closes the inner generator's finally block on early consumer cancel", async () => {
+    let cleanup = false;
+    async function* gen(): AsyncGenerator<number> {
+      try {
+        yield 1;
+        yield 2;
+        yield 3;
+      } finally {
+        cleanup = true;
+      }
+    }
+    // Consume one value, then break out (mirrors `for await { break }`).
+    for await (const _v of withSpanGen("test", {}, () => gen())) {
+      break;
+    }
+    expect(cleanup).toBe(true);
+  });
 });
 
 describe("usage slot capture", () => {

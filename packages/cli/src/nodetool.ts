@@ -122,6 +122,10 @@ program
     "--trace-stdout [format]",
     "Stream spans to stdout: 'pretty' (default) or 'json' (JSONL)"
   )
+  .option(
+    "--no-trace-stdout",
+    "Disable stdout span output (overrides NODETOOL_TRACE_STDOUT)"
+  )
   .hook("preAction", async (thisCommand) => {
     const opts = thisCommand.opts<{
       traceFile?: string;
@@ -130,15 +134,24 @@ program
     await initTelemetry({
       ...(opts.traceFile && { traceFile: opts.traceFile }),
       ...(opts.traceStdout !== undefined && {
-        stdout:
-          opts.traceStdout === "json"
-            ? "json"
-            : opts.traceStdout === false
-              ? false
-              : "pretty"
+        stdout: parseTraceStdout(opts.traceStdout)
       })
     });
   });
+
+function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
+  if (v === false) return false;
+  if (v === true) return "pretty";
+  if (typeof v === "string") {
+    const lower = v.toLowerCase();
+    if (lower === "false" || lower === "0" || lower === "no") return false;
+    if (lower === "json") return "json";
+    if (lower === "pretty" || lower === "true" || lower === "1") return "pretty";
+  }
+  throw new Error(
+    `--trace-stdout must be 'pretty' or 'json' (got ${JSON.stringify(v)})`
+  );
+}
 
 // ---------------------------------------------------------------------------
 // run — execute a TypeScript/JavaScript DSL workflow file

@@ -88,6 +88,10 @@ program
     "--trace-stdout [format]",
     "Stream spans to stdout: 'pretty' (default, human-readable) or 'json' (JSONL)"
   )
+  .option(
+    "--no-trace-stdout",
+    "Disable stdout span output (overrides NODETOOL_TRACE_STDOUT)"
+  )
   .helpOption("-h, --help", "Show help")
   .version("0.1.0")
   .parse();
@@ -112,14 +116,23 @@ const opts = program.opts<{
 await initTelemetry({
   ...(opts.traceFile && { traceFile: opts.traceFile }),
   ...(opts.traceStdout !== undefined && {
-    stdout:
-      opts.traceStdout === "json"
-        ? "json"
-        : opts.traceStdout === false
-          ? false
-          : "pretty"
+    stdout: parseTraceStdout(opts.traceStdout)
   })
 });
+
+function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
+  if (v === false) return false;
+  if (v === true) return "pretty";
+  if (typeof v === "string") {
+    const lower = v.toLowerCase();
+    if (lower === "false" || lower === "0" || lower === "no") return false;
+    if (lower === "json") return "json";
+    if (lower === "pretty" || lower === "true" || lower === "1") return "pretty";
+  }
+  throw new Error(
+    `--trace-stdout must be 'pretty' or 'json' (got ${JSON.stringify(v)})`
+  );
+}
 
 // Initialize database
 try {

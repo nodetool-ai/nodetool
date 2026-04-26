@@ -127,7 +127,9 @@ async function withSpan<T>(
  * span's context, so any spans created inside `genFactory` nest under it.
  *
  * Preserves the generator's `TReturn` so callers reading `.next().value`
- * after `done` still get the underlying return value.
+ * after `done` still get the underlying return value. If the consumer
+ * cancels (breaks out of `for await`, calls `return()`, or throws), the
+ * inner generator's `return()` is invoked so its `finally` blocks run.
  */
 export async function* withSpanGen<T, TReturn = void>(
   name: string,
@@ -141,11 +143,13 @@ export async function* withSpanGen<T, TReturn = void>(
   const span = tracer.startSpan(name);
   setAttributes(span, attributes);
   const ctx = otelTrace.setSpan(otelContext.active(), span);
+  const inner = otelContext.with(ctx, () => genFactory());
+  let exhausted = false;
   try {
-    const inner = otelContext.with(ctx, () => genFactory());
     while (true) {
       const result = await otelContext.with(ctx, () => inner.next());
       if (result.done) {
+        exhausted = true;
         span.setStatus({ code: SpanStatusCode.OK });
         return result.value;
       }
@@ -156,6 +160,13 @@ export async function* withSpanGen<T, TReturn = void>(
     span.recordException(err as Error);
     throw err;
   } finally {
+    if (!exhausted) {
+      // Consumer cancelled early — give the inner generator a chance to
+      // run its own finally blocks (close streams, end child spans, etc).
+      await otelContext
+        .with(ctx, () => inner.return?.(undefined as never))
+        ?.catch(() => {});
+    }
     span.end();
   }
 }
