@@ -14,7 +14,7 @@ import type {
   TypeMetadata
 } from "./metadata.js";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
-import type { InputBufferPolicy } from "@nodetool/protocol";
+import type { InputBufferPolicy, RealtimeNodeProfile } from "@nodetool/protocol";
 
 export interface GetNodeMetadataOptions {
   pythonMetadata?: NodeMetadata;
@@ -119,6 +119,10 @@ function cloneInputBufferPolicy(
   );
 }
 
+function cloneRealtimeProfile(profile: RealtimeNodeProfile): RealtimeNodeProfile {
+  return { ...profile };
+}
+
 function mergeMetadata(
   tsMetadata: NodeMetadata,
   pyMetadata?: NodeMetadata
@@ -166,6 +170,11 @@ function mergeMetadata(
     owns_warm_state: tsMetadata.owns_warm_state ?? pyMetadata.owns_warm_state,
     is_media_adapter:
       tsMetadata.is_media_adapter ?? pyMetadata.is_media_adapter,
+    realtime_profile: tsMetadata.realtime_profile
+      ? cloneRealtimeProfile(tsMetadata.realtime_profile)
+      : pyMetadata.realtime_profile
+        ? cloneRealtimeProfile(pyMetadata.realtime_profile)
+        : undefined,
     input_buffer_policy:
       tsMetadata.input_buffer_policy ?? pyMetadata.input_buffer_policy
   };
@@ -305,6 +314,9 @@ export function getNodeMetadata(
     is_realtime_capable: nodeClass.isRealtimeCapable || false,
     owns_warm_state: nodeClass.ownsWarmState || false,
     is_media_adapter: nodeClass.isMediaAdapter || false,
+    realtime_profile: nodeClass.realtimeProfile
+      ? cloneRealtimeProfile(nodeClass.realtimeProfile)
+      : undefined,
     input_buffer_policy: nodeClass.inputBufferPolicy
       ? cloneInputBufferPolicy(nodeClass.inputBufferPolicy)
       : undefined,

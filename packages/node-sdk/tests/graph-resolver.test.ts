@@ -24,6 +24,14 @@ const sampleMetadata: NodeMetadata = {
   is_realtime_capable: true,
   owns_warm_state: true,
   is_media_adapter: true,
+  realtime_profile: {
+    browser_capable: true,
+    requires_browser_frame: true,
+    requires_webgpu: true,
+    emits_analysis_event: true,
+    emits_parameter_update: false,
+    emits_media_frame: false
+  },
   input_buffer_policy: {
     value: { capacity: 2, overflowPolicy: "drop_oldest" }
   }
@@ -68,6 +76,14 @@ describe("createGraphNodeTypeResolver", () => {
         is_realtime_capable: true,
         owns_warm_state: true,
         is_media_adapter: true,
+        realtime_profile: {
+          browser_capable: true,
+          requires_browser_frame: true,
+          requires_webgpu: true,
+          emits_analysis_event: true,
+          emits_parameter_update: false,
+          emits_media_frame: false
+        },
         inputBufferPolicy: {
           value: { capacity: 2, overflowPolicy: "drop_oldest" }
         }
@@ -134,6 +150,14 @@ describe("createGraphNodeTypeResolver", () => {
       is_realtime_capable: true,
       owns_warm_state: true,
       is_media_adapter: true,
+      realtime_profile: {
+        browser_capable: true,
+        requires_browser_frame: true,
+        requires_webgpu: true,
+        emits_analysis_event: true,
+        emits_parameter_update: false,
+        emits_media_frame: false
+      },
       inputBufferPolicy: {
         value: { capacity: 2, overflowPolicy: "drop_oldest" }
       },

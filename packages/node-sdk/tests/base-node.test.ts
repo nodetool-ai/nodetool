@@ -25,6 +25,23 @@ class ConcreteNode extends BaseNode {
   }
 }
 
+class BrowserRealtimeNode extends BaseNode {
+  static readonly nodeType = "test.BrowserRealtime";
+  static readonly title = "Browser Realtime";
+  static readonly realtimeProfile = {
+    browser_capable: true,
+    requires_browser_frame: true,
+    requires_webgpu: true,
+    emits_analysis_event: true,
+    emits_parameter_update: false,
+    emits_media_frame: false
+  };
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+}
+
 describe("BaseNode", () => {
   it("can instantiate a concrete subclass", () => {
     const node = new ConcreteNode();
@@ -119,6 +136,19 @@ describe("BaseNode", () => {
   it("toDescriptor() uses nodeType as id when none provided", () => {
     const desc = ConcreteNode.toDescriptor();
     expect(desc.id).toBe("test.Concrete");
+  });
+
+  it("toDescriptor() includes opt-in realtime browser capability profile", () => {
+    const desc = BrowserRealtimeNode.toDescriptor("browser-node");
+
+    expect(desc.realtime_profile).toEqual({
+      browser_capable: true,
+      requires_browser_frame: true,
+      requires_webgpu: true,
+      emits_analysis_event: true,
+      emits_parameter_update: false,
+      emits_media_frame: false
+    });
   });
 
   it("session lifecycle hooks are overrideable and default to no-op", async () => {

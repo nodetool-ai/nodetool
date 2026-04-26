@@ -52,9 +52,10 @@ Rules for the remaining work:
   - Backend boundary landed: `nodetool-realtime` now has a dependency-lazy Self-Forcing backend scaffold that reports pending default loaders without importing heavy modules, and can reach `ready` through explicit base-model loader, checkpoint applier, and sampler hooks.
   - Validate GGUF/community pre-quantized weights on Ampere/low-VRAM hardware only through opt-in tests or scripts, never in the default suite.
   - Treat community Self-Forcing/VACE FP8/GGUF weights as experimental until license, provenance, and quality are checked for the exact selected source.
-- [ ] **11. Build the canonical realtime workflow template.**
-  - Camera/source -> parameter controls -> LongLive/Self-Forcing -> sink/preview.
-  - Include reconnect/session behavior, metrics display, and save/export hooks where available.
+- [x] **11. Build the canonical realtime workflow template.**
+  - [x] Added `nodetool-realtime` package example `Canonical Realtime Video Diffusion` with camera/source, prompt and negative-prompt controls, LongLive, Self-Forcing, sink/preview, and session info.
+  - [x] Added template notes for reconnect/session behavior, `realtime_metrics`/loading-event display, and explicit save/export hook placement.
+  - [x] Exposed explicit model node input/output handles so the template can route `frame`, `loading_events`, and skipped-handle data without relying on a generic output slot.
 - [ ] **12. Add browser/JS realtime inference lane.**
   - Define how TensorFlow.js and Transformers.js inference participates in realtime sessions without becoming a second runtime model.
   - Add package/runtime boundaries for browser-local, Electron-renderer, and Node-side JS inference.
@@ -325,7 +326,9 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - LoRA speed policy: LongLive already has optional lazy `peft` LoRA application for its own checkpoint bundle, but Self-Forcing does not yet have a first-class acceleration-LoRA path beyond generic checkpoint hooks. Do not wire generic "speed LoRA" support until the LoRA is proven compatible with the selected base model size and sampler. In particular, `Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors` is a 14B/lightx2v-style speed artifact, so it should not be used for the 1.3B Self-Forcing RTX 3060 baseline unless a compatible 1.3B variant is identified and tested.
   - VACE policy: VACE should be treated as an optional control-extension track, not a requirement for the base `SelfForcing` node. Candidate inputs are official `Wan-AI/Wan2.1-VACE-1.3B` lineage plus community Self-Forcing/VACE addon safetensors, but the addon cards explicitly describe them as experimental and not a proof of canonical Self-Forcing sampling. Only add a VACE-facing node/config after base Self-Forcing real smoke passes and the loader can prove file compatibility, license compatibility, control inputs, and memory behavior on RTX 3060 12GB.
   - External implementation lessons: adopt concepts, not dependencies, from mature Wan/Comfy-style stacks: declarative artifact manifests and path resolution, safe checkpoint loading by file type, explicit unload/reload on model-parameter changes, LoRA patch compatibility reporting before merge/application, VACE/control modules as separate load-time stages with their own weights and inputs, and VRAM/offload telemetry for low-memory profiles. ComfyUI's GPL core and custom-node ecosystem should remain an interoperability reference, not a runtime dependency.
-- [ ] Step 11: canonical workflow template.
+- [x] Step 11: canonical workflow template.
+  - [x] `nodetool-realtime` now ships a discoverable canonical realtime video diffusion example.
+  - [x] LongLive/Self-Forcing node IO contracts expose template-ready frame handles.
 
 ## Phase 3 - Browser/JS realtime inference
 
@@ -340,11 +343,11 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 
 **Tasks**
 
-- [x] **Refactor discovery:** find files in realtime repo and nodetool repo that should be cleaned up or refactored before browser/JS realtime inference.
-  - [ ] Extract realtime job/metrics orchestration from `packages/websocket/src/unified-websocket-runner.ts`; keep the runner as a thin coordinator around realtime session jobs, metrics intervals, and session/job map updates.
-  - [ ] Split realtime-only runner behavior in `packages/kernel/src/runner.ts` behind a `RealtimeWorkflowRunner` facade or equivalent private module boundary before adding browser/server placement logic.
-  - [ ] Extend `packages/protocol/src/messages.ts` with a namespaced inference metrics/loading surface instead of overloading transport-heavy `RealtimeMetrics`.
-  - [ ] Add opt-in realtime/browser capability metadata across `packages/node-sdk`, `packages/protocol`, graph serialization, and Python descriptor parity.
+- [x] **Refactor discovery:** find files in realtime repo and nodetool repo that should be cleaned up or refactored before browser/JS realtime inference. Before starting each refactor task, keep the scope small enough to preserve clean boundaries with the rest of Nodetool and avoid regressions or overengineering.
+  - [x] Extract realtime job/metrics orchestration from `packages/websocket/src/unified-websocket-runner.ts`; `RealtimeLifecycleOrchestrator` now owns realtime session/job maps and metrics broadcasts while the runner remains the command/job coordinator.
+  - [x] Split realtime-only runner behavior in `packages/kernel/src/runner.ts` behind a private module boundary; `RealtimeRunner` already owns session lifecycle and `RealtimeRunBuffers` now owns bounded realtime message/output retention.
+  - [x] Extend `packages/protocol/src/messages.ts` with a namespaced inference metrics/loading surface instead of overloading transport-heavy `RealtimeMetrics`; `RealtimeInferenceMetrics` now carries placement, engine/backend, model source, loading/cache/warm state, and throughput telemetry.
+  - [x] Add opt-in realtime/browser capability metadata across `packages/node-sdk`, `packages/protocol`, graph serialization, and Python descriptor parity; `realtime_profile` now carries browser capability, browser-frame/WebGPU requirements, and realtime analysis/parameter/media emission hints.
   - [ ] Break `web/src/components/realtime/RealtimeStreamPage.tsx` into shell hooks and presentational controls so Phase 4 can reuse it inside editor realtime mode.
   - [ ] Introduce a narrow realtime control-plane client layer around `RealtimeSessionStore`, `RealtimeSessionClient`, and `useRealtimeSessionWebRTC` for session updates plus future analysis events.
   - [ ] Split `packages/websocket/src/realtime/command-handler.ts` into session CRUD/persistence and signaling/transport responsibilities before adding browser inference control verbs.

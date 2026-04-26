@@ -1,6 +1,7 @@
 import type {
   InputBufferPolicy,
   NodeDescriptor,
+  RealtimeNodeProfile,
   RealtimeSessionInfo,
   SyncMode
 } from "@nodetool/protocol";
@@ -36,6 +37,7 @@ export type NodeClass = {
   isRealtimeCapable: boolean;
   ownsWarmState: boolean;
   isMediaAdapter: boolean;
+  realtimeProfile?: RealtimeNodeProfile;
   inputBufferPolicy?: Record<string, InputBufferPolicy>;
   exposeAsTool?: boolean;
   supportsDynamicOutputs?: boolean;
@@ -95,6 +97,7 @@ export abstract class BaseNode {
   static readonly isRealtimeCapable: boolean = false;
   static readonly ownsWarmState: boolean = false;
   static readonly isMediaAdapter: boolean = false;
+  static readonly realtimeProfile: RealtimeNodeProfile | undefined = undefined;
   static readonly inputBufferPolicy:
     | Record<string, InputBufferPolicy>
     | undefined = undefined;
@@ -338,6 +341,9 @@ export abstract class BaseNode {
       owns_warm_state: cls.ownsWarmState,
       is_media_adapter: cls.isMediaAdapter
     };
+    if (cls.realtimeProfile) {
+      desc.realtime_profile = { ...cls.realtimeProfile };
+    }
     if (cls.inputBufferPolicy) {
       desc.inputBufferPolicy = Object.fromEntries(
         Object.entries(cls.inputBufferPolicy).map(([handle, policy]) => [

@@ -31,6 +31,11 @@ import { Graph } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
+import {
+  REALTIME_MESSAGE_BUFFER_LIMIT,
+  REALTIME_OUTPUT_BUFFER_LIMIT,
+  RealtimeRunBuffers
+} from "./realtime-run-buffers.js";
 
 // ---------------------------------------------------------------------------
 // Runner options
@@ -77,17 +82,7 @@ export interface WorkflowGraphData {
   edges: Edge[];
 }
 
-/**
- * Keep enough recent runtime history for operator diagnostics without letting a
- * long-lived realtime session grow unbounded in memory.
- */
-export const REALTIME_MESSAGE_BUFFER_LIMIT = 1024;
-
-/**
- * Keep a small tail of the most recent output values per output node so
- * realtime-mode previews remain inspectable without accumulating every frame.
- */
-export const REALTIME_OUTPUT_BUFFER_LIMIT = 256;
+export { REALTIME_MESSAGE_BUFFER_LIMIT, REALTIME_OUTPUT_BUFFER_LIMIT };
 
 // ---------------------------------------------------------------------------
 // Runner result
@@ -139,6 +134,9 @@ export class WorkflowRunner {
 
   /** All emitted messages. */
   private _messages: ProcessingMessage[] = [];
+
+  /** Realtime-only bounded message/output retention policy. */
+  private _realtimeBuffers = new RealtimeRunBuffers();
 
   /** Cancellation flag. */
   private _cancelled = false;
@@ -396,6 +394,11 @@ export class WorkflowRunner {
     this._multiEdgeListInputs = new Map();
     this._outputs = new Map();
     this._messages = [];
+    this._realtimeBuffers = new RealtimeRunBuffers();
+    if (this._options.runMode === "realtime") {
+      this._messages = this._realtimeBuffers.messages;
+      this._outputs = this._realtimeBuffers.outputs;
+    }
     this._cancelled = false;
     this._pendingControlResponses = new Map();
     this._executors = new Map();
@@ -1273,39 +1276,26 @@ export class WorkflowRunner {
 
   private _appendMessage(msg: ProcessingMessage): void {
     if (this._options.runMode === "realtime") {
-      this._appendBounded(this._messages, msg, REALTIME_MESSAGE_BUFFER_LIMIT);
+      this._realtimeBuffers.appendMessage(msg);
+      this._messages = this._realtimeBuffers.messages;
       return;
     }
     this._messages.push(msg);
   }
 
   private _appendOutputValue(name: string, value: unknown): void {
+    if (this._options.runMode === "realtime") {
+      this._realtimeBuffers.appendOutputValue(name, value);
+      this._outputs = this._realtimeBuffers.outputs;
+      return;
+    }
+
     if (!this._outputs.has(name)) {
       this._outputs.set(name, []);
     }
 
     const values = this._outputs.get(name)!;
-    if (this._options.runMode === "realtime") {
-      this._appendBounded(values, value, REALTIME_OUTPUT_BUFFER_LIMIT);
-      return;
-    }
-
     values.push(value);
-  }
-
-  /**
-   * Append into a FIFO bounded buffer, dropping the oldest entries first when
-   * realtime mode exceeds the configured limit.
-   *
-   * This array-based implementation is an intentionally small shared primitive
-   * for the current scaffold task; if profiling shows it on the hot path, the
-   * realtime runner can swap it for a dedicated circular buffer later.
-   */
-  private _appendBounded<T>(values: T[], value: T, limit: number): void {
-    values.push(value);
-    if (values.length > limit) {
-      values.splice(0, values.length - limit);
-    }
   }
 
   private _resolveInputNodes(inputName: string): NodeDescriptor[] {

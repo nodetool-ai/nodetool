@@ -38,6 +38,24 @@ class BufferedNode extends BaseNode {
   }
 }
 
+class BrowserRealtimeMetadataNode extends BaseNode {
+  static readonly nodeType = "nodetool.test.BrowserRealtime";
+  static readonly title = "Browser Realtime";
+  static readonly description = "Browser realtime node";
+  static readonly realtimeProfile = {
+    browser_capable: true,
+    requires_browser_frame: true,
+    requires_webgpu: true,
+    emits_analysis_event: true,
+    emits_parameter_update: true,
+    emits_media_frame: false
+  };
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+}
+
 // ---------------------------------------------------------------------------
 // getNodeMetadata
 // ---------------------------------------------------------------------------
@@ -86,6 +104,19 @@ describe("getNodeMetadata", () => {
     expect(meta.is_media_adapter).toBe(true);
     expect(meta.input_buffer_policy).toEqual({
       frame: { capacity: 2, overflowPolicy: "drop_oldest" }
+    });
+  });
+
+  it("includes opt-in realtime browser capability metadata when declared", () => {
+    const meta = getNodeMetadata(BrowserRealtimeMetadataNode);
+
+    expect(meta.realtime_profile).toEqual({
+      browser_capable: true,
+      requires_browser_frame: true,
+      requires_webgpu: true,
+      emits_analysis_event: true,
+      emits_parameter_update: true,
+      emits_media_frame: false
     });
   });
 

@@ -51,7 +51,12 @@ import {
   type ComfyProgressEvent,
   type ComfyExecutionHandle
 } from "@nodetool/runtime";
-import type { Chunk, RealtimeSessionRecord, RealtimeSessionSignal } from "@nodetool/protocol";
+import type {
+  Chunk,
+  RealtimeMetrics,
+  RealtimeSessionRecord,
+  RealtimeSessionSignal
+} from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
@@ -60,6 +65,7 @@ import type {
 import { Tool } from "@nodetool/agents";
 import type { NodeMetadata } from "@nodetool/node-sdk";
 import { RealtimeCommandHandler } from "./realtime/command-handler.js";
+import { RealtimeLifecycleOrchestrator } from "./realtime/lifecycle-orchestrator.js";
 import { realtimeSessionManager } from "./realtime/session-manager.js";
 import { RealtimeWebRTCServer } from "./realtime/webrtc-server.js";
 
@@ -746,18 +752,16 @@ export class UnifiedWebSocketRunner {
 
   private sendLock: Promise<void> = Promise.resolve();
   private activeJobs = new Map<string, ActiveJob>();
-  private realtimeSessionJobs = new Map<string, string>();
-  private realtimeJobSessions = new Map<string, string>();
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
-  private realtimeMetricsTimer: NodeJS.Timeout | null = null;
   private chatRequestSeq = 0;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private toolBridge = new ToolBridge();
   private observerRegistered = false;
   private realtimeHandler: RealtimeCommandHandler;
   private readonly realtimeWebRTCServer: RealtimeWebRTCServer;
+  private readonly realtimeLifecycle: RealtimeLifecycleOrchestrator;
 
   private logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
@@ -903,6 +907,25 @@ export class UnifiedWebSocketRunner {
       getRunnerForSession: (session) =>
         session.job_id ? this.activeJobs.get(session.job_id)?.runner : undefined
     });
+    this.realtimeLifecycle = new RealtimeLifecycleOrchestrator({
+      getUserId: () => this.getRealtimeUserId(),
+      getActiveJob: (jobId) => {
+        const active = this.activeJobs.get(jobId);
+        if (!active) {
+          return undefined;
+        }
+        return {
+          realtimeRunner: active.realtimeRunner as
+            | { updateMetrics?: (metrics: RealtimeMetrics) => void }
+            | undefined
+        };
+      },
+      getMetrics: (session) => this.realtimeWebRTCServer.getMetrics(session),
+      sendMessage: async (message) => this.sendMessage(message),
+      onMetricsError: (err) => {
+        log.warn("Failed to send realtime metrics", { error: String(err) });
+      }
+    });
     this.realtimeHandler = new RealtimeCommandHandler({
       getUserId: () => this.getRealtimeUserId(),
       runRealtimeJob: async (request, session) =>
@@ -912,8 +935,7 @@ export class UnifiedWebSocketRunner {
       },
       getActiveJob: (jobId) => this.activeJobs.get(jobId),
       trackSessionJob: (sessionId, jobId) => {
-        this.realtimeSessionJobs.set(sessionId, jobId);
-        this.realtimeJobSessions.set(jobId, sessionId);
+        this.realtimeLifecycle.trackSessionJob(sessionId, jobId);
       },
       clearSessionTracking: (sessionId, jobId) =>
         this.clearRealtimeSessionTracking(sessionId, jobId),
@@ -959,7 +981,7 @@ export class UnifiedWebSocketRunner {
     this.toolBridge.cancelAll();
 
     this.currentTask = null;
-    const realtimeSessionIds = [...this.realtimeSessionJobs.keys()];
+    const realtimeSessionIds = this.realtimeLifecycle.getTrackedSessionIds();
     for (const [jobId, job] of this.activeJobs) {
       if (job.comfyHandle) {
         job.comfyHandle.cancel();
@@ -1050,10 +1072,7 @@ export class UnifiedWebSocketRunner {
     sessionId: string,
     jobId?: string | null
   ): void {
-    this.realtimeSessionJobs.delete(sessionId);
-    if (jobId) {
-      this.realtimeJobSessions.delete(jobId);
-    }
+    this.realtimeLifecycle.clearSessionTracking(sessionId, jobId);
   }
 
   private async failRealtimeSessionStartup(
@@ -1092,7 +1111,7 @@ export class UnifiedWebSocketRunner {
     status: ActiveJob["status"],
     reason?: string
   ): Promise<void> {
-    const sessionId = this.realtimeJobSessions.get(jobId);
+    const sessionId = this.realtimeLifecycle.getSessionIdForJob(jobId);
     if (!sessionId) {
       return;
     }
@@ -1169,29 +1188,8 @@ export class UnifiedWebSocketRunner {
     });
   }
 
-  private async emitRealtimeMetrics(): Promise<void> {
-    const userId = this.getRealtimeUserId();
-    const sessions = realtimeSessionManager
-      .listSessions(userId)
-      .filter(
-        (session) => session.status === "starting" || session.status === "running"
-      );
-
-    for (const session of sessions) {
-      const metrics = this.realtimeWebRTCServer.getMetrics(session);
-      if (session.job_id) {
-        const realtimeRunner = this.activeJobs.get(session.job_id)
-          ?.realtimeRunner as
-          | { updateMetrics?: (metrics: unknown) => void }
-          | undefined;
-        if (typeof realtimeRunner?.updateMetrics === "function") {
-          realtimeRunner.updateMetrics(metrics);
-        }
-      }
-      await this.sendMessage(
-        metrics as unknown as Record<string, unknown>
-      );
-    }
+  async emitRealtimeMetrics(): Promise<void> {
+    await this.realtimeLifecycle.emitMetrics();
   }
 
   async receiveMessage(): Promise<Record<string, unknown> | null> {
@@ -4820,19 +4818,11 @@ export class UnifiedWebSocketRunner {
   }
 
   private startRealtimeMetricsBroadcast(): void {
-    this.stopRealtimeMetricsBroadcast();
-    this.realtimeMetricsTimer = setInterval(() => {
-      this.emitRealtimeMetrics().catch((err) => {
-        log.warn("Failed to send realtime metrics", { error: String(err) });
-      });
-    }, 500);
+    this.realtimeLifecycle.startMetricsBroadcast();
   }
 
   private stopRealtimeMetricsBroadcast(): void {
-    if (this.realtimeMetricsTimer) {
-      clearInterval(this.realtimeMetricsTimer);
-      this.realtimeMetricsTimer = null;
-    }
+    this.realtimeLifecycle.stopMetricsBroadcast();
   }
 
   private registerObserver(): void {

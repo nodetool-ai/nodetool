@@ -67,6 +67,26 @@ export type ControlEvent = RunEvent | StopEvent;
 
 export type SyncMode = "on_any" | "zip_all";
 
+export interface RealtimeNodeProfile {
+  /** Node can run in an operator browser/electron renderer control loop. */
+  browser_capable?: boolean;
+
+  /** Node requires a browser-provided media frame to produce useful output. */
+  requires_browser_frame?: boolean;
+
+  /** Node requires WebGPU instead of a generic browser runtime. */
+  requires_webgpu?: boolean;
+
+  /** Node may emit analysis events for downstream controls. */
+  emits_analysis_event?: boolean;
+
+  /** Node may emit realtime parameter updates for another model/control node. */
+  emits_parameter_update?: boolean;
+
+  /** Node may emit media frames directly into the realtime stream. */
+  emits_media_frame?: boolean;
+}
+
 /**
  * Minimal node descriptor for graph operations.
  * The full BaseNode equivalent lives in the node-sdk package.
@@ -117,6 +137,9 @@ export interface NodeDescriptor {
 
   /** Whether this node originates or terminates a media transport. */
   is_media_adapter?: boolean;
+
+  /** Opt-in browser/JS realtime inference capabilities. */
+  realtime_profile?: RealtimeNodeProfile;
 
   /** Optional per-input-handle buffer policies used by realtime-capable runners. */
   inputBufferPolicy?: Record<string, InputBufferPolicy>;

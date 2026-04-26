@@ -383,7 +383,9 @@ export class Graph {
         owns_warm_state:
           descriptorDefaults.owns_warm_state || node.owns_warm_state || false,
         is_media_adapter:
-          descriptorDefaults.is_media_adapter || node.is_media_adapter || false
+          descriptorDefaults.is_media_adapter || node.is_media_adapter || false,
+        realtime_profile:
+          descriptorDefaults.realtime_profile ?? node.realtime_profile
       };
 
       resolvedNodes.push(hydratedNode);

@@ -441,6 +441,71 @@ export interface RealtimeMetrics {
   created_at: string;
 }
 
+export type RealtimeInferencePlacement =
+  | "operator_browser"
+  | "electron_renderer"
+  | "node_backend"
+  | "server_worker";
+
+export type RealtimeInferenceEngine =
+  | "tfjs"
+  | "transformersjs"
+  | "mediapipe"
+  | "custom";
+
+export type RealtimeInferenceBackend =
+  | "webgpu"
+  | "wasm"
+  | "webgl"
+  | "cpu"
+  | "node"
+  | "cuda"
+  | "unknown";
+
+export type RealtimeInferenceLoadingStatus =
+  | "idle"
+  | "resolving"
+  | "downloading"
+  | "loading"
+  | "warming"
+  | "ready"
+  | "error";
+
+export type RealtimeInferenceCacheStatus =
+  | "hit"
+  | "miss"
+  | "disabled"
+  | "unknown";
+
+export interface RealtimeInferenceMetrics {
+  type: "realtime_inference_metrics";
+  session_id: string;
+  workflow_id: string | null;
+  job_id: string | null;
+  node_id: string;
+  node_type: string;
+  placement: RealtimeInferencePlacement;
+  engine: RealtimeInferenceEngine;
+  backend: RealtimeInferenceBackend;
+  fallback_backend?: RealtimeInferenceBackend | null;
+  model: {
+    id: string;
+    source?: "browser_cache" | "local" | "remote" | "bundled" | "unknown";
+  };
+  loading: {
+    status: RealtimeInferenceLoadingStatus;
+    progress: number | null;
+    warm: boolean;
+    cache: RealtimeInferenceCacheStatus;
+    error?: string | null;
+  };
+  throughput: {
+    inference_fps: number | null;
+    average_latency_ms: number | null;
+  };
+  created_at: string;
+}
+
 // ---------------------------------------------------------------------------
 // Unified websocket command/control/update types
 // ---------------------------------------------------------------------------
@@ -544,6 +609,7 @@ export type ProcessingMessage =
   | RealtimeSessionStopped
   | RealtimeSessionSignal
   | RealtimeMetrics
+  | RealtimeInferenceMetrics
   | Chunk
   | Prediction
   | LLMCallUpdate;
