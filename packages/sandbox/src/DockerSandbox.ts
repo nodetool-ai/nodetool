@@ -16,6 +16,7 @@
 
 import { createConnection, type Socket as NetSocket } from "node:net";
 import Dockerode from "dockerode";
+import { createLogger } from "@nodetool/config";
 import type {
   Sandbox,
   SandboxOptions,
@@ -23,6 +24,8 @@ import type {
   SandboxEndpoint
 } from "./SandboxProvider.js";
 import { ToolClient } from "./ToolClient.js";
+
+const log = createLogger("nodetool.sandbox.docker");
 
 export const DEFAULT_SANDBOX_IMAGE = "nodetool/sandbox-agent:latest";
 export const TOOL_SERVER_PORT = 7788;
@@ -76,8 +79,13 @@ export class DockerSandbox implements Sandbox {
     if (this.timeoutHandle !== null) clearTimeout(this.timeoutHandle);
     try {
       await this.container.remove({ force: true });
-    } catch {
-      // best-effort; container may already be gone
+    } catch (err) {
+      // best-effort; container may already be gone (404) — anything else is
+      // worth knowing about even if we can't act on it here.
+      log.debug(
+        `Failed to remove container ${this.container.id} on release`,
+        err
+      );
     }
   }
 
@@ -207,8 +215,9 @@ export class DockerSandboxProvider implements SandboxProvider {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ map: userServiceMap })
-        }).catch(() => {
+        }).catch((err) => {
           // best-effort; expose_port will simply return an empty URL
+          log.debug("Failed to publish user service port map", err);
         });
       }
 
@@ -216,7 +225,12 @@ export class DockerSandboxProvider implements SandboxProvider {
       const limit = options.timeoutSeconds ?? 3600;
       if (limit > 0) {
         timeoutHandle = setTimeout(() => {
-          container.remove({ force: true }).catch(() => {});
+          container.remove({ force: true }).catch((err) => {
+            log.warn(
+              `Failed to remove sandbox container ${container.id} after ${limit}s timeout`,
+              err
+            );
+          });
         }, limit * 1000);
       }
 
@@ -228,7 +242,12 @@ export class DockerSandboxProvider implements SandboxProvider {
         timeoutHandle
       });
     } catch (err) {
-      await container.remove({ force: true }).catch(() => {});
+      await container.remove({ force: true }).catch((removeErr) => {
+        log.warn(
+          `Failed to remove container ${container.id} during error cleanup`,
+          removeErr
+        );
+      });
       throw err;
     }
   }

@@ -18,10 +18,14 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
+import { createLogger } from "@nodetool/config";
+
 import {
   BRIDGE_PROTOCOL_VERSION,
   MIN_NODETOOL_CORE_VERSION
 } from "./bridge-protocol.js";
+
+const log = createLogger("nodetool.runtime.python-stdio-bridge");
 import type {
   PythonNodeMetadata,
   ExecuteResult,
@@ -104,7 +108,14 @@ export class PythonStdioBridge extends EventEmitter {
     }
     await this._spawnAndConnect();
     await this._discover();
-    await this.getWorkerStatus().catch(() => null);
+    try {
+      await this.getWorkerStatus();
+    } catch (err) {
+      log.warn(
+        "Failed to fetch initial Python worker status; load_errors will be unavailable until next status fetch",
+        err
+      );
+    }
   }
 
   ensureConnected(): Promise<void> {

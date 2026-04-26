@@ -492,8 +492,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Ensure WebSocket connection is established before sending
         try {
           await globalWebSocketManager.ensureConnection();
-        } catch (_connError) {
-          set({ error: "Not connected to chat service" });
+        } catch (connError) {
+          const detail =
+            connError instanceof Error ? connError.message : String(connError);
+          set({ error: `Not connected to chat service: ${detail}` });
           return;
         }
 
@@ -647,10 +649,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
             threadsRecord[thread.id] = thread as unknown as Thread;
           });
 
-          set({ threads: threadsRecord, threadsLoaded: true });
+          set({ threads: threadsRecord, threadsLoaded: true, error: null });
         } catch (error) {
           console.error("Failed to fetch threads:", error);
-          set({ threadsLoaded: true });
+          set({
+            threadsLoaded: true,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to load chat threads"
+          });
         } finally {
           set({ isLoadingThreads: false });
         }

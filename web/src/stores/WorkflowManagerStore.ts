@@ -241,6 +241,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             throw createErrorMessage(err, "Failed to save workflow");
           }
 
+          // Version snapshot is best-effort — the main save already succeeded.
           try {
             await trpcClient.workflows.versions.create.mutate({
               id: workflow.id,
@@ -248,7 +249,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               description: `Manual save: ${new Date().toISOString()}`
             });
           } catch (err) {
-            console.warn("[saveWorkflow] Failed to create version:", err);
+            console.warn(
+              "[saveWorkflow] Workflow saved but version snapshot failed:",
+              err
+            );
           }
 
           const persistedWorkflow: Workflow = {
