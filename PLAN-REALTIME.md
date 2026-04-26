@@ -305,6 +305,9 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 - [ ] Step 10c: Model artifact and loader handling for realtime video backends.
   - Goal: make LongLive and Self-Forcing model handling explicit, auditable, and low-VRAM-testable before more user-facing realtime nodes depend on it.
   - Artifact manifest/resolver landed: `nodetool-realtime` now has typed model artifact manifests and a dependency-light resolver that records local/Hugging Face artifact locations without importing heavy ML libraries or silently downloading in normal tests. Defaults cover canonical LongLive, canonical Self-Forcing, and an RTX 3060 12GB Self-Forcing candidate profile.
+  - Loader boundary landed: resolved artifacts now pass through a file-type-aware loader boundary that treats `safetensors` as an explicit safe-loader path, requires opt-in for pickle-backed `pt`/`pth` loads, keeps `gguf`/config/repo artifacts as path references, and returns structured metadata with artifact id, role, format, path, dtype/device hints, and loader choice.
+  - Compatibility reporting landed: manifests now produce dependency-light compatibility reports before model mutation, including blocking issues for incompatible/unverified candidates and adapter target family/size mismatches, plus warnings for experimental low-VRAM and optional control-extension artifacts.
+  - LoRA adapter contract landed: LoRA artifacts now derive shared contracts from manifest metadata, recording strength, merge mode, provenance, target family/size, optional dependency, and compatibility reason before runtime code attempts to merge or apply an adapter. LongLive's bundled `peft` LoRA is represented as compatible; the tracked Self-Forcing 14B/lightx2v speed LoRA remains blocked for the 1.3B RTX 3060 baseline.
   - Artifact manifest task: define typed manifests for base model, checkpoint, text encoder, VAE, optional VACE/control weights, optional LoRA/adapters, config files, expected formats (`pt`/`pth`/`safetensors`/`gguf`), source repo/file, license/provenance notes, and recommended hardware profile.
   - Resolver task: add a shared resolver that maps manifests to local paths without importing heavy ML libraries, supports local files and Hugging Face repo:file identifiers, records missing artifacts clearly, and never silently downloads during normal tests.
   - Loader task: add file-type-aware safe loading boundaries (`safetensors` vs pickle-backed `pt`/`pth`), structured loader events, explicit dtype/device placement, and failure metadata that identifies which artifact failed.
@@ -422,6 +425,7 @@ This is deployment hardening for the existing NodeTool deploy path, not a new cl
 - [ ] Add `MIDI`, `OSC`, `DMX`, and `timecode` control or sync adapters.
 - [ ] Integrate WHIP/WHEP endpoints from Phase 5 into adapter discovery and workflow templates.
 - [ ] Add optional remote brokering and entitlement layers if Phase 5 proves they are needed beyond deployment hardening.
+- [ ] Add NVIDIA Lyra 2.0 world model generator
 
 ## Namespace policy
 
