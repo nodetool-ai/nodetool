@@ -1331,8 +1331,8 @@ describe("image nodes — full coverage", () => {
     });
     expect(new TextToImageNode().serialize()).toMatchObject({
       prompt: "A cat holding a sign that says hello world",
-      width: 512,
-      height: 512
+      aspect_ratio: "1:1",
+      resolution: "1K"
     });
     expect(new ImageToImageNode().serialize()).toMatchObject({
       image: { type: "image", uri: "" },
@@ -1342,7 +1342,7 @@ describe("image nodes — full coverage", () => {
 
   it("TextToImageNode throws without provider", async () => {
     const _n = new TextToImageNode();
-    _n.assign({ prompt: "test-img", width: 256, height: 128 });
+    _n.assign({ prompt: "test-img", aspect_ratio: "1:1", resolution: "1K" });
     await expect(_n.process()).rejects.toThrow(
       "No provider available for text-to-image generation"
     );
@@ -1680,14 +1680,15 @@ describe("video nodes — full coverage", () => {
     expect(new TextToVideoNode().serialize()).toMatchObject({
       prompt: "A cat playing with a ball of yarn",
       aspect_ratio: "16:9",
-      resolution: "720p",
-      num_frames: 60
+      resolution: "1080p",
+      duration: 8
     });
     expect(new ImageToVideoNode().serialize()).toMatchObject({
       image: { type: "image", uri: "" },
       prompt: "",
       aspect_ratio: "16:9",
-      resolution: "720p"
+      resolution: "1080p",
+      duration: 4
     });
     expect(new LoadVideoFileNode().serialize()).toEqual({ path: "" });
     expect(new SaveVideoFileVideoNode().serialize()).toMatchObject({

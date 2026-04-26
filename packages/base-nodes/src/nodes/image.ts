@@ -111,6 +111,47 @@ function getModelConfig(props: Record<string, unknown>): {
   };
 }
 
+const IMAGE_ASPECT_RATIOS: Record<string, [number, number]> = {
+  "21:9": [21, 9],
+  "16:9": [16, 9],
+  "3:2": [3, 2],
+  "7:5": [7, 5],
+  "4:3": [4, 3],
+  "5:4": [5, 4],
+  "1:1": [1, 1],
+  "9:16": [9, 16],
+  "2:3": [2, 3],
+  "5:7": [5, 7],
+  "3:4": [3, 4],
+  "4:5": [4, 5]
+};
+
+const IMAGE_RESOLUTION_PX: Record<string, number> = {
+  "1K": 1024,
+  "2K": 2048,
+  "4K": 4096
+};
+
+function resolveImageSize(
+  resolution: string,
+  aspectRatio: string
+): { width: number; height: number } {
+  const base = IMAGE_RESOLUTION_PX[resolution] ?? 1024;
+  const [aw, ah] = IMAGE_ASPECT_RATIOS[aspectRatio] ?? [1, 1];
+  if (aw >= ah) {
+    const height = base;
+    const width = Math.round((height * aw) / ah);
+    return { width, height };
+  }
+  const width = base;
+  const height = Math.round((width * ah) / aw);
+  return { width, height };
+}
+
+const IMAGE_ASPECT_RATIO_VALUES = Object.keys(IMAGE_ASPECT_RATIOS);
+const IMAGE_RESOLUTION_VALUES = Object.keys(IMAGE_RESOLUTION_PX);
+const IMAGE_EDIT_STRENGTH_VALUES = [0.25, 0.5, 0.65, 0.75, 0.85, 1.0];
+
 function hasProviderSupport(
   context: ProcessingContext | undefined,
   providerId: string,
@@ -1085,7 +1126,12 @@ export class TextToImageNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "image"
   };
-  static readonly basicFields = ["model", "prompt", "width", "height", "seed"];
+  static readonly basicFields = [
+    "model",
+    "prompt",
+    "aspect_ratio",
+    "resolution"
+  ];
   static readonly exposeAsTool = true;
   static readonly autoSaveAsset = true;
 
@@ -1121,61 +1167,24 @@ export class TextToImageNode extends BaseNode {
   declare negative_prompt: any;
 
   @prop({
-    type: "int",
-    default: 512,
-    title: "Width",
-    description: "Width of the generated image",
-    min: 64,
-    max: 2048
+    type: "str",
+    default: "1:1",
+    title: "Aspect Ratio",
+    description: "Aspect ratio of the generated image",
+    values: IMAGE_ASPECT_RATIO_VALUES,
+    json_schema_extra: { type: "media_aspect_ratio_image" }
   })
-  declare width: any;
+  declare aspect_ratio: any;
 
   @prop({
-    type: "int",
-    default: 512,
-    title: "Height",
-    description: "Height of the generated image",
-    min: 64,
-    max: 2048
+    type: "str",
+    default: "1K",
+    title: "Resolution",
+    description: "Output resolution (short edge in pixels)",
+    values: IMAGE_RESOLUTION_VALUES,
+    json_schema_extra: { type: "media_resolution_image" }
   })
-  declare height: any;
-
-  @prop({
-    type: "float",
-    default: 7.5,
-    title: "Guidance Scale",
-    description: "Classifier-free guidance scale (higher = closer to prompt)",
-    min: 0,
-    max: 30
-  })
-  declare guidance_scale: any;
-
-  @prop({
-    type: "int",
-    default: 30,
-    title: "Num Inference Steps",
-    description: "Number of denoising steps",
-    min: 1,
-    max: 100
-  })
-  declare num_inference_steps: any;
-
-  @prop({
-    type: "int",
-    default: -1,
-    title: "Seed",
-    description: "Random seed for reproducibility (-1 for random)",
-    min: -1
-  })
-  declare seed: any;
-
-  @prop({
-    type: "bool",
-    default: true,
-    title: "Safety Check",
-    description: "Enable safety checker to filter inappropriate content"
-  })
-  declare safety_check: any;
+  declare resolution: any;
 
   @prop({
     type: "int",
@@ -1189,8 +1198,9 @@ export class TextToImageNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = String(this.prompt ?? "");
-    const width = Number(this.width ?? 512);
-    const height = Number(this.height ?? 512);
+    const aspectRatio = String(this.aspect_ratio ?? "1:1");
+    const resolution = String(this.resolution ?? "1K");
+    const { width, height } = resolveImageSize(resolution, aspectRatio);
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (!hasProviderSupport(context, providerId, modelId)) {
       throw new Error("No provider available for text-to-image generation.");
@@ -1203,11 +1213,9 @@ export class TextToImageNode extends BaseNode {
         prompt,
         width,
         height,
-        negative_prompt: this.negative_prompt,
-        guidance_scale: this.guidance_scale,
-        num_inference_steps: this.num_inference_steps,
-        seed: this.seed,
-        safety_check: this.safety_check
+        aspect_ratio: aspectRatio,
+        resolution,
+        negative_prompt: this.negative_prompt
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);
@@ -1234,7 +1242,8 @@ export class ImageToImageNode extends BaseNode {
     "image",
     "prompt",
     "strength",
-    "seed"
+    "aspect_ratio",
+    "resolution"
   ];
   static readonly autoSaveAsset = true;
   static readonly exposeAsTool = true;
@@ -1286,63 +1295,34 @@ export class ImageToImageNode extends BaseNode {
 
   @prop({
     type: "float",
-    default: 0.8,
+    default: 0.65,
     title: "Strength",
     description:
-      "How much to transform the input image (0.0 = no change, 1.0 = maximum change)",
-    min: 0,
-    max: 1
+      "How much to transform the input image (subtle = minor edit, strong = major edit)",
+    values: IMAGE_EDIT_STRENGTH_VALUES,
+    json_schema_extra: { type: "media_strength" }
   })
   declare strength: any;
 
   @prop({
-    type: "float",
-    default: 7.5,
-    title: "Guidance Scale",
-    description: "Classifier-free guidance scale",
-    min: 0,
-    max: 30
+    type: "str",
+    default: "1:1",
+    title: "Aspect Ratio",
+    description: "Aspect ratio of the output image",
+    values: IMAGE_ASPECT_RATIO_VALUES,
+    json_schema_extra: { type: "media_aspect_ratio_image" }
   })
-  declare guidance_scale: any;
+  declare aspect_ratio: any;
 
   @prop({
-    type: "int",
-    default: 30,
-    title: "Num Inference Steps",
-    description: "Number of denoising steps",
-    min: 1,
-    max: 100
+    type: "str",
+    default: "1K",
+    title: "Resolution",
+    description: "Output resolution (short edge in pixels)",
+    values: IMAGE_RESOLUTION_VALUES,
+    json_schema_extra: { type: "media_resolution_image" }
   })
-  declare num_inference_steps: any;
-
-  @prop({
-    type: "int",
-    default: 512,
-    title: "Target Width",
-    description: "Target width of the output image",
-    min: 64,
-    max: 2048
-  })
-  declare target_width: any;
-
-  @prop({
-    type: "int",
-    default: 512,
-    title: "Target Height",
-    description: "Target height of the output image",
-    min: 64,
-    max: 2048
-  })
-  declare target_height: any;
-
-  @prop({
-    type: "int",
-    default: -1,
-    title: "Seed",
-    description: "Random seed for reproducibility (-1 for random)",
-    min: -1
-  })
-  declare seed: any;
+  declare resolution: any;
 
   @prop({
     type: "str",
@@ -1351,14 +1331,6 @@ export class ImageToImageNode extends BaseNode {
     description: "Scheduler to use (provider-specific)"
   })
   declare scheduler: any;
-
-  @prop({
-    type: "bool",
-    default: true,
-    title: "Safety Check",
-    description: "Enable safety checker"
-  })
-  declare safety_check: any;
 
   @prop({
     type: "int",
@@ -1376,6 +1348,9 @@ export class ImageToImageNode extends BaseNode {
     if (bytes.length === 0) {
       throw new Error("The input image is empty.");
     }
+    const aspectRatio = String(this.aspect_ratio ?? "1:1");
+    const resolution = String(this.resolution ?? "1K");
+    const { width, height } = resolveImageSize(resolution, aspectRatio);
     const { providerId, modelId } = getModelConfig(this.serialize());
     if (!hasProviderSupport(context, providerId, modelId)) {
       throw new Error("No provider available for image-to-image generation.");
@@ -1388,12 +1363,11 @@ export class ImageToImageNode extends BaseNode {
         image: bytes,
         prompt: String(this.prompt ?? ""),
         negative_prompt: this.negative_prompt,
-        target_width: this.target_width,
-        target_height: this.target_height,
-        guidance_scale: this.guidance_scale,
-        num_inference_steps: this.num_inference_steps,
+        target_width: width,
+        target_height: height,
+        aspect_ratio: aspectRatio,
+        resolution,
         strength: this.strength,
-        seed: this.seed,
         scheduler: this.scheduler
       }
     })) as Uint8Array;
