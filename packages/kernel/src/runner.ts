@@ -25,6 +25,7 @@ import { TypeMetadata } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.kernel.runner");
 import type { ProcessingContext } from "@nodetool/runtime";
+import { withWorkflowSpan } from "@nodetool/runtime";
 import { isControlEdge, isDataEdge } from "@nodetool/protocol";
 import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
@@ -238,6 +239,20 @@ export class WorkflowRunner {
    * Execute a workflow graph.
    */
   async run(
+    request: RunJobRequest,
+    graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
+  ): Promise<RunResult> {
+    return withWorkflowSpan(
+      {
+        workflowId: request.workflow_id ?? undefined,
+        nodeCount: graphData.nodes.length,
+        extra: { "workflow.job_id": request.job_id }
+      },
+      () => this._runImpl(request, graphData)
+    );
+  }
+
+  private async _runImpl(
     request: RunJobRequest,
     graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
   ): Promise<RunResult> {

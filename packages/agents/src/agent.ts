@@ -13,6 +13,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { createLogger } from "@nodetool/config";
 import type { BaseProvider } from "@nodetool/runtime";
+import { withAgentSpanGen } from "@nodetool/runtime";
 
 const log = createLogger("nodetool.agents.agent");
 import type { Message, ProcessingContext } from "@nodetool/runtime";
@@ -408,6 +409,22 @@ export class Agent extends BaseAgent {
   }
 
   async *execute(
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage> {
+    yield* withAgentSpanGen(
+      "execute",
+      {
+        objective: this.objective,
+        provider: this.provider.provider,
+        model: this.model,
+        toolsCount: this.tools.length,
+        extra: { "agent.name": this.name }
+      },
+      () => this._executeImpl(context)
+    );
+  }
+
+  private async *_executeImpl(
     context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage> {
     log.info("Agent started", {

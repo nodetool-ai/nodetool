@@ -32,7 +32,7 @@ import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
 import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
 import { registerFalNodes } from "@nodetool/fal-nodes";
 import { registerReplicateNodes } from "@nodetool/replicate-nodes";
-import { ProcessingContext } from "@nodetool/runtime";
+import { ProcessingContext, initTelemetry } from "@nodetool/runtime";
 import { registerPackageCommands } from "./commands/package.js";
 import {
   registerDeployCommands,
@@ -110,7 +110,35 @@ function asJson(data: unknown): void {
 // info
 // ---------------------------------------------------------------------------
 
-program.name("nodetool").description("NodeTool CLI").version("0.1.0");
+program
+  .name("nodetool")
+  .description("NodeTool CLI")
+  .version("0.1.0")
+  .option(
+    "--trace-file <path>",
+    "Append every LLM/agent/workflow span as JSONL to <path>"
+  )
+  .option(
+    "--trace-stdout [format]",
+    "Stream spans to stdout: 'pretty' (default) or 'json' (JSONL)"
+  )
+  .hook("preAction", async (thisCommand) => {
+    const opts = thisCommand.opts<{
+      traceFile?: string;
+      traceStdout?: string | boolean;
+    }>();
+    await initTelemetry({
+      ...(opts.traceFile && { traceFile: opts.traceFile }),
+      ...(opts.traceStdout !== undefined && {
+        stdout:
+          opts.traceStdout === "json"
+            ? "json"
+            : opts.traceStdout === false
+              ? false
+              : "pretty"
+      })
+    });
+  });
 
 // ---------------------------------------------------------------------------
 // run — execute a TypeScript/JavaScript DSL workflow file

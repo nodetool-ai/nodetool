@@ -47,10 +47,6 @@ if (!process.env["NODETOOL_LOG_FILE"]) {
 }
 configureLogging();
 
-// Initialize OpenLLMetry before any LLM SDK calls are made.
-// No-op if TRACELOOP_API_KEY / OTEL_EXPORTER_OTLP_ENDPOINT is not set.
-await initTelemetry();
-
 program
   .name("nodetool-chat")
   .description(
@@ -84,6 +80,14 @@ program
     "--sandbox-image <image>",
     "Override the sandbox Docker image (default: nodetool/sandbox-agent:latest)"
   )
+  .option(
+    "--trace-file <path>",
+    "Append every LLM/agent/workflow span as JSONL to <path> (analyzer-friendly)"
+  )
+  .option(
+    "--trace-stdout [format]",
+    "Stream spans to stdout: 'pretty' (default, human-readable) or 'json' (JSONL)"
+  )
   .helpOption("-h, --help", "Show help")
   .version("0.1.0")
   .parse();
@@ -98,7 +102,24 @@ const opts = program.opts<{
   url?: string;
   sandbox?: boolean;
   sandboxImage?: string;
+  traceFile?: string;
+  traceStdout?: string | boolean;
 }>();
+
+// Initialize OpenLLMetry before any LLM SDK calls are made. Honors CLI flags
+// and env vars (TRACELOOP_API_KEY, OTEL_EXPORTER_OTLP_ENDPOINT,
+// NODETOOL_TRACE_FILE, NODETOOL_TRACE_STDOUT). No-op if nothing is configured.
+await initTelemetry({
+  ...(opts.traceFile && { traceFile: opts.traceFile }),
+  ...(opts.traceStdout !== undefined && {
+    stdout:
+      opts.traceStdout === "json"
+        ? "json"
+        : opts.traceStdout === false
+          ? false
+          : "pretty"
+  })
+});
 
 // Initialize database
 try {

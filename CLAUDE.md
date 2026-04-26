@@ -258,18 +258,74 @@ Most server-calling commands accept `--api-url <url>` (default: `http://localhos
 
 ### Observing Agent Execution
 
+NodeTool emits a hierarchy of OpenTelemetry spans that an analyzer agent can
+ingest to study and optimize prompts/agents/workflows:
+
+```
+workflow.run                       (kernel WorkflowRunner)
+  node.process                     (kernel NodeActor — one per node)
+    agent.execute                  (Agent.execute)
+      agent.plan                   (TaskPlanner / GraphPlanner)
+        llm.chat / llm.stream      (BaseProvider)
+      agent.step                   (StepExecutor)
+        llm.chat / llm.stream
+```
+
+Every `llm.chat` / `llm.stream` span carries `gen_ai.usage.input_tokens`,
+`gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, and
+`gen_ai.usage.cost_credits`. Token counts also appear in the `llm_call`
+message events emitted by `BaseProvider`.
+
+#### Sinks
+
+Multiple sinks can run simultaneously (each gets its own span processor):
+
 ```bash
-# Debug logging (all LLM calls, planning details)
-NODETOOL_LOG_LEVEL=debug npm run dev:chat -- --agent
+# JSONL log file (analyzer-friendly — one span per line)
+NODETOOL_TRACE_FILE=/tmp/nodetool-trace.jsonl npm run dev:chat -- --agent
+npm run dev:chat -- --agent --trace-file /tmp/nodetool-trace.jsonl
 
-# OpenTelemetry tracing to console
-OTEL_TRACES_EXPORTER=console TRACELOOP_DISABLE_BATCH=true npm run dev:chat -- --agent
+# Stdout — pretty (human) or json (JSONL)
+NODETOOL_TRACE_STDOUT=pretty npm run dev:chat -- --agent
+npm run dev:chat -- --agent --trace-stdout pretty
+npm run dev:chat -- --agent --trace-stdout json
 
-# Traceloop cloud
+# OpenTelemetry — Traceloop cloud
 TRACELOOP_API_KEY=your-key npm run dev:chat -- --agent
 
-# Custom OTLP backend (Jaeger, Grafana)
+# OpenTelemetry — custom OTLP backend (Jaeger, Grafana, etc.)
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:chat -- --agent
+
+# Debug logging (all LLM calls, planning details)
+NODETOOL_LOG_LEVEL=debug npm run dev:chat -- --agent
+```
+
+The `--trace-file` and `--trace-stdout` flags also work on the `nodetool` CLI:
+
+```bash
+npm run dev:nodetool -- --trace-file trace.jsonl run workflow.ts
+npm run dev:nodetool -- --trace-stdout pretty workflows run <id>
+```
+
+#### JSONL trace schema
+
+Each line in the file is one span:
+
+```json
+{
+  "trace_id": "...", "span_id": "...", "parent_span_id": "...",
+  "name": "agent.plan", "kind": "INTERNAL",
+  "start_time_ms": 1700000000000, "end_time_ms": 1700000001234,
+  "duration_ms": 1234,
+  "status": { "code": "OK" },
+  "attributes": {
+    "agent.objective": "...", "agent.kind": "plan",
+    "agent.provider": "anthropic", "agent.model": "claude-sonnet-4-6",
+    "gen_ai.usage.input_tokens": 150, "gen_ai.usage.output_tokens": 80
+  },
+  "events": [],
+  "resource": { "service.name": "nodetool" }
+}
 ```
 
 See [packages/agents/CLAUDE.md](packages/agents/CLAUDE.md) for agent architecture, parallel execution, skills, and tuning.

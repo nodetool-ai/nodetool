@@ -209,25 +209,63 @@ export NODETOOL_LOG_FILE=/tmp/agents.log
 
 ### OpenTelemetry Tracing
 
-Every `generateMessagesTraced()` call creates an OpenTelemetry span with attributes: `llm.provider`, `llm.model`, `llm.request.message_count`, `llm.request.tools_count`, `llm.response.content`, `llm.response.tool_calls_count`.
+Span hierarchy (an analyzer agent can read this tree to optimize prompts):
+
+```
+workflow.run
+  node.process
+    agent.execute
+      agent.plan        (TaskPlanner.planMultiTask / GraphPlanner.plan)
+        llm.chat        (BaseProvider.generateMessageTraced)
+        llm.stream      (BaseProvider.generateMessagesTraced)
+      agent.step        (StepExecutor.execute)
+        llm.chat
+        llm.stream
+```
+
+Span attributes:
+
+- `agent.*`: `agent.kind` (execute/plan/step), `agent.objective`, `agent.provider`, `agent.model`, `agent.tools_count`, `agent.task` (for steps), `agent.plan.kind` (multi/single/graph)
+- `llm.*`: `llm.provider`, `llm.model`, `llm.request.message_count`, `llm.request.tools_count`, `llm.request.max_tokens`, `llm.request.stream`, `llm.response.content` (first 2000 chars), `llm.response.tool_calls_count`
+- `gen_ai.*` (OTel GenAI semconv): `gen_ai.system`, `gen_ai.request.model`, `gen_ai.operation.name`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, `gen_ai.usage.cost_credits`
+- `workflow.*` / `node.*`: `workflow.id`, `workflow.name`, `workflow.node_count`, `node.id`, `node.type`
+
+Sinks (simultaneous, each on its own SpanProcessor):
 
 ```bash
-# Console output (development)
+# JSONL trace file — one span per line, analyzer-friendly
+export NODETOOL_TRACE_FILE=/tmp/nodetool-trace.jsonl
+
+# Stdout — pretty (human) or json (JSONL)
+export NODETOOL_TRACE_STDOUT=pretty       # or "json"
+
+# OpenTelemetry — console (legacy)
 export OTEL_TRACES_EXPORTER=console
 export TRACELOOP_DISABLE_BATCH=true
 
-# Traceloop cloud
+# OpenTelemetry — Traceloop cloud
 export TRACELOOP_API_KEY=your-key
 
-# Custom OTLP backend (Jaeger, Grafana, etc.)
+# OpenTelemetry — custom OTLP backend (Jaeger, Grafana, etc.)
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+CLI flags pass these through:
+
+```bash
+nodetool-chat --agent --trace-file trace.jsonl
+nodetool-chat --agent --trace-stdout pretty
+nodetool --trace-file trace.jsonl run workflow.ts
 ```
 
 Telemetry must be initialized before use:
 
 ```typescript
 import { initTelemetry } from "@nodetool/runtime";
-await initTelemetry();
+await initTelemetry({
+  traceFile: "trace.jsonl",   // optional
+  stdout: "pretty",            // optional: "pretty" | "json" | false
+});
 ```
 
 The CLI calls `initTelemetry()` at startup automatically. The WebSocket server requires env vars to be set before starting.
