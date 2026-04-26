@@ -22,6 +22,16 @@ import ChatView from "../chat/containers/ChatView";
 import useAgentStore from "../../stores/AgentStore";
 import type { Message, WorkspaceResponse } from "../../stores/ApiTypes";
 import type { AgentProvider, AgentModelDescriptor } from "../../stores/AgentStore";
+import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
+import {
+  Text,
+  Caption,
+  Tooltip,
+  SelectField,
+  FlexRow,
+  Dialog,
+  LoadingSpinner
+} from "../ui_primitives";
 
 const PROVIDER_LABELS: Record<AgentProvider, string> = {
   claude: "Claude",
@@ -42,16 +52,6 @@ const ALL_PROVIDERS: AgentProvider[] = [
 function isAgentProvider(value: string): value is AgentProvider {
   return (ALL_PROVIDERS as string[]).includes(value);
 }
-import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
-import {
-  Text,
-  Caption,
-  Tooltip,
-  SelectField,
-  FlexRow,
-  Dialog,
-  LoadingSpinner
-} from "../ui_primitives";
 
 import { useQuery } from "@tanstack/react-query";
 import { isLocalhost, isProduction } from "../../lib/env";

@@ -211,13 +211,23 @@ const useAgentStore = create<AgentState>((set, get) => ({
       // Re-read state at set time. If the user (or another loadModels call)
       // selected a model while this request was in flight, preserve it as
       // long as it's still valid under the new provider's catalog.
-      set((state) => ({
-        availableModels: models,
-        model: models.some((item) => item.id === state.model)
+      // Also re-stamp chatProviderId from the resolved descriptor —
+      // setProvider() clears it on switch and only setModel() re-stamps,
+      // so without this every auto-default (e.g. switching to "llm")
+      // would leave model set with chatProviderId=null and createSession
+      // would erroneously refuse with "Pick an LLM model first".
+      set((state) => {
+        const resolvedId = models.some((item) => item.id === state.model)
           ? state.model
-          : defaultModel?.id ?? state.model,
-        modelsLoading: false
-      }));
+          : defaultModel?.id ?? state.model;
+        const resolved = models.find((m) => m.id === resolvedId);
+        return {
+          availableModels: models,
+          model: resolvedId,
+          chatProviderId: resolved?.chatProviderId ?? state.chatProviderId,
+          modelsLoading: false
+        };
+      });
     } catch (error) {
       console.error("Failed to load agent models:", error);
       set({ modelsLoading: false });

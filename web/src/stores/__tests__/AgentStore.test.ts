@@ -265,6 +265,74 @@ describe("AgentStore", () => {
     expect(useAgentStore.getState().chatProviderId).toBeNull();
   });
 
+  it("loadModels re-stamps chatProviderId from the resolved descriptor (setProvider race)", async () => {
+    // Regression: setProvider("llm") clears chatProviderId and triggers
+    // loadModels. loadModels auto-selects a default model — but unless it
+    // also re-stamps chatProviderId from that descriptor, state ends with
+    // model set + chatProviderId=null, which would make createSession()
+    // falsely refuse with "Pick an LLM model first".
+    fakeClient.listModels.mockResolvedValueOnce([
+      {
+        id: "gpt-4o",
+        label: "GPT-4o (openai)",
+        provider: "llm",
+        chatProviderId: "openai",
+        isDefault: true
+      }
+    ]);
+
+    const useAgentStore = await loadStore();
+    // Mirror what setProvider("llm") leaves behind: chatProviderId cleared,
+    // model set to something the new catalog doesn't contain (so
+    // loadModels has to fall back to the default).
+    useAgentStore.setState({
+      provider: "llm",
+      model: "stale-from-previous-provider",
+      chatProviderId: null
+    });
+
+    await useAgentStore.getState().loadModels();
+
+    const state = useAgentStore.getState();
+    expect(state.model).toBe("gpt-4o");
+    expect(state.chatProviderId).toBe("openai");
+  });
+
+  it("loadModels preserves the user's selected model and re-stamps from its descriptor", async () => {
+    // If the user already has a valid model selected, loadModels must
+    // keep it AND re-stamp chatProviderId from its descriptor (not the
+    // default's). Otherwise switching providers and back could leave the
+    // wrong chat provider attached to a kept model.
+    fakeClient.listModels.mockResolvedValueOnce([
+      {
+        id: "gpt-4o",
+        label: "GPT-4o (openai)",
+        provider: "llm",
+        chatProviderId: "openai",
+        isDefault: true
+      },
+      {
+        id: "claude-sonnet-4-6",
+        label: "Claude Sonnet (anthropic)",
+        provider: "llm",
+        chatProviderId: "anthropic"
+      }
+    ]);
+
+    const useAgentStore = await loadStore();
+    useAgentStore.setState({
+      provider: "llm",
+      model: "claude-sonnet-4-6",
+      chatProviderId: null
+    });
+
+    await useAgentStore.getState().loadModels();
+
+    const state = useAgentStore.getState();
+    expect(state.model).toBe("claude-sonnet-4-6");
+    expect(state.chatProviderId).toBe("anthropic");
+  });
+
   it("createSession for LLM provider skips the workspace requirement", async () => {
     const useAgentStore = await loadStore();
     useAgentStore.setState({
