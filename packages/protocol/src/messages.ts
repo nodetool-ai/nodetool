@@ -520,6 +520,26 @@ export interface RealtimeInferenceMetrics {
   created_at: string;
 }
 
+export interface RealtimeAnalysisFrameRef {
+  sequence: number;
+  timestamp_ns: number;
+  width?: number | null;
+  height?: number | null;
+}
+
+export interface RealtimeAnalysisEvent {
+  type: "realtime_analysis_event";
+  session_id: string;
+  workflow_id: string | null;
+  job_id: string | null;
+  node_id: string;
+  node_type: string;
+  event: string;
+  frame?: RealtimeAnalysisFrameRef | null;
+  payload: Record<string, unknown>;
+  created_at: string;
+}
+
 // ---------------------------------------------------------------------------
 // Unified websocket command/control/update types
 // ---------------------------------------------------------------------------
@@ -624,6 +644,7 @@ export type ProcessingMessage =
   | RealtimeSessionSignal
   | RealtimeMetrics
   | RealtimeInferenceMetrics
+  | RealtimeAnalysisEvent
   | Chunk
   | Prediction
   | LLMCallUpdate;

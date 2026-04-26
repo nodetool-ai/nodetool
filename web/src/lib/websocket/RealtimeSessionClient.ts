@@ -1,4 +1,6 @@
 import type {
+  RealtimeAnalysisEvent,
+  RealtimeInferenceMetrics,
   RealtimeMediaTrackMapping,
   RealtimeMetrics,
   RealtimeSessionRecord,
@@ -12,11 +14,13 @@ import type {
 import { trpcClient } from "../../trpc/client";
 import { globalWebSocketManager } from "./GlobalWebSocketManager";
 
-type RealtimeSessionMessage =
+export type RealtimeSessionMessage =
   | RealtimeSessionStarted
   | RealtimeSessionUpdated
   | RealtimeSessionStopped
-  | RealtimeMetrics;
+  | RealtimeMetrics
+  | RealtimeInferenceMetrics
+  | RealtimeAnalysisEvent;
 
 export interface RealtimeTransportConfig {
   transport: RealtimeSessionTransport;
@@ -50,7 +54,7 @@ const isRealtimeSessionStarted = (
   );
 };
 
-const isRealtimeSessionMessage = (
+export const isRealtimeSessionMessage = (
   message: unknown
 ): message is RealtimeSessionMessage => {
   return (
@@ -58,7 +62,9 @@ const isRealtimeSessionMessage = (
     (message.type === "realtime_session_started" ||
       message.type === "realtime_session_updated" ||
       message.type === "realtime_session_stopped" ||
-      message.type === "realtime_metrics")
+      message.type === "realtime_metrics" ||
+      message.type === "realtime_inference_metrics" ||
+      message.type === "realtime_analysis_event")
   );
 };
 
@@ -215,6 +221,16 @@ export class RealtimeSessionClient {
         reason: "user"
       }
     });
+  }
+
+  async publishInferenceMetrics(metrics: RealtimeInferenceMetrics): Promise<void> {
+    await this.ensureConnection();
+    await globalWebSocketManager.send(metrics as unknown as Record<string, unknown>);
+  }
+
+  async publishAnalysisEvent(event: RealtimeAnalysisEvent): Promise<void> {
+    await this.ensureConnection();
+    await globalWebSocketManager.send(event as unknown as Record<string, unknown>);
   }
 }
 

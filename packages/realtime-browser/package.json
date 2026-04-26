@@ -7,8 +7,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
-    "test": "vitest run --root ../.. packages/realtime-browser/tests/**/*.test.ts",
-    "test:watch": "vitest --root ../.. packages/realtime-browser/tests/**/*.test.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

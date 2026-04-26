@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import type {
+  RealtimeAnalysisEvent,
+  RealtimeInferenceMetrics,
   RealtimeMetrics,
   RealtimeSessionRecord,
   RealtimeSessionStarted,
@@ -9,14 +11,9 @@ import type {
 
 import {
   realtimeSessionClient,
+  type RealtimeSessionMessage,
   type RealtimeTransportConfig
 } from "../lib/websocket/RealtimeSessionClient";
-
-type RealtimeSessionMessage =
-  | RealtimeSessionStarted
-  | RealtimeSessionUpdated
-  | RealtimeSessionStopped
-  | RealtimeMetrics;
 
 type RealtimeGraphPayload = {
   nodes: Array<Record<string, unknown>>;
@@ -26,6 +23,8 @@ type RealtimeGraphPayload = {
 interface RealtimeSessionStoreState {
   sessions: Record<string, RealtimeSessionRecord>;
   metrics: Record<string, RealtimeMetrics>;
+  inferenceMetrics: Record<string, Record<string, RealtimeInferenceMetrics>>;
+  analysisEvents: Record<string, RealtimeAnalysisEvent[]>;
   activeSessionId: string | null;
   isLoading: boolean;
   error: string | null;
@@ -45,6 +44,8 @@ interface RealtimeSessionStoreState {
   stopSession: (sessionId: string, workflowId: string | null) => Promise<void>;
   upsertSession: (session: RealtimeSessionRecord) => void;
   upsertMetrics: (metrics: RealtimeMetrics) => void;
+  upsertInferenceMetrics: (metrics: RealtimeInferenceMetrics) => void;
+  appendAnalysisEvent: (event: RealtimeAnalysisEvent) => void;
   removeSession: (sessionId: string) => void;
   setActiveSession: (sessionId: string | null) => void;
 }
@@ -91,6 +92,16 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
             return;
           }
 
+          if (message.type === "realtime_inference_metrics") {
+            get().upsertInferenceMetrics(message);
+            return;
+          }
+
+          if (message.type === "realtime_analysis_event") {
+            get().appendAnalysisEvent(message);
+            return;
+          }
+
           set((state) => {
             const existing = state.sessions[message.session_id];
             if (!existing) {
@@ -125,6 +136,8 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
     return {
       sessions: {},
       metrics: {},
+      inferenceMetrics: {},
+      analysisEvents: {},
       activeSessionId: null,
       isLoading: false,
       error: null,
@@ -236,17 +249,47 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
         }));
       },
 
+      upsertInferenceMetrics(metrics) {
+        set((state) => ({
+          inferenceMetrics: {
+            ...state.inferenceMetrics,
+            [metrics.session_id]: {
+              ...(state.inferenceMetrics[metrics.session_id] ?? {}),
+              [metrics.node_id]: metrics
+            }
+          }
+        }));
+      },
+
+      appendAnalysisEvent(event) {
+        set((state) => ({
+          analysisEvents: {
+            ...state.analysisEvents,
+            [event.session_id]: [
+              ...(state.analysisEvents[event.session_id] ?? []),
+              event
+            ]
+          }
+        }));
+      },
+
       removeSession(sessionId) {
         detachSessionSubscription(sessionId);
         set((state) => {
           const nextSessions = { ...state.sessions };
           const nextMetrics = { ...state.metrics };
+          const nextInferenceMetrics = { ...state.inferenceMetrics };
+          const nextAnalysisEvents = { ...state.analysisEvents };
           delete nextSessions[sessionId];
           delete nextMetrics[sessionId];
+          delete nextInferenceMetrics[sessionId];
+          delete nextAnalysisEvents[sessionId];
 
           return {
             sessions: nextSessions,
             metrics: nextMetrics,
+            inferenceMetrics: nextInferenceMetrics,
+            analysisEvents: nextAnalysisEvents,
             activeSessionId:
               state.activeSessionId === sessionId
                 ? Object.keys(nextSessions)[0] ?? null
