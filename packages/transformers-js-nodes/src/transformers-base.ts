@@ -37,6 +37,18 @@ type TransformersModule = {
     fromBlob(blob: Blob): Promise<unknown>;
     fromURL(url: string): Promise<unknown>;
   };
+  TextStreamer?: new (
+    tokenizer: unknown,
+    options?: {
+      skip_prompt?: boolean;
+      skip_special_tokens?: boolean;
+      callback_function?: (text: string) => void;
+      token_callback_function?: (tokens: unknown) => void;
+    }
+  ) => unknown;
+  InterruptableStoppingCriteria?: new () => {
+    interrupt(): void;
+  };
 };
 
 let cachedModule: Promise<TransformersModule> | null = null;

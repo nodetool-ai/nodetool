@@ -745,6 +745,24 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
     } catch {
       // HF models unavailable — continue without them
     }
+
+    try {
+      const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
+      for (const c of cached) {
+        // Surface each cached repo under its first matched recommended type
+        // (e.g. "tjs.text_generation") so it lands in the right sidebar bucket;
+        // fall back to "tjs.cached" for repos not in any recommended list.
+        const recommendedTypes = TJS_MODEL_TYPES.filter((t) =>
+          recommendedFor(t).some((r) => r.repo_id === c.repo_id)
+        );
+        const modelType = recommendedTypes[0] ?? "tjs.cached";
+        all.push(
+          tjsRefToUnified({ repo_id: c.repo_id }, modelType, true, c.size_bytes)
+        );
+      }
+    } catch {
+      // Transformers.js cache unavailable — continue without it
+    }
   }
 
   return dedupeModels(all);

@@ -59,6 +59,22 @@ export {
 } from "./cache-scan.js";
 
 export {
+  KOKORO_VOICES,
+  clearKokoroCache,
+  getKokoro,
+  isKokoroRepo,
+  isSpeechT5Repo,
+  type KokoroVoice
+} from "./tts-shared.js";
+
+export {
+  decodeWav,
+  encodeWav,
+  resampleLinear,
+  type DecodedWav
+} from "./wav.js";
+
+export {
   downloadTransformersJsModel,
   tjsTypeToPipelineTask,
   type TjsDownloadOptions,

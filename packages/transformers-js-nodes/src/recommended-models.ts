@@ -55,12 +55,11 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
   ],
 
   "tjs.text_generation": [
-    { repo_id: "onnx-community/Llama-3.2-1B-Instruct" },
-    { repo_id: "onnx-community/Qwen2.5-0.5B-Instruct" },
-    { repo_id: "Xenova/Qwen1.5-0.5B-Chat" },
-    { repo_id: "HuggingFaceTB/SmolLM2-360M-Instruct" },
-    { repo_id: "Xenova/TinyLlama-1.1B-Chat-v1.0" },
-    { repo_id: "Xenova/Phi-3-mini-4k-instruct" }
+    { repo_id: "onnx-community/Qwen3.5-2B-ONNX" },
+    { repo_id: "onnx-community/Qwen3.5-4B-ONNX" },
+    { repo_id: "onnx-community/gemma-4-E2B-it-ONNX" },
+    { repo_id: "onnx-community/gemma-4-E4B-it-ONNX" },
+    { repo_id: "HuggingFaceTB/SmolLM3-3B-ONNX" }
   ],
 
   "tjs.fill_mask": [
@@ -71,10 +70,11 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
 
   "tjs.feature_extraction": [
     { repo_id: "Xenova/all-MiniLM-L6-v2" },
-    { repo_id: "Xenova/all-mpnet-base-v2" },
+    { repo_id: "nomic-ai/nomic-embed-text-v1.5" },
+    { repo_id: "Snowflake/snowflake-arctic-embed-m" },
+    { repo_id: "mixedbread-ai/mxbai-embed-xsmall-v1" },
     { repo_id: "Xenova/bge-base-en-v1.5" },
-    { repo_id: "Xenova/bge-small-en-v1.5" },
-    { repo_id: "mixedbread-ai/mxbai-embed-large-v1" }
+    { repo_id: "Xenova/all-mpnet-base-v2" }
   ],
 
   "tjs.zero_shot_classification": [
@@ -101,27 +101,28 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
   ],
 
   "tjs.image_to_text": [
-    { repo_id: "Xenova/vit-gpt2-image-captioning" },
+    { repo_id: "onnx-community/Florence-2-base-ft" },
+    { repo_id: "onnx-community/Florence-2-large-ft" },
     { repo_id: "Xenova/blip-image-captioning-base" },
     { repo_id: "Xenova/blip-image-captioning-large" },
     { repo_id: "Xenova/trocr-small-printed" }
   ],
 
   "tjs.zero_shot_image_classification": [
+    { repo_id: "onnx-community/siglip2-base-patch16-256-ONNX" },
+    { repo_id: "onnx-community/siglip2-base-patch16-384-ONNX" },
+    { repo_id: "onnx-community/siglip2-large-patch16-384-ONNX" },
     { repo_id: "Xenova/clip-vit-base-patch32" },
-    { repo_id: "Xenova/clip-vit-base-patch16" },
-    { repo_id: "Xenova/clip-vit-large-patch14" },
-    { repo_id: "Xenova/siglip-base-patch16-224" }
+    { repo_id: "Xenova/clip-vit-large-patch14" }
   ],
 
   "tjs.automatic_speech_recognition": [
-    { repo_id: "Xenova/whisper-tiny.en" },
-    { repo_id: "Xenova/whisper-base.en" },
-    { repo_id: "Xenova/whisper-small.en" },
-    { repo_id: "Xenova/whisper-tiny" },
-    { repo_id: "Xenova/whisper-base" },
     { repo_id: "onnx-community/whisper-large-v3-turbo" },
-    { repo_id: "Xenova/wav2vec2-base-960h" }
+    { repo_id: "onnx-community/moonshine-base-ONNX" },
+    { repo_id: "onnx-community/moonshine-tiny-ONNX" },
+    { repo_id: "Xenova/whisper-base" },
+    { repo_id: "Xenova/whisper-tiny.en" },
+    { repo_id: "Xenova/whisper-small.en" }
   ],
 
   "tjs.audio_classification": [
@@ -131,6 +132,7 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
   ],
 
   "tjs.text_to_speech": [
+    { repo_id: "onnx-community/Kokoro-82M-v1.0-ONNX" },
     { repo_id: "Xenova/speecht5_tts" },
     { repo_id: "Xenova/mms-tts-eng" },
     { repo_id: "Xenova/mms-tts-fra" },

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.7.6",
+    "kokoro-js": "^1.2.1",
     "@nodetool/config": "*",
     "@nodetool/node-sdk": "*",
     "@nodetool/runtime": "*"
