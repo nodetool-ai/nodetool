@@ -19,6 +19,7 @@ import type { NodeDescriptor, ControlEvent } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.kernel.actor");
 import type { ProcessingContext, NodeExecutor } from "@nodetool/runtime";
+import { withNodeSpan } from "@nodetool/runtime";
 import { NodeInbox } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 
@@ -102,6 +103,13 @@ export class NodeActor {
    * Returns the last outputs produced.
    */
   async run(): Promise<ActorResult> {
+    return withNodeSpan(
+      { nodeId: this.node.id, nodeType: this.node.type },
+      () => this._runImpl()
+    );
+  }
+
+  private async _runImpl(): Promise<ActorResult> {
     let errorMessage: string | undefined;
     try {
       log.debug("Actor started", {

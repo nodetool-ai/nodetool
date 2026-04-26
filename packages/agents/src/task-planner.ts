@@ -14,6 +14,7 @@ import type {
   Message,
   ToolCall
 } from "@nodetool/runtime";
+import { withAgentSpanGen } from "@nodetool/runtime";
 import { createLogger } from "@nodetool/config";
 import {
   TaskUpdateEvent,
@@ -174,6 +175,23 @@ export class TaskPlanner {
 
   async *plan(
     objective: string,
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage, Task | null> {
+    return yield* withAgentSpanGen(
+      "plan",
+      {
+        objective,
+        provider: this.provider.provider,
+        model: this.model,
+        toolsCount: this.tools.length,
+        extra: { "agent.plan.kind": "single" }
+      },
+      () => this._planImpl(objective, context)
+    );
+  }
+
+  private async *_planImpl(
+    objective: string,
     _context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, Task | null> {
     rejectAgenticProvider(this.provider, "TaskPlanner.plan");
@@ -278,6 +296,23 @@ export class TaskPlanner {
   // ---------------------------------------------------------------------------
 
   async *planMultiTask(
+    objective: string,
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {
+    return yield* withAgentSpanGen(
+      "plan",
+      {
+        objective,
+        provider: this.provider.provider,
+        model: this.model,
+        toolsCount: this.tools.length,
+        extra: { "agent.plan.kind": "multi" }
+      },
+      () => this._planMultiTaskImpl(objective, context)
+    );
+  }
+
+  private async *_planMultiTaskImpl(
     objective: string,
     _context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {

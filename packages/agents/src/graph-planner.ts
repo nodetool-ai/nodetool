@@ -11,6 +11,7 @@ import type {
   ProcessingContext,
   Message
 } from "@nodetool/runtime";
+import { withAgentSpanGen } from "@nodetool/runtime";
 import type { NodeRegistry } from "@nodetool/node-sdk";
 import { createLogger } from "@nodetool/config";
 import type {
@@ -105,6 +106,22 @@ export class GraphPlanner {
    * Returns null on repeated failure.
    */
   async *plan(
+    objective: string,
+    context: ProcessingContext
+  ): AsyncGenerator<ProcessingMessage, GraphData | null> {
+    return yield* withAgentSpanGen(
+      "plan",
+      {
+        objective,
+        provider: this.provider.provider,
+        model: this.model,
+        extra: { "agent.plan.kind": "graph" }
+      },
+      () => this._planImpl(objective, context)
+    );
+  }
+
+  private async *_planImpl(
     objective: string,
     _context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, GraphData | null> {
