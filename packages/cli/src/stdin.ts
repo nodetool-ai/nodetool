@@ -22,7 +22,7 @@ import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool/runtime";
 import { ProcessingContext } from "@nodetool/runtime";
 import { processChat } from "@nodetool/chat";
-import { Agent, MultiModeAgent } from "@nodetool/agents";
+import { MultiModeAgent } from "@nodetool/agents";
 import type { Tool } from "@nodetool/agents/tool";
 import type { NodeRegistry } from "@nodetool/node-sdk";
 import { createProvider, WebSocketProvider } from "./providers.js";
@@ -34,13 +34,20 @@ export interface StdinModeOptions {
   model: string;
   workspaceDir: string;
   agentMode?: boolean;
+  /**
+   * Which planner to use when `agentMode` is true:
+   * - `"graph"` — GraphPlanner builds a workflow DAG (default when registry available).
+   * - `"multi"` — TaskPlanner builds a parallel task DAG of LLM steps.
+   */
+  agentPlanner?: "multi" | "graph";
   wsUrl?: string;
   /** Pre-built tools (e.g. from --sandbox) appended to the Agent's tool list. */
   extraTools?: Tool[];
   /**
-   * NodeRegistry for graph-native agent mode. When supplied, agent mode
-   * uses MultiModeAgent + GraphPlanner so the agent can build workflows
-   * with the curated `nodetool.*` core nodes and `find_model` tool.
+   * NodeRegistry for graph-native agent mode. When supplied AND the planner
+   * is "graph", agent mode uses MultiModeAgent + GraphPlanner so the agent
+   * can build workflows with the curated `nodetool.*` core nodes and the
+   * `find_model` tool.
    */
   registry?: NodeRegistry;
   /** Configured BaseProvider instances by id, exposed via `find_model`. */
@@ -240,41 +247,35 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
         ? new WebSocketProvider(wsClient, opts.model, opts.provider)
         : directProvider!;
 
-      // When a NodeRegistry is wired up, use the graph-native agent so the
-      // GraphPlanner can build workflows using the curated `nodetool.*`
-      // core nodes plus a `find_model` tool to pick provider/model pairs.
-      const agent = opts.registry
-        ? new MultiModeAgent({
-            name: "stdin-agent",
-            objective: trimmed,
-            provider: prov,
-            model: opts.model,
-            mode: "plan",
-            tools: opts.extraTools ?? [],
-            useGraphPlanner: true,
-            registry: opts.registry,
-            providers: opts.agentProviders,
-            maxStepIterations: 20,
-            outputSchema: {
-              type: "object",
-              properties: {
-                markdown: {
-                  type: "string",
-                  description: "The markdown content of the response"
-                }
-              },
-              required: ["markdown"]
-            }
-          })
-        : new Agent({
-            name: "stdin-agent",
-            objective: trimmed,
-            provider: prov,
-            model: opts.model,
-            tools: opts.extraTools ?? [],
-            outputFormat: "markdown",
-            maxStepIterations: 20
-          });
+      // Pick the planner. The "graph" planner needs a registry; without one
+      // we silently downgrade to the multi-task planner.
+      const plannerType: "multi" | "graph" =
+        opts.agentPlanner === "multi" ? "multi" : "graph";
+      const useGraphPlanner =
+        plannerType === "graph" && !!opts.registry;
+      const markdownOutputSchema = {
+        type: "object",
+        properties: {
+          markdown: {
+            type: "string",
+            description: "The markdown content of the response"
+          }
+        },
+        required: ["markdown"]
+      } as const;
+      const agent = new MultiModeAgent({
+        name: "stdin-agent",
+        objective: trimmed,
+        provider: prov,
+        model: opts.model,
+        mode: "plan",
+        tools: opts.extraTools ?? [],
+        useGraphPlanner,
+        registry: useGraphPlanner ? opts.registry : undefined,
+        providers: useGraphPlanner ? opts.agentProviders : undefined,
+        maxStepIterations: 20,
+        outputSchema: markdownOutputSchema
+      });
 
       const ctx = new ProcessingContext({
         jobId: crypto.randomUUID(),
@@ -310,9 +311,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
 
       if (taskResult !== null) {
         process.stdout.write(taskResult);
-      } else if (opts.registry) {
-        // Graph-mode agents return their structured result via getResults().
-        const finalResults = (agent as MultiModeAgent).getResults();
+      } else {
+        // Plan-mode agents return their structured result via getResults().
+        const finalResults = agent.getResults();
         const finalText =
           typeof finalResults === "string"
             ? finalResults

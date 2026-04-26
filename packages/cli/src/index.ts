@@ -64,6 +64,10 @@ program
   .option("-a, --agent", "Start in agent mode")
   .option("--no-agent", "Disable agent mode (overrides saved settings)")
   .option(
+    "--planner <type>",
+    "Agent planner: 'graph' (workflow builder, default) or 'multi' (parallel tasks)"
+  )
+  .option(
     "-w, --workspace <path>",
     "Workspace directory (default: current directory)"
   )
@@ -88,6 +92,7 @@ const opts = program.opts<{
   provider?: string;
   model?: string;
   agent?: boolean;
+  planner?: string;
   workspace?: string;
   tools?: string;
   url?: string;
@@ -109,6 +114,10 @@ const provider = opts.provider ?? settings.provider;
 const model = opts.model ?? settings.model;
 // When connecting to a WS server, default to regular chat mode unless --agent is explicit
 const agentMode = opts.agent ?? (opts.url ? false : settings.agentMode);
+const agentPlanner: "multi" | "graph" =
+  opts.planner === "multi" || opts.planner === "graph"
+    ? opts.planner
+    : settings.agentPlanner;
 const workspace = opts.workspace ?? settings.workspace;
 const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
@@ -218,6 +227,7 @@ if (!process.stdin.isTTY) {
       model,
       workspaceDir: workspace,
       agentMode,
+      agentPlanner,
       wsUrl: opts.url,
       extraTools: sandboxExtraTools,
       registry: cliRegistry,
@@ -234,6 +244,7 @@ const { waitUntilExit } = render(
     initialProvider: provider,
     initialModel: model,
     initialAgentMode: agentMode,
+    initialAgentPlanner: agentPlanner,
     enabledTools,
     workspaceDir: workspace,
     wsUrl: opts.url,

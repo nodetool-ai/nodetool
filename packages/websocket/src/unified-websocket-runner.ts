@@ -3797,7 +3797,6 @@ export class UnifiedWebSocketRunner {
 
     // Resolve tools — matches Python's tool resolution
     const {
-      Agent,
       MultiModeAgent,
       ReadFileTool,
       WriteFileTool,
@@ -3899,55 +3898,55 @@ export class UnifiedWebSocketRunner {
         ? Math.floor(data.max_steps)
         : undefined;
 
-    // When a NodeRegistry is wired up, route agent_mode through the
-    // graph-native MultiModeAgent so the GraphPlanner can build workflows
-    // with the curated `nodetool.*` core nodes and a `find_model` tool.
-    const useGraphPlanner = !!this.nodeRegistry;
+    // Pick the planner. Explicit `agent_planner` from the client wins; if
+    // omitted, default to "graph" when a NodeRegistry is wired (the
+    // workflow-builder path) and "multi" otherwise (TaskPlanner →
+    // ParallelTaskExecutor). Either way the request only reaches the
+    // graph path when a registry is actually available.
+    const requestedPlanner =
+      data.agent_planner === "graph" || data.agent_planner === "multi"
+        ? data.agent_planner
+        : null;
+    const defaultPlanner: "graph" | "multi" = this.nodeRegistry
+      ? "graph"
+      : "multi";
+    const plannerType = requestedPlanner ?? defaultPlanner;
+    const useGraphPlanner = plannerType === "graph" && !!this.nodeRegistry;
+    if (requestedPlanner === "graph" && !this.nodeRegistry) {
+      log.warn(
+        "Client requested graph planner but no NodeRegistry is wired — falling back to multi-task planner."
+      );
+    }
+
+    const markdownOutputSchema = {
+      type: "object",
+      properties: {
+        markdown: {
+          type: "string",
+          description: "The markdown content of the response"
+        }
+      },
+      required: ["markdown"]
+    } as const;
 
     try {
-      const agent = useGraphPlanner
-        ? new MultiModeAgent({
-            name: "Assistant",
-            objective,
-            provider,
-            model,
-            mode: "plan",
-            tools: selectedTools,
-            useGraphPlanner: true,
-            registry: this.nodeRegistry,
-            providers: agentProviders,
-            maxStepIterations,
-            ...(maxSteps !== undefined ? { maxSteps } : {}),
-            outputSchema: {
-              type: "object",
-              properties: {
-                markdown: {
-                  type: "string",
-                  description: "The markdown content of the response"
-                }
-              },
-              required: ["markdown"]
-            }
-          })
-        : new Agent({
-            name: "Assistant",
-            objective,
-            provider,
-            model,
-            tools: selectedTools,
-            maxStepIterations,
-            ...(maxSteps !== undefined ? { maxSteps } : {}),
-            outputSchema: {
-              type: "object",
-              properties: {
-                markdown: {
-                  type: "string",
-                  description: "The markdown content of the response"
-                }
-              },
-              required: ["markdown"]
-            }
-          });
+      // Both planner types route through MultiModeAgent in plan mode; the
+      // `useGraphPlanner` flag picks GraphPlanner vs TaskPlanner under the
+      // hood. The legacy plain `Agent` is no longer used for agent_mode.
+      const agent = new MultiModeAgent({
+        name: "Assistant",
+        objective,
+        provider,
+        model,
+        mode: "plan",
+        tools: selectedTools,
+        useGraphPlanner,
+        registry: useGraphPlanner ? this.nodeRegistry : undefined,
+        providers: useGraphPlanner ? agentProviders : undefined,
+        maxStepIterations,
+        ...(maxSteps !== undefined ? { maxSteps } : {}),
+        outputSchema: markdownOutputSchema
+      });
 
       for await (const item of agent.execute(ctx)) {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)

@@ -465,6 +465,17 @@ export interface Message {
   tools?: string[] | null;
   collections?: string[] | null;
   agent_mode?: boolean | null;
+  /**
+   * When `agent_mode` is true, selects which planner the server uses:
+   * - `"multi"` — TaskPlanner builds a parallel task DAG (one LLM step per
+   *   task) and ParallelTaskExecutor runs them.
+   * - `"graph"` — GraphPlanner builds a workflow graph of nodes
+   *   (TextToImage, AgentStep, etc.) and AgentWorkflowRunner executes it.
+   *
+   * If omitted, the server picks a default ("graph" when a NodeRegistry is
+   * wired, otherwise "multi") for backward compatibility.
+   */
+  agent_planner?: "multi" | "graph" | null;
   help_mode?: boolean | null;
   agent_execution_id?: string | null;
   execution_event_type?: string | null;

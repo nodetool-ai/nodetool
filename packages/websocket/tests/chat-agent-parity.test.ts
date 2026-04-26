@@ -821,12 +821,14 @@ describe("handleAgentMessage: error handling", () => {
   });
 
   it("sends error + done chunk + error assistant message on agent failure", async () => {
-    // Override the mock agent to throw
+    // Override the mock agent to throw. The runner now constructs a
+    // MultiModeAgent (with useGraphPlanner inferred from the registry), so
+    // override that class — Agent is no longer used in the agent path.
     const originalMock = vi.mocked(await import("@nodetool/agents"));
-    const OrigAgent = originalMock.Agent;
+    const OrigAgent = originalMock.MultiModeAgent;
 
     // Create a throwing agent class
-    originalMock.Agent = class extends OrigAgent {
+    originalMock.MultiModeAgent = class extends OrigAgent {
       async *execute() {
         throw new Error("Agent exploded");
       }
@@ -873,7 +875,7 @@ describe("handleAgentMessage: error handling", () => {
     expect(errorAssistant).toBeDefined();
 
     // Restore
-    originalMock.Agent = OrigAgent;
+    originalMock.MultiModeAgent = OrigAgent;
 
     await runner.disconnect();
   });
