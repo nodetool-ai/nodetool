@@ -41,10 +41,16 @@ import {
   isProviderConfigured,
   listRegisteredProviderIds,
 } from "@nodetool/runtime";
-import type { BaseProvider, Message } from "@nodetool/runtime";
+import type { BaseProvider, Message, ToolCall } from "@nodetool/runtime";
+import {
+  Message as DbMessage,
+  Thread as DbThread,
+} from "@nodetool/models";
 import type {
   AgentMessage,
+  AgentListSessionsRequest,
   AgentModelDescriptor,
+  AgentSessionInfoEntry,
   AgentTranscriptMessage,
   FrontendToolManifest,
 } from "@nodetool/protocol";
@@ -60,6 +66,13 @@ import type { AgentTransport } from "./transport.js";
 const log = createLogger("nodetool.websocket.agent.llm");
 
 const MAX_AGGREGATED_MODELS = 200;
+
+/**
+ * Marker stored on every persisted LLM-agent message so we can list /
+ * disambiguate these threads from regular chat threads (which may also
+ * carry `agent_mode = true` from the unified-websocket-runner path).
+ */
+const LLM_AGENT_MARKER = "llm-agent";
 
 /**
  * Wraps a renderer-resident UI tool as an in-process Tool. `process()` proxies
@@ -106,6 +119,34 @@ interface LlmAgentSessionOptions {
   model: string;
   systemPrompt?: string;
   userId?: string;
+  /** Existing thread id to resume; otherwise a new thread is created lazily. */
+  threadId?: string;
+}
+
+/**
+ * Convert a persisted `nodetool_messages` row back into the runtime `Message`
+ * shape `processChat` consumes. Mirrors the chat handler's
+ * `dbMessageToProviderMessage` (kept private there) — duplicated rather than
+ * exported because that file is large and the agent runtime should not pull
+ * the entire UnifiedWebSocketRunner just to translate three fields.
+ */
+function dbMessageToConversation(m: DbMessage): Message | null {
+  const role = m.role as Message["role"];
+  if (!role || !["user", "assistant", "system", "tool"].includes(role)) {
+    return null;
+  }
+  const rawContent = Array.isArray(m.content)
+    ? (m.content as unknown as Message["content"])
+    : (m.content as string | null);
+  return {
+    role,
+    content: rawContent ?? "",
+    toolCalls: Array.isArray(m.tool_calls)
+      ? (m.tool_calls as unknown as ToolCall[])
+      : null,
+    toolCallId: typeof m.tool_call_id === "string" ? m.tool_call_id : null,
+    threadId: m.thread_id,
+  };
 }
 
 class LlmAgentSession implements AgentQuerySession {
@@ -113,16 +154,114 @@ class LlmAgentSession implements AgentQuerySession {
   private inFlight = false;
   private abortController: AbortController | null = null;
   private readonly conversation: Message[] = [];
+  /** Number of `conversation` entries already saved to DB. */
+  private persistedCount = 0;
+  /** True once the persisted history (or system prompt) is loaded. */
+  private hydrated = false;
   private readonly chatProviderId: string;
   private readonly model: string;
   private readonly systemPrompt: string;
   private readonly userId: string;
+  private threadId: string;
 
   constructor(opts: LlmAgentSessionOptions) {
     this.chatProviderId = opts.chatProviderId;
     this.model = opts.model;
     this.systemPrompt = opts.systemPrompt ?? SYSTEM_PROMPT;
     this.userId = opts.userId ?? "1";
+    // Lazy: thread row is created on first send so we don't write to the DB
+    // for sessions the user opens but never sends a message in.
+    this.threadId = opts.threadId ?? "";
+  }
+
+  /**
+   * Either load the existing thread's transcript (resume) or insert a fresh
+   * thread row (new session). Idempotent — only runs once per session.
+   */
+  private async hydrate(): Promise<void> {
+    if (this.hydrated) return;
+
+    if (this.threadId) {
+      const existing = await DbThread.find(this.userId, this.threadId);
+      if (!existing) {
+        // Renderer asked to resume a thread we don't own — refuse loudly so
+        // the user gets a clear error instead of a phantom new session.
+        throw new Error(
+          `Cannot resume LLM agent session: thread ${this.threadId} not found for user ${this.userId}`,
+        );
+      }
+      const [rows] = await DbMessage.paginate(this.threadId, { limit: 1000 });
+      for (const row of rows) {
+        const msg = dbMessageToConversation(row);
+        if (msg) this.conversation.push(msg);
+      }
+      this.persistedCount = this.conversation.length;
+    } else {
+      const thread = await DbThread.create({
+        user_id: this.userId,
+        title: "",
+      });
+      this.threadId = thread.id;
+    }
+
+    if (this.conversation.length === 0 && this.systemPrompt) {
+      // System prompt is part of the conversation but not persisted — it's
+      // a server-side configuration concern and doesn't belong in the user's
+      // transcript.
+      this.conversation.push({
+        role: "system",
+        content: this.systemPrompt,
+      } as Message);
+      this.persistedCount = this.conversation.length;
+    }
+
+    this.hydrated = true;
+  }
+
+  /**
+   * Persist any messages from `persistedCount` onward. Called after each
+   * processChat turn — saves the user message + every assistant / tool
+   * message generated this turn, in order.
+   */
+  private async persistNewMessages(): Promise<void> {
+    for (let i = this.persistedCount; i < this.conversation.length; i++) {
+      const m = this.conversation[i];
+      // Skip the system prompt — it's not part of the user-visible transcript.
+      if (m.role === "system") continue;
+      const content = m.content ?? null;
+      try {
+        await DbMessage.create({
+          thread_id: this.threadId,
+          user_id: this.userId,
+          role: m.role,
+          content:
+            typeof content === "string" || content === null
+              ? content
+              : (content as unknown[]),
+          tool_calls: Array.isArray(m.toolCalls)
+            ? (m.toolCalls as unknown as unknown[])
+            : null,
+          tool_call_id: m.toolCallId ?? null,
+          provider: this.chatProviderId,
+          model: this.model,
+          agent_mode: true,
+          agent_execution_id: LLM_AGENT_MARKER,
+        });
+      } catch (err) {
+        log.warn(
+          `Failed to persist LLM agent message (thread ${this.threadId}): ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        // Persistence is best-effort — failing here shouldn't kill the turn.
+      }
+    }
+    this.persistedCount = this.conversation.length;
+  }
+
+  /** Externally observable thread/session id. */
+  getThreadId(): string {
+    return this.threadId;
   }
 
   async send(
@@ -152,19 +291,11 @@ class LlmAgentSession implements AgentQuerySession {
     };
 
     try {
+      await this.hydrate();
       const provider = await getRuntimeProvider(this.chatProviderId, this.userId);
       const tools = manifest.map(
         (m) => new UiBridgeTool(transport, sessionId, m),
       );
-
-      // Inject system prompt once at the start of the conversation. Subsequent
-      // turns reuse the existing history (so the model has full context).
-      if (this.conversation.length === 0 && this.systemPrompt) {
-        this.conversation.push({
-          role: "system",
-          content: this.systemPrompt,
-        } as Message);
-      }
 
       // ProcessingContext is required by the Tool interface but UiBridgeTool
       // ignores it (the renderer holds all state). A minimal ctx is enough.
@@ -181,6 +312,7 @@ class LlmAgentSession implements AgentQuerySession {
         provider,
         context: ctx,
         tools,
+        threadId: this.threadId,
         signal: this.abortController.signal,
         callbacks: {
           onChunk: (text) => {
@@ -188,7 +320,7 @@ class LlmAgentSession implements AgentQuerySession {
             emit({
               type: "assistant",
               uuid: randomUUID(),
-              session_id: sessionId,
+              session_id: this.threadId,
               text,
               content: [{ type: "text", text }],
             });
@@ -197,7 +329,7 @@ class LlmAgentSession implements AgentQuerySession {
             emit({
               type: "assistant",
               uuid: randomUUID(),
-              session_id: sessionId,
+              session_id: this.threadId,
               tool_calls: [
                 {
                   id: toolCall.id,
@@ -213,10 +345,12 @@ class LlmAgentSession implements AgentQuerySession {
         },
       });
 
+      await this.persistNewMessages();
+
       emit({
         type: "result",
         uuid: randomUUID(),
-        session_id: sessionId,
+        session_id: this.threadId,
         text: assistantText,
         is_error: false,
         subtype: "success",
@@ -227,10 +361,17 @@ class LlmAgentSession implements AgentQuerySession {
         `LLM agent session ${sessionId} failed`,
         error instanceof Error ? error : new Error(errMsg),
       );
+      // Even on failure, save whatever did get appended (e.g. the user message)
+      // so the transcript stays consistent across retries.
+      try {
+        await this.persistNewMessages();
+      } catch {
+        // already logged
+      }
       emit({
         type: "result",
         uuid: randomUUID(),
-        session_id: sessionId,
+        session_id: this.threadId || sessionId,
         subtype: "error",
         is_error: true,
         errors: [errMsg],
@@ -330,27 +471,109 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
         "LLM agent session requires `chatProviderId` (e.g. 'anthropic', 'openai').",
       );
     }
-    if (options.resumeSessionId) {
-      // The LLM agent doesn't persist sessions to disk yet — the renderer is
-      // the source of truth for transcripts. Surface a clear error rather
-      // than silently starting a new session.
-      throw new Error(
-        "LLM agent provider does not support resuming previous sessions yet.",
-      );
-    }
     return new LlmAgentSession({
       chatProviderId: options.chatProviderId,
       model: options.model,
       systemPrompt: options.systemPrompt,
       userId: options.userId,
+      // The renderer's `resumeSessionId` is our DB thread id — `send()`
+      // hydrates from `Message.paginate(threadId)` on first call.
+      threadId: options.resumeSessionId,
     });
   }
 
-  async listSessions(): Promise<never[]> {
-    return [];
+  async listSessions(
+    options: AgentListSessionsRequest,
+  ): Promise<AgentSessionInfoEntry[]> {
+    // listSessions() in the harness providers returns sessions stored by their
+    // SDK (e.g. ~/.claude). For LLM sessions we own the storage — query the
+    // `nodetool_messages` table for threads marked with LLM_AGENT_MARKER and
+    // hydrate the most recent message of each as a summary.
+    try {
+      const userId = "1"; // Server is single-user today; matches harness paths.
+      const limit = options.limit ?? 50;
+
+      // Drizzle-ORM access goes through the @nodetool/models package. To keep
+      // this provider self-contained, do a paginated thread scan and filter
+      // each thread's messages — there are typically O(tens) of threads, so
+      // this is fine.
+      const [threads] = await DbThread.paginate(userId, { limit: 200 });
+      const entries: AgentSessionInfoEntry[] = [];
+
+      for (const thread of threads) {
+        const [rows] = await DbMessage.paginate(thread.id, { limit: 1 });
+        const first = rows[0];
+        if (!first) continue;
+        if (first.agent_execution_id !== LLM_AGENT_MARKER) continue;
+
+        const summary =
+          typeof first.content === "string"
+            ? first.content.slice(0, 80)
+            : thread.title || `Session ${thread.id.slice(0, 8)}`;
+
+        entries.push({
+          sessionId: thread.id,
+          summary,
+          lastModified: Date.parse(thread.updated_at) || Date.now(),
+          customTitle: thread.title || undefined,
+          firstPrompt:
+            typeof first.content === "string" ? first.content : undefined,
+          createdAt: Date.parse(thread.created_at) || undefined,
+          provider: "llm",
+        });
+
+        if (entries.length >= limit) break;
+      }
+      return entries;
+    } catch (err) {
+      log.warn(
+        `Failed to list LLM agent sessions: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return [];
+    }
   }
 
-  async getSessionMessages(): Promise<AgentTranscriptMessage[]> {
-    return [];
+  async getSessionMessages(options: {
+    sessionId: string;
+  }): Promise<AgentTranscriptMessage[]> {
+    try {
+      const [rows] = await DbMessage.paginate(options.sessionId, {
+        limit: 1000,
+      });
+      const out: AgentTranscriptMessage[] = [];
+      for (const row of rows) {
+        if (row.agent_execution_id !== LLM_AGENT_MARKER) continue;
+        if (row.role !== "user" && row.role !== "assistant") continue;
+        const text =
+          typeof row.content === "string"
+            ? row.content
+            : Array.isArray(row.content)
+              ? (row.content as Array<Record<string, unknown>>)
+                  .filter(
+                    (b) =>
+                      b.type === "text" && typeof b.text === "string",
+                  )
+                  .map((b) => b.text as string)
+                  .join("\n")
+              : "";
+        if (!text) continue;
+        out.push({
+          type: row.role as "user" | "assistant",
+          uuid: row.id,
+          session_id: options.sessionId,
+          text,
+        });
+      }
+      return out;
+    } catch (err) {
+      log.warn(
+        `Failed to get LLM agent session messages: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return [];
+    }
   }
 }
