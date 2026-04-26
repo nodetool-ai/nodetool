@@ -171,11 +171,13 @@ nodetool deploy apply local
 
 Then confirm runtime state:
 
+{% raw %}
 ```bash
 nodetool deploy status local
 docker ps --filter name=nodetool --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 curl http://127.0.0.1:8000/health
 ```
+{% endraw %}
 
 ### 4. Sync Workflows to the Deployment
 
