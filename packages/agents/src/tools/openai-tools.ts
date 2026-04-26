@@ -99,7 +99,7 @@ export class OpenAIImageGenerationTool extends Tool {
     try {
       const client = await getOpenAIClient();
       const response = await client.images.generate({
-        model: "gpt-image-1",
+        model: "gpt-image-2",
         prompt,
         n: 1
       });

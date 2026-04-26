@@ -59,7 +59,7 @@ export class MoonshotProvider extends AnthropicProvider {
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const knownModels = ["kimi-k2.5"];
+    const knownModels = ["kimi-k2.5", "kimi-k2.6"];
     return knownModels.map((id) => ({ id, name: id, provider: "moonshot" }));
   }
 }

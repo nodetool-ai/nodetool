@@ -90,9 +90,9 @@ export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     provider: "jina"
   },
   {
-    id: "gpt-image-1",
+    id: "gpt-image-2",
     type: "image_model",
-    name: "GPT Image 1",
+    name: "GPT Image 2",
     repo_id: null,
     path: null,
     downloaded: false,
@@ -101,9 +101,9 @@ export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     provider: "openai"
   },
   {
-    id: "gpt-image-1",
+    id: "gpt-image-2",
     type: "image_model",
-    name: "GPT Image 1",
+    name: "GPT Image 2",
     repo_id: null,
     path: null,
     downloaded: false,

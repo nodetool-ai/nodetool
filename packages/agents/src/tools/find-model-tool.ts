@@ -85,6 +85,12 @@ const FIND_MODEL_INPUT_SCHEMA = {
       description:
         "Optional preferred provider id (e.g. 'openai'). Boosts matching providers."
     },
+    model_hint: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description:
+        "Optional preferred model ids. Strongly boosts matching models in the ranking."
+    },
     prefer_local: {
       type: "boolean" as const,
       description:
@@ -217,6 +223,14 @@ export class FindModelTool extends Tool {
       typeof params["provider_hint"] === "string"
         ? (params["provider_hint"] as string)
         : undefined;
+    const modelHintRaw = params["model_hint"];
+    const modelHints: Set<string> = new Set(
+      typeof modelHintRaw === "string"
+        ? [modelHintRaw]
+        : Array.isArray(modelHintRaw)
+          ? (modelHintRaw.filter((x) => typeof x === "string") as string[])
+          : []
+    );
     const preferLocal = params["prefer_local"] === true;
     const limit =
       typeof params["limit"] === "number" && params["limit"] > 0
@@ -264,6 +278,7 @@ export class FindModelTool extends Tool {
         if (downloaded) score += 30;
         // Explicit user preferences outrank the default recommended bonus.
         if (providerHint && providerId === providerHint) score += 200;
+        if (modelHints.has(m.id)) score += 250;
         if (preferLocal && LOCAL_PROVIDER_IDS.has(providerId)) score += 150;
         else if (preferLocal && !LOCAL_PROVIDER_IDS.has(providerId)) score -= 5;
 

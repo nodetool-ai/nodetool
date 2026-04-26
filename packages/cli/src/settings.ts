@@ -31,7 +31,6 @@ export const DEFAULT_SETTINGS: ChatSettings = {
     "grep",
     "download_file",
     "http_request",
-    "http_get",
     "browser",
     "screenshot",
     "run_code",

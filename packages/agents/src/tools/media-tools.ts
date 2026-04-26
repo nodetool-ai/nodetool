@@ -454,6 +454,58 @@ function int16ToUint8(samples: Int16Array): Uint8Array {
   return bytes;
 }
 
+/**
+ * Wrap raw little-endian int16 PCM bytes in a minimal RIFF/WAVE container so
+ * the file is playable. Defaults match OpenAI's TTS PCM stream (24 kHz mono).
+ */
+function wrapPcmAsWav(
+  pcm: Uint8Array,
+  sampleRate = 24000,
+  channels = 1
+): Uint8Array {
+  const bitsPerSample = 16;
+  const byteRate = (sampleRate * channels * bitsPerSample) / 8;
+  const blockAlign = (channels * bitsPerSample) / 8;
+  const header = new Uint8Array(44);
+  const v = new DataView(header.buffer);
+  const w = (s: string, off: number): void => {
+    for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i));
+  };
+  w("RIFF", 0);
+  v.setUint32(4, 36 + pcm.length, true);
+  w("WAVE", 8);
+  w("fmt ", 12);
+  v.setUint32(16, 16, true); // PCM chunk size
+  v.setUint16(20, 1, true); // PCM format
+  v.setUint16(22, channels, true);
+  v.setUint32(24, sampleRate, true);
+  v.setUint32(28, byteRate, true);
+  v.setUint16(32, blockAlign, true);
+  v.setUint16(34, bitsPerSample, true);
+  w("data", 36);
+  v.setUint32(40, pcm.length, true);
+  const out = new Uint8Array(header.length + pcm.length);
+  out.set(header, 0);
+  out.set(pcm, header.length);
+  return out;
+}
+
+const AUDIO_EXT_TO_FORMAT: Record<string, string> = {
+  mp3: "mp3",
+  wav: "wav",
+  flac: "flac",
+  opus: "opus",
+  ogg: "opus",
+  aac: "aac",
+  m4a: "aac"
+};
+
+function audioFormatFromOutputFile(outputFile: string | undefined): string | null {
+  if (!outputFile) return null;
+  const ext = path.extname(outputFile).slice(1).toLowerCase();
+  return AUDIO_EXT_TO_FORMAT[ext] ?? null;
+}
+
 function concatUint8(parts: Uint8Array[]): Uint8Array {
   let total = 0;
   for (const p of parts) total += p.length;
@@ -496,40 +548,91 @@ export class GenerateSpeechTool extends Tool {
     if (typeof text !== "string" || !text)
       return { error: "text is required" };
 
+    const outputFile =
+      typeof params["output_file"] === "string"
+        ? (params["output_file"] as string)
+        : undefined;
+    const desiredFormat = audioFormatFromOutputFile(outputFile) ?? "mp3";
+
     try {
-      const parts: Uint8Array[] = [];
+      // Preferred path: ask the provider for fully-encoded audio in the
+      // desired container (mp3/wav/flac/...). Returns null when the provider
+      // doesn't support encoded TTS — we then fall through to streaming PCM.
+      let audio: Uint8Array | null = null;
       let mimeType: string | undefined;
-      for await (const item of context.streamProviderPrediction({
-        provider: m.provider,
-        capability: "text_to_speech",
-        model: m.model,
-        params: {
+      let outputFileFinal = outputFile;
+
+      try {
+        const provider = await context.getProvider(m.provider);
+        const encoded = await provider.textToSpeechEncoded({
           text,
-          voice: params["voice"],
-          speed: params["speed"]
+          model: m.model,
+          voice: params["voice"] as string | undefined,
+          speed: params["speed"] as number | undefined,
+          audioFormat: desiredFormat
+        });
+        if (encoded && encoded.data) {
+          audio = encoded.data;
+          mimeType = encoded.mimeType;
         }
-      })) {
-        const chunk = item as TTSChunkLike;
-        if (chunk.data instanceof Uint8Array) {
-          parts.push(chunk.data);
-          if (chunk.mimeType) mimeType = chunk.mimeType;
-        } else if (typeof chunk.data === "string") {
-          parts.push(Buffer.from(chunk.data, "base64"));
-          if (chunk.mimeType) mimeType = chunk.mimeType;
-        } else if (chunk.samples) {
-          parts.push(int16ToUint8(chunk.samples));
+      } catch {
+        // Fall through to streaming path.
+      }
+
+      if (!audio) {
+        // Streaming path — provider returns either pre-encoded chunks
+        // (carrying mimeType) or raw int16 PCM samples that we must wrap in
+        // a WAV container before writing to disk so the file is playable.
+        const parts: Uint8Array[] = [];
+        let pcmOnly = true;
+        for await (const item of context.streamProviderPrediction({
+          provider: m.provider,
+          capability: "text_to_speech",
+          model: m.model,
+          params: {
+            text,
+            voice: params["voice"],
+            speed: params["speed"]
+          }
+        })) {
+          const chunk = item as TTSChunkLike;
+          if (chunk.data instanceof Uint8Array) {
+            parts.push(chunk.data);
+            if (chunk.mimeType) mimeType = chunk.mimeType;
+            pcmOnly = false;
+          } else if (typeof chunk.data === "string") {
+            parts.push(Buffer.from(chunk.data, "base64"));
+            if (chunk.mimeType) mimeType = chunk.mimeType;
+            pcmOnly = false;
+          } else if (chunk.samples) {
+            parts.push(int16ToUint8(chunk.samples));
+          }
+        }
+        if (parts.length === 0)
+          return { error: "Provider returned no audio data" };
+        const merged = concatUint8(parts);
+        if (pcmOnly && !mimeType) {
+          // Wrap raw PCM in WAV so the bytes are playable. Rename .mp3 →
+          // .wav since the actual data is now WAV, not MP3.
+          audio = wrapPcmAsWav(merged);
+          mimeType = "audio/wav";
+          if (outputFileFinal) {
+            const dir = path.dirname(outputFileFinal);
+            const base = path.basename(
+              outputFileFinal,
+              path.extname(outputFileFinal)
+            );
+            outputFileFinal = path.join(dir === "." ? "" : dir, `${base}.wav`);
+          }
+        } else {
+          audio = merged;
         }
       }
-      if (parts.length === 0)
-        return { error: "Provider returned no audio data" };
-      const audio = concatUint8(parts);
+
       const persisted = await persistOutput(context, audio, {
         namePrefix: "generated-speech",
         mime: mimeType ?? "audio/mpeg",
-        outputFile:
-          typeof params["output_file"] === "string"
-            ? (params["output_file"] as string)
-            : undefined
+        outputFile: outputFileFinal
       });
       return {
         type: "audio",
