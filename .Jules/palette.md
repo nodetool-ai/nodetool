@@ -40,6 +40,3 @@
 ## 2025-05-30 - Missing ARIA Labels on Icon-only Submit Buttons
 **Learning:** Icon-only submit buttons (like the send button in `PortalInput`) often omit `aria-label`s, rendering them inaccessible to screen readers. Relying solely on the visual icon to convey the button's purpose is a common pattern that breaks accessibility.
 **Action:** When auditing or creating input components with icon-only submission buttons, always ensure an explicit `aria-label` is provided to describe the action (e.g., "Send message").
-## 2024-05-18 - [Add ARIA labels to desktop sidebar navigation buttons]
-**Learning:** The `PanelLeft.tsx` component is a crucial navigational sidebar in the UI containing several icon buttons (like 'Show workflows', 'Show assets', 'Collections', 'Model Manager', 'Workspaces Manager', and 'Toggle Panel'). However, in the non-mobile view of this sidebar, these `<IconButton>` components lacked `aria-label` attributes. This is a common accessibility issue where icon-only buttons are not properly labeled for screen readers.
-**Action:** When working on navigation components that use icons instead of text, always ensure that each interactive element has an `aria-label` attribute that describes its function. This pattern should be consistently applied across all views (desktop, mobile, etc.).

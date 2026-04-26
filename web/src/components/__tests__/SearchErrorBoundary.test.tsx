@@ -159,11 +159,7 @@ describe("SearchErrorBoundary", () => {
 
       await waitFor(() => {
         expect(mockLogError).toHaveBeenCalled();
-        // Look for the log call that starts with the expected message
-        const hasCorrectLog = mockLogError.mock.calls.some(call =>
-          typeof call[0] === 'string' && call[0].includes("Search component error:")
-        );
-        expect(hasCorrectLog).toBe(true);
+        expect(mockLogError.mock.calls[0][0]).toBe("Search component error:");
       });
     });
   });

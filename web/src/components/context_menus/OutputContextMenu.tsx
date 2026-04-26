@@ -13,7 +13,7 @@ import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import HubIcon from "@mui/icons-material/Hub";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 //store
-import { useContextMenu as useContextMenuStore } from "../../stores/ContextMenuStore";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow } from "@xyflow/react";
@@ -39,7 +39,7 @@ const OutputContextMenu: React.FC = () => {
     closeContextMenu: state.closeContextMenu,
     type: state.type,
     handleId: state.handleId
-  }));
+  }), shallow);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -68,7 +68,7 @@ const OutputContextMenu: React.FC = () => {
     setNodeId: state.setNodeId,
     setFilterType: state.setFilterType,
     setConnectableType: state.setTypeMetadata
-  }));
+  }), shallow);
 
   type HandleType = "value" | "image" | "df" | "values";
   const getTargetHandle = useCallback(

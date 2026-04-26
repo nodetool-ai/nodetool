@@ -5,7 +5,7 @@ type DebouncedCallback<T extends (...args: unknown[]) => unknown> = {
   cancel: () => void;
 };
 
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
+export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay: number
 ): DebouncedCallback<T> {

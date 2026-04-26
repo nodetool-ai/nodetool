@@ -3,7 +3,7 @@ import React, { memo } from "react";
 import { Menu, MenuItem } from "@mui/material";
 import { Text, Divider } from "../ui_primitives";
 import { shallow } from "zustand/shallow";
-import { useContextMenu as useContextMenuStore } from "../../stores/ContextMenuStore";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -37,7 +37,7 @@ const PropertyContextMenuComponent: React.FC = () => {
     nodeId: state.nodeId,
     handleId: state.handleId,
     isDynamicProperty: state.isDynamicProperty
-  }));
+  }), shallow);
   const { findNode, updateNodeData, updateNodeProperties } = useNodes(
     (state) => ({
       findNode: state.findNode,

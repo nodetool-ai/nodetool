@@ -139,8 +139,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
   );
 
   // Debounced search - store handles search ID management internally
-  const debouncedSetSearchTerm = useDebouncedCallback((value: string | undefined) => {
-    onSearchChange(value || "");
+  const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
+    onSearchChange(value);
   }, debounceTime);
 
   // Reset search state and cancel any pending searches

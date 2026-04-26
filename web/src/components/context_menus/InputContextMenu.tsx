@@ -11,7 +11,7 @@ import HubIcon from "@mui/icons-material/Hub";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 //store
 import { shallow } from "zustand/shallow";
-import { useContextMenu } from "../../stores/ContextMenuStore";
+import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
 import { labelForType } from "../../config/data_types";
@@ -153,14 +153,14 @@ const InputContextMenu: React.FC = () => {
   const reactFlowInstance = useReactFlow();
 
   const { type, nodeId, handleId, menuPosition, closeContextMenu, payload } =
-    useContextMenu((state) => ({
+    useContextMenuStore((state) => ({
       type: state.type,
       nodeId: state.nodeId,
       handleId: state.handleId,
       menuPosition: state.menuPosition,
       closeContextMenu: state.closeContextMenu,
       payload: state.payload
-    }));
+    }), shallow);
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
 
   // "collect" handle: allow connecting T -> list[T] and multiple connections
@@ -209,7 +209,7 @@ const InputContextMenu: React.FC = () => {
     setFilterType: state.setFilterType,
     setConnectableType: state.setTypeMetadata,
     setTargetHandle: state.setTargetHandle
-  }));
+  }), shallow);
 
   const collectElementDatatypeLabel = collectElementType
     ? labelForType(collectElementType.type || "").replaceAll(" ", "")
