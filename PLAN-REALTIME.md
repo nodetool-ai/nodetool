@@ -302,7 +302,7 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - Precision guard landed: explicit Self-Forcing `fp8`/`gguf`/`int8` requests fail before optional ML imports unless loader hooks explicitly mark the precision as validated; `auto` resolves through the same CUDA-aware precision helper used by LongLive.
   - Real smoke config scaffold landed: `NODETOOL_SELF_FORCING_REAL_SMOKE=1` parses the official Self-Forcing checkpoint, precision, prompt, and negative prompt without importing runtime ML packages in the default suite. The executable real smoke remains skipped until real loader/checkpoint hooks are wired against downloaded upstream weights.
   - Do not create fake behavioral parity with LongLive. Reuse shared realtime contracts where they fit, and wait for the selected upstream interface before adding model-output assertions.
-- [ ] Step 10c: Model artifact and loader handling for realtime video backends.
+- [x] Step 10c: Model artifact and loader handling for realtime video backends.
   - Goal: make LongLive and Self-Forcing model handling explicit, auditable, and low-VRAM-testable before more user-facing realtime nodes depend on it.
   - [x] Artifact manifest task: typed manifests cover base model, checkpoint, text encoder, VAE, VACE/control, LoRA/adapters, configs, formats, source, license notes, and hardware profile.
   - [x] Resolver task: dependency-light resolver maps local/Hugging Face artifacts, reports missing artifacts, and never silently downloads in normal tests.
@@ -315,12 +315,12 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
   - [x] Lifecycle task: lifecycle keys/events make reuse vs unload/reload visible when artifacts, precision, VACE, LoRA, quantization, or sampler settings change.
   - [x] Smoke task: canonical official and RTX 3060 low-VRAM smoke tier plans are opt-in, skipped by default, and carry manifests/reports/lifecycle data.
   - [x] Artifact-backed loader selection task: manifests and smoke tiers now carry loader plans with loader choice, install extras, dtype/device hints, and pickle opt-in requirements.
-  - [ ] Connect loader plans to concrete loader hooks for opt-in real smoke execution.
-  - [ ] Wire quantization strategies into concrete FP8/GGUF/INT8 loader paths.
-  - [ ] Add VACE-facing runtime configuration after base Self-Forcing real smoke passes and artifact/license/memory compatibility is proven on RTX 3060 12GB.
-  - [ ] Feed live CUDA/cache measurements into memory telemetry during opt-in real smoke runs.
-  - [ ] Wire lifecycle events into backend load/session ownership once artifact-backed smoke runs exist.
-  - [ ] Wire smoke tier plans into executable real-smoke commands.
+  - [x] Concrete loader hook task: loader plans can execute through explicit `safetensors`/torch hook callables while preserving pickle opt-in and path-reference behavior.
+  - [x] Concrete quantized loader path task: FP8 safetensors, GGUF, and post-load INT8-style transforms can run through explicit dependency-lazy hook callables.
+  - [x] VACE runtime configuration task: VACE runtime enablement is gated by explicit env opt-in plus base smoke, license, and memory validation evidence.
+  - [x] Runtime memory telemetry hook task: opt-in smoke code can feed live CUDA free/reserved VRAM and cache size into memory reports through injected hooks.
+  - [x] Lifecycle ownership task: lifecycle transitions now produce loaded-state ownership for load, reuse, unload/reload decisions.
+  - [x] Smoke command task: smoke tiers now produce executable command metadata with env overrides, required artifacts, loader plans, and lifecycle keys.
   - Concrete model candidates: canonical smoke should start with `Wan-AI/Wan2.1-T2V-1.3B`, `gdhe17/Self-Forcing:checkpoints/self_forcing_dmd.pt`, and the official `configs/self_forcing_dmd.yaml` path. RTX 3060 12GB validation should separately evaluate low-VRAM artifacts such as `city96/umt5-xxl-encoder-gguf` (`Q5_K_M` or larger preferred), Wan 2.1 VAE safetensors, and community FP8 Self-Forcing 1.3B safetensors (`e4m3fn` first, `e5m2` fallback if needed).
   - LoRA speed policy: LongLive already has optional lazy `peft` LoRA application for its own checkpoint bundle, but Self-Forcing does not yet have a first-class acceleration-LoRA path beyond generic checkpoint hooks. Do not wire generic "speed LoRA" support until the LoRA is proven compatible with the selected base model size and sampler. In particular, `Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors` is a 14B/lightx2v-style speed artifact, so it should not be used for the 1.3B Self-Forcing RTX 3060 baseline unless a compatible 1.3B variant is identified and tested.
   - VACE policy: VACE should be treated as an optional control-extension track, not a requirement for the base `SelfForcing` node. Candidate inputs are official `Wan-AI/Wan2.1-VACE-1.3B` lineage plus community Self-Forcing/VACE addon safetensors, but the addon cards explicitly describe them as experimental and not a proof of canonical Self-Forcing sampling. Only add a VACE-facing node/config after base Self-Forcing real smoke passes and the loader can prove file compatibility, license compatibility, control inputs, and memory behavior on RTX 3060 12GB.
@@ -340,7 +340,17 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 
 **Tasks**
 
-- [ ] **Refactor** find files in realtime repo and nodetool repo that should be cleaned up or refactored. add short refactor plan under this task as subtasks.
+- [x] **Refactor discovery:** find files in realtime repo and nodetool repo that should be cleaned up or refactored before browser/JS realtime inference.
+  - [ ] Extract realtime job/metrics orchestration from `packages/websocket/src/unified-websocket-runner.ts`; keep the runner as a thin coordinator around realtime session jobs, metrics intervals, and session/job map updates.
+  - [ ] Split realtime-only runner behavior in `packages/kernel/src/runner.ts` behind a `RealtimeWorkflowRunner` facade or equivalent private module boundary before adding browser/server placement logic.
+  - [ ] Extend `packages/protocol/src/messages.ts` with a namespaced inference metrics/loading surface instead of overloading transport-heavy `RealtimeMetrics`.
+  - [ ] Add opt-in realtime/browser capability metadata across `packages/node-sdk`, `packages/protocol`, graph serialization, and Python descriptor parity.
+  - [ ] Break `web/src/components/realtime/RealtimeStreamPage.tsx` into shell hooks and presentational controls so Phase 4 can reuse it inside editor realtime mode.
+  - [ ] Introduce a narrow realtime control-plane client layer around `RealtimeSessionStore`, `RealtimeSessionClient`, and `useRealtimeSessionWebRTC` for session updates plus future analysis events.
+  - [ ] Split `packages/websocket/src/realtime/command-handler.ts` into session CRUD/persistence and signaling/transport responsibilities before adding browser inference control verbs.
+  - [ ] Split or map `nodetool-realtime/src/nodetool/realtime/model_artifacts.py` into cross-runtime contracts vs Python-only artifact/loader helpers; keep Wan2.1-specific logic scoped away from browser model cache work.
+  - [ ] Quarantine or explicitly mark `packages/websocket/src/realtime/webrtc-spike.ts` as test-only if it remains only spike/test support.
+  - Do not destabilize LongLive/Self-Forcing real smoke, VACE, or community LoRA paths while they remain opt-in/experimental.
 
 - [ ] Define the runtime placement matrix for JS inference: operator browser, Electron renderer, Node backend, or server worker.
 - [ ] Add node metadata for browser/JS realtime capabilities: browser-capable, requires-browser-frame, requires-WebGPU, emits-analysis-event, emits-parameter-update, and emits-media-frame.
