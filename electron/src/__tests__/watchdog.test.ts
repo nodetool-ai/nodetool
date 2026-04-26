@@ -19,8 +19,28 @@
 
 import { EventEmitter } from "events";
 
-const electronMock = jest.requireActual("../__mocks__/electron");
-jest.mock("electron", () => electronMock);
+jest.mock("electron", () => {
+  const { EventEmitter: EE } = require("events");
+  return {
+    utilityProcess: {
+      fork: jest.fn().mockImplementation(() => {
+        const proc = Object.assign(new EE(), {
+          pid: 4242,
+          stdout: new EE(),
+          stderr: new EE(),
+          kill: jest.fn().mockReturnValue(true),
+          postMessage: jest.fn(),
+        });
+        process.nextTick(() => proc.emit("spawn"));
+        return proc;
+      }),
+    },
+  };
+});
+
+const electronMock = jest.requireMock("electron") as {
+  utilityProcess: { fork: jest.Mock };
+};
 
 jest.mock("../logger", () => ({ logMessage: jest.fn() }));
 jest.mock("../httpProbe", () => ({
