@@ -5,13 +5,18 @@ import OnboardingOverlay from "./OnboardingOverlay";
 import { useOnboardingDetectors } from "./useOnboardingDetectors";
 
 /**
- * Layout route that wraps the entire app. Mounts the onboarding overlay so
- * it can be shown on top of any page, and registers the global detector
- * subscriptions so completion of each step is recorded as the user uses the
- * real product.
+ * Layout route that wraps the entire app. Mounts the ambient onboarding
+ * overlay so hints can render on top of any page, and registers the global
+ * detector subscriptions so each step is recorded complete as the user
+ * uses the real product.
+ *
+ * The /welcome page (GettingStartedPanel) is the canonical checklist;
+ * hints are just contextual overlays that anchor to the relevant UI until
+ * each step is done.
  */
 const OnboardingRoot: React.FC = () => {
   useOnboardingDetectors();
+
   return (
     <>
       <Outlet />

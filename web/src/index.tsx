@@ -72,7 +72,9 @@ const AppHeader = React.lazy(() => import("./components/panels/AppHeader"));
 import { SkipLinks } from "./components/ui_primitives/SkipLinks";
 
 // Lazy-loaded route components for code splitting
-const _Dashboard = React.lazy(() => import("./components/dashboard/Dashboard"));
+const WelcomePage = React.lazy(
+  () => import("./components/dashboard/WelcomePage")
+);
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
@@ -142,6 +144,7 @@ const registerFrontendTools = () => {
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 import OnboardingRoot from "./components/onboarding/OnboardingRoot";
+import { useOnboardingStore } from "./stores/OnboardingStore";
 
 installIpcLogBridge();
 
@@ -179,11 +182,25 @@ const NavigateToStart = () => {
         return null;
       };
 
+      const isNewcomer = (() => {
+        const onboarding = useOnboardingStore.getState();
+        const hasProgress = Object.values(onboarding.completed).some(Boolean);
+        return !onboarding.dismissed && !hasProgress;
+      })();
+
       const navigateToEditor = async () => {
         // Check for existing workflow first
         const existingWorkflowId = getExistingWorkflowId();
         if (existingWorkflowId) {
           navigate(`/editor/${existingWorkflowId}`, { replace: true });
+          return;
+        }
+
+        // Brand-new users land on the guided welcome page rather than an
+        // empty new workflow — the onboarding hint overlay drives them
+        // through their first steps from there.
+        if (isNewcomer) {
+          navigate("/welcome", { replace: true });
           return;
         }
 
@@ -195,19 +212,18 @@ const NavigateToStart = () => {
             navigate(`/editor/${workflow.id}`, { replace: true });
           } catch (error) {
             console.error("Failed to create workflow:", error);
-            navigate("/dashboard", { replace: true });
+            navigate("/welcome", { replace: true });
           }
         }
       };
 
-      if (isLocalhost) {
-        if (!showWelcomeOnStartup) {
-          await navigateToEditor();
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
-      } else if (state === "logged_in") {
-        if (!showWelcomeOnStartup) {
+      if (isLocalhost || state === "logged_in") {
+        // Newcomers always start on /welcome, regardless of the
+        // showWelcomeOnStartup setting (which still controls the Portal
+        // for returning users).
+        if (isNewcomer) {
+          navigate("/welcome", { replace: true });
+        } else if (!showWelcomeOnStartup) {
           await navigateToEditor();
         } else {
           navigate("/dashboard", { replace: true });
@@ -240,6 +256,14 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <Portal />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/welcome",
+      element: (
+        <ProtectedRoute>
+          <WelcomePage />
         </ProtectedRoute>
       )
     },

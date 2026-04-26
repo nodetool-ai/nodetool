@@ -3,7 +3,6 @@ export { default as OnboardingOverlay } from "./OnboardingOverlay";
 export { default as OnboardingLauncher } from "./OnboardingLauncher";
 export { default as OnboardingScreen } from "./OnboardingScreen";
 export { default as OnboardingHint } from "./OnboardingHint";
-export { default as OnboardingSpotlight } from "./OnboardingSpotlight";
 export { default as OnboardingProgress } from "./OnboardingProgress";
 export { useOnboardingDetectors } from "./useOnboardingDetectors";
 export { ONBOARDING_STEPS, getStepDefinition } from "./steps";

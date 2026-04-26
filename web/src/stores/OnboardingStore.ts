@@ -3,8 +3,8 @@
  *
  * Drives the guided onboarding tour: which step is active, which steps the
  * user has completed, and whether the tour has been started or dismissed.
- * Each step pairs an animated welcome screen with a "now do it in the real
- * UI" hint; completion is detected by subscribing to existing stores
+ * The tour renders floating hints directly over the real UI (no fullscreen
+ * cards). Completion is detected by subscribing to existing stores
  * (SecretsStore, GlobalChatStore, NodeStore, WorkflowRunner) — see
  * `useOnboardingDetectors`.
  */
@@ -29,11 +29,8 @@ export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
 ];
 
 /**
- * Each step has two phases:
- * - "intro" — fullscreen animated welcome card with title, illustration, and a
- *   "Let's go" button.
- * - "action" — small floating hint pinned near the relevant UI element while
- *   the user performs the task in the real product.
+ * Legacy type — kept for persisted-state compatibility.
+ * The tour now renders hints immediately without an intro card phase.
  */
 export type OnboardingPhase = "intro" | "action";
 
@@ -50,7 +47,6 @@ export interface OnboardingState {
   /** Resume the tour at the first incomplete step (falls back to 0). */
   resume: () => void;
   startAt: (stepId: OnboardingStepId) => void;
-  beginAction: () => void;
   next: () => void;
   prev: () => void;
   skip: () => void;
@@ -81,7 +77,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({
           active: true,
           currentStep: 0,
-          phase: "intro",
+          phase: "action",
           dismissed: false
         }),
 
@@ -93,7 +89,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({
           active: true,
           currentStep: firstIncomplete === -1 ? 0 : firstIncomplete,
-          phase: "intro",
+          phase: "action",
           dismissed: false
         });
       },
@@ -103,12 +99,10 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({
           active: true,
           currentStep: idx >= 0 ? idx : 0,
-          phase: "intro",
+          phase: "action",
           dismissed: false
         });
       },
-
-      beginAction: () => set({ phase: "action" }),
 
       next: () => {
         const { currentStep } = get();
@@ -117,13 +111,13 @@ export const useOnboardingStore = create<OnboardingState>()(
           set({ active: false, dismissed: true });
           return;
         }
-        set({ currentStep: currentStep + 1, phase: "intro" });
+        set({ currentStep: currentStep + 1 });
       },
 
       prev: () => {
         const { currentStep } = get();
         if (currentStep <= 0) return;
-        set({ currentStep: currentStep - 1, phase: "intro" });
+        set({ currentStep: currentStep - 1 });
       },
 
       skip: () => set({ active: false, dismissed: true }),

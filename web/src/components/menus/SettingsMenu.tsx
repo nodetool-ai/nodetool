@@ -678,7 +678,10 @@ function SettingsMenu({ buttonText = "" }: SettingsMenuProps) {
 
                 {/* Tab 1: API & Keys */}
                 <TabPanel value={settingsTab} index={1}>
-                  <div style={{ marginBottom: "1.5em" }}>
+                  <div
+                    data-onboarding-target="provider-setup"
+                    style={{ marginBottom: "1.5em" }}
+                  >
                     <SearchInput
                       placeholder="Search API keys, settings, and folders..."
                       value={apiSearchTerm}

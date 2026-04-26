@@ -31,6 +31,10 @@ export interface OnboardingStepDefinition {
   hintPlacement?: "top" | "bottom" | "left" | "right" | "center";
   /** Optional secondary call-to-action label. */
   ctaLabel?: string;
+  /** If set, the hint shows an "Open Settings" button that jumps to this tab index. */
+  settingsTab?: number;
+  /** If set, the hint shows a "Download Models" button that navigates here. */
+  modelsRoute?: string;
 }
 
 export const ONBOARDING_STEPS: Record<OnboardingStepId, OnboardingStepDefinition> = {
@@ -43,12 +47,14 @@ export const ONBOARDING_STEPS: Record<OnboardingStepId, OnboardingStepDefinition
     illustration: <VpnKeyRoundedIcon sx={{ fontSize: 96 }} />,
     accent: { from: "#7BA8FF", to: "#5C5DF6" },
     route: "/dashboard",
-    hintTitle: "Add a provider key",
+    hintTitle: "Find your provider, paste your key",
     hintBody:
-      "Paste a key into any provider here, or download a local model. We'll continue automatically once at least one is configured.",
+      "Search for OpenAI, Anthropic, Gemini, or any other provider here, then paste a key. We'll continue automatically once at least one is set.",
     targetSelector: '[data-onboarding-target="provider-setup"]',
-    hintPlacement: "right",
-    ctaLabel: "Take me there"
+    hintPlacement: "bottom",
+    ctaLabel: "Take me there",
+    settingsTab: 1,
+    modelsRoute: "/models"
   },
   chat: {
     id: "chat",
@@ -78,7 +84,7 @@ export const ONBOARDING_STEPS: Record<OnboardingStepId, OnboardingStepDefinition
     hintTitle: "Switch the mode chip → Image",
     hintBody:
       "Click the leftmost chip in the composer to change the mode to \"Generate Images\", then send a prompt like \"a watercolor dragon over a mountain\".",
-    targetSelector: '[data-onboarding-target="media-mode-chip"]',
+    targetSelector: '[data-onboarding-target="media-mode-selector"]',
     hintPlacement: "top",
     ctaLabel: "Open chat"
   },

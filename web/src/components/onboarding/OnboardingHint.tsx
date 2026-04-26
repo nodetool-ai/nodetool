@@ -1,77 +1,183 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { Button } from "@mui/material";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import { hintPop, arrowBounce } from "./animations";
+import SettingsIcon from "@mui/icons-material/Settings";
+import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import { hintPop } from "./animations";
 import type { OnboardingStepDefinition } from "./steps";
 
 interface OnboardingHintProps {
   step: OnboardingStepDefinition;
   target: HTMLElement | null;
-  isCompleted: boolean;
-  onSkipStep: () => void;
-  onContinue: () => void;
-  onClose: () => void;
+  /** Dismiss this hint (marks the step complete so it won't reappear). */
+  onDismiss: () => void;
+  onOpenSettings?: () => void;
+  onOpenModels?: () => void;
 }
 
-interface Position {
+type Side = "top" | "bottom" | "left" | "right" | "center";
+
+interface Layout {
+  /** Hint card position (viewport coords). */
   top: number;
   left: number;
-  placement: "top" | "bottom" | "left" | "right" | "center";
+  side: Side;
+  /** Tail offset from the hint's leading edge along the layout axis. */
+  tailOffset: number;
 }
 
-const HINT_OFFSET = 16;
+const HINT_OFFSET = 14;
 const HINT_WIDTH = 320;
-const HINT_HEIGHT_ESTIMATE = 180;
+const VIEWPORT_GUTTER = 16;
+const TAIL_GUTTER = 18;
 
-const computePosition = (
-  rect: DOMRect | null,
-  preferred: OnboardingStepDefinition["hintPlacement"]
-): Position => {
+const opposite = (s: Side): Side =>
+  s === "top" ? "bottom"
+  : s === "bottom" ? "top"
+  : s === "left" ? "right"
+  : s === "right" ? "left"
+  : "center";
+
+const candidateOrder = (preferred: Side): Side[] => {
+  if (preferred === "center") return ["center"];
+  const opp = opposite(preferred);
+  const perp: Side[] =
+    preferred === "top" || preferred === "bottom"
+      ? ["right", "left"]
+      : ["bottom", "top"];
+  return [preferred, opp, ...perp];
+};
+
+interface PlaceArgs {
+  rect: DOMRect;
+  hintW: number;
+  hintH: number;
+}
+
+const place = ({ rect, hintW, hintH }: PlaceArgs, side: Side): Layout => {
+  switch (side) {
+    case "top":
+      return {
+        side,
+        top: rect.top - hintH - HINT_OFFSET,
+        left: rect.left + rect.width / 2 - hintW / 2,
+        tailOffset: hintW / 2
+      };
+    case "bottom":
+      return {
+        side,
+        top: rect.bottom + HINT_OFFSET,
+        left: rect.left + rect.width / 2 - hintW / 2,
+        tailOffset: hintW / 2
+      };
+    case "left":
+      return {
+        side,
+        top: rect.top + rect.height / 2 - hintH / 2,
+        left: rect.left - hintW - HINT_OFFSET,
+        tailOffset: hintH / 2
+      };
+    case "right":
+      return {
+        side,
+        top: rect.top + rect.height / 2 - hintH / 2,
+        left: rect.right + HINT_OFFSET,
+        tailOffset: hintH / 2
+      };
+    case "center":
+      return {
+        side,
+        top: window.innerHeight / 2 - hintH / 2,
+        left: window.innerWidth / 2 - hintW / 2,
+        tailOffset: hintW / 2
+      };
+  }
+};
+
+const fits = (l: Layout, hintW: number, hintH: number): boolean => {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  return (
+    l.top >= VIEWPORT_GUTTER &&
+    l.left >= VIEWPORT_GUTTER &&
+    l.top + hintH <= vh - VIEWPORT_GUTTER &&
+    l.left + hintW <= vw - VIEWPORT_GUTTER
+  );
+};
 
-  if (!rect || preferred === "center") {
+const clampLayout = (l: Layout, hintW: number, hintH: number): Layout => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  return {
+    ...l,
+    top: Math.max(
+      VIEWPORT_GUTTER,
+      Math.min(l.top, vh - hintH - VIEWPORT_GUTTER)
+    ),
+    left: Math.max(
+      VIEWPORT_GUTTER,
+      Math.min(l.left, vw - hintW - VIEWPORT_GUTTER)
+    )
+  };
+};
+
+/**
+ * Re-anchor the tail to the target's center along the layout axis so it
+ * still points at the anchor — even after viewport clamping shifted the
+ * hint off-axis.
+ */
+const adjustTail = (
+  l: Layout,
+  rect: DOMRect,
+  hintW: number,
+  hintH: number
+): Layout => {
+  if (l.side === "top" || l.side === "bottom") {
+    const cx = rect.left + rect.width / 2;
     return {
-      top: vh / 2 - HINT_HEIGHT_ESTIMATE / 2,
-      left: vw / 2 - HINT_WIDTH / 2,
-      placement: "center"
+      ...l,
+      tailOffset: Math.max(
+        TAIL_GUTTER,
+        Math.min(cx - l.left, hintW - TAIL_GUTTER)
+      )
     };
   }
-
-  const placement = preferred ?? "bottom";
-
-  let top = 0;
-  let left = 0;
-
-  switch (placement) {
-    case "top":
-      top = rect.top - HINT_HEIGHT_ESTIMATE - HINT_OFFSET;
-      left = rect.left + rect.width / 2 - HINT_WIDTH / 2;
-      break;
-    case "bottom":
-      top = rect.bottom + HINT_OFFSET;
-      left = rect.left + rect.width / 2 - HINT_WIDTH / 2;
-      break;
-    case "left":
-      top = rect.top + rect.height / 2 - HINT_HEIGHT_ESTIMATE / 2;
-      left = rect.left - HINT_WIDTH - HINT_OFFSET;
-      break;
-    case "right":
-      top = rect.top + rect.height / 2 - HINT_HEIGHT_ESTIMATE / 2;
-      left = rect.right + HINT_OFFSET;
-      break;
+  if (l.side === "left" || l.side === "right") {
+    const cy = rect.top + rect.height / 2;
+    return {
+      ...l,
+      tailOffset: Math.max(
+        TAIL_GUTTER,
+        Math.min(cy - l.top, hintH - TAIL_GUTTER)
+      )
+    };
   }
+  return l;
+};
 
-  // Clamp into the viewport with a 16 px gutter.
-  top = Math.max(16, Math.min(top, vh - HINT_HEIGHT_ESTIMATE - 16));
-  left = Math.max(16, Math.min(left, vw - HINT_WIDTH - 16));
+const computeLayout = (
+  rect: DOMRect | null,
+  preferred: OnboardingStepDefinition["hintPlacement"],
+  hintW: number,
+  hintH: number
+): Layout => {
+  if (!rect) return place({ rect: {} as DOMRect, hintW, hintH }, "center");
 
-  return { top, left, placement };
+  const order = candidateOrder(preferred ?? "bottom");
+  const args = { rect, hintW, hintH };
+  for (const side of order) {
+    const l = place(args, side);
+    if (fits(l, hintW, hintH)) return adjustTail(l, rect, hintW, hintH);
+  }
+  return adjustTail(
+    clampLayout(place(args, preferred ?? "bottom"), hintW, hintH),
+    rect,
+    hintW,
+    hintH
+  );
 };
 
 const styles = (theme: Theme, accent: { from: string; to: string }) =>
@@ -80,202 +186,233 @@ const styles = (theme: Theme, accent: { from: string; to: string }) =>
     width: HINT_WIDTH,
     zIndex: 2100,
     pointerEvents: "auto",
-    animation: `${hintPop} 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both`,
+    animation: `${hintPop} 280ms cubic-bezier(0.22, 0.61, 0.36, 1) both`,
 
     ".hint-card": {
       position: "relative",
-      borderRadius: 16,
-      padding: "16px 18px 14px",
+      borderRadius: 12,
+      padding: "12px 14px 12px",
       backgroundColor: theme.vars.palette.grey[900],
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      boxShadow: "0 18px 48px rgba(0,0,0,0.55)",
-      backdropFilter: "blur(14px)"
+      border: `1px solid ${theme.vars.palette.grey[800]}`,
+      boxShadow: "0 14px 36px rgba(0,0,0,0.48)",
+      backdropFilter: "blur(10px)"
     },
-    ".hint-accent-bar": {
+    ".hint-accent": {
       position: "absolute",
       top: 0,
-      left: 12,
-      right: 12,
-      height: 3,
-      borderRadius: "0 0 3px 3px",
-      background: `linear-gradient(90deg, ${accent.from}, ${accent.to})`
+      bottom: 0,
+      left: 0,
+      width: 3,
+      borderRadius: "12px 0 0 12px",
+      background: `linear-gradient(180deg, ${accent.from}, ${accent.to})`
     },
-
-    ".hint-header": {
+    ".hint-tail": {
+      position: "absolute",
+      width: 10,
+      height: 10,
+      backgroundColor: theme.vars.palette.grey[900],
+      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderLeft: `1px solid ${theme.vars.palette.grey[800]}`,
+      pointerEvents: "none"
+    },
+    ".hint-row": {
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: 8,
-      marginBottom: 6
+      marginBottom: 4
     },
-    ".hint-step-badge": {
-      fontSize: 10,
-      fontWeight: 700,
-      letterSpacing: "0.12em",
-      textTransform: "uppercase",
-      padding: "2px 8px",
-      borderRadius: 999,
-      color: "#fff",
-      background: `linear-gradient(120deg, ${accent.from}, ${accent.to})`
+    ".hint-title": {
+      flex: 1,
+      margin: 0,
+      fontSize: 13,
+      fontWeight: 600,
+      lineHeight: 1.35,
+      color: theme.vars.palette.text.primary
     },
     ".hint-close": {
-      marginLeft: "auto",
-      width: 24,
-      height: 24,
+      width: 22,
+      height: 22,
       borderRadius: "50%",
       border: "none",
       backgroundColor: "transparent",
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.grey[500],
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       cursor: "pointer",
+      flexShrink: 0,
+      transition: "background 150ms ease, color 150ms ease",
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
       }
     },
-    ".hint-title": {
-      fontSize: 14,
-      fontWeight: 600,
-      color: theme.vars.palette.text.primary,
+    ".hint-body": {
+      fontSize: 12,
+      lineHeight: 1.5,
+      color: theme.vars.palette.grey[400],
       margin: 0
     },
-    ".hint-body": {
-      fontSize: 12.5,
-      lineHeight: 1.55,
-      color: theme.vars.palette.grey[300],
-      marginTop: 6,
-      marginBottom: 0
-    },
-    ".hint-footer": {
+    ".hint-actions": {
       display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 8,
-      marginTop: 12
-    },
-    ".hint-status": {
-      display: "flex",
-      alignItems: "center",
+      flexWrap: "wrap",
       gap: 6,
-      fontSize: 12,
-      color: theme.vars.palette.grey[400],
-      "& svg": {
-        animation: `${arrowBounce} 1.4s ease-in-out infinite`
-      }
+      marginTop: 10
     },
-    ".hint-status.done": {
-      color: theme.vars.palette.success.main
-    },
-
-    ".hint-skip": {
-      fontSize: 12,
+    ".hint-cta": {
+      fontSize: 11.5,
       textTransform: "none",
       padding: "4px 10px",
       borderRadius: 8,
-      color: theme.vars.palette.grey[400]
-    },
-    ".hint-continue": {
-      fontSize: 12,
-      textTransform: "none",
-      padding: "5px 12px",
-      borderRadius: 8,
-      fontWeight: 600,
-      background: `linear-gradient(120deg, ${accent.from}, ${accent.to})`,
-      color: "#fff",
+      fontWeight: 500,
+      color: theme.vars.palette.text.primary,
+      backgroundColor: "rgba(255,255,255,0.05)",
+      gap: 4,
+      minWidth: 0,
+      whiteSpace: "nowrap",
       "&:hover": {
-        background: `linear-gradient(120deg, ${accent.from}, ${accent.to})`,
-        filter: "brightness(1.1)"
+        backgroundImage: `linear-gradient(120deg, ${accent.from}, ${accent.to})`,
+        color: "#fff"
       }
     }
   });
 
+/** Inline style for the tail given the chosen side and offset. */
+const tailStyle = (
+  side: Side,
+  offset: number,
+  hintH: number
+): React.CSSProperties => {
+  // Base shape: 10x10 with border-top + border-left. Rotation chooses
+  // which corner becomes the "point". We then translate so the point
+  // sits exactly on the hint's edge.
+  switch (side) {
+    case "bottom":
+      return {
+        top: -5,
+        left: offset,
+        transform: "translateX(-50%) rotate(45deg)"
+      };
+    case "top":
+      return {
+        top: hintH - 5,
+        left: offset,
+        transform: "translateX(-50%) rotate(225deg)"
+      };
+    case "right":
+      return {
+        top: offset,
+        left: -5,
+        transform: "translateY(-50%) rotate(-45deg)"
+      };
+    case "left":
+      return {
+        top: offset,
+        left: HINT_WIDTH - 5,
+        transform: "translateY(-50%) rotate(135deg)"
+      };
+    case "center":
+      return { display: "none" };
+  }
+};
+
 const OnboardingHint: React.FC<OnboardingHintProps> = ({
   step,
   target,
-  isCompleted,
-  onSkipStep,
-  onContinue,
-  onClose
+  onDismiss,
+  onOpenSettings,
+  onOpenModels
 }) => {
   const theme = useTheme();
-  const [position, setPosition] = useState<Position>(() =>
-    computePosition(null, step.hintPlacement)
-  );
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [layout, setLayout] = useState<Layout>({
+    top: 0,
+    left: 0,
+    side: "center",
+    tailOffset: HINT_WIDTH / 2
+  });
 
   useEffect(() => {
-    const update = (): void => {
-      const rect = target ? target.getBoundingClientRect() : null;
-      setPosition(computePosition(rect, step.hintPlacement));
+    if (!target) return;
+
+    let raf = 0;
+    let prev = "";
+    const tick = (): void => {
+      const r = target.getBoundingClientRect();
+      const card = cardRef.current;
+      const hintW = card?.offsetWidth ?? HINT_WIDTH;
+      const hintH = card?.offsetHeight ?? 140;
+      const sig = `${r.top}|${r.left}|${r.width}|${r.height}|${hintW}|${hintH}|${window.innerWidth}|${window.innerHeight}`;
+      if (sig !== prev) {
+        prev = sig;
+        setLayout(computeLayout(r, step.hintPlacement, hintW, hintH));
+      }
+      raf = requestAnimationFrame(tick);
     };
-    update();
+    raf = requestAnimationFrame(tick);
 
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-
-    let ro: ResizeObserver | null = null;
-    if (target) {
-      ro = new ResizeObserver(update);
-      ro.observe(target);
-    }
-
-    return () => {
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
-      ro?.disconnect();
-    };
+    return () => cancelAnimationFrame(raf);
   }, [target, step.hintPlacement]);
+
+  const hasAction =
+    (step.settingsTab !== undefined && !!onOpenSettings) ||
+    (step.modelsRoute && !!onOpenModels);
+
+  const cardH = cardRef.current?.offsetHeight ?? 140;
 
   return (
     <div
       css={styles(theme, step.accent)}
-      style={{ top: position.top, left: position.left }}
+      style={{ top: layout.top, left: layout.left }}
+      data-side={layout.side}
       role="dialog"
       aria-label={step.hintTitle}
     >
-      <div className="hint-card">
-        <div className="hint-accent-bar" />
-        <div className="hint-header">
-          <span className="hint-step-badge">{step.tagline}</span>
+      <div className="hint-card" ref={cardRef}>
+        <span
+          className="hint-tail"
+          style={tailStyle(layout.side, layout.tailOffset, cardH)}
+          aria-hidden
+        />
+        <span className="hint-accent" />
+        <div className="hint-row">
+          <h3 className="hint-title">{step.hintTitle}</h3>
           <button
             type="button"
             className="hint-close"
-            onClick={onClose}
-            aria-label="Close onboarding"
+            onClick={onDismiss}
+            aria-label="Dismiss hint"
           >
             <CloseRoundedIcon sx={{ fontSize: 14 }} />
           </button>
         </div>
-        <h3 className="hint-title">{step.hintTitle}</h3>
         <p className="hint-body">{step.hintBody}</p>
-        <div className="hint-footer">
-          <div className={`hint-status${isCompleted ? " done" : ""}`}>
-            {isCompleted ? (
-              <>
-                <CheckCircleRoundedIcon sx={{ fontSize: 16 }} />
-                <span>Nicely done</span>
-              </>
-            ) : (
-              <>
-                <ArrowForwardRoundedIcon sx={{ fontSize: 16 }} />
-                <span>Waiting for you…</span>
-              </>
+        {hasAction && (
+          <div className="hint-actions">
+            {step.settingsTab !== undefined && onOpenSettings && (
+              <Button
+                className="hint-cta"
+                size="small"
+                onClick={onOpenSettings}
+                startIcon={<SettingsIcon sx={{ fontSize: 13 }} />}
+                disableElevation
+              >
+                Open Settings
+              </Button>
+            )}
+            {step.modelsRoute && onOpenModels && (
+              <Button
+                className="hint-cta"
+                size="small"
+                onClick={onOpenModels}
+                startIcon={<CloudDownloadIcon sx={{ fontSize: 13 }} />}
+                disableElevation
+              >
+                Download Models
+              </Button>
             )}
           </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <Button className="hint-skip" size="small" onClick={onSkipStep}>
-              Skip
-            </Button>
-            <Button
-              className="hint-continue"
-              size="small"
-              onClick={onContinue}
-              disableElevation
-            >
-              {isCompleted ? "Continue" : "I'll do it later"}
-            </Button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

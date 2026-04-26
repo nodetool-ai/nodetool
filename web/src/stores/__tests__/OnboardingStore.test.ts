@@ -13,19 +13,18 @@ describe("OnboardingStore", () => {
     const s = useOnboardingStore.getState();
     expect(s.active).toBe(false);
     expect(s.currentStep).toBe(0);
-    expect(s.phase).toBe("intro");
     expect(s.dismissed).toBe(false);
     for (const id of ONBOARDING_STEP_ORDER) {
       expect(s.completed[id]).toBe(false);
     }
   });
 
-  it("start() activates the tour at step 0 in intro phase", () => {
+  it("start() activates the tour at step 0 in action phase", () => {
     useOnboardingStore.getState().start();
     const s = useOnboardingStore.getState();
     expect(s.active).toBe(true);
     expect(s.currentStep).toBe(0);
-    expect(s.phase).toBe("intro");
+    expect(s.phase).toBe("action");
   });
 
   it("startAt() jumps to a specific step id", () => {
@@ -35,20 +34,12 @@ describe("OnboardingStore", () => {
     );
   });
 
-  it("beginAction() flips phase from intro to action", () => {
-    useOnboardingStore.getState().start();
-    useOnboardingStore.getState().beginAction();
-    expect(useOnboardingStore.getState().phase).toBe("action");
-  });
-
-  it("next() advances and resets phase to intro", () => {
-    const { start, beginAction, next } = useOnboardingStore.getState();
+  it("next() advances to the next step", () => {
+    const { start, next } = useOnboardingStore.getState();
     start();
-    beginAction();
     next();
     const s = useOnboardingStore.getState();
     expect(s.currentStep).toBe(1);
-    expect(s.phase).toBe("intro");
   });
 
   it("next() on the last step finishes and dismisses the tour", () => {
@@ -99,7 +90,7 @@ describe("OnboardingStore", () => {
       const s = useOnboardingStore.getState();
       expect(s.active).toBe(true);
       expect(s.currentStep).toBe(0);
-      expect(s.phase).toBe("intro");
+      expect(s.phase).toBe("action");
     });
 
     it("jumps to the first incomplete step when progress exists", () => {
