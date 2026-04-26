@@ -292,6 +292,33 @@ describe("models router", () => {
       const ids = result.map((m) => m.id);
       expect(ids).toContain("gpt-extra");
     });
+
+    it("stamps supports_tools on aggregated language models", async () => {
+      (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([
+        "openai"
+      ]);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeProvider({
+          getAvailableLanguageModels: vi.fn().mockResolvedValue([
+            { id: "tool-yes", name: "Yes", provider: "openai" },
+            { id: "tool-no", name: "No", provider: "openai" }
+          ]),
+          // The mock fans out to provider.hasToolSupport(modelId); the
+          // aggregator should stamp the result on each unified model.
+          hasToolSupport: vi
+            .fn()
+            .mockImplementation(async (m: string) => m !== "tool-no")
+        })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.all();
+      const yes = result.find((m) => m.id === "tool-yes");
+      const no = result.find((m) => m.id === "tool-no");
+      expect(yes?.supports_tools).toBe(true);
+      expect(no?.supports_tools).toBe(false);
+    });
   });
 
   // ── huggingfaceList ──────────────────────────────────────────────────────

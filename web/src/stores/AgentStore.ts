@@ -280,7 +280,9 @@ const useAgentStore = create<AgentState>((set, get) => ({
         model,
         workspacePath: selectedWorkspacePath ?? undefined,
         resumeSessionId,
-        chatProviderId: isLlm ? chatProviderId ?? undefined : undefined
+        // Only attach `chatProviderId` for LLM sessions — keeps the call
+        // shape stable for existing harness-provider tests / consumers.
+        ...(isLlm && chatProviderId ? { chatProviderId } : {})
       });
       const now = new Date().toISOString();
 

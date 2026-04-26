@@ -228,4 +228,96 @@ describe("AgentStore", () => {
     expect(closeSessionMock).not.toHaveBeenCalled();
     expect(useAgentStore.getState().sessionId).toBe("session-1");
   });
+
+  // ── LLM provider — chatProviderId plumbing + workspace bypass ───────
+
+  it("setModel auto-stamps chatProviderId from the picked descriptor", async () => {
+    const useAgentStore = await loadStore();
+    useAgentStore.setState({
+      availableModels: [
+        {
+          id: "gpt-4o",
+          label: "GPT-4o (openai)",
+          provider: "llm",
+          chatProviderId: "openai"
+        },
+        {
+          id: "claude-sonnet-4-6",
+          label: "Claude Sonnet (anthropic)",
+          provider: "llm",
+          chatProviderId: "anthropic"
+        }
+      ]
+    });
+
+    useAgentStore.getState().setModel("gpt-4o");
+    expect(useAgentStore.getState().chatProviderId).toBe("openai");
+
+    useAgentStore.getState().setModel("claude-sonnet-4-6");
+    expect(useAgentStore.getState().chatProviderId).toBe("anthropic");
+  });
+
+  it("setProvider clears chatProviderId so it gets re-stamped from the new catalog", async () => {
+    const useAgentStore = await loadStore();
+    useAgentStore.setState({ chatProviderId: "anthropic" });
+
+    useAgentStore.getState().setProvider("claude");
+    expect(useAgentStore.getState().chatProviderId).toBeNull();
+  });
+
+  it("createSession for LLM provider skips the workspace requirement", async () => {
+    const useAgentStore = await loadStore();
+    useAgentStore.setState({
+      provider: "llm",
+      model: "gpt-4o",
+      chatProviderId: "openai",
+      // intentionally NOT setting a workspace
+      workspacePath: null,
+      workspaceId: null
+    });
+
+    await useAgentStore.getState().createSession();
+
+    // Should succeed (no workspace error) and pass chatProviderId through.
+    expect(createSessionMock).toHaveBeenCalledTimes(1);
+    const callArg = createSessionMock.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(callArg.provider).toBe("llm");
+    expect(callArg.chatProviderId).toBe("openai");
+    expect(useAgentStore.getState().status).not.toBe("error");
+  });
+
+  it("createSession for LLM provider errors when no model has been picked", async () => {
+    const useAgentStore = await loadStore();
+    useAgentStore.setState({
+      provider: "llm",
+      model: "",
+      chatProviderId: null,
+      workspacePath: null
+    });
+
+    await useAgentStore.getState().createSession();
+
+    expect(createSessionMock).not.toHaveBeenCalled();
+    expect(useAgentStore.getState().status).toBe("error");
+    expect(useAgentStore.getState().error).toMatch(/Pick an LLM model/i);
+  });
+
+  it("createSession for harness provider still requires a workspace", async () => {
+    const useAgentStore = await loadStore();
+    useAgentStore.setState({
+      provider: "claude",
+      model: "claude-sonnet-4-6",
+      workspacePath: null,
+      workspaceId: null
+    });
+
+    await useAgentStore.getState().createSession();
+
+    expect(createSessionMock).not.toHaveBeenCalled();
+    expect(useAgentStore.getState().status).toBe("error");
+    expect(useAgentStore.getState().error).toMatch(/workspace/i);
+  });
 });
