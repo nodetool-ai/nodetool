@@ -4,8 +4,8 @@
 
 - [x] Phase 1 foundation: contract, session substrate, control plane, first operator surface.
 - [x] Phase 2 substrate through backend WebRTC shell, realtime nodes, lifecycle, and metrics.
-- [ ] Phase 2 first model proof: design pass, LongLive/Self-Forcing, canonical workflow template.
-- [ ] Phase 3 browser/JS realtime inference.
+- [ ] Phase 2 first model proof: LongLive/Self-Forcing real smoke and validated low-VRAM loader paths.
+- [ ] Phase 3 browser-local realtime analysis contracts.
 - [ ] Phase 4 workflow integration.
 - [ ] Phase 5 deployed realtime worker readiness.
 - [ ] Phase 6 expansion adapters.
@@ -20,6 +20,7 @@ Rules for the remaining work:
 - Use the existing workflow runner, inbox, node registry, WebSocket control plane, and job/session model.
 - Treat WebRTC/media transport and websocket/control messages as separate planes.
 - Prefer short PRs in ladder order. Each step should leave tests passing for the package it touches.
+- Top-level unchecked items may include completed foundations. Follow the unchecked subitems in each phase; do not reopen checked foundation work unless new implementation evidence shows it is wrong.
 
 ## Next implementation ladder
 
@@ -37,30 +38,31 @@ Rules for the remaining work:
   - 9 implementation shape: all heavy model code lands in the existing `nodetool-realtime` skeleton. Thin nodes go under `nodetool-realtime/src/nodetool/nodes/realtime/`, while pipelines, `WeightSource`, hardware/precision helpers, frame converters, fake CPU pipelines, and `LatestPerHandleAccumulator` live under `nodetool-realtime/src/nodetool/realtime/`. Core may receive only small protocol/status surfaces for loading events and hardware hints.
   - 9 loading/precision contract: model nodes emit structured loading phases (`resolving_weights`, `downloading`, `loading_tokenizer`, `loading_vae`, `loading_transformer`, `warming`, `ready`, `error`) with progress and selected precision/backend. `WeightSource` supports local path, Hugging Face repo/file, and cached/default source. Precision selection prefers native FP8 only on capable Ada/Hopper/Blackwell hardware, uses FP16/BF16 where memory allows, and treats GGUF/INT8 community paths as explicit experimental fallbacks until validated.
   - 9 realtime loop contract: `LatestPerHandleAccumulator` is the default input coalescer for model nodes. It keeps the most recent value per media/control handle, preserves sequence/timestamp metadata, reports skipped/dropped input counts to metrics, and never blocks the media/control plane waiting for stale frames. Prompt/control updates are applied at the next model iteration and can trigger model-specific cache refresh such as LongLive KV-recache.
-- [ ] **10. Implement LongLive.**
-  - Thin node in `nodetool-realtime/src/nodetool/nodes/realtime/longlive.py`.
-  - Heavy pipeline in `nodetool-realtime/src/nodetool/realtime/wan21/longlive_pipeline.py`.
-  - Use the frame contract, loading lifecycle, hardware precision hints, `WeightSource`, and smoke-test pattern from step 9.
-- [ ] **10b. Implement Self-Forcing.**
-  - Start with a provenance gate: identify the exact upstream Self-Forcing source, license, base-model compatibility, required files, and whether any FP8/GGUF/INT8 artifacts are official or community-only.
-  - Provenance gate current finding: canonical candidate is `guandeh17/Self-Forcing` / `gdhe17/Self-Forcing`, licensed Apache-2.0, built on `Wan-AI/Wan2.1-T2V-1.3B`, with the documented inference checkpoint `checkpoints/self_forcing_dmd.pt`.
-  - Official quickstart expects Linux, Python 3.10, CUDA GPU with at least 24 GB memory, Wan2.1 T2V 1.3B base files, and the Self-Forcing checkpoint. Treat Windows/local support as unvalidated until tested.
-  - Community GGUF variants such as `Nichonauta/Self-Forcing2.1-T2V-1.3B-GGUF` exist, but are not the official path. They require a compatible video-diffusion GGUF runtime and must stay behind explicit experimental loader hooks.
-  - Reuse the LongLive realtime contracts rather than inventing a parallel stack: `WeightSource`, loading phases, precision guards, `LatestPerHandleAccumulator`, frame conversion, sampler adapter lifecycle, opt-in real smoke tests, and dependency-lazy imports.
-  - Thin node scaffold landed: `SelfForcing` exists under `nodetool-realtime/src/nodetool/nodes/realtime/`, uses the dependency-lazy pipeline/backend boundary, reports pending loaders by default, and forwards prompt/negative-prompt values through the same latest-value realtime accumulator pattern without adding fake model-output behavior.
-  - Add a dependency-lazy Self-Forcing backend boundary with explicit loader/checkpoint/sampler hook points, mirroring the LongLive factory shape where it fits and documenting any real interface differences.
-  - Backend boundary landed: `nodetool-realtime` now has a dependency-lazy Self-Forcing backend scaffold that reports pending default loaders without importing heavy modules, and can reach `ready` through explicit base-model loader, checkpoint applier, and sampler hooks.
-  - Validate GGUF/community pre-quantized weights on Ampere/low-VRAM hardware only through opt-in tests or scripts, never in the default suite.
-  - Treat community Self-Forcing/VACE FP8/GGUF weights as experimental until license, provenance, and quality are checked for the exact selected source.
+- [ ] **10. Finish LongLive real validation.**
+  - Foundation landed: thin node, dependency-lazy backend boundary, `WeightSource`, precision selection, `LatestPerHandleAccumulator`, fake CPU pipeline, frame conversion, sampler boundary, upstream output normalization, loading/error events, package metadata, and opt-in real-smoke config.
+  - Remaining completion criteria:
+    - [ ] Run real end-to-end inference against downloaded upstream weights.
+    - [ ] Validate the canonical smoke path with `Wan-AI/Wan2.1-T2V-1.3B` plus the selected LongLive checkpoint.
+    - [ ] Implement and validate real FP8/GGUF/INT8 loader paths only through explicit loader hooks and opt-in smoke tiers.
+    - [ ] Record observed latency/fps, loading lifecycle, cache refresh, dropped/skipped handle counts, and memory/offload data through existing metrics surfaces.
+- [ ] **10b. Finish Self-Forcing real validation.**
+  - Foundation landed: provenance gate, thin node scaffold, dependency-lazy backend boundary, selected upstream sampler adapter, precision guard, package metadata, and opt-in smoke config parsing.
+  - Canonical source: `guandeh17/Self-Forcing` / `gdhe17/Self-Forcing`, Apache-2.0, built on `Wan-AI/Wan2.1-T2V-1.3B`, with documented checkpoint `checkpoints/self_forcing_dmd.pt`.
+  - Remaining completion criteria:
+    - [ ] Wire real loader/checkpoint hooks against downloaded upstream weights.
+    - [ ] Run opt-in real smoke through the official Self-Forcing checkpoint and selected sampler interface.
+    - [ ] Validate GGUF/community pre-quantized weights on Ampere/low-VRAM hardware only through opt-in tests or scripts.
+    - [ ] Keep community Self-Forcing/VACE FP8/GGUF weights experimental until source, license, compatibility, and quality are checked for the exact selected source.
+    - [ ] Do not create fake behavioral parity with LongLive; wait for the selected upstream interface before adding model-output assertions.
 - [x] **11. Build the canonical realtime workflow template.**
   - [x] Added `nodetool-realtime` package example `Canonical Realtime Video Diffusion` with camera/source, prompt and negative-prompt controls, LongLive, Self-Forcing, sink/preview, and session info.
   - [x] Added template notes for reconnect/session behavior, `realtime_metrics`/loading-event display, and explicit save/export hook placement.
   - [x] Exposed explicit model node input/output handles so the template can route `frame`, `loading_events`, and skipped-handle data without relying on a generic output slot.
-- [ ] **12. Add browser/JS realtime inference lane.**
-  - Define how TensorFlow.js and Transformers.js inference participates in realtime sessions without becoming a second runtime model.
-  - Add package/runtime boundaries for browser-local, Electron-renderer, and Node-side JS inference.
-  - Route pose, landmarks, captions, classifications, and other analysis outputs through existing session/control/event surfaces instead of the media transport unless they are actual media frames.
-  - Add model loading, cache, backend capability, and metrics surfaces for `webgpu` / `wasm` / `cpu`.
+- [ ] **12. Integrate browser-local realtime analysis lane.**
+  - Treat browser JS as an opt-in analysis/control layer, not a second authoritative realtime runtime.
+  - Use the Phase 3 contracts already in place: placement matrix, `realtime_profile`, `realtime_analysis_event`, `realtime_inference_metrics`, and `packages/realtime-browser/`.
+  - Next work is integration: control-plane client, editor/operator affordances, graph mapping from analysis events to parameter updates, and coordination with existing TF.js/base-node plus Transformers.js packages.
+  - Real model loading comes after the integration path is stable and stays mocked-by-default in tests.
 - [ ] **13. Make realtime work from deployed NodeTool workers.**
   - Treat this as deployment hardening for the existing NodeTool deploy path, not a separate cloud runner.
   - Must-have: HTTPS/WSS, auth, proxy, ICE/STUN/TURN, worker placement, metrics, reconnect, and public output URL behavior.
