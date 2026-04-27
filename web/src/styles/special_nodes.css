@@ -205,6 +205,143 @@
   left: -8px !important;
 }
 
+/* Let Constant.Image use the full body area — image fills the resizable node. */
+.react-flow__node-nodetool\.constant\.Image .node-content-container,
+.react-flow__node-nodetool\.constant\.Image .node-content-container > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Image .node-inputs {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Image .node-property.image {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.react-flow__node-nodetool\.constant\.Image
+  .node-property.image
+  .property-label {
+  display: none;
+}
+
+.react-flow__node-nodetool\.constant\.Image .node-property.image .image-property,
+.react-flow__node-nodetool\.constant\.Image .node-property.image .drop-container,
+.react-flow__node-nodetool\.constant\.Image .node-property.image .dropzone,
+.react-flow__node-nodetool\.constant\.Image
+  .node-property.image
+  .dropzone.dropped,
+.react-flow__node-nodetool\.constant\.Image
+  .node-property.image
+  .image-preview-surface {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.react-flow__node-nodetool\.constant\.Image .node-property.image .dropzone img {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  border-radius: 0 !important;
+}
+
+/* Let Constant.Video use the full body area — video fills the resizable node. */
+.react-flow__node-nodetool\.constant\.Video .node-content-container,
+.react-flow__node-nodetool\.constant\.Video .node-content-container > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Video .node-inputs {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.react-flow__node-nodetool\.constant\.Video .node-property.video {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.react-flow__node-nodetool\.constant\.Video
+  .node-property.video
+  .property-label {
+  display: none;
+}
+
+.react-flow__node-nodetool\.constant\.Video .node-property.video .video-property,
+.react-flow__node-nodetool\.constant\.Video .node-property.video .drop-container,
+.react-flow__node-nodetool\.constant\.Video .node-property.video .dropzone,
+.react-flow__node-nodetool\.constant\.Video
+  .node-property.video
+  .dropzone.dropped {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.react-flow__node-nodetool\.constant\.Video
+  .node-property.video
+  .dropzone
+  video {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  border-radius: 0 !important;
+  background: #000;
+}
+
+/* Hide filename caption to maximize video area */
+.react-flow__node-nodetool\.constant\.Video
+  .node-property.video
+  .dropzone
+  > p.centered {
+  display: none;
+}
+
 /* Collapsed Loop node - styles moved to collapsed.css */
 
 /* Datatable */
