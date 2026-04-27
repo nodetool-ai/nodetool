@@ -51,7 +51,9 @@ Rules for the remaining work:
     - [ ] Stop the session cleanly without leaving stuck runners, workers, or model state.
   - Current implementation note:
     - [x] Added an opt-in canonical realtime smoke harness for the RTX 3060 Self-Forcing tier; it loads the canonical template, selects the required low-VRAM manifest artifacts only, observes a prompt update/output through injected pipeline hooks in tests, emits JSON-reportable loading/precision/backend/memory/latency/stop state, and fails before model launch when required artifacts are missing.
+    - [x] Made realtime model selection visible in Nodetool metadata: `LongLive` and `SelfForcing` `weight_source` fields use the Hugging Face model picker while preserving string/local-path compatibility, Self-Forcing exposes the selected canonical and RTX 3060 candidate recommended models, and the `Self-Forcing RTX 3060 Low VRAM` model pack groups the required FP8 transformer, Q5_K_M UMT5 encoder, and Wan 2.1 VAE for download.
     - [ ] Real RTX 3060 run is still blocked on artifact download/resolution and real loader wiring. The target machine sees an RTX 3060 from the `nodetool` conda env, but the no-download smoke reports missing `self_forcing_fp8_transformer`, `umt5_xxl_encoder_q5_k_m`, and `wan21_vae`.
+    - [ ] Manual Nodetool UI check is next: confirm the `LongLive` / `SelfForcing` model pickers show the recommendations and the `Self-Forcing RTX 3060 Low VRAM` pack, then download the pack and rerun the opt-in smoke.
     - [ ] Upstream implementation evidence needs a compatibility decision before using the official Self-Forcing path as the 1.3B RTX 3060 baseline: the public `configs/self_forcing_dmd.yaml` currently names `Wan2.1-T2V-14B`, while the lighter community 1.3B FP8/GGUF/VAE candidate set is experimental and about 5.8 GB before any extra runtime/base caches.
   - Defer full LongLive canonical validation, full Self-Forcing official-quality validation, the FP8/GGUF/INT8 matrix, browser-local inference, deployment, Electron packaging, persistent cache UX, and multi-adapter expansion until this smoke has run.
 - [ ] **10a. Finish LongLive real validation.**
@@ -296,23 +298,8 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 
 - [x] Step 9: pre-model design pass.
 - [ ] Step 10: first runnable RTX 3060 realtime smoke.
-  - Purpose: prove that a real lightweight model path can visibly run through the canonical realtime workflow on the target RTX 3060 machine before spending more time on broad model validation.
-  - Starting candidates:
-    - `Wan-AI/Wan2.1-T2V-1.3B` as the smallest selected base family.
-    - Self-Forcing RTX 3060 path first if it is the lightest available runnable option.
-    - `city96/umt5-xxl-encoder-gguf` (`Q5_K_M` or larger preferred), Wan 2.1 VAE safetensors, and community FP8 Self-Forcing 1.3B safetensors as explicit opt-in low-VRAM candidates.
-  - Acceptance criteria:
-    - [ ] Resolve or download required artifacts through the existing `nodetool-realtime` manifest/loader path, or through an explicit temporary smoke script if needed.
-    - [ ] Launch the canonical realtime workflow template with the chosen lightweight model path.
-    - [ ] Observe one prompt/control update and one generated output path, even if generation is very slow.
-    - [ ] Record loading phases, selected precision/backend, memory/offload state, errors, and rough latency/fps through logs or metrics.
-    - [ ] Stop the session cleanly without leaving stuck runners, workers, or model state.
-  - Defer:
-    - Full LongLive canonical validation.
-    - Full Self-Forcing official-quality validation.
-    - FP8/GGUF/INT8 matrix hardening beyond the single chosen path.
-    - Browser-local realtime inference.
-    - Deployment, Electron packaging, persistent cache UX, and multi-adapter expansion.
+  - Current source of truth: use the Step 10 entry in **Next implementation ladder** above for candidates, acceptance criteria, landed implementation notes, and current blockers.
+  - Summary: smoke harness and UI/download metadata are in place, but Step 10 remains open until the required artifacts are resolved/downloaded, one real visible generation runs through the canonical template, metrics/logs capture loading/precision/backend/memory/errors/latency, and the session stops cleanly.
 - [ ] Step 10a: LongLive real validation.
   - Purpose: prove the first heavy Python realtime video model against real downloaded weights while keeping normal tests dependency-light.
   - Landed foundation:
