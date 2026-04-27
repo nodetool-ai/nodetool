@@ -288,7 +288,7 @@ export function useLayerActions({
   const handleToggleGroupCollapsed = useCallback(
     (groupId: string) => {
       toggleGroupCollapsed(groupId);
-      pushHistory("toggle group collapsed");
+      pushHistory("toggle group collapse");
     },
     [pushHistory, toggleGroupCollapsed]
   );

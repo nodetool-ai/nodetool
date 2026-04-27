@@ -29,25 +29,30 @@ function restoreEntry(
     entry.layerStructure.map((layer) => [layer.id, layer.contentBounds])
   );
 
-  for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
-    const currentData = canvas.getLayerData(layerId);
-    if (
-      entry.restoreMode === "structure-only" &&
-      currentData === data &&
-      !entry.layerCanvasSnapshots?.[layerId]
-    ) {
-      continue;
+  if (entry.restoreMode === "structure-only") {
+    for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
+      const currentData = canvas.getLayerData(layerId);
+      if (currentData === data && !entry.layerCanvasSnapshots?.[layerId]) {
+        continue;
+      }
+      const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
+      if (canvasSnapshot) {
+        canvas.restoreLayerCanvas(layerId, canvasSnapshot);
+      } else {
+        canvas.setLayerData(layerId, data, boundsByLayerId.get(layerId));
+      }
     }
+    canvas.redrawDisplay();
+    return;
+  }
+
+  for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
     const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
     if (canvasSnapshot) {
       canvas.restoreLayerCanvas(layerId, canvasSnapshot);
     } else {
       canvas.setLayerData(layerId, data, boundsByLayerId.get(layerId));
     }
-  }
-
-  if (entry.restoreMode === "structure-only") {
-    canvas.redrawDisplay();
   }
 }
 
