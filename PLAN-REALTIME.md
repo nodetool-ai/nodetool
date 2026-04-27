@@ -153,7 +153,7 @@ Check:
 - [x] README, metadata, and starter template describe the same MVP.
 - [x] No first-run doc points users at mock/dev success paths.
 
-### [ ] 0.5 Consolidate Smoke Code
+### [x] 0.5 Consolidate Smoke Code
 
 Files:
 - `nodetool-realtime/src/nodetool/realtime/wan21/rtx3060_realtime_smoke.py`
@@ -165,15 +165,15 @@ Files:
 Steps:
 - [x] Choose `rtx3060_realtime_smoke.py` as the main smoke entrypoint.
 - [x] Move duplicated Self-Forcing and LongLive env parsing into that entrypoint or dev-only helpers.
-- [ ] Delete or rewrite the Self-Forcing env smoke test if it cannot reach a real inference frame.
+- [x] Delete or rewrite the Self-Forcing env smoke test if it cannot reach a real inference frame.
 - [x] Rename mock-visible smoke paths so they are clearly dev/test-only.
-- [ ] Keep tests for artifact errors, loading state, frame output, camera ingress, and clean stop.
+- [x] Keep tests for artifact errors, loading state, frame output, camera ingress, and clean stop.
 
 Check:
 - [x] There is one obvious RTX 3060 smoke command.
-- [ ] Smoke tests no longer define the user-facing product shape.
+- [x] Smoke tests no longer define the user-facing product shape.
 
-### [ ] 0.6 Trim Active Runtime Surface
+### [x] 0.6 Trim Active Runtime Surface
 
 Files:
 - `nodetool-realtime/src/nodetool/realtime/model_artifacts.py`
@@ -182,19 +182,19 @@ Files:
 - `packages/realtime-browser/`
 
 Steps:
-- [ ] Identify which `model_artifacts.py` functions are used by the MVP path.
-- [ ] Move unused lifecycle reports, compatibility matrices, smoke command plans, and telemetry reports behind dev/future APIs.
-- [ ] Keep artifact resolution, missing-artifact errors, and VRAM/offload reporting in the MVP path.
-- [ ] Wire or delete unused TS realtime pacing code.
-- [ ] Wire or delete unused consumer queue registration code.
-- [ ] Fix codec metrics so they match real decode behavior, or remove codec status from MVP metrics.
-- [ ] Leave `packages/realtime-browser` out of MVP UI unless a visible editor proof uses it.
+- [x] Identify which `model_artifacts.py` functions are used by the MVP path.
+- [x] Move unused lifecycle reports, compatibility matrices, smoke command plans, and telemetry reports behind dev/future APIs.
+- [x] Keep artifact resolution, missing-artifact errors, and VRAM/offload reporting in the MVP path.
+- [x] Wire or delete unused TS realtime pacing code.
+- [x] Wire or delete unused consumer queue registration code.
+- [x] Fix codec metrics so they match real decode behavior, or remove codec status from MVP metrics.
+- [x] Leave `packages/realtime-browser` out of MVP UI unless a visible editor proof uses it.
 
 Check:
-- [ ] The runtime files needed for the MVP are easy to identify.
-- [ ] Future APIs do not appear as required MVP dependencies.
+- [x] The runtime files needed for the MVP are easy to identify.
+- [x] Future APIs do not appear as required MVP dependencies.
 
-### [ ] 0.7 Simplify Brittle Tests
+### [x] 0.7 Simplify Brittle Tests
 
 Files:
 - `nodetool-realtime/tests/test_model_artifacts.py`
@@ -203,38 +203,40 @@ Files:
 - `nodetool-realtime/tests/test_longlive_backend.py`
 - `packages/kernel/tests/realtime-runner.test.ts`
 - `packages/realtime-nodes/tests/loopback.test.ts`
-- `web/src/components/node/__tests__/OutputRenderer.test.ts`
+- `web/src/components/node/__tests__/outputChunkUtils.test.ts`
 
 Steps:
-- [ ] Replace exact metadata dict assertions with behavior or required-key checks.
-- [ ] Replace exact internal reason-string assertions unless the string is user-visible.
-- [ ] Remove byte-level model pack size assertions unless the size is a published contract.
-- [ ] Keep one whitebox runner/buffer test layer and move duplicate coverage toward public behavior.
-- [ ] Rename `OutputRenderer.test.ts` if it only tests `outputChunkUtils`.
+- [x] Replace exact metadata dict assertions with behavior or required-key checks.
+- [x] Replace exact internal reason-string assertions unless the string is user-visible.
+- [x] Remove byte-level model pack size assertions unless the size is a published contract.
+- [x] Keep one whitebox runner/buffer test layer and move duplicate coverage toward public behavior.
+- [x] Rename `OutputRenderer.test.ts` if it only tests `outputChunkUtils`.
 
 Check:
-- [ ] Tests guard visible behavior and important contracts, not scaffolding details.
+- [x] Tests guard visible behavior and important contracts, not scaffolding details.
 
 ## Phase 1: MVP Inference Path
 
-### [ ] 1.1 Prove Preview Can Render Realtime Frames
+### [x] 1.1 Prove Preview Can Render Realtime Frames
 
 Files:
 - `web/src/components/node/OutputRenderer.tsx`
 - `web/src/components/node/output/RealtimeVideoFrameRenderer.tsx`
+- `web/src/components/node/output/__tests__/RealtimeVideoFrameRenderer.test.tsx`
 - `web/src/components/node/PreviewNode/PreviewNode.tsx`
+- `web/src/components/node/PreviewNode/__tests__/PreviewNode.test.tsx`
 - `packages/runtime/src/context.ts`
 
 Steps:
-- [ ] Create or run a smoke that sends one `rgb8` or `rgba8` `realtime_video_frame` into `VideoSink.frame`.
-- [ ] Connect `VideoSink.frame` to `Preview.value`.
-- [ ] Confirm the frame renders without asset conversion.
-- [ ] Fix rendering or normalization bugs found by the smoke.
-- [ ] Keep recording/export/codec conversion out of this task.
+- [x] Create or run a smoke that sends one `rgb8` or `rgba8` `realtime_video_frame` into `VideoSink.frame`.
+- [x] Connect `VideoSink.frame` to `Preview.value`.
+- [x] Confirm the frame renders without asset conversion.
+- [x] Fix rendering or normalization bugs found by the smoke. No production fixes were needed.
+- [x] Keep recording/export/codec conversion out of this task.
 
 Check:
-- [ ] `Preview` displays a raw realtime frame.
-- [ ] Unsupported formats show a clear message.
+- [x] `Preview` displays a raw realtime frame.
+- [x] Unsupported formats show a clear message.
 
 ### [ ] 1.2 Connect Camera `Video Source` To Model Input
 
@@ -275,6 +277,7 @@ Files:
 - `nodetool-realtime/README.md`
 
 Steps:
+- [ ] IMPORTANT: ask User to install necessary packs through using the nodetool interface and model downloader first
 - [ ] Resolve `self_forcing_fp8_transformer` through the Hugging Face cache.
 - [ ] Resolve `umt5_xxl_encoder_q5_k_m` through the Hugging Face cache.
 - [ ] Resolve `wan21_vae` through the Hugging Face cache.
