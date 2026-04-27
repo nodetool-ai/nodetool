@@ -1226,54 +1226,40 @@ describe("ListGeneratorNode", () => {
     expect(results[2].index).toBe(2);
   });
 
-  it("genProcess yields empty when output is not array", async () => {
-    const n = new (ListGeneratorNode as any)();
-    // Override process to return non-array
-    n.process = async () => ({ output: "not-array" });
-    const results: any[] = [];
-    for await (const chunk of n.genProcess()) {
-      results.push(chunk);
-    }
-    expect(results).toHaveLength(0);
-  });
-
-  it("parses provider list items from tagged response", async () => {
-    const n = new (ListGeneratorNode as any)();
-    const mockContext = {
-      runProviderPrediction: async () => ({
-        content: `<LIST_ITEM>First item</LIST_ITEM>
-<LIST_ITEM>Second item</LIST_ITEM>
-<LIST_ITEM>Third item</LIST_ITEM>`
-      }),
-      streamProviderPrediction: async function* () {}
+  function makeMockContextWithToolCalls(items: string[]) {
+    return {
+      getProvider: async () => ({
+        async *generateMessages() {
+          for (let i = 0; i < items.length; i++) {
+            yield { id: `call_${i}`, name: "add_item", args: { item: items[i] } };
+          }
+        }
+      })
     };
+  }
 
+  it("collects items emitted via add_item tool calls", async () => {
+    const n = new (ListGeneratorNode as any)();
+    const mockContext = makeMockContextWithToolCalls([
+      "First item",
+      "Second item",
+      "Third item"
+    ]);
     n.assign({
       prompt: "Generate items",
       model: { provider: "mock", id: "gpt-4" }
     });
     const result = await n.process(mockContext as any);
-
     expect(result.output).toEqual(["First item", "Second item", "Third item"]);
   });
 
-  it("normalizes multiline provider list items during streaming", async () => {
+  it("genProcess streams items as tool calls arrive", async () => {
     const n = new (ListGeneratorNode as any)();
-    const mockContext = {
-      runProviderPrediction: async () => ({ content: "" }),
-      streamProviderPrediction: async function* () {
-        yield {
-          type: "chunk",
-          content: "<LIST_ITEM>First item\nwith continuation</LIST_ITEM>\n"
-        };
-        yield {
-          type: "chunk",
-          content:
-            "<LIST_ITEM>Second item</LIST_ITEM>\n<LIST_ITEM>Third item on\nmultiple lines\nhere</LIST_ITEM>"
-        };
-      }
-    };
-
+    const mockContext = makeMockContextWithToolCalls([
+      "First item",
+      "Second item",
+      "Third item"
+    ]);
     n.assign({
       prompt: "Generate items",
       model: { provider: "mock", id: "gpt-4" }
@@ -1282,41 +1268,48 @@ describe("ListGeneratorNode", () => {
     for await (const chunk of n.genProcess(mockContext as any)) {
       results.push(chunk);
     }
-
     expect(results).toEqual([
-      { item: "First item with continuation", index: 0 },
+      { item: "First item", index: 0 },
       { item: "Second item", index: 1 },
-      { item: "Third item on multiple lines here", index: 2 }
+      { item: "Third item", index: 2 }
     ]);
   });
 
-  it("throws when provider output omits list tags", async () => {
+  it("ignores prose chunks and only yields tool-call items", async () => {
     const n = new (ListGeneratorNode as any)();
     const mockContext = {
-      runProviderPrediction: async () => ({ content: "plain text only" }),
-      streamProviderPrediction: async function* () {
-        yield { type: "chunk", content: "plain text only" };
-      }
+      getProvider: async () => ({
+        async *generateMessages() {
+          yield { type: "chunk", content: "ignored prose", content_type: "text" };
+          yield { id: "call_0", name: "add_item", args: { item: "Only item" } };
+          yield { type: "chunk", content: "more prose", content_type: "text", done: true };
+        }
+      })
     };
-
     n.assign({
       prompt: "Generate items",
       model: { provider: "mock", id: "gpt-4" }
     });
+    const result = await n.process(mockContext as any);
+    expect(result.output).toEqual(["Only item"]);
+  });
 
-    await expect(n.process(mockContext as any)).rejects.toThrow(
-      "<LIST_ITEM> tags"
-    );
-
-    await expect(
-      (async () => {
-        const chunks: any[] = [];
-        for await (const chunk of n.genProcess(mockContext as any)) {
-          chunks.push(chunk);
+  it("throws when model emits no add_item tool calls", async () => {
+    const n = new (ListGeneratorNode as any)();
+    const mockContext = {
+      getProvider: async () => ({
+        async *generateMessages() {
+          yield { type: "chunk", content: "no tools", content_type: "text", done: true };
         }
-        return chunks;
-      })()
-    ).rejects.toThrow("<LIST_ITEM> tags");
+      })
+    };
+    n.assign({
+      prompt: "Generate items",
+      model: { provider: "mock", id: "gpt-4" }
+    });
+    await expect(n.process(mockContext as any)).rejects.toThrow(
+      "no add_item tool calls"
+    );
   });
 });
 

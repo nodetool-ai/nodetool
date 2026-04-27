@@ -1,10 +1,16 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
 import type { ProcessingContext } from "@nodetool/runtime";
+import {
+  isChunkItem,
+  isToolCallItem,
+  streamProviderMessages,
+  toProviderTools,
+  type ToolLike
+} from "./agents.js";
 
 type Row = Record<string, unknown>;
 type ColumnSpec = { name: string; data_type?: string };
 type LanguageModelLike = { provider?: string; id?: string; name?: string };
-type ProviderStreamItem = { type?: string; content?: unknown; delta?: unknown };
 type BinaryRef = {
   uri?: string;
   data?: Uint8Array | string;
@@ -183,23 +189,73 @@ function hasProviderSupport(
   );
 }
 
-function chunkText(item: unknown): string {
-  if (!item || typeof item !== "object") return asText(item);
-  const chunk = item as ProviderStreamItem;
-  return asText(chunk.content ?? chunk.delta ?? "");
+const LIST_GENERATOR_SYSTEM_PROMPT =
+  "You generate a list by calling the `add_item` tool exactly once per item. " +
+  "Each call submits a single item as a short string. " +
+  "Do not output prose, explanations, or markdown — only emit tool calls. " +
+  "When the list is complete, stop without calling the tool again.";
+
+function makeAddItemTool(): ToolLike {
+  return {
+    name: "add_item",
+    description:
+      "Add one item to the output list. Call this once per item in the list.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["item"],
+      properties: {
+        item: {
+          type: "string",
+          description: "The list item content (a single string)."
+        }
+      }
+    },
+    process: async (_ctx, params) => {
+      const item = asText((params as { item?: unknown })?.item ?? "");
+      return { ok: true, item };
+    }
+  };
 }
 
-function normalizeWhitespace(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
-}
+async function* streamListItemsViaToolCalls(
+  context: ProcessingContext,
+  providerId: string,
+  modelId: string,
+  prompt: string,
+  maxTokens: number
+): AsyncGenerator<string> {
+  const provider = await (
+    context as ProcessingContext & {
+      getProvider: (id: string) => Promise<unknown>;
+    }
+  ).getProvider(providerId);
+  const tool = makeAddItemTool();
+  const providerTools = toProviderTools([tool]);
 
-function parseListItems(text: string): string[] {
-  const matches = Array.from(
-    text.matchAll(/<LIST_ITEM>([\s\S]*?)<\/LIST_ITEM>/gi)
-  );
-  return matches
-    .map((match) => normalizeWhitespace(match[1] ?? ""))
-    .filter((item) => item.length > 0);
+  const messages = [
+    { role: "system" as const, content: LIST_GENERATOR_SYSTEM_PROMPT },
+    { role: "user" as const, content: prompt }
+  ];
+
+  for await (const item of streamProviderMessages(
+    provider as Parameters<typeof streamProviderMessages>[0],
+    {
+      messages,
+      model: modelId,
+      tools: providerTools,
+      maxTokens
+    }
+  )) {
+    if (isToolCallItem(item) && item.name === "add_item") {
+      const text = asText(
+        (item.args as { item?: unknown })?.item ?? ""
+      ).trim();
+      if (text) yield text;
+    } else if (isChunkItem(item)) {
+      // Ignore narrative text — items only come via tool calls.
+    }
+  }
 }
 
 function dataframeFromRows(
@@ -280,62 +336,6 @@ async function generateDataframeFromCsv(
   });
   const content = asText((result as { content?: unknown }).content ?? result);
   return parseCsv(content, specs);
-}
-
-async function generateProviderText(
-  context: ProcessingContext & {
-    runProviderPrediction: (req: Record<string, unknown>) => Promise<unknown>;
-  },
-  providerId: string,
-  modelId: string,
-  prompt: string,
-  maxTokens: number
-): Promise<string> {
-  const result = await context.runProviderPrediction({
-    provider: providerId,
-    capability: "generate_message",
-    model: modelId,
-    params: {
-      model: modelId,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: maxTokens
-    }
-  });
-  if (
-    result &&
-    typeof result === "object" &&
-    "content" in (result as Record<string, unknown>)
-  ) {
-    return asText((result as { content?: unknown }).content ?? "");
-  }
-  return asText(result);
-}
-
-async function streamProviderText(
-  context: ProcessingContext & {
-    streamProviderPrediction: (
-      req: Record<string, unknown>
-    ) => AsyncGenerator<unknown>;
-  },
-  providerId: string,
-  modelId: string,
-  prompt: string,
-  maxTokens: number
-): Promise<string> {
-  let text = "";
-  for await (const item of context.streamProviderPrediction({
-    provider: providerId,
-    capability: "generate_messages",
-    model: modelId,
-    params: {
-      model: modelId,
-      messages: [{ role: "user", content: prompt }],
-      maxTokens
-    }
-  })) {
-    text += chunkText(item);
-  }
-  return text;
 }
 
 export class StructuredOutputGeneratorNode extends BaseNode {
@@ -655,57 +655,51 @@ export class ListGeneratorNode extends BaseNode {
   declare max_tokens: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = asText(this.prompt ?? this.prompt ?? "");
-    const inputText = asText(this.input_text ?? this.input_text ?? "");
-    const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const providerText = await generateProviderText(
-        context,
-        providerId,
-        modelId,
-        [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(this.max_tokens ?? this.max_tokens ?? 128)
-      );
-      const items = parseListItems(providerText);
-      if (items.length === 0) {
-        throw new Error("Expected <LIST_ITEM> tags in provider output");
-      }
-      return { output: items };
+    const items: string[] = [];
+    for await (const chunk of this.genProcess(context)) {
+      const item = (chunk as { item?: unknown }).item;
+      if (typeof item === "string") items.push(item);
     }
-    const seed = inputText || prompt || "item";
-    const count = parseRequestedCount(`${prompt} ${inputText}`, 5);
-    const items = Array.from({ length: count }, (_, i) => `${seed}_${i + 1}`);
     return { output: items };
   }
 
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
+    const prompt = asText(this.prompt ?? "");
+    const inputText = asText(this.input_text ?? "");
+    const userMessage = [prompt, inputText].filter(Boolean).join("\n\n");
     const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const prompt = asText(this.prompt ?? this.prompt ?? "");
-      const inputText = asText(this.input_text ?? this.input_text ?? "");
-      const providerText = await streamProviderText(
+
+    if (
+      context &&
+      typeof (context as { getProvider?: unknown }).getProvider === "function" &&
+      providerId &&
+      modelId
+    ) {
+      let index = 0;
+      for await (const item of streamListItemsViaToolCalls(
         context,
         providerId,
         modelId,
-        [prompt, inputText].filter(Boolean).join("\n\n"),
-        Number(this.max_tokens ?? this.max_tokens ?? 128)
-      );
-      const items = parseListItems(providerText);
-      if (items.length === 0) {
-        throw new Error("Expected <LIST_ITEM> tags in provider output");
+        userMessage,
+        Number(this.max_tokens ?? 128)
+      )) {
+        yield { item, index };
+        index += 1;
       }
-      for (let i = 0; i < items.length; i += 1) {
-        yield { item: items[i], index: i };
+      if (index === 0) {
+        throw new Error(
+          "Model returned no add_item tool calls — list is empty."
+        );
       }
       return;
     }
 
-    const result = await this.process(context);
-    const list = Array.isArray(result.output) ? result.output : [];
-    for (let i = 0; i < list.length; i += 1) {
-      yield { item: String(list[i]), index: i };
+    const seed = inputText || prompt || "item";
+    const count = parseRequestedCount(userMessage, 5);
+    for (let i = 0; i < count; i += 1) {
+      yield { item: `${seed}_${i + 1}`, index: i };
     }
   }
 }
