@@ -156,7 +156,7 @@ export function useSegmentation({
           sourceLayerId: doc.activeLayerId,
           masks: response.masks,
           timestamp: Date.now(),
-          modelId: response.modelId ?? "unknown"
+          modelId: response.modelId ?? backend
         };
 
         setResult(segResult);
