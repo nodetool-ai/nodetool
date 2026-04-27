@@ -14,14 +14,12 @@ import type { ThreadInfo } from "../chat/thread";
 import SvgFileIcon from "../SvgFileIcon";
 import PanelHeadline from "../ui/PanelHeadline";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { LanguageModel, Message, Workflow } from "../../stores/ApiTypes";
+import { Message, Workflow } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
-import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
 
-const ALLOWED_PROVIDERS = ["OpenAI", "MiniMax", "Anthropic", "Google", "Gemini"];
 const EMPTY_COLLECTIONS: string[] = [];
 
 const containerStyles = css({
@@ -80,7 +78,8 @@ const extractFirstTextContent = (message: Message): string | null => {
 
 /**
  * WorkflowAssistantChat embeds a ChatView scoped to the current workflow.
- * It supports only "talk to a workflow" mode (no agent/help mode behavior).
+ * Supports both plain chat-with-workflow mode and agent mode — any chat
+ * provider can be selected as the agent provider via the composer.
  */
 const WorkflowAssistantChat: React.FC = () => {
   const theme = useTheme();
@@ -103,7 +102,10 @@ const WorkflowAssistantChat: React.FC = () => {
     currentToolMessage,
     selectedModel,
     setSelectedModel,
+    agentMode,
     setAgentMode,
+    agentPlanner,
+    setAgentPlanner,
     setSelectedTools,
     setSelectedCollections
   } = useGlobalChatStore(
@@ -125,7 +127,10 @@ const WorkflowAssistantChat: React.FC = () => {
       currentToolMessage: state.currentToolMessage,
       selectedModel: state.selectedModel,
       setSelectedModel: state.setSelectedModel,
+      agentMode: state.agentMode,
       setAgentMode: state.setAgentMode,
+      agentPlanner: state.agentPlanner,
+      setAgentPlanner: state.setAgentPlanner,
       setSelectedTools: state.setSelectedTools,
       setSelectedCollections: state.setSelectedCollections
     }))
@@ -136,12 +141,12 @@ const WorkflowAssistantChat: React.FC = () => {
   const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
   const nodeMetadata = useMetadataStore((state) => state.metadata);
 
-  // Force workflow-only behavior in this panel.
+  // Tools and collections aren't selectable here — the workflow itself is the
+  // tool surface. Agent mode and provider/model stay user-controlled.
   useEffect(() => {
-    setAgentMode(false);
     setSelectedTools([]);
     setSelectedCollections([]);
-  }, [setAgentMode, setSelectedTools, setSelectedCollections]);
+  }, [setSelectedTools, setSelectedCollections]);
 
   const total = progress.total;
   const nodes = useNodes((state) => state.nodes, areNodesEqualIgnoringPosition);
@@ -219,34 +224,6 @@ const WorkflowAssistantChat: React.FC = () => {
     }
     return `workflow_${toolName}`;
   }, [currentWorkflowId, getWorkflow]);
-
-  const { models: approvedModels } = useLanguageModelsByProvider({
-    allowedProviders: ALLOWED_PROVIDERS
-  });
-
-  useEffect(() => {
-    if (approvedModels.length > 0) {
-      const isApproved = approvedModels.some(
-        (m: LanguageModel) =>
-          m.id === selectedModel.id &&
-          m.provider.toLowerCase() === selectedModel.provider?.toLowerCase()
-      );
-      if (!isApproved) {
-        // Fallback to first approved model (usually gpt-4o if available)
-        const fallback =
-          approvedModels.find((m: LanguageModel) => m.id === "gpt-4o") ||
-          approvedModels[0];
-        if (fallback) {
-          setSelectedModel({
-            type: "language_model",
-            id: fallback.id,
-            provider: fallback.provider,
-            name: fallback.name || fallback.id
-          });
-        }
-      }
-    }
-  }, [approvedModels, selectedModel.id, selectedModel.provider, setSelectedModel]);
 
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
@@ -338,7 +315,12 @@ const WorkflowAssistantChat: React.FC = () => {
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
-      const enrichedMessage = (hasMessageInput
+      // In agent mode, let the agent run autonomously: skip the
+      // workflow_target/MessageInput routing and tool auto-injection.
+      const messageAgentMode = (message as Message & { agent_mode?: boolean })
+        .agent_mode;
+      const useWorkflowRouting = !messageAgentMode && hasMessageInput;
+      const enrichedMessage = (useWorkflowRouting
         ? {
             ...message,
             workflow_id: currentWorkflowId ?? undefined,
@@ -347,21 +329,23 @@ const WorkflowAssistantChat: React.FC = () => {
         : {
             ...message,
             workflow_id: currentWorkflowId ?? undefined,
-            ...(currentWorkflowToolId
+            ...(!messageAgentMode && currentWorkflowToolId
               ? { tools: [currentWorkflowToolId] }
               : {})
           }) as Message;
-      const enrichedMessageWithInputNames = enrichedMessage as Message & {
-        workflow_message_input_name?: string;
-        workflow_messages_input_name?: string;
-      };
-      if (messageInputNames.length > 0) {
-        enrichedMessageWithInputNames.workflow_message_input_name =
-          messageInputNames[0];
-      }
-      if (messageListInputNames.length > 0) {
-        enrichedMessageWithInputNames.workflow_messages_input_name =
-          messageListInputNames[0];
+      if (useWorkflowRouting) {
+        const enrichedMessageWithInputNames = enrichedMessage as Message & {
+          workflow_message_input_name?: string;
+          workflow_messages_input_name?: string;
+        };
+        if (messageInputNames.length > 0) {
+          enrichedMessageWithInputNames.workflow_message_input_name =
+            messageInputNames[0];
+        }
+        if (messageListInputNames.length > 0) {
+          enrichedMessageWithInputNames.workflow_messages_input_name =
+            messageListInputNames[0];
+        }
       }
       await sendMessage(enrichedMessage);
     },
@@ -459,8 +443,8 @@ const WorkflowAssistantChat: React.FC = () => {
           WORKFLOW CHAT
         </h2>
         <p>
-          Chat with your workflow. Set <code>run_mode</code> to{" "}
-          <code>chat</code> in workflow settings.
+          Chat with your workflow, or switch to <strong>Agent</strong> mode in
+          the composer to plan and run tools with any provider.
         </p>
         <p
           style={{
@@ -470,8 +454,9 @@ const WorkflowAssistantChat: React.FC = () => {
             maxWidth: "320px"
           }}
         >
-          Messages are sent to your workflow&apos;s
-          MessageInput/MessageListInput nodes.
+          In chat mode, messages route to your workflow&apos;s
+          MessageInput/MessageListInput nodes. In agent mode, the selected
+          provider runs autonomously with planning and tool use.
         </p>
         {!hasMessageInput && (
           <Button
@@ -580,7 +565,10 @@ const WorkflowAssistantChat: React.FC = () => {
         onStop={stopGeneration}
         onNewChat={handleNewChat}
         noMessagesPlaceholder={workflowChatWelcome}
-        allowedProviders={ALLOWED_PROVIDERS}
+        agentMode={agentMode}
+        onAgentModeToggle={setAgentMode}
+        agentPlanner={agentPlanner}
+        onAgentPlannerChange={setAgentPlanner}
         runningToolCallId={currentRunningToolCallId}
         runningToolMessage={currentToolMessage}
         workflowId={currentWorkflowId ?? null}

@@ -3,12 +3,6 @@ import { uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyPar
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { FrontendToolRegistry } from "../frontendTools";
 
-const workflowTargetSchema = z
-  .object(uiOpenWorkflowParams)
-  .refine((value) => Boolean(value.workflow_id ?? value.id), {
-    message: "workflow_id (or id) is required"
-  });
-
 async function writeClipboardText(
   text: string,
   copyToClipboard?: (value: string) => Promise<void>
@@ -52,66 +46,54 @@ async function readClipboardText(
 FrontendToolRegistry.register({
   name: "ui_open_workflow",
   description: "Open a workflow tab and switch to it by workflow id.",
-  parameters: workflowTargetSchema,
-  async execute({ workflow_id, id }, ctx) {
+  parameters: z.object(uiOpenWorkflowParams),
+  async execute({ workflow_id }, ctx) {
     const state = ctx.getState();
-    const targetWorkflowId = workflow_id ?? id;
-    if (!targetWorkflowId) {
-      throw new Error("workflow_id is required");
-    }
 
     if (state.openWorkflow) {
-      await state.openWorkflow(targetWorkflowId);
+      await state.openWorkflow(workflow_id);
     } else {
-      await state.fetchWorkflow(targetWorkflowId);
-      const workflow = state.getWorkflow(targetWorkflowId);
+      await state.fetchWorkflow(workflow_id);
+      const workflow = state.getWorkflow(workflow_id);
       if (!workflow) {
-        throw new Error(`Workflow not found: ${targetWorkflowId}`);
+        throw new Error(`Workflow not found: ${workflow_id}`);
       }
-      state.setCurrentWorkflowId(targetWorkflowId);
+      state.setCurrentWorkflowId(workflow_id);
     }
 
-    return { ok: true, workflow_id: targetWorkflowId };
+    return { ok: true, workflow_id };
   }
 });
 
 FrontendToolRegistry.register({
   name: "ui_run_workflow",
   description: "Run a workflow by id.",
-  parameters: z
-    .object(uiRunWorkflowParams)
-    .refine((value) => Boolean(value.workflow_id ?? value.id), {
-      message: "workflow_id (or id) is required"
-    }),
-  async execute({ workflow_id, id, params }, ctx) {
+  parameters: z.object(uiRunWorkflowParams),
+  async execute({ workflow_id, params }, ctx) {
     const state = ctx.getState();
-    const targetWorkflowId = workflow_id ?? id;
-    if (!targetWorkflowId) {
-      throw new Error("workflow_id is required");
-    }
 
     if (state.runWorkflow) {
-      await state.runWorkflow(targetWorkflowId, params);
-      return { ok: true, workflow_id: targetWorkflowId };
+      await state.runWorkflow(workflow_id, params);
+      return { ok: true, workflow_id };
     }
 
-    await state.fetchWorkflow(targetWorkflowId);
-    const workflow = state.getWorkflow(targetWorkflowId);
+    await state.fetchWorkflow(workflow_id);
+    const workflow = state.getWorkflow(workflow_id);
     if (!workflow) {
-      throw new Error(`Workflow not found: ${targetWorkflowId}`);
+      throw new Error(`Workflow not found: ${workflow_id}`);
     }
 
-    const nodeStore = state.getNodeStore(targetWorkflowId)?.getState();
+    const nodeStore = state.getNodeStore(workflow_id)?.getState();
     if (!nodeStore) {
-      throw new Error(`No node store for workflow ${targetWorkflowId}`);
+      throw new Error(`No node store for workflow ${workflow_id}`);
     }
 
     const { nodes, edges } = nodeStore;
-    await getWorkflowRunnerStore(targetWorkflowId)
+    await getWorkflowRunnerStore(workflow_id)
       .getState()
       .run(params ?? {}, workflow, nodes, edges);
 
-    return { ok: true, workflow_id: targetWorkflowId };
+    return { ok: true, workflow_id };
   }
 });
 

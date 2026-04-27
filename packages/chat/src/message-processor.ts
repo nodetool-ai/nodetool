@@ -93,6 +93,13 @@ export async function processChat(opts: {
   callbacks?: ChatCallbacks;
   threadId?: string;
   signal?: AbortSignal;
+  /**
+   * Cap on tool-calling rounds before we stop and let the user intervene.
+   * Each round = one provider stream + parallel execution of any tool calls
+   * it produced. Prevents runaway loops when the model repeatedly emits
+   * invalid tool calls and gets the same error back. Defaults to 25.
+   */
+  maxIterations?: number;
 }): Promise<Message[]> {
   const {
     userInput,
@@ -103,7 +110,8 @@ export async function processChat(opts: {
     tools = [],
     callbacks,
     threadId,
-    signal
+    signal,
+    maxIterations = 25
   } = opts;
 
   // 1. Add user message
@@ -114,7 +122,7 @@ export async function processChat(opts: {
 
   let messagesToSend: Message[] = messages;
 
-  while (true) {
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
     const toolCallResults: Array<ToolCall & { result: unknown }> = [];
     let assistantText = "";
 

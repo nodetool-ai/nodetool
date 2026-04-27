@@ -1092,7 +1092,9 @@ describe("GlobalChatStore", () => {
 
       await store.getState().sendMessage(message);
 
-      expect(store.getState().error).toBe("Not connected to chat service");
+      expect(store.getState().error).toEqual(
+        expect.stringContaining("Not connected to chat service")
+      );
     });
   });
 

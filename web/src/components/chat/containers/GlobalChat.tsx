@@ -31,7 +31,6 @@ import useGlobalChatStore, {
 import type { ThreadInfo } from "../types/thread.types";
 import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { usePanelStore } from "../../../stores/PanelStore";
-import { useRightPanelStore } from "../../../stores/RightPanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 import { useShallow } from "zustand/react/shallow";
@@ -151,7 +150,6 @@ const GlobalChat: React.FC = () => {
 
   // Side panel states (for desktop spacing)
   const leftPanel = usePanelStore((s) => s.panel);
-  const rightPanel = useRightPanelStore((s) => s.panel);
 
   // Get messages from store
   const messages = getCurrentMessagesSync();
@@ -469,11 +467,7 @@ const GlobalChat: React.FC = () => {
           : leftPanel.isVisible
             ? `${leftPanel.panelSize}px`
             : `${leftPanel.minWidth}px`,
-        paddingRight: isMobile
-          ? 0
-          : rightPanel.isVisible
-            ? `${rightPanel.panelSize}px`
-            : 0,
+        paddingRight: 0,
         overflow: "hidden",
         position: "relative",
         boxSizing: "border-box",

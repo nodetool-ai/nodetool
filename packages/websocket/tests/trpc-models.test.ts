@@ -115,6 +115,7 @@ function makeProvider(
     getAvailableASRModels: () => Promise<{ id: string; name: string; provider: string }[]>;
     getAvailableEmbeddingModels: () => Promise<{ id: string; name: string; provider: string }[]>;
     getAvailableVideoModels: () => Promise<{ id: string; name: string; provider: string }[]>;
+    hasToolSupport: (model: string) => Promise<boolean>;
   }> = {}
 ) {
   return {
@@ -124,6 +125,7 @@ function makeProvider(
     getAvailableASRModels: vi.fn().mockResolvedValue([]),
     getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
     getAvailableVideoModels: vi.fn().mockResolvedValue([]),
+    hasToolSupport: vi.fn().mockResolvedValue(true),
     ...overrides
   };
 }
@@ -289,6 +291,33 @@ describe("models router", () => {
       const result = await caller.models.all();
       const ids = result.map((m) => m.id);
       expect(ids).toContain("gpt-extra");
+    });
+
+    it("stamps supports_tools on aggregated language models", async () => {
+      (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([
+        "openai"
+      ]);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeProvider({
+          getAvailableLanguageModels: vi.fn().mockResolvedValue([
+            { id: "tool-yes", name: "Yes", provider: "openai" },
+            { id: "tool-no", name: "No", provider: "openai" }
+          ]),
+          // The mock fans out to provider.hasToolSupport(modelId); the
+          // aggregator should stamp the result on each unified model.
+          hasToolSupport: vi
+            .fn()
+            .mockImplementation(async (m: string) => m !== "tool-no")
+        })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.all();
+      const yes = result.find((m) => m.id === "tool-yes");
+      const no = result.find((m) => m.id === "tool-no");
+      expect(yes?.supports_tools).toBe(true);
+      expect(no?.supports_tools).toBe(false);
     });
   });
 
@@ -672,6 +701,26 @@ describe("models router", () => {
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("gpt-4o");
       expect(result[0].type).toBe("language_model");
+    });
+
+    it("stamps supports_tools per model from provider.hasToolSupport", async () => {
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeProvider({
+          getAvailableLanguageModels: vi.fn().mockResolvedValue([
+            { id: "tool-yes", name: "Tool Yes", provider: "openai" },
+            { id: "tool-no", name: "Tool No", provider: "openai" }
+          ]),
+          hasToolSupport: vi
+            .fn()
+            .mockImplementation(async (m: string) => m !== "tool-no")
+        })
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.llmByProvider({ provider: "openai" });
+      expect(result).toHaveLength(2);
+      expect(result.find((m) => m.id === "tool-yes")?.supports_tools).toBe(true);
+      expect(result.find((m) => m.id === "tool-no")?.supports_tools).toBe(false);
     });
   });
 

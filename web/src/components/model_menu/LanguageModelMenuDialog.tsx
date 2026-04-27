@@ -9,6 +9,12 @@ export interface LanguageModelMenuDialogProps {
   onClose: () => void;
   onModelChange?: (model: LanguageModel) => void;
   allowedProviders?: string[];
+  /**
+   * Hide models the provider declares as non-tool-capable
+   * (`supports_tools === false`). Pass `true` from contexts that need
+   * function calling (e.g. agent mode).
+   */
+  requireToolSupport?: boolean;
   anchorEl?: HTMLElement | null;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
@@ -19,11 +25,15 @@ function LanguageModelMenuDialog({
   onClose,
   onModelChange,
   allowedProviders,
+  requireToolSupport,
   anchorEl,
   recommendedModels,
   modelPacks
 }: LanguageModelMenuDialogProps) {
-  const modelData = useLanguageModelsByProvider({ allowedProviders });
+  const modelData = useLanguageModelsByProvider({
+    allowedProviders,
+    requireToolSupport
+  });
   return (
     <ModelMenuDialogBase<LanguageModel>
       open={open}

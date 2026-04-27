@@ -1,46 +1,24 @@
 import { z } from "zod";
-import { uiAddNodeParams, positionInputSchema, nodePropertySchema } from "@nodetool/protocol";
+import { uiAddNodeParams } from "@nodetool/protocol";
 import { valueMatchesType } from "../../../utils/TypeHandler";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 
-const nodeInputSchema = z.object({
-  id: z.string(),
-  type: z.string().optional(),
-  node_type: z.string().optional(),
-  position: positionInputSchema,
-  properties: nodePropertySchema.optional()
-});
-
-const addNodeParametersSchema = z
-  .object({
-    node: nodeInputSchema.optional(),
-    ...uiAddNodeParams
-  })
-  .refine(
-    (data) => {
-      // Either node object is provided, or id and position are provided
-      if (data.node) {
-        return true;
-      }
-      return data.id !== undefined && data.position !== undefined;
-    },
-    {
-      message:
-        "Either 'node' object or both 'id' and 'position' must be provided"
-    }
-  );
+const addNodeParametersSchema = z.object(uiAddNodeParams);
 
 FrontendToolRegistry.register({
   name: "ui_add_node",
-  description: "Add a node to the current workflow graph.",
+  description:
+    "Add a single node to the current workflow graph. Required: `id`, `type`, `position`. Optional: `properties`.",
   parameters: addNodeParametersSchema,
-  async execute({ node, workflow_id, ...flatArgs }, ctx) {
+  async execute({ id, type, position, properties, workflow_id }, ctx) {
     const getFallbackPosition = (index: number) => ({
       x: 120 + (index % 6) * 240,
       y: 120 + Math.floor(index / 6) * 160
     });
 
+    // `position` is typed as `{x,y} | string` because some models emit it as
+    // a JSON string or "x,y". Normalize before handing to the node store.
     const normalizePosition = (
       input: unknown,
       fallbackIndex: number
@@ -60,7 +38,7 @@ FrontendToolRegistry.register({
             const parsed = JSON.parse(trimmed) as unknown;
             return normalizePosition(parsed, fallbackIndex);
           } catch {
-            // Invalid JSON: fall through to other parsers.
+            // fall through
           }
         }
 
@@ -77,44 +55,52 @@ FrontendToolRegistry.register({
       return getFallbackPosition(fallbackIndex);
     };
 
-    const nodeInput = (node ?? flatArgs) as {
-      id?: string;
-      type?: string;
-      node_type?: string;
-      position?: { x: number; y: number } | string;
-      properties?: Record<string, any>;
-    };
-
     const state = ctx.getState();
     const workflowId = resolveWorkflowId(state, workflow_id);
     const nodeStore = state.getNodeStore(workflowId)?.getState();
-    if (!nodeStore) {throw new Error(`No node store for workflow ${workflowId}`);}
-
-    const nodeType =
-      typeof nodeInput.type === "string" ? nodeInput.type : nodeInput.node_type;
-    if (!nodeType) {
-      throw new Error("Node is missing type");
+    if (!nodeStore) {
+      throw new Error(`No node store for workflow ${workflowId}`);
     }
 
-    const metadata = state.nodeMetadata[nodeType];
-    if (!metadata) {throw new Error(`Node type not found: ${nodeType}`);}
-    if (nodeInput.id === undefined) {
-      throw new Error("Node is missing id");
+    const metadata = state.nodeMetadata[type];
+    if (!metadata) {
+      const allTypes = Object.keys(state.nodeMetadata);
+      const lower = type.toLowerCase();
+      // Suggest by: (a) shared last segment (e.g. "TextGenerator" matches
+      // anything ending in TextGenerator), (b) substring on the basename, then
+      // (c) substring on the whole id. Cheap, no extra deps, and good enough
+      // to nudge the model to a real type without forcing another search round.
+      const basename = (t: string) =>
+        t.includes(".") ? t.slice(t.lastIndexOf(".") + 1) : t;
+      const targetBase = basename(type).toLowerCase();
+      const exactBase = allTypes.filter(
+        (t) => basename(t).toLowerCase() === targetBase
+      );
+      const baseContains = allTypes.filter((t) =>
+        basename(t).toLowerCase().includes(targetBase)
+      );
+      const fullContains = allTypes.filter((t) =>
+        t.toLowerCase().includes(lower)
+      );
+      const suggestions = Array.from(
+        new Set([...exactBase, ...baseContains, ...fullContains])
+      ).slice(0, 8);
+      const hint = suggestions.length
+        ? ` Did you mean: ${suggestions.join(", ")}?`
+        : " Use ui_search_nodes to find the correct type.";
+      throw new Error(`Node type not found: ${type}.${hint}`);
     }
-    if (nodeInput.position === undefined) {
-      throw new Error("Node is missing position");
-    }
+
     const normalizedPosition = normalizePosition(
-      nodeInput.position,
+      position,
       nodeStore.nodes.length
     );
-    if (nodeInput.properties === undefined) {
-      nodeInput.properties = {};
-    }
+
+    const resolvedProperties: Record<string, any> = { ...(properties ?? {}) };
     for (const property of metadata.properties) {
-      const value = nodeInput.properties[property.name];
+      const value = resolvedProperties[property.name];
       if (value === undefined) {
-        nodeInput.properties[property.name] = property.default;
+        resolvedProperties[property.name] = property.default;
       } else {
         const matches = valueMatchesType(value, property.type);
         if (!matches) {
@@ -124,9 +110,10 @@ FrontendToolRegistry.register({
         }
       }
     }
+
     nodeStore.addNode({
-      id: nodeInput.id,
-      type: nodeType,
+      id,
+      type,
       position: normalizedPosition,
       parentId: "",
       selected: false,
@@ -138,7 +125,7 @@ FrontendToolRegistry.register({
       },
       zIndex: 0,
       data: {
-        properties: nodeInput.properties,
+        properties: resolvedProperties,
         dynamic_properties: {},
         dynamic_outputs: {},
         sync_mode: "on_any",
@@ -147,25 +134,20 @@ FrontendToolRegistry.register({
       }
     });
 
-    // Build warnings for required properties that are still empty/default
     const warnings: string[] = [];
-    const providedProps = (node ?? flatArgs as Record<string, any>)?.properties as
-      | Record<string, unknown>
-      | undefined;
     for (const property of metadata.properties) {
-      if (!property.required) {continue;}
+      if (!property.required) continue;
       const wasExplicitlyProvided =
-        providedProps !== undefined && property.name in providedProps;
-      if (wasExplicitlyProvided) {continue;}
+        properties !== undefined && property.name in properties;
+      if (wasExplicitlyProvided) continue;
 
-      const value = nodeInput.properties![property.name];
+      const value = resolvedProperties[property.name];
       if (
         value === null ||
         value === undefined ||
         value === "" ||
         (typeof value === "object" &&
           !Array.isArray(value) &&
-          value !== null &&
           Object.keys(value).length === 0)
       ) {
         warnings.push(
