@@ -6,6 +6,7 @@
  */
 
 import type { LayerContentBounds, SketchDocument } from "../../types";
+import { isQuadTransformMode } from "../../types";
 import {
   getCanvasRasterBounds,
   getLayerCompositeOffset,
@@ -40,7 +41,7 @@ export function reconcileLayerToDocumentSpace(
   const matrix = layer.transform?.matrix;
   const quad = layer.transform?.quad;
   const usesAdvancedAffine = Boolean(matrix && layer.transform?.mode);
-  const usesPerspective = Boolean(layer.transform?.mode === "perspective" && quad);
+  const usesPerspective = Boolean(isQuadTransformMode(layer.transform?.mode) && quad);
   const hasTranslation = tx !== 0 || ty !== 0;
   const hasScaleOrRotation = sx !== 1 || sy !== 1 || rot !== 0;
 

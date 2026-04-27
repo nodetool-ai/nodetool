@@ -24,7 +24,8 @@ import {
   CloneStampSettings,
   SelectSettings,
   SegmentSettings,
-  SegmentationStatus
+  SegmentationStatus,
+  TransformMode
 } from "./types";
 import type { SamModelInfo } from "./sam";
 import { ToolSettingsPanel } from "./ToolSettingsPanels";
@@ -93,11 +94,9 @@ export interface SketchToolTopBarProps {
   onTransformCancel?: () => void;
   onTransformReset?: () => void;
   transformAutoSelect?: boolean;
-  transformMode?: "auto" | "scale" | "distort" | "skew" | "perspective";
+  transformMode?: TransformMode;
   onTransformAutoSelectChange?: (enabled: boolean) => void;
-  onTransformModeChange?: (
-    mode: "auto" | "scale" | "distort" | "skew" | "perspective"
-  ) => void;
+  onTransformModeChange?: (mode: TransformMode) => void;
   moveAutoSelect?: boolean;
   onMoveAutoSelectChange?: (enabled: boolean) => void;
   segmentSettings?: SegmentSettings;

@@ -303,7 +303,7 @@ export function useEditorKeyboardShortcuts(
           e.preventDefault();
           paramsRef.current.handleInvertLayerColors();
         }
-        // Ctrl+Backspace → fill with background color (Photoshop convention)
+        // Ctrl+Backspace → fill with background color (common editor convention)
         if (e.key === "Backspace") {
           e.preventDefault();
           paramsRef.current.handleFillLayerWithColor(
@@ -353,7 +353,7 @@ export function useEditorKeyboardShortcuts(
           }
         }
       } else if (e.altKey) {
-        // Alt+Backspace → fill with foreground color (Photoshop convention)
+        // Alt+Backspace → fill with foreground color (common editor convention)
         if (e.key === "Backspace") {
           e.preventDefault();
           paramsRef.current.handleFillLayerWithColor(
@@ -365,7 +365,7 @@ export function useEditorKeyboardShortcuts(
         if (e.key === "M") {
           paramsRef.current.setMirrorY(!useSketchStore.getState().mirrorY);
         }
-        // Shift+[ / Shift+] → decrease / increase hardness (Photoshop convention)
+        // Shift+[ / Shift+] → decrease / increase hardness (common editor convention)
         if (e.key === "{") {
           const store = useSketchStore.getState();
           const tool = store.activeTool;
@@ -408,7 +408,7 @@ export function useEditorKeyboardShortcuts(
           }
         }
       } else {
-        // Number keys 0-9 → set brush opacity (Photoshop convention)
+        // Number keys 0-9 → set brush opacity (common editor convention)
         // 1=10%, 2=20%, ..., 9=90%, 0=100%
         if (/^[0-9]$/.test(e.key)) {
           const store = useSketchStore.getState();

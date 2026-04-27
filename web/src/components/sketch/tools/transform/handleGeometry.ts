@@ -12,6 +12,7 @@
  */
 
 import type { Point, LayerTransform, LayerContentBounds } from "../../types";
+import { isQuadTransformMode } from "../../types";
 import {
   getTransformedExtents,
   getTransformedCorners,
@@ -54,8 +55,8 @@ export const PIVOT_SNAP_DISTANCE = GIZMO_PIVOT_SNAP_DISTANCE;
 
 function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
   return Boolean(
-    (transform.matrix && transform.mode && transform.mode !== "perspective") ||
-      (transform.mode === "perspective" && transform.quad)
+    (transform.matrix && transform.mode && !isQuadTransformMode(transform.mode)) ||
+      (isQuadTransformMode(transform.mode) && transform.quad)
   );
 }
 
@@ -312,7 +313,7 @@ export function hitTestHandles(
  * Test whether a point falls in the "rotate zone": outside the bounding box
  * but within `OUTSIDE_ROTATE_MARGIN / zoom` document units of the box edge.
  *
- * This enables Photoshop-style "drag outside box to rotate" behavior.
+ * This enables dragging outside the box to rotate.
  * Should only be called after `hitTestHandles` returns `null` — it does NOT
  * check handles or the box interior.
  */

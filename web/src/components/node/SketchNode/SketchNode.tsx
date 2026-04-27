@@ -57,6 +57,15 @@ import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import type { Node as FlowNode } from "@xyflow/react";
+import {
+  SKETCH_OUTPUT_LAYERS_HANDLE,
+  collectExposedLayerOutputRefs,
+  getLayerInputHandleName,
+  getLayerOutputHandleName,
+  parseLayerInputHandleName,
+  sketchNodeOutputImageListTypeMetadata,
+  sketchNodeOutputImageTypeMetadata
+} from "./sketchNodeIO";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -298,23 +307,6 @@ function sketchLayerIoSignature(doc: SketchDocument): string {
     .join("|");
 }
 
-function getLayerInputHandleName(layerName: string): string {
-  return `layer_in_${layerName}`;
-}
-
-function getLayerOutputHandleName(layerName: string): string {
-  return `layer_out_${layerName}`;
-}
-
-function parseLayerInputHandleName(
-  handleName: string | null | undefined
-): string | null {
-  if (!handleName || !handleName.startsWith("layer_in_")) {
-    return null;
-  }
-  return handleName.slice("layer_in_".length) || null;
-}
-
 function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
   const activeLayer = doc.layers.find(
     (layer) => layer.id === doc.activeLayerId
@@ -335,12 +327,6 @@ function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
     activeLayerId: fallbackActiveLayer.id
   };
 }
-
-const outputImageTypeMetadata = {
-  type: "image",
-  type_args: [],
-  optional: false
-};
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -693,7 +679,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       exposedInputLayers.map((l) => getLayerInputHandleName(l.name))
     );
     const desiredOutKeys = new Set(
-      exposedOutputLayers.map((l) => getLayerOutputHandleName(l.name))
+      exposedOutputLayers
+        .map((l) => getLayerOutputHandleName(l.name))
+        .concat(SKETCH_OUTPUT_LAYERS_HANDLE)
     );
 
     const curDyn = {
@@ -748,13 +736,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       const k = getLayerOutputHandleName(layer.name);
       if (nextOut[k] === undefined) {
         nextOut[k] = {
-          type: "image",
-          type_args: [],
-          optional: false,
+          ...sketchNodeOutputImageTypeMetadata,
           values: null,
           type_name: null
         };
       }
+    }
+    if (nextOut[SKETCH_OUTPUT_LAYERS_HANDLE] === undefined) {
+      nextOut[SKETCH_OUTPUT_LAYERS_HANDLE] = {
+        ...sketchNodeOutputImageListTypeMetadata,
+        values: null,
+        type_name: null
+      };
     }
 
     if (
@@ -973,6 +966,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
               };
             }
           }
+          outputProps[SKETCH_OUTPUT_LAYERS_HANDLE] =
+            collectExposedLayerOutputRefs(outputProps);
 
           // Single batched update
           updateNodeProperties(props.id, outputProps);
@@ -1189,7 +1184,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 id={props.id}
                 output={{
                   name: "image",
-                  type: outputImageTypeMetadata,
+                  type: sketchNodeOutputImageTypeMetadata,
                   stream: false
                 }}
               />
@@ -1197,9 +1192,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                 id={props.id}
                 output={{
                   name: "mask",
-                  type: outputImageTypeMetadata,
+                  type: sketchNodeOutputImageTypeMetadata,
                   stream: false
                 }}
+              />
+              <NodeOutput
+                id={props.id}
+                output={{
+                  name: SKETCH_OUTPUT_LAYERS_HANDLE,
+                  type: sketchNodeOutputImageListTypeMetadata,
+                  stream: false
+                }}
+                displayName="Layers"
               />
               {exposedOutputLayers.map((layer) => (
                 <NodeOutput
@@ -1207,7 +1211,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                   id={props.id}
                   output={{
                     name: getLayerOutputHandleName(layer.name),
-                    type: outputImageTypeMetadata,
+                    type: sketchNodeOutputImageTypeMetadata,
                     stream: false
                   }}
                   displayName={layer.name}

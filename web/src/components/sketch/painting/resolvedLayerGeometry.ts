@@ -29,7 +29,7 @@ import type {
   Layer,
   AffineMatrix
 } from "../types";
-import { composeAffineMatrix } from "../types";
+import { composeAffineMatrix, isQuadTransformMode } from "../types";
 import type { Point } from "../types/geometry";
 import { computeLayerOpaquePixelBounds } from "./opaquePixelBounds";
 import { getCanvasRasterBounds } from "./layerBounds";
@@ -38,8 +38,8 @@ function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
   return Boolean(transform.matrix && transform.mode);
 }
 
-function usesPerspectiveTransform(transform: LayerTransform): boolean {
-  return Boolean(transform.mode === "perspective" && transform.quad);
+function usesQuadTransform(transform: LayerTransform): boolean {
+  return Boolean(isQuadTransformMode(transform.mode) && transform.quad);
 }
 
 function applyAffineMatrix(
@@ -196,7 +196,7 @@ export function getTransformedExtents(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): DocumentExtents {
-  if (usesPerspectiveTransform(transform) && transform.quad) {
+  if (usesQuadTransform(transform) && transform.quad) {
     const xs = transform.quad.map((corner) => corner.x);
     const ys = transform.quad.map((corner) => corner.y);
     const minX = Math.min(...xs);
@@ -290,7 +290,7 @@ export function getTransformedCorners(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): [Point, Point, Point, Point] {
-  if (usesPerspectiveTransform(transform) && transform.quad) {
+  if (usesQuadTransform(transform) && transform.quad) {
     return transform.quad.map((corner) => ({ ...corner })) as [Point, Point, Point, Point];
   }
   if (usesAdvancedAffineTransform(transform) && transform.matrix) {
@@ -346,7 +346,7 @@ export function getTransformedCenter(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point {
-  if (usesPerspectiveTransform(transform) && transform.quad) {
+  if (usesQuadTransform(transform) && transform.quad) {
     return {
       x:
         (transform.quad[0].x +

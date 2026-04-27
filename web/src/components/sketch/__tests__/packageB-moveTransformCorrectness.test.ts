@@ -52,7 +52,8 @@ import {
   computeDistortTransform,
   computeSkewTransform,
   computePerspectiveTransform,
-  resolvePhotoshopTransformMode
+  computeWarpTransform,
+  resolveTransformGestureMode
 } from "../tools/transform/computeTransform";
 import { cursorForHandle } from "../tools/transform/cursorMapping";
 
@@ -757,31 +758,41 @@ describe("Package B: transform computation correctness", () => {
   });
 });
 
-describe("Package B: Photoshop-style advanced transform modes", () => {
+describe("Package B: advanced transform modes", () => {
   const bounds = makeBounds({ x: 0, y: 0, width: 100, height: 100 });
 
   it("resolves corner ctrl-drag to distort and edge ctrl-drag to skew", () => {
     expect(
-      resolvePhotoshopTransformMode("auto", "top-left", {
+      resolveTransformGestureMode("auto", "top-left", {
         ctrlOrMeta: true,
         shift: false,
         alt: false
       })
     ).toBe("distort");
     expect(
-      resolvePhotoshopTransformMode("auto", "left", {
+      resolveTransformGestureMode("auto", "left", {
         ctrlOrMeta: true,
         shift: false,
         alt: false
       })
     ).toBe("skew");
     expect(
-      resolvePhotoshopTransformMode("auto", "top-left", {
+      resolveTransformGestureMode("auto", "top-left", {
         ctrlOrMeta: true,
         shift: true,
         alt: true
       })
     ).toBe("perspective");
+  });
+
+  it("preserves explicit warp mode without remapping it through modifiers", () => {
+    expect(
+      resolveTransformGestureMode("warp", "top-left", {
+        ctrlOrMeta: false,
+        shift: false,
+        alt: false
+      })
+    ).toBe("warp");
   });
 
   it("computeDistortTransform keeps the opposite corner anchored", () => {
@@ -868,6 +879,31 @@ describe("Package B: Photoshop-style advanced transform modes", () => {
     expect(nextCorners[1].x).toBeGreaterThan(corners[1].x);
     expect(nextCorners[3].y).toBeLessThan(corners[3].y);
     expect(nextCorners[2]).toEqual(corners[2]);
+  });
+
+  it("computeWarpTransform moves only the dragged corner in quad space", () => {
+    const transform = makeTransform({ x: 0, y: 0 });
+    const corners = getTransformedCorners(transform, bounds);
+    const dragStart = corners[0];
+    const cursor = { x: dragStart.x - 18, y: dragStart.y + 14 };
+
+    const result = computeWarpTransform(
+      corners,
+      "top-left",
+      dragStart,
+      cursor,
+      bounds,
+      transform
+    );
+    const nextCorners = getTransformedCorners(result, bounds);
+
+    expect(result.mode).toBe("warp");
+    expect(result.quad).toBeDefined();
+    expect(nextCorners[0].x).toBeCloseTo(cursor.x, 5);
+    expect(nextCorners[0].y).toBeCloseTo(cursor.y, 5);
+    expect(nextCorners[1]).toEqual(corners[1]);
+    expect(nextCorners[2]).toEqual(corners[2]);
+    expect(nextCorners[3]).toEqual(corners[3]);
   });
 });
 

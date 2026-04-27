@@ -156,7 +156,7 @@ These blocks were moved out of `SKETCH_FEATURES.md` so the active roadmap can st
 - [x] Adjustment section with sliders for: brightness, contrast, saturation (collapsible panel with Apply button)
 - [x] **Brush engine variants** (see **Brush types** below)
 - [x] **Straight Lines for drawing with Brushes, Eraser** draw straight lines when holding SHIFT key and clicking. Fixed: capture-phase key listeners so Shift key state is properly tracked.
-- [x] **Eraser** paints transparent (uses `destination-out` composite operation). Erased areas reveal the canvas background color — this is correct behavior matching Photoshop.
+- [x] **Eraser** paints transparent (uses `destination-out` composite operation). Erased areas reveal the canvas background color — this matches common editor behavior.
 - [x] **Performance** rAF-batched redraw coalesces layer compositing during active drawing (one redraw per animation frame instead of per pointer move event); reduces jank on large canvases
 - [x] **Performance** blur tool: cached temporary canvases (avoids 3 canvas allocations per pointer move); checkerboard: cached as
 - [x] Add `B` for brush tool.
@@ -364,16 +364,16 @@ These blocks were moved out of `SKETCH_FEATURES.md` so the active roadmap can st
 - [x] **S + drag brush size** — horizontal drag while S held adjusts brush/pencil/eraser/blur size
 - [x] **Brush engine variants** — Round / Soft / Airbrush / Spray brush types with toolbar selector
 - [x] **Improved blur brush** — circular radial-gradient mask for soft blending (no more hard edges)
-- [x] **Alt+click eyedropper** — picks color while painting without switching tool (Photoshop convention)
+- [x] **Alt+click eyedropper** — picks color while painting without switching tool (common editor convention)
 - [x] **Shift+[ / Shift+]** — decrease / increase hardness for brush and eraser
-- [x] **Number keys 0-9** — set brush/pencil/eraser opacity (0=100%, 1=10%…9=90%, Photoshop convention)
+- [x] **Number keys 0-9** — set brush/pencil/eraser opacity (0=100%, 1=10%…9=90%, common editor convention)
 - [x] **Layer thumbnails** — small preview images of layer content in layers panel
 - [x] **Alpha lock per layer** — lock transparency; painting only affects existing opaque pixels (🔒 indicator)
 - [x] **Shift+M** — toggle vertical mirror (M = horizontal)
-- [x] **Alt+Backspace / Ctrl+Backspace** — fill layer with foreground / background color (Photoshop convention)
+- [x] **Alt+Backspace / Ctrl+Backspace** — fill layer with foreground / background color (common editor convention)
 - [x] **Stroke stabilizer** — moving-average smoothing (window=4) for brush strokes
 - [x] **Fill layer with color** — canvas method + keyboard shortcuts for foreground/background fill
-- [x] **Shift+click straight lines** — hold Shift and click to draw a straight line from the last stroke endpoint to the click point (Photoshop convention; works for brush, pencil, eraser, blur)
+- [x] **Shift+click straight lines** — hold Shift and click to draw a straight line from the last stroke endpoint to the click point (common editor convention; works for brush, pencil, eraser, blur)
 - [x] **Undo history for layer operations** — layer structure changes (add/remove/duplicate/reorder/visibility/opacity/blend mode/rename/mask/alpha lock) now captured in undo history with full layer structure snapshots
 - [x] **Context menu two-column layout** — left side for active tool presets (size/opacity), right side for tool switching + actions; bolder header, section labels, shortcut hints
 - [x] **Color mode buttons** — bolder HEX/RGB/HSL toggle buttons with improved contrast and selected state

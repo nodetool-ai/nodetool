@@ -6,7 +6,7 @@
  * 2. **Layer composite** – blits a layer texture with opacity, affine
  *    transform, and hardware source-over blend (normal blend mode fast path).
  * 3. **Blend composite** – reads both src (layer) and dst (current composite)
- *    textures and applies Photoshop-style blend modes in the shader. Used for
+ *    textures and applies standard blend modes in the shader. Used for
  *    non-normal blend modes (multiply, screen, overlay, etc.).
  * 4. **Blit** – copies the intermediate composite texture to the swap chain.
  * 5. **Border** – 1px outline around the canvas boundary.

@@ -12,7 +12,7 @@
  */
 
 import type { Point, LayerTransform, LayerContentBounds, TransformMode } from "../../types";
-import { ensureTransformMatrix } from "../../types";
+import { ensureTransformMatrix, isQuadTransformMode } from "../../types";
 import {
   rotatePoint,
   snapAngle,
@@ -22,7 +22,7 @@ import {
 } from "./handleGeometry";
 import { getTransformedCenter } from "../../painting/resolvedLayerGeometry";
 
-type PhotoshopTransformMode = Exclude<TransformMode, "auto">;
+type GestureTransformMode = Exclude<TransformMode, "auto">;
 type PerspectiveQuad = NonNullable<LayerTransform["quad"]>;
 
 const CORNER_INDEX_BY_HANDLE: Record<
@@ -115,10 +115,11 @@ function scaledVector(axis: Point, amount: number): Point {
   };
 }
 
-function buildPerspectiveTransform(
+function buildQuadTransform(
   quad: PerspectiveQuad,
   rasterBounds: LayerContentBounds,
-  baseTransform: LayerTransform
+  baseTransform: LayerTransform,
+  mode: "perspective" | "warp"
 ): LayerTransform {
   const { matrix: _matrix, quad: _quad, mode: _mode, ...rest } = baseTransform;
   const center = quadCenter(quad);
@@ -139,7 +140,7 @@ function buildPerspectiveTransform(
     scaleY:
       Math.hypot(leftVector.x, leftVector.y) / Math.max(1, rasterBounds.height),
     rotation: Math.atan2(topVector.y, topVector.x),
-    mode: "perspective",
+    mode,
     quad
   };
 }
@@ -169,7 +170,7 @@ function isEdgeHandle(
   );
 }
 
-export function resolvePhotoshopTransformMode(
+export function resolveTransformGestureMode(
   baseMode: TransformMode,
   handle: TransformHandle,
   modifiers: {
@@ -177,10 +178,10 @@ export function resolvePhotoshopTransformMode(
     shift: boolean;
     alt: boolean;
   }
-): PhotoshopTransformMode {
+): GestureTransformMode {
   if (baseMode !== "auto") {
-    if (baseMode === "perspective") {
-      return "perspective";
+    if (baseMode === "perspective" || baseMode === "warp") {
+      return baseMode;
     }
     return baseMode;
   }
@@ -452,7 +453,33 @@ export function computePerspectiveTransform(
     };
   }
 
-  return buildPerspectiveTransform(nextQuad, rasterBounds, baseTransform);
+  return buildQuadTransform(nextQuad, rasterBounds, baseTransform, "perspective");
+}
+
+export function computeWarpTransform(
+  dragStartCorners: [Point, Point, Point, Point],
+  handle: Extract<
+    TransformHandle,
+    "top-left" | "top-right" | "bottom-right" | "bottom-left"
+  >,
+  dragStart: Point,
+  cursor: Point,
+  rasterBounds: LayerContentBounds,
+  baseTransform: LayerTransform
+): LayerTransform {
+  const delta = {
+    x: cursor.x - dragStart.x,
+    y: cursor.y - dragStart.y
+  };
+  const draggedIndex = CORNER_INDEX_BY_HANDLE[handle];
+  const nextQuad = dragStartCorners.map((corner) => ({
+    ...corner
+  })) as PerspectiveQuad;
+  nextQuad[draggedIndex] = {
+    x: nextQuad[draggedIndex].x + delta.x,
+    y: nextQuad[draggedIndex].y + delta.y
+  };
+  return buildQuadTransform(nextQuad, rasterBounds, baseTransform, "warp");
 }
 
 // ─── Move computation ────────────────────────────────────────────────────────
@@ -468,7 +495,7 @@ export function computeMoveTransform(
 ): LayerTransform {
   const dx = cursor.x - dragStart.x;
   const dy = cursor.y - dragStart.y;
-  if (dragStartTransform.mode === "perspective" && dragStartTransform.quad) {
+  if (isQuadTransformMode(dragStartTransform.mode) && dragStartTransform.quad) {
     return {
       ...dragStartTransform,
       x: Math.round(dragStartTransform.x + dx),
@@ -521,7 +548,7 @@ export function computeRotateTransform(
   shift: boolean,
   layerCenter?: Point
 ): LayerTransform {
-  if (dragStartTransform.mode === "perspective" && dragStartTransform.quad) {
+  if (isQuadTransformMode(dragStartTransform.mode) && dragStartTransform.quad) {
     const angleStart = Math.atan2(
       dragStart.y - pivot.y,
       dragStart.x - pivot.x

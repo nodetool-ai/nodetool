@@ -75,12 +75,12 @@ export interface LayerTransform {
    */
   matrix?: AffineMatrix;
   /**
-   * Advanced Photoshop-style affine transform mode currently active on the
+   * Advanced transform mode currently active on the
    * layer. Standard free-transform layers omit this field.
    */
-  mode?: "distort" | "skew" | "perspective";
+  mode?: "distort" | "skew" | "perspective" | "warp";
   /**
-   * Document-space quad for perspective preview/bake paths. Order:
+   * Document-space quad for quad-transform preview/bake paths. Order:
    * top-left, top-right, bottom-right, bottom-left.
    */
   quad?: PerspectiveQuad;
@@ -133,11 +133,17 @@ export function decomposeAffineMatrix(m: AffineMatrix): {
   return { x, y, scaleX, scaleY: correctedScaleY, rotation };
 }
 
+export function isQuadTransformMode(
+  mode: LayerTransform["mode"] | undefined
+): mode is "perspective" | "warp" {
+  return mode === "perspective" || mode === "warp";
+}
+
 /**
  * Returns true when a LayerTransform is the identity (no visual change).
  */
 export function isIdentityTransform(t: LayerTransform): boolean {
-  if (t.mode === "perspective" && Array.isArray(t.quad) && t.quad.length === 4) {
+  if (isQuadTransformMode(t.mode) && Array.isArray(t.quad) && t.quad.length === 4) {
     return false;
   }
   return (
@@ -154,7 +160,7 @@ export function isIdentityTransform(t: LayerTransform): boolean {
  * decomposed values. Returns the input unchanged if matrix is already set.
  */
 export function ensureTransformMatrix(t: LayerTransform): LayerTransform {
-  if (t.mode === "perspective" && t.quad) {
+  if (isQuadTransformMode(t.mode) && t.quad) {
     return t;
   }
   if (t.matrix) {
@@ -381,7 +387,7 @@ export interface Layer {
   visible: boolean;
   opacity: number;
   locked: boolean;
-  /** When true, painting only affects existing opaque pixels (Krita/Photoshop "Lock Transparency") */
+  /** When true, painting only affects existing opaque pixels ("Lock Transparency"). */
   alphaLock: boolean;
   blendMode: BlendMode;
   /** Serialized layer raster payload, or a legacy PNG data URL. */
@@ -788,7 +794,8 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
           mode:
             layer.transform?.mode === "distort" ||
             layer.transform?.mode === "skew" ||
-            layer.transform?.mode === "perspective"
+            layer.transform?.mode === "perspective" ||
+            layer.transform?.mode === "warp"
               ? layer.transform.mode
               : undefined,
           quad:

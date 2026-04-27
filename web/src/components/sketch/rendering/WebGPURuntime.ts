@@ -647,7 +647,7 @@ export class WebGPURuntime implements SketchRuntime {
   // composite ("read" texture) and the layer texture, applies the blend
   // mode formula, and writes the result to the "write" texture. After each
   // layer the two textures swap roles (ping-pong). This allows all 12
-  // Photoshop-style blend modes without any texture copies.
+  // Standard blend modes without any texture copies.
   //
   // Flow:
   //   1. Draw checkerboard → pingPongA (becomes initial "read")

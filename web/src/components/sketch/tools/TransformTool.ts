@@ -70,7 +70,8 @@ import {
   computeDistortTransform,
   computeSkewTransform,
   computePerspectiveTransform,
-  resolvePhotoshopTransformMode
+  computeWarpTransform,
+  resolveTransformGestureMode
 } from "./transform";
 import {
   paintTransformGizmo,
@@ -114,7 +115,7 @@ export class TransformTool implements ToolHandler {
   private gestureActive = false;
   /** Currently hovered handle (for cursor feedback). */
   private hoveredHandle: TransformHandle | null = null;
-  /** Active Photoshop-style transform gesture mode for the current drag. */
+  /** Active transform gesture mode for the current drag. */
   private activeTransformMode: TransformMode = "auto";
   /** Corner snapshot used for skew/distort gestures. */
   private dragStartCorners: [Point, Point, Point, Point] | null = null;
@@ -319,7 +320,7 @@ export class TransformTool implements ToolHandler {
 
     const shift = ctx.shiftHeldRef.current;
     const alt = ctx.altHeldRef.current;
-    const gestureMode = resolvePhotoshopTransformMode(
+    const gestureMode = resolveTransformGestureMode(
       this.getConfiguredTransformMode(),
       this.activeHandle,
       {
@@ -333,21 +334,31 @@ export class TransformTool implements ToolHandler {
     let newTransform: LayerTransform;
 
     if (
-      gestureMode === "perspective" &&
+      (gestureMode === "perspective" || gestureMode === "warp") &&
       this.dragStartCorners &&
       (this.activeHandle === "top-left" ||
         this.activeHandle === "top-right" ||
         this.activeHandle === "bottom-left" ||
         this.activeHandle === "bottom-right")
     ) {
-      newTransform = computePerspectiveTransform(
-        this.dragStartCorners,
-        this.activeHandle,
-        this.dragStart,
-        pt,
-        this.rasterBounds,
-        this.dragStartTransform
-      );
+      newTransform =
+        gestureMode === "warp"
+          ? computeWarpTransform(
+              this.dragStartCorners,
+              this.activeHandle,
+              this.dragStart,
+              pt,
+              this.rasterBounds,
+              this.dragStartTransform
+            )
+          : computePerspectiveTransform(
+              this.dragStartCorners,
+              this.activeHandle,
+              this.dragStart,
+              pt,
+              this.rasterBounds,
+              this.dragStartTransform
+            );
     } else if (
       gestureMode === "distort" &&
       this.dragStartCorners &&

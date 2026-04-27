@@ -45,7 +45,18 @@ export interface LayerItemProps {
   editName: string;
   onLayerRowPointerDown: (e: React.PointerEvent, layerId: string) => void;
   onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
-  onToggleVisibility: (layerId: string) => void;
+  onVisibilityButtonMouseDown: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    layerId: string
+  ) => void;
+  onVisibilityButtonMouseEnter: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    layerId: string
+  ) => void;
+  onVisibilityButtonClick: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    layerId: string
+  ) => void;
   onToggleIsolateLayer: (layerId: string) => void;
   onToggleExposedInput: (layerId: string) => void;
   onToggleExposedOutput: (layerId: string) => void;
@@ -74,7 +85,9 @@ const LayerItem: React.FC<LayerItemProps> = ({
   editName,
   onLayerRowPointerDown,
   onLayerRowClick,
-  onToggleVisibility,
+  onVisibilityButtonMouseDown,
+  onVisibilityButtonMouseEnter,
+  onVisibilityButtonClick,
   onToggleIsolateLayer,
   onToggleExposedInput: _onToggleExposedInput,
   onToggleExposedOutput: _onToggleExposedOutput,
@@ -182,12 +195,40 @@ const LayerItem: React.FC<LayerItemProps> = ({
           <Box className="layer-thumbnail-empty" />
         )}
 
+        {/* Disable the ripple here so press-and-drag visibility toggling stays stable. */}
         <IconButton
           size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleVisibility(layer.id);
+          disableRipple
+          aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
+          onPointerDown={(e) =>
+            onVisibilityButtonMouseDown(
+              e as unknown as React.MouseEvent<HTMLButtonElement>,
+              layer.id
+            )
+          }
+          onPointerEnter={(e) =>
+            onVisibilityButtonMouseEnter(
+              e as unknown as React.MouseEvent<HTMLButtonElement>,
+              layer.id
+            )
+          }
+          onPointerUp={(e) => {
+            if (
+              typeof e.currentTarget.hasPointerCapture === "function" &&
+              e.currentTarget.hasPointerCapture(e.pointerId)
+            ) {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }
           }}
+          onPointerCancel={(e) => {
+            if (
+              typeof e.currentTarget.hasPointerCapture === "function" &&
+              e.currentTarget.hasPointerCapture(e.pointerId)
+            ) {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+          }}
+          onClick={(e) => onVisibilityButtonClick(e, layer.id)}
           sx={{ padding: SKETCH_SPACING.sm, flexShrink: 0 }}
         >
           {layer.visible ? (

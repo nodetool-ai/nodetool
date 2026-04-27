@@ -1,10 +1,10 @@
 # Shortcut Checklist
 
-Sketch-focused Photoshop parity checklist.
+Sketch-focused shortcut parity checklist.
 
 Mac users: swap `Ctrl` to `Cmd` and `Alt` to `Option`.
 
-Only mark a shortcut as implemented when the behavior really exists in the sketch editor. This file intentionally omits Photoshop shortcuts that are not meaningful here yet, such as type formatting, channels, layer-stack power features, and desktop file-management actions like `Save As` / `Save for Web`.
+Only mark a shortcut as implemented when the behavior really exists in the sketch editor. This file intentionally omits desktop-editor shortcuts that are not meaningful here yet, such as type formatting, channels, layer-stack power features, and desktop file-management actions like `Save As` / `Save for Web`.
 
 ## Must-Know
 
@@ -116,6 +116,6 @@ Only mark a shortcut as implemented when the behavior really exists in the sketc
 
 ## Notes
 
-- Brush-size, hardness, opacity, eyedropper, and pan shortcuts are the highest-value Photoshop behaviors and should remain reliable across tool changes.
+- Brush-size, hardness, opacity, eyedropper, and pan shortcuts are the highest-value shortcut behaviors and should remain reliable across tool changes.
 - Keep the shortcut meaning accurate. Example: `D` is default colors, while `Ctrl+D` is deselect.
 - Inline reality notes are intentional here. If a shortcut exists but is broken, flaky, or only partially correct, keep that note instead of silently marking it done.
