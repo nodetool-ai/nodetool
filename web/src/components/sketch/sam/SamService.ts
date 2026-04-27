@@ -178,9 +178,9 @@ export function getSamService(backend?: SegmentBackend): SamService {
     // Node-based execution. Falls back to stub if SamServiceNode can't be loaded.
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-       const { SamServiceNode } = require("./SamServiceNode");
-       newService = new SamServiceNode(requestedBackend);
-     } catch {
+      const { SamServiceNode } = require("./SamServiceNode");
+      newService = new SamServiceNode(requestedBackend);
+    } catch {
       // Fallback to stub if SamServiceNode can't be loaded
       newService = new SamServiceStub();
     }
