@@ -2332,10 +2332,7 @@ export class FormatTextNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     let result = String(this.template ?? "");
-    const dynProps = (this as Record<string, unknown>)._dynamic_properties as
-      | Record<string, unknown>
-      | undefined;
-    const props: Record<string, unknown> = dynProps ? { ...dynProps } : {};
+    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
 
     // Handle {{ var|filter1|filter2 }} syntax
     result = result.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, expr: string) => {
@@ -2380,10 +2377,7 @@ export class TemplateTextNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     let result = String(this.string ?? "");
-    const dynProps = (this as Record<string, unknown>)._dynamic_properties as
-      | Record<string, unknown>
-      | undefined;
-    const props: Record<string, unknown> = dynProps ? { ...dynProps } : {};
+    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
 
     for (const [key, value] of Object.entries(props)) {
       const strValue = String(value ?? "");
