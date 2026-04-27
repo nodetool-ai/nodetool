@@ -609,7 +609,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       }
       e.preventDefault();
       e.stopPropagation();
-      const layer = layers.find((candidate) => candidate.id === layerId);
+      const layer = layerById.get(layerId);
       if (!layer) {
         return;
       }
@@ -620,7 +620,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       suppressVisibilityButtonClickRef.current = layerId;
       applyVisibilityDragToLayer(layerId, !layer.visible);
     },
-    [applyVisibilityDragToLayer, layers]
+    [applyVisibilityDragToLayer, layerById]
   );
 
   const handleVisibilityButtonMouseEnter = useCallback(

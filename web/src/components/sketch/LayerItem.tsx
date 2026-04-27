@@ -213,12 +213,18 @@ const LayerItem: React.FC<LayerItemProps> = ({
             )
           }
           onPointerUp={(e) => {
-            if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            if (
+              typeof e.currentTarget.hasPointerCapture === "function" &&
+              e.currentTarget.hasPointerCapture(e.pointerId)
+            ) {
               e.currentTarget.releasePointerCapture(e.pointerId);
             }
           }}
           onPointerCancel={(e) => {
-            if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            if (
+              typeof e.currentTarget.hasPointerCapture === "function" &&
+              e.currentTarget.hasPointerCapture(e.pointerId)
+            ) {
               e.currentTarget.releasePointerCapture(e.pointerId);
             }
           }}
