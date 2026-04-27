@@ -217,7 +217,6 @@ export function useSegmentation({
           confidence: mask.confidence,
           maskIndex: i
         };
-        layer.data = mask.maskDataUrl ?? null;
         return layer;
       }
     );

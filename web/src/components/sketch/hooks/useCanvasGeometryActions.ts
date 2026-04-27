@@ -183,7 +183,6 @@ export function useCanvasGeometryActions({
   document,
   pushHistory,
   updateLayerData,
-  setDocument: _setDocument,
   setZoom,
   setPan,
   resizeCanvas,
