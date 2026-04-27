@@ -71,7 +71,11 @@ describe("useHistoryActions", () => {
     const { result } = renderHook(() => useHistoryActions({ canvasRef, undo, redo }));
     result.current.handleUndo();
 
-    expect(setLayerData).toHaveBeenCalledWith("layer1", "data:image/png;base64,abc");
+    expect(setLayerData).toHaveBeenCalledWith(
+      "layer1",
+      "data:image/png;base64,abc",
+      { x: 4, y: 5, width: 32, height: 24 }
+    );
   });
 
   it("skips canvas raster replay for structure-only redo entries", () => {
