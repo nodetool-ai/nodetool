@@ -371,17 +371,31 @@ const SHELL_AGENT_TOOLS: readonly ActionDef[] = [
 
 let sharedSandboxStore: SessionStore | null = null;
 let sandboxStoreCleanupHooksRegistered = false;
+let sharedSandboxStoreClosePromise: Promise<void> | null = null;
 
 async function closeSharedSandboxStore(): Promise<void> {
+  if (sharedSandboxStoreClosePromise) {
+    return sharedSandboxStoreClosePromise;
+  }
   if (!sharedSandboxStore) {
     return;
   }
   const store = sharedSandboxStore;
   sharedSandboxStore = null;
+  const closePromise = (async () => {
+    try {
+      await store.close();
+    } catch {
+      // Best-effort shutdown cleanup: ignore close failures so signal handling can continue.
+    }
+  })();
+  sharedSandboxStoreClosePromise = closePromise;
   try {
-    await store.close();
-  } catch {
-    // Best-effort cleanup on shutdown.
+    await closePromise;
+  } finally {
+    if (sharedSandboxStoreClosePromise === closePromise) {
+      sharedSandboxStoreClosePromise = null;
+    }
   }
 }
 
@@ -395,17 +409,18 @@ function registerSandboxStoreCleanupHooks(): void {
   }
 
   sandboxStoreCleanupHooksRegistered = true;
-  process.once("beforeExit", () => {
-    void closeSharedSandboxStore();
-  });
+  const handleProcessShutdown = (exitCode: number): void => {
+    closeSharedSandboxStore()
+      .catch(() => {
+        // Ignore cleanup errors while handling process shutdown signals.
+      })
+      .finally(() => process.exit(exitCode));
+  };
   process.once("SIGINT", () => {
-    void closeSharedSandboxStore();
+    handleProcessShutdown(130);
   });
   process.once("SIGTERM", () => {
-    void closeSharedSandboxStore();
-  });
-  process.once("exit", () => {
-    void closeSharedSandboxStore();
+    handleProcessShutdown(143);
   });
 }
 
