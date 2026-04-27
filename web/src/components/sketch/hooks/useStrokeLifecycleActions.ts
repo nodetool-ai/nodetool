@@ -121,7 +121,7 @@ export function useStrokeLifecycleActions({
     const activeLayerId = document.activeLayerId;
     const isTransformOnlyGesture = isTransformOnlyTool(interactionTool);
     const activeLayerSnapshot =
-      !isTransformOnlyGesture && activeLayerId && canvasRef.current
+      activeLayerId && canvasRef.current
         ? canvasRef.current.snapshotLayerCanvas(activeLayerId)
         : null;
 

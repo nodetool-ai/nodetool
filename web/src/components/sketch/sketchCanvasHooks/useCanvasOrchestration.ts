@@ -32,6 +32,7 @@ import type {
 } from "../types";
 import type { ActiveStrokeInfo } from "../rendering";
 import type { StrokeEndOptions } from "../tools/types";
+import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 import {
   useCompositing,
   useOverlayRenderer,
@@ -69,6 +70,7 @@ export interface UseCanvasOrchestrationParams {
   transformPreviewByLayerIdRef: React.MutableRefObject<Record<string, LayerTransform>>;
   requestPreviewRedrawRef: React.MutableRefObject<() => void>;
   invalidateLayerRef: React.MutableRefObject<(layerId: string) => void>;
+  coordinatorRef?: React.MutableRefObject<DisplayFrameCoordinator | null>;
   setLayerTransformPreview: (layerId: string, transform: LayerTransform) => void;
   clearLayerTransformPreview: (layerId?: string) => void;
 
@@ -145,6 +147,7 @@ export function useCanvasOrchestration(
     transformPreviewByLayerIdRef,
     requestPreviewRedrawRef,
     invalidateLayerRef,
+    coordinatorRef,
     setLayerTransformPreview,
     clearLayerTransformPreview,
     onZoomChange,
@@ -192,7 +195,8 @@ export function useCanvasOrchestration(
     zoom,
     isolatedLayerId,
     activeStrokeRef,
-    transformPreviewByLayerIdRef
+    transformPreviewByLayerIdRef,
+    coordinatorRef
   });
 
   // Wire the preview bridge refs to compositing output.

@@ -75,9 +75,16 @@ export function useTransformActions({
 
   const pushTransformHistory = useCallback(
     (label: string) => {
-      pushHistory(label, undefined, { restoreMode: "structure-only" });
+      const activeLayerId = document.activeLayerId;
+      const layerCanvasSnapshots =
+        activeLayerId && canvasRef.current
+          ? {
+              [activeLayerId]: canvasRef.current.snapshotLayerCanvas(activeLayerId)
+            }
+          : undefined;
+      pushHistory(label, layerCanvasSnapshots, { restoreMode: "structure-only" });
     },
-    [pushHistory]
+    [pushHistory, document.activeLayerId, canvasRef]
   );
 
   /** Save the current layer transform as the baseline for cancel. */

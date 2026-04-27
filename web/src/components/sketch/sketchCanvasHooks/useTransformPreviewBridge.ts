@@ -25,6 +25,35 @@ import {
 } from "../activeLayerTransform";
 import type { DisplayFrameCoordinator } from "./DisplayFrameCoordinator";
 
+const TRANSFORM_EPSILON = 1e-9;
+
+function matricesEqual(
+  left?: LayerTransform["matrix"],
+  right?: LayerTransform["matrix"]
+): boolean {
+  if (left === undefined || right === undefined) {
+    return left === undefined && right === undefined;
+  }
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((value, index) => Math.abs(value - right[index]) < TRANSFORM_EPSILON);
+}
+
+function transformsEqual(
+  left: LayerTransform,
+  right: LayerTransform
+): boolean {
+  return (
+    left.x === right.x &&
+    left.y === right.y &&
+    (left.scaleX ?? 1) === (right.scaleX ?? 1) &&
+    (left.scaleY ?? 1) === (right.scaleY ?? 1) &&
+    Math.abs((left.rotation ?? 0) - (right.rotation ?? 0)) < TRANSFORM_EPSILON &&
+    matricesEqual(left.matrix, right.matrix)
+  );
+}
+
 export interface UseTransformPreviewBridgeResult {
   /** Ref containing per-layer transform previews, consumed by compositing. */
   transformPreviewByLayerIdRef: React.MutableRefObject<Record<string, LayerTransform>>;
@@ -64,14 +93,7 @@ export function useTransformPreviewBridge(
       setActiveLayerTransformPreview({ layerId, transform });
       const current = transformPreviewByLayerIdRef.current;
       const existing = current[layerId];
-      if (
-        existing &&
-        existing.x === transform.x &&
-        existing.y === transform.y &&
-        (existing.scaleX ?? 1) === (transform.scaleX ?? 1) &&
-        (existing.scaleY ?? 1) === (transform.scaleY ?? 1) &&
-        Math.abs((existing.rotation ?? 0) - (transform.rotation ?? 0)) < 1e-9
-      ) {
+      if (existing && transformsEqual(existing, transform)) {
         return;
       }
       // When a layer is first added to the preview map (start of a new drag),
@@ -136,6 +158,7 @@ export function useTransformPreviewBridge(
     transformPreviewByLayerIdRef,
     requestPreviewRedrawRef,
     invalidateLayerRef,
+    coordinatorRef: coordRef,
     setLayerTransformPreview,
     clearLayerTransformPreview
   };

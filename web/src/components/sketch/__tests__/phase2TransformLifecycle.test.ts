@@ -130,6 +130,42 @@ describe("TransformTool in-transform undo/redo", () => {
     tool = getToolHandler("transform") as TransformTool;
   });
 
+  it("shift+click retargets to a single layer without keeping stale target ids", () => {
+    const ctx = makeToolContext();
+    const firstLayer = ctx.doc.layers[0];
+    firstLayer.contentBounds = { x: 0, y: 0, width: 64, height: 64 };
+    const secondLayer = {
+      ...firstLayer,
+      id: "layer-2",
+      name: "Layer 2",
+      transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 }
+    };
+    ctx.doc.layers = [firstLayer, secondLayer];
+
+    tool.onActivate!(ctx);
+    expect(tool.getTargetSet().getIds()).toEqual([firstLayer.id]);
+
+    const shiftEvent = makePointerEvent({
+      nativeEvent: {
+        shiftKey: true
+      } as unknown as React.PointerEvent
+    });
+
+    expect(
+      (tool as unknown as {
+        tryAutoSelectPick: (
+          toolCtx: ToolContext,
+          event: ToolPointerEvent,
+          pickedOverride?: typeof secondLayer
+        ) => boolean;
+      }).tryAutoSelectPick(ctx, shiftEvent, secondLayer)
+    ).toBe(true);
+
+    expect(tool.getTargetSet().getIds()).toEqual([secondLayer.id]);
+    expect(tool.getTargetSet().has(firstLayer.id)).toBe(false);
+    expect(ctx.drawGizmo).toHaveBeenCalled();
+  });
+
   it("has no undoable adjustments initially after activation", () => {
     const ctx = makeToolContext();
     tool.onActivate!(ctx);

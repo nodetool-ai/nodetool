@@ -124,6 +124,8 @@ export type DisplayBackend = "webgpu" | "canvas2d";
 export interface InteractionReadiness {
   /** The runtime (Canvas2D or WebGPU) has been initialized. */
   runtimeReady: boolean;
+  /** A hydration cycle has been scheduled and is still pending decode/upload. */
+  hydrationPending?: boolean;
   /** Layer canvases have been hydrated from document data. */
   hydrationComplete: boolean;
   /** The first composite has been dispatched to the display target. */
@@ -136,6 +138,7 @@ export interface InteractionReadiness {
 export function isInteractionReady(state: InteractionReadiness): boolean {
   return (
     state.runtimeReady &&
+    !state.hydrationPending &&
     state.hydrationComplete &&
     state.firstFrameComposited
   );
@@ -147,6 +150,7 @@ export function isInteractionReady(state: InteractionReadiness): boolean {
 export function createInitialReadiness(): InteractionReadiness {
   return {
     runtimeReady: false,
+    hydrationPending: false,
     hydrationComplete: false,
     firstFrameComposited: false
   };
@@ -234,7 +238,9 @@ export interface FrameCoordinatorCallbacks {
   /** Execute pending stroke buffer merge. */
   drainPendingStroke: () => void;
   /** Run the composite pipeline immediately. */
-  compositeImmediate: (dirtyRect?: { x: number; y: number; w: number; h: number } | null) => void;
+  compositeImmediate: (
+    dirtyRect?: { x: number; y: number; w: number; h: number } | null
+  ) => boolean | void;
 }
 
 /**
@@ -298,12 +304,35 @@ export class DisplayFrameCoordinator {
   }
 
   markHydrationComplete(): void {
+    if (this.readiness.hydrationPending) {
+      this.readiness.hydrationPending = false;
+    }
     if (this.readiness.hydrationComplete) {
       return;
     }
     this.readiness.hydrationComplete = true;
     this.tracer.trace("hydration-complete");
     this.checkInteractionReady();
+  }
+
+  markHydrationScheduled(): void {
+    const hadPending = this.readiness.hydrationPending;
+    const hadComplete = this.readiness.hydrationComplete;
+    const hadFirstFrame = this.readiness.firstFrameComposited;
+    // Already waiting on the current hydration cycle — no need to clear the
+    // same readiness flags again until either completion or a new cycle starts.
+    if (hadPending && !hadComplete && !hadFirstFrame) {
+      return;
+    }
+    this.readiness.hydrationPending = true;
+    this.readiness.hydrationComplete = false;
+    this.readiness.firstFrameComposited = false;
+    this.tracer.trace("readiness-updated", {
+      hydrationScheduled: true,
+      hadPending,
+      hadComplete,
+      hadFirstFrame
+    });
   }
 
   markFirstFrameComposited(): void {
@@ -410,8 +439,10 @@ export class DisplayFrameCoordinator {
     this.pendingDirty = null;
 
     this.callbacks.drainPendingStroke();
-    this.callbacks.compositeImmediate(request.dirtyRect);
-    this.onFrameComposited();
+    const didComposite = this.callbacks.compositeImmediate(request.dirtyRect);
+    if (didComposite !== false) {
+      this.onFrameComposited();
+    }
   }
 
   private scheduleRaf(request: RedrawRequest): void {
@@ -442,8 +473,12 @@ export class DisplayFrameCoordinator {
       this.tracer.trace("pending-stroke-drained");
 
       const useFull = isFull || !dirty || this.hasLiveBufferedStroke;
-      this.callbacks.compositeImmediate(useFull ? null : dirty);
-      this.onFrameComposited();
+      const didComposite = this.callbacks.compositeImmediate(
+        useFull ? null : dirty
+      );
+      if (didComposite !== false) {
+        this.onFrameComposited();
+      }
     });
   }
 

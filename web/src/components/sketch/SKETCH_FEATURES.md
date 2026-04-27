@@ -30,23 +30,23 @@ Completed current tasks, display/interactions hardening, move/transform hardenin
 
 Do these before advanced transform work, SAM, or new node execution surfaces. These are follow-up hardening tasks from the `sketch-editor-6` architecture sweep, focused on preventing the same classes of bugs that previously caused stale previews, layers jumping after move/transform, and CPU/GPU display drift.
 
-- [ ] [impl+test] make history snapshots document-complete for canvas and layer tree state
+- [x] [impl+test] make history snapshots document-complete for canvas and layer tree state
   - Extend history entries or their parallel snapshot data so undo/redo restores `document.canvas` dimensions/background together with layers.
   - Ensure layer structure snapshots preserve all metadata needed to rebuild groups and generated layers, including `parentId`, `collapsed`, `segmentationMeta`, image references, effects, exposed input/output flags, transforms, and content bounds.
   - Fix structural-history ordering so layer creation/removal entries capture the post-action structure needed for redo, not only the pre-action state.
   - Add regressions for crop/resize undo/redo, grouped/collapsed layer undo/redo, segmentation-generated metadata preservation, and add-layer redo.
-- [ ] [impl+test] close store-vs-runtime canvas drift in history restore paths
+- [x] [impl+test] close store-vs-runtime canvas drift in history restore paths
   - Audit `structure-only` restore paths and either replay affected pixels into runtime canvases or make the restore mode explicitly impossible for entries whose layer pixel data can differ from runtime surfaces.
   - Add tests that undo/redo transform, selection-derived layer actions, and structure-only entries, then immediately sample/export from runtime canvases without requiring an incidental redraw or brush stroke.
-- [ ] [impl+test] harden first-frame and hydration readiness semantics
+- [x] [impl+test] harden first-frame and hydration readiness semantics
   - Only advance `firstFrameComposited` / interaction readiness after a composite actually reaches the active display target; do not call initial-composite readiness after a no-op `compositeToDisplay` early return.
   - Split “hydration scheduled” from “hydration pixels decoded/uploaded” so async layer decode cannot mark the editor interaction-ready before startup pixels and GPU invalidation are complete.
   - Add tests for fresh-open brush tap, first transform preview, image-backed startup layers, WebGPU bootstrap, and Canvas2D fallback with no prior stroke.
-- [ ] [impl+test] wire transform preview through one coordinator-aware path
+- [x] [impl+test] wire transform preview through one coordinator-aware path
   - Pass the display coordinator through the transform-preview bridge or otherwise route preview redraws with an explicit `transform-preview` reason.
   - Compare full transform identity, including matrix data, when deciding whether a transform preview update can skip redraw.
   - Add tests for matrix-authoritative layers, preview-only transform changes, and startup transform preview without a preceding brush stroke.
-- [ ] [impl+test] reconcile transform target-set semantics with actual tool behavior
+- [x] [impl+test] reconcile transform target-set semantics with actual tool behavior
   - Decide whether `TransformTool` is single-target for now or truly multi-target. If single-target, narrow `TransformTargetSet` naming/comments/state so it cannot imply union-gizmo multi-layer transform support. If multi-target, drive hit-testing, gizmo bounds, preview, and commit from the union helpers and define per-layer preview application.
   - Add tests that prove `Shift+click` target behavior cannot leave stale IDs, wrong gizmo bounds, or mismatched preview/commit targets.
 

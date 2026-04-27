@@ -11,7 +11,14 @@
  * - `SketchCanvasPresentation` — stacked canvas JSX, chrome, info bar
  */
 
-import React, { useCallback, useEffect, useState, useMemo, forwardRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  forwardRef
+} from "react";
 import { useSketchStore } from "./state";
 import type {
   SketchDocument,
@@ -22,6 +29,7 @@ import type {
   LayerContentBounds
 } from "./types";
 import {
+  DisplayFrameCoordinator,
   useCanvasImperativeHandle,
   useTransformPreviewBridge,
   useCanvasOrchestration
@@ -245,13 +253,18 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Transform preview bridge ──────────────────────────────────────
 
+    const coordinatorRef = useRef<DisplayFrameCoordinator | null>(null);
+    if (!coordinatorRef.current) {
+      coordinatorRef.current = new DisplayFrameCoordinator();
+    }
+
     const {
       transformPreviewByLayerIdRef,
       requestPreviewRedrawRef,
       invalidateLayerRef,
       setLayerTransformPreview,
       clearLayerTransformPreview
-    } = useTransformPreviewBridge();
+    } = useTransformPreviewBridge({ coordinatorRef });
 
     // ─── Canvas orchestration (refs, compositing, overlay, pointer) ────
 
@@ -278,11 +291,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       selection,
       isolatedLayerId,
       foregroundColor,
-      transformPreviewByLayerIdRef,
-      requestPreviewRedrawRef,
-      invalidateLayerRef,
-      setLayerTransformPreview,
-      clearLayerTransformPreview,
+       transformPreviewByLayerIdRef,
+       requestPreviewRedrawRef,
+       invalidateLayerRef,
+       coordinatorRef,
+       setLayerTransformPreview,
+       clearLayerTransformPreview,
       onZoomChange,
       onPanChange,
       onStrokeStart,

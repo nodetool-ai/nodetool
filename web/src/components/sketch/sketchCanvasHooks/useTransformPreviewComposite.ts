@@ -29,7 +29,7 @@ export interface UseTransformPreviewCompositeParams {
 }
 
 export interface UseTransformPreviewCompositeResult {
-  compositeToDisplay: (dirtyRect?: DirtyRect | null) => void;
+  compositeToDisplay: (dirtyRect?: DirtyRect | null) => boolean;
 }
 
 export function useTransformPreviewComposite({
@@ -53,20 +53,20 @@ export function useTransformPreviewComposite({
         // Never acquire "2d" on the real display canvas during bootstrap — that
         // would prevent WebGPU from using it later.
         if (!bootstrapCanvas) {
-          return;
+          return false;
         }
         targetCanvas = bootstrapCanvas;
       } else {
         targetCanvas = displayCanvas;
       }
       if (!targetCanvas) {
-        return;
+        return false;
       }
       // Always read the runtime from the ref so that stale closures still end
       // up calling the current runtime instead of the old Canvas2DRuntime.
       const rt = runtimeRef.current;
       if (!rt) {
-        return;
+        return false;
       }
       const previewByLayerId = transformPreviewByLayerIdRef?.current ?? {};
       const compositeDoc = applyTransformPreviews(doc, previewByLayerId) ?? doc;
@@ -85,6 +85,7 @@ export function useTransformPreviewComposite({
         activeStroke,
         dirtyRect
       );
+      return true;
     },
     // Include `backend` so that this callback is recreated when the backend
     // switches to WebGPU, which causes trigger effects to fire.

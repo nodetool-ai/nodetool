@@ -13,8 +13,8 @@
  *
  * Modifiers:
  *   - Shift: constrain proportions (scale) or snap angle (rotate)
- *            When clicking outside the gizmo with auto-select: toggle
- *            layer in the transform target set.
+ *            When clicking outside the gizmo with auto-select: retarget
+ *            the current transform layer.
  *   - Alt: scale from center (keep center fixed)
  *
  * The gizmo is drawn on a dedicated screen-resolution canvas (`gizmoCanvasRef`)
@@ -28,10 +28,11 @@
  *   - An optional auto-select toggle (stored in `TransformSettings`) controls
  *     whether clicking opaque pixels targets the topmost visible transformable
  *     layer without requiring a panel switch.
- *   - Shift+click adds/removes layers from the transform target set.
- *   - The transform gizmo, transform UI, and live preview all use one shared
- *     bounds source derived from the target set.
- *   - The transform target set is intentionally separate from the layers-panel
+ *   - The tool currently operates on a single transform target. Shift+click
+ *     retargets that single layer; it does not build a multi-layer union gizmo.
+ *   - The transform gizmo, transform UI, and live preview all use the current
+ *     single-target bounds source.
+ *   - This transform target is intentionally separate from the layers-panel
  *     multi-select (`selectedLayerIds`).
  *
  * Responsibilities are split across dedicated modules:
@@ -114,7 +115,7 @@ export class TransformTool implements ToolHandler {
   private pivotPoint: Point | null = null;
 
   // ── Transform target set ──────────────────────────────────────────────────
-  /** Set of layers targeted for transform (separate from layers-panel multi-select). */
+  /** Current transform target (separate from layers-panel multi-select). */
   private readonly targetSet = new TransformTargetSet();
 
   // ── In-transform undo/redo stacks ─────────────────────────────────────────
@@ -361,16 +362,15 @@ export class TransformTool implements ToolHandler {
    * click point. Returns `true` if a layer was successfully picked and
    * targeted, `false` if no layer was found under the pointer.
    *
-   * When Shift is held, the picked layer is toggled in the target set
-   * rather than replacing it.
-   */
+     * Shift+click currently follows the same single-target retargeting path as
+     * plain click so preview, gizmo, and commit all stay aligned to one layer.
+     */
   private tryAutoSelectPick(
     ctx: ToolContext,
     event: ToolPointerEvent,
     pickedOverride?: Layer | null
   ): boolean {
     const { doc } = ctx;
-    const shift = event.nativeEvent.shiftKey;
 
     const picked = pickedOverride ?? this.peekAutoSelectPick(ctx, event.point);
 
@@ -381,13 +381,7 @@ export class TransformTool implements ToolHandler {
     const pickedCanvas = ctx.layerCanvasesRef.current.get(picked.id);
     const entry = resolveTargetEntry(picked, pickedCanvas, doc.canvas);
 
-    if (shift) {
-      // Shift+click: toggle the picked layer in the target set
-      this.targetSet.toggle(picked.id, entry.bounds);
-    } else {
-      // Plain click: replace the target set with the picked layer
-      this.targetSet.setSingle(picked.id, entry.bounds);
-    }
+    this.targetSet.setSingle(picked.id, entry.bounds);
 
     // Switch the active layer to the picked layer so the gizmo and
     // preview session operate on it.
@@ -449,7 +443,7 @@ export class TransformTool implements ToolHandler {
     this.drawGizmo(ctx);
   }
 
-  /** Get the current transform target set (read-only). */
+  /** Get the current single-target transform state (read-only). */
   getTargetSet(): TransformTargetSet {
     return this.targetSet;
   }

@@ -37,7 +37,7 @@ function makeCoordinator(tracingEnabled = true): {
 } {
   const coordinator = new DisplayFrameCoordinator(tracingEnabled);
   const drainSpy = jest.fn();
-  const compositeSpy = jest.fn();
+  const compositeSpy = jest.fn(() => true);
   coordinator.setCallbacks({
     drainPendingStroke: drainSpy,
     compositeImmediate: compositeSpy
@@ -59,6 +59,7 @@ describe("InteractionReadiness", () => {
   it("starts with nothing ready", () => {
     const state = createInitialReadiness();
     expect(state.runtimeReady).toBe(false);
+    expect(state.hydrationPending).toBe(false);
     expect(state.hydrationComplete).toBe(false);
     expect(state.firstFrameComposited).toBe(false);
     expect(isInteractionReady(state)).toBe(false);
@@ -66,21 +67,31 @@ describe("InteractionReadiness", () => {
 
   it("is ready only when all flags are true", () => {
     expect(
-      isInteractionReady({
-        runtimeReady: true,
-        hydrationComplete: true,
-        firstFrameComposited: true
-      })
-    ).toBe(true);
-    expect(
-      isInteractionReady({
-        runtimeReady: true,
-        hydrationComplete: false,
-        firstFrameComposited: true
-      })
-    ).toBe(false);
+        isInteractionReady({
+          runtimeReady: true,
+          hydrationPending: false,
+          hydrationComplete: true,
+          firstFrameComposited: true
+        })
+      ).toBe(true);
+      expect(
+        isInteractionReady({
+          runtimeReady: true,
+          hydrationPending: false,
+          hydrationComplete: false,
+          firstFrameComposited: true
+        })
+      ).toBe(false);
+      expect(
+        isInteractionReady({
+          runtimeReady: true,
+          hydrationPending: true,
+          hydrationComplete: false,
+          firstFrameComposited: false
+        })
+      ).toBe(false);
+    });
   });
-});
 
 // ─── DisplayFrameCoordinator — core ──────────────────────────────────────────
 
@@ -130,6 +141,23 @@ describe("DisplayFrameCoordinator", () => {
       expect(coordinator.isReady()).toBe(true);
 
       coordinator.resetReadiness();
+      expect(coordinator.isReady()).toBe(false);
+    });
+
+    it("markHydrationScheduled preserves runtime readiness but clears hydration/frame readiness", () => {
+      const { coordinator } = makeCoordinator();
+      coordinator.markRuntimeReady();
+      coordinator.markHydrationComplete();
+      coordinator.markFirstFrameComposited();
+
+      coordinator.markHydrationScheduled();
+
+      expect(coordinator.getReadiness()).toMatchObject({
+        runtimeReady: true,
+        hydrationPending: true,
+        hydrationComplete: false,
+        firstFrameComposited: false
+      });
       expect(coordinator.isReady()).toBe(false);
     });
   });
@@ -289,7 +317,9 @@ describe("DisplayFrameCoordinator", () => {
       const coordinator = new DisplayFrameCoordinator(false);
       coordinator.setCallbacks({
         drainPendingStroke: () => callOrder.push("drain"),
-        compositeImmediate: () => callOrder.push("composite")
+        compositeImmediate: () => {
+          callOrder.push("composite");
+        }
       });
       coordinator.markRuntimeReady();
       coordinator.markHydrationComplete();
@@ -306,7 +336,9 @@ describe("DisplayFrameCoordinator", () => {
       const coordinator = new DisplayFrameCoordinator(false);
       coordinator.setCallbacks({
         drainPendingStroke: () => callOrder.push("drain"),
-        compositeImmediate: () => callOrder.push("composite")
+        compositeImmediate: () => {
+          callOrder.push("composite");
+        }
       });
       coordinator.markRuntimeReady();
 
@@ -357,6 +389,18 @@ describe("DisplayFrameCoordinator", () => {
       coordinator.requestFrame("initial-composite", "immediate");
 
       expect(coordinator.getReadiness().firstFrameComposited).toBe(true);
+    });
+
+    it("does not mark first frame composited when composite callback reports a no-op", () => {
+      const { coordinator } = makeReadyCoordinator();
+      coordinator.setCallbacks({
+        drainPendingStroke: jest.fn(),
+        compositeImmediate: () => false
+      });
+
+      coordinator.requestFrame("initial-composite", "immediate");
+
+      expect(coordinator.getReadiness().firstFrameComposited).toBe(false);
     });
 
     it("marks first frame composited on first raf request", () => {
@@ -489,7 +533,9 @@ describe("Display seam scenario regression matrix", () => {
       const coordinator = new DisplayFrameCoordinator(false);
       coordinator.setCallbacks({
         drainPendingStroke: () => callOrder.push("drain"),
-        compositeImmediate: () => callOrder.push("composite")
+        compositeImmediate: () => {
+          callOrder.push("composite");
+        }
       });
       coordinator.markRuntimeReady();
       coordinator.markHydrationComplete();
@@ -733,7 +779,9 @@ describe("Startup first-interaction regression", () => {
       const coordinator = new DisplayFrameCoordinator(false);
       coordinator.setCallbacks({
         drainPendingStroke: () => callOrder.push("drain"),
-        compositeImmediate: () => callOrder.push("composite")
+        compositeImmediate: () => {
+          callOrder.push("composite");
+        }
       });
       coordinator.markRuntimeReady();
       coordinator.markHydrationComplete();
