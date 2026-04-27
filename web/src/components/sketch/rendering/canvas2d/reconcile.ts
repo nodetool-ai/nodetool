@@ -36,6 +36,8 @@ export function reconcileLayerToDocumentSpace(
   const sx = layer.transform?.scaleX ?? 1;
   const sy = layer.transform?.scaleY ?? 1;
   const rot = layer.transform?.rotation ?? 0;
+  const matrix = layer.transform?.matrix;
+  const usesAdvancedAffine = Boolean(matrix && layer.transform?.mode);
   const hasTranslation = tx !== 0 || ty !== 0;
   const hasScaleOrRotation = sx !== 1 || sy !== 1 || rot !== 0;
 
@@ -80,6 +82,62 @@ export function reconcileLayerToDocumentSpace(
     return fallbackSerialize();
   }
   sourceCtx.drawImage(canvas, 0, 0);
+
+  if (usesAdvancedAffine && matrix) {
+    const [a, b, c, d, e, f] = matrix;
+    const corners = [
+      { x: rasterOriginX, y: rasterOriginY },
+      { x: rasterOriginX + source.width, y: rasterOriginY },
+      { x: rasterOriginX + source.width, y: rasterOriginY + source.height },
+      { x: rasterOriginX, y: rasterOriginY + source.height }
+    ].map((corner) => ({
+      x: a * corner.x + c * corner.y + e,
+      y: b * corner.x + d * corner.y + f
+    }));
+
+    const minX = Math.floor(Math.min(...corners.map((corner) => corner.x)));
+    const minY = Math.floor(Math.min(...corners.map((corner) => corner.y)));
+    const maxX = Math.ceil(Math.max(...corners.map((corner) => corner.x)));
+    const maxY = Math.ceil(Math.max(...corners.map((corner) => corner.y)));
+    const outX = Math.min(0, minX);
+    const outY = Math.min(0, minY);
+    const outW = Math.max(doc.canvas.width, maxX) - outX;
+    const outH = Math.max(doc.canvas.height, maxY) - outY;
+
+    const temp = window.document.createElement("canvas");
+    temp.width = outW;
+    temp.height = outH;
+    const tempCtx = temp.getContext("2d");
+
+    if (!tempCtx) {
+      return fallbackSerialize();
+    }
+
+    tempCtx.setTransform(a, b, c, d, e - outX, f - outY);
+    tempCtx.drawImage(source, rasterOriginX, rasterOriginY);
+
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return fallbackSerialize();
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(temp, 0, 0);
+    setCanvasRasterBounds(canvas, {
+      x: outX,
+      y: outY,
+      width: outW,
+      height: outH
+    });
+    return serializeLayerData(canvas.toDataURL("image/png"), {
+      x: outX,
+      y: outY,
+      width: outW,
+      height: outH
+    });
+  }
 
   // Compute the axis-aligned bounding box of the transformed content
   // so that scaling/rotating beyond document bounds doesn't clip pixels.

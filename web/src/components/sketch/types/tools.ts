@@ -450,6 +450,23 @@ export const DEFAULT_MOVE_SETTINGS: MoveSettings = {
 
 // ─── Transform Settings ───────────────────────────────────────────────────────
 
+/**
+ * Photoshop-style transform mode selection for Free Transform.
+ *
+ * - `auto`: keep the normal free-transform handles and let modifier keys
+ *   temporarily switch to advanced behavior.
+ * - `scale`: force standard scale/rotate behavior.
+ * - `distort`: treat corner drags as affine corner distortions.
+ * - `skew`: treat edge drags as affine skew/shear adjustments.
+ * - `perspective`: reserved for future non-affine perspective work.
+ */
+export type TransformMode =
+  | "auto"
+  | "scale"
+  | "distort"
+  | "skew"
+  | "perspective";
+
 export interface TransformSettings {
   /**
    * When true, clicking opaque pixels on the canvas while the TransformTool is
@@ -457,10 +474,16 @@ export interface TransformSettings {
    * target, without requiring the user to switch layers in the layers panel first.
    */
   autoSelect: boolean;
+  /**
+   * Photoshop-style transform mode selection. `auto` keeps the default free
+   * transform behavior and lets modifier keys pick advanced affine modes.
+   */
+  mode: TransformMode;
 }
 
 export const DEFAULT_TRANSFORM_SETTINGS: TransformSettings = {
-  autoSelect: true
+  autoSelect: true,
+  mode: "auto"
 };
 
 // ─── Composite Tool Settings ──────────────────────────────────────────────────

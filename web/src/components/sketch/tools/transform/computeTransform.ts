@@ -11,7 +11,7 @@
  * @module tools/transform/computeTransform
  */
 
-import type { Point, LayerTransform, LayerContentBounds } from "../../types";
+import type { Point, LayerTransform, LayerContentBounds, TransformMode } from "../../types";
 import { ensureTransformMatrix } from "../../types";
 import {
   rotatePoint,
@@ -21,6 +21,261 @@ import {
   type TransformHandle
 } from "./handleGeometry";
 import { getTransformedCenter } from "../../painting/resolvedLayerGeometry";
+
+type PhotoshopTransformMode = Exclude<TransformMode, "auto">;
+
+const CORNER_INDEX_BY_HANDLE: Record<
+  Extract<
+    TransformHandle,
+    "top-left" | "top-right" | "bottom-right" | "bottom-left"
+  >,
+  0 | 1 | 2 | 3
+> = {
+  "top-left": 0,
+  "top-right": 1,
+  "bottom-right": 2,
+  "bottom-left": 3
+};
+
+const DISTORT_NEIGHBORS: Record<
+  Extract<
+    TransformHandle,
+    "top-left" | "top-right" | "bottom-right" | "bottom-left"
+  >,
+  { adjacentA: 0 | 1 | 2 | 3; adjacentB: 0 | 1 | 2 | 3 }
+> = {
+  "top-left": { adjacentA: 1, adjacentB: 3 },
+  "top-right": { adjacentA: 0, adjacentB: 2 },
+  "bottom-right": { adjacentA: 1, adjacentB: 3 },
+  "bottom-left": { adjacentA: 0, adjacentB: 2 }
+};
+
+function projectVector(delta: Point, axis: Point): Point {
+  const length = Math.hypot(axis.x, axis.y);
+  if (length <= 1e-9) {
+    return { x: 0, y: 0 };
+  }
+  const ux = axis.x / length;
+  const uy = axis.y / length;
+  const amount = delta.x * ux + delta.y * uy;
+  return {
+    x: ux * amount,
+    y: uy * amount
+  };
+}
+
+function isCornerHandle(
+  handle: TransformHandle
+): handle is Extract<
+  TransformHandle,
+  "top-left" | "top-right" | "bottom-right" | "bottom-left"
+> {
+  return (
+    handle === "top-left" ||
+    handle === "top-right" ||
+    handle === "bottom-right" ||
+    handle === "bottom-left"
+  );
+}
+
+function isEdgeHandle(
+  handle: TransformHandle
+): handle is Extract<TransformHandle, "top" | "bottom" | "left" | "right"> {
+  return (
+    handle === "top" ||
+    handle === "bottom" ||
+    handle === "left" ||
+    handle === "right"
+  );
+}
+
+export function resolvePhotoshopTransformMode(
+  baseMode: TransformMode,
+  handle: TransformHandle,
+  modifiers: {
+    ctrlOrMeta: boolean;
+    shift: boolean;
+    alt: boolean;
+  }
+): PhotoshopTransformMode {
+  if (baseMode !== "auto") {
+    if (baseMode === "perspective") {
+      return "perspective";
+    }
+    return baseMode;
+  }
+
+  if (modifiers.ctrlOrMeta && modifiers.alt && modifiers.shift) {
+    return "perspective";
+  }
+  if (modifiers.ctrlOrMeta && isCornerHandle(handle)) {
+    return "distort";
+  }
+  if (modifiers.ctrlOrMeta && isEdgeHandle(handle)) {
+    return "skew";
+  }
+  return "scale";
+}
+
+function fitAffineFromCorners(
+  corners: [Point, Point, Point, Point],
+  rasterBounds: LayerContentBounds
+): NonNullable<LayerTransform["matrix"]> {
+  const tl = corners[0];
+  const tr = corners[1];
+  const bl = corners[3];
+  const width = Math.max(1, rasterBounds.width);
+  const height = Math.max(1, rasterBounds.height);
+  const a = (tr.x - tl.x) / width;
+  const b = (tr.y - tl.y) / width;
+  const c = (bl.x - tl.x) / height;
+  const d = (bl.y - tl.y) / height;
+  const e = tl.x - a * rasterBounds.x - c * rasterBounds.y;
+  const f = tl.y - b * rasterBounds.x - d * rasterBounds.y;
+  return [a, b, c, d, e, f];
+}
+
+function buildAdvancedTransform(
+  corners: [Point, Point, Point, Point],
+  rasterBounds: LayerContentBounds,
+  mode: "distort" | "skew"
+): LayerTransform {
+  const matrix = fitAffineFromCorners(corners, rasterBounds);
+  const topVector = {
+    x: corners[1].x - corners[0].x,
+    y: corners[1].y - corners[0].y
+  };
+  const leftVector = {
+    x: corners[3].x - corners[0].x,
+    y: corners[3].y - corners[0].y
+  };
+  return {
+    x: matrix[4],
+    y: matrix[5],
+    scaleX: Math.hypot(topVector.x, topVector.y) / Math.max(1, rasterBounds.width),
+    scaleY:
+      Math.hypot(leftVector.x, leftVector.y) / Math.max(1, rasterBounds.height),
+    rotation: Math.atan2(topVector.y, topVector.x),
+    matrix,
+    mode
+  };
+}
+
+export function computeDistortTransform(
+  dragStartCorners: [Point, Point, Point, Point],
+  handle: Extract<
+    TransformHandle,
+    "top-left" | "top-right" | "bottom-right" | "bottom-left"
+  >,
+  dragStart: Point,
+  cursor: Point,
+  rasterBounds: LayerContentBounds,
+  constrain: boolean
+): LayerTransform {
+  const draggedIndex = CORNER_INDEX_BY_HANDLE[handle];
+  const { adjacentA, adjacentB } = DISTORT_NEIGHBORS[handle];
+  const draggedCorner = dragStartCorners[draggedIndex];
+  const adjacentCornerA = dragStartCorners[adjacentA];
+  const adjacentCornerB = dragStartCorners[adjacentB];
+  const delta = {
+    x: cursor.x - dragStart.x,
+    y: cursor.y - dragStart.y
+  };
+
+  let alongA = projectVector(delta, {
+    x: adjacentCornerA.x - draggedCorner.x,
+    y: adjacentCornerA.y - draggedCorner.y
+  });
+  let alongB = projectVector(delta, {
+    x: adjacentCornerB.x - draggedCorner.x,
+    y: adjacentCornerB.y - draggedCorner.y
+  });
+
+  if (constrain) {
+    if (Math.hypot(alongA.x, alongA.y) >= Math.hypot(alongB.x, alongB.y)) {
+      alongB = { x: 0, y: 0 };
+    } else {
+      alongA = { x: 0, y: 0 };
+    }
+  }
+
+  const nextCorners = dragStartCorners.map((corner) => ({ ...corner })) as [
+    Point,
+    Point,
+    Point,
+    Point
+  ];
+
+  nextCorners[draggedIndex] = {
+    x: draggedCorner.x + alongA.x + alongB.x,
+    y: draggedCorner.y + alongA.y + alongB.y
+  };
+  nextCorners[adjacentA] = {
+    x: adjacentCornerA.x + alongB.x,
+    y: adjacentCornerA.y + alongB.y
+  };
+  nextCorners[adjacentB] = {
+    x: adjacentCornerB.x + alongA.x,
+    y: adjacentCornerB.y + alongA.y
+  };
+
+  return buildAdvancedTransform(nextCorners, rasterBounds, "distort");
+}
+
+export function computeSkewTransform(
+  dragStartCorners: [Point, Point, Point, Point],
+  handle: Extract<TransformHandle, "top" | "bottom" | "left" | "right">,
+  dragStart: Point,
+  cursor: Point,
+  rasterBounds: LayerContentBounds
+): LayerTransform {
+  const delta = {
+    x: cursor.x - dragStart.x,
+    y: cursor.y - dragStart.y
+  };
+  const nextCorners = dragStartCorners.map((corner) => ({ ...corner })) as [
+    Point,
+    Point,
+    Point,
+    Point
+  ];
+
+  if (handle === "top" || handle === "bottom") {
+    const edgeStart =
+      handle === "top" ? dragStartCorners[0] : dragStartCorners[3];
+    const edgeEnd =
+      handle === "top" ? dragStartCorners[1] : dragStartCorners[2];
+    const projected = projectVector(delta, {
+      x: edgeEnd.x - edgeStart.x,
+      y: edgeEnd.y - edgeStart.y
+    });
+    const indices = handle === "top" ? [0, 1] : [3, 2];
+    for (const index of indices) {
+      nextCorners[index] = {
+        x: nextCorners[index].x + projected.x,
+        y: nextCorners[index].y + projected.y
+      };
+    }
+  } else {
+    const edgeStart =
+      handle === "left" ? dragStartCorners[0] : dragStartCorners[1];
+    const edgeEnd =
+      handle === "left" ? dragStartCorners[3] : dragStartCorners[2];
+    const projected = projectVector(delta, {
+      x: edgeEnd.x - edgeStart.x,
+      y: edgeEnd.y - edgeStart.y
+    });
+    const indices = handle === "left" ? [0, 3] : [1, 2];
+    for (const index of indices) {
+      nextCorners[index] = {
+        x: nextCorners[index].x + projected.x,
+        y: nextCorners[index].y + projected.y
+      };
+    }
+  }
+
+  return buildAdvancedTransform(nextCorners, rasterBounds, "skew");
+}
 
 // ─── Move computation ────────────────────────────────────────────────────────
 

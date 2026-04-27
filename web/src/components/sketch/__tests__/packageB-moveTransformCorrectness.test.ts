@@ -48,7 +48,10 @@ import {
   computeMoveTransform,
   computeRotateTransform,
   computeScaleTransform,
-  computeTransformForHandle
+  computeTransformForHandle,
+  computeDistortTransform,
+  computeSkewTransform,
+  resolvePhotoshopTransformMode
 } from "../tools/transform/computeTransform";
 import { cursorForHandle } from "../tools/transform/cursorMapping";
 
@@ -750,6 +753,89 @@ describe("Package B: transform computation correctness", () => {
     const newLeftEdge =
       result.x + bounds.x + bounds.width / 2 - (bounds.width * (result.scaleX ?? 1)) / 2;
     expect(Math.abs(newLeftEdge - originalLeftEdge)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("Package B: Photoshop-style advanced transform modes", () => {
+  const bounds = makeBounds({ x: 0, y: 0, width: 100, height: 100 });
+
+  it("resolves corner ctrl-drag to distort and edge ctrl-drag to skew", () => {
+    expect(
+      resolvePhotoshopTransformMode("auto", "top-left", {
+        ctrlOrMeta: true,
+        shift: false,
+        alt: false
+      })
+    ).toBe("distort");
+    expect(
+      resolvePhotoshopTransformMode("auto", "left", {
+        ctrlOrMeta: true,
+        shift: false,
+        alt: false
+      })
+    ).toBe("skew");
+  });
+
+  it("computeDistortTransform keeps the opposite corner anchored", () => {
+    const transform = makeTransform({ x: 0, y: 0 });
+    const corners = getTransformedCorners(transform, bounds);
+    const dragStart = corners[0];
+    const cursor = { x: dragStart.x + 20, y: dragStart.y + 10 };
+
+    const result = computeDistortTransform(
+      corners,
+      "top-left",
+      dragStart,
+      cursor,
+      bounds,
+      false
+    );
+    const nextCorners = getTransformedCorners(result, bounds);
+
+    expect(nextCorners[0].x).toBeCloseTo(cursor.x, 5);
+    expect(nextCorners[0].y).toBeCloseTo(cursor.y, 5);
+    expect(nextCorners[2].x).toBeCloseTo(corners[2].x, 5);
+    expect(nextCorners[2].y).toBeCloseTo(corners[2].y, 5);
+    expect(result.mode).toBe("distort");
+  });
+
+  it("computeDistortTransform with shift axis-locks to a single edge direction", () => {
+    const transform = makeTransform({ x: 0, y: 0 });
+    const corners = getTransformedCorners(transform, bounds);
+    const dragStart = corners[0];
+    const cursor = { x: dragStart.x + 30, y: dragStart.y + 5 };
+
+    const result = computeDistortTransform(
+      corners,
+      "top-left",
+      dragStart,
+      cursor,
+      bounds,
+      true
+    );
+    const nextCorners = getTransformedCorners(result, bounds);
+
+    expect(Math.abs(nextCorners[0].y - corners[0].y)).toBeLessThan(1);
+    expect(nextCorners[0].x).toBeGreaterThan(corners[0].x);
+  });
+
+  it("computeSkewTransform moves only the dragged edge", () => {
+    const transform = makeTransform({ x: 0, y: 0 });
+    const corners = getTransformedCorners(transform, bounds);
+    const topMid = {
+      x: (corners[0].x + corners[1].x) / 2,
+      y: (corners[0].y + corners[1].y) / 2
+    };
+    const cursor = { x: topMid.x + 25, y: topMid.y + 15 };
+
+    const result = computeSkewTransform(corners, "top", topMid, cursor, bounds);
+    const nextCorners = getTransformedCorners(result, bounds);
+
+    expect(nextCorners[0].x).toBeGreaterThan(corners[0].x);
+    expect(nextCorners[1].x).toBeGreaterThan(corners[1].x);
+    expect(nextCorners[3].x).toBeCloseTo(corners[3].x, 5);
+    expect(nextCorners[2].x).toBeCloseTo(corners[2].x, 5);
+    expect(result.mode).toBe("skew");
   });
 });
 

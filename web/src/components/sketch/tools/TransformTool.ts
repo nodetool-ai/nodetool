@@ -47,11 +47,18 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
-import type { Point, LayerTransform, LayerContentBounds, Layer } from "../types";
+import type {
+  Point,
+  LayerTransform,
+  LayerContentBounds,
+  Layer,
+  TransformMode
+} from "../types";
 import { layerAllowsTransformWhilePixelLocked } from "../types";
 import TransformIcon from "@mui/icons-material/Transform";
 import {
-  getTransformedCenter
+  getTransformedCenter,
+  getTransformedCorners
 } from "../painting/resolvedLayerGeometry";
 import {
   type TransformHandle,
@@ -59,7 +66,10 @@ import {
   isInRotateZone,
   hitTestPivot,
   snapPivotToAnchor,
-  computeTransformForHandle
+  computeTransformForHandle,
+  computeDistortTransform,
+  computeSkewTransform,
+  resolvePhotoshopTransformMode
 } from "./transform";
 import {
   paintTransformGizmo,
@@ -103,6 +113,10 @@ export class TransformTool implements ToolHandler {
   private gestureActive = false;
   /** Currently hovered handle (for cursor feedback). */
   private hoveredHandle: TransformHandle | null = null;
+  /** Active Photoshop-style transform gesture mode for the current drag. */
+  private activeTransformMode: TransformMode = "auto";
+  /** Corner snapshot used for skew/distort gestures. */
+  private dragStartCorners: [Point, Point, Point, Point] | null = null;
   /** Batched gizmo redraw scheduler. */
   private gizmoScheduler = new GizmoRedrawScheduler();
 
@@ -142,6 +156,8 @@ export class TransformTool implements ToolHandler {
     this.hoveredHandle = null;
     this.gestureActive = false;
     this.pivotPoint = null;
+    this.activeTransformMode = "auto";
+    this.dragStartCorners = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
     this.drawGizmo(ctx);
@@ -158,6 +174,8 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = null;
     this.hoveredHandle = null;
     this.pivotPoint = null;
+    this.activeTransformMode = "auto";
+    this.dragStartCorners = null;
     this.adjustmentUndoStack = [];
     this.adjustmentRedoStack = [];
     this.syncStateToLayer(ctx, layer);
@@ -169,6 +187,8 @@ export class TransformTool implements ToolHandler {
     this.hoveredHandle = null;
     this.gestureActive = false;
     this.pivotPoint = null;
+    this.activeTransformMode = "auto";
+    this.dragStartCorners = null;
     this.session.clear(ctx);
     this.targetSet.clear();
     this.adjustmentUndoStack = [];
@@ -255,6 +275,11 @@ export class TransformTool implements ToolHandler {
     this.activeHandle = handle;
     this.dragStart = pt;
     this.dragStartTransform = { ...currentTransform };
+    this.dragStartCorners =
+      handle === "move" || handle === "rotate"
+        ? null
+        : this.getCurrentCorners(currentTransform);
+    this.activeTransformMode = this.getConfiguredTransformMode();
     this.center = getTransformedCenter(currentTransform, this.rasterBounds);
     this.gestureActive = true;
     // Record the pre-drag transform for in-transform undo; clear redo stack.
@@ -293,27 +318,76 @@ export class TransformTool implements ToolHandler {
 
     const shift = ctx.shiftHeldRef.current;
     const alt = ctx.altHeldRef.current;
-    // Use the pivot as the rotation center when set; fall back to layer center.
-    const rotationCenter = this.activeHandle === "rotate"
-      ? this.getEffectivePivot(this.dragStartTransform)
-      : this.center;
-    // When the pivot is not the layer center, pass the layer center so
-    // computeRotateTransform can compute the orbital translation.
-    const layerCenter =
-      this.activeHandle === "rotate" && this.pivotPoint
-        ? this.center
-        : undefined;
-    const newTransform = computeTransformForHandle(
+    const gestureMode = resolvePhotoshopTransformMode(
+      this.getConfiguredTransformMode(),
       this.activeHandle,
-      this.dragStartTransform,
-      this.dragStart,
-      pt,
-      rotationCenter,
-      this.rasterBounds,
-      shift,
-      alt,
-      layerCenter
+      {
+        ctrlOrMeta: Boolean(
+          event.nativeEvent.ctrlKey || event.nativeEvent.metaKey
+        ),
+        shift,
+        alt
+      }
     );
+    let newTransform: LayerTransform;
+
+    if (
+      gestureMode === "distort" &&
+      this.dragStartCorners &&
+      (this.activeHandle === "top-left" ||
+        this.activeHandle === "top-right" ||
+        this.activeHandle === "bottom-left" ||
+        this.activeHandle === "bottom-right")
+    ) {
+      newTransform = computeDistortTransform(
+        this.dragStartCorners,
+        this.activeHandle,
+        this.dragStart,
+        pt,
+        this.rasterBounds,
+        shift
+      );
+    } else if (
+      gestureMode === "skew" &&
+      this.dragStartCorners &&
+      (this.activeHandle === "top" ||
+        this.activeHandle === "bottom" ||
+        this.activeHandle === "left" ||
+        this.activeHandle === "right")
+    ) {
+      newTransform = computeSkewTransform(
+        this.dragStartCorners,
+        this.activeHandle,
+        this.dragStart,
+        pt,
+        this.rasterBounds
+      );
+    } else {
+      // Use the pivot as the rotation center when set; fall back to layer center.
+      const rotationCenter = this.activeHandle === "rotate"
+        ? this.getEffectivePivot(this.dragStartTransform)
+        : this.center;
+      // When the pivot is not the layer center, pass the layer center so
+      // computeRotateTransform can compute the orbital translation.
+      const layerCenter =
+        this.activeHandle === "rotate" && this.pivotPoint
+          ? this.center
+          : undefined;
+      newTransform = computeTransformForHandle(
+        this.activeHandle,
+        this.dragStartTransform,
+        this.dragStart,
+        pt,
+        rotationCenter,
+        this.rasterBounds,
+        shift,
+        alt,
+        layerCenter
+      );
+      if (gestureMode === "scale") {
+        delete newTransform.mode;
+      }
+    }
     // Update through the shared preview session — writes to both compositing
     // pipeline and the UI singleton in one call.
     this.session.update(ctx, newTransform);
@@ -328,6 +402,8 @@ export class TransformTool implements ToolHandler {
     if (this.activeHandle === "pivot") {
       this.activeHandle = null;
       this.dragStart = null;
+      this.dragStartCorners = null;
+      this.activeTransformMode = "auto";
       this.drawGizmo(ctx);
       return;
     }
@@ -342,6 +418,8 @@ export class TransformTool implements ToolHandler {
 
     this.activeHandle = null;
     this.dragStart = null;
+    this.dragStartCorners = null;
+    this.activeTransformMode = "auto";
 
     const layer = ctx.doc.layers.find((l) => l.id === ctx.doc.activeLayerId);
     if (layer) {
@@ -410,16 +488,20 @@ export class TransformTool implements ToolHandler {
   }
 
   private syncStateToLayer(ctx: ToolContext, layer: Layer): void {
-    this.originalTransform = {
-      x: layer.transform.x,
-      y: layer.transform.y,
-      scaleX: layer.transform.scaleX ?? 1,
-      scaleY: layer.transform.scaleY ?? 1,
-      rotation: layer.transform.rotation ?? 0
-    };
+    this.originalTransform = { ...layer.transform };
     const layerCanvas = ctx.layerCanvasesRef.current.get(layer.id);
     this.rasterBounds = resolveGizmoBounds(layer, layerCanvas, ctx.doc.canvas);
     this.targetSet.setSingle(layer.id, this.rasterBounds);
+  }
+
+  private getConfiguredTransformMode(): TransformMode {
+    return useSketchStore.getState().toolSettings?.transform?.mode ?? "auto";
+  }
+
+  private getCurrentCorners(
+    transform: LayerTransform
+  ): [Point, Point, Point, Point] {
+    return getTransformedCorners(transform, this.rasterBounds);
   }
 
   private peekAutoSelectPick(ctx: ToolContext, docPoint: Point): Layer | null {

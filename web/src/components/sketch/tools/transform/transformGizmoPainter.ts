@@ -16,9 +16,40 @@
 import type { ToolContext } from "../types";
 import type { LayerTransform, LayerContentBounds, Point } from "../../types";
 import type { TransformHandle } from "./handleGeometry";
-import { getTransformedCenter } from "../../painting/resolvedLayerGeometry";
+import {
+  getTransformedCenter,
+  getTransformedCorners
+} from "../../painting/resolvedLayerGeometry";
 import { docToScreen, scaledHalfExtents } from "./handleGeometry";
 import { drawTransformGizmo } from "../gizmo";
+
+function getVisibleHandles(
+  transform: LayerTransform
+): readonly TransformHandle[] {
+  if (transform.mode === "distort") {
+    return [
+      "top-left",
+      "top-right",
+      "bottom-left",
+      "bottom-right",
+      "rotate"
+    ];
+  }
+  if (transform.mode === "skew") {
+    return ["top", "bottom", "left", "right", "rotate"];
+  }
+  return [
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right",
+    "top",
+    "bottom",
+    "left",
+    "right",
+    "rotate"
+  ];
+}
 
 /**
  * Paint the transform gizmo for a given layer state.
@@ -38,8 +69,65 @@ export function paintTransformGizmo(
   pivotDoc?: Point | null
 ): void {
   ctx.drawGizmo((gc, dpr, containerW, containerH) => {
+    const visibleHandles = getVisibleHandles(transform);
     const rot = transform.rotation ?? 0;
     const center = getTransformedCenter(transform, rasterBounds);
+
+    if (transform.matrix && transform.mode) {
+      const corners = getTransformedCorners(transform, rasterBounds);
+      const screenCorners = corners.map((corner) =>
+        docToScreen(
+          corner.x,
+          corner.y,
+          ctx.doc.canvas.width,
+          ctx.doc.canvas.height,
+          ctx.zoom,
+          ctx.pan,
+          containerW,
+          containerH,
+          dpr
+        )
+      ) as [Point, Point, Point, Point];
+      const screenCenter = docToScreen(
+        center.x,
+        center.y,
+        ctx.doc.canvas.width,
+        ctx.doc.canvas.height,
+        ctx.zoom,
+        ctx.pan,
+        containerW,
+        containerH,
+        dpr
+      );
+      const pivotScreenPos = pivotDoc
+        ? docToScreen(
+            pivotDoc.x,
+            pivotDoc.y,
+            ctx.doc.canvas.width,
+            ctx.doc.canvas.height,
+            ctx.zoom,
+            ctx.pan,
+            containerW,
+            containerH,
+            dpr
+          )
+        : null;
+
+      drawTransformGizmo(
+        gc,
+        screenCenter,
+        null,
+        null,
+        null,
+        activeOrHoveredHandle,
+        dpr,
+        pivotScreenPos,
+        screenCorners,
+        visibleHandles
+      );
+      return;
+    }
+
     const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
 
     const screenCenter = docToScreen(
@@ -73,8 +161,16 @@ export function paintTransformGizmo(
       : null;
 
     drawTransformGizmo(
-      gc, screenCenter, screenW, screenH, rot,
-      activeOrHoveredHandle, dpr, pivotScreenPos
+      gc,
+      screenCenter,
+      screenW,
+      screenH,
+      rot,
+      activeOrHoveredHandle,
+      dpr,
+      pivotScreenPos,
+      null,
+      visibleHandles
     );
   });
 }

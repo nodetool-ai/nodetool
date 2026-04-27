@@ -34,6 +34,22 @@ import type { Point } from "../types/geometry";
 import { computeLayerOpaquePixelBounds } from "./opaquePixelBounds";
 import { getCanvasRasterBounds } from "./layerBounds";
 
+function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
+  return Boolean(transform.matrix && transform.mode);
+}
+
+function applyAffineMatrix(
+  matrix: AffineMatrix,
+  x: number,
+  y: number
+): Point {
+  const [a, b, c, d, e, f] = matrix;
+  return {
+    x: a * x + c * y + e,
+    y: b * x + d * y + f
+  };
+}
+
 // ─── Effective raster bounds ─────────────────────────────────────────────────
 
 /**
@@ -176,6 +192,21 @@ export function getTransformedExtents(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): DocumentExtents {
+  if (usesAdvancedAffineTransform(transform) && transform.matrix) {
+    const corners = getTransformedCorners(transform, rasterBounds);
+    const xs = corners.map((corner) => corner.x);
+    const ys = corners.map((corner) => corner.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
+  }
   const sx = transform.scaleX ?? 1;
   const sy = transform.scaleY ?? 1;
   const rot = transform.rotation ?? 0;
@@ -241,6 +272,26 @@ export function getTransformedCorners(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): [Point, Point, Point, Point] {
+  if (usesAdvancedAffineTransform(transform) && transform.matrix) {
+    return [
+      applyAffineMatrix(transform.matrix, rasterBounds.x, rasterBounds.y),
+      applyAffineMatrix(
+        transform.matrix,
+        rasterBounds.x + rasterBounds.width,
+        rasterBounds.y
+      ),
+      applyAffineMatrix(
+        transform.matrix,
+        rasterBounds.x + rasterBounds.width,
+        rasterBounds.y + rasterBounds.height
+      ),
+      applyAffineMatrix(
+        transform.matrix,
+        rasterBounds.x,
+        rasterBounds.y + rasterBounds.height
+      )
+    ];
+  }
   const sx = transform.scaleX ?? 1;
   const sy = transform.scaleY ?? 1;
   const rot = transform.rotation ?? 0;
@@ -274,6 +325,13 @@ export function getTransformedCenter(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point {
+  if (usesAdvancedAffineTransform(transform) && transform.matrix) {
+    return applyAffineMatrix(
+      transform.matrix,
+      rasterBounds.x + rasterBounds.width / 2,
+      rasterBounds.y + rasterBounds.height / 2
+    );
+  }
   return {
     x: transform.x + rasterBounds.x + rasterBounds.width / 2,
     y: transform.y + rasterBounds.y + rasterBounds.height / 2
@@ -324,6 +382,9 @@ export function resolveLayerGeometry(
  * `composeAffineMatrix` that handles defaulting optional fields.
  */
 export function buildLayerMatrix(transform: LayerTransform): AffineMatrix {
+  if (transform.matrix) {
+    return transform.matrix;
+  }
   return composeAffineMatrix(
     transform.x,
     transform.y,

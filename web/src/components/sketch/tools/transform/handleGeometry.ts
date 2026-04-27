@@ -52,6 +52,66 @@ export const OUTSIDE_ROTATE_MARGIN = GIZMO_OUTSIDE_ROTATE_MARGIN;
 export const PIVOT_HIT_RADIUS = GIZMO_PIVOT_HIT_RADIUS;
 export const PIVOT_SNAP_DISTANCE = GIZMO_PIVOT_SNAP_DISTANCE;
 
+function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
+  return Boolean(transform.matrix && transform.mode);
+}
+
+function midpoint(a: Point, b: Point): Point {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2
+  };
+}
+
+function normalizeVector(dx: number, dy: number): Point {
+  const length = Math.hypot(dx, dy);
+  if (length <= 1e-9) {
+    return { x: 0, y: 0 };
+  }
+  return { x: dx / length, y: dy / length };
+}
+
+function pointInPolygon(pt: Point, polygon: Point[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x;
+    const yi = polygon[i].y;
+    const xj = polygon[j].x;
+    const yj = polygon[j].y;
+    const edgeY = yj - yi;
+    if (Math.abs(edgeY) <= 1e-9) {
+      continue;
+    }
+    const intersects =
+      yi > pt.y !== yj > pt.y &&
+      pt.x < ((xj - xi) * (pt.y - yi)) / edgeY + xi;
+    if (intersects) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function distanceToSegment(pt: Point, start: Point, end: Point): number {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSq = dx * dx + dy * dy;
+  if (lengthSq <= 1e-9) {
+    return dist(pt, start);
+  }
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((pt.x - start.x) * dx + (pt.y - start.y) * dy) / lengthSq
+    )
+  );
+  return Math.hypot(
+    pt.x - (start.x + t * dx),
+    pt.y - (start.y + t * dy)
+  );
+}
+
 // ─── Geometry primitives ──────────────────────────────────────────────────────
 
 /** Rotate a point around a center by `angle` radians. */
@@ -120,6 +180,32 @@ export function buildHandlePositions(
   rasterBounds: LayerContentBounds,
   zoom: number
 ): Array<{ pos: Point; handle: TransformHandle }> {
+  if (usesAdvancedAffineTransform(transform)) {
+    const corners = getTransformedCorners(transform, rasterBounds);
+    const center = getTransformedCenter(transform, rasterBounds);
+    const topMid = midpoint(corners[0], corners[1]);
+    const bottomMid = midpoint(corners[2], corners[3]);
+    const leftMid = midpoint(corners[0], corners[3]);
+    const rightMid = midpoint(corners[1], corners[2]);
+    const rotateNormal = normalizeVector(topMid.x - center.x, topMid.y - center.y);
+    return [
+      {
+        pos: {
+          x: topMid.x + rotateNormal.x * (ROTATION_HANDLE_OFFSET / zoom),
+          y: topMid.y + rotateNormal.y * (ROTATION_HANDLE_OFFSET / zoom)
+        },
+        handle: "rotate"
+      },
+      { pos: corners[0], handle: "top-left" },
+      { pos: corners[1], handle: "top-right" },
+      { pos: corners[3], handle: "bottom-left" },
+      { pos: corners[2], handle: "bottom-right" },
+      { pos: topMid, handle: "top" },
+      { pos: bottomMid, handle: "bottom" },
+      { pos: leftMid, handle: "left" },
+      { pos: rightMid, handle: "right" }
+    ];
+  }
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
   const rot = transform.rotation ?? 0;
@@ -182,6 +268,11 @@ export function hitTestHandles(
     }
   }
 
+  if (usesAdvancedAffineTransform(transform)) {
+    const corners = getTransformedCorners(transform, rasterBounds);
+    return pointInPolygon(canvasPt, corners) ? "move" : null;
+  }
+
   // Check if inside the bounding box (for "move")
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
@@ -228,6 +319,21 @@ export function isInRotateZone(
   canvasPt: Point,
   zoom: number
 ): boolean {
+  if (usesAdvancedAffineTransform(transform)) {
+    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
+    const corners = getTransformedCorners(transform, rasterBounds);
+    if (pointInPolygon(canvasPt, corners)) {
+      return false;
+    }
+    for (let index = 0; index < corners.length; index += 1) {
+      const start = corners[index];
+      const end = corners[(index + 1) % corners.length];
+      if (distanceToSegment(canvasPt, start, end) <= margin) {
+        return true;
+      }
+    }
+    return false;
+  }
   const margin = OUTSIDE_ROTATE_MARGIN / zoom;
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
@@ -435,6 +541,20 @@ export function getPivotSnapAnchors(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point[] {
+  if (usesAdvancedAffineTransform(transform)) {
+    const corners = getTransformedCorners(transform, rasterBounds);
+    return [
+      getTransformedCenter(transform, rasterBounds),
+      corners[0],
+      corners[1],
+      corners[3],
+      corners[2],
+      midpoint(corners[0], corners[1]),
+      midpoint(corners[3], corners[2]),
+      midpoint(corners[0], corners[3]),
+      midpoint(corners[1], corners[2])
+    ];
+  }
   const center = getTransformedCenter(transform, rasterBounds);
   const { hw, hh } = scaledHalfExtents(rasterBounds, transform);
   const rot = transform.rotation ?? 0;

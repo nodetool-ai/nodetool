@@ -19,6 +19,7 @@ import {
   type SketchDocument
 } from "../types";
 import { deserializeLayerData, getLayerDataFromCanvas } from "../rendering/canvas2d/layerIO";
+import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
 import { getCanvasRasterBounds } from "../painting";
 import { useSketchStore } from "../state";
 import { cloneSelectionMask, selectionHasAnyPixels } from "../selection";
@@ -56,6 +57,31 @@ interface SelectionFreeTransformSession {
   originalContentBounds: LayerContentBounds;
 }
 
+interface RepeatableTransformRecord {
+  transform: LayerTransform;
+  selectionScoped: boolean;
+}
+
+function cloneTransform(transform: LayerTransform): LayerTransform {
+  if (typeof structuredClone === "function") {
+    return structuredClone(transform);
+  }
+  return JSON.parse(JSON.stringify(transform)) as LayerTransform;
+}
+
+/**
+ * Drop advanced affine metadata before applying standard rotate/flip actions.
+ *
+ * Those operations recompute a fresh decomposed transform; carrying an older
+ * matrix-backed skew/distort state forward would leave the matrix stale.
+ */
+function stripAdvancedTransformFields(
+  transform: LayerTransform
+): LayerTransform {
+  const { matrix: _matrix, mode: _mode, ...rest } = transform;
+  return rest;
+}
+
 export function useTransformActions({
   canvasRef,
   document,
@@ -70,8 +96,19 @@ export function useTransformActions({
   /** Original transform saved when the transform tool activates. */
   const transformOriginalRef = useRef<LayerTransform | null>(null);
   const selectionFreeTransformRef = useRef<SelectionFreeTransformSession | null>(null);
+  const lastCommittedTransformRef = useRef<RepeatableTransformRecord | null>(null);
   const selection = useSketchStore((state) => state.selection);
   const setSelection = useSketchStore((state) => state.setSelection);
+
+  const storeLastCommittedTransform = useCallback(
+    (transform: LayerTransform, selectionScoped: boolean) => {
+      lastCommittedTransformRef.current = {
+        transform: cloneTransform(transform),
+        selectionScoped
+      };
+    },
+    []
+  );
 
   const pushTransformHistory = useCallback(
     (label: string) => {
@@ -93,13 +130,7 @@ export function useTransformActions({
       (l) => l.id === document.activeLayerId
     );
     if (activeLayer) {
-      transformOriginalRef.current = {
-        x: activeLayer.transform.x,
-        y: activeLayer.transform.y,
-        scaleX: activeLayer.transform.scaleX ?? 1,
-        scaleY: activeLayer.transform.scaleY ?? 1,
-        rotation: activeLayer.transform.rotation ?? 0
-      };
+      transformOriginalRef.current = { ...activeLayer.transform };
     }
   }, [document]);
 
@@ -182,6 +213,135 @@ export function useTransformActions({
     setLayerContentBounds
   ]);
 
+  const applyRepeatTransformToLayer = useCallback(
+    (
+      layerId: string,
+      record: RepeatableTransformRecord
+    ): boolean => {
+      const canvas = canvasRef.current;
+      const state = useSketchStore.getState();
+      const activeLayer = state.document.layers.find((layer) => layer.id === layerId);
+      if (!canvas || !activeLayer) {
+        return false;
+      }
+      if (activeLayer.locked && !layerAllowsTransformWhilePixelLocked(activeLayer)) {
+        return false;
+      }
+
+      const originalSnapshot = canvas.snapshotLayerCanvas(layerId);
+      if (!originalSnapshot) {
+        return false;
+      }
+
+      if (record.selectionScoped) {
+        const currentSelection = state.selection;
+        if (!currentSelection || !selectionHasAnyPixels(currentSelection)) {
+          return false;
+        }
+        const prepared = prepareSelectionFreeTransformCanvases({
+          snapshot: originalSnapshot,
+          layer: activeLayer,
+          documentCanvasWidth: state.document.canvas.width,
+          documentCanvasHeight: state.document.canvas.height,
+          selection: currentSelection
+        });
+        if (!prepared) {
+          return false;
+        }
+
+        const tempDocument = {
+          ...state.document,
+          layers: state.document.layers.map((layer) =>
+            layer.id === layerId
+              ? {
+                  ...layer,
+                  transform: record.transform,
+                  contentBounds: prepared.selectionBounds
+                }
+              : layer
+          )
+        };
+        const tempCanvases = new Map<string, HTMLCanvasElement>([
+          [layerId, prepared.selectionCanvas]
+        ]);
+        const reconciledData = reconcileLayerToDocumentSpace(
+          layerId,
+          tempDocument,
+          tempCanvases
+        );
+        const transformedSelectionCanvas = tempCanvases.get(layerId);
+        if (!reconciledData || !transformedSelectionCanvas) {
+          return false;
+        }
+
+        const finalCanvas = compositeSelectionOverBase(
+          prepared.baseCanvas,
+          transformedSelectionCanvas
+        );
+        const fallbackBounds =
+          getCanvasRasterBounds(finalCanvas) ?? prepared.selectionBounds;
+        const finalData = getLayerDataFromCanvas(finalCanvas);
+        const { bounds } = deserializeLayerData(finalData, fallbackBounds);
+        const transformedSelection = transformSelectionMask(
+          currentSelection,
+          prepared.selectionBounds,
+          record.transform
+        );
+
+        canvas.restoreLayerCanvas(layerId, finalCanvas);
+        updateLayerData(layerId, finalData);
+        setLayerContentBounds(layerId, bounds);
+        setLayerTransform(layerId, { x: 0, y: 0 });
+        setSelection(transformedSelection);
+        syncSketchOutputsNow();
+        return true;
+      }
+
+      const tempDocument = {
+        ...state.document,
+        layers: state.document.layers.map((layer) =>
+          layer.id === layerId
+            ? { ...layer, transform: record.transform }
+            : layer
+        )
+      };
+      const tempCanvases = new Map<string, HTMLCanvasElement>([
+        [layerId, originalSnapshot]
+      ]);
+      const reconciledData = reconcileLayerToDocumentSpace(
+        layerId,
+        tempDocument,
+        tempCanvases
+      );
+      const reconciledCanvas = tempCanvases.get(layerId);
+      if (!reconciledData || !reconciledCanvas) {
+        return false;
+      }
+      const fallbackBounds = getCanvasRasterBounds(reconciledCanvas) ?? {
+        x: 0,
+        y: 0,
+        width: state.document.canvas.width,
+        height: state.document.canvas.height
+      };
+      const { bounds } = deserializeLayerData(reconciledData, fallbackBounds);
+
+      canvas.restoreLayerCanvas(layerId, reconciledCanvas);
+      updateLayerData(layerId, reconciledData);
+      setLayerContentBounds(layerId, bounds);
+      setLayerTransform(layerId, { x: 0, y: 0 });
+      syncSketchOutputsNow();
+      return true;
+    },
+    [
+      canvasRef,
+      updateLayerData,
+      setLayerContentBounds,
+      setLayerTransform,
+      setSelection,
+      syncSketchOutputsNow
+    ]
+  );
+
   /** Commit: bake the current scale/rotation into the pixel data and reset transform fields. */
   const handleTransformCommit = useCallback(() => {
     const activeLayerId = document.activeLayerId;
@@ -197,6 +357,7 @@ export function useTransformActions({
 
     const selectionSession = selectionFreeTransformRef.current;
     if (selectionSession && selectionSession.layerId === activeLayerId) {
+      storeLastCommittedTransform(activeLayer.transform, true);
       canvas.reconcileLayerToDocumentSpace(activeLayerId);
       const transformedSelectionCanvas = canvas.snapshotLayerCanvas(activeLayerId);
       if (!transformedSelectionCanvas) {
@@ -228,6 +389,7 @@ export function useTransformActions({
     }
 
     const newData = canvas.reconcileLayerToDocumentSpace(activeLayerId);
+    storeLastCommittedTransform(activeLayer.transform, false);
     if (newData !== null) {
       updateLayerData(activeLayerId, newData);
       // Extract the bounds from the reconciled data and update the store
@@ -248,6 +410,7 @@ export function useTransformActions({
   }, [
     document,
     canvasRef,
+    storeLastCommittedTransform,
     updateLayerData,
     setLayerTransform,
     setLayerContentBounds,
@@ -410,7 +573,10 @@ export function useTransformActions({
       }
       const current = layer.transform;
       const newRotation = (current.rotation ?? 0) + angleRad;
-      setLayerTransform(activeLayerId, { ...current, rotation: newRotation });
+      setLayerTransform(activeLayerId, {
+        ...stripAdvancedTransformFields(current),
+        rotation: newRotation
+      });
     },
     [document.activeLayerId, document.layers, setLayerTransform]
   );
@@ -424,7 +590,7 @@ export function useTransformActions({
     }
     const current = layer.transform;
     setLayerTransform(activeLayerId, {
-      ...current,
+      ...stripAdvancedTransformFields(current),
       scaleX: -(current.scaleX ?? 1)
     });
   }, [document.activeLayerId, document.layers, setLayerTransform]);
@@ -438,10 +604,53 @@ export function useTransformActions({
     }
     const current = layer.transform;
     setLayerTransform(activeLayerId, {
-      ...current,
+      ...stripAdvancedTransformFields(current),
       scaleY: -(current.scaleY ?? 1)
     });
   }, [document.activeLayerId, document.layers, setLayerTransform]);
+
+  const handleRepeatLastTransform = useCallback(() => {
+    const record = lastCommittedTransformRef.current;
+    const activeLayerId = useSketchStore.getState().document.activeLayerId;
+    if (!record || !activeLayerId) {
+      return;
+    }
+    pushTransformHistory("repeat transform");
+    applyRepeatTransformToLayer(activeLayerId, record);
+  }, [applyRepeatTransformToLayer, pushTransformHistory]);
+
+  const handleRepeatLastTransformOnCopy = useCallback(() => {
+    const record = lastCommittedTransformRef.current;
+    const canvas = canvasRef.current;
+    const state = useSketchStore.getState();
+    const activeLayerId = state.document.activeLayerId;
+    if (!record || !canvas || !activeLayerId) {
+      return;
+    }
+    if (record.selectionScoped && (!state.selection || !selectionHasAnyPixels(state.selection))) {
+      return;
+    }
+
+    pushTransformHistory("repeat transform on copy");
+    state.duplicateLayer(activeLayerId);
+    const nextState = useSketchStore.getState();
+    const duplicatedLayer = nextState.document.layers.find(
+      (layer) => layer.id === nextState.document.activeLayerId
+    );
+    if (!duplicatedLayer) {
+      return;
+    }
+
+    canvas.setLayerData(
+      duplicatedLayer.id,
+      duplicatedLayer.data ?? null,
+      duplicatedLayer.contentBounds
+    );
+    const applied = applyRepeatTransformToLayer(duplicatedLayer.id, record);
+    if (!applied) {
+      useSketchStore.getState().removeLayer(duplicatedLayer.id);
+    }
+  }, [applyRepeatTransformToLayer, canvasRef, pushTransformHistory]);
 
   return {
     transformOriginalRef,
@@ -459,6 +668,8 @@ export function useTransformActions({
     handleTransformRedo,
     handleTransformRotate,
     handleTransformFlipH,
-    handleTransformFlipV
+    handleTransformFlipV,
+    handleRepeatLastTransform,
+    handleRepeatLastTransformOnCopy
   };
 }

@@ -52,7 +52,8 @@ export function mergeTransformPreview(
     y: update.y,
     scaleX: update.scaleX ?? base.scaleX ?? 1,
     scaleY: update.scaleY ?? base.scaleY ?? 1,
-    rotation: update.rotation ?? base.rotation ?? 0
+    rotation: update.rotation ?? base.rotation ?? 0,
+    mode: update.mode ?? base.mode
   };
   // If the update already carries a matrix, trust it.
   if (update.matrix) {

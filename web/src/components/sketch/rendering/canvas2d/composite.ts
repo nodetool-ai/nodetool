@@ -40,8 +40,26 @@ export function drawWithTransform(
   ctx: CanvasRenderingContext2D,
   source: HTMLCanvasElement,
   compositeOffset: { x: number; y: number },
-  layer: { transform: { scaleX?: number; scaleY?: number; rotation?: number; matrix?: [number, number, number, number, number, number] } }
+  layer: {
+    transform: {
+      x?: number;
+      y?: number;
+      scaleX?: number;
+      scaleY?: number;
+      rotation?: number;
+      matrix?: [number, number, number, number, number, number];
+      mode?: "distort" | "skew";
+    };
+  }
 ): void {
+  if (layer.transform.matrix && layer.transform.mode) {
+    const [a, b, c, d, e, f] = layer.transform.matrix;
+    const originX = compositeOffset.x - (layer.transform.x ?? 0);
+    const originY = compositeOffset.y - (layer.transform.y ?? 0);
+    ctx.setTransform(a, b, c, d, e, f);
+    ctx.drawImage(source, originX, originY);
+    return;
+  }
   const sx = layer.transform.scaleX ?? 1;
   const sy = layer.transform.scaleY ?? 1;
   const rot = layer.transform.rotation ?? 0;

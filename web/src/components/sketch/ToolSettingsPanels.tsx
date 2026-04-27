@@ -53,6 +53,7 @@ import {
   SegmentSourceLayerAction,
   SegmentBackend,
   SegmentationStatus,
+  TransformMode,
   PenPressureSettings,
   StrokeAssistSettings,
   StrokeAssistPreset,
@@ -1124,7 +1125,9 @@ interface TransformSettingsPanelProps {
   scaleY: number;
   rotation: number;
   autoSelect: boolean;
+  mode: TransformMode;
   onAutoSelectChange: (enabled: boolean) => void;
+  onModeChange: (mode: TransformMode) => void;
   onCommit: () => void;
   onCancel: () => void;
   onReset: () => void;
@@ -1135,7 +1138,9 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
   scaleY,
   rotation,
   autoSelect,
+  mode,
   onAutoSelectChange,
+  onModeChange,
   onCommit,
   onCancel,
   onReset
@@ -1159,6 +1164,39 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         }
         sx={{ mr: 2, ml: 0 }}
       />
+      <Box className="setting-row">
+        <Typography className="setting-label">Mode</Typography>
+        <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={mode}
+          onChange={(_, nextMode: TransformMode | null) => {
+            if (nextMode) {
+              onModeChange(nextMode);
+            }
+          }}
+        >
+          <ToggleButton value="auto" sx={toggleButtonSmallSx}>
+            Auto
+          </ToggleButton>
+          <ToggleButton value="scale" sx={toggleButtonSmallSx}>
+            Scale
+          </ToggleButton>
+          <ToggleButton value="distort" sx={toggleButtonSmallSx}>
+            Distort
+          </ToggleButton>
+          <ToggleButton value="skew" sx={toggleButtonSmallSx}>
+            Skew
+          </ToggleButton>
+          <Tooltip title="Perspective is still pending while transform baking stays affine-only.">
+            <span>
+              <ToggleButton value="perspective" disabled sx={toggleButtonSmallSx}>
+                Persp
+              </ToggleButton>
+            </span>
+          </Tooltip>
+        </ToggleButtonGroup>
+      </Box>
       <Box className="setting-row">
         <Typography className="setting-label">Scale X</Typography>
         <Typography className="setting-value">
@@ -1733,7 +1771,9 @@ export interface ToolSettingsPanelProps {
   onTransformCancel?: () => void;
   onTransformReset?: () => void;
   transformAutoSelect?: boolean;
+  transformMode?: TransformMode;
   onTransformAutoSelectChange?: (enabled: boolean) => void;
+  onTransformModeChange?: (mode: TransformMode) => void;
   segmentSettings?: SegmentSettings;
   onSegmentSettingsChange?: (settings: Partial<SegmentSettings>) => void;
   segmentationStatus?: SegmentationStatus;
@@ -1788,7 +1828,9 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
   onTransformCancel,
   onTransformReset,
   transformAutoSelect,
+  transformMode,
   onTransformAutoSelectChange,
+  onTransformModeChange,
   segmentSettings,
   onSegmentSettingsChange,
   segmentationStatus,
@@ -1916,7 +1958,9 @@ export const ToolSettingsPanel = memo(function ToolSettingsPanel({
         scaleY={transformScaleY ?? 1}
         rotation={transformRotation ?? 0}
         autoSelect={transformAutoSelect ?? true}
+        mode={transformMode ?? "auto"}
         onAutoSelectChange={onTransformAutoSelectChange ?? noop}
+        onModeChange={onTransformModeChange ?? noop}
         onCommit={onTransformCommit ?? noop}
         onCancel={onTransformCancel ?? noop}
         onReset={onTransformReset ?? noop}

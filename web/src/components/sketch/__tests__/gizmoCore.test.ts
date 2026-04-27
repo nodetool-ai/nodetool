@@ -34,7 +34,10 @@ import {
   isPointInsideGizmo
 } from "../tools/transform/transformHoverPolicy";
 import { GizmoRedrawScheduler } from "../tools/transform/transformGizmoPainter";
-import { computeRotateTransform } from "../tools/transform/computeTransform";
+import {
+  computeRotateTransform,
+  computeSkewTransform
+} from "../tools/transform/computeTransform";
 import {
   HANDLE_HIT_RADIUS,
   ROTATION_HANDLE_OFFSET as GIZMO_ROTATION_HANDLE_OFFSET,
@@ -43,6 +46,7 @@ import {
   HANDLE_FILL_DEFAULT
 } from "../tools/gizmo/gizmoConstants";
 import type { LayerTransform, LayerContentBounds, Point } from "../types";
+import { getTransformedCorners } from "../painting/resolvedLayerGeometry";
 
 // ─── Test helpers ────────────────────────────────────────────────────────────
 
@@ -204,6 +208,42 @@ describe("gizmo hit testing", () => {
     expect(resultZoom1).toBe("bottom-right");
     // At zoom=2, threshold = HANDLE_RADIUS/2, point is outside
     expect(resultZoom2).toBeNull();
+  });
+
+  it("matrix-backed skew transform keeps move hit testing inside the skewed quad", () => {
+    const skewed = computeSkewTransform(
+      getTransformedCorners(transform, bounds),
+      "top",
+      { x: 50, y: 0 },
+      { x: 75, y: 20 },
+      bounds
+    );
+    const center = getTransformedCorners(skewed, bounds).reduce(
+      (acc, corner) => ({
+        x: acc.x + corner.x / 4,
+        y: acc.y + corner.y / 4
+      }),
+      { x: 0, y: 0 }
+    );
+
+    expect(hitTestHandles(skewed, bounds, center, zoom)).toBe("move");
+  });
+
+  it("buildHandlePositions uses transformed corners for matrix-backed quads", () => {
+    const skewed = computeSkewTransform(
+      getTransformedCorners(transform, bounds),
+      "top",
+      { x: 50, y: 0 },
+      { x: 75, y: 20 },
+      bounds
+    );
+    const corners = getTransformedCorners(skewed, bounds);
+    const handles = buildHandlePositions(skewed, bounds, zoom);
+    const topLeft = handles.find((entry) => entry.handle === "top-left");
+
+    expect(topLeft).toBeDefined();
+    expect(topLeft?.pos.x).toBeCloseTo(corners[0].x, 5);
+    expect(topLeft?.pos.y).toBeCloseTo(corners[0].y, 5);
   });
 });
 

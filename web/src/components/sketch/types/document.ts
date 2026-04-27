@@ -72,6 +72,11 @@ export interface LayerTransform {
    * Absent on legacy documents — computed from decomposed values on load.
    */
   matrix?: AffineMatrix;
+  /**
+   * Advanced Photoshop-style affine transform mode currently active on the
+   * layer. Standard free-transform layers omit this field.
+   */
+  mode?: "distort" | "skew";
 }
 
 // ─── Affine Matrix Helpers ────────────────────────────────────────────────────

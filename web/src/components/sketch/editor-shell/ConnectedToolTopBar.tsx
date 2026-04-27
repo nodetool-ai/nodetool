@@ -107,8 +107,12 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onTransformCancel={transform.actions.onCancel}
       onTransformReset={transform.actions.onReset}
       transformAutoSelect={toolSettings.transform?.autoSelect ?? true}
+      transformMode={toolSettings.transform?.mode ?? "auto"}
       onTransformAutoSelectChange={(enabled: boolean) =>
         setTransformSettings({ autoSelect: enabled })
+      }
+      onTransformModeChange={(mode) =>
+        setTransformSettings({ mode })
       }
       moveAutoSelect={toolSettings.move?.autoSelect ?? true}
       onMoveAutoSelectChange={(enabled: boolean) =>
