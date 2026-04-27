@@ -292,7 +292,10 @@ export function useSegmentation({
           sourceLayerId: doc.activeLayerId,
           masks: response.masks,
           timestamp: Date.now(),
-          modelId: response.modelId ?? getDefaultSamModelId(backend)
+          modelId: response.modelId ?? getDefaultSamModelId(backend),
+          backendId: response.backendId,
+          nodeType: response.nodeType,
+          sourceMetadata: response.sourceMetadata
         };
 
         setResult(segResult);
@@ -343,14 +346,15 @@ export function useSegmentation({
       const backend = doc.toolSettings.segment.backend;
       const service = getSamService(backend);
       const response = await service.runSegmentation(
-        {
-          imageDataUrl: exportedLayer.imageDataUrl,
-          pointPrompts: [],
-          boxPrompt: null,
-          settings: doc.toolSettings.segment
-        },
-        controller.signal
-      );
+          {
+            imageDataUrl: exportedLayer.imageDataUrl,
+            pointPrompts: [],
+            boxPrompt: null,
+            settings: doc.toolSettings.segment,
+            sourceMetadata: exportedLayer.sourceMetadata
+          },
+          controller.signal
+        );
 
       if (controller.signal.aborted) {
         return;

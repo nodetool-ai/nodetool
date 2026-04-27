@@ -25,10 +25,11 @@ import {
   LOCAL_SAM3_MODEL_NAME,
   SAM_INLINE_IMAGE_MAX_BYTES
 } from "./SamService";
-import type { SegmentationMask, SegmentBackend } from "../types";
+import type { SegmentBackend } from "../types";
 import { getNodeExecutor } from "./NodeExecutor";
 import type { GraphNode, GraphEdge } from "./NodeExecutor";
 import { resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
+import { normalizeSamMasks } from "./normalizeSamMasks";
 
 const LOCAL_SAM3_NODE_TYPE = "huggingface.image_segmentation.MaskGeneration";
 const LOCAL_SAM3_DOWNLOAD_TYPE = "hf.model";
@@ -241,7 +242,14 @@ export class SamServiceNode implements SamService {
       throw new Error(result.error ?? "Segmentation failed");
     }
 
-    return this.parseResult(result.outputs, scale);
+    return normalizeSamMasks({
+      rawOutput: result.outputs.sam_node,
+      backendId: this.config.backendId,
+      modelId: this.config.modelId,
+      nodeType: this.config.nodeType,
+      scale,
+      sourceMetadata: request.sourceMetadata
+    });
   }
 
   private buildGraph(
@@ -391,86 +399,5 @@ export class SamServiceNode implements SamService {
       ],
       edges: []
     };
-  }
-
-  private parseResult(
-    outputs: Record<string, unknown>,
-    scale: number
-  ): SegmentationResponse {
-    const rawOutput = outputs.sam_node;
-    if (!rawOutput) {
-      return {
-        masks: [],
-        modelId: this.config.modelId,
-        backendId: this.config.backendId
-      };
-    }
-
-    const imageRecords = this.normalizeOutputImages(rawOutput);
-    const invScale = scale > 0 ? 1 / scale : 1;
-
-    const masks: SegmentationMask[] = imageRecords.map((image, index) => ({
-      id: `mask_${index}`,
-      label: `Mask ${index + 1}`,
-      maskDataUrl: image.uri ?? image.url ?? "",
-      confidence: 1,
-      bounds: {
-        x: 0,
-        y: 0,
-        width: image.width ? Math.round(image.width * invScale) : 0,
-        height: image.height ? Math.round(image.height * invScale) : 0
-      }
-    })).filter((mask) => mask.maskDataUrl.length > 0);
-
-    return {
-      masks,
-      modelId: this.config.modelId,
-      backendId: this.config.backendId
-    };
-  }
-
-  private normalizeOutputImages(rawOutput: unknown): Array<{
-    uri?: string;
-    url?: string;
-    width?: number;
-    height?: number;
-  }> {
-    if (Array.isArray(rawOutput)) {
-      return rawOutput.filter(
-        (entry): entry is { uri?: string; url?: string; width?: number; height?: number } =>
-          Boolean(entry) &&
-          typeof entry === "object" &&
-          (typeof (entry as { uri?: unknown }).uri === "string" ||
-            typeof (entry as { url?: unknown }).url === "string")
-      );
-    }
-
-    if (typeof rawOutput !== "object" || rawOutput === null) {
-      return [];
-    }
-
-    const record = rawOutput as Record<string, unknown>;
-    if (Array.isArray(record.output)) {
-      return record.output.filter(
-        (entry): entry is { uri?: string; url?: string; width?: number; height?: number } =>
-          Boolean(entry) &&
-          typeof entry === "object" &&
-          (typeof (entry as { uri?: unknown }).uri === "string" ||
-            typeof (entry as { url?: unknown }).url === "string")
-      );
-    }
-
-    if (record.uri || record.url) {
-      return [
-        record as {
-          uri?: string;
-          url?: string;
-          width?: number;
-          height?: number;
-        }
-      ];
-    }
-
-    return [];
   }
 }

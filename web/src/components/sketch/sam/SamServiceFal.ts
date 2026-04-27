@@ -382,6 +382,7 @@ export class SamServiceFal implements SamService {
       const invScale = scale > 0 ? 1 / scale : 1;
       return {
         id: `mask_${i}`,
+        kind: "mask",
         label: `Object ${i + 1}`,
         maskDataUrl: img.url,
         confidence: 1.0, // FAL doesn't return confidence per mask
@@ -390,14 +391,18 @@ export class SamServiceFal implements SamService {
           y: 0,
           width: Math.round(img.width * invScale),
           height: Math.round(img.height * invScale)
-        }
+        },
+        backendId: "fal",
+        modelId: DEFAULT_SAM_MODEL_ID,
+        nodeType: "fal.image_to_image.Sam2Image"
       };
     });
 
     return {
       masks,
       modelId: DEFAULT_SAM_MODEL_ID,
-      backendId: "fal"
+      backendId: "fal",
+      nodeType: "fal.image_to_image.Sam2Image"
     };
   }
 }

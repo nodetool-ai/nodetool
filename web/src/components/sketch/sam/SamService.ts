@@ -13,6 +13,7 @@ import type {
   SegmentPointPrompt,
   SegmentBoxPrompt,
   SegmentationMask,
+  SegmentationSourceMetadata,
   SegmentSettings
 } from "../types";
 import { SamServiceFal } from "./SamServiceFal";
@@ -108,12 +109,16 @@ export interface SegmentationRequest {
   boxPrompt: SegmentBoxPrompt | null;
   /** Tool settings controlling output filtering. */
   settings: SegmentSettings;
+  /** Original source-layer metadata when available. */
+  sourceMetadata?: SegmentationSourceMetadata;
 }
 
 export interface SegmentationResponse {
   masks: SegmentationMask[];
   modelId?: string;
   backendId?: SegmentBackend;
+  nodeType?: string;
+  sourceMetadata?: SegmentationSourceMetadata;
 }
 
 // ─── Service Interface ────────────────────────────────────────────────────────
