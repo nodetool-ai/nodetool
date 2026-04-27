@@ -10,6 +10,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { Badge } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
@@ -85,6 +86,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   showCodeBadge = false,
   codeBadgeTooltip = "Code node"
 }: NodeHeaderProps) => {
+  const theme = useTheme();
+  const isLightMode = theme.palette.mode === "light";
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
@@ -282,6 +285,20 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     if (backgroundColor === "transparent") {
       return { background: "transparent" } as React.CSSProperties;
     }
+    const hasCategoryColor = Boolean(backgroundColor);
+    if (isLightMode) {
+      if (!hasCategoryColor) {
+        return {
+          background: "var(--palette-grey-800)",
+          borderBottom: "1px solid var(--palette-divider)"
+        } as React.CSSProperties;
+      }
+      const flat = selected ? 0.32 : 0.2;
+      return {
+        background: hexToRgba(backgroundColor!, flat),
+        borderBottom: `1px solid ${hexToRgba(backgroundColor!, 0.28)}`
+      } as React.CSSProperties;
+    }
     const tint = backgroundColor || "var(--c_node_header_bg)";
     const baseOpacity = selected ? 0.55 : 0.35;
     const endOpacity = selected ? 0.22 : 0.12;
@@ -291,14 +308,16 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         endOpacity
       )})`
     } as React.CSSProperties;
-  }, [backgroundColor, selected]);
+  }, [backgroundColor, selected, isLightMode]);
 
   // Memoize icon background style to prevent recreation on every render
   const iconBackgroundStyle = useMemo(() => ({
     background: iconBaseColor
-      ? hexToRgba(iconBaseColor, 0.22)
-      : "rgba(255,255,255,0.08)"
-  }), [iconBaseColor]);
+      ? hexToRgba(iconBaseColor, isLightMode ? 0.14 : 0.22)
+      : isLightMode
+        ? "rgba(26,23,21,0.05)"
+        : "rgba(255,255,255,0.08)"
+  }), [iconBaseColor, isLightMode]);
 
   // Memoize title padding style to prevent recreation on every render
   const titlePaddingStyle = useMemo(() => ({

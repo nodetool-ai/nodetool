@@ -192,15 +192,15 @@ export const paletteLight: PaletteOptions = {
   c_node_header_bg_group: "#FAF8F5",
   c_bg_loop: "#5E9A8F14",
   c_bg_group: "#A59F9720",
-  c_editor_bg_color: "#F0ECE8",
-  c_editor_grid_color: "#d9cfc5",
+  c_editor_bg_color: "#FAF6EF",
+  c_editor_grid_color: "#EDE6DA",
   c_editor_axis_color: "#E6E2DE",
   c_selection_rect: "rgba(94, 154, 143, 0.12)",
   c_provider_api: "#2C415A",
   c_provider_local: "#2E5B4E",
   c_provider_hf: "#6D4B6F",
-  c_app_header: "#FAF7F2",
-  c_tabs_header: "#FAF7F2",
+  c_app_header: "#FFFFFF",
+  c_tabs_header: "#F2EDE4",
 
   // Provider badge colors (light) - single token per provider type
   providerApi: "#2C415A",
@@ -208,9 +208,9 @@ export const paletteLight: PaletteOptions = {
   providerHf: "#6D4B6F",
 
   primary: {
-    main: "#4f7dab",
-    light: "#618fbb",
-    dark: "#43678a",
+    main: "#2A8077",
+    light: "#4FA59C",
+    dark: "#1E5F58",
     contrastText: "#FAF7F2"
   },
   secondary: {
@@ -220,46 +220,39 @@ export const paletteLight: PaletteOptions = {
     contrastText: "#FAF7F2"
   },
   background: {
-    default: "#faf8f4",
-    paper: "#f0eee5"
+    default: "#FAF6EF",
+    paper: "#FFFFFF"
   },
   text: {
-    primary: "#333333",
-    secondary: "#666666",
-    disabled: "#999999"
+    primary: "#1A1715",
+    secondary: "#5A5550",
+    disabled: "#9A938A"
   },
   action: {
-    // Icons, enabled interactive elements, "on" state indicators
-    active: "rgba(0, 0, 0, 0.54)",
+    active: "rgba(26, 23, 21, 0.72)",
 
-    // Background when hovering over clickable items
-    hover: "rgba(0, 0, 0, 0.04)",
-    hoverOpacity: 0.04,
+    hover: "rgba(26, 23, 21, 0.05)",
+    hoverOpacity: 0.05,
 
-    // Background for selected list items, active nav items
-    selected: "rgba(0, 0, 0, 0.08)",
-    selectedOpacity: 0.08,
+    selected: "rgba(26, 23, 21, 0.09)",
+    selectedOpacity: 0.09,
 
-    // Text color for disabled buttons, form fields, icons
-    disabled: "rgba(0, 0, 0, 0.26)",
+    disabled: "rgba(26, 23, 21, 0.28)",
     disabledOpacity: 0.38,
 
-    // Background color for disabled buttons, form controls
-    disabledBackground: "rgba(0, 0, 0, 0.12)",
+    disabledBackground: "rgba(26, 23, 21, 0.12)",
 
-    // Focus ring color, keyboard navigation indicators
-    focus: "rgba(0, 0, 0, 0.12)",
-    focusOpacity: 0.12,
+    focus: "rgba(79, 125, 171, 0.32)",
+    focusOpacity: 0.32,
 
-    // Higher emphasis than selected (used for activated states)
-    activatedOpacity: 0.12
+    activatedOpacity: 0.14
   },
   Paper: {
-    default: "#fbf9f8",
-    paper: "#f0eee6",
-    overlay: "#F2F0EB"
+    default: "#FFFFFF",
+    paper: "#F4F0E9",
+    overlay: "#F0EDE6"
   },
-  divider: "#E7DFD6",
+  divider: "#DCD3C5",
   glass: {
     blur: "blur(50px)",
     backgroundDialog: "rgba(255, 248, 240, 0.27)",

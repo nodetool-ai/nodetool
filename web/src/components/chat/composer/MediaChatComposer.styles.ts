@@ -18,14 +18,29 @@ export const createMediaComposerStyles = (theme: Theme) =>
       padding: "14px 16px 12px",
       background: theme.vars.palette.background.paper,
       backdropFilter: "blur(16px)",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      boxShadow: "0 10px 40px rgba(0,0,0,0.45)",
+      border: `1px solid ${
+        theme.palette.mode === "light"
+          ? theme.vars.palette.grey[600]
+          : theme.vars.palette.divider
+      }`,
+      boxShadow:
+        theme.palette.mode === "light"
+          ? "0 1px 2px rgba(26,23,21,0.04), 0 8px 24px rgba(26,23,21,0.08)"
+          : "0 10px 40px rgba(0,0,0,0.45)",
       display: "flex",
       flexDirection: "column",
       gap: 10,
-      transition: "border-color 180ms ease, box-shadow 180ms ease",
+      transition:
+        "border-color 180ms ease, box-shadow 180ms ease",
       "&:focus-within": {
-        borderColor: theme.vars.palette.action.focus
+        borderColor:
+          theme.palette.mode === "light"
+            ? theme.vars.palette.grey[400]
+            : theme.vars.palette.action.focus,
+        boxShadow:
+          theme.palette.mode === "light"
+            ? "0 1px 2px rgba(26,23,21,0.05), 0 8px 24px rgba(26,23,21,0.10)"
+            : "0 10px 40px rgba(0,0,0,0.45)"
       },
       "&.dragging": {
         borderColor: theme.vars.palette.primary.main
