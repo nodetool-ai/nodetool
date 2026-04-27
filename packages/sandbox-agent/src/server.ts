@@ -101,12 +101,18 @@ const INTERNAL_TOKEN_HEADER = "x-nodetool-internal-token";
 export interface BuildServerOptions {
   workspace?: string;
   startedAt?: number;
+  secretGetRateLimitMax?: number;
+  secretGetRateLimitWindowMs?: number;
 }
 
 export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   const app = Fastify({ logger: false, bodyLimit: 32 * 1024 * 1024 });
   const startedAt = options.startedAt ?? Date.now();
   const workspace = options.workspace ?? "/workspace";
+  const secretGetLimiter = createRateLimiter({
+    limit: options.secretGetRateLimitMax ?? 60,
+    windowMs: options.secretGetRateLimitWindowMs ?? 60_000
+  });
 
   app.get("/health", async () => ({
     ok: true as const,
@@ -155,7 +161,22 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
 
   // --- Search ------------------------------------------------------------
   route(app, "/search/web", InfoSearchWebInput, infoSearchWeb);
-  route(app, "/secrets/get", SecretGetInput, secretGet);
+  app.post("/secrets/get", async (req, reply) => {
+    if (!secretGetLimiter.allow(req.ip)) {
+      reply.status(429).send({ error: "rate limit exceeded" });
+      return;
+    }
+    const parsed = SecretGetInput.safeParse(req.body);
+    if (!parsed.success) {
+      reply.status(400).send({
+        error: "invalid input",
+        issues: parsed.error.issues
+      });
+      return;
+    }
+    const result = await secretGet(parsed.data);
+    reply.send(result);
+  });
 
   // --- Messaging ---------------------------------------------------------
   route(app, "/message/notify", MessageNotifyUserInput, messageNotifyUser);
@@ -279,6 +300,28 @@ function isInternalAuthorized(
     return false;
   }
   return timingSafeEqual(expectedBytes, valueBytes);
+}
+
+function createRateLimiter(args: { limit: number; windowMs: number }): {
+  allow: (key: string | undefined) => boolean;
+} {
+  const { limit, windowMs } = args;
+  const buckets = new Map<string, number[]>();
+  return {
+    allow: (key: string | undefined): boolean => {
+      const now = Date.now();
+      const bucketKey = key ?? "unknown";
+      const existing = buckets.get(bucketKey) ?? [];
+      const active = existing.filter((ts) => now - ts < windowMs);
+      if (active.length >= limit) {
+        buckets.set(bucketKey, active);
+        return false;
+      }
+      active.push(now);
+      buckets.set(bucketKey, active);
+      return true;
+    }
+  };
 }
 
 import type { ZodType } from "zod";

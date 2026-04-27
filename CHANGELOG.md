@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated global chat documentation with standalone window feature
 - Improved getting started guide with onboarding panel section
 
+### Changed
+
+#### nodetool-core
+- **Breaking change (sandbox control plane):** internal sandbox-agent control routes now require `NODETOOL_INTERNAL_TOKEN` and `x-nodetool-internal-token`.
+  - Applies to `/internal/set-port-map` and `/internal/set-secret-map`.
+  - Existing custom deployments that call these routes must set the token env var in the container and send the matching header from the host.
+
 ### Fixed
 
 #### Electron

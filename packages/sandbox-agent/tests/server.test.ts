@@ -162,4 +162,28 @@ describe("buildServer / health", () => {
       await app.close();
     }
   });
+
+  it("rate limits secrets_get requests", async () => {
+    const app = buildServer({
+      secretGetRateLimitMax: 1,
+      secretGetRateLimitWindowMs: 60_000
+    });
+    try {
+      const first = await app.inject({
+        method: "POST",
+        url: "/secrets/get",
+        payload: { name: "OPENAI_API_KEY" }
+      });
+      expect(first.statusCode).toBe(200);
+
+      const second = await app.inject({
+        method: "POST",
+        url: "/secrets/get",
+        payload: { name: "OPENAI_API_KEY" }
+      });
+      expect(second.statusCode).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
 });
