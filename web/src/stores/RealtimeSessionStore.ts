@@ -11,6 +11,7 @@ import type {
 
 import {
   realtimeSessionClient,
+  type RealtimeSessionAck,
   type RealtimeSessionMessage,
   type RealtimeTransportConfig
 } from "../lib/websocket/RealtimeSessionClient";
@@ -67,6 +68,58 @@ const toRecordFromMessage = (
   updated_at: message.updated_at
 });
 
+const emptyRealtimeMetrics = (
+  ack: RealtimeSessionAck,
+  existing?: RealtimeMetrics
+): RealtimeMetrics => ({
+  type: "realtime_metrics",
+  session_id: ack.session_id ?? existing?.session_id ?? "",
+  workflow_id: ack.workflow_id ?? existing?.workflow_id ?? null,
+  job_id: ack.job_id ?? existing?.job_id ?? null,
+  transport: existing?.transport ?? "websocket",
+  peer: existing?.peer ?? {
+    connection_state: "closed",
+    ice_connection_state: null
+  },
+  codec: existing?.codec ?? {
+    status: "loopback",
+    name: null
+  },
+  frames: existing?.frames ?? {
+    inbound: 0,
+    outbound: 0,
+    inbound_rtp_packets: 0,
+    routed: 0,
+    unrouted: 0,
+    decode_unsupported: 0,
+    encoded: 0
+  },
+  rates: existing?.rates ?? {
+    inbound_fps: 0,
+    outbound_fps: 0,
+    routed_fps: 0
+  },
+  queues: existing?.queues ?? {
+    total_depth: 0,
+    total_dropped: 0,
+    consumers: []
+  },
+  latency: existing?.latency ?? {
+    decode_ms_avg: null,
+    encode_ms_avg: null,
+    frame_age_ms_avg: null
+  },
+  bitrate: existing?.bitrate ?? {
+    target_bps: null
+  },
+  reconnect_count: existing?.reconnect_count ?? 0,
+  created_at: new Date().toISOString()
+});
+
+const isRealtimeSessionAck = (
+  message: RealtimeSessionMessage
+): message is RealtimeSessionAck => message.type === "realtime_session_ack";
+
 export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
   (set, get) => {
     const attachSessionSubscription = (sessionId: string) => {
@@ -99,6 +152,37 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
 
           if (message.type === "realtime_analysis_event") {
             get().appendAnalysisEvent(message);
+            return;
+          }
+
+          if (isRealtimeSessionAck(message)) {
+            if (message.action === "push_frame" && message.session_id) {
+              set((state) => {
+                const existing = state.metrics[message.session_id];
+                const base = emptyRealtimeMetrics(message, existing);
+                const routedIncrement = message.ok && message.routed === true ? 1 : 0;
+                const unroutedIncrement =
+                  message.ok && message.routed === false ? 1 : 0;
+                return {
+                  metrics: {
+                    ...state.metrics,
+                    [message.session_id]: {
+                      ...base,
+                      frames: {
+                        ...base.frames,
+                        inbound: base.frames.inbound + 1,
+                        routed: base.frames.routed + routedIncrement,
+                        unrouted: base.frames.unrouted + unroutedIncrement
+                      },
+                      created_at: new Date().toISOString()
+                    }
+                  }
+                };
+              });
+            }
+            if (!message.ok && message.error) {
+              set({ error: message.error });
+            }
             return;
           }
 

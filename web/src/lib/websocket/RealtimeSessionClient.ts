@@ -19,6 +19,7 @@ export type RealtimeSessionMessage =
   | RealtimeSessionStarted
   | RealtimeSessionUpdated
   | RealtimeSessionStopped
+  | RealtimeSessionAck
   | RealtimeMetrics
   | RealtimeInferenceMetrics
   | RealtimeAnalysisEvent;
@@ -45,6 +46,18 @@ type RealtimeGraphPayload = {
   edges: Array<Record<string, unknown>>;
 };
 
+export type RealtimeSessionAck = {
+  type: "realtime_session_ack";
+  ok: boolean;
+  action: string;
+  session_id?: string | null;
+  workflow_id?: string | null;
+  job_id?: string | null;
+  track_id?: string | null;
+  routed?: boolean;
+  error?: string | null;
+};
+
 const SESSION_START_TIMEOUT_MS = 15000;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -60,6 +73,15 @@ const isRealtimeSessionStarted = (
   );
 };
 
+const isRealtimeSessionAck = (message: unknown): message is RealtimeSessionAck => {
+  return (
+    isObject(message) &&
+    message.type === "realtime_session_ack" &&
+    typeof message.ok === "boolean" &&
+    typeof message.action === "string"
+  );
+};
+
 export const isRealtimeSessionMessage = (
   message: unknown
 ): message is RealtimeSessionMessage => {
@@ -68,6 +90,7 @@ export const isRealtimeSessionMessage = (
     (message.type === "realtime_session_started" ||
       message.type === "realtime_session_updated" ||
       message.type === "realtime_session_stopped" ||
+      message.type === "realtime_session_ack" ||
       message.type === "realtime_metrics" ||
       message.type === "realtime_inference_metrics" ||
       message.type === "realtime_analysis_event")
@@ -129,6 +152,27 @@ export class RealtimeSessionClient {
             created_at: message.created_at,
             updated_at: message.updated_at
           });
+          return;
+        }
+
+        if (
+          isRealtimeSessionAck(message) &&
+          message.action === "start" &&
+          message.workflow_id === workflowId &&
+          !message.ok
+        ) {
+          cleanup();
+          reject(new Error(message.error || "Realtime session startup failed"));
+          return;
+        }
+
+        if (
+          message.type === "realtime_session_stopped" &&
+          message.workflow_id === workflowId &&
+          message.status === "error"
+        ) {
+          cleanup();
+          reject(new Error(message.reason || "Realtime session startup failed"));
         }
       });
 

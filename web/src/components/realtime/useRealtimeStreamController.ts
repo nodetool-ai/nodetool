@@ -9,6 +9,8 @@ import { useLocation, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import type {
+  RealtimeAnalysisEvent,
+  RealtimeInferenceMetrics,
   RealtimeMetrics,
   RealtimeSessionRecord,
   RealtimeSignalingStatus,
@@ -79,6 +81,8 @@ export interface RealtimeStreamController {
   workflowSessions: RealtimeSessionRecord[];
   activeSession: RealtimeSessionRecord | null;
   activeMetrics: RealtimeMetrics | null;
+  activeInferenceMetrics: RealtimeInferenceMetrics[];
+  activeAnalysisEvents: RealtimeAnalysisEvent[];
   previewStream: MediaStream | null;
   remoteStream: MediaStream | null;
   signalingStatus: RealtimeSignalingStatus;
@@ -117,6 +121,8 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const {
     sessions,
     metrics,
+    inferenceMetrics,
+    analysisEvents,
     activeSessionId,
     isLoading: isLoadingSessions,
     error: sessionError,
@@ -181,6 +187,12 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const activeMetrics = activeSession
     ? metrics[activeSession.session_id] ?? null
     : null;
+  const activeInferenceMetrics = activeSession
+    ? Object.values(inferenceMetrics[activeSession.session_id] ?? {})
+    : [];
+  const activeAnalysisEvents = activeSession
+    ? analysisEvents[activeSession.session_id] ?? []
+    : [];
   const discoveredVideoTrackTarget = useMemo(
     () => findVideoTrackTarget(workflow),
     [workflow]
@@ -223,6 +235,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const isStartSessionDisabled = useMemo(() => {
     return (
       !workflowId ||
+      !workflow?.graph ||
       Boolean(activeSession) ||
       !previewStream ||
       !isPreviewReady ||
@@ -235,6 +248,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     previewStream,
     videoTargetInputName,
     videoTargetNodeId,
+    workflow?.graph,
     workflowId
   ]);
 
@@ -270,6 +284,13 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
 
   const handleStartSession = useCallback(async () => {
     if (!workflowId) {
+      return;
+    }
+
+    if (!workflow?.graph) {
+      setWebrtcConfigError(
+        "Wait for the workflow graph to load before launching the realtime session."
+      );
       return;
     }
 
@@ -328,7 +349,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
         preview_source: "camera",
         brightness
       },
-      undefined,
+      workflow.graph,
       {
         transport: sessionTransport,
         mediaTracks,
@@ -389,6 +410,8 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     workflowSessions,
     activeSession,
     activeMetrics,
+    activeInferenceMetrics,
+    activeAnalysisEvents,
     previewStream,
     remoteStream,
     signalingStatus,

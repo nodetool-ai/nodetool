@@ -30,8 +30,12 @@ const VideoPreview = ({
   }, [stream]);
 
   return (
-    <Card padding="normal" variant="outlined">
-      <FlexColumn gap={2}>
+    <Card
+      padding="normal"
+      variant="outlined"
+      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+    >
+      <FlexColumn gap={1.5}>
         <Text weight={600}>{title}</Text>
         {stream ? (
           <video
@@ -41,8 +45,8 @@ const VideoPreview = ({
             playsInline
             style={{
               width: "100%",
-              minHeight: 320,
-              borderRadius: 8,
+              height: "clamp(220px, 24vh, 280px)",
+              borderRadius: "var(--rounded-xs)",
               background: "black",
               objectFit: "cover"
             }}

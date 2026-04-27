@@ -141,7 +141,7 @@ const styles = (theme: Theme) =>
     // Mobile styles handled via separate CSS file
   });
 
-// Mode pills component - segmented control for Editor, Chat, Dashboard
+// Mode pills component - segmented control for Editor, Chat, App, Realtime
 const ModePills = memo(function ModePills({ currentPath }: { currentPath: string }) {
   const navigate = useNavigate();
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
@@ -154,6 +154,7 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
   const isEditorActive = currentPath.startsWith("/editor");
   const isChatActive = currentPath.startsWith("/chat");
   const isAppActive = currentPath.startsWith("/apps");
+  const isRealtimeActive = currentPath.startsWith("/realtime");
 
   const handleEditorClick = useCallback(async () => {
     if (currentWorkflowId) {
@@ -187,6 +188,12 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
   const handleAppClick = useCallback(() => {
     if (currentWorkflowId) {
       navigate(`/apps/${currentWorkflowId}`);
+    }
+  }, [navigate, currentWorkflowId]);
+
+  const handleRealtimeClick = useCallback(() => {
+    if (currentWorkflowId) {
+      navigate(`/realtime/${currentWorkflowId}`);
     }
   }, [navigate, currentWorkflowId]);
 
@@ -226,6 +233,31 @@ const ModePills = memo(function ModePills({ currentPath }: { currentPath: string
             }}
           >
             <span>App</span>
+          </button>
+        </span>
+      </Tooltip>
+      <Tooltip
+        title={
+          currentWorkflowId
+            ? "Open realtime session controls"
+            : "Open a workflow first"
+        }
+        delay={TOOLTIP_ENTER_DELAY}
+        placement="bottom"
+      >
+        <span style={{ display: "inline-flex" }}>
+          <button
+            className={`mode-pill ${isRealtimeActive ? "active" : ""}`}
+            onClick={handleRealtimeClick}
+            tabIndex={-1}
+            aria-current={isRealtimeActive ? "page" : undefined}
+            disabled={!currentWorkflowId}
+            style={{
+              opacity: currentWorkflowId ? 1 : 0.4,
+              cursor: currentWorkflowId ? "pointer" : "default"
+            }}
+          >
+            <span>Realtime</span>
           </button>
         </span>
       </Tooltip>
@@ -337,7 +369,7 @@ const AppHeader: React.FC = memo(function AppHeader() {
               />
             </div>
           </Tooltip>
-          {/* Mode Pills - Editor, Chat, Dashboard */}
+          {/* Mode Pills - Editor, Chat, App, Realtime */}
           <ModePills currentPath={path} />
           <Box sx={{ flexGrow: 1 }} />
         </FlexRow>
