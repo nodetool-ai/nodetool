@@ -380,16 +380,18 @@ export default function CreativesPage() {
                 </div>
 
                 <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-10">
-                  <span className="text-white">Your Creative Vision.</span>
-                  <br />
+                  <span className="text-white">Think it.</span>{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
-                    Next-Gen Image, Music &amp; Video.
+                    Generate it.
+                  </span>
+                  <br />
+                  <span className="text-white/90 text-3xl md:text-5xl lg:text-6xl">
+                    Image, music &amp; video in one studio.
                   </span>
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Build powerful creative pipelines with drag-and-drop simplicity.
-                  Access all top-tier models for image, music, and video generation:
+                  Drag-and-drop pipelines for every frontier model —
                   Seedance 2.0, Kling 3.0, Runway, Luma, Suno, Flux, and more.
                 </p>
 
