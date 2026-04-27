@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Edge } from "@xyflow/react";
+import type { ComponentProps } from "react";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import useMetadataStore from "../../../../stores/MetadataStore";
@@ -67,9 +68,16 @@ describe("PreviewNode", () => {
           node_type: "nodetool.workflows.base_node.Preview",
           title: "Preview",
           description: "",
+          layout: "default",
           properties: [],
           outputs: [],
-          is_streaming_output: false
+          recommended_models: [],
+          basic_fields: [],
+          required_settings: [],
+          is_dynamic: false,
+          is_streaming_output: false,
+          expose_as_tool: false,
+          supports_dynamic_outputs: false
         }
       }
     });
@@ -106,17 +114,17 @@ describe("PreviewNode", () => {
     render(
       <ThemeProvider theme={mockTheme}>
         <PreviewNode
-          id="preview"
-          type="nodetool.workflows.base_node.Preview"
-          selected={false}
-          data={
-            {
+          {...({
+            id: "preview",
+            type: "nodetool.workflows.base_node.Preview",
+            selected: false,
+            data: {
               workflow_id: "workflow-1",
               properties: {},
               dynamic_properties: {},
               selectable: true
             } as NodeData
-          }
+          } as ComponentProps<typeof PreviewNode>)}
         />
       </ThemeProvider>
     );

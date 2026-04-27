@@ -152,6 +152,7 @@ describe("Realtime session cards", () => {
           intervalMs: 500,
           targetFps: 2,
           framesPublished: 3,
+          lastPublishedAt: 1234,
           lastError: null,
           skippedReason: null
         }}
