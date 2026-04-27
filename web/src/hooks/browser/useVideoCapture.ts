@@ -14,7 +14,12 @@ export type VideoDevice = {
   label: string;
 };
 
-export type VideoCaptureResolutionPreset = "qvga" | "vga" | "hd" | "fhd";
+export type VideoCaptureResolutionPreset =
+  | "qvga"
+  | "vga"
+  | "wide480p"
+  | "hd"
+  | "fhd";
 
 export const VIDEO_CAPTURE_RESOLUTION_PRESETS: Record<
   VideoCaptureResolutionPreset,
@@ -22,6 +27,7 @@ export const VIDEO_CAPTURE_RESOLUTION_PRESETS: Record<
 > = {
   qvga: { label: "320x240", width: 320, height: 240 },
   vga: { label: "640x480", width: 640, height: 480 },
+  wide480p: { label: "832x480", width: 832, height: 480 },
   hd: { label: "1280x720", width: 1280, height: 720 },
   fhd: { label: "1920x1080", width: 1920, height: 1080 }
 };
@@ -75,7 +81,7 @@ const getErrorMessage = (
   return error instanceof Error ? error.message : fallbackMessage;
 };
 
-const DEFAULT_VIDEO_RESOLUTION: VideoCaptureResolutionPreset = "fhd";
+const DEFAULT_VIDEO_RESOLUTION: VideoCaptureResolutionPreset = "hd";
 const DEFAULT_WARMUP_MS = 2500;
 
 const videoConstraintsForDevice = (
@@ -124,6 +130,7 @@ export function useVideoCapture(
   isLoading: boolean;
   videoInputDevices: VideoDevice[];
   audioInputDevices: VideoDevice[];
+  videoTrackSettings: MediaTrackSettings | null;
   selectedVideoDeviceId: string;
   selectedAudioDeviceId: string;
   selectedVideoResolution: VideoCaptureResolutionPreset;
@@ -153,6 +160,8 @@ export function useVideoCapture(
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [videoInputDevices, setVideoInputDevices] = useState<VideoDevice[]>([]);
   const [audioInputDevices, setAudioInputDevices] = useState<VideoDevice[]>([]);
+  const [videoTrackSettings, setVideoTrackSettings] =
+    useState<MediaTrackSettings | null>(null);
   const [selectedVideoDeviceId, setSelectedVideoDeviceId] =
     useState<string>("");
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] =
@@ -178,6 +187,7 @@ export function useVideoCapture(
     }
     setIsWarmingUp(false);
     setIsPreviewReady(false);
+    setVideoTrackSettings(null);
   }, [clearWarmupTimeout]);
 
   const stopPreview = useCallback(() => {
@@ -191,6 +201,7 @@ export function useVideoCapture(
     setIsPreviewing(false);
     setIsWarmingUp(false);
     setIsPreviewReady(false);
+    setVideoTrackSettings(null);
   }, [clearWarmupTimeout]);
 
   const refreshDevices = useCallback(() => {
@@ -318,6 +329,7 @@ export function useVideoCapture(
       logVideoTrackDiagnostics(stream, constraints);
       stopMediaStream(streamRef.current);
       streamRef.current = stream;
+      setVideoTrackSettings(stream.getVideoTracks()[0]?.getSettings?.() ?? null);
       setPreviewStream(stream);
       setIsPreviewing(true);
       if (warmupMs > 0) {
@@ -408,6 +420,7 @@ export function useVideoCapture(
     isLoading,
     videoInputDevices,
     audioInputDevices,
+    videoTrackSettings,
     selectedVideoDeviceId,
     selectedAudioDeviceId,
     selectedVideoResolution,

@@ -99,8 +99,8 @@ describe("useVideoCapture", () => {
 
     expect(mockGetUserMedia).toHaveBeenCalledWith({
       video: {
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
         frameRate: { ideal: 30, max: 30 }
       },
       audio: false
@@ -141,6 +141,50 @@ describe("useVideoCapture", () => {
       audio: false
     });
     expect(result.current.selectedVideoResolution).toBe("vga");
+  });
+
+  it("supports a wide 480p capture preset for realtime video", async () => {
+    const previewStream = createMockStream();
+    mockGetUserMedia.mockResolvedValue(previewStream);
+
+    const { result } = renderHook(() =>
+      useVideoCapture({ includeAudio: false, autoFetchDevices: false, warmupMs: 0 })
+    );
+
+    act(() => {
+      result.current.handleVideoResolutionChange("wide480p");
+    });
+    await act(async () => {
+      await result.current.startPreview();
+    });
+
+    expect(mockGetUserMedia).toHaveBeenCalledWith({
+      video: {
+        width: { ideal: 832 },
+        height: { ideal: 480 },
+        frameRate: { ideal: 30, max: 30 }
+      },
+      audio: false
+    });
+  });
+
+  it("stores the actual selected video track settings", async () => {
+    const previewStream = createMockStream();
+    mockGetUserMedia.mockResolvedValue(previewStream);
+
+    const { result } = renderHook(() =>
+      useVideoCapture({ includeAudio: false, autoFetchDevices: false, warmupMs: 0 })
+    );
+
+    await act(async () => {
+      await result.current.startPreview();
+    });
+
+    expect(result.current.videoTrackSettings).toEqual({
+      width: 640,
+      height: 480,
+      frameRate: 30
+    });
   });
 
   it("reports warm-up state before preview is ready", async () => {

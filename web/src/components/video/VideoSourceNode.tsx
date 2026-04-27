@@ -97,6 +97,7 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     isPreviewReady,
     isLoading,
     videoInputDevices,
+    videoTrackSettings,
     selectedVideoDeviceId,
     selectedVideoResolution,
     startPreview,
@@ -212,6 +213,15 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         {isWarmingUp ? (
           <Text size="small" color="warning">
             Warming up camera...
+          </Text>
+        ) : null}
+        {videoTrackSettings ? (
+          <Text size="small" color="secondary">
+            Actual: {videoTrackSettings.width ?? "?"}x
+            {videoTrackSettings.height ?? "?"}
+            {videoTrackSettings.frameRate
+              ? ` @ ${Math.round(videoTrackSettings.frameRate)}fps`
+              : ""}
           </Text>
         ) : null}
 
