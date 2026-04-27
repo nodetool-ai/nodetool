@@ -154,11 +154,12 @@ const WorkflowAssistantChat: React.FC = () => {
     useState<HTMLButtonElement | null>(null);
   const isThreadListOpen = Boolean(threadListAnchorEl);
 
-  const messageInputNames = useMemo(() => {
+  const { messageInputNames, messageListInputNames } = useMemo(() => {
     if (!nodes || nodes.length === 0) {
-      return [] as string[];
+      return { messageInputNames: [] as string[], messageListInputNames: [] as string[] };
     }
-    const names: string[] = [];
+    const msgNames: string[] = [];
+    const msgListNames: string[] = [];
     for (const node of nodes) {
       const data = (node.data ?? {}) as Record<string, unknown>;
       const properties =
@@ -189,51 +190,19 @@ const WorkflowAssistantChat: React.FC = () => {
         nodeType === "nodetool.input.MessageInput" ||
         nodeType.endsWith(".MessageInput")
       ) {
-        names.push(nodeName);
-      }
-    }
-    return Array.from(new Set(names));
-  }, [nodes]);
-
-  const messageListInputNames = useMemo(() => {
-    if (!nodes || nodes.length === 0) {
-      return [] as string[];
-    }
-    const names: string[] = [];
-    for (const node of nodes) {
-      const data = (node.data ?? {}) as Record<string, unknown>;
-      const properties =
-        typeof data.properties === "object" && data.properties !== null
-          ? (data.properties as Record<string, unknown>)
-          : {};
-      const nodeType =
-        typeof data.type === "string"
-          ? data.type
-          : typeof data.originalType === "string"
-            ? data.originalType
-            : typeof properties.type === "string"
-              ? properties.type
-          : typeof node.type === "string"
-            ? node.type
-            : "";
-      const nodeName =
-        typeof properties.name === "string"
-          ? properties.name.trim()
-          : typeof data.name === "string"
-            ? data.name.trim()
-            : "";
-      if (!nodeName) {
-        continue;
-      }
-      if (
+        msgNames.push(nodeName);
+      } else if (
         nodeType === "MessageListInput" ||
         nodeType === "nodetool.input.MessageListInput" ||
         nodeType.endsWith(".MessageListInput")
       ) {
-        names.push(nodeName);
+        msgListNames.push(nodeName);
       }
     }
-    return Array.from(new Set(names));
+    return {
+      messageInputNames: Array.from(new Set(msgNames)),
+      messageListInputNames: Array.from(new Set(msgListNames))
+    };
   }, [nodes]);
 
   const hasMessageInput =
