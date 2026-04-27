@@ -43,12 +43,33 @@ const styles = (theme: Theme) =>
       top: 0,
       bottom: 0,
       background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.045) 0%, rgb(${theme.vars.palette.common.blackChannel} / 0.18) 100%), ${theme.vars.palette.grey[800]}`,
-      borderRadius: "0.9em",
+      borderRadius: "0.75em",
       overflow: "hidden",
       contain: "layout style paint",
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
-      boxShadow: "0 10px 24px rgb(0 0 0 / 0.12)",
+      boxShadow: "0 8px 18px rgb(0 0 0 / 0.18)",
       transition: "transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease"
+    },
+    "&.selected .asset": {
+      border: `2px solid ${theme.vars.palette.primary.main}`,
+      boxShadow: `0 8px 18px rgb(${theme.vars.palette.primary.mainChannel} / 0.25)`
+    },
+    "&.selected::before": {
+      content: '""',
+      position: "absolute",
+      top: "0.6em",
+      right: "0.6em",
+      width: "1.4em",
+      height: "1.4em",
+      borderRadius: "50%",
+      backgroundColor: theme.vars.palette.primary.main,
+      backgroundImage:
+        "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M9 16.17 4.83 12l-1.41 1.41L9 19 21 7l-1.41-1.41z'/></svg>\")",
+      backgroundSize: "70% 70%",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      zIndex: 2001,
+      boxShadow: "0 2px 6px rgb(0 0 0 / 0.4)"
     },
     ".asset::after": {
       content: '""',
@@ -105,38 +126,56 @@ const styles = (theme: Theme) =>
     ".info": {
       position: "absolute",
       pointerEvents: "none",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: theme.fontSizeTiny,
+      fontWeight: 600,
+      letterSpacing: "0.02em",
       color: theme.vars.palette.grey[0],
-      backgroundColor: `rgba(${theme.vars.palette.grey[900]} / 0.53)`,
       margin: "0",
-      padding: "0.2em 0.5em",
+      padding: "0.15em 0.55em",
       wordBreak: "break-word",
       width: "fit-content"
     },
     ".name": {
       position: "relative",
-      padding: "0.2em 0.35em 0 0.35em",
+      padding: "0.45em 0.25em 0.1em 0.35em",
       width: "100%",
-      height: "3.2em",
+      height: "auto",
+      maxHeight: "2.6em",
       overflow: "hidden",
       backgroundColor: "transparent",
-      textAlign: "center",
-      color: theme.vars.palette.grey[100]
+      textAlign: "left",
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 500,
+      lineHeight: "1.25em",
+      color: theme.vars.palette.grey[100],
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     },
     ".name.large": {
       fontSize: theme.fontSizeSmall,
       lineHeight: "1.25em",
-      height: "5em",
-      marginTop: ".25em"
+      maxHeight: "2.6em",
+      marginTop: 0
     },
     ".filetype": {
-      top: "0"
+      top: "0.5em",
+      left: "0.5em",
+      borderTopRightRadius: "0.4em",
+      borderTopLeftRadius: "0.4em",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backdropFilter: "blur(4px)",
+      borderTop: "none !important"
     },
     ".filesize": {
-      top: "1.6em",
-      left: "0.25em",
-      color: "white",
-      fontSize: theme.fontSizeSmaller
+      top: "2em",
+      left: "0.5em",
+      borderBottomRightRadius: "0.4em",
+      borderBottomLeftRadius: "0.4em",
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backdropFilter: "blur(4px)",
+      color: theme.vars.palette.grey[100],
+      fontSize: theme.fontSizeTiny,
+      fontWeight: 500
     },
     ".duration": {
       bottom: "2px",
@@ -195,15 +234,6 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller
     },
     // ITEM
-    "&.selected:after": {
-      border: `2px solid rgb(${theme.vars.palette.common.blackChannel} / 0.55)`,
-      outline: `2px solid ${"var(--palette-primary-main)"}`,
-      background: `linear-gradient(180deg, rgb(${theme.vars.palette.primary.mainChannel} / 0.12), rgb(${theme.vars.palette.primary.mainChannel} / 0.04))`,
-      outlineOffset: "-1px",
-      borderRadius: "1em",
-      zIndex: 2000,
-      boxShadow: `inset 0 1px 0 rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`
-    },
     "&:after": {
       content: '""',
       position: "absolute",
@@ -213,11 +243,6 @@ const styles = (theme: Theme) =>
       right: 0,
       bottom: 0,
       zIndex: 100
-    },
-    "&:hover:after": {
-      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.12)`,
-      background: `linear-gradient(180deg, rgb(${theme.vars.palette.info.mainChannel} / 0.1), rgb(${theme.vars.palette.info.mainChannel} / 0.04))`,
-      borderRadius: "1em"
     },
     // FOLDER UP BUTTON
     ".folder-up-button.enabled": {
@@ -526,15 +551,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               size="tiny"
               title={asset.content_type || "Unknown content type"}
               style={{
-                borderTop: `2px solid var(--c_${assetType})`,
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                textAlign: "center",
-                zIndex: 1000,
-                color: theme.vars.palette.grey[100],
-                backgroundColor: theme.vars.palette.grey[800]
+                color: `var(--c_${assetType}, var(--palette-grey-100))`,
+                textTransform: "uppercase",
+                zIndex: 1000
               }}
             >
               {assetFileEnding}
@@ -548,10 +567,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               <Text
                 className="filesize info"
                 title={`File size: ${formatFileSize(asset.size)}`}
-                style={{
-                  color: "white",
-                  backgroundColor: "var(--palette-grey-700)"
-                }}
               >
                 {formatFileSize(asset.size)}
               </Text>

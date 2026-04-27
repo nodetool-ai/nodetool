@@ -16,30 +16,40 @@ const styles = (theme: Theme) =>
       position: "relative",
       display: "flex",
       flexDirection: "row",
-      alignItems: "flex-start",
+      alignItems: "center",
       justifyContent: "start",
-      gap: ".3em",
+      gap: ".4em",
       width: "100%",
+      padding: "0.3em 0.5em",
       cursor: "pointer",
       boxSizing: "border-box",
       backgroundColor: "transparent",
-      transition: "background-color 0.2s ease"
+      borderRadius: "var(--rounded-md, 6px)",
+      transition: "background-color 0.15s ease, color 0.15s ease"
+    },
+    "&:hover": {
+      backgroundColor: theme.vars.palette.action.hover
     },
     "&:hover p": {
       color: theme.vars.palette.grey[100]
     },
+    "&.selected": {
+      backgroundColor:
+        "rgba(var(--palette-primary-main-channel) / 0.12)"
+    },
     ".folder-icon": {
-      width: "25px",
-      height: "100%",
+      width: "20px",
+      height: "20px",
       marginLeft: "2px",
       left: 0,
-      color: theme.vars.palette.grey[500]
+      color: theme.vars.palette.grey[500],
+      flexShrink: 0
     },
     ".folder-icon:hover": {
       color: theme.vars.palette.grey[400]
     },
     "&.selected .folder-icon": {
-      color: "var(--palette-secondary-main)"
+      color: theme.vars.palette.primary.main
     },
     ".parent-icon": {
       position: "absolute",
@@ -49,22 +59,23 @@ const styles = (theme: Theme) =>
       bottom: "10%",
       right: "10%"
     },
-    ".name": {
-      marginTop: "0.4em",
+    ".name, .folder-name": {
+      margin: 0,
       fontSize: theme.fontSizeSmall,
+      fontWeight: 500,
       textAlign: "left",
       verticalAlign: "middle",
       wordBreak: "break-word",
       maxWidth: "100%",
       maxHeight: "2.5em",
       overflow: "hidden",
-      color: theme.vars.palette.grey[0]
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      color: theme.vars.palette.text.secondary
     },
-    "&.selected .name": {
-      color: "var(--palette-text-primary)"
-    },
-    "&:hover": {
-      color: theme.vars.palette.grey[200]
+    "&.selected .name, &.selected .folder-name": {
+      color: theme.vars.palette.primary.main,
+      fontWeight: 600
     },
     "&:hover .delete-button": {
       opacity: 1
