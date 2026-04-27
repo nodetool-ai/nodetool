@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useEffect, useState, useRef } from "react";
+import { memo, useCallback, useEffect, useState, useRef } from "react";
 import useResultsStore from "../../stores/ResultsStore";
 import isEqual from "fast-deep-equal";
 import { ProgressBar } from "../ui_primitives/ProgressBar";
@@ -32,6 +32,11 @@ const NodeProgress = ({
     }
   }, [progress]);
 
+  const formatValue = useCallback(
+    () => `${progress?.progress} / ${progress?.total}${eta ? ` (eta ${eta}s)` : ""}`,
+    [progress?.progress, progress?.total, eta]
+  );
+
   if (!progress) {
     return null;
   }
@@ -44,9 +49,7 @@ const NodeProgress = ({
         value={percentValue}
         color="secondary"
         showValue={true}
-        formatValue={() =>
-          `${progress.progress} / ${progress.total}${eta ? ` (eta ${eta}s)` : ""}`
-        }
+        formatValue={formatValue}
       />
     </div>
   );
