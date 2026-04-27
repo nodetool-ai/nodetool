@@ -172,11 +172,13 @@ export const RealtimeVideoFrameRenderer: React.FC<
       return;
     }
 
+    const imagePixels = new Uint8ClampedArray(pixels.length);
+    imagePixels.set(pixels);
     const imageData =
       typeof ImageData !== "undefined"
-        ? new ImageData(pixels, frame.width, frame.height)
+        ? new ImageData(imagePixels, frame.width, frame.height)
         : ({
-            data: pixels,
+            data: imagePixels,
             width: frame.width,
             height: frame.height,
             colorSpace: "srgb"
