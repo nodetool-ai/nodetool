@@ -784,6 +784,8 @@ export interface UnifiedModel {
   image?: string | null;
   /** See {@link LanguageModel.supports_tools}. Only meaningful for LLMs. */
   supports_tools?: boolean | null;
+  /** Voice IDs supported by this model. Only meaningful for TTS models. */
+  voices?: string[] | null;
 }
 
 export interface ModelPack {

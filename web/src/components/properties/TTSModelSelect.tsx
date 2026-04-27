@@ -42,12 +42,33 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
     return value?.id || "";
   }, [value]);
 
+  const modelProvider = useMemo(
+    () => (typeof value === "object" ? value?.provider ?? "" : ""),
+    [value]
+  );
+
   const currentSelectedModelDetails = useMemo(() => {
     if (!models || !modelId) {
       return null;
     }
-    return models.find((m) => m.id === modelId);
-  }, [models, modelId]);
+    // Prefer (provider, id) match — same model id can exist across providers.
+    const exact = modelProvider
+      ? models.find((m) => m.id === modelId && m.provider === modelProvider)
+      : null;
+    return exact ?? models.find((m) => m.id === modelId) ?? null;
+  }, [models, modelId, modelProvider]);
+
+  // Voices come from the live model list when available, otherwise fall back
+  // to the voices stored on the value object (e.g. provider not configured
+  // in this session, or the model list hasn't loaded yet).
+  const availableVoices = useMemo(() => {
+    const live = currentSelectedModelDetails?.voices;
+    if (live && live.length > 0) return live;
+    if (typeof value === "object" && Array.isArray(value?.voices)) {
+      return value.voices;
+    }
+    return [] as string[];
+  }, [currentSelectedModelDetails, value]);
 
   // Get selected voice from value object
   const selectedVoice = useMemo(() => {
@@ -89,30 +110,37 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
 
   const handleVoiceChange = useCallback(
     (newVoice: string) => {
+      const baseProvider =
+        currentSelectedModelDetails?.provider ||
+        modelProvider ||
+        "empty";
+      const baseName =
+        currentSelectedModelDetails?.name ||
+        (typeof value === "object" ? value?.name ?? "" : "");
       const modelToPass = {
         type: "tts_model" as const,
         id: modelId,
-        provider: currentSelectedModelDetails?.provider || "empty",
-        name: currentSelectedModelDetails?.name || "",
-        voices: currentSelectedModelDetails?.voices || [],
+        provider: baseProvider,
+        name: baseName,
+        voices: availableVoices,
         selected_voice: newVoice
       };
       onChange(modelToPass);
     },
-    [onChange, modelId, currentSelectedModelDetails]
+    [
+      onChange,
+      modelId,
+      modelProvider,
+      currentSelectedModelDetails,
+      availableVoices,
+      value
+    ]
   );
-  const hasVoices =
-    currentSelectedModelDetails?.voices &&
-    currentSelectedModelDetails.voices.length > 0;
-  const voiceOptions = useMemo(() => {
-    if (!currentSelectedModelDetails?.voices) {
-      return [];
-    }
-    return currentSelectedModelDetails.voices.map((voice) => ({
-      value: voice,
-      label: voice
-    }));
-  }, [currentSelectedModelDetails?.voices]);
+  const hasVoices = availableVoices.length > 0;
+  const voiceOptions = useMemo(
+    () => availableVoices.map((voice) => ({ value: voice, label: voice })),
+    [availableVoices]
+  );
 
   const containerStyle = useMemo(() => ({
     display: "flex" as const,
@@ -135,9 +163,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
       {hasVoices && (
         <Select
           options={voiceOptions}
-          value={
-            selectedVoice || currentSelectedModelDetails?.voices?.[0] || ""
-          }
+          value={selectedVoice || availableVoices[0] || ""}
           onChange={handleVoiceChange}
           placeholder="Select voice"
           label="Voice"

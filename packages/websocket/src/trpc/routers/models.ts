@@ -64,7 +64,8 @@ const unifiedModelSchema = z.object({
   supported_tasks: z.array(z.string()).nullish(),
   trending_score: z.number().nullish(),
   image: z.string().nullish(),
-  supports_tools: z.boolean().nullish()
+  supports_tools: z.boolean().nullish(),
+  voices: z.array(z.string()).nullish()
 });
 
 const modelsListOutput = z.array(unifiedModelSchema);
@@ -699,7 +700,7 @@ function toUnifiedLanguageModel(
 }
 
 function toUnifiedModel(
-  model: { id: string; name: string; provider: string },
+  model: { id: string; name: string; provider: string; voices?: string[] },
   type: string
 ): UnifiedModel {
   return {
@@ -710,7 +711,8 @@ function toUnifiedModel(
     repo_id: null,
     path: model.id,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
-    tags: [model.provider]
+    tags: [model.provider],
+    voices: model.voices ?? null
   };
 }
 

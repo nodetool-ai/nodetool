@@ -16,6 +16,10 @@ export interface VariantContext {
   isNodeMenuOpen: boolean;
   /** Highest node count across any currently-open workflow. */
   maxNodeCount: number;
+  /** True when a String constant node exists in any open workflow. */
+  hasStringNode: boolean;
+  /** True when an Agent node exists in any open workflow. */
+  hasAgentNode: boolean;
 }
 
 /**
@@ -170,30 +174,31 @@ export const ONBOARDING_STEPS: Record<OnboardingStepId, OnboardingStepDefinition
     ctaLabel: "Continue in editor",
     variants: [
       {
-        // Menu open with only 1 node — guide to search Agent.
+        // Menu open while we still need an Agent — guide to search it.
         hintTitle: "Search \"Agent\"",
         hintBody:
           "Type \"Agent\" and click the Agent node to add it next to the String node.",
         targetSelector: '[data-onboarding-target="node-menu-search"]',
         hintPlacement: "top",
-        when: (ctx) => ctx.isNodeMenuOpen && ctx.maxNodeCount < 2
+        when: (ctx) => ctx.isNodeMenuOpen && !ctx.hasAgentNode
       },
       {
-        // Menu closed, only 1 node — tell them to add an Agent.
+        // Menu closed and Agent missing — tell them to add one.
         hintTitle: "Add an Agent node",
         hintBody:
           "Press Space and add an Agent node so we can hand the String to it.",
         targetSelector: '[data-onboarding-target="open-node-menu"]',
         hintPlacement: "top",
-        when: (ctx) => ctx.maxNodeCount < 2
+        when: (ctx) => !ctx.hasAgentNode
       },
       {
-        // Two or more nodes — point at the first output handle and explain the wire.
+        // Both String and Agent present — point at the output handle and explain the wire.
         hintTitle: "Connect String → Agent",
         hintBody:
           "Drag from the String node's right-side output dot into the Agent's \"prompt\" input dot on its left edge.",
         targetSelector: '[data-onboarding-target="output-handle"]',
-        hintPlacement: "top"
+        hintPlacement: "top",
+        when: (ctx) => ctx.hasStringNode && ctx.hasAgentNode
       }
     ]
   },
