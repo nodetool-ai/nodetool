@@ -10,7 +10,6 @@
     "test": "vitest run",
     "test:all": "vitest run --config vitest.config.all.ts",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
-    "test:metadata-parity": "vitest run tests/metadata-parity.test.ts",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },

@@ -109,7 +109,7 @@ Check:
 - [x] The starter template opens as the user-facing MVP graph.
 - [x] Dev smoke coverage still exists under a non-starter name.
 
-### [ ] 0.3 Reduce User Node Parameters
+### [x] 0.3 Reduce User Node Parameters
 
 Files:
 - `nodetool-realtime/src/nodetool/nodes/realtime/self_forcing.py`
@@ -119,21 +119,21 @@ Files:
 - `nodetool-realtime/tests/test_realtime_node_outputs.py`
 
 Steps:
-- [ ] List the current public fields for `SelfForcing` and `LongLive` from generated metadata.
-- [ ] Remove or hide `use_fake_pipeline` from normal metadata.
-- [ ] Remove or hide upstream module/class overrides from normal metadata.
-- [ ] Remove or hide arbitrary constructor/call argument-name overrides from normal metadata.
-- [ ] Remove or hide smoke env, noise shape, and low-level sampler/debug fields from normal metadata.
-- [ ] Keep only MVP controls: input frame, prompt, optional negative prompt, model/profile, output frame, and loading/error state.
-- [ ] Keep a dev/test construction path for mock pipelines outside normal user metadata.
-- [ ] Regenerate package metadata.
-- [ ] Update tests to check the reduced public field list.
+- [x] List the current public fields for `SelfForcing` and `LongLive` from generated metadata.
+- [x] Remove or hide `use_fake_pipeline` from normal metadata.
+- [x] Remove or hide upstream module/class overrides from normal metadata.
+- [x] Remove or hide arbitrary constructor/call argument-name overrides from normal metadata.
+- [x] Remove or hide smoke env, noise shape, and low-level sampler/debug fields from normal metadata.
+- [x] Keep only MVP controls: input frame, prompt, optional negative prompt, model/profile, output frame, and loading/error state.
+- [x] Keep a dev/test construction path for mock pipelines outside normal user metadata.
+- [x] Regenerate package metadata.
+- [x] Update tests to check the reduced public field list.
 
 Check:
-- [ ] The node UI no longer exposes dev/mock/adapter internals.
-- [ ] Existing dev tests can still instantiate mock pipelines.
+- [x] The node UI no longer exposes dev/mock/adapter internals.
+- [x] Existing dev tests can still instantiate mock pipelines.
 
-### [ ] 0.4 Align Docs And Metadata
+### [x] 0.4 Align Docs And Metadata
 
 Files:
 - `nodetool-realtime/README.md`
@@ -142,36 +142,35 @@ Files:
 - `packages/base-nodes/package.json`
 
 Steps:
-- [ ] Make README point to this plan as the realtime source of truth.
-- [ ] Make README describe Self-Forcing RTX 3060 first and LongLive as fallback.
-- [ ] Move mock/dev smoke commands into a Development section.
-- [ ] Mark placeholder extras such as `fp8`, `gguf`, and `int8` as reserved/no-op, or remove them until they install real dependencies.
-- [ ] Fix or remove stale `test:metadata-parity` wiring if the referenced test is still missing.
-- [ ] Regenerate metadata after node/template changes.
+- [x] Make README point to this plan as the realtime source of truth.
+- [x] Make README describe Self-Forcing RTX 3060 first and LongLive as fallback.
+- [x] Move mock/dev smoke commands into a Development section.
+- [x] Mark placeholder extras such as `fp8`, `gguf`, and `int8` as reserved/no-op, or remove them until they install real dependencies.
+- [x] Fix or remove stale `test:metadata-parity` wiring if the referenced test is still missing.
+- [x] Regenerate metadata after node/template changes.
 
 Check:
-- [ ] README, metadata, and starter template describe the same MVP.
-- [ ] No first-run doc points users at mock/dev success paths.
+- [x] README, metadata, and starter template describe the same MVP.
+- [x] No first-run doc points users at mock/dev success paths.
 
 ### [ ] 0.5 Consolidate Smoke Code
 
 Files:
 - `nodetool-realtime/src/nodetool/realtime/wan21/rtx3060_realtime_smoke.py`
-- `nodetool-realtime/src/nodetool/realtime/wan21/self_forcing_smoke.py`
-- `nodetool-realtime/src/nodetool/realtime/wan21/longlive_smoke.py`
+- `nodetool-realtime/src/nodetool/realtime/wan21/dev_smoke_configs.py`
 - `nodetool-realtime/tests/test_rtx3060_realtime_smoke.py`
 - `nodetool-realtime/tests/test_self_forcing_smoke.py`
 - `nodetool-realtime/tests/test_longlive_smoke.py`
 
 Steps:
-- [ ] Choose `rtx3060_realtime_smoke.py` as the main smoke entrypoint.
-- [ ] Move duplicated Self-Forcing and LongLive env parsing into that entrypoint or dev-only helpers.
+- [x] Choose `rtx3060_realtime_smoke.py` as the main smoke entrypoint.
+- [x] Move duplicated Self-Forcing and LongLive env parsing into that entrypoint or dev-only helpers.
 - [ ] Delete or rewrite the Self-Forcing env smoke test if it cannot reach a real inference frame.
-- [ ] Rename mock-visible smoke paths so they are clearly dev/test-only.
+- [x] Rename mock-visible smoke paths so they are clearly dev/test-only.
 - [ ] Keep tests for artifact errors, loading state, frame output, camera ingress, and clean stop.
 
 Check:
-- [ ] There is one obvious RTX 3060 smoke command.
+- [x] There is one obvious RTX 3060 smoke command.
 - [ ] Smoke tests no longer define the user-facing product shape.
 
 ### [ ] 0.6 Trim Active Runtime Surface

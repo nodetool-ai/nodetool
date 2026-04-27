@@ -5,7 +5,6 @@ import type {
 } from "@nodetool/protocol";
 import type { CodecBridge } from "./codec-bridge.js";
 import type { FrameRouterRunner } from "./frame-router.js";
-import type { BoundedMediaQueueMetrics } from "./media-queue.js";
 import {
   RealtimeWebRTCSession,
   type IncomingRealtimeSignal,
@@ -24,17 +23,9 @@ export interface RealtimeWebRTCStopSessionsResult {
   failed: Array<{ sessionId: string; error: string }>;
 }
 
-export interface RealtimeMediaQueueMetricsSource {
-  metrics(): BoundedMediaQueueMetrics;
-}
-
 export class RealtimeWebRTCServer {
   private readonly sessions = new Map<string, RealtimeWebRTCSession>();
   private readonly closedStates = new Set<string>();
-  private readonly consumerQueues = new Map<
-    string,
-    Map<string, RealtimeMediaQueueMetricsSource>
-  >();
   private readonly previousFrameMetrics = new Map<
     string,
     {
@@ -70,7 +61,6 @@ export class RealtimeWebRTCServer {
     } finally {
       this.sessions.delete(sessionId);
       this.closedStates.add(sessionId);
-      this.consumerQueues.delete(sessionId);
       this.previousFrameMetrics.delete(sessionId);
     }
   }
@@ -111,24 +101,6 @@ export class RealtimeWebRTCServer {
       return session.getState();
     }
     return this.closedStates.has(sessionId) ? "closed" : "missing";
-  }
-
-  registerConsumerQueue(
-    sessionId: string,
-    consumerId: string,
-    queue: RealtimeMediaQueueMetricsSource
-  ): void {
-    const queues = this.consumerQueues.get(sessionId) ?? new Map();
-    queues.set(consumerId, queue);
-    this.consumerQueues.set(sessionId, queues);
-  }
-
-  unregisterConsumerQueue(sessionId: string, consumerId: string): void {
-    const queues = this.consumerQueues.get(sessionId);
-    queues?.delete(consumerId);
-    if (queues?.size === 0) {
-      this.consumerQueues.delete(sessionId);
-    }
   }
 
   getMetrics(session: RealtimeSessionRecord): RealtimeMetrics {
@@ -174,12 +146,6 @@ export class RealtimeWebRTCServer {
       outbound: frames.outbound,
       routed: frames.routed
     });
-    const consumers = [...(this.consumerQueues.get(session.session_id) ?? [])].map(
-      ([id, queue]) => ({
-        id,
-        ...queue.metrics()
-      })
-    );
     return {
       type: "realtime_metrics",
       session_id: session.session_id,
@@ -197,9 +163,9 @@ export class RealtimeWebRTCServer {
       frames,
       rates,
       queues: {
-        total_depth: consumers.reduce((sum, queue) => sum + queue.depth, 0),
-        total_dropped: consumers.reduce((sum, queue) => sum + queue.dropped, 0),
-        consumers
+        total_depth: 0,
+        total_dropped: 0,
+        consumers: []
       },
       latency: {
         decode_ms_avg: null,

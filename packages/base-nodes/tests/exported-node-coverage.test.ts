@@ -55,10 +55,7 @@ describe("exported base node coverage audit", () => {
   it("references every exported node class from at least one behavior test", () => {
     const files = walkTestFiles(testsRoot()).filter((file) => {
       const base = path.basename(file);
-      return (
-        base !== "metadata-parity.test.ts" &&
-        base !== "exported-node-coverage.test.ts"
-      );
+      return base !== "exported-node-coverage.test.ts";
     });
     const contents = files.map((file) => fs.readFileSync(file, "utf8"));
 

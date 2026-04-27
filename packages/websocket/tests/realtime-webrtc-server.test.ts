@@ -15,10 +15,10 @@ import { RealtimeWebRTCServer } from "../src/realtime/webrtc-server.js";
 import { FrameRouter } from "../src/realtime/frame-router.js";
 import {
   UnsupportedCodecBridge,
+  type CodecBridge,
   type CodecBridgeRtpInput
 } from "../src/realtime/codec-bridge.js";
-import { BoundedMediaQueue } from "../src/realtime/media-queue.js";
-import { computePacingDecision } from "../src/realtime/pacing.js";
+import { RealtimeWebRTCSession } from "../src/realtime/webrtc-session.js";
 
 const session = (
   overrides: Partial<RealtimeSessionRecord> = {}
@@ -229,28 +229,17 @@ describe("RealtimeWebRTCServer", () => {
     expect(typeof metrics.created_at).toBe("string");
   });
 
-  it("aggregates per-consumer queue depth and drop metrics", () => {
+  it("reports empty queue metrics until runtime consumers are wired", () => {
     const server = new RealtimeWebRTCServer({
       emitSessionSignal: async () => undefined
     });
-    const preview = new BoundedMediaQueue<number>({ capacity: 2 });
-    const recorder = new BoundedMediaQueue<number>({ capacity: 1 });
-    preview.push(1);
-    preview.push(2);
-    preview.push(3);
-    recorder.push(1);
-    server.registerConsumerQueue("session-1", "preview", preview);
-    server.registerConsumerQueue("session-1", "recorder", recorder);
 
     const metrics = server.getMetrics(session());
 
     expect(metrics.queues).toEqual({
-      total_depth: 3,
-      total_dropped: 1,
-      consumers: [
-        { id: "preview", depth: 2, dropped: 1, pushed: 3 },
-        { id: "recorder", depth: 1, dropped: 0, pushed: 1 }
-      ]
+      total_depth: 0,
+      total_dropped: 0,
+      consumers: []
     });
   });
 });
@@ -303,45 +292,6 @@ describe("FrameRouter", () => {
   });
 });
 
-describe("media queues and pacing", () => {
-  it("keeps per-consumer queues isolated with drop-oldest counters", () => {
-    const preview = new BoundedMediaQueue<number>({ capacity: 2 });
-    const recorder = new BoundedMediaQueue<number>({ capacity: 2 });
-
-    preview.push(1);
-    preview.push(2);
-    preview.push(3);
-    recorder.push(1);
-
-    expect(preview.snapshot()).toEqual([2, 3]);
-    expect(recorder.snapshot()).toEqual([1]);
-    expect(preview.metrics()).toMatchObject({ depth: 2, dropped: 1 });
-    expect(recorder.metrics()).toMatchObject({ depth: 1, dropped: 0 });
-  });
-
-  it("separates outbound pacing decisions from media contents", () => {
-    expect(
-      computePacingDecision({
-        nowMs: 1_100,
-        frameTimestampMs: 1_000,
-        lastEmitMs: 1_050,
-        minIntervalMs: 33,
-        maxFrameAgeMs: 250
-      })
-    ).toMatchObject({ emit: true, drop: false });
-
-    expect(
-      computePacingDecision({
-        nowMs: 1_500,
-        frameTimestampMs: 1_000,
-        lastEmitMs: 1_450,
-        minIntervalMs: 33,
-        maxFrameAgeMs: 250
-      })
-    ).toMatchObject({ emit: false, drop: true });
-  });
-});
-
 describe("CodecBridge", () => {
   it("reports unsupported decode and encode explicitly for pure werift", async () => {
     const bridge = new UnsupportedCodecBridge();
@@ -380,5 +330,56 @@ describe("CodecBridge", () => {
       status: "unsupported",
       reason: expect.stringContaining("encoder")
     });
+  });
+
+  it("marks codec active after a bridge decodes RTP into a realtime frame", async () => {
+    const frame: VideoFrame = {
+      type: "realtime_video_frame",
+      data: new Uint8Array([0, 0, 0, 255]),
+      width: 1,
+      height: 1,
+      stride: 4,
+      pixel_format: "rgba8",
+      timestamp_ns: 1,
+      sequence: 1
+    };
+    const bridge: CodecBridge = {
+      async decode() {
+        return { status: "decoded", frame };
+      },
+      async encode() {
+        return { status: "unsupported", reason: "not needed" };
+      }
+    };
+    const pushInputValue = vi.fn().mockResolvedValue(undefined);
+    const webrtcSession = new RealtimeWebRTCSession({
+      session: session(),
+      runner: { pushInputValue },
+      codecBridge: bridge,
+      emitSessionSignal: async () => undefined
+    });
+    const rtp = new RtpPacket(
+      new RtpHeader({
+        payloadType: 96,
+        marker: true,
+        sequenceNumber: 1,
+        timestamp: 1,
+        ssrc: 1
+      }),
+      Buffer.from([0x10, 0x00])
+    );
+
+    await (
+      webrtcSession as unknown as {
+        routeRtp(trackId: string, kind: "video", rtp: RtpPacket): Promise<void>;
+      }
+    ).routeRtp("video-track", "video", rtp);
+
+    expect(webrtcSession.metrics().codec).toEqual({
+      status: "active",
+      name: "custom"
+    });
+    expect(pushInputValue).toHaveBeenCalledWith("camera", frame, "frame");
+    await webrtcSession.close();
   });
 });

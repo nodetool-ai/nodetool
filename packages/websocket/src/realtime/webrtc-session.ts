@@ -46,6 +46,10 @@ export class RealtimeWebRTCSession {
   private inboundRtpPackets = 0;
   private encodedFrames = 0;
   private unsupportedCodecFrames = 0;
+  private codecStatus: RealtimeMetrics["codec"] = {
+    status: "unsupported",
+    name: null
+  };
 
   constructor(private readonly options: RealtimeWebRTCSessionOptions) {
     this.codecBridge = options.codecBridge ?? new UnsupportedCodecBridge();
@@ -78,10 +82,7 @@ export class RealtimeWebRTCSession {
         connection_state: peerState.connectionState ?? this.state,
         ice_connection_state: peerState.iceConnectionState ?? null
       },
-      codec: {
-        status: "unsupported",
-        name: null
-      },
+      codec: this.codecStatus,
       frames: {
         inbound: this.inboundFrames,
         outbound: this.outboundFrames,
@@ -198,6 +199,10 @@ export class RealtimeWebRTCSession {
     this.inboundRtpPackets += 1;
     const result = await this.codecBridge.decode({ trackId, kind, rtp });
     if (result.status === "decoded") {
+      this.codecStatus = {
+        status: "active",
+        name: "custom"
+      };
       await this.frameRouter?.routeFrame(trackId, result.frame);
       this.inboundFrames += 1;
       return;
