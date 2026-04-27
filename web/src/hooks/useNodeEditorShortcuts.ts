@@ -21,7 +21,6 @@ import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
-import { useSettingsStore } from "../stores/SettingsStore";
 import { NodeData } from "../stores/NodeData";
 import { Node } from "@xyflow/react";
 import { isMac } from "../utils/platform";
@@ -491,7 +490,7 @@ export const useNodeEditorShortcuts = (
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
       openSettings: {
-        callback: () => useSettingsStore.getState().setMenuOpen(true)
+        callback: () => navigate("/settings")
       },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },

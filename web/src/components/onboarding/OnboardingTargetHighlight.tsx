@@ -26,7 +26,7 @@ const styles = (accent: { from: string; to: string }) =>
   css({
     position: "fixed",
     pointerEvents: "none",
-    zIndex: 2099,
+    zIndex: 20099,
     borderRadius: HIGHLIGHT_RADIUS,
     boxShadow: `0 0 0 2px ${accent.from}, 0 0 22px 6px ${accent.from}55, 0 0 44px 12px ${accent.to}33`,
     animation: `${pulse} 2.4s ease-in-out infinite`,

@@ -13,7 +13,6 @@ import {
 } from "../../stores/OnboardingStore";
 import { ONBOARDING_STEPS } from "../onboarding/steps";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useSettingsStore } from "../../stores/SettingsStore";
 
 const EDITOR_ROUTE_PREFIX = "/editor/";
 
@@ -298,13 +297,13 @@ const GettingStartedPanel: React.FC = () => {
 
   const completed = useOnboardingStore((s) => s.completed);
   const createNewWorkflow = useWorkflowManager((s) => s.createNew);
-  const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
 
   const navigateToStep = useCallback(
     async (id: OnboardingStepId) => {
       const step = ONBOARDING_STEPS[id];
       if (step.settingsTab !== undefined) {
-        setMenuOpen(true, step.settingsTab);
+        navigate(`/settings?tab=${step.settingsTab}`);
+        return;
       }
       const route = step.route;
       if (!route) return;
@@ -337,7 +336,7 @@ const GettingStartedPanel: React.FC = () => {
 
       navigate(route);
     },
-    [navigate, createNewWorkflow, setMenuOpen]
+    [navigate, createNewWorkflow]
   );
 
   const completedCount = useMemo(

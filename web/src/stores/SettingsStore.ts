@@ -52,10 +52,6 @@ export interface Settings {
 
 interface SettingsStore {
   settings: Settings;
-  isMenuOpen: boolean;
-  settingsTab: number;
-  searchFilter: string;
-  setMenuOpen: (value: boolean, tab?: number, searchFilter?: string) => void;
   setGridSnap: (value: number) => void;
   setConnectionSnap: (value: number) => void;
   setPanControls: (value: string) => void;
@@ -97,15 +93,6 @@ export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
       settings: { ...defaultSettings },
-      isMenuOpen: false,
-      settingsTab: 0,
-      searchFilter: "",
-      setMenuOpen: (value: boolean, tab?: number, searchFilter?: string) =>
-        set({
-          isMenuOpen: value,
-          settingsTab: tab ?? 0,
-          searchFilter: searchFilter ?? ""
-        }),
       setGridSnap: (value: number) =>
         set((state) => ({
           settings: {

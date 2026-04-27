@@ -478,18 +478,23 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         )}
 
         {editorViewMode === "graph" && (
-          <ToolbarButton
-            icon={<AddCircleIcon />}
-            tooltip="Add Node"
-            shortcut="openNodeMenu"
-            variant={shouldHighlightNodeMenu ? "neutral" : "secondary"}
-            className={cn(
-              !shouldHighlightNodeMenu && "node-menu",
-              shouldHighlightNodeMenu && "node-menu-attention"
-            )}
-            onClick={handleToggleNodeMenu}
-            aria-label="Add node"
-          />
+          <span
+            data-onboarding-target="open-node-menu"
+            style={{ display: "inline-flex" }}
+          >
+            <ToolbarButton
+              icon={<AddCircleIcon />}
+              tooltip="Add Node"
+              shortcut="openNodeMenu"
+              variant={shouldHighlightNodeMenu ? "neutral" : "secondary"}
+              className={cn(
+                !shouldHighlightNodeMenu && "node-menu",
+                shouldHighlightNodeMenu && "node-menu-attention"
+              )}
+              onClick={handleToggleNodeMenu}
+              aria-label="Add node"
+            />
+          </span>
         )}
         <ToolbarButton
           icon={editorViewMode === "graph" ? <LinearScaleIcon /> : <AccountTreeIcon />}

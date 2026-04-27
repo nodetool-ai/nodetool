@@ -453,17 +453,9 @@ const Portal: React.FC = () => {
     >
       <AppHeader />
       <div className="portal-center">
-        <div className="portal-heading">
-          {isReturningUser ? (
-            <>
-              Welcome back.
-              <br />
-              {"What's next?"}
-            </>
-          ) : (
-            "What shall we build?"
-          )}
-        </div>
+        {!isReturningUser && (
+          <div className="portal-heading">What shall we build?</div>
+        )}
 
         <div className="portal-input-wrapper">
           <ChatInputSection

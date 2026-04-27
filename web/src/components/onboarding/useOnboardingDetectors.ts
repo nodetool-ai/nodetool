@@ -9,9 +9,9 @@
  * - connect   : current workflow's NodeStore — edge count increases
  * - run       : current workflow's WorkflowRunner.state — leaves "idle"
  *
- * The hook only auto-advances when the user is in the "action" phase of the
- * matching step; it still records completion in the background regardless,
- * so the launcher can show progress.
+ * Auto-advances when the tour is active and the matching step is current;
+ * always records completion in the background so the launcher can show
+ * progress.
  *
  * All subscriptions are event-driven: per-NodeStore and per-WorkflowRunner
  * listeners are attached on demand and torn down when the workflow id is
@@ -54,7 +54,6 @@ interface NodeStoreLike {
  */
 export const useOnboardingDetectors = (): void => {
   const advance = useOnboardingStore((s) => s.next);
-  const phase = useOnboardingStore((s) => s.phase);
   const currentIdx = useOnboardingStore((s) => s.currentStep);
   const completed = useOnboardingStore((s) => s.completed);
   const markComplete = useOnboardingStore((s) => s.markComplete);
@@ -64,30 +63,24 @@ export const useOnboardingDetectors = (): void => {
 
   // Hold the most recent values in refs so the long-lived subscribe
   // callbacks see fresh state without resubscribing on every render.
-  const phaseRef = useRef(phase);
   const idxRef = useRef(currentIdx);
   const activeRef = useRef(active);
   const completedRef = useRef(completed);
 
   useEffect(() => {
-    phaseRef.current = phase;
     idxRef.current = currentIdx;
     activeRef.current = active;
     completedRef.current = completed;
-  }, [phase, currentIdx, active, completed]);
+  }, [currentIdx, active, completed]);
 
   const onCompleteRef = useRef<(id: OnboardingStepId) => void>(() => {});
   onCompleteRef.current = (id: OnboardingStepId): void => {
     if (completedRef.current[id]) return;
     markComplete(id);
     const activeId = ONBOARDING_STEP_ORDER[idxRef.current];
-    if (
-      activeRef.current &&
-      phaseRef.current === "action" &&
-      activeId === id
-    ) {
+    if (activeRef.current && activeId === id) {
       // Slight delay so the user sees the action register before
-      // we sweep them into the next intro screen.
+      // we advance to the next step.
       setTimeout(() => advance(), 600);
     }
   };

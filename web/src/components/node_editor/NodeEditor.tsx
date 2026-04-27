@@ -151,7 +151,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         <Box
           ref={reactFlowWrapperRef}
           className="node-editor"
-          data-onboarding-target="editor-canvas"
           style={{
             backgroundColor: theme.vars.palette.c_editor_bg_color
           }}

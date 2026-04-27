@@ -50,6 +50,7 @@ import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
 import { useSettingsStore } from "./stores/SettingsStore";
 import { initKeyListeners } from "./stores/KeyPressedStore";
+import { HEADER_HEIGHT } from "./config/constants";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import useMetadataStore from "./stores/MetadataStore";
@@ -122,6 +123,9 @@ const CodeEditorDebug = React.lazy(
 );
 const ComponentPreview = React.lazy(
   () => import("./components/preview/ComponentPreview")
+);
+const SettingsPage = React.lazy(
+  () => import("./components/menus/SettingsMenu")
 );
 
 // Defer frontend tool registrations until after initial render
@@ -264,6 +268,25 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <WelcomePage />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/settings",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%",
+              paddingTop: HEADER_HEIGHT
+            }}
+          >
+            <AppHeader />
+            <SettingsPage />
+          </div>
         </ProtectedRoute>
       )
     },

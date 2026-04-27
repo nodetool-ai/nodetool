@@ -19,12 +19,11 @@ describe("OnboardingStore", () => {
     }
   });
 
-  it("start() activates the tour at step 0 in action phase", () => {
+  it("start() activates the tour at step 0", () => {
     useOnboardingStore.getState().start();
     const s = useOnboardingStore.getState();
     expect(s.active).toBe(true);
     expect(s.currentStep).toBe(0);
-    expect(s.phase).toBe("action");
   });
 
   it("startAt() jumps to a specific step id", () => {
@@ -90,7 +89,6 @@ describe("OnboardingStore", () => {
       const s = useOnboardingStore.getState();
       expect(s.active).toBe(true);
       expect(s.currentStep).toBe(0);
-      expect(s.phase).toBe("action");
     });
 
     it("jumps to the first incomplete step when progress exists", () => {

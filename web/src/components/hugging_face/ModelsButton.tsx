@@ -1,28 +1,23 @@
 import React, { memo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { IconForType } from "../../config/data_types";
-import { useModelManagerStore } from "../../stores/ModelManagerStore";
-import ModelsManager from "./ModelsManager";
 import { ToolbarIconButton } from "../ui_primitives";
 
 const ModelsButton: React.FC = memo(function ModelsButton() {
-  const isOpen = useModelManagerStore((state) => state.isOpen);
-  const setIsOpen = useModelManagerStore((state) => state.setIsOpen);
-
-  // useCallback needed for handleOpen as it's passed to memoized ToolbarIconButton
-  const handleOpen = useCallback(() => setIsOpen(true), [setIsOpen]);
-  const handleClose = useCallback(() => setIsOpen(false), [setIsOpen]);
+  const navigate = useNavigate();
+  const handleOpen = useCallback(
+    () => navigate("/settings?tab=2"),
+    [navigate]
+  );
 
   return (
-    <>
-      <ModelsManager open={isOpen} onClose={handleClose} />
-      <ToolbarIconButton
-        icon={<IconForType iconName="language_model" showTooltip={false} />}
-        tooltip="Model Manager"
-        onClick={handleOpen}
-        className="models-button"
-        nodrag={false}
-      />
-    </>
+    <ToolbarIconButton
+      icon={<IconForType iconName="language_model" showTooltip={false} />}
+      tooltip="Model Manager"
+      onClick={handleOpen}
+      className="models-button"
+      nodrag={false}
+    />
   );
 });
 

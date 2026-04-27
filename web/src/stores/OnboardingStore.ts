@@ -28,17 +28,10 @@ export const ONBOARDING_STEP_ORDER: OnboardingStepId[] = [
   "run"
 ];
 
-/**
- * Legacy type — kept for persisted-state compatibility.
- * The tour now renders hints immediately without an intro card phase.
- */
-export type OnboardingPhase = "intro" | "action";
-
 export interface OnboardingState {
   active: boolean;
   /** index into ONBOARDING_STEP_ORDER */
   currentStep: number;
-  phase: OnboardingPhase;
   completed: Record<OnboardingStepId, boolean>;
   /** Set once the user has either finished or explicitly dismissed the tour. */
   dismissed: boolean;
@@ -69,7 +62,6 @@ export const useOnboardingStore = create<OnboardingState>()(
     (set, get) => ({
       active: false,
       currentStep: 0,
-      phase: "intro",
       completed: defaultCompleted(),
       dismissed: false,
 
@@ -77,7 +69,6 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({
           active: true,
           currentStep: 0,
-          phase: "action",
           dismissed: false
         }),
 
@@ -89,7 +80,6 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({
           active: true,
           currentStep: firstIncomplete === -1 ? 0 : firstIncomplete,
-          phase: "action",
           dismissed: false
         });
       },
@@ -99,7 +89,6 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({
           active: true,
           currentStep: idx >= 0 ? idx : 0,
-          phase: "action",
           dismissed: false
         });
       },
@@ -141,14 +130,13 @@ export const useOnboardingStore = create<OnboardingState>()(
         set({
           active: false,
           currentStep: 0,
-          phase: "intro",
           completed: defaultCompleted(),
           dismissed: false
         })
     }),
     {
       name: "onboarding",
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         completed: state.completed,
         dismissed: state.dismissed

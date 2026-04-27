@@ -298,21 +298,23 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 className="search-row"
                 sx={{ marginLeft: "-3px", width: "100%" }}
               >
-                <SearchInput
-                  focusSearchInput={focusSearchInput}
-                  focusOnTyping={false}
-                  placeholder="Search for nodes..."
-                  debounceTime={80}
-                  width={300}
-                  maxWidth={"300px"}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  onPressEscape={closeNodeMenu}
-                  onPressArrowDown={handleArrowDown}
-                  onPressArrowUp={handleArrowUp}
-                  onPressEnter={handleEnter}
-                  searchResults={searchResults}
-                />
+                <span data-onboarding-target="node-menu-search">
+                  <SearchInput
+                    focusSearchInput={focusSearchInput}
+                    focusOnTyping={false}
+                    placeholder="Search for nodes..."
+                    debounceTime={80}
+                    width={300}
+                    maxWidth={"300px"}
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    onPressEscape={closeNodeMenu}
+                    onPressArrowDown={handleArrowDown}
+                    onPressArrowUp={handleArrowUp}
+                    onPressEnter={handleEnter}
+                    searchResults={searchResults}
+                  />
+                </span>
                 {searchTerm && searchTerm.trim() !== "" && (
                   <span
                     style={{

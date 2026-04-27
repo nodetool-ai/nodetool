@@ -8,6 +8,31 @@ import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import PlayCircleFilledRoundedIcon from "@mui/icons-material/PlayCircleFilledRounded";
 import type { OnboardingStepId } from "../../stores/OnboardingStore";
 
+export type HintPlacement = "top" | "bottom" | "left" | "right" | "center";
+
+/** Live state passed into variant predicates by the overlay. */
+export interface VariantContext {
+  /** True when the floating node menu is currently open. */
+  isNodeMenuOpen: boolean;
+  /** Highest node count across any currently-open workflow. */
+  maxNodeCount: number;
+}
+
+/**
+ * A single visual variant of a step. The overlay picks the first variant
+ * whose `when(ctx)` returns true and whose target selector resolves in the
+ * DOM. Variants let one logical step swap its anchor + copy as the user
+ * progresses (e.g. node menu closed → menu open).
+ */
+export interface OnboardingStepVariant {
+  hintTitle: string;
+  hintBody: string;
+  targetSelector: string;
+  hintPlacement?: HintPlacement;
+  /** Predicate evaluated against live context. Defaults to always true. */
+  when?: (ctx: VariantContext) => boolean;
+}
+
 export interface OnboardingStepDefinition {
   id: OnboardingStepId;
   /** Headline shown on the animated intro card. */
@@ -28,13 +53,18 @@ export interface OnboardingStepDefinition {
   /** CSS selector for the element the hint should anchor to. */
   targetSelector?: string;
   /** Side of the target where the hint should appear. */
-  hintPlacement?: "top" | "bottom" | "left" | "right" | "center";
+  hintPlacement?: HintPlacement;
   /** Optional secondary call-to-action label. */
   ctaLabel?: string;
   /** If set, the hint shows an "Open Settings" button that jumps to this tab index. */
   settingsTab?: number;
   /** If set, the hint shows a "Download Models" button that navigates here. */
   modelsRoute?: string;
+  /**
+   * Optional sub-beats. The overlay tries each in order; the first matching
+   * variant overrides the step's top-level hintTitle/hintBody/target/placement.
+   */
+  variants?: OnboardingStepVariant[];
 }
 
 export const ONBOARDING_STEPS: Record<OnboardingStepId, OnboardingStepDefinition> = {
@@ -90,35 +120,82 @@ export const ONBOARDING_STEPS: Record<OnboardingStepId, OnboardingStepDefinition
   },
   nodes: {
     id: "nodes",
-    title: "Find and add nodes",
+    title: "Add a String node",
     tagline: "Step 4 of 6",
     description:
-      "When you want to compose more than one step, drop into the editor. The node menu lets you search hundreds of building blocks — LLMs, image models, agents, code, audio, vector stores.",
+      "We'll wire two nodes together. Start with a String node — it holds the text we'll feed to an Agent.",
     illustration: <HubRoundedIcon sx={{ fontSize: 96 }} />,
     accent: { from: "#FFC65A", to: "#F26D4F" },
     route: "/editor",
-    hintTitle: "Press Space, or double-click the canvas",
+    hintTitle: "Add a String node",
     hintBody:
-      "That opens the node menu. Search for any node and click it to drop it onto your workflow.",
-    targetSelector: '[data-onboarding-target="editor-canvas"]',
-    hintPlacement: "center",
-    ctaLabel: "Open editor"
+      "Press Space — or click the highlighted + button — to open the node menu.",
+    targetSelector: '[data-onboarding-target="open-node-menu"]',
+    hintPlacement: "top",
+    ctaLabel: "Open editor",
+    variants: [
+      {
+        // Menu open — tell them to search "String".
+        hintTitle: "Search \"String\"",
+        hintBody:
+          "Type \"String\" and click the String node (under Constant) to drop it onto the canvas.",
+        targetSelector: '[data-onboarding-target="node-menu-search"]',
+        hintPlacement: "top",
+        when: (ctx) => ctx.isNodeMenuOpen
+      },
+      {
+        // Menu closed — point at the highlighted + button.
+        hintTitle: "Add a String node",
+        hintBody:
+          "Press Space — or click the highlighted + button — to open the node menu.",
+        targetSelector: '[data-onboarding-target="open-node-menu"]',
+        hintPlacement: "top"
+      }
+    ]
   },
   connect: {
     id: "connect",
-    title: "Wire them together",
+    title: "Add an Agent and wire it up",
     tagline: "Step 5 of 6",
     description:
-      "Drag from a node's output handle to another node's input handle to make a connection. NodeTool checks the types for you — green means it'll fit.",
+      "Now add an Agent node and connect the String's output to the Agent's prompt input.",
     illustration: <TimelineRoundedIcon sx={{ fontSize: 96 }} />,
     accent: { from: "#9CFFB7", to: "#3CC68A" },
     route: "/editor",
-    hintTitle: "Drag from output → input",
+    hintTitle: "Connect String → Agent",
     hintBody:
-      "Add a second node, then drag from the small dot on its right edge into the dot on another node's left edge.",
-    targetSelector: '[data-onboarding-target="editor-canvas"]',
-    hintPlacement: "center",
-    ctaLabel: "Continue in editor"
+      "Drag from the String node's right-side output dot into the Agent's \"prompt\" input dot on its left edge.",
+    targetSelector: '[data-onboarding-target="output-handle"]',
+    hintPlacement: "top",
+    ctaLabel: "Continue in editor",
+    variants: [
+      {
+        // Menu open with only 1 node — guide to search Agent.
+        hintTitle: "Search \"Agent\"",
+        hintBody:
+          "Type \"Agent\" and click the Agent node to add it next to the String node.",
+        targetSelector: '[data-onboarding-target="node-menu-search"]',
+        hintPlacement: "top",
+        when: (ctx) => ctx.isNodeMenuOpen && ctx.maxNodeCount < 2
+      },
+      {
+        // Menu closed, only 1 node — tell them to add an Agent.
+        hintTitle: "Add an Agent node",
+        hintBody:
+          "Press Space and add an Agent node so we can hand the String to it.",
+        targetSelector: '[data-onboarding-target="open-node-menu"]',
+        hintPlacement: "top",
+        when: (ctx) => ctx.maxNodeCount < 2
+      },
+      {
+        // Two or more nodes — point at the first output handle and explain the wire.
+        hintTitle: "Connect String → Agent",
+        hintBody:
+          "Drag from the String node's right-side output dot into the Agent's \"prompt\" input dot on its left edge.",
+        targetSelector: '[data-onboarding-target="output-handle"]',
+        hintPlacement: "top"
+      }
+    ]
   },
   run: {
     id: "run",
@@ -141,3 +218,20 @@ export const ONBOARDING_STEPS: Record<OnboardingStepId, OnboardingStepDefinition
 export const getStepDefinition = (
   id: OnboardingStepId
 ): OnboardingStepDefinition => ONBOARDING_STEPS[id];
+
+/**
+ * Pick the first variant whose `when(ctx)` returns true. If a variant has
+ * no `when`, it acts as the default (place it last). Returns null when no
+ * variant matches — in which case the caller should fall back to the
+ * step's top-level fields.
+ */
+export const resolveActiveVariant = (
+  step: OnboardingStepDefinition,
+  ctx: VariantContext
+): OnboardingStepVariant | null => {
+  if (!step.variants?.length) return null;
+  for (const v of step.variants) {
+    if (!v.when || v.when(ctx)) return v;
+  }
+  return null;
+};

@@ -30,7 +30,7 @@ interface Layout {
 }
 
 const HINT_OFFSET = 14;
-const HINT_WIDTH = 320;
+const HINT_WIDTH = 360;
 const VIEWPORT_GUTTER = 16;
 const TAIL_GUTTER = 18;
 
@@ -184,14 +184,14 @@ const styles = (theme: Theme, accent: { from: string; to: string }) =>
   css({
     position: "fixed",
     width: HINT_WIDTH,
-    zIndex: 2100,
+    zIndex: 20100,
     pointerEvents: "auto",
     animation: `${hintPop} 280ms cubic-bezier(0.22, 0.61, 0.36, 1) both`,
 
     ".hint-card": {
       position: "relative",
       borderRadius: 12,
-      padding: "12px 14px 12px",
+      padding: "14px 16px",
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       boxShadow: "0 14px 36px rgba(0,0,0,0.48)",
@@ -219,19 +219,19 @@ const styles = (theme: Theme, accent: { from: string; to: string }) =>
       display: "flex",
       alignItems: "flex-start",
       gap: 8,
-      marginBottom: 4
+      marginBottom: 6
     },
     ".hint-title": {
       flex: 1,
       margin: 0,
-      fontSize: 13,
+      fontSize: 16,
       fontWeight: 600,
       lineHeight: 1.35,
       color: theme.vars.palette.text.primary
     },
     ".hint-close": {
-      width: 22,
-      height: 22,
+      width: 26,
+      height: 26,
       borderRadius: "50%",
       border: "none",
       backgroundColor: "transparent",
@@ -248,21 +248,21 @@ const styles = (theme: Theme, accent: { from: string; to: string }) =>
       }
     },
     ".hint-body": {
-      fontSize: 12,
+      fontSize: 14,
       lineHeight: 1.5,
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.grey[300],
       margin: 0
     },
     ".hint-actions": {
       display: "flex",
       flexWrap: "wrap",
       gap: 6,
-      marginTop: 10
+      marginTop: 12
     },
     ".hint-cta": {
-      fontSize: 11.5,
+      fontSize: 13,
       textTransform: "none",
-      padding: "4px 10px",
+      padding: "5px 12px",
       borderRadius: 8,
       fontWeight: 500,
       color: theme.vars.palette.text.primary,
