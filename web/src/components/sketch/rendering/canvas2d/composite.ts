@@ -49,12 +49,15 @@ export function drawWithTransform(
       scaleY?: number;
       rotation?: number;
       matrix?: [number, number, number, number, number, number];
-      mode?: "distort" | "skew" | "perspective";
+      mode?: "distort" | "skew" | "perspective" | "warp";
       quad?: Array<{ x: number; y: number }>;
     };
   }
 ): void {
-  if (layer.transform.mode === "perspective" && layer.transform.quad) {
+  if (
+    (layer.transform.mode === "perspective" || layer.transform.mode === "warp") &&
+    layer.transform.quad
+  ) {
     drawImageToQuad(
       ctx,
       source,

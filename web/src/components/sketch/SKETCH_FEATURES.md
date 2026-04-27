@@ -94,10 +94,10 @@ Preview ownership, spring-loaded move lifecycle, resolved gizmo bounds, preview-
 - [x] support skew behavior on side handles
 - [x] support perspective behavior
 - [x] add options for perspective, skew, and related advanced modes in the transform UI
-  - Added Photoshop-style transform mode controls (`Auto`, `Scale`, `Distort`, `Skew`) and kept `Perspective` visible-but-disabled until the transform baking path moves beyond affine-only support.
-- [ ] add warp mode
+  - Added advanced transform mode controls (`Auto`, `Scale`, `Distort`, `Skew`, `Perspective`, `Warp`) in the transform UI.
+- [x] add warp mode
 - [x] support repeat last transformation and repeat-on-copy workflows if the core transform model still supports them cleanly
-  - Added repeat-last-transform and repeat-on-copy actions with Photoshop-style shortcuts (`Ctrl/Cmd+Shift+T`, `Ctrl/Cmd+Alt+Shift+T`) that reapply the last committed transform recipe to the active layer or its duplicate.
+  - Added repeat-last-transform and repeat-on-copy actions with `Ctrl/Cmd+Shift+T` and `Ctrl/Cmd+Alt+Shift+T` to reapply the last committed transform recipe to the active layer or its duplicate.
 
 Modifier-key target behavior to preserve while implementing the items above:
 

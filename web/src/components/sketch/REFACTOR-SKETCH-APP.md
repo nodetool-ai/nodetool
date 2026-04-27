@@ -537,7 +537,7 @@ cursor previews, text rasterization helpers, and controlled readback/export help
 - [x] `SketchRuntime` already carries the right high-level seam:
       `invalidateLayer`, `compositeToDisplay`, `evaluateLayerEffects`, and
       readback/export helpers.
-- [x] All 12 Photoshop-style blend modes are implemented on the WebGPU path via
+- [x] All 12 standard blend modes are implemented on the WebGPU path via
       ping-pong compositing with a custom WGSL blend shader.
 - [x] Transformed-layer support already exists on the WebGPU path through inverse affine
       mapping from screen pixels to layer texels.

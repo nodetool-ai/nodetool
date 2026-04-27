@@ -251,7 +251,7 @@ export function marqueeRectFromDocPoints(start: Point, end: Point): {
 }
 
 /**
- * Adjust marquee corners from anchor + pointer (Photoshop-style).
+ * Adjust marquee corners from anchor + pointer using standard marquee behavior.
  * - `fromCenter`: first point is the center; pointer is a corner (Alt/Option while dragging).
  * - `constrainSquare`: square / circle bounding box (Shift while dragging).
  */

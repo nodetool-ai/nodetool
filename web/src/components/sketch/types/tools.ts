@@ -451,7 +451,7 @@ export const DEFAULT_MOVE_SETTINGS: MoveSettings = {
 // ─── Transform Settings ───────────────────────────────────────────────────────
 
 /**
- * Photoshop-style transform mode selection for Free Transform.
+ * Advanced transform mode selection for Free Transform.
  *
  * - `auto`: keep the normal free-transform handles and let modifier keys
  *   temporarily switch to advanced behavior.
@@ -459,14 +459,17 @@ export const DEFAULT_MOVE_SETTINGS: MoveSettings = {
  * - `distort`: treat corner drags as affine corner distortions.
  * - `skew`: treat edge drags as affine skew/shear adjustments.
  * - `perspective`: tied-corner perspective drags that bake through the shared
- *   quad warp path on commit.
+ *   quad path on commit.
+ * - `warp`: independent corner warps that also bake through the shared quad
+ *   path on commit.
  */
 export type TransformMode =
   | "auto"
   | "scale"
   | "distort"
   | "skew"
-  | "perspective";
+  | "perspective"
+  | "warp";
 
 export interface TransformSettings {
   /**
@@ -476,8 +479,8 @@ export interface TransformSettings {
    */
   autoSelect: boolean;
   /**
-   * Photoshop-style transform mode selection. `auto` keeps the default free
-   * transform behavior and lets modifier keys pick advanced affine modes.
+   * Advanced transform mode selection. `auto` keeps the default free
+   * transform behavior and lets modifier keys pick temporary advanced modes.
    */
   mode: TransformMode;
 }

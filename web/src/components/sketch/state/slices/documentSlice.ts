@@ -18,7 +18,8 @@ import {
   generateLayerId,
   getDescendantIds,
   isLayerCompositeVisible,
-  ensureTransformMatrix
+  ensureTransformMatrix,
+  isQuadTransformMode
 } from "../../types";
 
 // ─── Private helpers ────────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ function offsetLayerTransformInDocument(
         })) as NonNullable<LayerTransform["quad"]>;
       }
       // Recompute matrix with updated translation
-      if (layer.transform.matrix && layer.transform.mode !== "perspective") {
+      if (layer.transform.matrix && !isQuadTransformMode(layer.transform.mode)) {
         const m = layer.transform.matrix;
         newTransform.matrix = [m[0], m[1], m[2], m[3], newTransform.x, newTransform.y];
       }

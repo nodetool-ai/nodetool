@@ -15,6 +15,7 @@
 
 import type { ToolContext } from "../types";
 import type { LayerTransform, LayerContentBounds, Point } from "../../types";
+import { isQuadTransformMode } from "../../types";
 import type { TransformHandle } from "./handleGeometry";
 import {
   getTransformedCenter,
@@ -37,6 +38,15 @@ function getVisibleHandles(
   }
   if (transform.mode === "skew") {
     return ["top", "bottom", "left", "right", "rotate"];
+  }
+  if (transform.mode === "warp") {
+    return [
+      "top-left",
+      "top-right",
+      "bottom-left",
+      "bottom-right",
+      "rotate"
+    ];
   }
   if (transform.mode === "perspective") {
     return [
@@ -83,8 +93,8 @@ export function paintTransformGizmo(
     const center = getTransformedCenter(transform, rasterBounds);
 
     if (
-      (transform.matrix && transform.mode && transform.mode !== "perspective") ||
-      (transform.mode === "perspective" && transform.quad)
+      (transform.matrix && transform.mode && !isQuadTransformMode(transform.mode)) ||
+      (isQuadTransformMode(transform.mode) && transform.quad)
     ) {
       const corners = getTransformedCorners(transform, rasterBounds);
       const screenCorners = corners.map((corner) =>

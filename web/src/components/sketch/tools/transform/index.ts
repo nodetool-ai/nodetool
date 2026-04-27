@@ -37,5 +37,6 @@ export {
   computeDistortTransform,
   computeSkewTransform,
   computePerspectiveTransform,
-  resolvePhotoshopTransformMode
+  computeWarpTransform,
+  resolveTransformGestureMode
 } from "./computeTransform";

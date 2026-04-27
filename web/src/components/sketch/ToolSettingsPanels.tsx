@@ -1188,9 +1188,14 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           <ToggleButton value="skew" sx={toggleButtonSmallSx}>
             Skew
           </ToggleButton>
-          <Tooltip title="Perspective ties opposite edges together for Photoshop-style corner drags.">
+          <Tooltip title="Perspective ties opposite edges together for linked corner drags.">
             <ToggleButton value="perspective" sx={toggleButtonSmallSx}>
               Persp
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Warp keeps each corner independently movable while using the shared quad rendering path.">
+            <ToggleButton value="warp" sx={toggleButtonSmallSx}>
+              Warp
             </ToggleButton>
           </Tooltip>
         </ToggleButtonGroup>
