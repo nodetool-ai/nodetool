@@ -49,6 +49,10 @@ Rules for the remaining work:
     - [ ] Observe one prompt/control update and one generated output path, even if generation is very slow.
     - [ ] Record loading phases, selected precision/backend, memory/offload state, errors, and rough latency/fps through logs or metrics.
     - [ ] Stop the session cleanly without leaving stuck runners, workers, or model state.
+  - Current implementation note:
+    - [x] Added an opt-in canonical realtime smoke harness for the RTX 3060 Self-Forcing tier; it loads the canonical template, selects the required low-VRAM manifest artifacts only, observes a prompt update/output through injected pipeline hooks in tests, emits JSON-reportable loading/precision/backend/memory/latency/stop state, and fails before model launch when required artifacts are missing.
+    - [ ] Real RTX 3060 run is still blocked on artifact download/resolution and real loader wiring. The target machine sees an RTX 3060 from the `nodetool` conda env, but the no-download smoke reports missing `self_forcing_fp8_transformer`, `umt5_xxl_encoder_q5_k_m`, and `wan21_vae`.
+    - [ ] Upstream implementation evidence needs a compatibility decision before using the official Self-Forcing path as the 1.3B RTX 3060 baseline: the public `configs/self_forcing_dmd.yaml` currently names `Wan2.1-T2V-14B`, while the lighter community 1.3B FP8/GGUF/VAE candidate set is experimental and about 5.8 GB before any extra runtime/base caches.
   - Defer full LongLive canonical validation, full Self-Forcing official-quality validation, the FP8/GGUF/INT8 matrix, browser-local inference, deployment, Electron packaging, persistent cache UX, and multi-adapter expansion until this smoke has run.
 - [ ] **10a. Finish LongLive real validation.**
   - Foundation landed: thin node, dependency-lazy backend boundary, `WeightSource`, precision selection, `LatestPerHandleAccumulator`, fake CPU pipeline, frame conversion, sampler boundary, upstream output normalization, loading/error events, package metadata, and opt-in real-smoke config.
