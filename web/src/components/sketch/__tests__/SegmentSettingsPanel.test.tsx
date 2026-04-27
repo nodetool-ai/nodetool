@@ -271,4 +271,47 @@ describe("SegmentSettingsPanel", () => {
       screen.getByText("Select exactly one raster layer to split.")
     ).toBeInTheDocument();
   });
+
+  it("disables split when the selected raster layer has no exportable image data", () => {
+    const document = useSketchStore.getState().document;
+    useSketchStore.setState({
+      document: {
+        ...document,
+        layers: [
+          {
+            ...document.layers[0],
+            data: null
+          }
+        ]
+      },
+      selectedLayerIds: [document.layers[0].id]
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available"
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+    expect(
+      screen.getByText("Select exactly one raster layer to split.")
+    ).toBeInTheDocument();
+  });
 });

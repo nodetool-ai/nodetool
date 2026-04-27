@@ -304,7 +304,7 @@ export class SamServiceNode implements SamService {
 
     const asset = await useAssetStore
       .getState()
-      .createAsset(this.createFileFromDataUrl(imageDataUrl));
+      .createAsset(await this.createFileFromDataUrl(imageDataUrl));
 
     return {
       type: "image",
@@ -315,21 +315,24 @@ export class SamServiceNode implements SamService {
     };
   }
 
-  private createFileFromDataUrl(dataUrl: string): File {
+  private async createFileFromDataUrl(dataUrl: string): Promise<File> {
     const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!match) {
-      throw new Error("Invalid segmentation image data");
+      throw new Error(
+        "Invalid segmentation image data; expected data URL format: data:mime/type;base64,..."
+      );
     }
 
-    const [, mimeType, base64Payload] = match;
-    const binary = window.atob(base64Payload);
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index += 1) {
-      bytes[index] = binary.charCodeAt(index);
-    }
+    const [, mimeType] = match;
+    const blob = await fetch(dataUrl).then(async (response) => {
+      if (!response.ok) {
+        throw new Error("Failed to convert segmentation image data into a blob");
+      }
+      return response.blob();
+    });
 
     const extension = mimeType.split("/")[1] ?? "png";
-    return new File([bytes], `sam-input.${extension}`, {
+    return new File([blob], `sam-input.${extension}`, {
       type: mimeType
     });
   }

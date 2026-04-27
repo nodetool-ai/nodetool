@@ -70,6 +70,7 @@ import type { SamModelInfo } from "./sam";
 import { LOCAL_SAM3_MODEL_ID } from "./sam";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useSketchStore } from "./state";
+import { getLayerDataImageUrl } from "./serialization";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -1486,9 +1487,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const localSam3Download = useModelDownloadStore(
     (state) => state.downloads[LOCAL_SAM3_MODEL_ID]
   );
-  const localSam3DownloadStatus = useModelDownloadStore(
-    (state) => state.downloads[LOCAL_SAM3_MODEL_ID]?.status
-  );
+  const localSam3DownloadStatus = localSam3Download?.status;
   const startDownload = useModelDownloadStore((state) => state.startDownload);
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const canSplitSelectedLayer = useSketchStore((state) => {
@@ -1502,7 +1501,10 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     const selectedLayer = state.document.layers.find(
       (layer) => layer.id === selectedLayerIds[0]
     );
-    return selectedLayer?.type === "raster";
+    return (
+      selectedLayer?.type === "raster" &&
+      !!getLayerDataImageUrl(selectedLayer.data)
+    );
   });
   const isLocalSam3 = settings.backend === "local-sam3";
   const localSam3Downloading =

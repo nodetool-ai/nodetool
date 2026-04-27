@@ -1158,6 +1158,13 @@ describe("NodeExecutor", () => {
       dataUrl: `data:image/png;base64,${oversizedBase64}`,
       scale: 1
     });
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      blob: jest.fn().mockResolvedValue(
+        new Blob(["segmentation-image"], { type: "image/png" })
+      )
+    } as unknown as Response);
 
     const originalCreateAsset = useAssetStore.getState().createAsset;
     const createAsset = jest.fn().mockResolvedValue({
@@ -1198,6 +1205,7 @@ describe("NodeExecutor", () => {
         data: null
       });
     } finally {
+      global.fetch = originalFetch;
       useAssetStore.setState({ createAsset: originalCreateAsset });
       SamServiceFal.resizeForInference = origResize;
       setNodeExecutor(new WebSocketNodeExecutor());
