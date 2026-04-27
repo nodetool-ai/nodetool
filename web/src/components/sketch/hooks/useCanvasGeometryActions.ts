@@ -183,7 +183,7 @@ export function useCanvasGeometryActions({
   document,
   pushHistory,
   updateLayerData,
-  setDocument,
+  setDocument: _setDocument,
   setZoom,
   setPan,
   resizeCanvas,
@@ -223,13 +223,16 @@ export function useCanvasGeometryActions({
           updatedAt: new Date().toISOString()
         }
       };
-      setDocument(nextDocument);
+      useSketchStore.setState((state) => ({
+        ...state,
+        document: nextDocument
+      }));
       for (const layer of nextDocument.layers) {
         const data = canvasRef.current.getLayerData(layer.id);
         updateLayerData(layer.id, data);
       }
     },
-    [setDocument, updateLayerData, canvasRef]
+    [updateLayerData, canvasRef]
   );
 
   // ─── Clear active layer (or selection area) ────────────────────
