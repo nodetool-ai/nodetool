@@ -3,7 +3,7 @@ import React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import Tilt3D from "./Tilt3D";
-import { Cpu, Database, Image as ImageIcon, Search, Box } from "lucide-react";
+import { Cpu, Database, Image as ImageIcon, Box } from "lucide-react";
 
 interface NodeMenuSectionProps {
   reducedMotion?: boolean;
@@ -66,28 +66,14 @@ export default function NodeMenuSection({
           className="relative mx-auto max-w-5xl mb-20"
         >
           <Tilt3D>
-            <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
+            <div className="relative rounded-2xl border border-white/10 bg-slate-900/30 shadow-2xl overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 pointer-events-none" />
-              
-              {/* Browser/Window Chrome */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-slate-900/80">
-                <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
-                <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                
-                {/* Mock Search Bar */}
-                <div className="ml-4 flex items-center gap-2 px-3 py-1 rounded-md bg-slate-800/50 border border-white/5 text-xs text-slate-500 w-64">
-                  <Search className="w-3 h-3" />
-                  <span>Search nodes...</span>
-                </div>
-              </div>
-
               <Image
                 src="/screen_nodemenu.png"
                 alt="Node menu showing all available node types"
-                width={1400}
-                height={900}
-                className="w-full h-auto opacity-90 transition-opacity group-hover:opacity-100"
+                width={2086}
+                height={1490}
+                className="w-full h-auto opacity-95 transition-opacity group-hover:opacity-100"
                 loading="lazy"
               />
             </div>
