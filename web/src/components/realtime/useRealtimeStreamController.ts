@@ -21,6 +21,7 @@ import {
   useRealtimeSessionWebRTC,
   type RealtimeWebRTCRuntimeMode
 } from "../../hooks/browser/useRealtimeSessionWebRTC";
+import { useRealtimeCameraFramePublisher } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
 import { useRealtimeControlPlane } from "../../hooks/realtime/useRealtimeControlPlane";
 
 export interface RealtimeStreamController {
@@ -146,6 +147,13 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     enabled:
       activeSession?.transport === "webrtc" && activeSession.status !== "error",
     runtimeMode: webrtcRuntimeMode
+  });
+  useRealtimeCameraFramePublisher({
+    enabled: Boolean(activeSession) && Boolean(previewStream),
+    previewStream,
+    session: activeSession,
+    intervalMs: 500,
+    maxWidth: 320
   });
   const isStartSessionDisabled = useMemo(() => {
     return (
