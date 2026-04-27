@@ -32,7 +32,6 @@ const ContactSection = dynamic(
   { ssr: false }
 );
 
-export const runtime = "edge";
 
 const navigation = [
   { name: "Home", href: "/" },

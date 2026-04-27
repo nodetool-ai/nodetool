@@ -60,7 +60,6 @@ import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
 
 import { Feature, features } from "./features";
 
-export const runtime = "edge";
 
 const navigation = [
   { name: "Agents", href: "/agents" },
