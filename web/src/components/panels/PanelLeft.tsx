@@ -23,25 +23,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
-import { ScrollArea, Tooltip, Divider, MobileBottomSheet } from "../ui_primitives";
+import { ScrollArea, Tooltip, MobileBottomSheet } from "../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 // Icons
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
-import DatasetIcon from "@mui/icons-material/Dataset";
 
 import { Fullscreen } from "@mui/icons-material";
 import { getShortcutTooltip } from "../../config/shortcuts";
 // Models, Workspaces, and Collections (modals)
-import ModelsManager from "../hugging_face/ModelsManager";
-import WorkspacesManager from "../workspaces/WorkspacesManager";
-import CollectionsManager from "../collections/CollectionsManager";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import { useModelManagerStore } from "../../stores/ModelManagerStore";
-import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
-import { useCollectionsManagerStore } from "../../stores/CollectionsManagerStore";
-import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../lib/env";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;
@@ -207,41 +197,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
 
-  // Modal states for Collections, Models, and Workspaces
-  const isCollectionsOpen = useCollectionsManagerStore((state) => state.isOpen);
-  const setCollectionsOpen = useCollectionsManagerStore((state) => state.setIsOpen);
-  const isModelsOpen = useModelManagerStore((state) => state.isOpen);
-  const setModelsOpen = useModelManagerStore((state) => state.setIsOpen);
-  const isWorkspacesOpen = useWorkspaceManagerStore((state) => state.isOpen);
-  const setWorkspacesOpen = useWorkspaceManagerStore((state) => state.setIsOpen);
-
-  // Conditional visibility for Models/Workspaces
-  const showModelsWorkspaces = getIsElectronDetails().isElectron || !isProduction;
-
-  const handleCollectionsClick = useCallback(() => {
-    setCollectionsOpen(true);
-  }, [setCollectionsOpen]);
-
-  const handleCollectionsClose = useCallback(() => {
-    setCollectionsOpen(false);
-  }, [setCollectionsOpen]);
-
-  const handleModelsClick = useCallback(() => {
-    setModelsOpen(true);
-  }, [setModelsOpen]);
-
-  const handleModelsClose = useCallback(() => {
-    setModelsOpen(false);
-  }, [setModelsOpen]);
-
-  const handleWorkspacesClick = useCallback(() => {
-    setWorkspacesOpen(true);
-  }, [setWorkspacesOpen]);
-
-  const handleWorkspacesClose = useCallback(() => {
-    setWorkspacesOpen(false);
-  }, [setWorkspacesOpen]);
-
   const handlePanelToggleClick = useCallback(() => {
     handlePanelToggle();
   }, [handlePanelToggle]);
@@ -296,55 +251,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
       </Tooltip>
 
 
-      {/* Divider between drawer views and external actions */}
-      <Divider sx={{ my: 1, mx: "6px", borderColor: "rgba(255, 255, 255, 0.15)" }} />
-
-      {/* External section - modals */}
-      <Tooltip
-        title="Collections"
-        placement="right-start"
-        delay={TOOLTIP_ENTER_DELAY}
-      >
-        <IconButton
-          tabIndex={-1}
-          aria-label="Open collections"
-          onClick={handleCollectionsClick}
-        >
-          <DatasetIcon />
-        </IconButton>
-      </Tooltip>
-
-      {showModelsWorkspaces && (
-        <>
-          <Tooltip
-            title="Model Manager"
-            placement="right-start"
-            delay={TOOLTIP_ENTER_DELAY}
-          >
-            <IconButton
-              tabIndex={-1}
-              aria-label="Open model manager"
-              onClick={handleModelsClick}
-            >
-              <IconForType iconName="model" showTooltip={false} iconSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title="Workspaces Manager"
-            placement="right-start"
-            delay={TOOLTIP_ENTER_DELAY}
-          >
-            <IconButton
-              tabIndex={-1}
-              aria-label="Open workspaces manager"
-              onClick={handleWorkspacesClick}
-            >
-              <FolderOpenIcon />
-            </IconButton>
-          </Tooltip>
-        </>
-      )}
-
       <div style={{ flexGrow: 1 }} />
       <ThemeToggle />
       <Tooltip title="Toggle Panel" placement="right-start">
@@ -352,15 +258,6 @@ const VerticalToolbar = memo(function VerticalToolbar({
           <CodeIcon />
         </IconButton>
       </Tooltip>
-
-      {/* Modals for Collections, Models and Workspaces */}
-      <CollectionsManager open={isCollectionsOpen} onClose={handleCollectionsClose} />
-      {showModelsWorkspaces && (
-        <>
-          <ModelsManager open={isModelsOpen} onClose={handleModelsClose} />
-          <WorkspacesManager open={isWorkspacesOpen} onClose={handleWorkspacesClose} />
-        </>
-      )}
     </div>
   );
 });
@@ -509,21 +406,6 @@ const MobilePanelLeft: React.FC<{
 }) => {
     const theme = useTheme();
 
-    // Shared modal stores (Collections / Models / Workspaces)
-    const isCollectionsOpen = useCollectionsManagerStore((state) => state.isOpen);
-    const setCollectionsOpen = useCollectionsManagerStore(
-      (state) => state.setIsOpen
-    );
-    const isModelsOpen = useModelManagerStore((state) => state.isOpen);
-    const setModelsOpen = useModelManagerStore((state) => state.setIsOpen);
-    const isWorkspacesOpen = useWorkspaceManagerStore((state) => state.isOpen);
-    const setWorkspacesOpen = useWorkspaceManagerStore(
-      (state) => state.setIsOpen
-    );
-
-    const showModelsWorkspaces =
-      getIsElectronDetails().isElectron || !isProduction;
-
     const handleSheetViewChange = useCallback(
       (view: LeftPanelView) => {
         // On mobile we never want tapping a tab to close the sheet — just switch
@@ -583,45 +465,6 @@ const MobilePanelLeft: React.FC<{
               </Tooltip>
 
               <Box sx={{ flex: 1 }} />
-
-              <Tooltip title="Collections" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-                <IconButton
-                  className="tab-button"
-                  onClick={() => setCollectionsOpen(true)}
-                  aria-label="Open collections"
-                  tabIndex={-1}
-                >
-                  <DatasetIcon />
-                </IconButton>
-              </Tooltip>
-              {showModelsWorkspaces && (
-                <>
-                  <Tooltip title="Models" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-                    <IconButton
-                      className="tab-button"
-                      onClick={() => setModelsOpen(true)}
-                      aria-label="Open model manager"
-                      tabIndex={-1}
-                    >
-                      <IconForType
-                        iconName="model"
-                        showTooltip={false}
-                        iconSize="small"
-                      />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Workspaces" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-                    <IconButton
-                      className="tab-button"
-                      onClick={() => setWorkspacesOpen(true)}
-                      aria-label="Open workspaces manager"
-                      tabIndex={-1}
-                    >
-                      <FolderOpenIcon />
-                    </IconButton>
-                  </Tooltip>
-                </>
-              )}
             </div>
           }
         >
@@ -644,23 +487,6 @@ const MobilePanelLeft: React.FC<{
           </Box>
         </MobileBottomSheet>
 
-        {/* Modals are owned by this subtree on mobile too */}
-        <CollectionsManager
-          open={isCollectionsOpen}
-          onClose={() => setCollectionsOpen(false)}
-        />
-        {showModelsWorkspaces && (
-          <>
-            <ModelsManager
-              open={isModelsOpen}
-              onClose={() => setModelsOpen(false)}
-            />
-            <WorkspacesManager
-              open={isWorkspacesOpen}
-              onClose={() => setWorkspacesOpen(false)}
-            />
-          </>
-        )}
       </>
     );
   };

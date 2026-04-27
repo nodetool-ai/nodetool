@@ -30,11 +30,6 @@ describe("SettingsStore", () => {
       expect(settings.instantUpdate).toBe(false);
     });
 
-    test("isMenuOpen and settingsTab have correct defaults", () => {
-      expect(useSettingsStore.getState().isMenuOpen).toBe(false);
-      expect(useSettingsStore.getState().settingsTab).toBe(0);
-      expect(useSettingsStore.getState().searchFilter).toBe("");
-    });
   });
 
   describe("Grid and Connection Settings", () => {
@@ -224,41 +219,6 @@ describe("SettingsStore", () => {
       useSettingsStore.getState().resetSettings();
 
       expect(useSettingsStore.getState().settings).toEqual(defaultSettings);
-    });
-  });
-
-  describe("Menu and Tab State", () => {
-    test("setMenuOpen opens menu with default tab", () => {
-      useSettingsStore.getState().setMenuOpen(true);
-      expect(useSettingsStore.getState().isMenuOpen).toBe(true);
-      expect(useSettingsStore.getState().settingsTab).toBe(0);
-      expect(useSettingsStore.getState().searchFilter).toBe("");
-    });
-
-    test("setMenuOpen opens menu with specific tab", () => {
-      useSettingsStore.getState().setMenuOpen(true, 2);
-      expect(useSettingsStore.getState().isMenuOpen).toBe(true);
-      expect(useSettingsStore.getState().settingsTab).toBe(2);
-      expect(useSettingsStore.getState().searchFilter).toBe("");
-    });
-
-    test("setMenuOpen opens menu with search filter", () => {
-      useSettingsStore.getState().setMenuOpen(true, 1, "OPENAI_API_KEY");
-      expect(useSettingsStore.getState().isMenuOpen).toBe(true);
-      expect(useSettingsStore.getState().settingsTab).toBe(1);
-      expect(useSettingsStore.getState().searchFilter).toBe("OPENAI_API_KEY");
-    });
-
-    test("setMenuOpen clears search filter when not provided", () => {
-      useSettingsStore.getState().setMenuOpen(true, 1, "OPENAI_API_KEY");
-      useSettingsStore.getState().setMenuOpen(true, 0);
-      expect(useSettingsStore.getState().searchFilter).toBe("");
-    });
-
-    test("setMenuOpen closes menu", () => {
-      useSettingsStore.getState().setMenuOpen(true);
-      useSettingsStore.getState().setMenuOpen(false);
-      expect(useSettingsStore.getState().isMenuOpen).toBe(false);
     });
   });
 

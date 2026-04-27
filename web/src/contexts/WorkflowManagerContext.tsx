@@ -84,6 +84,21 @@ export const useWorkflowManager = <T,>(
   return useStoreWithEqualityFn(context, selector, shallow);
 };
 
+/**
+ * Access the raw workflow-manager Zustand store, suitable for callers that
+ * need `.getState()` / `.subscribe()` (long-lived subscriptions, imperative
+ * lookups). Re-renders only when the store reference itself changes.
+ */
+export const useWorkflowManagerStore = (): WorkflowManagerStore => {
+  const context = useContext(WorkflowManagerContext);
+  if (!context) {
+    throw new Error(
+      "useWorkflowManagerStore must be used within a WorkflowManagerProvider"
+    );
+  }
+  return context;
+};
+
 // -----------------------------------------------------------------
 // COMPONENTS
 // -----------------------------------------------------------------

@@ -787,13 +787,15 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
         <div className="media-chip-row">
           {/* Mode selector chip */}
-          <MediaControlChip
-            icon={modeIcon}
-            label={modeLabel}
-            active={!!modeAnchor}
-            onClick={(e) => setModeAnchor(e.currentTarget)}
-            showChevron
-          />
+          <span data-onboarding-target="media-mode-selector">
+            <MediaControlChip
+              icon={modeIcon}
+              label={modeLabel}
+              active={!!modeAnchor}
+              onClick={(e) => setModeAnchor(e.currentTarget)}
+              showChevron
+            />
+          </span>
           <MediaModeMenu
             anchorEl={modeAnchor}
             open={!!modeAnchor}

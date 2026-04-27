@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { AlertBanner, Chip, FlexColumn, FlexRow, Text } from "../../ui_primitives";
-import { useSettingsStore } from "../../../stores/SettingsStore";
+import { useNavigate } from "react-router-dom";
 import {
   useProviderApiKeyValidation,
   ProviderApiKeyStatus
@@ -16,7 +16,7 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
   providers
 }) => {
   const theme = useTheme();
-  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+  const navigate = useNavigate();
   const missingKeys = useProviderApiKeyValidation(providers);
 
   if (missingKeys.length === 0) {
@@ -69,7 +69,7 @@ const ProviderApiKeyWarningBanner: React.FC<ProviderApiKeyWarningBannerProps> = 
           size="small"
           variant="contained"
           color="warning"
-          onClick={() => setMenuOpen(true, 1)}
+          onClick={() => navigate("/settings?tab=1")}
           sx={{
             fontSize: theme.vars.fontSizeSmaller,
             fontWeight: 500

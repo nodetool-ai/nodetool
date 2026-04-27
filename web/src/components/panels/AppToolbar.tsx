@@ -564,7 +564,7 @@ const RunWorkflowButton = memo(function RunWorkflowButton() {
       }
       delay={TOOLTIP_ENTER_DELAY}
     >
-      <span>
+      <span data-onboarding-target="run-workflow">
         <Button
           className={`action-button run-stop-button run-workflow ${
             isBusy ? "running" : ""

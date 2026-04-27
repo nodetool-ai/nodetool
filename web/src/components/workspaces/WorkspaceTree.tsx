@@ -29,7 +29,7 @@ import AddIcon from "@mui/icons-material/Add";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
+import { useNavigate } from "react-router-dom";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
@@ -424,7 +424,7 @@ const WorkspaceTree: React.FC = () => {
     })
   );
 
-  const setWorkspaceManagerOpen = useWorkspaceManagerStore((state) => state.setIsOpen);
+  const navigate = useNavigate();
 
   const currentWorkflow = getCurrentWorkflow();
   const workflowId = currentWorkflowId ?? currentWorkflow?.id;
@@ -523,8 +523,8 @@ const WorkspaceTree: React.FC = () => {
   }, [refetchFiles]);
 
   const handleManageWorkspace = useCallback(() => {
-    setWorkspaceManagerOpen(true);
-  }, [setWorkspaceManagerOpen]);
+    navigate("/settings?tab=4");
+  }, [navigate]);
 
   // Handle double-click on tree container to find the specific tree item
   const handleTreeDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {

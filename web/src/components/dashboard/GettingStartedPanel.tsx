@@ -1,650 +1,443 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useCallback, useState } from "react";
-import {
-  Box,
-  Button,
-  LinearProgress,
-  Collapse
-} from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import SettingsIcon from "@mui/icons-material/Settings";
-import DownloadIcon from "@mui/icons-material/Download";
-import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
-import { css } from "@emotion/react";
-import { useTheme, Theme } from "@mui/material/styles";
+import React, { useCallback, useMemo } from "react";
+import { Box } from "@mui/material";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import { css, keyframes } from "@emotion/react";
+import { useTheme, type Theme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import useSecretsStore from "../../stores/SecretsStore";
-import { Workflow, UnifiedModel } from "../../stores/ApiTypes";
-import { getIsElectronDetails } from "../../utils/browser";
-import { isProduction } from "../../lib/env";
-import { trpc } from "../../lib/trpc";
-import { DEFAULT_MODEL } from "../../config/constants";
-import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { shallow } from "zustand/shallow";
-import { DownloadProgress } from "../hugging_face/DownloadProgress";
-import { useGettingStartedStore } from "../../stores/GettingStartedStore";
-import { useSettingsStore } from "../../stores/SettingsStore";
-import { FlexColumn, FlexRow, Card, Text, Caption, Tooltip, Chip } from "../ui_primitives";
+import {
+  ONBOARDING_STEP_ORDER,
+  useOnboardingStore,
+  type OnboardingStepId
+} from "../../stores/OnboardingStore";
+import { ONBOARDING_STEPS } from "../onboarding/steps";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { EditorButton } from "../ui_primitives";
 
-interface GettingStartedPanelProps {
-  sortedWorkflows: Workflow[];
-  isLoadingWorkflows: boolean;
-  startTemplates: Workflow[];
-  isLoadingTemplates: boolean;
-  handleExampleClick: (example: Workflow) => void;
-  handleCreateNewWorkflow: () => void;
-}
+const EDITOR_ROUTE_PREFIX = "/editor/";
 
-interface OnboardingStep {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  action?: () => void;
-  actionLabel?: string;
-  isCompleted: boolean;
-  isOptional?: boolean;
-}
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
 
-const panelStyles = (theme: Theme) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
-      height: "100%"
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      gap: 32
     },
-    ".panel-header": {
-      paddingBottom: "0.75em",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+
+    /* ---- hero ---- */
+    ".gs-hero": {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+      animation: `${fadeUp} 420ms ease-out both`
     },
-    ".header-icon": {
-      color: theme.vars.palette.primary.main,
-      fontSize: "1.75rem"
-    },
-    ".progress-bar": {
-      height: "4px",
-      borderRadius: "var(--rounded-xs)",
-      backgroundColor: theme.vars.palette.grey[800],
-      "& .MuiLinearProgress-bar": {
-        borderRadius: "var(--rounded-xs)",
-        backgroundColor: theme.vars.palette.success.main
-      }
-    },
-    ".scrollable-content": {
-      flex: 1,
-      overflowY: "auto",
-      overflowX: "hidden"
-    },
-    ".step-card": {
-      transition: "all 0.2s ease"
-    },
-    ".step-card.completed": {
+    ".gs-eyebrow": {
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.text.secondary,
       opacity: 0.7
     },
-    ".step-card:hover:not(.completed)": {
-      borderColor: theme.vars.palette.grey[600],
-      backgroundColor: theme.vars.palette.grey[850]
+    ".gs-title": {
+      margin: 0,
+      fontSize: 36,
+      lineHeight: 1.05,
+      fontWeight: 700,
+      letterSpacing: "-0.02em",
+      backgroundImage:
+        "linear-gradient(120deg, #ffffff 0%, #c8cad6 60%, #8b8fa3 100%)",
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text",
+      color: "transparent"
     },
-    ".step-icon-container": {
+    ".gs-subtitle": {
+      fontSize: 14,
+      lineHeight: 1.55,
+      color: theme.vars.palette.text.secondary,
+      maxWidth: 560
+    },
+
+    /* ---- progress strip ---- */
+    ".gs-progress": {
+      display: "flex",
+      alignItems: "center",
+      gap: 14,
+      padding: "12px 14px",
+      borderRadius: 14,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      background:
+        "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))"
+    },
+    ".gs-progress-meta": {
+      display: "flex",
+      flexDirection: "column",
+      gap: 4,
+      minWidth: 0,
+      flex: "0 0 auto"
+    },
+    ".gs-progress-count": {
+      fontSize: 13,
+      fontWeight: 600,
+      color: theme.vars.palette.text.primary,
+      letterSpacing: "0.01em"
+    },
+    ".gs-progress-pct": {
+      fontSize: 11,
+      color: theme.vars.palette.text.secondary,
+      letterSpacing: "0.04em"
+    },
+    ".gs-progress-track": {
+      position: "relative",
+      flex: 1,
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: theme.vars.palette.grey[800],
+      overflow: "hidden"
+    },
+    ".gs-progress-fill": {
+      position: "absolute",
+      inset: 0,
+      borderRadius: 999,
+      background: `linear-gradient(90deg, ${theme.vars.palette.primary.light} 0%, ${theme.vars.palette.secondary.dark} 50%, ${theme.vars.palette.primary.main} 100%)`,
+      transition: "transform 480ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+      transformOrigin: "left center"
+    },
+
+    /* ---- step list (timeline) ---- */
+    ".gs-list": {
+      position: "relative",
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    },
+
+    /* ---- card ---- */
+    ".gs-card": {
+      position: "relative",
+      display: "grid",
+      gridTemplateColumns: "auto 1fr auto",
+      columnGap: 18,
+      alignItems: "flex-start",
+      padding: "18px 20px",
+      borderRadius: 16,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      background:
+        "linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.005))",
+      transition:
+        "border-color 200ms ease, background 200ms ease, transform 200ms ease",
+      animation: `${fadeUp} 480ms ease-out both`,
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        inset: 0,
+        borderRadius: "inherit",
+        padding: 1,
+        background:
+          "linear-gradient(135deg, var(--gs-accent-from), var(--gs-accent-to))",
+        WebkitMask:
+          "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+        WebkitMaskComposite: "xor",
+        maskComposite: "exclude",
+        opacity: 0,
+        transition: "opacity 200ms ease",
+        pointerEvents: "none"
+      },
+      "&:hover": {
+        borderColor: "transparent",
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))",
+        transform: "translateY(-1px)"
+      },
+      "&:hover::before": {
+        opacity: 1
+      }
+    },
+    ".gs-card.completed": {
+      opacity: 0.55,
+      "&:hover": {
+        opacity: 0.75,
+        transform: "none"
+      },
+      "&:hover::before": {
+        opacity: 0.3
+      }
+    },
+
+    /* ---- icon column ---- */
+    ".gs-icon-stack": {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 10,
+      paddingTop: 2
+    },
+    ".gs-icon-tile": {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      width: "36px",
-      height: "36px",
-      borderRadius: "var(--rounded-circle)",
-      backgroundColor: theme.vars.palette.grey[800],
-      flexShrink: 0
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      color: "#fff",
+      background:
+        "linear-gradient(135deg, var(--gs-accent-from), var(--gs-accent-to))",
+      boxShadow:
+        "0 6px 18px -8px var(--gs-accent-from), inset 0 1px 0 rgba(255,255,255,0.18)",
+      "& svg": {
+        fontSize: 22,
+        filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.25))"
+      }
     },
-    ".step-icon": {
-      fontSize: "1.25rem",
-      color: theme.vars.palette.grey[400]
+    ".gs-card.completed .gs-icon-tile": {
+      filter: "saturate(0.4)"
     },
-    ".step-content": {
-      flex: 1,
-      minWidth: 0
-    },
-    ".optional-badge": {
-      fontSize: "0.7rem",
-      padding: "2px 6px",
-      borderRadius: "var(--rounded-sm)",
-      backgroundColor: theme.vars.palette.grey[800],
-      color: theme.vars.palette.text.secondary,
-      marginLeft: "0.5em"
-    },
-    ".local-models-list": {
-      listStyleType: "none",
-      padding: 0,
-      margin: 0,
+
+    /* ---- content column ---- */
+    ".gs-content": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.75em"
+      gap: 6,
+      minWidth: 0
     },
-    ".local-model-item": {
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
-      backgroundColor: theme.vars.palette.grey[850],
-      borderRadius: 8,
-      padding: "10px 12px"
-    },
-    ".model-variant-buttons": {
-      display: "flex",
-      gap: "4px",
-      flexWrap: "wrap",
-      alignItems: "center"
-    },
-    ".model-download-button": {
-      fontSize: "0.75rem",
-      fontWeight: 500,
-      padding: "3px 8px",
-      minWidth: "unset",
-      lineHeight: 1.3,
+    ".gs-step-badge": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      fontSize: 10,
+      fontWeight: 700,
+      letterSpacing: "0.16em",
       textTransform: "uppercase",
-      letterSpacing: "0.02em",
-      opacity: 0.7,
-      backgroundColor: "rgba(255,255,255,0.05)",
-      borderRadius: "var(--rounded-sm)",
-      "&:hover": {
-        opacity: 1,
-        backgroundColor: "rgba(255,255,255,0.12)"
-      },
-      "& .MuiButton-startIcon": {
-        marginRight: "3px",
-        "& svg": {
-          fontSize: "0.85rem"
-        }
-      }
+      color: "transparent",
+      backgroundImage:
+        "linear-gradient(120deg, var(--gs-accent-from), var(--gs-accent-to))",
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text"
     },
-    ".model-download-button.default-model": {
+    ".gs-step-title": {
+      margin: 0,
+      fontSize: 17,
       fontWeight: 600,
-      opacity: 1,
-      color: theme.vars.palette.primary.main,
-      backgroundColor: `color-mix(in srgb, ${theme.vars.palette.primary.main} 15%, transparent)`,
+      lineHeight: 1.3,
+      color: theme.vars.palette.text.primary,
+      letterSpacing: "-0.005em"
+    },
+    ".gs-card.completed .gs-step-title": {
+      color: theme.vars.palette.text.secondary
+    },
+    ".gs-step-desc": {
+      margin: 0,
+      fontSize: 13,
+      lineHeight: 1.55,
+      color: theme.vars.palette.text.secondary
+    },
+    ".gs-cta-row": {
+      marginTop: 8
+    },
+    ".gs-cta": {
+      textTransform: "none",
+      fontSize: 12.5,
+      fontWeight: 600,
+      letterSpacing: "0.01em",
+      borderRadius: 10,
+      padding: "5px 12px",
+      color: theme.vars.palette.text.primary,
+      borderColor: "transparent",
+      backgroundColor: "rgba(255,255,255,0.04)",
+      transition: "all 180ms ease",
+      "& .MuiButton-endIcon": {
+        marginLeft: 4,
+        transition: "transform 180ms ease"
+      },
       "&:hover": {
-        backgroundColor: `color-mix(in srgb, ${theme.vars.palette.primary.main} 25%, transparent)`
+        backgroundImage:
+          "linear-gradient(120deg, var(--gs-accent-from), var(--gs-accent-to))",
+        color: "#fff",
+        borderColor: "transparent",
+        boxShadow: "0 8px 22px -10px var(--gs-accent-from)"
+      },
+      "&:hover .MuiButton-endIcon": {
+        transform: "translateX(2px)"
       }
     },
-    ".model-note": {
-      color: theme.vars.palette.warning.main,
-      marginTop: 4,
-      fontSize: "0.85em"
+
+    /* ---- status indicator ---- */
+    ".gs-status": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 26,
+      height: 26,
+      borderRadius: "50%",
+      flexShrink: 0,
+      marginTop: 9
+    },
+    ".gs-status.pending": {
+      border: `1.5px dashed ${theme.vars.palette.grey[700]}`,
+      color: "transparent"
+    },
+    ".gs-status.done": {
+      background:
+        "linear-gradient(135deg, var(--gs-accent-from), var(--gs-accent-to))",
+      color: "#fff",
+      boxShadow: "0 4px 14px -6px var(--gs-accent-from)",
+      "& svg": { fontSize: 16 }
     }
   });
 
-// Provider keys to check for configuration
-const PROVIDER_KEYS = [
-  "OPENAI_API_KEY",
-  "ANTHROPIC_API_KEY",
-  "GEMINI_API_KEY",
-  "OPENROUTER_API_KEY",
-  "HF_TOKEN"
-];
-
-// Inline Model Download Component
-const InlineModelDownload: React.FC<{
-  model: UnifiedModel;
-  label?: React.ReactNode;
-  isDefault?: boolean;
-  tooltip?: string;
-}> = ({ model, label, isDefault, tooltip }) => {
-  const { startDownload, downloads } = useModelDownloadStore((state) => ({
-    startDownload: state.startDownload,
-    downloads: state.downloads
-  }), shallow);
-  const downloadKey = model.repo_id || model.id;
-
-  const inProgress = !!downloads[downloadKey];
-
-  const handleDownload = useCallback(() => {
-    startDownload(
-      model.repo_id || "",
-      model.type || "hf.model",
-      model.path ?? null,
-      model.allow_patterns ?? null,
-      model.ignore_patterns ?? null
-    );
-  }, [startDownload, model.repo_id, model.type, model.path, model.allow_patterns, model.ignore_patterns]);
-
-  if (inProgress) {
-    return (
-      <Box
-        component="span"
-        sx={{ ml: 1, display: "inline-flex", verticalAlign: "middle" }}
-        className="inline-download-progress"
-      >
-        <DownloadProgress name={downloadKey} minimal />
-      </Box>
-    );
-  }
-  const button = (
-    <Button
-      size="small"
-      variant="text"
-      color="inherit"
-      startIcon={<DownloadIcon />}
-      aria-label={`Download ${model.repo_id || model.id}`}
-      className={`model-download-button ${isDefault ? "default-model" : ""}`}
-      onClick={handleDownload}
-    >
-      {label}
-    </Button>
-  );
-  return tooltip ? (
-    <Tooltip title={tooltip} arrow>
-      <span>{button}</span>
-    </Tooltip>
-  ) : (
-    button
-  );
-};
-
-interface FeaturedModel extends UnifiedModel {
-  displayName?: string;
-  note?: string;
-  vision?: boolean;
-  reasoning?: boolean;
-  base?: string;
-  variants?: string[];
-  defaultVariant?: string;
-}
-
-const recommendedModels: FeaturedModel[] = [
-  {
-    id: DEFAULT_MODEL,
-    name: "GPT - OSS",
-    displayName: "GPT - OSS",
-    type: "llama_model",
-    repo_id: DEFAULT_MODEL,
-    base: "gpt-oss",
-    variants: ["20b", "120b"],
-    defaultVariant: "20b",
-    description:
-      "Powerful reasoning and agentic tasks.",
-    reasoning: true,
-    vision: false,
-    downloaded: false
-  },
-  {
-    id: "gemma3:4b",
-    name: "Gemma 3 4B",
-    displayName: "Gemma 3",
-    type: "llama_model",
-    repo_id: "gemma3:4b",
-    base: "gemma3",
-    variants: ["1b", "4b", "12b", "27b"],
-    defaultVariant: "4b",
-    description:
-      "Lightweight, multimodal (text, images, video), 128K context.",
-    reasoning: true,
-    vision: true,
-    downloaded: false
-  },
-  {
-    id: "qwen3:4b",
-    name: "Qwen 3 4B",
-    displayName: "Qwen 3",
-    type: "llama_model",
-    repo_id: "qwen3:4b",
-    base: "qwen3",
-    variants: ["0.6b", "1.7b", "4b", "8b", "14b", "30b", "32b"],
-    defaultVariant: "4b",
-    description:
-      "Hybrid reasoning with multilingual support.",
-    reasoning: true,
-    vision: false,
-    downloaded: false
-  }
-];
-
-const GettingStartedPanel: React.FC<GettingStartedPanelProps> = ({
-  sortedWorkflows,
-  isLoadingWorkflows,
-  startTemplates,
-  handleExampleClick,
-  handleCreateNewWorkflow
-}) => {
+const GettingStartedPanel: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const [modelsExpanded, setModelsExpanded] = useState(false);
 
-  const shouldShowLocalModels =
-    getIsElectronDetails().isElectron || !isProduction;
+  const completed = useOnboardingStore((s) => s.completed);
+  const createNewWorkflow = useWorkflowManager((s) => s.createNew);
 
-  // Fetch secrets to check provider configuration
-  const secrets = useSecretsStore((state) => state.secrets);
-  const fetchSecrets = useSecretsStore((state) => state.fetchSecrets);
-
-  useQuery({
-    queryKey: ["secrets"],
-    queryFn: () => fetchSecrets(),
-    staleTime: 30000
-  });
-
-  // Check for local models (Ollama)
-  const { data: ollamaModels } = useQuery({
-    queryKey: ["ollamaModels"],
-    queryFn: () => trpc.models.ollama.query(),
-    enabled: shouldShowLocalModels,
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchInterval: (query) => (query.state.error ? false : 15000)
-  });
-
-  const hasLocalModels = (ollamaModels?.length ?? 0) > 0;
-
-  // Check if any provider is configured
-  const hasProviderConfigured = useMemo(() => {
-    if (!secrets || secrets.length === 0) {
-      return false;
-    }
-    return secrets.some(
-      (secret) => secret.is_configured && PROVIDER_KEYS.includes(secret.key)
-    );
-  }, [secrets]);
-
-  // Getting started progress from store (persisted in localStorage)
-  // Use selective selectors to prevent unnecessary re-renders
-  const progress = useGettingStartedStore((state) => state.progress);
-  const setHasCreatedWorkflow = useGettingStartedStore((state) => state.setHasCreatedWorkflow);
-  const setHasTriedTemplate = useGettingStartedStore((state) => state.setHasTriedTemplate);
-
-  const hasCreatedWorkflow = progress.hasCreatedWorkflow;
-  const hasTriedTemplate = progress.hasTriedTemplate;
-
-  // Update hasCreatedWorkflow when user has workflows
-  React.useEffect(() => {
-    if (!isLoadingWorkflows && sortedWorkflows.length > 0 && !hasCreatedWorkflow) {
-      setHasCreatedWorkflow(true);
-    }
-  }, [isLoadingWorkflows, sortedWorkflows.length, hasCreatedWorkflow, setHasCreatedWorkflow]);
-
-  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
-
-  const handleOpenSettings = useCallback(() => {
-    // Open settings dialog on "API Settings" tab (index 1)
-    setMenuOpen(true, 1);
-  }, [setMenuOpen]);
-
-  const handleToggleModelsExpanded = useCallback(() => {
-    setModelsExpanded(prev => !prev);
-  }, []);
-
-  const handleTryTemplate = useCallback(() => {
-    // Mark template as tried when user clicks
-    if (!hasTriedTemplate) {
-      setHasTriedTemplate(true);
-    }
-    if (startTemplates.length > 0) {
-      handleExampleClick(startTemplates[0]);
-    } else {
-      navigate("/templates");
-    }
-  }, [startTemplates, handleExampleClick, navigate, hasTriedTemplate, setHasTriedTemplate]);
-
-  // Define onboarding steps
-  const steps: OnboardingStep[] = useMemo(() => {
-    const baseSteps: OnboardingStep[] = [
-      {
-        id: "setup-provider",
-        title: "Set up an AI Provider",
-        description:
-          "Add API keys for OpenAI, Anthropic, or other providers to use cloud AI models.",
-        icon: <SettingsIcon />,
-        action: handleOpenSettings,
-        actionLabel: "Open Settings",
-        isCompleted: hasProviderConfigured,
-        isOptional: shouldShowLocalModels
-      },
-      {
-        id: "try-template",
-        title: "Try a Template",
-        description:
-          "Explore a ready-made workflow to see what NodeTool can do.",
-        icon: <LibraryBooksIcon />,
-        action: handleTryTemplate,
-        actionLabel: "Open Template",
-        isCompleted: hasTriedTemplate
-      },
-      {
-        id: "create-workflow",
-        title: "Create Your First Workflow",
-        description:
-          "Build your own workflow by connecting nodes on the canvas.",
-        icon: <PlayArrowIcon />,
-        action: handleCreateNewWorkflow,
-        actionLabel: "Create Workflow",
-        isCompleted: hasCreatedWorkflow
+  const navigateToStep = useCallback(
+    async (id: OnboardingStepId) => {
+      const step = ONBOARDING_STEPS[id];
+      if (step.settingsTab !== undefined) {
+        navigate(`/settings?tab=${step.settingsTab}`);
+        return;
       }
-    ];
+      const route = step.route;
+      if (!route) return;
 
-    // Add local models step for Electron or non-production
-    if (shouldShowLocalModels) {
-      baseSteps.splice(1, 0, {
-        id: "download-model",
-        title: "Download a Local Model",
-        description:
-          "Download GPT-OSS or another model to run AI locally without API keys.",
-        icon: <DownloadIcon />,
-        // No action button - users can download directly from the collapsible models list
-        isCompleted: hasLocalModels,
-        isOptional: true
-      });
-    }
+      if (route === "/editor") {
+        const stored = localStorage.getItem("currentWorkflowId");
+        if (stored) {
+          navigate(`${EDITOR_ROUTE_PREFIX}${stored}`);
+          return;
+        }
+        try {
+          const open = JSON.parse(
+            localStorage.getItem("openWorkflows") ?? "[]"
+          ) as string[];
+          if (open.length > 0) {
+            navigate(`${EDITOR_ROUTE_PREFIX}${open[0]}`);
+            return;
+          }
+        } catch {
+          // fall through and create a new workflow
+        }
+        try {
+          const wf = await createNewWorkflow();
+          navigate(`${EDITOR_ROUTE_PREFIX}${wf.id}`);
+        } catch (err) {
+          console.error("Failed to create workflow:", err);
+        }
+        return;
+      }
 
-    return baseSteps;
-  }, [
-    hasProviderConfigured,
-    hasTriedTemplate,
-    hasCreatedWorkflow,
-    shouldShowLocalModels,
-    handleOpenSettings,
-    handleTryTemplate,
-    handleCreateNewWorkflow,
-    hasLocalModels
-  ]);
+      navigate(route);
+    },
+    [navigate, createNewWorkflow]
+  );
 
-  // Calculate progress
-  const completedSteps = steps.filter((s) => s.isCompleted).length;
-  const totalSteps = steps.length;
-  const progressPercentage = (completedSteps / totalSteps) * 100;
+  const completedCount = useMemo(
+    () => ONBOARDING_STEP_ORDER.filter((id) => completed[id]).length,
+    [completed]
+  );
+  const totalSteps = ONBOARDING_STEP_ORDER.length;
+  const progressPercentage = (completedCount / totalSteps) * 100;
+  const allDone = completedCount === totalSteps;
 
   return (
-    <FlexColumn gap={0} padding={4} fullHeight css={panelStyles(theme)} className="getting-started-panel">
-      <FlexRow gap={3} align="center" className="panel-header">
-        <RocketLaunchIcon className="header-icon" />
-        <FlexColumn gap={0.5}>
-          <Text size="big" weight={600}>Getting Started</Text>
-          <Caption size="small">
-            {progressPercentage < 100
-              ? "Complete these steps to get up and running"
-              : "All set, welcome to NodeTool!"}
-          </Caption>
-        </FlexColumn>
-      </FlexRow>
+    <Box css={styles(theme)} className="getting-started-panel">
+      <header className="gs-hero">
+        <span className="gs-eyebrow">Welcome to NodeTool</span>
+        <h1 className="gs-title">
+          {allDone ? "You're all set." : "Let's get you running."}
+        </h1>
+        <p className="gs-subtitle">
+          {allDone
+            ? "Every step is checked off. Pick up where you left off, or open a new workflow."
+            : "Six small moves and you'll know the whole tool. Hints float next to the right UI as you work — finish each step to clear them."}
+        </p>
+      </header>
 
-      {progressPercentage < 100 && (
-        <FlexColumn gap={2} sx={{ mb: 1.5 }}>
-          <FlexRow justify="space-between" align="center">
-            <Caption size="small">
-              {completedSteps} of {totalSteps} steps completed
-            </Caption>
-            <Caption size="small">
-              {Math.round(progressPercentage)}%
-            </Caption>
-          </FlexRow>
-          <LinearProgress
-            variant="determinate"
-            value={progressPercentage}
-            className="progress-bar"
+      <div className="gs-progress" role="group" aria-label="Onboarding progress">
+        <div className="gs-progress-meta">
+          <span className="gs-progress-count">
+            {completedCount}<span style={{ opacity: 0.5 }}> / {totalSteps}</span>
+          </span>
+          <span className="gs-progress-pct">{Math.round(progressPercentage)}% complete</span>
+        </div>
+        <div className="gs-progress-track" aria-hidden>
+          <div
+            className="gs-progress-fill"
+            style={{ transform: `scaleX(${progressPercentage / 100})` }}
           />
-        </FlexColumn>
-      )}
+        </div>
+      </div>
 
-      <Box className="scrollable-content">
-        <FlexColumn gap={3}>
-          {steps.map((step, index) => (
-            <Card
-              key={step.id}
-              variant="outlined"
-              padding="normal"
-              className={`step-card ${step.isCompleted ? "completed" : ""}`}
+      <ol className="gs-list" aria-label="Getting started steps">
+        {ONBOARDING_STEP_ORDER.map((id, index) => {
+          const step = ONBOARDING_STEPS[id];
+          const isCompleted = completed[id];
+          const accentVars = {
+            ["--gs-accent-from" as string]: step.accent.from,
+            ["--gs-accent-to" as string]: step.accent.to
+          } as React.CSSProperties;
+
+          return (
+            <li
+              key={id}
+              className={`gs-card ${isCompleted ? "completed" : ""}`}
+              style={{
+                ...accentVars,
+                animationDelay: `${index * 60}ms`
+              }}
             >
-              <FlexRow gap={3} align="flex-start">
-                <Box className="step-icon-container">
-                  {React.cloneElement(step.icon as React.ReactElement<{ className?: string }>, {
-                    className: "step-icon"
-                  })}
-                </Box>
-                <FlexColumn gap={0.5} className="step-content">
-                  <FlexRow gap={2} align="center">
-                    <Text 
-                      size="normal" 
-                      weight={500}
-                      color={step.isCompleted ? "success" : "inherit"}
-                    >
-                      {index + 1}. {step.title}
-                      {step.isOptional && (
-                        <span className="optional-badge">Optional</span>
-                      )}
-                    </Text>
-                  </FlexRow>
-                  <Caption size="small">
-                    {step.description}
-                  </Caption>
-                  {step.action && (!step.isCompleted || step.id === "setup-provider") && (
-                    <Box sx={{ mt: 2 }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={step.action}
-                        startIcon={step.isCompleted ? <SettingsIcon /> : <PlayArrowIcon />}
-                      >
-                        {step.isCompleted && step.id === "setup-provider" ? "Edit Settings" : step.actionLabel}
-                      </Button>
-                    </Box>
+              <div className="gs-icon-stack">
+                <div className="gs-icon-tile" aria-hidden>
+                  {React.cloneElement(
+                    step.illustration as React.ReactElement<{
+                      sx?: { fontSize?: number | string };
+                    }>,
+                    { sx: { fontSize: 22 } }
                   )}
-                  {/* Collapsible Popular Models section for download-model step */}
-                  {step.id === "download-model" && (
-                    <Box sx={{ mt: 1 }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={handleToggleModelsExpanded}
-                        endIcon={modelsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                      >
-                        Popular Models
-                      </Button>
-                      <Collapse in={modelsExpanded}>
-                        <ul className="local-models-list" style={{ marginTop: "0.5em" }}>
-                          {recommendedModels.map((model) => (
-                            <li key={model.id} style={{ listStyle: "none" }}>
-                              <div className="local-model-item">
-                                <FlexColumn gap={0.5}>
-                                  <FlexRow gap={2} align="center" justify="space-between">
-                                    <Text size="small" weight={500}>
-                                      {(model as FeaturedModel).displayName ||
-                                        model.name}
-                                    </Text>
-                                    <Box className="model-variant-buttons">
-                                      {((model as FeaturedModel).variants &&
-                                        (model as FeaturedModel).variants!.length > 0
-                                        ? (model as FeaturedModel).variants!
-                                        : [model.id.split(":")[1] || "latest"]
-                                      ).map((variant) => {
-                                        const base =
-                                          (model as FeaturedModel).base ||
-                                          (model.id.includes(":")
-                                            ? model.id.split(":")[0]
-                                            : model.id);
-                                        const variantModel: UnifiedModel = {
-                                          ...model,
-                                          id: `${base}:${variant}`,
-                                          repo_id: `${base}:${variant}`
-                                        };
-                                        const defaultVariant =
-                                          (model as FeaturedModel).defaultVariant ||
-                                          (model.id.includes(":")
-                                            ? model.id.split(":")[1]
-                                            : "");
-                                        const isDefault =
-                                          variant.toLowerCase() ===
-                                          (defaultVariant || "").toLowerCase();
-                                        return (
-                                          <InlineModelDownload
-                                            key={`${model.id}-${variant}`}
-                                            model={variantModel}
-                                            isDefault={isDefault}
-                                            label={`${variant.toUpperCase()}`}
-                                            tooltip={`Download ${base}:${variant}`}
-                                          />
-                                        );
-                                      })}
-                                    </Box>
-                                  </FlexRow>
-                                  {model.description && (
-                                    <Caption size="small">
-                                      {model.description}
-                                    </Caption>
-                                  )}
-                                  <FlexRow gap={2} wrap sx={{ mt: 0.75 }}>
-                                    {((model as FeaturedModel).reasoning ??
-                                      false) && (
-                                        <Chip
-                                          size="small"
-                                          label="Reasoning"
-                                          color="primary"
-                                          variant="outlined"
-                                          sx={{ height: "20px", fontSize: "0.7em" }}
-                                        />
-                                      )}
-                                    {((model as FeaturedModel).vision ?? false) && (
-                                      <Chip
-                                        size="small"
-                                        label="Vision"
-                                        color="secondary"
-                                        variant="outlined"
-                                        sx={{ height: "20px", fontSize: "0.7em" }}
-                                      />
-                                    )}
-                                  </FlexRow>
-                                  {(model as FeaturedModel).note && (
-                                    <Caption size="smaller" className="model-note">
-                                      {(model as FeaturedModel).note}
-                                    </Caption>
-                                  )}
-                                </FlexColumn>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </Collapse>
-                    </Box>
-                  )}
-                </FlexColumn>
-                <FlexRow align="center" sx={{ flexShrink: 0 }}>
-                  {step.isCompleted ? (
-                    <Tooltip title="Completed">
-                      <CheckCircleIcon
-                        sx={{ color: "success.main", fontSize: "1.25rem" }}
-                      />
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title="Not completed">
-                      <RadioButtonUncheckedIcon
-                        sx={{ color: "grey.600", fontSize: "1.25rem" }}
-                      />
-                    </Tooltip>
-                  )}
-                </FlexRow>
-              </FlexRow>
-            </Card>
-          ))}
-        </FlexColumn>
-      </Box>
-    </FlexColumn>
+                </div>
+              </div>
+
+              <div className="gs-content">
+                <span className="gs-step-badge">
+                  Step {String(index + 1).padStart(2, "0")}
+                </span>
+                <h3 className="gs-step-title">{step.title}</h3>
+                <p className="gs-step-desc">{step.description}</p>
+                <div className="gs-cta-row">
+                  <EditorButton
+                    size="small"
+                    className="gs-cta"
+                    onClick={() => navigateToStep(id)}
+                    endIcon={<ArrowForwardRoundedIcon />}
+                    disableElevation
+                  >
+                    {isCompleted
+                      ? "Revisit"
+                      : (step.ctaLabel ?? "Show me")}
+                  </EditorButton>
+                </div>
+              </div>
+
+              <div
+                className={`gs-status ${isCompleted ? "done" : "pending"}`}
+                aria-label={isCompleted ? "Completed" : "Not completed"}
+              >
+                {isCompleted && <CheckRoundedIcon />}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </Box>
   );
 };
 

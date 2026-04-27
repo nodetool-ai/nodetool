@@ -27,6 +27,13 @@ import { getWorkflowRunnerStore } from "./WorkflowRunner";
 import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
+const isWorkflowNotFoundError = (err: unknown): boolean => {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { data?: { code?: string }; message?: string };
+  if (e.data?.code === "NOT_FOUND") return true;
+  return typeof e.message === "string" && /not found/i.test(e.message);
+};
+
 // -----------------------------------------------------------------
 // HELPER FUNCTIONS
 // -----------------------------------------------------------------
@@ -653,12 +660,14 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           return cached;
         }
 
-        // Fetch using queryClient.fetchQuery for automatic deduplication of in-flight requests
+        // Fetch using queryClient.fetchQuery for automatic deduplication of in-flight requests.
+        // retry: false — NOT_FOUND is permanent; the caller falls back to createNew.
         try {
           const data = await get().queryClient?.fetchQuery({
             queryKey: workflowQueryKey(workflowId),
             queryFn: () => fetchWorkflowById(workflowId),
-            staleTime: 60 * 1000 // Match useWorkflow staleTime
+            staleTime: 60 * 1000,
+            retry: false
           });
           if (!data) {
             return undefined;
@@ -668,10 +677,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           await hydrateWorkflowResultsFromAssets(data.id);
           return data;
         } catch (e) {
-          console.error(
-            `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
-            e
-          );
+          if (!isWorkflowNotFoundError(e)) {
+            console.error(
+              `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
+              e
+            );
+          }
+          return undefined;
         }
       }
     };

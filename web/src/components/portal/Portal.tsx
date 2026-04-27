@@ -26,6 +26,7 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import AppHeader from "../panels/AppHeader";
 import ChatInputSection from "../chat/containers/ChatInputSection";
+import SchoolIcon from "@mui/icons-material/School";
 
 const KNOWN_PROVIDER_KEYS = [
   "OPENAI_API_KEY",
@@ -169,6 +170,29 @@ const styles = (theme: Theme) =>
       transition: "color 0.2s ease",
       "&:hover": {
         color: theme.vars.palette.text.secondary
+      }
+    },
+    ".portal-getting-started": {
+      marginTop: 20,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "8px 16px",
+      borderRadius: 999,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      background: "transparent",
+      color: theme.vars.palette.text.secondary,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      "& svg": {
+        fontSize: 16
+      },
+      "&:hover": {
+        borderColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.text.primary,
+        background: theme.vars.palette.action.hover
       }
     },
 
@@ -348,6 +372,10 @@ const Portal: React.FC = () => {
     setTimeout(onComplete, TRANSITION_DURATION);
   }, []);
 
+  const handleOpenGettingStarted = useCallback(() => {
+    transitionTo(() => navigate("/welcome"));
+  }, [navigate, transitionTo]);
+
   // Handle clicking a recent chat thread
   const handleThreadClick = useCallback(
     (threadId: string) => {
@@ -425,17 +453,9 @@ const Portal: React.FC = () => {
     >
       <AppHeader />
       <div className="portal-center">
-        <div className="portal-heading">
-          {isReturningUser ? (
-            <>
-              Welcome back.
-              <br />
-              {"What's next?"}
-            </>
-          ) : (
-            "What shall we build?"
-          )}
-        </div>
+        {!isReturningUser && (
+          <div className="portal-heading">What shall we build?</div>
+        )}
 
         <div className="portal-input-wrapper">
           <ChatInputSection
@@ -473,6 +493,18 @@ const Portal: React.FC = () => {
 
         {!isReturningUser && !isTransitioning && (
           <div className="portal-hint">Type anything to get started</div>
+        )}
+
+        {!isTransitioning && (
+          <button
+            type="button"
+            className="portal-getting-started"
+            onClick={handleOpenGettingStarted}
+            title="Open the guided getting started page"
+          >
+            <SchoolIcon />
+            {isReturningUser ? "Open getting started" : "New here? Start the guided tour"}
+          </button>
         )}
 
         {!isTransitioning && (
