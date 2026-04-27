@@ -45,7 +45,18 @@ export interface LayerItemProps {
   editName: string;
   onLayerRowPointerDown: (e: React.PointerEvent, layerId: string) => void;
   onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
-  onToggleVisibility: (layerId: string) => void;
+  onVisibilityButtonMouseDown: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    layerId: string
+  ) => void;
+  onVisibilityButtonMouseEnter: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    layerId: string
+  ) => void;
+  onVisibilityButtonClick: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    layerId: string
+  ) => void;
   onToggleIsolateLayer: (layerId: string) => void;
   onToggleExposedInput: (layerId: string) => void;
   onToggleExposedOutput: (layerId: string) => void;
@@ -74,7 +85,9 @@ const LayerItem: React.FC<LayerItemProps> = ({
   editName,
   onLayerRowPointerDown,
   onLayerRowClick,
-  onToggleVisibility,
+  onVisibilityButtonMouseDown,
+  onVisibilityButtonMouseEnter,
+  onVisibilityButtonClick,
   onToggleIsolateLayer,
   onToggleExposedInput: _onToggleExposedInput,
   onToggleExposedOutput: _onToggleExposedOutput,
@@ -184,10 +197,11 @@ const LayerItem: React.FC<LayerItemProps> = ({
 
         <IconButton
           size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleVisibility(layer.id);
-          }}
+          disableRipple
+          aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
+          onMouseDown={(e) => onVisibilityButtonMouseDown(e, layer.id)}
+          onMouseEnter={(e) => onVisibilityButtonMouseEnter(e, layer.id)}
+          onClick={(e) => onVisibilityButtonClick(e, layer.id)}
           sx={{ padding: SKETCH_SPACING.sm, flexShrink: 0 }}
         >
           {layer.visible ? (

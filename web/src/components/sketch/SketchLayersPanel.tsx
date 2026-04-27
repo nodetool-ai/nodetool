@@ -503,6 +503,44 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
    * `click` so we do not double-apply. Shift+click uses range select; Ctrl/Cmd toggles.
    */
   const suppressNextLayerRowClickRef = useRef<string | null>(null);
+  const visibilityDragStateRef = useRef<{
+    desiredVisible: boolean;
+    toggledLayerIds: Set<string>;
+  } | null>(null);
+  const suppressVisibilityButtonClickRef = useRef<string | null>(null);
+
+  const clearVisibilityDragState = useCallback(() => {
+    visibilityDragStateRef.current = null;
+    suppressVisibilityButtonClickRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    const handleWindowPointerUp = () => {
+      clearVisibilityDragState();
+    };
+    window.addEventListener("mouseup", handleWindowPointerUp);
+    return () => {
+      window.removeEventListener("mouseup", handleWindowPointerUp);
+    };
+  }, [clearVisibilityDragState]);
+
+  const applyVisibilityDragToLayer = useCallback(
+    (layerId: string, desiredVisible: boolean) => {
+      const dragState = visibilityDragStateRef.current;
+      if (!dragState || dragState.toggledLayerIds.has(layerId)) {
+        return;
+      }
+      const layer = layers.find((candidate) => candidate.id === layerId);
+      if (!layer) {
+        return;
+      }
+      dragState.toggledLayerIds.add(layerId);
+      if (layer.visible !== desiredVisible) {
+        onToggleVisibility(layerId);
+      }
+    },
+    [layers, onToggleVisibility]
+  );
 
   const handleLayerRowPointerDown = useCallback(
     (e: React.PointerEvent, layerId: string) => {
@@ -549,6 +587,52 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       onSelectLayer(layerId);
     },
     [onSelectLayer, onSelectLayerRangeInPanelOrder, onToggleLayerInSelection]
+  );
+
+  const handleVisibilityButtonMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>, layerId: string) => {
+      if (e.button !== 0) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const layer = layers.find((candidate) => candidate.id === layerId);
+      if (!layer) {
+        return;
+      }
+      visibilityDragStateRef.current = {
+        desiredVisible: !layer.visible,
+        toggledLayerIds: new Set()
+      };
+      suppressVisibilityButtonClickRef.current = layerId;
+      applyVisibilityDragToLayer(layerId, !layer.visible);
+    },
+    [applyVisibilityDragToLayer, layers]
+  );
+
+  const handleVisibilityButtonMouseEnter = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>, layerId: string) => {
+      const dragState = visibilityDragStateRef.current;
+      if (!dragState || (e.buttons & 1) !== 1) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      applyVisibilityDragToLayer(layerId, dragState.desiredVisible);
+    },
+    [applyVisibilityDragToLayer]
+  );
+
+  const handleVisibilityButtonClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>, layerId: string) => {
+      e.stopPropagation();
+      if (suppressVisibilityButtonClickRef.current === layerId) {
+        suppressVisibilityButtonClickRef.current = null;
+        return;
+      }
+      onToggleVisibility(layerId);
+    },
+    [onToggleVisibility]
   );
 
   // ─── Drag-and-drop layer reordering (tree-aware) ───────────────
@@ -1077,9 +1161,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               editingLayerId={editingLayerId}
               editName={editName}
-              onLayerRowPointerDown={handleLayerRowPointerDown}
-              onLayerRowClick={handleLayerRowClick}
-              onToggleVisibility={onToggleVisibility}
+                onLayerRowPointerDown={handleLayerRowPointerDown}
+                onLayerRowClick={handleLayerRowClick}
+              onVisibilityButtonMouseDown={handleVisibilityButtonMouseDown}
+              onVisibilityButtonMouseEnter={handleVisibilityButtonMouseEnter}
+              onVisibilityButtonClick={handleVisibilityButtonClick}
               onToggleIsolateLayer={onToggleIsolateLayer}
               onToggleExposedInput={onToggleExposedInput}
               onToggleExposedOutput={onToggleExposedOutput}

@@ -8,6 +8,12 @@ import {
   loadImageToLayerData
 } from "../serialization";
 import {
+  SKETCH_OUTPUT_LAYERS_HANDLE,
+  collectExposedLayerOutputRefs,
+  getLayerOutputHandleName,
+  sketchNodeOutputImageListTypeMetadata
+} from "../../node/SketchNode/sketchNodeIO";
+import {
   createDefaultDocument,
   createDefaultLayer,
   SKETCH_NODE_INPUT_IMAGE_LAYER_NAME
@@ -140,6 +146,40 @@ describe("SketchNode data flow helpers", () => {
 
       expect(maskRef.type).toBe("image");
       expect(maskRef.uri).toMatch(/^data:image\/png;base64,/);
+    });
+
+    it("collects exposed layer outputs into the shared list[image] output", () => {
+      const layerOne = {
+        type: "image" as const,
+        uri: "data:image/png;base64,layer1",
+        asset_id: null,
+        data: null
+      };
+      const layerTwo = {
+        type: "image" as const,
+        uri: "data:image/png;base64,layer2",
+        asset_id: null,
+        data: null
+      };
+
+      const outputProps = {
+        image: {
+          type: "image" as const,
+          uri: "data:image/png;base64,composite",
+          asset_id: null,
+          data: null
+        },
+        [getLayerOutputHandleName("Layer 1")]: layerOne,
+        [getLayerOutputHandleName("Layer 2")]: layerTwo,
+        [SKETCH_OUTPUT_LAYERS_HANDLE]: []
+      };
+
+      expect(collectExposedLayerOutputRefs(outputProps)).toEqual([layerOne, layerTwo]);
+      expect(sketchNodeOutputImageListTypeMetadata).toEqual({
+        type: "list",
+        type_args: [{ type: "image", type_args: [], optional: false }],
+        optional: false
+      });
     });
   });
 

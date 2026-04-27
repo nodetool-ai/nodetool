@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { render, screen, createEvent, fireEvent } from "@testing-library/react";
+import { act, render, screen, createEvent, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import SketchLayersPanel from "../SketchLayersPanel";
@@ -13,12 +13,14 @@ function buildPanelProps({
   blendMode = "normal",
   layerCount = 1,
   selectedLayerIds,
-  activeLayerIndex = 0
+  activeLayerIndex = 0,
+  visibleByIndex
 }: {
   blendMode?: BlendMode;
   layerCount?: number;
   selectedLayerIds?: string[];
   activeLayerIndex?: number;
+  visibleByIndex?: boolean[];
 } = {}) {
   const theme = createTheme({
     cssVariables: true
@@ -26,6 +28,9 @@ function buildPanelProps({
   const layers = Array.from({ length: layerCount }, (_, index) => {
     const layer = createDefaultLayer(`Layer ${index + 1}`, "raster", 64, 64);
     layer.blendMode = index === activeLayerIndex ? blendMode : "normal";
+    if (visibleByIndex?.[index] !== undefined) {
+      layer.visible = visibleByIndex[index] ?? true;
+    }
     return layer;
   });
   const layer = layers[activeLayerIndex];
@@ -83,6 +88,7 @@ function renderPanel(options: {
   layerCount?: number;
   selectedLayerIds?: string[];
   activeLayerIndex?: number;
+  visibleByIndex?: boolean[];
 } = {}) {
   const { theme, layer, layers, props } = buildPanelProps(options);
 
@@ -179,5 +185,55 @@ describe("SketchLayersPanel merge selected affordances", () => {
     fireEvent.contextMenu(screen.getByText("Layer 2"));
 
     expect(screen.getByRole("menuitem", { name: "Merge Selected" })).toBeInTheDocument();
+  });
+});
+
+describe("SketchLayersPanel visibility drag toggling", () => {
+  it("toggles visibility across multiple layers while dragging over eye buttons", () => {
+    const { layers, props } = renderPanel({ layerCount: 3 });
+
+    act(() => {
+      fireEvent.mouseDown(screen.getByLabelText("Hide Layer 1"), {
+        button: 0,
+        buttons: 1
+      });
+      fireEvent.mouseEnter(screen.getByLabelText("Hide Layer 2"), {
+        buttons: 1
+      });
+      fireEvent.mouseEnter(screen.getByLabelText("Hide Layer 3"), {
+        buttons: 1
+      });
+      fireEvent.mouseUp(window);
+    });
+
+    expect(props.onToggleVisibility).toHaveBeenCalledTimes(3);
+    expect(props.onToggleVisibility).toHaveBeenNthCalledWith(1, layers[0].id);
+    expect(props.onToggleVisibility).toHaveBeenNthCalledWith(2, layers[1].id);
+    expect(props.onToggleVisibility).toHaveBeenNthCalledWith(3, layers[2].id);
+  });
+
+  it("skips layers that already match the drag visibility target", () => {
+    const { layers, props } = renderPanel({
+      layerCount: 3,
+      visibleByIndex: [true, false, true]
+    });
+
+    act(() => {
+      fireEvent.mouseDown(screen.getByLabelText("Hide Layer 1"), {
+        button: 0,
+        buttons: 1
+      });
+      fireEvent.mouseEnter(screen.getByLabelText("Show Layer 2"), {
+        buttons: 1
+      });
+      fireEvent.mouseEnter(screen.getByLabelText("Hide Layer 3"), {
+        buttons: 1
+      });
+      fireEvent.mouseUp(window);
+    });
+
+    expect(props.onToggleVisibility).toHaveBeenCalledTimes(2);
+    expect(props.onToggleVisibility).toHaveBeenNthCalledWith(1, layers[0].id);
+    expect(props.onToggleVisibility).toHaveBeenNthCalledWith(2, layers[2].id);
   });
 });
