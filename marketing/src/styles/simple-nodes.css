@@ -1,0 +1,355 @@
+/* SIMPLE NODE STYLES */
+
+/**
+ * Simplified styles for nodes in the node editor
+ * without interactive functionality
+ */
+
+:root {
+  /* Colors */
+  --c-white: #ffffff;
+  --c-black: #000000;
+  --c-gray0: #f0f0f0;
+  --c-gray1: #1a1a1a;
+  --c-gray2: #2a2a2a;
+  --c-gray3: #333333;
+  --c-gray4: #444444;
+  --c-gray5: #555555;
+  --c-gray6: #666666;
+  --c-gray7: #777777;
+  --c-gray8: #2b2b2b;
+  --c-gray9: #c0c0c0;
+  --c-hl1: #3498db;
+  --c-warning: #e74c3c;
+
+  /* Node colors */
+  --c-node-bg: #2a2a2a;
+  --c-node-bg-group: #333333;
+  --c-node-header-bg: #3a3a3a;
+  --c-node-header-bg-group: #444444;
+  --c-node-menu: #222222;
+  --c-editor-bg-color: #faf7f2;
+  --c-editor-grid-color: #e7dfd6;
+  --c-bg-comment: #f5f5f5;
+
+  /* Font sizes */
+  --font-size-smaller: 10px;
+  --font-size-small: 12px;
+  --font-size-normal: 14px;
+  --font-size-large: 16px;
+
+  /* Font families */
+  --font-family-1: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+}
+
+/* General node */
+.simple-node {
+  font-size: var(--font-size-small);
+  width: auto;
+  min-width: 200px;
+  cursor: default;
+  padding: 0;
+  border-radius: 0.3em;
+  background-color: var(--c-node-bg);
+  box-shadow: 0.1em 0.1em 0.4em 0px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-family-1);
+}
+
+/* Comment node */
+.comment-node {
+  font-size: var(--font-size-normal);
+  width: 100%;
+  height: 100%;
+  cursor: default;
+  padding: 1em;
+  border-radius: 0.3em;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+  font-family: var(--font-family-1);
+  color: var(--c-black);
+  position: relative;
+  overflow: auto;
+}
+
+.comment-node:hover {
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+}
+
+.comment-node.selected {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.comment-node .comment-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.2em;
+}
+
+.comment-node.collapsed {
+  max-height: 60px;
+  overflow: hidden;
+}
+
+/* Node header */
+.simple-node .node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  min-height: 24px;
+  background-color: var(--c-node-header-bg);
+  color: var(--c-white);
+  margin: 0;
+  border-radius: 0.3em 0.3em 0 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.simple-node .node-header .node-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex-grow: 1;
+  text-align: left;
+  max-width: 170px;
+  word-wrap: break-word;
+  line-height: 1em;
+  color: var(--c-white);
+  font-family: var(--font-family-1);
+  font-size: var(--font-size-normal);
+  /* font-feature-settings: "smcp"; */
+  padding: 0.5em 0 0.5em 0.7em;
+}
+
+/* Node content */
+.simple-node .node-content {
+  padding: 8px 0;
+  background-color: var(--c-node-bg);
+}
+
+/* Node property - following properties.css patterns */
+.simple-node .node-property {
+  position: relative;
+  width: auto;
+  min-height: 18px;
+  border: 0;
+  padding: 0 8px;
+  margin-bottom: 7px;
+  line-height: 18px;
+}
+
+.simple-node .node-property:last-child {
+  margin-bottom: 0;
+}
+
+/* Property container for label + value layout */
+.simple-node .property-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding-top: 1em;
+}
+
+/* Property label - using PropertyLabel component styles */
+.simple-node .property-label {
+  width: 100%;
+  height: 18px;
+  padding: 0;
+  overflow: visible;
+  flex-grow: 1;
+}
+
+.simple-node .property-label label {
+  display: block;
+  font-weight: 300;
+  color: var(--c-gray9);
+  font-size: var(--font-size-smaller);
+  padding: 0;
+  margin: 0;
+  line-height: 1em;
+  max-height: 2em;
+  overflow: hidden;
+  min-height: 13px;
+}
+
+.simple-node .constant-value {
+  font-size: var(--font-size-smaller);
+  background-color: var(--c-gray8);
+  padding: 0.4em 0.5em;
+  user-select: text;
+  cursor: text;
+  line-height: 1.2em;
+  word-spacing: -2px;
+  border-radius: 4px;
+  color: var(--c-white);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.simple-node .property-value {
+  font-size: var(--font-size-smaller);
+  background-color: var(--c-gray8);
+  padding: 0.25em 0.5em;
+  line-height: 1.25em;
+  border-radius: 4px;
+  color: var(--c-gray0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+/* Node footer */
+.simple-node .node-footer {
+  display: flex;
+  height: 18px;
+  align-items: center;
+  background: var(--c-node-header-bg);
+  border-radius: 0 0 0.3em 0.3em;
+  overflow: hidden;
+  justify-content: flex-start;
+  padding: 4px 12px;
+  color: var(--c-gray5);
+  font-size: var(--font-size-smaller);
+  text-transform: uppercase;
+}
+
+/* React Flow wrapper */
+.simple-reactflow-wrapper {
+  width: 100%;
+  height: 100%;
+  background-color: var(--c-editor-bg-color);
+}
+
+/* Edge styles */
+.react-flow__edge-path {
+  stroke: var(--c-gray6);
+  stroke-width: 2;
+}
+
+/* Background styles */
+.react-flow__background {
+  background-color: var(--c-editor-bg-color);
+}
+
+/* Controls styles */
+.react-flow__controls {
+  background-color: var(--c-gray2);
+  border-radius: 4px;
+  box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+  background-color: var(--c-gray3);
+  border: none;
+  color: var(--c-white);
+}
+
+.react-flow__controls-button:hover {
+  background-color: var(--c-gray4);
+}
+
+/* MiniMap styles */
+.react-flow__minimap {
+  background-color: var(--c-gray2);
+  border-radius: 4px;
+}
+
+/* Container styles */
+.simple-flow-container {
+  width: 100%;
+  height: 100vh;
+  background-color: var(--c-editor-bg-color);
+}
+
+/* App container */
+.simple-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: var(--font-family-1);
+}
+
+.simple-app-header {
+  background-color: var(--c-gray2);
+  color: var(--c-white);
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--c-gray4);
+}
+
+.simple-app-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.simple-app-content {
+  flex: 1;
+  position: relative;
+}
+
+/* Additional outputs section */
+.additional-outputs {
+  padding: 5px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.node-output {
+  position: relative;
+  width: auto;
+  min-height: 18px;
+  border: 0;
+  padding: 0 8px;
+  margin: 1px 0 0;
+  line-height: 18px;
+}
+
+.output-label {
+  font-size: var(--font-size-smaller);
+  color: var(--c-gray9);
+  text-align: right;
+  font-weight: 300;
+}
+
+/* Dynamic header and footer colors */
+.simple-node .node-header {
+  --header-bg-color: var(--c-node-header-bg);
+  background-color: var(--header-bg-color) !important;
+}
+
+.simple-node .node-footer {
+  --footer-bg-color: var(--c-node-header-bg);
+  background-color: var(--footer-bg-color) !important;
+}
+
+/* HANDLE */
+.react-flow__node .react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background-color: var(--c_gray1);
+  border: 0;
+  border-radius: 50%;
+  z-index: 999;
+}
+.react-flow__node .react-flow__handle-left {
+  transform-origin: right center;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.react-flow__node .react-flow__handle-right {
+  transform-origin: left center;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.simple-loop-node .react-flow__handle-left {
+  left: -6px;
+}
+.simple-loop-node .react-flow__handle-right {
+  right: -8px;
+}

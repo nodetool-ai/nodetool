@@ -1,0 +1,53 @@
+{
+  "name": "@nodetool/marketing",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@fontsource/inter": "^5.1.0",
+    "@fontsource/jetbrains-mono": "^5.1.1",
+    "@headlessui/react": "^1.7.18",
+    "@heroicons/react": "^2.1.1",
+    "@tanstack/react-query": "^5.40.1",
+    "@xyflow/react": "^12.4.3",
+    "axios": "^1.6.8",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "formik": "^2.4.5",
+    "framer-motion": "^12.23.12",
+    "lodash": "^4.17.21",
+    "lucide-react": "^0.341.0",
+    "next": "^14.2.4",
+    "openapi-fetch": "^0.7.1",
+    "openapi-typescript": "^6.3.9",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-markdown": "^10.0.0",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^2.2.1",
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
+    "wavesurfer.js": "^7.9.1",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.15",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/slate-html-serializer": "^0.6.8",
+    "autoprefixer": "^10.0.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.1.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
+  }
+}
