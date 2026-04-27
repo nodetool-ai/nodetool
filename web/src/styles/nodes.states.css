@@ -21,9 +21,9 @@
 
 .react-flow__node:not(.selected) {
   box-shadow: none;
-  filter: none;
-  outline: 2px solid transparent;
-  outline-offset: 1px;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.04));
+  outline: 1px solid var(--palette-divider);
+  outline-offset: 0;
 }
 
 /* Grouped nodes: use group header color for outline */
@@ -37,13 +37,15 @@
 }
 
 .react-flow__node:hover:not(.selected) {
+  outline-width: 2px;
   outline-color: color-mix(
     in srgb,
     var(--c_node_header_bg) 58%,
     var(--palette-primary-main) 42%
   ) !important;
+  outline-offset: 1px;
   transform: translateY(-1px);
-  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.18));
+  filter: drop-shadow(0 4px 8px rgb(0 0 0 / 0.08));
 }
 
 /* Hover for grouped nodes keeps group header color */

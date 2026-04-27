@@ -72,18 +72,18 @@ const PropertyDropzone = ({
         maxWidth: "none",
         textAlign: "left",
         transition: "all 0.2s ease",
-        outline: `1px dashed ${theme.vars.palette.grey[600]}`,
+        outline: `1px dashed ${theme.vars.palette.divider}`,
         margin: "5px 0",
-        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        backgroundColor: theme.vars.palette.Paper.overlay,
         borderRadius: "var(--rounded-md)",
 
         "&:hover": {
-          outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-          backgroundColor: "rgba(0, 0, 0, 0.3)"
+          outline: `1px dashed ${theme.vars.palette.text.secondary}`,
+          backgroundColor: theme.vars.palette.action.selected
         },
         "&.drag-over": {
-          backgroundColor: theme.vars.palette.grey[600],
-          outline: `2px dashed ${theme.vars.palette.grey[100]}`,
+          backgroundColor: theme.vars.palette.action.selected,
+          outline: `2px dashed ${theme.vars.palette.primary.main}`,
           outlineOffset: "-2px"
         }
       },
@@ -91,7 +91,7 @@ const PropertyDropzone = ({
         width: "100%",
         border: "0",
         maxWidth: "none",
-        outline: `1px solid ${theme.vars.palette.grey[700]}`,
+        outline: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: "transparent",
         padding: "4px"
       },

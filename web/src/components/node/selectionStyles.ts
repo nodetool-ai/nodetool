@@ -37,10 +37,10 @@ export const getOutputNodeSelectionSx = (
   display: "flex" as const,
   border: selected
     ? `3px solid ${theme.vars.palette.primary.main}`
-    : `1px solid ${theme.vars.palette.grey[700]}`,
+    : `1px solid ${theme.vars.palette.divider}`,
   boxShadow: selected
     ? `0 0 0 2px rgb(${theme.vars.palette.primary.mainChannel} / 0.95), 0 0 28px rgb(${theme.vars.palette.primary.mainChannel} / 0.55), 0 8px 20px rgb(${theme.vars.palette.primary.mainChannel} / 0.25)`
-    : "none",
+    : "0 1px 2px rgb(0 0 0 / 0.04)",
   backgroundColor: theme.vars.palette.c_node_bg,
   ...CRISP_NO_BLUR_STYLES
 });

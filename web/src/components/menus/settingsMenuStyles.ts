@@ -226,12 +226,11 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     }
   },
   ".settings-section": {
-    backgroundColor: theme.vars.palette.background.default,
-    backdropFilter: "blur(5px)",
-    borderRadius: "var(--rounded-lg)",
-    padding: "0.5em 1.2em 1.2em 1.2em",
-    margin: "1.5em 0 1.5em 0",
-    boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    padding: 0,
+    margin: "1.5em 0",
+    boxShadow: "none",
     border: "0 none",
 
     width: "100%",

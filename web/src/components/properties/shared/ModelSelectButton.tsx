@@ -66,7 +66,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
             border: "1px solid var(--palette-divider)",
             backgroundColor: active
               ? "var(--palette-action-selected)"
-              : "var(--palette-background-paper)",
+              : "var(--palette-Paper-overlay)",
             borderRadius: "var(--rounded-buttonSmall, 4px)",
             color: "var(--palette-text-primary)",
             textTransform: "none",
