@@ -540,25 +540,33 @@ export default function CreativesPage() {
                     className="group relative"
                   >
                     <div
-                      className={`relative h-full min-h-[420px] rounded-2xl border ${a.border} bg-[#0a0a14]/70 backdrop-blur-sm p-7 flex flex-col transition-all duration-300 hover:-translate-y-1`}
+                      className={`relative h-full min-h-[420px] rounded-2xl border ${a.border} bg-[#0a0a14]/70 backdrop-blur-sm p-7 flex flex-col transition-all duration-500 hover:-translate-y-1.5 hover:bg-[#0a0a14]/40`}
                       style={{
-                        boxShadow: `0 0 0 1px rgba(${a.glowRgba}, 0.10), 0 20px 60px -20px rgba(${a.glowRgba}, 0.45), 0 0 80px -20px rgba(${a.glowRgba}, 0.35)`,
+                        boxShadow: `0 0 0 1px rgba(${a.glowRgba}, 0.07), 0 24px 70px -20px rgba(${a.glowRgba}, 0.26), 0 0 110px -25px rgba(${a.glowRgba}, 0.22)`,
                       }}
                     >
                       {/* Inner top glow */}
                       <div
                         aria-hidden
-                        className="pointer-events-none absolute inset-0 rounded-2xl"
+                        className="pointer-events-none absolute inset-0 rounded-2xl opacity-80 transition-opacity duration-500 group-hover:opacity-100"
                         style={{
-                          background: `radial-gradient(120% 60% at 50% 0%, ${a.topGlow}, transparent 60%)`,
+                          background: `radial-gradient(140% 70% at 50% 0%, rgba(${a.glowRgba}, 0.11), transparent 60%)`,
+                        }}
+                      />
+                      {/* Diagonal sheen */}
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 rounded-2xl opacity-60 transition-opacity duration-500 group-hover:opacity-100 mix-blend-screen"
+                        style={{
+                          background: `linear-gradient(135deg, rgba(${a.glowRgba}, 0.05) 0%, transparent 45%, rgba(${a.glowRgba}, 0.03) 100%)`,
                         }}
                       />
 
                       <div className="relative flex flex-col h-full">
                         <div
-                          className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${a.border} ${a.iconBg} mb-7`}
+                          className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${a.border} ${a.iconBg} mb-7 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
                           style={{
-                            boxShadow: `0 0 24px -6px rgba(${a.glowRgba}, 0.55)`,
+                            boxShadow: `0 0 32px -4px rgba(${a.glowRgba}, 0.30), inset 0 0 12px rgba(${a.glowRgba}, 0.10)`,
                           }}
                         >
                           <persona.icon className={`w-6 h-6 ${a.text}`} />
