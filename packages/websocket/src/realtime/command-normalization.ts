@@ -44,6 +44,10 @@ export const normalizeMediaTracks = (
       typeof record.node_id === "string" ? record.node_id.trim() : "";
     const inputName =
       typeof record.input_name === "string" ? record.input_name.trim() : "";
+    const sourceHandle =
+      typeof record.source_handle === "string"
+        ? record.source_handle.trim()
+        : "";
     const kind: RealtimeMediaTrackKind =
       record.kind === "audio" ? "audio" : "video";
 
@@ -56,6 +60,7 @@ export const normalizeMediaTracks = (
       kind,
       node_id: nodeId,
       input_name: inputName,
+      source_handle: sourceHandle || null,
       label: typeof record.label === "string" ? record.label : null,
       enabled: record.enabled !== false
     });

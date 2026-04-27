@@ -491,6 +491,59 @@ describe("RealtimeRunner skeleton", () => {
     expect(result.outputs.result).toEqual([7]);
   });
 
+  it("routes pushed frames from video media adapter outputs by source handle", async () => {
+    const realtimeRunner = new RealtimeRunner("rt-video-source", {
+      resolveExecutor(node) {
+        if (node.id === "sink") {
+          return simpleExecutor((inputs) => ({ result: inputs.value }));
+        }
+        return simpleExecutor((inputs) => inputs);
+      }
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      {
+        job_id: "rt-video-source",
+        workflow_id: "workflow-video-source"
+      },
+      {
+        nodes: [
+          {
+            id: "video-source",
+            type: "nodetool.video.VideoSource",
+            is_streaming_output: true,
+            is_media_adapter: true
+          },
+          {
+            id: "sink",
+            type: "test.Output",
+            name: "result"
+          }
+        ],
+        edges: [
+          {
+            source: "video-source",
+            sourceHandle: "realtime_frame",
+            target: "sink",
+            targetHandle: "value"
+          }
+        ]
+      },
+      realtimeSession()
+    );
+
+    await realtimeRunner.runner.pushInputValue(
+      "video-source",
+      "frame-1",
+      "realtime_frame"
+    );
+
+    const result = await realtimeRunner.stopRealtimeMode();
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.result).toEqual(["frame-1"]);
+  });
+
   it("updates the live session info metrics object for warm-state nodes", async () => {
     const seenSessions: RealtimeSessionInfo[] = [];
     const warmExecutor: NodeExecutor = {

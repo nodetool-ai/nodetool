@@ -42,7 +42,11 @@ export class FrameRouter {
       return false;
     }
 
-    await this.runner.pushInputValue(track.input_name, frame, "frame");
+    await this.runner.pushInputValue(
+      track.input_name,
+      frame,
+      track.source_handle ?? "frame"
+    );
     this.routedFrames += 1;
     return true;
   }
@@ -53,7 +57,10 @@ export class FrameRouter {
       if (finishedInputs.has(track.input_name)) {
         continue;
       }
-      this.runner.finishInputStream?.(track.input_name, "frame");
+      this.runner.finishInputStream?.(
+        track.input_name,
+        track.source_handle ?? "frame"
+      );
       finishedInputs.add(track.input_name);
     }
   }

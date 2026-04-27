@@ -1361,9 +1361,7 @@ export class WorkflowRunner {
     return (
       node.type.startsWith("nodetool.input.") ||
       node.type === "test.Input" ||
-      (node.type.startsWith("nodetool.realtime.") &&
-        node.is_media_adapter === true &&
-        node.is_streaming_output === true)
+      (node.is_media_adapter === true && node.is_streaming_output === true)
     );
   }
 

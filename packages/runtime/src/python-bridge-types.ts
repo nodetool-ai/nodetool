@@ -98,6 +98,7 @@ export interface RealtimeMediaTrackPayload {
   kind: string; // "audio" | "video"
   node_id: string;
   input_name: string;
+  source_handle?: string | null;
 }
 
 export interface RealtimeSessionInfoPayload {

@@ -24,6 +24,47 @@ import {
 import { useRealtimeCameraFramePublisher } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
 import { useRealtimeControlPlane } from "../../hooks/realtime/useRealtimeControlPlane";
 
+interface VideoTrackTarget {
+  nodeId: string;
+  inputName: string;
+  sourceHandle: string;
+}
+
+const getExternalInputName = (node: {
+  id: string;
+  name?: string | null;
+  properties?: Record<string, unknown> | null;
+}): string => {
+  const propertyName =
+    typeof node.properties?.name === "string" ? node.properties.name.trim() : "";
+  return propertyName || node.name || node.id;
+};
+
+const findVideoTrackTarget = (
+  workflow: Workflow | undefined
+): VideoTrackTarget | null => {
+  const nodes = workflow?.graph?.nodes ?? [];
+  const node = nodes.find((candidate) => {
+    return (
+      (candidate.is_media_adapter === true &&
+        candidate.is_streaming_output === true) ||
+      candidate.type === "nodetool.video.VideoSource" ||
+      candidate.type === "nodetool.realtime.VideoSource"
+    );
+  });
+
+  if (!node) {
+    return null;
+  }
+
+  return {
+    nodeId: node.id,
+    inputName: getExternalInputName(node),
+    sourceHandle:
+      node.type === "nodetool.video.VideoSource" ? "realtime_frame" : "frame"
+  };
+};
+
 export interface RealtimeStreamController {
   workflowId: string | undefined;
   workflow: Workflow | undefined;
@@ -83,6 +124,8 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const [videoTargetNodeId, setVideoTargetNodeId] = useState<string>("camera");
   const [videoTargetInputName, setVideoTargetInputName] =
     useState<string>("video");
+  const [videoTargetSourceHandle, setVideoTargetSourceHandle] =
+    useState<string>("frame");
   const [webrtcConfigError, setWebrtcConfigError] = useState<string | null>(null);
   const {
     error: previewError,
@@ -129,6 +172,10 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const activeMetrics = activeSession
     ? metrics[activeSession.session_id] ?? null
     : null;
+  const discoveredVideoTrackTarget = useMemo(
+    () => findVideoTrackTarget(workflow),
+    [workflow]
+  );
   const webrtcRuntimeMode = useMemo<RealtimeWebRTCRuntimeMode>(() => {
     const params = new URLSearchParams(location.search);
     return params.get("webrtcRuntime") === "backend" ? "backend" : "loopback";
@@ -180,6 +227,27 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     }
   }, [activeSession]);
 
+  useEffect(() => {
+    if (!discoveredVideoTrackTarget) {
+      return;
+    }
+
+    if (
+      videoTargetNodeId === "camera" &&
+      videoTargetInputName === "video" &&
+      videoTargetSourceHandle === "frame"
+    ) {
+      setVideoTargetNodeId(discoveredVideoTrackTarget.nodeId);
+      setVideoTargetInputName(discoveredVideoTrackTarget.inputName);
+      setVideoTargetSourceHandle(discoveredVideoTrackTarget.sourceHandle);
+    }
+  }, [
+    discoveredVideoTrackTarget,
+    videoTargetInputName,
+    videoTargetNodeId,
+    videoTargetSourceHandle
+  ]);
+
   const handleStartSession = useCallback(async () => {
     if (!workflowId) {
       return;
@@ -204,6 +272,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       label: track.label || "Camera track",
       node_id: videoTargetNodeId.trim(),
       input_name: videoTargetInputName.trim(),
+      source_handle: videoTargetSourceHandle.trim() || "frame",
       enabled: true
     }));
 
@@ -228,6 +297,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     startSession,
     videoTargetInputName,
     videoTargetNodeId,
+    videoTargetSourceHandle,
     workflowId
   ]);
 

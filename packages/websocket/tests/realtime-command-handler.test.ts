@@ -120,6 +120,7 @@ describe("RealtimeCommandHandler", () => {
           kind: "video",
           node_id: "video-source",
           input_name: "camera",
+          source_handle: "realtime_frame",
           label: "Deterministic frame",
           enabled: true
         }
@@ -183,7 +184,7 @@ describe("RealtimeCommandHandler", () => {
         timestamp_ns: 1000,
         sequence: 1
       }),
-      "frame"
+      "realtime_frame"
     );
     expect(pushedFrame.data).toEqual(new Uint8Array([255, 0, 0, 255]));
   });

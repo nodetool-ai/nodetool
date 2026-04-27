@@ -327,6 +327,7 @@ export interface RealtimeMediaTrackMapping {
   kind: RealtimeMediaTrackKind;
   node_id: string;
   input_name: string;
+  source_handle?: string | null;
   label?: string | null;
   enabled?: boolean;
 }

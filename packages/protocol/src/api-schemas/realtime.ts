@@ -11,6 +11,7 @@ export const realtimeMediaTrackMapping = z.object({
   kind: realtimeMediaTrackKind,
   node_id: z.string(),
   input_name: z.string(),
+  source_handle: z.string().nullable().optional(),
   label: z.string().nullable().optional(),
   enabled: z.boolean().optional()
 });
