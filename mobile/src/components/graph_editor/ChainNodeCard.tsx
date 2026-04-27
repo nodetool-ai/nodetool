@@ -26,7 +26,6 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../hooks/useTheme";
 import type { ChainNode, InputSource } from "../../types/graphEditor";
-import type { PropertyTypeMetadata } from "../../types/ApiTypes";
 import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";

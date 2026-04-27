@@ -1,4 +1,3 @@
-import { useShallow } from "zustand/react/shallow";
 import { useCallback, useEffect, useMemo } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";

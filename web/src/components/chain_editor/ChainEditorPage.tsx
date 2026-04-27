@@ -6,7 +6,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Box } from "@mui/material";
 import { LoadingSpinner } from "../ui_primitives/LoadingSpinner";
 import { Text } from "../ui_primitives/Text";
 import { FlexColumn } from "../ui_primitives/FlexColumn";

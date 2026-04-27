@@ -6,7 +6,7 @@ import fs from "fs";
 import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
 import { IpcChannels } from "./types.d";
-import { readSettings, readSettingsAsync } from "./settings";
+import { readSettingsAsync } from "./settings";
 
 let updateAvailable: boolean = false;
 
