@@ -33,5 +33,8 @@ export {
   computeMoveTransform,
   computeRotateTransform,
   computeScaleTransform,
-  computeTransformForHandle
+  computeTransformForHandle,
+  computeDistortTransform,
+  computeSkewTransform,
+  resolvePhotoshopTransformMode
 } from "./computeTransform";

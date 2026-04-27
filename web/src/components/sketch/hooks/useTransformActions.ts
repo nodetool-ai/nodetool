@@ -93,13 +93,7 @@ export function useTransformActions({
       (l) => l.id === document.activeLayerId
     );
     if (activeLayer) {
-      transformOriginalRef.current = {
-        x: activeLayer.transform.x,
-        y: activeLayer.transform.y,
-        scaleX: activeLayer.transform.scaleX ?? 1,
-        scaleY: activeLayer.transform.scaleY ?? 1,
-        rotation: activeLayer.transform.rotation ?? 0
-      };
+      transformOriginalRef.current = { ...activeLayer.transform };
     }
   }, [document]);
 
@@ -410,7 +404,8 @@ export function useTransformActions({
       }
       const current = layer.transform;
       const newRotation = (current.rotation ?? 0) + angleRad;
-      setLayerTransform(activeLayerId, { ...current, rotation: newRotation });
+      const { matrix: _matrix, mode: _mode, ...rest } = current;
+      setLayerTransform(activeLayerId, { ...rest, rotation: newRotation });
     },
     [document.activeLayerId, document.layers, setLayerTransform]
   );
@@ -423,8 +418,9 @@ export function useTransformActions({
       return;
     }
     const current = layer.transform;
+    const { matrix: _matrix, mode: _mode, ...rest } = current;
     setLayerTransform(activeLayerId, {
-      ...current,
+      ...rest,
       scaleX: -(current.scaleX ?? 1)
     });
   }, [document.activeLayerId, document.layers, setLayerTransform]);
@@ -437,8 +433,9 @@ export function useTransformActions({
       return;
     }
     const current = layer.transform;
+    const { matrix: _matrix, mode: _mode, ...rest } = current;
     setLayerTransform(activeLayerId, {
-      ...current,
+      ...rest,
       scaleY: -(current.scaleY ?? 1)
     });
   }, [document.activeLayerId, document.layers, setLayerTransform]);

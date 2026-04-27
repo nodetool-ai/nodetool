@@ -56,6 +56,24 @@ export function drawBoundingBox(
   gc.setLineDash([]);
 }
 
+function drawQuadBoundingBox(
+  gc: CanvasRenderingContext2D,
+  corners: [Point, Point, Point, Point],
+  dpr: number
+): void {
+  gc.strokeStyle = GIZMO_PRIMARY_SEMI;
+  gc.lineWidth = GIZMO_LINE_WIDTH * dpr;
+  gc.setLineDash([BOUNDING_BOX_DASH_ON * dpr, BOUNDING_BOX_DASH_OFF * dpr]);
+  gc.beginPath();
+  gc.moveTo(corners[0].x, corners[0].y);
+  gc.lineTo(corners[1].x, corners[1].y);
+  gc.lineTo(corners[2].x, corners[2].y);
+  gc.lineTo(corners[3].x, corners[3].y);
+  gc.closePath();
+  gc.stroke();
+  gc.setLineDash([]);
+}
+
 /**
  * Draw a single square handle (corner or edge midpoint).
  *
@@ -171,14 +189,121 @@ export function drawPivotHandle(
  */
 export function drawTransformGizmo(
   gc: CanvasRenderingContext2D,
-  screenCenter: Point,
-  screenW: number,
-  screenH: number,
-  rotation: number,
+  screenCenter: Point | null,
+  screenW: number | null,
+  screenH: number | null,
+  rotation: number | null,
   activeOrHoveredHandle: TransformHandle | null,
   dpr: number,
-  pivotScreenPos?: Point | null
+  pivotScreenPos?: Point | null,
+  screenCorners?: [Point, Point, Point, Point] | null,
+  visibleHandles?: readonly TransformHandle[]
 ): void {
+  const visible = new Set<TransformHandle>(
+    visibleHandles ?? [
+      "top-left",
+      "top-right",
+      "bottom-left",
+      "bottom-right",
+      "top",
+      "bottom",
+      "left",
+      "right",
+      "rotate"
+    ]
+  );
+
+  if (screenCorners) {
+    const topMid = {
+      x: (screenCorners[0].x + screenCorners[1].x) / 2,
+      y: (screenCorners[0].y + screenCorners[1].y) / 2
+    };
+    const bottomMid = {
+      x: (screenCorners[2].x + screenCorners[3].x) / 2,
+      y: (screenCorners[2].y + screenCorners[3].y) / 2
+    };
+    const leftMid = {
+      x: (screenCorners[0].x + screenCorners[3].x) / 2,
+      y: (screenCorners[0].y + screenCorners[3].y) / 2
+    };
+    const rightMid = {
+      x: (screenCorners[1].x + screenCorners[2].x) / 2,
+      y: (screenCorners[1].y + screenCorners[2].y) / 2
+    };
+    const center = screenCenter ?? {
+      x: (screenCorners[0].x + screenCorners[2].x) / 2,
+      y: (screenCorners[0].y + screenCorners[2].y) / 2
+    };
+    const topDx = topMid.x - center.x;
+    const topDy = topMid.y - center.y;
+    const topLength = Math.hypot(topDx, topDy) || 1;
+    const rotatePos = {
+      x: topMid.x + (topDx / topLength) * ROTATION_HANDLE_OFFSET * dpr,
+      y: topMid.y + (topDy / topLength) * ROTATION_HANDLE_OFFSET * dpr
+    };
+
+    gc.save();
+    drawQuadBoundingBox(gc, screenCorners, dpr);
+    if (visible.has("top-left")) {
+      drawSquareHandle(gc, screenCorners[0], activeOrHoveredHandle === "top-left", dpr);
+    }
+    if (visible.has("top-right")) {
+      drawSquareHandle(gc, screenCorners[1], activeOrHoveredHandle === "top-right", dpr);
+    }
+    if (visible.has("bottom-right")) {
+      drawSquareHandle(gc, screenCorners[2], activeOrHoveredHandle === "bottom-right", dpr);
+    }
+    if (visible.has("bottom-left")) {
+      drawSquareHandle(gc, screenCorners[3], activeOrHoveredHandle === "bottom-left", dpr);
+    }
+    if (visible.has("top")) {
+      drawSquareHandle(gc, topMid, activeOrHoveredHandle === "top", dpr);
+    }
+    if (visible.has("bottom")) {
+      drawSquareHandle(gc, bottomMid, activeOrHoveredHandle === "bottom", dpr);
+    }
+    if (visible.has("left")) {
+      drawSquareHandle(gc, leftMid, activeOrHoveredHandle === "left", dpr);
+    }
+    if (visible.has("right")) {
+      drawSquareHandle(gc, rightMid, activeOrHoveredHandle === "right", dpr);
+    }
+    if (visible.has("rotate")) {
+      gc.beginPath();
+      gc.moveTo(topMid.x, topMid.y);
+      gc.lineTo(rotatePos.x, rotatePos.y);
+      gc.strokeStyle = GIZMO_PRIMARY_FAINT;
+      gc.lineWidth = GIZMO_LINE_WIDTH * dpr;
+      gc.stroke();
+      gc.beginPath();
+      gc.arc(
+        rotatePos.x,
+        rotatePos.y,
+        HANDLE_SIZE * ROTATION_HANDLE_RADIUS_FACTOR * dpr,
+        0,
+        Math.PI * 2
+      );
+      gc.fillStyle =
+        activeOrHoveredHandle === "rotate"
+          ? HANDLE_FILL_HOVERED
+          : HANDLE_FILL_DEFAULT;
+      gc.fill();
+      gc.strokeStyle = GIZMO_PRIMARY_COLOR;
+      gc.lineWidth =
+        (activeOrHoveredHandle === "rotate"
+          ? GIZMO_LINE_WIDTH_HOVERED
+          : GIZMO_LINE_WIDTH) * dpr;
+      gc.stroke();
+    }
+    gc.restore();
+    drawPivotHandle(gc, pivotScreenPos ?? center, activeOrHoveredHandle === "pivot", dpr);
+    return;
+  }
+
+  if (!screenCenter || screenW === null || screenH === null || rotation === null) {
+    return;
+  }
+
   gc.save();
   gc.translate(screenCenter.x, screenCenter.y);
   gc.rotate(rotation);
@@ -194,7 +319,9 @@ export function drawTransformGizmo(
     { pos: { x: screenW / 2, y: screenH / 2 }, handle: "bottom-right" }
   ];
   for (const { pos, handle } of cornerHandles) {
-    drawSquareHandle(gc, pos, activeOrHoveredHandle === handle, dpr);
+    if (visible.has(handle)) {
+      drawSquareHandle(gc, pos, activeOrHoveredHandle === handle, dpr);
+    }
   }
 
   // Edge midpoint handles
@@ -205,11 +332,15 @@ export function drawTransformGizmo(
     { pos: { x: screenW / 2, y: 0 }, handle: "right" }
   ];
   for (const { pos, handle } of midHandles) {
-    drawSquareHandle(gc, pos, activeOrHoveredHandle === handle, dpr);
+    if (visible.has(handle)) {
+      drawSquareHandle(gc, pos, activeOrHoveredHandle === handle, dpr);
+    }
   }
 
   // Rotation handle
-  drawRotationHandle(gc, screenH, activeOrHoveredHandle === "rotate", dpr);
+  if (visible.has("rotate")) {
+    drawRotationHandle(gc, screenH, activeOrHoveredHandle === "rotate", dpr);
+  }
 
   gc.restore();
 

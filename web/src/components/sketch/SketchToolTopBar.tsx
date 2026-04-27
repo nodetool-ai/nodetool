@@ -93,7 +93,11 @@ export interface SketchToolTopBarProps {
   onTransformCancel?: () => void;
   onTransformReset?: () => void;
   transformAutoSelect?: boolean;
+  transformMode?: "auto" | "scale" | "distort" | "skew" | "perspective";
   onTransformAutoSelectChange?: (enabled: boolean) => void;
+  onTransformModeChange?: (
+    mode: "auto" | "scale" | "distort" | "skew" | "perspective"
+  ) => void;
   moveAutoSelect?: boolean;
   onMoveAutoSelectChange?: (enabled: boolean) => void;
   segmentSettings?: SegmentSettings;
@@ -148,7 +152,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
   onTransformCancel,
   onTransformReset,
   transformAutoSelect,
+  transformMode,
   onTransformAutoSelectChange,
+  onTransformModeChange,
   moveAutoSelect,
   onMoveAutoSelectChange,
   segmentSettings,
@@ -206,7 +212,9 @@ const SketchToolTopBar: React.FC<SketchToolTopBarProps> = ({
         onTransformCancel={onTransformCancel}
         onTransformReset={onTransformReset}
         transformAutoSelect={transformAutoSelect}
+        transformMode={transformMode}
         onTransformAutoSelectChange={onTransformAutoSelectChange}
+        onTransformModeChange={onTransformModeChange}
         moveAutoSelect={moveAutoSelect}
         onMoveAutoSelectChange={onMoveAutoSelectChange}
         segmentSettings={segmentSettings}

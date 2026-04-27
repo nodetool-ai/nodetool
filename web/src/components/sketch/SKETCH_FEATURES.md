@@ -90,19 +90,20 @@ Completed Phase 1 work, display/interactions core, move/transform hardening, and
 
 Preview ownership, spring-loaded move lifecycle, resolved gizmo bounds, preview-vs-commit parity, transform targeting, rotation, and pivot behavior are complete and archived in `SKETCH_FEATURES_DONE.md`.
 
-- [ ] support distort behavior on corner handles
-- [ ] support skew behavior on side handles
+- [x] support distort behavior on corner handles
+- [x] support skew behavior on side handles
 - [ ] support perspective behavior
-- [ ] add options for perspective, skew, and related advanced modes in the transform UI
+- [x] add options for perspective, skew, and related advanced modes in the transform UI
+  - Added Photoshop-style transform mode controls (`Auto`, `Scale`, `Distort`, `Skew`) and kept `Perspective` visible-but-disabled until the transform baking path moves beyond affine-only support.
 - [ ] add warp mode
 - [ ] support repeat last transformation and repeat-on-copy workflows if the core transform model still supports them cleanly
 
 Modifier-key target behavior to preserve while implementing the items above:
 
-- [ ] `Ctrl` / `Cmd` -> independent vertex control (`Distort` on corners, `Skew` on edges)
+- [x] `Ctrl` / `Cmd` -> independent vertex control (`Distort` on corners, `Skew` on edges)
 - [ ] `Shift` -> constrain (proportional scale, 15-degree rotation snap, axis-lock distortion)
-  - **Partial:** Proportional scale (Shift on corner handles) and 15° rotation snap (Shift while rotating) are implemented. Remaining: axis-lock distortion (requires distort mode which does not exist yet).
-- [ ] `Ctrl+Shift` / `Cmd+Shift` -> skew on sides, constrained distort on corners
+  - **Partial:** Proportional scale (Shift on corner handles), 15° rotation snap (Shift while rotating), and axis-lock distortion while using Photoshop-style corner distort are implemented.
+- [x] `Ctrl+Shift` / `Cmd+Shift` -> skew on sides, constrained distort on corners
 - [ ] `Ctrl+Alt+Shift` / `Cmd+Option+Shift` -> perspective
 
 ### 2.4 - Selection context menu
