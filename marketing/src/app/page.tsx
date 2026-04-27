@@ -14,9 +14,6 @@ const OwnershipSection = dynamic(
   () => import("../components/OwnershipSection"),
   { ssr: false }
 );
-const UseCasesSection = dynamic(() => import("../components/UseCasesSection"), {
-  ssr: false,
-});
 const DeploySection = dynamic(() => import("../components/DeploySection"), {
   ssr: false,
 });
@@ -561,9 +558,6 @@ export default function Home() {
 
         {/* Your tools, your data, your way */}
         <OwnershipSection reducedMotion={reducedMotion} />
-
-        {/* Use Cases */}
-        <UseCasesSection reducedMotion={reducedMotion} />
 
         {/* Local Model Support - MLX & GGML/GGUF */}
         <ModelSupportSection reducedMotion={reducedMotion} />
