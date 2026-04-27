@@ -137,12 +137,7 @@ describe("TransformTargetSet", () => {
 
   it("computeTargetExtents respects the targeted layer transform", () => {
     ts.setSingle("b", makeBounds(0, 0, 50, 50));
-    const result = ts.computeTargetExtents((id) => {
-      if (id === "b") {
-        return makeTransform(100, 100);
-      }
-      return makeTransform(0, 0);
-    });
+    const result = ts.computeTargetExtents(() => makeTransform(100, 100));
     expect(result).not.toBeNull();
     expect(result).toEqual({ x: 100, y: 100, width: 50, height: 50 });
   });
