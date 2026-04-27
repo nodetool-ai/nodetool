@@ -1,3 +1,6 @@
+import { listModels } from "@huggingface/hub";
+import type { PipelineType } from "@huggingface/hub";
+
 import { createLogger } from "@nodetool/config";
 import { BaseProvider } from "./base-provider.js";
 import type { Chunk } from "@nodetool/protocol";
@@ -46,17 +49,15 @@ async function getHfInference(apiKey: string): Promise<any> {
 }
 
 // ---------------------------------------------------------------------------
-// Live HF Hub model discovery — queries warm inference models by pipeline tag,
-// sorted by likes, limited to 100 results, cached for 10 minutes.
+// Live HF Hub model discovery — queries inference-capable models by pipeline
+// tag, sorted by likes, limited to 100 results, cached for 10 minutes.
 // ---------------------------------------------------------------------------
 
-const HF_API_BASE = "https://huggingface.co/api/models";
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const MODEL_LIMIT = 100;
 
 interface HfModelEntry {
   id: string;
-  modelId?: string;
   likes?: number;
   pipeline_tag?: string;
 }
@@ -66,27 +67,32 @@ interface CachedResult<T> {
   timestamp: number;
 }
 
-const _modelCache = new Map<string, CachedResult<unknown[]>>();
+const _modelCache = new Map<string, CachedResult<HfModelEntry[]>>();
 
-async function fetchHfModels(pipelineTag: string): Promise<HfModelEntry[]> {
+async function fetchHfModels(pipelineTag: PipelineType): Promise<HfModelEntry[]> {
   const cached = _modelCache.get(pipelineTag);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached.data as HfModelEntry[];
+    return cached.data;
   }
 
-  const url = `${HF_API_BASE}?pipeline_tag=${encodeURIComponent(pipelineTag)}&inference=warm&sort=likes&direction=-1&limit=${MODEL_LIMIT}`;
   try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      log.warn(`HF API returned ${res.status} for ${pipelineTag}`);
-      return (cached?.data as HfModelEntry[]) ?? [];
+    const data: HfModelEntry[] = [];
+    for await (const m of listModels({
+      search: { task: pipelineTag },
+      sort: "likes",
+      limit: MODEL_LIMIT
+    })) {
+      data.push({
+        id: m.name,
+        likes: m.likes,
+        pipeline_tag: m.task
+      });
     }
-    const data = (await res.json()) as HfModelEntry[];
     _modelCache.set(pipelineTag, { data, timestamp: Date.now() });
     return data;
   } catch (err) {
     log.warn(`Failed to fetch HF models for ${pipelineTag}: ${err}`);
-    return (cached?.data as HfModelEntry[]) ?? [];
+    return cached?.data ?? [];
   }
 }
 

@@ -21,6 +21,8 @@ function fetchMockOnce(response: MockResponse) {
     ok: response.ok ?? true,
     status: response.status ?? 200,
     statusText: response.statusText ?? "OK",
+    headers: new Headers(),
+    url: "",
     json: async () => response.body,
     text: async () =>
       typeof response.body === "string"
@@ -90,11 +92,11 @@ describe("searchHfHub", () => {
     expect(results[0]!.repo_id).toBe("owner/my-model");
   });
 
-  it("uses library=gguf for SUPPORTED_MODEL_TYPES entries", async () => {
+  it("filters by gguf tag for SUPPORTED_MODEL_TYPES entries", async () => {
     const fn = fetchMockOnce({ body: [] });
     await searchHfHub({ modelType: "qwen2" });
     const url = String(fn.mock.calls[0]![0]);
-    expect(url).toContain("library=gguf");
+    expect(url).toContain("filter=gguf");
     expect(url).toMatch(/search=qwen2/);
   });
 
@@ -151,6 +153,8 @@ describe("listAllHfModels", () => {
         ok: true,
         status: 200,
         statusText: "OK",
+        headers: new Headers(),
+        url: "",
         json: async () => body,
         text: async () => JSON.stringify(body)
       };
@@ -174,6 +178,8 @@ describe("listAllHfModels", () => {
           ok: false,
           status: 500,
           statusText: "Internal Server Error",
+          headers: new Headers(),
+          url: "",
           json: async () => ({}),
           text: async () => "boom"
         };
@@ -183,6 +189,8 @@ describe("listAllHfModels", () => {
         ok: true,
         status: 200,
         statusText: "OK",
+        headers: new Headers(),
+        url: "",
         json: async () => body,
         text: async () => JSON.stringify(body)
       };
