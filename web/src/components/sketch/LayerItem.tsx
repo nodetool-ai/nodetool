@@ -195,6 +195,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           <Box className="layer-thumbnail-empty" />
         )}
 
+        {/* Disable the ripple here so press-and-drag visibility toggling stays stable. */}
         <IconButton
           size="small"
           disableRipple

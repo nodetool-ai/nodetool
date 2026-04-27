@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import React from "react";
-import { act, render, screen, createEvent, fireEvent } from "@testing-library/react";
+import { render, screen, createEvent, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import SketchLayersPanel from "../SketchLayersPanel";
@@ -25,14 +25,14 @@ function buildPanelProps({
   const theme = createTheme({
     cssVariables: true
   });
-  const layers = Array.from({ length: layerCount }, (_, index) => {
-    const layer = createDefaultLayer(`Layer ${index + 1}`, "raster", 64, 64);
-    layer.blendMode = index === activeLayerIndex ? blendMode : "normal";
-    if (visibleByIndex?.[index] !== undefined) {
-      layer.visible = visibleByIndex[index] ?? true;
-    }
-    return layer;
-  });
+    const layers = Array.from({ length: layerCount }, (_, index) => {
+      const layer = createDefaultLayer(`Layer ${index + 1}`, "raster", 64, 64);
+      layer.blendMode = index === activeLayerIndex ? blendMode : "normal";
+      if (visibleByIndex?.[index] !== undefined) {
+        layer.visible = visibleByIndex[index];
+      }
+      return layer;
+    });
   const layer = layers[activeLayerIndex];
   const props = {
     foregroundColor: "#ffffff",
@@ -189,22 +189,16 @@ describe("SketchLayersPanel merge selected affordances", () => {
 });
 
 describe("SketchLayersPanel visibility drag toggling", () => {
-  it("toggles visibility across multiple layers while dragging over eye buttons", () => {
+  it("toggles visibility across multiple layers while dragging over eye buttons", async () => {
+    const user = userEvent.setup();
     const { layers, props } = renderPanel({ layerCount: 3 });
 
-    act(() => {
-      fireEvent.mouseDown(screen.getByLabelText("Hide Layer 1"), {
-        button: 0,
-        buttons: 1
-      });
-      fireEvent.mouseEnter(screen.getByLabelText("Hide Layer 2"), {
-        buttons: 1
-      });
-      fireEvent.mouseEnter(screen.getByLabelText("Hide Layer 3"), {
-        buttons: 1
-      });
-      fireEvent.mouseUp(window);
-    });
+    await user.pointer([
+      { target: screen.getByLabelText("Hide Layer 1"), keys: "[MouseLeft>]" },
+      { target: screen.getByLabelText("Hide Layer 2") },
+      { target: screen.getByLabelText("Hide Layer 3") },
+      { keys: "[/MouseLeft]" }
+    ]);
 
     expect(props.onToggleVisibility).toHaveBeenCalledTimes(3);
     expect(props.onToggleVisibility).toHaveBeenNthCalledWith(1, layers[0].id);
@@ -212,25 +206,19 @@ describe("SketchLayersPanel visibility drag toggling", () => {
     expect(props.onToggleVisibility).toHaveBeenNthCalledWith(3, layers[2].id);
   });
 
-  it("skips layers that already match the drag visibility target", () => {
+  it("skips layers that already match the drag visibility target", async () => {
+    const user = userEvent.setup();
     const { layers, props } = renderPanel({
       layerCount: 3,
       visibleByIndex: [true, false, true]
     });
 
-    act(() => {
-      fireEvent.mouseDown(screen.getByLabelText("Hide Layer 1"), {
-        button: 0,
-        buttons: 1
-      });
-      fireEvent.mouseEnter(screen.getByLabelText("Show Layer 2"), {
-        buttons: 1
-      });
-      fireEvent.mouseEnter(screen.getByLabelText("Hide Layer 3"), {
-        buttons: 1
-      });
-      fireEvent.mouseUp(window);
-    });
+    await user.pointer([
+      { target: screen.getByLabelText("Hide Layer 1"), keys: "[MouseLeft>]" },
+      { target: screen.getByLabelText("Show Layer 2") },
+      { target: screen.getByLabelText("Hide Layer 3") },
+      { keys: "[/MouseLeft]" }
+    ]);
 
     expect(props.onToggleVisibility).toHaveBeenCalledTimes(2);
     expect(props.onToggleVisibility).toHaveBeenNthCalledWith(1, layers[0].id);

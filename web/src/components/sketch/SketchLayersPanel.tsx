@@ -8,7 +8,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback, useEffect, useState, useRef } from "react";
+import React, { memo, useCallback, useEffect, useState, useRef, useMemo } from "react";
 import {
   sketchSliderSx,
   SKETCH_CHECKERBOARD,
@@ -437,6 +437,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const theme = useTheme();
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const layerById = useMemo(
+    () => new Map(layers.map((layer) => [layer.id, layer])),
+    [layers]
+  );
   const [dropTarget, setDropTarget] = useState<{
     realIdx: number;
     position: DropPosition;
@@ -510,11 +514,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const suppressVisibilityButtonClickRef = useRef<string | null>(null);
 
   const clearVisibilityDragState = useCallback(() => {
+    // Intentionally depends only on refs so the window-level mouseup listener
+    // stays stable across renders while still clearing the current drag session.
     visibilityDragStateRef.current = null;
     suppressVisibilityButtonClickRef.current = null;
   }, []);
 
   useEffect(() => {
+    // `clearVisibilityDragState` is stable by design, so this listener only
+    // needs to mount once while still clearing the latest drag state via refs.
     const handleWindowMouseUp = () => {
       clearVisibilityDragState();
     };
@@ -530,7 +538,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       if (!dragState || dragState.toggledLayerIds.has(layerId)) {
         return;
       }
-      const layer = layers.find((candidate) => candidate.id === layerId);
+      const layer = layerById.get(layerId);
       if (!layer) {
         return;
       }
@@ -539,7 +547,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         onToggleVisibility(layerId);
       }
     },
-    [layers, onToggleVisibility]
+    [layerById, onToggleVisibility]
   );
 
   const handleLayerRowPointerDown = useCallback(
@@ -1161,8 +1169,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               }
               editingLayerId={editingLayerId}
               editName={editName}
-                onLayerRowPointerDown={handleLayerRowPointerDown}
-                onLayerRowClick={handleLayerRowClick}
+              onLayerRowPointerDown={handleLayerRowPointerDown}
+              onLayerRowClick={handleLayerRowClick}
               onVisibilityButtonMouseDown={handleVisibilityButtonMouseDown}
               onVisibilityButtonMouseEnter={handleVisibilityButtonMouseEnter}
               onVisibilityButtonClick={handleVisibilityButtonClick}
