@@ -63,6 +63,7 @@ export const DEFAULT_SAM_MODEL_ID = "facebook/sam2-hiera-large";
 export const DEFAULT_SAM_MODEL_NAME = "SAM 2 (Hiera Large)";
 export const LOCAL_SAM3_MODEL_ID = "facebook/sam3";
 export const LOCAL_SAM3_MODEL_NAME = "Local SAM3";
+export const SAM_INLINE_IMAGE_MAX_BYTES = 1024 * 1024;
 
 export const FAL_SAM_CAPABILITIES: SamBackendCapabilities = {
   automaticSplit: true,

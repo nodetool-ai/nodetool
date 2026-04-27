@@ -27,6 +27,7 @@ import {
   generateLayerId
 } from "../types";
 import { useSketchStore } from "../state";
+import { exportSelectedRasterLayer } from "../serialization";
 import {
   getDefaultSamModelId,
   getSamService,
@@ -60,6 +61,8 @@ export interface UseSegmentationReturn {
     points: SegmentPointPrompt[],
     box: SegmentBoxPrompt | null
   ) => Promise<void>;
+  /** Run Local SAM3 split on the selected raster layer. */
+  splitSelectedLayer: () => Promise<void>;
   /** Cancel a running segmentation. */
   cancelSegmentation: () => void;
   /** Apply the previewed masks → create layer group with cutout layers. */
@@ -85,6 +88,135 @@ export function useSegmentation({
   const [modelInfo, setModelInfo] = useState<SamModelInfo | null>(null);
   const [result, setResult] = useState<SegmentationResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const applyMasksToDocument = useCallback((params: {
+    sourceLayerId: string;
+    runId: string;
+    modelId: string;
+    masks: SegmentationMask[];
+    sourceImageDataUrl?: string;
+    sourceContentBoundsOffset?: { x: number; y: number };
+    sourceTransformOverride?: Layer["transform"];
+    preserveSourceLayer?: boolean;
+    historyLabel: string;
+  }) => {
+    const {
+      sourceLayerId,
+      runId,
+      modelId,
+      masks,
+      sourceImageDataUrl,
+      sourceContentBoundsOffset,
+      sourceTransformOverride,
+      preserveSourceLayer = false,
+      historyLabel
+    } = params;
+
+    if (masks.length === 0) {
+      return;
+    }
+
+    const store = useSketchStore.getState();
+    const doc = store.document;
+    const settings = doc.toolSettings.segment;
+
+    const groupLayer = createDefaultGroupLayer("Segmented Objects");
+    const maskLayers: Layer[] = masks.map((mask, index) => {
+      const layer = createDefaultLayer(
+        mask.label || `Object ${index + 1}`,
+        settings.outputCutouts ? "raster" : "mask",
+        doc.canvas.width,
+        doc.canvas.height
+      );
+      layer.id = generateLayerId();
+      layer.parentId = groupLayer.id;
+      layer.contentBounds = sourceContentBoundsOffset
+        ? {
+            x: sourceContentBoundsOffset.x + mask.bounds.x,
+            y: sourceContentBoundsOffset.y + mask.bounds.y,
+            width: mask.bounds.width,
+            height: mask.bounds.height
+          }
+        : { ...mask.bounds };
+      layer.transform = sourceTransformOverride
+        ? { ...sourceTransformOverride }
+        : { x: 0, y: 0 };
+      layer.segmentationMeta = {
+        segmentationRunId: runId,
+        sourceLayerId,
+        modelId,
+        confidence: mask.confidence,
+        maskIndex: index
+      };
+      return layer;
+    });
+
+    const sourceIdx = doc.layers.findIndex((layer) => layer.id === sourceLayerId);
+    const insertIdx = sourceIdx >= 0 ? sourceIdx + 1 : doc.layers.length;
+    const newLayers = [...doc.layers];
+
+    if (!preserveSourceLayer) {
+      if (settings.sourceLayerAction === "hide" && sourceIdx >= 0) {
+        newLayers[sourceIdx] = { ...newLayers[sourceIdx], visible: false };
+      } else if (settings.sourceLayerAction === "lock" && sourceIdx >= 0) {
+        newLayers[sourceIdx] = { ...newLayers[sourceIdx], locked: true };
+      }
+    }
+
+    newLayers.splice(insertIdx, 0, groupLayer, ...maskLayers);
+
+    store.setDocument({
+      ...doc,
+      layers: newLayers,
+      activeLayerId: maskLayers[0]?.id ?? doc.activeLayerId
+    });
+
+    const canvas = canvasRef.current;
+    if (canvas && settings.outputCutouts) {
+      const sourceData = sourceImageDataUrl ?? canvas.getLayerData(sourceLayerId);
+      if (sourceData) {
+        for (let index = 0; index < maskLayers.length; index += 1) {
+          const mask = masks[index];
+          const layer = maskLayers[index];
+          if (!mask.maskDataUrl) {
+            continue;
+          }
+
+          canvas.setLayerData(layer.id, mask.maskDataUrl, layer.contentBounds);
+          store.updateLayerData(layer.id, mask.maskDataUrl);
+
+          void generateCutoutDataUrl(
+            sourceData,
+            mask.maskDataUrl,
+            mask.bounds,
+            settings.maskFeather
+          )
+            .then((cutout) => {
+              if (!cutout) {
+                return;
+              }
+              canvas.setLayerData(layer.id, cutout, layer.contentBounds);
+              store.updateLayerData(layer.id, cutout);
+            })
+            .catch((err) => {
+              console.warn("[useSegmentation] Cutout generation failed:", err);
+            });
+        }
+      }
+    } else if (canvas) {
+      for (let index = 0; index < maskLayers.length; index += 1) {
+        const mask = masks[index];
+        const layer = maskLayers[index];
+        if (!mask.maskDataUrl) {
+          continue;
+        }
+        canvas.setLayerData(layer.id, mask.maskDataUrl, layer.contentBounds);
+        store.updateLayerData(layer.id, mask.maskDataUrl);
+      }
+    }
+
+    pushHistory(historyLabel);
+  }, [canvasRef, pushHistory]);
 
   // ─── Check model availability ───────────────────────────────────────────
 
@@ -175,6 +307,83 @@ export function useSegmentation({
     [canvasRef]
   );
 
+  const splitSelectedLayer = useCallback(async () => {
+    const store = useSketchStore.getState();
+    const doc = store.document;
+    const selectedLayerIds =
+      store.selectedLayerIds.length > 0
+        ? [...store.selectedLayerIds]
+        : [doc.activeLayerId];
+
+    if (selectedLayerIds.length !== 1) {
+      return;
+    }
+
+    const sourceLayerId = selectedLayerIds[0];
+    const sourceLayer = doc.layers.find((layer) => layer.id === sourceLayerId);
+    if (!sourceLayer || sourceLayer.type !== "raster") {
+      return;
+    }
+
+    const exportedLayer = exportSelectedRasterLayer(doc, sourceLayerId);
+    if (!exportedLayer) {
+      return;
+    }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setStatus("inferring");
+
+    try {
+      const backend = doc.toolSettings.segment.backend;
+      const service = getSamService(backend);
+      const response = await service.runSegmentation(
+        {
+          imageDataUrl: exportedLayer.imageDataUrl,
+          pointPrompts: [],
+          boxPrompt: null,
+          settings: doc.toolSettings.segment
+        },
+        controller.signal
+      );
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (response.masks.length === 0) {
+        setStatus("idle");
+        return;
+      }
+
+      applyMasksToDocument({
+        sourceLayerId,
+        runId: generateSegmentationRunId(),
+        modelId: response.modelId ?? getDefaultSamModelId(backend),
+        masks: response.masks,
+        sourceImageDataUrl: exportedLayer.imageDataUrl,
+        sourceContentBoundsOffset: {
+          x: exportedLayer.sourceMetadata.contentBounds.x,
+          y: exportedLayer.sourceMetadata.contentBounds.y
+        },
+        sourceTransformOverride: exportedLayer.sourceMetadata.layerTransform,
+        preserveSourceLayer: true,
+        historyLabel: "Split Selected Layer"
+      });
+      setResult(null);
+      setStatus("idle");
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setStatus("idle");
+        return;
+      }
+      console.error("[useSegmentation] Split selected layer failed:", err);
+      setStatus("error");
+    }
+  }, [applyMasksToDocument]);
+
   // ─── Cancel ─────────────────────────────────────────────────────────────
 
   const cancelSegmentation = useCallback(() => {
@@ -190,124 +399,17 @@ export function useSegmentation({
       return;
     }
 
-    const store = useSketchStore.getState();
-    const doc = store.document;
-    const settings = doc.toolSettings.segment;
-
-    // Create the group layer
-    const groupLayer = createDefaultGroupLayer("Segmented Objects");
-
-    // Create one raster layer per mask with segmentation metadata
-    const maskLayers: Layer[] = result.masks.map(
-      (mask: SegmentationMask, i: number) => {
-        const layer = createDefaultLayer(
-          mask.label || `Object ${i + 1}`,
-          settings.outputCutouts ? "raster" : "mask",
-          doc.canvas.width,
-          doc.canvas.height
-        );
-        layer.id = generateLayerId();
-        layer.parentId = groupLayer.id;
-        layer.contentBounds = { ...mask.bounds };
-        layer.transform = { x: 0, y: 0 };
-        layer.segmentationMeta = {
-          segmentationRunId: result.runId,
-          sourceLayerId: result.sourceLayerId,
-          modelId: result.modelId,
-          confidence: mask.confidence,
-          maskIndex: i
-        };
-        return layer;
-      }
-    );
-
-    // Insert group + children into the document
-    // Place them above the source layer
-    const sourceIdx = doc.layers.findIndex(
-      (l) => l.id === result.sourceLayerId
-    );
-    const insertIdx = sourceIdx >= 0 ? sourceIdx + 1 : doc.layers.length;
-
-    const newLayers = [...doc.layers];
-
-    // Apply source layer action
-    if (settings.sourceLayerAction === "hide" && sourceIdx >= 0) {
-      newLayers[sourceIdx] = { ...newLayers[sourceIdx], visible: false };
-    } else if (settings.sourceLayerAction === "lock" && sourceIdx >= 0) {
-      newLayers[sourceIdx] = { ...newLayers[sourceIdx], locked: true };
-    }
-
-    newLayers.splice(insertIdx, 0, groupLayer, ...maskLayers);
-
-    // Update document with new layers
-    store.setDocument({
-      ...doc,
-      layers: newLayers,
-      activeLayerId: maskLayers[0]?.id ?? doc.activeLayerId
+    applyMasksToDocument({
+      sourceLayerId: result.sourceLayerId,
+      runId: result.runId,
+      modelId: result.modelId,
+      masks: result.masks,
+      historyLabel: "Segment Objects"
     });
-
-    // Set cutout image data on each mask layer via canvas ref
-    const canvas = canvasRef.current;
-    if (canvas && settings.outputCutouts) {
-      // Generate cutouts by masking source pixels through each mask
-      const sourceData = canvas.getLayerData(result.sourceLayerId);
-      if (sourceData) {
-        for (let i = 0; i < maskLayers.length; i++) {
-          const mask = result.masks[i];
-          if (mask.maskDataUrl) {
-            // Generate cutout asynchronously - set raw mask data first as fallback
-            canvas.setLayerData(maskLayers[i].id, mask.maskDataUrl, {
-              x: mask.bounds.x,
-              y: mask.bounds.y,
-              width: mask.bounds.width,
-              height: mask.bounds.height
-            });
-            store.updateLayerData(maskLayers[i].id, mask.maskDataUrl);
-
-            // Try to generate a proper cutout with optional feathering
-            void generateCutoutDataUrl(
-              sourceData,
-              mask.maskDataUrl,
-              mask.bounds,
-              settings.maskFeather
-            ).then((cutout) => {
-              if (cutout) {
-                canvas.setLayerData(maskLayers[i].id, cutout, {
-                  x: mask.bounds.x,
-                  y: mask.bounds.y,
-                  width: mask.bounds.width,
-                  height: mask.bounds.height
-                });
-                store.updateLayerData(maskLayers[i].id, cutout);
-              }
-            }).catch((err) => {
-              // Cutout generation is best-effort; mask data is already set as fallback
-              console.warn("[useSegmentation] Cutout generation failed:", err);
-            });
-          }
-        }
-      }
-    } else if (canvas) {
-      // Mask-only mode: set mask data directly
-      for (let i = 0; i < maskLayers.length; i++) {
-        const mask = result.masks[i];
-        if (mask.maskDataUrl) {
-          canvas.setLayerData(maskLayers[i].id, mask.maskDataUrl, {
-            x: mask.bounds.x,
-            y: mask.bounds.y,
-            width: mask.bounds.width,
-            height: mask.bounds.height
-          });
-          store.updateLayerData(maskLayers[i].id, mask.maskDataUrl);
-        }
-      }
-    }
-
-    pushHistory("Segment Objects");
 
     setResult(null);
     setStatus("idle");
-  }, [result, canvasRef, pushHistory]);
+  }, [applyMasksToDocument, result]);
 
   // ─── Discard ────────────────────────────────────────────────────────────
 
@@ -350,6 +452,7 @@ export function useSegmentation({
     result,
     checkModel,
     runSegmentation,
+    splitSelectedLayer,
     cancelSegmentation,
     applyResult,
     discardResult,

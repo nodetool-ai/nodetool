@@ -17,6 +17,7 @@
 
 import { act } from "@testing-library/react";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { useAssetStore } from "../../../stores/AssetStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import {
@@ -1141,6 +1142,66 @@ describe("NodeExecutor", () => {
 
     SamServiceFal.resizeForInference = origResize;
     setNodeExecutor(new WebSocketNodeExecutor());
+  });
+
+  it("uploads large Local SAM3 exports as assets instead of inline data", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
+    const { SAM_INLINE_IMAGE_MAX_BYTES } = require("../sam/SamService");
+    const SamServiceFal = require("../sam/SamServiceFal");
+    const oversizedBase64 = "a".repeat(
+      Math.ceil(((SAM_INLINE_IMAGE_MAX_BYTES + 1) * 4) / 3)
+    );
+
+    const origResize = SamServiceFal.resizeForInference;
+    SamServiceFal.resizeForInference = jest.fn().mockResolvedValue({
+      dataUrl: `data:image/png;base64,${oversizedBase64}`,
+      scale: 1
+    });
+
+    const originalCreateAsset = useAssetStore.getState().createAsset;
+    const createAsset = jest.fn().mockResolvedValue({
+      id: "asset-123",
+      get_url: "/assets/asset-123",
+      name: "sam-input.png",
+      content_type: "image/png"
+    });
+    useAssetStore.setState({ createAsset: createAsset as any });
+
+    const mockExecutor = {
+      execute: jest.fn().mockResolvedValue({
+        success: true,
+        outputs: { sam_node: { output: [] } }
+      })
+    };
+
+    setNodeExecutor(mockExecutor);
+
+    try {
+      const service = new SamServiceNode("local-sam3");
+      await service.runSegmentation({
+        imageDataUrl: "data:image/png;base64,smallimage",
+        pointPrompts: [],
+        boxPrompt: null,
+        settings: {
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }
+      });
+
+      const graph = mockExecutor.execute.mock.calls[0][0];
+      expect(createAsset).toHaveBeenCalledTimes(1);
+      expect(graph.nodes[0].data.image).toMatchObject({
+        type: "image",
+        asset_id: "asset-123",
+        data: null
+      });
+    } finally {
+      useAssetStore.setState({ createAsset: originalCreateAsset });
+      SamServiceFal.resizeForInference = origResize;
+      setNodeExecutor(new WebSocketNodeExecutor());
+    }
   });
 });
 

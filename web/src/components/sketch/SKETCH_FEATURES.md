@@ -272,7 +272,7 @@ Check:
 - [x] Cancelling a slow local run cancels the backend job.
 - [x] Tests cover Local SAM3 run message shape, output collection, success, failure, abort, timeout, and cleanup.
 
-### [ ] 3.3 Implement Split Selected Layer
+### [x] 3.3 Implement Split Selected Layer
 
 Files:
 - `web/src/components/sketch/tools/SegmentTool.ts`
@@ -282,22 +282,22 @@ Files:
 - `web/src/components/sketch/types/tools.ts`
 
 Steps:
-- [ ] Add a "Split selected layer" action.
-- [ ] Require exactly one active/selected raster layer.
-- [ ] Enable this action from the Local SAM3 ready state.
-- [ ] Add a selected-raster-layer export helper that reads the layer's full `data` and `contentBounds`, including off-canvas pixels.
-- [ ] Return source metadata from that helper: layer id, layer transform, content bounds, canvas size, and document-space origin.
-- [ ] Build the `MaskGeneration` node input using the exported layer image plus `model: facebook/sam3`, `points_per_side`, and `pred_iou_thresh`.
-- [ ] Define a `SAM_INLINE_IMAGE_MAX_BYTES` threshold in the SAM service.
-- [ ] Send exported layer images at or below `SAM_INLINE_IMAGE_MAX_BYTES` as inline image data.
-- [ ] For large exported layer images, create or reuse a NodeTool image asset reference instead of sending base64 inline data.
-- [ ] Keep the original layer unchanged.
+- [x] Add a "Split selected layer" action.
+- [x] Require exactly one active/selected raster layer.
+- [x] Enable this action from the Local SAM3 ready state.
+- [x] Add a selected-raster-layer export helper that reads the layer's full `data` and `contentBounds`, including off-canvas pixels.
+- [x] Return source metadata from that helper: layer id, layer transform, content bounds, canvas size, and document-space origin.
+- [x] Build the `MaskGeneration` node input using the exported layer image plus `model: facebook/sam3`, `points_per_side`, and `pred_iou_thresh`.
+- [x] Define a `SAM_INLINE_IMAGE_MAX_BYTES` threshold in the SAM service.
+- [x] Send exported layer images at or below `SAM_INLINE_IMAGE_MAX_BYTES` as inline image data.
+- [x] For large exported layer images, create or reuse a NodeTool image asset reference instead of sending base64 inline data.
+- [x] Keep the original layer unchanged.
 
 Check:
-- [ ] One selected layer can be split into new layers with one action.
-- [ ] Unavailable Local SAM3 shows a clear hint instead of a broken action.
-- [ ] Off-canvas source pixels are included.
-- [ ] Original layer is still present and editable.
+- [x] One selected layer can be split into new layers with one action.
+- [x] Unavailable Local SAM3 shows a clear hint instead of a broken action.
+- [x] Off-canvas source pixels are included.
+- [x] Original layer is still present and editable.
 
 ### [ ] 3.4 Normalize Local SAM3 Mask Outputs
 

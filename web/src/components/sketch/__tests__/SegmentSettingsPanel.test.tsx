@@ -5,6 +5,7 @@ import { DEFAULT_SEGMENT_SETTINGS } from "../types";
 import type { SamModelInfo } from "../sam";
 import { LOCAL_SAM3_CAPABILITIES } from "../sam";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { useSketchStore } from "../state";
 
 const baseLocalSam3Info: SamModelInfo = {
   status: "not-installed",
@@ -20,10 +21,14 @@ const baseLocalSam3Info: SamModelInfo = {
 describe("SegmentSettingsPanel", () => {
   let originalStartDownload: ReturnType<typeof useModelDownloadStore.getState>["startDownload"];
   let originalCancelDownload: ReturnType<typeof useModelDownloadStore.getState>["cancelDownload"];
+  let originalSelectedLayerIds = useSketchStore.getState().selectedLayerIds;
+  let originalDocument = useSketchStore.getState().document;
 
   beforeAll(() => {
     originalStartDownload = useModelDownloadStore.getState().startDownload;
     originalCancelDownload = useModelDownloadStore.getState().cancelDownload;
+    originalSelectedLayerIds = useSketchStore.getState().selectedLayerIds;
+    originalDocument = useSketchStore.getState().document;
   });
 
   beforeEach(() => {
@@ -31,6 +36,10 @@ describe("SegmentSettingsPanel", () => {
       downloads: {},
       startDownload: originalStartDownload,
       cancelDownload: originalCancelDownload
+    });
+    useSketchStore.setState({
+      selectedLayerIds: [],
+      document: originalDocument
     });
   });
 
@@ -40,6 +49,10 @@ describe("SegmentSettingsPanel", () => {
         downloads: {},
         startDownload: originalStartDownload,
         cancelDownload: originalCancelDownload
+      });
+      useSketchStore.setState({
+        selectedLayerIds: originalSelectedLayerIds,
+        document: originalDocument
       });
     });
   });
@@ -101,7 +114,7 @@ describe("SegmentSettingsPanel", () => {
     expect(
       screen.queryByRole("button", { name: "Download Local SAM3" })
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Segment" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
   });
 
   it("shows a Local SAM3 download action when the model is missing", async () => {
@@ -171,7 +184,7 @@ describe("SegmentSettingsPanel", () => {
     );
 
     expect(screen.getByText(/Local SAM3 is downloading/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Segment" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
   });
 
   it("shows a cancel action while Local SAM3 is downloading", async () => {
@@ -217,5 +230,48 @@ describe("SegmentSettingsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Cancel download" }));
 
     expect(cancelDownload).toHaveBeenCalledWith("facebook/sam3");
+  });
+
+  it("disables split when multiple layers are selected", () => {
+    const document = useSketchStore.getState().document;
+    const extraLayer = {
+      ...document.layers[0],
+      id: "layer-2",
+      name: "Second Layer"
+    };
+    useSketchStore.setState({
+      document: {
+        ...document,
+        layers: [...document.layers, extraLayer]
+      },
+      selectedLayerIds: [document.layers[0].id, extraLayer.id]
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available"
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+    expect(
+      screen.getByText("Select exactly one raster layer to split.")
+    ).toBeInTheDocument();
   });
 });

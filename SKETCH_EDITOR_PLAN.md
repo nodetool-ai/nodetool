@@ -253,7 +253,7 @@ Check:
 - [x] Cancelling a slow local run cancels the backend job.
 - [x] Tests cover Local SAM3 run message shape, output collection, success, failure, abort, timeout, and cleanup.
 
-### [ ] 3.3 Implement Split Selected Layer
+### [x] 3.3 Implement Split Selected Layer
 
 Files:
 - `web/src/components/sketch/tools/SegmentTool.ts`
@@ -263,21 +263,21 @@ Files:
 - `web/src/components/sketch/types/tools.ts`
 
 Steps:
-- [ ] Add a "Split selected layer" action.
-- [ ] Require exactly one active/selected raster layer.
-- [ ] Enable this action when Local SAM3 is available.
-- [ ] Export the full layer content, including off-canvas pixels.
-- [ ] Preserve source layer id, layer transform, content bounds, canvas size, and document-space origin.
-- [ ] Build the Local SAM3 graph input from that source.
-- [ ] Use inline image data only for small sources.
-- [ ] Use existing image/asset references for large sources.
-- [ ] Keep the original layer unchanged.
+- [x] Add a "Split selected layer" action.
+- [x] Require exactly one active/selected raster layer.
+- [x] Enable this action when Local SAM3 is available.
+- [x] Export the full layer content, including off-canvas pixels.
+- [x] Preserve source layer id, layer transform, content bounds, canvas size, and document-space origin.
+- [x] Build the Local SAM3 graph input from that source.
+- [x] Use inline image data only for small sources.
+- [x] Use existing image/asset references for large sources.
+- [x] Keep the original layer unchanged.
 
 Check:
-- [ ] One selected layer can be split into new layers with one action.
-- [ ] Unavailable Local SAM3 shows a clear hint instead of a broken action.
-- [ ] Off-canvas source pixels are included.
-- [ ] Original layer is still present and editable.
+- [x] One selected layer can be split into new layers with one action.
+- [x] Unavailable Local SAM3 shows a clear hint instead of a broken action.
+- [x] Off-canvas source pixels are included.
+- [x] Original layer is still present and editable.
 
 ### [ ] 3.4 Normalize Local SAM3 Mask Outputs
 
