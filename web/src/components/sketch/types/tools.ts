@@ -458,7 +458,8 @@ export const DEFAULT_MOVE_SETTINGS: MoveSettings = {
  * - `scale`: force standard scale/rotate behavior.
  * - `distort`: treat corner drags as affine corner distortions.
  * - `skew`: treat edge drags as affine skew/shear adjustments.
- * - `perspective`: reserved for future non-affine perspective work.
+ * - `perspective`: tied-corner perspective drags that bake through the shared
+ *   quad warp path on commit.
  */
 export type TransformMode =
   | "auto"

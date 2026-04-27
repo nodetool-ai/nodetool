@@ -53,7 +53,10 @@ export const PIVOT_HIT_RADIUS = GIZMO_PIVOT_HIT_RADIUS;
 export const PIVOT_SNAP_DISTANCE = GIZMO_PIVOT_SNAP_DISTANCE;
 
 function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
-  return Boolean(transform.matrix && transform.mode);
+  return Boolean(
+    (transform.matrix && transform.mode && transform.mode !== "perspective") ||
+      (transform.mode === "perspective" && transform.quad)
+  );
 }
 
 function midpoint(a: Point, b: Point): Point {

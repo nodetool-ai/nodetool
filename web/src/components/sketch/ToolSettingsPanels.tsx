@@ -1188,12 +1188,10 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           <ToggleButton value="skew" sx={toggleButtonSmallSx}>
             Skew
           </ToggleButton>
-          <Tooltip title="Perspective is still pending while transform baking stays affine-only.">
-            <span>
-              <ToggleButton value="perspective" disabled sx={toggleButtonSmallSx}>
-                Persp
-              </ToggleButton>
-            </span>
+          <Tooltip title="Perspective ties opposite edges together for Photoshop-style corner drags.">
+            <ToggleButton value="perspective" sx={toggleButtonSmallSx}>
+              Persp
+            </ToggleButton>
           </Tooltip>
         </ToggleButtonGroup>
       </Box>

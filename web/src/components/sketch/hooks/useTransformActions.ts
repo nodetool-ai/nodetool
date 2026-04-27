@@ -78,7 +78,7 @@ function cloneTransform(transform: LayerTransform): LayerTransform {
 function stripAdvancedTransformFields(
   transform: LayerTransform
 ): LayerTransform {
-  const { matrix: _matrix, mode: _mode, ...rest } = transform;
+  const { matrix: _matrix, mode: _mode, quad: _quad, ...rest } = transform;
   return rest;
 }
 

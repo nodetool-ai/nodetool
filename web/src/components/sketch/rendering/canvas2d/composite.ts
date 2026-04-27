@@ -20,6 +20,7 @@ import {
 import { blendModeToComposite, drawCheckerboard } from "../../drawingUtils";
 import { getLayerCompositeOffset } from "../../painting/layerBounds";
 import type { ActiveStrokeInfo, DirtyRect, ResolvedLayerBitmap } from "../types";
+import { drawImageToQuad } from "./quadTransform";
 
 // ─── Type alias for the FX evaluator callback ───────────────────────────────
 
@@ -48,10 +49,24 @@ export function drawWithTransform(
       scaleY?: number;
       rotation?: number;
       matrix?: [number, number, number, number, number, number];
-      mode?: "distort" | "skew";
+      mode?: "distort" | "skew" | "perspective";
+      quad?: Array<{ x: number; y: number }>;
     };
   }
 ): void {
+  if (layer.transform.mode === "perspective" && layer.transform.quad) {
+    drawImageToQuad(
+      ctx,
+      source,
+      layer.transform.quad.map((point) => ({ x: point.x, y: point.y })) as [
+        { x: number; y: number },
+        { x: number; y: number },
+        { x: number; y: number },
+        { x: number; y: number }
+      ]
+    );
+    return;
+  }
   if (layer.transform.matrix && layer.transform.mode) {
     const [a, b, c, d, e, f] = layer.transform.matrix;
     const originX = compositeOffset.x - (layer.transform.x ?? 0);
