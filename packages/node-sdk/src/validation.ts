@@ -5,17 +5,24 @@
  * before a workflow is executed. Properties supplied via incoming edges are
  * skipped (the value will be produced at runtime by an upstream node).
  *
- * Two checks are run for each declared property:
+ * Three checks are run for each declared property:
  *
  *   1. `required: true` — the value must be present and non-empty.
  *   2. Model fields (`type` ending in `_model`) — if the value carries a
  *      `provider`, it must not be the sentinel `"empty"` and `id` must be
  *      a non-empty string. This catches the very common "user forgot to
  *      pick a model" case for LLM/agent nodes.
+ *   3. Required asset fields (`audio`, `image`, `video`, `document`,
+ *      `dataframe`, `model_3d`, `folder`, `font`, `text`, `asset`) — when
+ *      `required: true`, the value must carry a `uri`, `asset_id`,
+ *      `temp_id`, or inline `data`. The default placeholder
+ *      (`{ type: "audio", uri: "", asset_id: null, data: null }`) otherwise
+ *      looks "non-empty" to the generic emptiness check, so without this
+ *      branch a `required: true` audio/image input would slip through.
  *
  * The validator works against the @prop metadata on a node class, so any
- * node that uses `@prop({ required: true, ... })` or a model-typed field
- * gets validation for free with no per-node code.
+ * node that uses `@prop({ required: true, ... })`, a model-typed field, or
+ * an asset-typed field gets validation for free with no per-node code.
  */
 import type { DeclaredPropertyMetadata } from "./decorators.js";
 
@@ -47,9 +54,45 @@ export interface ValidateNodePropertiesOptions {
 const MODEL_TYPE_SUFFIX = "_model";
 const EMPTY_PROVIDER = "empty";
 
+const ASSET_TYPES: ReadonlySet<string> = new Set([
+  "asset",
+  "audio",
+  "image",
+  "video",
+  "text",
+  "document",
+  "dataframe",
+  "model_3d",
+  "folder",
+  "font"
+]);
+
 function isModelType(typeStr: string | undefined): boolean {
   if (!typeStr) return false;
   return typeStr.endsWith(MODEL_TYPE_SUFFIX);
+}
+
+function isAssetType(typeStr: string | undefined): boolean {
+  if (!typeStr) return false;
+  return ASSET_TYPES.has(typeStr);
+}
+
+function isUnsetAsset(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  const uri = v.uri;
+  const assetId = v.asset_id;
+  const tempId = v.temp_id;
+  const data = v.data;
+  const hasUri = typeof uri === "string" && uri.length > 0;
+  const hasAssetId = typeof assetId === "string" && assetId.length > 0;
+  const hasTempId = typeof tempId === "string" && tempId.length > 0;
+  const hasData =
+    data != null &&
+    !(typeof data === "string" && data.length === 0) &&
+    !(Array.isArray(data) && data.length === 0);
+  return !hasUri && !hasAssetId && !hasTempId && !hasData;
 }
 
 function isEmptyValue(value: unknown): boolean {
@@ -101,14 +144,22 @@ export function validateNodeProperties(
     const value = properties[name];
     const typeStr = meta.type;
 
-    if (meta.required && isEmptyValue(value)) {
-      issues.push({
-        nodeId: options.nodeId,
-        nodeType: options.nodeType,
-        property: name,
-        message: `Required property "${name}" is not set`
-      });
-      continue;
+    if (meta.required) {
+      // Asset-typed fields hold object placeholders that pass the generic
+      // emptiness check, so route them through the asset-specific check.
+      const isAsset = isAssetType(typeStr);
+      const empty = isAsset ? isUnsetAsset(value) : isEmptyValue(value);
+      if (empty) {
+        issues.push({
+          nodeId: options.nodeId,
+          nodeType: options.nodeType,
+          property: name,
+          message: isAsset
+            ? `Property "${name}" requires a ${typeStr} (asset, uri, or inline data)`
+            : `Required property "${name}" is not set`
+        });
+        continue;
+      }
     }
 
     if (isModelType(typeStr) && isUnsetModel(value)) {

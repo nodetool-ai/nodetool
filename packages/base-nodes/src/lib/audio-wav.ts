@@ -111,6 +111,42 @@ export function concatBytes(chunks: Uint8Array[]): Uint8Array {
 }
 
 /**
+ * Wrap a buffer of already-encoded little-endian 16-bit PCM samples in a
+ * RIFF/WAVE container. Use when the caller already has Int16 samples (e.g.
+ * from a TTS provider streaming `response_format: "pcm"`) — avoids the
+ * Int16 → Float32 → Int16 round-trip that `encodeWav` would impose.
+ */
+export function encodePcm16Wav(
+  pcmBytes: Uint8Array,
+  sampleRate: number,
+  numChannels = 1
+): Uint8Array {
+  const bitsPerSample = 16;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = pcmBytes.length;
+  const buffer = Buffer.alloc(44 + dataSize);
+  buffer.write("RIFF", 0);
+  buffer.writeUInt32LE(36 + dataSize, 4);
+  buffer.write("WAVE", 8);
+  buffer.write("fmt ", 12);
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20); // PCM
+  buffer.writeUInt16LE(numChannels, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(byteRate, 28);
+  buffer.writeUInt16LE(blockAlign, 32);
+  buffer.writeUInt16LE(bitsPerSample, 34);
+  buffer.write("data", 36);
+  buffer.writeUInt32LE(dataSize, 40);
+  Buffer.from(pcmBytes.buffer, pcmBytes.byteOffset, pcmBytes.byteLength).copy(
+    buffer,
+    44
+  );
+  return new Uint8Array(buffer);
+}
+
+/**
  * Encode Float32 samples (expected range [-1, 1]) as a 16-bit PCM WAV file.
  * Samples outside the range are clipped. Channels are interleaved.
  */

@@ -79,17 +79,35 @@ const useFirstVisibleStep = (
   return resolved;
 };
 
+interface NodeStats {
+  maxNodeCount: number;
+  hasStringNode: boolean;
+  hasAgentNode: boolean;
+}
+
+const STRING_NODE_TYPE = "nodetool.constant.String";
+const AGENT_NODE_TYPE = "nodetool.agents.Agent";
+
 /**
- * Subscribe to the highest node count across any open workflow. Used to
- * drive the `connect` step's variant switch (Beat A → Beat B).
+ * Subscribe to node stats across any open workflow. Drives the `connect`
+ * step's variant switch — we need to know not just node counts but whether
+ * the specific String + Agent nodes are present before showing the
+ * "Connect String → Agent" hint.
  */
-const useMaxNodeCount = (): number => {
+const useNodeStats = (): NodeStats => {
   const managerStore = useWorkflowManagerStore();
-  const [count, setCount] = useState(0);
+  const [stats, setStats] = useState<NodeStats>({
+    maxNodeCount: 0,
+    hasStringNode: false,
+    hasAgentNode: false
+  });
 
   useEffect(() => {
+    interface NodeLike {
+      type?: string;
+    }
     interface NodeStoreLike {
-      getState: () => { nodes?: unknown[] };
+      getState: () => { nodes?: NodeLike[] };
       subscribe: (l: () => void) => () => void;
     }
 
@@ -101,11 +119,23 @@ const useMaxNodeCount = (): number => {
         NodeStoreLike
       >;
       let max = 0;
+      let hasString = false;
+      let hasAgent = false;
       for (const ns of Object.values(stores)) {
-        const n = ns.getState().nodes?.length ?? 0;
-        if (n > max) max = n;
+        const nodes = ns.getState().nodes ?? [];
+        if (nodes.length > max) max = nodes.length;
+        for (const n of nodes) {
+          if (n?.type === STRING_NODE_TYPE) hasString = true;
+          else if (n?.type === AGENT_NODE_TYPE) hasAgent = true;
+        }
       }
-      setCount((prev) => (prev === max ? prev : max));
+      setStats((prev) =>
+        prev.maxNodeCount === max &&
+        prev.hasStringNode === hasString &&
+        prev.hasAgentNode === hasAgent
+          ? prev
+          : { maxNodeCount: max, hasStringNode: hasString, hasAgentNode: hasAgent }
+      );
     };
 
     const reconcile = (state: WorkflowManagerState): void => {
@@ -133,7 +163,7 @@ const useMaxNodeCount = (): number => {
     };
   }, [managerStore]);
 
-  return count;
+  return stats;
 };
 
 const OnboardingOverlay: React.FC = () => {
@@ -145,7 +175,7 @@ const OnboardingOverlay: React.FC = () => {
   const markComplete = useOnboardingStore((s) => s.markComplete);
 
   const isNodeMenuOpen = useNodeMenuStore((s) => s.isMenuOpen);
-  const maxNodeCount = useMaxNodeCount();
+  const { maxNodeCount, hasStringNode, hasAgentNode } = useNodeStats();
 
   const onWelcomePage = pathname === "/welcome";
 
@@ -155,8 +185,8 @@ const OnboardingOverlay: React.FC = () => {
   );
 
   const ctx: VariantContext = useMemo(
-    () => ({ isNodeMenuOpen, maxNodeCount }),
-    [isNodeMenuOpen, maxNodeCount]
+    () => ({ isNodeMenuOpen, maxNodeCount, hasStringNode, hasAgentNode }),
+    [isNodeMenuOpen, maxNodeCount, hasStringNode, hasAgentNode]
   );
 
   const resolveSelector = useCallback(
@@ -172,8 +202,12 @@ const OnboardingOverlay: React.FC = () => {
   // even though `resolveSelector` would re-create on its own — using a
   // numeric key keeps the effect dependency list stable in shape.
   const resolverVersion = useMemo(
-    () => Number(isNodeMenuOpen) + maxNodeCount * 2,
-    [isNodeMenuOpen, maxNodeCount]
+    () =>
+      Number(isNodeMenuOpen) +
+      maxNodeCount * 2 +
+      (hasStringNode ? 1024 : 0) +
+      (hasAgentNode ? 2048 : 0),
+    [isNodeMenuOpen, maxNodeCount, hasStringNode, hasAgentNode]
   );
 
   const visible = useFirstVisibleStep(

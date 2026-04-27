@@ -8,6 +8,7 @@ import {
   audioRefFromBytes,
   audioRefFromWav,
   concatBytes,
+  encodePcm16Wav,
   encodeWav,
   toBytes,
   tryDecodeWav,
@@ -1185,7 +1186,7 @@ export class TextToSpeechNode extends BaseNode {
       name: "TTS 1",
       path: null,
       voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
-      selected_voice: ""
+      selected_voice: "alloy"
     },
     title: "Model",
     description: "The text-to-speech model to use"
@@ -1213,19 +1214,32 @@ export class TextToSpeechNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = String(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
+    const modelObj = (this.model ?? {}) as Record<string, unknown>;
+    const explicitVoice =
+      typeof modelObj.selected_voice === "string"
+        ? modelObj.selected_voice
+        : "";
+    const voiceList = Array.isArray(modelObj.voices)
+      ? (modelObj.voices as string[])
+      : [];
+    const voice = explicitVoice || voiceList[0] || "";
     if (hasProviderSupport(context, providerId, modelId)) {
       const chunks: Uint8Array[] = [];
+      let sampleRate = 24000;
       for await (const item of context.streamProviderPrediction({
         provider: providerId,
         capability: "text_to_speech",
         model: modelId,
         params: {
           text,
-          voice: (this.model as Record<string, unknown>)?.selected_voice ?? "",
+          voice,
           speed: this.speed
         }
       })) {
-        const piece = item as { samples?: Int16Array };
+        const piece = item as { samples?: Int16Array; sampleRate?: number };
+        if (typeof piece.sampleRate === "number" && piece.sampleRate > 0) {
+          sampleRate = piece.sampleRate;
+        }
         if (piece.samples instanceof Int16Array) {
           chunks.push(
             new Uint8Array(
@@ -1237,7 +1251,8 @@ export class TextToSpeechNode extends BaseNode {
           );
         }
       }
-      return { output: audioRefFromBytes(concatBytes(chunks)) };
+      const wav = encodePcm16Wav(concatBytes(chunks), sampleRate, 1);
+      return { output: audioRefFromWav(wav) };
     }
     const bytes = Uint8Array.from(Buffer.from(text, "utf8"));
     return { output: audioRefFromBytes(bytes) };

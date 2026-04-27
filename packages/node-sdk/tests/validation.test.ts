@@ -169,6 +169,123 @@ describe("validateNodeProperties — *_model fields", () => {
   });
 });
 
+class RequiredAssetNode extends BaseNode {
+  static readonly nodeType = "test.RequiredAsset";
+  static readonly title = "Required Asset";
+  static readonly description = "Has a required audio + image";
+
+  @prop({
+    type: "audio",
+    default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Audio",
+    required: true
+  })
+  declare audio: unknown;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image",
+    required: true
+  })
+  declare image: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+}
+
+class OptionalAssetNode extends BaseNode {
+  static readonly nodeType = "test.OptionalAsset";
+  static readonly title = "Optional Asset";
+  static readonly description = "Has an optional audio + image";
+
+  @prop({
+    type: "audio",
+    default: { type: "audio", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Audio"
+  })
+  declare audio: unknown;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "Image"
+  })
+  declare image: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+}
+
+describe("validateNodeProperties — required asset fields", () => {
+  it("flags a required audio with empty uri/asset_id/data", () => {
+    const issues = RequiredAssetNode.validateProperties({
+      audio: { type: "audio", uri: "", asset_id: null, data: null },
+      image: { type: "image", uri: "https://example.com/x.png" }
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].property).toBe("audio");
+    expect(issues[0].message).toMatch(/audio/);
+  });
+
+  it("passes when uri is set", () => {
+    const issues = RequiredAssetNode.validateProperties({
+      audio: { type: "audio", uri: "memory://abc" },
+      image: { type: "image", uri: "https://example.com/x.png" }
+    });
+    expect(issues).toHaveLength(0);
+  });
+
+  it("passes when asset_id is set", () => {
+    const issues = RequiredAssetNode.validateProperties({
+      audio: { type: "audio", asset_id: "asset_123" },
+      image: { type: "image", uri: "https://example.com/x.png" }
+    });
+    expect(issues).toHaveLength(0);
+  });
+
+  it("passes when inline data is present", () => {
+    const issues = RequiredAssetNode.validateProperties({
+      audio: { type: "audio", data: "base64..." },
+      image: { type: "image", uri: "https://example.com/x.png" }
+    });
+    expect(issues).toHaveLength(0);
+  });
+
+  it("treats null/undefined as unset", () => {
+    expect(
+      RequiredAssetNode.validateProperties({ audio: null, image: null })
+    ).toHaveLength(2);
+    expect(
+      RequiredAssetNode.validateProperties({
+        audio: undefined,
+        image: undefined
+      })
+    ).toHaveLength(2);
+  });
+
+  it("skips asset validation when the field is connected", () => {
+    const issues = RequiredAssetNode.validateProperties(
+      {
+        audio: { type: "audio", uri: "" },
+        image: { type: "image", uri: "" }
+      },
+      { connectedHandles: new Set(["audio", "image"]) }
+    );
+    expect(issues).toHaveLength(0);
+  });
+
+  it("does not flag optional asset fields with empty defaults", () => {
+    const issues = OptionalAssetNode.validateProperties({
+      audio: { type: "audio", uri: "", asset_id: null, data: null },
+      image: { type: "image", uri: "", asset_id: null, data: null }
+    });
+    expect(issues).toHaveLength(0);
+  });
+});
+
 describe("validateNodeProperties — subclass overrides", () => {
   it("subclasses can layer custom rules over the default validator", () => {
     const issues = CustomValidationNode.validateProperties({

@@ -1648,7 +1648,8 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
       metadata: null
     },
     title: "Audio",
-    description: "The audio to transcribe"
+    description: "The audio to transcribe",
+    required: true
   })
   declare audio: any;
 
