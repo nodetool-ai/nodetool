@@ -104,8 +104,8 @@ export function useLayerHydration({
   // ─── Initialize layer canvases from document data ───────────────────
 
   useEffect(() => {
-    const cycleId = hydrationCycleRef.current + 1;
-    hydrationCycleRef.current = cycleId;
+    hydrationCycleRef.current += 1;
+    const cycleId = hydrationCycleRef.current;
     const layerIds = new Set(doc.layers.map((l) => l.id));
     for (const [id] of layerCanvasesRef.current) {
       if (!layerIds.has(id)) {

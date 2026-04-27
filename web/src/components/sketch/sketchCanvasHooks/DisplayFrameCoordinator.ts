@@ -319,6 +319,8 @@ export class DisplayFrameCoordinator {
     const hadPending = this.readiness.hydrationPending;
     const hadComplete = this.readiness.hydrationComplete;
     const hadFirstFrame = this.readiness.firstFrameComposited;
+    // Already waiting on the current hydration cycle — no need to clear the
+    // same readiness flags again until either completion or a new cycle starts.
     if (hadPending && !hadComplete && !hadFirstFrame) {
       return;
     }
