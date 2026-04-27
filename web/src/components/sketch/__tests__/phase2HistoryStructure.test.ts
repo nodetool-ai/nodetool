@@ -39,7 +39,64 @@ describe("History — layer structure snapshots", () => {
   });
 
   it("layerStructure snapshot contains all metadata fields", () => {
+    const layerId = useSketchStore.getState().document.activeLayerId;
+
     act(() => {
+      useSketchStore.getState().setLayerOpacity(layerId, 0.6);
+      useSketchStore.getState().setLayerBlendMode(layerId, "multiply");
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: state.document.layers.map((layer) =>
+            layer.id === layerId
+              ? {
+                  ...layer,
+                  transform: {
+                    x: 7,
+                    y: -4,
+                    scaleX: 1.25,
+                    scaleY: 0.8,
+                    rotation: Math.PI / 6,
+                    matrix: [1.25, 0, 0, 0.8, 7, -4]
+                  },
+                  contentBounds: {
+                    x: -8,
+                    y: 12,
+                    width: 64,
+                    height: 48
+                  },
+                  exposedAsInput: false,
+                  exposedAsOutput: true,
+                  imageReference: {
+                    uri: "memory://image.png",
+                    objectFit: "contain",
+                    naturalWidth: 64,
+                    naturalHeight: 48
+                  },
+                  parentId: "group-1",
+                  collapsed: true,
+                  segmentationMeta: {
+                    segmentationRunId: "seg_123",
+                    sourceLayerId: "source-1",
+                    modelId: "sam2",
+                    confidence: 0.9,
+                    maskIndex: 1
+                  },
+                  effects: [
+                    {
+                      type: "brightness_contrast",
+                      enabled: true,
+                      params: {
+                        brightness: 0.1,
+                        contrast: -0.05
+                      }
+                    }
+                  ]
+                }
+              : layer
+          )
+        }
+      }));
       useSketchStore.getState().pushHistory("test");
     });
     const ls = useSketchStore.getState().history[0].layerStructure[0];
@@ -51,6 +108,35 @@ describe("History — layer structure snapshots", () => {
     expect(ls).toHaveProperty("locked");
     expect(ls).toHaveProperty("alphaLock");
     expect(ls).toHaveProperty("blendMode");
+    expect(ls.transform).toMatchObject({ x: 7, y: -4 });
+    expect(ls.contentBounds).toEqual({
+      x: -8,
+      y: 12,
+      width: 64,
+      height: 48
+    });
+    expect(ls.exposedAsInput).toBe(false);
+    expect(ls.exposedAsOutput).toBe(true);
+    expect(ls.imageReference).toMatchObject({
+      uri: "memory://image.png",
+      objectFit: "contain"
+    });
+    expect(ls.parentId).toBe("group-1");
+    expect(ls.collapsed).toBe(true);
+    expect(ls.segmentationMeta).toMatchObject({
+      segmentationRunId: "seg_123",
+      modelId: "sam2"
+    });
+    expect(ls.effects).toEqual([
+      {
+        type: "brightness_contrast",
+        enabled: true,
+        params: {
+          brightness: 0.1,
+          contrast: -0.05
+        }
+      }
+    ]);
   });
 
   it("undo and redo restore canvas dimensions and background color", () => {

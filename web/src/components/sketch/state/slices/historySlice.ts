@@ -22,6 +22,16 @@ import type {
 } from "../../types";
 import { MAX_HISTORY_SIZE } from "../../types";
 
+function cloneHistoryValue<T>(value: T): T {
+  if (value == null) {
+    return value;
+  }
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 /**
  * Resolve a layer's raster data at a given history index by walking
  * backward through delta entries to find the most recent snapshot.
@@ -54,15 +64,15 @@ function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot
     locked: l.locked,
     alphaLock: l.alphaLock,
     blendMode: l.blendMode,
-    transform: l.transform,
-    contentBounds: l.contentBounds,
+    transform: cloneHistoryValue(l.transform),
+    contentBounds: cloneHistoryValue(l.contentBounds),
     exposedAsInput: l.exposedAsInput,
     exposedAsOutput: l.exposedAsOutput,
-    imageReference: l.imageReference,
+    imageReference: cloneHistoryValue(l.imageReference),
     parentId: l.parentId,
     collapsed: l.collapsed,
-    segmentationMeta: l.segmentationMeta,
-    effects: l.effects
+    segmentationMeta: cloneHistoryValue(l.segmentationMeta),
+    effects: cloneHistoryValue(l.effects)
   }));
 }
 

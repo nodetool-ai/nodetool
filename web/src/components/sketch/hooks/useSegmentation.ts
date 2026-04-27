@@ -194,11 +194,6 @@ export function useSegmentation({
     const doc = store.document;
     const settings = doc.toolSettings.segment;
 
-    // Push history before making structural changes
-    pushHistory("Segment Objects", undefined, {
-      restoreMode: "structure-only"
-    });
-
     // Create the group layer
     const groupLayer = createDefaultGroupLayer("Segmented Objects");
 
@@ -222,6 +217,7 @@ export function useSegmentation({
           confidence: mask.confidence,
           maskIndex: i
         };
+        layer.data = mask.maskDataUrl ?? null;
         return layer;
       }
     );
@@ -267,6 +263,7 @@ export function useSegmentation({
               width: mask.bounds.width,
               height: mask.bounds.height
             });
+            store.updateLayerData(maskLayers[i].id, mask.maskDataUrl);
 
             // Try to generate a proper cutout with optional feathering
             void generateCutoutDataUrl(
@@ -282,6 +279,7 @@ export function useSegmentation({
                   width: mask.bounds.width,
                   height: mask.bounds.height
                 });
+                store.updateLayerData(maskLayers[i].id, cutout);
               }
             }).catch((err) => {
               // Cutout generation is best-effort; mask data is already set as fallback
@@ -301,9 +299,12 @@ export function useSegmentation({
             width: mask.bounds.width,
             height: mask.bounds.height
           });
+          store.updateLayerData(maskLayers[i].id, mask.maskDataUrl);
         }
       }
     }
+
+    pushHistory("Segment Objects");
 
     setResult(null);
     setStatus("idle");

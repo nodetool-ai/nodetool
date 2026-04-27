@@ -71,7 +71,6 @@ export function useLayerActions({
   const handleAddLayer = useCallback(
     (options?: HandleAddLayerOptions) => {
       const fillColor = options?.fillColor;
-      pushHistory("add layer");
       const newLayerId = addLayer(options?.name, options?.type);
       if (fillColor && canvasRef.current) {
         requestAnimationFrame(() => {
@@ -81,8 +80,11 @@ export function useLayerActions({
             if (data) {
               updateLayerData(newLayerId, data);
             }
+            pushHistory("add layer");
           }
         });
+      } else {
+        pushHistory("add layer");
       }
       return newLayerId;
     },
@@ -91,16 +93,16 @@ export function useLayerActions({
 
   const handleRemoveLayer = useCallback(
     (layerId: string) => {
-      pushHistory("remove layer");
       removeLayer(layerId);
+      pushHistory("remove layer");
     },
     [pushHistory, removeLayer]
   );
 
   const handleDuplicateLayer = useCallback(
     (layerId: string) => {
-      pushHistory("duplicate layer");
       duplicateLayer(layerId);
+      pushHistory("duplicate layer");
     },
     [pushHistory, duplicateLayer]
   );
@@ -113,8 +115,8 @@ export function useLayerActions({
 
   const handleReorderLayers = useCallback(
     (fromIndex: number, toIndex: number) => {
-      pushHistory("reorder layers");
       reorderLayers(fromIndex, toIndex);
+      pushHistory("reorder layers");
       scheduleDisplayRedraw();
     },
     [pushHistory, reorderLayers, scheduleDisplayRedraw]
@@ -131,8 +133,8 @@ export function useLayerActions({
 
   const handleToggleVisibility = useCallback(
     (layerId: string) => {
-      pushHistory("toggle visibility");
       toggleLayerVisibility(layerId);
+      pushHistory("toggle visibility");
       scheduleDisplayRedraw();
     },
     [pushHistory, toggleLayerVisibility, scheduleDisplayRedraw]
@@ -140,8 +142,8 @@ export function useLayerActions({
 
   const handleSetLayerOpacity = useCallback(
     (layerId: string, opacity: number) => {
-      pushHistory("change opacity");
       setLayerOpacity(layerId, opacity);
+      pushHistory("change opacity");
       scheduleDisplayRedraw();
     },
     [pushHistory, setLayerOpacity, scheduleDisplayRedraw]
@@ -149,8 +151,8 @@ export function useLayerActions({
 
   const handleSetLayerBlendMode = useCallback(
     (layerId: string, blendMode: BlendMode) => {
-      pushHistory("change blend mode");
       setLayerBlendMode(layerId, blendMode);
+      pushHistory("change blend mode");
       scheduleDisplayRedraw();
     },
     [pushHistory, setLayerBlendMode, scheduleDisplayRedraw]
@@ -158,16 +160,16 @@ export function useLayerActions({
 
   const handleRenameLayer = useCallback(
     (layerId: string, name: string) => {
-      pushHistory("rename layer");
       renameLayer(layerId, name);
+      pushHistory("rename layer");
     },
     [pushHistory, renameLayer]
   );
 
   const handleSetMaskLayer = useCallback(
     (layerId: string | null) => {
-      pushHistory("set mask layer");
       setMaskLayer(layerId);
+      pushHistory("set mask layer");
       scheduleDisplayRedraw();
     },
     [pushHistory, setMaskLayer, scheduleDisplayRedraw]
@@ -175,24 +177,24 @@ export function useLayerActions({
 
   const handleToggleAlphaLock = useCallback(
     (layerId: string) => {
-      pushHistory("toggle alpha lock");
       toggleAlphaLock(layerId);
+      pushHistory("toggle alpha lock");
     },
     [pushHistory, toggleAlphaLock]
   );
 
   const handleToggleExposedInput = useCallback(
     (layerId: string) => {
-      pushHistory("toggle exposed input");
       toggleLayerExposedInput(layerId);
+      pushHistory("toggle exposed input");
     },
     [pushHistory, toggleLayerExposedInput]
   );
 
   const handleToggleExposedOutput = useCallback(
     (layerId: string) => {
-      pushHistory("toggle exposed output");
       toggleLayerExposedOutput(layerId);
+      pushHistory("toggle exposed output");
     },
     [pushHistory, toggleLayerExposedOutput]
   );
@@ -277,8 +279,8 @@ export function useLayerActions({
 
   const handleAddGroup = useCallback(
     (name?: string) => {
-      pushHistory("add group");
       addGroup(name);
+      pushHistory("add group");
     },
     [pushHistory, addGroup]
   );
@@ -286,22 +288,23 @@ export function useLayerActions({
   const handleToggleGroupCollapsed = useCallback(
     (groupId: string) => {
       toggleGroupCollapsed(groupId);
+      pushHistory("toggle group collapsed");
     },
-    [toggleGroupCollapsed]
+    [pushHistory, toggleGroupCollapsed]
   );
 
   const handleMoveLayerToGroup = useCallback(
     (layerId: string, groupId: string | null) => {
-      pushHistory("move layer to group");
       moveLayerToGroup(layerId, groupId);
+      pushHistory("move layer to group");
     },
     [pushHistory, moveLayerToGroup]
   );
 
   const handleUngroupLayer = useCallback(
     (groupId: string) => {
-      pushHistory("ungroup");
       ungroupLayer(groupId);
+      pushHistory("ungroup");
     },
     [pushHistory, ungroupLayer]
   );
@@ -311,8 +314,8 @@ export function useLayerActions({
     if (ids.length < 2) {
       return;
     }
-    pushHistory("group layers");
     groupLayers(ids);
+    pushHistory("group layers");
   }, [pushHistory, groupLayers]);
 
   const handleDeleteSelectedLayers = useCallback(() => {
@@ -328,7 +331,6 @@ export function useLayerActions({
     if (document.layers.length - toRemove.length < 1) {
       return;
     }
-    pushHistory("remove layers");
     const sorted = [...toRemove].sort(
       (a, b) =>
         document.layers.findIndex((l) => l.id === b) -
@@ -337,6 +339,7 @@ export function useLayerActions({
     for (const id of sorted) {
       removeLayer(id);
     }
+    pushHistory("remove layers");
   }, [document.layers, pushHistory, removeLayer]);
 
   const handleMergeSelectedLayers = useCallback(() => {

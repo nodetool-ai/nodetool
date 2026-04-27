@@ -378,12 +378,12 @@ export function useCanvasGeometryActions({
 
   const handleCanvasResize = useCallback(
     (width: number, height: number) => {
-      pushHistory("resize canvas");
       const { document: doc } = useSketchStore.getState();
       const dW = width - doc.canvas.width;
       const dH = height - doc.canvas.height;
       resizeCanvas(width, height);
       nudgePanForCanvasPixelDelta(dW, dH);
+      pushHistory("resize canvas");
     },
     [pushHistory, resizeCanvas, nudgePanForCanvasPixelDelta]
   );
@@ -442,9 +442,9 @@ export function useCanvasGeometryActions({
       if (!canvasRef.current) {
         return;
       }
-      pushHistory("crop");
       reconcileAllLayerTransforms();
       finalizeCanvasCrop(x, y, width, height);
+      pushHistory("crop");
     },
     [pushHistory, canvasRef, reconcileAllLayerTransforms, finalizeCanvasCrop]
   );
@@ -494,7 +494,6 @@ export function useCanvasGeometryActions({
       return;
     }
 
-    pushHistory("crop to active layer visible pixels");
     reconcileAllLayerTransforms();
     finalizeCanvasCrop(
       cropBounds.x,
@@ -502,6 +501,7 @@ export function useCanvasGeometryActions({
       cropBounds.width,
       cropBounds.height
     );
+    pushHistory("crop to active layer visible pixels");
   }, [
     document.activeLayerId,
     document.layers,
@@ -544,7 +544,6 @@ export function useCanvasGeometryActions({
       activeLayer.transform
     );
 
-    pushHistory("crop to active layer extents");
     reconcileAllLayerTransforms();
     finalizeCanvasCrop(
       cropBounds.x,
@@ -552,6 +551,7 @@ export function useCanvasGeometryActions({
       cropBounds.width,
       cropBounds.height
     );
+    pushHistory("crop to active layer extents");
   }, [
     document.activeLayerId,
     document.layers,

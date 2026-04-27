@@ -20,19 +20,34 @@ function restoreEntry(
   entry: HistoryEntry,
   canvasRef: RefObject<SketchCanvasRef | null>
 ): void {
-  if (!canvasRef.current) {
+  const canvas = canvasRef.current;
+  if (!canvas) {
     return;
   }
-  if (entry.restoreMode === "structure-only") {
-    return;
-  }
+
+  const boundsByLayerId = new Map(
+    entry.layerStructure.map((layer) => [layer.id, layer.contentBounds])
+  );
+
   for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
+    const currentData = canvas.getLayerData(layerId);
+    if (
+      entry.restoreMode === "structure-only" &&
+      currentData === data &&
+      !entry.layerCanvasSnapshots?.[layerId]
+    ) {
+      continue;
+    }
     const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
     if (canvasSnapshot) {
-      canvasRef.current.restoreLayerCanvas(layerId, canvasSnapshot);
+      canvas.restoreLayerCanvas(layerId, canvasSnapshot);
     } else {
-      canvasRef.current.setLayerData(layerId, data);
+      canvas.setLayerData(layerId, data, boundsByLayerId.get(layerId));
     }
+  }
+
+  if (entry.restoreMode === "structure-only") {
+    canvas.redrawDisplay();
   }
 }
 
