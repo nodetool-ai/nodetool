@@ -202,6 +202,13 @@ Execution notes:
 - Prefer targeted tests for the edited sketch/SAM files during each task. Run broader typecheck/lint/test ONLY at complete phase checkpoints, and record pre-existing failures instead of treating them as blockers.
 - Mark a checkbox only after code and focused tests confirm that behavior.
 
+Node ownership boundary:
+- Sketch assumes Local SAM3 execution is provided by an installed NodeTool node: `huggingface.image_segmentation.MaskGeneration`.
+- Sketch-side tasks may inspect installed node metadata, check availability, build graph inputs, submit jobs, cancel jobs, and normalize returned outputs.
+- Sketch-side tasks must not implement SAM inference, model loading, mask generation, or HuggingFace runtime behavior.
+- When the installed node metadata lacks a field that sketch needs, keep the sketch UI gated off for that capability.
+- When the installed node fails at runtime or returns unsupported output, surface the failure clearly in sketch and keep the fix outside the sketch editor unless the issue is graph construction, transport, cancellation, or output normalization.
+
 Files:
 - `web/src/components/sketch/sam/SamServiceNode.ts`
 - `web/src/components/sketch/sam/SamService.ts`
