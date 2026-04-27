@@ -31,8 +31,8 @@ function matricesEqual(
   left?: LayerTransform["matrix"],
   right?: LayerTransform["matrix"]
 ): boolean {
-  if (left == null || right == null) {
-    return left == null && right == null;
+  if (left === undefined || right === undefined) {
+    return left === undefined && right === undefined;
   }
   if (left.length !== right.length) {
     return false;
