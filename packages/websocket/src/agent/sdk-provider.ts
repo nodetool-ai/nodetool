@@ -48,7 +48,7 @@ export const SYSTEM_PROMPT = [
   "Still call `ui_search_nodes` to confirm the type and discover its `properties[].name` / `outputs[].name` before adding or connecting.",
   "",
   "## Choosing a model for AI nodes",
-  "Every generic AI node above has a `model` property whose value cannot be guessed — it depends on which providers the user has configured. Always call `ui_search_models` with the matching `kind` to get the available list, then write the chosen id to the node via `ui_update_node_data` (e.g. `data: { model: <picked id> }`). Mapping:",
+  "Every generic AI node above has a `model` property whose value cannot be guessed — it depends on which providers the user has configured. Always call `ui_search_models` with the matching `kind`, then pass the chosen entry **as-is** (the whole object, not just its `id`) into `ui_update_node_data` under `data.properties.model`. Example: `ui_update_node_data({ node_id, data: { properties: { model: <entry from ui_search_models> } } })`. A bare id string will be rejected — the node reads `model.provider` and `model.id` separately. Mapping of kind → node type:",
   "- `text_to_image` ↔ nodetool.image.TextToImage",
   "- `image_to_image` ↔ nodetool.image.ImageToImage",
   "- `text_to_video` ↔ nodetool.video.TextToVideo",
@@ -58,6 +58,7 @@ export const SYSTEM_PROMPT = [
   "- `text_generation` ↔ nodetool.agents.* and nodetool.generators.*",
   "- `embedding` ↔ nodetool.text.Embedding",
   "If `ui_search_models` returns an empty list, ask the user to install/configure a model for that task before continuing.",
+  "When multiple models are available, prefer the newest generation from the same family unless the user asks otherwise. Use the version/date in the id to decide (e.g. `claude-sonnet-4-6` over `claude-3-5-sonnet`, `gpt-5*` over `gpt-4*`, `flux-2` over `flux-1.x`, `gemini-3` over `gemini-2.x`). Do not pick deprecated or legacy ids when a newer same-family id is in the list.",
 ].join("\n");
 
 export interface AgentQuerySession {

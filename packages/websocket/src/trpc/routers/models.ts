@@ -6,7 +6,9 @@ import {
   isProviderConfigured,
   listRegisteredProviderIds,
   providerCapabilities,
-  type ProviderId
+  RECOMMENDED_MODELS,
+  type ProviderId,
+  type RecommendedUnifiedModel
 } from "@nodetool/runtime";
 
 const log = createLogger("nodetool.websocket.trpc.models");
@@ -26,6 +28,7 @@ import {
   type TjsModelRef
 } from "@nodetool/transformers-js-nodes";
 import type { UnifiedModel } from "@nodetool/protocol";
+import { MODEL_SEARCH_KINDS } from "@nodetool/protocol";
 import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
@@ -195,118 +198,6 @@ const LLAMA_CPP_MODEL_TYPES = new Set([
   "llama_cpp",
   "hf.gguf"
 ]);
-
-interface RecommendedUnifiedModel extends UnifiedModel {
-  modality: "language" | "image" | "tts" | "asr" | "video";
-  task?:
-    | "text_generation"
-    | "embedding"
-    | "text_to_image"
-    | "image_to_image"
-    | "text_to_video"
-    | "image_to_video";
-  provider?: ProviderId;
-}
-
-const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
-  {
-    id: "gpt-4o-mini",
-    type: "language_model",
-    name: "GPT-4o mini",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "language",
-    task: "text_generation",
-    provider: "openai"
-  },
-  {
-    id: "claude-3-5-sonnet-latest",
-    type: "language_model",
-    name: "Claude 3.5 Sonnet",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "language",
-    task: "text_generation",
-    provider: "anthropic"
-  },
-  {
-    id: "text-embedding-3-small",
-    type: "embedding_model",
-    name: "Text Embedding 3 Small",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "language",
-    task: "embedding",
-    provider: "openai"
-  },
-  {
-    id: "gpt-image-1",
-    type: "image_model",
-    name: "GPT Image 1",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "image",
-    task: "text_to_image",
-    provider: "openai"
-  },
-  {
-    id: "gpt-image-1",
-    type: "image_model",
-    name: "GPT Image 1",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "image",
-    task: "image_to_image",
-    provider: "openai"
-  },
-  {
-    id: "whisper-1",
-    type: "asr_model",
-    name: "Whisper",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "asr",
-    provider: "openai"
-  },
-  {
-    id: "tts-1",
-    type: "tts_model",
-    name: "TTS 1",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "tts",
-    provider: "openai"
-  },
-  {
-    id: "sora-2",
-    type: "video_model",
-    name: "Sora 2",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "video",
-    task: "text_to_video",
-    provider: "openai"
-  },
-  {
-    id: "sora-2",
-    type: "video_model",
-    name: "Sora 2",
-    repo_id: null,
-    path: null,
-    downloaded: false,
-    modality: "video",
-    task: "image_to_video",
-    provider: "openai"
-  }
-];
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -814,6 +705,104 @@ async function checkHfCache(body: {
   };
 }
 
+// ── availableForKind helpers ───────────────────────────────────────
+
+const availableForKindInput = z.object({
+  kind: z.enum(MODEL_SEARCH_KINDS)
+});
+
+type ModelSearchKind = (typeof MODEL_SEARCH_KINDS)[number];
+
+const KIND_TO_MODALITY: Record<ModelSearchKind, RecommendedUnifiedModel["modality"]> = {
+  text_generation: "language",
+  embedding: "language",
+  text_to_image: "image",
+  image_to_image: "image",
+  text_to_speech: "tts",
+  speech_to_text: "asr",
+  text_to_video: "video",
+  image_to_video: "video"
+};
+
+async function collectProviderModelsForKind(
+  userId: string,
+  kind: ModelSearchKind
+): Promise<UnifiedModel[]> {
+  const out: UnifiedModel[] = [];
+  const providerIds = await getAvailableProviderIds(userId);
+  for (const providerId of providerIds) {
+    await safeProviderCall(
+      "availableForKind",
+      { provider: providerId, kind, userId },
+      async () => {
+        const instance = await instantiateProvider(providerId, userId);
+        if (!instance) return;
+        switch (kind) {
+          case "text_generation": {
+            const models = await instance.getAvailableLanguageModels();
+            const toolFlags = await Promise.all(
+              models.map((m) =>
+                instance.hasToolSupport(m.id).catch(() => null as boolean | null)
+              )
+            );
+            models.forEach((m, i) =>
+              out.push(toUnifiedLanguageModel(m, toolFlags[i]))
+            );
+            return;
+          }
+          case "embedding": {
+            const models = await instance.getAvailableEmbeddingModels();
+            for (const m of models) out.push(toUnifiedModel(m, "embedding_model"));
+            return;
+          }
+          case "text_to_image":
+          case "image_to_image": {
+            const models = await instance.getAvailableImageModels();
+            for (const m of models) {
+              if (m.supportedTasks && !m.supportedTasks.includes(kind)) continue;
+              out.push(toUnifiedModel(m, "image_model"));
+            }
+            return;
+          }
+          case "text_to_speech": {
+            const models = await instance.getAvailableTTSModels();
+            for (const m of models) out.push(toUnifiedModel(m, "tts_model"));
+            return;
+          }
+          case "speech_to_text": {
+            const models = await instance.getAvailableASRModels();
+            for (const m of models) out.push(toUnifiedModel(m, "asr_model"));
+            return;
+          }
+          case "text_to_video":
+          case "image_to_video": {
+            const models = await instance.getAvailableVideoModels();
+            for (const m of models) {
+              if (m.supportedTasks && !m.supportedTasks.includes(kind)) continue;
+              out.push(toUnifiedModel(m, "video_model"));
+            }
+            return;
+          }
+        }
+      },
+      undefined
+    );
+  }
+  return out;
+}
+
+function curatedForKind(kind: ModelSearchKind): UnifiedModel[] {
+  const modality = KIND_TO_MODALITY[kind];
+  // For text_generation/embedding/image/video, RECOMMENDED_MODELS entries are
+  // tagged with the specific task. TTS and ASR entries have no task field —
+  // modality alone is enough.
+  const taskRequired =
+    kind !== "text_to_speech" && kind !== "speech_to_text";
+  return RECOMMENDED_MODELS.filter(
+    (r) => r.modality === modality && (!taskRequired || r.task === kind)
+  );
+}
+
 // ── Router ─────────────────────────────────────────────────────────
 
 export const modelsRouter = router({
@@ -904,6 +893,31 @@ export const modelsRouter = router({
    */
   recommendedVideoImageToVideo: protectedProcedure
     .query(() => selectRecommended("video", "image_to_video")),
+
+  /**
+   * All models available to the user for a given task kind. Aggregates the
+   * configured providers' enumerated models and merges the curated
+   * RECOMMENDED_MODELS list as a fallback. Deduped by `(provider, id)`.
+   * Powers `ui_search_models` for the workflow-builder agent.
+   */
+  availableForKind: protectedProcedure
+    .input(availableForKindInput)
+    .query(async ({ ctx, input }) => {
+      const fromProviders = await collectProviderModelsForKind(
+        ctx.userId,
+        input.kind
+      );
+      const curated = curatedForKind(input.kind);
+      const seen = new Set<string>();
+      const deduped: UnifiedModel[] = [];
+      for (const m of [...fromProviders, ...curated]) {
+        const key = `${m.provider ?? ""}|${m.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(m);
+      }
+      return deduped;
+    }),
 
   /**
    * All models (recommended + provider models + HF cached).
