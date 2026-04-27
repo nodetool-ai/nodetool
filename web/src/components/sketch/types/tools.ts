@@ -450,6 +450,16 @@ export const DEFAULT_MOVE_SETTINGS: MoveSettings = {
 
 // ─── Transform Settings ───────────────────────────────────────────────────────
 
+/**
+ * Photoshop-style transform mode selection for Free Transform.
+ *
+ * - `auto`: keep the normal free-transform handles and let modifier keys
+ *   temporarily switch to advanced behavior.
+ * - `scale`: force standard scale/rotate behavior.
+ * - `distort`: treat corner drags as affine corner distortions.
+ * - `skew`: treat edge drags as affine skew/shear adjustments.
+ * - `perspective`: reserved for future non-affine perspective work.
+ */
 export type TransformMode =
   | "auto"
   | "scale"

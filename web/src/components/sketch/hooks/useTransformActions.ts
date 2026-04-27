@@ -56,6 +56,19 @@ interface SelectionFreeTransformSession {
   originalContentBounds: LayerContentBounds;
 }
 
+/**
+ * Drop advanced affine metadata before applying standard rotate/flip actions.
+ *
+ * Those operations recompute a fresh decomposed transform; carrying an older
+ * matrix-backed skew/distort state forward would leave the matrix stale.
+ */
+function stripAdvancedTransformFields(
+  transform: LayerTransform
+): LayerTransform {
+  const { matrix: _matrix, mode: _mode, ...rest } = transform;
+  return rest;
+}
+
 export function useTransformActions({
   canvasRef,
   document,
@@ -404,8 +417,10 @@ export function useTransformActions({
       }
       const current = layer.transform;
       const newRotation = (current.rotation ?? 0) + angleRad;
-      const { matrix: _matrix, mode: _mode, ...rest } = current;
-      setLayerTransform(activeLayerId, { ...rest, rotation: newRotation });
+      setLayerTransform(activeLayerId, {
+        ...stripAdvancedTransformFields(current),
+        rotation: newRotation
+      });
     },
     [document.activeLayerId, document.layers, setLayerTransform]
   );
@@ -418,9 +433,8 @@ export function useTransformActions({
       return;
     }
     const current = layer.transform;
-    const { matrix: _matrix, mode: _mode, ...rest } = current;
     setLayerTransform(activeLayerId, {
-      ...rest,
+      ...stripAdvancedTransformFields(current),
       scaleX: -(current.scaleX ?? 1)
     });
   }, [document.activeLayerId, document.layers, setLayerTransform]);
@@ -433,9 +447,8 @@ export function useTransformActions({
       return;
     }
     const current = layer.transform;
-    const { matrix: _matrix, mode: _mode, ...rest } = current;
     setLayerTransform(activeLayerId, {
-      ...rest,
+      ...stripAdvancedTransformFields(current),
       scaleY: -(current.scaleY ?? 1)
     });
   }, [document.activeLayerId, document.layers, setLayerTransform]);

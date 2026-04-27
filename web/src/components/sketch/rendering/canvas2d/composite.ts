@@ -54,8 +54,8 @@ export function drawWithTransform(
 ): void {
   if (layer.transform.matrix && layer.transform.mode) {
     const [a, b, c, d, e, f] = layer.transform.matrix;
-    const originX = compositeOffset.x - (layer.transform.x ?? e);
-    const originY = compositeOffset.y - (layer.transform.y ?? f);
+    const originX = compositeOffset.x - (layer.transform.x ?? 0);
+    const originY = compositeOffset.y - (layer.transform.y ?? 0);
     ctx.setTransform(a, b, c, d, e, f);
     ctx.drawImage(source, originX, originY);
     return;

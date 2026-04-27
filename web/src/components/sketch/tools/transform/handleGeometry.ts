@@ -78,9 +78,13 @@ function pointInPolygon(pt: Point, polygon: Point[]): boolean {
     const yi = polygon[i].y;
     const xj = polygon[j].x;
     const yj = polygon[j].y;
+    const edgeY = yj - yi;
+    if (Math.abs(edgeY) <= 1e-9) {
+      continue;
+    }
     const intersects =
       yi > pt.y !== yj > pt.y &&
-      pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi || 1e-9) + xi;
+      pt.x < ((xj - xi) * (pt.y - yi)) / edgeY + xi;
     if (intersects) {
       inside = !inside;
     }
