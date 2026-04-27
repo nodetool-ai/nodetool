@@ -3,13 +3,14 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   title: "NodeTool for Developers | Open-Source AI Workflow SDK & API",
   description:
-    "Build AI-powered applications with NodeTool's Python SDK and REST API. Create custom nodes, integrate with any model, and deploy to production. Open-source, extensible, and developer-friendly.",
+    "Build AI-powered applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production. Open-source, extensible, and developer-friendly.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/developers",
   },
   keywords: [
     "AI SDK",
+    "TypeScript AI framework",
     "Python AI framework",
     "AI workflow API",
     "open-source AI",
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NodeTool for Developers | Open-Source AI Workflow SDK & API",
     description:
-      "Build AI-powered applications with NodeTool's Python SDK and REST API. Create custom nodes, integrate with any model, and deploy to production.",
+      "Build AI-powered applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production.",
     url: "https://nodetool.ai/developers",
     siteName: "NodeTool",
     images: [
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool for Developers",
     description:
-      "Build AI-powered applications with NodeTool's Python SDK and REST API. Open-source and extensible.",
+      "Build AI-powered applications with NodeTool's TypeScript SDK and REST API. Open-source and extensible.",
     images: ["/preview.png"],
   },
 };

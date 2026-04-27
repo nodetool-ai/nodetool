@@ -1,111 +1,104 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Terminal, Workflow, Code2, Globe, Zap } from "lucide-react";
+import { Terminal, Workflow, Code2, Boxes, Zap } from "lucide-react";
+import CodeBlock from "./CodeBlock";
 
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
-const httpApiCode = `curl -X POST "http://localhost:7777/api/workflows/<id>/run" \\
-  -H "Content-Type: application/json" \\
-  -d '{"params": {"prompt": "Generate image"}}'`;
+const customNodeCode = `// my-nodes/src/SentimentNode.ts
+import { BaseNode, prop } from "@nodetool/node-sdk";
 
-const websocketApiCode = `const socket = new WebSocket("ws://localhost:7777/predict");
+export class SentimentNode extends BaseNode {
+  static readonly nodeType = "my.text.Sentiment";
+  static readonly title = "Sentiment";
+  static readonly description = "Score text sentiment from -1 to 1.";
+  static readonly metadataOutputTypes = { score: "float" };
 
-socket.send(msgpack.encode({
-  command: "run_job",
-  data: {
-    type: "run_job_request",
-    workflow_id: "YOUR_WORKFLOW_ID",
-    params: { /* parameters */ }
+  @prop({ type: "str", default: "" })
+  declare text: string;
+
+  async process(): Promise<{ score: number }> {
+    const score = await analyze(this.text);
+    return { score };
   }
-}));
+}`;
 
-socket.onmessage = async (event) => {
-  const data = msgpack.decode(
-    new Uint8Array(await event.data.arrayBuffer())
-  );
-  
-  if (data.type === "job_update") {
-    console.log("Status:", data.status);
-  } else if (data.type === "node_progress") {
-    console.log("Progress:", data.progress / data.total);
-  }
-};`;
+const programmaticRunCode = `import { WorkflowRunner } from "@nodetool/kernel";
+import { workflow, constant, text } from "@nodetool/dsl";
+
+const a = constant.string({ value: "Hello, " });
+const b = constant.string({ value: "NodeTool!" });
+const out = text.concat({ a: a.output, b: b.output });
+
+const wf = workflow(out);
+const runner = new WorkflowRunner();
+
+runner.on("node_progress", (m) => console.log(m.progress));
+runner.on("node_update", (m) => console.log(m.status));
+
+const result = await runner.run(wf);
+console.log(result);`;
 
 const cliCommands = [
   {
     title: "Run Workflows",
-    description: "Execute Python DSL workflows directly",
-    command: "nodetool run examples/simple_chat_workflow.py",
+    description: "Execute DSL workflows directly",
+    command: "nodetool run examples/concat_text.ts",
   },
   {
-    title: "List Available Nodes",
-    description: "Discover all available nodes",
-    command: "nodetool list-nodes",
+    title: "Start the Server",
+    description: "HTTP + WebSocket API on port 7777",
+    command: "nodetool serve",
   },
   {
-    title: "Validate Workflows",
-    description: "Check workflow syntax and structure",
-    command: "nodetool validate workflow.py",
+    title: "Agent Chat",
+    description: "Interactive agent CLI with planning + tools",
+    command: "nodetool-chat --agent --provider anthropic",
   },
 ];
 
-const dslExampleCode = `"""
-Simple Chat Workflow - demonstrates DSL patterns
-"""
-from nodetool.dsl.graph import create_graph
-from nodetool.dsl.nodetool.input import MessageInput, MessageDeconstructor
-from nodetool.dsl.nodetool.agents import Agent
-from nodetool.dsl.nodetool.output import Output
-from nodetool.metadata.types import LanguageModel, Provider
+const dslExampleCode = `// simple_chat_workflow.ts
+// A complete chat workflow in code
+import { workflow, input, agent, output } from "@nodetool/dsl";
 
-# Accept chat message input
-message_input = MessageInput(
-    name="user_message",
-    description="Incoming message from user",
-)
+// Accept chat message input
+const userMessage = input.message({
+  name: "user_message",
+  description: "Incoming message from user",
+});
 
-# Extract text content
-message_deconstructor = MessageDeconstructor(
-    value=message_input.output,
-)
+// Process with an agent
+const reply = agent.run({
+  provider: "ollama",
+  model: "llama3.2:3b",
+  system: "You are a helpful assistant.",
+  prompt: userMessage.text,
+});
 
-# Process with an agent
-chat_agent = Agent(
-    model=LanguageModel(
-        provider=Provider.Ollama,
-        id="llama3.2:3b",
-    ),
-    system="You are a helpful assistant.",
-    prompt=message_deconstructor.out.text,
-)
+// Return response
+const response = output.string({
+  name: "assistant_response",
+  value: reply.text,
+});
 
-# Return response
-output = Output(
-    name="assistant_response",
-    value=chat_agent.out.text,
-)
+const wf = workflow(response);
+console.log(JSON.stringify(wf));`;
 
-# Build the graph
-graph = create_graph(output)
-
-# To run: from nodetool.dsl.graph import run_graph
-# result = run_graph(graph)`;
-
-const apiExamples = [
+const tsExamples = [
   {
-    title: "HTTP API",
-    icon: Globe,
-    color: "text-blue-400",
-    description: "Run workflows via REST endpoints",
-    code: httpApiCode,
+    title: "Custom Node",
+    icon: Boxes,
+    color: "text-emerald-400",
+    description: "Extend BaseNode, decorate fields, implement process()",
+    code: customNodeCode,
   },
   {
-    title: "WebSocket API",
+    title: "Run Programmatically",
     icon: Zap,
     color: "text-amber-400",
-    description: "Real-time updates with WebSocket",
-    code: websocketApiCode,
+    description: "Build a graph and stream events with WorkflowRunner",
+    code: programmaticRunCode,
   },
 ];
 
@@ -133,7 +126,7 @@ export default function DeveloperCLISection({
             className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-300 ring-1 ring-inset ring-emerald-500/20 mb-4"
           >
             <Terminal className="h-4 w-4" />
-            CLI & APIs
+            CLI & SDK
           </motion.span>
           <motion.h2
             id="cli-api-title"
@@ -143,7 +136,7 @@ export default function DeveloperCLISection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Multiple Ways to Execute
+Build, Run, Extend from Code
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -152,8 +145,8 @@ export default function DeveloperCLISection({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            Command-line tools, HTTP endpoints, and WebSocket streaming—choose the interface
-            that fits your workflow.
+            Declare graphs, write custom nodes, and run workflows from code.
+            The CLI ships them, the runner streams them.
           </motion.p>
         </div>
 
@@ -163,23 +156,21 @@ export default function DeveloperCLISection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-16 rounded-2xl bg-gradient-to-br from-indigo-900/20 to-violet-900/20 p-8 ring-1 ring-indigo-500/20"
+          className="mb-16 rounded-2xl bg-gradient-to-br from-teal-900/20 to-violet-900/20 p-8 ring-1 ring-teal-500/20"
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 ring-1 ring-indigo-500/20">
-              <Code2 className="h-5 w-5 text-indigo-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-500/10 ring-1 ring-teal-500/20">
+              <Code2 className="h-5 w-5 text-teal-400" />
             </div>
             <div>
               <h3 className="text-xl font-semibold text-white">Complete DSL Workflow</h3>
-              <p className="text-sm text-slate-400">From the nodetool-base examples</p>
+              <p className="text-sm text-slate-400">A complete chat workflow defined in code</p>
             </div>
           </div>
-          <pre className="rounded-lg bg-slate-950/90 p-5 text-xs text-slate-300 overflow-x-auto font-mono border border-slate-700/50 leading-relaxed max-h-[500px] overflow-y-auto">
-            <code className="language-python">{dslExampleCode}</code>
-          </pre>
+          <CodeBlock code={dslExampleCode} language="typescript" className="p-5 max-h-[500px] overflow-y-auto" />
           <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
             <Terminal className="h-4 w-4 text-violet-400" />
-            <span>Run with: <code className="text-violet-300">nodetool run simple_chat_workflow.py</code></span>
+            <span>Run with: <code className="text-violet-300">nodetool run simple_chat_workflow.ts</code></span>
           </div>
         </motion.div>
 
@@ -209,17 +200,15 @@ export default function DeveloperCLISection({
               >
                 <h4 className="font-semibold text-white mb-1">{cmd.title}</h4>
                 <p className="text-sm text-slate-400 mb-3">{cmd.description}</p>
-                <pre className="rounded bg-slate-950 p-3 text-xs text-slate-300 overflow-x-auto font-mono border border-slate-700/50">
-                  <code className="language-bash">{cmd.command}</code>
-                </pre>
+                <CodeBlock code={cmd.command} language="bash" className="p-3" />
               </motion.div>
             ))}
           </div>
         </motion.div>
 
-        {/* API Examples */}
+        {/* Code Examples */}
         <div className="grid gap-8 lg:grid-cols-2">
-          {apiExamples.map((example, idx) => (
+          {tsExamples.map((example, idx) => (
             <motion.div
               key={example.title}
               initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
@@ -237,9 +226,7 @@ export default function DeveloperCLISection({
                   <p className="text-sm text-slate-400">{example.description}</p>
                 </div>
               </div>
-              <pre className="rounded-lg bg-slate-950/90 p-4 text-xs text-slate-300 overflow-x-auto font-mono max-h-[300px] overflow-y-auto border border-slate-700/50 leading-relaxed">
-                <code className="language-javascript">{example.code}</code>
-              </pre>
+              <CodeBlock code={example.code} language="typescript" className="max-h-[400px] overflow-y-auto" />
             </motion.div>
           ))}
         </div>
@@ -250,7 +237,7 @@ export default function DeveloperCLISection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mt-12 text-center rounded-2xl bg-gradient-to-br from-violet-900/20 to-indigo-900/20 p-8 ring-1 ring-violet-500/20"
+          className="mt-12 text-center rounded-2xl bg-gradient-to-br from-violet-900/20 to-teal-900/20 p-8 ring-1 ring-violet-500/20"
         >
           <Workflow className="h-12 w-12 text-violet-400 mx-auto mb-4" />
           <h3 className="text-2xl font-bold text-white mb-3">
@@ -271,12 +258,12 @@ export default function DeveloperCLISection({
               Getting Started Guide
             </a>
             <a
-              href="https://docs.nodetool.ai/api-reference.html"
+              href="https://github.com/nodetool-ai/nodetool/tree/main/examples/workflows"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-6 py-3 text-sm font-semibold text-white ring-1 ring-slate-700 transition-all hover:bg-slate-700"
             >
-              API Reference
+              Workflow Examples
             </a>
           </div>
         </motion.div>

@@ -21,51 +21,86 @@ import {
   Zap,
   Shield,
   Command,
+  Monitor,
 } from "lucide-react";
 import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
 
 
-// Creative professional personas
-const creativePersonas = [
+type PersonaAccent = "rose" | "emerald" | "sky" | "amber";
+
+const personaAccentMap: Record<
+  PersonaAccent,
+  {
+    text: string;
+    border: string;
+    iconBg: string;
+    glowRgba: string;
+    topGlow: string;
+  }
+> = {
+  rose: {
+    text: "text-rose-300",
+    border: "border-rose-500/40",
+    iconBg: "bg-rose-500/10",
+    glowRgba: "244, 63, 94",
+    topGlow: "rgba(244, 63, 94, 0.18)",
+  },
+  emerald: {
+    text: "text-emerald-300",
+    border: "border-emerald-500/40",
+    iconBg: "bg-emerald-500/10",
+    glowRgba: "16, 185, 129",
+    topGlow: "rgba(16, 185, 129, 0.18)",
+  },
+  sky: {
+    text: "text-sky-300",
+    border: "border-sky-500/40",
+    iconBg: "bg-sky-500/10",
+    glowRgba: "56, 189, 248",
+    topGlow: "rgba(56, 189, 248, 0.18)",
+  },
+  amber: {
+    text: "text-amber-300",
+    border: "border-amber-500/40",
+    iconBg: "bg-amber-500/10",
+    glowRgba: "245, 158, 11",
+    topGlow: "rgba(245, 158, 11, 0.18)",
+  },
+};
+
+const creativePersonas: Array<{
+  title: string;
+  description: string;
+  icon: typeof Video;
+  accent: PersonaAccent;
+}> = [
   {
     title: "Video Creators",
     description:
       "Automate editing workflows, generate B-roll, and create consistent visual styles across your content.",
     icon: Video,
-    color: "from-rose-500 to-pink-600",
-    bgColor: "bg-rose-500/10",
-    borderColor: "border-rose-500/20",
-    textColor: "text-rose-400",
+    accent: "rose",
   },
   {
     title: "Graphic Designers",
     description:
       "Access Flux, Ideogram, and gpt-image-1.5. Generate variations and maintain brand consistency with world-class image models.",
     icon: Palette,
-    color: "from-teal-500 to-purple-600",
-    bgColor: "bg-teal-500/10",
-    borderColor: "border-teal-500/20",
-    textColor: "text-amber-400",
+    accent: "emerald",
   },
   {
     title: "Music Producers",
     description:
       "Compose with Suno, generate speech with ElevenLabs, and experiment with audio processing in your pipeline.",
     icon: Music,
-    color: "from-cyan-500 to-blue-600",
-    bgColor: "bg-cyan-500/10",
-    borderColor: "border-cyan-500/20",
-    textColor: "text-cyan-400",
+    accent: "sky",
   },
   {
     title: "Photographers",
     description:
       "Batch process images, upscale photos, and apply consistent edits across your entire catalog.",
     icon: Camera,
-    color: "from-amber-500 to-orange-600",
-    bgColor: "bg-amber-500/10",
-    borderColor: "border-amber-500/20",
-    textColor: "text-amber-400",
+    accent: "amber",
   },
 ];
 
@@ -183,91 +218,96 @@ export default function CreativesPage() {
   }, []);
 
   return (
-    <main className="relative min-h-screen overflow-hidden text-white bg-[#050510]">
-      {/* Background */}
+    <main className="relative min-h-screen overflow-hidden text-white bg-[#040408]">
+      {/* Background — left rose flare + right cyan flare, faint star field */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         <motion.div
-          className="absolute -top-40 left-1/4 h-[500px] w-[500px] rounded-full bg-rose-500/20 blur-[120px]"
-          animate={{ y: [0, 20, 0], x: [0, 10, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[28%] -left-40 h-[520px] w-[520px] rounded-full bg-rose-600/25 blur-[140px]"
+          animate={{ opacity: [0.55, 0.85, 0.55] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute top-1/2 right-1/4 h-[400px] w-[400px] rounded-full bg-teal-500/15 blur-[100px]"
-          animate={{ y: [0, -15, 0], x: [0, -10, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[20%] -right-40 h-[480px] w-[480px] rounded-full bg-cyan-500/20 blur-[140px]"
+          animate={{ opacity: [0.5, 0.8, 0.5] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
         />
-        <motion.div
-          className="absolute bottom-0 left-1/2 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[80px]"
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.6) 1px, transparent 0)",
+            backgroundSize: "120px 120px",
+          }}
         />
       </div>
 
-      {/* Navigation */}
+      {/* Navigation — floating pill */}
       <header>
         <nav
-          className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#050510]/80 backdrop-blur-xl"
+          className="fixed top-4 left-0 right-0 z-50"
           aria-label="Primary"
         >
-          <div className="mx-auto max-w-7xl px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between min-h-[56px] sm:min-h-[64px]">
-              <Link href="/" className="flex items-center gap-2 group">
-                <Image
-                  src="/logo_small.png"
-                  alt="NodeTool"
-                  width={48}
-                  height={48}
-                  className="brightness-0 invert group-hover:brightness-100 group-hover:invert-0 transition-all"
-                />
-                <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-400 to-cyan-400">
-                  nodetool
-                </span>
-              </Link>
+          <div className="mx-auto max-w-6xl px-4 lg:px-6">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 flex items-center justify-between gap-4 rounded-full border border-white/10 bg-[#0a0a14]/85 backdrop-blur-xl px-3 sm:px-5 py-2.5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.8)]">
+                <Link href="/" className="flex items-center gap-2 group pl-1">
+                  <Image
+                    src="/logo_small.png"
+                    alt="NodeTool"
+                    width={32}
+                    height={32}
+                    className="brightness-0 invert"
+                  />
+                  <span className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-400 to-cyan-400">
+                    nodetool
+                  </span>
+                </Link>
 
-              <ul className="hidden md:flex items-center gap-1 rounded-full bg-white/5 ring-1 ring-white/10 px-2 py-1">
-                {navigation.map((item) => {
-                  const active = hash === item.href;
-                  return (
-                    <li key={item.name}>
-                      <a
-                        href={item.href}
-                        className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${active
-                          ? "bg-white/10 text-white"
-                          : "text-slate-400 hover:text-white hover:bg-white/5"
+                <ul className="hidden md:flex items-center gap-1">
+                  {navigation.map((item) => {
+                    const active = hash === item.href;
+                    return (
+                      <li key={item.name}>
+                        <a
+                          href={item.href}
+                          className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
+                            active
+                              ? "text-white"
+                              : "text-slate-400 hover:text-white"
                           }`}
-                      >
-                        {item.name}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
+                        >
+                          {item.name}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
 
-              <div className="flex items-center gap-2">
-                {/* Mobile menu button */}
                 <button
                   type="button"
-                  className="md:hidden rounded-md p-2 text-slate-300 hover:bg-white/5 transition-colors"
+                  className="md:hidden rounded-md p-1.5 text-slate-300 hover:bg-white/5 transition-colors"
                   onClick={() => setMobileMenuOpen(true)}
                   aria-label="Open menu"
                 >
-                  <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+                  <Bars3Icon className="h-5 w-5" aria-hidden="true" />
                 </button>
-                <a
-                  href="https://github.com/nodetool-ai/nodetool"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-                  aria-label="NodeTool on GitHub"
-                >
-                  <Image
-                    src="/github-mark-white.svg"
-                    alt=""
-                    width={24}
-                    height={24}
-                  />
-                </a>
               </div>
+
+              <a
+                href="https://github.com/nodetool-ai/nodetool"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden md:flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-[#0a0a14]/85 backdrop-blur-xl hover:bg-white/5 transition-colors"
+                aria-label="NodeTool on GitHub"
+              >
+                <Image
+                  src="/github-mark-white.svg"
+                  alt=""
+                  width={20}
+                  height={20}
+                />
+              </a>
             </div>
           </div>
         </nav>
@@ -322,68 +362,74 @@ export default function CreativesPage() {
         )}
       </header>
 
-      <div className="relative pt-24">
+      <div className="relative pt-28">
         {/* Hero Section */}
-        <section className="relative py-20 lg:py-32 overflow-hidden">
+        <section className="relative pt-16 pb-24 lg:pt-24 lg:pb-32 overflow-hidden">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="mx-auto max-w-4xl text-center">
+            <div className="mx-auto max-w-5xl text-center">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-rose-500/10 to-teal-500/10 border border-white/10 mb-8">
+                <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-rose-500/30 bg-gradient-to-r from-rose-500/[0.08] via-amber-500/[0.05] to-cyan-500/[0.08] mb-10 shadow-[0_0_40px_-10px_rgba(244,63,94,0.35)]">
                   <Sparkles className="w-4 h-4 text-rose-400" />
-                  <span className="text-sm font-medium text-slate-300">
+                  <span className="text-sm font-medium text-white tracking-wide">
                     Built for Creative Professionals
                   </span>
                 </div>
 
-                <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8">
+                <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-10">
                   <span className="text-white">Your Creative Vision.</span>
                   <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-400 to-cyan-400">
-                    Next-Gen Image, Music & Video.
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
+                    Next-Gen Image, Music &amp; Video.
                   </span>
                 </h1>
 
-                <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Build powerful creative pipelines with drag-and-drop
-                  simplicity. Access all top-tier models for image, music and
-                  video generation—Seedance 2.0, Kling 3.0, Runway, Luma, Suno, Flux, and more.
+                <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+                  Build powerful creative pipelines with drag-and-drop simplicity.
+                  Access all top-tier models for image, music, and video generation:
+                  Seedance 2.0, Kling 3.0, Runway, Luma, Suno, Flux, and more.
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
                   <a
                     href="https://github.com/nodetool-ai/nodetool/releases"
-                    className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-rose-500 to-teal-600 text-white font-semibold hover:from-rose-400 hover:to-teal-500 transition-all shadow-lg shadow-rose-500/25 hover:shadow-rose-500/40"
+                    className="group relative inline-flex items-center gap-2.5 px-9 py-4 rounded-full bg-rose-500 text-white font-semibold transition-all shadow-[0_10px_30px_-10px_rgba(244,63,94,0.6)] hover:bg-rose-400 hover:shadow-[0_14px_40px_-10px_rgba(244,63,94,0.75)]"
                   >
                     <Download className="w-5 h-5" />
                     Download
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </a>
                   <a
                     href="#features"
-                    className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-all"
+                    className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-sm text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
                   >
                     <Play className="w-5 h-5" />
                     See How It Works
                   </a>
                 </div>
 
-                <div className="flex items-center justify-center gap-8 text-sm text-slate-500">
-                  <span className="flex items-center gap-2">
-                    <Command className="w-4 h-4" />
+                <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-sm text-slate-300">
+                  <li className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10">
+                      <Command className="w-4 h-4 text-amber-300" />
+                    </span>
                     Open Source
-                  </span>
-                  <span className="w-1 h-1 rounded-full bg-slate-700" />
-                  <span className="flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
+                      <Shield className="w-4 h-4 text-emerald-300" />
+                    </span>
                     Privacy-First
-                  </span>
-                  <span className="w-1 h-1 rounded-full bg-slate-700" />
-                  <span>macOS • Windows • Linux</span>
-                </div>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10">
+                      <Monitor className="w-4 h-4 text-cyan-300" />
+                    </span>
+                    macOS &middot; Windows &middot; Linux
+                  </li>
+                </ul>
               </motion.div>
             </div>
 
@@ -415,6 +461,49 @@ export default function CreativesPage() {
           </div>
         </section>
 
+        {/* Real Workflow Example */}
+        <section className="py-20 relative">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12 max-w-3xl mx-auto"
+            >
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-300/80 mb-3">
+                A real workflow
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">
+                One product shot. Two scenes. A finished video.
+              </h2>
+              <p className="text-lg text-slate-400 leading-relaxed">
+                A reference image and two prompts feed Nano Banana Edit, then Veo 3.1 turns
+                the edits into a split-screen ad. Every step lives on the canvas, so you
+                can swap models, tweak prompts, and re-run instantly.
+              </p>
+            </motion.div>
+
+            <motion.figure
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative"
+            >
+              <div className="relative rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur overflow-hidden shadow-2xl shadow-rose-500/10">
+                <Image
+                  src="/creatives_workflow.png"
+                  alt="NodeTool canvas: a sneaker reference image plus two text prompts feeding two Nano Banana Edit nodes, then a Veo 3.1 Image-to-Video node producing a split-screen ad video"
+                  width={1672}
+                  height={941}
+                  className="w-full h-auto"
+                  priority
+                />
+              </div>
+            </motion.figure>
+          </div>
+        </section>
+
         {/* Creative Personas Section */}
         <section className="py-24 relative">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -424,48 +513,74 @@ export default function CreativesPage() {
               viewport={{ once: true }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+              <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6">
                 Built for{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-amber-400">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
                   Every Creator
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Whether you&apos;re editing videos, designing graphics,
-                producing music, or processing photos—NodeTool adapts to your
-                creative workflow.
+                Whether you&apos;re editing videos, designing graphics, producing music,
+                or processing photos, NodeTool adapts to your creative workflow.
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {creativePersonas.map((persona, index) => (
-                <motion.div
-                  key={persona.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group relative"
-                >
-                  <div
-                    className={`relative h-full rounded-2xl border ${persona.borderColor} ${persona.bgColor} backdrop-blur-sm p-6 transition-all duration-300 hover:border-white/20 hover:scale-[1.02]`}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7">
+              {creativePersonas.map((persona, index) => {
+                const a = personaAccentMap[persona.accent];
+                return (
+                  <motion.div
+                    key={persona.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.08 }}
+                    className="group relative"
                   >
                     <div
-                      className={`w-14 h-14 rounded-xl ${persona.bgColor} border ${persona.borderColor} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}
+                      className={`relative h-full min-h-[420px] rounded-2xl border ${a.border} bg-[#0a0a14]/70 backdrop-blur-sm p-7 flex flex-col transition-all duration-300 hover:-translate-y-1`}
+                      style={{
+                        boxShadow: `0 0 0 1px rgba(${a.glowRgba}, 0.10), 0 20px 60px -20px rgba(${a.glowRgba}, 0.45), 0 0 80px -20px rgba(${a.glowRgba}, 0.35)`,
+                      }}
                     >
-                      <persona.icon
-                        className={`w-7 h-7 ${persona.textColor}`}
+                      {/* Inner top glow */}
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 rounded-2xl"
+                        style={{
+                          background: `radial-gradient(120% 60% at 50% 0%, ${a.topGlow}, transparent 60%)`,
+                        }}
                       />
+
+                      <div className="relative flex flex-col h-full">
+                        <div
+                          className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${a.border} ${a.iconBg} mb-7`}
+                          style={{
+                            boxShadow: `0 0 24px -6px rgba(${a.glowRgba}, 0.55)`,
+                          }}
+                        >
+                          <persona.icon className={`w-6 h-6 ${a.text}`} />
+                        </div>
+
+                        <h3 className="text-xl font-semibold text-white mb-3">
+                          {persona.title}
+                        </h3>
+                        <p className="text-slate-400 leading-relaxed text-[0.95rem] flex-1">
+                          {persona.description}
+                        </p>
+
+                        <div className="mt-6">
+                          <span
+                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border ${a.border} text-slate-300 transition-colors group-hover:bg-white/5 group-hover:text-white`}
+                          >
+                            <ArrowRight className="w-4 h-4" />
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-semibold text-white mb-3">
-                      {persona.title}
-                    </h3>
-                    <p className="text-slate-400 leading-relaxed">
-                      {persona.description}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </section>
