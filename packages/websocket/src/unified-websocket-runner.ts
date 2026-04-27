@@ -4784,6 +4784,8 @@ export class UnifiedWebSocketRunner {
         return this.realtimeHandler.handleStart(data);
       case "signal_realtime_session":
         return this.realtimeHandler.handleSignal(data);
+      case "push_realtime_frame":
+        return this.realtimeHandler.handlePushFrame(data);
       case "update_realtime_session":
         return this.realtimeHandler.handleUpdate(data);
       case "stop_realtime_session":

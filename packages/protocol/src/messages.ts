@@ -558,6 +558,7 @@ export type UnifiedCommandType =
   | "end_input_stream"
   | "start_realtime_session"
   | "signal_realtime_session"
+  | "push_realtime_frame"
   | "update_realtime_session"
   | "stop_realtime_session"
   | "chat_message"

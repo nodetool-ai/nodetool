@@ -1,3 +1,4 @@
+import type { VideoFrame } from "@nodetool/protocol";
 import { realtimeSessionManager } from "./session-manager.js";
 import type { RealtimeCommandHandlerDependencies } from "./command-handler-types.js";
 import { RealtimeSessionCommandService } from "./session-command-service.js";
@@ -5,10 +6,12 @@ import { RealtimeSignalingTransport } from "./signaling-transport.js";
 import {
   normalizeMediaTracks,
   normalizeParameters,
+  normalizeRealtimeVideoFrame,
   normalizeSignalingState,
   normalizeTransport
 } from "./command-normalization.js";
 import { routeRealtimeParameterUpdates } from "./runner-parameter-routing.js";
+import { FrameRouter } from "./frame-router.js";
 
 export type {
   ActiveRealtimeJob,
@@ -104,6 +107,108 @@ export class RealtimeCommandHandler {
     data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
     return this.signalingTransport.handleSignal(data);
+  }
+
+  async handlePushFrame(
+    data: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const sessionId =
+      typeof data.session_id === "string" && data.session_id.length > 0
+        ? data.session_id
+        : null;
+    const trackId =
+      typeof data.track_id === "string" && data.track_id.length > 0
+        ? data.track_id
+        : null;
+
+    if (!sessionId) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "push_frame",
+        error: "session_id is required"
+      };
+    }
+    if (!trackId) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "push_frame",
+        session_id: sessionId,
+        error: "track_id is required"
+      };
+    }
+
+    const session = realtimeSessionManager.getSession(
+      sessionId,
+      this.dependencies.getUserId()
+    );
+    if (!session) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "push_frame",
+        session_id: sessionId,
+        track_id: trackId,
+        error: "Realtime session not found"
+      };
+    }
+
+    if (!session.job_id) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "push_frame",
+        session_id: sessionId,
+        workflow_id: session.workflow_id,
+        track_id: trackId,
+        error: "Realtime session has no active job"
+      };
+    }
+
+    const activeJob = this.dependencies.getActiveJob(session.job_id);
+    if (!activeJob) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "push_frame",
+        session_id: sessionId,
+        workflow_id: session.workflow_id,
+        job_id: session.job_id,
+        track_id: trackId,
+        error: "No active realtime job"
+      };
+    }
+
+    let frame: VideoFrame;
+    try {
+      frame = normalizeRealtimeVideoFrame(data.frame);
+    } catch (error) {
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "push_frame",
+        session_id: sessionId,
+        workflow_id: session.workflow_id,
+        job_id: session.job_id,
+        track_id: trackId,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+
+    const router = new FrameRouter(session, activeJob.runner);
+    const routed = await router.routeFrame(trackId, frame);
+    return {
+      type: "realtime_session_ack",
+      ok: true,
+      action: "push_frame",
+      session_id: session.session_id,
+      workflow_id: session.workflow_id,
+      job_id: session.job_id,
+      track_id: trackId,
+      routed,
+      metrics: router.metrics()
+    };
   }
 
   async handleStop(data: Record<string, unknown>): Promise<Record<string, unknown>> {

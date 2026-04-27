@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { VideoFrame } from "@nodetool/protocol";
 import { RealtimeCommandHandler } from "../src/realtime/command-handler.js";
 import { realtimeSessionManager } from "../src/realtime/session-manager.js";
 
@@ -105,6 +106,86 @@ describe("RealtimeCommandHandler", () => {
       unrouted_parameters: ["unknown_input"]
     });
     expect(emitSessionUpdated).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes session-targeted realtime video frames through media track mappings", async () => {
+    const pushInputValue = vi.fn().mockResolvedValue(undefined);
+    const session = realtimeSessionManager.createSession({
+      userId: "user-1",
+      workflowId: "workflow-1",
+      jobId: "job-1",
+      mediaTracks: [
+        {
+          track_id: "deterministic-video",
+          kind: "video",
+          node_id: "video-source",
+          input_name: "camera",
+          label: "Deterministic frame",
+          enabled: true
+        }
+      ],
+      parameters: {},
+      status: "running"
+    });
+
+    const handler = new RealtimeCommandHandler({
+      getUserId: () => "user-1",
+      runRealtimeJob: vi.fn().mockResolvedValue(undefined),
+      cancelJob: vi.fn().mockResolvedValue(undefined),
+      getActiveJob: vi.fn().mockReturnValue({
+        runner: {
+          pushInputValue
+        }
+      }),
+      trackSessionJob: vi.fn(),
+      clearSessionTracking: vi.fn(),
+      failSessionStartup: vi.fn().mockResolvedValue(undefined),
+      emitSessionStarted: vi.fn().mockResolvedValue(undefined),
+      emitSessionUpdated: vi.fn().mockResolvedValue(undefined),
+      emitSessionStopped: vi.fn().mockResolvedValue(undefined),
+      emitSessionSignal: vi.fn().mockResolvedValue(undefined)
+    });
+
+    const result = await handler.handlePushFrame({
+      session_id: session.session_id,
+      track_id: "deterministic-video",
+      frame: {
+        type: "realtime_video_frame",
+        data: [255, 0, 0, 255],
+        width: 1,
+        height: 1,
+        stride: 4,
+        pixel_format: "rgba8",
+        timestamp_ns: 1000,
+        sequence: 1
+      }
+    });
+
+    expect(result).toMatchObject({
+      type: "realtime_session_ack",
+      ok: true,
+      action: "push_frame",
+      session_id: session.session_id,
+      workflow_id: "workflow-1",
+      job_id: "job-1",
+      track_id: "deterministic-video",
+      routed: true
+    });
+    const pushedFrame = pushInputValue.mock.calls[0][1] as VideoFrame;
+    expect(pushInputValue).toHaveBeenCalledWith(
+      "camera",
+      expect.objectContaining({
+        type: "realtime_video_frame",
+        width: 1,
+        height: 1,
+        stride: 4,
+        pixel_format: "rgba8",
+        timestamp_ns: 1000,
+        sequence: 1
+      }),
+      "frame"
+    );
+    expect(pushedFrame.data).toEqual(new Uint8Array([255, 0, 0, 255]));
   });
 
   it("delegates runtime-targeted WebRTC signaling to the backend server", async () => {

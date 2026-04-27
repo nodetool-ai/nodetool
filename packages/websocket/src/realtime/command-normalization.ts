@@ -1,4 +1,6 @@
 import type {
+  VideoFrame,
+  VideoPixelFormat,
   RealtimeMediaTrackKind,
   RealtimeMediaTrackMapping,
   RealtimeSessionSignalingState,
@@ -215,5 +217,83 @@ export const normalizeGraph = (
   return {
     nodes: record.nodes.map((node) => ({ ...(node as Record<string, unknown>) })),
     edges: record.edges.map((edge) => ({ ...(edge as Record<string, unknown>) }))
+  };
+};
+
+const videoPixelFormats = new Set<VideoPixelFormat>([
+  "rgba8",
+  "rgb8",
+  "yuv420p",
+  "nv12"
+]);
+
+const normalizeFrameBytes = (value: unknown): Uint8Array => {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (Array.isArray(value) && value.every((item) => Number.isInteger(item))) {
+    return new Uint8Array(value as number[]);
+  }
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([key, item]) => /^\d+$/.test(key) && Number.isInteger(item))
+      .sort((a, b) => Number(a[0]) - Number(b[0]));
+    if (entries.length > 0) {
+      return new Uint8Array(entries.map(([, item]) => Number(item)));
+    }
+  }
+  throw new Error("frame.data must be bytes");
+};
+
+const normalizePositiveInteger = (
+  value: unknown,
+  fieldName: string
+): number => {
+  if (!Number.isInteger(value) || Number(value) <= 0) {
+    throw new Error(`frame.${fieldName} must be a positive integer`);
+  }
+  return Number(value);
+};
+
+const normalizeNonNegativeInteger = (
+  value: unknown,
+  fieldName: string
+): number => {
+  if (!Number.isInteger(value) || Number(value) < 0) {
+    throw new Error(`frame.${fieldName} must be a non-negative integer`);
+  }
+  return Number(value);
+};
+
+export const normalizeRealtimeVideoFrame = (value: unknown): VideoFrame => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("frame must be an object");
+  }
+
+  const record = value as Record<string, unknown>;
+  if (record.type !== "realtime_video_frame") {
+    throw new Error("frame.type must be realtime_video_frame");
+  }
+
+  const pixelFormat = record.pixel_format;
+  if (
+    typeof pixelFormat !== "string" ||
+    !videoPixelFormats.has(pixelFormat as VideoPixelFormat)
+  ) {
+    throw new Error("frame.pixel_format is unsupported");
+  }
+
+  return {
+    type: "realtime_video_frame",
+    data: normalizeFrameBytes(record.data),
+    width: normalizePositiveInteger(record.width, "width"),
+    height: normalizePositiveInteger(record.height, "height"),
+    stride: normalizePositiveInteger(record.stride, "stride"),
+    pixel_format: pixelFormat as VideoPixelFormat,
+    timestamp_ns: normalizeNonNegativeInteger(
+      record.timestamp_ns,
+      "timestamp_ns"
+    ),
+    sequence: normalizeNonNegativeInteger(record.sequence, "sequence")
   };
 };

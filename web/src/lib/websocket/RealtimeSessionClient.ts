@@ -2,6 +2,7 @@ import type {
   RealtimeAnalysisEvent,
   RealtimeInferenceMetrics,
   RealtimeMediaTrackMapping,
+  VideoFrame,
   RealtimeMetrics,
   RealtimeSessionRecord,
   RealtimeSessionSignal,
@@ -32,6 +33,11 @@ export interface RealtimeSignalPayload {
   signal?: Omit<RealtimeSessionSignal, "type" | "session_id" | "workflow_id" | "created_at">;
   signalingStatus?: RealtimeSessionSignalingState["status"];
   error?: string | null;
+}
+
+export interface RealtimeInputFramePayload {
+  trackId: string;
+  frame: VideoFrame;
 }
 
 type RealtimeGraphPayload = {
@@ -192,6 +198,24 @@ export class RealtimeSessionClient {
         signal: payload.signal,
         signaling_status: payload.signalingStatus,
         error: payload.error
+      }
+    });
+  }
+
+  async pushInputFrame(
+    sessionId: string,
+    workflowId: string | null,
+    payload: RealtimeInputFramePayload
+  ): Promise<void> {
+    await this.ensureConnection();
+    await globalWebSocketManager.send({
+      type: "push_realtime_frame",
+      command: "push_realtime_frame",
+      data: {
+        session_id: sessionId,
+        workflow_id: workflowId,
+        track_id: payload.trackId,
+        frame: payload.frame
       }
     });
   }
