@@ -162,7 +162,7 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
                 const base = emptyRealtimeMetrics(message, existing);
                 const routedIncrement = message.ok && message.routed === true ? 1 : 0;
                 const unroutedIncrement =
-                  message.ok && message.routed === false ? 1 : 0;
+                  !message.ok || message.routed === false ? 1 : 0;
                 return {
                   metrics: {
                     ...state.metrics,

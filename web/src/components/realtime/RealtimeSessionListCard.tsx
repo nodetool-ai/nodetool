@@ -14,7 +14,11 @@ export const RealtimeSessionListCard = ({
   onSelectSession
 }: RealtimeSessionListCardProps) => {
   return (
-    <Card padding="normal" variant="outlined">
+    <Card
+      padding="normal"
+      variant="outlined"
+      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+    >
       <FlexColumn gap={2}>
         <Text weight={600}>Workflow Sessions</Text>
         {sessions.length > 0 ? (
@@ -23,13 +27,13 @@ export const RealtimeSessionListCard = ({
               key={session.session_id}
               justify="space-between"
               align="center"
-              sx={{
+              sx={(theme) => ({
                 borderColor: "divider",
                 borderStyle: "solid",
                 borderWidth: 1,
-                borderRadius: 1,
+                borderRadius: theme.rounded.xs,
                 padding: 1.5
-              }}
+              })}
             >
               <FlexColumn gap={0.5}>
                 <Text weight={600}>{session.session_id}</Text>

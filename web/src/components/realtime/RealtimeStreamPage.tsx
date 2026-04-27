@@ -25,10 +25,12 @@ const RealtimeStreamPage = () => {
       sx={{
         boxSizing: "border-box",
         minHeight: 0,
+        ml: "5em",
         overflow: "hidden",
         px: { xs: 3, md: 6 },
         pl: { xs: 4, md: 7 },
-        py: { xs: 3, md: 5 }
+        py: { xs: 3, md: 5 },
+        width: "calc(100% - 5em)"
       }}
     >
       <FlexColumn gap={1.5} sx={{ maxWidth: 920 }}>

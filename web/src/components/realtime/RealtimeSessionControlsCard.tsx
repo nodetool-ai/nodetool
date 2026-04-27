@@ -64,7 +64,11 @@ export const RealtimeSessionControlsCard = ({
   onStopSession
 }: RealtimeSessionControlsCardProps) => {
   return (
-    <Card padding="normal" variant="outlined">
+    <Card
+      padding="normal"
+      variant="outlined"
+      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+    >
       <FlexColumn gap={2}>
         <Text weight={600}>Session Controls</Text>
         <FlexRow gap={2} sx={{ flexWrap: "wrap" }}>

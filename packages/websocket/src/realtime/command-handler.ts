@@ -201,7 +201,31 @@ export class RealtimeCommandHandler {
     }
 
     const router = new FrameRouter(session, activeJob.runner);
-    const routed = await router.routeFrame(trackId, frame);
+    let routed: boolean;
+    try {
+      routed = await router.routeFrame(trackId, frame);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log.warn("TEMP_LOG realtime pushed frame routing failed", {
+        sessionId,
+        workflowId: session.workflow_id,
+        jobId: session.job_id,
+        trackId,
+        error: message
+      });
+      return {
+        type: "realtime_session_ack",
+        ok: false,
+        action: "push_frame",
+        session_id: session.session_id,
+        workflow_id: session.workflow_id,
+        job_id: session.job_id,
+        track_id: trackId,
+        routed: false,
+        error: message,
+        metrics: router.metrics()
+      };
+    }
     const logKey = `${session.session_id}:${trackId}`;
     if (!this.tempLoggedFrameRoutes.has(logKey)) {
       this.tempLoggedFrameRoutes.add(logKey);

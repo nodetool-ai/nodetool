@@ -25,7 +25,11 @@ export const RealtimeSessionDetailsCard = ({
   codecStatus
 }: RealtimeSessionDetailsCardProps) => {
   return (
-    <Card padding="normal" variant="outlined">
+    <Card
+      padding="normal"
+      variant="outlined"
+      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+    >
       <FlexColumn gap={2}>
         <Text weight={600}>Active Session</Text>
         {activeSession ? (

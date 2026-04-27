@@ -53,6 +53,7 @@ export type RealtimeSessionAck = {
   session_id?: string | null;
   workflow_id?: string | null;
   job_id?: string | null;
+  status?: RealtimeSessionRecord["status"];
   track_id?: string | null;
   routed?: boolean;
   error?: string | null;
@@ -81,6 +82,21 @@ const isRealtimeSessionAck = (message: unknown): message is RealtimeSessionAck =
     typeof message.action === "string"
   );
 };
+
+const toSessionRecord = (
+  message: RealtimeSessionStarted | RealtimeSessionUpdated
+): RealtimeSessionRecord => ({
+  session_id: message.session_id,
+  workflow_id: message.workflow_id,
+  job_id: message.job_id,
+  status: message.status,
+  transport: message.transport,
+  parameters: message.parameters,
+  media_tracks: message.media_tracks,
+  signaling: message.signaling,
+  created_at: message.created_at,
+  updated_at: message.updated_at
+});
 
 export const isRealtimeSessionMessage = (
   message: unknown
@@ -137,20 +153,38 @@ export class RealtimeSessionClient {
     await this.ensureConnection();
 
     return new Promise<RealtimeSessionRecord>((resolve, reject) => {
+      let sessionRecord: RealtimeSessionRecord | null = null;
       const unsubscribe = this.subscribe(workflowId, (message) => {
         if (isRealtimeSessionStarted(message) && message.workflow_id === workflowId) {
+          sessionRecord = toSessionRecord(message);
+          return;
+        }
+
+        if (
+          message.type === "realtime_session_updated" &&
+          message.workflow_id === workflowId
+        ) {
+          sessionRecord = toSessionRecord(message);
+          if (message.status === "running") {
+            cleanup();
+            resolve(sessionRecord);
+          }
+          return;
+        }
+
+        if (
+          isRealtimeSessionAck(message) &&
+          message.action === "start" &&
+          message.workflow_id === workflowId &&
+          message.ok &&
+          sessionRecord
+        ) {
           cleanup();
           resolve({
-            session_id: message.session_id,
-            workflow_id: message.workflow_id,
-            job_id: message.job_id,
-            status: message.status,
-            transport: message.transport,
-            parameters: message.parameters,
-            media_tracks: message.media_tracks,
-            signaling: message.signaling,
-            created_at: message.created_at,
-            updated_at: message.updated_at
+            ...sessionRecord,
+            job_id: message.job_id ?? sessionRecord.job_id,
+            status: message.status ?? sessionRecord.status,
+            updated_at: new Date().toISOString()
           });
           return;
         }

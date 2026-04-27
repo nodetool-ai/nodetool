@@ -170,7 +170,11 @@ export const RealtimeModelStatusCard = ({
   });
 
   return (
-    <Card padding="normal" variant="outlined">
+    <Card
+      padding="normal"
+      variant="outlined"
+      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+    >
       <FlexColumn gap={1.25}>
         <Text weight={600}>Model Runtime Status</Text>
         <StatusIndicator
