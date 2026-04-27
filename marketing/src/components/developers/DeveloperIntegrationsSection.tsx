@@ -157,7 +157,7 @@ export default function DeveloperIntegrationsSection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mt-16 text-center rounded-2xl bg-gradient-to-br from-violet-900/20 to-indigo-900/20 p-10 ring-1 ring-violet-500/20"
+          className="mt-16 text-center rounded-2xl bg-gradient-to-br from-violet-900/20 to-teal-900/20 p-10 ring-1 ring-violet-500/20"
         >
           <h3 className="text-2xl font-bold text-white mb-4">
             100% Open Source
@@ -182,7 +182,7 @@ export default function DeveloperIntegrationsSection({
               href="https://discord.gg/WmQTWZRcYE"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-indigo-500"
+              className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-teal-500"
             >
               Join Discord Community
             </a>

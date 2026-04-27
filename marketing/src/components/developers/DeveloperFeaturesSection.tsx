@@ -1,95 +1,64 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import {
-  Code2,
-  Terminal,
-  Blocks,
-  Cpu,
-  Database,
-  GitBranch,
-  Package,
-  Workflow,
-  Zap,
-} from "lucide-react";
+import { Code2, Terminal, Blocks } from "lucide-react";
+import CodeBlock from "./CodeBlock";
 
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
 const features = [
   {
-    title: "Python SDK",
+    title: "Developer SDK",
     description:
-      "Build and run workflows programmatically. Full type hints, async support, and comprehensive documentation.",
+      "Build and run workflows programmatically. Strict types, async streaming, and a fluent graph builder.",
     icon: Code2,
     color: "text-violet-400",
     bgColor: "bg-violet-500/10",
     borderColor: "border-violet-500/20",
-    code: `from nodetool import Workflow
+    code: `import { WorkflowRunner } from "@nodetool/kernel";
 
-workflow = Workflow.load("my-workflow")
-result = await workflow.run({
-    "prompt": "A sunset over mountains"
-})`,
+const runner = new WorkflowRunner();
+const result = await runner.run(graph, {
+  prompt: "A sunset over mountains",
+});`,
   },
   {
-    title: "REST API",
+    title: "Graph DSL",
     description:
-      "HTTP endpoints for all operations. Create, run, and manage workflows from any language or platform.",
+      "Declare workflows in code. Type-checked node inputs and outputs, no YAML, no JSON-by-hand.",
     icon: Terminal,
     color: "text-blue-400",
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/20",
-    code: `curl -X POST https://api.nodetool.ai/run \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -d '{"workflow": "img-gen", "inputs": {"prompt": "..."}}'`,
+    code: `import { workflow, constant, text } from "@nodetool/dsl";
+
+const a = constant.string({ value: "Hello, " });
+const b = constant.string({ value: "NodeTool!" });
+const out = text.concat({ a: a.output, b: b.output });
+
+const wf = workflow(out);`,
   },
   {
     title: "Custom Nodes",
     description:
-      "Extend NodeTool with your own nodes. Package and share custom functionality with the community.",
+      "Extend NodeTool with your own nodes. Decorate fields, implement process(), ship it.",
     icon: Blocks,
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/10",
     borderColor: "border-emerald-500/20",
-    code: `@node
-class MyCustomNode:
-    prompt: str = Field(...)
-    
-    async def process(self) -> str:
-        return await my_logic(self.prompt)`,
-  },
-];
+    code: `import { BaseNode, prop } from "@nodetool/node-sdk";
 
-const capabilities = [
-  {
-    icon: Cpu,
-    title: "Local & Cloud Execution",
-    description: "Run on your machine or deploy to RunPod, AWS, or any cloud.",
-  },
-  {
-    icon: Database,
-    title: "Built-in Vector Store",
-    description: "ChromaDB integration for RAG and semantic search workflows.",
-  },
-  {
-    icon: GitBranch,
-    title: "Version Control Ready",
-    description: "Workflows are JSON files. Track changes with Git.",
-  },
-  {
-    icon: Package,
-    title: "Package System",
-    description: "Install nodes from the community or publish your own.",
-  },
-  {
-    icon: Workflow,
-    title: "Visual + Code",
-    description: "Design visually, export to Python, or mix both approaches.",
-  },
-  {
-    icon: Zap,
-    title: "GPU Acceleration",
-    description: "Native CUDA, ROCm, and Metal support for fast inference.",
+export class MyNode extends BaseNode {
+  static readonly nodeType = "my.pkg.MyNode";
+  static readonly metadataOutputTypes = { output: "str" };
+
+  @prop({ type: "str", default: "" })
+  declare prompt: string;
+
+  async process() {
+    return { output: await myLogic(this.prompt) };
+  }
+}`,
   },
 ];
 
@@ -140,7 +109,7 @@ export default function DeveloperFeaturesSection({
         </div>
 
         {/* Main Features with Code */}
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="space-y-6">
           {features.map((feature, idx) => (
             <motion.div
               key={feature.title}
@@ -148,57 +117,30 @@ export default function DeveloperFeaturesSection({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className={`group relative rounded-2xl ${feature.bgColor} border ${feature.borderColor} p-6 backdrop-blur-sm`}
+              className={`group relative rounded-2xl ${feature.bgColor} border ${feature.borderColor} p-6 sm:p-8 backdrop-blur-sm`}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg ${feature.bgColor} ring-1 ${feature.borderColor}`}
-                >
-                  <feature.icon className={`h-5 w-5 ${feature.color}`} />
+              <div className="grid gap-6 md:grid-cols-5 md:gap-8 items-start">
+                <div className="md:col-span-2">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-lg ${feature.bgColor} ring-1 ${feature.borderColor}`}
+                    >
+                      <feature.icon className={`h-5 w-5 ${feature.color}`} />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">
+                      {feature.title}
+                    </h3>
+                  </div>
+                  <p className="text-slate-400">{feature.description}</p>
                 </div>
-                <h3 className="text-lg font-semibold text-white">
-                  {feature.title}
-                </h3>
+                <div className="md:col-span-3 min-w-0">
+                  <CodeBlock code={feature.code} language="typescript" />
+                </div>
               </div>
-              <p className="text-slate-400 mb-4">{feature.description}</p>
-              <pre className="rounded-lg bg-slate-900/80 p-4 text-xs text-slate-300 overflow-x-auto font-mono">
-                <code>{feature.code}</code>
-              </pre>
             </motion.div>
           ))}
         </div>
 
-        {/* Capabilities Grid */}
-        <div className="mt-20">
-          <motion.h3
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-2xl font-bold text-white text-center mb-10"
-          >
-            Everything You Need
-          </motion.h3>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {capabilities.map((cap, idx) => (
-              <motion.div
-                key={cap.title}
-                initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="flex items-start gap-4 rounded-xl bg-slate-800/40 p-5 ring-1 ring-slate-700/50"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 ring-1 ring-violet-500/20">
-                  <cap.icon className="h-5 w-5 text-violet-400" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-white">{cap.title}</h4>
-                  <p className="mt-1 text-sm text-slate-400">{cap.description}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
       </div>
     </section>
   );

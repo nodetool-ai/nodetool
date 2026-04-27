@@ -11,55 +11,35 @@ import {
   Database,
   PackagePlus,
   Terminal,
-  Settings,
-  CheckCircle2,
 } from "lucide-react";
+import CodeBlock from "./CodeBlock";
 
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
-const installationCodePip = `pip install nodetool-core`;
+const installationCodeSource = `git clone https://github.com/nodetool-ai/nodetool
+cd nodetool
+nvm use         # Node 24.x
+npm install
+npm run build:packages`;
 
-const installationCodeSource = `git clone https://github.com/nodetool-ai/nodetool-core
-cd nodetool-core
+const basicUsageCode = `import { workflow, constant, text, agent } from "@nodetool/dsl";
 
-# Using conda + uv (recommended)
-conda create -n nodetool python=3.11 \\
-  pandoc ffmpeg -c conda-forge
-conda activate nodetool
-uv sync`;
+// Define an input
+const question = constant.string({ value: "What is NodeTool?" });
 
-const basicUsageCode = `from nodetool.dsl.graph import create_graph
-from nodetool.dsl.nodetool.input import StringInput
-from nodetool.dsl.nodetool.agents import Agent
-from nodetool.dsl.nodetool.output import Output
-from nodetool.metadata.types import LanguageModel, Provider
+// Create an agent that processes the question
+const reply = agent.run({
+  provider: "ollama",
+  model: "llama3.2:3b",
+  prompt: question.output,
+});
 
-# Define inputs
-question = StringInput(
-    name="user_question",
-    value="What is NodeTool?",
-)
+// Wrap it in a workflow
+const wf = workflow(reply);
 
-# Create an agent that processes the question
-agent = Agent(
-    model=LanguageModel(
-        provider=Provider.Ollama,
-        id="llama3.2:3b",
-    ),
-    prompt=question.output,
-)
-
-# Define output
-output = Output(
-    name="answer",
-    value=agent.out.text,
-)
-
-# Build and run the graph
-graph = create_graph(output)
-
-# To run: from nodetool.dsl.graph import run_graph
-# result = run_graph(graph)`;
+// Run it:
+//   import { WorkflowRunner } from "@nodetool/kernel";
+//   const result = await new WorkflowRunner().run(wf);`;
 
 const dslExplanation = [
   {
@@ -76,7 +56,7 @@ const dslExplanation = [
   },
   {
     title: "Visual + Code Sync",
-    description: "The same graph runs in the UI or as Python code. No separate workflow files to maintain.",
+    description: "The same graph runs in the UI or from code. Export visual workflows, edit, import them back.",
   },
 ];
 
@@ -84,7 +64,7 @@ const coreFeatures = [
   {
     icon: Box,
     title: "Node-Based DSL",
-    description: "Declare graphs in pure Python or JSON—no vendor lock-in.",
+    description: "Declare graphs in code. Strict types, no vendor lock-in.",
     color: "text-violet-400",
   },
   {
@@ -117,13 +97,6 @@ const coreFeatures = [
     description: "Bring your own nodes with the extensible plugin system.",
     color: "text-cyan-400",
   },
-];
-
-const architecturePoints = [
-  "Each node runs in its own async task—no central loop",
-  "Streaming nodes handle data piece by piece",
-  "GPU jobs run one at a time with global lock and retries",
-  "Built-in support for RAG and vector databases",
 ];
 
 interface DeveloperCoreSectionProps {
@@ -160,7 +133,7 @@ export default function DeveloperCoreSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-            Open-Source Python Engine
+            Open-Source Runtime
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -169,8 +142,9 @@ export default function DeveloperCoreSection({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            NodeTool Core is the Python engine that powers NodeTool. Install it as a library
-            or use it standalone for building AI workflows.
+            Workflows run in an async Node.js runtime. Use NodeTool as a library
+            in your own app, or standalone via the CLI to build, run, and ship AI
+            workflows.
           </motion.p>
           <motion.div
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -180,14 +154,14 @@ export default function DeveloperCoreSection({
             className="mt-4 flex flex-wrap justify-center gap-2"
           >
             <Image
-              src="https://img.shields.io/badge/Python-3.11%2B-blue.svg"
-              alt="Python 3.11+"
-              width={95}
+              src="https://img.shields.io/badge/Node.js-24.x-339933.svg"
+              alt="Node.js 24.x"
+              width={105}
               height={20}
               className="h-5 w-auto"
               unoptimized
             />
-            <Image
+<Image
               src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg"
               alt="AGPL License"
               width={125}
@@ -246,16 +220,17 @@ export default function DeveloperCoreSection({
             </div>
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-slate-400 mb-2">Using pip:</p>
-                <pre className="rounded-lg bg-slate-950/90 p-4 text-xs text-slate-300 overflow-x-auto font-mono border border-slate-700/50">
-                  <code className="language-bash">{installationCodePip}</code>
-                </pre>
+                <p className="text-sm text-slate-400 mb-2">npm package:</p>
+                <div className="rounded-lg bg-slate-950/90 p-4 text-xs text-slate-300 font-mono border border-slate-700/50 flex items-center justify-between gap-3">
+                  <code className="language-bash text-slate-500 line-through">npm install @nodetool/kernel</code>
+                  <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-500/30 whitespace-nowrap">
+                    coming soon
+                  </span>
+                </div>
               </div>
               <div>
-                <p className="text-sm text-slate-400 mb-2">From source (recommended):</p>
-                <pre className="rounded-lg bg-slate-950/90 p-4 text-xs text-slate-300 overflow-x-auto font-mono border border-slate-700/50">
-                  <code className="language-bash">{installationCodeSource}</code>
-                </pre>
+                <p className="text-sm text-slate-400 mb-2">From source (today):</p>
+                <CodeBlock code={installationCodeSource} language="bash" />
               </div>
             </div>
           </motion.div>
@@ -274,9 +249,7 @@ export default function DeveloperCoreSection({
               </div>
               <h3 className="text-xl font-semibold text-white">DSL Example</h3>
             </div>
-            <pre className="rounded-lg bg-slate-950/90 p-4 text-xs text-slate-300 overflow-x-auto font-mono border border-slate-700/50 leading-relaxed">
-              <code className="language-python">{basicUsageCode}</code>
-            </pre>
+            <CodeBlock code={basicUsageCode} language="typescript" />
           </motion.div>
         </div>
 
@@ -286,11 +259,11 @@ export default function DeveloperCoreSection({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mt-8 rounded-2xl bg-gradient-to-br from-indigo-900/20 to-purple-900/20 p-8 ring-1 ring-indigo-500/20"
+          className="mt-8 rounded-2xl bg-gradient-to-br from-teal-900/20 to-purple-900/20 p-8 ring-1 ring-teal-500/20"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 ring-1 ring-indigo-500/20">
-              <Box className="h-5 w-5 text-indigo-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-500/10 ring-1 ring-teal-500/20">
+              <Box className="h-5 w-5 text-teal-400" />
             </div>
             <div>
               <h3 className="text-xl font-semibold text-white">Why the DSL?</h3>
@@ -314,38 +287,7 @@ export default function DeveloperCoreSection({
           </div>
         </motion.div>
 
-        {/* Architecture */}
-        <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mt-8 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/40 p-8 ring-1 ring-slate-700/50"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20">
-              <Settings className="h-5 w-5 text-blue-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-white">Architecture Highlights</h3>
-          </div>
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {architecturePoints.map((point, idx) => (
-              <motion.li
-                key={idx}
-                initial={reducedMotion ? {} : { opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: idx * 0.1 }}
-                className="flex items-start gap-3 text-slate-300"
-              >
-                <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="text-sm">{point}</span>
-              </motion.li>
-            ))}
-          </ul>
-        </motion.div>
-
-        {/* Links */}
+{/* Links */}
         <motion.div
           initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

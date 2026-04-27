@@ -30,7 +30,7 @@ export default function DevelopersHero() {
           className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
         >
           <span className="text-white">Build AI Apps with </span>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-teal-400">
             NodeTool
           </span>
         </motion.h1>
@@ -42,8 +42,9 @@ export default function DevelopersHero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
         >
-          Python SDK, REST API, and extensible node system. Create custom AI
-          workflows, integrate with any model, and deploy anywhere.
+          A visual workflow platform built on an async Node.js runtime. Use the
+          SDK and graph DSL to build, extend, and run AI workflows from code —
+          integrate any model and deploy anywhere.
         </motion.p>
 
         {/* Feature Pills */}
@@ -54,8 +55,8 @@ export default function DevelopersHero() {
           className="mt-8 flex flex-wrap justify-center gap-3"
         >
           {[
-            { icon: Code2, text: "Python SDK" },
-            { icon: Terminal, text: "REST API" },
+            { icon: Code2, text: "Developer SDK" },
+            { icon: Terminal, text: "Graph DSL" },
             { icon: Boxes, text: "Custom Nodes" },
             { icon: Rocket, text: "Cloud Deploy" },
           ].map((item, idx) => (

@@ -163,7 +163,7 @@ export default function DevelopersPage() {
           }
         />
         <motion.div
-          className="pointer-events-none absolute -bottom-48 right-8 h-[26rem] w-[26rem] rounded-full bg-indigo-500/20 blur-3xl"
+          className="pointer-events-none absolute -bottom-48 right-8 h-[26rem] w-[26rem] rounded-full bg-teal-500/20 blur-3xl"
           style={{
             WebkitMaskImage:
               "radial-gradient(circle at center, black 0%, transparent 65%)",

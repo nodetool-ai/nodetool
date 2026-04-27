@@ -121,10 +121,10 @@ export default function RootLayout({
                 "AI agent framework with tool use and web browsing",
                 "Type-safe node connections",
                 "Real-time workflow execution with live output preview",
-                "Python-based backend with extensibility via custom nodes",
-                "Open source with TypeScript frontend"
+                "Async Node.js runner extensible with custom nodes in TypeScript or Python",
+                "Open source, TypeScript end-to-end (frontend and backend)"
               ],
-              "softwareRequirements": "Python 3.10 or higher",
+              "softwareRequirements": "Node.js 22+ (Python 3.11+ optional, for Python nodes)",
               "installUrl": "https://github.com/nodetool-ai/nodetool",
               "license": "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
               "sameAs": [
@@ -214,7 +214,7 @@ export default function RootLayout({
                   "name": "Is NodeTool open source?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Yes. NodeTool is open source with a Python backend and TypeScript frontend. The source code is available on GitHub and the tool is extensible via custom Python nodes."
+                    "text": "Yes. NodeTool is open source and TypeScript end-to-end. Workflows run in an async Node.js runner, and you can extend it with custom nodes written in TypeScript or Python. The source code is available on GitHub."
                   }
                 }
               ]

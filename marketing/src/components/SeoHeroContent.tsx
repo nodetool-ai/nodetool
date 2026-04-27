@@ -58,7 +58,7 @@ export default function SeoHeroContent() {
         </p>
         <ul className="space-y-2 text-slate-300">
           <li>• Type-safe connections between nodes (preventing incompatible data flows)</li>
-          <li>• Local execution engine (Python-based backend)</li>
+          <li>• Local execution engine (async Node.js runner; custom nodes in TypeScript or Python)</li>
           <li>• Real-time workflow execution with live preview of outputs</li>
           <li>• Model management for local LLMs (MLX, GGML/GGUF formats)</li>
           <li>• Integration with cloud APIs (OpenAI, Anthropic, Replicate, etc.)</li>
@@ -80,8 +80,9 @@ export default function SeoHeroContent() {
             for AI workloads with native support for model management, local LLMs, and multimodal AI operations.
           </div>
           <div>
-            <strong className="text-white">vs LangChain:</strong> LangChain is a code-first Python framework. NodeTool provides 
-            a visual interface and runs workflows locally without requiring Python coding, though it&apos;s extensible via Python.
+            <strong className="text-white">vs LangChain:</strong> LangChain is a code-first Python framework. NodeTool provides
+            a visual interface and runs workflows locally in an async Node.js runner. No coding required to build workflows,
+            and you can extend it with custom nodes in TypeScript or Python.
           </div>
         </div>
       </section>
@@ -97,7 +98,7 @@ export default function SeoHeroContent() {
           <li>• <strong>Multimodal Processing:</strong> Text, images, video, and audio in unified workflows</li>
           <li>• <strong>RAG & Vector Databases:</strong> Built-in support for document indexing and semantic search</li>
           <li>• <strong>AI Agent Framework:</strong> Build autonomous agents with tool use and web browsing</li>
-          <li>• <strong>Open Source:</strong> Python backend, TypeScript frontend, extensible via custom nodes</li>
+          <li>• <strong>Open Source:</strong> TypeScript end-to-end with an async Node.js runner; custom nodes in TypeScript or Python</li>
         </ul>
       </section>
 
