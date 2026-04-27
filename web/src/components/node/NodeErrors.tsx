@@ -11,7 +11,7 @@ import useErrorStore from "../../stores/ErrorStore";
 import isEqual from "fast-deep-equal";
 import { CopyButton } from "../ui_primitives";
 
-export const errorStyles = (theme: Theme) =>
+const errorStyles = (theme: Theme) =>
   css({
     position: "relative",
     backgroundColor: theme.vars.palette.error.main,

@@ -226,21 +226,3 @@ export const getInferredOutputType = (
   return schema.properties[outputName];
 };
 
-/**
- * Type guard to check if a value is a valid inferred output schema.
- */
-export const isInferredOutputSchema = (
-  value: unknown
-): value is InferredOutputSchema => {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  
-  const schema = value as Record<string, unknown>;
-  return (
-    schema.type === "object" &&
-    schema.properties !== undefined &&
-    typeof schema.properties === "object" &&
-    Array.isArray(schema.required)
-  );
-}

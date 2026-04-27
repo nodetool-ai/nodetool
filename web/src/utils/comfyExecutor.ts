@@ -6,7 +6,7 @@
 
 import { Graph } from "../stores/ApiTypes";
 import { getComfyUIService } from "../services/ComfyUIService";
-import { nodeToolGraphToComfyPrompt, graphHasComfyUINodes } from "./comfyWorkflowConverter";
+import { nodeToolGraphToComfyPrompt } from "./comfyWorkflowConverter";
 import { Workflow, WorkflowAttributes } from "../stores/ApiTypes";
 import { getWorkflowRunnerStore } from "../stores/WorkflowRunner";
 import { handleUpdate, MsgpackData, getNodeStore } from "../stores/workflowUpdates";
