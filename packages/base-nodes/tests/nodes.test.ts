@@ -58,6 +58,7 @@ import {
   TextToImageNode,
   ImageToImageNode,
   GetMetadataNode,
+  VideoSourceNode,
   TextToVideoNode,
   GetVideoInfoNode,
   CreateThreadNode,
@@ -80,6 +81,7 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.workflows.base_node.Preview")).toBe(true);
     expect(registry.has("nodetool.audio.TextToSpeech")).toBe(true);
     expect(registry.has("nodetool.image.ImageToImage")).toBe(true);
+    expect(registry.has("nodetool.video.VideoSource")).toBe(true);
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
     expect(registry.has("nodetool.workspace.ReadTextFile")).toBe(true);
     expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
@@ -99,6 +101,22 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.code.RunBashCommandDocker")).toBe(true);
     expect(registry.has("nodetool.code.RunRubyCommandDocker")).toBe(true);
     expect(registry.has("nodetool.code.RunShellCommandDocker")).toBe(true);
+  });
+
+  it("registers video source as a normal video node with still and realtime outputs", () => {
+    const registry = new NodeRegistry();
+    registerBaseNodes(registry);
+
+    const metadata = registry.getMetadata(VideoSourceNode.nodeType);
+    expect(metadata?.namespace).toBe("nodetool.video");
+    expect(metadata?.description).toContain("webcam");
+    expect(metadata?.outputs).toEqual([
+      { name: "image", type: { type: "image", type_args: [] } },
+      {
+        name: "realtime_frame",
+        type: { type: "realtime_video_frame", type_args: [] }
+      }
+    ]);
   });
 });
 

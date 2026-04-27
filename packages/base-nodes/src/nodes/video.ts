@@ -1,5 +1,11 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool/node-sdk";
+import type {
+  ImageRef,
+  VideoRef,
+  StreamingInputs,
+  StreamingOutputs
+} from "@nodetool/node-sdk";
+import type { VideoFrame } from "@nodetool/protocol";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
@@ -102,6 +108,59 @@ function videoRef(data: Uint8Array, extras: Partial<VideoRef> = {}): VideoRef {
     data: Buffer.from(data).toString("base64"),
     ...extras
   };
+}
+
+export class VideoSourceNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.VideoSource";
+  static readonly title = "Video Source";
+  static readonly description =
+    "Camera and video source for normal and realtime workflows. Select a webcam or camera input, preview it, capture a still image, and feed realtime models with live frames.\n    video source, webcam, camera, camera input, video input, record video, snapshot, realtime";
+  static readonly metadataOutputTypes = {
+    image: "image",
+    realtime_frame: "realtime_video_frame"
+  };
+  static readonly basicFields = ["source", "image"];
+  static readonly isStreamingOutput = true;
+  static readonly isRealtimeCapable = true;
+  static readonly isMediaAdapter = true;
+
+  @prop({
+    type: "enum",
+    default: "camera",
+    title: "Source",
+    description:
+      "The video source mode. The first implementation supports camera capture.",
+    values: ["camera"]
+  })
+  declare source: "camera";
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      data: null
+    },
+    title: "Image",
+    description: "The latest still image captured from the source."
+  })
+  declare image: ImageRef | null;
+
+  @prop({
+    type: "realtime_video_frame",
+    default: null,
+    title: "Realtime Frame",
+    description:
+      "The latest live realtime frame emitted while a realtime session is running."
+  })
+  declare realtime_frame: VideoFrame | null;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {
+      image: this.image ?? null,
+      realtime_frame: this.realtime_frame ?? null
+    };
+  }
 }
 
 function modelConfig(props: Record<string, unknown>): {
@@ -2613,6 +2672,7 @@ export class GetVideoInfoNode extends BaseNode {
 }
 
 export const VIDEO_NODES = [
+  VideoSourceNode,
   TextToVideoNode,
   ImageToVideoNode,
   LoadVideoFileNode,

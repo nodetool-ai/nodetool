@@ -290,6 +290,7 @@ export {
   IMAGE_NODES
 } from "./nodes/image.js";
 export {
+  VideoSourceNode,
   TextToVideoNode,
   ImageToVideoNode,
   LoadVideoFileNode,
