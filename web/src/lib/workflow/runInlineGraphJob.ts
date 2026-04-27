@@ -131,6 +131,15 @@ export async function runInlineGraphJob({
 
   const { authToken, userId } = await resolveAuthContext();
 
+  if (signal?.aborted) {
+    return {
+      success: false,
+      outputs: {},
+      error: "Aborted",
+      jobId,
+      workflowId
+    };
+  }
   return new Promise<InlineJobExecutionResult>((resolve) => {
     const outputs: Record<string, unknown> = {};
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
