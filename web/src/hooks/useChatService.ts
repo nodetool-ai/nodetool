@@ -105,9 +105,13 @@ export const useChatService = (selectedModel: LanguageModel | null) => {
   );
 
   const handleNewThread = useCallback(async () => {
-    const newThreadId = await createNewThread();
-    switchThread(newThreadId);
-    navigate(`/chat/${newThreadId}`);
+    try {
+      const newThreadId = await createNewThread();
+      switchThread(newThreadId);
+      navigate(`/chat/${newThreadId}`);
+    } catch (error) {
+      // createNewThread failed; store.error is already set. Do not navigate.
+    }
   }, [createNewThread, switchThread, navigate]);
 
   const getThreadPreview = useCallback(
