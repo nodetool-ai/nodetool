@@ -56,17 +56,14 @@ function getNormalizedDimension(
   fallback: number | undefined,
   scale: number
 ): number {
-  if (!Number.isFinite(scale) || scale <= 0) {
-    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-      return Math.max(0, Math.round(value));
-    }
-    return Math.max(0, Math.round(fallback ?? 0));
-  }
+  const effectiveScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    const invScale = 1 / scale;
+    const invScale = 1 / effectiveScale;
     return Math.max(0, Math.round(value * invScale));
   }
 
+  // Fallback dimensions come from sketch source metadata, which is already in
+  // target document space and should not be re-scaled.
   return Math.max(0, Math.round(fallback ?? 0));
 }
 

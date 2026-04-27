@@ -390,26 +390,20 @@ export function useSegmentation({
       }
 
       setStatus("applying");
-      try {
-        await applyMasksToDocument({
-          sourceLayerId,
-          runId: generateSegmentationRunId(),
-          modelId: response.modelId ?? getDefaultSamModelId(backend),
-          backendId: response.backendId,
-          nodeType: response.nodeType,
-          masks: response.masks,
-          sourceImageDataUrl: exportedLayer.imageDataUrl,
-          sourceMetadata: exportedLayer.sourceMetadata,
-          preserveSourceLayer: true,
-          historyLabel: "Split Selected Layer"
-        });
-        setResult(null);
-        setStatus("idle");
-      } finally {
-        if (controller.signal.aborted) {
-          setStatus("idle");
-        }
-      }
+      await applyMasksToDocument({
+        sourceLayerId,
+        runId: generateSegmentationRunId(),
+        modelId: response.modelId ?? getDefaultSamModelId(backend),
+        backendId: response.backendId,
+        nodeType: response.nodeType,
+        masks: response.masks,
+        sourceImageDataUrl: exportedLayer.imageDataUrl,
+        sourceMetadata: exportedLayer.sourceMetadata,
+        preserveSourceLayer: true,
+        historyLabel: "Split Selected Layer"
+      });
+      setResult(null);
+      setStatus("idle");
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setStatus("idle");
@@ -450,8 +444,9 @@ export function useSegmentation({
 
       setResult(null);
       setStatus("idle");
-    } finally {
-      setStatus("idle");
+    } catch (err) {
+      console.error("[useSegmentation] Apply result failed:", err);
+      setStatus("error");
     }
   }, [applyMasksToDocument, result]);
 
