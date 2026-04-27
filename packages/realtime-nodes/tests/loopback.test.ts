@@ -14,8 +14,7 @@ import {
   Parameter,
   registerRealtimeNodes,
   SessionInfo,
-  VideoSink,
-  VideoSource
+  VideoSink
 } from "../src/index.js";
 
 const frame = (sequence: number): VideoFrame => ({
@@ -62,8 +61,35 @@ const registry = (): NodeRegistry => {
   return nodeRegistry;
 };
 
-const resolveFromRegistry = (nodeRegistry: NodeRegistry) => (node: NodeDescriptor) =>
-  nodeRegistry.resolve(node);
+const videoSourceDescriptor = (
+  id: string,
+  overrides: Partial<NodeDescriptor> = {}
+): NodeDescriptor => ({
+  id,
+  type: "nodetool.video.VideoSource",
+  name: "camera",
+  properties: { source: "camera", image: null, realtime_frame: null },
+  outputs: { image: "image", realtime_frame: "realtime_video_frame" },
+  is_streaming_output: true,
+  is_realtime_capable: true,
+  is_media_adapter: true,
+  inputBufferPolicy: {
+    realtime_frame: { capacity: 2, overflowPolicy: "drop_oldest" }
+  },
+  ...overrides
+});
+
+const resolveFromRegistry = (nodeRegistry: NodeRegistry) => (node: NodeDescriptor) => {
+  if (node.type === "nodetool.video.VideoSource") {
+    return {
+      async process() {
+        return { image: null, realtime_frame: null };
+      }
+    };
+  }
+
+  return nodeRegistry.resolve(node);
+};
 
 const mockProcessingContext = {
   emit() {},
@@ -92,11 +118,7 @@ describe("realtime frame routing nodes", () => {
       { job_id: "job-video-loopback", workflow_id: "workflow-1" },
       {
         nodes: [
-          {
-            ...VideoSource.toDescriptor("video-source"),
-            name: "camera",
-            properties: { name: "camera" }
-          },
+          videoSourceDescriptor("video-source"),
           {
             ...VideoSink.toDescriptor("video-sink"),
             name: "preview"
@@ -105,7 +127,7 @@ describe("realtime frame routing nodes", () => {
         edges: [
           {
             source: "video-source",
-            sourceHandle: "frame",
+            sourceHandle: "realtime_frame",
             target: "video-sink",
             targetHandle: "frame"
           }
@@ -119,6 +141,7 @@ describe("realtime frame routing nodes", () => {
             kind: "video",
             node_id: "video-source",
             input_name: "camera",
+            source_handle: "realtime_frame",
             label: null,
             enabled: true
           }
@@ -127,7 +150,11 @@ describe("realtime frame routing nodes", () => {
     );
 
     const pushedFrame = frame(1);
-    await realtimeRunner.runner.pushInputValue("camera", pushedFrame);
+    await realtimeRunner.runner.pushInputValue(
+      "camera",
+      pushedFrame,
+      "realtime_frame"
+    );
 
     const result = await realtimeRunner.stopRealtimeMode();
 
@@ -146,17 +173,13 @@ describe("realtime frame routing nodes", () => {
       { job_id: "job-video-buffer" },
       {
         nodes: [
-          {
-            ...VideoSource.toDescriptor("video-source"),
-            name: "camera",
-            properties: { name: "camera" }
-          },
+          videoSourceDescriptor("video-source"),
           VideoSink.toDescriptor("video-sink")
         ],
         edges: [
           {
             source: "video-source",
-            sourceHandle: "frame",
+            sourceHandle: "realtime_frame",
             target: "video-sink",
             targetHandle: "frame"
           }
@@ -164,9 +187,9 @@ describe("realtime frame routing nodes", () => {
       }
     );
 
-    await runner.pushInputValue("camera", frame(1));
-    await runner.pushInputValue("camera", frame(2));
-    await runner.pushInputValue("camera", frame(3));
+    await runner.pushInputValue("camera", frame(1), "realtime_frame");
+    await runner.pushInputValue("camera", frame(2), "realtime_frame");
+    await runner.pushInputValue("camera", frame(3), "realtime_frame");
 
     expect(getDroppedCount(runner, "video-sink", "frame")).toBe(1);
   });
@@ -191,11 +214,7 @@ describe("realtime frame routing nodes", () => {
       { job_id: "job-video-source-buffer" },
       {
         nodes: [
-          {
-            ...VideoSource.toDescriptor("video-source"),
-            name: "camera",
-            properties: { name: "camera" }
-          },
+          videoSourceDescriptor("video-source"),
           {
             id: "model",
             type: "test.Model",
@@ -205,7 +224,7 @@ describe("realtime frame routing nodes", () => {
         edges: [
           {
             source: "video-source",
-            sourceHandle: "frame",
+            sourceHandle: "realtime_frame",
             target: "model",
             targetHandle: "frame"
           }
@@ -213,9 +232,9 @@ describe("realtime frame routing nodes", () => {
       }
     );
 
-    await runner.pushInputValue("camera", frame(1));
-    await runner.pushInputValue("camera", frame(2));
-    await runner.pushInputValue("camera", frame(3));
+    await runner.pushInputValue("camera", frame(1), "realtime_frame");
+    await runner.pushInputValue("camera", frame(2), "realtime_frame");
+    await runner.pushInputValue("camera", frame(3), "realtime_frame");
 
     expect(getDroppedCount(runner, "model", "frame")).toBe(1);
   });

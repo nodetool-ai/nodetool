@@ -45,11 +45,12 @@ const findVideoTrackTarget = (
 ): VideoTrackTarget | null => {
   const nodes = workflow?.graph?.nodes ?? [];
   const node = nodes.find((candidate) => {
+    const outputTypes = Object.values(candidate.outputs ?? {});
     return (
-      (candidate.is_media_adapter === true &&
-        candidate.is_streaming_output === true) ||
       candidate.type === "nodetool.video.VideoSource" ||
-      candidate.type === "nodetool.realtime.VideoSource"
+      (candidate.is_media_adapter === true &&
+        candidate.is_streaming_output === true &&
+        outputTypes.includes("realtime_video_frame"))
     );
   });
 

@@ -5,7 +5,7 @@ import type {
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool/node-sdk";
-import type { VideoFrame } from "@nodetool/protocol";
+import type { InputBufferPolicy, VideoFrame } from "@nodetool/protocol";
 import type { ProcessingContext } from "@nodetool/runtime";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
@@ -123,6 +123,9 @@ export class VideoSourceNode extends BaseNode {
   static readonly isStreamingOutput = true;
   static readonly isRealtimeCapable = true;
   static readonly isMediaAdapter = true;
+  static readonly inputBufferPolicy: Record<string, InputBufferPolicy> = {
+    realtime_frame: { capacity: 2, overflowPolicy: "drop_oldest" }
+  };
 
   @prop({
     type: "enum",

@@ -4,16 +4,13 @@ export { AudioSource, AUDIO_SOURCE_NODES } from "./nodes/audio-source.js";
 export { Parameter, PARAMETER_NODES } from "./nodes/parameter.js";
 export { SessionInfo, SESSION_INFO_NODES } from "./nodes/session-info.js";
 export { VideoSink, VIDEO_SINK_NODES } from "./nodes/video-sink.js";
-export { VideoSource, VIDEO_SOURCE_NODES } from "./nodes/video-source.js";
 import { AudioSink } from "./nodes/audio-sink.js";
 import { AudioSource } from "./nodes/audio-source.js";
 import { Parameter } from "./nodes/parameter.js";
 import { SessionInfo } from "./nodes/session-info.js";
 import { VideoSink } from "./nodes/video-sink.js";
-import { VideoSource } from "./nodes/video-source.js";
 
 export const REALTIME_NODES: readonly NodeClass[] = [
-  VideoSource,
   VideoSink,
   AudioSource,
   AudioSink,
