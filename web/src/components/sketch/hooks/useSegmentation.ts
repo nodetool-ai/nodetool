@@ -390,20 +390,26 @@ export function useSegmentation({
       }
 
       setStatus("applying");
-      await applyMasksToDocument({
-        sourceLayerId,
-        runId: generateSegmentationRunId(),
-        modelId: response.modelId ?? getDefaultSamModelId(backend),
-        backendId: response.backendId,
-        nodeType: response.nodeType,
-        masks: response.masks,
-        sourceImageDataUrl: exportedLayer.imageDataUrl,
-        sourceMetadata: exportedLayer.sourceMetadata,
-        preserveSourceLayer: true,
-        historyLabel: "Split Selected Layer"
-      });
-      setResult(null);
-      setStatus("idle");
+      try {
+        await applyMasksToDocument({
+          sourceLayerId,
+          runId: generateSegmentationRunId(),
+          modelId: response.modelId ?? getDefaultSamModelId(backend),
+          backendId: response.backendId,
+          nodeType: response.nodeType,
+          masks: response.masks,
+          sourceImageDataUrl: exportedLayer.imageDataUrl,
+          sourceMetadata: exportedLayer.sourceMetadata,
+          preserveSourceLayer: true,
+          historyLabel: "Split Selected Layer"
+        });
+        setResult(null);
+        setStatus("idle");
+      } finally {
+        if (controller.signal.aborted) {
+          setStatus("idle");
+        }
+      }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setStatus("idle");
@@ -430,19 +436,23 @@ export function useSegmentation({
     }
 
     setStatus("applying");
-    await applyMasksToDocument({
-      sourceLayerId: result.sourceLayerId,
-      runId: result.runId,
-      modelId: result.modelId,
-      backendId: result.backendId,
-      nodeType: result.nodeType,
-      masks: result.masks,
-      sourceMetadata: result.sourceMetadata,
-      historyLabel: "Segment Objects"
-    });
+    try {
+      await applyMasksToDocument({
+        sourceLayerId: result.sourceLayerId,
+        runId: result.runId,
+        modelId: result.modelId,
+        backendId: result.backendId,
+        nodeType: result.nodeType,
+        masks: result.masks,
+        sourceMetadata: result.sourceMetadata,
+        historyLabel: "Segment Objects"
+      });
 
-    setResult(null);
-    setStatus("idle");
+      setResult(null);
+      setStatus("idle");
+    } finally {
+      setStatus("idle");
+    }
   }, [applyMasksToDocument, result]);
 
   // ─── Discard ────────────────────────────────────────────────────────────

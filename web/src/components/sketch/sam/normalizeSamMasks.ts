@@ -56,9 +56,14 @@ function getNormalizedDimension(
   fallback: number | undefined,
   scale: number
 ): number {
-  const normalizedScale = scale > 0 ? scale : 1;
+  if (!Number.isFinite(scale) || scale <= 0) {
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+      return Math.max(0, Math.round(value));
+    }
+    return Math.max(0, Math.round(fallback ?? 0));
+  }
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    const invScale = 1 / normalizedScale;
+    const invScale = 1 / scale;
     return Math.max(0, Math.round(value * invScale));
   }
 
