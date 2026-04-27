@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  DialogContent,
   Box,
   List,
   ListItem,
@@ -12,7 +11,7 @@ import {
   FormControlLabel,
   Checkbox
 } from "@mui/material";
-import React, { useCallback, useState, useEffect, memo } from "react";
+import React, { useCallback, useState, memo } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
@@ -29,7 +28,6 @@ import FileBrowserDialog from "../dialogs/FileBrowserDialog";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import {
   Chip,
-  Dialog,
   EditorButton,
   FlexRow,
   LoadingSpinner,
@@ -135,15 +133,7 @@ const hasNativeDialog = (): boolean => {
   return typeof window !== "undefined" && window.api?.dialog !== undefined;
 };
 
-interface WorkspacesManagerProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
-  open,
-  onClose
-}) => {
+const WorkspacesManager: React.FC = () => {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
@@ -168,8 +158,7 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
     error
   } = useQuery({
     queryKey: ["workspaces"],
-    queryFn: fetchWorkspaces,
-    enabled: open
+    queryFn: fetchWorkspaces
   });
 
   // Memoized handlers
@@ -287,17 +276,6 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
       });
     }
   });
-
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setNewName("");
-      setNewPath("");
-      setIsDefault(false);
-      setIsAdding(false);
-      setEditingId(null);
-    }
-  }, [open]);
 
   const handleCreate = useCallback(() => {
     if (!newName.trim() || !newPath.trim()) {
@@ -417,16 +395,8 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
 
   return (
     <>
-      <Dialog
-        css={styles(theme)}
-        className="workspaces-manager-dialog"
-        open={open}
-        onClose={onClose}
-        title="Workspaces Manager"
-        minWidth={600}
-      >
-        <DialogContent>
-          <div className="workspaces-manager">
+      <Box css={styles(theme)} sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <div className="workspaces-manager">
             {isLoading ? (
               <FlexRow
                 justify="center"
@@ -638,9 +608,8 @@ const WorkspacesManager: React.FC<WorkspacesManagerProps> = ({
                 </EditorButton>
               )}
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </Box>
 
       <FileBrowserDialog
         open={isFileBrowserOpen}

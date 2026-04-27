@@ -7,7 +7,7 @@ import { useCombo } from "../../stores/KeyPressedStore";
 import { Box, useMediaQuery } from "@mui/material";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import Help from "../content/Help/Help";
-import SettingsMenu from "../menus/SettingsMenu";
+import SettingsButton from "../menus/SettingsButton";
 import SystemStatsDisplay from "./SystemStats";
 import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
@@ -75,7 +75,7 @@ const RightSideButtons: React.FC = () => {
         tooltip="Help"
         className="command-icon"
       />
-      <SettingsMenu />
+      <SettingsButton />
     </Box>
   );
 };

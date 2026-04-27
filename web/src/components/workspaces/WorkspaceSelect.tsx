@@ -18,7 +18,7 @@ import { WorkspaceResponse } from "../../stores/ApiTypes";
 import FolderIcon from "@mui/icons-material/Folder";
 import AddIcon from "@mui/icons-material/Add";
 import StarIcon from "@mui/icons-material/Star";
-import { useWorkspaceManagerStore } from "../../stores/WorkspaceManagerStore";
+import { useNavigate } from "react-router-dom";
 
 const styles = (theme: Theme) =>
   css({
@@ -132,9 +132,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     compact = false
   }) {
     const theme = useTheme();
-    const setWorkspaceManagerOpen = useWorkspaceManagerStore(
-      (state) => state.setIsOpen
-    );
+    const navigate = useNavigate();
 
     const { data: workspaces, isLoading, error } = useQuery({
       queryKey: ["workspaces"],
@@ -145,12 +143,12 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
       (event: { target: { value: string } }) => {
         const newValue = event.target.value;
         if (newValue === CREATE_NEW_VALUE) {
-          setWorkspaceManagerOpen(true);
+          navigate("/settings?tab=4");
           return;
         }
         onChange(newValue === "" ? undefined : newValue);
       },
-      [onChange, setWorkspaceManagerOpen]
+      [onChange, navigate]
     );
 
     // Find the selected workspace for display

@@ -23,7 +23,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import { useSettingsStore } from "../../stores/SettingsStore";
+import { useNavigate } from "react-router-dom";
 
 
 import {
@@ -601,12 +601,11 @@ const ProviderList: React.FC<ProviderListProps> = ({
     handleMenuClose();
   }, [menuProvider, isProviderEnabled, setProviderEnabled, handleMenuClose]);
 
-  const setMenuOpen = useSettingsStore((s) => s.setMenuOpen);
+  const navigate = useNavigate();
   const handleOpenSettings = useCallback(() => {
-    // Open settings dialog on "API Settings" tab (index 1)
-    setMenuOpen(true, 1);
+    navigate("/settings?tab=1");
     handleMenuClose();
-  }, [setMenuOpen, handleMenuClose]);
+  }, [navigate, handleMenuClose]);
 
   return (
     <List

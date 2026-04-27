@@ -71,7 +71,7 @@ import { useQuery } from "@tanstack/react-query";
 import { isLocalhost, isProduction } from "../../lib/env";
 import { getIsElectronDetails } from "../../utils/browser";
 import { trpcClient } from "../../trpc/client";
-import { useSettingsStore } from "../../stores/SettingsStore";
+import { useNavigate } from "react-router-dom";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { getAgentSocketClient } from "../../lib/agent/AgentSocketClient";
 
@@ -358,7 +358,11 @@ const AgentPanel: React.FC = () => {
     return entry?.installed ?? true;
   }, [mcpStatus, provider]);
 
-  const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+  const navigate = useNavigate();
+  const openSettingsApiKeys = useCallback(
+    () => navigate("/settings?tab=1"),
+    [navigate]
+  );
 
   const hasRunningSession = Boolean(sessionId);
   const isLlmProvider = provider === "llm";
@@ -861,11 +865,11 @@ const AgentPanel: React.FC = () => {
       {isLocalhost && !mcpInstalledForProvider && (
         <div
           css={mcpWarningStyles(theme)}
-          onClick={() => setMenuOpen(true, 1)}
+          onClick={openSettingsApiKeys}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") setMenuOpen(true, 1);
+            if (e.key === "Enter" || e.key === " ") openSettingsApiKeys();
           }}
         >
           <WarningAmberIcon />

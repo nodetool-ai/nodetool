@@ -397,14 +397,20 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
         try {
           return await fetchWorkflowById(id);
         } catch (error) {
-          // Check if 404 - workflow was deleted
-          if (String(error).includes("404")) {
+          const code = (error as { data?: { code?: string } })?.data?.code;
+          const message = (error as { message?: string })?.message ?? "";
+          if (
+            code === "NOT_FOUND" ||
+            String(error).includes("404") ||
+            /not found/i.test(message)
+          ) {
             return { __missing: true, id };
           }
           throw error;
         }
       },
-      staleTime: 60 * 1000, // Match useWorkflow staleTime
+      staleTime: 60 * 1000,
+      retry: false,
       enabled: !openMap.has(id)
     }))
   });
