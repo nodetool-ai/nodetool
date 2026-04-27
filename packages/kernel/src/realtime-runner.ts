@@ -121,7 +121,7 @@ export class RealtimeRunner {
       nodes: warmNodes.map((node) => ({
         id: node.id,
         type: node.type,
-        title: node.title,
+        title: (node as unknown as Record<string, unknown>).title,
         name: node.name
       }))
     });

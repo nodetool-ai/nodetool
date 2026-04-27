@@ -61,6 +61,35 @@ const getErrorMessage = (
   return error instanceof Error ? error.message : fallbackMessage;
 };
 
+const DEFAULT_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  width: { ideal: 640 },
+  height: { ideal: 480 },
+  frameRate: { ideal: 30, max: 30 }
+};
+
+const videoConstraintsForDevice = (deviceId: string): MediaTrackConstraints => ({
+  ...DEFAULT_VIDEO_CONSTRAINTS,
+  ...(deviceId ? { deviceId: { exact: deviceId } } : {})
+});
+
+const logVideoTrackDiagnostics = (
+  stream: MediaStream,
+  constraints: MediaStreamConstraints
+): void => {
+  console.info("TEMP_LOG video capture stream diagnostics", {
+    constraints,
+    videoTracks: stream.getVideoTracks().map((track) => ({
+      id: track.id,
+      label: track.label,
+      enabled: track.enabled,
+      muted: track.muted,
+      readyState: track.readyState,
+      settings: track.getSettings?.(),
+      capabilities: track.getCapabilities?.()
+    }))
+  });
+};
+
 const stopMediaStream = (stream: MediaStream | null): void => {
   stream?.getTracks().forEach((track) => track.stop());
 };
@@ -133,7 +162,7 @@ export function useVideoCapture(
     abortControllerRef.current = abortCtrl;
 
     const permissionConstraints: MediaStreamConstraints = {
-      video: true,
+      video: DEFAULT_VIDEO_CONSTRAINTS,
       audio: includeAudio
     };
 
@@ -228,9 +257,7 @@ export function useVideoCapture(
 
     try {
       const constraints: MediaStreamConstraints = {
-        video: selectedVideoDeviceId
-          ? { deviceId: { exact: selectedVideoDeviceId } }
-          : true,
+        video: videoConstraintsForDevice(selectedVideoDeviceId),
         audio: includeAudio
           ? selectedAudioDeviceId
             ? { deviceId: { exact: selectedAudioDeviceId } }
@@ -239,6 +266,7 @@ export function useVideoCapture(
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      logVideoTrackDiagnostics(stream, constraints);
       stopMediaStream(streamRef.current);
       streamRef.current = stream;
       setPreviewStream(stream);

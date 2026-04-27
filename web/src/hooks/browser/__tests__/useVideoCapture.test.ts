@@ -14,6 +14,21 @@ Object.defineProperty(global.navigator, "mediaDevices", {
 
 const createMockTrack = (): MediaStreamTrack => {
   return {
+    id: "track-1",
+    label: "USB Camera",
+    enabled: true,
+    muted: false,
+    readyState: "live",
+    getSettings: jest.fn(() => ({
+      width: 640,
+      height: 480,
+      frameRate: 30
+    })),
+    getCapabilities: jest.fn(() => ({
+      width: { min: 160, max: 1920 },
+      height: { min: 120, max: 1080 },
+      frameRate: { min: 1, max: 30 }
+    })),
     stop: jest.fn()
   } as unknown as MediaStreamTrack;
 };
@@ -21,7 +36,8 @@ const createMockTrack = (): MediaStreamTrack => {
 const createMockStream = (): MediaStream => {
   const tracks = [createMockTrack()];
   return {
-    getTracks: jest.fn(() => tracks)
+    getTracks: jest.fn(() => tracks),
+    getVideoTracks: jest.fn(() => tracks)
   } as unknown as MediaStream;
 };
 
@@ -34,7 +50,7 @@ describe("useVideoCapture", () => {
 
   it("does not auto-fetch devices when disabled", () => {
     renderHook(() =>
-      useVideoCapture({ includeAudio: false, autoFetchDevices: false })
+      useVideoCapture({ includeAudio: false, autoFetchDevices: false, warmupMs: 0 })
     );
 
     expect(mockGetUserMedia).not.toHaveBeenCalled();
@@ -74,7 +90,7 @@ describe("useVideoCapture", () => {
     mockGetUserMedia.mockResolvedValue(previewStream);
 
     const { result } = renderHook(() =>
-      useVideoCapture({ includeAudio: false, autoFetchDevices: false })
+      useVideoCapture({ includeAudio: false, autoFetchDevices: false, warmupMs: 0 })
     );
 
     await act(async () => {
@@ -82,7 +98,11 @@ describe("useVideoCapture", () => {
     });
 
     expect(mockGetUserMedia).toHaveBeenCalledWith({
-      video: true,
+      video: {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30, max: 30 }
+      },
       audio: false
     });
     expect(result.current.previewStream).toBe(previewStream);
@@ -95,5 +115,60 @@ describe("useVideoCapture", () => {
     expect(result.current.previewStream).toBeNull();
     expect(result.current.isPreviewing).toBe(false);
     expect(previewStream.getTracks).toHaveBeenCalled();
+  });
+
+  it("uses the selected resolution when starting preview", async () => {
+    const previewStream = createMockStream();
+    mockGetUserMedia.mockResolvedValue(previewStream);
+
+    const { result } = renderHook(() =>
+      useVideoCapture({ includeAudio: false, autoFetchDevices: false, warmupMs: 0 })
+    );
+
+    act(() => {
+      result.current.handleVideoResolutionChange("vga");
+    });
+    await act(async () => {
+      await result.current.startPreview();
+    });
+
+    expect(mockGetUserMedia).toHaveBeenCalledWith({
+      video: {
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        frameRate: { ideal: 30, max: 30 }
+      },
+      audio: false
+    });
+    expect(result.current.selectedVideoResolution).toBe("vga");
+  });
+
+  it("reports warm-up state before preview is ready", async () => {
+    jest.useFakeTimers();
+    const previewStream = createMockStream();
+    mockGetUserMedia.mockResolvedValue(previewStream);
+
+    const { result } = renderHook(() =>
+      useVideoCapture({
+        includeAudio: false,
+        autoFetchDevices: false,
+        warmupMs: 2000
+      })
+    );
+
+    await act(async () => {
+      await result.current.startPreview();
+    });
+
+    expect(result.current.isWarmingUp).toBe(true);
+    expect(result.current.isPreviewReady).toBe(false);
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(result.current.isWarmingUp).toBe(false);
+    expect(result.current.isPreviewReady).toBe(true);
+    jest.useRealTimers();
   });
 });

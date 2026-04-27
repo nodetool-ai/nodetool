@@ -1376,7 +1376,9 @@ export class WorkflowRunner {
         marker: "TEMP_LOG",
         nodeId,
         nodeType: node?.type,
-        nodeTitle: node?.title,
+        nodeTitle: node
+          ? (node as unknown as Record<string, unknown>).title
+          : undefined,
         nodeName: node?.name,
         inbox: this._inboxes.get(nodeId)?.getDebugState()
       };
