@@ -10,6 +10,7 @@ import {
   Layer,
   LayerContentBounds,
   LayerTransform,
+  SegmentationSourceMetadata,
   getAncestorGroupOpacityProduct,
   isLayerCompositeVisible,
   normalizeSketchDocument,
@@ -26,13 +27,7 @@ export type LayerRasterBounds = {
   height: number;
 };
 
-export interface ExportedRasterLayerSourceMetadata {
-  layerId: string;
-  layerTransform: LayerTransform;
-  contentBounds: LayerContentBounds;
-  canvasSize: { width: number; height: number };
-  documentOrigin: { x: number; y: number };
-}
+export type ExportedRasterLayerSourceMetadata = SegmentationSourceMetadata;
 
 export interface ExportedRasterLayerData {
   imageDataUrl: string;

@@ -299,7 +299,7 @@ Check:
 - [x] Off-canvas source pixels are included.
 - [x] Original layer is still present and editable.
 
-### [ ] 3.4 Normalize Local SAM3 Mask Outputs
+### [x] 3.4 Normalize Local SAM3 Mask Outputs
 
 Files:
 - `web/src/components/sketch/sam/SamServiceNode.ts`
@@ -307,19 +307,19 @@ Files:
 - `web/src/components/sketch/types/tools.ts`
 
 Steps:
-- [ ] Move output parsing out of graph execution.
-- [ ] Accept the Local SAM3 node output as a list of `ImageRef` masks.
-- [ ] Convert each returned `ImageRef` mask into a sketch SAM result with kind `mask` and the original source layer metadata.
-- [ ] Preserve mask dimensions, backend id, model id, node type, and source metadata.
-- [ ] Use stable generated names because `MaskGeneration` returns masks without labels.
-- [ ] Return a clear empty result for zero-mask outputs.
+- [x] Move output parsing out of graph execution.
+- [x] Accept the Local SAM3 node output as a list of `ImageRef` masks.
+- [x] Convert each returned `ImageRef` mask into a sketch SAM result with kind `mask` and the original source layer metadata.
+- [x] Preserve mask dimensions, backend id, model id, node type, and source metadata.
+- [x] Use stable generated names because `MaskGeneration` returns masks without labels.
+- [x] Return a clear empty result for zero-mask outputs.
 
 Check:
-- [ ] SAM output parsing is independent from WebSocket execution.
-- [ ] SAM output parsing is independent from document layer mutation.
-- [ ] Tests cover Local SAM3 list output, empty output, malformed output, partial output, and ordering.
+- [x] SAM output parsing is independent from WebSocket execution.
+- [x] SAM output parsing is independent from document layer mutation.
+- [x] Tests cover Local SAM3 list output, empty output, malformed output, partial output, and ordering.
 
-### [ ] 3.5 Apply Accepted Results In Document Space
+### [x] 3.5 Apply Accepted Results In Document Space
 
 Files:
 - `web/src/components/sketch/types/document.ts`
@@ -328,19 +328,19 @@ Files:
 - `web/src/components/sketch/rendering/`
 
 Steps:
-- [ ] Preview normalized masks without changing the document.
-- [ ] Apply accepted masks as one new group.
-- [ ] Create ordinary raster layers only.
-- [ ] Place generated layers in document space using source metadata.
-- [ ] Store provenance in `Layer.segmentationMeta`.
-- [ ] Create one history step for one apply action.
-- [ ] Keep generated layers compatible with paint, move, transform, trim, export, and serialization.
-- [ ] Do not add SAM-specific rendering code.
+- [x] Preview normalized masks without changing the document.
+- [x] Apply accepted masks as one new group.
+- [x] Create ordinary raster layers only.
+- [x] Place generated layers in document space using source metadata.
+- [x] Store provenance in `Layer.segmentationMeta`.
+- [x] Create one history step for one apply action.
+- [x] Keep generated layers compatible with paint, move, transform, trim, export, and serialization.
+- [x] Do not add SAM-specific rendering code.
 
 Check:
-- [ ] Generated layers align with transformed, cropped, and off-canvas source layers.
-- [ ] Generated layers are normal editable sketch layers.
-- [ ] Serialization and export/readback preserve generated layers.
+- [x] Generated layers align with transformed, cropped, and off-canvas source layers.
+- [x] Generated layers are normal editable sketch layers.
+- [x] Serialization and export/readback preserve generated layers.
 
 ### [ ] 3.6 Add Sketch-Needed Local SAM3 Prompts
 

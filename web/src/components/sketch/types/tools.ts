@@ -374,18 +374,62 @@ export interface SegmentBoxPrompt {
   height: number;
 }
 
+/** Source-layer metadata preserved across segmentation runs. */
+export interface SegmentationSourceMetadata {
+  layerId: string;
+  layerTransform: {
+    x: number;
+    y: number;
+    scaleX?: number;
+    scaleY?: number;
+    rotation?: number;
+    matrix?: [number, number, number, number, number, number];
+    mode?: "distort" | "skew" | "perspective" | "warp";
+    quad?: [
+      { x: number; y: number },
+      { x: number; y: number },
+      { x: number; y: number },
+      { x: number; y: number }
+    ];
+  };
+  contentBounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  canvasSize: {
+    width: number;
+    height: number;
+  };
+  documentOrigin: {
+    x: number;
+    y: number;
+  };
+}
+
 /** A single mask returned from segmentation inference. */
 export interface SegmentationMask {
   /** Unique mask identifier within the segmentation run. */
   id: string;
+  /** Sketch SAM result kind. */
+  kind: "mask";
   /** Human-readable label (e.g. "Object 1"). */
   label: string;
-  /** PNG data URL of the mask (white = object, black = background). */
+  /** URI or data URL of the mask image (white = object, black = background). */
   maskDataUrl: string;
   /** Confidence score from the model (0–1). */
   confidence: number;
   /** Bounding box of the mask region in canvas space. */
   bounds: { x: number; y: number; width: number; height: number };
+  /** Backend that produced this mask. */
+  backendId: SegmentBackend;
+  /** Model identifier used for this mask. */
+  modelId: string;
+  /** Node type that produced this mask when known. */
+  nodeType?: string;
+  /** Original source-layer metadata when available. */
+  sourceMetadata?: SegmentationSourceMetadata;
 }
 
 /** Full result from a segmentation inference run. */
@@ -400,6 +444,12 @@ export interface SegmentationResult {
   timestamp: number;
   /** Model ID used for this run. */
   modelId: string;
+  /** Backend used for this run. */
+  backendId?: SegmentBackend;
+  /** Node type used for this run when known. */
+  nodeType?: string;
+  /** Original source-layer metadata when available. */
+  sourceMetadata?: SegmentationSourceMetadata;
 }
 
 /** Progress state of a segmentation operation. */
@@ -442,8 +492,12 @@ export interface SegmentationLayerMeta {
   segmentationRunId: string;
   /** Layer ID that was segmented. */
   sourceLayerId: string;
+  /** Backend used for segmentation. */
+  backendId?: SegmentBackend;
   /** Model identifier used for segmentation. */
   modelId: string;
+  /** Node type used for segmentation when known. */
+  nodeType?: string;
   /** Confidence score for this particular mask (0–1). */
   confidence: number;
   /** Mask index within the segmentation result. */

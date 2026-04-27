@@ -17,7 +17,6 @@ import type {
   SegmentationResult,
   SegmentationMask,
   SegmentationStatus,
-  Layer,
   Point,
   PushHistoryOptions
 } from "../types";
@@ -27,14 +26,19 @@ import {
   generateLayerId
 } from "../types";
 import { useSketchStore } from "../state";
-import { exportSelectedRasterLayer } from "../serialization";
+import {
+  deserializeLayerData,
+  exportSelectedRasterLayer
+} from "../serialization";
 import {
   getDefaultSamModelId,
   getSamService,
   generateSegmentationRunId,
   generateCutoutDataUrl,
   drawMaskBoundsOverlay,
-  drawMaskImageOverlay
+  drawMaskImageOverlay,
+  projectSegmentationMasksToDocumentSpace,
+  rasterizeSegmentationToDocumentSpace
 } from "../sam";
 import type { SamModelInfo } from "../sam";
 
@@ -66,7 +70,7 @@ export interface UseSegmentationReturn {
   /** Cancel a running segmentation. */
   cancelSegmentation: () => void;
   /** Apply the previewed masks → create layer group with cutout layers. */
-  applyResult: () => void;
+  applyResult: () => Promise<void>;
   /** Discard the current segmentation result. */
   discardResult: () => void;
   /**
@@ -89,25 +93,27 @@ export function useSegmentation({
   const [result, setResult] = useState<SegmentationResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const applyMasksToDocument = useCallback((params: {
+  const applyMasksToDocument = useCallback(async (params: {
     sourceLayerId: string;
     runId: string;
     modelId: string;
+    backendId?: SegmentationResult["backendId"];
+    nodeType?: SegmentationResult["nodeType"];
     masks: SegmentationMask[];
     sourceImageDataUrl?: string;
-    sourceContentBoundsOffset?: { x: number; y: number };
-    sourceTransformOverride?: Layer["transform"];
+    sourceMetadata?: SegmentationResult["sourceMetadata"];
     preserveSourceLayer?: boolean;
     historyLabel: string;
-  }) => {
+  }): Promise<void> => {
     const {
       sourceLayerId,
       runId,
       modelId,
+      backendId,
+      nodeType,
       masks,
       sourceImageDataUrl,
-      sourceContentBoundsOffset,
-      sourceTransformOverride,
+      sourceMetadata,
       preserveSourceLayer = false,
       historyLabel
     } = params;
@@ -119,37 +125,68 @@ export function useSegmentation({
     const store = useSketchStore.getState();
     const doc = store.document;
     const settings = doc.toolSettings.segment;
+    const activeSourceMetadata =
+      sourceMetadata ?? masks.find((mask) => mask.sourceMetadata)?.sourceMetadata;
+    const canvas = canvasRef.current;
+    const currentLayerData = sourceImageDataUrl ?? canvas?.getLayerData(sourceLayerId) ?? null;
+    const decodedCurrentLayer = deserializeLayerData(
+      currentLayerData,
+      doc.canvas.width,
+      doc.canvas.height
+    );
+    const currentSourceImageDataUrl = sourceImageDataUrl ?? decodedCurrentLayer.image ?? undefined;
 
     const groupLayer = createDefaultGroupLayer("Segmented Objects");
-    const maskLayers: Layer[] = masks.map((mask, index) => {
+    const maskLayerPayloads = await Promise.all(masks.map(async (mask, index) => {
       const layer = createDefaultLayer(
         mask.label || `Object ${index + 1}`,
-        settings.outputCutouts ? "raster" : "mask",
+        "raster",
         doc.canvas.width,
         doc.canvas.height
       );
       layer.id = generateLayerId();
       layer.parentId = groupLayer.id;
-      layer.contentBounds = sourceContentBoundsOffset
-        ? {
-            x: sourceContentBoundsOffset.x + mask.bounds.x,
-            y: sourceContentBoundsOffset.y + mask.bounds.y,
-            width: mask.bounds.width,
-            height: mask.bounds.height
-          }
-        : { ...mask.bounds };
-      layer.transform = sourceTransformOverride
-        ? { ...sourceTransformOverride }
-        : { x: 0, y: 0 };
       layer.segmentationMeta = {
         segmentationRunId: runId,
         sourceLayerId,
+        backendId,
         modelId,
+        nodeType,
         confidence: mask.confidence,
         maskIndex: index
       };
-      return layer;
-    });
+      const effectiveSourceMetadata = mask.sourceMetadata ?? activeSourceMetadata;
+      const rasterSource =
+        settings.outputCutouts && currentSourceImageDataUrl
+          ? await generateCutoutDataUrl(
+              currentSourceImageDataUrl,
+              mask.maskDataUrl,
+              mask.bounds,
+              settings.maskFeather
+            )
+          : mask.maskDataUrl;
+
+      if (effectiveSourceMetadata && rasterSource) {
+        const documentSpaceRaster = await rasterizeSegmentationToDocumentSpace(
+          rasterSource,
+          effectiveSourceMetadata
+        );
+        layer.contentBounds = documentSpaceRaster.bounds;
+        return {
+          layer,
+          data: documentSpaceRaster.data,
+          bounds: documentSpaceRaster.bounds
+        };
+      }
+
+      layer.contentBounds = { ...mask.bounds };
+      return {
+        layer,
+        data: rasterSource ?? mask.maskDataUrl,
+        bounds: { ...mask.bounds }
+      };
+    }));
+    const maskLayers = maskLayerPayloads.map((payload) => payload.layer);
 
     const sourceIdx = doc.layers.findIndex((layer) => layer.id === sourceLayerId);
     const insertIdx = sourceIdx >= 0 ? sourceIdx + 1 : doc.layers.length;
@@ -171,50 +208,10 @@ export function useSegmentation({
       activeLayerId: maskLayers[0]?.id ?? doc.activeLayerId
     });
 
-    const canvas = canvasRef.current;
-    if (canvas && settings.outputCutouts) {
-      // Split-selected-layer calls pass pre-exported source pixels so off-canvas
-      // content is preserved. Preview/apply flows fall back to the current
-      // runtime layer data for existing prompt-based segmentation behavior.
-      const sourceData = sourceImageDataUrl ?? canvas.getLayerData(sourceLayerId);
-      if (sourceData) {
-        for (let index = 0; index < maskLayers.length; index += 1) {
-          const mask = masks[index];
-          const layer = maskLayers[index];
-          if (!mask.maskDataUrl) {
-            continue;
-          }
-
-          canvas.setLayerData(layer.id, mask.maskDataUrl, layer.contentBounds);
-          store.updateLayerData(layer.id, mask.maskDataUrl);
-
-          void generateCutoutDataUrl(
-            sourceData,
-            mask.maskDataUrl,
-            mask.bounds,
-            settings.maskFeather
-          )
-            .then((cutout) => {
-              if (!cutout) {
-                return;
-              }
-              canvas.setLayerData(layer.id, cutout, layer.contentBounds);
-              store.updateLayerData(layer.id, cutout);
-            })
-            .catch((err) => {
-              console.warn("[useSegmentation] Cutout generation failed:", err);
-            });
-        }
-      }
-    } else if (canvas) {
-      for (let index = 0; index < maskLayers.length; index += 1) {
-        const mask = masks[index];
-        const layer = maskLayers[index];
-        if (!mask.maskDataUrl) {
-          continue;
-        }
-        canvas.setLayerData(layer.id, mask.maskDataUrl, layer.contentBounds);
-        store.updateLayerData(layer.id, mask.maskDataUrl);
+    if (canvas) {
+      for (const payload of maskLayerPayloads) {
+        canvas.setLayerData(payload.layer.id, payload.data, payload.bounds);
+        store.updateLayerData(payload.layer.id, payload.data);
       }
     }
 
@@ -261,6 +258,27 @@ export function useSegmentation({
       if (!layerData) {
         return;
       }
+      const decodedLayer = deserializeLayerData(
+        layerData,
+        doc.canvas.width,
+        doc.canvas.height
+      );
+      if (!decodedLayer.image) {
+        return;
+      }
+      const sourceMetadata = {
+        layerId: activeLayer.id,
+        layerTransform: { ...activeLayer.transform },
+        contentBounds: { ...decodedLayer.bounds },
+        canvasSize: {
+          width: doc.canvas.width,
+          height: doc.canvas.height
+        },
+        documentOrigin: {
+          x: (activeLayer.transform.x ?? 0) + decodedLayer.bounds.x,
+          y: (activeLayer.transform.y ?? 0) + decodedLayer.bounds.y
+        }
+      };
 
       // Cancel any existing request
       abortRef.current?.abort();
@@ -274,10 +292,11 @@ export function useSegmentation({
         const service = getSamService(backend);
         const response = await service.runSegmentation(
           {
-            imageDataUrl: layerData,
+            imageDataUrl: decodedLayer.image,
             pointPrompts: points,
             boxPrompt: box,
-            settings: doc.toolSettings.segment
+            settings: doc.toolSettings.segment,
+            sourceMetadata
           },
           controller.signal
         );
@@ -287,12 +306,20 @@ export function useSegmentation({
         }
 
         const runId = generateSegmentationRunId();
+        const responseSourceMetadata = response.sourceMetadata ?? sourceMetadata;
+        const responseMasks = response.masks.map((mask) => ({
+          ...mask,
+          sourceMetadata: mask.sourceMetadata ?? responseSourceMetadata
+        }));
         const segResult: SegmentationResult = {
           runId,
           sourceLayerId: doc.activeLayerId,
-          masks: response.masks,
+          masks: responseMasks,
           timestamp: Date.now(),
-          modelId: response.modelId ?? getDefaultSamModelId(backend)
+          modelId: response.modelId ?? getDefaultSamModelId(backend),
+          backendId: response.backendId,
+          nodeType: response.nodeType,
+          sourceMetadata: responseSourceMetadata
         };
 
         setResult(segResult);
@@ -343,14 +370,15 @@ export function useSegmentation({
       const backend = doc.toolSettings.segment.backend;
       const service = getSamService(backend);
       const response = await service.runSegmentation(
-        {
-          imageDataUrl: exportedLayer.imageDataUrl,
-          pointPrompts: [],
-          boxPrompt: null,
-          settings: doc.toolSettings.segment
-        },
-        controller.signal
-      );
+          {
+            imageDataUrl: exportedLayer.imageDataUrl,
+            pointPrompts: [],
+            boxPrompt: null,
+            settings: doc.toolSettings.segment,
+            sourceMetadata: exportedLayer.sourceMetadata
+          },
+          controller.signal
+        );
 
       if (controller.signal.aborted) {
         return;
@@ -361,17 +389,16 @@ export function useSegmentation({
         return;
       }
 
-      applyMasksToDocument({
+      setStatus("applying");
+      await applyMasksToDocument({
         sourceLayerId,
         runId: generateSegmentationRunId(),
         modelId: response.modelId ?? getDefaultSamModelId(backend),
+        backendId: response.backendId,
+        nodeType: response.nodeType,
         masks: response.masks,
         sourceImageDataUrl: exportedLayer.imageDataUrl,
-        sourceContentBoundsOffset: {
-          x: exportedLayer.sourceMetadata.contentBounds.x,
-          y: exportedLayer.sourceMetadata.contentBounds.y
-        },
-        sourceTransformOverride: exportedLayer.sourceMetadata.layerTransform,
+        sourceMetadata: exportedLayer.sourceMetadata,
         preserveSourceLayer: true,
         historyLabel: "Split Selected Layer"
       });
@@ -397,21 +424,30 @@ export function useSegmentation({
 
   // ─── Apply result → create layer group with cutout layers ───────────────
 
-  const applyResult = useCallback(() => {
+  const applyResult = useCallback(async () => {
     if (!result || result.masks.length === 0) {
       return;
     }
 
-    applyMasksToDocument({
-      sourceLayerId: result.sourceLayerId,
-      runId: result.runId,
-      modelId: result.modelId,
-      masks: result.masks,
-      historyLabel: "Segment Objects"
-    });
+    setStatus("applying");
+    try {
+      await applyMasksToDocument({
+        sourceLayerId: result.sourceLayerId,
+        runId: result.runId,
+        modelId: result.modelId,
+        backendId: result.backendId,
+        nodeType: result.nodeType,
+        masks: result.masks,
+        sourceMetadata: result.sourceMetadata,
+        historyLabel: "Segment Objects"
+      });
 
-    setResult(null);
-    setStatus("idle");
+      setResult(null);
+      setStatus("idle");
+    } catch (err) {
+      console.error("[useSegmentation] Apply result failed:", err);
+      setStatus("error");
+    }
   }, [applyMasksToDocument, result]);
 
   // ─── Discard ────────────────────────────────────────────────────────────
@@ -433,18 +469,21 @@ export function useSegmentation({
       // zoom/pan), so we draw directly without transform.
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-      // Try to draw full mask image overlays; falls back to bounds
-      // if mask data URLs are not available.
-      const hasMaskData = result.masks.some((m) => !!m.maskDataUrl);
-      if (hasMaskData) {
-        // drawMaskImageOverlay is async — fire-and-forget with signal safety
-        void drawMaskImageOverlay(ctx, result.masks, zoom).catch(() => {
-          // Fallback to bounding boxes if image loading fails
+      void projectSegmentationMasksToDocumentSpace(result.masks)
+        .then((projectedMasks) => {
+          const hasMaskData = projectedMasks.some((mask) => !!mask.maskDataUrl);
+          if (hasMaskData) {
+            return drawMaskImageOverlay(ctx, projectedMasks, zoom).catch(() => {
+              drawMaskBoundsOverlay(ctx, projectedMasks, zoom);
+            });
+          }
+
+          drawMaskBoundsOverlay(ctx, projectedMasks, zoom);
+          return Promise.resolve();
+        })
+        .catch(() => {
           drawMaskBoundsOverlay(ctx, result.masks, zoom);
         });
-      } else {
-        drawMaskBoundsOverlay(ctx, result.masks, zoom);
-      }
     },
     [result]
   );
