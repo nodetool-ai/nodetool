@@ -42,6 +42,7 @@
     "fuse.js": "^7.3.0",
     "jszip": "^3.10.1",
     "lexical": "^0.32.1",
+    "loglevel": "^1.9.2",
     "monaco-editor": "^0.55.1",
     "papaparse": "^5.4.1",
     "plotly.js": "^3.3.1",

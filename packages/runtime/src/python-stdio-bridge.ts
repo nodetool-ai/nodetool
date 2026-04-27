@@ -91,9 +91,15 @@ const MAX_BRIDGE_FRAME_SIZE = Number(
 );
 const PYTHON_BRIDGE_ALLOWED_IN_PRODUCTION =
   process.env["NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION"] === "1";
+const DEFAULT_STARTUP_TIMEOUT_MS = 60000;
 
 function isProductionMode(): boolean {
   return process.env["NODETOOL_ENV"] === "production";
+}
+
+function startupTimeoutMsFromEnv(): number {
+  const value = Number(process.env["NODETOOL_PYTHON_BRIDGE_STARTUP_TIMEOUT_MS"]);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_STARTUP_TIMEOUT_MS;
 }
 
 export class PythonStdioBridge extends EventEmitter {
@@ -190,16 +196,24 @@ export class PythonStdioBridge extends EventEmitter {
 
     return new Promise<void>((resolve, reject) => {
       const proc = spawn(candidate.command, args, {
-        stdio: ["pipe", "pipe", "pipe"]
+        stdio: ["pipe", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK:
+            process.env["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] ?? "True"
+        }
       });
       this._process = proc;
 
       let ready = false;
       let stderrOutput = "";
       let settled = false;
-      const startupTimeoutMs = this._options.startupTimeoutMs ?? 20000;
+      const startupTimeoutMs =
+        this._options.startupTimeoutMs ?? startupTimeoutMsFromEnv();
 
       const startupTimer = setTimeout(() => {
+        proc.kill();
+        this._process = null;
         settleError(
           new Error(
             `Python worker did not become ready within ${startupTimeoutMs}ms.` +
