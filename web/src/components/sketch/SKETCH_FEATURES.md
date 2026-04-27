@@ -30,7 +30,7 @@ Completed current tasks, display/interactions hardening, move/transform hardenin
 
 Do these before advanced transform work, SAM, or new node execution surfaces. These are follow-up hardening tasks from the `sketch-editor-6` architecture sweep, focused on preventing the same classes of bugs that previously caused stale previews, layers jumping after move/transform, and CPU/GPU display drift.
 
-- [ ] [impl+test] make history snapshots document-complete for canvas and layer tree state
+- [x] [impl+test] make history snapshots document-complete for canvas and layer tree state
   - Extend history entries or their parallel snapshot data so undo/redo restores `document.canvas` dimensions/background together with layers.
   - Ensure layer structure snapshots preserve all metadata needed to rebuild groups and generated layers, including `parentId`, `collapsed`, `segmentationMeta`, image references, effects, exposed input/output flags, transforms, and content bounds.
   - Fix structural-history ordering so layer creation/removal entries capture the post-action structure needed for redo, not only the pre-action state.
