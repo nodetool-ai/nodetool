@@ -8,6 +8,7 @@
  * real canvas/GPU infrastructure.
  */
 import { renderHook } from "@testing-library/react";
+import type { DisplayFrameCoordinator } from "../sketchCanvasHooks/DisplayFrameCoordinator";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -25,7 +26,8 @@ const mockCompositing = {
   redrawDirty: jest.fn(),
   requestRedraw: jest.fn(),
   requestDirtyRedraw: jest.fn(),
-  drainPendingStrokeCommit: jest.fn()
+  drainPendingStrokeCommit: jest.fn(),
+  coordinatorRef: { current: { requestFrame: jest.fn() } }
 };
 
 const mockOverlay = {
@@ -93,6 +95,9 @@ function makeParams() {
     transformPreviewByLayerIdRef: { current: {} },
     requestPreviewRedrawRef: { current: jest.fn() },
     invalidateLayerRef: { current: jest.fn() },
+    coordinatorRef: {
+      current: { requestFrame: jest.fn() } as unknown as DisplayFrameCoordinator
+    } as React.MutableRefObject<DisplayFrameCoordinator | null>,
     setLayerTransformPreview: jest.fn(),
     clearLayerTransformPreview: jest.fn(),
     onZoomChange: jest.fn(),
@@ -128,7 +133,10 @@ describe("useCanvasOrchestration", () => {
     renderHook(() => useCanvasOrchestration(params));
 
     expect(useCompositing).toHaveBeenCalledWith(
-      expect.objectContaining({ doc: params.doc })
+      expect.objectContaining({
+        doc: params.doc,
+        coordinatorRef: params.coordinatorRef
+      })
     );
   });
 

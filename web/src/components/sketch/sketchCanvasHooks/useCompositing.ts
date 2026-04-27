@@ -63,6 +63,7 @@ export interface UseCompositingParams {
   isolatedLayerId?: string | null;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   transformPreviewByLayerIdRef?: React.MutableRefObject<Record<string, LayerTransform>>;
+  coordinatorRef?: React.MutableRefObject<DisplayFrameCoordinator | null>;
 }
 
 export interface UseCompositingResult {
@@ -101,7 +102,8 @@ export function useCompositing({
   zoom: externalZoom = 1,
   isolatedLayerId,
   activeStrokeRef,
-  transformPreviewByLayerIdRef
+  transformPreviewByLayerIdRef,
+  coordinatorRef: externalCoordinatorRef
 }: UseCompositingParams): UseCompositingResult {
   // ─── Shared refs ───────────────────────────────────────────────────
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -110,7 +112,8 @@ export function useCompositing({
   const layerCanvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
   // ─── Display frame coordinator ─────────────────────────────────────
-  const coordinatorRef = useRef<DisplayFrameCoordinator | null>(null);
+  const internalCoordinatorRef = useRef<DisplayFrameCoordinator | null>(null);
+  const coordinatorRef = externalCoordinatorRef ?? internalCoordinatorRef;
   if (!coordinatorRef.current) {
     coordinatorRef.current = new DisplayFrameCoordinator();
   }

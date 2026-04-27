@@ -11,6 +11,7 @@ import {
   clearActiveLayerTransformPreview,
   setActiveLayerTransformPreview
 } from "../activeLayerTransform";
+import { DisplayFrameCoordinator } from "../sketchCanvasHooks/DisplayFrameCoordinator";
 import type { LayerTransform } from "../types";
 
 // Spy on the active-layer module so we can verify bridging calls.
@@ -194,5 +195,54 @@ describe("useTransformPreviewBridge", () => {
       result.current.setLayerTransformPreview("layer-1", t2);
     });
     expect(redrawSpy).not.toHaveBeenCalled();
+  });
+
+  it("routes preview redraws through the shared coordinator when provided", () => {
+    const coordinator = new DisplayFrameCoordinator(false);
+    const requestFrameSpy = jest.spyOn(coordinator, "requestFrame");
+    const coordinatorRef = { current: coordinator };
+    const { result } = renderHook(() =>
+      useTransformPreviewBridge({ coordinatorRef })
+    );
+    const redrawSpy = jest.fn();
+    result.current.requestPreviewRedrawRef.current = redrawSpy;
+
+    act(() => {
+      result.current.setLayerTransformPreview("layer-1", { x: 4, y: 5 });
+    });
+
+    expect(requestFrameSpy).toHaveBeenCalledWith("transform-preview", "raf");
+    expect(redrawSpy).not.toHaveBeenCalled();
+  });
+
+  it("treats matrix changes as preview changes even when decomposed fields match", () => {
+    const { result } = renderHook(() => useTransformPreviewBridge());
+    const redrawSpy = jest.fn();
+    result.current.requestPreviewRedrawRef.current = redrawSpy;
+
+    act(() => {
+      result.current.setLayerTransformPreview("layer-1", {
+        x: 10,
+        y: 20,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
+        matrix: [1, 0, 0, 1, 10, 20]
+      });
+    });
+    redrawSpy.mockClear();
+
+    act(() => {
+      result.current.setLayerTransformPreview("layer-1", {
+        x: 10,
+        y: 20,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
+        matrix: [1, 0, 0.25, 1, 10, 20]
+      });
+    });
+
+    expect(redrawSpy).toHaveBeenCalledTimes(1);
   });
 });

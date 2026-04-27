@@ -2,7 +2,7 @@
  * Tests for transformTargetSet and opaquePixelBounds modules.
  *
  * Covers:
- *   - TransformTargetSet: add/remove/toggle/clear/has, union bounds computation
+ *   - TransformTargetSet: single-target replace/clear/has semantics
  *   - pickTopmostTransformableLayer: visibility, lock, hit-test
  *   - computeOpaquePixelBounds: empty, full, partial canvas
  *   - resolveGizmoBounds: tight pixel bounds for canvas-sized layers
@@ -91,85 +91,60 @@ describe("TransformTargetSet", () => {
   it("starts empty", () => {
     expect(ts.size).toBe(0);
     expect(ts.getIds()).toEqual([]);
+    expect(ts.getEntry()).toBeNull();
     expect(ts.has("any")).toBe(false);
   });
 
-  it("setSingle replaces all entries with one", () => {
-    ts.add("a", makeBounds(0, 0, 50, 50));
-    ts.add("b", makeBounds(10, 10, 60, 60));
+  it("setSingle replaces any previous target with one entry", () => {
+    ts.setSingle("a", makeBounds(0, 0, 50, 50));
     ts.setSingle("c", makeBounds(20, 20, 70, 70));
     expect(ts.size).toBe(1);
     expect(ts.has("c")).toBe(true);
     expect(ts.has("a")).toBe(false);
+    expect(ts.getIds()).toEqual(["c"]);
   });
 
-  it("add does not duplicate entries", () => {
-    ts.add("a", makeBounds());
-    ts.add("a", makeBounds());
-    expect(ts.size).toBe(1);
+  it("getEntry returns a defensive copy of the current target", () => {
+    ts.setSingle("a", makeBounds(10, 20, 30, 40));
+    const entry = ts.getEntry();
+    expect(entry).toEqual({
+      layerId: "a",
+      bounds: { x: 10, y: 20, width: 30, height: 40 }
+    });
+    expect(entry).not.toBe(ts.getEntries()[0]);
   });
 
-  it("remove removes the correct entry", () => {
-    ts.add("a", makeBounds());
-    ts.add("b", makeBounds());
-    ts.remove("a");
-    expect(ts.size).toBe(1);
-    expect(ts.has("a")).toBe(false);
-    expect(ts.has("b")).toBe(true);
-  });
-
-  it("toggle adds when absent, removes when present", () => {
-    const bounds = makeBounds();
-    ts.toggle("a", bounds);
-    expect(ts.has("a")).toBe(true);
-    ts.toggle("a", bounds);
-    expect(ts.has("a")).toBe(false);
-  });
-
-  it("clear removes all entries", () => {
-    ts.add("a", makeBounds());
-    ts.add("b", makeBounds());
+  it("clear removes the current target", () => {
+    ts.setSingle("a", makeBounds());
     ts.clear();
     expect(ts.size).toBe(0);
+    expect(ts.getIds()).toEqual([]);
   });
 
-  it("computeUnionRasterBounds returns null when empty", () => {
-    expect(ts.computeUnionRasterBounds()).toBeNull();
+  it("getRasterBounds returns null when empty", () => {
+    expect(ts.getRasterBounds()).toBeNull();
   });
 
-  it("computeUnionRasterBounds returns single entry bounds for one entry", () => {
+  it("getRasterBounds returns current target bounds", () => {
     ts.setSingle("a", makeBounds(10, 20, 100, 200));
-    const result = ts.computeUnionRasterBounds();
+    const result = ts.getRasterBounds();
     expect(result).toEqual({ x: 10, y: 20, width: 100, height: 200 });
   });
 
-  it("computeUnionRasterBounds unions multiple entries", () => {
-    ts.add("a", makeBounds(0, 0, 50, 50));
-    ts.add("b", makeBounds(30, 30, 50, 50));
-    const result = ts.computeUnionRasterBounds();
-    // Union: (0,0) to (80,80) = width 80, height 80
-    expect(result).toEqual({ x: 0, y: 0, width: 80, height: 80 });
+  it("computeTargetExtents returns null when empty", () => {
+    expect(ts.computeTargetExtents(() => makeTransform())).toBeNull();
   });
 
-  it("computeUnionExtents returns null when empty", () => {
-    expect(ts.computeUnionExtents(() => makeTransform())).toBeNull();
-  });
-
-  it("computeUnionExtents respects layer transforms", () => {
-    ts.add("a", makeBounds(0, 0, 50, 50));
-    ts.add("b", makeBounds(0, 0, 50, 50));
-    const result = ts.computeUnionExtents((id) => {
-      if (id === "a") { return makeTransform(0, 0); }
-      return makeTransform(100, 100);
+  it("computeTargetExtents respects the targeted layer transform", () => {
+    ts.setSingle("b", makeBounds(0, 0, 50, 50));
+    const result = ts.computeTargetExtents((id) => {
+      if (id === "b") {
+        return makeTransform(100, 100);
+      }
+      return makeTransform(0, 0);
     });
-    // Layer a: (0,0) to (50,50) + transform (0,0) = (0,0)→(50,50)
-    // Layer b: (0,0) to (50,50) + transform (100,100) = (100,100)→(150,150)
-    // Union: (0,0) to (150,150)
     expect(result).not.toBeNull();
-    expect(result!.x).toBe(0);
-    expect(result!.y).toBe(0);
-    expect(result!.width).toBe(150);
-    expect(result!.height).toBe(150);
+    expect(result).toEqual({ x: 100, y: 100, width: 50, height: 50 });
   });
 });
 
