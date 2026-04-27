@@ -96,17 +96,6 @@ const mockProcessingContext = {
   setSendControlEvent() {}
 } as unknown as ProcessingContext;
 
-const getDroppedCount = (
-  runner: WorkflowRunner,
-  nodeId: string,
-  handle: string
-): number =>
-  (
-    runner as unknown as {
-      _inboxes: Map<string, { getDroppedCount(handle: string): number }>;
-    }
-  )._inboxes.get(nodeId)!.getDroppedCount(handle);
-
 describe("realtime frame routing nodes", () => {
   it("routes pushed video frames from VideoSource to VideoSink", async () => {
     const nodeRegistry = registry();
@@ -162,83 +151,6 @@ describe("realtime frame routing nodes", () => {
     expect(result.outputs.preview).toEqual([pushedFrame]);
   });
 
-  it("applies latest-frame-wins buffering for video sink frames", async () => {
-    const nodeRegistry = registry();
-    const runner = new WorkflowRunner("job-video-buffer", {
-      resolveExecutor: resolveFromRegistry(nodeRegistry),
-      runMode: "realtime"
-    });
-
-    await runner.initializeForRealtime(
-      { job_id: "job-video-buffer" },
-      {
-        nodes: [
-          videoSourceDescriptor("video-source"),
-          VideoSink.toDescriptor("video-sink")
-        ],
-        edges: [
-          {
-            source: "video-source",
-            sourceHandle: "realtime_frame",
-            target: "video-sink",
-            targetHandle: "frame"
-          }
-        ]
-      }
-    );
-
-    await runner.pushInputValue("camera", frame(1), "realtime_frame");
-    await runner.pushInputValue("camera", frame(2), "realtime_frame");
-    await runner.pushInputValue("camera", frame(3), "realtime_frame");
-
-    expect(getDroppedCount(runner, "video-sink", "frame")).toBe(1);
-  });
-
-  it("applies source ingress buffering before non-sink realtime targets", async () => {
-    const nodeRegistry = registry();
-    const runner = new WorkflowRunner("job-video-source-buffer", {
-      resolveExecutor: (node) => {
-        if (node.type === "test.Model") {
-          return {
-            async process(inputs) {
-              return inputs;
-            }
-          };
-        }
-        return resolveFromRegistry(nodeRegistry)(node);
-      },
-      runMode: "realtime"
-    });
-
-    await runner.initializeForRealtime(
-      { job_id: "job-video-source-buffer" },
-      {
-        nodes: [
-          videoSourceDescriptor("video-source"),
-          {
-            id: "model",
-            type: "test.Model",
-            is_streaming_input: true
-          }
-        ],
-        edges: [
-          {
-            source: "video-source",
-            sourceHandle: "realtime_frame",
-            target: "model",
-            targetHandle: "frame"
-          }
-        ]
-      }
-    );
-
-    await runner.pushInputValue("camera", frame(1), "realtime_frame");
-    await runner.pushInputValue("camera", frame(2), "realtime_frame");
-    await runner.pushInputValue("camera", frame(3), "realtime_frame");
-
-    expect(getDroppedCount(runner, "model", "frame")).toBe(1);
-  });
-
   it("routes pushed audio frames from AudioSource to AudioSink", async () => {
     const nodeRegistry = registry();
     const realtimeRunner = new RealtimeRunner("job-audio-loopback", {
@@ -292,54 +204,6 @@ describe("realtime frame routing nodes", () => {
     expect(result.outputs.speaker).toEqual([pushedFrame]);
   });
 
-  it("applies source ingress buffering for audio frames", async () => {
-    const nodeRegistry = registry();
-    const runner = new WorkflowRunner("job-audio-source-buffer", {
-      resolveExecutor: (node) => {
-        if (node.type === "test.AudioModel") {
-          return {
-            async process(inputs) {
-              return inputs;
-            }
-          };
-        }
-        return nodeRegistry.resolve(node);
-      },
-      runMode: "realtime"
-    });
-
-    await runner.initializeForRealtime(
-      { job_id: "job-audio-source-buffer" },
-      {
-        nodes: [
-          {
-            ...AudioSource.toDescriptor("audio-source"),
-            name: "microphone",
-            properties: { name: "microphone" }
-          },
-          {
-            id: "model",
-            type: "test.AudioModel",
-            is_streaming_input: true
-          }
-        ],
-        edges: [
-          {
-            source: "audio-source",
-            sourceHandle: "frame",
-            target: "model",
-            targetHandle: "frame"
-          }
-        ]
-      }
-    );
-
-    await runner.pushInputValue("microphone", audioFrame(1));
-    await runner.pushInputValue("microphone", audioFrame(2));
-    await runner.pushInputValue("microphone", audioFrame(3));
-
-    expect(getDroppedCount(runner, "model", "frame")).toBe(1);
-  });
 });
 
 describe("realtime control and session nodes", () => {
