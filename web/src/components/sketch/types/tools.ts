@@ -492,8 +492,12 @@ export interface SegmentationLayerMeta {
   segmentationRunId: string;
   /** Layer ID that was segmented. */
   sourceLayerId: string;
+  /** Backend used for segmentation. */
+  backendId?: SegmentBackend;
   /** Model identifier used for segmentation. */
   modelId: string;
+  /** Node type used for segmentation when known. */
+  nodeType?: string;
   /** Confidence score for this particular mask (0–1). */
   confidence: number;
   /** Mask index within the segmentation result. */

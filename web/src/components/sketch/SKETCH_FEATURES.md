@@ -319,7 +319,7 @@ Check:
 - [x] SAM output parsing is independent from document layer mutation.
 - [x] Tests cover Local SAM3 list output, empty output, malformed output, partial output, and ordering.
 
-### [ ] 3.5 Apply Accepted Results In Document Space
+### [x] 3.5 Apply Accepted Results In Document Space
 
 Files:
 - `web/src/components/sketch/types/document.ts`
@@ -328,19 +328,19 @@ Files:
 - `web/src/components/sketch/rendering/`
 
 Steps:
-- [ ] Preview normalized masks without changing the document.
-- [ ] Apply accepted masks as one new group.
-- [ ] Create ordinary raster layers only.
-- [ ] Place generated layers in document space using source metadata.
-- [ ] Store provenance in `Layer.segmentationMeta`.
-- [ ] Create one history step for one apply action.
-- [ ] Keep generated layers compatible with paint, move, transform, trim, export, and serialization.
-- [ ] Do not add SAM-specific rendering code.
+- [x] Preview normalized masks without changing the document.
+- [x] Apply accepted masks as one new group.
+- [x] Create ordinary raster layers only.
+- [x] Place generated layers in document space using source metadata.
+- [x] Store provenance in `Layer.segmentationMeta`.
+- [x] Create one history step for one apply action.
+- [x] Keep generated layers compatible with paint, move, transform, trim, export, and serialization.
+- [x] Do not add SAM-specific rendering code.
 
 Check:
-- [ ] Generated layers align with transformed, cropped, and off-canvas source layers.
-- [ ] Generated layers are normal editable sketch layers.
-- [ ] Serialization and export/readback preserve generated layers.
+- [x] Generated layers align with transformed, cropped, and off-canvas source layers.
+- [x] Generated layers are normal editable sketch layers.
+- [x] Serialization and export/readback preserve generated layers.
 
 ### [ ] 3.6 Add Sketch-Needed Local SAM3 Prompts
 
