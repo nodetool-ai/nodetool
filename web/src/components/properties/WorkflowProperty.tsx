@@ -6,6 +6,7 @@ import { memo, useCallback } from "react";
 import isEqual from "fast-deep-equal";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
+import type { SelectChangeEvent } from "@mui/material";
 
 const WorkflowProperty = (props: PropertyProps) => {
   const { property, value, onChange } = props;
@@ -20,7 +21,7 @@ const WorkflowProperty = (props: PropertyProps) => {
   });
 
   // Memoize handler to prevent unnecessary re-renders of memoized NodeSelect child
-  const handleChange = useCallback((e: any) => {
+  const handleChange = useCallback((e: SelectChangeEvent<unknown>) => {
     onChange({
       type: "workflow",
       id: String(e.target.value)
