@@ -239,8 +239,8 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
       platform,
       indexUrl,
     };
-  } catch (error: any) {
-    const errorMsg = error?.message || String(error);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     logMessage(`GPU detection failed: ${errorMsg}`, "error");
     logMessage("Falling back to CPU-only installation", "warn");
     

@@ -141,12 +141,22 @@ describe("uiSearchNodesParams", () => {
 describe("uiAddNodeParams", () => {
   const schema = z.object(uiAddNodeParams);
 
-  it("accepts empty object (all optional)", () => {
-    expect(schema.safeParse({}).success).toBe(true);
+  it("requires id, type, and position", () => {
+    expect(schema.safeParse({}).success).toBe(false);
+    expect(
+      schema.safeParse({ type: "math.Add", position: { x: 0, y: 0 } }).success
+    ).toBe(false);
+    expect(
+      schema.safeParse({ id: "n1", position: { x: 0, y: 0 } }).success
+    ).toBe(false);
+    expect(schema.safeParse({ id: "n1", type: "math.Add" }).success).toBe(
+      false
+    );
   });
 
-  it("accepts node with type and position", () => {
+  it("accepts node with id, type, and position", () => {
     const result = schema.safeParse({
+      id: "add_1",
       type: "math.Add",
       position: { x: 100, y: 200 },
       properties: { a: 1 }
@@ -155,7 +165,11 @@ describe("uiAddNodeParams", () => {
   });
 
   it("accepts string position", () => {
-    const result = schema.safeParse({ type: "math.Add", position: "center" });
+    const result = schema.safeParse({
+      id: "add_1",
+      type: "math.Add",
+      position: "100,200"
+    });
     expect(result.success).toBe(true);
   });
 });
@@ -165,16 +179,27 @@ describe("uiConnectNodesParams", () => {
 
   it("accepts valid connection", () => {
     const result = schema.safeParse({
-      source_id: "n1",
+      source_node_id: "n1",
       source_handle: "output",
-      target_id: "n2",
+      target_node_id: "n2",
       target_handle: "input"
     });
     expect(result.success).toBe(true);
   });
 
+  it("rejects legacy bare `source_id`/`target_id`", () => {
+    expect(
+      schema.safeParse({
+        source_id: "n1",
+        source_handle: "output",
+        target_id: "n2",
+        target_handle: "input"
+      }).success
+    ).toBe(false);
+  });
+
   it("rejects missing required fields", () => {
-    expect(schema.safeParse({ source_id: "n1" }).success).toBe(false);
+    expect(schema.safeParse({ source_node_id: "n1" }).success).toBe(false);
   });
 });
 
@@ -259,6 +284,37 @@ describe("uiCopyParams", () => {
   });
 });
 
+describe("uiOpenWorkflowParams", () => {
+  const schema = z.object(uiOpenWorkflowParams);
+
+  it("requires workflow_id", () => {
+    expect(schema.safeParse({}).success).toBe(false);
+  });
+
+  it("rejects legacy `id` alias", () => {
+    expect(schema.safeParse({ id: "wf_1" }).success).toBe(false);
+  });
+
+  it("accepts workflow_id", () => {
+    expect(schema.safeParse({ workflow_id: "wf_1" }).success).toBe(true);
+  });
+});
+
+describe("uiRunWorkflowParams", () => {
+  const schema = z.object(uiRunWorkflowParams);
+
+  it("requires workflow_id", () => {
+    expect(schema.safeParse({}).success).toBe(false);
+  });
+
+  it("accepts workflow_id with optional params", () => {
+    expect(
+      schema.safeParse({ workflow_id: "wf_1", params: { input: 1 } }).success
+    ).toBe(true);
+    expect(schema.safeParse({ workflow_id: "wf_1" }).success).toBe(true);
+  });
+});
+
 describe("uiPasteParams", () => {
   const schema = z.object(uiPasteParams);
 
@@ -274,6 +330,7 @@ describe("uiPasteParams", () => {
 describe("uiToolSchemas registry", () => {
   const expectedTools = [
     "ui_search_nodes",
+    "ui_search_models",
     "ui_add_node",
     "ui_connect_nodes",
     "ui_get_graph",
@@ -296,8 +353,8 @@ describe("uiToolSchemas registry", () => {
     );
   });
 
-  it("has exactly 15 tools registered", () => {
-    expect(Object.keys(uiToolSchemas)).toHaveLength(15);
+  it("has exactly 16 tools registered", () => {
+    expect(Object.keys(uiToolSchemas)).toHaveLength(16);
   });
 
   it("every registered tool has description and parameters", () => {

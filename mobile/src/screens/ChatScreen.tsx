@@ -18,24 +18,37 @@ import { RootStackParamList } from '../navigation/types';
 import { ChatView } from '../components/chat';
 import { useChatStore } from '../stores/ChatStore';
 import { useTheme } from '../hooks/useTheme';
+import { useShallow } from 'zustand/react/shallow';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Chat'>;
 
 export default function ChatScreen({ navigation, route }: Props) {
-  const status = useChatStore(state => state.status);
-  const error = useChatStore(state => state.error);
-  const statusMessage = useChatStore(state => state.statusMessage);
-  const currentThreadId = useChatStore(state => state.currentThreadId);
+  const {
+    status,
+    error,
+    statusMessage,
+    currentThreadId,
+    selectedModel,
+    agentMode,
+    helpMode,
+    selectedCollections
+  } = useChatStore(useShallow(state => ({
+    status: state.status,
+    error: state.error,
+    statusMessage: state.statusMessage,
+    currentThreadId: state.currentThreadId,
+    selectedModel: state.selectedModel,
+    agentMode: state.agentMode,
+    helpMode: state.helpMode,
+    selectedCollections: state.selectedCollections
+  })));
+
   const connect = useChatStore(state => state.connect);
   const createNewThread = useChatStore(state => state.createNewThread);
   const loadThreadFromServer = useChatStore(state => state.loadThreadFromServer);
   const getCurrentMessages = useChatStore(state => state.getCurrentMessages);
-  const selectedModel = useChatStore(state => state.selectedModel);
   const sendMessage = useChatStore(state => state.sendMessage);
   const stopGeneration = useChatStore(state => state.stopGeneration);
-  const agentMode = useChatStore(state => state.agentMode);
-  const helpMode = useChatStore(state => state.helpMode);
-  const selectedCollections = useChatStore(state => state.selectedCollections);
   const setAgentMode = useChatStore(state => state.setAgentMode);
   const setHelpMode = useChatStore(state => state.setHelpMode);
   const setSelectedCollections = useChatStore(state => state.setSelectedCollections);

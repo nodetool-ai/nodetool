@@ -117,6 +117,8 @@ export interface TextToImageParams {
   negativePrompt?: string | null;
   width?: number;
   height?: number;
+  aspectRatio?: string | null;
+  resolution?: string | null;
   quality?: string | null;
   guidanceScale?: number | null;
   numInferenceSteps?: number | null;
@@ -131,6 +133,8 @@ export interface ImageToImageParams {
   negativePrompt?: string | null;
   targetWidth?: number | null;
   targetHeight?: number | null;
+  aspectRatio?: string | null;
+  resolution?: string | null;
   quality?: string | null;
   guidanceScale?: number | null;
   numInferenceSteps?: number | null;

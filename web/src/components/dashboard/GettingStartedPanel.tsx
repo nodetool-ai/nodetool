@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo } from "react";
-import { Box, Button } from "@mui/material";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import { Box } from "@mui/material";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { css, keyframes } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import {
 } from "../../stores/OnboardingStore";
 import { ONBOARDING_STEPS } from "../onboarding/steps";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { EditorButton } from "../ui_primitives";
 
 const EDITOR_ROUTE_PREFIX = "/editor/";
 
@@ -105,7 +106,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       inset: 0,
       borderRadius: 999,
-      background: "linear-gradient(90deg, #7BA8FF 0%, #A35EF1 50%, #74E0C7 100%)",
+      background: `linear-gradient(90deg, ${theme.vars.palette.primary.light} 0%, ${theme.vars.palette.secondary.dark} 50%, ${theme.vars.palette.primary.main} 100%)`,
       transition: "transform 480ms cubic-bezier(0.22, 0.61, 0.36, 1)",
       transformOrigin: "left center"
     },
@@ -412,7 +413,7 @@ const GettingStartedPanel: React.FC = () => {
                 <h3 className="gs-step-title">{step.title}</h3>
                 <p className="gs-step-desc">{step.description}</p>
                 <div className="gs-cta-row">
-                  <Button
+                  <EditorButton
                     size="small"
                     className="gs-cta"
                     onClick={() => navigateToStep(id)}
@@ -422,7 +423,7 @@ const GettingStartedPanel: React.FC = () => {
                     {isCompleted
                       ? "Revisit"
                       : (step.ctaLabel ?? "Show me")}
-                  </Button>
+                  </EditorButton>
                 </div>
               </div>
 

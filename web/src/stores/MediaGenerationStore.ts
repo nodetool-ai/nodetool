@@ -135,12 +135,6 @@ export const IMAGE_RESOLUTION_TO_PIXELS: Record<ImageResolution, number> = {
   "4K": 4096
 };
 
-export const VIDEO_RESOLUTION_TO_PIXELS: Record<VideoResolution, number> = {
-  "1080p": 1080,
-  "1440p": 1440,
-  "4K": 2160
-};
-
 export interface ImageGenerationParams {
   model: ImageModelValue | null;
   resolution: ImageResolution;

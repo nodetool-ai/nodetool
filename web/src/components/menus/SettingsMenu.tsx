@@ -28,7 +28,6 @@ import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
 import SecretsMenu from "./SecretsMenu";
-import { getSecretsSidebarSections } from "./secretsSidebarUtils";
 import AboutMenu from "./AboutMenu";
 import ModelListIndex from "../hugging_face/model_list/ModelListIndex";
 import CollectionList from "../collections/CollectionList";

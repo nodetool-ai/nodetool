@@ -2,7 +2,7 @@
 import React, { memo, useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
-import { Button } from "@mui/material";
+import { EditorButton } from "../ui_primitives";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SettingsIcon from "@mui/icons-material/Settings";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
@@ -335,23 +335,29 @@ const OnboardingHint: React.FC<OnboardingHintProps> = ({
   useEffect(() => {
     if (!target) return;
 
-    let raf = 0;
-    let prev = "";
-    const tick = (): void => {
+    const card = cardRef.current;
+
+    const update = (): void => {
       const r = target.getBoundingClientRect();
-      const card = cardRef.current;
       const hintW = card?.offsetWidth ?? HINT_WIDTH;
       const hintH = card?.offsetHeight ?? 140;
-      const sig = `${r.top}|${r.left}|${r.width}|${r.height}|${hintW}|${hintH}|${window.innerWidth}|${window.innerHeight}`;
-      if (sig !== prev) {
-        prev = sig;
-        setLayout(computeLayout(r, step.hintPlacement, hintW, hintH));
-      }
-      raf = requestAnimationFrame(tick);
+      setLayout(computeLayout(r, step.hintPlacement, hintW, hintH));
     };
-    raf = requestAnimationFrame(tick);
 
-    return () => cancelAnimationFrame(raf);
+    update();
+
+    const ro = new ResizeObserver(update);
+    ro.observe(target);
+    if (card) ro.observe(card);
+
+    window.addEventListener("scroll", update, { passive: true, capture: true });
+    window.addEventListener("resize", update, { passive: true });
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", update, { capture: true });
+      window.removeEventListener("resize", update);
+    };
   }, [target, step.hintPlacement]);
 
   const hasAction =
@@ -390,7 +396,7 @@ const OnboardingHint: React.FC<OnboardingHintProps> = ({
         {hasAction && (
           <div className="hint-actions">
             {step.settingsTab !== undefined && onOpenSettings && (
-              <Button
+              <EditorButton
                 className="hint-cta"
                 size="small"
                 onClick={onOpenSettings}
@@ -398,10 +404,10 @@ const OnboardingHint: React.FC<OnboardingHintProps> = ({
                 disableElevation
               >
                 Open Settings
-              </Button>
+              </EditorButton>
             )}
             {step.modelsRoute && onOpenModels && (
-              <Button
+              <EditorButton
                 className="hint-cta"
                 size="small"
                 onClick={onOpenModels}
@@ -409,7 +415,7 @@ const OnboardingHint: React.FC<OnboardingHintProps> = ({
                 disableElevation
               >
                 Download Models
-              </Button>
+              </EditorButton>
             )}
           </div>
         )}

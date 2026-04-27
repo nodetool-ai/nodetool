@@ -33,26 +33,30 @@ interface AgentModelSelectProps {
 const triggerStyles = (theme: Theme, disabled: boolean) => css({
   display: "inline-flex",
   alignItems: "center",
-  gap: 4,
-  height: 26,
-  maxWidth: 220,
-  minWidth: 90,
-  padding: "0 6px 0 10px",
-  borderRadius: 8,
-  border: `1px solid ${theme.vars.palette.divider}`,
-  background: "rgba(0,0,0,0.45)",
+  gap: 6,
+  height: 30,
+  maxWidth: 240,
+  minWidth: 80,
+  padding: "0 10px",
+  borderRadius: 999,
+  border: "1px solid transparent",
+  background: "transparent",
   color: theme.vars.palette.grey[100],
-  fontFamily: theme.fontFamily2,
-  fontSize: theme.fontSizeSmaller,
+  fontFamily: theme.fontFamily1,
+  fontSize: 13,
+  fontWeight: 500,
+  lineHeight: 1.2,
   cursor: disabled ? "not-allowed" : "pointer",
   opacity: disabled ? 0.5 : 1,
-  transition: "border-color .15s ease, background-color .15s ease",
+  transition: "background-color .15s ease",
   "&:hover": !disabled
     ? {
-        borderColor: theme.vars.palette.primary.main,
-        background: "rgba(0,0,0,0.6)"
+        backgroundColor: "rgba(255,255,255,0.10)"
       }
     : undefined,
+  "&:focus-visible": {
+    borderColor: theme.vars.palette.primary.main
+  },
   "& .label": {
     flex: 1,
     minWidth: 0,
@@ -62,8 +66,8 @@ const triggerStyles = (theme: Theme, disabled: boolean) => css({
     textAlign: "left"
   },
   "& svg": {
-    fontSize: 14,
-    opacity: 0.7,
+    fontSize: 16,
+    opacity: 0.6,
     flexShrink: 0
   }
 });

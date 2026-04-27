@@ -27,21 +27,8 @@ layout: default
 .hero-title {
   font-size: 3.5rem;
   font-family: var(--font-heading);
-  background: linear-gradient(135deg, var(--color-accent-cyan), var(--color-accent-magenta), var(--color-accent-purple));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-text-primary);
   margin-bottom: var(--spacing-md);
-  animation: heroGlow 3s ease-in-out infinite;
-}
-
-@keyframes heroGlow {
-  0%, 100% {
-    filter: drop-shadow(0 0 20px rgba(75, 150, 210, 0.2));
-  }
-  50% {
-    filter: drop-shadow(0 0 30px rgba(190, 120, 140, 0.25));
-  }
 }
 
 .hero-subtitle {

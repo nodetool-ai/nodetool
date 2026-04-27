@@ -9,13 +9,20 @@
  * both import from here to stay in lockstep.
  */
 
-export type AgentProvider = "claude" | "codex" | "opencode" | "pi";
+export type AgentProvider = "claude" | "codex" | "opencode" | "pi" | "llm";
 
 export interface AgentModelDescriptor {
   id: string;
   label: string;
   isDefault?: boolean;
   provider?: AgentProvider;
+  /**
+   * For `provider === "llm"` only: the underlying chat provider id
+   * (e.g. "anthropic", "openai", "gemini") that should serve this model.
+   * Lets one logical "llm" agent provider front-end models from many
+   * registered runtime providers without overloading `id`.
+   */
+  chatProviderId?: string;
   /** Supports adjustable reasoning effort (Codex) */
   supportsReasoningEffort?: boolean;
   /** Supports max turns setting */
@@ -33,6 +40,8 @@ export interface AgentModelParams {
 export interface AgentSessionOptions {
   provider?: AgentProvider;
   model: string;
+  /** Underlying chat provider id when `provider === "llm"`. */
+  chatProviderId?: string;
   workspacePath?: string;
   resumeSessionId?: string;
   modelParams?: AgentModelParams;

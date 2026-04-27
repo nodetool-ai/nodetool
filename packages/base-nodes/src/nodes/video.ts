@@ -130,6 +130,17 @@ function canUseProvider(
   );
 }
 
+const VIDEO_ASPECT_RATIO_VALUES = [
+  "21:9",
+  "16:9",
+  "4:3",
+  "1:1",
+  "9:16",
+  "3:4"
+];
+const VIDEO_RESOLUTION_VALUES = ["1080p", "1440p", "4K"];
+const VIDEO_DURATION_VALUES = [2, 3, 4, 5, 6, 8];
+
 async function withTempFile(
   suffix: string,
   bytes: Uint8Array
@@ -188,7 +199,7 @@ export class TextToVideoNode extends BaseNode {
     "prompt",
     "aspect_ratio",
     "resolution",
-    "seed"
+    "duration"
   ];
   static readonly exposeAsTool = true;
 
@@ -224,61 +235,34 @@ export class TextToVideoNode extends BaseNode {
   declare negative_prompt: any;
 
   @prop({
-    type: "enum",
+    type: "str",
     default: "16:9",
     title: "Aspect Ratio",
     description: "Aspect ratio for the video",
-    values: ["16:9", "9:16", "1:1", "4:3", "3:4"]
+    values: VIDEO_ASPECT_RATIO_VALUES,
+    json_schema_extra: { type: "media_aspect_ratio_video" }
   })
   declare aspect_ratio: any;
 
   @prop({
-    type: "enum",
-    default: "720p",
+    type: "str",
+    default: "1080p",
     title: "Resolution",
     description: "Video resolution",
-    values: ["480p", "720p", "1080p"]
+    values: VIDEO_RESOLUTION_VALUES,
+    json_schema_extra: { type: "media_resolution_video" }
   })
   declare resolution: any;
 
   @prop({
     type: "int",
-    default: 60,
-    title: "Num Frames",
-    description: "Number of frames to generate (provider-specific)",
-    min: 1,
-    max: 300
+    default: 8,
+    title: "Duration",
+    description: "Video duration in seconds",
+    values: VIDEO_DURATION_VALUES,
+    json_schema_extra: { type: "media_duration" }
   })
-  declare num_frames: any;
-
-  @prop({
-    type: "float",
-    default: 7.5,
-    title: "Guidance Scale",
-    description: "Classifier-free guidance scale (higher = closer to prompt)",
-    min: 0,
-    max: 30
-  })
-  declare guidance_scale: any;
-
-  @prop({
-    type: "int",
-    default: 30,
-    title: "Num Inference Steps",
-    description: "Number of denoising steps",
-    min: 1,
-    max: 100
-  })
-  declare num_inference_steps: any;
-
-  @prop({
-    type: "int",
-    default: -1,
-    title: "Seed",
-    description: "Random seed for reproducibility (-1 for random)",
-    min: -1
-  })
-  declare seed: any;
+  declare duration: any;
 
   @prop({
     type: "int",
@@ -301,7 +285,7 @@ export class TextToVideoNode extends BaseNode {
         params: {
           prompt: text,
           negative_prompt: this.negative_prompt,
-          num_frames: this.num_frames,
+          duration_seconds: Number(this.duration ?? 0) || undefined,
           aspect_ratio: this.aspect_ratio,
           resolution: this.resolution
         }
@@ -327,7 +311,7 @@ export class ImageToVideoNode extends BaseNode {
     "prompt",
     "aspect_ratio",
     "resolution",
-    "seed"
+    "duration"
   ];
   static readonly exposeAsTool = true;
 
@@ -377,61 +361,34 @@ export class ImageToVideoNode extends BaseNode {
   declare negative_prompt: any;
 
   @prop({
-    type: "enum",
+    type: "str",
     default: "16:9",
     title: "Aspect Ratio",
     description: "Aspect ratio for the video",
-    values: ["16:9", "9:16", "1:1", "4:3", "3:4"]
+    values: VIDEO_ASPECT_RATIO_VALUES,
+    json_schema_extra: { type: "media_aspect_ratio_video" }
   })
   declare aspect_ratio: any;
 
   @prop({
-    type: "enum",
-    default: "720p",
+    type: "str",
+    default: "1080p",
     title: "Resolution",
     description: "Video resolution",
-    values: ["480p", "720p", "1080p"]
+    values: VIDEO_RESOLUTION_VALUES,
+    json_schema_extra: { type: "media_resolution_video" }
   })
   declare resolution: any;
 
   @prop({
     type: "int",
-    default: 60,
-    title: "Num Frames",
-    description: "Number of frames to generate (provider-specific)",
-    min: 1,
-    max: 300
+    default: 4,
+    title: "Duration",
+    description: "Video duration in seconds",
+    values: VIDEO_DURATION_VALUES,
+    json_schema_extra: { type: "media_duration" }
   })
-  declare num_frames: any;
-
-  @prop({
-    type: "float",
-    default: 7.5,
-    title: "Guidance Scale",
-    description: "Classifier-free guidance scale (higher = closer to prompt)",
-    min: 0,
-    max: 30
-  })
-  declare guidance_scale: any;
-
-  @prop({
-    type: "int",
-    default: 30,
-    title: "Num Inference Steps",
-    description: "Number of denoising steps",
-    min: 1,
-    max: 100
-  })
-  declare num_inference_steps: any;
-
-  @prop({
-    type: "int",
-    default: -1,
-    title: "Seed",
-    description: "Random seed for reproducibility (-1 for random)",
-    min: -1
-  })
-  declare seed: any;
+  declare duration: any;
 
   @prop({
     type: "int",
@@ -456,7 +413,7 @@ export class ImageToVideoNode extends BaseNode {
           image: img,
           prompt,
           negative_prompt: this.negative_prompt,
-          num_frames: this.num_frames,
+          duration_seconds: Number(this.duration ?? 0) || undefined,
           aspect_ratio: this.aspect_ratio,
           resolution: this.resolution
         }

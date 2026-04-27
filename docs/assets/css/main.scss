@@ -7,51 +7,52 @@
 
 /* === CSS Variables === */
 :root {
-  /* Colors - Matching nodetool-web globals.css */
-  --color-bg-primary: #020617;
-  /* slate-950 */
-  --color-bg-secondary: #0f172a;
-  /* slate-900 */
-  --color-bg-tertiary: #1e293b;
-  /* slate-800 */
-  --color-bg-elevated: #1e293b;
+  /* Colors - Matching nodetool-web paletteDark.ts */
+  --color-bg-primary: #08090A;
+  /* background.default */
+  --color-bg-secondary: #101113;
+  /* background.paper / c_tabs_header */
+  --color-bg-tertiary: #1B1D21;
+  /* grey 800 / c_node_bg */
+  --color-bg-elevated: #17181B;
+  /* Paper.overlay / c_node_menu */
 
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #d9d9d9;
-  --color-text-muted: #94a3b8;
-  --color-text-link: #5a9ec5;
+  --color-text-primary: #F7F8F8;
+  --color-text-secondary: #D4D6DB;
+  --color-text-muted: #8A8F98;
+  --color-text-link: #93C5FD;
 
-  /* Gradients */
+  /* Gradients - using nodetool primary/secondary palette */
   --gradient-primary: linear-gradient(137deg,
-      rgb(75, 150, 210) 0%,
-      rgb(90, 200, 155));
+      #6690d4 0%,
+      #E879F9);
   --gradient-secondary: linear-gradient(137deg,
-      rgb(80, 200, 140) 0%,
-      rgb(90, 200, 190));
+      #22D3EE 0%,
+      #50FA7B);
   --gradient-accent: linear-gradient(137deg,
-      rgb(210, 155, 95) 0%,
-      rgb(190, 120, 140));
+      #FFB86C 0%,
+      #E879F9);
   --gradient-header: linear-gradient(137deg,
-      rgb(140, 120, 170) 0%,
-      rgb(180, 120, 150));
+      #6690d4 0%,
+      #E879F9);
 
-  /* Accents derived from gradients for fallbacks/borders */
-  --color-accent-cyan: rgb(75, 150, 210);
-  --color-accent-green: rgb(90, 200, 155);
-  --color-accent-magenta: rgb(190, 120, 140);
-  --color-accent-purple: rgb(150, 120, 170);
-  --color-accent-blue: #5a9ec5;
+  /* Accents from nodetool palette */
+  --color-accent-cyan: #22D3EE;
+  --color-accent-green: #50FA7B;
+  --color-accent-magenta: #E879F9;
+  --color-accent-purple: #C4B5FD;
+  --color-accent-blue: #6690d4;
 
-  --color-border: #1e293b;
-  --color-border-glow: rgba(75, 150, 210, 0.2);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-glow: rgba(102, 144, 212, 0.2);
 
   /* Neon Glows */
-  --glow-cyan: 0 0 10px rgba(75, 150, 210, 0.3),
-    0 0 20px rgba(75, 150, 210, 0.15), 0 0 30px rgba(75, 150, 210, 0.05);
-  --glow-magenta: 0 0 10px rgba(190, 120, 140, 0.3),
-    0 0 20px rgba(190, 120, 140, 0.15), 0 0 30px rgba(190, 120, 140, 0.05);
-  --glow-purple: 0 0 10px rgba(150, 120, 170, 0.3),
-    0 0 20px rgba(150, 120, 170, 0.15);
+  --glow-cyan: 0 0 10px rgba(34, 211, 238, 0.3),
+    0 0 20px rgba(34, 211, 238, 0.15), 0 0 30px rgba(34, 211, 238, 0.05);
+  --glow-magenta: 0 0 10px rgba(232, 121, 249, 0.3),
+    0 0 20px rgba(232, 121, 249, 0.15), 0 0 30px rgba(232, 121, 249, 0.05);
+  --glow-purple: 0 0 10px rgba(196, 181, 253, 0.3),
+    0 0 20px rgba(196, 181, 253, 0.15);
 
   /* Typography */
   --font-heading: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -107,9 +108,9 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: linear-gradient(rgba(75, 150, 210, 0.03) 1px,
+  background-image: linear-gradient(rgba(102, 144, 212, 0.03) 1px,
       transparent 1px),
-    linear-gradient(90deg, rgba(75, 150, 210, 0.03) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(102, 144, 212, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
   z-index: -1;
@@ -146,20 +147,14 @@ h6 {
 
 h1 {
   font-size: 2.5rem;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-text-primary);
   margin-top: 0;
 }
 
 h2 {
   font-size: 1.75rem;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  border-bottom: 2px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   padding-top: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
   position: relative;
@@ -170,21 +165,21 @@ h2 {
 h2::after {
   content: "";
   position: absolute;
-  bottom: -2px;
+  bottom: -1px;
   left: 0;
-  width: 60px;
+  width: 48px;
   height: 2px;
-  background: var(--gradient-primary);
+  background: var(--color-accent-blue);
 }
 
 h3 {
   font-size: 1.25rem;
-  color: var(--color-accent-blue);
+  color: var(--color-text-primary);
 }
 
 h4 {
   font-size: 1rem;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
 }
 
 p {
@@ -192,7 +187,7 @@ p {
 }
 
 a {
-  color: var(--color-accent-cyan);
+  color: var(--color-text-link);
   text-decoration: none;
   transition: color var(--transition-fast), text-shadow var(--transition-fast), transform var(--transition-fast);
   position: relative;
@@ -257,7 +252,7 @@ input:focus-visible,
   height: 100%;
   width: 0;
   background: linear-gradient(90deg, var(--color-accent-cyan), var(--color-accent-magenta));
-  box-shadow: 0 0 10px rgba(75, 150, 210, 0.6);
+  box-shadow: 0 0 10px rgba(102, 144, 212, 0.6);
   transition: width 80ms linear;
 }
 
@@ -461,7 +456,7 @@ blockquote {
   border-radius: 8px;
   border: 1px solid var(--color-border);
   margin: var(--spacing-lg) 0;
-  box-shadow: 0 4px 20px rgba(75, 150, 210, 0.08);
+  box-shadow: 0 4px 20px rgba(102, 144, 212, 0.08);
 }
 
 .eyebrow {
@@ -554,7 +549,7 @@ blockquote {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
   z-index: 100;
-  box-shadow: 0 2px 20px rgba(75, 150, 210, 0.08);
+  box-shadow: 0 2px 20px rgba(102, 144, 212, 0.08);
 }
 
 .header-container {
@@ -693,7 +688,7 @@ blockquote {
 .search-toggle[aria-expanded="true"] {
   background: rgba(30, 41, 59, 0.6);
   color: var(--color-accent-cyan);
-  border-color: rgba(75, 150, 210, 0.4);
+  border-color: rgba(102, 144, 212, 0.4);
 }
 
 .search-container {
@@ -722,7 +717,7 @@ blockquote {
 }
 
 .search-input-wrapper:focus-within {
-  border-color: rgba(75, 150, 210, 0.5);
+  border-color: rgba(102, 144, 212, 0.5);
   box-shadow: var(--glow-cyan);
   transform: translateY(-1px);
 }
@@ -804,7 +799,7 @@ blockquote {
 
 .search-result:hover,
 .search-result.active {
-  background: rgba(75, 150, 210, 0.08);
+  background: rgba(102, 144, 212, 0.08);
   border-left-color: var(--color-accent-cyan);
   transform: translateX(2px);
 }
@@ -1027,7 +1022,7 @@ blockquote {
 .sidebar-collapse-all:hover {
   color: var(--color-accent-cyan);
   border-color: var(--color-accent-cyan);
-  background: rgba(75, 150, 210, 0.05);
+  background: rgba(102, 144, 212, 0.05);
 }
 
 .title-icon {
@@ -1055,7 +1050,7 @@ blockquote {
 }
 
 .nav-section[open] {
-  border-color: rgba(75, 150, 210, 0.08);
+  border-color: rgba(102, 144, 212, 0.08);
 }
 
 .nav-section-summary {
@@ -1075,7 +1070,7 @@ blockquote {
 }
 
 .nav-section-summary:hover {
-  background: rgba(75, 150, 210, 0.06);
+  background: rgba(102, 144, 212, 0.06);
 }
 
 .nav-section-title {
@@ -1124,7 +1119,7 @@ blockquote {
 
 .sidebar-link:hover {
   color: var(--color-accent-cyan);
-  background: rgba(75, 150, 210, 0.04);
+  background: rgba(102, 144, 212, 0.04);
   border-left-color: var(--color-accent-cyan);
   transform: translateX(4px);
   text-shadow: none;
@@ -1132,7 +1127,7 @@ blockquote {
 
 .sidebar-link.active {
   color: var(--color-accent-cyan);
-  background: rgba(75, 150, 210, 0.08);
+  background: rgba(102, 144, 212, 0.08);
   border-left-color: var(--color-accent-cyan);
   font-weight: 600;
 }
@@ -1189,7 +1184,7 @@ blockquote {
   border-radius: 8px;
   border: 1px solid var(--color-border);
   margin: var(--spacing-lg) 0;
-  box-shadow: 0 4px 20px rgba(75, 150, 210, 0.08);
+  box-shadow: 0 4px 20px rgba(102, 144, 212, 0.08);
 }
 
 .page-content ul,
@@ -1255,7 +1250,7 @@ blockquote {
 }
 
 .page-content tr:hover {
-  background: rgba(75, 150, 210, 0.03);
+  background: rgba(102, 144, 212, 0.03);
 }
 
 /* === Page Navigation === */
@@ -1285,7 +1280,7 @@ blockquote {
   background: var(--color-bg-tertiary);
   border-color: var(--color-accent-cyan);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(75, 150, 210, 0.15);
+  box-shadow: 0 4px 12px rgba(102, 144, 212, 0.15);
 }
 
 .nav-link.prev {
@@ -1756,7 +1751,7 @@ pre:hover .copy-button,
 .edit-on-github:hover {
   color: var(--color-accent-cyan);
   border-color: var(--color-accent-cyan);
-  background: rgba(75, 150, 210, 0.05);
+  background: rgba(102, 144, 212, 0.05);
   text-shadow: none;
 }
 

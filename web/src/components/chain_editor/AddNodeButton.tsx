@@ -39,6 +39,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
       <Box sx={{ width: 2, height: 8, backgroundColor: theme.vars.palette.divider }} />
       <IconButton
         size="small"
+        aria-label="Add node"
         onClick={onClick}
         sx={{
           width: 28,

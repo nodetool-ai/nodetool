@@ -44,25 +44,30 @@ const OnboardingTargetHighlight: React.FC<OnboardingTargetHighlightProps> = ({
       setRect(null);
       return;
     }
-    let raf = 0;
-    let prev = "";
-    const tick = (): void => {
-      const r = target.getBoundingClientRect();
-      const sig = `${r.top}|${r.left}|${r.width}|${r.height}`;
-      if (sig !== prev) {
-        prev = sig;
-        setRect({
-          top: r.top - HIGHLIGHT_PADDING,
-          left: r.left - HIGHLIGHT_PADDING,
-          width: r.width + HIGHLIGHT_PADDING * 2,
-          height: r.height + HIGHLIGHT_PADDING * 2
-        });
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
 
-    return () => cancelAnimationFrame(raf);
+    const update = (): void => {
+      const r = target.getBoundingClientRect();
+      setRect({
+        top: r.top - HIGHLIGHT_PADDING,
+        left: r.left - HIGHLIGHT_PADDING,
+        width: r.width + HIGHLIGHT_PADDING * 2,
+        height: r.height + HIGHLIGHT_PADDING * 2
+      });
+    };
+
+    update();
+
+    const ro = new ResizeObserver(update);
+    ro.observe(target);
+
+    window.addEventListener("scroll", update, { passive: true, capture: true });
+    window.addEventListener("resize", update, { passive: true });
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", update, { capture: true });
+      window.removeEventListener("resize", update);
+    };
   }, [target]);
 
   if (!rect) return null;

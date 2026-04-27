@@ -1441,6 +1441,8 @@ export class ProcessingContext {
           model: { id: req.model, name: req.model, provider: req.provider },
           width: params.width as number | undefined,
           height: params.height as number | undefined,
+          aspectRatio: params.aspect_ratio as string | undefined,
+          resolution: params.resolution as string | undefined,
           negativePrompt: params.negative_prompt as string | undefined,
           quality: params.quality as string | undefined
         });
@@ -1451,6 +1453,9 @@ export class ProcessingContext {
           negativePrompt: params.negative_prompt as string | undefined,
           targetWidth: params.target_width as number | undefined,
           targetHeight: params.target_height as number | undefined,
+          aspectRatio: params.aspect_ratio as string | undefined,
+          resolution: params.resolution as string | undefined,
+          strength: params.strength as number | undefined,
           quality: params.quality as string | undefined
         });
       case "text_to_video":
@@ -1459,6 +1464,7 @@ export class ProcessingContext {
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,
           numFrames: params.num_frames as number | undefined,
+          durationSeconds: params.duration_seconds as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
           resolution: params.resolution as string | undefined
         });
@@ -1468,6 +1474,7 @@ export class ProcessingContext {
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,
           numFrames: params.num_frames as number | undefined,
+          durationSeconds: params.duration_seconds as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
           resolution: params.resolution as string | undefined
         });

@@ -353,26 +353,28 @@ describe("GetMetadataNode — output schema", () => {
 // ---------------------------------------------------------------------------
 
 describe("TextToImageNode — provider params", () => {
-  it("has guidance_scale, num_inference_steps, seed properties", () => {
+  it("has aspect_ratio and resolution properties", () => {
     const node = new TextToImageNode();
-    // These should be assignable without error
     node.assign({
-      guidance_scale: 7.5,
-      num_inference_steps: 30,
-      seed: 42
+      aspect_ratio: "16:9",
+      resolution: "2K"
     });
-    expect(node.guidance_scale).toBe(7.5);
-    expect(node.num_inference_steps).toBe(30);
-    expect(node.seed).toBe(42);
+    expect(node.aspect_ratio).toBe("16:9");
+    expect(node.resolution).toBe("2K");
   });
 
-  it("does not have a quality property in metadataOutputTypes or basicFields", () => {
-    expect(TextToImageNode.basicFields).not.toContain("quality");
-    expect(TextToImageNode.metadataOutputTypes).not.toHaveProperty("quality");
+  it("does not expose low-level sampler params", () => {
+    expect(TextToImageNode.basicFields).not.toContain("guidance_scale");
+    expect(TextToImageNode.basicFields).not.toContain("num_inference_steps");
+    expect(TextToImageNode.basicFields).not.toContain("seed");
+    expect(TextToImageNode.basicFields).not.toContain("safety_check");
+    expect(TextToImageNode.basicFields).not.toContain("width");
+    expect(TextToImageNode.basicFields).not.toContain("height");
   });
 
-  it("basicFields includes seed", () => {
-    expect(TextToImageNode.basicFields).toContain("seed");
+  it("basicFields surfaces aspect_ratio and resolution", () => {
+    expect(TextToImageNode.basicFields).toContain("aspect_ratio");
+    expect(TextToImageNode.basicFields).toContain("resolution");
   });
 });
 

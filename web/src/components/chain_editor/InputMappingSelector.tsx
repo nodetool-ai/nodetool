@@ -190,6 +190,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                   </Text>
                   <IconButton
                     size="small"
+                    aria-label="Remove mapping"
                     onClick={(e) => {
                       e.stopPropagation();
                       onSetMapping(prop.name, null);

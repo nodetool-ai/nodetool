@@ -2,8 +2,8 @@
 import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
-import { Button } from "@mui/material";
 import RocketLaunchRoundedIcon from "@mui/icons-material/RocketLaunchRounded";
+import { EditorButton } from "../ui_primitives";
 import { useOnboardingStore } from "../../stores/OnboardingStore";
 
 interface OnboardingLauncherProps {
@@ -20,10 +20,10 @@ const styles = (theme: Theme) =>
       padding: "8px 14px"
     },
     "&.onboarding-launcher.primary": {
-      background: "linear-gradient(120deg, #7BA8FF, #A35EF1)",
-      color: "#fff",
+      background: `linear-gradient(120deg, ${theme.vars.palette.primary.light}, ${theme.vars.palette.secondary.dark})`,
+      color: theme.vars.palette.common.white,
       "&:hover": {
-        background: "linear-gradient(120deg, #7BA8FF, #A35EF1)",
+        background: `linear-gradient(120deg, ${theme.vars.palette.primary.light}, ${theme.vars.palette.secondary.dark})`,
         filter: "brightness(1.1)"
       }
     },
@@ -57,7 +57,7 @@ const OnboardingLauncher: React.FC<OnboardingLauncherProps> = ({
   const finalLabel = label ?? (hasProgress ? "Resume tour" : "Take the tour");
 
   return (
-    <Button
+    <EditorButton
       onClick={handleClick}
       variant={variant === "primary" ? "contained" : "outlined"}
       size="small"
@@ -67,7 +67,7 @@ const OnboardingLauncher: React.FC<OnboardingLauncherProps> = ({
       css={styles(theme)}
     >
       {finalLabel}
-    </Button>
+    </EditorButton>
   );
 };
 
