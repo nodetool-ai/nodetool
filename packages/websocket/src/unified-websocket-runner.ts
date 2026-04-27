@@ -1927,7 +1927,12 @@ export class UnifiedWebSocketRunner {
 
           // Only relay output_update for Output-type nodes
           if (outbound.type === "output_update") {
-            if (!nodeType.includes("Output")) continue;
+            if (
+              !nodeType.includes("Output") &&
+              nodeType !== "nodetool.realtime.VideoSink"
+            ) {
+              continue;
+            }
             outputUpdateSeen = true;
           }
 
@@ -1967,6 +1972,14 @@ export class UnifiedWebSocketRunner {
             outbound.value = await active.context.normalizeOutputValue(
               outbound.value
             );
+          }
+
+          if (active.realtimeRunner && outbound.type === "output_update") {
+            const sessionId = this.realtimeLifecycle.getSessionIdForJob(active.jobId);
+            if (sessionId) {
+              outbound.session_id = sessionId;
+              outbound.workflow_id = active.workflowId;
+            }
           }
         }
         await this.sendMessage(outbound);

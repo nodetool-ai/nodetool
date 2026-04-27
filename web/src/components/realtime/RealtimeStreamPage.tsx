@@ -8,6 +8,7 @@ import {
 } from "../ui_primitives";
 import VideoPreview from "./VideoPreview";
 import { RealtimeModelStatusCard } from "./RealtimeModelStatusCard";
+import { RealtimeOutputPreviewCard } from "./RealtimeOutputPreviewCard";
 import { RealtimeSessionControlsCard } from "./RealtimeSessionControlsCard";
 import { RealtimeSessionDetailsCard } from "./RealtimeSessionDetailsCard";
 import { RealtimeSessionListCard } from "./RealtimeSessionListCard";
@@ -153,6 +154,9 @@ const RealtimeStreamPage = () => {
               cameraPublisherStatus={controller.cameraPublisherStatus}
               isLoadingSessions={controller.isLoadingSessions}
               sessionError={controller.sessionError}
+            />
+            <RealtimeOutputPreviewCard
+              outputFrame={controller.activeOutputFrame}
             />
             <RealtimeSessionDetailsCard
               activeSession={controller.activeSession}

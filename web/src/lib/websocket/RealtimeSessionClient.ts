@@ -2,6 +2,7 @@ import type {
   RealtimeAnalysisEvent,
   RealtimeInferenceMetrics,
   RealtimeMediaTrackMapping,
+  OutputUpdate,
   VideoFrame,
   RealtimeMetrics,
   RealtimeSessionRecord,
@@ -20,6 +21,7 @@ export type RealtimeSessionMessage =
   | RealtimeSessionUpdated
   | RealtimeSessionStopped
   | RealtimeSessionAck
+  | RealtimeOutputUpdate
   | RealtimeMetrics
   | RealtimeInferenceMetrics
   | RealtimeAnalysisEvent;
@@ -57,6 +59,10 @@ export type RealtimeSessionAck = {
   track_id?: string | null;
   routed?: boolean;
   error?: string | null;
+};
+
+export type RealtimeOutputUpdate = OutputUpdate & {
+  session_id?: string | null;
 };
 
 const SESSION_START_TIMEOUT_MS = 15000;
@@ -107,6 +113,7 @@ export const isRealtimeSessionMessage = (
       message.type === "realtime_session_updated" ||
       message.type === "realtime_session_stopped" ||
       message.type === "realtime_session_ack" ||
+      message.type === "output_update" ||
       message.type === "realtime_metrics" ||
       message.type === "realtime_inference_metrics" ||
       message.type === "realtime_analysis_event")

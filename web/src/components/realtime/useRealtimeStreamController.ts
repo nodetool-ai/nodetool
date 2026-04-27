@@ -29,6 +29,7 @@ import {
   type RealtimeCameraFramePublisherStatus
 } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
 import { useRealtimeControlPlane } from "../../hooks/realtime/useRealtimeControlPlane";
+import type { RealtimeOutputFrame } from "../../stores/RealtimeSessionStore";
 
 interface VideoTrackTarget {
   nodeId: string;
@@ -83,6 +84,7 @@ export interface RealtimeStreamController {
   activeMetrics: RealtimeMetrics | null;
   activeInferenceMetrics: RealtimeInferenceMetrics[];
   activeAnalysisEvents: RealtimeAnalysisEvent[];
+  activeOutputFrame: RealtimeOutputFrame | null;
   previewStream: MediaStream | null;
   remoteStream: MediaStream | null;
   signalingStatus: RealtimeSignalingStatus;
@@ -123,6 +125,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     metrics,
     inferenceMetrics,
     analysisEvents,
+    outputFrames,
     activeSessionId,
     isLoading: isLoadingSessions,
     error: sessionError,
@@ -193,6 +196,9 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const activeAnalysisEvents = activeSession
     ? analysisEvents[activeSession.session_id] ?? []
     : [];
+  const activeOutputFrame = activeSession
+    ? outputFrames[activeSession.session_id] ?? null
+    : null;
   const discoveredVideoTrackTarget = useMemo(
     () => findVideoTrackTarget(workflow),
     [workflow]
@@ -412,6 +418,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     activeMetrics,
     activeInferenceMetrics,
     activeAnalysisEvents,
+    activeOutputFrame,
     previewStream,
     remoteStream,
     signalingStatus,

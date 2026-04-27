@@ -124,6 +124,15 @@ const runtimeStatus = ({
     };
   }
 
+  if ((activeMetrics?.frames.unrouted ?? 0) > 0) {
+    return {
+      status: "warning",
+      label: "Frames reached backend, not routed",
+      detail: "Check the video track target node, input name, and source handle.",
+      pulse: false
+    };
+  }
+
   if (cameraPublisherStatus.framesPublished > 0) {
     return {
       status: "info",
@@ -189,6 +198,9 @@ export const RealtimeModelStatusCard = ({
         </Caption>
         <Caption>
           Routed frames: {(activeMetrics?.frames.routed ?? 0).toLocaleString()}
+        </Caption>
+        <Caption>
+          Unrouted frames: {(activeMetrics?.frames.unrouted ?? 0).toLocaleString()}
         </Caption>
         <Caption>
           Inference nodes reporting: {activeInferenceMetrics.length.toLocaleString()}

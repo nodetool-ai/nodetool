@@ -17,6 +17,7 @@ export const useRealtimeControlPlane = () => {
     (state) => state.inferenceMetrics
   );
   const analysisEvents = useRealtimeSessionStore((state) => state.analysisEvents);
+  const outputFrames = useRealtimeSessionStore((state) => state.outputFrames);
   const activeSessionId = useRealtimeSessionStore(
     (state) => state.activeSessionId
   );
@@ -76,6 +77,7 @@ export const useRealtimeControlPlane = () => {
     metrics,
     inferenceMetrics,
     analysisEvents,
+    outputFrames,
     activeSessionId,
     isLoading,
     error,

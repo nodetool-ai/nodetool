@@ -3,6 +3,7 @@ import type {
   RealtimeAnalysisEvent,
   RealtimeInferenceMetrics,
   RealtimeMetrics,
+  VideoFrame,
   RealtimeSessionRecord,
   RealtimeSessionStarted,
   RealtimeSessionStopped,
@@ -11,6 +12,7 @@ import type {
 
 import {
   realtimeSessionClient,
+  type RealtimeOutputUpdate,
   type RealtimeSessionAck,
   type RealtimeSessionMessage,
   type RealtimeTransportConfig
@@ -21,11 +23,20 @@ type RealtimeGraphPayload = {
   edges: Array<Record<string, unknown>>;
 };
 
+export interface RealtimeOutputFrame {
+  nodeId: string;
+  nodeName: string;
+  outputName: string;
+  frame: VideoFrame;
+  receivedAt: number;
+}
+
 interface RealtimeSessionStoreState {
   sessions: Record<string, RealtimeSessionRecord>;
   metrics: Record<string, RealtimeMetrics>;
   inferenceMetrics: Record<string, Record<string, RealtimeInferenceMetrics>>;
   analysisEvents: Record<string, RealtimeAnalysisEvent[]>;
+  outputFrames: Record<string, RealtimeOutputFrame>;
   activeSessionId: string | null;
   isLoading: boolean;
   error: string | null;
@@ -47,6 +58,7 @@ interface RealtimeSessionStoreState {
   upsertMetrics: (metrics: RealtimeMetrics) => void;
   upsertInferenceMetrics: (metrics: RealtimeInferenceMetrics) => void;
   appendAnalysisEvent: (event: RealtimeAnalysisEvent) => void;
+  upsertOutputFrame: (sessionId: string, update: RealtimeOutputUpdate) => void;
   removeSession: (sessionId: string) => void;
   setActiveSession: (sessionId: string | null) => void;
 }
@@ -120,6 +132,14 @@ const isRealtimeSessionAck = (
   message: RealtimeSessionMessage
 ): message is RealtimeSessionAck => message.type === "realtime_session_ack";
 
+const isRealtimeVideoFrame = (value: unknown): value is VideoFrame => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { type?: unknown }).type === "realtime_video_frame"
+  );
+};
+
 export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
   (set, get) => {
     const attachSessionSubscription = (sessionId: string) => {
@@ -152,6 +172,13 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
 
           if (message.type === "realtime_analysis_event") {
             get().appendAnalysisEvent(message);
+            return;
+          }
+
+          if (message.type === "output_update") {
+            if (message.session_id) {
+              get().upsertOutputFrame(message.session_id, message);
+            }
             return;
           }
 
@@ -222,6 +249,7 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
       metrics: {},
       inferenceMetrics: {},
       analysisEvents: {},
+      outputFrames: {},
       activeSessionId: null,
       isLoading: false,
       error: null,
@@ -357,6 +385,28 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
         }));
       },
 
+      upsertOutputFrame(sessionId, update) {
+        if (
+          update.output_type !== "realtime_video_frame" ||
+          !isRealtimeVideoFrame(update.value)
+        ) {
+          return;
+        }
+
+        set((state) => ({
+          outputFrames: {
+            ...state.outputFrames,
+            [sessionId]: {
+              nodeId: update.node_id,
+              nodeName: update.node_name,
+              outputName: update.output_name,
+              frame: update.value,
+              receivedAt: Date.now()
+            }
+          }
+        }));
+      },
+
       removeSession(sessionId) {
         detachSessionSubscription(sessionId);
         set((state) => {
@@ -364,16 +414,19 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
           const nextMetrics = { ...state.metrics };
           const nextInferenceMetrics = { ...state.inferenceMetrics };
           const nextAnalysisEvents = { ...state.analysisEvents };
+          const nextOutputFrames = { ...state.outputFrames };
           delete nextSessions[sessionId];
           delete nextMetrics[sessionId];
           delete nextInferenceMetrics[sessionId];
           delete nextAnalysisEvents[sessionId];
+          delete nextOutputFrames[sessionId];
 
           return {
             sessions: nextSessions,
             metrics: nextMetrics,
             inferenceMetrics: nextInferenceMetrics,
             analysisEvents: nextAnalysisEvents,
+            outputFrames: nextOutputFrames,
             activeSessionId:
               state.activeSessionId === sessionId
                 ? Object.keys(nextSessions)[0] ?? null
