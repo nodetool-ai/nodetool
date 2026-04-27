@@ -354,7 +354,8 @@ describe("useEditorCommands", () => {
       } as unknown as Parameters<typeof useEditorCommands>[0]["layerActions"],
       colorActions: {} as unknown as Parameters<typeof useEditorCommands>[0]["colorActions"],
       segmentation: {
-        runSegmentation: jest.fn()
+        runSegmentation: jest.fn(),
+        splitSelectedLayer: jest.fn()
       } as unknown as Parameters<typeof useEditorCommands>[0]["segmentation"],
       canvasStore: {
         setZoom: jest.fn(),
@@ -422,5 +423,29 @@ describe("useEditorCommands", () => {
     expect(params.layerActions.handleAddLayer).toHaveBeenCalledWith({
       type: "mask"
     });
+  });
+
+  it("routes Local SAM3 runs through splitSelectedLayer", () => {
+    useSketchStore.setState((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          segment: {
+            ...state.document.toolSettings.segment,
+            backend: "local-sam3"
+          }
+        }
+      }
+    }));
+    const params = createParams();
+    const { result } = renderHook(() => useEditorCommands(params));
+
+    act(() => {
+      result.current.handleRunSegmentation();
+    });
+
+    expect(params.segmentation.splitSelectedLayer).toHaveBeenCalledTimes(1);
+    expect(params.segmentation.runSegmentation).not.toHaveBeenCalled();
   });
 });

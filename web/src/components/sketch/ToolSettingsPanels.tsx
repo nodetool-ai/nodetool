@@ -5,7 +5,7 @@
  * Each panel is memoized and receives only the settings + onChange it needs.
  */
 
-import React, { memo, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import {
   sketchSliderSx,
   toggleButtonSmallSx,
@@ -69,11 +69,20 @@ import {
 import type { SamModelInfo } from "./sam";
 import { LOCAL_SAM3_MODEL_ID } from "./sam";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useSketchStore } from "./state";
+import { getLayerDataImageUrl } from "./serialization";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 const noop = () => {};
+const LOCAL_SAM3_NODE_PACK_HINT = "Install or enable the HuggingFace node pack";
+const IN_PROGRESS_DOWNLOAD_STATES = [
+  "pending",
+  "running",
+  "start",
+  "progress"
+] as readonly string[];
 
 /** Matches {@link drawEraserStroke} / document migration so panel mode matches actual erase behavior. */
 function effectiveEraserMode(
@@ -1478,24 +1487,63 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const localSam3Download = useModelDownloadStore(
     (state) => state.downloads[LOCAL_SAM3_MODEL_ID]
   );
+  const localSam3DownloadStatus = localSam3Download?.status;
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
+  const canSplitSelectedLayer = useSketchStore((state) => {
+    const selectedLayerIds =
+      state.selectedLayerIds.length > 0
+        ? state.selectedLayerIds
+        : [state.document.activeLayerId];
+    if (selectedLayerIds.length !== 1) {
+      return false;
+    }
+    const selectedLayer = state.document.layers.find(
+      (layer) => layer.id === selectedLayerIds[0]
+    );
+    return (
+      selectedLayer?.type === "raster" &&
+      !!getLayerDataImageUrl(selectedLayer.data)
+    );
+  });
   const isLocalSam3 = settings.backend === "local-sam3";
   const localSam3Downloading =
-    localSam3Download &&
-    (localSam3Download.status === "pending" ||
-      localSam3Download.status === "running" ||
-      localSam3Download.status === "start" ||
-      localSam3Download.status === "progress");
+    localSam3DownloadStatus !== undefined &&
+    IN_PROGRESS_DOWNLOAD_STATES.includes(localSam3DownloadStatus);
   const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
-  const canRunSegmentation = !isLocalSam3 || localSam3Ready;
+  const canRunSegmentation = isLocalSam3
+    ? localSam3Ready && canSplitSelectedLayer
+    : true;
+  const canDownloadLocalSam3 =
+    isLocalSam3 &&
+    !!modelInfo &&
+    modelInfo.status === "not-installed" &&
+    modelInfo.errorMessage !== LOCAL_SAM3_NODE_PACK_HINT &&
+    localSam3DownloadStatus !== "completed" &&
+    !localSam3Downloading;
   const visiblePromptModes: SegmentPromptMode[] = isLocalSam3
     ? ["auto"]
     : ["point", "box", "auto"];
+  const segmentActionLabel = isLocalSam3 ? "Split selected layer" : "Segment";
   const modelStatusText = getSegmentModelStatusText(
     isLocalSam3,
     localSam3Downloading,
     localSam3Ready,
     modelInfo
   );
+
+  useEffect(() => {
+    if (!isLocalSam3) {
+      return;
+    }
+    if (
+      localSam3DownloadStatus === "completed" ||
+      localSam3DownloadStatus === "cancelled" ||
+      localSam3DownloadStatus === "error"
+    ) {
+      onCheckModel();
+    }
+  }, [isLocalSam3, localSam3DownloadStatus, onCheckModel]);
 
   return (
     <>
@@ -1717,6 +1765,31 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: "4px" }}>
         {!isRunning && !isPreviewing && (
           <>
+            {canDownloadLocalSam3 && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  startDownload(LOCAL_SAM3_MODEL_ID, "hf.model");
+                }}
+                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+              >
+                Download Local SAM3
+              </Button>
+            )}
+            {isLocalSam3 && localSam3Downloading && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="warning"
+                onClick={() => {
+                  cancelDownload(LOCAL_SAM3_MODEL_ID);
+                }}
+                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+              >
+                Cancel download
+              </Button>
+            )}
             <Button
               size="small"
               variant="contained"
@@ -1724,16 +1797,18 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               disabled={!canRunSegmentation}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
-              Segment
+              {segmentActionLabel}
             </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={onClearPrompts}
-              sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
-            >
-              Clear
-            </Button>
+            {!isLocalSam3 && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={onClearPrompts}
+                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+              >
+                Clear
+              </Button>
+            )}
           </>
         )}
         {isRunning && (
@@ -1797,6 +1872,19 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           ? "Local SAM3 currently supports automatic layer split only."
           : promptModeHelpText(settings.promptMode)}
       </Typography>
+
+      {isLocalSam3 && !canSplitSelectedLayer && (
+        <Typography
+          sx={{
+            fontSize: SKETCH_FONT.xs,
+            color: SKETCH_COLORS.textFaint,
+            lineHeight: 1.3,
+            mt: "2px"
+          }}
+        >
+          Select exactly one raster layer to split.
+        </Typography>
+      )}
 
       {segmentationStatus === "error" && (
         <Typography

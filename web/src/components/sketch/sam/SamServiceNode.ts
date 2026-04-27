@@ -7,6 +7,7 @@
 
 import useMetadataStore from "../../../stores/MetadataStore";
 import type { HuggingFaceModel } from "../../../stores/ApiTypes";
+import { useAssetStore } from "../../../stores/AssetStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type {
@@ -21,7 +22,8 @@ import {
   FAL_SAM_CAPABILITIES,
   LOCAL_SAM3_CAPABILITIES,
   LOCAL_SAM3_MODEL_ID,
-  LOCAL_SAM3_MODEL_NAME
+  LOCAL_SAM3_MODEL_NAME,
+  SAM_INLINE_IMAGE_MAX_BYTES
 } from "./SamService";
 import type { SegmentationMask, SegmentBackend } from "../types";
 import { getNodeExecutor } from "./NodeExecutor";
@@ -228,8 +230,9 @@ export class SamServiceNode implements SamService {
     }
 
     const executor = getNodeExecutor();
+    const graph = await this.buildGraph(resizedUrl, request, scale);
     const result = await executor.execute(
-      this.buildGraph(resizedUrl, request, scale),
+      graph,
       {},
       signal
     );
@@ -245,29 +248,25 @@ export class SamServiceNode implements SamService {
     imageDataUrl: string,
     request: SegmentationRequest,
     scale: number
-  ): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
     if (this.config.backendId === "local-sam3") {
       return this.buildLocalSam3Graph(imageDataUrl, request);
     }
 
-    return this.buildFalSam2Graph(imageDataUrl, request, scale);
+    return Promise.resolve(this.buildFalSam2Graph(imageDataUrl, request, scale));
   }
 
-  private buildLocalSam3Graph(
+  private async buildLocalSam3Graph(
     imageDataUrl: string,
     request: SegmentationRequest
-  ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-    const base64Data = imageDataUrl.includes(",")
-      ? imageDataUrl.split(",")[1]
-      : imageDataUrl;
-
+  ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
     return {
       nodes: [
         {
           id: "sam_node",
           type: this.config.nodeType,
           data: {
-            image: { type: "image", uri: "", data: base64Data },
+            image: await this.buildLocalSam3ImageInput(imageDataUrl),
             model: {
               type: "hf.model",
               repo_id: this.config.modelId
@@ -279,6 +278,74 @@ export class SamServiceNode implements SamService {
       ],
       edges: []
     };
+  }
+
+  private async buildLocalSam3ImageInput(imageDataUrl: string): Promise<{
+    type: "image";
+    uri?: string;
+    asset_id?: string | null;
+    data?: string | null;
+    mimeType?: string;
+  }> {
+    const base64Data = imageDataUrl.includes(",")
+      ? imageDataUrl.split(",")[1]
+      : imageDataUrl;
+    const mimeType = this.getDataUrlMimeType(imageDataUrl);
+    const byteLength = this.getBase64ByteLength(base64Data);
+
+    if (byteLength <= SAM_INLINE_IMAGE_MAX_BYTES) {
+      return {
+        type: "image",
+        uri: "",
+        data: base64Data,
+        mimeType
+      };
+    }
+
+    const asset = await useAssetStore
+      .getState()
+      .createAsset(await this.createFileFromDataUrl(imageDataUrl));
+
+    return {
+      type: "image",
+      uri: asset.get_url ?? `asset://${asset.id}`,
+      asset_id: asset.id,
+      data: null,
+      mimeType
+    };
+  }
+
+  private async createFileFromDataUrl(dataUrl: string): Promise<File> {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error(
+        "Invalid segmentation image data; expected data URL format: data:mime/type;base64,..."
+      );
+    }
+
+    const [, mimeType] = match;
+    const blob = await fetch(dataUrl).then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to convert segmentation image data into a blob");
+      }
+      return response.blob();
+    });
+
+    const extension = mimeType.split("/")[1] ?? "png";
+    return new File([blob], `sam-input.${extension}`, {
+      type: mimeType
+    });
+  }
+
+  private getDataUrlMimeType(dataUrl: string): string | undefined {
+    const match = dataUrl.match(/^data:([^;]+);base64,/);
+    return match?.[1];
+  }
+
+  private getBase64ByteLength(base64Data: string): number {
+    const padding =
+      base64Data.endsWith("==") ? 2 : base64Data.endsWith("=") ? 1 : 0;
+    return Math.max(0, Math.floor((base64Data.length * 3) / 4) - padding);
   }
 
   private buildFalSam2Graph(
