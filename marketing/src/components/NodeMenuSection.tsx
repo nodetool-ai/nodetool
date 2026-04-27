@@ -3,7 +3,7 @@ import React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import Tilt3D from "./Tilt3D";
-import { Cpu, Database, Image as ImageIcon, Box } from "lucide-react";
+import { Box } from "lucide-react";
 
 interface NodeMenuSectionProps {
   reducedMotion?: boolean;
@@ -80,72 +80,6 @@ export default function NodeMenuSection({
           </Tilt3D>
         </motion.div>
 
-        {/* Features Grid */}
-        <motion.div
-          className="grid grid-cols-1 gap-6 md:grid-cols-3"
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={{
-            show: { transition: { staggerChildren: 0.1 } },
-          }}
-        >
-          {[
-            {
-              title: "Computation & Control",
-              items: ["Functions & code", "Loops & branching", "Scheduling"],
-              icon: Cpu,
-              color: "text-blue-400",
-              bg: "bg-blue-500/10",
-              border: "border-blue-500/20",
-            },
-            {
-              title: "Data & I/O",
-              items: ["Files & folders", "HTTP & Webhooks", "Databases & vector stores"],
-              icon: Database,
-              color: "text-purple-400",
-              bg: "bg-purple-500/10",
-              border: "border-purple-500/20",
-            },
-            {
-              title: "Multimodal",
-              items: ["Vision & audio nodes", "Transcription & TTS", "Image/video tools"],
-              icon: ImageIcon,
-              color: "text-emerald-400",
-              bg: "bg-emerald-500/10",
-              border: "border-emerald-500/20",
-            },
-          ].map((feature) => (
-            <motion.div
-              key={feature.title}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-              }}
-            >
-              <Tilt3D className="h-full">
-                <div className="group relative h-full flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-8 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${feature.bg} ${feature.border} border`}>
-                    <feature.icon className={`w-6 h-6 ${feature.color}`} />
-                  </div>
-                  
-                  <h3 className="text-xl font-semibold text-white mb-4 group-hover:text-blue-200 transition-colors">
-                    {feature.title}
-                  </h3>
-                  
-                  <ul className="space-y-3">
-                    {feature.items.map((item) => (
-                      <li key={item} className="flex items-center text-sm text-slate-400">
-                        <span className={`w-1.5 h-1.5 rounded-full mr-3 ${feature.color.replace('text-', 'bg-')}`} />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </Tilt3D>
-            </motion.div>
-          ))}
-        </motion.div>
       </div>
     </section>
   );
