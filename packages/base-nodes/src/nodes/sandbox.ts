@@ -370,8 +370,47 @@ const SHELL_AGENT_TOOLS: readonly ActionDef[] = [
 ];
 
 let sharedSandboxStore: SessionStore | null = null;
+let sandboxStoreCleanupHooksRegistered = false;
+
+async function closeSharedSandboxStore(): Promise<void> {
+  if (!sharedSandboxStore) {
+    return;
+  }
+  const store = sharedSandboxStore;
+  sharedSandboxStore = null;
+  try {
+    await store.close();
+  } catch {
+    // Best-effort cleanup on shutdown.
+  }
+}
+
+function registerSandboxStoreCleanupHooks(): void {
+  if (
+    sandboxStoreCleanupHooksRegistered ||
+    typeof process === "undefined" ||
+    typeof process.once !== "function"
+  ) {
+    return;
+  }
+
+  sandboxStoreCleanupHooksRegistered = true;
+  process.once("beforeExit", () => {
+    void closeSharedSandboxStore();
+  });
+  process.once("SIGINT", () => {
+    void closeSharedSandboxStore();
+  });
+  process.once("SIGTERM", () => {
+    void closeSharedSandboxStore();
+  });
+  process.once("exit", () => {
+    void closeSharedSandboxStore();
+  });
+}
 
 function getSandboxStore(): SessionStore {
+  registerSandboxStoreCleanupHooks();
   if (sharedSandboxStore) {
     return sharedSandboxStore;
   }
