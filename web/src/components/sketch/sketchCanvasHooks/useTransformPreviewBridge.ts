@@ -34,6 +34,9 @@ function matricesEqual(
   if (left == null || right == null) {
     return left == null && right == null;
   }
+  if (left.length !== right.length) {
+    return false;
+  }
   return left.every((value, index) => Math.abs(value - right[index]) < TRANSFORM_EPSILON);
 }
 
