@@ -25,6 +25,7 @@ import useSecretsStore from "../../../stores/SecretsStore";
 const FAL_API_BASE = "https://queue.fal.run";
 const FAL_RESULT_BASE = "https://queue.fal.run";
 const SAM2_ENDPOINT = "fal-ai/sam2/image";
+const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam2Image";
 
 /**
  * Maximum image dimension (width or height) sent to the model.
@@ -394,7 +395,7 @@ export class SamServiceFal implements SamService {
         },
         backendId: "fal",
         modelId: DEFAULT_SAM_MODEL_ID,
-        nodeType: "fal.image_to_image.Sam2Image"
+        nodeType: FAL_SAM_NODE_TYPE
       };
     });
 
@@ -402,7 +403,7 @@ export class SamServiceFal implements SamService {
       masks,
       modelId: DEFAULT_SAM_MODEL_ID,
       backendId: "fal",
-      nodeType: "fal.image_to_image.Sam2Image"
+      nodeType: FAL_SAM_NODE_TYPE
     };
   }
 }

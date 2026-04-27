@@ -3,12 +3,12 @@ import type { SegmentBackend, SegmentationMask, SegmentationSourceMetadata } fro
 import type { SegmentationResponse } from "./SamService";
 
 interface SamMaskImageRef {
-  uri?: unknown;
-  url?: unknown;
+  uri?: string;
+  url?: string;
   width?: unknown;
   height?: unknown;
-  label?: unknown;
-  name?: unknown;
+  label?: string;
+  name?: string;
 }
 
 interface NormalizeSamMasksParams {
@@ -47,12 +47,7 @@ function getNormalizedMaskEntries(rawOutput: unknown): Array<{
 }
 
 function getResolvedMaskUri(entry: SamMaskImageRef): string | null {
-  const rawUri =
-    typeof entry.uri === "string"
-      ? entry.uri
-      : typeof entry.url === "string"
-        ? entry.url
-        : null;
+  const rawUri = entry.uri ?? entry.url ?? null;
   return resolveAssetUri(rawUri);
 }
 
@@ -61,8 +56,9 @@ function getNormalizedDimension(
   fallback: number | undefined,
   scale: number
 ): number {
+  const normalizedScale = scale > 0 ? scale : 1;
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-    const invScale = scale > 0 ? 1 / scale : 1;
+    const invScale = 1 / normalizedScale;
     return Math.max(0, Math.round(value * invScale));
   }
 
@@ -70,12 +66,7 @@ function getNormalizedDimension(
 }
 
 function getMaskLabel(entry: SamMaskImageRef, rawIndex: number): string {
-  const explicitLabel =
-    typeof entry.label === "string"
-      ? entry.label.trim()
-      : typeof entry.name === "string"
-        ? entry.name.trim()
-        : "";
+  const explicitLabel = (entry.label ?? entry.name ?? "").trim();
 
   return explicitLabel.length > 0 ? explicitLabel : `Mask ${rawIndex + 1}`;
 }
