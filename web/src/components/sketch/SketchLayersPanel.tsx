@@ -517,7 +517,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     // Intentionally depends only on refs so the window-level mouseup listener
     // stays stable across renders while still clearing the current drag session.
     visibilityDragStateRef.current = null;
-    suppressVisibilityButtonClickRef.current = null;
+
+    // `click` fires after `mouseup`, so keep the suppression flag alive until
+    // the queued click has had a chance to observe it and avoid double-toggling.
+    window.setTimeout(() => {
+      suppressVisibilityButtonClickRef.current = null;
+    }, 0);
   }, []);
 
   useEffect(() => {
