@@ -5,7 +5,7 @@
  * Each panel is memoized and receives only the settings + onChange it needs.
  */
 
-import React, { memo, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import {
   sketchSliderSx,
   toggleButtonSmallSx,
@@ -74,6 +74,7 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 const noop = () => {};
+const LOCAL_SAM3_NODE_PACK_HINT = "Install or enable the HuggingFace node pack";
 
 /** Matches {@link drawEraserStroke} / document migration so panel mode matches actual erase behavior. */
 function effectiveEraserMode(
@@ -1478,6 +1479,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const localSam3Download = useModelDownloadStore(
     (state) => state.downloads[LOCAL_SAM3_MODEL_ID]
   );
+  const startDownload = useModelDownloadStore((state) => state.startDownload);
+  const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const isLocalSam3 = settings.backend === "local-sam3";
   const localSam3Downloading =
     localSam3Download &&
@@ -1487,6 +1490,12 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       localSam3Download.status === "progress");
   const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
   const canRunSegmentation = !isLocalSam3 || localSam3Ready;
+  const canDownloadLocalSam3 =
+    isLocalSam3 &&
+    modelInfo?.status === "not-installed" &&
+    modelInfo.errorMessage !== LOCAL_SAM3_NODE_PACK_HINT &&
+    localSam3Download?.status !== "completed" &&
+    !localSam3Downloading;
   const visiblePromptModes: SegmentPromptMode[] = isLocalSam3
     ? ["auto"]
     : ["point", "box", "auto"];
@@ -1496,6 +1505,19 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     localSam3Ready,
     modelInfo
   );
+
+  useEffect(() => {
+    if (!isLocalSam3) {
+      return;
+    }
+    if (
+      localSam3Download?.status === "completed" ||
+      localSam3Download?.status === "cancelled" ||
+      localSam3Download?.status === "error"
+    ) {
+      onCheckModel();
+    }
+  }, [isLocalSam3, localSam3Download?.status, onCheckModel]);
 
   return (
     <>
@@ -1717,6 +1739,31 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: "4px" }}>
         {!isRunning && !isPreviewing && (
           <>
+            {canDownloadLocalSam3 && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  startDownload(LOCAL_SAM3_MODEL_ID, "hf.model");
+                }}
+                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+              >
+                Download Local SAM3
+              </Button>
+            )}
+            {isLocalSam3 && localSam3Downloading && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="warning"
+                onClick={() => {
+                  void cancelDownload(LOCAL_SAM3_MODEL_ID);
+                }}
+                sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
+              >
+                Cancel download
+              </Button>
+            )}
             <Button
               size="small"
               variant="contained"

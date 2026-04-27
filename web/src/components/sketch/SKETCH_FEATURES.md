@@ -229,9 +229,9 @@ Steps:
 - [x] Use `MetadataStore.getMetadata("huggingface.image_segmentation.MaskGeneration")` as the HuggingFace node pack availability check.
 - [x] Read that node metadata to confirm `image`, `model`, `points_per_side`, and `pred_iou_thresh` inputs.
 - [x] Use `HfCacheStatusStore` to check the cached model state for `facebook/sam3`.
-- [ ] Use `ModelDownloadStore` to show download progress and cancellation for `facebook/sam3`.
+- [x] Use `ModelDownloadStore` to show download progress and cancellation for `facebook/sam3`.
 - [x] Show "Install or enable the HuggingFace node pack" for missing node metadata.
-- [ ] Show "Download Local SAM3" for a missing `facebook/sam3` cache entry.
+- [x] Show "Download Local SAM3" for a missing `facebook/sam3` cache entry.
 - [x] Show "Local SAM3 is downloading" while `ModelDownloadStore` reports active progress.
 - [x] Show "Local SAM3 is ready" after the node type exists and `facebook/sam3` is cached.
 - [x] Persist the selected backend in segment tool settings.

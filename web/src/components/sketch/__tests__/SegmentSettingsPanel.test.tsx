@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { SegmentSettingsPanel } from "../ToolSettingsPanels";
 import { DEFAULT_SEGMENT_SETTINGS } from "../types";
 import type { SamModelInfo } from "../sam";
@@ -17,8 +18,15 @@ const baseLocalSam3Info: SamModelInfo = {
 };
 
 describe("SegmentSettingsPanel", () => {
+  const originalStartDownload = useModelDownloadStore.getState().startDownload;
+  const originalCancelDownload = useModelDownloadStore.getState().cancelDownload;
+
   beforeEach(() => {
-    useModelDownloadStore.setState({ downloads: {} });
+    useModelDownloadStore.setState({
+      downloads: {},
+      startDownload: originalStartDownload,
+      cancelDownload: originalCancelDownload
+    });
   });
 
   it("shows only automatic mode for the Local SAM3 backend", () => {
@@ -75,7 +83,39 @@ describe("SegmentSettingsPanel", () => {
     expect(
       screen.getByText("Install or enable the HuggingFace node pack")
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Download Local SAM3" })
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Segment" })).toBeDisabled();
+  });
+
+  it("shows a Local SAM3 download action when the model is missing", async () => {
+    const user = userEvent.setup();
+    const startDownload = jest.fn();
+    useModelDownloadStore.setState({ startDownload });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseLocalSam3Info}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Download Local SAM3" }));
+
+    expect(startDownload).toHaveBeenCalledWith("facebook/sam3", "hf.model");
   });
 
   it("shows the Local SAM3 downloading hint from existing NodeTool download state", () => {
@@ -117,5 +157,50 @@ describe("SegmentSettingsPanel", () => {
 
     expect(screen.getByText(/Local SAM3 is downloading/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Segment" })).toBeDisabled();
+  });
+
+  it("shows a cancel action while Local SAM3 is downloading", async () => {
+    const user = userEvent.setup();
+    const cancelDownload = jest.fn().mockResolvedValue(undefined);
+    useModelDownloadStore.setState({
+      cancelDownload,
+      downloads: {
+        "facebook/sam3": {
+          id: "facebook/sam3",
+          status: "running",
+          downloadedBytes: 50,
+          totalBytes: 100,
+          speed: null,
+          speedHistory: []
+        }
+      }
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "downloading",
+          downloadProgress: 0.5
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Cancel download" }));
+
+    expect(cancelDownload).toHaveBeenCalledWith("facebook/sam3");
   });
 });
