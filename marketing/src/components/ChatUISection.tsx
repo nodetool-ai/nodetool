@@ -76,9 +76,9 @@ export default function ChatUISection() {
               <Image
                 src="/screen_chat.png"
                 alt="Chat UI with tools, agents and workflow integrations"
-                width={1400}
-                height={900}
-                className="w-full h-auto opacity-90 transition-opacity group-hover:opacity-100"
+                width={2504}
+                height={1726}
+                className="w-full h-auto opacity-95 transition-opacity group-hover:opacity-100"
                 loading="lazy"
               />
             </div>
