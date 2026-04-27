@@ -140,7 +140,7 @@ export default function FeaturesSection({
             {
               title: "Multimodal",
               description:
-                "Process text, image, audio, and video in a single workflow. ChromaDB for RAG included.",
+                "Process text, image, audio, and video in a single workflow. Built-in SQLite-vec store for RAG.",
               icon: Layers,
               color: "text-orange-400",
               bg: "bg-orange-500/10",
