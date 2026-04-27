@@ -324,7 +324,7 @@ export class SamServiceNode implements SamService {
     }
 
     const [, mimeType] = match;
-    const blob = await fetch(dataUrl).then(async (response) => {
+    const blob = await fetch(dataUrl).then((response) => {
       if (!response.ok) {
         throw new Error("Failed to convert segmentation image data into a blob");
       }

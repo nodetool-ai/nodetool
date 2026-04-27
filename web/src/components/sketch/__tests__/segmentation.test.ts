@@ -1161,9 +1161,7 @@ describe("NodeExecutor", () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      blob: jest.fn().mockResolvedValue(
-        new Blob(["segmentation-image"], { type: "image/png" })
-      )
+      blob: () => Promise.resolve(new Blob(["segmentation-image"], { type: "image/png" }))
     } as unknown as Response);
 
     const originalCreateAsset = useAssetStore.getState().createAsset;
