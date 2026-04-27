@@ -24,14 +24,11 @@ describe("SegmentSettingsPanel", () => {
   let originalSelectedLayerIds = useSketchStore.getState().selectedLayerIds;
   let originalDocument = useSketchStore.getState().document;
 
-  beforeAll(() => {
+  beforeEach(() => {
     originalStartDownload = useModelDownloadStore.getState().startDownload;
     originalCancelDownload = useModelDownloadStore.getState().cancelDownload;
     originalSelectedLayerIds = useSketchStore.getState().selectedLayerIds;
     originalDocument = useSketchStore.getState().document;
-  });
-
-  beforeEach(() => {
     useModelDownloadStore.setState({
       downloads: {},
       startDownload: originalStartDownload,

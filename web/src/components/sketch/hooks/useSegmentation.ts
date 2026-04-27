@@ -173,6 +173,9 @@ export function useSegmentation({
 
     const canvas = canvasRef.current;
     if (canvas && settings.outputCutouts) {
+      // Split-selected-layer calls pass pre-exported source pixels so off-canvas
+      // content is preserved. Preview/apply flows fall back to the current
+      // runtime layer data for existing prompt-based segmentation behavior.
       const sourceData = sourceImageDataUrl ?? canvas.getLayerData(sourceLayerId);
       if (sourceData) {
         for (let index = 0; index < maskLayers.length; index += 1) {

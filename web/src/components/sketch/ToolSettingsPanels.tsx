@@ -76,7 +76,7 @@ import { useSketchStore } from "./state";
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 const noop = () => {};
 const LOCAL_SAM3_NODE_PACK_HINT = "Install or enable the HuggingFace node pack";
-const ACTIVE_MODEL_DOWNLOAD_STATUSES = [
+const IN_PROGRESS_DOWNLOAD_STATES = [
   "pending",
   "running",
   "start",
@@ -1507,7 +1507,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const isLocalSam3 = settings.backend === "local-sam3";
   const localSam3Downloading =
     localSam3DownloadStatus !== undefined &&
-    ACTIVE_MODEL_DOWNLOAD_STATUSES.includes(localSam3DownloadStatus);
+    IN_PROGRESS_DOWNLOAD_STATES.includes(localSam3DownloadStatus);
   const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
   const canRunSegmentation = isLocalSam3
     ? localSam3Ready && canSplitSelectedLayer
