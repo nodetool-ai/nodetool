@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SegmentSettingsPanel } from "../ToolSettingsPanels";
 import { DEFAULT_SEGMENT_SETTINGS } from "../types";
@@ -26,6 +26,16 @@ describe("SegmentSettingsPanel", () => {
       downloads: {},
       startDownload: originalStartDownload,
       cancelDownload: originalCancelDownload
+    });
+  });
+
+  afterEach(() => {
+    act(() => {
+      useModelDownloadStore.setState({
+        downloads: {},
+        startDownload: originalStartDownload,
+        cancelDownload: originalCancelDownload
+      });
     });
   });
 
