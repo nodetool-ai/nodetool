@@ -62,9 +62,13 @@ async function resolveAuthContext(): Promise<{
     data: { session }
   } = await supabase.auth.getSession();
 
+  if (!session?.access_token || !session.user?.id) {
+    throw new Error("Authentication is required to run inline jobs");
+  }
+
   return {
-    authToken: session?.access_token || "",
-    userId: session?.user?.id || ""
+    authToken: session.access_token,
+    userId: session.user.id
   };
 }
 

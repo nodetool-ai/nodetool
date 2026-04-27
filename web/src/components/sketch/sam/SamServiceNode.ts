@@ -36,6 +36,7 @@ const LOCAL_SAM3_REQUIRED_INPUTS = [
   "pred_iou_thresh"
 ] as const;
 const ACTIVE_DOWNLOAD_STATUSES = new Set([
+  // ModelDownloadStore uses both lifecycle states and streaming event statuses.
   "pending",
   "running",
   "start",
@@ -366,7 +367,10 @@ export class SamServiceNode implements SamService {
     if (Array.isArray(rawOutput)) {
       return rawOutput.filter(
         (entry): entry is { uri?: string; url?: string; width?: number; height?: number } =>
-          Boolean(entry) && typeof entry === "object"
+          Boolean(entry) &&
+          typeof entry === "object" &&
+          (typeof (entry as { uri?: unknown }).uri === "string" ||
+            typeof (entry as { url?: unknown }).url === "string")
       );
     }
 
@@ -378,7 +382,10 @@ export class SamServiceNode implements SamService {
     if (Array.isArray(record.output)) {
       return record.output.filter(
         (entry): entry is { uri?: string; url?: string; width?: number; height?: number } =>
-          Boolean(entry) && typeof entry === "object"
+          Boolean(entry) &&
+          typeof entry === "object" &&
+          (typeof (entry as { uri?: unknown }).uri === "string" ||
+            typeof (entry as { url?: unknown }).url === "string")
       );
     }
 

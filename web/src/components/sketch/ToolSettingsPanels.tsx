@@ -1508,6 +1508,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             if (v) {
               onChange({
                 backend: v as SegmentBackend,
+                // Local SAM3 currently exposes automatic mask generation only.
                 ...(v === "local-sam3" ? { promptMode: "auto" as const } : {})
               });
               onCheckModel();
