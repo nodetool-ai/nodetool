@@ -58,7 +58,7 @@ export default function ComparisonSection({
           />
           <ComparisonCard
             competitor="LangChain"
-            sentence="LangChain is a Python framework for LLM apps. NodeTool is a visual, TypeScript-first platform with an async Node.js runtime and custom nodes in TS."
+            sentence="LangChain is a Python framework for LLM apps. NodeTool is a visual, TypeScript-first platform with an async Node.js runtime and custom nodes in TypeScript or Python."
             reducedMotion={reducedMotion}
             delay={0.1}
           />

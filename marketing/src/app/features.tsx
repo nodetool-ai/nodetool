@@ -86,7 +86,7 @@ export const features = [
   {
     name: "📁 Vector Storage & RAG",
     description:
-      "Built-in ChromaDB means your AI remembers everything. Create smart assistants that know your documents.",
+      "Built-in SQLite-vec embedded vector store. Create smart assistants that know your documents—no extra database to run.",
     icon: FolderIcon,
     href: "#",
     gif: "/vector-db.jpg",

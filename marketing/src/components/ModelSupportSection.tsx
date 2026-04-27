@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Cpu, Zap, Layers, Box, Sparkles, Cloud, Globe, Bot, ShieldCheck } from "lucide-react";
+import { Cpu, Zap, Layers, Box, Sparkles, Cloud, Bot, ShieldCheck } from "lucide-react";
 import {
     OpenAILogo,
     AnthropicLogo,
@@ -23,7 +23,7 @@ const localEngines = [
     { title: "Ollama", url: "https://ollama.com", LogoComponent: OllamaLogo, icon: Box, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
     { title: "llama.cpp", url: "https://github.com/ggml-org/llama.cpp", LogoComponent: LlamaCppLogo, icon: Zap, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
     { title: "vLLM", url: "https://github.com/vllm-project/vllm", LogoComponent: null, icon: Layers, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
-    { title: "Nunchaku", url: "https://github.com/nunchaku-tech/nunchaku", LogoComponent: null, icon: Sparkles, color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+    { title: "LM Studio", url: "https://lmstudio.ai", LogoComponent: null, icon: Box, color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
 ];
 
 const cloudProviders = [
@@ -31,12 +31,13 @@ const cloudProviders = [
     { title: "Anthropic", url: "https://anthropic.com", LogoComponent: AnthropicLogo, icon: null, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
     { title: "Google", url: "https://ai.google.dev", LogoComponent: GeminiLogo, icon: null, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
     { title: "xAI", url: "https://x.ai", LogoComponent: null, icon: Bot, color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+    { title: "Mistral", url: "https://mistral.ai", LogoComponent: null, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
+    { title: "Groq", url: "https://groq.com", LogoComponent: null, icon: Zap, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" },
+    { title: "DeepSeek", url: "https://deepseek.com", LogoComponent: null, icon: Bot, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+    { title: "Cerebras", url: "https://cerebras.ai", LogoComponent: null, icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+    { title: "Together", url: "https://together.ai", LogoComponent: null, icon: Layers, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
     { title: "Kie.ai", url: "https://kie.ai", LogoComponent: null, icon: Sparkles, color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20" },
-    { title: "z.ai", url: "https://z.ai", LogoComponent: null, icon: Zap, color: "text-teal-400", bg: "bg-teal-500/10", border: "border-teal-500/20" },
-    { title: "Black Forest Labs", url: "https://blackforestlabs.ai", LogoComponent: null, icon: Sparkles, color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
-    { title: "Alibaba", url: "https://www.alibabacloud.com", LogoComponent: null, icon: Globe, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
     { title: "MiniMax", url: "https://www.minimaxi.com", LogoComponent: null, icon: ShieldCheck, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
-    { title: "Kling", url: "https://kling.kuaishou.com", LogoComponent: null, icon: Zap, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
     { title: "Replicate", url: "https://replicate.com", LogoComponent: ReplicateLogo, icon: null, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
     { title: "Fal AI", url: "https://fal.ai", LogoComponent: null, icon: Layers, color: "text-teal-400", bg: "bg-teal-500/10", border: "border-teal-500/20" },
     { title: "OpenRouter", url: "https://openrouter.ai", LogoComponent: OpenRouterLogo, icon: null, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
@@ -44,24 +45,17 @@ const cloudProviders = [
 ];
 
 const frontierModels = [
-    { name: "GPT-5.4", color: "text-emerald-400" },
-    { name: "Claude 4.5 Opus", color: "text-amber-400" },
-    { name: "Claude 4.5 Sonnet", color: "text-amber-400" },
-    { name: "Gemini 3.0 Flash", color: "text-blue-400" },
-    { name: "Gemini 3.0 Pro", color: "text-blue-400" },
-    { name: "Kimi K 2.5", color: "text-orange-400" },
-    { name: "GLM 5.1", color: "text-red-400" },
-    { name: "MiniMax M2.7", color: "text-teal-400" },
-    { name: "FLUX.2 Pro", color: "text-pink-400" },
-    { name: "gpt-image-1.5", color: "text-emerald-400" },
+    { name: "Claude Opus 4.7", color: "text-amber-400" },
+    { name: "Claude Sonnet 4.6", color: "text-amber-400" },
+    { name: "Claude Haiku 4.5", color: "text-amber-400" },
+    { name: "Gemini 2.5 Pro", color: "text-blue-400" },
+    { name: "Gemini 2.5 Flash", color: "text-blue-400" },
     { name: "Qwen Image", color: "text-sky-400" },
-    { name: "Sora 2", color: "text-emerald-400" },
-    { name: "Veo 3", color: "text-blue-400" },
-    { name: "Seedance 2.0", color: "text-green-400" },
-    { name: "Kling 3.0", color: "text-cyan-400" },
-    { name: "Hailuo 2.3", color: "text-red-400" },
-    { name: "LTX 2", color: "text-orange-400" },
-    { name: "Qwen 3", color: "text-sky-400" },
+    { name: "Veo 3.1", color: "text-blue-400" },
+    { name: "Kling v2.1", color: "text-cyan-400" },
+    { name: "Hailuo 02", color: "text-red-400" },
+    { name: "Wan 2.2", color: "text-orange-400" },
+    { name: "FLUX", color: "text-pink-400" },
     { name: "Whisper", color: "text-emerald-400" },
     { name: "ElevenLabs", color: "text-violet-400" },
 ];
