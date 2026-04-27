@@ -92,12 +92,18 @@ describe("searchHfHub", () => {
     expect(results[0]!.repo_id).toBe("owner/my-model");
   });
 
-  it("filters by gguf tag for SUPPORTED_MODEL_TYPES entries", async () => {
-    const fn = fetchMockOnce({ body: [] });
-    await searchHfHub({ modelType: "qwen2" });
+  it("post-filters by library_name=gguf for SUPPORTED_MODEL_TYPES entries", async () => {
+    const fn = fetchMockOnce({
+      body: [
+        { id: "owner/qwen2-gguf", library_name: "gguf" },
+        { id: "owner/qwen2-other", library_name: "transformers" }
+      ]
+    });
+    const results = await searchHfHub({ modelType: "qwen2" });
     const url = String(fn.mock.calls[0]![0]);
-    expect(url).toContain("filter=gguf");
     expect(url).toMatch(/search=qwen2/);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.id).toBe("owner/qwen2-gguf");
   });
 
   it("throws for GENERIC types without --task", async () => {

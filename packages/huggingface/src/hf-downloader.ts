@@ -119,7 +119,11 @@ function wrapFetch(
   return async (input, init) => {
     const finalInit: RequestInit = { ...(init ?? {}) };
     if (options.signal) {
-      finalInit.signal = options.signal;
+      const signals = [options.signal, init?.signal].filter(
+        (s): s is AbortSignal => s != null
+      );
+      finalInit.signal =
+        signals.length > 1 ? AbortSignal.any(signals) : signals[0];
     }
     const resp = await base(input, finalInit);
 
@@ -143,11 +147,17 @@ function wrapFetch(
         }
       })
     );
-    return new Response(stream, {
+    const wrappedResponse = new Response(stream, {
       headers: resp.headers,
       status: resp.status,
       statusText: resp.statusText
     });
+    Object.defineProperties(wrappedResponse, {
+      url: { configurable: true, value: resp.url },
+      redirected: { configurable: true, value: resp.redirected },
+      type: { configurable: true, value: resp.type }
+    });
+    return wrappedResponse;
   };
 }
 

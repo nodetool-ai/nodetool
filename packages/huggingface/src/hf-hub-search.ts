@@ -68,6 +68,8 @@ interface HfHubQueryParams {
   query?: string;
   /** Pipeline tag (e.g. "text-to-image"). */
   task?: PipelineType;
+  /** Post-filter: only keep results whose library_name matches this value. */
+  libraryName?: string;
 }
 
 /**
@@ -78,19 +80,20 @@ interface HfHubQueryParams {
  * params from HF_SEARCH_TYPE_CONFIG at runtime.
  */
 const HF_HUB_QUERY_CONFIG: Record<string, HfHubQueryParams> = {
-  // llama.cpp GGUF types in SUPPORTED_MODEL_TYPES: filter to GGUF library.
-  qwen2: { query: "qwen2", tags: ["gguf"] },
-  qwen3: { query: "qwen3", tags: ["gguf"] },
-  qwen_2_5_vl: { query: "qwen2.5-vl", tags: ["gguf"] },
-  qwen_3_vl: { query: "qwen3-vl", tags: ["gguf"] },
-  mistral3: { query: "mistral", tags: ["gguf"] },
-  gpt_oss: { query: "gpt-oss", tags: ["gguf"] },
-  llama: { query: "llama", tags: ["gguf"] },
-  gemma2: { query: "gemma-2", tags: ["gguf"] },
-  gemma3: { query: "gemma-3", tags: ["gguf"] },
-  gemma3n: { query: "gemma-3n", tags: ["gguf"] },
-  phi3: { query: "phi-3", tags: ["gguf"] },
-  phi4: { query: "phi-4", tags: ["gguf"] }
+  // llama.cpp GGUF types: post-filter by library_name (not tags) to match the
+  // HF API's `library=gguf` parameter which filters on the library_name field.
+  qwen2: { query: "qwen2", libraryName: "gguf" },
+  qwen3: { query: "qwen3", libraryName: "gguf" },
+  qwen_2_5_vl: { query: "qwen2.5-vl", libraryName: "gguf" },
+  qwen_3_vl: { query: "qwen3-vl", libraryName: "gguf" },
+  mistral3: { query: "mistral", libraryName: "gguf" },
+  gpt_oss: { query: "gpt-oss", libraryName: "gguf" },
+  llama: { query: "llama", libraryName: "gguf" },
+  gemma2: { query: "gemma-2", libraryName: "gguf" },
+  gemma3: { query: "gemma-3", libraryName: "gguf" },
+  gemma3n: { query: "gemma-3n", libraryName: "gguf" },
+  phi3: { query: "phi-3", libraryName: "gguf" },
+  phi4: { query: "phi-4", libraryName: "gguf" }
 };
 
 /** Build HF Hub API query params from HF_SEARCH_TYPE_CONFIG for hf.* types. */
@@ -173,6 +176,8 @@ export async function searchHfHub(
       ? options.token
       : await resolveHfToken(undefined);
 
+  const libraryFilter = params.libraryName?.toLowerCase();
+
   const out: HfHubModel[] = [];
   try {
     for await (const m of listModels({
@@ -181,12 +186,13 @@ export async function searchHfHub(
         ...(params.task ? { task: params.task } : {}),
         ...(params.tags ? { tags: params.tags } : {})
       },
-      ...(options.limit ? { limit: options.limit } : {}),
+      ...(options.limit && !libraryFilter ? { limit: options.limit } : {}),
       additionalFields: ["tags", "library_name"],
       ...(token ? { accessToken: token } : {})
     })) {
-      // listModels yields { id: ApiModelInfo._id, name: ApiModelInfo.id } —
-      // we want the human-readable repo id ("owner/repo"), which is `name`.
+      if (libraryFilter && m.library_name?.toLowerCase() !== libraryFilter) {
+        continue;
+      }
       const lastModified =
         m.updatedAt && !Number.isNaN(m.updatedAt.getTime())
           ? m.updatedAt.toISOString()
@@ -204,6 +210,7 @@ export async function searchHfHub(
         model_type: options.modelType,
         repo_id: m.name
       });
+      if (options.limit && out.length >= options.limit) break;
     }
   } catch (err) {
     throw new Error(
