@@ -4,7 +4,7 @@
 
 - [x] Phase 1 foundation: contract, session substrate, control plane, first operator surface.
 - [x] Phase 2 substrate through backend WebRTC shell, realtime nodes, lifecycle, and metrics.
-- [ ] Phase 2 first model proof: first runnable RTX 3060 smoke, then LongLive/Self-Forcing validation and low-VRAM loader paths.
+- [ ] Phase 2 first operator/model proof: visible realtime frame preview plus real source ingress first, then RTX 3060 fake-off model smoke, then LongLive/Self-Forcing validation and low-VRAM loader paths.
 - [ ] Phase 3 browser-local realtime analysis contracts.
 - [ ] Phase 4 workflow integration.
 - [ ] Phase 5 browser-local inference hardening.
@@ -39,23 +39,60 @@ Rules for the remaining work:
   - 9 implementation shape: all heavy model code lands in the existing `nodetool-realtime` skeleton. Thin nodes go under `nodetool-realtime/src/nodetool/nodes/realtime/`, while pipelines, `WeightSource`, hardware/precision helpers, frame converters, fake CPU pipelines, and `LatestPerHandleAccumulator` live under `nodetool-realtime/src/nodetool/realtime/`. Core may receive only small protocol/status surfaces for loading events and hardware hints.
   - 9 loading/precision contract: model nodes emit structured loading phases (`resolving_weights`, `downloading`, `loading_tokenizer`, `loading_vae`, `loading_transformer`, `warming`, `ready`, `error`) with progress and selected precision/backend. `WeightSource` supports local path, Hugging Face repo/file, and cached/default source. Precision selection prefers native FP8 only on capable Ada/Hopper/Blackwell hardware, uses FP16/BF16 where memory allows, and treats GGUF/INT8 community paths as explicit experimental fallbacks until validated.
   - 9 realtime loop contract: `LatestPerHandleAccumulator` is the default input coalescer for model nodes. It keeps the most recent value per media/control handle, preserves sequence/timestamp metadata, reports skipped/dropped input counts to metrics, and never blocks the media/control plane waiting for stale frames. Prompt/control updates are applied at the next model iteration and can trigger model-specific cache refresh such as LongLive KV-recache.
-- [ ] **10. First runnable RTX 3060 realtime smoke.**
-  - Goal: get the canonical realtime workflow visibly running with the lightest viable RTX 3060 model path before doing broader model-family validation.
+- [ ] **10. First visible realtime loop, then first runnable RTX 3060 fake-off smoke.**
+  - Goal: make the canonical realtime workflow visibly operate as a realtime graph before broader model-family validation. The near-term target is: live source/camera or deterministic source frame -> model node -> `VideoSink` -> `Preview`, with raw `realtime_video_frame` pixels visible in the editor. Only after that path is visible should `use_fake_pipeline=False` become the main proof target.
   - Use the existing low-VRAM notes as the starting point: `Wan-AI/Wan2.1-T2V-1.3B`, Self-Forcing RTX 3060 path if it is the lightest runnable option, `city96/umt5-xxl-encoder-gguf` (`Q5_K_M` or larger preferred), Wan 2.1 VAE safetensors, and community FP8 Self-Forcing 1.3B safetensors only as explicit opt-in candidates.
   - Low FPS is acceptable. The pass/fail bar is visible execution, not production throughput.
+  - Implementation order from here:
+    - [ ] **10.1 Raw realtime frame preview.**
+      - Touch: `packages/runtime/src/context.ts` output normalization, `web/src/components/node/OutputRenderer.tsx`, and a small focused renderer under `web/src/components/node/output/`.
+      - Do: preserve `realtime_video_frame` objects as frame payloads, not generic asset-like `{type,data}` objects.
+      - Do: draw `rgba8` and `rgb8` frames to a canvas using `width`, `height`, `stride`, `pixel_format`, `timestamp_ns`, and `sequence`.
+      - Do: render unsupported formats such as `yuv420p` / `nv12` as an explicit unsupported-format message with the frame metadata.
+      - Do not: convert frames into encoded `video` assets or start a recording/export feature here.
+      - Done when: connecting `VideoSink.frame` to `Preview.value` shows pixels for a fake or deterministic `realtime_video_frame`, and tests cover normalization plus renderer type dispatch.
+    - [ ] **10.2 Deterministic source-frame ingress.**
+      - Touch: the smallest TS/runtime path that can inject one known `VideoFrame` into a running realtime graph, preferably through existing `VideoSource` / `pushInputValue` / session command surfaces.
+      - Do: add a manual/dev-only deterministic frame source path first, before camera complexity, so preview/debugging is repeatable.
+      - Do: use latest-frame-wins buffering and preserve `sequence`, `timestamp_ns`, `pixel_format`, and dropped/skipped counts.
+      - Do not: block on backend WebRTC RTP decode, browser codec work, or camera permission UX.
+      - Done when: a known colored test frame enters `VideoSource` or a model-node `frame` input, reaches `VideoSink`, appears in `Preview`, and the session stops cleanly.
+    - [ ] **10.3 Browser camera ingress into the canonical graph.**
+      - Touch: existing browser capture/control-plane code from `/realtime`, only enough to feed captured frames into the canonical editor workflow path.
+      - Do: reuse `useVideoCapture` / realtime session client concepts where possible, converting browser frames to protocol `VideoFrame` objects at a modest debug cadence.
+      - Do: show enough metrics or logs to confirm frame cadence, queue drops, and active target handle.
+      - Do not: design the final operator UI, solve remote deployment, or make WebRTC the only ingress path yet.
+      - Done when: a camera frame can replace the deterministic source frame in the same graph path and render through `VideoSink` -> `Preview`.
+    - [ ] **10.4 Fake pipeline visible smoke.**
+      - Touch: canonical `nodetool-realtime` template and smoke/manual run instructions only as needed.
+      - Do: run the canonical template with `use_fake_pipeline=True` and prove prompt/control update -> generated `realtime_video_frame` -> `VideoSink` -> `Preview`.
+      - Do: record loading events, skipped/dropped handle counts, rough latency, and clean stop behavior.
+      - Do not: add real model dependencies or fake “real backend” behavior to satisfy the UI.
+      - Done when: the fake pipeline produces visible changing frames in the editor and the run leaves no stuck runner/session/worker.
+    - [ ] **10.5 RTX 3060 fake-off smoke.**
+      - Touch: `nodetool-realtime` loader/sampler hooks, artifact resolution, and opt-in smoke path.
+      - Do: finish/download the selected low-VRAM artifacts through the Hugging Face cache, then wire the minimum real loader/sampler path needed for one generated frame.
+      - Do: set `use_fake_pipeline=False` or the equivalent Self-Forcing real mode only after 10.1-10.4 are working, so failures are model/backend failures rather than visibility or ingress failures.
+      - Do: log selected precision/backend, CUDA memory/offload state, artifact paths, errors, rough latency/fps, and clean teardown.
+      - Do not: validate the full FP8/GGUF/INT8 matrix, VACE, LongLive quality, or official Self-Forcing quality in this step.
+      - Done when: one real generated output appears through the same `VideoSink` -> `Preview` path on RTX 3060, even if it is slow.
   - Completion criteria:
-    - [ ] Resolve or download the required artifacts through the existing `nodetool-realtime` manifest/loader path, or through an explicit temporary smoke script if the manifest path is not ready enough.
-    - [ ] Launch the canonical realtime workflow template with the chosen lightweight model path.
+    - [ ] Preview can render raw `realtime_video_frame` output from `VideoSink` without converting it to a standard encoded `video` asset.
+    - [ ] Launch the canonical realtime workflow template with a real source/camera or deterministic source-frame path.
+    - [ ] Launch the same template with the chosen lightweight model path.
     - [ ] Observe one prompt/control update and one generated output path, even if generation is very slow.
     - [ ] Record loading phases, selected precision/backend, memory/offload state, errors, and rough latency/fps through logs or metrics.
     - [ ] Stop the session cleanly without leaving stuck runners, workers, or model state.
   - Current implementation note:
     - [x] Added an opt-in canonical realtime smoke harness for the RTX 3060 Self-Forcing tier; it loads the canonical template, selects the required low-VRAM manifest artifacts only, observes a prompt update/output through injected pipeline hooks in tests, emits JSON-reportable loading/precision/backend/memory/latency/stop state, and fails before model launch when required artifacts are missing.
     - [x] Made realtime model selection visible in Nodetool metadata: `LongLive` and `SelfForcing` `weight_source` fields use the Hugging Face model picker while preserving string/local-path compatibility, Self-Forcing exposes the selected canonical and RTX 3060 candidate recommended models, and the `Self-Forcing RTX 3060 Low VRAM` model pack groups the required FP8 transformer, Q5_K_M UMT5 encoder, and Wan 2.1 VAE for download.
-    - [ ] Real RTX 3060 run is still blocked on artifact download/resolution and real loader wiring. The target machine sees an RTX 3060 from the `nodetool` conda env, but the no-download smoke reports missing `self_forcing_fp8_transformer`, `umt5_xxl_encoder_q5_k_m`, and `wan21_vae`.
-    - [ ] Manual Nodetool UI check is next: confirm the `LongLive` / `SelfForcing` model pickers show the recommendations and the `Self-Forcing RTX 3060 Low VRAM` pack, then download the pack and rerun the opt-in smoke.
+    - [x] Made `LongLive` and `SelfForcing` use explicit `frame` input/output contracts with `realtime_video_frame` metadata, so the canonical template no longer depends on generic `any` handles for model frames.
+    - [x] Manual Nodetool UI check found the recommended downloads in the Model Manager Recommended Downloads tab; direct Hugging Face downloads with an authenticated Python `huggingface_hub` path are the practical workaround for slow JS downloader throughput.
+    - [ ] Raw realtime preview is currently missing: `VideoSink` emits `realtime_video_frame`, but the normal `Preview` node does not yet render that discriminator as pixels, and TS output normalization currently risks treating `{type, data}` frame objects as generic asset-like values.
+    - [ ] Real source/camera ingress for the canonical editor workflow still needs the shortest working path: either push browser-captured frames into the realtime runner/session over the existing control/session surface or add a small explicit input-frame command if the current route is incomplete.
+    - [ ] Real RTX 3060 run is still blocked on artifact download/resolution and real loader/sampler wiring. The target machine sees an RTX 3060 from the `nodetool` conda env, but the no-download smoke reports missing `self_forcing_fp8_transformer`, `umt5_xxl_encoder_q5_k_m`, and `wan21_vae` until the Hugging Face cache contains those artifacts.
     - [ ] Upstream implementation evidence needs a compatibility decision before using the official Self-Forcing path as the 1.3B RTX 3060 baseline: the public `configs/self_forcing_dmd.yaml` currently names `Wan2.1-T2V-14B`, while the lighter community 1.3B FP8/GGUF/VAE candidate set is experimental and about 5.8 GB before any extra runtime/base caches.
-  - Defer full LongLive canonical validation, full Self-Forcing official-quality validation, the FP8/GGUF/INT8 matrix, browser-local inference, deployment, Electron packaging, persistent cache UX, and multi-adapter expansion until this smoke has run.
+  - Defer full LongLive canonical validation, full Self-Forcing official-quality validation, the FP8/GGUF/INT8 matrix, browser-local inference, deployment, Electron packaging, persistent cache UX, full backend WebRTC codec decode/encode, and multi-adapter expansion until this visible loop and first fake-off smoke have run.
 - [ ] **10a. Finish LongLive real validation.**
   - Foundation landed: thin node, dependency-lazy backend boundary, `WeightSource`, precision selection, `LatestPerHandleAccumulator`, fake CPU pipeline, frame conversion, sampler boundary, upstream output normalization, loading/error events, package metadata, and opt-in real-smoke config.
   - Remaining completion criteria:
@@ -90,7 +127,7 @@ Rules for the remaining work:
 
 - **Realtime is a workflow execution mode.** It belongs to the normal NodeTool workflow model, editor, persistence, and operator surfaces. Realtime sessions should be tracked as standard Jobs, and outputs should be savable as standard Assets.
 - **The first runtime stays separate internally.** It should align with workflow identity, preview routing, and control semantics so later convergence remains straightforward.
-- **The first visible model proof targets RTX 3060.** Start by making one lightest viable Wan2.1 1.3B path run end-to-end, even slowly, then harden LongLive and Self-Forcing validation paths before expanding to StreamDiffusion V2, MemFlow, RewardForcing, Krea, and streaming VACE.
+- **The first visible proof targets a complete operator loop, then RTX 3060.** First make raw `realtime_video_frame` output visible in the editor and prove real source/camera ingress through the canonical graph. Then make one lightest viable Wan2.1 1.3B path run fake-off end-to-end on RTX 3060, even slowly, before hardening LongLive and Self-Forcing validation paths or expanding to StreamDiffusion V2, MemFlow, RewardForcing, Krea, and streaming VACE.
 - **Control plane and media plane are separate.** Session lifecycle, control updates, diagnostics, preview notifications, and status stay on the workflow/websocket control plane. High-rate media uses a dedicated adapter boundary.
 - **WebRTC is the web media adapter boundary.** High-framerate web audio/video should use WebRTC or a similar UDP-based protocol rather than the WebSocket control plane.
 - **Existing workflow nodes remain the default building blocks.** Add realtime-specific nodes only for distinct live source, sink, adapter, or control roles.
@@ -98,7 +135,7 @@ Rules for the remaining work:
 - **NDI and Spout are committed later goals.** Reserve clean media adapter boundaries for NDI, Spout, Syphon, MIDI, OSC, DMX, and timecode.
 - **Shared files hold primitives; dedicated files hold realtime behavior.** `unified-websocket-runner.ts` and `runner.ts` should only gain small surfaces. Realtime behavior lives in `packages/websocket/src/realtime/*` and `packages/kernel/src/realtime-runner.ts`.
 - **Substrate lives in core; model nodes live outside the substrate.** Core owns runner/session/WebRTC substrate, TS I/O nodes, protocol frame types, bridge verbs, lifecycle hooks, and hardware hints. `nodetool-realtime` owns heavy Python model code, `WeightSource`, Wan2.1 pipelines, GGUF loading, and ML dependencies.
-- **Model proof design is now fixed for implementation.** `nodetool-realtime` already exists as the sister package skeleton. Step 10 should prove one lightest viable RTX 3060 model path through the canonical realtime workflow before full LongLive and Self-Forcing validation, using the step 9 `WeightSource`, precision/hardware hints, loading events, fake CPU smoke tests, and `LatestPerHandleAccumulator` pattern.
+- **Model proof design is now fixed for implementation.** `nodetool-realtime` already exists as the sister package skeleton. Step 10 should prove the canonical realtime workflow in two layers: first visible raw frame routing/source ingress, then one lightest viable RTX 3060 fake-off model path before full LongLive and Self-Forcing validation, using the step 9 `WeightSource`, precision/hardware hints, loading events, fake CPU smoke tests, and `LatestPerHandleAccumulator` pattern.
 
 Primary contract reference: `docs/realtime-runtime-contract.md`.
 
@@ -127,9 +164,10 @@ Primary contract reference: `docs/realtime-runtime-contract.md`.
 - `RealtimeRunner` exists, composes `WorkflowRunner`, and is wired into the websocket production path for realtime sessions.
 - `pushParameter(name, value)` routes live control updates to `nodetool.realtime.Parameter` nodes.
 - `/realtime` is still an incubation page. It proves browser capture and loopback signaling by default, and has a guarded backend WebRTC smoke mode via `?webrtcRuntime=backend`.
-- Server-side WebRTC termination and frame-router boundaries exist. Decoded media is not yet delivered into the backend graph because the codec bridge intentionally reports unsupported.
+- Server-side WebRTC termination and frame-router boundaries exist. Decoded media is not yet delivered into the backend graph because the codec bridge intentionally reports unsupported; Step 10 should not wait on full backend WebRTC codec decode if a simpler browser-capture/source-frame injection path can prove the graph loop first.
 - Realtime lifecycle, bounded teardown, terminal-session retention, and control-plane metrics exist.
 - `nodetool-realtime` exists as a pre-alpha sister-package skeleton with lean base dependencies, precision extras reserved for `fp8`, `gguf`, and `int8`, thin node stubs under `src/nodetool/nodes/realtime/`, and heavy pipeline/utilities namespace under `src/nodetool/realtime/`.
+- `LongLive` and `SelfForcing` now expose `frame` handles with `realtime_video_frame` metadata. The remaining UI gap is rendering raw realtime frames in `Preview` instead of falling through to generic object/asset handling.
 - `RealtimeAudioInput` shows the existing streaming-input pattern; `VideoInput` remains an asset/reference input, not a live media source.
 
 ## Existing event-driven primitives we build on
@@ -297,9 +335,9 @@ Control plane: `update_realtime_session` -> `RealtimeCommandHandler.handleUpdate
 **Remaining Phase 2 work**
 
 - [x] Step 9: pre-model design pass.
-- [ ] Step 10: first runnable RTX 3060 realtime smoke.
+- [ ] Step 10: first visible realtime loop, then first runnable RTX 3060 fake-off smoke.
   - Current source of truth: use the Step 10 entry in **Next implementation ladder** above for candidates, acceptance criteria, landed implementation notes, and current blockers.
-  - Summary: smoke harness and UI/download metadata are in place, but Step 10 remains open until the required artifacts are resolved/downloaded, one real visible generation runs through the canonical template, metrics/logs capture loading/precision/backend/memory/errors/latency, and the session stops cleanly.
+  - Summary: smoke harness, frame contracts, and UI/download metadata are in place, but Step 10 remains open until `realtime_video_frame` previews render visibly, a real source/camera or deterministic source-frame ingress path feeds the canonical graph, the required artifacts are resolved/downloaded, one real fake-off generation runs through the canonical template, metrics/logs capture loading/precision/backend/memory/errors/latency, and the session stops cleanly.
 - [ ] Step 10a: LongLive real validation.
   - Purpose: prove the first heavy Python realtime video model against real downloaded weights while keeping normal tests dependency-light.
   - Landed foundation:
