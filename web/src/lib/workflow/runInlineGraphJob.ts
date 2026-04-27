@@ -109,7 +109,7 @@ export async function runInlineGraphJob({
   params,
   signal,
   jobId = uuidv4(),
-  workflowId = `inline-${Date.now()}`,
+  workflowId = `inline-${uuidv4()}`,
   executionStrategy = "threaded",
   timeoutMs = DEFAULT_TIMEOUT_MS
 }: RunInlineGraphJobOptions): Promise<InlineJobExecutionResult> {

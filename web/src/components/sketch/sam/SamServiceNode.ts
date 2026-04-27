@@ -208,8 +208,7 @@ export class SamServiceNode implements SamService {
       capabilities: this.config.capabilities,
       nodeType: this.config.nodeType,
       modelId: this.config.modelId,
-      modelName: this.config.displayName,
-      errorMessage: "Local SAM3 is ready"
+      modelName: this.config.displayName
     };
   }
 

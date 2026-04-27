@@ -1430,6 +1430,21 @@ function getSegmentationStatusMessage(status: SegmentationStatus): string {
   }
 }
 
+function getSegmentModelStatusText(
+  isLocalSam3: boolean,
+  localSam3Downloading: boolean | undefined,
+  localSam3Ready: boolean,
+  modelInfo: SamModelInfo | null
+): string | undefined {
+  if (isLocalSam3 && localSam3Downloading) {
+    return "Local SAM3 is downloading";
+  }
+  if (localSam3Ready) {
+    return "Local SAM3 is ready";
+  }
+  return modelInfo?.errorMessage;
+}
+
 interface SegmentSettingsPanelProps {
   settings: SegmentSettings;
   onChange: (settings: Partial<SegmentSettings>) => void;
@@ -1475,12 +1490,12 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const visiblePromptModes: SegmentPromptMode[] = isLocalSam3
     ? ["auto"]
     : ["point", "box", "auto"];
-  const modelStatusText =
-    isLocalSam3 && localSam3Downloading
-      ? "Local SAM3 is downloading"
-      : localSam3Ready
-        ? "Local SAM3 is ready"
-        : modelInfo?.errorMessage;
+  const modelStatusText = getSegmentModelStatusText(
+    isLocalSam3,
+    localSam3Downloading,
+    localSam3Ready,
+    modelInfo
+  );
 
   return (
     <>

@@ -1033,7 +1033,7 @@ describe("SamServiceNode", () => {
     const info = await service.checkModelAvailability();
     expect(info.status).toBe("available");
     expect(info.modelId).toBe(LOCAL_SAM3_MODEL_ID);
-    expect(info.errorMessage).toBe("Local SAM3 is ready");
+    expect(info.errorMessage).toBeUndefined();
     expect(info.capabilities.pointPrompts).toBe(false);
     expect(info.capabilities.automaticSplit).toBe(true);
   });
