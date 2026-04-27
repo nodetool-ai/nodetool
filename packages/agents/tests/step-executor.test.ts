@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { StepExecutor } from "../src/step-executor.js";
 import type { Step, Task } from "../src/types.js";
-import type { ProcessingMessage } from "@nodetool/protocol";
+import type { ProcessingMessage, TaskUpdate } from "@nodetool/protocol";
+import type { BaseProvider, ProcessingContext } from "@nodetool/runtime";
+import type { Tool } from "../src/tools/base-tool.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -10,9 +12,21 @@ import { tmpdir } from "node:os";
  * Minimal mock provider that returns a single assistant message
  * with a finish_step tool call.
  */
-function createMockProvider(toolCallArgs?: Record<string, unknown>) {
+const asBaseProvider = (value: unknown): BaseProvider => {
+  return value as BaseProvider;
+};
+
+const asProcessingContext = (value: unknown): ProcessingContext => {
+  return value as ProcessingContext;
+};
+
+const asTool = (value: unknown): Tool => {
+  return value as Tool;
+};
+
+function createMockProvider(toolCallArgs?: Record<string, unknown>): BaseProvider {
   const args = toolCallArgs ?? { result: { answer: "42" } };
-  return {
+  return asBaseProvider({
     provider: "mock",
     hasToolSupport: async () => true,
     generateMessages: async function* () {
@@ -29,11 +43,15 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>) {
         args
       };
     },
-    async *generateMessagesTraced(...args: any[]) {
-      yield* (this as any).generateMessages(...args);
+    async *generateMessagesTraced(
+      args: Parameters<BaseProvider["generateMessages"]>[0]
+    ) {
+      yield* this.generateMessages(args);
     },
-    async generateMessageTraced(...args: any[]) {
-      return (this as any).generateMessage(...args);
+    async generateMessageTraced(
+      args: Parameters<BaseProvider["generateMessage"]>[0]
+    ) {
+      return this.generateMessage(args);
     },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
@@ -51,15 +69,17 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>) {
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
     isContextLengthError: () => false
-  } as any;
+  });
 }
 
 /**
  * Minimal mock context with storeStepResult and loadStepResult.
  */
-function createMockContext(overrides: Record<string, unknown> = {}) {
+function createMockContext(
+  overrides: Record<string, unknown> = {}
+): ProcessingContext {
   const store = new Map<string, unknown>();
-  return {
+  return asProcessingContext({
     storeStepResult: vi.fn(async (key: string, value: unknown) => {
       store.set(key, value);
       return key;
@@ -71,7 +91,7 @@ function createMockContext(overrides: Record<string, unknown> = {}) {
     get: vi.fn(),
     _store: store,
     ...overrides
-  } as any;
+  });
 }
 
 describe("StepExecutor", () => {
@@ -156,7 +176,7 @@ describe("StepExecutor", () => {
           done: false
         };
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const context = createMockContext();
 
@@ -254,7 +274,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const mockTool = {
       name: "my_tool",
@@ -277,7 +297,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [mockTool as any]
+      tools: [mockTool as unknown as Tool]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -291,7 +311,7 @@ describe("StepExecutor", () => {
     // Should have tool_call_update messages for my_tool and finish_step
     const toolUpdates = messages.filter((m) => m.type === "tool_call_update");
     expect(toolUpdates.length).toBeGreaterThanOrEqual(1);
-    expect((toolUpdates[0] as any).name).toBe("my_tool");
+    expect((toolUpdates[0] as { name?: string }).name).toBe("my_tool");
   });
 
   it("handles unknown tool calls gracefully", async () => {
@@ -329,7 +349,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const context = createMockContext();
 
@@ -384,7 +404,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const failingTool = {
       name: "failing_tool",
@@ -407,7 +427,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [failingTool as any]
+      tools: [failingTool as unknown as Tool]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -454,7 +474,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const longTool = {
       name: "long_tool",
@@ -477,7 +497,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [longTool as any]
+      tools: [longTool as unknown as Tool]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -532,7 +552,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const context = createMockContext();
 
@@ -624,7 +644,7 @@ describe("StepExecutor", () => {
           args: { answer: "direct" }
         };
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const context = createMockContext();
     const executor = new StepExecutor({
@@ -670,7 +690,7 @@ describe("StepExecutor", () => {
           done: false
         };
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const context = createMockContext();
     const executor = new StepExecutor({
@@ -715,7 +735,7 @@ describe("StepExecutor", () => {
         // Return text (no tool calls) - in unstructured mode this completes on first iteration
         yield { type: "chunk" as const, content: "A".repeat(300), done: false };
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const context = createMockContext();
     const executor = new StepExecutor({
@@ -774,7 +794,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const context = createMockContext();
     const executor = new StepExecutor({
@@ -829,7 +849,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const simpleTool = {
       name: "simple_tool",
@@ -851,7 +871,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [simpleTool as any]
+      tools: [simpleTool as unknown as Tool]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -899,7 +919,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const browserTool = {
       name: "browser",
@@ -925,7 +945,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [browserTool as any]
+      tools: [browserTool as unknown as Tool]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -974,7 +994,7 @@ describe("StepExecutor", () => {
           yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
         }
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const browserTool = {
       name: "browser",
@@ -996,7 +1016,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [browserTool as any]
+      tools: [browserTool as unknown as Tool]
     });
 
     for await (const message of executor.execute()) {
@@ -1041,7 +1061,7 @@ describe("StepExecutor", () => {
         }
         yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const downloadTool = {
       name: "download_file",
@@ -1072,7 +1092,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [downloadTool as any]
+      tools: [downloadTool as unknown as Tool]
     });
 
     for await (const message of executor.execute()) {
@@ -1115,7 +1135,7 @@ describe("StepExecutor", () => {
           }
           yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
         }
-      } as any;
+      } as unknown as BaseProvider;
 
       const jsTool = {
         name: "js",
@@ -1146,7 +1166,7 @@ describe("StepExecutor", () => {
         context,
         provider,
         model: "test-model",
-        tools: [jsTool as any]
+        tools: [jsTool as unknown as Tool]
       });
 
       for await (const message of executor.execute()) {
@@ -1193,7 +1213,7 @@ describe("StepExecutor", () => {
         }
         yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const imageTool = {
       name: "openai_image_generation",
@@ -1224,7 +1244,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [imageTool as any]
+      tools: [imageTool as unknown as Tool]
     });
 
     for await (const message of executor.execute()) {
@@ -1265,7 +1285,7 @@ describe("StepExecutor", () => {
         }
         yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const screenshotTool = {
       name: "take_screenshot",
@@ -1295,7 +1315,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [screenshotTool as any]
+      tools: [screenshotTool as unknown as Tool]
     });
 
     for await (const message of executor.execute()) {
@@ -1384,7 +1404,7 @@ describe("StepExecutor", () => {
           done: false
         };
       }
-    } as any;
+    } as unknown as BaseProvider;
 
     const context = createMockContext();
 
@@ -1407,7 +1427,7 @@ describe("StepExecutor", () => {
 
     // Should have a StepFailed task_update
     const failedUpdates = messages.filter(
-      (m) => m.type === "task_update" && (m as any).event === "step_failed"
+      (m) => m.type === "task_update" && (m as TaskUpdate).event === "step_failed"
     );
     expect(failedUpdates).toHaveLength(1);
   });
