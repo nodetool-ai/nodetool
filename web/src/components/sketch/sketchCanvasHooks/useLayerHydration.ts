@@ -59,6 +59,7 @@ export function useLayerHydration({
   coordinatorRef
 }: UseLayerHydrationParams): UseLayerHydrationResult {
   const hydratedLayerStateRef = useRef<Map<string, string>>(new Map());
+  const hydrationCycleRef = useRef(0);
 
   /**
    * Last known physical pixel size per layer raster (after setLayerData / decode).
@@ -103,6 +104,8 @@ export function useLayerHydration({
   // ─── Initialize layer canvases from document data ───────────────────
 
   useEffect(() => {
+    const cycleId = hydrationCycleRef.current + 1;
+    hydrationCycleRef.current = cycleId;
     const layerIds = new Set(doc.layers.map((l) => l.id));
     for (const [id] of layerCanvasesRef.current) {
       if (!layerIds.has(id)) {
@@ -111,6 +114,13 @@ export function useLayerHydration({
         layerStableRasterSizeRef.current.delete(id);
       }
     }
+
+    const hydrationJobs: Array<{
+      layerId: string;
+      hydrationKey: string;
+      source: string | null;
+      defaultBounds: { x: number; y: number; width: number; height: number };
+    }> = [];
 
     for (const layer of doc.layers) {
       const existingRaster = layerCanvasesRef.current.get(layer.id);
@@ -158,34 +168,50 @@ export function useLayerHydration({
         h: defaultBounds.height
       });
       getOrCreateLayerCanvas(layer.id);
+      hydrationJobs.push({
+        layerId: layer.id,
+        hydrationKey,
+        source: resolveLayerHydrationSource(layer.data, layer.imageReference?.uri),
+        defaultBounds
+      });
+    }
+
+    let remainingHydrationJobs = hydrationJobs.length;
+    if (remainingHydrationJobs === 0) {
+      coordinatorRef?.current?.markHydrationComplete();
+      return;
+    }
+
+    for (const job of hydrationJobs) {
       runtime.setLayerData(
-        layer.id,
-        resolveLayerHydrationSource(layer.data, layer.imageReference?.uri),
-        defaultBounds,
+        job.layerId,
+        job.source,
+        job.defaultBounds,
         () => {
+          if (hydrationCycleRef.current !== cycleId) {
+            return;
+          }
           if (
-            hydratedLayerStateRef.current.get(layer.id) !== hydrationKey
+            hydratedLayerStateRef.current.get(job.layerId) !== job.hydrationKey
           ) {
             return;
           }
-          const lc = layerCanvasesRef.current.get(layer.id);
+          const lc = layerCanvasesRef.current.get(job.layerId);
           if (lc != null && lc.width > 0 && lc.height > 0) {
-            layerStableRasterSizeRef.current.set(layer.id, {
+            layerStableRasterSizeRef.current.set(job.layerId, {
               w: lc.width,
               h: lc.height
             });
           }
-          invalidateLayer(layer.id);
+          invalidateLayer(job.layerId);
           requestRedraw();
+          remainingHydrationJobs -= 1;
+          if (remainingHydrationJobs === 0) {
+            coordinatorRef?.current?.markHydrationComplete();
+          }
         }
       );
     }
-    // Mark hydration complete on the coordinator so the readiness contract
-    // accurately reflects that all layer canvases have been created and
-    // their data loading has been initiated. Without this, the coordinator's
-    // hydrationComplete flag stays false forever, leaving the readiness
-    // contract inaccurate for tracing and debugging.
-    coordinatorRef?.current?.markHydrationComplete();
     // Intentionally omit doc.canvas.width/height: canvas resize must not
     // re-hydrate layers (that called setLayerData with new doc bounds and
     // stretched rasters). Redraw is handled by the effect below.

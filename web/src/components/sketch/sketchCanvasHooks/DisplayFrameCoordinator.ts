@@ -234,7 +234,9 @@ export interface FrameCoordinatorCallbacks {
   /** Execute pending stroke buffer merge. */
   drainPendingStroke: () => void;
   /** Run the composite pipeline immediately. */
-  compositeImmediate: (dirtyRect?: { x: number; y: number; w: number; h: number } | null) => void;
+  compositeImmediate: (
+    dirtyRect?: { x: number; y: number; w: number; h: number } | null
+  ) => boolean | void;
 }
 
 /**
@@ -410,8 +412,10 @@ export class DisplayFrameCoordinator {
     this.pendingDirty = null;
 
     this.callbacks.drainPendingStroke();
-    this.callbacks.compositeImmediate(request.dirtyRect);
-    this.onFrameComposited();
+    const didComposite = this.callbacks.compositeImmediate(request.dirtyRect);
+    if (didComposite !== false) {
+      this.onFrameComposited();
+    }
   }
 
   private scheduleRaf(request: RedrawRequest): void {
@@ -442,8 +446,12 @@ export class DisplayFrameCoordinator {
       this.tracer.trace("pending-stroke-drained");
 
       const useFull = isFull || !dirty || this.hasLiveBufferedStroke;
-      this.callbacks.compositeImmediate(useFull ? null : dirty);
-      this.onFrameComposited();
+      const didComposite = this.callbacks.compositeImmediate(
+        useFull ? null : dirty
+      );
+      if (didComposite !== false) {
+        this.onFrameComposited();
+      }
     });
   }
 

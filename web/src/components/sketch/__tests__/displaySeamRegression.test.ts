@@ -37,7 +37,7 @@ function makeCoordinator(tracingEnabled = true): {
 } {
   const coordinator = new DisplayFrameCoordinator(tracingEnabled);
   const drainSpy = jest.fn();
-  const compositeSpy = jest.fn();
+  const compositeSpy = jest.fn(() => true);
   coordinator.setCallbacks({
     drainPendingStroke: drainSpy,
     compositeImmediate: compositeSpy
@@ -289,7 +289,9 @@ describe("DisplayFrameCoordinator", () => {
       const coordinator = new DisplayFrameCoordinator(false);
       coordinator.setCallbacks({
         drainPendingStroke: () => callOrder.push("drain"),
-        compositeImmediate: () => callOrder.push("composite")
+        compositeImmediate: () => {
+          callOrder.push("composite");
+        }
       });
       coordinator.markRuntimeReady();
       coordinator.markHydrationComplete();
@@ -306,7 +308,9 @@ describe("DisplayFrameCoordinator", () => {
       const coordinator = new DisplayFrameCoordinator(false);
       coordinator.setCallbacks({
         drainPendingStroke: () => callOrder.push("drain"),
-        compositeImmediate: () => callOrder.push("composite")
+        compositeImmediate: () => {
+          callOrder.push("composite");
+        }
       });
       coordinator.markRuntimeReady();
 
@@ -357,6 +361,18 @@ describe("DisplayFrameCoordinator", () => {
       coordinator.requestFrame("initial-composite", "immediate");
 
       expect(coordinator.getReadiness().firstFrameComposited).toBe(true);
+    });
+
+    it("does not mark first frame composited when composite callback reports a no-op", () => {
+      const { coordinator } = makeReadyCoordinator();
+      coordinator.setCallbacks({
+        drainPendingStroke: jest.fn(),
+        compositeImmediate: () => false
+      });
+
+      coordinator.requestFrame("initial-composite", "immediate");
+
+      expect(coordinator.getReadiness().firstFrameComposited).toBe(false);
     });
 
     it("marks first frame composited on first raf request", () => {
@@ -489,7 +505,9 @@ describe("Display seam scenario regression matrix", () => {
       const coordinator = new DisplayFrameCoordinator(false);
       coordinator.setCallbacks({
         drainPendingStroke: () => callOrder.push("drain"),
-        compositeImmediate: () => callOrder.push("composite")
+        compositeImmediate: () => {
+          callOrder.push("composite");
+        }
       });
       coordinator.markRuntimeReady();
       coordinator.markHydrationComplete();
@@ -733,7 +751,9 @@ describe("Startup first-interaction regression", () => {
       const coordinator = new DisplayFrameCoordinator(false);
       coordinator.setCallbacks({
         drainPendingStroke: () => callOrder.push("drain"),
-        compositeImmediate: () => callOrder.push("composite")
+        compositeImmediate: () => {
+          callOrder.push("composite");
+        }
       });
       coordinator.markRuntimeReady();
       coordinator.markHydrationComplete();

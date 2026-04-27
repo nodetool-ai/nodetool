@@ -49,6 +49,7 @@ describe("useCompositing", () => {
   beforeEach(() => {
     requestRedrawMock.mockClear();
     compositeToDisplayMock.mockClear();
+    compositeToDisplayMock.mockReturnValue(true);
   });
 
   it("requests redraw immediately when zoom changes", () => {
@@ -79,5 +80,42 @@ describe("useCompositing", () => {
       jest.runOnlyPendingTimers();
     });
     jest.useRealTimers();
+  });
+
+  it("only marks initial first-frame readiness when initial composite succeeds", () => {
+    const doc = createDefaultDocument(64, 64);
+    const activeStrokeRef = { current: null };
+    compositeToDisplayMock.mockReturnValueOnce(false);
+
+    const { result } = renderHook(() =>
+      useCompositing({
+        doc,
+        zoom: 1,
+        isolatedLayerId: null,
+        activeStrokeRef
+      })
+    );
+
+    expect(
+      result.current.coordinatorRef.current?.getReadiness().firstFrameComposited
+    ).toBe(false);
+  });
+
+  it("marks initial first-frame readiness after a successful initial composite", () => {
+    const doc = createDefaultDocument(64, 64);
+    const activeStrokeRef = { current: null };
+
+    const { result } = renderHook(() =>
+      useCompositing({
+        doc,
+        zoom: 1,
+        isolatedLayerId: null,
+        activeStrokeRef
+      })
+    );
+
+    expect(
+      result.current.coordinatorRef.current?.getReadiness().firstFrameComposited
+    ).toBe(true);
   });
 });

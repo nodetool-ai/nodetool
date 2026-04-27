@@ -17,10 +17,10 @@ import type { DisplayFrameCoordinator, RedrawReason } from "./DisplayFrameCoordi
 
 export interface UseRedrawSchedulerParams {
   /** Direct composite callback for immediate (non-deferred) redraws. */
-  compositeToDisplay: (dirtyRect?: DirtyRect | null) => void;
+  compositeToDisplay: (dirtyRect?: DirtyRect | null) => boolean | void;
   /** Ref for deferred rAF callbacks (always reads the latest composite fn). */
   compositeToDisplayRef: React.MutableRefObject<
-    (dirtyRect?: DirtyRect | null) => void
+    (dirtyRect?: DirtyRect | null) => boolean
   >;
   activeStrokeRef: React.MutableRefObject<ActiveStrokeInfo | null>;
   /** Optional coordinator for typed redraw requests. */

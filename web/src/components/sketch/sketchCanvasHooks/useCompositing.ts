@@ -119,8 +119,8 @@ export function useCompositing({
   // • bootstrap reads requestRedrawRef.current to trigger redraws after init
   // • scheduler reads compositeToDisplayRef.current in rAF callbacks
   const requestRedrawRef = useRef<() => void>(() => {});
-  const compositeToDisplayRef = useRef<(dirtyRect?: DirtyRect | null) => void>(
-    () => {}
+  const compositeToDisplayRef = useRef<(dirtyRect?: DirtyRect | null) => boolean>(
+    () => false
   );
 
   // ─── 1. Runtime bootstrap (WebGPU init / fallback) ─────────────────
@@ -183,7 +183,7 @@ export function useCompositing({
         }
       },
       compositeImmediate: (dirtyRect) => {
-        compositeToDisplayRef.current(dirtyRect ?? null);
+        return compositeToDisplayRef.current(dirtyRect ?? null);
       }
     });
   }
@@ -275,13 +275,15 @@ export function useCompositing({
   // in the same tick with null refs. Synchronous composite before the browser
   // paints so the very first frame shows layer content instead of a blank canvas.
   useLayoutEffect(() => {
-    compositeToDisplayRef.current(null);
+    const didComposite = compositeToDisplayRef.current(null);
     // Notify the coordinator that the initial composite has been performed
     // externally. Without this, the coordinator's readiness contract would
     // stay in a half-ready state after the first visible paint, which could
     // cause first-interaction preview or click-only tap frames to appear
     // dropped because firstFrameComposited was never set.
-    coordinatorRef.current?.notifyInitialComposite();
+    if (didComposite) {
+      coordinatorRef.current?.notifyInitialComposite();
+    }
   }, [bootstrapPhaseActive, backend]);
 
   useEffect(() => {
