@@ -89,6 +89,10 @@ export function useEditorSession({
     canvasRef,
     undo: historyStore.undo,
     redo: historyStore.redo,
+    currentLayerIds: useMemo(
+      () => document.layers.map((layer) => layer.id),
+      [document.layers]
+    ),
     flushBeforeUndo: useCallback(() => flushBeforeUndoRef.current(), [])
   });
 

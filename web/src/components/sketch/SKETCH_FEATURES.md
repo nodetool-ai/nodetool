@@ -35,7 +35,7 @@ Do these before advanced transform work, SAM, or new node execution surfaces. Th
   - Ensure layer structure snapshots preserve all metadata needed to rebuild groups and generated layers, including `parentId`, `collapsed`, `segmentationMeta`, image references, effects, exposed input/output flags, transforms, and content bounds.
   - Fix structural-history ordering so layer creation/removal entries capture the post-action structure needed for redo, not only the pre-action state.
   - Add regressions for crop/resize undo/redo, grouped/collapsed layer undo/redo, segmentation-generated metadata preservation, and add-layer redo.
-- [ ] [impl+test] close store-vs-runtime canvas drift in history restore paths
+- [x] [impl+test] close store-vs-runtime canvas drift in history restore paths
   - Audit `structure-only` restore paths and either replay affected pixels into runtime canvases or make the restore mode explicitly impossible for entries whose layer pixel data can differ from runtime surfaces.
   - Add tests that undo/redo transform, selection-derived layer actions, and structure-only entries, then immediately sample/export from runtime canvases without requiring an incidental redraw or brush stroke.
 - [x] [impl+test] harden first-frame and hydration readiness semantics

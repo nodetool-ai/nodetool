@@ -2,7 +2,10 @@ import { renderHook } from "@testing-library/react";
 import { useHistoryActions } from "../hooks/useHistoryActions";
 import type { HistoryEntry } from "../types";
 
-function makeHistoryEntry(restoreMode: HistoryEntry["restoreMode"]): HistoryEntry {
+function makeHistoryEntry(
+  restoreMode: HistoryEntry["restoreMode"],
+  overrides?: Partial<HistoryEntry>
+): HistoryEntry {
   return {
     layerSnapshots: { layer1: "data:image/png;base64,abc" },
     layerStructure: [
@@ -25,7 +28,8 @@ function makeHistoryEntry(restoreMode: HistoryEntry["restoreMode"]): HistoryEntr
     maskLayerId: null,
     restoreMode,
     action: "test",
-    timestamp: 1
+    timestamp: 1,
+    ...overrides
   };
 }
 
@@ -122,6 +126,102 @@ describe("useHistoryActions", () => {
       "layer1",
       "data:image/png;base64,abc",
       { x: 4, y: 5, width: 32, height: 24 }
+    );
+  });
+
+  it("captures current runtime layer snapshots before undo", () => {
+    const layer1Snapshot = { id: "layer-1-snapshot" } as unknown as HTMLCanvasElement;
+    const undo = jest.fn(() => null);
+    const redo = jest.fn(() => null);
+    const canvasRef = {
+      current: {
+        snapshotLayerCanvas: jest
+          .fn()
+          .mockImplementation((layerId: string) =>
+            layerId === "layer1" ? layer1Snapshot : null
+          )
+      }
+    } as any;
+
+    const { result } = renderHook(() =>
+      useHistoryActions({
+        canvasRef,
+        undo,
+        redo,
+        currentLayerIds: ["layer1", "layer2"]
+      })
+    );
+    result.current.handleUndo();
+
+    expect(undo).toHaveBeenCalledWith({
+      layer1: layer1Snapshot,
+      layer2: null
+    });
+  });
+
+  it("replays captured structure-only tip snapshots synchronously on redo", () => {
+    const beforeSnapshot = {
+      snapshotData: "before-runtime"
+    } as unknown as HTMLCanvasElement;
+    const afterSnapshot = {
+      snapshotData: "after-runtime"
+    } as unknown as HTMLCanvasElement;
+    let runtimeData = "after-runtime";
+    let tipLayerCanvasSnapshots: Record<string, HTMLCanvasElement | null> | undefined;
+
+    const undo = jest.fn((layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>) => {
+      tipLayerCanvasSnapshots = layerCanvasSnapshots;
+      return makeHistoryEntry("structure-only", {
+        layerSnapshots: { layer1: "before-runtime" },
+        layerCanvasSnapshots: { layer1: beforeSnapshot }
+      });
+    });
+    const redo = jest.fn(() =>
+      makeHistoryEntry("structure-only", {
+        layerSnapshots: { layer1: "after-runtime" },
+        layerCanvasSnapshots: tipLayerCanvasSnapshots
+      })
+    );
+    const canvasRef = {
+      current: {
+        snapshotLayerCanvas: jest.fn(() => afterSnapshot),
+        restoreLayerCanvas: jest.fn(
+          (_layerId: string, snapshot: HTMLCanvasElement & { snapshotData?: string }) => {
+            runtimeData = snapshot.snapshotData ?? runtimeData;
+          }
+        ),
+        setLayerData: jest.fn((_layerId: string, data: string | null) => {
+          window.setTimeout(() => {
+            runtimeData = data ?? "";
+          }, 0);
+        }),
+        getLayerData: jest.fn(() => runtimeData),
+        redrawDisplay: jest.fn()
+      }
+    } as any;
+
+    const { result } = renderHook(() =>
+      useHistoryActions({
+        canvasRef,
+        undo,
+        redo,
+        currentLayerIds: ["layer1"]
+      })
+    );
+
+    result.current.handleUndo();
+    expect(runtimeData).toBe("before-runtime");
+
+    result.current.handleRedo();
+    expect(runtimeData).toBe("after-runtime");
+    expect(canvasRef.current.restoreLayerCanvas).toHaveBeenLastCalledWith(
+      "layer1",
+      afterSnapshot
+    );
+    expect(canvasRef.current.setLayerData).not.toHaveBeenCalledWith(
+      "layer1",
+      "after-runtime",
+      expect.anything()
     );
   });
 });

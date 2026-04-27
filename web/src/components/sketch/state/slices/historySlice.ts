@@ -90,7 +90,9 @@ export interface HistorySlice {
     layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>,
     options?: PushHistoryOptions
   ) => void;
-  undo: () => HistoryEntry | null;
+  undo: (
+    layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>
+  ) => HistoryEntry | null;
   redo: () => HistoryEntry | null;
   canUndo: () => boolean;
   canRedo: () => boolean;
@@ -176,7 +178,7 @@ export const createHistorySlice: StateCreator<
     });
   },
 
-  undo: () => {
+  undo: (layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>) => {
     const state = get();
     if (state.historyIndex <= 0) {
       return null;
@@ -192,6 +194,7 @@ export const createHistorySlice: StateCreator<
       }
       const tipEntry: HistoryEntry = {
         layerSnapshots: tipSnapshot,
+        layerCanvasSnapshots,
         layerStructure: captureLayerStructure(state.document.layers),
         documentCanvas: captureDocumentCanvas(state.document.canvas),
         activeLayerId: state.document.activeLayerId,
