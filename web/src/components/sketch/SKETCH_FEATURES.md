@@ -206,28 +206,28 @@ Files:
 - `nodetool-huggingface/src/nodetool/nodes/huggingface/image_segmentation.py`
 
 Steps:
-- [ ] Add a curated "Local SAM3" sketch backend preset that references `huggingface.image_segmentation.MaskGeneration` with model `facebook/sam3`.
-- [ ] Give the preset a stable internal id such as `local-sam3`.
-- [ ] Expose `points_per_side` and `pred_iou_thresh` as advanced settings.
-- [ ] Mark Local SAM3 capabilities as automatic split and mask image output.
-- [ ] Start with text prompts, point prompts, box prompts, labels, confidence, and RLE marked unsupported.
-- [ ] Define the sketch SAM backend interface around sketch needs: automatic layer split, prompted object separation, mask outputs, optional labels, optional scores, and optional boxes.
-- [ ] Require every SAM backend adapter to report capabilities through that interface.
-- [ ] Use `MetadataStore.getMetadata("huggingface.image_segmentation.MaskGeneration")` as the HuggingFace node pack availability check.
-- [ ] Read that node metadata to confirm `image`, `model`, `points_per_side`, and `pred_iou_thresh` inputs.
-- [ ] Use `HfCacheStatusStore` to check the cached model state for `facebook/sam3`.
+- [x] Add a curated "Local SAM3" sketch backend preset that references `huggingface.image_segmentation.MaskGeneration` with model `facebook/sam3`.
+- [x] Give the preset a stable internal id such as `local-sam3`.
+- [x] Expose `points_per_side` and `pred_iou_thresh` as advanced settings.
+- [x] Mark Local SAM3 capabilities as automatic split and mask image output.
+- [x] Start with text prompts, point prompts, box prompts, labels, confidence, and RLE marked unsupported.
+- [x] Define the sketch SAM backend interface around sketch needs: automatic layer split, prompted object separation, mask outputs, optional labels, optional scores, and optional boxes.
+- [x] Require every SAM backend adapter to report capabilities through that interface.
+- [x] Use `MetadataStore.getMetadata("huggingface.image_segmentation.MaskGeneration")` as the HuggingFace node pack availability check.
+- [x] Read that node metadata to confirm `image`, `model`, `points_per_side`, and `pred_iou_thresh` inputs.
+- [x] Use `HfCacheStatusStore` to check the cached model state for `facebook/sam3`.
 - [ ] Use `ModelDownloadStore` to show download progress and cancellation for `facebook/sam3`.
-- [ ] Show "Install or enable the HuggingFace node pack" for missing node metadata.
+- [x] Show "Install or enable the HuggingFace node pack" for missing node metadata.
 - [ ] Show "Download Local SAM3" for a missing `facebook/sam3` cache entry.
-- [ ] Show "Local SAM3 is downloading" while `ModelDownloadStore` reports active progress.
-- [ ] Show "Local SAM3 is ready" after the node type exists and `facebook/sam3` is cached.
-- [ ] Persist the selected backend in segment tool settings.
+- [x] Show "Local SAM3 is downloading" while `ModelDownloadStore` reports active progress.
+- [x] Show "Local SAM3 is ready" after the node type exists and `facebook/sam3` is cached.
+- [x] Persist the selected backend in segment tool settings.
 
 Check:
-- [ ] User sees Local SAM3, not the raw node name.
-- [ ] Missing node and local-not-ready states are shown as hints.
-- [ ] UI shows only automatic layer split for the current local node.
-- [ ] Backend selection survives closing and reopening the sketch editor.
+- [x] User sees Local SAM3, not the raw node name.
+- [x] Missing node and local-not-ready states are shown as hints.
+- [x] UI shows only automatic layer split for the current local node.
+- [x] Backend selection survives closing and reopening the sketch editor.
 
 ### [ ] 3.2 Run SAM Through NodeTool Jobs
 
