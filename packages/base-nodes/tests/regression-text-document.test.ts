@@ -92,59 +92,59 @@ describe("text-extra regressions", () => {
   describe("FormatTextNode Jinja2 filters", () => {
     it("applies upper filter", async () => {
       const node = new FormatTextNode();
-      Object.assign(node, {
-        template: "{{ name|upper }}",
-        _dynamic_properties: { name: "hello" }
-      });
+      node.assign({ template: "{{ name|upper }}", name: "hello" });
       const result = await node.process();
       expect(result.output).toBe("HELLO");
     });
 
     it("applies lower filter", async () => {
       const node = new FormatTextNode();
-      Object.assign(node, {
-        template: "{{ name|lower }}",
-        _dynamic_properties: { name: "HELLO" }
-      });
+      node.assign({ template: "{{ name|lower }}", name: "HELLO" });
       const result = await node.process();
       expect(result.output).toBe("hello");
     });
 
     it("applies capitalize filter", async () => {
       const node = new FormatTextNode();
-      Object.assign(node, {
-        template: "{{ name|capitalize }}",
-        _dynamic_properties: { name: "hello world" }
-      });
+      node.assign({ template: "{{ name|capitalize }}", name: "hello world" });
       const result = await node.process();
       expect(result.output).toBe("Hello world");
     });
 
     it("applies truncate filter", async () => {
       const node = new FormatTextNode();
-      Object.assign(node, {
-        template: "{{ name|truncate(3) }}",
-        _dynamic_properties: { name: "hello" }
-      });
+      node.assign({ template: "{{ name|truncate(3) }}", name: "hello" });
       const result = await node.process();
       expect(result.output).toBe("hel...");
     });
 
     it("chains multiple filters", async () => {
       const node = new FormatTextNode();
-      Object.assign(node, {
-        template: "{{ name|trim|upper }}",
-        _dynamic_properties: { name: "  hello  " }
-      });
+      node.assign({ template: "{{ name|trim|upper }}", name: "  hello  " });
       const result = await node.process();
       expect(result.output).toBe("HELLO");
     });
 
+    it("substitutes {{ var }} without a filter", async () => {
+      const node = new FormatTextNode();
+      node.assign({ template: "Hello, {{ name }}!", name: "world" });
+      const result = await node.process();
+      expect(result.output).toBe("Hello, world!");
+    });
+
+    it("substitutes {var} short syntax", async () => {
+      const node = new FormatTextNode();
+      node.assign({ template: "Hi {name}, age {age}", name: "Sam", age: 42 });
+      const result = await node.process();
+      expect(result.output).toBe("Hi Sam, age 42");
+    });
+
     it("preserves $-sequences in dynamic property values", async () => {
       const node = new FormatTextNode();
-      Object.assign(node, {
+      node.assign({
         template: "price: {price}, code: {code}",
-        _dynamic_properties: { price: "$100", code: "a$&b$$c" }
+        price: "$100",
+        code: "a$&b$$c"
       });
       const result = await node.process();
       expect(result.output).toBe("price: $100, code: a$&b$$c");
