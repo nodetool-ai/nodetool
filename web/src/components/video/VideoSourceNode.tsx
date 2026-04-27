@@ -10,7 +10,11 @@ import { NodeData } from "../../stores/NodeData";
 import useMetadataStore from "../../stores/MetadataStore";
 import useResultsStore from "../../stores/ResultsStore";
 import { useNodes } from "../../contexts/NodeContext";
-import { useVideoCapture } from "../../hooks/browser/useVideoCapture";
+import {
+  useVideoCapture,
+  VIDEO_CAPTURE_RESOLUTION_PRESETS,
+  type VideoCaptureResolutionPreset
+} from "../../hooks/browser/useVideoCapture";
 import { NodeHeader } from "../node/NodeHeader";
 import { NodeOutputs } from "../node/NodeOutputs";
 import NodeResizeHandle from "../node/NodeResizeHandle";
@@ -69,6 +73,16 @@ const cameraOptions = (
   return options;
 };
 
+const resolutionOptions: Array<{
+  value: VideoCaptureResolutionPreset;
+  label: string;
+}> = Object.entries(VIDEO_CAPTURE_RESOLUTION_PRESETS).map(
+  ([value, preset]) => ({
+    value: value as VideoCaptureResolutionPreset,
+    label: preset.label
+  })
+);
+
 const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { id, type, data, selected } = props;
   const theme = useTheme();
@@ -79,13 +93,17 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     error,
     videoRef,
     isPreviewing,
+    isWarmingUp,
+    isPreviewReady,
     isLoading,
     videoInputDevices,
     selectedVideoDeviceId,
+    selectedVideoResolution,
     startPreview,
     stopPreview,
     refreshDevices,
-    handleVideoDeviceChange
+    handleVideoDeviceChange,
+    handleVideoResolutionChange
   } = useVideoCapture({ includeAudio: false, autoFetchDevices: false });
 
   const options = useMemo(
@@ -162,7 +180,7 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             onClick={handleCaptureStill}
             variant="text"
             density="compact"
-            disabled={!isPreviewing}
+            disabled={!isPreviewReady}
           >
             Capture Still
           </EditorButton>
@@ -178,7 +196,24 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           />
         </div>
 
+        <div className="video-source-select">
+          <Select
+            options={resolutionOptions}
+            value={selectedVideoResolution}
+            onChange={(value) =>
+              handleVideoResolutionChange(value as VideoCaptureResolutionPreset)
+            }
+            placeholder="Resolution"
+            label="Resolution"
+          />
+        </div>
+
         {error ? <Text color="error">{error}</Text> : null}
+        {isWarmingUp ? (
+          <Text size="small" color="warning">
+            Warming up camera...
+          </Text>
+        ) : null}
 
         <video
           ref={videoRef}

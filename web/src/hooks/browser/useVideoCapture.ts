@@ -14,9 +14,23 @@ export type VideoDevice = {
   label: string;
 };
 
+export type VideoCaptureResolutionPreset = "qvga" | "vga" | "hd" | "fhd";
+
+export const VIDEO_CAPTURE_RESOLUTION_PRESETS: Record<
+  VideoCaptureResolutionPreset,
+  { label: string; width: number; height: number }
+> = {
+  qvga: { label: "320x240", width: 320, height: 240 },
+  vga: { label: "640x480", width: 640, height: 480 },
+  hd: { label: "1280x720", width: 1280, height: 720 },
+  fhd: { label: "1920x1080", width: 1920, height: 1080 }
+};
+
 export interface UseVideoCaptureOptions {
   includeAudio?: boolean;
   autoFetchDevices?: boolean;
+  initialResolution?: VideoCaptureResolutionPreset;
+  warmupMs?: number;
 }
 
 const uniqueDevices = (devices: VideoDevice[]): VideoDevice[] => {
@@ -61,14 +75,16 @@ const getErrorMessage = (
   return error instanceof Error ? error.message : fallbackMessage;
 };
 
-const DEFAULT_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
-  width: { ideal: 640 },
-  height: { ideal: 480 },
-  frameRate: { ideal: 30, max: 30 }
-};
+const DEFAULT_VIDEO_RESOLUTION: VideoCaptureResolutionPreset = "fhd";
+const DEFAULT_WARMUP_MS = 2500;
 
-const videoConstraintsForDevice = (deviceId: string): MediaTrackConstraints => ({
-  ...DEFAULT_VIDEO_CONSTRAINTS,
+const videoConstraintsForDevice = (
+  deviceId: string,
+  resolution: VideoCaptureResolutionPreset
+): MediaTrackConstraints => ({
+  width: { ideal: VIDEO_CAPTURE_RESOLUTION_PRESETS[resolution].width },
+  height: { ideal: VIDEO_CAPTURE_RESOLUTION_PRESETS[resolution].height },
+  frameRate: { ideal: 30, max: 30 },
   ...(deviceId ? { deviceId: { exact: deviceId } } : {})
 });
 
@@ -103,23 +119,35 @@ export function useVideoCapture(
   streamRef: RefObject<MediaStream | null>;
   previewStream: MediaStream | null;
   isPreviewing: boolean;
+  isWarmingUp: boolean;
+  isPreviewReady: boolean;
   isLoading: boolean;
   videoInputDevices: VideoDevice[];
   audioInputDevices: VideoDevice[];
   selectedVideoDeviceId: string;
   selectedAudioDeviceId: string;
+  selectedVideoResolution: VideoCaptureResolutionPreset;
   startPreview: () => Promise<void>;
   stopPreview: () => void;
   refreshDevices: () => void;
   handleVideoDeviceChange: (deviceId: string) => void;
   handleAudioDeviceChange: (deviceId: string) => void;
+  handleVideoResolutionChange: (resolution: VideoCaptureResolutionPreset) => void;
 } {
-  const { includeAudio = true, autoFetchDevices = true } = options;
+  const {
+    includeAudio = true,
+    autoFetchDevices = true,
+    initialResolution = DEFAULT_VIDEO_RESOLUTION,
+    warmupMs = DEFAULT_WARMUP_MS
+  } = options;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const warmupTimeoutRef = useRef<number | null>(null);
 
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
+  const [isWarmingUp, setIsWarmingUp] = useState<boolean>(false);
+  const [isPreviewReady, setIsPreviewReady] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
@@ -129,18 +157,31 @@ export function useVideoCapture(
     useState<string>("");
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] =
     useState<string>("");
+  const [selectedVideoResolution, setSelectedVideoResolution] =
+    useState<VideoCaptureResolutionPreset>(initialResolution);
+
+  const clearWarmupTimeout = useCallback(() => {
+    if (warmupTimeoutRef.current) {
+      window.clearTimeout(warmupTimeoutRef.current);
+      warmupTimeoutRef.current = null;
+    }
+  }, []);
 
   const releaseResources = useCallback(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
+    clearWarmupTimeout();
     stopMediaStream(streamRef.current);
     streamRef.current = null;
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-  }, []);
+    setIsWarmingUp(false);
+    setIsPreviewReady(false);
+  }, [clearWarmupTimeout]);
 
   const stopPreview = useCallback(() => {
+    clearWarmupTimeout();
     stopMediaStream(streamRef.current);
     streamRef.current = null;
     if (videoRef.current) {
@@ -148,7 +189,9 @@ export function useVideoCapture(
     }
     setPreviewStream(null);
     setIsPreviewing(false);
-  }, []);
+    setIsWarmingUp(false);
+    setIsPreviewReady(false);
+  }, [clearWarmupTimeout]);
 
   const refreshDevices = useCallback(() => {
     if (!navigator.mediaDevices) {
@@ -162,7 +205,7 @@ export function useVideoCapture(
     abortControllerRef.current = abortCtrl;
 
     const permissionConstraints: MediaStreamConstraints = {
-      video: DEFAULT_VIDEO_CONSTRAINTS,
+      video: videoConstraintsForDevice("", selectedVideoResolution),
       audio: includeAudio
     };
 
@@ -249,15 +292,21 @@ export function useVideoCapture(
           )}`
         );
       });
-  }, [includeAudio]);
+  }, [includeAudio, selectedVideoResolution]);
 
   const startPreview = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    clearWarmupTimeout();
+    setIsWarmingUp(false);
+    setIsPreviewReady(false);
 
     try {
       const constraints: MediaStreamConstraints = {
-        video: videoConstraintsForDevice(selectedVideoDeviceId),
+        video: videoConstraintsForDevice(
+          selectedVideoDeviceId,
+          selectedVideoResolution
+        ),
         audio: includeAudio
           ? selectedAudioDeviceId
             ? { deviceId: { exact: selectedAudioDeviceId } }
@@ -271,6 +320,16 @@ export function useVideoCapture(
       streamRef.current = stream;
       setPreviewStream(stream);
       setIsPreviewing(true);
+      if (warmupMs > 0) {
+        setIsWarmingUp(true);
+        warmupTimeoutRef.current = window.setTimeout(() => {
+          warmupTimeoutRef.current = null;
+          setIsWarmingUp(false);
+          setIsPreviewReady(true);
+        }, warmupMs);
+      } else {
+        setIsPreviewReady(true);
+      }
     } catch (previewError: unknown) {
       setError(
         getErrorMessage(previewError, "Failed to start preview")
@@ -278,7 +337,14 @@ export function useVideoCapture(
     } finally {
       setIsLoading(false);
     }
-  }, [includeAudio, selectedAudioDeviceId, selectedVideoDeviceId]);
+  }, [
+    clearWarmupTimeout,
+    includeAudio,
+    selectedAudioDeviceId,
+    selectedVideoDeviceId,
+    selectedVideoResolution,
+    warmupMs
+  ]);
 
   const handleVideoDeviceChange = useCallback((deviceId: string) => {
     setSelectedVideoDeviceId(deviceId);
@@ -287,6 +353,13 @@ export function useVideoCapture(
   const handleAudioDeviceChange = useCallback((deviceId: string) => {
     setSelectedAudioDeviceId(deviceId);
   }, []);
+
+  const handleVideoResolutionChange = useCallback(
+    (resolution: VideoCaptureResolutionPreset) => {
+      setSelectedVideoResolution(resolution);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!autoFetchDevices) {
@@ -330,15 +403,19 @@ export function useVideoCapture(
     streamRef,
     previewStream,
     isPreviewing,
+    isWarmingUp,
+    isPreviewReady,
     isLoading,
     videoInputDevices,
     audioInputDevices,
     selectedVideoDeviceId,
     selectedAudioDeviceId,
+    selectedVideoResolution,
     startPreview,
     stopPreview,
     refreshDevices,
     handleVideoDeviceChange,
-    handleAudioDeviceChange
+    handleAudioDeviceChange,
+    handleVideoResolutionChange
   };
 }

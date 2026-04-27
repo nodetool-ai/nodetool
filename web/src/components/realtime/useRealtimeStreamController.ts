@@ -138,6 +138,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const {
     error: previewError,
     previewStream,
+    isPreviewReady,
     startPreview,
     stopPreview
   } = useVideoCapture({
@@ -212,7 +213,8 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     enabled:
       activeSession?.transport !== "webrtc" &&
       Boolean(activeSession) &&
-      Boolean(previewStream),
+      Boolean(previewStream) &&
+      isPreviewReady,
     previewStream,
     session: activeSession,
     intervalMs: 500,
@@ -223,11 +225,13 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       !workflowId ||
       Boolean(activeSession) ||
       !previewStream ||
+      !isPreviewReady ||
       !videoTargetNodeId.trim() ||
       !videoTargetInputName.trim()
     );
   }, [
     activeSession,
+    isPreviewReady,
     previewStream,
     videoTargetInputName,
     videoTargetNodeId,
@@ -273,6 +277,11 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       setWebrtcConfigError(
         "Start the camera preview before launching the realtime session."
       );
+      return;
+    }
+
+    if (!isPreviewReady) {
+      setWebrtcConfigError("Wait for the camera warm-up before launching the realtime session.");
       return;
     }
 
@@ -338,6 +347,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     });
   }, [
     brightness,
+    isPreviewReady,
     previewStream,
     sessionTransport,
     startSession,
