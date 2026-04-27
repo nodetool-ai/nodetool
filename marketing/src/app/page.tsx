@@ -454,6 +454,27 @@ export default function Home() {
                 </a>
               </div>
             </div>
+            {/* Mobile-only persona links — surfaced so /creatives and /developers are reachable without opening the menu */}
+            <div className="md:hidden flex items-center justify-center gap-2 pt-1.5 pb-0.5">
+              <a
+                href="/agents"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Agents
+              </a>
+              <a
+                href="/creatives"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Creatives
+              </a>
+              <a
+                href="/developers"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Developers
+              </a>
+            </div>
           </div>
         </nav>
         {/* Mobile menu */}
