@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
 
-export const runtime = "edge";
 
 // Creative professional personas
 const creativePersonas = [
