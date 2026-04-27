@@ -2,13 +2,16 @@ import type { SyntheticEvent } from "react";
 
 import {
   Card,
+  Caption,
   EditorButton,
   FlexColumn,
   FlexRow,
+  StatusIndicator,
   NodeSlider,
   Text,
   TextInput
 } from "../ui_primitives";
+import type { RealtimeCameraFramePublisherStatus } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
 
 interface RealtimeSessionControlsCardProps {
   brightness: number;
@@ -19,6 +22,7 @@ interface RealtimeSessionControlsCardProps {
   videoTargetInputName: string;
   videoTargetSourceHandle: string;
   ingressMode: "frame-push" | "webrtc";
+  cameraPublisherStatus: RealtimeCameraFramePublisherStatus;
   previewError: string | null;
   webrtcConfigError: string | null;
   webrtcError: string | null;
@@ -45,6 +49,7 @@ export const RealtimeSessionControlsCard = ({
   videoTargetInputName,
   videoTargetSourceHandle,
   ingressMode,
+  cameraPublisherStatus,
   previewError,
   webrtcConfigError,
   webrtcError,
@@ -121,6 +126,42 @@ export const RealtimeSessionControlsCard = ({
             compact
           />
           <Text color="secondary">Source handle: {videoTargetSourceHandle}</Text>
+        </FlexColumn>
+
+        <FlexColumn gap={1}>
+          <Text weight={600}>Camera Source Status</Text>
+          <StatusIndicator
+            status={cameraPublisherStatus.active ? "success" : "pending"}
+            label={`Camera source: ${
+              cameraPublisherStatus.active ? "active" : "waiting"
+            }`}
+            pulse={cameraPublisherStatus.active}
+          />
+          <Caption>
+            Route:{" "}
+            {cameraPublisherStatus.nodeId && cameraPublisherStatus.inputName
+              ? `${cameraPublisherStatus.nodeId}.${cameraPublisherStatus.inputName}`
+              : `${videoTargetNodeId}.${videoTargetInputName}`}{" "}
+            from{" "}
+            {cameraPublisherStatus.sourceHandle ?? videoTargetSourceHandle}
+          </Caption>
+          <Caption>
+            Cadence: {cameraPublisherStatus.targetFps.toLocaleString()} fps
+          </Caption>
+          <Caption>
+            Frames pushed: {cameraPublisherStatus.framesPublished.toLocaleString()}
+          </Caption>
+          {cameraPublisherStatus.trackId ? (
+            <Caption>Track id: {cameraPublisherStatus.trackId}</Caption>
+          ) : null}
+          {cameraPublisherStatus.skippedReason ? (
+            <Caption color="warning">
+              Waiting: {cameraPublisherStatus.skippedReason}
+            </Caption>
+          ) : null}
+          {cameraPublisherStatus.lastError ? (
+            <Caption color="error">{cameraPublisherStatus.lastError}</Caption>
+          ) : null}
         </FlexColumn>
 
         {previewError ? <Text color="error">{previewError}</Text> : null}

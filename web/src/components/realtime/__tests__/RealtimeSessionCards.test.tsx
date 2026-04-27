@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import type { RealtimeMetrics, RealtimeSessionRecord } from "@nodetool/protocol";
 
 import mockTheme from "../../../__mocks__/themeMock";
+import { RealtimeSessionControlsCard } from "../RealtimeSessionControlsCard";
 import { RealtimeSessionDetailsCard } from "../RealtimeSessionDetailsCard";
 import { RealtimeSessionListCard } from "../RealtimeSessionListCard";
 
@@ -128,5 +129,52 @@ describe("Realtime session cards", () => {
     expect(screen.getByText("session-1")).toBeInTheDocument();
     expect(screen.getByText("session-2")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "View" })[0]).toBeDisabled();
+  });
+
+  it("renders camera source route and cadence status", () => {
+    renderWithTheme(
+      <RealtimeSessionControlsCard
+        brightness={100}
+        isStartSessionDisabled={false}
+        hasPreviewStream
+        hasActiveSession
+        videoTargetNodeId="video-source"
+        videoTargetInputName="camera"
+        videoTargetSourceHandle="realtime_frame"
+        ingressMode="frame-push"
+        cameraPublisherStatus={{
+          enabled: true,
+          active: true,
+          trackId: "track-1",
+          nodeId: "video-source",
+          inputName: "camera",
+          sourceHandle: "realtime_frame",
+          intervalMs: 500,
+          targetFps: 2,
+          framesPublished: 3,
+          lastError: null,
+          skippedReason: null
+        }}
+        previewError={null}
+        webrtcConfigError={null}
+        webrtcError={null}
+        sessionError={null}
+        onBrightnessChange={jest.fn()}
+        onBrightnessCommit={jest.fn()}
+        onVideoTargetNodeIdChange={jest.fn()}
+        onVideoTargetInputNameChange={jest.fn()}
+        onStartPreview={jest.fn()}
+        onStopPreview={jest.fn()}
+        onStartSession={jest.fn()}
+        onStopSession={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText("Camera source: active")).toBeInTheDocument();
+    expect(
+      screen.getByText("Route: video-source.camera from realtime_frame")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Cadence: 2 fps")).toBeInTheDocument();
+    expect(screen.getByText("Frames pushed: 3")).toBeInTheDocument();
   });
 });

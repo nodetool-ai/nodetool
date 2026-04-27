@@ -22,7 +22,10 @@ import {
   useRealtimeSessionWebRTC,
   type RealtimeWebRTCRuntimeMode
 } from "../../hooks/browser/useRealtimeSessionWebRTC";
-import { useRealtimeCameraFramePublisher } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
+import {
+  useRealtimeCameraFramePublisher,
+  type RealtimeCameraFramePublisherStatus
+} from "../../hooks/realtime/useRealtimeCameraFramePublisher";
 import { useRealtimeControlPlane } from "../../hooks/realtime/useRealtimeControlPlane";
 
 interface VideoTrackTarget {
@@ -87,6 +90,7 @@ export interface RealtimeStreamController {
   videoTargetInputName: string;
   videoTargetSourceHandle: string;
   ingressMode: "frame-push" | "webrtc";
+  cameraPublisherStatus: RealtimeCameraFramePublisherStatus;
   previewError: string | null;
   webrtcConfigError: string | null;
   webrtcError: string | null;
@@ -204,7 +208,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       activeSession?.transport === "webrtc" && activeSession.status !== "error",
     runtimeMode: webrtcRuntimeMode
   });
-  useRealtimeCameraFramePublisher({
+  const cameraPublisherStatus = useRealtimeCameraFramePublisher({
     enabled:
       activeSession?.transport !== "webrtc" &&
       Boolean(activeSession) &&
@@ -358,6 +362,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     videoTargetInputName,
     videoTargetSourceHandle,
     ingressMode,
+    cameraPublisherStatus,
     previewError,
     webrtcConfigError,
     webrtcError,

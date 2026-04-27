@@ -105,7 +105,7 @@ describe("useRealtimeCameraFramePublisher", () => {
     jest.useRealTimers();
   });
 
-  it("pushes captured camera frames to the active realtime session at debug cadence", async () => {
+  it("reports active route and cadence after publishing a camera frame", async () => {
     const originalCreateElement = document.createElement.bind(document);
     jest.spyOn(document, "createElement").mockImplementation((tagName) => {
       if (tagName === "video") {
@@ -120,7 +120,7 @@ describe("useRealtimeCameraFramePublisher", () => {
       return originalCreateElement(tagName);
     });
 
-    renderHook(() =>
+    const { result } = renderHook(() =>
       useRealtimeCameraFramePublisher({
         enabled: true,
         previewStream: mockStream(),
@@ -146,6 +146,53 @@ describe("useRealtimeCameraFramePublisher", () => {
         pixel_format: "rgba8",
         sequence: 1
       })
+    });
+    expect(result.current).toMatchObject({
+      active: true,
+      trackId: "camera-track",
+      nodeId: "video-source",
+      inputName: "camera",
+      sourceHandle: "frame",
+      intervalMs: 250,
+      targetFps: 4,
+      framesPublished: 1,
+      lastError: null,
+      skippedReason: null
+    });
+  });
+
+  it("reports a missing route when no enabled video track matches the preview stream", () => {
+    const { result } = renderHook(() =>
+      useRealtimeCameraFramePublisher({
+        enabled: true,
+        previewStream: {
+          getVideoTracks: jest.fn(() => [
+            { id: "other-track" } as MediaStreamTrack
+          ])
+        } as unknown as MediaStream,
+        session: {
+          ...session(),
+          media_tracks: [
+            {
+              track_id: "camera-track",
+              kind: "video",
+              node_id: "video-source",
+              input_name: "camera",
+              label: null,
+              enabled: false
+            }
+          ]
+        },
+        intervalMs: 250,
+        maxWidth: 320
+      })
+    );
+
+    expect(result.current).toMatchObject({
+      active: false,
+      trackId: null,
+      framesPublished: 0,
+      skippedReason: "no_enabled_video_track"
     });
   });
 });

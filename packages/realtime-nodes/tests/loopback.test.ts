@@ -7,7 +7,7 @@ import type {
 } from "@nodetool/protocol";
 import { RealtimeRunner, WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext, StreamingInputs, StreamingOutputs } from "@nodetool/runtime";
 import {
   AudioSink,
   AudioSource,
@@ -139,6 +139,86 @@ describe("realtime frame routing nodes", () => {
     );
 
     const pushedFrame = frame(1);
+    await realtimeRunner.runner.pushInputValue(
+      "camera",
+      pushedFrame,
+      "realtime_frame"
+    );
+
+    const result = await realtimeRunner.stopRealtimeMode();
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.preview).toEqual([pushedFrame]);
+  });
+
+  it("routes pushed video frames through a model frame input handle", async () => {
+    const nodeRegistry = registry();
+    const realtimeRunner = new RealtimeRunner("job-video-model-frame", {
+      resolveExecutor(node) {
+        if (node.type === "test.Model") {
+          return {
+            async process(inputs) {
+              return { frame: inputs.frame };
+            },
+            async run(inputs: StreamingInputs, outputs: StreamingOutputs) {
+              for await (const frame of inputs.stream("frame")) {
+                await outputs.emit("frame", frame);
+              }
+            }
+          };
+        }
+        return resolveFromRegistry(nodeRegistry)(node);
+      }
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      { job_id: "job-video-model-frame", workflow_id: "workflow-1" },
+      {
+        nodes: [
+          videoSourceDescriptor("video-source"),
+          {
+            id: "model",
+            type: "test.Model",
+            is_streaming_input: true,
+            outputs: { frame: "realtime_video_frame" }
+          },
+          {
+            ...VideoSink.toDescriptor("video-sink"),
+            name: "preview"
+          }
+        ],
+        edges: [
+          {
+            source: "video-source",
+            sourceHandle: "realtime_frame",
+            target: "model",
+            targetHandle: "frame"
+          },
+          {
+            source: "model",
+            sourceHandle: "frame",
+            target: "video-sink",
+            targetHandle: "frame"
+          }
+        ]
+      },
+      realtimeSession({
+        session_id: "session-video-model-frame",
+        media_tracks: [
+          {
+            track_id: "track-camera",
+            kind: "video",
+            node_id: "video-source",
+            input_name: "camera",
+            source_handle: "realtime_frame",
+            label: null,
+            enabled: true
+          }
+        ]
+      })
+    );
+
+    const pushedFrame = frame(2);
     await realtimeRunner.runner.pushInputValue(
       "camera",
       pushedFrame,

@@ -77,6 +77,7 @@ const RealtimeStreamPage = () => {
             videoTargetInputName={controller.videoTargetInputName}
             videoTargetSourceHandle={controller.videoTargetSourceHandle}
             ingressMode={controller.ingressMode}
+            cameraPublisherStatus={controller.cameraPublisherStatus}
             previewError={controller.previewError}
             webrtcConfigError={controller.webrtcConfigError}
             webrtcError={controller.webrtcError}
