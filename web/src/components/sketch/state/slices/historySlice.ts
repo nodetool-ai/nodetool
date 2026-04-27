@@ -23,7 +23,7 @@ import type {
 import { MAX_HISTORY_SIZE } from "../../types";
 
 function cloneHistoryValue<T>(value: T): T {
-  if (value == null) {
+  if (value === null || value === undefined) {
     return value;
   }
   if (typeof structuredClone === "function") {

@@ -102,7 +102,7 @@ describe("useHistoryActions", () => {
     expect(redrawDisplay).toHaveBeenCalled();
   });
 
-  it("replays structure-only raster data when runtime canvases drift", () => {
+  it("updates canvas data for structure-only restore when runtime state differs from snapshot", () => {
     const setLayerData = jest.fn();
     const undo = jest.fn(() => makeHistoryEntry("structure-only"));
     const redo = jest.fn(() => null);
