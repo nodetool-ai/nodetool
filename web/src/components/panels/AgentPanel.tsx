@@ -1,6 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useMemo, memo, useEffect, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   Button,
   Menu,
@@ -10,6 +17,8 @@ import {
   DialogContent
 } from "@mui/material";
 import { AgentModelSelect } from "./AgentModelSelect";
+import MediaControlChip from "../chat/composer/MediaControlChip";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -20,15 +29,13 @@ import DesktopWindowsOutlinedIcon from "@mui/icons-material/DesktopWindowsOutlin
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import ChatView from "../chat/containers/ChatView";
 import useAgentStore from "../../stores/AgentStore";
-import type { Message, WorkspaceResponse } from "../../stores/ApiTypes";
+import type {
+  LanguageModel,
+  Message,
+  WorkspaceResponse
+} from "../../stores/ApiTypes";
 import type { AgentProvider, AgentModelDescriptor } from "../../stores/AgentStore";
-
-const PROVIDER_LABELS: Record<AgentProvider, string> = {
-  claude: "Claude",
-  codex: "Codex",
-  opencode: "OpenCode",
-  pi: "Pi",
-};
+import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { DialogActionButtons } from "../ui_primitives/DialogActionButtons";
 import {
   Text,
@@ -39,6 +46,26 @@ import {
   Dialog,
   LoadingSpinner
 } from "../ui_primitives";
+
+const PROVIDER_LABELS: Record<AgentProvider, string> = {
+  claude: "Claude",
+  codex: "Codex",
+  opencode: "OpenCode",
+  pi: "Pi",
+  llm: "LLM"
+};
+
+const ALL_PROVIDERS: AgentProvider[] = [
+  "claude",
+  "codex",
+  "opencode",
+  "pi",
+  "llm"
+];
+
+function isAgentProvider(value: string): value is AgentProvider {
+  return (ALL_PROVIDERS as string[]).includes(value);
+}
 
 import { useQuery } from "@tanstack/react-query";
 import { isLocalhost, isProduction } from "../../lib/env";
@@ -229,6 +256,22 @@ const AgentPanel: React.FC = () => {
   const [draftModel, setDraftModel] = useState<string>("");
   const [draftModels, setDraftModels] = useState<AgentModelDescriptor[]>([]);
   const [draftModelsLoading, setDraftModelsLoading] = useState(false);
+  /**
+   * For provider === "llm" only: the underlying chat provider id of the
+   * currently-picked model, captured at the moment the user picks from
+   * `LanguageModelMenuDialog` (which returns full LanguageModels). The
+   * harness flow leaves this null and falls through to the existing
+   * descriptor-list lookup.
+   */
+  const [draftChatProviderId, setDraftChatProviderId] = useState<string | null>(
+    null
+  );
+  /** Anchor for the LLM language-model dialog opened from the new-session form. */
+  const draftLlmDialogAnchor = useRef<HTMLButtonElement | null>(null);
+  const [draftLlmDialogOpen, setDraftLlmDialogOpen] = useState(false);
+  /** Anchor for the LLM language-model dialog opened from the chat toolbar. */
+  const toolbarLlmDialogAnchor = useRef<HTMLButtonElement | null>(null);
+  const [toolbarLlmDialogOpen, setToolbarLlmDialogOpen] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const [resumeAnchorEl, setResumeAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -252,6 +295,7 @@ const AgentPanel: React.FC = () => {
     setProvider,
     model,
     setModel,
+    chatProviderId,
     availableModels,
     modelsLoading,
     loadModels,
@@ -277,6 +321,7 @@ const AgentPanel: React.FC = () => {
         setProvider: state.setProvider,
         model: state.model,
         setModel: state.setModel,
+        chatProviderId: state.chatProviderId,
         availableModels: state.availableModels,
         modelsLoading: state.modelsLoading,
         loadModels: state.loadModels,
@@ -305,6 +350,9 @@ const AgentPanel: React.FC = () => {
   });
 
   const mcpInstalledForProvider = useMemo(() => {
+    // The LLM provider runs in-process and doesn't need an MCP install on
+    // the host — its tools are dispatched directly over the agent socket.
+    if (provider === "llm") return true;
     if (!mcpStatus?.targets) return true;
     const entry = mcpStatus.targets.find((t) => t.target === provider);
     return entry?.installed ?? true;
@@ -313,6 +361,8 @@ const AgentPanel: React.FC = () => {
   const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
 
   const hasRunningSession = Boolean(sessionId);
+  const isLlmProvider = provider === "llm";
+  const isDraftLlmProvider = draftProvider === "llm";
 
   useEffect(() => {
     useAgentStore.getState().loadSessions();
@@ -331,7 +381,11 @@ const AgentPanel: React.FC = () => {
   }, [workspaces, workspaceId, setWorkspaceContext]);
 
   useEffect(() => {
-    if (!newSessionDialogOpen || !draftWorkspacePath) {
+    // The harness providers' model lists depend on the workspace (e.g. Claude
+    // Code reads `~/.config`). The "llm" provider aggregates from registered
+    // chat providers and ignores the workspace, so we don't gate on it.
+    const isLlm = draftProvider === "llm";
+    if (!newSessionDialogOpen || (!isLlm && !draftWorkspacePath)) {
       setDraftModels([]);
       setDraftModelsLoading(false);
       return;
@@ -341,7 +395,7 @@ const AgentPanel: React.FC = () => {
     getAgentSocketClient()
       .listModels({
         provider: draftProvider,
-        workspacePath: draftWorkspacePath
+        workspacePath: isLlm ? undefined : draftWorkspacePath ?? undefined
       })
       .then((models) => {
         if (cancelled) {
@@ -389,16 +443,18 @@ const AgentPanel: React.FC = () => {
     setDraftWorkspaceId(workspaceId);
     setDraftWorkspacePath(workspacePath);
     setDraftModel(model);
+    setDraftChatProviderId(chatProviderId);
     setNewSessionDialogOpen(true);
-  }, [provider, workspaceId, workspacePath, model]);
+  }, [provider, workspaceId, workspacePath, model, chatProviderId]);
 
   const handleCreateNewSession = useCallback(() => {
     setDraftProvider(provider);
     setDraftWorkspaceId(workspaceId);
     setDraftWorkspacePath(workspacePath);
     setDraftModel(model);
+    setDraftChatProviderId(chatProviderId);
     setNewSessionDialogOpen(true);
-  }, [provider, workspaceId, workspacePath, model]);
+  }, [provider, workspaceId, workspacePath, model, chatProviderId]);
 
   const handleResumeSession = useCallback(
     async (targetSessionId: string) => {
@@ -438,7 +494,9 @@ const AgentPanel: React.FC = () => {
   const providerLabel = PROVIDER_LABELS[provider];
   const draftProviderLabel = PROVIDER_LABELS[draftProvider];
   const canCreateSession =
-    Boolean(draftWorkspacePath) &&
+    (isDraftLlmProvider
+      ? Boolean(draftChatProviderId)
+      : Boolean(draftWorkspacePath)) &&
     Boolean(draftModel) &&
     !draftModelsLoading &&
     !creatingSession;
@@ -455,21 +513,40 @@ const AgentPanel: React.FC = () => {
   );
 
   const handleConfirmNewSession = useCallback(async () => {
-    if (!draftWorkspacePath || !draftModel) {
+    if (!draftModel) {
+      return;
+    }
+    if (!isDraftLlmProvider && !draftWorkspacePath) {
+      return;
+    }
+    if (isDraftLlmProvider && !draftChatProviderId) {
       return;
     }
     setCreatingSession(true);
     try {
       setProvider(draftProvider);
-      setModel(draftModel);
-      setWorkspaceContext(draftWorkspaceId, draftWorkspacePath);
+      // For LLM, pass chatProviderId explicitly — the LanguageModelMenuDialog
+      // returns full LanguageModels that aren't in `availableModels` (which
+      // is populated from the AgentSdkProvider list, not the tRPC aggregate),
+      // so the descriptor-lookup branch inside setModel would resolve null.
+      setModel(
+        draftModel,
+        isDraftLlmProvider ? draftChatProviderId ?? undefined : undefined
+      );
+      if (!isDraftLlmProvider) {
+        setWorkspaceContext(draftWorkspaceId, draftWorkspacePath);
+      }
 
       if (hasRunningSession) {
         await startNewSession();
       } else {
         await createSession({
-          workspacePath: draftWorkspacePath,
-          workspaceId: draftWorkspaceId ?? undefined
+          workspacePath: isDraftLlmProvider
+            ? undefined
+            : draftWorkspacePath ?? undefined,
+          workspaceId: isDraftLlmProvider
+            ? undefined
+            : draftWorkspaceId ?? undefined
         });
       }
       setNewSessionDialogOpen(false);
@@ -480,11 +557,14 @@ const AgentPanel: React.FC = () => {
     }
   }, [
     createSession,
+    draftChatProviderId,
     draftModel,
+    draftModels,
     draftProvider,
     draftWorkspaceId,
     draftWorkspacePath,
     hasRunningSession,
+    isDraftLlmProvider,
     setModel,
     setProvider,
     setWorkspaceContext,
@@ -553,7 +633,7 @@ const AgentPanel: React.FC = () => {
               variant="outlined"
               size="small"
               onClick={handleStartSession}
-              disabled={!workspacePath}
+              disabled={!isLlmProvider && !workspacePath}
               startIcon={<PlayArrowRoundedIcon />}
               css={startButtonStyles(theme)}
             >
@@ -612,28 +692,15 @@ const AgentPanel: React.FC = () => {
   }, [creatingSession]);
 
   // Stable handler for provider change in dialog
-  const handleDraftProviderChange = useCallback(
-    (value: string) => {
-      if (
-        value === "claude" ||
-        value === "codex" ||
-        value === "opencode" ||
-        value === "pi"
-      ) {
-        setDraftProvider(value);
-      }
-    },
-    []
-  );
+  const handleDraftProviderChange = useCallback((value: string) => {
+    if (isAgentProvider(value)) {
+      setDraftProvider(value);
+    }
+  }, []);
 
   const handleProviderSelectChange = useCallback(
     (value: string) => {
-      if (
-        value === "claude" ||
-        value === "codex" ||
-        value === "opencode" ||
-        value === "pi"
-      ) {
+      if (isAgentProvider(value)) {
         setProvider(value);
       }
     },
@@ -643,12 +710,7 @@ const AgentPanel: React.FC = () => {
   const providerSelectOptions = useMemo<
     Array<{ id: string; label: string }>
   >(
-    () => [
-      { id: "claude", label: "Claude" },
-      { id: "codex", label: "Codex" },
-      { id: "opencode", label: "OpenCode" },
-      { id: "pi", label: "Pi" }
-    ],
+    () => ALL_PROVIDERS.map((id) => ({ id, label: PROVIDER_LABELS[id] })),
     []
   );
 
@@ -679,6 +741,24 @@ const AgentPanel: React.FC = () => {
     void handleConfirmNewSession();
   }, [handleConfirmNewSession]);
 
+  const dialogLlmModelButtonSx = useMemo(
+    () => ({
+      justifyContent: "flex-start",
+      width: "100%",
+      height: 32,
+      padding: "0 10px",
+      textTransform: "none" as const,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.primary,
+      borderColor: theme.vars.palette.divider,
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }),
+    [theme]
+  );
+
   const toolbarButtonSx = useMemo(
     () => ({
       borderRadius: "var(--rounded-md)",
@@ -699,12 +779,8 @@ const AgentPanel: React.FC = () => {
   );
 
   const providerOptions = useMemo(
-    () => [
-      { value: "claude", label: "Claude" },
-      { value: "codex", label: "Codex" },
-      { value: "opencode", label: "OpenCode" },
-      { value: "pi", label: "Pi" }
-    ],
+    () =>
+      ALL_PROVIDERS.map((id) => ({ value: id, label: PROVIDER_LABELS[id] })),
     []
   );
 
@@ -745,7 +821,7 @@ const AgentPanel: React.FC = () => {
             <IconButton
               size="small"
               onClick={handleCreateNewSession}
-              disabled={!isAvailable || !workspacePath}
+              disabled={!isAvailable || (!isLlmProvider && !workspacePath)}
               aria-label="New session"
               sx={toolbarButtonSx}
             >
@@ -825,28 +901,76 @@ const AgentPanel: React.FC = () => {
             />
           </div>
 
-          <div css={dialogFieldStyles}>
-            <SelectField
-              label="Model"
-              value={draftModel}
-              onChange={handleDraftModelChange}
-              options={modelOptions}
-              disabled={draftModelsLoading || draftModels.length === 0}
-              size="small"
-              variant="outlined"
-            />
-          </div>
+          {isDraftLlmProvider ? (
+            // The non-harness "llm" provider runs against any registered
+            // chat provider, so its model catalog comes from the regular
+            // tRPC `models.llmByProvider` aggregate (with tool-call
+            // filtering) rather than the AgentSdkProvider list. Use the
+            // shared LanguageModelMenuDialog so users get the same rich
+            // picker the rest of the app uses.
+            <div css={dialogFieldStyles}>
+              <Caption size="smaller" sx={{ display: "block", mb: 0.5 }}>
+                Model
+              </Caption>
+              <Button
+                ref={draftLlmDialogAnchor}
+                size="small"
+                variant="outlined"
+                onClick={() => setDraftLlmDialogOpen(true)}
+                sx={dialogLlmModelButtonSx}
+              >
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {draftModel
+                    ? `${draftModel}${
+                        draftChatProviderId ? ` (${draftChatProviderId})` : ""
+                      }`
+                    : "Select model…"}
+                </span>
+              </Button>
+              <LanguageModelMenuDialog
+                open={draftLlmDialogOpen}
+                anchorEl={draftLlmDialogAnchor.current}
+                onClose={() => setDraftLlmDialogOpen(false)}
+                requireToolSupport
+                onModelChange={(m: LanguageModel) => {
+                  setDraftModel(m.id);
+                  setDraftChatProviderId(m.provider ?? null);
+                  setDraftLlmDialogOpen(false);
+                }}
+              />
+            </div>
+          ) : (
+            <div css={dialogFieldStyles}>
+              <SelectField
+                label="Model"
+                value={draftModel}
+                onChange={handleDraftModelChange}
+                options={modelOptions}
+                disabled={draftModelsLoading || draftModels.length === 0}
+                size="small"
+                variant="outlined"
+              />
+            </div>
+          )}
 
-          <div css={dialogFieldStyles}>
-            <SelectField
-              label="Workspace"
-              value={draftWorkspaceId ?? ""}
-              onChange={handleWorkspaceChange}
-              options={workspaceOptions}
-              size="small"
-              variant="outlined"
-            />
-          </div>
+          {!isDraftLlmProvider && (
+            <div css={dialogFieldStyles}>
+              <SelectField
+                label="Workspace"
+                value={draftWorkspaceId ?? ""}
+                onChange={handleWorkspaceChange}
+                options={workspaceOptions}
+                size="small"
+                variant="outlined"
+              />
+            </div>
+          )}
 
           {draftModelsLoading && (
             <FlexRow align="center" gap={1} sx={{ marginTop: "8px" }}>
@@ -888,13 +1012,47 @@ const AgentPanel: React.FC = () => {
               disabled={hasRunningSession}
               searchable={false}
             />
-            <AgentModelSelect
-              value={model}
-              options={availableModels}
-              onChange={setModel}
-              disabled={hasRunningSession || availableModels.length === 0}
-              loading={modelsLoading}
-            />
+            {isLlmProvider ? (
+              // The non-harness "llm" provider uses the regular tRPC
+              // language-model catalog instead of the AgentSdkProvider list,
+              // so render the same picker the rest of the app uses.
+              <>
+                <MediaControlChip
+                  ref={toolbarLlmDialogAnchor}
+                  size="sm"
+                  icon={<AutoAwesomeIcon fontSize="small" />}
+                  label={
+                    model
+                      ? `${model}${
+                          chatProviderId ? ` (${chatProviderId})` : ""
+                        }`
+                      : "Select model…"
+                  }
+                  truncate
+                  active={toolbarLlmDialogOpen}
+                  disabled={hasRunningSession}
+                  onClick={() => setToolbarLlmDialogOpen(true)}
+                />
+                <LanguageModelMenuDialog
+                  open={toolbarLlmDialogOpen}
+                  anchorEl={toolbarLlmDialogAnchor.current}
+                  onClose={() => setToolbarLlmDialogOpen(false)}
+                  requireToolSupport
+                  onModelChange={(m: LanguageModel) => {
+                    setModel(m.id, m.provider ?? undefined);
+                    setToolbarLlmDialogOpen(false);
+                  }}
+                />
+              </>
+            ) : (
+              <AgentModelSelect
+                value={model}
+                options={availableModels}
+                onChange={setModel}
+                disabled={hasRunningSession || availableModels.length === 0}
+                loading={modelsLoading}
+              />
+            )}
           </FlexRow>
         }
       />

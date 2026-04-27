@@ -65,6 +65,7 @@ type ChatInputSectionProps = {
   agentPlanner?: AgentPlanner;
   onAgentPlannerChange?: (planner: AgentPlanner) => void;
   allowedProviders?: string[];
+  requireToolSupport?: boolean;
   variant?: ChatComposerVariant;
   /**
    * Extra node rendered in the composer footer (left of the action
@@ -85,6 +86,7 @@ const ChatInputSection = ({
   agentPlanner,
   onAgentPlannerChange,
   allowedProviders,
+  requireToolSupport,
   variant = "media",
   composerToolbar
 }: ChatInputSectionProps) => {
@@ -118,6 +120,7 @@ const ChatInputSection = ({
             agentPlanner={agentPlanner}
             onAgentPlannerChange={onAgentPlannerChange}
             allowedProviders={allowedProviders}
+            requireToolSupport={requireToolSupport}
           />
         )}
       </div>

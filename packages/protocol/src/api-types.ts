@@ -680,6 +680,14 @@ export interface LanguageModel {
   provider: Provider;
   path?: string | null;
   supported_tasks?: string[];
+  /**
+   * Whether this model supports tool / function calling. `null` or omitted
+   * means unknown — callers should treat it as supported by default. Set
+   * explicitly to `false` for models the provider declares as
+   * non-tool-capable (e.g. HuggingFace inference models, Replicate, OpenAI
+   * `o1` family on OpenRouter).
+   */
+  supports_tools?: boolean | null;
 }
 
 export interface EmbeddingModel {
@@ -774,6 +782,8 @@ export interface UnifiedModel {
   supported_tasks?: string[] | null;
   trending_score?: number | null;
   image?: string | null;
+  /** See {@link LanguageModel.supports_tools}. Only meaningful for LLMs. */
+  supports_tools?: boolean | null;
 }
 
 export interface ModelPack {
