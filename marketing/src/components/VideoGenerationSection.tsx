@@ -53,7 +53,7 @@ export default function VideoGenerationSection({
             className="text-lg text-slate-400 leading-relaxed"
           >
             Generate videos from text or images using state-of-the-art models.
-            Support for Seedance 2.0, OpenAI Sora, Google Veo, Kling 3.0, and local generation.
+            Support for Google Veo, Kling, Hailuo, Wan, and local open-weight generation.
           </motion.p>
 
           <motion.div
@@ -86,48 +86,48 @@ export default function VideoGenerationSection({
         >
           {[
             {
-              title: "Seedance 2.0",
-              description: "State-of-the-art video generation with exceptional motion quality",
+              title: "Wan 2.2",
+              description: "Open-weight video diffusion via Replicate—text-to-video and image-to-video.",
               icon: Film,
-              category: "Best-in-Class",
-              features: ["Text-to-video", "Image-to-video", "Superior motion"],
+              category: "Open Weights",
+              features: ["Text-to-video", "Image-to-video", "Open model"],
               color: "text-green-400",
               bg: "bg-green-500/10",
               border: "border-green-500/20",
             },
             {
-              title: "Kling 3.0",
-              description: "Latest Kling model with cinematic quality",
+              title: "Kling v2.1",
+              description: "Kuaishou's Kling 2.1—5s and 10s clips at up to 1080p from a starting image.",
               icon: Video,
               category: "Text & Image to Video",
-              features: ["Text-to-video", "Image-to-video", "Cinematic output"],
+              features: ["Image-to-video", "Up to 1080p", "Cinematic output"],
               color: "text-cyan-400",
               bg: "bg-cyan-500/10",
               border: "border-cyan-500/20",
             },
             {
-              title: "OpenAI Sora",
-              description: "Sora 2 & Sora 2 Pro models",
+              title: "Hailuo 02",
+              description: "MiniMax Hailuo 02—6s or 10s clips at 768p or 1080p with strong real-world physics.",
               icon: Video,
               category: "Text & Image to Video",
-              features: ["Text-to-video", "Image-to-video", "Auto-sizing"],
+              features: ["Text-to-video", "Image-to-video", "Real-world physics"],
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",
               border: "border-emerald-500/20",
             },
             {
-              title: "Google Veo",
-              description: "Veo 2.0, 3.0, and 3.0 Fast",
+              title: "Google Veo 3.1",
+              description: "Latest Veo with image-to-video and high motion fidelity.",
               icon: ImageIcon,
               category: "Text & Image to Video",
-              features: ["Text-to-video", "Image-to-video", "Fast generation"],
+              features: ["Text-to-video", "Image-to-video", "High fidelity"],
               color: "text-teal-400",
               bg: "bg-teal-500/10",
               border: "border-teal-500/20",
             },
             {
               title: "HuggingFace",
-              description: "Via inference providers",
+              description: "Pull any compatible video model from the Hub via inference providers.",
               icon: Cloud,
               category: "Cloud Video Models",
               features: ["Text-to-video", "Multiple providers", "API access"],
@@ -137,10 +137,10 @@ export default function VideoGenerationSection({
             },
             {
               title: "Local Generation",
-              description: "Self-hosted video generation—run models entirely on your machine.",
+              description: "Run open-weight video models on your own GPU through the local HuggingFace bridge.",
               icon: Server,
               category: "Self-Hosted",
-              features: ["Wan 2.2 T2V", "No API costs", "Full privacy"],
+              features: ["Open-weight models", "No API costs", "Full privacy"],
               color: "text-blue-400",
               bg: "bg-blue-500/10",
               border: "border-blue-500/20",

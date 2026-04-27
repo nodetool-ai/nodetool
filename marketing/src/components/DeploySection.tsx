@@ -33,9 +33,10 @@ export default function DeploySection({
             </h2>
 
             <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-              Same workflow runs locally or on serverless GPUs with no
-              rewrites. NodeTool provisions infrastructure, downloads models,
-              and configures containers automatically.
+              Same workflow runs locally or on a remote GPU with no rewrites.
+              NodeTool builds the container image and ships it to your provider
+              of choice—RunPod, Google Cloud Run, Fly.io, Railway, or your own
+              SSH host.
             </p>
 
             <div className="flex flex-col gap-6">
@@ -62,10 +63,11 @@ export default function DeploySection({
                   <Zap className="w-5 h-5 text-pink-400" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">Scale to Zero</h3>
+                  <h3 className="text-white font-semibold">Serverless-Ready</h3>
                   <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                    Pay only for active inference time. Endpoints automatically
-                    scale down when idle to save costs.
+                    Deploy to Google Cloud Run for native scale-to-zero, or to
+                    RunPod serverless endpoints—pay only when your workflow
+                    runs.
                   </p>
                 </div>
               </div>
