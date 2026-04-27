@@ -9,7 +9,7 @@ description: "NodeTool documentation — build AI workflows visually. Connect no
   <p class="lead">
    Connect nodes to generate content, analyze data, and automate tasks. Run models locally or via cloud APIs.
   </p>
-  <img src="{{ '/assets/home.jpg' | relative_url }}" alt="NodeTool visual workflow editor" class="home-screenshot">
+  <img src="{{ '/assets/home.png' | relative_url }}" alt="NodeTool visual workflow editor" class="home-screenshot">
   <div class="cta-row">
     <a href="{{ '/' | relative_url }}#start-here" class="cta-button primary">Start Here</a>
     <a href="{{ '/getting-started' | relative_url }}" class="cta-button">Getting Started</a>
