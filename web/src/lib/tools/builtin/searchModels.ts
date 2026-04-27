@@ -11,39 +11,26 @@ type RawModel = {
   repo_id?: string | null;
   description?: string | null;
   downloaded?: boolean | null;
-};
-
-// Map agent-facing kinds to the tRPC `recommended*` endpoints. Each query
-// returns a list of UnifiedModels for that task.
-const KIND_TO_QUERY: Record<string, () => Promise<unknown>> = {
-  text_to_image: () => trpc.models.recommendedImageTextToImage.query(),
-  image_to_image: () => trpc.models.recommendedImageImageToImage.query(),
-  text_to_video: () => trpc.models.recommendedVideoTextToVideo.query(),
-  image_to_video: () => trpc.models.recommendedVideoImageToVideo.query(),
-  text_to_speech: () => trpc.models.recommendedTts.query(),
-  speech_to_text: () => trpc.models.recommendedAsr.query(),
-  text_generation: () => trpc.models.recommendedLanguageTextGeneration.query(),
-  embedding: () => trpc.models.recommendedLanguageEmbedding.query()
+  path?: string | null;
 };
 
 FrontendToolRegistry.register({
   name: "ui_search_models",
   description:
-    "List recommended AI models for a given task category. Use this to find a `model` value before configuring nodes like nodetool.image.TextToImage, nodetool.audio.TextToSpeech, nodetool.agents.Agent, etc.",
+    "List models available to the user for a given task category. Sourced from the user's configured providers (live model lists) plus curated recommendations as a fallback. Each entry is a **ready-to-paste object** for the matching node's `model` property — call `ui_update_node_data({ node_id, data: { properties: { model: <entry> } } })` directly. Do NOT pass a bare id string; the node reads `model.provider` and `model.id` separately.",
   parameters: z.object(uiSearchModelsParams),
   async execute({ kind, limit }) {
-    const query = KIND_TO_QUERY[kind];
-    if (!query) {
-      throw new Error(`Unknown model kind: ${kind}`);
-    }
     const max = Math.max(1, Math.min(50, limit ?? 20));
-    const raw = (await query()) as RawModel[];
+    const raw = (await trpc.models.availableForKind.query({
+      kind
+    })) as RawModel[];
     const models = (raw ?? []).slice(0, max).map((m) => ({
+      type: m.type ?? null,
+      provider: m.provider ?? null,
       id: m.id ?? m.repo_id ?? m.name ?? "",
       name: m.name ?? m.id ?? m.repo_id ?? "",
-      provider: m.provider ?? null,
-      type: m.type ?? null,
       repo_id: m.repo_id ?? null,
+      path: m.path ?? null,
       downloaded: m.downloaded ?? null,
       description: m.description ?? null
     }));
@@ -51,7 +38,9 @@ FrontendToolRegistry.register({
       ok: true,
       kind,
       count: models.length,
-      models
+      models,
+      usage:
+        "Pass the chosen entry directly as the node's `model` property: ui_update_node_data({ node_id, data: { properties: { model: <entry> } } })"
     };
   }
 });
