@@ -200,8 +200,28 @@ const LayerItem: React.FC<LayerItemProps> = ({
           size="small"
           disableRipple
           aria-label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
-          onMouseDown={(e) => onVisibilityButtonMouseDown(e, layer.id)}
-          onMouseEnter={(e) => onVisibilityButtonMouseEnter(e, layer.id)}
+          onPointerDown={(e) =>
+            onVisibilityButtonMouseDown(
+              e as unknown as React.MouseEvent<HTMLButtonElement>,
+              layer.id
+            )
+          }
+          onPointerEnter={(e) =>
+            onVisibilityButtonMouseEnter(
+              e as unknown as React.MouseEvent<HTMLButtonElement>,
+              layer.id
+            )
+          }
+          onPointerUp={(e) => {
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+          }}
+          onPointerCancel={(e) => {
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }
+          }}
           onClick={(e) => onVisibilityButtonClick(e, layer.id)}
           sx={{ padding: SKETCH_SPACING.sm, flexShrink: 0 }}
         >
