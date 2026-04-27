@@ -195,6 +195,12 @@ Known provider node shape: fal has SAM3 image nodes with `image`, `prompt`, `poi
 Guardrail: treat `web/src/components/sketch/sam/` as prototype code to evaluate, not fixed architecture. Keep only the parts that translate sketch document concepts to NodeTool node graphs and back. Sketch defines a small SAM interface for layer split and prompted object separation. Local SAM3 and Provider SAM3 adapters must satisfy that same sketch interface so the user can choose either backend; do not chase provider-specific parity outside sketch needs.
 
 ### [ ] 3.1 Define Local SAM3 Backend
+Execution notes:
+- `web/src/components/sketch/SKETCH_EDITOR_PLAN.md` is the source of truth for this phase.
+- Work tasks top-to-bottom. do not jump to provider SAM3 before Local SAM3 split works.
+- Reuse listed NodeTool infrastructure instead of introducing sketch-specific transport, model, metadata, or asset systems.
+- Prefer targeted tests for the edited sketch/SAM files during each task. Run broader typecheck/lint/test ONLY at complete phase checkpoints, and record pre-existing failures instead of treating them as blockers.
+- Mark a checkbox only after code and focused tests confirm that behavior.
 
 Files:
 - `web/src/components/sketch/sam/SamServiceNode.ts`
