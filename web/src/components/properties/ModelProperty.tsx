@@ -21,6 +21,7 @@ import { useRecommendedModelsForNode } from "../../hooks/useRecommendedModelsFor
 import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import reduceUnionType from "../../hooks/reduceUnionType";
 
 const styles = (theme: Theme) =>
   css({
@@ -59,7 +60,7 @@ const styles = (theme: Theme) =>
 
 const ModelProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
-  const modelType = props.property.type.type;
+  const modelType = reduceUnionType(props.property.type);
   const theme = useTheme();
 
   const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);

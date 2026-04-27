@@ -104,6 +104,14 @@ describe("reduceUnionType", () => {
       ]);
       expect(reduceUnionType(type)).toBe("float");
     });
+
+    it("reduces model|string unions to the model type", () => {
+      const type = createTypeMetadata("union", [
+        createTypeMetadata("hf.text_to_video"),
+        createTypeMetadata("str")
+      ]);
+      expect(reduceUnionType(type)).toBe("hf.text_to_video");
+    });
   });
 
   describe("union types without defined rules", () => {
