@@ -223,7 +223,7 @@ Check:
 - [x] UI shows only automatic layer split for the current local node.
 - [x] Backend selection survives closing and reopening the sketch editor.
 
-### [ ] 3.2 Run SAM Through NodeTool Jobs
+### [x] 3.2 Run SAM Through NodeTool Jobs
 
 Files:
 - `web/src/components/sketch/sam/NodeExecutor.ts`
@@ -233,25 +233,25 @@ Files:
 - `web/src/stores/WorkflowRunner.ts`
 
 Steps:
-- [ ] Use NodeTool's existing single-node WebSocket job pattern from `useNodeTestRunner`.
-- [ ] Factor a shared single-node/inline-graph helper if SAM and node tests need the same code.
-- [ ] Keep `NodeExecutor` only as a thin adapter if a shared helper does not fit.
-- [ ] Build a one-node graph for `huggingface.image_segmentation.MaskGeneration`.
-- [ ] Send `image`, `model: facebook/sam3`, `points_per_side`, and `pred_iou_thresh` as node inputs.
-- [ ] Send the graph through the existing `globalWebSocketManager` connection.
-- [ ] Use the same `run_job` fields as the existing single-node runner, including `job_id`, synthetic `workflow_id`, auth fields, `api_url`, `execution_strategy`, `params`, and `graph`.
-- [ ] Subscribe by `job_id`.
-- [ ] Collect `node_update.result` and `output_update.value`.
-- [ ] Finish on terminal `job_update`.
-- [ ] On abort, update sketch UI and send backend `cancel_job`.
-- [ ] Clean up subscription, timeout, and abort listener.
+- [x] Use NodeTool's existing single-node WebSocket job pattern from `useNodeTestRunner`.
+- [x] Factor a shared single-node/inline-graph helper if SAM and node tests need the same code.
+- [x] Keep `NodeExecutor` only as a thin adapter if a shared helper does not fit.
+- [x] Build a one-node graph for `huggingface.image_segmentation.MaskGeneration`.
+- [x] Send `image`, `model: facebook/sam3`, `points_per_side`, and `pred_iou_thresh` as node inputs.
+- [x] Send the graph through the existing `globalWebSocketManager` connection.
+- [x] Use the same `run_job` fields as the existing single-node runner, including `job_id`, synthetic `workflow_id`, auth fields, `api_url`, `execution_strategy`, `params`, and `graph`.
+- [x] Subscribe by `job_id`.
+- [x] Collect `node_update.result` and `output_update.value`.
+- [x] Finish on terminal `job_update`.
+- [x] On abort, update sketch UI and send backend `cancel_job`.
+- [x] Clean up subscription, timeout, and abort listener.
 
 Check:
-- [ ] SAM does not create a sketch-specific WebSocket.
-- [ ] SAM does not duplicate a full workflow runner.
-- [ ] SAM reuses or shares the existing single-node execution path.
-- [ ] Cancelling a slow local run cancels the backend job.
-- [ ] Tests cover Local SAM3 run message shape, output collection, success, failure, abort, timeout, and cleanup.
+- [x] SAM does not create a sketch-specific WebSocket.
+- [x] SAM does not duplicate a full workflow runner.
+- [x] SAM reuses or shares the existing single-node execution path.
+- [x] Cancelling a slow local run cancels the backend job.
+- [x] Tests cover Local SAM3 run message shape, output collection, success, failure, abort, timeout, and cleanup.
 
 ### [ ] 3.3 Implement Split Selected Layer
 
