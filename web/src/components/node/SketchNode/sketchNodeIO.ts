@@ -41,7 +41,14 @@ function isSketchNodeImageRef(value: unknown): value is SketchNodeImageRef {
     return false;
   }
   const maybeImageRef = value as Partial<SketchNodeImageRef>;
-  return maybeImageRef.type === "image" && typeof maybeImageRef.uri === "string";
+  return (
+    maybeImageRef.type === "image" &&
+    typeof maybeImageRef.uri === "string" &&
+    "asset_id" in maybeImageRef &&
+    (typeof maybeImageRef.asset_id === "string" || maybeImageRef.asset_id === null) &&
+    "data" in maybeImageRef &&
+    maybeImageRef.data === null
+  );
 }
 
 export function collectExposedLayerOutputRefs(

@@ -515,12 +515,12 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   }, []);
 
   useEffect(() => {
-    const handleWindowPointerUp = () => {
+    const handleWindowMouseUp = () => {
       clearVisibilityDragState();
     };
-    window.addEventListener("mouseup", handleWindowPointerUp);
+    window.addEventListener("mouseup", handleWindowMouseUp);
     return () => {
-      window.removeEventListener("mouseup", handleWindowPointerUp);
+      window.removeEventListener("mouseup", handleWindowMouseUp);
     };
   }, [clearVisibilityDragState]);
 
