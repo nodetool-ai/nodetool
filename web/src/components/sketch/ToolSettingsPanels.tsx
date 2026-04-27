@@ -1764,7 +1764,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                 variant="outlined"
                 color="warning"
                 onClick={() => {
-                  void cancelDownload(LOCAL_SAM3_MODEL_ID).catch((error: unknown) => {
+                  cancelDownload(LOCAL_SAM3_MODEL_ID).catch((error: unknown) => {
                     console.warn(
                       "[SegmentSettingsPanel] Failed to cancel Local SAM3 download:",
                       error
