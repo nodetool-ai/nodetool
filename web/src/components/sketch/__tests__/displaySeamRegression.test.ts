@@ -59,6 +59,7 @@ describe("InteractionReadiness", () => {
   it("starts with nothing ready", () => {
     const state = createInitialReadiness();
     expect(state.runtimeReady).toBe(false);
+    expect(state.hydrationPending).toBe(false);
     expect(state.hydrationComplete).toBe(false);
     expect(state.firstFrameComposited).toBe(false);
     expect(isInteractionReady(state)).toBe(false);
@@ -66,21 +67,31 @@ describe("InteractionReadiness", () => {
 
   it("is ready only when all flags are true", () => {
     expect(
-      isInteractionReady({
-        runtimeReady: true,
-        hydrationComplete: true,
-        firstFrameComposited: true
-      })
-    ).toBe(true);
-    expect(
-      isInteractionReady({
-        runtimeReady: true,
-        hydrationComplete: false,
-        firstFrameComposited: true
-      })
-    ).toBe(false);
+        isInteractionReady({
+          runtimeReady: true,
+          hydrationPending: false,
+          hydrationComplete: true,
+          firstFrameComposited: true
+        })
+      ).toBe(true);
+      expect(
+        isInteractionReady({
+          runtimeReady: true,
+          hydrationPending: false,
+          hydrationComplete: false,
+          firstFrameComposited: true
+        })
+      ).toBe(false);
+      expect(
+        isInteractionReady({
+          runtimeReady: true,
+          hydrationPending: true,
+          hydrationComplete: false,
+          firstFrameComposited: false
+        })
+      ).toBe(false);
+    });
   });
-});
 
 // ─── DisplayFrameCoordinator — core ──────────────────────────────────────────
 
@@ -130,6 +141,23 @@ describe("DisplayFrameCoordinator", () => {
       expect(coordinator.isReady()).toBe(true);
 
       coordinator.resetReadiness();
+      expect(coordinator.isReady()).toBe(false);
+    });
+
+    it("markHydrationScheduled preserves runtime readiness but clears hydration/frame readiness", () => {
+      const { coordinator } = makeCoordinator();
+      coordinator.markRuntimeReady();
+      coordinator.markHydrationComplete();
+      coordinator.markFirstFrameComposited();
+
+      coordinator.markHydrationScheduled();
+
+      expect(coordinator.getReadiness()).toMatchObject({
+        runtimeReady: true,
+        hydrationPending: true,
+        hydrationComplete: false,
+        firstFrameComposited: false
+      });
       expect(coordinator.isReady()).toBe(false);
     });
   });

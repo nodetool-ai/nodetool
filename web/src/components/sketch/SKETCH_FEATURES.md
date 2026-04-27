@@ -38,15 +38,15 @@ Do these before advanced transform work, SAM, or new node execution surfaces. Th
 - [ ] [impl+test] close store-vs-runtime canvas drift in history restore paths
   - Audit `structure-only` restore paths and either replay affected pixels into runtime canvases or make the restore mode explicitly impossible for entries whose layer pixel data can differ from runtime surfaces.
   - Add tests that undo/redo transform, selection-derived layer actions, and structure-only entries, then immediately sample/export from runtime canvases without requiring an incidental redraw or brush stroke.
-- [ ] [impl+test] harden first-frame and hydration readiness semantics
+- [x] [impl+test] harden first-frame and hydration readiness semantics
   - Only advance `firstFrameComposited` / interaction readiness after a composite actually reaches the active display target; do not call initial-composite readiness after a no-op `compositeToDisplay` early return.
   - Split “hydration scheduled” from “hydration pixels decoded/uploaded” so async layer decode cannot mark the editor interaction-ready before startup pixels and GPU invalidation are complete.
   - Add tests for fresh-open brush tap, first transform preview, image-backed startup layers, WebGPU bootstrap, and Canvas2D fallback with no prior stroke.
-- [ ] [impl+test] wire transform preview through one coordinator-aware path
+- [x] [impl+test] wire transform preview through one coordinator-aware path
   - Pass the display coordinator through the transform-preview bridge or otherwise route preview redraws with an explicit `transform-preview` reason.
   - Compare full transform identity, including matrix data, when deciding whether a transform preview update can skip redraw.
   - Add tests for matrix-authoritative layers, preview-only transform changes, and startup transform preview without a preceding brush stroke.
-- [ ] [impl+test] reconcile transform target-set semantics with actual tool behavior
+- [x] [impl+test] reconcile transform target-set semantics with actual tool behavior
   - Decide whether `TransformTool` is single-target for now or truly multi-target. If single-target, narrow `TransformTargetSet` naming/comments/state so it cannot imply union-gizmo multi-layer transform support. If multi-target, drive hit-testing, gizmo bounds, preview, and commit from the union helpers and define per-layer preview application.
   - Add tests that prove `Shift+click` target behavior cannot leave stale IDs, wrong gizmo bounds, or mismatched preview/commit targets.
 

@@ -176,11 +176,14 @@ export function useLayerHydration({
       });
     }
 
-    let remainingHydrationJobs = hydrationJobs.length;
-    if (remainingHydrationJobs === 0) {
+    if (hydrationJobs.length === 0) {
       coordinatorRef?.current?.markHydrationComplete();
       return;
     }
+    coordinatorRef?.current?.markHydrationScheduled();
+    const pendingHydrationLayerIds = new Set(
+      hydrationJobs.map((job) => job.layerId)
+    );
 
     for (const job of hydrationJobs) {
       runtime.setLayerData(
@@ -188,12 +191,17 @@ export function useLayerHydration({
         job.source,
         job.defaultBounds,
         () => {
+          // Ignore callbacks from a prior hydration cycle so stale async image
+          // decodes cannot complete the current startup path.
           if (hydrationCycleRef.current !== cycleId) {
             return;
           }
           if (
             hydratedLayerStateRef.current.get(job.layerId) !== job.hydrationKey
           ) {
+            return;
+          }
+          if (!pendingHydrationLayerIds.has(job.layerId)) {
             return;
           }
           const lc = layerCanvasesRef.current.get(job.layerId);
@@ -205,8 +213,8 @@ export function useLayerHydration({
           }
           invalidateLayer(job.layerId);
           requestRedraw();
-          remainingHydrationJobs -= 1;
-          if (remainingHydrationJobs === 0) {
+          pendingHydrationLayerIds.delete(job.layerId);
+          if (pendingHydrationLayerIds.size === 0) {
             coordinatorRef?.current?.markHydrationComplete();
           }
         }
