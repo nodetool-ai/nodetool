@@ -1196,16 +1196,9 @@ const registerGlobalChatListeners = () => {
   };
 };
 
-let teardownGlobalChatListeners: (() => void) | null = null;
-
 if (typeof window !== "undefined") {
-  teardownGlobalChatListeners = registerGlobalChatListeners();
+  registerGlobalChatListeners();
 }
-
-export const removeGlobalChatListeners = () => {
-  teardownGlobalChatListeners?.();
-  teardownGlobalChatListeners = null;
-};
 
 // Custom hook for TanStack Query thread loading
 export const useThreadsQuery = () => {

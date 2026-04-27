@@ -1,4 +1,4 @@
-import { Tray, Menu, app, BrowserWindow, shell } from "electron";
+import { Tray, Menu, app, shell } from "electron";
 import path from "path";
 import { promises as fs } from "fs";
 import { logMessage, LOG_FILE } from "./logger";

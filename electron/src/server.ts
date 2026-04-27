@@ -1,5 +1,4 @@
 import { dialog, shell, app } from "electron";
-import { spawn } from "child_process";
 import { logMessage } from "./logger";
 import {
   getLlamaServerPath,
@@ -38,7 +37,7 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { readSettings, getModelServiceStartupSettings, readSettingsAsync } from "./settings";
+import { getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 import { probeHttpOk, waitForHttpOk } from "./httpProbe";
 
 let backendWatchdog: Watchdog | null = null;
