@@ -14,6 +14,7 @@ import ModelListHeader from "./ModelListHeader";
 import ModelTypeSidebar from "./ModelTypeSidebar";
 import DeleteModelDialog from "./DeleteModelDialog";
 import { prettifyModelType } from "../../../utils/modelFormatting";
+import { IconForType } from "../../../config/data_types";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
@@ -197,7 +198,7 @@ const ModelListIndex: React.FC = () => {
     count: flattenedList.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: (index) =>
-      flattenedList[index]?.type === "header" ? 48 : 150,
+      flattenedList[index]?.type === "header" ? 48 : 168,
     overscan: 5,
     getItemKey: (index) => {
       const item = flattenedList[index];
@@ -372,9 +373,57 @@ const ModelListIndex: React.FC = () => {
             </Text>
           )}
           {selectedModelType !== "All" && (
-            <Text size="bigger" sx={{ fontSize: "1.25em", mb: 2 }}>
-              {prettifyModelType(selectedModelType)}
-            </Text>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 2,
+                pt: 1,
+                pb: 2.5,
+                mb: 1,
+                borderBottom: `1px solid ${theme.vars.palette.divider}`
+              }}
+            >
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 40,
+                  height: 40,
+                  borderRadius: "var(--rounded-lg)",
+                  background:
+                    "rgba(var(--palette-primary-main-channel) / 0.12)",
+                  flexShrink: 0
+                }}
+              >
+                <IconForType
+                  iconName={selectedModelType.replace(/^hf\./, "") || "model"}
+                  containerStyle={{ display: "flex" }}
+                  svgProps={{
+                    style: {
+                      width: 22,
+                      height: 22,
+                      color: theme.vars.palette.primary.main
+                    }
+                  }}
+                  showTooltip={false}
+                />
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Text size="bigger" weight={700} sx={{ fontSize: "1.5em", lineHeight: 1.2 }}>
+                  {prettifyModelType(selectedModelType)}
+                </Text>
+                <Text
+                  size="small"
+                  color="secondary"
+                  sx={{ mt: 0.5, display: "block" }}
+                >
+                  {filteredModels.length} model
+                  {filteredModels.length === 1 ? "" : "s"} in this category
+                </Text>
+              </Box>
+            </Box>
           )}
           {flattenedList.length > 0 ? (
             <div
