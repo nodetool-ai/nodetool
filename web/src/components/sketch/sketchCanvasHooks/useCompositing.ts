@@ -287,7 +287,7 @@ export function useCompositing({
     if (didComposite) {
       coordinatorRef.current?.notifyInitialComposite();
     }
-  }, [bootstrapPhaseActive, backend]);
+  }, [bootstrapPhaseActive, backend, coordinatorRef]);
 
   useEffect(() => {
     requestRedraw();
