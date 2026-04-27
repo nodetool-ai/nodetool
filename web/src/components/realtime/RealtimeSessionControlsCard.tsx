@@ -17,6 +17,8 @@ interface RealtimeSessionControlsCardProps {
   hasActiveSession: boolean;
   videoTargetNodeId: string;
   videoTargetInputName: string;
+  videoTargetSourceHandle: string;
+  ingressMode: "frame-push" | "webrtc";
   previewError: string | null;
   webrtcConfigError: string | null;
   webrtcError: string | null;
@@ -41,6 +43,8 @@ export const RealtimeSessionControlsCard = ({
   hasActiveSession,
   videoTargetNodeId,
   videoTargetInputName,
+  videoTargetSourceHandle,
+  ingressMode,
   previewError,
   webrtcConfigError,
   webrtcError,
@@ -95,10 +99,14 @@ export const RealtimeSessionControlsCard = ({
         </FlexColumn>
 
         <FlexColumn gap={1.5}>
-          <Text weight={600}>WebRTC Video Track Mapping</Text>
+          <Text weight={600}>Video Track Mapping</Text>
+          <Text color="secondary">
+            Ingress: {ingressMode === "webrtc" ? "WebRTC transport" : "frame-push"}
+          </Text>
           <Text color="secondary">
             Map the browser camera track to the realtime workflow node input that
-            should receive the media stream.
+            should receive the media stream. WebRTC is an explicit advanced
+            transport option; the local MVP uses frame-push by default.
           </Text>
           <TextInput
             label="Target node id"
@@ -112,6 +120,7 @@ export const RealtimeSessionControlsCard = ({
             onChange={(event) => onVideoTargetInputNameChange(event.target.value)}
             compact
           />
+          <Text color="secondary">Source handle: {videoTargetSourceHandle}</Text>
         </FlexColumn>
 
         {previewError ? <Text color="error">{previewError}</Text> : null}

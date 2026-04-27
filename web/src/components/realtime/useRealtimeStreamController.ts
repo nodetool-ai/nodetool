@@ -11,7 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 import type {
   RealtimeMetrics,
   RealtimeSessionRecord,
-  RealtimeSignalingStatus
+  RealtimeSignalingStatus,
+  RealtimeSessionTransport
 } from "@nodetool/protocol";
 
 import type { Workflow } from "../../stores/ApiTypes";
@@ -84,6 +85,8 @@ export interface RealtimeStreamController {
   brightness: number;
   videoTargetNodeId: string;
   videoTargetInputName: string;
+  videoTargetSourceHandle: string;
+  ingressMode: "frame-push" | "webrtc";
   previewError: string | null;
   webrtcConfigError: string | null;
   webrtcError: string | null;
@@ -181,6 +184,11 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     const params = new URLSearchParams(location.search);
     return params.get("webrtcRuntime") === "backend" ? "backend" : "loopback";
   }, [location.search]);
+  const sessionTransport = useMemo<RealtimeSessionTransport>(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("transport") === "webrtc" ? "webrtc" : "websocket";
+  }, [location.search]);
+  const ingressMode = sessionTransport === "webrtc" ? "webrtc" : "frame-push";
   const {
     remoteStream,
     signalingStatus,
@@ -197,7 +205,10 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     runtimeMode: webrtcRuntimeMode
   });
   useRealtimeCameraFramePublisher({
-    enabled: Boolean(activeSession) && Boolean(previewStream),
+    enabled:
+      activeSession?.transport !== "webrtc" &&
+      Boolean(activeSession) &&
+      Boolean(previewStream),
     previewStream,
     session: activeSession,
     intervalMs: 500,
@@ -255,7 +266,9 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     }
 
     if (!previewStream) {
-      setWebrtcConfigError("Start the camera preview before launching WebRTC.");
+      setWebrtcConfigError(
+        "Start the camera preview before launching the realtime session."
+      );
       return;
     }
 
@@ -285,7 +298,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       },
       undefined,
       {
-        transport: "webrtc",
+        transport: sessionTransport,
         mediaTracks,
         signaling: {
           status: "idle"
@@ -295,6 +308,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   }, [
     brightness,
     previewStream,
+    sessionTransport,
     startSession,
     videoTargetInputName,
     videoTargetNodeId,
@@ -342,6 +356,8 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     brightness,
     videoTargetNodeId,
     videoTargetInputName,
+    videoTargetSourceHandle,
+    ingressMode,
     previewError,
     webrtcConfigError,
     webrtcError,

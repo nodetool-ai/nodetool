@@ -19,12 +19,12 @@ const RealtimeStreamPage = () => {
     <FlexColumn gap={3} padding={3} fullWidth fullHeight>
       <FlexColumn gap={1}>
         <Text size="big" weight={600}>
-          Realtime Session MVP
+          Realtime Session Controls
         </Text>
         <Text color="secondary">
-          This first slice adds a dedicated realtime session control plane to
-          NodeTool: session lifecycle, live parameter updates, session state,
-          and a local camera preview.
+          Developer controls for realtime session lifecycle, live parameter
+          updates, and camera ingress. The graph editor remains the product path;
+          this page is for inspecting and exercising transports.
         </Text>
       </FlexColumn>
 
@@ -60,11 +60,13 @@ const RealtimeStreamPage = () => {
       <FlexRow gap={3} align="stretch" sx={{ flexWrap: "wrap" }}>
         <FlexColumn gap={3} sx={{ flex: "1 1 420px", minWidth: 320 }}>
           <VideoPreview stream={controller.previewStream} />
-          <VideoPreview
-            stream={controller.remoteStream}
-            title="WebRTC Runtime Preview"
-            emptyText="Start a realtime session to negotiate the WebRTC proof transport and mirror the mapped runtime stream."
-          />
+          {controller.ingressMode === "webrtc" ? (
+            <VideoPreview
+              stream={controller.remoteStream}
+              title="WebRTC Runtime Preview"
+              emptyText="Start a realtime session to negotiate the WebRTC transport and mirror the mapped runtime stream."
+            />
+          ) : null}
 
           <RealtimeSessionControlsCard
             brightness={controller.brightness}
@@ -73,6 +75,8 @@ const RealtimeStreamPage = () => {
             hasActiveSession={Boolean(controller.activeSession)}
             videoTargetNodeId={controller.videoTargetNodeId}
             videoTargetInputName={controller.videoTargetInputName}
+            videoTargetSourceHandle={controller.videoTargetSourceHandle}
+            ingressMode={controller.ingressMode}
             previewError={controller.previewError}
             webrtcConfigError={controller.webrtcConfigError}
             webrtcError={controller.webrtcError}

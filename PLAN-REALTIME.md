@@ -23,7 +23,7 @@ Success means a user selects a camera, starts the workflow, and sees generated m
 
 ## UI Priorities
 
-Use Daydream only as product guidance:
+product guidance:
 
 - Big live preview first.
 - Minimal controls: source, prompt, model profile, LoRA, reference image.
@@ -32,29 +32,84 @@ Use Daydream only as product guidance:
 - Fast Play/Stop and prompt updates.
 - No timeline, preset community, plugin marketplace, or standalone operator UI before the graph MVP works.
 
+## Source UX Direction
+
+- `Video Source` is the one user-facing source node, not separate normal-camera and realtime-camera nodes.
+- The MVP source mode is camera capture with device selection, live preview, still capture, and a `realtime_frame` output.
+- The normal workflow output is `image`, filled by an explicit Capture Still action even when a workflow is not running.
+- The realtime workflow output is `realtime_frame`, routed as `Video Source.realtime_frame -> model.frame`.
+- Future source modes are video assets (`VideoRef` playback), NDI, Syphon, Spout, and audio input/output where the workflow needs it. Do not add those before the camera MVP works.
+
 ## Phase 0: Cleanup Before More Feature Work
 
 These tasks must leave the codebase easier to run, not just better described. Each task has a concrete artifact to check.
 
-### [ ] 0.1 Create MVP Starter Template
+### [ ] 0.1 Use One Camera Ingress Path
+
+Files:
+- `packages/base-nodes/src/nodes/video.ts`
+- `packages/base-nodes/src/index.ts`
+- `packages/base-nodes/tests/nodes.test.ts`
+- `web/src/components/video/VideoSourceNode.tsx`
+- `web/src/components/video/captureStillImage.ts`
+- `web/src/components/video/__tests__/captureStillImage.test.ts`
+- `web/src/components/node/ReactFlowWrapper.tsx`
+- `web/src/hooks/browser/useVideoCapture.ts`
+- `web/src/hooks/realtime/useRealtimeCameraFramePublisher.ts`
+- `web/src/components/realtime/useRealtimeStreamController.ts`
+- `packages/protocol/src/messages.ts`
+- `packages/protocol/src/api-schemas/realtime.ts`
+- `packages/runtime/src/python-bridge-types.ts`
+- `packages/websocket/src/realtime/command-normalization.ts`
+- `packages/websocket/src/realtime/frame-router.ts`
+- `packages/websocket/tests/realtime-command-handler.test.ts`
+- `packages/realtime-nodes/src/index.ts`
+- `packages/realtime-nodes/tests/loopback.test.ts`
+- `packages/realtime-nodes/tests/registration.test.ts`
+- `packages/kernel/src/runner.ts`
+- `packages/kernel/src/realtime-runner.ts`
+- `packages/kernel/tests/realtime-runner.test.ts`
+
+Steps:
+- [x] Add `nodetool.video.VideoSource` as the normal graph source node.
+- [x] Expose `Video Source` in the node menu and make it searchable by webcam/camera/video input terms.
+- [x] Reuse `useVideoCapture` for camera enumeration, device selection, and live preview.
+- [x] Add Capture Still to populate the normal `image` output outside workflow execution.
+- [x] Add explicit `image` and `realtime_frame` outputs so realtime frames do not collide with existing video frame-as-image nodes.
+- [x] Add `source_handle` to realtime media track mappings.
+- [x] Treat all streaming media adapters as external input nodes, not only `nodetool.realtime.*` nodes.
+- [x] Route pushed frames through the configured source handle, defaulting existing realtime adapters to `frame`.
+- [x] Auto-select the first graph media adapter in the realtime controller, using `realtime_frame` for `nodetool.video.VideoSource`.
+- [x] Remove the duplicate `nodetool.realtime.VideoSource` registration so video ingress has one user-facing node.
+- [x] Disable WebRTC camera publishing when frame-push is active for the same session/input.
+- [ ] Add status for selected device, target handle, frame cadence, and routing errors.
+
+Check:
+- [x] Focused kernel/websocket tests route frames through `VideoSource.realtime_frame`.
+- [ ] One selected camera sends frames through exactly one graph input path.
+- [ ] Status shows which path is active.
+
+### [x] 0.2 Create MVP Starter Template
 
 Files:
 - `nodetool-realtime/src/nodetool/examples/nodetool-realtime/Canonical Realtime Video Diffusion.json`
+- `nodetool-realtime/src/nodetool/examples/nodetool-realtime/Dev Smoke Realtime Video Diffusion.json`
 - `nodetool-realtime/tests/test_realtime_workflow_template.py`
 - `nodetool-realtime/src/nodetool/package_metadata/nodetool-realtime.json`
 
 Steps:
-- [ ] Create a starter template with exactly this main path: `Video Source -> Self-Forcing -> VideoSink -> Preview`.
-- [ ] Remove `use_fake_pipeline` and other mock/dev fields from that starter.
-- [ ] Rename or copy the current LongLive -> Self-Forcing graph as a dev/integration smoke template.
-- [ ] Update metadata so the starter points to the MVP template, not the dev smoke graph.
-- [ ] Update tests to assert required MVP nodes and edges only.
+- [x] Create a starter template with exactly this main path: `Video Source -> Self-Forcing -> VideoSink -> Preview`.
+- [x] Use the source edge `Video Source.realtime_frame -> Self-Forcing.frame`.
+- [x] Remove `use_fake_pipeline` and other mock/dev fields from the starter.
+- [x] Rename or copy the LongLive -> Self-Forcing graph as a dev/integration smoke template.
+- [x] Update metadata so the starter points to the canonical MVP template, not the dev smoke graph.
+- [x] Update tests to assert required MVP nodes and edges only.
 
 Check:
-- [ ] The starter template opens as the user-facing MVP graph.
-- [ ] Dev smoke coverage still exists under a non-starter name.
+- [x] The starter template opens as the user-facing MVP graph.
+- [x] Dev smoke coverage still exists under a non-starter name.
 
-### [ ] 0.2 Reduce User Node Parameters
+### [ ] 0.3 Reduce User Node Parameters
 
 Files:
 - `nodetool-realtime/src/nodetool/nodes/realtime/self_forcing.py`
@@ -77,26 +132,6 @@ Steps:
 Check:
 - [ ] The node UI no longer exposes dev/mock/adapter internals.
 - [ ] Existing dev tests can still instantiate mock pipelines.
-
-### [ ] 0.3 Use One Camera Ingress Path
-
-Files:
-- `web/src/components/realtime/useRealtimeStreamController.ts`
-- `web/src/hooks/realtime/useRealtimeCameraFramePublisher.ts`
-- `web/src/hooks/browser/useRealtimeSessionWebRTC.ts`
-- `packages/websocket/src/realtime/command-handler.ts`
-- `packages/websocket/src/realtime/frame-router.ts`
-
-Steps:
-- [ ] Make frame-push the default MVP camera ingress.
-- [ ] Disable WebRTC camera publishing when frame-push is active for the same session/input.
-- [ ] Keep WebRTC code available but remove it as a requirement for the local MVP run.
-- [ ] Add status for selected device, target handle, frame cadence, and routing errors.
-- [ ] Add or update one test for duplicate-ingress prevention.
-
-Check:
-- [ ] One selected camera sends frames to one graph input path.
-- [ ] Status shows which path is active.
 
 ### [ ] 0.4 Align Docs And Metadata
 
@@ -205,20 +240,30 @@ Check:
 ### [ ] 1.2 Connect Camera `Video Source` To Model Input
 
 Files:
+- `packages/base-nodes/src/nodes/video.ts`
+- `web/src/components/video/VideoSourceNode.tsx`
+- `web/src/components/video/captureStillImage.ts`
+- `web/src/components/node/ReactFlowWrapper.tsx`
 - `packages/realtime-nodes/`
 - `web/src/hooks/browser/useVideoCapture.ts`
 - `web/src/hooks/realtime/useRealtimeCameraFramePublisher.ts`
 - `web/src/components/realtime/`
-- `packages/websocket/src/realtime/runner-parameter-routing.ts`
+- `packages/protocol/src/messages.ts`
+- `packages/websocket/src/realtime/command-normalization.ts`
+- `packages/websocket/src/realtime/frame-router.ts`
+- `packages/kernel/src/runner.ts`
+- `packages/kernel/src/realtime-runner.ts`
 
 Steps:
-- [ ] Expose one clear `Video Source` node in the node menu.
-- [ ] Add camera device selection before session start.
-- [ ] Show permission, missing-device, active-device, and source failure states.
-- [ ] Convert selected camera frames to `realtime_video_frame`.
-- [ ] Route frames to the selected model `frame` input.
-- [ ] Preserve `sequence`, `timestamp_ns`, `pixel_format`, and latest-frame-wins behavior.
-- [ ] Add a test or manual smoke log proving frames reach the model input handle.
+- [x] Expose one clear `Video Source` node in the node menu.
+- [x] Add camera device selection and live preview to `Video Source`.
+- [x] Add normal still capture through `Video Source.image`.
+- [x] Convert selected camera frames to `realtime_video_frame` through the existing frame publisher.
+- [x] Route pushed realtime frames through `Video Source.realtime_frame`.
+- [x] Preserve `sequence`, `timestamp_ns`, `pixel_format`, and latest-frame-wins behavior in the publisher path.
+- [x] Add focused tests proving source-handle routing reaches downstream graph edges.
+- [ ] Show complete permission, missing-device, active-device, source failure, cadence, and routing status in the user UI.
+- [ ] Run a manual smoke proving real camera frames reach the model `frame` input handle.
 
 Check:
 - [ ] Starting the workflow sends real camera frames into the model input.
@@ -266,6 +311,7 @@ Check:
 Files:
 - MVP realtime template
 - `packages/websocket/src/realtime/*`
+- `packages/kernel/src/runner.ts`
 - `packages/kernel/src/realtime-runner.ts`
 - `web/src/components/node/PreviewNode/PreviewNode.tsx`
 
@@ -393,7 +439,8 @@ Useful references, not active tasks:
 - Frame protocol: `packages/protocol/src/realtime-frame.ts`
 - TS realtime nodes: `packages/realtime-nodes/`
 - Realtime websocket/session code: `packages/websocket/src/realtime/`
-- Kernel runner: `packages/kernel/src/realtime-runner.ts`
+- Kernel runner: `packages/kernel/src/runner.ts`
+- Realtime runner shell: `packages/kernel/src/realtime-runner.ts`
 - Python realtime package: `nodetool-realtime/`
 - Feature backlog: `REALTIME-FEATURE-IDEAS.md`
 
@@ -406,11 +453,13 @@ Useful references, not active tasks:
 - [ ] Additional VACE controls: pose, depth, inpaint, multi-control composition.
 - [ ] Model pack catalog and persistent cache cleanup UX.
 - [ ] Production HTTPS/WSS, auth, reverse proxy, sticky routing, public outputs, and worker recovery.
+- [ ] Editor-facing transport selector for frame-push vs WebRTC.
 - [ ] ICE/STUN/TURN configuration UI and operational metrics.
 - [ ] Remote GPU worker routing beyond local network.
 - [ ] Full backend WebRTC codec decode/encode.
 - [ ] WHIP/WHEP ingest and egress.
 - [ ] Timeline editing and export presets.
+- [ ] Video asset (`VideoRef`) source playback.
 - [ ] NDI, Spout, Syphon.
 - [ ] MIDI, OSC, DMX, timecode.
 - [ ] Audio input/output beyond what the workflow needs.

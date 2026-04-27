@@ -205,7 +205,7 @@ describe("realtime frame routing nodes", () => {
             }
           };
         }
-        return nodeRegistry.resolve(node);
+        return resolveFromRegistry(nodeRegistry)(node);
       },
       runMode: "realtime"
     });
