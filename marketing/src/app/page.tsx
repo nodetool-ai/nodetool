@@ -362,10 +362,10 @@ export default function Home() {
           className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-glass supports-[backdrop-filter]:bg-glass shadow-[0_1px_0_0_rgba(59,130,246,0.08)]"
           aria-label="Primary"
         >
-          <div className={`${sectionContainer} py-4 sm:py-4 lg:py-2`}>
-            <div className="relative flex items-center justify-center gap-6 w-full min-h-[56px] sm:min-h-[64px]">
+          <div className={`${sectionContainer} py-2 sm:py-4 lg:py-2`}>
+            <div className="relative flex items-center justify-center gap-6 w-full min-h-[44px] sm:min-h-[64px]">
               {/* Logo: absolutely left */}
-              <div className="absolute left-0 flex items-center h-12 sm:h-10">
+              <div className="absolute left-0 flex items-center h-9 sm:h-10">
                 <a href="/" className={`group flex items-center gap-2 rounded`}>
                   <Image
                     src="/logo_small.png"
@@ -374,9 +374,9 @@ export default function Home() {
                     height={48}
                     priority
                     sizes="180px"
-                    className="brightness-0 invert transition-all duration-300 group-hover:brightness-100 group-hover:invert-0"
+                    className="h-8 w-8 sm:h-12 sm:w-12 brightness-0 invert transition-all duration-300 group-hover:brightness-100 group-hover:invert-0"
                   />
-                  <span className="text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-300">
+                  <span className="text-base sm:text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-300">
                     nodetool
                   </span>
                 </a>
@@ -406,11 +406,11 @@ export default function Home() {
                 {/* Mobile menu button */}
                 <button
                   type="button"
-                  className="md:hidden rounded-md p-2 text-slate-300 hover:bg-slate-800/60 transition-colors"
+                  className="md:hidden rounded-md p-1.5 text-slate-300 hover:bg-slate-800/60 transition-colors"
                   onClick={() => setMobileMenuOpen(true)}
                   aria-label="Open menu"
                 >
-                  <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+                  <Bars3Icon className="h-5 w-5" aria-hidden="true" />
                 </button>
                 <a
                   href="https://github.com/nodetool-ai/nodetool"
@@ -437,7 +437,7 @@ export default function Home() {
                   href="https://github.com/nodetool-ai/nodetool"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="sm:hidden rounded-lg p-1.5 transition-all duration-200 hover:bg-slate-800/60"
+                  className="sm:hidden rounded-lg p-1 transition-all duration-200 hover:bg-slate-800/60"
                   aria-label="NodeTool on GitHub"
                 >
                   <Image
@@ -445,10 +445,32 @@ export default function Home() {
                     alt=""
                     width={24}
                     height={24}
+                    className="h-5 w-5"
                     role="presentation"
                   />
                 </a>
               </div>
+            </div>
+            {/* Mobile-only persona links — surfaced so /creatives and /developers are reachable without opening the menu */}
+            <div className="md:hidden flex items-center justify-center gap-2 pt-1.5 pb-0.5">
+              <a
+                href="/agents"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Agents
+              </a>
+              <a
+                href="/creatives"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Creatives
+              </a>
+              <a
+                href="/developers"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Developers
+              </a>
             </div>
           </div>
         </nav>
