@@ -65,8 +65,14 @@ function offsetLayerTransformInDocument(
         x: layer.transform.x + dx,
         y: layer.transform.y + dy
       };
+      if (layer.transform.quad) {
+        newTransform.quad = layer.transform.quad.map((point) => ({
+          x: point.x + dx,
+          y: point.y + dy
+        })) as NonNullable<LayerTransform["quad"]>;
+      }
       // Recompute matrix with updated translation
-      if (layer.transform.matrix) {
+      if (layer.transform.matrix && layer.transform.mode !== "perspective") {
         const m = layer.transform.matrix;
         newTransform.matrix = [m[0], m[1], m[2], m[3], newTransform.x, newTransform.y];
       }

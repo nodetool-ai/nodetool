@@ -69,6 +69,7 @@ import {
   computeTransformForHandle,
   computeDistortTransform,
   computeSkewTransform,
+  computePerspectiveTransform,
   resolvePhotoshopTransformMode
 } from "./transform";
 import {
@@ -332,6 +333,22 @@ export class TransformTool implements ToolHandler {
     let newTransform: LayerTransform;
 
     if (
+      gestureMode === "perspective" &&
+      this.dragStartCorners &&
+      (this.activeHandle === "top-left" ||
+        this.activeHandle === "top-right" ||
+        this.activeHandle === "bottom-left" ||
+        this.activeHandle === "bottom-right")
+    ) {
+      newTransform = computePerspectiveTransform(
+        this.dragStartCorners,
+        this.activeHandle,
+        this.dragStart,
+        pt,
+        this.rasterBounds,
+        this.dragStartTransform
+      );
+    } else if (
       gestureMode === "distort" &&
       this.dragStartCorners &&
       (this.activeHandle === "top-left" ||

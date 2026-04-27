@@ -12,6 +12,7 @@ import type {
   PenPressureSettings,
   SegmentationLayerMeta
 } from "./tools";
+import type { Point } from "./geometry";
 import {
   cloneDefaultToolSettings,
   resolveStrokeAssistSettings,
@@ -50,6 +51,7 @@ export const SKETCH_NODE_INPUT_IMAGE_LAYER_NAME = "Input Image";
  * a=scaleX, b=skewY, c=skewX, d=scaleY, e=translateX, f=translateY.
  */
 export type AffineMatrix = [number, number, number, number, number, number];
+export type PerspectiveQuad = [Point, Point, Point, Point];
 
 /** Identity matrix: no transformation applied. */
 export const IDENTITY_MATRIX: Readonly<AffineMatrix> = [1, 0, 0, 1, 0, 0];
@@ -76,7 +78,12 @@ export interface LayerTransform {
    * Advanced Photoshop-style affine transform mode currently active on the
    * layer. Standard free-transform layers omit this field.
    */
-  mode?: "distort" | "skew";
+  mode?: "distort" | "skew" | "perspective";
+  /**
+   * Document-space quad for perspective preview/bake paths. Order:
+   * top-left, top-right, bottom-right, bottom-left.
+   */
+  quad?: PerspectiveQuad;
 }
 
 // ─── Affine Matrix Helpers ────────────────────────────────────────────────────
@@ -130,6 +137,9 @@ export function decomposeAffineMatrix(m: AffineMatrix): {
  * Returns true when a LayerTransform is the identity (no visual change).
  */
 export function isIdentityTransform(t: LayerTransform): boolean {
+  if (t.mode === "perspective" && Array.isArray(t.quad) && t.quad.length === 4) {
+    return false;
+  }
   return (
     t.x === 0 &&
     t.y === 0 &&
@@ -144,6 +154,9 @@ export function isIdentityTransform(t: LayerTransform): boolean {
  * decomposed values. Returns the input unchanged if matrix is already set.
  */
 export function ensureTransformMatrix(t: LayerTransform): LayerTransform {
+  if (t.mode === "perspective" && t.quad) {
+    return t;
+  }
   if (t.matrix) {
     return t;
   }
@@ -771,7 +784,30 @@ export function normalizeSketchDocument(doc: SketchDocument): SketchDocument {
           rotation: layer.transform?.rotation,
           matrix: Array.isArray(layer.transform?.matrix) && layer.transform!.matrix!.length === 6
             ? layer.transform!.matrix as AffineMatrix
-            : undefined
+            : undefined,
+          mode:
+            layer.transform?.mode === "distort" ||
+            layer.transform?.mode === "skew" ||
+            layer.transform?.mode === "perspective"
+              ? layer.transform.mode
+              : undefined,
+          quad:
+            Array.isArray(layer.transform?.quad) &&
+            layer.transform.quad.length === 4 &&
+            layer.transform.quad.every(
+              (point) =>
+                point &&
+                typeof point === "object" &&
+                typeof point.x === "number" &&
+                Number.isFinite(point.x) &&
+                typeof point.y === "number" &&
+                Number.isFinite(point.y)
+            )
+              ? (layer.transform.quad.map((point) => ({
+                  x: point.x,
+                  y: point.y
+                })) as PerspectiveQuad)
+              : undefined
         }),
         contentBounds: {
           x: layer.contentBounds?.x ?? 0,

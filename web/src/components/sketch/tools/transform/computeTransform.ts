@@ -23,6 +23,7 @@ import {
 import { getTransformedCenter } from "../../painting/resolvedLayerGeometry";
 
 type PhotoshopTransformMode = Exclude<TransformMode, "auto">;
+type PerspectiveQuad = NonNullable<LayerTransform["quad"]>;
 
 const CORNER_INDEX_BY_HANDLE: Record<
   Extract<
@@ -61,6 +62,85 @@ function projectVector(delta: Point, axis: Point): Point {
   return {
     x: ux * amount,
     y: uy * amount
+  };
+}
+
+function translateQuad(
+  quad: PerspectiveQuad,
+  dx: number,
+  dy: number
+): PerspectiveQuad {
+  return quad.map((corner) => ({
+    x: corner.x + dx,
+    y: corner.y + dy
+  })) as PerspectiveQuad;
+}
+
+function rotateQuad(
+  quad: PerspectiveQuad,
+  pivot: Point,
+  angle: number
+): PerspectiveQuad {
+  return quad.map((corner) =>
+    rotatePoint(corner.x, corner.y, pivot.x, pivot.y, angle)
+  ) as PerspectiveQuad;
+}
+
+function quadCenter(quad: PerspectiveQuad): Point {
+  return {
+    x: (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4,
+    y: (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4
+  };
+}
+
+function normalizeVector(vector: Point): Point {
+  const length = Math.hypot(vector.x, vector.y);
+  if (length <= 1e-9) {
+    return { x: 0, y: 0 };
+  }
+  return {
+    x: vector.x / length,
+    y: vector.y / length
+  };
+}
+
+function dot(a: Point, b: Point): number {
+  return a.x * b.x + a.y * b.y;
+}
+
+function scaledVector(axis: Point, amount: number): Point {
+  return {
+    x: axis.x * amount,
+    y: axis.y * amount
+  };
+}
+
+function buildPerspectiveTransform(
+  quad: PerspectiveQuad,
+  rasterBounds: LayerContentBounds,
+  baseTransform: LayerTransform
+): LayerTransform {
+  const { matrix: _matrix, quad: _quad, mode: _mode, ...rest } = baseTransform;
+  const center = quadCenter(quad);
+  const topVector = {
+    x: ((quad[1].x - quad[0].x) + (quad[2].x - quad[3].x)) / 2,
+    y: ((quad[1].y - quad[0].y) + (quad[2].y - quad[3].y)) / 2
+  };
+  const leftVector = {
+    x: ((quad[3].x - quad[0].x) + (quad[2].x - quad[1].x)) / 2,
+    y: ((quad[3].y - quad[0].y) + (quad[2].y - quad[1].y)) / 2
+  };
+  return {
+    ...rest,
+    x: Math.round(center.x - rasterBounds.x - rasterBounds.width / 2),
+    y: Math.round(center.y - rasterBounds.y - rasterBounds.height / 2),
+    scaleX:
+      Math.hypot(topVector.x, topVector.y) / Math.max(1, rasterBounds.width),
+    scaleY:
+      Math.hypot(leftVector.x, leftVector.y) / Math.max(1, rasterBounds.height),
+    rotation: Math.atan2(topVector.y, topVector.x),
+    mode: "perspective",
+    quad
   };
 }
 
@@ -277,6 +357,104 @@ export function computeSkewTransform(
   return buildAdvancedTransform(nextCorners, rasterBounds, "skew");
 }
 
+export function computePerspectiveTransform(
+  dragStartCorners: [Point, Point, Point, Point],
+  handle: Extract<
+    TransformHandle,
+    "top-left" | "top-right" | "bottom-right" | "bottom-left"
+  >,
+  dragStart: Point,
+  cursor: Point,
+  rasterBounds: LayerContentBounds,
+  baseTransform: LayerTransform
+): LayerTransform {
+  const delta = {
+    x: cursor.x - dragStart.x,
+    y: cursor.y - dragStart.y
+  };
+  const xAxis = normalizeVector({
+    x:
+      ((dragStartCorners[1].x - dragStartCorners[0].x) +
+        (dragStartCorners[2].x - dragStartCorners[3].x)) /
+      2,
+    y:
+      ((dragStartCorners[1].y - dragStartCorners[0].y) +
+        (dragStartCorners[2].y - dragStartCorners[3].y)) /
+      2
+  });
+  const yAxis = normalizeVector({
+    x:
+      ((dragStartCorners[3].x - dragStartCorners[0].x) +
+        (dragStartCorners[2].x - dragStartCorners[1].x)) /
+      2,
+    y:
+      ((dragStartCorners[3].y - dragStartCorners[0].y) +
+        (dragStartCorners[2].y - dragStartCorners[1].y)) /
+      2
+  });
+  const horizontal = scaledVector(xAxis, dot(delta, xAxis));
+  const vertical = scaledVector(yAxis, dot(delta, yAxis));
+  const nextQuad = dragStartCorners.map((corner) => ({
+    ...corner
+  })) as PerspectiveQuad;
+
+  if (handle === "top-left") {
+    nextQuad[0] = {
+      x: nextQuad[0].x + horizontal.x + vertical.x,
+      y: nextQuad[0].y + horizontal.y + vertical.y
+    };
+    nextQuad[1] = {
+      x: nextQuad[1].x - horizontal.x,
+      y: nextQuad[1].y - horizontal.y
+    };
+    nextQuad[3] = {
+      x: nextQuad[3].x - vertical.x,
+      y: nextQuad[3].y - vertical.y
+    };
+  } else if (handle === "top-right") {
+    nextQuad[1] = {
+      x: nextQuad[1].x + horizontal.x + vertical.x,
+      y: nextQuad[1].y + horizontal.y + vertical.y
+    };
+    nextQuad[0] = {
+      x: nextQuad[0].x - horizontal.x,
+      y: nextQuad[0].y - horizontal.y
+    };
+    nextQuad[2] = {
+      x: nextQuad[2].x - vertical.x,
+      y: nextQuad[2].y - vertical.y
+    };
+  } else if (handle === "bottom-right") {
+    nextQuad[2] = {
+      x: nextQuad[2].x + horizontal.x + vertical.x,
+      y: nextQuad[2].y + horizontal.y + vertical.y
+    };
+    nextQuad[3] = {
+      x: nextQuad[3].x - horizontal.x,
+      y: nextQuad[3].y - horizontal.y
+    };
+    nextQuad[1] = {
+      x: nextQuad[1].x - vertical.x,
+      y: nextQuad[1].y - vertical.y
+    };
+  } else {
+    nextQuad[3] = {
+      x: nextQuad[3].x + horizontal.x + vertical.x,
+      y: nextQuad[3].y + horizontal.y + vertical.y
+    };
+    nextQuad[2] = {
+      x: nextQuad[2].x - horizontal.x,
+      y: nextQuad[2].y - horizontal.y
+    };
+    nextQuad[0] = {
+      x: nextQuad[0].x - vertical.x,
+      y: nextQuad[0].y - vertical.y
+    };
+  }
+
+  return buildPerspectiveTransform(nextQuad, rasterBounds, baseTransform);
+}
+
 // ─── Move computation ────────────────────────────────────────────────────────
 
 /**
@@ -290,6 +468,29 @@ export function computeMoveTransform(
 ): LayerTransform {
   const dx = cursor.x - dragStart.x;
   const dy = cursor.y - dragStart.y;
+  if (dragStartTransform.mode === "perspective" && dragStartTransform.quad) {
+    return {
+      ...dragStartTransform,
+      x: Math.round(dragStartTransform.x + dx),
+      y: Math.round(dragStartTransform.y + dy),
+      quad: translateQuad(dragStartTransform.quad, dx, dy)
+    };
+  }
+  if (dragStartTransform.matrix && dragStartTransform.mode) {
+    return {
+      ...dragStartTransform,
+      x: Math.round(dragStartTransform.x + dx),
+      y: Math.round(dragStartTransform.y + dy),
+      matrix: [
+        dragStartTransform.matrix[0],
+        dragStartTransform.matrix[1],
+        dragStartTransform.matrix[2],
+        dragStartTransform.matrix[3],
+        dragStartTransform.matrix[4] + dx,
+        dragStartTransform.matrix[5] + dy
+      ]
+    };
+  }
   return ensureTransformMatrix({
     ...dragStartTransform,
     x: Math.round(dragStartTransform.x + dx),
@@ -320,6 +521,29 @@ export function computeRotateTransform(
   shift: boolean,
   layerCenter?: Point
 ): LayerTransform {
+  if (dragStartTransform.mode === "perspective" && dragStartTransform.quad) {
+    const angleStart = Math.atan2(
+      dragStart.y - pivot.y,
+      dragStart.x - pivot.x
+    );
+    const angleCursor = Math.atan2(cursor.y - pivot.y, cursor.x - pivot.x);
+    let deltaAngle = angleCursor - angleStart;
+    let newRot = (dragStartTransform.rotation ?? 0) + deltaAngle;
+    if (shift) {
+      newRot = snapAngle(newRot);
+      deltaAngle = newRot - (dragStartTransform.rotation ?? 0);
+    }
+    const nextQuad = rotateQuad(dragStartTransform.quad, pivot, deltaAngle);
+    const startCenter = quadCenter(dragStartTransform.quad);
+    const nextCenter = quadCenter(nextQuad);
+    return {
+      ...dragStartTransform,
+      x: Math.round(dragStartTransform.x + (nextCenter.x - startCenter.x)),
+      y: Math.round(dragStartTransform.y + (nextCenter.y - startCenter.y)),
+      rotation: newRot,
+      quad: nextQuad
+    };
+  }
   const rot = dragStartTransform.rotation ?? 0;
   const angleStart = Math.atan2(
     dragStart.y - pivot.y,

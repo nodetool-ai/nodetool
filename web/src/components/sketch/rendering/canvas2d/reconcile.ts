@@ -12,6 +12,7 @@ import {
   setCanvasRasterBounds
 } from "../../painting/layerBounds";
 import { serializeLayerData } from "./layerIO";
+import { drawImageToQuad, getQuadExtents, translateQuad } from "./quadTransform";
 
 // ─── Reconcile transform to document space ───────────────────────────────────
 
@@ -37,7 +38,9 @@ export function reconcileLayerToDocumentSpace(
   const sy = layer.transform?.scaleY ?? 1;
   const rot = layer.transform?.rotation ?? 0;
   const matrix = layer.transform?.matrix;
+  const quad = layer.transform?.quad;
   const usesAdvancedAffine = Boolean(matrix && layer.transform?.mode);
+  const usesPerspective = Boolean(layer.transform?.mode === "perspective" && quad);
   const hasTranslation = tx !== 0 || ty !== 0;
   const hasScaleOrRotation = sx !== 1 || sy !== 1 || rot !== 0;
 
@@ -49,7 +52,7 @@ export function reconcileLayerToDocumentSpace(
   const rasterOriginX = storedBounds?.x ?? layer.contentBounds?.x ?? 0;
   const rasterOriginY = storedBounds?.y ?? layer.contentBounds?.y ?? 0;
 
-  if (!hasTranslation && !hasScaleOrRotation) {
+  if (!usesPerspective && !usesAdvancedAffine && !hasTranslation && !hasScaleOrRotation) {
     setCanvasRasterBounds(canvas, {
       x: rasterOriginX,
       y: rasterOriginY,
@@ -82,6 +85,45 @@ export function reconcileLayerToDocumentSpace(
     return fallbackSerialize();
   }
   sourceCtx.drawImage(canvas, 0, 0);
+
+  if (usesPerspective && quad) {
+    const { minX, minY, maxX, maxY } = getQuadExtents(quad);
+    const outX = Math.min(0, Math.floor(minX));
+    const outY = Math.min(0, Math.floor(minY));
+    const outW = Math.max(doc.canvas.width, Math.ceil(maxX)) - outX;
+    const outH = Math.max(doc.canvas.height, Math.ceil(maxY)) - outY;
+
+    const temp = window.document.createElement("canvas");
+    temp.width = outW;
+    temp.height = outH;
+    const tempCtx = temp.getContext("2d");
+    if (!tempCtx) {
+      return fallbackSerialize();
+    }
+
+    drawImageToQuad(tempCtx, source, translateQuad(quad, -outX, -outY));
+
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return fallbackSerialize();
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(temp, 0, 0);
+    setCanvasRasterBounds(canvas, {
+      x: outX,
+      y: outY,
+      width: outW,
+      height: outH
+    });
+    return serializeLayerData(canvas.toDataURL("image/png"), {
+      x: outX,
+      y: outY,
+      width: outW,
+      height: outH
+    });
+  }
 
   if (usesAdvancedAffine && matrix) {
     const [a, b, c, d, e, f] = matrix;

@@ -638,6 +638,59 @@ describe("Task 4: Reconcile vs preview parity", () => {
     expect(result).not.toBeNull();
   });
 
+  it("reconcile bakes perspective quads into the same document-space extents as preview", () => {
+    const quad = [
+      { x: 20, y: 10 },
+      { x: 80, y: 20 },
+      { x: 90, y: 85 },
+      { x: 10, y: 75 }
+    ] as NonNullable<LayerTransform["quad"]>;
+    const layer = makeLayer({
+      id: "perspective-layer",
+      transform: {
+        x: 0,
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
+        mode: "perspective",
+        quad
+      },
+      contentBounds: makeBounds({ x: 0, y: 0, width: 40, height: 40 })
+    });
+    const doc = createDefaultDocument(100, 100);
+    doc.layers = [layer];
+    doc.activeLayerId = layer.id;
+
+    const canvas = makeMockCanvas(40, 40, { x: 0, y: 0, width: 40, height: 40 });
+    const canvasCtx = canvas.getContext("2d");
+    expect(canvasCtx).not.toBeNull();
+    canvasCtx!.fillStyle = "#ffffff";
+    canvasCtx!.fillRect(0, 0, 40, 40);
+    const canvases = new Map<string, HTMLCanvasElement>([[layer.id, canvas]]);
+
+    const previewExtents = getTransformedExtents(layer.transform, layer.contentBounds);
+    const result = reconcileLayerToDocumentSpace(layer.id, doc, canvases);
+    expect(result).not.toBeNull();
+
+    const finalBounds = getCanvasRasterBounds(canvas);
+    expect(finalBounds).not.toBeNull();
+    expect(finalBounds!.x).toBe(Math.min(0, Math.floor(previewExtents.x)));
+    expect(finalBounds!.y).toBe(Math.min(0, Math.floor(previewExtents.y)));
+    expect(finalBounds!.width).toBe(
+      Math.max(doc.canvas.width, Math.ceil(previewExtents.x + previewExtents.width)) -
+        finalBounds!.x
+    );
+    expect(finalBounds!.height).toBe(
+      Math.max(doc.canvas.height, Math.ceil(previewExtents.y + previewExtents.height)) -
+        finalBounds!.y
+    );
+    const bakedPixel = canvas
+      .getContext("2d")!
+      .getImageData(50 - finalBounds!.x, 40 - finalBounds!.y, 1, 1).data[3];
+    expect(bakedPixel).toBeGreaterThan(0);
+  });
+
   it("preview extents and reconcile AABB agree for non-zero raster origin + scale", () => {
     // This test verifies that the preview compositing path and the reconcile
     // path produce the same axis-aligned bounding box.

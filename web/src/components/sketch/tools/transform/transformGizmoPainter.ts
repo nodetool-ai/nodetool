@@ -38,6 +38,15 @@ function getVisibleHandles(
   if (transform.mode === "skew") {
     return ["top", "bottom", "left", "right", "rotate"];
   }
+  if (transform.mode === "perspective") {
+    return [
+      "top-left",
+      "top-right",
+      "bottom-left",
+      "bottom-right",
+      "rotate"
+    ];
+  }
   return [
     "top-left",
     "top-right",
@@ -73,7 +82,10 @@ export function paintTransformGizmo(
     const rot = transform.rotation ?? 0;
     const center = getTransformedCenter(transform, rasterBounds);
 
-    if (transform.matrix && transform.mode) {
+    if (
+      (transform.matrix && transform.mode && transform.mode !== "perspective") ||
+      (transform.mode === "perspective" && transform.quad)
+    ) {
       const corners = getTransformedCorners(transform, rasterBounds);
       const screenCorners = corners.map((corner) =>
         docToScreen(

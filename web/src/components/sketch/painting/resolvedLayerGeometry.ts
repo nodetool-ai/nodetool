@@ -38,6 +38,10 @@ function usesAdvancedAffineTransform(transform: LayerTransform): boolean {
   return Boolean(transform.matrix && transform.mode);
 }
 
+function usesPerspectiveTransform(transform: LayerTransform): boolean {
+  return Boolean(transform.mode === "perspective" && transform.quad);
+}
+
 function applyAffineMatrix(
   matrix: AffineMatrix,
   x: number,
@@ -192,6 +196,20 @@ export function getTransformedExtents(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): DocumentExtents {
+  if (usesPerspectiveTransform(transform) && transform.quad) {
+    const xs = transform.quad.map((corner) => corner.x);
+    const ys = transform.quad.map((corner) => corner.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
+  }
   if (usesAdvancedAffineTransform(transform) && transform.matrix) {
     const corners = getTransformedCorners(transform, rasterBounds);
     const xs = corners.map((corner) => corner.x);
@@ -272,6 +290,9 @@ export function getTransformedCorners(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): [Point, Point, Point, Point] {
+  if (usesPerspectiveTransform(transform) && transform.quad) {
+    return transform.quad.map((corner) => ({ ...corner })) as [Point, Point, Point, Point];
+  }
   if (usesAdvancedAffineTransform(transform) && transform.matrix) {
     return [
       applyAffineMatrix(transform.matrix, rasterBounds.x, rasterBounds.y),
@@ -325,6 +346,22 @@ export function getTransformedCenter(
   transform: LayerTransform,
   rasterBounds: LayerContentBounds
 ): Point {
+  if (usesPerspectiveTransform(transform) && transform.quad) {
+    return {
+      x:
+        (transform.quad[0].x +
+          transform.quad[1].x +
+          transform.quad[2].x +
+          transform.quad[3].x) /
+        4,
+      y:
+        (transform.quad[0].y +
+          transform.quad[1].y +
+          transform.quad[2].y +
+          transform.quad[3].y) /
+        4
+    };
+  }
   if (usesAdvancedAffineTransform(transform) && transform.matrix) {
     return applyAffineMatrix(
       transform.matrix,
