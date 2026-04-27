@@ -341,6 +341,21 @@ describe("ProcessingContext.sanitizeForClient", () => {
       asset_id: "a123"
     });
   });
+
+  it("preserves raw realtime video frame payloads", () => {
+    const frame = {
+      type: "realtime_video_frame",
+      data: new Uint8Array([255, 0, 0, 255]),
+      width: 1,
+      height: 1,
+      stride: 4,
+      pixel_format: "rgba8",
+      timestamp_ns: 123,
+      sequence: 7
+    };
+
+    expect(ProcessingContext.sanitizeForClient(frame)).toBe(frame);
+  });
 });
 
 describe("Storage adapters", () => {
@@ -496,6 +511,29 @@ describe("output normalization", () => {
     expect(normalized.image.uri.startsWith("data:image/png;base64,")).toBe(
       true
     );
+  });
+
+  it("preserves raw realtime video frames instead of materializing them as assets", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "storage_url",
+      storage
+    });
+    const frame = {
+      type: "realtime_video_frame",
+      data: new Uint8Array([0, 255, 0, 255]),
+      width: 1,
+      height: 1,
+      stride: 4,
+      pixel_format: "rgba8",
+      timestamp_ns: 456,
+      sequence: 8
+    };
+
+    const normalized = await ctx.normalizeOutputValue(frame);
+
+    expect(normalized).toBe(frame);
   });
 
   it("materializes asset refs to storage URLs via adapter", async () => {

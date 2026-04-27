@@ -15,4 +15,6 @@ export { TextRenderer } from "./TextRenderer";
 export { ImageComparisonRenderer } from "./ImageComparisonRenderer";
 export { JSONRenderer } from "./JSONRenderer";
 export { default as RealtimeAudioOutput } from "./RealtimeAudioOutput";
+export { RealtimeVideoFrameRenderer } from "./RealtimeVideoFrameRenderer";
+export type { RealtimeVideoFrame } from "./RealtimeVideoFrameRenderer";
 export { default as DataframeRenderer } from "./DataframeRenderer";

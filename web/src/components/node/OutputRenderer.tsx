@@ -50,7 +50,7 @@ import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
-import { RealtimeAudioOutput } from "./output";
+import { RealtimeAudioOutput, RealtimeVideoFrameRenderer } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
@@ -539,6 +539,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             style={{ width: "100%", height: "100%" }}
           />
         );
+      case "realtime_video_frame":
+        return <RealtimeVideoFrameRenderer frame={value} />;
       case "model_3d": {
         const rawUri: string =
           (value && typeof value === "object" && typeof value.uri === "string"

@@ -1572,6 +1572,7 @@ export class ProcessingContext {
    */
   static sanitizeForClient(value: unknown): unknown {
     if (value === null || value === undefined) return value;
+    if (ProcessingContext.isRealtimeVideoFrame(value)) return value;
     const binary = ProcessingContext.toClientBytes(value);
     if (binary) return binary;
     if (Array.isArray(value)) {
@@ -1635,6 +1636,17 @@ export class ProcessingContext {
       return false;
     const v = value as Record<string, unknown>;
     return "type" in v && ("uri" in v || "data" in v || "asset_id" in v);
+  }
+
+  private static isRealtimeVideoFrame(
+    value: unknown
+  ): value is Record<string, unknown> {
+    return (
+      !!value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      (value as Record<string, unknown>).type === "realtime_video_frame"
+    );
   }
 
   private static guessAssetMime(asset: Record<string, unknown>): string {
@@ -1762,6 +1774,7 @@ export class ProcessingContext {
     mode: AssetOutputMode = this.assetOutputMode
   ): Promise<unknown> {
     if (value === null || value === undefined) return value;
+    if (ProcessingContext.isRealtimeVideoFrame(value)) return value;
     const binary = ProcessingContext.toClientBytes(value);
     if (binary) return binary;
 
