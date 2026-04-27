@@ -164,9 +164,29 @@ export const useRealtimeCameraFramePublisher = ({
   maxWidth = DEFAULT_MAX_WIDTH
 }: RealtimeCameraFramePublisherOptions): RealtimeCameraFramePublisherStatus => {
   const sequenceRef = useRef(0);
+  const firstFrameLogRef = useRef(false);
+  const statusLogKeyRef = useRef<string | null>(null);
   const [status, setStatus] = useState<RealtimeCameraFramePublisherStatus>(() =>
     inactiveStatus("disabled", intervalMs, enabled)
   );
+
+  useEffect(() => {
+    const statusLogKey = JSON.stringify({
+      enabled: status.enabled,
+      active: status.active,
+      trackId: status.trackId,
+      nodeId: status.nodeId,
+      inputName: status.inputName,
+      sourceHandle: status.sourceHandle,
+      skippedReason: status.skippedReason,
+      lastError: status.lastError
+    });
+    if (statusLogKeyRef.current === statusLogKey) {
+      return;
+    }
+    statusLogKeyRef.current = statusLogKey;
+    console.info("TEMP_LOG realtime camera publisher status", status);
+  }, [status]);
 
   useEffect(() => {
     if (!enabled) {
@@ -199,6 +219,7 @@ export const useRealtimeCameraFramePublisher = ({
       return;
     }
 
+    firstFrameLogRef.current = false;
     setStatus((current) => {
       const nextStatus = {
         ...current,
@@ -242,6 +263,22 @@ export const useRealtimeCameraFramePublisher = ({
 
       sequenceRef.current = nextSequence;
       const publishedAt = Date.now();
+      if (!firstFrameLogRef.current) {
+        firstFrameLogRef.current = true;
+        console.info("TEMP_LOG realtime camera first frame publish", {
+          sessionId: session.session_id,
+          workflowId: session.workflow_id,
+          trackId: track.track_id,
+          nodeId: track.node_id,
+          inputName: track.input_name,
+          sourceHandle: track.source_handle ?? "frame",
+          sequence: frame.sequence,
+          width: frame.width,
+          height: frame.height,
+          pixelFormat: frame.pixel_format,
+          stride: frame.stride
+        });
+      }
       setStatus((current) => ({
         ...current,
         framesPublished: current.framesPublished + 1,

@@ -194,6 +194,9 @@ export class WorkflowRunner {
   /** Background graph-processing task used by realtime mode. */
   private _activeProcessingPromise: Promise<void> | null = null;
 
+  /** TEMP_LOG: keep pushed-input diagnostics to the first event per route. */
+  private _tempLoggedInputRoutes = new Set<string>();
+
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
     this._options = options;
@@ -221,6 +224,7 @@ export class WorkflowRunner {
       throw new Error(`Input node not found: ${inputName}`);
     }
 
+    const attemptedRoutes: Array<Record<string, unknown>> = [];
     for (const node of inputNodes) {
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
@@ -229,11 +233,32 @@ export class WorkflowRunner {
         if (sourceHandle && edge.sourceHandle !== sourceHandle) {
           continue;
         }
+        attemptedRoutes.push({
+          inputNodeId: node.id,
+          inputNodeType: node.type,
+          sourceHandle: edge.sourceHandle,
+          targetNodeId: edge.target,
+          targetHandle: edge.targetHandle
+        });
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
         await targetInbox.put(edge.targetHandle, value);
         this._incrementEdgeCounter(edge);
       }
+    }
+    const logKey = `${inputName}:${sourceHandle ?? ""}`;
+    if (!this._tempLoggedInputRoutes.has(logKey)) {
+      this._tempLoggedInputRoutes.add(logKey);
+      log.info("TEMP_LOG runner first pushed input value", {
+        jobId: this.jobId,
+        inputName,
+        sourceHandle,
+        attemptedRoutes,
+        valueType:
+          value && typeof value === "object"
+            ? (value as { type?: unknown }).type ?? "object"
+            : typeof value
+      });
     }
   }
 
@@ -920,7 +945,8 @@ export class WorkflowRunner {
       log.warn(
         "Pending inbox work detected after all actors completed — possible data loss",
         {
-          pendingNodes
+          pendingNodes,
+          tempLogDetails: this._getPendingInboxDebugDetails(pendingNodes)
         }
       );
     }
@@ -1341,6 +1367,20 @@ export class WorkflowRunner {
       if (inbox.hasPendingWork()) pending.push(nodeId);
     }
     return pending;
+  }
+
+  private _getPendingInboxDebugDetails(nodeIds: string[]): Array<Record<string, unknown>> {
+    return nodeIds.map((nodeId) => {
+      const node = this._graph.nodes.find((candidate) => candidate.id === nodeId);
+      return {
+        marker: "TEMP_LOG",
+        nodeId,
+        nodeType: node?.type,
+        nodeTitle: node?.title,
+        nodeName: node?.name,
+        inbox: this._inboxes.get(nodeId)?.getDebugState()
+      };
+    });
   }
 
   // -----------------------------------------------------------------------

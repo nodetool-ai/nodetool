@@ -294,7 +294,26 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       enabled: true
     }));
 
-    await startSession(
+    console.info("TEMP_LOG realtime start requested", {
+      workflowId,
+      graphNodes: workflow?.graph?.nodes?.length ?? 0,
+      graphEdges: workflow?.graph?.edges?.length ?? 0,
+      transport: sessionTransport,
+      mediaTracks,
+      previewVideoTracks: previewStream.getVideoTracks().map((track) => ({
+        id: track.id,
+        label: track.label,
+        readyState: track.readyState,
+        enabled: track.enabled
+      })),
+      target: {
+        nodeId: videoTargetNodeId.trim(),
+        inputName: videoTargetInputName.trim(),
+        sourceHandle: videoTargetSourceHandle.trim() || "frame"
+      }
+    });
+
+    const session = await startSession(
       workflowId,
       {
         preview_source: "camera",
@@ -309,6 +328,14 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
         }
       }
     );
+    console.info("TEMP_LOG realtime start acknowledged", {
+      workflowId,
+      sessionId: session.session_id,
+      jobId: session.job_id,
+      status: session.status,
+      transport: session.transport,
+      mediaTracks: session.media_tracks
+    });
   }, [
     brightness,
     previewStream,
@@ -317,6 +344,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     videoTargetInputName,
     videoTargetNodeId,
     videoTargetSourceHandle,
+    workflow,
     workflowId
   ]);
 

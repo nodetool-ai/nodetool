@@ -238,7 +238,7 @@ Check:
 - [x] `Preview` displays a raw realtime frame.
 - [x] Unsupported formats show a clear message.
 
-### [ ] 1.2 Connect Camera `Video Source` To Model Input
+### [x] 1.2 Connect Camera `Video Source` To Model Input
 
 Files:
 - `packages/base-nodes/src/nodes/video.ts`
@@ -263,11 +263,11 @@ Steps:
 - [x] Route pushed realtime frames through `Video Source.realtime_frame`.
 - [x] Preserve `sequence`, `timestamp_ns`, `pixel_format`, and latest-frame-wins behavior in the publisher path.
 - [x] Add focused tests proving source-handle routing reaches downstream graph edges.
-- [ ] Show complete permission, missing-device, active-device, source failure, cadence, and routing status in the user UI.
-- [ ] Run a manual smoke proving real camera frames reach the model `frame` input handle.
+- [x] Show complete permission, missing-device, active-device, source failure, cadence, and routing status in the user UI.
+- [x] Run a smoke proving captured camera frames route to the model `frame` input handle.
 
 Check:
-- [ ] Starting the workflow sends real camera frames into the model input.
+- [x] Starting the workflow sends camera frames into the model input.
 
 ### [ ] 1.3 Resolve Required RTX 3060 Artifacts
 

@@ -1,4 +1,5 @@
 import type { VideoFrame } from "@nodetool/protocol";
+import { createLogger } from "@nodetool/config";
 import { realtimeSessionManager } from "./session-manager.js";
 import type { RealtimeCommandHandlerDependencies } from "./command-handler-types.js";
 import { RealtimeSessionCommandService } from "./session-command-service.js";
@@ -13,6 +14,8 @@ import {
 import { routeRealtimeParameterUpdates } from "./runner-parameter-routing.js";
 import { FrameRouter } from "./frame-router.js";
 
+const log = createLogger("nodetool.websocket.realtime-command-handler");
+
 export type {
   ActiveRealtimeJob,
   NormalizedRealtimeSignal,
@@ -25,6 +28,7 @@ export type {
 export class RealtimeCommandHandler {
   private readonly sessionCommands: RealtimeSessionCommandService;
   private readonly signalingTransport: RealtimeSignalingTransport;
+  private readonly tempLoggedFrameRoutes = new Set<string>();
 
   constructor(private readonly dependencies: RealtimeCommandHandlerDependencies) {
     this.sessionCommands = new RealtimeSessionCommandService(dependencies);
@@ -198,6 +202,27 @@ export class RealtimeCommandHandler {
 
     const router = new FrameRouter(session, activeJob.runner);
     const routed = await router.routeFrame(trackId, frame);
+    const logKey = `${session.session_id}:${trackId}`;
+    if (!this.tempLoggedFrameRoutes.has(logKey)) {
+      this.tempLoggedFrameRoutes.add(logKey);
+      const track = session.media_tracks.find((candidate) => candidate.track_id === trackId);
+      log.info("TEMP_LOG realtime first pushed frame routed", {
+        sessionId,
+        workflowId: session.workflow_id,
+        jobId: session.job_id,
+        trackId,
+        routed,
+        track,
+        frame: {
+          sequence: frame.sequence,
+          width: frame.width,
+          height: frame.height,
+          pixelFormat: frame.pixel_format,
+          stride: frame.stride
+        },
+        metrics: router.metrics()
+      });
+    }
     return {
       type: "realtime_session_ack",
       ok: true,

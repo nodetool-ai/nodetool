@@ -73,6 +73,26 @@ export class RealtimeSessionCommandService {
       status: "starting"
     });
 
+    log.info("TEMP_LOG realtime session start command", {
+      workflowId,
+      sessionId: session.session_id,
+      jobId,
+      transport,
+      mediaTracks,
+      parameterNames: Object.keys(parameters),
+      graph:
+        data.graph && typeof data.graph === "object"
+          ? {
+              nodes: Array.isArray((data.graph as { nodes?: unknown }).nodes)
+                ? (data.graph as { nodes: unknown[] }).nodes.length
+                : 0,
+              edges: Array.isArray((data.graph as { edges?: unknown }).edges)
+                ? (data.graph as { edges: unknown[] }).edges.length
+                : 0
+            }
+          : null
+    });
+
     this.dependencies.trackSessionJob(session.session_id, jobId);
 
     try {

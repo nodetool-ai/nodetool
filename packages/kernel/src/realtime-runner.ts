@@ -7,6 +7,9 @@ import {
   type WorkflowRunnerOptions
 } from "./runner.js";
 import type { RealtimeMetrics, RealtimeSessionInfo } from "@nodetool/protocol";
+import { createLogger } from "@nodetool/config";
+
+const log = createLogger("nodetool.kernel.realtime-runner");
 
 export interface RealtimeRunnerOptions
   extends Omit<WorkflowRunnerOptions, "runMode"> {
@@ -111,6 +114,17 @@ export class RealtimeRunner {
     const warmNodes = this.runner
       .getNodes()
       .filter((node) => node.owns_warm_state);
+    log.info("TEMP_LOG realtime warm-state hook candidates", {
+      stage,
+      sessionId: sessionInfo.session_id,
+      workflowId: sessionInfo.workflow_id,
+      nodes: warmNodes.map((node) => ({
+        id: node.id,
+        type: node.type,
+        title: node.title,
+        name: node.name
+      }))
+    });
     if (warmNodes.length === 0) {
       return;
     }
@@ -125,14 +139,40 @@ export class RealtimeRunner {
     for (const node of warmNodes) {
       const executor = this.runner.getExecutor(node.id);
       if (!executor) {
+        log.warn("TEMP_LOG realtime warm-state executor missing", {
+          stage,
+          sessionId: sessionInfo.session_id,
+          nodeId: node.id,
+          nodeType: node.type
+        });
         continue;
       }
 
       if (stage === "start") {
         executor.resetWarmState?.();
+        log.info("TEMP_LOG realtime onSessionStart begin", {
+          sessionId: sessionInfo.session_id,
+          nodeId: node.id,
+          nodeType: node.type
+        });
         await executor.onSessionStart?.(context, sessionInfo);
+        log.info("TEMP_LOG realtime onSessionStart complete", {
+          sessionId: sessionInfo.session_id,
+          nodeId: node.id,
+          nodeType: node.type
+        });
       } else {
+        log.info("TEMP_LOG realtime onSessionStop begin", {
+          sessionId: sessionInfo.session_id,
+          nodeId: node.id,
+          nodeType: node.type
+        });
         await executor.onSessionStop?.(context, sessionInfo);
+        log.info("TEMP_LOG realtime onSessionStop complete", {
+          sessionId: sessionInfo.session_id,
+          nodeId: node.id,
+          nodeType: node.type
+        });
       }
     }
   }

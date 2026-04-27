@@ -1528,6 +1528,28 @@ export class UnifiedWebSocketRunner {
     }
 
     const graph = await this.hydrateGraph(rawGraph);
+    log.info("TEMP_LOG realtime graph hydrated", {
+      jobId,
+      workflowId,
+      sessionId: session.session_id,
+      nodes: graph.nodes.map((node) => ({
+        id: node.id,
+        type: node.type,
+        title: node.title,
+        name: node.name,
+        realtimeCapable: node.is_realtime_capable,
+        ownsWarmState: node.owns_warm_state,
+        isMediaAdapter: node.is_media_adapter,
+        isStreamingOutput: node.is_streaming_output
+      })),
+      edges: graph.edges.map((edge) => ({
+        source: edge.source,
+        sourceHandle: edge.sourceHandle,
+        target: edge.target,
+        targetHandle: edge.targetHandle
+      })),
+      mediaTracks: session.media_tracks
+    });
     if (this.beforeRunJob) {
       try {
         await this.beforeRunJob(graph);
@@ -1601,7 +1623,18 @@ export class UnifiedWebSocketRunner {
         graph as unknown as WorkflowGraphData,
         session
       );
+      log.info("TEMP_LOG realtime runner started", {
+        jobId,
+        workflowId,
+        sessionId: session.session_id
+      });
     } catch (error) {
+      log.error("TEMP_LOG realtime runner startup failed", {
+        jobId,
+        workflowId,
+        sessionId: session.session_id,
+        error: error instanceof Error ? error.message : String(error)
+      });
       this.activeJobs.delete(jobId);
       active.finished = true;
       rejectRealtimeResult(error);

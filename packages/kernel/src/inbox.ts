@@ -372,6 +372,22 @@ export class NodeInbox {
     return Object.fromEntries(this._droppedCounts.entries());
   }
 
+  // TEMP_LOG diagnostic helper. Remove with other TEMP_LOG instrumentation.
+  getDebugState(): Record<string, unknown> {
+    return {
+      buffers: Object.fromEntries(
+        [...this._buffers.entries()].map(([handle, buffer]) => [
+          handle,
+          buffer.length
+        ])
+      ),
+      openCounts: Object.fromEntries(this._openCounts.entries()),
+      arrival: [...this._arrival],
+      droppedCounts: this.getDroppedCounts(),
+      closed: this._closed
+    };
+  }
+
   // -----------------------------------------------------------------------
   // Control
   // -----------------------------------------------------------------------
