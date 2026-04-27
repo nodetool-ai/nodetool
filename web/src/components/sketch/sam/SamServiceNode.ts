@@ -1,64 +1,112 @@
 /**
- * SamServiceNode – SAM service that uses nodetool nodes for inference.
+ * SamServiceNode – SAM service backed by NodeTool node execution.
  *
- * Instead of calling the fal.ai API directly, this service builds a
- * mini-workflow graph with a SAM segmentation node and runs it through
- * the NodeExecutor abstraction.
- *
- * Benefits:
- * - Supports any SAM backend that has a nodetool node (fal.ai, HuggingFace local, etc.)
- * - Reuses the existing node execution infrastructure
- * - Can be swapped to API calls when sketch editor is standalone
- *
- * Supported node types:
- * - "fal.image_to_image.Sam2Image" – fal.ai cloud SAM 2 (requires FAL_API_KEY)
- * - "huggingface.image_segmentation.SAM2Segmentation" – local HuggingFace SAM 2
+ * Phase 3 starts with a curated Local SAM3 backend that reuses existing
+ * NodeTool metadata, model download, and execution infrastructure.
  */
 
+import useMetadataStore from "../../../stores/MetadataStore";
+import type { HuggingFaceModel } from "../../../stores/ApiTypes";
+import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type {
-  SamService,
+  SamBackendCapabilities,
   SamModelInfo,
+  SamService,
   SegmentationRequest,
   SegmentationResponse
 } from "./SamService";
-import { DEFAULT_SAM_MODEL_ID } from "./SamService";
-import type { SegmentationMask } from "../types";
+import {
+  DEFAULT_SAM_MODEL_ID,
+  FAL_SAM_CAPABILITIES,
+  LOCAL_SAM3_CAPABILITIES,
+  LOCAL_SAM3_MODEL_ID,
+  LOCAL_SAM3_MODEL_NAME
+} from "./SamService";
+import type { SegmentationMask, SegmentBackend } from "../types";
 import { getNodeExecutor } from "./NodeExecutor";
 import type { GraphNode, GraphEdge } from "./NodeExecutor";
 import { resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
 
-// ─── Supported Node Backends ──────────────────────────────────────────────────
+const LOCAL_SAM3_NODE_TYPE = "huggingface.image_segmentation.MaskGeneration";
+const LOCAL_SAM3_DOWNLOAD_TYPE = "hf.model";
+const LOCAL_SAM3_REQUIRED_INPUTS = [
+  "image",
+  "model",
+  "points_per_side",
+  "pred_iou_thresh"
+] as const;
+const ACTIVE_DOWNLOAD_STATUSES = new Set([
+  // ModelDownloadStore uses both lifecycle states and streaming event statuses.
+  "pending",
+  "running",
+  "start",
+  "progress"
+]);
 
 export interface SamNodeConfig {
-  /** The nodetool node type to use for segmentation. */
+  backendId: SegmentBackend;
   nodeType: string;
-  /** Human-readable name for UI display. */
   displayName: string;
-  /** Whether this backend runs locally (no API key needed). */
+  modelId: string;
+  capabilities: SamBackendCapabilities;
   isLocal: boolean;
-  /** Required secret key name (e.g. "FAL_API_KEY"), or null for local. */
   requiredSecret: string | null;
 }
 
-/** Available SAM node backends. */
 export const SAM_NODE_CONFIGS: Record<string, SamNodeConfig> = {
-  "fal-sam2": {
-    nodeType: "fal.image_to_image.Sam2Image",
-    displayName: "SAM 2 (fal.ai Cloud)",
-    isLocal: false,
-    requiredSecret: "FAL_API_KEY"
-  },
-  "hf-sam2": {
-    nodeType: "huggingface.image_segmentation.SAM2Segmentation",
-    displayName: "SAM 2 (Local HuggingFace)",
+  "local-sam3": {
+    backendId: "local-sam3",
+    nodeType: LOCAL_SAM3_NODE_TYPE,
+    displayName: LOCAL_SAM3_MODEL_NAME,
+    modelId: LOCAL_SAM3_MODEL_ID,
+    capabilities: LOCAL_SAM3_CAPABILITIES,
     isLocal: true,
     requiredSecret: null
+  },
+  "fal-sam2": {
+    backendId: "fal",
+    nodeType: "fal.image_to_image.Sam2Image",
+    displayName: "SAM 2 (fal.ai Cloud)",
+    modelId: DEFAULT_SAM_MODEL_ID,
+    capabilities: FAL_SAM_CAPABILITIES,
+    isLocal: false,
+    requiredSecret: "FAL_API_KEY"
   }
 };
 
-export const DEFAULT_SAM_NODE_BACKEND = "fal-sam2";
+export const DEFAULT_SAM_NODE_BACKEND = "local-sam3";
 
-// ─── SamServiceNode Implementation ───────────────────────────────────────────
+function hasMetadataInputs(
+  metadata: { properties?: Array<{ name?: string | null }> } | undefined,
+  inputNames: readonly string[]
+): boolean {
+  if (!metadata?.properties) {
+    return false;
+  }
+  const availableInputs = new Set(
+    metadata.properties
+      .map((property) => property.name)
+      .filter((name): name is string => typeof name === "string" && name.length > 0)
+  );
+  return inputNames.every((inputName) => availableInputs.has(inputName));
+}
+
+function getDownloadProgress(modelId: string): number | undefined {
+  const download = useModelDownloadStore.getState().downloads[modelId];
+  if (!download || download.totalBytes <= 0) {
+    return undefined;
+  }
+  return Math.max(
+    0,
+    Math.min(1, download.downloadedBytes / download.totalBytes)
+  );
+}
+
+function isModelDownloadActive(modelId: string): boolean {
+  const download = useModelDownloadStore.getState().downloads[modelId];
+  return download ? ACTIVE_DOWNLOAD_STATUSES.has(download.status) : false;
+}
 
 export class SamServiceNode implements SamService {
   private config: SamNodeConfig;
@@ -74,23 +122,94 @@ export class SamServiceNode implements SamService {
   }
 
   async checkModelAvailability(): Promise<SamModelInfo> {
-    // For cloud models, check if the required API key is configured
-    if (this.config.requiredSecret) {
-      const hasKey = await this.checkSecret(this.config.requiredSecret);
-      if (!hasKey) {
-        return {
-          status: "not-installed",
-          modelId: DEFAULT_SAM_MODEL_ID,
-          modelName: this.config.displayName,
-          errorMessage: `${this.config.requiredSecret} not configured. Add it in Settings → Secrets.`
-        };
-      }
+    if (this.config.backendId !== "local-sam3") {
+      return {
+        status: "available",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: this.config.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName
+      };
     }
 
-    // For local models, assume availability if the backend is running
+    const metadata = useMetadataStore
+      .getState()
+      .getMetadata(this.config.nodeType);
+
+    if (!metadata) {
+      return {
+        status: "not-installed",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: this.config.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName,
+        errorMessage: "Install or enable the HuggingFace node pack"
+      };
+    }
+
+    if (!hasMetadataInputs(metadata, LOCAL_SAM3_REQUIRED_INPUTS)) {
+      return {
+        status: "error",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: this.config.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName,
+        errorMessage: "Local SAM3 node metadata is missing required inputs"
+      };
+    }
+
+    if (isModelDownloadActive(this.config.modelId)) {
+      return {
+        status: "downloading",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: this.config.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName,
+        downloadProgress: getDownloadProgress(this.config.modelId),
+        errorMessage: "Local SAM3 is not ready"
+      };
+    }
+
+    await useHfCacheStatusStore.getState().ensureStatuses([
+      {
+        key: this.config.modelId,
+        repo_id: this.config.modelId,
+        model_type: LOCAL_SAM3_DOWNLOAD_TYPE
+      }
+    ]);
+
+    const isCached = Boolean(
+      useHfCacheStatusStore.getState().statuses[this.config.modelId]
+    );
+
+    if (!isCached) {
+      return {
+        status: "not-installed",
+        backendId: this.config.backendId,
+        backendLabel: this.config.displayName,
+        capabilities: this.config.capabilities,
+        nodeType: this.config.nodeType,
+        modelId: this.config.modelId,
+        modelName: this.config.displayName,
+        errorMessage: "Local SAM3 is not ready"
+      };
+    }
+
     return {
       status: "available",
-      modelId: DEFAULT_SAM_MODEL_ID,
+      backendId: this.config.backendId,
+      backendLabel: this.config.displayName,
+      capabilities: this.config.capabilities,
+      nodeType: this.config.nodeType,
+      modelId: this.config.modelId,
       modelName: this.config.displayName
     };
   }
@@ -99,7 +218,6 @@ export class SamServiceNode implements SamService {
     request: SegmentationRequest,
     signal?: AbortSignal
   ): Promise<SegmentationResponse> {
-    // 1. Resize image if needed (large image guardrail)
     const { dataUrl: resizedUrl, scale } = await resizeForInference(
       request.imageDataUrl,
       MAX_INFERENCE_DIMENSION
@@ -109,59 +227,71 @@ export class SamServiceNode implements SamService {
       throw new DOMException("Aborted", "AbortError");
     }
 
-    // 2. Build the graph for this specific node type
-    const { nodes, edges } = this.buildGraph(resizedUrl, request, scale);
-
-    // 3. Execute via NodeExecutor
     const executor = getNodeExecutor();
-    const result = await executor.execute({ nodes, edges }, {}, signal);
+    const result = await executor.execute(
+      this.buildGraph(resizedUrl, request, scale),
+      {},
+      signal
+    );
 
     if (!result.success) {
       throw new Error(result.error ?? "Segmentation failed");
     }
 
-    // 4. Parse the result into masks
     return this.parseResult(result.outputs, scale);
   }
-
-  // ─── Graph Building ─────────────────────────────────────────────────────────
 
   private buildGraph(
     imageDataUrl: string,
     request: SegmentationRequest,
     scale: number
   ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-    if (this.config.nodeType === "fal.image_to_image.Sam2Image") {
-      return this.buildFalSam2Graph(imageDataUrl, request, scale);
+    if (this.config.backendId === "local-sam3") {
+      return this.buildLocalSam3Graph(imageDataUrl, request);
     }
-    if (
-      this.config.nodeType ===
-      "huggingface.image_segmentation.SAM2Segmentation"
-    ) {
-      return this.buildHfSam2Graph(imageDataUrl);
-    }
-    throw new Error(`No graph builder for node type: ${this.config.nodeType}`);
+
+    return this.buildFalSam2Graph(imageDataUrl, request, scale);
   }
 
-  /**
-   * Build a graph for the fal.ai SAM 2 node.
-   * Node type: fal.image_to_image.Sam2Image
-   * Inputs: image, prompts, box_prompts, sync_mode, output_format, apply_mask
-   * Output: output (image)
-   */
+  private buildLocalSam3Graph(
+    imageDataUrl: string,
+    request: SegmentationRequest
+  ): { nodes: GraphNode[]; edges: GraphEdge[] } {
+    const base64Data = imageDataUrl.includes(",")
+      ? imageDataUrl.split(",")[1]
+      : imageDataUrl;
+
+    return {
+      nodes: [
+        {
+          id: "sam_node",
+          type: this.config.nodeType,
+          data: {
+            image: { type: "image", uri: "", data: base64Data },
+            model: {
+              type: "hf.model",
+              repo_id: this.config.modelId
+            } as HuggingFaceModel,
+            points_per_side: request.settings.pointsPerSide,
+            pred_iou_thresh: request.settings.predIouThresh
+          }
+        }
+      ],
+      edges: []
+    };
+  }
+
   private buildFalSam2Graph(
     imageDataUrl: string,
     request: SegmentationRequest,
     scale: number
   ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-    // Convert point prompts to fal format
-    const falPrompts = request.pointPrompts.map((p) => ({
-      x: Math.round(p.x * scale),
-      y: Math.round(p.y * scale),
-      label: p.label === "positive" ? 1 : 0
+    const falPrompts = request.pointPrompts.map((point) => ({
+      x: Math.round(point.x * scale),
+      y: Math.round(point.y * scale),
+      label: point.label === "positive" ? 1 : 0
     }));
 
-    // Convert box prompts to fal format
     const falBoxPrompts = request.boxPrompt
       ? [
           {
@@ -173,100 +303,99 @@ export class SamServiceNode implements SamService {
         ]
       : [];
 
-    // Extract base64 data from data URL
     const base64Data = imageDataUrl.includes(",")
       ? imageDataUrl.split(",")[1]
       : imageDataUrl;
 
-    const samNode: GraphNode = {
-      id: "sam_node",
-      type: "fal.image_to_image.Sam2Image",
-      data: {
-        image: { type: "image", uri: "", data: base64Data },
-        prompts: falPrompts,
-        box_prompts: falBoxPrompts,
-        sync_mode: true,
-        output_format: "png",
-        apply_mask: false
-      }
-    };
-
     return {
-      nodes: [samNode],
+      nodes: [
+        {
+          id: "sam_node",
+          type: "fal.image_to_image.Sam2Image",
+          data: {
+            image: { type: "image", uri: "", data: base64Data },
+            prompts: falPrompts,
+            box_prompts: falBoxPrompts,
+            sync_mode: true,
+            output_format: "png",
+            apply_mask: false
+          }
+        }
+      ],
       edges: []
     };
   }
-
-  /**
-   * Build a graph for the HuggingFace local SAM 2 node.
-   * Node type: huggingface.image_segmentation.SAM2Segmentation
-   * Inputs: image
-   * Output: output (list of images/masks)
-   */
-  private buildHfSam2Graph(
-    imageDataUrl: string
-  ): { nodes: GraphNode[]; edges: GraphEdge[] } {
-    const base64Data = imageDataUrl.includes(",")
-      ? imageDataUrl.split(",")[1]
-      : imageDataUrl;
-
-    const samNode: GraphNode = {
-      id: "sam_node",
-      type: "huggingface.image_segmentation.SAM2Segmentation",
-      data: {
-        image: { type: "image", uri: "", data: base64Data }
-      }
-    };
-
-    return {
-      nodes: [samNode],
-      edges: []
-    };
-  }
-
-  // ─── Result Parsing ─────────────────────────────────────────────────────────
 
   private parseResult(
     outputs: Record<string, unknown>,
     scale: number
   ): SegmentationResponse {
-    // The SAM node output is keyed by node ID
-    const samOutput = outputs["sam_node"];
-    if (!samOutput) {
-      return { masks: [] };
+    const rawOutput = outputs.sam_node;
+    if (!rawOutput) {
+      return {
+        masks: [],
+        modelId: this.config.modelId,
+        backendId: this.config.backendId
+      };
     }
 
-    // Output can be:
-    // - { output: { type: "image", uri: "..." } }  (single image from fal)
-    // - { output: [{ type: "image", uri: "..." }, ...] }  (list from hf)
-    // - { type: "image", uri: "..." }  (direct image ref)
-    // - [{ type: "image", uri: "..." }, ...]  (direct list)
+    const imageRecords = this.normalizeOutputImages(rawOutput);
+    const invScale = scale > 0 ? 1 / scale : 1;
 
-    const raw = samOutput as Record<string, unknown>;
-    let images: Array<{
-      uri?: string;
-      url?: string;
-      width?: number;
-      height?: number;
-    }> = [];
-
-    if (raw.output) {
-      if (Array.isArray(raw.output)) {
-        images = raw.output;
-      } else if (typeof raw.output === "object" && raw.output !== null) {
-        images = [
-          raw.output as {
-            uri?: string;
-            width?: number;
-            height?: number;
-          }
-        ];
+    const masks: SegmentationMask[] = imageRecords.map((image, index) => ({
+      id: `mask_${index}`,
+      label: `Mask ${index + 1}`,
+      maskDataUrl: image.uri ?? image.url ?? "",
+      confidence: 1,
+      bounds: {
+        x: 0,
+        y: 0,
+        width: image.width ? Math.round(image.width * invScale) : 0,
+        height: image.height ? Math.round(image.height * invScale) : 0
       }
-    } else if (Array.isArray(raw)) {
-      images = raw;
-    } else if (raw.uri || raw.url) {
-      images = [
-        raw as {
+    })).filter((mask) => mask.maskDataUrl.length > 0);
+
+    return {
+      masks,
+      modelId: this.config.modelId,
+      backendId: this.config.backendId
+    };
+  }
+
+  private normalizeOutputImages(rawOutput: unknown): Array<{
+    uri?: string;
+    url?: string;
+    width?: number;
+    height?: number;
+  }> {
+    if (Array.isArray(rawOutput)) {
+      return rawOutput.filter(
+        (entry): entry is { uri?: string; url?: string; width?: number; height?: number } =>
+          Boolean(entry) &&
+          typeof entry === "object" &&
+          (typeof (entry as { uri?: unknown }).uri === "string" ||
+            typeof (entry as { url?: unknown }).url === "string")
+      );
+    }
+
+    if (typeof rawOutput !== "object" || rawOutput === null) {
+      return [];
+    }
+
+    const record = rawOutput as Record<string, unknown>;
+    if (Array.isArray(record.output)) {
+      return record.output.filter(
+        (entry): entry is { uri?: string; url?: string; width?: number; height?: number } =>
+          Boolean(entry) &&
+          typeof entry === "object" &&
+          (typeof (entry as { uri?: unknown }).uri === "string" ||
+            typeof (entry as { url?: unknown }).url === "string")
+      );
+    }
+
+    if (record.uri || record.url) {
+      return [
+        record as {
           uri?: string;
           url?: string;
           width?: number;
@@ -275,49 +404,6 @@ export class SamServiceNode implements SamService {
       ];
     }
 
-    if (images.length === 0) {
-      return { masks: [] };
-    }
-
-    const invScale = scale > 0 ? 1 / scale : 1;
-
-    const masks: SegmentationMask[] = images.map((img, i) => {
-      const uri = img.uri ?? img.url ?? "";
-      const width = img.width ? Math.round(img.width * invScale) : 0;
-      const height = img.height ? Math.round(img.height * invScale) : 0;
-
-      return {
-        id: `mask_${i}`,
-        label: `Object ${i + 1}`,
-        maskDataUrl: uri,
-        confidence: 1.0,
-        bounds: {
-          x: 0,
-          y: 0,
-          width,
-          height
-        }
-      };
-    });
-
-    return { masks };
-  }
-
-  // ─── Helpers ────────────────────────────────────────────────────────────────
-
-  private async checkSecret(secretKey: string): Promise<boolean> {
-    try {
-      // Dynamic import to avoid circular deps
-      const SecretsStore = (await import("../../../stores/SecretsStore"))
-        .default;
-      const secrets = SecretsStore.getState().secrets;
-      return secrets.some(
-        (s: { key: string; value?: string }) =>
-          s.key === secretKey && s.value !== undefined && s.value !== ""
-      );
-    } catch {
-      // Store not available (e.g., in tests)
-      return false;
-    }
+    return [];
   }
 }

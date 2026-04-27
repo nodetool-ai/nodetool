@@ -12,7 +12,11 @@
  */
 
 import type { SamService, SamModelInfo, SegmentationRequest, SegmentationResponse } from "./SamService";
-import { DEFAULT_SAM_MODEL_ID, DEFAULT_SAM_MODEL_NAME } from "./SamService";
+import {
+  DEFAULT_SAM_MODEL_ID,
+  DEFAULT_SAM_MODEL_NAME,
+  FAL_SAM_CAPABILITIES
+} from "./SamService";
 import type { SegmentationMask } from "../types";
 import useSecretsStore from "../../../stores/SecretsStore";
 
@@ -167,6 +171,9 @@ export class SamServiceFal implements SamService {
     if (!apiKey) {
       return {
         status: "not-installed",
+        backendId: "fal",
+        backendLabel: "fal.ai",
+        capabilities: FAL_SAM_CAPABILITIES,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: "FAL_API_KEY not configured. Add it in Settings → Secrets."
@@ -183,12 +190,18 @@ export class SamServiceFal implements SamService {
       if (res.ok || res.status === 405 || res.status === 200) {
         return {
           status: "available",
+          backendId: "fal",
+          backendLabel: "fal.ai",
+          capabilities: FAL_SAM_CAPABILITIES,
           modelId: DEFAULT_SAM_MODEL_ID,
           modelName: DEFAULT_SAM_MODEL_NAME
         };
       }
       return {
         status: "error",
+        backendId: "fal",
+        backendLabel: "fal.ai",
+        capabilities: FAL_SAM_CAPABILITIES,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: `FAL API returned ${res.status}`
@@ -196,6 +209,9 @@ export class SamServiceFal implements SamService {
     } catch (err) {
       return {
         status: "error",
+        backendId: "fal",
+        backendLabel: "fal.ai",
+        capabilities: FAL_SAM_CAPABILITIES,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: err instanceof Error ? err.message : "Connection failed"
@@ -353,7 +369,11 @@ export class SamServiceFal implements SamService {
     const images = data.images ?? (data.image ? [data.image] : []);
 
     if (images.length === 0) {
-      return { masks: [] };
+      return {
+        masks: [],
+        modelId: DEFAULT_SAM_MODEL_ID,
+        backendId: "fal"
+      };
     }
 
     // Each image from SAM2 is a mask or a combined masked output
@@ -374,6 +394,10 @@ export class SamServiceFal implements SamService {
       };
     });
 
-    return { masks };
+    return {
+      masks,
+      modelId: DEFAULT_SAM_MODEL_ID,
+      backendId: "fal"
+    };
   }
 }

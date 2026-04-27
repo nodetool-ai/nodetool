@@ -1,14 +1,15 @@
 /**
- * SamService – abstraction layer for SAM 2 model inference.
+ * SamService – abstraction layer for sketch SAM backends.
  *
  * Handles model availability checks, downloading, and running segmentation.
- * The first version targets the backend service path via the existing
- * model management and workflow execution APIs.
+ * Sketch owns the UI contract; each backend reports only the capabilities the
+ * editor actually needs.
  *
  * Service is stateless; all mutable state lives in the useSegmentation hook.
  */
 
 import type {
+  SegmentBackend,
   SegmentPointPrompt,
   SegmentBoxPrompt,
   SegmentationMask,
@@ -27,8 +28,24 @@ export type SamModelStatus =
   | "downloading"
   | "error";
 
+export interface SamBackendCapabilities {
+  automaticSplit: boolean;
+  maskImages: boolean;
+  textPrompts: boolean;
+  pointPrompts: boolean;
+  boxPrompts: boolean;
+  labels: boolean;
+  confidence: boolean;
+  boxes: boolean;
+  rle: boolean;
+}
+
 export interface SamModelInfo {
   status: SamModelStatus;
+  backendId: SegmentBackend;
+  backendLabel: string;
+  capabilities: SamBackendCapabilities;
+  nodeType?: string;
   /** Model identifier used by the backend. */
   modelId: string;
   /** Human-readable model name. */
@@ -44,6 +61,40 @@ export interface SamModelInfo {
 /** Default SAM 2 model target. */
 export const DEFAULT_SAM_MODEL_ID = "facebook/sam2-hiera-large";
 export const DEFAULT_SAM_MODEL_NAME = "SAM 2 (Hiera Large)";
+export const LOCAL_SAM3_MODEL_ID = "facebook/sam3";
+export const LOCAL_SAM3_MODEL_NAME = "Local SAM3";
+
+export const FAL_SAM_CAPABILITIES: SamBackendCapabilities = {
+  automaticSplit: true,
+  maskImages: true,
+  textPrompts: false,
+  pointPrompts: true,
+  boxPrompts: true,
+  labels: true,
+  confidence: false,
+  boxes: false,
+  rle: false
+};
+
+export const LOCAL_SAM3_CAPABILITIES: SamBackendCapabilities = {
+  automaticSplit: true,
+  maskImages: true,
+  textPrompts: false,
+  pointPrompts: false,
+  boxPrompts: false,
+  labels: false,
+  confidence: false,
+  boxes: false,
+  rle: false
+};
+
+export function getDefaultSamModelId(
+  backend: SegmentBackend | undefined
+): string {
+  return backend === "local-sam3"
+    ? LOCAL_SAM3_MODEL_ID
+    : DEFAULT_SAM_MODEL_ID;
+}
 
 // ─── Inference ────────────────────────────────────────────────────────────────
 
@@ -60,6 +111,8 @@ export interface SegmentationRequest {
 
 export interface SegmentationResponse {
   masks: SegmentationMask[];
+  modelId?: string;
+  backendId?: SegmentBackend;
 }
 
 // ─── Service Interface ────────────────────────────────────────────────────────
@@ -85,6 +138,9 @@ export class SamServiceStub implements SamService {
   async checkModelAvailability(): Promise<SamModelInfo> {
     return {
       status: "not-installed",
+      backendId: "fal",
+      backendLabel: "fal.ai",
+      capabilities: FAL_SAM_CAPABILITIES,
       modelId: DEFAULT_SAM_MODEL_ID,
       modelName: DEFAULT_SAM_MODEL_NAME
     };
@@ -99,17 +155,21 @@ export class SamServiceStub implements SamService {
   ): Promise<SegmentationResponse> {
     await new Promise((resolve) => setTimeout(resolve, SamServiceStub.STUB_DELAY_MS));
 
-    return { masks: [] };
+    return {
+      masks: [],
+      modelId: DEFAULT_SAM_MODEL_ID,
+      backendId: "fal"
+    };
   }
 }
 
 /** Singleton service instance. Replace with real implementation when available. */
 let serviceInstance: SamService | null = null;
-let currentBackend: "fal" | "node" | null = null;
+let currentBackend: SegmentBackend | null = null;
 /** True when the instance was set explicitly via setSamService. */
 let manualOverride = false;
 
-export function getSamService(backend?: "fal" | "node"): SamService {
+export function getSamService(backend?: SegmentBackend): SamService {
   const requestedBackend = backend ?? "fal";
 
   // Return manually-overridden instance unless a specific backend was requested
@@ -131,7 +191,7 @@ export function getSamService(backend?: "fal" | "node"): SamService {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { SamServiceNode } = require("./SamServiceNode");
-      newService = new SamServiceNode();
+      newService = new SamServiceNode(requestedBackend);
     } catch {
       // Fallback to stub if SamServiceNode can't be loaded
       newService = new SamServiceStub();

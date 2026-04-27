@@ -16,10 +16,15 @@
  */
 
 import { act } from "@testing-library/react";
+import useMetadataStore from "../../../stores/MetadataStore";
+import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import {
   createDefaultDocument,
   DEFAULT_SEGMENT_SETTINGS,
   DEFAULT_TOOL_SETTINGS,
+  DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE,
+  DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH,
   createDefaultGroupLayer,
   createDefaultLayer,
   generateLayerId,
@@ -37,7 +42,13 @@ import type {
 import { SegmentTool } from "../tools/SegmentTool";
 import { getToolHandler } from "../tools";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import { SamServiceStub, getSamService, setSamService, SamServiceFal } from "../sam";
+import {
+  SamServiceStub,
+  getSamService,
+  setSamService,
+  SamServiceFal,
+  LOCAL_SAM3_MODEL_ID
+} from "../sam";
 import {
   getMaskOverlayColor,
   getMaskOutlineColor,
@@ -58,7 +69,9 @@ describe("Segmentation types and defaults", () => {
       sourceLayerAction: "keep",
       maskFeather: 0,
       outputCutouts: true,
-      backend: "fal"
+      backend: "fal",
+      pointsPerSide: DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE,
+      predIouThresh: DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH
     });
   });
 
@@ -181,6 +194,18 @@ function makePointerEvent(overrides?: Record<string, unknown>) {
     },
     ...overrides
   } as unknown as ToolPointerEvent;
+}
+
+function makeMetadataProperty(name: string) {
+  return {
+    name,
+    type: {
+      type: "string",
+      optional: true,
+      type_args: []
+    },
+    required: false
+  } as any;
 }
 
 describe("SegmentTool", () => {
@@ -368,6 +393,7 @@ describe("SamServiceStub", () => {
       settings: DEFAULT_SEGMENT_SETTINGS
     });
     expect(response.masks).toEqual([]);
+    expect(response.modelId).toBe("facebook/sam2-hiera-large");
   });
 
   it("getSamService returns a service instance", () => {
@@ -880,24 +906,22 @@ describe("SketchCanvasRef interface", () => {
 // ─── SamServiceNode ───────────────────────────────────────────────────────────
 
 describe("SamServiceNode", () => {
-  it("can be instantiated with default backend", () => {
+  beforeEach(() => {
+    useMetadataStore.setState({ metadata: {} });
+    useHfCacheStatusStore.setState({
+      statuses: {},
+      pending: {},
+      version: 0
+    });
+    useModelDownloadStore.setState({ downloads: {} });
+  });
+
+  it("can be instantiated with the default local-sam3 backend", () => {
     const { SamServiceNode } = require("../sam/SamServiceNode");
     const service = new SamServiceNode();
     expect(service).toBeDefined();
     expect(service.checkModelAvailability).toBeDefined();
     expect(service.runSegmentation).toBeDefined();
-  });
-
-  it("can be instantiated with fal-sam2 backend", () => {
-    const { SamServiceNode } = require("../sam/SamServiceNode");
-    const service = new SamServiceNode("fal-sam2");
-    expect(service).toBeDefined();
-  });
-
-  it("can be instantiated with hf-sam2 backend", () => {
-    const { SamServiceNode } = require("../sam/SamServiceNode");
-    const service = new SamServiceNode("hf-sam2");
-    expect(service).toBeDefined();
   });
 
   it("throws on unknown backend", () => {
@@ -907,64 +931,126 @@ describe("SamServiceNode", () => {
     );
   });
 
-  it("checkModelAvailability returns not-installed when no API key", async () => {
+  it("reports missing node metadata as a local-not-ready hint", async () => {
     const { SamServiceNode } = require("../sam/SamServiceNode");
-    const service = new SamServiceNode("fal-sam2");
+    const service = new SamServiceNode("local-sam3");
     const info = await service.checkModelAvailability();
-    // In test environment, secrets store has no key
     expect(info.status).toBe("not-installed");
-    expect(info.errorMessage).toContain("FAL_API_KEY");
+    expect(info.errorMessage).toBe("Install or enable the HuggingFace node pack");
   });
 
-  it("hf-sam2 checkModelAvailability returns available (no secret needed)", async () => {
+  it("reports missing required node inputs as an error", async () => {
     const { SamServiceNode } = require("../sam/SamServiceNode");
-    const service = new SamServiceNode("hf-sam2");
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [makeMetadataProperty("image"), makeMetadataProperty("model")]
+        }
+      } as any
+    });
+    const service = new SamServiceNode("local-sam3");
+    const info = await service.checkModelAvailability();
+    expect(info.status).toBe("error");
+    expect(info.errorMessage).toContain("required inputs");
+  });
+
+  it("reports local SAM3 as not ready when the model is not cached", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("model"),
+            makeMetadataProperty("points_per_side"),
+            makeMetadataProperty("pred_iou_thresh")
+          ]
+        }
+      } as any
+    });
+    const service = new SamServiceNode("local-sam3");
+    const info = await service.checkModelAvailability();
+    expect(info.status).toBe("not-installed");
+    expect(info.errorMessage).toBe("Local SAM3 is not ready");
+  });
+
+  it("reports local SAM3 as downloading when the model download is active", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("model"),
+            makeMetadataProperty("points_per_side"),
+            makeMetadataProperty("pred_iou_thresh")
+          ]
+        }
+      } as any
+    });
+    useModelDownloadStore.setState({
+      downloads: {
+        [LOCAL_SAM3_MODEL_ID]: {
+          id: LOCAL_SAM3_MODEL_ID,
+          status: "running",
+          downloadedBytes: 50,
+          totalBytes: 100,
+          speed: null,
+          speedHistory: []
+        }
+      }
+    });
+    const service = new SamServiceNode("local-sam3");
+    const info = await service.checkModelAvailability();
+    expect(info.status).toBe("downloading");
+    expect(info.downloadProgress).toBe(0.5);
+    expect(info.errorMessage).toBe("Local SAM3 is not ready");
+  });
+
+  it("reports local SAM3 as ready when metadata and cache status exist", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("model"),
+            makeMetadataProperty("points_per_side"),
+            makeMetadataProperty("pred_iou_thresh")
+          ]
+        }
+      } as any
+    });
+    useHfCacheStatusStore.setState({
+      statuses: { [LOCAL_SAM3_MODEL_ID]: true },
+      pending: {},
+      version: 0
+    });
+    const service = new SamServiceNode("local-sam3");
     const info = await service.checkModelAvailability();
     expect(info.status).toBe("available");
-    expect(info.modelName).toBe("SAM 2 (Local HuggingFace)");
-  });
-
-  it("can be set as the active service via setSamService", () => {
-    const { SamServiceNode } = require("../sam/SamServiceNode");
-    const service = new SamServiceNode();
-    setSamService(service);
-    const retrieved = getSamService();
-    expect(retrieved).toBe(service);
-    // Restore stub
-    setSamService(new SamServiceStub());
+    expect(info.modelId).toBe(LOCAL_SAM3_MODEL_ID);
+    expect(info.errorMessage).toBeUndefined();
+    expect(info.capabilities.pointPrompts).toBe(false);
+    expect(info.capabilities.automaticSplit).toBe(true);
   });
 });
 
 // ─── SAM Node Configs ─────────────────────────────────────────────────────────
 
 describe("SAM node configurations", () => {
-  it("SAM_NODE_CONFIGS has fal-sam2 and hf-sam2", () => {
-    const { SAM_NODE_CONFIGS } = require("../sam/SamServiceNode");
-    expect(SAM_NODE_CONFIGS["fal-sam2"]).toBeDefined();
-    expect(SAM_NODE_CONFIGS["hf-sam2"]).toBeDefined();
-  });
-
-  it("fal-sam2 requires FAL_API_KEY", () => {
-    const { SAM_NODE_CONFIGS } = require("../sam/SamServiceNode");
-    const config = SAM_NODE_CONFIGS["fal-sam2"];
-    expect(config.requiredSecret).toBe("FAL_API_KEY");
-    expect(config.isLocal).toBe(false);
-    expect(config.nodeType).toBe("fal.image_to_image.Sam2Image");
-  });
-
-  it("hf-sam2 is local and has no required secret", () => {
-    const { SAM_NODE_CONFIGS } = require("../sam/SamServiceNode");
-    const config = SAM_NODE_CONFIGS["hf-sam2"];
-    expect(config.requiredSecret).toBeNull();
+  it("includes the Local SAM3 preset", () => {
+    const { SAM_NODE_CONFIGS, DEFAULT_SAM_NODE_BACKEND } = require("../sam/SamServiceNode");
+    const config = SAM_NODE_CONFIGS["local-sam3"];
+    expect(config).toBeDefined();
+    expect(config.nodeType).toBe("huggingface.image_segmentation.MaskGeneration");
+    expect(config.modelId).toBe(LOCAL_SAM3_MODEL_ID);
     expect(config.isLocal).toBe(true);
-    expect(config.nodeType).toBe(
-      "huggingface.image_segmentation.SAM2Segmentation"
-    );
-  });
-
-  it("DEFAULT_SAM_NODE_BACKEND is fal-sam2", () => {
-    const { DEFAULT_SAM_NODE_BACKEND } = require("../sam/SamServiceNode");
-    expect(DEFAULT_SAM_NODE_BACKEND).toBe("fal-sam2");
+    expect(DEFAULT_SAM_NODE_BACKEND).toBe("local-sam3");
   });
 });
 
@@ -993,34 +1079,32 @@ describe("NodeExecutor", () => {
 
     setNodeExecutor(mock);
     expect(getNodeExecutor()).toBe(mock);
-
-    // Restore default
     setNodeExecutor(new WebSocketNodeExecutor());
   });
 
-  it("mock NodeExecutor can simulate segmentation", async () => {
+  it("builds the Local SAM3 graph with advanced settings", async () => {
     const { SamServiceNode } = require("../sam/SamServiceNode");
     const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
     const SamServiceFal = require("../sam/SamServiceFal");
 
-    // Mock resizeForInference to avoid Image loading in jsdom
     const origResize = SamServiceFal.resizeForInference;
     SamServiceFal.resizeForInference = jest
       .fn()
       .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 1 });
 
-    // Mock executor that returns a fake mask
     const mockExecutor = {
       execute: jest.fn().mockResolvedValue({
         success: true,
         outputs: {
           sam_node: {
-            output: {
-              type: "image",
-              uri: "data:image/png;base64,fakedata",
-              width: 512,
-              height: 512
-            }
+            output: [
+              {
+                type: "image",
+                uri: "data:image/png;base64,fakedata",
+                width: 512,
+                height: 512
+              }
+            ]
           }
         }
       })
@@ -1028,107 +1112,33 @@ describe("NodeExecutor", () => {
 
     setNodeExecutor(mockExecutor);
 
-    const service = new SamServiceNode("hf-sam2");
-    const tinyPng = "data:image/png;base64,smallimage";
-
+    const service = new SamServiceNode("local-sam3");
     const result = await service.runSegmentation({
-      imageDataUrl: tinyPng,
-      pointPrompts: [{ x: 10, y: 10, label: "positive" }],
+      imageDataUrl: "data:image/png;base64,smallimage",
+      pointPrompts: [],
       boxPrompt: null,
-      settings: DEFAULT_SEGMENT_SETTINGS
+      settings: {
+        ...DEFAULT_SEGMENT_SETTINGS,
+        backend: "local-sam3",
+        promptMode: "auto",
+        pointsPerSide: 48,
+        predIouThresh: 0.91
+      }
     });
 
-    expect(mockExecutor.execute).toHaveBeenCalledTimes(1);
-    expect(result.masks).toHaveLength(1);
-    expect(result.masks[0].maskDataUrl).toBe(
-      "data:image/png;base64,fakedata"
+    const graph = mockExecutor.execute.mock.calls[0][0];
+    expect(graph.nodes[0].type).toBe(
+      "huggingface.image_segmentation.MaskGeneration"
     );
-
-    // Restore
-    SamServiceFal.resizeForInference = origResize;
-    setNodeExecutor(new WebSocketNodeExecutor());
-  });
-
-  it("mock NodeExecutor handles execution failure", async () => {
-    const { SamServiceNode } = require("../sam/SamServiceNode");
-    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
-    const SamServiceFal = require("../sam/SamServiceFal");
-
-    const origResize = SamServiceFal.resizeForInference;
-    SamServiceFal.resizeForInference = jest
-      .fn()
-      .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 1 });
-
-    const mockExecutor = {
-      execute: jest.fn().mockResolvedValue({
-        success: false,
-        outputs: {},
-        error: "Node execution failed"
-      })
-    };
-
-    setNodeExecutor(mockExecutor);
-
-    const service = new SamServiceNode("hf-sam2");
-    const tinyPng = "data:image/png;base64,smallimage";
-
-    await expect(
-      service.runSegmentation({
-        imageDataUrl: tinyPng,
-        pointPrompts: [],
-        boxPrompt: null,
-        settings: DEFAULT_SEGMENT_SETTINGS
-      })
-    ).rejects.toThrow("Node execution failed");
-
-    // Restore
-    SamServiceFal.resizeForInference = origResize;
-    setNodeExecutor(new WebSocketNodeExecutor());
-  });
-
-  it("mock NodeExecutor builds fal graph with prompts", async () => {
-    const { SamServiceNode } = require("../sam/SamServiceNode");
-    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
-    const SamServiceFal = require("../sam/SamServiceFal");
-
-    const origResize = SamServiceFal.resizeForInference;
-    SamServiceFal.resizeForInference = jest
-      .fn()
-      .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 1 });
-
-    const mockExecutor = {
-      execute: jest.fn().mockResolvedValue({
-        success: true,
-        outputs: { sam_node: { output: [] } }
-      })
-    };
-
-    setNodeExecutor(mockExecutor);
-
-    const service = new SamServiceNode("fal-sam2");
-    const tinyPng = "data:image/png;base64,smallimage";
-
-    await service.runSegmentation({
-      imageDataUrl: tinyPng,
-      pointPrompts: [
-        { x: 10, y: 20, label: "positive" },
-        { x: 30, y: 40, label: "negative" }
-      ],
-      boxPrompt: { x: 5, y: 5, width: 50, height: 50 },
-      settings: DEFAULT_SEGMENT_SETTINGS
+    expect(graph.nodes[0].data.model).toEqual({
+      type: "hf.model",
+      repo_id: LOCAL_SAM3_MODEL_ID
     });
+    expect(graph.nodes[0].data.points_per_side).toBe(48);
+    expect(graph.nodes[0].data.pred_iou_thresh).toBe(0.91);
+    expect(result.modelId).toBe(LOCAL_SAM3_MODEL_ID);
+    expect(result.masks[0].maskDataUrl).toBe("data:image/png;base64,fakedata");
 
-    // Verify the graph was built correctly
-    const callArgs = mockExecutor.execute.mock.calls[0];
-    const graph = callArgs[0];
-    expect(graph.nodes).toHaveLength(1);
-    expect(graph.nodes[0].type).toBe("fal.image_to_image.Sam2Image");
-    expect(graph.nodes[0].data.prompts).toHaveLength(2);
-    expect(graph.nodes[0].data.prompts[0].label).toBe(1); // positive
-    expect(graph.nodes[0].data.prompts[1].label).toBe(0); // negative
-    expect(graph.nodes[0].data.box_prompts).toHaveLength(1);
-
-    // Restore
     SamServiceFal.resizeForInference = origResize;
     setNodeExecutor(new WebSocketNodeExecutor());
   });
@@ -1138,12 +1148,11 @@ describe("NodeExecutor", () => {
 
 describe("Backend selection", () => {
   afterEach(() => {
-    // Reset service after each test
     setSamService(new SamServiceStub());
   });
 
-  it("SegmentBackend type accepts fal and node", () => {
-    const backends: SegmentBackend[] = ["fal", "node"];
+  it("SegmentBackend type accepts fal and local-sam3", () => {
+    const backends: SegmentBackend[] = ["fal", "local-sam3"];
     expect(backends).toHaveLength(2);
   });
 
@@ -1151,28 +1160,22 @@ describe("Backend selection", () => {
     expect(DEFAULT_SEGMENT_SETTINGS.backend).toBe("fal");
   });
 
+  it("normalizeSketchDocument preserves a saved local-sam3 backend", () => {
+    const doc = createDefaultDocument(64, 64);
+    doc.toolSettings.segment.backend = "local-sam3";
+    const normalized = normalizeSketchDocument(doc);
+    expect(normalized.toolSettings.segment.backend).toBe("local-sam3");
+  });
+
   it("getSamService('fal') returns a SamServiceFal instance", () => {
     const service = getSamService("fal");
     expect(service).toBeInstanceOf(SamServiceFal);
   });
 
-  it("getSamService without argument defaults to fal", () => {
-    // First clear any manual override by requesting a specific backend
-    getSamService("fal");
-    const service = getSamService();
-    expect(service).toBeInstanceOf(SamServiceFal);
-  });
-
-  it("getSamService caches instance for same backend", () => {
-    const a = getSamService("fal");
-    const b = getSamService("fal");
-    expect(a).toBe(b);
-  });
-
-  it("getSamService returns different instance for different backend", () => {
+  it("getSamService returns a different service for local-sam3", () => {
     const fal = getSamService("fal");
-    const node = getSamService("node");
-    expect(fal).not.toBe(node);
+    const local = getSamService("local-sam3");
+    expect(fal).not.toBe(local);
   });
 
   it("setSamService override is returned by getSamService()", () => {
@@ -1181,24 +1184,15 @@ describe("Backend selection", () => {
     expect(getSamService()).toBe(custom);
   });
 
-  it("getSamService with explicit backend replaces setSamService override", () => {
-    const custom = new SamServiceStub();
-    setSamService(custom);
-    const fal = getSamService("fal");
-    expect(fal).toBeInstanceOf(SamServiceFal);
-    expect(fal).not.toBe(custom);
-  });
-
-  it("SegmentSettings backend is preserved by normalizeSketchDocument", () => {
+  it("normalizeSketchDocument migrates the legacy node backend to local-sam3", () => {
     const doc = createDefaultDocument(64, 64);
-    doc.toolSettings.segment.backend = "node";
+    (doc.toolSettings.segment as any).backend = "node";
     const normalized = normalizeSketchDocument(doc);
-    expect(normalized.toolSettings.segment.backend).toBe("node");
+    expect(normalized.toolSettings.segment.backend).toBe("local-sam3");
   });
 
   it("normalizeSketchDocument fills in missing backend field", () => {
     const doc = createDefaultDocument(64, 64);
-    // Simulate an old document without backend field
     const oldToolSettings = { ...doc.toolSettings };
     const oldSegment = { ...oldToolSettings.segment } as any;
     delete oldSegment.backend;

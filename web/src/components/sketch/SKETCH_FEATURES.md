@@ -219,30 +219,30 @@ Files:
 - `nodetool-huggingface/src/nodetool/nodes/huggingface/image_segmentation.py`
 
 Steps:
-- [ ] Add a curated "Local SAM3" sketch backend preset that references `huggingface.image_segmentation.MaskGeneration` with model `facebook/sam3`.
-- [ ] Give the preset a stable internal id such as `local-sam3`.
-- [ ] Expose `points_per_side` and `pred_iou_thresh` as advanced settings.
-- [ ] Mark Local SAM3 capabilities as automatic split and mask image output.
-- [ ] Start with text prompts, point prompts, box prompts, labels, confidence, and RLE marked unsupported.
-- [ ] Define the sketch SAM backend interface around sketch needs: automatic layer split, prompted object separation, mask outputs, optional labels, optional scores, and optional boxes.
-- [ ] Require every SAM backend adapter to report capabilities through that interface.
-- [ ] Use `MetadataStore.getMetadata("huggingface.image_segmentation.MaskGeneration")` as the HuggingFace node pack availability check.
-- [ ] Read that node metadata to confirm `image`, `model`, `points_per_side`, and `pred_iou_thresh` inputs.
-- [ ] Use `HfCacheStatusStore` to check the cached model state for `facebook/sam3`.
+- [x] Add a curated "Local SAM3" sketch backend preset that references `huggingface.image_segmentation.MaskGeneration` with model `facebook/sam3`.
+- [x] Give the preset a stable internal id such as `local-sam3`.
+- [x] Expose `points_per_side` and `pred_iou_thresh` as advanced settings.
+- [x] Mark Local SAM3 capabilities as automatic split and mask image output.
+- [x] Start with text prompts, point prompts, box prompts, labels, confidence, and RLE marked unsupported.
+- [x] Define the sketch SAM backend interface around sketch needs: automatic layer split, prompted object separation, mask outputs, optional labels, optional scores, and optional boxes.
+- [x] Require every SAM backend adapter to report capabilities through that interface.
+- [x] Use `MetadataStore.getMetadata("huggingface.image_segmentation.MaskGeneration")` as the HuggingFace node pack availability check.
+- [x] Read that node metadata to confirm `image`, `model`, `points_per_side`, and `pred_iou_thresh` inputs.
+- [x] Use `HfCacheStatusStore` to check the cached model state for `facebook/sam3`.
 - [ ] Use `ModelDownloadStore` to show download progress and cancellation for `facebook/sam3`.
-- [ ] Show "Install or enable the HuggingFace node pack" for missing node metadata.
+- [x] Show "Install or enable the HuggingFace node pack" for missing node metadata.
 - [ ] Show "Download Local SAM3" for a missing `facebook/sam3` cache entry.
-- [ ] Show "Local SAM3 is downloading" while `ModelDownloadStore` reports active progress.
-- [ ] Show "Local SAM3 is ready" after the node type exists and `facebook/sam3` is cached.
-- [ ] Persist the selected backend in segment tool settings.
+- [x] Show "Local SAM3 is downloading" while `ModelDownloadStore` reports active progress.
+- [x] Show "Local SAM3 is ready" after the node type exists and `facebook/sam3` is cached.
+- [x] Persist the selected backend in segment tool settings.
 
 Check:
-- [ ] User sees Local SAM3, not the raw node name.
-- [ ] Missing node and local-not-ready states are shown as hints.
-- [ ] UI shows only automatic layer split for the current local node.
-- [ ] Backend selection survives closing and reopening the sketch editor.
+- [x] User sees Local SAM3, not the raw node name.
+- [x] Missing node and local-not-ready states are shown as hints.
+- [x] UI shows only automatic layer split for the current local node.
+- [x] Backend selection survives closing and reopening the sketch editor.
 
-### [ ] 3.2 Run SAM Through NodeTool Jobs
+### [x] 3.2 Run SAM Through NodeTool Jobs
 
 Files:
 - `web/src/components/sketch/sam/NodeExecutor.ts`
@@ -252,25 +252,25 @@ Files:
 - `web/src/stores/WorkflowRunner.ts`
 
 Steps:
-- [ ] Use NodeTool's existing single-node WebSocket job pattern from `useNodeTestRunner`.
-- [ ] Extract the shared single-node `run_job` helper used by SAM and `useNodeTestRunner`.
-- [ ] Keep `NodeExecutor` as a thin sketch adapter around that helper.
-- [ ] Build a one-node graph for `huggingface.image_segmentation.MaskGeneration`.
-- [ ] Send `image`, `model: facebook/sam3`, `points_per_side`, and `pred_iou_thresh` as node inputs.
-- [ ] Send the graph through the existing `globalWebSocketManager` connection.
-- [ ] Use the same `run_job` fields as the existing single-node runner, including `job_id`, synthetic `workflow_id`, auth fields, `api_url`, `execution_strategy`, `params`, and `graph`.
-- [ ] Subscribe by `job_id`.
-- [ ] Collect `node_update.result` and `output_update.value`.
-- [ ] Finish on terminal `job_update`.
-- [ ] On abort, update sketch UI and send backend `cancel_job`.
-- [ ] Clean up subscription, timeout, and abort listener.
+- [x] Use NodeTool's existing single-node WebSocket job pattern from `useNodeTestRunner`.
+- [x] Extract the shared single-node `run_job` helper used by SAM and `useNodeTestRunner`.
+- [x] Keep `NodeExecutor` as a thin sketch adapter around that helper.
+- [x] Build a one-node graph for `huggingface.image_segmentation.MaskGeneration`.
+- [x] Send `image`, `model: facebook/sam3`, `points_per_side`, and `pred_iou_thresh` as node inputs.
+- [x] Send the graph through the existing `globalWebSocketManager` connection.
+- [x] Use the same `run_job` fields as the existing single-node runner, including `job_id`, synthetic `workflow_id`, auth fields, `api_url`, `execution_strategy`, `params`, and `graph`.
+- [x] Subscribe by `job_id`.
+- [x] Collect `node_update.result` and `output_update.value`.
+- [x] Finish on terminal `job_update`.
+- [x] On abort, update sketch UI and send backend `cancel_job`.
+- [x] Clean up subscription, timeout, and abort listener.
 
 Check:
-- [ ] SAM does not create a sketch-specific WebSocket.
-- [ ] SAM does not duplicate a full workflow runner.
-- [ ] SAM reuses or shares the existing single-node execution path.
-- [ ] Cancelling a slow local run cancels the backend job.
-- [ ] Tests cover Local SAM3 run message shape, output collection, success, failure, abort, timeout, and cleanup.
+- [x] SAM does not create a sketch-specific WebSocket.
+- [x] SAM does not duplicate a full workflow runner.
+- [x] SAM reuses or shares the existing single-node execution path.
+- [x] Cancelling a slow local run cancels the backend job.
+- [x] Tests cover Local SAM3 run message shape, output collection, success, failure, abort, timeout, and cleanup.
 
 ### [ ] 3.3 Implement Split Selected Layer
 

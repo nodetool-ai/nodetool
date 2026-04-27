@@ -67,6 +67,8 @@ import {
   mergeRgbHexIntoColor
 } from "./types";
 import type { SamModelInfo } from "./sam";
+import { LOCAL_SAM3_MODEL_ID } from "./sam";
+import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -1428,6 +1430,21 @@ function getSegmentationStatusMessage(status: SegmentationStatus): string {
   }
 }
 
+function getSegmentModelStatusText(
+  isLocalSam3: boolean,
+  localSam3Downloading: boolean | undefined,
+  localSam3Ready: boolean,
+  modelInfo: SamModelInfo | null
+): string | undefined {
+  if (isLocalSam3 && localSam3Downloading) {
+    return "Local SAM3 is downloading";
+  }
+  if (localSam3Ready) {
+    return "Local SAM3 is ready";
+  }
+  return modelInfo?.errorMessage;
+}
+
 interface SegmentSettingsPanelProps {
   settings: SegmentSettings;
   onChange: (settings: Partial<SegmentSettings>) => void;
@@ -1458,6 +1475,27 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     segmentationStatus === "encoding" ||
     segmentationStatus === "checking-model";
   const isPreviewing = segmentationStatus === "previewing";
+  const localSam3Download = useModelDownloadStore(
+    (state) => state.downloads[LOCAL_SAM3_MODEL_ID]
+  );
+  const isLocalSam3 = settings.backend === "local-sam3";
+  const localSam3Downloading =
+    localSam3Download &&
+    (localSam3Download.status === "pending" ||
+      localSam3Download.status === "running" ||
+      localSam3Download.status === "start" ||
+      localSam3Download.status === "progress");
+  const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
+  const canRunSegmentation = !isLocalSam3 || localSam3Ready;
+  const visiblePromptModes: SegmentPromptMode[] = isLocalSam3
+    ? ["auto"]
+    : ["point", "box", "auto"];
+  const modelStatusText = getSegmentModelStatusText(
+    isLocalSam3,
+    localSam3Downloading,
+    localSam3Ready,
+    modelInfo
+  );
 
   return (
     <>
@@ -1468,7 +1506,11 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           exclusive
           onChange={(_, v) => {
             if (v) {
-              onChange({ backend: v as SegmentBackend });
+              onChange({
+                backend: v as SegmentBackend,
+                // Local SAM3 currently exposes automatic mask generation only.
+                ...(v === "local-sam3" ? { promptMode: "auto" as const } : {})
+              });
               onCheckModel();
             }
           }}
@@ -1477,8 +1519,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           <ToggleButton value="fal" sx={toggleButtonSmallSx}>
             fal.ai
           </ToggleButton>
-          <ToggleButton value="node" sx={toggleButtonSmallSx}>
-            Node
+          <ToggleButton value="local-sam3" sx={toggleButtonSmallSx}>
+            Local SAM3
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
@@ -1498,14 +1540,15 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
                     : SKETCH_COLORS.textFaint
             }}
           >
-            {modelInfo.status === "available" && `✓ ${modelInfo.modelName}`}
+            {modelInfo.status === "available" &&
+              (modelStatusText ?? `✓ ${modelInfo.modelName}`)}
             {modelInfo.status === "not-installed" &&
-              (modelInfo.errorMessage ?? "Model not available")}
+              (modelStatusText ?? "Model not available")}
             {modelInfo.status === "error" &&
-              (modelInfo.errorMessage ?? "Connection failed")}
+              (modelStatusText ?? "Connection failed")}
             {modelInfo.status === "checking" && "Checking…"}
             {modelInfo.status === "downloading" &&
-              `Downloading… ${Math.round((modelInfo.downloadProgress ?? 0) * 100)}%`}
+              `${modelStatusText ?? "Downloading…"} ${Math.round((modelInfo.downloadProgress ?? 0) * 100)}%`}
           </Typography>
         </Box>
       )}
@@ -1521,12 +1564,16 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         size="small"
         sx={{ mb: "4px" }}
       >
-        <ToggleButton value="point" sx={toggleButtonSmallSx}>
-          Point
-        </ToggleButton>
-        <ToggleButton value="box" sx={toggleButtonSmallSx}>
-          Box
-        </ToggleButton>
+        {visiblePromptModes.includes("point") && (
+          <ToggleButton value="point" sx={toggleButtonSmallSx}>
+            Point
+          </ToggleButton>
+        )}
+        {visiblePromptModes.includes("box") && (
+          <ToggleButton value="box" sx={toggleButtonSmallSx}>
+            Box
+          </ToggleButton>
+        )}
         <ToggleButton value="auto" sx={toggleButtonSmallSx}>
           Auto
         </ToggleButton>
@@ -1633,6 +1680,40 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         sx={{ mt: "2px", ml: 0 }}
       />
 
+      {isLocalSam3 && (
+        <>
+          <Box className="setting-row">
+            <Typography className="setting-label">Points / Side</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={4}
+              max={128}
+              step={4}
+              value={settings.pointsPerSide}
+              onChange={(_, value) => onChange({ pointsPerSide: value as number })}
+            />
+            <Typography className="setting-value">{settings.pointsPerSide}</Typography>
+          </Box>
+
+          <Box className="setting-row">
+            <Typography className="setting-label">Pred IoU</Typography>
+            <Slider
+              sx={sketchSliderSx}
+              size="small"
+              min={0}
+              max={1}
+              step={0.01}
+              value={settings.predIouThresh}
+              onChange={(_, value) => onChange({ predIouThresh: value as number })}
+            />
+            <Typography className="setting-value">
+              {settings.predIouThresh.toFixed(2)}
+            </Typography>
+          </Box>
+        </>
+      )}
+
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: "4px" }}>
         {!isRunning && !isPreviewing && (
           <>
@@ -1640,6 +1721,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
               size="small"
               variant="contained"
               onClick={onRunSegmentation}
+              disabled={!canRunSegmentation}
               sx={{ ...sketchButtonSmallSx, minWidth: "56px" }}
             >
               Segment
@@ -1711,7 +1793,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           mt: "4px"
         }}
       >
-        {promptModeHelpText(settings.promptMode)}
+        {isLocalSam3
+          ? "Local SAM3 currently supports automatic layer split only."
+          : promptModeHelpText(settings.promptMode)}
       </Typography>
 
       {segmentationStatus === "error" && (

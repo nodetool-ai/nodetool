@@ -338,7 +338,20 @@ export interface CloneStampSettings {
 export type SegmentPromptMode = "point" | "box" | "auto";
 
 /** Backend used for segmentation inference. */
-export type SegmentBackend = "fal" | "node";
+export type SegmentBackend = "fal" | "local-sam3";
+
+export const DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE = 32;
+export const DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH = 0.88;
+
+export function normalizeSegmentBackend(value: unknown): SegmentBackend {
+  if (value === "local-sam3" || value === "fal") {
+    return value;
+  }
+  if (value === "node") {
+    return "local-sam3";
+  }
+  return "fal";
+}
 
 /** What to do with the source layer after segmentation is applied. */
 export type SegmentSourceLayerAction = "keep" | "hide" | "lock";
@@ -415,8 +428,12 @@ export interface SegmentSettings {
   maskFeather: number;
   /** Whether the result should be cutout layers (true) or mask layers (false). */
   outputCutouts: boolean;
-  /** Inference backend: "fal" for fal.ai cloud API, "node" for nodetool node execution. */
+  /** Inference backend for sketch SAM actions. */
   backend: SegmentBackend;
+  /** Automatic mask generation density for Local SAM3. */
+  pointsPerSide: number;
+  /** Automatic mask IoU filter for Local SAM3. */
+  predIouThresh: number;
 }
 
 /** Metadata stored on layers created by segmentation. */
@@ -593,7 +610,9 @@ export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
   sourceLayerAction: "keep",
   maskFeather: 0,
   outputCutouts: true,
-  backend: "fal"
+  backend: "fal",
+  pointsPerSide: DEFAULT_LOCAL_SAM3_POINTS_PER_SIDE,
+  predIouThresh: DEFAULT_LOCAL_SAM3_PRED_IOU_THRESH
 };
 
 export const DEFAULT_TOOL_SETTINGS: ToolSettings = {

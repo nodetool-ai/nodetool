@@ -28,12 +28,12 @@ import {
 } from "../types";
 import { useSketchStore } from "../state";
 import {
+  getDefaultSamModelId,
   getSamService,
   generateSegmentationRunId,
   generateCutoutDataUrl,
   drawMaskBoundsOverlay,
-  drawMaskImageOverlay,
-  DEFAULT_SAM_MODEL_ID
+  drawMaskImageOverlay
 } from "../sam";
 import type { SamModelInfo } from "../sam";
 
@@ -157,7 +157,7 @@ export function useSegmentation({
           sourceLayerId: doc.activeLayerId,
           masks: response.masks,
           timestamp: Date.now(),
-          modelId: DEFAULT_SAM_MODEL_ID
+          modelId: response.modelId ?? getDefaultSamModelId(backend)
         };
 
         setResult(segResult);
