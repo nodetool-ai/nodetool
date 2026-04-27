@@ -12,7 +12,9 @@ import {
   COMMAND_PRIORITY_CRITICAL,
   $getSelection,
   $isRangeSelection,
-  TextNode
+  $isElementNode,
+  TextNode,
+  LexicalNode
 } from "lexical";
 import { $createCodeNode, $isCodeNode, CodeNode } from "@lexical/code";
 import { $setBlocksType } from "@lexical/selection";
@@ -522,7 +524,7 @@ const EditorController = ({
       editor.update(() => {
         // Collect text nodes manually to avoid using deprecated $nodesOfType
         const textNodes: TextNode[] = [];
-        const stack: any[] = [$getRoot()];
+        const stack: LexicalNode[] = [$getRoot()];
 
         while (stack.length > 0) {
           const node = stack.pop();
@@ -532,12 +534,8 @@ const EditorController = ({
             textNodes.push(node);
           }
 
-          // Push children (if any) onto the stack
-          if (typeof node.getChildren === "function") {
-            const children = node.getChildren();
-            if (Array.isArray(children)) {
-              stack.push(...children);
-            }
+          if ($isElementNode(node)) {
+            stack.push(...node.getChildren());
           }
         }
 

@@ -142,10 +142,10 @@ const validDataTypes = ["string", "float", "int", "datetime"];
 
 interface ColumnsManagerProps {
   columns: ColumnDef[];
-  allData: { [key: string]: any }[];
+  allData: Record<string, unknown>[];
   onChange: (
     newColumns: ColumnDef[],
-    newData: { [key: string]: any }[]
+    newData: Record<string, unknown>[]
   ) => void;
 }
 

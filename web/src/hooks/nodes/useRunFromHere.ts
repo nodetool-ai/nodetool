@@ -58,7 +58,7 @@ export function useRunFromHere(
         subgraphNodeIds.has(edge.target) && !subgraphNodeIds.has(edge.source)
     );
 
-    const nodePropertyOverrides = new Map<string, Record<string, any>>();
+    const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
 
     for (const edge of externalInputEdges) {
       const sourceNodeId = edge.source;

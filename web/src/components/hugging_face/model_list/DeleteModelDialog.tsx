@@ -114,11 +114,11 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
           await deleteHFModel(modelId);
         }
         onClose();
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Deletion error:", error);
 
         // Extract error message
-        const errorMessage = error.message || "Unknown error";
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
         // Check if error is "Not Found" (404)
         const isNotFound =

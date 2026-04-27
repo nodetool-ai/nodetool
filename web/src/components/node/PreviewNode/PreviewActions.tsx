@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Button, Box } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import { Tooltip } from "../../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -74,8 +75,8 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
     margin: 0,
     marginLeft: "0 !important",
     borderRadius: ".1em",
-    backgroundColor: (theme: any) => theme.vars.palette.grey[600],
-    color: (theme: any) => theme.vars.palette.grey[200],
+    backgroundColor: (theme: Theme) => theme.vars.palette.grey[600],
+    color: (theme: Theme) => theme.vars.palette.grey[200],
     "&:hover": {
       color: "var(--palette-primary-main)"
     },
