@@ -98,28 +98,28 @@
 - [x] Brush with size/opacity/hardness/color
 - [x] Eraser with size/opacity
 - [x] Pencil (hard edge, 1px aliased)
-- [ ] Airbrush / soft brush
+- [x] Airbrush / soft brush
 - [ ] Custom brush shapes/textures
 
 ### Selection Tools
-- [ ] Rectangular selection
-- [ ] Elliptical selection
-- [ ] Free-form / lasso selection
-- [ ] Selection actions (cut, copy, paste, delete, invert)
+- [x] Rectangular selection
+- [x] Elliptical selection
+- [x] Free-form / lasso selection
+- [x] Selection actions (cut, copy, paste, delete, invert)
 
 ### Move/Transform
-- [ ] Move layer content
-- [ ] Scale / resize
-- [ ] Rotate
-- [ ] Flip horizontal / vertical
+- [x] Move layer content
+- [x] Scale / resize
+- [x] Rotate
+- [x] Flip horizontal / vertical
 
 ### Crop
-- [ ] Crop tool
-- [ ] Canvas resize dialog
+- [x] Crop tool
+- [x] Canvas resize controls/presets
 
 ### Fill/Gradient
 - [x] Flood fill tool with color tolerance
-- [ ] Gradient fill tool (linear, radial)
+- [x] Gradient fill tool (linear, radial)
 - [ ] Pattern fill
 
 ### Shape Tools
@@ -144,7 +144,7 @@
 - [x] Horizontal mirror mode toggle
 - [x] Mirror indicator in toolbar
 - [x] Vertical mirror mode
-- [ ] Both axes mirror
+- [x] Both axes mirror
 
 ### Palettes/Swatches
 - [x] 28-color default swatch palette
@@ -158,9 +158,9 @@
 - [x] Additional blend modes (color-dodge, color-burn, hard-light, soft-light, difference, exclusion)
 
 ### Group/Folder Layers
-- [ ] Layer groups/folders
-- [ ] Group visibility toggle
-- [ ] Nested layer hierarchy
+- [x] Layer groups/folders
+- [x] Group visibility toggle
+- [x] Nested layer hierarchy
 
 ### Better Project Persistence
 - [x] JSON serialization with base64 layer data
@@ -178,7 +178,7 @@
 ### Import/Export Paths
 - [x] PNG export (flattened image)
 - [x] PNG mask export
-- [ ] Save to file / download
+- [x] Save PNG to file / download
 - [ ] Load from file / upload
 - [ ] PSD export (stretch goal)
 
