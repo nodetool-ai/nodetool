@@ -21,6 +21,7 @@ import "./builtin/setNodeSyncMode";
 import "./builtin/moveNode";
 import "./builtin/getGraph";
 import "./builtin/searchNodes";
+import "./builtin/searchModels";
 import "./builtin/deleteNode";
 import "./builtin/deleteEdge";
 import "./builtin/uiActions";
@@ -131,14 +132,26 @@ export function initFrontendToolsBridge(): void {
         `[frontend-tools] Tool call succeeded: ${name} (session=${sessionId}, callId=${toolCallId})`
       );
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Args can be large (e.g. ui_add_node properties); cap so the log line
+      // stays readable but the model's intent is still recoverable from logs.
+      let argsPreview: string;
+      try {
+        argsPreview = JSON.stringify(args);
+      } catch {
+        argsPreview = "[unserializable]";
+      }
+      if (argsPreview.length > 500) {
+        argsPreview = argsPreview.slice(0, 497) + "...";
+      }
       console.error(
-        `[frontend-tools] Tool call failed: ${name} (session=${sessionId}, callId=${toolCallId})`,
+        `[frontend-tools] Tool call failed: ${name} (session=${sessionId}, callId=${toolCallId}) — ${message} | args=${argsPreview}`,
         error
       );
       client.sendToolCallResponse(requestId, {
         result: null,
         isError: true,
-        error: error instanceof Error ? error.message : String(error)
+        error: message
       });
     }
   });

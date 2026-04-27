@@ -32,7 +32,7 @@ type SearchNodesArgs = {
 FrontendToolRegistry.register({
   name: "ui_search_nodes",
   description:
-    "Search available node types from metadata store by query/type filters.\n\nCommon nodes by category (use these as starting points before searching):\n- Text-to-Image: kie.image.Flux2FlexTextToImage, kie.image.FluxProTextToImage\n- LLM/Generators: nodetool.generators.ListGenerator, nodetool.generators.TextGenerator\n- Control Flow: nodetool.control.ForEach, nodetool.control.If, nodetool.control.Switch\n- Constants: nodetool.constant.String, nodetool.constant.Integer, nodetool.constant.Float\n- Code: nodetool.code.Code (replaces text, math, list, dict, date, uuid, http, json nodes)\n- Image: nodetool.image.Composite, nodetool.image.Resize, nodetool.image.SaveImage\n\nSearch tips: Use broad category terms with limit=20. Multiple words are searched independently and combined.",
+    "Search available node types from the metadata store by query/type filters. Always call this BEFORE `ui_add_node` to find the exact `node_type` string — node-type names cannot be guessed and there is no global list to memorize. Set `include_properties: true` and `include_outputs: true` to also see input property names and output port names (which you'll need for `ui_update_node_data` and `ui_connect_nodes`). Multiple query words are matched independently. Use broad category terms (e.g. \"image generate\", \"text format\") with limit=20.",
   parameters: z.object({
     ...uiSearchNodesParams,
     strict_match: booleanLikeOptional,
@@ -59,7 +59,24 @@ FrontendToolRegistry.register({
       "all",
     );
 
-    const results = sortedResults.slice(0, limit).map((node) => {
+    // Agent-facing preference: surface first-party `nodetool.*` nodes ahead of
+    // heavy integrations (huggingface, comfy, kie, fal, replicate, etc.) when
+    // their relevance is otherwise tied. The visual node-search UI keeps the
+    // unbiased ranking; this only reorders the LLM's view because it tends to
+    // pick the first plausible result and integration nodes often need
+    // credentials/model downloads the user didn't ask for.
+    const namespaceRank = (nodeType: string): number => {
+      if (nodeType.startsWith("nodetool.")) return 0;
+      if (nodeType.startsWith("comfy.")) return 2;
+      if (nodeType.startsWith("huggingface.")) return 2;
+      return 1;
+    };
+    const preferred = sortedResults
+      .map((node, index) => ({ node, index, rank: namespaceRank(node.node_type) }))
+      .sort((a, b) => a.rank - b.rank || a.index - b.index)
+      .map((entry) => entry.node);
+
+    const results = preferred.slice(0, limit).map((node) => {
       const base: Record<string, unknown> = {
         node_type: node.node_type,
         title: node.title,

@@ -134,6 +134,7 @@ const registerFrontendTools = () => {
     import("./lib/tools/builtin/graph"),
     import("./lib/tools/builtin/getGraph"),
     import("./lib/tools/builtin/searchNodes"),
+    import("./lib/tools/builtin/searchModels"),
     import("./lib/tools/builtin/deleteNode"),
     import("./lib/tools/builtin/deleteEdge")
   ]).catch((error) => {

@@ -17,6 +17,8 @@ import {
   DialogContent
 } from "@mui/material";
 import { AgentModelSelect } from "./AgentModelSelect";
+import MediaControlChip from "../chat/composer/MediaControlChip";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -739,6 +741,24 @@ const AgentPanel: React.FC = () => {
     void handleConfirmNewSession();
   }, [handleConfirmNewSession]);
 
+  const dialogLlmModelButtonSx = useMemo(
+    () => ({
+      justifyContent: "flex-start",
+      width: "100%",
+      height: 32,
+      padding: "0 10px",
+      textTransform: "none" as const,
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.primary,
+      borderColor: theme.vars.palette.divider,
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }),
+    [theme]
+  );
+
   const toolbarButtonSx = useMemo(
     () => ({
       borderRadius: "var(--rounded-md)",
@@ -897,17 +917,21 @@ const AgentPanel: React.FC = () => {
                 size="small"
                 variant="outlined"
                 onClick={() => setDraftLlmDialogOpen(true)}
-                sx={{
-                  textTransform: "none",
-                  justifyContent: "flex-start",
-                  width: "100%"
-                }}
+                sx={dialogLlmModelButtonSx}
               >
-                {draftModel
-                  ? `${draftModel}${
-                      draftChatProviderId ? ` (${draftChatProviderId})` : ""
-                    }`
-                  : "Select model…"}
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  {draftModel
+                    ? `${draftModel}${
+                        draftChatProviderId ? ` (${draftChatProviderId})` : ""
+                      }`
+                    : "Select model…"}
+                </span>
               </Button>
               <LanguageModelMenuDialog
                 open={draftLlmDialogOpen}
@@ -993,24 +1017,22 @@ const AgentPanel: React.FC = () => {
               // language-model catalog instead of the AgentSdkProvider list,
               // so render the same picker the rest of the app uses.
               <>
-                <Button
+                <MediaControlChip
                   ref={toolbarLlmDialogAnchor}
-                  size="small"
-                  variant="outlined"
+                  size="sm"
+                  icon={<AutoAwesomeIcon fontSize="small" />}
+                  label={
+                    model
+                      ? `${model}${
+                          chatProviderId ? ` (${chatProviderId})` : ""
+                        }`
+                      : "Select model…"
+                  }
+                  truncate
+                  active={toolbarLlmDialogOpen}
                   disabled={hasRunningSession}
                   onClick={() => setToolbarLlmDialogOpen(true)}
-                  sx={{
-                    textTransform: "none",
-                    fontSize: theme.fontSizeSmaller,
-                    fontFamily: theme.fontFamily2,
-                    borderColor: theme.vars.palette.divider,
-                    color: theme.vars.palette.text.secondary
-                  }}
-                >
-                  {model
-                    ? `${model}${chatProviderId ? ` (${chatProviderId})` : ""}`
-                    : "Select model…"}
-                </Button>
+                />
                 <LanguageModelMenuDialog
                   open={toolbarLlmDialogOpen}
                   anchorEl={toolbarLlmDialogAnchor.current}

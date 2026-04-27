@@ -105,12 +105,34 @@ class UiBridgeTool extends Tool {
     _ctx: ProcessingContext,
     params: Record<string, unknown>,
   ): Promise<unknown> {
-    return await this.transport.executeTool(
-      this.sessionId,
-      randomUUID(),
-      this.name,
-      params,
-    );
+    try {
+      return await this.transport.executeTool(
+        this.sessionId,
+        randomUUID(),
+        this.name,
+        params,
+      );
+    } catch (err) {
+      // Tool failures (validation, runtime, etc.) must be returned to the
+      // model as a tool-result so it can self-correct on the next turn,
+      // matching how harness providers (Claude SDK, MCP) surface errors.
+      // Rethrowing here would crash the entire processChat loop and end the
+      // session on a single bad call.
+      const message = err instanceof Error ? err.message : String(err);
+      let argsPreview: string;
+      try {
+        argsPreview = JSON.stringify(params);
+      } catch {
+        argsPreview = "[unserializable]";
+      }
+      if (argsPreview.length > 500) {
+        argsPreview = argsPreview.slice(0, 497) + "...";
+      }
+      log.warn(
+        `Tool ${this.name} failed in session ${this.sessionId}: ${message} | args=${argsPreview}`,
+      );
+      return { isError: true, error: message };
+    }
   }
 }
 
@@ -312,6 +334,14 @@ class LlmAgentSession implements AgentQuerySession {
       });
 
       let assistantText = "";
+      // The renderer dedupes assistant messages by `uuid` and replaces in
+      // place (see web/src/stores/AgentStore.ts). To make streaming text
+      // appear as a single growing bubble (matching the harness providers),
+      // hold a stable uuid for the run of text, send the full accumulated
+      // content on every chunk, and reset on each tool call so any text
+      // that follows the tool result starts a new bubble.
+      let currentTextUuid: string | null = null;
+      let currentTextBuffer = "";
       await processChat({
         userInput: message,
         messages: this.conversation,
@@ -324,18 +354,24 @@ class LlmAgentSession implements AgentQuerySession {
         callbacks: {
           onChunk: (text) => {
             assistantText += text;
+            currentTextBuffer += text;
+            if (!currentTextUuid) {
+              currentTextUuid = randomUUID();
+            }
             emit({
               type: "assistant",
-              uuid: randomUUID(),
+              uuid: currentTextUuid,
               session_id: this.threadId,
-              text,
-              content: [{ type: "text", text }],
+              text: currentTextBuffer,
+              content: [{ type: "text", text: currentTextBuffer }],
             });
           },
           onToolCall: (toolCall) => {
+            currentTextUuid = null;
+            currentTextBuffer = "";
             emit({
               type: "assistant",
-              uuid: randomUUID(),
+              uuid: toolCall.id,
               session_id: this.threadId,
               tool_calls: [
                 {
