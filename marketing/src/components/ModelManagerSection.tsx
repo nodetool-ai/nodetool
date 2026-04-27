@@ -61,7 +61,7 @@ export default function ModelManagerSection() {
           className="relative mx-auto max-w-5xl"
         >
           <Tilt3D>
-            <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
+            <div className="relative rounded-xl border border-white/[0.04] bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 pointer-events-none" />
 
               {/* Browser/Window Chrome */}
