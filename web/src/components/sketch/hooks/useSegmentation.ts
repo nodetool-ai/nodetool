@@ -28,6 +28,7 @@ import {
 } from "../types";
 import { useSketchStore } from "../state";
 import {
+  getDefaultSamModelId,
   getSamService,
   generateSegmentationRunId,
   generateCutoutDataUrl,
@@ -156,7 +157,7 @@ export function useSegmentation({
           sourceLayerId: doc.activeLayerId,
           masks: response.masks,
           timestamp: Date.now(),
-          modelId: response.modelId ?? backend
+          modelId: response.modelId ?? getDefaultSamModelId(backend)
         };
 
         setResult(segResult);

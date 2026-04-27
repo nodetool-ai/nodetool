@@ -393,6 +393,7 @@ describe("SamServiceStub", () => {
       settings: DEFAULT_SEGMENT_SETTINGS
     });
     expect(response.masks).toEqual([]);
+    expect(response.modelId).toBe("facebook/sam2-hiera-large");
   });
 
   it("getSamService returns a service instance", () => {
@@ -1129,7 +1130,10 @@ describe("NodeExecutor", () => {
     expect(graph.nodes[0].type).toBe(
       "huggingface.image_segmentation.MaskGeneration"
     );
-    expect(graph.nodes[0].data.model).toBe(LOCAL_SAM3_MODEL_ID);
+    expect(graph.nodes[0].data.model).toEqual({
+      type: "hf.model",
+      repo_id: LOCAL_SAM3_MODEL_ID
+    });
     expect(graph.nodes[0].data.points_per_side).toBe(48);
     expect(graph.nodes[0].data.pred_iou_thresh).toBe(0.91);
     expect(result.modelId).toBe(LOCAL_SAM3_MODEL_ID);

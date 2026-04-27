@@ -6,6 +6,7 @@
  */
 
 import useMetadataStore from "../../../stores/MetadataStore";
+import type { HuggingFaceModel } from "../../../stores/ApiTypes";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type {
@@ -267,7 +268,10 @@ export class SamServiceNode implements SamService {
           type: this.config.nodeType,
           data: {
             image: { type: "image", uri: "", data: base64Data },
-            model: this.config.modelId,
+            model: {
+              type: "hf.model",
+              repo_id: this.config.modelId
+            } as HuggingFaceModel,
             points_per_side: request.settings.pointsPerSide,
             pred_iou_thresh: request.settings.predIouThresh
           }

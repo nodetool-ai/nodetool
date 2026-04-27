@@ -6,6 +6,7 @@ export { SamServiceStub, getSamService, setSamService } from "./SamService";
 export {
   DEFAULT_SAM_MODEL_ID,
   DEFAULT_SAM_MODEL_NAME,
+  getDefaultSamModelId,
   LOCAL_SAM3_MODEL_ID,
   LOCAL_SAM3_MODEL_NAME,
   LOCAL_SAM3_CAPABILITIES

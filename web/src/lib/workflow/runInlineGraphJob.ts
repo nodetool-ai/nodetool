@@ -140,6 +140,7 @@ export async function runInlineGraphJob({
       workflowId
     };
   }
+
   return new Promise<InlineJobExecutionResult>((resolve) => {
     const outputs: Record<string, unknown> = {};
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -211,7 +212,7 @@ export async function runInlineGraphJob({
     );
 
     abortHandler = () => {
-      void cancelInlineGraphJob(jobId, workflowId);
+      void cancelInlineGraphJob(jobId, workflowId).catch(() => undefined);
       settle({
         success: false,
         outputs,
@@ -220,6 +221,10 @@ export async function runInlineGraphJob({
     };
 
     signal?.addEventListener("abort", abortHandler);
+    if (signal?.aborted) {
+      abortHandler();
+      return;
+    }
 
     void globalWebSocketManager.send({
       type: "run_job",
@@ -246,7 +251,7 @@ export async function runInlineGraphJob({
     });
 
     timeoutId = setTimeout(() => {
-      void cancelInlineGraphJob(jobId, workflowId);
+      void cancelInlineGraphJob(jobId, workflowId).catch(() => undefined);
       settle({
         success: false,
         outputs,

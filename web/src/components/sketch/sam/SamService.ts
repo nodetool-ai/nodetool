@@ -88,6 +88,14 @@ export const LOCAL_SAM3_CAPABILITIES: SamBackendCapabilities = {
   rle: false
 };
 
+export function getDefaultSamModelId(
+  backend: SegmentBackend | undefined
+): string {
+  return backend === "local-sam3"
+    ? LOCAL_SAM3_MODEL_ID
+    : DEFAULT_SAM_MODEL_ID;
+}
+
 // ─── Inference ────────────────────────────────────────────────────────────────
 
 export interface SegmentationRequest {
@@ -147,7 +155,11 @@ export class SamServiceStub implements SamService {
   ): Promise<SegmentationResponse> {
     await new Promise((resolve) => setTimeout(resolve, SamServiceStub.STUB_DELAY_MS));
 
-    return { masks: [] };
+    return {
+      masks: [],
+      modelId: DEFAULT_SAM_MODEL_ID,
+      backendId: "fal"
+    };
   }
 }
 
