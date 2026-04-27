@@ -18,8 +18,13 @@ const baseLocalSam3Info: SamModelInfo = {
 };
 
 describe("SegmentSettingsPanel", () => {
-  const originalStartDownload = useModelDownloadStore.getState().startDownload;
-  const originalCancelDownload = useModelDownloadStore.getState().cancelDownload;
+  let originalStartDownload = useModelDownloadStore.getState().startDownload;
+  let originalCancelDownload = useModelDownloadStore.getState().cancelDownload;
+
+  beforeAll(() => {
+    originalStartDownload = useModelDownloadStore.getState().startDownload;
+    originalCancelDownload = useModelDownloadStore.getState().cancelDownload;
+  });
 
   beforeEach(() => {
     useModelDownloadStore.setState({

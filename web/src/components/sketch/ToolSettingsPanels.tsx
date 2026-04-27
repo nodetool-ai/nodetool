@@ -75,6 +75,12 @@ import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 /** Reusable no-op function to avoid allocations in optional prop fallbacks. */
 const noop = () => {};
 const LOCAL_SAM3_NODE_PACK_HINT = "Install or enable the HuggingFace node pack";
+const ACTIVE_MODEL_DOWNLOAD_STATUSES = [
+  "pending",
+  "running",
+  "start",
+  "progress"
+] as const;
 
 /** Matches {@link drawEraserStroke} / document migration so panel mode matches actual erase behavior. */
 function effectiveEraserMode(
@@ -1486,10 +1492,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const isLocalSam3 = settings.backend === "local-sam3";
   const localSam3Downloading =
-    localSam3DownloadStatus === "pending" ||
-    localSam3DownloadStatus === "running" ||
-    localSam3DownloadStatus === "start" ||
-    localSam3DownloadStatus === "progress";
+    localSam3DownloadStatus !== undefined &&
+    ACTIVE_MODEL_DOWNLOAD_STATUSES.includes(localSam3DownloadStatus);
   const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
   const canRunSegmentation = !isLocalSam3 || localSam3Ready;
   const canDownloadLocalSam3 =
