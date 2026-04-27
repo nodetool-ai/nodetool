@@ -203,6 +203,9 @@ export function useCanvasActions({
     handleTransformRedo: transformActions.handleTransformRedo,
     handleTransformRotate: transformActions.handleTransformRotate,
     handleTransformFlipH: transformActions.handleTransformFlipH,
-    handleTransformFlipV: transformActions.handleTransformFlipV
+    handleTransformFlipV: transformActions.handleTransformFlipV,
+    handleRepeatLastTransform: transformActions.handleRepeatLastTransform,
+    handleRepeatLastTransformOnCopy:
+      transformActions.handleRepeatLastTransformOnCopy
   };
 }

@@ -166,7 +166,10 @@ export function useEditorCommands({
     handleTransformRedo: canvasActions.handleTransformRedo,
     handleLayerViaCopy,
     handleLayerViaCut,
-    handleFreeTransform
+    handleFreeTransform,
+    handleRepeatLastTransform: canvasActions.handleRepeatLastTransform,
+    handleRepeatLastTransformOnCopy:
+      canvasActions.handleRepeatLastTransformOnCopy
   });
 
   // ─── Imperative handle ─────────────────────────────────────────────

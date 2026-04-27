@@ -128,6 +128,10 @@ export interface UseEditorKeyboardShortcutsParams {
   handleLayerViaCut?: () => void;
   /** Enter free transform, optionally preparing a selection-only session first. */
   handleFreeTransform?: () => void;
+  /** Repeat the last committed transform. */
+  handleRepeatLastTransform?: () => void;
+  /** Duplicate the active layer/selection target, then repeat the last transform. */
+  handleRepeatLastTransformOnCopy?: () => void;
 }
 
 export function useEditorKeyboardShortcuts(
@@ -328,6 +332,15 @@ export function useEditorKeyboardShortcuts(
             paramsRef.current.handleLayerViaCut?.();
           } else {
             paramsRef.current.handleLayerViaCopy?.();
+          }
+        }
+        // Ctrl+Shift+T / Cmd+Shift+T → repeat last transform
+        if (e.key.toLowerCase() === "t" && e.shiftKey) {
+          e.preventDefault();
+          if (e.altKey) {
+            paramsRef.current.handleRepeatLastTransformOnCopy?.();
+          } else {
+            paramsRef.current.handleRepeatLastTransform?.();
           }
         }
         // Ctrl+T / Cmd+T → enter Free Transform mode

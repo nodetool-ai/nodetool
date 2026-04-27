@@ -72,7 +72,8 @@ Only mark a shortcut as implemented when the behavior really exists in the sketc
 - [ ] `Shift+drag` constrain line / square / circle drawing - currently broken in practice
 - [x] `Ctrl+T` free transform
 - [x] `Enter` commit transform
-- [ ] `Ctrl+Shift+T` repeat last transform
+- [x] `Ctrl+Shift+T` repeat last transform
+- [x] `Ctrl+Alt+Shift+T` repeat transform on a duplicate
 - [x] hold `Ctrl` / `Cmd` (Mac) for spring-loaded move (pointer acts like move tool; toolbar / tool settings stay on the current tool); release to stop
 - [x] `Ctrl+Alt` + drag (Mac: `Cmd+Option`) duplicate active layer and move the copy; with `Ctrl`/`Cmd` held, `Alt` does not pan the canvas
 - [ ] `Ctrl+Alt+Arrow` move duplicate of selection by 1 px

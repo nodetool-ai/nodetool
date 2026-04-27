@@ -44,7 +44,9 @@ function makeParams(): UseEditorKeyboardShortcutsParams {
     handleTransformRedo: jest.fn(),
     handleLayerViaCopy: jest.fn(),
     handleLayerViaCut: jest.fn(),
-    handleFreeTransform: jest.fn()
+    handleFreeTransform: jest.fn(),
+    handleRepeatLastTransform: jest.fn(),
+    handleRepeatLastTransformOnCopy: jest.fn()
   };
 }
 
@@ -133,5 +135,46 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(params.handleFreeTransform).toHaveBeenCalledTimes(1);
     expect(params.setActiveTool).not.toHaveBeenCalledWith("transform");
+  });
+
+  it("routes Ctrl+Shift+T through repeat last transform", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    const event = new KeyboardEvent("keydown", {
+      key: "t",
+      ctrlKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true
+    });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(params.handleRepeatLastTransform).toHaveBeenCalledTimes(1);
+    expect(params.handleRepeatLastTransformOnCopy).not.toHaveBeenCalled();
+  });
+
+  it("routes Ctrl+Alt+Shift+T through repeat transform on copy", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+
+    const event = new KeyboardEvent("keydown", {
+      key: "t",
+      ctrlKey: true,
+      shiftKey: true,
+      altKey: true,
+      bubbles: true,
+      cancelable: true
+    });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(params.handleRepeatLastTransformOnCopy).toHaveBeenCalledTimes(1);
+    expect(params.handleRepeatLastTransform).not.toHaveBeenCalled();
   });
 });
