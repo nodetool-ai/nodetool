@@ -419,7 +419,28 @@ export default function Home() {
                   href="https://github.com/nodetool-ai/nodetool"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-lg p-1.5 transition-all duration-200 hover:bg-slate-800/60 hover:scale-110 opacity-70 hover:opacity-100"
+                  className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3.5 py-2 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/70"
+                  aria-label="Star NodeTool on GitHub"
+                >
+                  <Image
+                    src="/github-mark-white.svg"
+                    alt=""
+                    width={18}
+                    height={18}
+                    role="presentation"
+                  />
+                  <span>Star on GitHub</span>
+                  {stars !== null && (
+                    <span className="ml-1 rounded-md bg-slate-800 px-1.5 py-0.5 text-xs font-medium text-slate-300">
+                      {stars >= 1000 ? `${(stars / 1000).toFixed(1)}k` : stars}
+                    </span>
+                  )}
+                </a>
+                <a
+                  href="https://github.com/nodetool-ai/nodetool"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="sm:hidden rounded-lg p-1.5 transition-all duration-200 hover:bg-slate-800/60"
                   aria-label="NodeTool on GitHub"
                 >
                   <Image
@@ -500,16 +521,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Main Interface Showcase */}
-        <section aria-label="NodeTool Interface" className="rhythm-section relative">
+        {/* How it works (Build / Run / Deploy) */}
+        <section aria-labelledby="how-title" className="rhythm-section pt-4">
+          <div className={`${sectionContainer}`}>
+            <BuildRunDeploy />
+          </div>
+        </section>
+
+        {/* Demo video */}
+        <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
           <div className={`${sectionContainer}`}>
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
               className="relative group"
             >
-              {/* Glow effect behind the image */}
               <div
                 className="absolute -inset-4 rounded-3xl opacity-60 blur-3xl transition-opacity duration-500 group-hover:opacity-80"
                 style={{
@@ -517,7 +544,6 @@ export default function Home() {
                     "radial-gradient(ellipse at center, rgba(139, 92, 246, 0.3) 0%, rgba(59, 130, 246, 0.2) 40%, transparent 70%)",
                 }}
               />
-              {/* Image container with border and shadow */}
               <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur-sm ring-1 ring-white/5 overflow-hidden">
                 <video
                   src="/demo.mp4"
@@ -525,23 +551,8 @@ export default function Home() {
                   controls
                   playsInline
                 />
-                {/* Subtle inner gradient overlay */}
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-xl"
-                  style={{
-                    background:
-                      "linear-gradient(to bottom, transparent 70%, rgba(15, 23, 42, 0.4) 100%)",
-                  }}
-                />
               </div>
             </motion.div>
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section aria-labelledby="how-title" className="rhythm-section">
-          <div className={`${sectionContainer}`}>
-            <BuildRunDeploy />
           </div>
         </section>
 
@@ -633,26 +644,49 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="relative border-t border-slate-800/50 bg-slate-950 py-10">
+      <footer className="relative border-t border-slate-800/50 bg-slate-950/80">
         <div className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-blue-800/40 to-transparent" />
-        <div className={`${sectionContainer}`}>
-          <div className="mt-4 flex justify-center gap-6 text-xs text-slate-500">
-            <a
-              href="https://github.com/nodetool-ai/nodetool"
-              className="hover:text-slate-300 transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GitHub
-            </a>
-            <a
-              href="https://discord.gg/WmQTWZRcYE"
-              className="hover:text-slate-300 transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Discord
-            </a>
+        <div className={`${sectionContainer} py-6`}>
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <p className="flex items-center gap-2 text-sm text-slate-400">
+              <span className="text-rose-400" aria-hidden>
+                ♥
+              </span>
+              Open source today. The future is yours to build.
+            </p>
+            <div className="flex items-center gap-5 text-sm text-slate-400">
+              <a
+                href="https://github.com/nodetool-ai/nodetool"
+                className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-100"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Image
+                  src="/github-mark-white.svg"
+                  alt=""
+                  width={14}
+                  height={14}
+                  role="presentation"
+                />
+                GitHub
+              </a>
+              <span className="text-slate-700">•</span>
+              <a
+                href="https://discord.gg/WmQTWZRcYE"
+                className="transition-colors hover:text-slate-100"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Discord
+              </a>
+              <span className="text-slate-700">•</span>
+              <a
+                href="#contact"
+                className="transition-colors hover:text-slate-100"
+              >
+                Community
+              </a>
+            </div>
           </div>
         </div>
       </footer>
