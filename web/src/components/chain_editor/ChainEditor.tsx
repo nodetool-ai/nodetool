@@ -115,6 +115,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
         <Tooltip title="Save workflow">
           <IconButton
             size="small"
+            aria-label="Save workflow"
             onClick={handleSave}
             disabled={saving}
             sx={{ color: theme.vars.palette.text.secondary }}
