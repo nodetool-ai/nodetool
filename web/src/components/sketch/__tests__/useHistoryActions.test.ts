@@ -191,9 +191,7 @@ describe("useHistoryActions", () => {
           }
         ),
         setLayerData: jest.fn((_layerId: string, data: string | null) => {
-          window.setTimeout(() => {
-            runtimeData = data ?? "";
-          }, 0);
+          runtimeData = `fallback:${data ?? ""}`;
         }),
         getLayerData: jest.fn(() => runtimeData),
         redrawDisplay: jest.fn()
