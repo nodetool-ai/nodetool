@@ -122,7 +122,7 @@ Deferred selection-context-menu items:
 Completed merge-selected layer actions are archived in `SKETCH_FEATURES_DONE.md`.
 
 - [x] add one output handle that combines all output layers in a list[image] output
-- [x] improve Layer visibility toggle: allow toggling layer visibility by presing mouse and holding - moving over several layers. the eye icon part of the layer item should be exempt of dragging
+- [x] improve Layer visibility toggle: allow toggling layer visibility by pressing mouse and holding - moving over several layers. the eye icon part of the layer item should be exempt of dragging
 
 ### PHASE 3 - SAM SEGMENTATION
 
