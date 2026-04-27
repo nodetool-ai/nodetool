@@ -1479,22 +1479,24 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const localSam3Download = useModelDownloadStore(
     (state) => state.downloads[LOCAL_SAM3_MODEL_ID]
   );
+  const localSam3DownloadStatus = useModelDownloadStore(
+    (state) => state.downloads[LOCAL_SAM3_MODEL_ID]?.status
+  );
   const startDownload = useModelDownloadStore((state) => state.startDownload);
   const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
   const isLocalSam3 = settings.backend === "local-sam3";
   const localSam3Downloading =
-    localSam3Download &&
-    (localSam3Download.status === "pending" ||
-      localSam3Download.status === "running" ||
-      localSam3Download.status === "start" ||
-      localSam3Download.status === "progress");
+    localSam3DownloadStatus === "pending" ||
+    localSam3DownloadStatus === "running" ||
+    localSam3DownloadStatus === "start" ||
+    localSam3DownloadStatus === "progress";
   const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
   const canRunSegmentation = !isLocalSam3 || localSam3Ready;
   const canDownloadLocalSam3 =
     isLocalSam3 &&
     modelInfo?.status === "not-installed" &&
     modelInfo.errorMessage !== LOCAL_SAM3_NODE_PACK_HINT &&
-    localSam3Download?.status !== "completed" &&
+    localSam3DownloadStatus !== "completed" &&
     !localSam3Downloading;
   const visiblePromptModes: SegmentPromptMode[] = isLocalSam3
     ? ["auto"]
@@ -1511,13 +1513,13 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       return;
     }
     if (
-      localSam3Download?.status === "completed" ||
-      localSam3Download?.status === "cancelled" ||
-      localSam3Download?.status === "error"
+      localSam3DownloadStatus === "completed" ||
+      localSam3DownloadStatus === "cancelled" ||
+      localSam3DownloadStatus === "error"
     ) {
       onCheckModel();
     }
-  }, [isLocalSam3, localSam3Download?.status, onCheckModel]);
+  }, [isLocalSam3, localSam3DownloadStatus, onCheckModel]);
 
   return (
     <>
