@@ -48,6 +48,8 @@ The capability system uses introspection to automatically detect which features 
 | OpenAI | `openai-provider.ts` | ✅ | ✅ | ✅ | Includes DALL-E, TTS, Whisper |
 | Anthropic | `anthropic-provider.ts` | ✅ | ✅ | ✅ | JSON via tool use |
 | Google Gemini | `gemini-provider.ts` | ✅ | ✅ | ✅ | File input via Blobs, Veo video |
+| xAI (Grok) | `xai-provider.ts` | ✅ | ✅ | — | Grok models; `XAI_API_KEY` |
+| DeepSeek | `deepseek-provider.ts` | ✅ | ✅ | — | DeepSeek-V3 and R1 reasoning; `DEEPSEEK_API_KEY` |
 | Ollama | `ollama-provider.ts` | ✅ | model-dependent | Base64 | Local, no API key. `ollama pull` first |
 | vLLM | `vllm-provider.ts` | ✅ | model-dependent | ✅ | OpenAI-compatible, self-hosted |
 | HuggingFace | `huggingface-provider.ts` | ✅ | — | — | Hub models via FAL/Together/Replicate. See [HuggingFace Integration](huggingface.md) |
@@ -68,17 +70,31 @@ Text-to-video and image-to-video providers available through the unified interfa
 | OpenAI Sora 2 Pro | T2V, I2V | `OPENAI_API_KEY` |
 | Google Veo 3.1 (Gemini) | T2V, I2V, multi-image reference | `GEMINI_API_KEY` |
 | MiniMax Hailuo 2.3 | T2V, I2V | `MINIMAX_API_KEY` |
+| ByteDance Seedance 2.0 | T2V, I2V | via kie.ai |
+| Runway Gen-3 Alpha / Aleph | T2V, I2V, Extend | via kie.ai |
+| Luma | Video modification | via kie.ai |
 | xAI Grok Imagine | T2V, I2V, T2I | via kie.ai |
 | Alibaba Wan 2.6 | T2V, I2V, multi-shot | via kie.ai |
-| Kling 2.6 | T2V, I2V with audio | via kie.ai |
+| Kling 3.0 | T2V, I2V with audio | via kie.ai |
 
 ### Image Generation Providers
 
 | Provider | Access |
 |----------|--------|
-| Black Forest Labs FLUX.2 | via HuggingFace or direct API |
-| Google Nano Banana Pro | `GEMINI_API_KEY` or via kie.ai |
+| Black Forest Labs FLUX.2 Pro | via kie.ai or direct API |
+| Google Nano Banana 2.0 / Imagen 4 | `GEMINI_API_KEY` or via kie.ai |
+| OpenAI GPT Image 2 | `OPENAI_API_KEY` or via kie.ai |
 | OpenAI DALL-E 2/3 | `OPENAI_API_KEY` |
+| Ideogram V3 | via kie.ai |
+| Z-Image Turbo | via kie.ai |
+| ByteDance Seedream 4.5 | via kie.ai |
+
+### Music & Audio Generation Providers
+
+| Provider | Capabilities | Access |
+|----------|--------------|--------|
+| Suno | Music generation, extend, cover, remix | via kie.ai (`KIE_API_KEY`) |
+| ElevenLabs | TTS, dialogue, sound effects, audio isolation | `ELEVENLABS_API_KEY` or via kie.ai |
 
 ### 3D Generation Providers
 
@@ -96,7 +112,7 @@ Use the HuggingFace 3D nodes (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes 
 
 ### Multi-Provider Aggregators
 
-**kie.ai** — `KIE_API_KEY`. Unified access to multiple models via a single API. Recommended for providers without direct NodeTool API key support (xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6, FLUX.2, Nano Banana Pro).
+**kie.ai** — `KIE_API_KEY`. Unified access to multiple models via a single API. Recommended for providers without direct NodeTool API key support (ByteDance Seedance, Runway, Luma, xAI Grok Imagine, Alibaba Wan 2.6, Kling 3.0, FLUX.2, Nano Banana 2.0, Ideogram V3, Z-Image Turbo, Suno, and more).
 
 ## Generic Nodes: Provider-Agnostic Workflows
 
@@ -104,11 +120,11 @@ Generic nodes in the `nodetool.*` namespace accept a `model` parameter and route
 
 | Node | Switch between |
 |------|---------------|
-| `nodetool.agents.Agent` | OpenAI, Anthropic, Gemini, Ollama, any LLM |
-| `nodetool.image.TextToImage` | FLUX.2, Nano Banana Pro, DALL-E, HuggingFace, ComfyUI, MLX |
+| `nodetool.agents.Agent` | OpenAI, Anthropic, Gemini, xAI, DeepSeek, Ollama, any LLM |
+| `nodetool.image.TextToImage` | FLUX.2, Nano Banana 2.0, GPT Image 2, Ideogram V3, Z-Image, DALL-E, HuggingFace, ComfyUI, MLX |
 | `nodetool.image.ImageToImage` | HuggingFace, local servers, cloud services |
-| `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 2.6, HuggingFace |
-| `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 2.6, Stability AI |
+| `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, HuggingFace |
+| `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Luma, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, Stability AI |
 | `nodetool.3d.TextTo3D` | Hunyuan3D, Trellis 2, Meshy AI, Rodin AI, Shap-E, Point-E |
 | `nodetool.3d.ImageTo3D` | Hunyuan3D, Trellis 2, TripoSR, Meshy AI, Rodin AI, Shap-E |
 | `nodetool.audio.TextToSpeech` | OpenAI TTS, ElevenLabs, local TTS |
@@ -165,6 +181,8 @@ const params: TextToVideoParams = {
 | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **OpenAI**      | `OPENAI_API_KEY`      | -                               |
 | <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Anthropic**   | `ANTHROPIC_API_KEY`   | -                               |
 | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Gemini**      | `GEMINI_API_KEY`      | -                               |
+| **xAI (Grok)**   | `XAI_API_KEY`         | -                               |
+| **DeepSeek**     | `DEEPSEEK_API_KEY`    | -                               |
 | <img src="assets/icons/huggingface.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **HuggingFace** | `HF_TOKEN`            | -                               |
 | <img src="assets/icons/ollama.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Ollama**      | -                     | `OLLAMA_API_URL`                |
 | <img src="assets/icons/vllm.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **vLLM**        | -                     | `VLLM_BASE_URL`, `VLLM_API_KEY` |
@@ -178,6 +196,7 @@ const params: TextToVideoParams = {
 | **LM Studio**    | `LMSTUDIO_API_KEY` (optional) | `LMSTUDIO_API_URL` (default `http://127.0.0.1:1234`) |
 | **Together AI**  | `TOGETHER_API_KEY`    | -                               |
 | **Moonshot (Kimi)** | `KIMI_API_KEY`     | -                               |
+| **kie.ai**       | `KIE_API_KEY`         | -                               |
 
 
 ### Getting API Keys
@@ -185,6 +204,8 @@ const params: TextToVideoParams = {
 - <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **OpenAI:** https://platform.openai.com/api-keys
 - <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Anthropic:** https://console.anthropic.com/settings/keys
 - <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Google Gemini:** https://ai.google.dev/
+- **xAI (Grok):** https://console.x.ai/
+- **DeepSeek:** https://platform.deepseek.com/api_keys
 - <img src="assets/icons/huggingface.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **HuggingFace:** https://huggingface.co/settings/tokens
 - <img src="assets/icons/replicate.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **Replicate:** https://replicate.com/account/api-tokens
 - <img src="assets/icons/fal.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> **FAL:** https://fal.ai/dashboard/keys
@@ -196,6 +217,7 @@ const params: TextToVideoParams = {
 - **Together AI:** https://api.together.xyz/settings/api-keys
 - **Moonshot (Kimi):** https://platform.moonshot.cn/console/api-keys
 - **LM Studio:** No key needed — download from https://lmstudio.ai and start a local server
+- **kie.ai:** https://kie.ai/ (unified multi-model access)
 
 | 3D Provider     | Required Variables    |
 | --------------- | --------------------- |
