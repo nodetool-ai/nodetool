@@ -78,7 +78,21 @@ export async function shellView(input: ShellViewInput): Promise<ShellViewOutput>
   if (!state) {
     throw new Error(`shell session not found: ${input.id}`);
   }
-  const rawOutput = await capturePane(state.tmuxName);
+  let rawOutput: string;
+  try {
+    rawOutput = await capturePane(state.tmuxName);
+  } catch (err) {
+    if (isSessionGoneError(err)) {
+      sessions.delete(input.id);
+      return {
+        id: input.id,
+        output: "<session ended>",
+        running: false,
+        exit_code: state.lastExitCode ?? -1
+      };
+    }
+    throw err;
+  }
   const { running, exitCode } = parseCompletion(rawOutput, state.marker);
   if (!running && exitCode !== null) state.lastExitCode = exitCode;
   return {
@@ -97,7 +111,21 @@ export async function shellWait(input: ShellWaitInput): Promise<ShellWaitOutput>
   const deadline = Date.now() + (input.seconds ?? 60) * 1000;
   let output = "";
   while (Date.now() < deadline) {
-    output = await capturePane(state.tmuxName);
+    try {
+      output = await capturePane(state.tmuxName);
+    } catch (err) {
+      if (isSessionGoneError(err)) {
+        sessions.delete(input.id);
+        return {
+          id: input.id,
+          output: output ? cleanShellOutput(output, state.marker) : "<session ended>",
+          running: false,
+          exit_code: state.lastExitCode ?? -1,
+          timed_out: false
+        };
+      }
+      throw err;
+    }
     const { running, exitCode } = parseCompletion(output, state.marker);
     if (!running) {
       state.lastExitCode = exitCode;
@@ -118,6 +146,16 @@ export async function shellWait(input: ShellWaitInput): Promise<ShellWaitOutput>
     exit_code: null,
     timed_out: true
   };
+}
+
+function isSessionGoneError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    message.includes("can't find pane") ||
+    message.includes("can't find session") ||
+    message.includes("no server running") ||
+    message.includes("session not found")
+  );
 }
 
 export async function shellWriteToProcess(

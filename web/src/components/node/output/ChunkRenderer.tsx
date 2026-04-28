@@ -7,6 +7,7 @@ import { outputStyles } from "./styles";
 import { useTheme } from "@mui/material/styles";
 import ImageView from "../ImageView";
 import StreamPcm16Player from "./StreamPcm16Player";
+import { ToolCallRenderer } from "./ToolCallRenderer";
 
 type Props = {
   chunk: Chunk;
@@ -28,6 +29,8 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
   }
 
   switch (chunk.content_type) {
+    case "tool_call":
+      return <ToolCallRenderer chunk={chunk} />;
     case "image":
       return <ImageView source={chunk.content} />;
     case "audio": {

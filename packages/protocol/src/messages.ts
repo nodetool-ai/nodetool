@@ -28,7 +28,13 @@ export enum TaskUpdateEvent {
 
 export type Severity = "info" | "warning" | "error";
 
-export type ContentType = "text" | "audio" | "image" | "video" | "document";
+export type ContentType =
+  | "text"
+  | "audio"
+  | "image"
+  | "video"
+  | "document"
+  | "tool_call";
 
 export type EdgeType = "data" | "control";
 
