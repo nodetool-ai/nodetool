@@ -4,6 +4,7 @@
 
 export { SamServiceStub, getSamService, setSamService } from "./SamService";
 export {
+  FAL_SAM_CAPABILITIES,
   DEFAULT_SAM_MODEL_ID,
   DEFAULT_SAM_MODEL_NAME,
   getDefaultSamModelId,
