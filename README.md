@@ -1,4 +1,4 @@
-# NodeTool: Visual Builder for AI Workflows and Agents
+# NodeTool: Node-Based Visual Builder for AI Workflows and LLM Agents
 
 [![Stars](https://img.shields.io/github/stars/nodetool-ai/nodetool?style=social)](https://github.com/nodetool-ai/nodetool/stargazers)
 [![Downloads](https://img.shields.io/github/downloads/nodetool-ai/nodetool/total?color=3fb950)](https://github.com/nodetool-ai/nodetool/releases)
@@ -10,35 +10,36 @@
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 
-> AI belongs on your machine, next to your data. Not behind a paywall. Not in someone else's cloud.
+> Build AI Workflows. Run Them Locally.
 
-NodeTool is an open-source visual platform for building AI workflows. Connect LLMs, generate media, build agents, and process data through a drag-and-drop node interface — locally or in the cloud.
+NodeTool is a node-based visual programming tool for building AI workflows and applications. Connect models and tools with visual nodes to create LLM agents, RAG systems, and multimodal pipelines. Runs locally on macOS, Windows, and Linux — use local models or cloud APIs. Your data stays on your machine.
 
-![NodeTool Interface](screen3.png)
+![NodeTool Interface](screen_canvas.png)
 
 ## Key Features
 
 | | |
 | :--- | :--- |
 | **Visual workflow builder** | Drag-and-drop nodes with type-safe connections — no code required |
-| **Local-first AI** | Run models on your machine via Ollama, MLX (Apple Silicon), and GGUF/GGML |
-| **500,000+ models** | Access HuggingFace's full model library for any ML task |
-| **Cloud APIs** | OpenAI, Anthropic, Gemini, Replicate, Fal, MiniMax, Kie, OpenRouter |
-| **AI agents** | Build LLM agents with 100+ built-in tools and secure code execution |
-| **Multimodal** | Process and generate text, images, video, and audio in one workflow |
-| **Real-time streaming** | Async execution with live output previews |
+| **Local-first architecture** | Run models on your machine via Ollama, MLX (Apple Silicon), and GGUF/GGML |
+| **Multi-provider support** | OpenAI, Anthropic, Ollama, Replicate, HuggingFace, and custom models |
+| **AI agent framework** | Build autonomous agents with tool use, planning, and 100+ built-in tools |
+| **RAG & vector databases** | Built-in document indexing and semantic search |
+| **Multimodal processing** | Text, images, video, and audio in unified workflows |
+| **Real-time streaming** | Async execution with live output previews at every node |
 | **Deploy anywhere** | Docker, RunPod, Google Cloud Run, or self-hosted |
-| **Extend with code** | Build custom nodes in Python or TypeScript |
+| **Extend with code** | Custom nodes in TypeScript or Python |
 | **Cross-platform** | Desktop (Electron), web, CLI, and mobile (React Native) |
 
 ## What You Can Build
 
-- **LLM agents** with tool use, planning, and multi-step reasoning
-- **Creative pipelines** for image, video, and audio generation
-- **RAG systems** with vector search and document processing
-- **Data transformation** workflows with batch processing
+- **AI Agents & Automation** — multi-step agents that plan, execute, and adapt
+- **Document Intelligence** — index documents, search with AI, and answer questions (RAG made simple)
+- **Image & Video Creation** — generate and transform media with FLUX, NanoBanana, and custom models
+- **Data Processing** — transform data, extract insights, and automate reports
+- **Voice & Audio** — transcribe, analyze, and generate speech with Whisper and ElevenLabs
+- **Smart Assistants** — AI assistants that understand documents, emails, and notes
 - **Mini-Apps** — share workflows as interactive web applications
-- **Automation** pipelines combining local AI with cloud services
 
 ## Cloud Models
 
@@ -55,17 +56,23 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 
 > Some models need direct API keys. Others work through [kie.ai](https://kie.ai/), which combines multiple providers and often has better prices.
 
-## How NodeTool Compares
+## How NodeTool Differs
 
-| | NodeTool | ComfyUI | n8n |
-| :--- | :--- | :--- | :--- |
-| **Focus** | General AI workflows + agents | Media generation | Business automation |
-| **Local LLMs** | Ollama, MLX, GGUF | Limited | No |
-| **AI Agents** | Built-in with 100+ tools | No | Basic |
-| **RAG / Vector DB** | Native support | No | Via plugins |
-| **Streaming** | Real-time async | Queue-based | Webhook-based |
-| **Multimodal** | Text, image, video, audio | Image, video | Text-focused |
-| **Code execution** | Sandboxed (Docker) | No | Limited |
+| | NodeTool | ComfyUI | n8n | LangChain |
+| :--- | :--- | :--- | :--- | :--- |
+| **Focus** | General AI workflows + agents | Stable Diffusion image generation | Business automation | Code-first LLM framework |
+| **Local LLMs** | Ollama, MLX, GGUF | Limited | No | Via integrations |
+| **AI Agents** | Built-in with 100+ tools | No | Basic | Code-first |
+| **RAG / Vector DB** | Native support | No | Via plugins | Via integrations |
+| **Streaming** | Real-time async | Queue-based | Webhook-based | Callback-based |
+| **Multimodal** | Text, image, video, audio | Image, video | Text-focused | Text-focused |
+| **Code execution** | Sandboxed (Docker) | No | Limited | No |
+
+**vs ComfyUI:** ComfyUI focuses on Stable Diffusion image generation. NodeTool covers the rest of the AI stack: LLMs, RAG, audio, and video.
+
+**vs n8n:** n8n automates business processes and APIs. NodeTool is built for AI work, with model management and local LLMs included.
+
+**vs LangChain:** LangChain is a Python framework for LLM apps. NodeTool is a visual, TypeScript-first platform with an async Node.js runtime and custom nodes in TypeScript or Python.
 
 ## Download
 
