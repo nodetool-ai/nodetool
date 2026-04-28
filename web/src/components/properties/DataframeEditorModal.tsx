@@ -581,7 +581,7 @@ const DataframeEditorModal = ({
                   <ColumnsManager
                     columns={localValue.columns || []}
                     onChange={onChangeColumns}
-                    allData={localValue.data || []}
+                    allData={(localValue.data || []) as unknown as Record<string, unknown>[]}
                   />
                 </div>
               )}

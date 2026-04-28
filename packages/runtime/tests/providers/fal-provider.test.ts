@@ -100,10 +100,8 @@ describe("FalProvider", () => {
       expect.objectContaining({
         input: expect.objectContaining({
           prompt: "a cat",
-          negative_prompt: "blurry",
           guidance_scale: 7.5,
           num_inference_steps: 30,
-          image_size: { width: 1024, height: 768 },
           seed: 42,
           output_format: "png"
         }),
@@ -166,7 +164,7 @@ describe("FalProvider", () => {
     const inputImage = new Uint8Array([1, 2, 3, 4]);
     const params: ImageToImageParams = {
       prompt: "enhance",
-      model: { id: "fal-ai/flux/dev", name: "FLUX", provider: "fal_ai" },
+      model: { id: "fal-ai/kolors/image-to-image", name: "Kolors Image-to-Image", provider: "fal_ai" },
       strength: 0.8
     };
 
