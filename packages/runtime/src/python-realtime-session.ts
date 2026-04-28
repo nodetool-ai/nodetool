@@ -30,7 +30,8 @@ import type {
   RealtimePushInputFrameResult,
   RealtimeUpdateParameterResult,
   RealtimeStopSessionResult,
-  RealtimeOutputFrameEvent
+  RealtimeOutputFrameEvent,
+  RealtimeSessionErrorEvent
 } from "./python-bridge-types.js";
 
 export interface PythonRealtimeSessionOptions {
@@ -55,6 +56,7 @@ export interface PythonRealtimeSessionOptions {
 export type PythonRealtimeSessionEvents = {
   /** Emitted for every output frame produced by the underlying node. */
   frame: [RealtimeOutputFrameEvent];
+  sessionError: [RealtimeSessionErrorEvent];
 };
 
 type SessionState = "idle" | "starting" | "running" | "stopping" | "stopped";
@@ -68,6 +70,7 @@ export class PythonRealtimeSession extends EventEmitter {
   private readonly _inputBufferSize: number | undefined;
 
   private readonly _onFrame: (event: RealtimeOutputFrameEvent) => void;
+  private readonly _onSessionError: (event: RealtimeSessionErrorEvent) => void;
   private _state: SessionState = "idle";
 
   constructor(bridge: PythonStdioBridge, options: PythonRealtimeSessionOptions) {
@@ -85,7 +88,13 @@ export class PythonRealtimeSession extends EventEmitter {
         this.emit("frame", event);
       }
     };
+    this._onSessionError = (event: RealtimeSessionErrorEvent) => {
+      if (event && event.session_id === this._session.session_id) {
+        this.emit("sessionError", event);
+      }
+    };
     this._bridge.on("realtimeOutputFrame", this._onFrame);
+    this._bridge.on("realtimeSessionError", this._onSessionError);
   }
 
   get sessionId(): string {
@@ -120,7 +129,7 @@ export class PythonRealtimeSession extends EventEmitter {
       // Worker rejected the session before it became live; release the
       // listener so a caller can construct a fresh session if desired.
       this._state = "stopped";
-      this._bridge.off("realtimeOutputFrame", this._onFrame);
+      this.removeBridgeListeners();
       throw err;
     }
   }
@@ -181,7 +190,7 @@ export class PythonRealtimeSession extends EventEmitter {
       return result;
     } finally {
       this._state = "stopped";
-      this._bridge.off("realtimeOutputFrame", this._onFrame);
+      this.removeBridgeListeners();
     }
   }
 
@@ -192,7 +201,12 @@ export class PythonRealtimeSession extends EventEmitter {
    */
   dispose(): void {
     this._state = "stopped";
+    this.removeBridgeListeners();
+  }
+
+  private removeBridgeListeners(): void {
     this._bridge.off("realtimeOutputFrame", this._onFrame);
+    this._bridge.off("realtimeSessionError", this._onSessionError);
   }
 }
 

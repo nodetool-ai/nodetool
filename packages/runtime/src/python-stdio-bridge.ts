@@ -44,7 +44,8 @@ import type {
   RealtimePushInputFrameResult,
   RealtimeStopSessionRequest,
   RealtimeStopSessionResult,
-  RealtimeOutputFrameEvent
+  RealtimeOutputFrameEvent,
+  RealtimeSessionErrorEvent
 } from "./python-bridge-types.js";
 
 export type {
@@ -65,7 +66,8 @@ export type {
   RealtimePushInputFrameResult,
   RealtimeStopSessionRequest,
   RealtimeStopSessionResult,
-  RealtimeOutputFrameEvent
+  RealtimeOutputFrameEvent,
+  RealtimeSessionErrorEvent
 };
 
 interface PendingRequest {
@@ -449,6 +451,8 @@ export class PythonStdioBridge extends EventEmitter {
       // attached; the routing key is data.session_id). PythonRealtimeSession
       // subscribes to this event and dispatches per-session.
       this.emit("realtimeOutputFrame", msg.data as RealtimeOutputFrameEvent);
+    } else if (type === "realtime_session_error") {
+      this.emit("realtimeSessionError", msg.data as RealtimeSessionErrorEvent);
     }
   }
 

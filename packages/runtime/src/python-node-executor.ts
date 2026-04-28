@@ -1,10 +1,22 @@
 import type { ProcessingContext } from "./context.js";
+import { PythonRealtimeSession } from "./python-realtime-session.js";
 import type {
   ExecuteInputBlobs,
   ExecuteResult,
-  ProgressEvent
+  ProgressEvent,
+  RealtimeOutputFrameEvent,
+  RealtimeSessionInfoPayload,
+  RealtimeStartSessionRequest,
+  RealtimeStartSessionResult,
+  RealtimePushInputFrameRequest,
+  RealtimePushInputFrameResult,
+  RealtimeUpdateParameterRequest,
+  RealtimeUpdateParameterResult,
+  RealtimeStopSessionRequest,
+  RealtimeStopSessionResult
 } from "./python-bridge-types.js";
 import { createLogger } from "@nodetool/config";
+import type { RealtimeSessionInfo } from "@nodetool/protocol";
 
 const log = createLogger("nodetool.runtime.python-node-executor");
 
@@ -24,6 +36,26 @@ interface PythonBridgeLike {
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void
   ): AsyncGenerator<ExecuteResult>;
+  startRealtimeSession?: (
+    request: RealtimeStartSessionRequest
+  ) => Promise<RealtimeStartSessionResult>;
+  pushRealtimeInputFrame?: (
+    request: RealtimePushInputFrameRequest
+  ) => Promise<RealtimePushInputFrameResult>;
+  updateRealtimeParameter?: (
+    request: RealtimeUpdateParameterRequest
+  ) => Promise<RealtimeUpdateParameterResult>;
+  stopRealtimeSession?: (
+    request: RealtimeStopSessionRequest
+  ) => Promise<RealtimeStopSessionResult>;
+  on?: (
+    event: "realtimeOutputFrame",
+    listener: (event: RealtimeOutputFrameEvent) => void
+  ) => unknown;
+  off?: (
+    event: "realtimeOutputFrame",
+    listener: (event: RealtimeOutputFrameEvent) => void
+  ) => unknown;
 }
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -48,6 +80,8 @@ const EXTENSION_MAP: Record<string, string> = {
   video: ".mp4",
   model_3d: ".glb"
 };
+
+const REALTIME_OUTPUT_TIMEOUT_MS = 300_000;
 
 /** MIME types by ref type. */
 const MIME_MAP: Record<string, string> = {
@@ -81,6 +115,14 @@ type MediaRefValue = {
 
 function isMediaRefList(value: unknown): value is MediaRefValue[] {
   return Array.isArray(value) && value.every(isMediaRef);
+}
+
+function isRealtimeFramePayload(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const type = (value as Record<string, unknown>).type;
+  return type === "realtime_video_frame" || type === "realtime_audio_frame";
 }
 
 const ASSET_ID_EXTENSION_CANDIDATES: Record<string, string[]> = {
@@ -169,13 +211,28 @@ async function loadMediaRefBytes(
 }
 
 export class PythonNodeExecutor {
+  private realtimeSession: PythonRealtimeSession | null = null;
+
   constructor(
     private bridge: PythonBridgeLike,
     private nodeType: string,
-    _properties: Record<string, unknown>,
+    private properties: Record<string, unknown>,
     private outputTypes: Record<string, string>,
     private requiredSettings: string[]
   ) {}
+
+  private async resolveSecrets(
+    context?: ProcessingContext
+  ): Promise<Record<string, string>> {
+    const secrets: Record<string, string> = {};
+    if (context) {
+      for (const key of this.requiredSettings) {
+        const value = await context.getSecret(key);
+        if (value) secrets[key] = value;
+      }
+    }
+    return secrets;
+  }
 
   private async prepareExecution(
     inputs: Record<string, unknown>,
@@ -239,13 +296,7 @@ export class PythonNodeExecutor {
       }
     }
 
-    const secrets: Record<string, string> = {};
-    if (context) {
-      for (const key of this.requiredSettings) {
-        const value = await context.getSecret(key);
-        if (value) secrets[key] = value;
-      }
-    }
+    const secrets = await this.resolveSecrets(context);
 
     return { fields, blobs, secrets };
   }
@@ -274,10 +325,112 @@ export class PythonNodeExecutor {
     return outputs;
   }
 
+  async onSessionStart(
+    context: ProcessingContext,
+    session: RealtimeSessionInfo
+  ): Promise<void> {
+    const hasRealtimeBridge =
+      this.bridge.startRealtimeSession &&
+      this.bridge.pushRealtimeInputFrame &&
+      this.bridge.stopRealtimeSession &&
+      this.bridge.on &&
+      this.bridge.off;
+    if (!hasRealtimeBridge) {
+      throw new Error(
+        `Python node ${this.nodeType} cannot start a realtime session: bridge does not implement realtime session verbs`
+      );
+    }
+
+    const sessionPayload: RealtimeSessionInfoPayload = {
+      session_id: session.session_id,
+      workflow_id: session.workflow_id ?? null,
+      transport: session.transport,
+      parameters: {},
+      media_tracks: session.media_tracks ?? []
+    };
+    this.realtimeSession = new PythonRealtimeSession(
+      this.bridge as ConstructorParameters<typeof PythonRealtimeSession>[0],
+      {
+        session: sessionPayload,
+        nodeType: this.nodeType,
+        fields: this.properties,
+        secrets: await this.resolveSecrets(context)
+      }
+    );
+    await this.realtimeSession.start();
+  }
+
+  async onSessionStop(): Promise<void> {
+    const session = this.realtimeSession;
+    this.realtimeSession = null;
+    await session?.stop();
+  }
+
+  resetWarmState(): void {
+    this.realtimeSession?.dispose();
+    this.realtimeSession = null;
+  }
+
+  private waitForRealtimeOutput(): Promise<RealtimeOutputFrameEvent> {
+    const session = this.realtimeSession;
+    if (!session) {
+      throw new Error(
+        `Python node ${this.nodeType} has no active realtime session`
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        session.off("frame", onFrame);
+        reject(
+          new Error(
+            `Timed out waiting for realtime output from Python node ${this.nodeType}`
+          )
+        );
+      }, REALTIME_OUTPUT_TIMEOUT_MS);
+
+      const onFrame = (event: RealtimeOutputFrameEvent) => {
+        clearTimeout(timeout);
+        session.off("frame", onFrame);
+        resolve(event);
+      };
+
+      session.on("frame", onFrame);
+    });
+  }
+
+  private async processRealtimeFrame(
+    inputs: Record<string, unknown>
+  ): Promise<Record<string, unknown> | null> {
+    if (!this.realtimeSession) {
+      return null;
+    }
+
+    const frameInput = Object.entries(inputs).find(([, value]) =>
+      isRealtimeFramePayload(value)
+    );
+    if (!frameInput) {
+      return {};
+    }
+
+    const [handle, payload] = frameInput;
+    const outputPromise = this.waitForRealtimeOutput();
+    await this.realtimeSession.pushFrame(handle, payload);
+    const output = await outputPromise;
+    return {
+      [output.handle]: output.payload
+    };
+  }
+
   async process(
     inputs: Record<string, unknown>,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
+    const realtimeOutputs = await this.processRealtimeFrame(inputs);
+    if (realtimeOutputs !== null) {
+      return realtimeOutputs;
+    }
+
     const { fields, blobs, secrets } = await this.prepareExecution(inputs, context);
     const result = await this.bridge.execute(
       this.nodeType,

@@ -1528,7 +1528,7 @@ export class UnifiedWebSocketRunner {
     }
 
     const graph = await this.hydrateGraph(rawGraph);
-    log.info("TEMP_LOG realtime graph hydrated", {
+    log.debug("Realtime graph hydrated", {
       jobId,
       workflowId,
       sessionId: session.session_id,
@@ -1623,13 +1623,13 @@ export class UnifiedWebSocketRunner {
         graph as unknown as WorkflowGraphData,
         session
       );
-      log.info("TEMP_LOG realtime runner started", {
+      log.debug("Realtime runner started", {
         jobId,
         workflowId,
         sessionId: session.session_id
       });
     } catch (error) {
-      log.error("TEMP_LOG realtime runner startup failed", {
+      log.error("Realtime runner startup failed", {
         jobId,
         workflowId,
         sessionId: session.session_id,

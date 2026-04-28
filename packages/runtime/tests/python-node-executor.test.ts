@@ -1,11 +1,111 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+
 import { PythonNodeExecutor } from "../src/python-node-executor.js";
+
 import type { PythonStdioBridge } from "../src/index.js";
-import type { ExecuteResult } from "../src/python-bridge-types.js";
+import type {
+  ExecuteResult,
+  RealtimeOutputFrameEvent
+} from "../src/python-bridge-types.js";
 import type { ProcessingContext } from "../src/context.js";
+
+class FakeRealtimeBridge {
+  private frameListener: ((event: RealtimeOutputFrameEvent) => void) | null =
+    null;
+
+  readonly startRealtimeSession = vi.fn(async () => ({
+    session_id: "session-1",
+    status: "running"
+  }));
+  readonly pushRealtimeInputFrame = vi.fn(async () => {
+    queueMicrotask(() => {
+      this.frameListener?.({
+        session_id: "session-1",
+        handle: "frame",
+        payload: { type: "realtime_video_frame", sequence: 2 }
+      });
+    });
+    return {
+      session_id: "session-1",
+      ok: true,
+      dropped_count: 0
+    };
+  });
+  readonly stopRealtimeSession = vi.fn(async () => ({
+    session_id: "session-1",
+    ok: true,
+    error: null
+  }));
+  readonly execute = vi.fn();
+
+  on(event: string, listener: (event: RealtimeOutputFrameEvent) => void) {
+    if (event === "realtimeOutputFrame") {
+      this.frameListener = listener;
+    }
+    return this;
+  }
+
+  off(event: string, listener: (event: RealtimeOutputFrameEvent) => void) {
+    if (event === "realtimeOutputFrame" && this.frameListener === listener) {
+      this.frameListener = null;
+    }
+    return this;
+  }
+}
+
+describe("PythonNodeExecutor realtime warm state", () => {
+  it("uses the warm Python realtime session for incoming realtime frames", async () => {
+    const bridge = new FakeRealtimeBridge();
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "realtime.longlive.LongLive",
+      { prompt: "test prompt" },
+      { frame: "realtime_video_frame" },
+      []
+    );
+
+    await executor.onSessionStart?.({} as never, {
+      session_id: "session-1",
+      workflow_id: "workflow-1",
+      transport: "websocket",
+      parameters: {},
+      media_tracks: []
+    });
+
+    const outputs = await executor.process(
+      {
+        frame: { type: "realtime_video_frame", sequence: 1 }
+      },
+      {} as never
+    );
+
+    expect(bridge.startRealtimeSession).toHaveBeenCalledWith({
+      session_id: "session-1",
+      session: {
+        session_id: "session-1",
+        workflow_id: "workflow-1",
+        transport: "websocket",
+        parameters: {},
+        media_tracks: []
+      },
+      node_type: "realtime.longlive.LongLive",
+      fields: { prompt: "test prompt" },
+      secrets: {}
+    });
+    expect(bridge.pushRealtimeInputFrame).toHaveBeenCalledWith({
+      session_id: "session-1",
+      handle: "frame",
+      payload: { type: "realtime_video_frame", sequence: 1 }
+    });
+    expect(bridge.execute).not.toHaveBeenCalled();
+    expect(outputs).toEqual({
+      frame: { type: "realtime_video_frame", sequence: 2 }
+    });
+  });
+});
 
 function createMockBridge(executeResult: ExecuteResult): PythonStdioBridge {
   return {

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import type { RealtimeMetrics, RealtimeSessionRecord } from "@nodetool/protocol";
 
 import mockTheme from "../../../__mocks__/themeMock";
+import { RealtimeCameraSetupCard } from "../RealtimeCameraSetupCard";
 import { RealtimeSessionControlsCard } from "../RealtimeSessionControlsCard";
 import { RealtimeSessionDetailsCard } from "../RealtimeSessionDetailsCard";
 import { RealtimeSessionListCard } from "../RealtimeSessionListCard";
@@ -133,15 +134,9 @@ describe("Realtime session cards", () => {
 
   it("renders camera source route and cadence status", () => {
     renderWithTheme(
-      <RealtimeSessionControlsCard
-        brightness={100}
-        isStartSessionDisabled={false}
-        hasPreviewStream
-        hasActiveSession
-        videoTargetNodeId="video-source"
-        videoTargetInputName="camera"
-        videoTargetSourceHandle="realtime_frame"
-        ingressMode="frame-push"
+      <RealtimeCameraSetupCard
+        selectedVideoResolution="vga"
+        videoTrackSettings={null}
         cameraPublisherStatus={{
           enabled: true,
           active: true,
@@ -156,26 +151,21 @@ describe("Realtime session cards", () => {
           lastError: null,
           skippedReason: null
         }}
-        previewError={null}
-        webrtcConfigError={null}
-        webrtcError={null}
-        sessionError={null}
-        onBrightnessChange={jest.fn()}
-        onBrightnessCommit={jest.fn()}
+        videoTargetNodeId="video-source"
+        videoTargetInputName="camera"
+        videoTargetSourceHandle="realtime_frame"
+        ingressMode="frame-push"
+        onVideoResolutionChange={jest.fn()}
         onVideoTargetNodeIdChange={jest.fn()}
         onVideoTargetInputNameChange={jest.fn()}
-        onStartPreview={jest.fn()}
-        onStopPreview={jest.fn()}
-        onStartSession={jest.fn()}
-        onStopSession={jest.fn()}
       />
     );
 
-    expect(screen.getByText("Camera source: active")).toBeInTheDocument();
+    expect(screen.getByText("Camera active")).toBeInTheDocument();
     expect(
-      screen.getByText("Route: video-source.camera from realtime_frame")
+      screen.getByText("Frame push route: video-source.camera")
     ).toBeInTheDocument();
-    expect(screen.getByText("Cadence: 2 fps")).toBeInTheDocument();
-    expect(screen.getByText("Frames pushed: 3")).toBeInTheDocument();
+    expect(screen.getByText("Source: realtime_frame")).toBeInTheDocument();
+    expect(screen.getByText("3 frames pushed at 2 fps")).toBeInTheDocument();
   });
 });

@@ -114,7 +114,7 @@ export class RealtimeRunner {
     const warmNodes = this.runner
       .getNodes()
       .filter((node) => node.owns_warm_state);
-    log.info("TEMP_LOG realtime warm-state hook candidates", {
+    log.debug("Realtime warm-state hook candidates", {
       stage,
       sessionId: sessionInfo.session_id,
       workflowId: sessionInfo.workflow_id,
@@ -139,7 +139,7 @@ export class RealtimeRunner {
     for (const node of warmNodes) {
       const executor = this.runner.getExecutor(node.id);
       if (!executor) {
-        log.warn("TEMP_LOG realtime warm-state executor missing", {
+        log.warn("Realtime warm-state executor missing", {
           stage,
           sessionId: sessionInfo.session_id,
           nodeId: node.id,
@@ -150,25 +150,25 @@ export class RealtimeRunner {
 
       if (stage === "start") {
         executor.resetWarmState?.();
-        log.info("TEMP_LOG realtime onSessionStart begin", {
+        log.debug("Realtime onSessionStart begin", {
           sessionId: sessionInfo.session_id,
           nodeId: node.id,
           nodeType: node.type
         });
         await executor.onSessionStart?.(context, sessionInfo);
-        log.info("TEMP_LOG realtime onSessionStart complete", {
+        log.debug("Realtime onSessionStart complete", {
           sessionId: sessionInfo.session_id,
           nodeId: node.id,
           nodeType: node.type
         });
       } else {
-        log.info("TEMP_LOG realtime onSessionStop begin", {
+        log.debug("Realtime onSessionStop begin", {
           sessionId: sessionInfo.session_id,
           nodeId: node.id,
           nodeType: node.type
         });
         await executor.onSessionStop?.(context, sessionInfo);
-        log.info("TEMP_LOG realtime onSessionStop complete", {
+        log.debug("Realtime onSessionStop complete", {
           sessionId: sessionInfo.session_id,
           nodeId: node.id,
           nodeType: node.type

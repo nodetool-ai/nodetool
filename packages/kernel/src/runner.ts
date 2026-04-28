@@ -194,7 +194,7 @@ export class WorkflowRunner {
   /** Background graph-processing task used by realtime mode. */
   private _activeProcessingPromise: Promise<void> | null = null;
 
-  /** TEMP_LOG: keep pushed-input diagnostics to the first event per route. */
+  /** Keep pushed-input diagnostics to the first event per route. */
   private _tempLoggedInputRoutes = new Set<string>();
 
   constructor(jobId: string, options: WorkflowRunnerOptions) {
@@ -249,7 +249,7 @@ export class WorkflowRunner {
     const logKey = `${inputName}:${sourceHandle ?? ""}`;
     if (!this._tempLoggedInputRoutes.has(logKey)) {
       this._tempLoggedInputRoutes.add(logKey);
-      log.info("TEMP_LOG runner first pushed input value", {
+      log.debug("Runner first pushed input value", {
         jobId: this.jobId,
         inputName,
         sourceHandle,
@@ -1373,7 +1373,6 @@ export class WorkflowRunner {
     return nodeIds.map((nodeId) => {
       const node = this._graph.nodes.find((candidate) => candidate.id === nodeId);
       return {
-        marker: "TEMP_LOG",
         nodeId,
         nodeType: node?.type,
         nodeTitle: node

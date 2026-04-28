@@ -206,7 +206,7 @@ export class RealtimeCommandHandler {
       routed = await router.routeFrame(trackId, frame);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      log.warn("TEMP_LOG realtime pushed frame routing failed", {
+      log.warn("Realtime pushed frame routing failed", {
         sessionId,
         workflowId: session.workflow_id,
         jobId: session.job_id,
@@ -230,7 +230,7 @@ export class RealtimeCommandHandler {
     if (!this.tempLoggedFrameRoutes.has(logKey)) {
       this.tempLoggedFrameRoutes.add(logKey);
       const track = session.media_tracks.find((candidate) => candidate.track_id === trackId);
-      log.info("TEMP_LOG realtime first pushed frame routed", {
+      log.debug("Realtime first pushed frame routed", {
         sessionId,
         workflowId: session.workflow_id,
         jobId: session.job_id,

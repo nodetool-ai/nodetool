@@ -372,7 +372,7 @@ export class NodeInbox {
     return Object.fromEntries(this._droppedCounts.entries());
   }
 
-  // TEMP_LOG diagnostic helper. Remove with other TEMP_LOG instrumentation.
+  // Diagnostic helper for pending realtime inbox work.
   getDebugState(): Record<string, unknown> {
     return {
       buffers: Object.fromEntries(

@@ -178,3 +178,9 @@ export interface RealtimeOutputFrameEvent {
   payload: unknown;
   metadata?: Record<string, unknown>;
 }
+
+export interface RealtimeSessionErrorEvent {
+  session_id: string;
+  error: string;
+  trace?: string;
+}

@@ -73,7 +73,7 @@ export class RealtimeSessionCommandService {
       status: "starting"
     });
 
-    log.info("TEMP_LOG realtime session start command", {
+    log.debug("Realtime session start command", {
       workflowId,
       sessionId: session.session_id,
       jobId,

@@ -32,10 +32,37 @@ product guidance:
 - Fast Play/Stop and prompt updates.
 - No timeline, preset community, plugin marketplace, or standalone operator UI before the graph MVP works.
 
+## Realtime Product Learnings
+
+Use these as product and adapter guidance:
+
+- The understandable graph shape is `Source -> Pipeline -> Sink/Preview`. Keep the Nodetool starter and validation centered on that mental model.
+- Realtime node menu grouping is useful: `Source`, `Pipeline`, `Sink`, `Output`, `Controls`, `UI`, `Utility`, `Media`, and `VACE` make realtime authoring easier to scan than a flat model/provider list.
+- Pipeline nodes can expose advanced model parameters inline, but the MVP should not start there. Hide or collapse low-level knobs until the base run works.tasks in the plan
+- Control inputs such as VACE/reference frames should be optional graph inputs connected from small control nodes, not mandatory fields on the base pipeline.
+- LongLive/Wan-style component layout is useful fallback guidance: keep separate concerns for model path resolution, text encoder, transformer/checkpoint, VAE, optional LoRA, optional VACE/control input, scheduler/steps, and frame post-processing. Do not expose the full set as first-run controls.
+- Use one conservative adapter profile while proving the path, such as 320x576 or 512 square output, fixed seed, known VAE, known quantization profile, known noise scale, and known denoising steps.
+- Make the server-side pipeline manager concrete: resolve/cache artifact paths, build a typed pipeline config, lazy-load one pipeline per profile, emit `resolving -> loading -> warming -> ready/error`, run frames through one `infer(frame, prompt, params)` call, reuse warm state across frames, and release/stop cleanly on session stop.
+- The operator needs a visible runtime state next to the graph: session starting, model resolving/loading/warming/ready/error, browser frames sent, backend frames routed, inference metrics, and last error.
+- Realtime should be discoverable from the normal app shell. A header entry such as `Editor | Chat | App | Realtime` is acceptable during the MVP, even if Play eventually moves into the editor.
+
+## Realtime Node Parameter Budget
+
+Keep realtime nodes small enough to run, debug, and explain:
+
+- First-run pipeline controls: `frame`, `prompt`, optional `negative_prompt`, `profile` or model preset, output frame, and visible loading/error/status.
+- First-run source controls: camera device, requested resolution preset, actual selected resolution, preview/start/stop, and capture/publish status.
+- Immediate post-MVP controls: one LoRA selector, LoRA strength, one reference/VACE image input, and one control strength.
+- Advanced collapsed controls: seed, width, height, inference steps, guidance/noise scale, quantization/profile override, cache reset, and deterministic/reuse-cache toggles.
+- Adapter config only: model artifact paths, text encoder path, transformer/checkpoint path, VAE path, scheduler internals, denoising step schedule, VACE tensor/input names, dtype/offload placement, upstream class/import names, and arbitrary constructor/call kwargs.
+- Not MVP UI: multi-LoRA stacks, merge-mode matrices, full VACE/control catalogs, per-layer offload settings, arbitrary model-path text fields, debug smoke flags, fake pipeline toggles, and upstream package/module overrides.
+
 ## Source UX Direction
 
 - `Video Source` is the one user-facing source node, not separate normal-camera and realtime-camera nodes.
 - The MVP source mode is camera capture with device selection, live preview, still capture, and a `realtime_frame` output.
+- Camera capture exposes common resolution requests, including low-bandwidth and wide 480p presets. The UI should show the actual browser-selected camera mode because `getUserMedia` treats presets as constraints, not guaranteed modes.
+- Camera preview warms up briefly before still capture or realtime publishing uses frames.
 - The normal workflow output is `image`, filled by an explicit Capture Still action even when a workflow is not running.
 - The realtime workflow output is `realtime_frame`, routed as `Video Source.realtime_frame -> model.frame`.
 - Future source modes are video assets (`VideoRef` playback), NDI, Syphon, Spout, and audio input/output where the workflow needs it. Do not add those before the camera MVP works.
@@ -44,7 +71,7 @@ product guidance:
 
 These tasks must leave the codebase easier to run, not just better described. Each task has a concrete artifact to check.
 
-### [ ] 0.1 Use One Camera Ingress Path
+### [x] 0.1 Use One Camera Ingress Path
 
 Files:
 - `packages/base-nodes/src/nodes/video.ts`
@@ -82,12 +109,12 @@ Steps:
 - [x] Auto-select the first graph media adapter in the realtime controller, using `realtime_frame` for `nodetool.video.VideoSource`.
 - [x] Remove the duplicate `nodetool.realtime.VideoSource` registration so video ingress has one user-facing node.
 - [x] Disable WebRTC camera publishing when frame-push is active for the same session/input.
-- [ ] Add status for selected device, target handle, frame cadence, and routing errors.
+- [x] Add status for selected device, target handle, frame cadence, and routing errors.
 
 Check:
 - [x] Focused kernel/websocket tests route frames through `VideoSource.realtime_frame`.
-- [ ] One selected camera sends frames through exactly one graph input path.
-- [ ] Status shows which path is active.
+- [x] One selected camera sends frames through exactly one graph input path.
+- [x] Status shows which path is active.
 
 ### [x] 0.2 Create MVP Starter Template
 
@@ -258,6 +285,9 @@ Files:
 Steps:
 - [x] Expose one clear `Video Source` node in the node menu.
 - [x] Add camera device selection and live preview to `Video Source`.
+- [x] Add camera warm-up before still capture or realtime publishing consumes frames.
+- [x] Add common capture resolution presets, including low-res and wide 480p options.
+- [x] Show the actual browser-selected camera mode from `MediaStreamTrack.getSettings()`.
 - [x] Add normal still capture through `Video Source.image`.
 - [x] Convert selected camera frames to `realtime_video_frame` through the existing frame publisher.
 - [x] Route pushed realtime frames through `Video Source.realtime_frame`.
@@ -267,27 +297,49 @@ Steps:
 - [x] Run a smoke proving captured camera frames route to the model `frame` input handle.
 
 Check:
-- [x] Starting the workflow sends camera frames into the model input.
+- [x] Starting the realtime session sends camera frames into the model input.
 
-### [ ] 1.3 Resolve Required RTX 3060 Artifacts
+### [x] 1.3 Resolve Required RTX 3060 Artifacts
 
 Files:
 - `nodetool-realtime/src/nodetool/realtime/model_artifacts.py`
 - `nodetool-realtime/src/nodetool/realtime/wan21/rtx3060_realtime_smoke.py`
 - `nodetool-realtime/README.md`
 
+Current cache snapshot:
+- Hugging Face cache root is `M:\HUGGINGFACE\hub`.
+- Required RTX 3060 Self-Forcing artifacts are already cached:
+  - `self_forcing_fp8_transformer`: `lym00/Wan2.1-T2V-1.3B-Self-Forcing-VACE-Addon-Experiment/Wan2.1_T2V_1.3B_SelfForcing_DMD-FP8_e4m3fn.safetensors` (`1,419,385,896` bytes)
+  - `umt5_xxl_encoder_q5_k_m`: `city96/umt5-xxl-encoder-gguf/umt5-xxl-encoder-Q5_K_M.gguf` (`4,145,878,880` bytes)
+  - `wan21_vae`: `Kijai/WanVideo_comfy/Wan2_1_VAE_bf16.safetensors` (`253,806,278` bytes)
+- LongLive canonical artifacts are cached:
+  - `longlive_base_checkpoint`: `Efficient-Large-Model/LongLive-1.3B/models/longlive_base.pt` (`5,676,334,208` bytes)
+  - `longlive_lora_checkpoint`: `Efficient-Large-Model/LongLive-1.3B/models/lora.pt` (`2,800,056,690` bytes)
+- Canonical Self-Forcing artifacts are not cached:
+  - `Wan-AI/Wan2.1-T2V-1.3B`
+  - `gdhe17/Self-Forcing/checkpoints/self_forcing_dmd.pt`
+  - `gdhe17/Self-Forcing/configs/self_forcing_dmd.yaml`
+- Optional VACE/control artifact is not cached and remains out of the Phase 1 MVP: `self_forcing_vace_fp8_transformer`.
+
+Verified runtime state:
+- `nodetool` conda env has PyTorch `2.9.0+cu128`, CUDA build `12.8`, CUDA available, and one `NVIDIA GeForce RTX 3060` with compute capability `(8, 6)`.
+- `safetensors` `0.7.0` and `huggingface_hub` `1.8.0` import successfully.
+- The GGUF artifact currently uses the `gguf_path_reference` loader; `nodetool-realtime[gguf]` has no runtime dependency yet.
+- Cache-only artifact resolution is fixed so Hugging Face files already present in the local cache resolve without enabling downloads.
+- Cache-only RTX 3060 smoke resolves all required artifacts and reaches `loading_transformer`; it then fails at the expected Phase 1.4 boundary: `Self-Forcing selected upstream pipeline must provide a callable inference method.`
+
 Steps:
-- [ ] IMPORTANT: ask User to install necessary packs through using the nodetool interface and model downloader first
-- [ ] Resolve `self_forcing_fp8_transformer` through the Hugging Face cache.
-- [ ] Resolve `umt5_xxl_encoder_q5_k_m` through the Hugging Face cache.
-- [ ] Resolve `wan21_vae` through the Hugging Face cache.
-- [ ] Verify CUDA PyTorch in the `nodetool` conda env.
-- [ ] Verify `huggingface_hub`, `safetensors`, and the selected GGUF loader.
-- [ ] Record local paths, missing reasons, and artifact sizes.
-- [ ] Keep optional LoRA/VACE artifacts out of this task.
+- [x] Check installed packs/cache before asking the user to download anything else.
+- [x] Resolve `self_forcing_fp8_transformer` through the Hugging Face cache.
+- [x] Resolve `umt5_xxl_encoder_q5_k_m` through the Hugging Face cache.
+- [x] Resolve `wan21_vae` through the Hugging Face cache.
+- [x] Verify CUDA PyTorch in the `nodetool` conda env.
+- [x] Verify `huggingface_hub`, `safetensors`, and the selected GGUF loader.
+- [x] Record local paths, missing reasons, and artifact sizes.
+- [x] Keep optional LoRA/VACE artifacts out of this task.
 
 Check:
-- [ ] Required artifacts resolve locally or fail with short actionable errors.
+- [x] Required artifacts resolve locally or fail with short actionable errors.
 
 ### [ ] 1.4 Implement One Self-Forcing Inference Adapter
 
@@ -296,8 +348,34 @@ Files:
 - `nodetool-realtime/src/nodetool/realtime/wan21/self_forcing_backend.py`
 - `nodetool-realtime/src/nodetool/realtime/wan21/self_forcing_sampler.py`
 - `nodetool-realtime/src/nodetool/nodes/realtime/self_forcing.py`
+- `nodetool-realtime/src/nodetool/nodes/realtime/longlive.py`
+- `nodetool-realtime/tests/test_package_metadata.py`
+
+Current findings:
+- Official Self-Forcing inference uses `pipeline.CausalInferencePipeline` for the DMD/few-step config and calls `pipeline.inference(noise=sampled_noise, text_prompts=prompts, return_latents=True, initial_latent=..., low_memory=...)`.
+- Official setup installs a package named `self_forcing`, but the import surface used by the scripts is the top-level `pipeline` package.
+- The current `nodetool` conda env has `omegaconf`, `diffusers`, and `transformers`, but does not have the upstream `pipeline`/`self_forcing` package, `torchao`, or `flash_attn`.
+- The current smoke reaches the sampler construction path, proving artifact resolution and basic loader hooks are working; the next blocker is that the selected generator object is an artifact-load result, not an instantiated upstream pipeline with `inference(...)`.
+
+MVP direction:
+- The immediate goal is still to see real generated output running inside NodeTool, not to finish a polished installer.
+- Use a NodeTool-controlled adapter boundary, but keep the first pass lean: instantiate an upstream-compatible `CausalInferencePipeline` path with the cached artifacts, make the existing smoke return one real frame, then run the template in the editor.
+- Do not build full model-manager dependency installation, multi-platform pack hardening, or advanced backend selection before the first real in-app output.
+- Do not require cloning an upstream repository for the MVP path. Prefer an explicit model-path config, conservative default resolution, and a small server-side pipeline manager that owns model lifecycle and inference.
+- Treat visible LongLive/Wan-style parameters as adapter config hints, not the Nodetool MVP surface: width/height, seed, VAE, quantization, noise scale, denoising steps, LoRA merge strength, and VACE slots help define the adapter config, but only prompt/profile/status should be first-run controls.
+- Prefer real app testing over adding more scaffolding: after each small runtime change, ask the user to launch the workflow in NodeTool and report browser console plus server `TEMP_LOG` output.
 
 Steps:
+- [x] Identify the upstream Self-Forcing class/function that provides `inference(noise, text_prompts, return_latents, low_memory)`.
+- [x] Choose the lean MVP path: a NodeTool-controlled adapter around the official `CausalInferencePipeline` pattern, with any upstream package dependency kept explicit and minimal.
+- [ ] Map NodeTool's cached artifact paths into a typed model-path config for text encoder, transformer/checkpoint, VAE, optional LoRA, and optional VACE/control artifacts.
+- [ ] Add a small backend pipeline manager that lazy-loads one pipeline per profile, reuses warm state during a realtime session, and releases resources on stop/error.
+- [ ] Add the smallest import/install path needed for the chosen backend to run inside the existing `nodetool` env; avoid external repo clones for the MVP.
+- [ ] Load the official Self-Forcing YAML config and instantiate `CausalInferencePipeline`.
+- [ ] Apply the cached Self-Forcing FP8/checkpoint artifact to the instantiated pipeline.
+- [ ] Move only the required components to CUDA/CPU for the RTX 3060 smoke profile.
+- [ ] Start with one conservative fallback resolution/profile if the cached Self-Forcing path cannot use arbitrary dimensions yet.
+- [ ] Audit `SelfForcing` and `LongLive` public fields against the parameter budget so user-facing nodes cover important controls without exposing adapter internals.
 - [ ] Connect resolved artifacts to one upstream Self-Forcing pipeline class.
 - [ ] Run one inference call from an input frame and prompt.
 - [ ] Normalize sampler output to `rgb8` or `rgba8` `realtime_video_frame`.
@@ -316,20 +394,27 @@ Files:
 - `packages/kernel/src/runner.ts`
 - `packages/kernel/src/realtime-runner.ts`
 - `web/src/components/node/PreviewNode/PreviewNode.tsx`
+- `web/src/hooks/browser/useVideoCapture.ts`
+- `web/src/hooks/realtime/useRealtimeCameraFramePublisher.ts`
 
 Steps:
 - [ ] Open the MVP template.
 - [ ] Select a camera.
 - [ ] Start the realtime session.
+- [ ] Confirm the `Model Runtime Status` card advances through startup/model/frame states or shows the blocking error.
+- [ ] Ask the user to run this in the app immediately after each backend change and report browser console plus server logs.
 - [ ] Confirm camera frames reach the model.
 - [ ] Confirm generated frames appear in `Preview`.
 - [ ] Change the prompt once while running.
 - [ ] Stop the session cleanly.
 - [ ] Record latency, memory/offload state, and any dropped-frame count shown by the app/logs.
+- [ ] Use `TEMP_LOG` diagnostics to identify any failed browser -> websocket -> runner -> Python handoff.
+- [ ] Remove temporary `TEMP_LOG` diagnostics or convert the useful parts to normal debug logging after the smoke is understood.
 
 Check:
 - [ ] A user sees generated model output in `Preview` on RTX 3060-class hardware.
 - [ ] No mock/dev pipeline is used for the success path.
+- [ ] No temporary `TEMP_LOG` instrumentation remains unless intentionally retained behind normal debug logging.
 
 ### [ ] 1.6 Write One-Page User Runbook
 
@@ -369,6 +454,7 @@ Check:
 Steps:
 - [ ] Validate one VACE/control artifact for the MVP model and RTX 3060 memory budget.
 - [ ] Add one `reference_image` input to the model node.
+- [ ] Prefer a small VACE/control helper node feeding the pipeline over making the base pipeline require VACE fields.
 - [ ] Load VACE as an optional stage after the base model works.
 - [ ] Show VACE loading/error state separately.
 - [ ] Keep pose, depth, inpaint, and multi-control catalogs out.
@@ -383,6 +469,7 @@ Check:
 
 Steps:
 - [ ] Add Play/Stop controls for the current realtime workflow.
+- [ ] Keep `Editor | Chat | App | Realtime` header navigation while the dedicated realtime page is the diagnostic launch path.
 - [ ] Make live `Preview` the primary feedback surface.
 - [ ] Show source, prompt, profile, LoRA, and reference image controls when available.
 - [ ] Show idle/loading/warming/running/stopping/error states.
@@ -394,6 +481,7 @@ Check:
 ### [ ] 3.2 Add Realtime Node Badges And Validation
 
 Steps:
+- [ ] Consider realtime-friendly node menu groups: `Source`, `Pipeline`, `Sink`, `Controls`, and `VACE`.
 - [ ] Badge realtime-capable nodes.
 - [ ] Validate `Video Source -> model -> VideoSink -> Preview` before Play.
 - [ ] Show concise graph validation reasons.
@@ -432,6 +520,18 @@ Steps:
 
 Check:
 - [ ] One browser-local analysis result can steer one running server/Python session.
+
+### [ ] 3.6 Harden Realtime Pack Installation
+
+Steps:
+- [ ] Move any temporary Self-Forcing dev install/vendor path into a documented `nodetool-realtime` backend extra or package-managed install path.
+- [ ] Add preflight checks for CUDA availability, supported GPU memory, PyTorch CUDA build, `safetensors`, upstream Self-Forcing imports, and optional quantization libraries.
+- [ ] Show missing backend dependency reasons in the model manager before a user starts a realtime session.
+- [ ] Keep the base realtime pack installable without heavyweight Self-Forcing dependencies.
+- [ ] Add a one-command or one-click repair path for missing realtime backend dependencies where the platform supports it.
+
+Check:
+- [ ] A new user can install the realtime pack, download the recommended model pack, and see actionable setup status without reading source code.
 
 ## Deferred Context
 

@@ -4,18 +4,19 @@ export const realtimeCardSx = {
 
 export const realtimeControlSx = {
   borderRadius: 0,
-  borderStyle: "solid",
-  borderWidth: 1,
   fontWeight: 600,
   height: 34,
   px: 2,
+  textShadow: "none",
+  "& .MuiButton-label": {
+    color: "inherit"
+  },
   "&:not(:disabled)": {
-    backgroundColor: "action.hover",
-    borderColor: "divider"
+    backgroundColor: "action.selected",
+    color: "text.primary"
   },
   "&:not(:disabled):hover": {
-    backgroundColor: "action.selected",
-    borderColor: "text.secondary"
+    backgroundColor: "action.hover"
   }
 };
 
@@ -23,12 +24,11 @@ export const realtimeStartControlSx = {
   ...realtimeControlSx,
   "&:not(:disabled)": {
     backgroundColor: "success.dark",
-    borderColor: "success.main",
-    color: "success.contrastText"
+    color: "grey.0"
   },
   "&:not(:disabled):hover": {
     backgroundColor: "success.main",
-    borderColor: "success.light"
+    color: "grey.0"
   }
 };
 
@@ -36,12 +36,11 @@ export const realtimeStopControlSx = {
   ...realtimeControlSx,
   "&:not(:disabled)": {
     backgroundColor: "error.dark",
-    borderColor: "error.main",
-    color: "error.contrastText"
+    color: "grey.0"
   },
   "&:not(:disabled):hover": {
     backgroundColor: "error.main",
-    borderColor: "error.light"
+    color: "grey.0"
   }
 };
 

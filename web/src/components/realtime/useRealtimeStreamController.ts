@@ -74,6 +74,10 @@ const findVideoTrackTarget = (
   };
 };
 
+const isStoppableSession = (session: RealtimeSessionRecord | null): boolean => {
+  return session?.status === "starting" || session?.status === "running";
+};
+
 export interface RealtimeStreamController {
   workflowId: string | undefined;
   workflow: Workflow | undefined;
@@ -105,6 +109,7 @@ export interface RealtimeStreamController {
   webrtcError: string | null;
   sessionError: string | null;
   isStartSessionDisabled: boolean;
+  isStopSessionDisabled: boolean;
   startPreview: () => Promise<void>;
   stopPreview: () => void;
   setBrightness: (brightness: number) => void;
@@ -138,6 +143,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     startSession,
     updateSession,
     stopSession,
+    removeSession,
     setActiveSession
   } = useRealtimeControlPlane();
 
@@ -206,6 +212,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const activeOutputFrame = activeSession
     ? outputFrames[activeSession.session_id] ?? null
     : null;
+  const isStopSessionDisabled = !isStoppableSession(activeSession);
   const discoveredVideoTrackTarget = useMemo(
     () => findVideoTrackTarget(workflow),
     [workflow]
@@ -337,26 +344,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       enabled: true
     }));
 
-    console.info("TEMP_LOG realtime start requested", {
-      workflowId,
-      graphNodes: workflow?.graph?.nodes?.length ?? 0,
-      graphEdges: workflow?.graph?.edges?.length ?? 0,
-      transport: sessionTransport,
-      mediaTracks,
-      previewVideoTracks: previewStream.getVideoTracks().map((track) => ({
-        id: track.id,
-        label: track.label,
-        readyState: track.readyState,
-        enabled: track.enabled
-      })),
-      target: {
-        nodeId: videoTargetNodeId.trim(),
-        inputName: videoTargetInputName.trim(),
-        sourceHandle: videoTargetSourceHandle.trim() || "frame"
-      }
-    });
-
-    const session = await startSession(
+    await startSession(
       workflowId,
       {
         preview_source: "camera",
@@ -371,14 +359,6 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
         }
       }
     );
-    console.info("TEMP_LOG realtime start acknowledged", {
-      workflowId,
-      sessionId: session.session_id,
-      jobId: session.job_id,
-      status: session.status,
-      transport: session.transport,
-      mediaTracks: session.media_tracks
-    });
   }, [
     brightness,
     isPreviewReady,
@@ -393,12 +373,14 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   ]);
 
   const handleStopSession = useCallback(async () => {
-    if (!activeSession) {
+    if (!isStoppableSession(activeSession)) {
+      setActiveSession(null);
       return;
     }
 
     await stopSession(activeSession.session_id, activeSession.workflow_id);
-  }, [activeSession, stopSession]);
+    removeSession(activeSession.session_id);
+  }, [activeSession, removeSession, setActiveSession, stopSession]);
 
   const handleBrightnessCommit = useCallback(
     async (_event: Event | SyntheticEvent, value: number | number[]) => {
@@ -445,6 +427,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     webrtcError,
     sessionError,
     isStartSessionDisabled,
+    isStopSessionDisabled,
     startPreview,
     stopPreview,
     setBrightness,

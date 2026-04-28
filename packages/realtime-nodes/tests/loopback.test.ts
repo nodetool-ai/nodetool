@@ -7,7 +7,13 @@ import type {
 } from "@nodetool/protocol";
 import { RealtimeRunner, WorkflowRunner } from "@nodetool/kernel";
 import { NodeRegistry } from "@nodetool/node-sdk";
-import type { ProcessingContext, StreamingInputs, StreamingOutputs } from "@nodetool/runtime";
+import {
+  PythonNodeExecutor,
+  type ProcessingContext,
+  type RealtimeOutputFrameEvent,
+  type StreamingInputs,
+  type StreamingOutputs
+} from "@nodetool/runtime";
 import {
   AudioSink,
   AudioSource,
@@ -92,9 +98,60 @@ const resolveFromRegistry = (nodeRegistry: NodeRegistry) => (node: NodeDescripto
 };
 
 const mockProcessingContext = {
+  getSecret: async () => null,
   emit() {},
   setSendControlEvent() {}
 } as unknown as ProcessingContext;
+
+class FakePythonRealtimeBridge {
+  private frameListeners = new Set<(event: RealtimeOutputFrameEvent) => void>();
+
+  readonly startRealtimeSession = async () => ({
+    session_id: "session-python-model",
+    status: "running"
+  });
+
+  readonly pushRealtimeInputFrame = async () => {
+    queueMicrotask(() => {
+      for (const listener of this.frameListeners) {
+        listener({
+          session_id: "session-python-model",
+          handle: "frame",
+          payload: frame(9)
+        });
+      }
+    });
+    return {
+      session_id: "session-python-model",
+      ok: true,
+      dropped_count: 0
+    };
+  };
+
+  readonly stopRealtimeSession = async () => ({
+    session_id: "session-python-model",
+    ok: true,
+    error: null
+  });
+
+  readonly execute = async () => {
+    throw new Error("one-shot execute should not run for warm realtime frames");
+  };
+
+  on(event: string, listener: (event: RealtimeOutputFrameEvent) => void) {
+    if (event === "realtimeOutputFrame") {
+      this.frameListeners.add(listener);
+    }
+    return this;
+  }
+
+  off(event: string, listener: (event: RealtimeOutputFrameEvent) => void) {
+    if (event === "realtimeOutputFrame") {
+      this.frameListeners.delete(listener);
+    }
+    return this;
+  }
+}
 
 describe("realtime frame routing nodes", () => {
   it("routes pushed video frames from VideoSource to VideoSink", async () => {
@@ -229,6 +286,88 @@ describe("realtime frame routing nodes", () => {
 
     expect(result.status).toBe("completed");
     expect(result.outputs.preview).toEqual([pushedFrame]);
+  });
+
+  it("routes pushed frames through a warm Python realtime model into VideoSink", async () => {
+    const nodeRegistry = registry();
+    const bridge = new FakePythonRealtimeBridge();
+    const realtimeRunner = new RealtimeRunner("job-python-model-frame", {
+      executionContext: mockProcessingContext,
+      resolveExecutor(node) {
+        if (node.type === "realtime.longlive.LongLive") {
+          return new PythonNodeExecutor(
+            bridge as never,
+            node.type,
+            (node.properties ?? {}) as Record<string, unknown>,
+            { frame: "realtime_video_frame" },
+            []
+          );
+        }
+        return resolveFromRegistry(nodeRegistry)(node);
+      }
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      { job_id: "job-python-model-frame", workflow_id: "workflow-1" },
+      {
+        nodes: [
+          videoSourceDescriptor("video-source"),
+          {
+            id: "model",
+            type: "realtime.longlive.LongLive",
+            name: "LongLive",
+            properties: { prompt: "test prompt" },
+            outputs: { frame: "realtime_video_frame" },
+            sync_mode: "on_any",
+            is_realtime_capable: true,
+            owns_warm_state: true
+          },
+          {
+            ...VideoSink.toDescriptor("video-sink"),
+            name: "preview"
+          }
+        ],
+        edges: [
+          {
+            source: "video-source",
+            sourceHandle: "realtime_frame",
+            target: "model",
+            targetHandle: "frame"
+          },
+          {
+            source: "model",
+            sourceHandle: "frame",
+            target: "video-sink",
+            targetHandle: "frame"
+          }
+        ]
+      },
+      realtimeSession({
+        session_id: "session-python-model",
+        media_tracks: [
+          {
+            track_id: "track-camera",
+            kind: "video",
+            node_id: "video-source",
+            input_name: "camera",
+            source_handle: "realtime_frame",
+            label: null,
+            enabled: true
+          }
+        ]
+      })
+    );
+
+    await realtimeRunner.runner.pushInputValue(
+      "camera",
+      frame(3),
+      "realtime_frame"
+    );
+
+    const result = await realtimeRunner.stopRealtimeMode();
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.preview).toEqual([frame(9)]);
   });
 
   it("routes pushed audio frames from AudioSource to AudioSink", async () => {

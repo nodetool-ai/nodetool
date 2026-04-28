@@ -87,7 +87,7 @@ const RealtimeStreamPage = () => {
         brightness={controller.brightness}
         isStartSessionDisabled={controller.isStartSessionDisabled}
         hasPreviewStream={Boolean(controller.previewStream)}
-        hasActiveSession={Boolean(controller.activeSession)}
+        isStopSessionDisabled={controller.isStopSessionDisabled}
         previewError={controller.previewError}
         webrtcConfigError={controller.webrtcConfigError}
         webrtcError={controller.webrtcError}
