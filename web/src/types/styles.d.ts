@@ -10,8 +10,8 @@ declare module "react-syntax-highlighter/dist/esm/prism" {
   import * as React from "react";
   export interface SyntaxHighlighterProps {
     language?: string;
-    style?: any;
-    PreTag?: any;
+    style?: Record<string, React.CSSProperties>;
+    PreTag?: React.ElementType;
     children?: React.ReactNode;
     customStyle?: React.CSSProperties;
     className?: string;
@@ -21,10 +21,12 @@ declare module "react-syntax-highlighter/dist/esm/prism" {
 }
 
 declare module "react-syntax-highlighter/dist/esm/styles/prism" {
-  export const okaidia: any;
-  export const gruvboxDark: any;
-  export const oneDark: any;
-  export const oneLight: any;
-  export const materialDark: any;
-  export const materialLight: any;
+  import type { CSSProperties } from "react";
+  type SyntaxTheme = Record<string, CSSProperties>;
+  export const okaidia: SyntaxTheme;
+  export const gruvboxDark: SyntaxTheme;
+  export const oneDark: SyntaxTheme;
+  export const oneLight: SyntaxTheme;
+  export const materialDark: SyntaxTheme;
+  export const materialLight: SyntaxTheme;
 }

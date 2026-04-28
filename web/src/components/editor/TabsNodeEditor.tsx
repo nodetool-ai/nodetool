@@ -11,7 +11,7 @@ import NodeEditor from "../node_editor/NodeEditor";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../contexts/NodeContext";
 import StatusMessage from "../panels/StatusMessage";
-import { WorkflowAttributes } from "../../stores/ApiTypes";
+import { Workflow, WorkflowAttributes } from "../../stores/ApiTypes";
 import { generateCSS } from "../themes/GenerateCSS";
 import { Box, useMediaQuery } from "@mui/material";
 
@@ -418,7 +418,7 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   useEffect(() => {
     const missingIds = idsForTabs.filter((id, index) => {
       const res = queryResults[index];
-      return Boolean((res?.data as { __missing?: boolean })?.__missing);
+      return Boolean(res?.data && "__missing" in res.data);
     });
     if (missingIds.length === 0) {
       return;
@@ -439,8 +439,8 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
         return loaded;
       }
       const res = queryResults[index];
-      if (res && res.data && !(res.data as { __missing?: boolean }).__missing) {
-        const { graph, ...attrs } = res.data as any;
+      if (res && res.data && !("__missing" in res.data)) {
+        const { graph: _graph, ...attrs } = res.data as Workflow;
         return attrs as WorkflowAttributes;
       }
       return {

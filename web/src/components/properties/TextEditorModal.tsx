@@ -1217,7 +1217,7 @@ const TextEditorModal = ({
                     <NewChatButton onNewThread={() => void createNewThread()} />
                     <ChatView
                       status={
-                        status === "stopping" ? "loading" : (status as any)
+                        status === "stopping" ? "loading" : status
                       }
                       progress={progress.current}
                       total={progress.total}
