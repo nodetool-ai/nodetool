@@ -34,7 +34,9 @@ export const useAssetUpdate = () => {
         if (!old) return old;
         return {
           ...old,
-          assets: old.assets.filter((a: AssetList["assets"][number]) => !movedIds.has(a.id))
+          assets: old.assets.filter(
+            (a: { id: string }) => !movedIds.has(a.id)
+          )
         };
       });
 
@@ -49,7 +51,8 @@ export const useAssetUpdate = () => {
         dismissable: false,
       });
     },
-    onError: (_err, _updates, context) => {
+    onError: (err, _updates, context) => {
+      console.error("Failed to update asset(s):", err);
       // Roll back to the previous state
       if (context?.previousData !== undefined) {
         queryClient.setQueryData(

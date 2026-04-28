@@ -174,6 +174,8 @@ export const useAssetActions = (asset: Asset) => {
       if (asset.content_type === "folder" && assetIdsToMove.length > 0) {
         // Clear selection and close dialog immediately for instant feedback;
         // the optimistic update in useAssetUpdate removes assets from view right away.
+        // If the server call fails, useAssetUpdate's onError rolls back the cache
+        // and shows an error notification.
         setMoveToFolderDialogOpen(false);
         setSelectedAssetIds([]);
         setSelectedAssets([]);
