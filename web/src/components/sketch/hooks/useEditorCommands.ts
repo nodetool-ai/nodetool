@@ -83,8 +83,11 @@ export function useEditorCommands({
 }: UseEditorCommandsParams): EditorCommandsResult {
   // ─── Segmentation bridge callbacks ─────────────────────────────────
   const handleRunSegmentation = useCallback(() => {
-    const backend = useSketchStore.getState().document.toolSettings.segment.backend;
-    if (backend === "local-sam3") {
+    const segmentSettings = useSketchStore.getState().document.toolSettings.segment;
+    if (
+      segmentSettings.backend === "local-sam3" &&
+      segmentSettings.promptMode === "auto"
+    ) {
       void segmentation.splitSelectedLayer();
       return;
     }

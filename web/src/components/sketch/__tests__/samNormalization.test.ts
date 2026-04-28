@@ -4,6 +4,7 @@ import { WebSocketNodeExecutor, setNodeExecutor } from "../sam/NodeExecutor";
 import { normalizeSamMasks } from "../sam/normalizeSamMasks";
 import { DEFAULT_SEGMENT_SETTINGS } from "../types";
 import type { SegmentationSourceMetadata } from "../types";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 const LOCAL_SAM3_NODE_TYPE = "huggingface.image_segmentation.MaskGeneration";
 const LOCAL_SAM3_MODEL_ID = "facebook/sam3";
@@ -153,10 +154,24 @@ describe("SamServiceNode normalization", () => {
   afterEach(() => {
     jest.restoreAllMocks();
     setNodeExecutor(new WebSocketNodeExecutor());
+    useMetadataStore.setState({ metadata: {} });
   });
 
   it("normalizes executor output independently from graph execution", async () => {
     const sourceMetadata = createSourceMetadata();
+    useMetadataStore.setState({
+      metadata: {
+        [LOCAL_SAM3_NODE_TYPE]: {
+          node_type: LOCAL_SAM3_NODE_TYPE,
+          properties: [
+            { name: "image" },
+            { name: "model" },
+            { name: "points_per_side" },
+            { name: "pred_iou_thresh" }
+          ]
+        } as any
+      }
+    });
     jest.spyOn(SamServiceFal, "resizeForInference").mockResolvedValue({
       dataUrl: "data:image/png;base64,small",
       scale: 1

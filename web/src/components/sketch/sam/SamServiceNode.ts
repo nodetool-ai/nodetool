@@ -39,6 +39,9 @@ const LOCAL_SAM3_REQUIRED_INPUTS = [
   "points_per_side",
   "pred_iou_thresh"
 ] as const;
+const LOCAL_SAM3_TEXT_PROMPT_INPUTS = ["prompt"] as const;
+const LOCAL_SAM3_POINT_PROMPT_INPUTS = ["point_prompts", "points"] as const;
+const LOCAL_SAM3_BOX_PROMPT_INPUTS = ["box_prompts", "boxes"] as const;
 const ACTIVE_DOWNLOAD_STATUSES = new Set([
   // ModelDownloadStore uses both lifecycle states and streaming event statuses.
   "pending",
@@ -80,19 +83,76 @@ export const SAM_NODE_CONFIGS: Record<string, SamNodeConfig> = {
 
 export const DEFAULT_SAM_NODE_BACKEND = "local-sam3";
 
-function hasMetadataInputs(
-  metadata: { properties?: Array<{ name?: string | null }> } | undefined,
-  inputNames: readonly string[]
-): boolean {
+interface NodeMetadataLike {
+  properties?: Array<{ name?: string | null }>;
+}
+
+interface LocalSam3PromptMetadata {
+  capabilities: SamBackendCapabilities;
+  pointPromptsInputName: string | null;
+  boxPromptsInputName: string | null;
+  textPromptInputName: string | null;
+}
+
+function getMetadataInputNames(metadata: NodeMetadataLike | undefined): Set<string> {
   if (!metadata?.properties) {
-    return false;
+    return new Set();
   }
-  const availableInputs = new Set(
+  return new Set(
     metadata.properties
       .map((property) => property.name)
       .filter((name): name is string => typeof name === "string" && name.length > 0)
   );
+}
+
+function getFirstAvailableInputName(
+  availableInputs: Set<string>,
+  inputNames: readonly string[]
+): string | null {
+  for (const inputName of inputNames) {
+    if (availableInputs.has(inputName)) {
+      return inputName;
+    }
+  }
+  return null;
+}
+
+function hasMetadataInputs(
+  metadata: NodeMetadataLike | undefined,
+  inputNames: readonly string[]
+): boolean {
+  const availableInputs = getMetadataInputNames(metadata);
   return inputNames.every((inputName) => availableInputs.has(inputName));
+}
+
+function getLocalSam3PromptMetadata(
+  metadata: NodeMetadataLike | undefined
+): LocalSam3PromptMetadata {
+  const availableInputs = getMetadataInputNames(metadata);
+  const textPromptInputName = getFirstAvailableInputName(
+    availableInputs,
+    LOCAL_SAM3_TEXT_PROMPT_INPUTS
+  );
+  const pointPromptsInputName = getFirstAvailableInputName(
+    availableInputs,
+    LOCAL_SAM3_POINT_PROMPT_INPUTS
+  );
+  const boxPromptsInputName = getFirstAvailableInputName(
+    availableInputs,
+    LOCAL_SAM3_BOX_PROMPT_INPUTS
+  );
+
+  return {
+    capabilities: {
+      ...LOCAL_SAM3_CAPABILITIES,
+      textPrompts: textPromptInputName !== null,
+      pointPrompts: pointPromptsInputName !== null,
+      boxPrompts: boxPromptsInputName !== null
+    },
+    textPromptInputName,
+    pointPromptsInputName,
+    boxPromptsInputName
+  };
 }
 
 function getDownloadProgress(modelId: string): number | undefined {
@@ -167,12 +227,14 @@ export class SamServiceNode implements SamService {
       };
     }
 
+    const promptMetadata = getLocalSam3PromptMetadata(metadata);
+
     if (isModelDownloadActive(this.config.modelId)) {
       return {
         status: "downloading",
         backendId: this.config.backendId,
         backendLabel: this.config.displayName,
-        capabilities: this.config.capabilities,
+        capabilities: promptMetadata.capabilities,
         nodeType: this.config.nodeType,
         modelId: this.config.modelId,
         modelName: this.config.displayName,
@@ -198,7 +260,7 @@ export class SamServiceNode implements SamService {
         status: "not-installed",
         backendId: this.config.backendId,
         backendLabel: this.config.displayName,
-        capabilities: this.config.capabilities,
+        capabilities: promptMetadata.capabilities,
         nodeType: this.config.nodeType,
         modelId: this.config.modelId,
         modelName: this.config.displayName,
@@ -210,7 +272,7 @@ export class SamServiceNode implements SamService {
       status: "available",
       backendId: this.config.backendId,
       backendLabel: this.config.displayName,
-      capabilities: this.config.capabilities,
+      capabilities: promptMetadata.capabilities,
       nodeType: this.config.nodeType,
       modelId: this.config.modelId,
       modelName: this.config.displayName
@@ -258,7 +320,21 @@ export class SamServiceNode implements SamService {
     scale: number
   ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
     if (this.config.backendId === "local-sam3") {
-      return this.buildLocalSam3Graph(imageDataUrl, request);
+      const metadata = useMetadataStore
+        .getState()
+        .getMetadata(this.config.nodeType);
+      if (!metadata) {
+        throw new Error("Local SAM3 node metadata is unavailable");
+      }
+      if (!hasMetadataInputs(metadata, LOCAL_SAM3_REQUIRED_INPUTS)) {
+        throw new Error("Local SAM3 node metadata is missing required inputs");
+      }
+      return this.buildLocalSam3Graph(
+        imageDataUrl,
+        request,
+        scale,
+        getLocalSam3PromptMetadata(metadata)
+      );
     }
 
     return Promise.resolve(this.buildFalSam2Graph(imageDataUrl, request, scale));
@@ -266,25 +342,77 @@ export class SamServiceNode implements SamService {
 
   private async buildLocalSam3Graph(
     imageDataUrl: string,
-    request: SegmentationRequest
+    request: SegmentationRequest,
+    scale: number,
+    promptMetadata: LocalSam3PromptMetadata
   ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
+    const nodeData: Record<string, unknown> = {
+      image: await this.buildLocalSam3ImageInput(imageDataUrl),
+      model: {
+        type: "hf.model",
+        repo_id: this.config.modelId
+      } as HuggingFaceModel,
+      points_per_side: request.settings.pointsPerSide,
+      pred_iou_thresh: request.settings.predIouThresh
+    };
+
+    if (
+      promptMetadata.textPromptInputName
+    ) {
+      const trimmedConceptPrompt = request.settings.conceptPrompt.trim();
+      if (trimmedConceptPrompt.length > 0) {
+        nodeData[promptMetadata.textPromptInputName] = trimmedConceptPrompt;
+      }
+    }
+
+    if (
+      promptMetadata.pointPromptsInputName &&
+      request.pointPrompts.length > 0
+    ) {
+      nodeData[promptMetadata.pointPromptsInputName] = this.buildLocalSam3PointPrompts(
+        request.pointPrompts,
+        scale
+      );
+    }
+
+    if (promptMetadata.boxPromptsInputName && request.boxPrompt) {
+      nodeData[promptMetadata.boxPromptsInputName] = [
+        this.buildLocalSam3BoxPrompt(request.boxPrompt, scale)
+      ];
+    }
+
     return {
       nodes: [
         {
           id: "sam_node",
           type: this.config.nodeType,
-          data: {
-            image: await this.buildLocalSam3ImageInput(imageDataUrl),
-            model: {
-              type: "hf.model",
-              repo_id: this.config.modelId
-            } as HuggingFaceModel,
-            points_per_side: request.settings.pointsPerSide,
-            pred_iou_thresh: request.settings.predIouThresh
-          }
+          data: nodeData
         }
       ],
       edges: []
+    };
+  }
+
+  private buildLocalSam3PointPrompts(
+    pointPrompts: SegmentationRequest["pointPrompts"],
+    scale: number
+  ): Array<{ x: number; y: number; label: 0 | 1 }> {
+    return pointPrompts.map((point) => ({
+      x: Math.round(point.x * scale),
+      y: Math.round(point.y * scale),
+      label: point.label === "positive" ? 1 : 0
+    }));
+  }
+
+  private buildLocalSam3BoxPrompt(
+    boxPrompt: NonNullable<SegmentationRequest["boxPrompt"]>,
+    scale: number
+  ): { x: number; y: number; width: number; height: number } {
+    return {
+      x: Math.round(boxPrompt.x * scale),
+      y: Math.round(boxPrompt.y * scale),
+      width: Math.round(boxPrompt.width * scale),
+      height: Math.round(boxPrompt.height * scale)
     };
   }
 
