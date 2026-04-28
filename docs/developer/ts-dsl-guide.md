@@ -22,11 +22,13 @@ The TypeScript DSL (`@nodetool-ai/dsl`) provides type-safe factory functions for
 
 ## Installation
 
-The `@nodetool-ai/dsl` package is part of the NodeTool monorepo:
+Install from npm:
 
 ```bash
-npm install  # from the repo root — installs all workspace packages
+npm install @nodetool-ai/dsl
 ```
+
+Or inside the NodeTool monorepo, all workspace packages are available after `npm install` at the repo root.
 
 Import namespaces directly:
 

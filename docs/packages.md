@@ -32,7 +32,7 @@ A package is a standard npm workspace package that exports node classes and a re
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/node-sdk": "*"
+    "@nodetool-ai/node-sdk": "latest"
   }
 }
 ```
