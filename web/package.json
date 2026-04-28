@@ -46,6 +46,7 @@
     "papaparse": "^5.4.1",
     "plotly.js": "^3.3.1",
     "prismjs": "^1.30.0",
+    "puppeteer": "^24.42.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-draggable": "^4.4.6",
