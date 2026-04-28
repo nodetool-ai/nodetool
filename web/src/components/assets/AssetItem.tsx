@@ -157,6 +157,19 @@ const styles = (theme: Theme) =>
       maxHeight: "2.6em",
       marginTop: 0
     },
+    ".date": {
+      position: "relative",
+      padding: "0 0.25em 0.1em 0.35em",
+      width: "100%",
+      textAlign: "left",
+      fontSize: theme.fontSizeTiny,
+      fontFamily: theme.fontFamily2,
+      lineHeight: "1.2em",
+      color: theme.vars.palette.grey[400],
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
     ".filetype": {
       top: "0.5em",
       left: "0.5em",
@@ -327,6 +340,9 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
 
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
+  );
+  const assetsOrder = useSettingsStore(
+    (state) => state.settings.assetsOrder
   );
 
   const {
@@ -580,6 +596,11 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
             >
               {asset.name}
               {/* {asset.parent_id} */}
+            </Text>
+          )}
+          {assetsOrder === "date" && asset.created_at && assetItemSize > 2 && (
+            <Text className="date">
+              {new Date(asset.created_at).toLocaleDateString()}
             </Text>
           )}
         </>
