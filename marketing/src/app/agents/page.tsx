@@ -221,8 +221,8 @@ export default function AgentsPage() {
           className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-glass supports-[backdrop-filter]:bg-glass shadow-[0_1px_0_0_rgba(139,92,246,0.08)]"
           aria-label="Primary"
         >
-          <div className={`${sectionContainer} py-4 sm:py-4`}>
-            <div className="relative flex items-center justify-center gap-6 w-full min-h-[56px] sm:min-h-[64px]">
+          <div className={`${sectionContainer} py-2 sm:py-4 lg:py-2`}>
+            <div className="relative flex items-center justify-center gap-6 w-full min-h-[44px] sm:min-h-[64px]">
               {/* Logo */}
               <div className="absolute left-0 flex items-center h-12 sm:h-10">
                 <a href="/" className={`group flex items-center gap-2 rounded`}>
@@ -288,6 +288,27 @@ export default function AgentsPage() {
                 </a>
               </div>
             </div>
+            {/* Mobile-only persona links */}
+            <div className="md:hidden flex items-center justify-center gap-2 pt-1.5 pb-0.5">
+              <a
+                href="/"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Home
+              </a>
+              <a
+                href="/creatives"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Creatives
+              </a>
+              <a
+                href="/developers"
+                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
+              >
+                Developers
+              </a>
+            </div>
           </div>
         </nav>
         {/* Mobile menu */}
@@ -343,7 +364,7 @@ export default function AgentsPage() {
 
       <div
         id="content"
-        className="relative isolate overflow-hidden pt-16 sm:pt-20 lg:pt-24"
+        className="relative isolate overflow-hidden pt-24 sm:pt-36 md:pt-24"
       >
         {/* Hero */}
         <section aria-labelledby="hero-title" className="pt-2 relative">

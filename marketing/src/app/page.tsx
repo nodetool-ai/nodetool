@@ -527,7 +527,7 @@ export default function Home() {
 
       <div
         id="content"
-        className="relative isolate overflow-hidden pt-16 sm:pt-20 lg:pt-24"
+        className="relative isolate overflow-hidden pt-24 sm:pt-36 md:pt-24"
       >
         {/* Hero */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
