@@ -474,6 +474,12 @@ export class ClaudeAgentProvider extends BaseProvider {
     audio?: Record<string, unknown>;
     thinkingBudget?: number;
     threadId?: string | null;
+    /**
+     * Upper bound on agentic turns inside the SDK query. Defaults to 100
+     * when tools are present (single-turn when not). Callers — typically
+     * AgentNode — can lift this for long-running sandbox sessions.
+     */
+    maxTurns?: number;
     /** Callback for tool execution. Required when tools are provided. */
     onToolCall?: OnToolCall;
     signal?: AbortSignal;
@@ -578,7 +584,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         options: {
           model: args.model,
           systemPrompt,
-          maxTurns: hasTools ? 10 : 1,
+          maxTurns: hasTools ? (args.maxTurns ?? 100) : 1,
           permissionMode: "bypassPermissions",
           allowDangerouslySkipPermissions: true,
           disallowedTools: DISALLOWED_TOOLS,
