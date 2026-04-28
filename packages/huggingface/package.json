@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/huggingface",
-  "version": "0.7.0-rc.11",
+  "version": "0.7.0-rc.12",
   "type": "module",
   "description": "HuggingFace integration: cache scanning, model discovery, artifact inspection, and downloads",
   "main": "dist/index.js",
