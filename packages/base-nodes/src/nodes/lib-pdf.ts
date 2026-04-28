@@ -5,8 +5,8 @@
  * layout analysis, metadata reading, screenshots, text search,
  * and OCR extraction from PDF documents.
  */
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ParseResult } from "@llamaindex/liteparse";
 
 // ---------------------------------------------------------------------------

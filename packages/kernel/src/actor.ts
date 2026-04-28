@@ -14,12 +14,12 @@
  *   - zip_all: wait until ALL handles have data (with sticky semantics).
  */
 
-import { createLogger } from "@nodetool/config";
-import type { NodeDescriptor, ControlEvent } from "@nodetool/protocol";
+import { createLogger } from "@nodetool-ai/config";
+import type { NodeDescriptor, ControlEvent } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.actor");
-import type { ProcessingContext, NodeExecutor } from "@nodetool/runtime";
-import { withNodeSpan } from "@nodetool/runtime";
+import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
+import { withNodeSpan } from "@nodetool-ai/runtime";
 import { NodeInbox } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 

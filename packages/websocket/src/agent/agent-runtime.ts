@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import {
   query,
   listSessions,
@@ -18,7 +18,7 @@ import type {
   SDKSessionInfo,
   SessionMessage,
 } from "@anthropic-ai/claude-agent-sdk";
-import { uiToolSchemas } from "@nodetool/protocol";
+import { uiToolSchemas } from "@nodetool-ai/protocol";
 import {
   CodexQuerySession,
   listCodexModels,

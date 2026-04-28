@@ -4,9 +4,9 @@
  * Port of src/nodetool/agents/simple_agent.py
  */
 
-import type { BaseProvider } from "@nodetool/runtime";
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { ProcessingMessage, StepResult } from "@nodetool/protocol";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { BaseAgent } from "./base-agent.js";
 import { StepExecutor } from "./step-executor.js";
 import type { Tool } from "./tools/base-tool.js";

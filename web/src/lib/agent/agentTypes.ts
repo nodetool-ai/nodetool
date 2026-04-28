@@ -1,7 +1,7 @@
 /**
  * Agent WebSocket protocol types for the renderer.
  *
- * The canonical definitions live in `@nodetool/protocol` (see
+ * The canonical definitions live in `@nodetool-ai/protocol` (see
  * `packages/protocol/src/agent-protocol.ts`). This module re-exports them so
  * renderer-side code keeps a single stable import path and can't drift out of
  * sync with the server.
@@ -23,10 +23,10 @@ export type {
   AgentClientCommand,
   AgentClientPayload,
   AgentServerMessage
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 
 export type AgentStreamEvent = {
   sessionId: string;
-  message: import("@nodetool/protocol").AgentMessage;
+  message: import("@nodetool-ai/protocol").AgentMessage;
   done: boolean;
 };

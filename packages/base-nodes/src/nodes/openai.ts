@@ -1,10 +1,10 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
   NodeClass,
   StreamingInputs,
   StreamingOutputs
-} from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+} from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 

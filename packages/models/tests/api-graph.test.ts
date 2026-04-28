@@ -9,7 +9,7 @@ import {
   removeConnectedSlots,
   type ApiGraph
 } from "../src/api-graph.js";
-import type { Edge, GraphData, NodeDescriptor } from "@nodetool/protocol";
+import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // toApiNode

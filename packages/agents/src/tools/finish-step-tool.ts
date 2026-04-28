@@ -4,7 +4,7 @@
  * Port of src/nodetool/agents/tools/finish_step_tool.py
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 export class FinishStepTool extends Tool {

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import Fastify from "fastify";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
-import { Prediction, Secret, Setting } from "@nodetool/models";
-import * as vectorstore from "@nodetool/vectorstore";
+import { Prediction, Secret, Setting } from "@nodetool-ai/models";
+import * as vectorstore from "@nodetool-ai/vectorstore";
 import { appRouter } from "../src/trpc/router.js";
 import { createContextFactory } from "../src/trpc/context.js";
 
@@ -134,7 +134,7 @@ describe("tRPC /trpc/skills.list over Fastify", () => {
 
 describe("tRPC /trpc/users.list over Fastify", () => {
   it("rejects non-admin callers with FORBIDDEN", async () => {
-    const { FileUserManager } = await import("@nodetool/auth");
+    const { FileUserManager } = await import("@nodetool-ai/auth");
     vi.spyOn(FileUserManager.prototype, "listUsers").mockResolvedValue({});
 
     // buildTestApp sets req.userId = "test-user" — not an admin, so the
@@ -152,7 +152,7 @@ describe("tRPC /trpc/users.list over Fastify", () => {
 
 describe("tRPC /trpc/workspace.list over Fastify", () => {
   it("returns the workspaces list shape", async () => {
-    const { Workspace } = await import("@nodetool/models");
+    const { Workspace } = await import("@nodetool-ai/models");
     vi.spyOn(Workspace, "paginate").mockResolvedValue([[], ""]);
 
     const app = buildTestApp();
@@ -195,7 +195,7 @@ describe("tRPC /trpc/mcpConfig.status over Fastify", () => {
 
 describe("tRPC /trpc/messages.list over Fastify", () => {
   it("returns the messages list shape", async () => {
-    const { Message } = await import("@nodetool/models");
+    const { Message } = await import("@nodetool-ai/models");
     vi.spyOn(Message, "paginate").mockResolvedValue([[], ""]);
 
     const app = buildTestApp();
@@ -216,7 +216,7 @@ describe("tRPC /trpc/messages.list over Fastify", () => {
 
 describe("tRPC /trpc/threads.list over Fastify", () => {
   it("returns the threads list shape", async () => {
-    const { Thread } = await import("@nodetool/models");
+    const { Thread } = await import("@nodetool-ai/models");
     vi.spyOn(Thread, "paginate").mockResolvedValue([[], ""]);
 
     const app = buildTestApp();
@@ -237,7 +237,7 @@ describe("tRPC /trpc/threads.list over Fastify", () => {
 
 describe("tRPC /trpc/jobs.list over Fastify", () => {
   it("returns the jobs list shape", async () => {
-    const { Job } = await import("@nodetool/models");
+    const { Job } = await import("@nodetool-ai/models");
     vi.spyOn(Job, "paginate").mockResolvedValue([[], ""]);
 
     const app = buildTestApp();
@@ -258,7 +258,7 @@ describe("tRPC /trpc/jobs.list over Fastify", () => {
 
 describe("tRPC /trpc/assets.list over Fastify", () => {
   it("returns the assets list shape", async () => {
-    const { Asset } = await import("@nodetool/models");
+    const { Asset } = await import("@nodetool-ai/models");
     vi.spyOn(Asset, "paginate").mockResolvedValue([[], ""]);
 
     const app = buildTestApp();

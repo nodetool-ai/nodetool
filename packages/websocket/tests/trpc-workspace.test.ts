@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { WorkspaceResponse } from "@nodetool/protocol/api-schemas/workspace.js";
+import type { WorkspaceResponse } from "@nodetool-ai/protocol/api-schemas/workspace.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool/models — the router orchestrates Workspace static methods +
+// Mock @nodetool-ai/models — the router orchestrates Workspace static methods +
 // filesystem calls; we stub those here to keep tests hermetic.
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Workspace: {
@@ -40,7 +40,7 @@ vi.mock("node:fs", async (orig) => {
   };
 });
 
-import { Workspace } from "@nodetool/models";
+import { Workspace } from "@nodetool-ai/models";
 import { stat, readdir, access } from "node:fs/promises";
 import { existsSync } from "node:fs";
 

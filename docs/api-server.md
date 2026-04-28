@@ -7,7 +7,7 @@ title: "API Server Overview"
 
 NodeTool exposes a single TypeScript HTTP + WebSocket server runtime built on Node.js. The same process serves REST API routes, WebSocket workflow execution endpoints, and OpenAI-compatible `/v1` routes.
 
-The server is implemented in the `@nodetool/websocket` package (`packages/websocket/src/server.ts`).
+The server is implemented in the `@nodetool-ai/websocket` package (`packages/websocket/src/server.ts`).
 
 ## Key Modules
 
@@ -24,15 +24,21 @@ The server is implemented in the `@nodetool/websocket` package (`packages/websoc
 ## Running the Server
 
 ```bash
-# Development (from repo root)
+# Install the CLI globally (once)
+npm install -g @nodetool-ai/cli
+
+# Start the server
+nodetool serve --host 127.0.0.1 --port 7777
+
+# Or run without installing globally
+npx --package=@nodetool-ai/cli nodetool serve --host 0.0.0.0 --port 7777
+```
+
+Development (from repo root):
+
+```bash
 npm run build:packages
 npm run dev:server   # tsx --watch packages/websocket/src/server.ts
-
-# Or directly (built dist):
-PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
-
-# Via CLI:
-nodetool serve --host 127.0.0.1 --port 7777
 ```
 
 ## Configuration

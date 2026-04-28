@@ -1,5 +1,5 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { analyzeGlbMetadata, fallbackMetadata, parseGlb } from "./glb.js";

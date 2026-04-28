@@ -98,6 +98,32 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+## CLI & Server (npm)
+
+Use NodeTool headless — run the server, execute workflows, or chat with agents from the terminal:
+
+```bash
+# Install globally (Node.js 24+ required)
+npm install -g @nodetool-ai/cli
+
+# Start the API server (port 7777)
+nodetool serve
+
+# Interactive AI chat with agent mode
+nodetool-chat --agent --provider anthropic --model claude-sonnet-4-6
+
+# Run a TypeScript DSL workflow
+nodetool workflows run my-workflow.ts
+
+# One-off without global install
+npx --package=@nodetool-ai/cli nodetool serve
+npx --package=@nodetool-ai/cli nodetool-chat --agent
+```
+
+See the [CLI Reference](https://docs.nodetool.ai/cli) for all commands.
+
+______________________________________________________________________
+
 ## Architecture
 
 NodeTool is a monorepo with a TypeScript backend, React frontend, Electron desktop shell, and React Native mobile app.

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getNodeMetadata } from "@nodetool/node-sdk";
+import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 
 // ---------------------------------------------------------------------------
-// Mock @nodetool/vectorstore — vi.hoisted() ensures variables are available in vi.mock factory
+// Mock @nodetool-ai/vectorstore — vi.hoisted() ensures variables are available in vi.mock factory
 // ---------------------------------------------------------------------------
 
 const { mockCollection, mockStore, ollamaGenerateMock } = vi.hoisted(() => {
@@ -32,7 +32,7 @@ const { mockCollection, mockStore, ollamaGenerateMock } = vi.hoisted(() => {
   return { mockCollection, mockStore, ollamaGenerateMock };
 });
 
-vi.mock("@nodetool/vectorstore", () => {
+vi.mock("@nodetool-ai/vectorstore", () => {
   return {
     getVecStore: vi.fn().mockResolvedValue(mockStore),
     getCollection: vi.fn().mockResolvedValue(mockCollection),

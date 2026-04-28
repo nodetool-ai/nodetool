@@ -11,20 +11,20 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
-import { createLogger } from "@nodetool/config";
-import type { BaseProvider } from "@nodetool/runtime";
-import { withAgentSpanGen } from "@nodetool/runtime";
+import { createLogger } from "@nodetool-ai/config";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import { withAgentSpanGen } from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.agents.agent");
-import type { Message, ProcessingContext } from "@nodetool/runtime";
+import type { Message, ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   ProcessingMessage,
   StepResult,
   LogUpdate,
   TaskUpdate,
   Chunk
-} from "@nodetool/protocol";
-import { TaskUpdateEvent } from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
+import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { BaseAgent } from "./base-agent.js";
 import { TaskPlanner } from "./task-planner.js";
 import { TaskExecutor } from "./task-executor.js";

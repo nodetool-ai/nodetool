@@ -30,10 +30,21 @@ describeTmux("shell tools (tmux required)", () => {
     const waited = await shellWait({ id: "t1", seconds: 10 });
     expect(waited.running).toBe(false);
     expect(waited.exit_code).toBe(0);
-    expect(waited.output).toMatch(/hi/);
+    expect(waited.output).toBe("hi");
+    expect(waited.output).not.toContain("__NODETOOL_DONE_");
+    expect(waited.output).not.toContain("__NT_EC");
     expect(waited.timed_out).toBe(false);
 
     await shellKillProcess({ id: "t1" });
+  });
+
+  it("hides internal wrapper lines for commands with no stdout", async () => {
+    await shellExec({ id: "t-empty", command: "true" });
+    const waited = await shellWait({ id: "t-empty", seconds: 10 });
+    expect(waited.output).toBe("");
+    expect(waited.output).not.toContain("__NODETOOL_DONE_");
+    expect(waited.output).not.toContain("__NT_EC");
+    await shellKillProcess({ id: "t-empty" });
   });
 
   it("propagates non-zero exit codes", async () => {

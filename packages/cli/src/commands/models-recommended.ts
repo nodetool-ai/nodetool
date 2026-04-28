@@ -9,12 +9,12 @@
 import type { Command } from "commander";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import {
   RECOMMENDED_MODELS,
   type RecommendedUnifiedModel
-} from "@nodetool/runtime";
-import type { UnifiedModel } from "@nodetool/protocol";
+} from "@nodetool-ai/runtime";
+import type { UnifiedModel } from "@nodetool-ai/protocol";
 
 import { asJson, printTable } from "./deploy-helpers.js";
 

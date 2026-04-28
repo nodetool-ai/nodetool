@@ -1,4 +1,4 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { promises as fs } from "node:fs";
 import { spawn } from "node:child_process";
 

@@ -8,29 +8,29 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 
 | Package | Description |
 |---------|-------------|
-| `@nodetool/protocol` | Shared message types, Zod schemas, protocol definitions |
-| `@nodetool/config` | Configuration loading and logging utilities |
-| `@nodetool/security` | Secret storage and encryption |
-| `@nodetool/auth` | Authentication middleware and utilities |
-| `@nodetool/storage` | File storage adapters (local, S3) |
-| `@nodetool/models` | SQLite data models via Drizzle ORM (Workflow, Job, Asset, Secret) |
-| `@nodetool/node-sdk` | BaseNode class, NodeRegistry, node authoring API, type system |
-| `@nodetool/runtime` | ProcessingContext, LLM providers (Anthropic, OpenAI, Gemini, Ollama, etc.), message queue |
-| `@nodetool/kernel` | Workflow graph model, NodeInbox, ActorRuntime, WorkflowRunner |
-| `@nodetool/agents` | Planning agent system — TaskPlanner, TaskExecutor, StepExecutor, Tool registry |
-| `@nodetool/chat` | Chat message processing and token counting |
-| `@nodetool/base-nodes` | Core workflow nodes (text, image, LLM, agents, math, etc.) |
-| `@nodetool/fal-nodes` | FAL AI integration nodes |
-| `@nodetool/fal-codegen` | Code generator for FAL AI node definitions |
-| `@nodetool/replicate-nodes` | Replicate integration nodes |
-| `@nodetool/elevenlabs-nodes` | ElevenLabs TTS integration nodes |
-| `@nodetool/code-runners` | Secure code execution (Docker + subprocess sandboxing) |
-| `@nodetool/huggingface` | HuggingFace model discovery and downloads |
-| `@nodetool/vectorstore` | SQLite-vec vector store for RAG |
-| `@nodetool/websocket` | Fastify HTTP + WebSocket server (main API, port 7777) |
-| `@nodetool/cli` | Command-line interface (`nodetool` command) |
-| `@nodetool/deploy` | Cloud deployment utilities |
-| `@nodetool/dsl` | Workflow DSL for programmatic workflow creation |
+| `@nodetool-ai/protocol` | Shared message types, Zod schemas, protocol definitions |
+| `@nodetool-ai/config` | Configuration loading and logging utilities |
+| `@nodetool-ai/security` | Secret storage and encryption |
+| `@nodetool-ai/auth` | Authentication middleware and utilities |
+| `@nodetool-ai/storage` | File storage adapters (local, S3) |
+| `@nodetool-ai/models` | SQLite data models via Drizzle ORM (Workflow, Job, Asset, Secret) |
+| `@nodetool-ai/node-sdk` | BaseNode class, NodeRegistry, node authoring API, type system |
+| `@nodetool-ai/runtime` | ProcessingContext, LLM providers (Anthropic, OpenAI, Gemini, Ollama, etc.), message queue |
+| `@nodetool-ai/kernel` | Workflow graph model, NodeInbox, ActorRuntime, WorkflowRunner |
+| `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, StepExecutor, Tool registry |
+| `@nodetool-ai/chat` | Chat message processing and token counting |
+| `@nodetool-ai/base-nodes` | Core workflow nodes (text, image, LLM, agents, math, etc.) |
+| `@nodetool-ai/fal-nodes` | FAL AI integration nodes |
+| `@nodetool-ai/fal-codegen` | Code generator for FAL AI node definitions |
+| `@nodetool-ai/replicate-nodes` | Replicate integration nodes |
+| `@nodetool-ai/elevenlabs-nodes` | ElevenLabs TTS integration nodes |
+| `@nodetool-ai/code-runners` | Secure code execution (Docker + subprocess sandboxing) |
+| `@nodetool-ai/huggingface` | HuggingFace model discovery and downloads |
+| `@nodetool-ai/vectorstore` | SQLite-vec vector store for RAG |
+| `@nodetool-ai/websocket` | Fastify HTTP + WebSocket server (main API, port 7777) |
+| `@nodetool-ai/cli` | Command-line interface (`nodetool` command) |
+| `@nodetool-ai/deploy` | Cloud deployment utilities |
+| `@nodetool-ai/dsl` | Workflow DSL for programmatic workflow creation |
 
 ## Build Commands
 
@@ -94,7 +94,7 @@ protocol → config → security → auth → storage
 
 ## Key Packages
 
-### `@nodetool/websocket` — API Server
+### `@nodetool-ai/websocket` — API Server
 
 The main entry point for the backend. Provides:
 - REST API endpoints (`/api/workflows`, `/api/jobs`, `/api/assets`, etc.)
@@ -107,14 +107,14 @@ The main entry point for the backend. Provides:
 PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
 ```
 
-### `@nodetool/kernel` — Workflow Runtime
+### `@nodetool-ai/kernel` — Workflow Runtime
 
 Implements the workflow execution engine:
 - `WorkflowRunner` — executes workflow graphs
 - `NodeInbox` / `ActorRuntime` — actor-model message passing
 - Graph traversal and topological ordering
 
-### `@nodetool/runtime` — LLM Providers
+### `@nodetool-ai/runtime` — LLM Providers
 
 Provides adapters for AI providers:
 - `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`
@@ -123,7 +123,7 @@ Provides adapters for AI providers:
 - `PythonStdioBridge` — calls Python-based nodes (HuggingFace, MLX) via local stdio subprocess
 - `ProcessingContext` — execution context with secret resolution
 
-### `@nodetool/agents` — Agent System
+### `@nodetool-ai/agents` — Agent System
 
 Multi-step planning agent with:
 - `TaskPlanner` — decomposes objectives into a DAG of Steps
@@ -132,14 +132,14 @@ Multi-step planning agent with:
 - Skills system — SKILL.md files inject domain-specific instructions
 - See [docs/AGENTS.md](../docs/AGENTS.md) for full architecture documentation
 
-### `@nodetool/node-sdk` — Node Authoring
+### `@nodetool-ai/node-sdk` — Node Authoring
 
 Base classes and registry for building workflow nodes:
 - `BaseNode` — abstract base class for all nodes
 - `NodeRegistry` — registers and resolves node types
 - Type system for node inputs/outputs (connections enforce compatible types)
 
-### `@nodetool/cli` — CLI
+### `@nodetool-ai/cli` — CLI
 
 The `nodetool` command-line interface. See [CLI documentation](../docs/cli.md).
 
@@ -149,7 +149,7 @@ The `nodetool` command-line interface. See [CLI documentation](../docs/cli.md).
 - TypeScript strict mode is enabled in all packages.
 - Test files go in `tests/` or `src/__tests__/`.
 - Each package exports a clean public API via `src/index.ts`.
-- Inter-package imports use workspace references (`@nodetool/...`).
+- Inter-package imports use workspace references (`@nodetool-ai/...`).
 - Never import from `dist/` directories in source code.
 - Use Vitest for all package tests (not Jest).
 - Throw `Error` objects, not strings. Comment intentionally empty catch blocks.
@@ -157,7 +157,7 @@ The `nodetool` command-line interface. See [CLI documentation](../docs/cli.md).
 ## Adding a New Package
 
 1. Create directory under `packages/<name>/` with `package.json`, `tsconfig.json`, `src/index.ts`.
-2. Set `"name": "@nodetool/<name>"` and `"type": "module"` in package.json.
+2. Set `"name": "@nodetool-ai/<name>"` and `"type": "module"` in package.json.
 3. Add the workspace path to the root `package.json` `workspaces` array.
 4. Add the build step in the correct position in `npm run build:packages` script (respecting dependency order).
 5. Run `npm install` from the repo root to link the workspace.

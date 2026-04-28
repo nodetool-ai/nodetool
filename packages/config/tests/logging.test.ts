@@ -61,6 +61,27 @@ describe("T-CFG-3: configureLogging", () => {
     expect(getLogLevel()).toBe("info");
   });
 
+  it("accepts Python-style WARNING as warn", () => {
+    process.env.NODETOOL_LOG_LEVEL = "WARNING";
+    delete process.env.LOG_LEVEL;
+    configureLogging({});
+    expect(getLogLevel()).toBe("warn");
+  });
+
+  it("accepts Python-style CRITICAL as error", () => {
+    process.env.NODETOOL_LOG_LEVEL = "CRITICAL";
+    delete process.env.LOG_LEVEL;
+    configureLogging({});
+    expect(getLogLevel()).toBe("error");
+  });
+
+  it("falls back to info for unknown level", () => {
+    process.env.NODETOOL_LOG_LEVEL = "VERBOSE";
+    delete process.env.LOG_LEVEL;
+    configureLogging({});
+    expect(getLogLevel()).toBe("info");
+  });
+
   it("debug messages suppressed at info level", () => {
     configureLogging({ level: "info" });
     const spy = vi.spyOn(console, "debug").mockImplementation(() => {});

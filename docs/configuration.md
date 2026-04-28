@@ -8,7 +8,7 @@ description: "Configure NodeTool settings, environment variables, secrets, and s
 
 NodeTool uses a layered configuration system so local development, automated deployments, and production environments can share sensible defaults with minimal duplication. Settings are managed through the UI, CLI, environment variables, and YAML files — with secrets encrypted at rest.
 
-The configuration helpers live in the `@nodetool/config` package (`settings.ts` and `environment.ts`).
+The configuration helpers live in the `@nodetool-ai/config` package (`settings.ts` and `environment.ts`).
 
 ![Settings Dialog](assets/screenshots/settings-dialog.png)
 
@@ -46,7 +46,7 @@ From the command line:
 - `nodetool settings show [--secrets]` – print the current values in a Rich table.
 - `nodetool settings edit [--secrets]` – open the YAML file in `$EDITOR`. Files are created on first use.
 
-Settings metadata (description, grouping) is registered via `registerSetting()` in `@nodetool/config`. New environment variables should be declared there so they automatically appear in CLI tables and `.env.example`.
+Settings metadata (description, grouping) is registered via `registerSetting()` in `@nodetool-ai/config`. New environment variables should be declared there so they automatically appear in CLI tables and `.env.example`.
 
 ### File Locations
 
@@ -92,7 +92,7 @@ For shared deployments you **must** pre-provision the master key (via `SECRETS_M
 
 `Environment.is_production()` and `Environment.is_test()` determine which services to instantiate:
 
-- Production and any environment with S3 credentials default to S3-backed storage (see `ResourceScope.get_asset_storage()` in `@nodetool/runtime`).
+- Production and any environment with S3 credentials default to S3-backed storage (see `ResourceScope.get_asset_storage()` in `@nodetool-ai/runtime`).
 - Tests automatically provision in-memory storage and isolated SQLite databases.
 - `ENV` defaults to `development` and can be switched with `Environment.set_env()` or the `ENV` environment variable.
 
@@ -100,9 +100,9 @@ For shared deployments you **must** pre-provision the master key (via `SECRETS_M
 
 When adding a feature that requires configuration:
 
-1. Register the variable in `@nodetool/config` via `registerSetting()` to document it and surface it in CLI tables.
+1. Register the variable in `@nodetool-ai/config` via `registerSetting()` to document it and surface it in CLI tables.
 2. Update `.env.example` with the new entry.
-3. Reference the variable using `getEnv("YOUR_ENV_VAR")` from `@nodetool/config` to respect the hierarchy.
+3. Reference the variable using `getEnv("YOUR_ENV_VAR")` from `@nodetool-ai/config` to respect the hierarchy.
 4. If the value is required, use `requireEnv("YOUR_ENV_VAR")` so missing keys raise a descriptive error.
 
 ## Recommended Workflow

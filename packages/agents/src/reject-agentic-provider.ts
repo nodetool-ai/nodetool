@@ -16,7 +16,7 @@
  * the fix (use the direct-API provider like `anthropic` instead).
  */
 
-import type { BaseProvider } from "@nodetool/runtime";
+import type { BaseProvider } from "@nodetool-ai/runtime";
 
 const AGENTIC_PROVIDER_IDS = new Set(["claude_agent"]);
 

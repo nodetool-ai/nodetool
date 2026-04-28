@@ -11,8 +11,8 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { createLogger } from "@nodetool/config";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { createLogger } from "@nodetool-ai/config";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { AgentMessage, IMessageBus, MessageType } from "./types.js";
 
 const log = createLogger("agents:edge-message-bus");

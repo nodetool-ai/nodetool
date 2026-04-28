@@ -86,7 +86,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const isIconOnly = true;
 
-  const { providers, filteredModels, favoriteModels, recentModels } =
+  const { providers, filteredModels, favoriteModels, recentModels, totalCount } =
     useModelMenuData<TModel>(models || [], storeHook);
 
   // Advanced filters state snapshot
@@ -148,6 +148,14 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       setCustomView(null);
     }
   }, [selectedProvider, customView]);
+
+  // Auto-switch to downloads when dialog opens, loading finishes, and there are no models
+  React.useEffect(() => {
+    if (open && !isLoading && totalCount === 0 && hasDownloads && customView !== "downloads") {
+      setCustomView("downloads");
+      setSelectedProvider(null);
+    }
+  }, [open, isLoading, totalCount, hasDownloads, customView, setCustomView, setSelectedProvider]);
 
   // Positioning logic mimicking Select.tsx
   const [positionConfig, setPositionConfig] = useState<{
@@ -627,6 +635,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 models={filteredModelsAdvanced}
                 onSelect={handleSelectModel}
                 searchTerm={search}
+                onGoToDownloads={hasDownloads ? handleSetDownloadsView : undefined}
+                hasDownloads={hasDownloads}
               />
             )}
           </Box>

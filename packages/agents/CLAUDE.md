@@ -74,8 +74,8 @@ echo "Summarize this codebase" | nodetool-chat --agent --provider anthropic
 ### Programmatic Usage
 
 ```typescript
-import { Agent } from "@nodetool/agents";
-import { createRuntimeContext } from "@nodetool/runtime";
+import { Agent } from "@nodetool-ai/agents";
+import { createRuntimeContext } from "@nodetool-ai/runtime";
 
 const ctx = createRuntimeContext({ jobId: "...", userId: "1", workspaceDir: "." });
 
@@ -261,7 +261,7 @@ nodetool --trace-file trace.jsonl run workflow.ts
 Telemetry must be initialized before use:
 
 ```typescript
-import { initTelemetry } from "@nodetool/runtime";
+import { initTelemetry } from "@nodetool-ai/runtime";
 await initTelemetry({
   traceFile: "trace.jsonl",   // optional
   stdout: "pretty",            // optional: "pretty" | "json" | false
@@ -278,7 +278,7 @@ The web UI renders the same tree view in the chat panel (`ExecutionTree` compone
 
 ### Cost Tracking
 
-`CostCalculator` in `@nodetool/runtime` tracks per-call costs based on provider pricing:
+`CostCalculator` in `@nodetool-ai/runtime` tracks per-call costs based on provider pricing:
 
 ```typescript
 provider.trackUsage(model, { inputTokens: 100, outputTokens: 50 });

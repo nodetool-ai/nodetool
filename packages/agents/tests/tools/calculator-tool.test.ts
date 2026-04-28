@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { CalculatorTool } from "../../src/tools/calculator-tool.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const tool = new CalculatorTool();
 const ctx = {} as ProcessingContext;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   registerBaseNodes,
   IfNode,
@@ -66,7 +66,11 @@ import {
   StructuredOutputGeneratorNode,
   ListGeneratorNode,
   TextTo3DNode,
-  GetModel3DMetadataNode
+  GetModel3DMetadataNode,
+  SandboxShellNode,
+  SandboxBrowserNode,
+  SandboxFileNode,
+  SandboxAgentNode
 } from "../src/index.js";
 
 describe("base node registration", () => {
@@ -99,6 +103,10 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.code.RunBashCommandDocker")).toBe(true);
     expect(registry.has("nodetool.code.RunRubyCommandDocker")).toBe(true);
     expect(registry.has("nodetool.code.RunShellCommandDocker")).toBe(true);
+    expect(registry.has(SandboxShellNode.nodeType)).toBe(true);
+    expect(registry.has(SandboxBrowserNode.nodeType)).toBe(true);
+    expect(registry.has(SandboxFileNode.nodeType)).toBe(true);
+    expect(registry.has(SandboxAgentNode.nodeType)).toBe(true);
   });
 });
 

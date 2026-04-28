@@ -20,7 +20,7 @@
 import { Buffer } from "node:buffer";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 const MAX_INLINE_TEXT_PREVIEW = 500;

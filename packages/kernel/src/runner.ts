@@ -14,19 +14,19 @@
  *   - Completion detection.
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   NodeDescriptor,
   Edge,
   ProcessingMessage,
   ControlEvent
-} from "@nodetool/protocol";
-import { TypeMetadata } from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
+import { TypeMetadata } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.runner");
-import type { ProcessingContext } from "@nodetool/runtime";
-import { withWorkflowSpan } from "@nodetool/runtime";
-import { isControlEdge, isDataEdge } from "@nodetool/protocol";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { withWorkflowSpan } from "@nodetool-ai/runtime";
+import { isControlEdge, isDataEdge } from "@nodetool-ai/protocol";
 import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
@@ -38,7 +38,7 @@ import { NodeActor, type NodeExecutor } from "./actor.js";
 
 /**
  * Issue reported by a node validator. Mirrors the shape of
- * `@nodetool/node-sdk`'s `NodePropertyValidationIssue`, redeclared here to
+ * `@nodetool-ai/node-sdk`'s `NodePropertyValidationIssue`, redeclared here to
  * avoid a circular dependency (node-sdk depends on kernel).
  */
 export interface NodeValidationIssue {
@@ -95,7 +95,7 @@ export interface WorkflowRunnerOptions {
    * graph validation succeeds. Returning a non-empty list of issues aborts
    * the run with a `GraphValidationError` before any actor is spawned.
    *
-   * `NodeRegistry.createNodeValidator()` from `@nodetool/node-sdk` produces
+   * `NodeRegistry.createNodeValidator()` from `@nodetool-ai/node-sdk` produces
    * a callback compatible with this signature.
    */
   validateNode?: NodeValidator;

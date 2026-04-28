@@ -2,11 +2,11 @@
  * Kie.ai Provider — wraps the Kie.ai API to expose image, video, and audio
  * generation through the standard BaseProvider interface.
  *
- * Model lists are loaded from the kie-manifest.json shipped by @nodetool/kie-nodes.
+ * Model lists are loaded from the kie-manifest.json shipped by @nodetool-ai/kie-nodes.
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageModel,
   VideoModel,
@@ -92,7 +92,7 @@ async function downloadResultBytes(
   return new Uint8Array(await dlRes.arrayBuffer());
 }
 
-const KIE_MANIFEST_PKG = "@nodetool/kie-nodes";
+const KIE_MANIFEST_PKG = "@nodetool-ai/kie-nodes";
 const KIE_MANIFEST_PATH = "kie-manifest.json";
 
 export class KieProvider extends BaseProvider {

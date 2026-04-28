@@ -7,8 +7,8 @@
  * Port of src/nodetool/agents/tools/mcp_tools.py
  */
 
-import type { BaseProvider, ProcessingContext } from "@nodetool/runtime";
-import type { NodeRegistry } from "@nodetool/node-sdk";
+import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";

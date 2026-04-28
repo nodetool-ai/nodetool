@@ -1,6 +1,7 @@
 {
   "name": "nodetool-electron",
-  "version": "0.7.0-rc.11",
+  "version": "0.7.0-rc.12",
+  "private": true,
   "description": "node-based AI development tool",
   "homepage": "https://nodetool.ai",
   "main": "dist-electron/main.js",
@@ -59,9 +60,9 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "latest",
     "@msgpack/msgpack": "^3.1.3",
-    "@nodetool/protocol": "*",
-    "@nodetool/runtime": "*",
-    "@nodetool/websocket": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/websocket": "*",
     "@trpc/client": "^11.0.0",
     "better-sqlite3": "^12.9.0",
     "bufferutil": "^4.0.9",

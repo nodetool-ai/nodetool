@@ -1,5 +1,5 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { getElevenLabsApiKey } from "../elevenlabs-base.js";
 
 export class SpeechToTextNode extends BaseNode {

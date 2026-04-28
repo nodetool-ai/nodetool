@@ -17,8 +17,8 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
-import { createLogger } from "@nodetool/config";
-import { uiToolSchemas } from "@nodetool/protocol";
+import { createLogger } from "@nodetool-ai/config";
+import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { z, toJSONSchema } from "zod";
 import type { AgentTransport } from "./transport.js";
 

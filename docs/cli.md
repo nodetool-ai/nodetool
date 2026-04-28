@@ -5,24 +5,24 @@ title: "NodeTool CLI"
 
 
 
-The `nodetool` CLI is the TypeScript command-line interface for the NodeTool platform. It manages servers, workflows, jobs, assets, and secrets. Install the project and run `nodetool --help` to see the top-level command list. Every sub-command exposes its own `--help` flag with detailed usage.
+The `nodetool` CLI is the TypeScript command-line interface for the NodeTool platform. It manages servers, workflows, jobs, assets, and secrets. Run `nodetool --help` to see the top-level command list. Every sub-command exposes its own `--help` flag with detailed usage.
 
 ## Installation
 
-The CLI is part of the `@nodetool/cli` package in the monorepo. Build it with:
+Install globally from npm to get the `nodetool` and `nodetool-chat` commands:
 
 ```bash
-# From repo root
-npm install
-npm run build:packages
+npm install -g @nodetool-ai/cli
 ```
 
-After building, you can run the CLI via:
+Or run a single command without installing:
+
 ```bash
-node packages/cli/dist/nodetool.js --help
-# Or via the npm script alias:
-npm run nodetool -- --help
+npx --package=@nodetool-ai/cli nodetool --help
+npx --package=@nodetool-ai/cli nodetool-chat --agent
 ```
+
+**Requires Node.js 24+.** Check with `node --version`; install via [nvm](https://github.com/nvm-sh/nvm) if needed.
 
 ## Getting Help
 
@@ -66,10 +66,10 @@ nodetool serve
 nodetool serve --host 0.0.0.0 --port 8080
 ```
 
-You can also start the server directly:
+You can also set the bind address and port via environment variables:
 
 ```bash
-PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
+PORT=8080 HOST=0.0.0.0 nodetool serve
 ```
 
 ### `nodetool workflows run <workflow_id_or_file>`

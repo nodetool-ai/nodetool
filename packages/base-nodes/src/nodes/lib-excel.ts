@@ -1,4 +1,4 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import ExcelJS from "exceljs";
 import os from "node:os";
 import path from "node:path";

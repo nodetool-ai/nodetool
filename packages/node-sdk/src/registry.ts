@@ -1,5 +1,5 @@
-import type { NodeDescriptor } from "@nodetool/protocol";
-import type { NodeExecutor, ResolvedNodeType } from "@nodetool/kernel";
+import type { NodeDescriptor } from "@nodetool-ai/protocol";
+import type { NodeExecutor, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeClass } from "./base-node.js";
 import type {
   NodeMetadata,

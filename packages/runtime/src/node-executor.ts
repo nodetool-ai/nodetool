@@ -1,8 +1,8 @@
 /**
  * NodeExecutor interface – implemented by nodes that can be executed in the kernel.
  *
- * Defined here (in @nodetool/runtime) so that @nodetool/kernel can import it
- * without creating a circular dependency.  @nodetool/kernel re-exports this
+ * Defined here (in @nodetool-ai/runtime) so that @nodetool-ai/kernel can import it
+ * without creating a circular dependency.  @nodetool-ai/kernel re-exports this
  * interface for backward compatibility.
  */
 

@@ -4,7 +4,7 @@
  * Port of src/nodetool/agents/tools/browser_tools.py (BrowserTool & ScreenshotTool)
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 // ---------------------------------------------------------------------------

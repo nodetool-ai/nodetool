@@ -3,9 +3,9 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// ── Mock @nodetool/models ────────────────────────────────────────────────────
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+// ── Mock @nodetool-ai/models ────────────────────────────────────────────────────
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Workflow: {
@@ -33,15 +33,15 @@ vi.mock("@nodetool/models", async (orig) => {
   };
 });
 
-// ── Mock @nodetool/kernel ────────────────────────────────────────────────────
-vi.mock("@nodetool/kernel", () => {
+// ── Mock @nodetool-ai/kernel ────────────────────────────────────────────────────
+vi.mock("@nodetool-ai/kernel", () => {
   return {
     WorkflowRunner: vi.fn()
   };
 });
 
-import { Workflow, WorkflowVersion, Job } from "@nodetool/models";
-import { WorkflowRunner } from "@nodetool/kernel";
+import { Workflow, WorkflowVersion, Job } from "@nodetool-ai/models";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
 
 const createCaller = createCallerFactory(appRouter);
 

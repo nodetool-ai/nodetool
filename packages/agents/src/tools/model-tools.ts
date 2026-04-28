@@ -3,7 +3,7 @@
  *
  * Lists available language models from a registered provider.
  */
-import type { ProcessingContext, BaseProvider } from "@nodetool/runtime";
+import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 export class ListProviderModelsTool extends Tool {

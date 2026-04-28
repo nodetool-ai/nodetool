@@ -1,8 +1,8 @@
-import { WorkflowRunner } from "@nodetool/kernel";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import type { NodeDescriptor, Edge } from "@nodetool/protocol";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { registerBaseNodes } from "../../src/index.js";
-import { ProcessingContext } from "@nodetool/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 
 export type { NodeDescriptor, Edge };
 

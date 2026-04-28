@@ -13,8 +13,8 @@ import type {
   Message,
   ToolCall,
   ProviderTool
-} from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
+} from "@nodetool-ai/runtime";
+import type { Chunk } from "@nodetool-ai/protocol";
 import { Tool } from "./tools/base-tool.js";
 
 const DEFAULT_MAX_ITERATIONS = 10;

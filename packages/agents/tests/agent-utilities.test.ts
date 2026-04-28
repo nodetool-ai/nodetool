@@ -13,13 +13,13 @@ import {
 import { ListProviderModelsTool } from "../src/tools/model-tools.js";
 import { removeBase64Images } from "../src/utils/remove-base64-images.js";
 import { wrapGeneratorsParallel } from "../src/utils/wrap-generators-parallel.js";
-import type { MessageContent } from "@nodetool/runtime";
+import type { MessageContent } from "@nodetool-ai/runtime";
 
 // Minimal context stub for workspace tools
 function makeContext(workspaceDir: string) {
   return {
     workspaceDir
-  } as unknown as import("@nodetool/runtime").ProcessingContext;
+  } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
 }
 
 // ── T-AG-1 — Workspace tools ────────────────────────────────────────
@@ -165,11 +165,11 @@ describe("T-AG-3: ListProviderModelsTool", () => {
     };
     const tool = new ListProviderModelsTool({
       openai:
-        mockProvider as unknown as import("@nodetool/runtime").BaseProvider
+        mockProvider as unknown as import("@nodetool-ai/runtime").BaseProvider
     });
 
     const result = (await tool.process(
-      {} as import("@nodetool/runtime").ProcessingContext,
+      {} as import("@nodetool-ai/runtime").ProcessingContext,
       { provider: "openai" }
     )) as Record<string, unknown>;
 
@@ -182,7 +182,7 @@ describe("T-AG-3: ListProviderModelsTool", () => {
   it("returns error for unknown provider", async () => {
     const tool = new ListProviderModelsTool({});
     const result = (await tool.process(
-      {} as import("@nodetool/runtime").ProcessingContext,
+      {} as import("@nodetool-ai/runtime").ProcessingContext,
       { provider: "unknown" }
     )) as Record<string, unknown>;
     expect(result.success).toBe(false);
@@ -193,10 +193,10 @@ describe("T-AG-3: ListProviderModelsTool", () => {
     const mockProvider = {};
     const tool = new ListProviderModelsTool({
       openai:
-        mockProvider as unknown as import("@nodetool/runtime").BaseProvider
+        mockProvider as unknown as import("@nodetool-ai/runtime").BaseProvider
     });
     const result = (await tool.process(
-      {} as import("@nodetool/runtime").ProcessingContext,
+      {} as import("@nodetool-ai/runtime").ProcessingContext,
       { provider: "openai" }
     )) as Record<string, unknown>;
     expect(result.success).toBe(false);

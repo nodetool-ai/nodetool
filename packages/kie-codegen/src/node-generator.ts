@@ -58,8 +58,8 @@ export class KieNodeGenerator {
 
     // Imports
     lines.push(
-      `import { BaseNode, prop } from "@nodetool/node-sdk";`,
-      `import type { NodeClass } from "@nodetool/node-sdk";`,
+      `import { BaseNode, prop } from "@nodetool-ai/node-sdk";`,
+      `import type { NodeClass } from "@nodetool-ai/node-sdk";`,
       `import {`,
       `  getApiKey,`,
       `  kieExecuteTask,`,

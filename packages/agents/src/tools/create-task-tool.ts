@@ -5,7 +5,7 @@
  * a validated Task through the standard agent tool-calling loop.
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import type { Step, Task } from "../types.js";
 import { randomUUID } from "node:crypto";

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeEach } from "vitest";
-import { initTestDb } from "@nodetool/models";
+import { initTestDb } from "@nodetool-ai/models";
 import { handleApiRequest } from "../src/http-api.js";
 
 async function jsonBody(response: Response): Promise<unknown> {

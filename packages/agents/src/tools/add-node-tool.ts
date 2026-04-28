@@ -6,11 +6,11 @@
  * - An agent step node (type: "nodetool.agents.AgentStep")
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { NodeRegistry } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 import { AGENT_STEP_NODE_TYPE, type GraphBuilder } from "../graph-builder.js";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.agents.add-node-tool");
 

@@ -37,10 +37,18 @@ import { createWindow, forceQuit, handleActivation } from "./window";
 import { hardenWebContents } from "./windowSecurity";
 import { setupAutoUpdater } from "./updater";
 import { logMessage, closeLogStream } from "./logger";
-import { initializeBackendServer, stopServer, serverState } from "./server";
+import {
+  initializeBackendServer,
+  stopServer,
+  serverState,
+  backendFailedDueToKeychain,
+} from "./server";
 import { verifyApplicationPaths, isCondaEnvironmentInstalled } from "./python";
 import { emitBootMessage } from "./events";
-import { showKeychainExplanationIfNeeded } from "./keychainPrompt";
+import {
+  KEYCHAIN_EXPLANATION_ACKNOWLEDGED_KEY,
+  showKeychainExplanationIfNeeded,
+} from "./keychainPrompt";
 import { createTray, cleanupTrayEvents } from "./tray";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
@@ -53,6 +61,42 @@ import {
 import { IpcChannels } from "./types.d";
 import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
+
+async function initializeBackendServerWithKeychainRetry(): Promise<void> {
+  try {
+    await initializeBackendServer();
+    return;
+  } catch (error) {
+    if (!backendFailedDueToKeychain()) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    logMessage(
+      `Backend startup failed due to keychain access. Re-prompting before one retry: ${message}`,
+      "warn"
+    );
+    // The first attempt may have left the watchdog/server subprocess partially
+    // alive. Tear it down before retrying so the second start is clean.
+    try {
+      await stopServer();
+    } catch (stopError) {
+      logMessage(
+        `Failed to stop backend before retry: ${stopError}`,
+        "warn"
+      );
+    }
+    try {
+      updateSetting(KEYCHAIN_EXPLANATION_ACKNOWLEDGED_KEY, false);
+    } catch (settingsError) {
+      logMessage(
+        `Failed to reset keychain acknowledgement: ${settingsError}`,
+        "warn"
+      );
+    }
+    await showKeychainExplanationIfNeeded({ force: true });
+    await initializeBackendServer();
+  }
+}
 
 /**
  * Global application state flags and objects
@@ -321,7 +365,7 @@ async function initialize(): Promise<void> {
       // Explain the upcoming keychain prompt before the backend touches keytar.
       await showKeychainExplanationIfNeeded();
       logMessage("Starting backend server");
-      await initializeBackendServer();
+      await initializeBackendServerWithKeychainRetry();
       logMessage("initializeBackendServer() completed");
       await waitForWebDevServerReady(getWebDevServerUrl());
       const timestamp = new Date().getTime();
@@ -345,7 +389,7 @@ async function initialize(): Promise<void> {
 
       // Start the backend server regardless of Python availability
       logMessage("Starting backend server");
-      await initializeBackendServer();
+      await initializeBackendServerWithKeychainRetry();
       logMessage("initializeBackendServer() completed");
 
       // Always load the web app — runtimes panel in the dashboard handles setup

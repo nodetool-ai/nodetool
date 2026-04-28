@@ -13,7 +13,7 @@
  * New secrets must be created via the TS endpoints for TS runtime access.
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { Secret } from "./secret.js";
 
 const log = createLogger("nodetool.models.secret-helper");

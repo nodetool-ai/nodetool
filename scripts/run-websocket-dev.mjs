@@ -21,8 +21,8 @@ const entrypoints = {
 };
 
 const buildCommands = {
-  all: ["run", "build:all", "--workspace", "@nodetool/websocket"],
-  stale: ["run", "build:stale", "--workspace", "@nodetool/websocket"],
+  all: ["run", "build:all", "--workspace", "@nodetool-ai/websocket"],
+  stale: ["run", "build:stale", "--workspace", "@nodetool-ai/websocket"],
 };
 
 if (!(mode in entrypoints)) {

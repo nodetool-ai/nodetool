@@ -8,7 +8,7 @@
  * asset_id directly to a file:// URI so no HTTP round-trip is needed.
  */
 
-import { buildAssetUrl, getAssetFilePath } from "@nodetool/config";
+import { buildAssetUrl, getAssetFilePath } from "@nodetool-ai/config";
 import { pathToFileURL } from "node:url";
 
 const MIME_TO_EXT: Record<string, string> = {

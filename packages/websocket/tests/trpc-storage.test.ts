@@ -16,9 +16,9 @@ vi.mock("node:fs/promises", async (orig) => {
   };
 });
 
-// Mock @nodetool/config to control storage path
-vi.mock("@nodetool/config", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/config")>();
+// Mock @nodetool-ai/config to control storage path
+vi.mock("@nodetool-ai/config", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/config")>();
   return {
     ...actual,
     getDefaultAssetsPath: vi.fn(() => "/mock-storage")

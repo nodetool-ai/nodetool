@@ -19,15 +19,15 @@
  */
 
 import readline from "node:readline";
-import type { BaseProvider, Message } from "@nodetool/runtime";
-import { ProcessingContext } from "@nodetool/runtime";
-import { processChat } from "@nodetool/chat";
-import { MultiModeAgent } from "@nodetool/agents";
-import type { Tool } from "@nodetool/agents/tool";
-import type { NodeRegistry } from "@nodetool/node-sdk";
+import type { BaseProvider, Message } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { processChat } from "@nodetool-ai/chat";
+import { MultiModeAgent } from "@nodetool-ai/agents";
+import type { Tool } from "@nodetool-ai/agents/tool";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { createProvider, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient, type JobEvent } from "./websocket-client.js";
-import { getSecret } from "@nodetool/models";
+import { getSecret } from "@nodetool-ai/models";
 
 export interface StdinModeOptions {
   provider: string;

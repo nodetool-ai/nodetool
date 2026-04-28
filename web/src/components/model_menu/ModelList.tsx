@@ -9,7 +9,8 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
+import { Tooltip, EmptyState } from "../ui_primitives";
+import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import type { ImageModel, LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -22,7 +23,7 @@ import {
   requiredSecretForProvider,
   ModelSelectorModel
 } from "../../stores/ModelMenuStore";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSecrets } from "../../hooks/useSecrets";
 
@@ -105,12 +106,18 @@ export interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
   onSelect: (m: TModel) => void;
   searchTerm?: string;
+  /** Called when the user clicks the "Browse Downloads" CTA in the empty state */
+  onGoToDownloads?: () => void;
+  /** Whether the dialog has recommended downloads available */
+  hasDownloads?: boolean;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
   models,
   onSelect,
-  searchTerm = ""
+  searchTerm = "",
+  onGoToDownloads,
+  hasDownloads = false
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
@@ -332,20 +339,31 @@ function ModelList<TModel extends ModelSelectorModel>({
   return (
     <Box sx={{ height: "100%", minHeight: 320, overflow: "hidden" }}>
       {models.length === 0 ? (
-        <Box
-          sx={{
-            p: 10,
-            color: theme.vars.palette.text.primary,
-            fontSize: theme.vars.fontSizeNormal
-          }}
-        >
-          <InfoOutlinedIcon color="warning" fontSize="medium" />
-          <Text>
-            {searchTerm.trim().length === 0
-              ? "No models available. Enable providers in the left sidebar, or download a local model from the Recommended downloads tab."
-              : `No models found for "${searchTerm}". Try a different term, enable more providers, or download a local model from the Recommended downloads tab.`}
-          </Text>
-        </Box>
+        searchTerm.trim().length > 0 ? (
+          <EmptyState
+            variant="no-results"
+            size="small"
+            title="No models found"
+            description={`No models match "${searchTerm}". Try a different term, enable more providers, or download a local model from the Downloads tab.`}
+          />
+        ) : hasDownloads ? (
+          <EmptyState
+            variant="empty"
+            size="small"
+            icon={<DownloadIcon className="empty-icon" />}
+            title="No models yet — let's get started"
+            description="Download a local model or add an API key for a cloud provider to get going."
+            actionText="Browse Recommended Downloads"
+            onAction={onGoToDownloads}
+          />
+        ) : (
+          <EmptyState
+            variant="empty"
+            size="small"
+            title="No models available"
+            description="Enable a provider in the left sidebar or add an API key in Settings."
+          />
+        )
       ) : (
         <div
           ref={scrollRef}

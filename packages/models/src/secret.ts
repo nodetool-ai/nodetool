@@ -14,8 +14,8 @@ import {
   decryptFernet,
   getMasterKey,
   initMasterKey
-} from "@nodetool/security";
-import { createLogger } from "@nodetool/config";
+} from "@nodetool-ai/security";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.models.secret");
 

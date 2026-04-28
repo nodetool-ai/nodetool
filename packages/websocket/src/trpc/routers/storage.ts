@@ -5,7 +5,7 @@
 import { stat, unlink, readdir } from "node:fs/promises";
 import path from "node:path";
 import { extname } from "node:path";
-import { getDefaultAssetsPath } from "@nodetool/config";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -17,8 +17,8 @@ import {
   storageMetadataOutput,
   storageDeleteInput,
   storageDeleteOutput
-} from "@nodetool/protocol/api-schemas/storage.js";
-import { ApiErrorCode } from "@nodetool/protocol/api-schemas/api-error-code.js";
+} from "@nodetool-ai/protocol/api-schemas/storage.js";
+import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 
 // ── MIME types (mirrors storage-api.ts) ──────────────────────────────────────
 

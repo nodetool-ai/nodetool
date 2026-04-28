@@ -9,8 +9,8 @@ export default {
   testTimeout: 10000,
   maxWorkers: "50%",
   moduleNameMapper: {
-    "^@nodetool/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
-    "^@nodetool/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
+    "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
+    "^@nodetool-ai/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
     // Strip .js extensions from TypeScript ESM imports (packages use .js in source imports per ESM convention)
     "^(\\.{1,2}/.+)\\.js$": "$1",
     canvas: "<rootDir>/src/__mocks__/canvas.ts",

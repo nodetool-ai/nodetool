@@ -60,6 +60,11 @@ RUN npx tsc --build \
       packages/sandbox \
       packages/sandbox-agent
 
+# Install Playwright browsers during build so they're baked into the image.
+# Uses the already-installed playwright from node_modules (no extra npm download).
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
+RUN npx playwright install chromium
+
 # -----------------------------------------------------------------------------
 # Runtime stage.
 # -----------------------------------------------------------------------------
@@ -90,12 +95,10 @@ RUN set -eux; \
 COPY packages/sandbox-agent/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Copy pre-installed Playwright browsers from the build stage.
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers
-# Install Playwright's own Chromium build under a shared dir so the ubuntu
-# user can launch it. The distro chromium is left in place for apps that
-# shell out to `chromium` directly.
-RUN npx --yes playwright@1.49.0 install chromium \
-    && chown -R ubuntu:ubuntu /opt/pw-browsers
+COPY --from=build /opt/pw-browsers /opt/pw-browsers
+RUN chown -R ubuntu:ubuntu /opt/pw-browsers
 
 USER ubuntu
 WORKDIR /home/ubuntu

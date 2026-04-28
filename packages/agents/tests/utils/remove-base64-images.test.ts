@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { removeBase64Images } from "../../src/utils/remove-base64-images.js";
-import type { MessageContent } from "@nodetool/runtime";
+import type { MessageContent } from "@nodetool-ai/runtime";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */

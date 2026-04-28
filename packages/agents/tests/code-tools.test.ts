@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { RunCodeTool } from "../src/tools/code-tools.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const mockContext = {} as ProcessingContext;
 

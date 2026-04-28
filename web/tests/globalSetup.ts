@@ -14,7 +14,7 @@
  * /api/* and /ws to http://localhost:7777 by default — no extra env vars needed.
  *
  * Prerequisites:
- *   The @nodetool/* workspace packages must be importable.  If tsx cannot
+ *   The @nodetool-ai/* workspace packages must be importable.  If tsx cannot
  *   resolve them from source (development condition), build them first:
  *     npm run build:packages
  *

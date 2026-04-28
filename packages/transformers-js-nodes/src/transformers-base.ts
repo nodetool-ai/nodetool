@@ -4,8 +4,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
-import { getDefaultTransformersJsCacheDir } from "@nodetool/config";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { getDefaultTransformersJsCacheDir } from "@nodetool-ai/config";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const execFileP = promisify(execFile);
 
@@ -311,7 +311,7 @@ export async function loadRawImage(
 /**
  * Parse 16-bit / 8-bit PCM WAV bytes into Float32 samples + metadata.
  *
- * Mirrors `parseWavBytes` in `@nodetool/base-nodes` (`src/lib/audio-wav.ts`)
+ * Mirrors `parseWavBytes` in `@nodetool-ai/base-nodes` (`src/lib/audio-wav.ts`)
  * so behavior stays consistent with the rest of the audio stack. Inlined
  * here so this package does not have to take a runtime dependency on the
  * much larger base-nodes pack just for a WAV decoder; if the canonical
@@ -410,7 +410,7 @@ function resampleLinear(
  *
  * `ffmpeg` is one of the runtime tools managed by Nodetool's Package
  * Manager (alongside yt-dlp, pandoc) and is also a hard requirement for
- * the existing video / TTS nodes in `@nodetool/base-nodes`, so it is
+ * the existing video / TTS nodes in `@nodetool-ai/base-nodes`, so it is
  * effectively guaranteed to be on PATH in any environment that runs media
  * workflows. When it is not available we throw a clear error pointing the
  * user at the WAV-only fallback so they know how to recover.

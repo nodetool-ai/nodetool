@@ -1,12 +1,14 @@
 /**
  * HuggingFace Hub model search.
  *
- * Queries https://huggingface.co/api/models to discover repos matching a
- * nodetool model type. Translation between nodetool's hf.* types and HF Hub
- * query parameters lives in `HF_HUB_QUERY_CONFIG` below, with fallbacks for
- * GENERIC_HF_TYPES (require a --task) and llama.cpp-style model types
- * enumerated in SUPPORTED_MODEL_TYPES.
+ * Translates nodetool model types into `@huggingface/hub` `listModels` queries.
+ * Translation between nodetool's hf.* types and HF Hub query parameters lives
+ * in `HF_HUB_QUERY_CONFIG` below, with fallbacks for GENERIC_HF_TYPES (require
+ * a --task) and llama.cpp-style model types enumerated in SUPPORTED_MODEL_TYPES.
  */
+
+import { listModels } from "@huggingface/hub";
+import type { PipelineType } from "@huggingface/hub";
 
 import { resolveHfToken } from "./hf-auth.js";
 import {
@@ -60,10 +62,14 @@ export interface ListAllHfModelsOptions {
 // ---------------------------------------------------------------------------
 
 interface HfHubQueryParams {
-  filter?: string[];
-  search?: string;
-  pipeline_tag?: string;
-  library?: string;
+  /** Tag filters — passed through as repeated `filter=` URL params. */
+  tags?: string[];
+  /** Free-text search against the model id. */
+  query?: string;
+  /** Pipeline tag (e.g. "text-to-image"). */
+  task?: PipelineType;
+  /** Post-filter: only keep results whose library_name matches this value. */
+  libraryName?: string;
 }
 
 /**
@@ -74,32 +80,31 @@ interface HfHubQueryParams {
  * params from HF_SEARCH_TYPE_CONFIG at runtime.
  */
 const HF_HUB_QUERY_CONFIG: Record<string, HfHubQueryParams> = {
-  // llama.cpp GGUF types in SUPPORTED_MODEL_TYPES: filter to GGUF library.
-  qwen2: { search: "qwen2", library: "gguf" },
-  qwen3: { search: "qwen3", library: "gguf" },
-  qwen_2_5_vl: { search: "qwen2.5-vl", library: "gguf" },
-  qwen_3_vl: { search: "qwen3-vl", library: "gguf" },
-  mistral3: { search: "mistral", library: "gguf" },
-  gpt_oss: { search: "gpt-oss", library: "gguf" },
-  llama: { search: "llama", library: "gguf" },
-  gemma2: { search: "gemma-2", library: "gguf" },
-  gemma3: { search: "gemma-3", library: "gguf" },
-  gemma3n: { search: "gemma-3n", library: "gguf" },
-  phi3: { search: "phi-3", library: "gguf" },
-  phi4: { search: "phi-4", library: "gguf" }
+  // llama.cpp GGUF types: post-filter by library_name (not tags) to match the
+  // HF API's `library=gguf` parameter which filters on the library_name field.
+  qwen2: { query: "qwen2", libraryName: "gguf" },
+  qwen3: { query: "qwen3", libraryName: "gguf" },
+  qwen_2_5_vl: { query: "qwen2.5-vl", libraryName: "gguf" },
+  qwen_3_vl: { query: "qwen3-vl", libraryName: "gguf" },
+  mistral3: { query: "mistral", libraryName: "gguf" },
+  gpt_oss: { query: "gpt-oss", libraryName: "gguf" },
+  llama: { query: "llama", libraryName: "gguf" },
+  gemma2: { query: "gemma-2", libraryName: "gguf" },
+  gemma3: { query: "gemma-3", libraryName: "gguf" },
+  gemma3n: { query: "gemma-3n", libraryName: "gguf" },
+  phi3: { query: "phi-3", libraryName: "gguf" },
+  phi4: { query: "phi-4", libraryName: "gguf" }
 };
 
 /** Build HF Hub API query params from HF_SEARCH_TYPE_CONFIG for hf.* types. */
-function deriveFromSearchConfig(
-  modelType: string
-): HfHubQueryParams | null {
+function deriveFromSearchConfig(modelType: string): HfHubQueryParams | null {
   const cfg = HF_SEARCH_TYPE_CONFIG[modelType];
   if (!cfg) return null;
   const out: HfHubQueryParams = {};
 
   const pipelineTags = cfg["pipeline_tag"];
   if (Array.isArray(pipelineTags) && pipelineTags.length > 0) {
-    out.pipeline_tag = pipelineTags[0]!;
+    out.task = pipelineTags[0]! as PipelineType;
   }
 
   const tagFilters = cfg["tag"];
@@ -108,29 +113,26 @@ function deriveFromSearchConfig(
     const concrete = tagFilters
       .map((t) => t.replace(/\*/g, "").trim())
       .filter((t) => t.length > 0);
-    if (concrete.length > 0) out.filter = concrete;
+    if (concrete.length > 0) out.tags = concrete;
   }
 
   const repoPatterns = cfg["repo_pattern"];
-  if (Array.isArray(repoPatterns) && !out.search) {
+  if (Array.isArray(repoPatterns) && !out.query) {
     const first = repoPatterns.find(
       (p) => !p.startsWith("*") && !p.endsWith("*") && !p.includes("*")
     );
-    if (first) out.search = first;
+    if (first) out.query = first;
     else {
       // Take the first pattern, stripping wildcards.
       const cleaned = repoPatterns[0]?.replace(/\*/g, "").trim();
-      if (cleaned) out.search = cleaned;
+      if (cleaned) out.query = cleaned;
     }
   }
 
   return Object.keys(out).length > 0 ? out : null;
 }
 
-function buildQueryParams(
-  modelType: string,
-  task?: string
-): HfHubQueryParams {
+function buildQueryParams(modelType: string, task?: string): HfHubQueryParams {
   const normalized = modelType.toLowerCase();
 
   if (GENERIC_HF_TYPES.has(normalized)) {
@@ -139,11 +141,11 @@ function buildQueryParams(
         `Model type '${modelType}' requires --task (e.g. 'text-to-image').`
       );
     }
-    return { pipeline_tag: task.replace(/_/g, "-") };
+    return { task: task.replace(/_/g, "-") as PipelineType };
   }
 
   if (task) {
-    return { pipeline_tag: task.replace(/_/g, "-") };
+    return { task: task.replace(/_/g, "-") as PipelineType };
   }
 
   const direct = HF_HUB_QUERY_CONFIG[normalized];
@@ -158,55 +160,8 @@ function buildQueryParams(
 }
 
 // ---------------------------------------------------------------------------
-// HTTP
+// Search
 // ---------------------------------------------------------------------------
-
-const HF_API_BASE = "https://huggingface.co/api/models";
-
-interface RawHfHubModel {
-  id?: string;
-  modelId?: string;
-  pipeline_tag?: string | null;
-  tags?: string[];
-  downloads?: number;
-  likes?: number;
-  gated?: boolean | "auto" | "manual" | null;
-  private?: boolean;
-  library_name?: string | null;
-  createdAt?: string;
-  lastModified?: string;
-}
-
-function buildSearchUrl(params: HfHubQueryParams, limit?: number): string {
-  const search = new URLSearchParams();
-  if (params.pipeline_tag) search.set("pipeline_tag", params.pipeline_tag);
-  if (params.library) search.set("library", params.library);
-  if (params.search) search.set("search", params.search);
-  if (params.filter) {
-    for (const f of params.filter) search.append("filter", f);
-  }
-  if (limit && limit > 0) search.set("limit", String(limit));
-  search.set("full", "false");
-  return `${HF_API_BASE}?${search.toString()}`;
-}
-
-function normalizeRaw(raw: RawHfHubModel, modelType: string): HfHubModel {
-  const id = raw.id ?? raw.modelId ?? "";
-  return {
-    id,
-    pipeline_tag: raw.pipeline_tag ?? null,
-    tags: raw.tags ?? [],
-    downloads: raw.downloads ?? 0,
-    likes: raw.likes ?? 0,
-    gated: raw.gated ?? null,
-    private: raw.private ?? false,
-    library_name: raw.library_name ?? null,
-    created_at: raw.createdAt,
-    last_modified: raw.lastModified,
-    model_type: modelType,
-    repo_id: id
-  };
-}
 
 /**
  * Search the HuggingFace Hub for models matching a nodetool model type.
@@ -215,24 +170,54 @@ export async function searchHfHub(
   options: SearchHfHubOptions
 ): Promise<HfHubModel[]> {
   const params = buildQueryParams(options.modelType, options.task);
-  const url = buildSearchUrl(params, options.limit);
 
   const token =
     options.token !== undefined
       ? options.token
       : await resolveHfToken(undefined);
-  const headers: Record<string, string> = { accept: "application/json" };
-  if (token) headers["authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(url, { headers });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
+  const libraryFilter = params.libraryName?.toLowerCase();
+
+  const out: HfHubModel[] = [];
+  try {
+    for await (const m of listModels({
+      search: {
+        ...(params.query ? { query: params.query } : {}),
+        ...(params.task ? { task: params.task } : {}),
+        ...(params.tags ? { tags: params.tags } : {})
+      },
+      ...(options.limit && !libraryFilter ? { limit: options.limit } : {}),
+      additionalFields: ["tags", "library_name"],
+      ...(token ? { accessToken: token } : {})
+    })) {
+      if (libraryFilter && m.library_name?.toLowerCase() !== libraryFilter) {
+        continue;
+      }
+      const lastModified =
+        m.updatedAt && !Number.isNaN(m.updatedAt.getTime())
+          ? m.updatedAt.toISOString()
+          : undefined;
+      out.push({
+        id: m.name,
+        pipeline_tag: m.task ?? null,
+        tags: m.tags ?? [],
+        downloads: m.downloads,
+        likes: m.likes,
+        gated: m.gated,
+        private: m.private,
+        library_name: m.library_name ?? null,
+        ...(lastModified ? { last_modified: lastModified } : {}),
+        model_type: options.modelType,
+        repo_id: m.name
+      });
+      if (options.limit && out.length >= options.limit) break;
+    }
+  } catch (err) {
     throw new Error(
-      `HF Hub search failed: ${res.status} ${res.statusText} — ${body.slice(0, 200)}`
+      `HF Hub search failed: ${err instanceof Error ? err.message : String(err)}`
     );
   }
-  const raw = (await res.json()) as RawHfHubModel[];
-  return raw.map((r) => normalizeRaw(r, options.modelType));
+  return out;
 }
 
 /**
@@ -256,8 +241,8 @@ export async function listAllHfModels(
     try {
       const results = await searchHfHub({
         modelType,
-        limit: perTypeLimit,
-        token
+        ...(perTypeLimit ? { limit: perTypeLimit } : {}),
+        ...(token !== undefined ? { token } : {})
       });
       for (const m of results) {
         if (!m.id || seen.has(m.id)) continue;
@@ -268,9 +253,7 @@ export async function listAllHfModels(
       if (limit && aggregated.length >= limit) break;
     } catch (err) {
       // One type failing shouldn't tank the whole list. Log + continue.
-      console.error(
-        `listAllHfModels: ${modelType} failed — ${String(err)}`
-      );
+      console.error(`listAllHfModels: ${modelType} failed — ${String(err)}`);
     }
   }
 

@@ -1,4 +1,4 @@
-import type { NodeClass } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { loadFalNodesFromManifest } from "./fal-factory.js";
 import type { FalManifestEntry } from "./fal-factory.js";
 import { readFileSync } from "node:fs";

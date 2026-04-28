@@ -20,8 +20,9 @@ import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";
 import OutputRenderer from "../node/OutputRenderer";
-import useResultsStore from "../../stores/ResultsStore";
+import useResultsStore, { hashKey } from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
+import { shallow } from "zustand/shallow";
 import type { ChainNode, InputSource } from "./chainTypes";
 
 interface ChainNodeCardProps {
@@ -85,15 +86,16 @@ function useNodeExecState(workflowId: string | null, nodeId: string) {
     (s) => (workflowId ? s.getStatus(workflowId, nodeId) : undefined)
   ) as NodeStatus | undefined;
 
-  const progress = useResultsStore(
-    (s) => (workflowId ? s.getProgress(workflowId, nodeId) : undefined)
-  );
-
-  const result = useResultsStore(
+  const { progress, result } = useResultsStore(
     (s) => {
-      if (!workflowId) return undefined;
-      return s.getOutputResult(workflowId, nodeId) ?? s.getResult(workflowId, nodeId);
-    }
+      if (!workflowId) return { progress: undefined, result: undefined };
+      const key = hashKey(workflowId, nodeId);
+      return {
+        progress: s.progress[key],
+        result: s.outputResults[key] ?? s.results[key]
+      };
+    },
+    shallow
   );
 
   const isRunning = status === "running" || status === "booting" || status === "starting";

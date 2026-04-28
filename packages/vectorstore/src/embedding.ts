@@ -5,8 +5,8 @@
  * (OpenAI, Ollama, Gemini, Mistral, Cohere, Voyage AI, Jina AI).
  */
 
-import { createLogger } from "@nodetool/config";
-import { getSecret } from "@nodetool/models";
+import { createLogger } from "@nodetool-ai/config";
+import { getSecret } from "@nodetool-ai/models";
 import type { EmbeddingFunction } from "./sqlite-vec-store.js";
 
 const log = createLogger("nodetool.vectorstore.embedding");

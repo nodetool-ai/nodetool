@@ -1,4 +1,4 @@
-import { registerProvider } from "@nodetool/runtime";
+import { registerProvider } from "@nodetool-ai/runtime";
 import { TransformersJsProvider } from "./transformers-js-provider.js";
 
 export { TransformersJsProvider } from "./transformers-js-provider.js";

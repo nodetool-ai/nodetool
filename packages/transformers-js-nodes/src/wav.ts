@@ -1,6 +1,6 @@
 /**
  * Minimal WAV encode/decode helpers shared between the TTS workflow node and
- * the transformers.js provider. Mirrors `encodeWav` in `@nodetool/base-nodes`
+ * the transformers.js provider. Mirrors `encodeWav` in `@nodetool-ai/base-nodes`
  * (`src/lib/audio-wav.ts`); update both if the canonical encoder ever changes.
  */
 

@@ -2,7 +2,7 @@
  * Tests for src/commands/package.ts
  *
  * Covers: registerPackageCommands wires the package subcommands and forwards
- * flags/arguments to the underlying @nodetool/node-sdk helpers. Also
+ * flags/arguments to the underlying @nodetool-ai/node-sdk helpers. Also
  * includes a self-contained integration test for init → docs.
  */
 import fs from "node:fs";
@@ -19,7 +19,7 @@ import {
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("@nodetool/node-sdk", () => ({
+vi.mock("@nodetool-ai/node-sdk", () => ({
   fetchAvailablePackages: vi.fn(async () => []),
   loadPythonPackageMetadata: vi.fn(() => ({
     files: [],
@@ -122,7 +122,7 @@ beforeEach(() => {
 
 describe("package list", () => {
   it("calls loadPythonPackageMetadata by default", async () => {
-    const sdk = await import("@nodetool/node-sdk");
+    const sdk = await import("@nodetool-ai/node-sdk");
     (sdk.loadPythonPackageMetadata as unknown as ReturnType<typeof vi.fn>)
       .mockReturnValue({
         files: [],
@@ -139,7 +139,7 @@ describe("package list", () => {
   });
 
   it("calls fetchAvailablePackages with --available", async () => {
-    const sdk = await import("@nodetool/node-sdk");
+    const sdk = await import("@nodetool-ai/node-sdk");
     (sdk.fetchAvailablePackages as unknown as ReturnType<typeof vi.fn>)
       .mockResolvedValue([
         { name: "foo", repo_id: "org/foo", description: "desc" }
@@ -150,7 +150,7 @@ describe("package list", () => {
   });
 
   it("prints '(no packages available)' when registry is empty", async () => {
-    const sdk = await import("@nodetool/node-sdk");
+    const sdk = await import("@nodetool-ai/node-sdk");
     (sdk.fetchAvailablePackages as unknown as ReturnType<typeof vi.fn>)
       .mockResolvedValue([]);
     const { stdout } = await runCommand(["list", "--available"]);
@@ -158,7 +158,7 @@ describe("package list", () => {
   });
 
   it("--json forwards to asJson", async () => {
-    const sdk = await import("@nodetool/node-sdk");
+    const sdk = await import("@nodetool-ai/node-sdk");
     (sdk.fetchAvailablePackages as unknown as ReturnType<typeof vi.fn>)
       .mockResolvedValue([{ name: "a", repo_id: "org/a" }]);
     const { stdout } = await runCommand(["list", "--available", "--json"]);
@@ -186,7 +186,7 @@ describe("package docs", () => {
     const metaDir = path.join(tmp, "nodetool", "package_metadata");
     fs.mkdirSync(metaDir, { recursive: true });
     fs.writeFileSync(path.join(metaDir, "x.json"), "{}");
-    const sdk = await import("@nodetool/node-sdk");
+    const sdk = await import("@nodetool-ai/node-sdk");
     (sdk.loadPythonPackageMetadata as unknown as ReturnType<typeof vi.fn>)
       .mockReturnValue({
         files: [],
@@ -211,7 +211,7 @@ describe("package node-docs", () => {
   it("writes one file per node returned by generateAllNodeDocs", async () => {
     const cwd = process.cwd();
     const tmp = makeTmp();
-    const sdk = await import("@nodetool/node-sdk");
+    const sdk = await import("@nodetool-ai/node-sdk");
     (sdk.generateAllNodeDocs as unknown as ReturnType<typeof vi.fn>)
       .mockReturnValue(
         new Map([
@@ -234,7 +234,7 @@ describe("package node-docs", () => {
   it("forwards --package-name", async () => {
     const cwd = process.cwd();
     const tmp = makeTmp();
-    const sdk = await import("@nodetool/node-sdk");
+    const sdk = await import("@nodetool-ai/node-sdk");
     process.chdir(tmp);
     try {
       await runCommand(["node-docs", "--package-name", "sample.math"]);
@@ -265,7 +265,7 @@ describe("package workflow-docs", () => {
     );
     const outDir = path.join(tmp, "out");
 
-    const sdk = await import("@nodetool/node-sdk");
+    const sdk = await import("@nodetool-ai/node-sdk");
     (sdk.generateAllWorkflowDocs as unknown as ReturnType<typeof vi.fn>)
       .mockReturnValue(new Map([["x.md", "# X"]]));
 
@@ -356,7 +356,7 @@ describe("integration: init + docs", () => {
     try {
       await runCommand(["init"]);
 
-      const sdk = await import("@nodetool/node-sdk");
+      const sdk = await import("@nodetool-ai/node-sdk");
       const metaDir = path.join(tmp, "nodetool", "package_metadata");
       fs.writeFileSync(
         path.join(metaDir, "nodetool-it.json"),

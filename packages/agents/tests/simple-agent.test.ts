@@ -7,8 +7,8 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { SimpleAgent } from "../src/simple-agent.js";
-import type { ProcessingContext, BaseProvider } from "@nodetool/runtime";
-import type { ProcessingMessage } from "@nodetool/protocol";
+import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 
 function createMockProvider(finishResult?: Record<string, unknown>) {
   const result = finishResult ?? { answer: "42" };

@@ -217,6 +217,9 @@ const ReactFlowWrapper = ({
 
   // Single trigger: connection drag ended or edges changed (add/remove/reconnect).
   // Wait one frame, then refresh handle positions for all nodes.
+  // Use a ref for nodes to avoid re-running on every node position change (60fps drag).
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
   const prevConnectingRef = useRef(connecting);
   const prevEdgeCountRef = useRef(edges.length);
   useEffect(() => {
@@ -226,14 +229,14 @@ const ReactFlowWrapper = ({
     prevEdgeCountRef.current = edges.length;
     if (dragEnded || edgesChanged) {
       const rafId = requestAnimationFrame(() => {
-        const nodeIds = nodes.map((n) => n.id);
+        const nodeIds = nodesRef.current.map((n) => n.id);
         if (nodeIds.length > 0) {
           updateNodeInternals(nodeIds);
         }
       });
       return () => cancelAnimationFrame(rafId);
     }
-  }, [connecting, edges.length, nodes, updateNodeInternals]);
+  }, [connecting, edges.length, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();

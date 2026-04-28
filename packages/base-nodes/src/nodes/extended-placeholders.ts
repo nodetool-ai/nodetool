@@ -1,5 +1,5 @@
-import { BaseNode } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
+import { BaseNode } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 
 export function titleFromNodeType(nodeType: string): string {
   const parts = nodeType.split(".");

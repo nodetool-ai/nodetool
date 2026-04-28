@@ -144,7 +144,7 @@ NodeTool runs strict mode. Lean on it.
 - Explicit return-type annotations that exactly match what TypeScript would infer (`(): string => "x"`).
 - `Foo | undefined | null` when callers always pass one or the other.
 - Type guards for variants the discriminated union already covers.
-- Re-declared types that already live in `@nodetool/protocol` or the generated `web/src/api.ts`.
+- Re-declared types that already live in `@nodetool-ai/protocol` or the generated `web/src/api.ts`.
 - `interface FooProps {}` for a component with one inline-typed prop.
 - `// @ts-ignore` / `// @ts-expect-error` without a one-line explanation of the actual reason (and a link to the bug if external).
 

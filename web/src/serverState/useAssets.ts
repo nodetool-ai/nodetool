@@ -7,6 +7,7 @@ import useAuth from "../stores/useAuth";
 import { useAssetGridStore } from "../stores/AssetGridStore";
 import { SIZE_FILTERS } from "../utils/formatUtils";
 import { getAssetCategory } from "../components/assets/assetGridUtils";
+import { trpcClient } from "../trpc/client";
 
 type FilterOptions = {
   searchTerm: string;
@@ -53,6 +54,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
   const assetSearchTerm = useAssetGridStore((state) => state.assetSearchTerm);
   const sizeFilter = useAssetGridStore((state) => state.sizeFilter);
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
+  const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
 
   if (currentUser === null) {
     throw new Error("User not logged");
@@ -73,14 +75,35 @@ export const useAssets = (_initialFolderId: string | null = null) => {
   } = useQuery({
     queryKey: ["assets", { parent_id: currentFolderId }],
     queryFn: fetchAssets,
-    enabled: !!currentFolderId
+    enabled: !!currentFolderId && !workflowFilter
+  });
+
+  // Fetch assets filtered by workflow_id when workflowFilter is active
+  const fetchWorkflowAssets = useCallback(async () => {
+    return await trpcClient.assets.list.query({ workflow_id: workflowFilter! });
+  }, [workflowFilter]);
+
+  const {
+    data: workflowFilteredAssets,
+    error: workflowFilterError,
+    isLoading: isLoadingWorkflowAssets
+  } = useQuery({
+    queryKey: ["assets", { workflow_id: workflowFilter }],
+    queryFn: fetchWorkflowAssets,
+    enabled: !!workflowFilter,
+    staleTime: 30000
   });
 
   const refetchAssets = useCallback(() => {
+    if (workflowFilter) {
+      return queryClient.invalidateQueries({
+        queryKey: ["assets", { workflow_id: workflowFilter }]
+      });
+    }
     return queryClient.invalidateQueries({
       queryKey: ["assets", { parent_id: currentFolderId }]
     });
-  }, [queryClient, currentFolderId]);
+  }, [queryClient, currentFolderId, workflowFilter]);
 
   // Fetch all folders
   const fetchAllFolders = useCallback(async () => {
@@ -107,12 +130,15 @@ export const useAssets = (_initialFolderId: string | null = null) => {
 
   // Process assets (sort by type and exclude folders)
   const processedAssets = useMemo(() => {
-    if (!currentFolderAssets || !currentFolderAssets.assets) {return [];}
+    // When workflow filter is active, use workflow-filtered assets
+    const sourceAssets = workflowFilter
+      ? (workflowFilteredAssets?.assets as Asset[] | undefined)
+      : currentFolderAssets?.assets;
 
-    const assetsArray = currentFolderAssets.assets;
+    if (!sourceAssets) {return [];}
 
     // Filter out folders
-    const nonFolderAssets = assetsArray.filter(
+    const nonFolderAssets = sourceAssets.filter(
       (asset) => asset.content_type !== "folder"
     );
 
@@ -137,7 +163,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
         );
       }
     });
-  }, [currentFolderAssets, settings.assetsOrder]);
+  }, [currentFolderAssets, workflowFilteredAssets, workflowFilter, settings.assetsOrder]);
 
   // Filter assets
   const filterAssets = useCallback(
@@ -264,8 +290,12 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     ]
   );
 
-  const isLoading = isLoadingCurrentFolder || isLoadingFolderTree;
-  const error = currentFolderError || folderTreeError;
+  const isLoading = workflowFilter
+    ? isLoadingWorkflowAssets
+    : (isLoadingCurrentFolder || isLoadingFolderTree);
+  const error = workflowFilter
+    ? workflowFilterError
+    : (currentFolderError || folderTreeError);
 
   const fetchAssetsRecursive = useCallback(
     async (folderId: string) => {

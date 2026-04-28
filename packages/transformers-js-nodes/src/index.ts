@@ -1,4 +1,4 @@
-import type { NodeClass } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 
 import { TEXT_CLASSIFICATION_NODES } from "./nodes/text-classification.js";
 import { TOKEN_CLASSIFICATION_NODES } from "./nodes/token-classification.js";

@@ -1,9 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   parseMemLimit,
   DEFAULT_SANDBOX_IMAGE,
   TOOL_SERVER_PORT,
-  VNC_WS_PORT
+  VNC_WS_PORT,
+  waitForHttpReady
 } from "../src/DockerSandbox.js";
 
 describe("parseMemLimit", () => {
@@ -29,6 +30,44 @@ describe("parseMemLimit", () => {
 
   it("accepts a bare byte count", () => {
     expect(parseMemLimit("1024")).toBe(1024);
+  });
+});
+
+describe("waitForHttpReady", () => {
+  it("retries transient fetch failures until /health responds", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new Error("socket hang up"))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), { status: 200 })
+      );
+    globalThis.fetch = fetchMock;
+
+    try {
+      await expect(waitForHttpReady("http://sandbox/health", 1)).resolves.toBe(
+        true
+      );
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns false when the HTTP endpoint does not become ready", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response("nope", { status: 503 }));
+    globalThis.fetch = fetchMock;
+
+    try {
+      await expect(
+        waitForHttpReady("http://sandbox/health", 0.01)
+      ).resolves.toBe(false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
 

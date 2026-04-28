@@ -13,7 +13,7 @@ import {
   type TRPCClient
 } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 
 // ============================================================================
 // Response types (kept for backward compatibility with existing deploy code)

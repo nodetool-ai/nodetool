@@ -14,9 +14,9 @@
  *   // outputs: { sum: 15, upper: "HELLO" }
  */
 
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
-import { runInSandbox } from "@nodetool/agents";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { runInSandbox } from "@nodetool-ai/agents";
 
 /** JS keywords that cannot be used as variable names. */
 const JS_RESERVED = new Set([

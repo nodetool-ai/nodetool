@@ -24,7 +24,7 @@ import {
   type ShellWriteToProcessOutput,
   type ShellKillProcessInput,
   type ShellKillProcessOutput
-} from "@nodetool/sandbox/schemas";
+} from "@nodetool-ai/sandbox/schemas";
 
 interface SessionState {
   tmuxName: string;
@@ -78,12 +78,26 @@ export async function shellView(input: ShellViewInput): Promise<ShellViewOutput>
   if (!state) {
     throw new Error(`shell session not found: ${input.id}`);
   }
-  const output = await capturePane(state.tmuxName);
-  const { running, exitCode } = parseCompletion(output, state.marker);
+  let rawOutput: string;
+  try {
+    rawOutput = await capturePane(state.tmuxName);
+  } catch (err) {
+    if (isSessionGoneError(err)) {
+      sessions.delete(input.id);
+      return {
+        id: input.id,
+        output: "<session ended>",
+        running: false,
+        exit_code: state.lastExitCode ?? -1
+      };
+    }
+    throw err;
+  }
+  const { running, exitCode } = parseCompletion(rawOutput, state.marker);
   if (!running && exitCode !== null) state.lastExitCode = exitCode;
   return {
     id: input.id,
-    output,
+    output: cleanShellOutput(rawOutput, state.marker),
     running,
     exit_code: running ? null : state.lastExitCode
   };
@@ -97,13 +111,27 @@ export async function shellWait(input: ShellWaitInput): Promise<ShellWaitOutput>
   const deadline = Date.now() + (input.seconds ?? 60) * 1000;
   let output = "";
   while (Date.now() < deadline) {
-    output = await capturePane(state.tmuxName);
+    try {
+      output = await capturePane(state.tmuxName);
+    } catch (err) {
+      if (isSessionGoneError(err)) {
+        sessions.delete(input.id);
+        return {
+          id: input.id,
+          output: output ? cleanShellOutput(output, state.marker) : "<session ended>",
+          running: false,
+          exit_code: state.lastExitCode ?? -1,
+          timed_out: false
+        };
+      }
+      throw err;
+    }
     const { running, exitCode } = parseCompletion(output, state.marker);
     if (!running) {
       state.lastExitCode = exitCode;
       return {
         id: input.id,
-        output,
+        output: cleanShellOutput(output, state.marker),
         running: false,
         exit_code: exitCode,
         timed_out: false
@@ -113,11 +141,21 @@ export async function shellWait(input: ShellWaitInput): Promise<ShellWaitOutput>
   }
   return {
     id: input.id,
-    output,
+    output: cleanShellOutput(output, state.marker),
     running: true,
     exit_code: null,
     timed_out: true
   };
+}
+
+function isSessionGoneError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return (
+    message.includes("can't find pane") ||
+    message.includes("can't find session") ||
+    message.includes("no server running") ||
+    message.includes("session not found")
+  );
 }
 
 export async function shellWriteToProcess(
@@ -134,7 +172,7 @@ export async function shellWriteToProcess(
     await runTmux([
       "send-keys",
       "-t",
-      `${state.tmuxName}:0.0`,
+      state.tmuxName,
       "-l",
       input.input
     ]);
@@ -170,8 +208,8 @@ export function _resetSessionsForTests(): void {
 
 async function sendKeys(tmuxName: string, line: string): Promise<void> {
   // send-keys with Enter: two invocations, first literal text then Enter.
-  await runTmux(["send-keys", "-t", `${tmuxName}:0.0`, "-l", line]);
-  await runTmux(["send-keys", "-t", `${tmuxName}:0.0`, "Enter"]);
+  await runTmux(["send-keys", "-t", tmuxName, "-l", line]);
+  await runTmux(["send-keys", "-t", tmuxName, "Enter"]);
 }
 
 async function capturePane(tmuxName: string): Promise<string> {
@@ -179,7 +217,7 @@ async function capturePane(tmuxName: string): Promise<string> {
   const buf = await runCapture("tmux", [
     "capture-pane",
     "-t",
-    `${tmuxName}:0.0`,
+    tmuxName,
     "-p",
     "-J",
     "-S",
@@ -197,6 +235,46 @@ function parseCompletion(
   const m = re.exec(output);
   if (!m) return { running: true, exitCode: null };
   return { running: false, exitCode: parseInt(m[1], 10) };
+}
+
+function cleanShellOutput(output: string, marker: string | null): string {
+  const normalized = stripAnsi(output).replace(/\r/g, "");
+  const lines = normalized.split("\n");
+  const cleaned = lines.filter((line) => {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) {
+      return false;
+    }
+    if (isInternalShellWrapperLine(line, marker)) {
+      return false;
+    }
+    if (isPromptOnlyLine(trimmed)) {
+      return false;
+    }
+    return true;
+  });
+  return cleaned.join("\n").trim();
+}
+
+function isInternalShellWrapperLine(line: string, marker: string | null): boolean {
+  if (line.includes("__NT_EC") || line.includes(DONE_PREFIX)) {
+    return true;
+  }
+  return marker !== null && line.includes(`${DONE_PREFIX}${marker}__:`);
+}
+
+function stripAnsi(value: string): string {
+  return value.replace(
+    /[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g,
+    ""
+  );
+}
+
+function isPromptOnlyLine(line: string): boolean {
+  return (
+    /^[^\s@]+@[^\s:]+:[^$#]*[$#]\s*$/.test(line) ||
+    /^[^$#>]*[~/][^$#>]*\s[>$#]\s*$/.test(line)
+  );
 }
 
 function shellQuote(s: string): string {

@@ -1,6 +1,6 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { glbOutput } from "./base.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";
 import { booleanGlb } from "./boolean-ops.js";

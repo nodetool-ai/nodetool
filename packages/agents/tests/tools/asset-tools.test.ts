@@ -6,8 +6,8 @@ import { Buffer } from "node:buffer";
 import { describe, it, expect, vi } from "vitest";
 import { SaveAssetTool } from "../../src/tools/asset-tools.js";
 import { ReadAssetTool } from "../../src/tools/asset-tools.js";
-import type { ProcessingContext } from "@nodetool/runtime";
-import { InMemoryStorageAdapter } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/runtime";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */

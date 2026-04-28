@@ -1,17 +1,17 @@
 /**
- * @nodetool/dsl – Core DSL primitives
+ * @nodetool-ai/dsl – Core DSL primitives
  *
  * OutputHandle, Connectable, DslNode, SingleOutput, createNode(), workflow(), run()
  */
 
-import { WorkflowRunner } from "@nodetool/kernel";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import { ProcessingContext } from "@nodetool/runtime";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   NodeDescriptor as GraphNodeDescriptor,
   Edge,
   NodeUpdate
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // OutputHandle
@@ -340,18 +340,18 @@ export async function run(
   });
 
   const builtinRegistry = new NodeRegistry();
-  const { registerBaseNodes } = await import("@nodetool/base-nodes");
+  const { registerBaseNodes } = await import("@nodetool-ai/base-nodes");
   registerBaseNodes(builtinRegistry);
   try {
     const { registerElevenLabsNodes } =
-      await import("@nodetool/elevenlabs-nodes");
+      await import("@nodetool-ai/elevenlabs-nodes");
     registerElevenLabsNodes(builtinRegistry);
   } catch {
     // Some environments do not have the ElevenLabs node package in a runnable state.
   }
   try {
     const { registerTransformersJsNodes } = await import(
-      "@nodetool/transformers-js-nodes"
+      "@nodetool-ai/transformers-js-nodes"
     );
     registerTransformersJsNodes(builtinRegistry);
   } catch {

@@ -3,13 +3,13 @@ name: nodetool-custom-node-developer
 description: Create custom NodeTool nodes, implement BaseNode subclasses, use @prop decorators, build node packages with process/genProcess methods, register nodes, handle media refs and secrets. Use when user asks to create a node, add a node type, build a custom node, implement a processor, or extend NodeTool with new functionality.
 ---
 
-You are a NodeTool node developer. You create TypeScript nodes that extend `BaseNode` from `@nodetool/node-sdk`.
+You are a NodeTool node developer. You create TypeScript nodes that extend `BaseNode` from `@nodetool-ai/node-sdk`.
 
 # Package Layout
 
 ```
 my-nodes/
-├── package.json          # depends on @nodetool/node-sdk
+├── package.json          # depends on @nodetool-ai/node-sdk
 ├── tsconfig.json         # extends ../../tsconfig.base.json
 ├── src/
 │   ├── index.ts          # exports registration function + ALL_NODES array
@@ -23,7 +23,7 @@ my-nodes/
 # Node Template
 
 ```typescript
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 export class MyNode extends BaseNode {
   // REQUIRED static fields
@@ -162,7 +162,7 @@ static readonly basicFields = ["prompt", "model"]; // shown first in UI
 
 ```typescript
 // src/index.ts
-import { NodeRegistry } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { MyNode, OtherNode } from "./nodes/my-nodes";
 
 export const ALL_MYPACK_NODES = [MyNode, OtherNode] as const;

@@ -24,7 +24,8 @@ import { NodeHeader } from "./NodeHeader";
 import { NodeErrors } from "./NodeErrors";
 import NodeDependencyWarning from "./NodeDependencyWarning";
 import useStatusStore from "../../stores/StatusStore";
-import useResultsStore from "../../stores/ResultsStore";
+import useResultsStore, { hashKey } from "../../stores/ResultsStore";
+import { shallow } from "zustand/shallow";
 import { hasNodeError } from "../../stores/ErrorStore";
 import useErrorStore from "../../stores/ErrorStore";
 import ApiKeyValidation from "./ApiKeyValidation";
@@ -408,13 +409,18 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [parentId, nodeType, isLoading, metadata]
   );
 
-  // Results and rendering
-  const result = useResultsStore((state) => {
-    const r =
-      state.getOutputResult(workflow_id, id) ||
-      state.getResult(workflow_id, id);
-    return r;
-  });
+  // Single subscription instead of 5 — one listener per node instead of five
+  const resultsKey = hashKey(workflow_id, id);
+  const { result, chunk, toolCall, planningUpdate, task } = useResultsStore(
+    (state) => ({
+      result: state.outputResults[resultsKey] || state.results[resultsKey],
+      chunk: state.chunks[resultsKey] as string | undefined,
+      toolCall: state.toolCalls[resultsKey],
+      planningUpdate: state.planningUpdates[resultsKey],
+      task: state.tasks[resultsKey]
+    }),
+    shallow
+  );
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the
   // state.edges array reference actually changes (e.g. adding/removing edges), rather than
@@ -553,14 +559,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     result &&
     !isEmptyResult(result);
 
-  const chunk = useResultsStore((state) => state.getChunk(workflow_id, id));
-  const toolCall = useResultsStore((state) =>
-    state.getToolCall(workflow_id, id)
-  );
-  const planningUpdate = useResultsStore((state) =>
-    state.getPlanningUpdate(workflow_id, id)
-  );
-
   // Node metadata and properties
   const nodeColors = useMemo(() => getNodeColors(metadata), [metadata]);
 
@@ -568,8 +566,6 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     () => getHeaderColors(metadata, theme, type),
     [metadata, theme, type]
   );
-
-  const task = useResultsStore((state) => state.getTask(workflow_id, id));
 
   // Use useMemo to cache the styles based on nodeColors
   const styles = useMemo(() => getNodeStyles(nodeColors), [nodeColors]);

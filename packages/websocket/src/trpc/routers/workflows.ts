@@ -22,16 +22,16 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
-import { Workflow, WorkflowVersion, Job } from "@nodetool/models";
+import { Workflow, WorkflowVersion, Job } from "@nodetool-ai/models";
 import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
-} from "@nodetool/models";
-import { PythonNodeExecutor } from "@nodetool/runtime";
-import { WorkflowRunner } from "@nodetool/kernel";
-import type { NodeDescriptor } from "@nodetool/protocol";
-import { loadPythonPackageMetadata } from "@nodetool/node-sdk";
-import { createLogger } from "@nodetool/config";
+} from "@nodetool-ai/models";
+import { PythonNodeExecutor } from "@nodetool-ai/runtime";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import type { NodeDescriptor } from "@nodetool-ai/protocol";
+import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
+import { createLogger } from "@nodetool-ai/config";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -72,7 +72,7 @@ import {
   graph as graphSchema,
   type WorkflowResponse,
   type VersionResponse
-} from "@nodetool/protocol/api-schemas/workflows.js";
+} from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 

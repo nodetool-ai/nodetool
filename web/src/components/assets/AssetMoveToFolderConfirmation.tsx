@@ -30,13 +30,14 @@ const AssetMoveToFolderConfirmation: React.FC<
   }, [setDialogOpen]);
   const { mutation } = useAssetUpdate();
   const handleSelectFolder = useCallback(
-    async (folderId: string) => {
+    (folderId: string) => {
       const assetUpdates = selectedAssets.map((asset: Asset) => ({
         id: asset.id,
         parent_id: folderId
       }));
-      await mutation.mutateAsync(assetUpdates);
+      // Close dialog immediately; optimistic update removes assets from view
       setDialogOpen(false);
+      mutation.mutate(assetUpdates);
     },
     [selectedAssets, mutation, setDialogOpen]
   );

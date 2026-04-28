@@ -13,7 +13,7 @@ Resources for building custom nodes, extending NodeTool, and integrating workflo
 Creating custom nodes in TypeScript:
 
 ```ts
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 export class MyCustomNode extends BaseNode {
   static readonly nodeType = "mypackage.text.Upper";
