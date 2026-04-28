@@ -10,11 +10,13 @@
  *   - Asset handling with pluggable storage adapters.
  */
 
-import type { ProcessingMessage } from "@nodetool/protocol";
+import type { AssetRef, ProcessingMessage } from "@nodetool/protocol";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import {
+  basename,
   dirname,
+  extname,
   isAbsolute,
   join,
   normalize,
@@ -1257,6 +1259,200 @@ export class ProcessingContext {
     nodeId?: string | null;
   }): Promise<unknown> {
     return this.createAsset(args);
+  }
+
+  private resolveSandboxFilePath(path: string): string {
+    if (this.workspaceDir == null || this.workspaceDir === "") {
+      throw new Error("workspaceDir is required for sandbox file operations");
+    }
+    const workspaceRoot = resolve(this.workspaceDir);
+    const normalizedPath = path.replaceAll("\\", "/");
+    if (
+      (isAbsolute(normalizedPath) || /^[A-Za-z]:\//.test(normalizedPath)) &&
+      isWithinRoot(workspaceRoot, resolve(normalizedPath))
+    ) {
+      return resolve(normalizedPath);
+    }
+    return resolveWorkspacePath(this.workspaceDir, path);
+  }
+
+  private static guessMimeFromPath(path: string): string {
+    const ext = extname(path).toLowerCase();
+    const byExt: Record<string, string> = {
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp",
+      ".gif": "image/gif",
+      ".bmp": "image/bmp",
+      ".svg": "image/svg+xml",
+      ".wav": "audio/wav",
+      ".mp3": "audio/mpeg",
+      ".ogg": "audio/ogg",
+      ".flac": "audio/flac",
+      ".m4a": "audio/mp4",
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
+      ".mov": "video/quicktime",
+      ".txt": "text/plain",
+      ".md": "text/markdown",
+      ".json": "application/json",
+      ".pdf": "application/pdf",
+      ".csv": "text/csv"
+    };
+    return byExt[ext] ?? "application/octet-stream";
+  }
+
+  private static assetTypeForMime(mime: string): AssetRef["type"] {
+    if (mime.startsWith("image/")) return "image";
+    if (mime.startsWith("audio/")) return "audio";
+    if (mime.startsWith("video/")) return "video";
+    if (mime.startsWith("text/")) return "text";
+    if (mime === "application/pdf") return "document";
+    return "asset";
+  }
+
+  private parseAssetIdCandidates(assetId: string): string[] {
+    const trimmed = assetId.trim();
+    if (!trimmed) {
+      return [];
+    }
+    const raw =
+      trimmed.startsWith("asset://") ? trimmed.slice("asset://".length) : trimmed;
+    const primary = raw.split(/[/?#]/)[0];
+    if (!primary) {
+      return [];
+    }
+    const withoutExt = primary.replace(/\.[^.]+$/, "");
+    return Array.from(new Set([primary, withoutExt].filter(Boolean)));
+  }
+
+  async assetToSandbox(assetId: string, path: string): Promise<string> {
+    const outputPath = this.resolveSandboxFilePath(path);
+    const uriCandidates = new Set<string>();
+    const idCandidates = this.parseAssetIdCandidates(assetId);
+    const trimmed = assetId.trim();
+    const resolutionAttempts: string[] = [];
+
+    if (trimmed.includes("://") && !trimmed.startsWith("asset://")) {
+      uriCandidates.add(trimmed);
+    }
+    for (const candidate of idCandidates) {
+      for (const prefix of ["memory://", "file://", "s3://"]) {
+        uriCandidates.add(`${prefix}${candidate}`);
+        uriCandidates.add(`${prefix}assets/${candidate}`);
+      }
+    }
+
+    let bytes: Uint8Array | null = null;
+    if (this.storage) {
+      for (const uri of uriCandidates) {
+        try {
+          const retrieved = await this.storage.retrieve(uri);
+          if (retrieved) {
+            bytes = retrieved;
+            break;
+          }
+          resolutionAttempts.push(`storage miss: ${uri}`);
+        } catch (error) {
+          resolutionAttempts.push(
+            `storage error: ${uri} (${error instanceof Error ? error.message : String(error)})`
+          );
+        }
+      }
+    }
+
+    if (!bytes) {
+      let baseUrl = (
+        this.environment.NODETOOL_API_URL ??
+        process.env.NODETOOL_API_URL ??
+        "http://localhost:7777"
+      );
+      while (baseUrl.endsWith("/")) {
+        baseUrl = baseUrl.slice(0, -1);
+      }
+      for (const candidate of idCandidates) {
+        try {
+          const metaResponse = await this.httpGet(
+            `${baseUrl}/api/assets/${encodeURIComponent(candidate)}`
+          );
+          const metadata = (await metaResponse.json()) as Record<string, unknown>;
+          const getUrl = metadata.get_url;
+          const uri = metadata.uri;
+          if (typeof getUrl === "string" && getUrl) {
+            const downloadUrl = getUrl.startsWith("/")
+              ? `${baseUrl}${getUrl}`
+              : getUrl;
+            bytes = await this.downloadFile(downloadUrl, {
+              retry: { maxRetries: 1, backoffMs: 200 }
+            });
+            resolutionAttempts.push(`downloaded: ${downloadUrl}`);
+            break;
+          }
+          if (typeof uri === "string" && this.storage) {
+            const retrieved = await this.storage.retrieve(uri);
+            if (retrieved) {
+              bytes = retrieved;
+              resolutionAttempts.push(`storage hit via metadata: ${uri}`);
+              break;
+            }
+            resolutionAttempts.push(`storage miss via metadata: ${uri}`);
+          }
+        } catch (error) {
+          resolutionAttempts.push(
+            `api lookup error for ${candidate}: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      }
+    }
+
+    if (!bytes) {
+      const details =
+        resolutionAttempts.length > 0
+          ? ` Attempts: ${resolutionAttempts.join("; ")}`
+          : "";
+      throw new Error(
+        `Unable to resolve asset '${assetId}' to sandbox bytes.${details}`
+      );
+    }
+
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, bytes);
+    return outputPath;
+  }
+
+  async asset_to_sandbox(asset_id: string, path: string): Promise<string> {
+    return this.assetToSandbox(asset_id, path);
+  }
+
+  async sandboxToAsset(path: string): Promise<AssetRef> {
+    const filePath = this.resolveSandboxFilePath(path);
+    const bytes = await readFile(filePath);
+    const contentType = ProcessingContext.guessMimeFromPath(filePath);
+    const created = (await this.createAsset({
+      name: basename(filePath),
+      contentType,
+      content: bytes
+    })) as Record<string, unknown>;
+
+    const type = ProcessingContext.assetTypeForMime(contentType);
+    const assetId = typeof created.id === "string" ? created.id : null;
+    const uri =
+      assetId !== null
+        ? `asset://${assetId}`
+        : typeof created.uri === "string"
+          ? created.uri
+          : pathToFileURL(filePath).toString();
+
+    return {
+      type,
+      uri,
+      asset_id: assetId
+    };
+  }
+
+  async sandbox_to_asset(path: string): Promise<AssetRef> {
+    return this.sandboxToAsset(path);
   }
 
   async createMessage(req: MessageCreateRequestLike): Promise<unknown> {
