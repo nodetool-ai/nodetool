@@ -15,17 +15,32 @@
  *   npm run bump-version 0.6.4 --dry-run
  */
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import { execSync } from "node:child_process";
 import { parseArgs } from "node:util";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
+const PRIVATE_PACKAGES = new Set(["fal-codegen", "kie-codegen", "replicate-codegen"]);
+
+function getPublicPackageJsons() {
+  const packagesDir = resolve(ROOT, "packages");
+  return readdirSync(packagesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && !PRIVATE_PACKAGES.has(d.name))
+    .map((d) => resolve(packagesDir, d.name, "package.json"))
+    .filter((p) => {
+      if (!existsSync(p)) return false;
+      const pkg = JSON.parse(readFileSync(p, "utf8"));
+      return !pkg.private;
+    });
+}
+
 const PACKAGE_JSONS = [
   resolve(ROOT, "web/package.json"),
   resolve(ROOT, "electron/package.json"),
   resolve(ROOT, "mobile/package.json"),
+  ...getPublicPackageJsons(),
 ];
 
 const CONSTANTS_TS = resolve(ROOT, "web/src/config/constants.ts");
@@ -75,7 +90,7 @@ function git(args) {
 
 function gitCommitAndTag(version, tag, push) {
   const files = [...PACKAGE_JSONS, CONSTANTS_TS].filter(existsSync);
-  git(`add ${files.map(rel).join(" ")}`);
+  for (const f of files) git(`add ${rel(f)}`);
 
   try {
     execSync("git diff --cached --quiet", { cwd: ROOT });

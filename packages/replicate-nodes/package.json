@@ -27,6 +27,23 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./replicate-manifest.json": "./src/replicate-manifest.json"
-  }
+    "./replicate-manifest.json": "./dist/replicate-manifest.json"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/replicate-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

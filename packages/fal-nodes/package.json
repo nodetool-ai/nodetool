@@ -27,6 +27,23 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./fal-manifest.json": "./src/fal-manifest.json"
-  }
+    "./fal-manifest.json": "./dist/fal-manifest.json"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/fal-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }
