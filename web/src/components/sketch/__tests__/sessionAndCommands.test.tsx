@@ -450,6 +450,31 @@ describe("useEditorCommands", () => {
     expect(params.segmentation.runSegmentation).not.toHaveBeenCalled();
   });
 
+  it("routes provider auto runs through splitSelectedLayer", () => {
+    useSketchStore.setState((state) => ({
+      document: {
+        ...state.document,
+        toolSettings: {
+          ...state.document.toolSettings,
+          segment: {
+            ...state.document.toolSettings.segment,
+            backend: "fal",
+            promptMode: "auto"
+          }
+        }
+      }
+    }));
+    const params = createParams();
+    const { result } = renderHook(() => useEditorCommands(params));
+
+    act(() => {
+      result.current.handleRunSegmentation();
+    });
+
+    expect(params.segmentation.splitSelectedLayer).toHaveBeenCalledTimes(1);
+    expect(params.segmentation.runSegmentation).not.toHaveBeenCalled();
+  });
+
   it("routes Local SAM3 prompt runs through runSegmentation", () => {
     useSketchStore.setState((state) => ({
       document: {

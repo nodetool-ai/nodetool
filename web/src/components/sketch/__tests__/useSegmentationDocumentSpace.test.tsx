@@ -453,6 +453,117 @@ describe("useSegmentation document-space apply", () => {
     });
   });
 
+  it("applies provider masks as ordinary raster layers with document-space bounds and provenance", async () => {
+    const doc = createDefaultDocument(128, 96);
+    const sourceLayer = {
+      ...doc.layers[0],
+      name: "Source",
+      transform: {
+        x: 12,
+        y: 18,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0
+      },
+      contentBounds: {
+        x: -8,
+        y: 6,
+        width: 40,
+        height: 30
+      }
+    };
+    sourceLayer.data = serializeLayerData(
+      "data:image/png;base64,source",
+      sourceLayer.contentBounds
+    );
+    doc.layers = [sourceLayer];
+    doc.activeLayerId = sourceLayer.id;
+    doc.toolSettings.segment = {
+      ...doc.toolSettings.segment,
+      backend: "fal",
+      promptMode: "auto",
+      outputCutouts: false
+    };
+
+    act(() => {
+      useSketchStore.getState().setDocument(doc);
+    });
+
+    const serializedLayerData = serializeLayerData(
+      "data:image/png;base64,source",
+      sourceLayer.contentBounds
+    );
+    const canvasRef = createCanvasRef(serializedLayerData);
+    const pushHistory = jest.fn();
+    const sourceMetadata = createSourceMetadata(sourceLayer.id);
+    const mask = {
+      ...createMask(sourceMetadata),
+      backendId: "fal" as const,
+      modelId: "fal-ai/sam-3-1/image",
+      nodeType: "fal.image_to_image.Sam3Image"
+    };
+    const bakedData = serializeLayerData("data:image/png;base64,baked-provider", {
+      x: 6,
+      y: 9,
+      width: 18,
+      height: 12
+    });
+
+    getSamServiceMock.mockReturnValue({
+      checkModelAvailability: jest.fn(),
+      runSegmentation: jest.fn().mockResolvedValue({
+        masks: [mask],
+        modelId: "fal-ai/sam-3-1/image",
+        backendId: "fal",
+        nodeType: "fal.image_to_image.Sam3Image",
+        sourceMetadata
+      })
+    } as never);
+
+    rasterizeSegmentationToDocumentSpaceMock.mockResolvedValue({
+      data: bakedData,
+      bounds: { x: 6, y: 9, width: 18, height: 12 },
+      imageDataUrl: "data:image/png;base64,baked-provider"
+    });
+
+    const { result } = renderHook(() =>
+      useSegmentation({
+        canvasRef,
+        pushHistory
+      })
+    );
+
+    await act(async () => {
+      await result.current.splitSelectedLayer();
+    });
+
+    const updatedDoc = useSketchStore.getState().document;
+    expect(updatedDoc.layers).toHaveLength(3);
+    expect(updatedDoc.layers[1]).toMatchObject({
+      type: "group",
+      name: "Segmented Objects"
+    });
+    expect(updatedDoc.layers[2]).toMatchObject({
+      type: "raster",
+      name: "Mask 1",
+      contentBounds: { x: 6, y: 9, width: 18, height: 12 },
+      transform: expect.objectContaining({ x: 0, y: 0 })
+    });
+    expect(updatedDoc.layers[2].segmentationMeta).toMatchObject({
+      sourceLayerId: sourceLayer.id,
+      backendId: "fal",
+      modelId: "fal-ai/sam-3-1/image",
+      nodeType: "fal.image_to_image.Sam3Image",
+      confidence: 0.9,
+      maskIndex: 0
+    });
+    expect(rasterizeSegmentationToDocumentSpaceMock).toHaveBeenCalledWith(
+      "data:image/png;base64,mask",
+      sourceMetadata
+    );
+    expect(pushHistory).toHaveBeenCalledWith("Split Selected Layer");
+  });
+
   it("uses document-space cutouts for accepted results when cutout output is enabled", async () => {
     const doc = createDefaultDocument(128, 96);
     const sourceLayer = createDefaultLayer("Source", "raster", 128, 96);

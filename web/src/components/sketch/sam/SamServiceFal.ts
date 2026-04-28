@@ -21,6 +21,7 @@ import {
 import type { SegmentationMask } from "../types";
 import useMetadataStore from "../../../stores/MetadataStore";
 import useSecretsStore from "../../../stores/SecretsStore";
+import { CoordinateMapper } from "../painting/CoordinateMapper";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -542,21 +543,21 @@ export class SamServiceFal implements SamService {
     }
 
     // 3. Build FAL request
-    const falPrompts: FalPointPrompt[] = request.pointPrompts.map((p) => ({
-      x: Math.round(p.x * scale),
-      y: Math.round(p.y * scale),
-      label: p.label === "positive" ? 1 : 0
-    }));
+    const promptMapper = this.createPromptMapper(request.sourceMetadata);
+    const falPrompts: FalPointPrompt[] = request.pointPrompts.map((p) => {
+      const mappedPoint = this.mapPromptPointToSourceImage(
+        { x: p.x, y: p.y },
+        promptMapper
+      );
+      return {
+        x: Math.round(mappedPoint.x * scale),
+        y: Math.round(mappedPoint.y * scale),
+        label: p.label === "positive" ? 1 : 0
+      };
+    });
 
     const falBoxPrompts: FalBoxPrompt[] = request.boxPrompt
-      ? [
-          {
-            x: Math.round(request.boxPrompt.x * scale),
-            y: Math.round(request.boxPrompt.y * scale),
-            width: Math.round(request.boxPrompt.width * scale),
-            height: Math.round(request.boxPrompt.height * scale)
-          }
-        ]
+      ? [this.buildFalBoxPrompt(request.boxPrompt, promptMapper, scale)]
       : [];
 
     const falInput: Record<string, unknown> = {
@@ -740,5 +741,65 @@ export class SamServiceFal implements SamService {
       providerScores: scores,
       providerBoxes: boxes
     };
+  }
+
+  private buildFalBoxPrompt(
+    boxPrompt: NonNullable<SegmentationRequest["boxPrompt"]>,
+    promptMapper: CoordinateMapper | null,
+    scale: number
+  ): FalBoxPrompt {
+    const corners = [
+      this.mapPromptPointToSourceImage({ x: boxPrompt.x, y: boxPrompt.y }, promptMapper),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y },
+        promptMapper
+      ),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x, y: boxPrompt.y + boxPrompt.height },
+        promptMapper
+      ),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y + boxPrompt.height },
+        promptMapper
+      )
+    ];
+    const minX = Math.min(...corners.map((corner) => corner.x));
+    const minY = Math.min(...corners.map((corner) => corner.y));
+    const maxX = Math.max(...corners.map((corner) => corner.x));
+    const maxY = Math.max(...corners.map((corner) => corner.y));
+
+    return {
+      x: Math.round(minX * scale),
+      y: Math.round(minY * scale),
+      width: Math.round((maxX - minX) * scale),
+      height: Math.round((maxY - minY) * scale)
+    };
+  }
+
+  private mapPromptPointToSourceImage(
+    point: { x: number; y: number },
+    promptMapper: CoordinateMapper | null
+  ): { x: number; y: number } {
+    if (!promptMapper) {
+      return point;
+    }
+
+    return promptMapper.docToLayer(point);
+  }
+
+  private createPromptMapper(
+    sourceMetadata: SegmentationRequest["sourceMetadata"]
+  ): CoordinateMapper | null {
+    if (!sourceMetadata) {
+      return null;
+    }
+
+    return new CoordinateMapper({
+      layerTransform: sourceMetadata.layerTransform,
+      rasterBounds: {
+        x: sourceMetadata.contentBounds.x,
+        y: sourceMetadata.contentBounds.y
+      }
+    });
   }
 }

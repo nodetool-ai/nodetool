@@ -890,6 +890,30 @@ describe("SamServiceFal", () => {
     const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
     const originalImage = global.Image;
     const originalCreateElement = document.createElement.bind(document);
+    const sourceMetadata = {
+      layerId: "layer-1",
+      layerTransform: {
+        x: 12,
+        y: 18,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0
+      },
+      contentBounds: {
+        x: -8,
+        y: 6,
+        width: 64,
+        height: 32
+      },
+      canvasSize: {
+        width: 256,
+        height: 192
+      },
+      documentOrigin: {
+        x: 4,
+        y: 24
+      }
+    };
 
     useSecretsStore.setState({
       fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
@@ -970,7 +994,8 @@ describe("SamServiceFal", () => {
           backend: "fal",
           conceptPrompt: "foreground object",
           maxObjects: 4
-        }
+        },
+        sourceMetadata
       });
 
       expect(fetchMock).toHaveBeenNthCalledWith(
@@ -988,8 +1013,8 @@ describe("SamServiceFal", () => {
             include_boxes: true,
             apply_mask: false,
             prompt: "foreground object",
-            point_prompts: [{ x: 12, y: 18, label: 1 }],
-            box_prompts: [{ x: 10, y: 14, width: 16, height: 8 }]
+            point_prompts: [{ x: 8, y: -6, label: 1 }],
+            box_prompts: [{ x: 6, y: -10, width: 16, height: 8 }]
           })
         })
       );

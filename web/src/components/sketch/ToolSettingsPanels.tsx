@@ -1529,10 +1529,10 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const supportsPointPrompts = Boolean(backendCapabilities.pointPrompts);
   const supportsBoxPrompts = Boolean(backendCapabilities.boxPrompts);
   const supportsTextPrompts = Boolean(backendCapabilities.textPrompts);
-  const canRunSegmentation = isLocalSam3
-    ? localSam3Ready &&
-      (settings.promptMode === "auto" ? canSplitSelectedLayer : true)
-    : true;
+  const backendReady = modelInfo?.status === "available";
+  const canRunSegmentation =
+    backendReady &&
+    (settings.promptMode === "auto" ? canSplitSelectedLayer : true);
   const canDownloadLocalSam3 =
     isLocalSam3 &&
     !!modelInfo &&
@@ -1550,10 +1550,10 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     (settings.promptMode === "point" && supportsPointPrompts) ||
     (settings.promptMode === "box" && supportsBoxPrompts);
   const segmentActionLabel =
-    isLocalSam3 && settings.promptMode === "auto"
+    settings.promptMode === "auto"
       ? "Split selected layer"
       : "Segment";
-  const showClearPrompts = !isLocalSam3 || settings.promptMode !== "auto";
+  const showClearPrompts = settings.promptMode !== "auto";
   const backendLabel = modelInfo?.backendLabel ?? (isLocalSam3 ? "Local SAM3" : "Selected backend");
   const modelStatusText = getSegmentModelStatusText(
     isLocalSam3,
@@ -1937,7 +1937,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           : `${backendLabel} currently supports automatic layer split only.`}
       </Typography>
 
-      {isLocalSam3 && settings.promptMode === "auto" && !canSplitSelectedLayer && (
+      {settings.promptMode === "auto" && !canSplitSelectedLayer && (
         <Typography
           sx={{
             fontSize: SKETCH_FONT.xs,

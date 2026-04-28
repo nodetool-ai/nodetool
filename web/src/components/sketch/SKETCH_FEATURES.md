@@ -397,10 +397,10 @@ Steps:
 
 Check:
 - [ ] Provider SAM3 does not affect the Local SAM3 path.
-- [ ] User-facing SAM actions behave the same for Local SAM3 and Provider SAM3 when both report the same capabilities.
-- [ ] Missing provider setup is shown as a hint, not an error.
+- [x] User-facing SAM actions behave the same for Local SAM3 and Provider SAM3 when both report the same capabilities.
+- [x] Missing provider setup is shown as a hint, not an error.
 - [x] Concept, point, and box prompt UI can be enabled by provider metadata without hardcoding UI assumptions.
-- [ ] Provider SAM3 outputs still apply as ordinary document-space layers.
+- [x] Provider SAM3 outputs still apply as ordinary document-space layers.
 
 ### [ ] 3.8 Validate The Local SAM3 Workflow Manually
 
