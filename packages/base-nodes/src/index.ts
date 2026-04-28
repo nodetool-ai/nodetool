@@ -649,6 +649,13 @@ export { MISTRAL_NODES } from "./nodes/mistral.js";
 export { OPENAI_NODES } from "./nodes/openai.js";
 export { SEARCH_NODES } from "./nodes/search.js";
 export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
+export {
+  SandboxShellNode,
+  SandboxBrowserNode,
+  SandboxFileNode,
+  SandboxAgentNode,
+  SANDBOX_NODES
+} from "./nodes/sandbox.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 export { TeamAgentNode, TeamLeadNode, TEAM_NODES } from "./nodes/team.js";
 export {
@@ -723,6 +730,7 @@ import { MISTRAL_NODES } from "./nodes/mistral.js";
 import { OPENAI_NODES } from "./nodes/openai.js";
 import { SEARCH_NODES } from "./nodes/search.js";
 import { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
+import { SANDBOX_NODES } from "./nodes/sandbox.js";
 import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 import { TEAM_NODES } from "./nodes/team.js";
 import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
@@ -794,6 +802,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...OPENAI_NODES,
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
+  ...SANDBOX_NODES,
   ...ANTHROPIC_NODES,
   ...TEAM_NODES,
   ...LIB_NLP_NODES

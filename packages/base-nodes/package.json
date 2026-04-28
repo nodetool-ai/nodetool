@@ -32,6 +32,7 @@
     "@nodetool/node-sdk": "*",
     "@nodetool/protocol": "*",
     "@nodetool/runtime": "*",
+    "@nodetool/sandbox": "*",
     "@nodetool/vectorstore": "*",
     "@supabase/supabase-js": "^2.98.0",
     "@tensorflow-models/coco-ssd": "^2.2.3",
