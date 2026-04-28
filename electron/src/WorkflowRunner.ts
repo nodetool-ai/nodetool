@@ -99,8 +99,6 @@ export const createWorkflowRunner = () =>
     chunks: [],
     onComplete: () => {},
     error: null,
-    nodeUpdate: null,
-    jobUpdate: null,
     statusMessage: null,
     jobId: null,
     results: [],
@@ -138,12 +136,6 @@ export const createWorkflowRunner = () =>
             buffer = new Uint8Array(0);
           }
           const data = decode(buffer) as WebSocketMessage;
-
-          if (data.type === "node_update") {
-            set({
-              statusMessage: `${data.node_name} ${data.status}`,
-            });
-          }
 
           if (data.type === "job_update") {
             set({
