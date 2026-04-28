@@ -16,6 +16,7 @@
  */
 
 import { act } from "@testing-library/react";
+import type { SecretResponse } from "../../../stores/ApiTypes";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
@@ -58,6 +59,11 @@ import {
 } from "../sam";
 import { getToolSettingsLabel } from "../ToolSettingsPanels";
 import { useSketchStore } from "../state";
+
+const CONFIGURED_FAL_SECRET: SecretResponse = {
+  key: "FAL_API_KEY",
+  is_configured: true
+};
 
 // ─── Segmentation Types & Defaults ────────────────────────────────────────────
 
@@ -800,10 +806,29 @@ describe("SamServiceFal", () => {
     expect(info.status).toBe("available");
   });
 
+  it("uses configured provider secret state without refetching secret metadata", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const fetchSecrets = jest.fn();
+    useSecretsStore.setState({
+      secrets: [CONFIGURED_FAL_SECRET],
+      fetchSecrets,
+      fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
+    } as Partial<ReturnType<typeof useSecretsStore.getState>>);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(fetchSecrets).not.toHaveBeenCalled();
+    expect(info.status).toBe("available");
+  });
+
   it("detects provider prompt capabilities from metadata", async () => {
     const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
     useSecretsStore.setState({
-      secrets: [{ key: "FAL_API_KEY", is_configured: true }] as any,
+      secrets: [CONFIGURED_FAL_SECRET],
       fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
     });
     useMetadataStore.setState({
@@ -835,7 +860,7 @@ describe("SamServiceFal", () => {
   it("keeps provider prompt controls disabled until metadata confirms them", async () => {
     const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
     useSecretsStore.setState({
-      secrets: [{ key: "FAL_API_KEY", is_configured: true }] as any,
+      secrets: [CONFIGURED_FAL_SECRET],
       fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
     });
     global.fetch = jest.fn().mockResolvedValue({

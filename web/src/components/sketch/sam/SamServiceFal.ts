@@ -111,6 +111,21 @@ interface FalNormalizedBox {
   height: number;
 }
 
+function isFalMaskMetadata(value: unknown): value is FalMaskMetadata {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value as FalMaskMetadata;
+  return (
+    typeof candidate.label === "string" ||
+    typeof candidate.name === "string" ||
+    isFiniteNumber(candidate.score) ||
+    candidate.box !== undefined ||
+    candidate.bbox !== undefined ||
+    candidate.bounds !== undefined
+  );
+}
+
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -149,13 +164,10 @@ function normalizeFalScores(value: unknown): number[] {
 function normalizeFalMetadataEntries(value: unknown): FalMaskMetadata[] {
   const parsed = parseJsonValue<unknown>(value);
   if (Array.isArray(parsed)) {
-    return parsed.filter(
-      (entry): entry is FalMaskMetadata =>
-        entry !== null && typeof entry === "object"
-    );
+    return parsed.filter((entry): entry is FalMaskMetadata => isFalMaskMetadata(entry));
   }
-  if (parsed && typeof parsed === "object") {
-    return [parsed as FalMaskMetadata];
+  if (isFalMaskMetadata(parsed)) {
+    return [parsed];
   }
   return [];
 }
@@ -248,6 +260,7 @@ function normalizeFalRle(value: unknown): string | string[] | null {
       }
       return value;
     } catch {
+      // Raw provider RLE may already be an opaque string instead of JSON.
       return value;
     }
   }
@@ -262,6 +275,10 @@ function normalizeFalRle(value: unknown): string | string[] | null {
     return entries.length > 0 ? entries : null;
   }
   return null;
+}
+
+function getFalMetadataBoxCandidate(metadata: FalMaskMetadata | undefined): unknown {
+  return metadata?.box ?? metadata?.bbox ?? metadata?.bounds;
 }
 
 function normalizeFalMetadataBox(
@@ -321,6 +338,7 @@ async function resolveFalApiKey(): Promise<string | null> {
   try {
     return await useSecretsStore.getState().fetchDecryptedSecret("FAL_API_KEY");
   } catch {
+    // Secret decryption failed, so treat the provider as unavailable.
     return null;
   }
 }
@@ -333,14 +351,17 @@ async function isFalApiKeyConfigured(): Promise<boolean> {
     return currentSecret.is_configured;
   }
   try {
-    const secrets = await store.fetchSecrets();
-    return Boolean(secrets.find((secret) => secret.key === "FAL_API_KEY")?.is_configured);
+    const fetchedSecrets = await store.fetchSecrets();
+    return Boolean(
+      fetchedSecrets.find((secret) => secret.key === "FAL_API_KEY")?.is_configured
+    );
   } catch {
+    // Secret metadata fetch failed, so default provider readiness to unconfigured.
     return false;
   }
 }
 
-function getFalSamCapabilities() {
+function getFalSamCapabilitiesFromMetadata() {
   const metadata = useMetadataStore.getState().getMetadata(FAL_SAM_NODE_TYPE);
   if (!metadata) {
     return FAL_SAM_METADATA_FALLBACK_CAPABILITIES;
@@ -429,7 +450,7 @@ async function uploadToFal(
 
 export class SamServiceFal implements SamService {
   async checkModelAvailability(): Promise<SamModelInfo> {
-    const capabilities = getFalSamCapabilities();
+    const capabilities = getFalSamCapabilitiesFromMetadata();
     const hasConfiguredSecret = await isFalApiKeyConfigured();
 
     if (!hasConfiguredSecret) {
@@ -657,14 +678,13 @@ export class SamServiceFal implements SamService {
     const scores = normalizeFalScores(data.scores);
     const boxes = normalizeFalBoxes(data.boxes, images, scale);
     const providerRle = normalizeFalRle(data.rle);
-    const providerNodeType =
-      providerRle !== null && images.length === 0
-        ? FAL_SAM_RLE_NODE_TYPE
-        : FAL_SAM_NODE_TYPE;
-    const providerModelId =
-      providerRle !== null && images.length === 0
-        ? SAM31_RLE_ENDPOINT
-        : DEFAULT_SAM_MODEL_ID;
+    const isRleOnlyResponse = providerRle !== null && images.length === 0;
+    const providerNodeType = isRleOnlyResponse
+      ? FAL_SAM_RLE_NODE_TYPE
+      : FAL_SAM_NODE_TYPE;
+    const providerModelId = isRleOnlyResponse
+      ? SAM31_RLE_ENDPOINT
+      : DEFAULT_SAM_MODEL_ID;
 
     if (images.length === 0) {
       return {
@@ -683,7 +703,7 @@ export class SamServiceFal implements SamService {
     const masks: SegmentationMask[] = images.map((img, i) => {
       const metadataEntry = metadataEntries[i];
       const metadataBox = normalizeFalMetadataBox(
-        metadataEntry?.box ?? metadataEntry?.bbox ?? metadataEntry?.bounds,
+        getFalMetadataBoxCandidate(metadataEntry),
         img,
         scale
       );
