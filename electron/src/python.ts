@@ -1,7 +1,7 @@
 import { promises as fs, constants } from "fs";
 import { spawn } from "child_process";
 import * as os from "os";
-import { app, dialog } from "electron";
+import { app } from "electron";
 import * as path from "path";
 
 import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
