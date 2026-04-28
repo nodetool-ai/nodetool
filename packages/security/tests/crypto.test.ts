@@ -410,19 +410,37 @@ describe("master-key", () => {
       expect(key).toBe("async-env-key");
     });
 
-    it("should auto-generate when no sources available", async () => {
+    it("should auto-generate when keychain is empty and writable", async () => {
+      setKeytarLoader({
+        getPassword: vi.fn(async () => null),
+        setPassword: vi.fn(async () => undefined),
+        deletePassword: vi.fn(async () => true)
+      });
+
       const key = await initMasterKey();
       expect(typeof key).toBe("string");
       expect(key.length).toBeGreaterThan(0);
     });
 
     it("should cache across initMasterKey and getMasterKey calls", async () => {
+      setKeytarLoader({
+        getPassword: vi.fn(async () => null),
+        setPassword: vi.fn(async () => undefined),
+        deletePassword: vi.fn(async () => true)
+      });
+
       const asyncKey = await initMasterKey();
       const syncKey = getMasterKey();
       expect(asyncKey).toBe(syncKey);
     });
 
     it("should return cached key on subsequent calls", async () => {
+      setKeytarLoader({
+        getPassword: vi.fn(async () => null),
+        setPassword: vi.fn(async () => undefined),
+        deletePassword: vi.fn(async () => true)
+      });
+
       const key1 = await initMasterKey();
       const key2 = await initMasterKey();
       expect(key1).toBe(key2);
@@ -551,7 +569,7 @@ describe("master-key", () => {
       );
     });
 
-    it("should continue gracefully when keychain getPassword throws", async () => {
+    it("should fail when keychain getPassword throws", async () => {
       const mockKeytar = {
         getPassword: vi.fn().mockRejectedValue(new Error("Keychain locked")),
         setPassword: vi.fn(async () => undefined),
@@ -559,10 +577,22 @@ describe("master-key", () => {
       };
       setKeytarLoader(mockKeytar);
 
-      // Should still return a key (auto-generated) without throwing
-      const key = await initMasterKey();
-      expect(typeof key).toBe("string");
-      expect(key.length).toBeGreaterThan(0);
+      await expect(initMasterKey()).rejects.toThrow(
+        /Allow NodeTool access to the system keychain/
+      );
+    });
+
+    it("should fail when generated key cannot be persisted", async () => {
+      const mockKeytar = {
+        getPassword: vi.fn(async () => null),
+        setPassword: vi.fn().mockRejectedValue(new Error("Access denied")),
+        deletePassword: vi.fn(async () => true)
+      };
+      setKeytarLoader(mockKeytar);
+
+      await expect(initMasterKey()).rejects.toThrow(
+        /Allow NodeTool access to the system keychain/
+      );
     });
   });
 });
