@@ -402,8 +402,9 @@ export class SamServiceNode implements SamService {
     request: SegmentationRequest,
     scale: number
   ): Array<{ x: number; y: number; label: 0 | 1 }> {
+    const promptMapper = this.createPromptMapper(request.sourceMetadata);
     return request.pointPrompts.map((point) => {
-      const mappedPoint = this.mapPromptPointToSourceImage(point, request.sourceMetadata);
+      const mappedPoint = this.mapPromptPointToSourceImage(point, promptMapper);
       return {
         x: Math.round(mappedPoint.x * scale),
         y: Math.round(mappedPoint.y * scale),
@@ -417,22 +418,20 @@ export class SamServiceNode implements SamService {
     sourceMetadata: SegmentationRequest["sourceMetadata"],
     scale: number
   ): { x: number; y: number; width: number; height: number } {
+    const promptMapper = this.createPromptMapper(sourceMetadata);
     const corners = [
-      this.mapPromptPointToSourceImage(
-        { x: boxPrompt.x, y: boxPrompt.y },
-        sourceMetadata
-      ),
+      this.mapPromptPointToSourceImage({ x: boxPrompt.x, y: boxPrompt.y }, promptMapper),
       this.mapPromptPointToSourceImage(
         { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y },
-        sourceMetadata
+        promptMapper
       ),
       this.mapPromptPointToSourceImage(
         { x: boxPrompt.x, y: boxPrompt.y + boxPrompt.height },
-        sourceMetadata
+        promptMapper
       ),
       this.mapPromptPointToSourceImage(
         { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y + boxPrompt.height },
-        sourceMetadata
+        promptMapper
       )
     ];
     const minX = Math.min(...corners.map((corner) => corner.x));
@@ -450,21 +449,29 @@ export class SamServiceNode implements SamService {
 
   private mapPromptPointToSourceImage(
     point: { x: number; y: number },
-    sourceMetadata: SegmentationRequest["sourceMetadata"]
+    promptMapper: CoordinateMapper | null
   ): { x: number; y: number } {
-    if (!sourceMetadata) {
+    if (!promptMapper) {
       return point;
     }
 
-    const mapper = new CoordinateMapper({
+    return promptMapper.docToLayer(point);
+  }
+
+  private createPromptMapper(
+    sourceMetadata: SegmentationRequest["sourceMetadata"]
+  ): CoordinateMapper | null {
+    if (!sourceMetadata) {
+      return null;
+    }
+
+    return new CoordinateMapper({
       layerTransform: sourceMetadata.layerTransform,
       rasterBounds: {
         x: sourceMetadata.contentBounds.x,
         y: sourceMetadata.contentBounds.y
       }
     });
-
-    return mapper.docToLayer(point);
   }
 
   private async buildLocalSam3ImageInput(imageDataUrl: string): Promise<{

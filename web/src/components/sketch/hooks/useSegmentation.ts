@@ -309,7 +309,7 @@ export function useSegmentation({
         setStatus("error");
       }
     },
-    [canvasRef]
+    []
   );
 
   const splitSelectedLayer = useCallback(async () => {

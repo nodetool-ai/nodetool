@@ -295,6 +295,7 @@ describe("useSegmentation document-space apply", () => {
       );
     });
 
+    expect(canvasRef.current?.getLayerData).not.toHaveBeenCalled();
     expect(runSegmentationMock).toHaveBeenCalledWith(
       expect.objectContaining({
         imageDataUrl: "data:image/png;base64,source",

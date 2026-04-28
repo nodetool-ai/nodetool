@@ -1591,7 +1591,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             if (v) {
               onChange({
                 backend: v as SegmentBackend,
-                // Default Local SAM3 to automatic split; prompted modes appear
+                // Default Local SAM3 to auto mode; prompted modes appear
                 // only when installed node metadata confirms them.
                 ...(v === "local-sam3" ? { promptMode: "auto" as const } : {})
               });
