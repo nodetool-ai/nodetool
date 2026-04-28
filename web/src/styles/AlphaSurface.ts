@@ -1,4 +1,5 @@
 import { css, type SerializedStyles } from "@emotion/react";
+import type { Theme } from "@mui/material/styles";
 
 /**
  * Subtle checkerboard pattern for transparent-image preview surfaces.
@@ -31,6 +32,27 @@ const checkerboardPattern = `
 `;
 
 // ── exports ──────────────────────────────────────────────────────────
+
+/**
+ * Theme-aware plain CSS property object for transparent-image preview surfaces.
+ */
+export const getAlphaSurfaceBg = (theme: Theme) => {
+  const baseColor = theme.vars.palette.background.default;
+  const checkerColor = theme.vars.palette.action.hover;
+  const checkerboardPattern = `
+  linear-gradient(45deg, ${checkerColor} 25%, transparent 25%),
+  linear-gradient(-45deg, ${checkerColor} 25%, transparent 25%),
+  linear-gradient(45deg, transparent 75%, ${checkerColor} 75%),
+  linear-gradient(-45deg, transparent 75%, ${checkerColor} 75%)
+`;
+
+  return {
+    backgroundColor: baseColor,
+    backgroundImage: checkerboardPattern,
+    backgroundSize: `${CHECKER_SIZE} ${CHECKER_SIZE}`,
+    backgroundPosition: `0 0, 0 ${HALF_SIZE}, ${HALF_SIZE} -${HALF_SIZE}, -${HALF_SIZE} 0px`
+  } as const;
+};
 
 /**
  * Plain CSS property object – spread into `sx`, `style`, or emotion `css`.
