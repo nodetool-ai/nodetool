@@ -562,7 +562,7 @@ describe("runInSandbox context bridge", () => {
       uri: `asset://from-${p}`,
       asset_id: "a-from-sandbox"
     })
-  } as unknown as import("@nodetool/runtime").ProcessingContext;
+  } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
 
   it("getSecret reads from the supplied context", async () => {
     const result = await runInSandbox({

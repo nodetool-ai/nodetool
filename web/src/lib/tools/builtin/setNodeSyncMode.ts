@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiSetNodeSyncModeParams } from "@nodetool/protocol";
+import { uiSetNodeSyncModeParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 

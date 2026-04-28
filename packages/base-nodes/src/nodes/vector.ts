@@ -3,13 +3,13 @@
  * Provides collection management, indexing, and querying operations.
  */
 
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   getVecStore,
   getCollection,
   OllamaEmbeddingFunction
-} from "@nodetool/vectorstore";
+} from "@nodetool-ai/vectorstore";
 
 // ---------------------------------------------------------------------------
 // Client helpers

@@ -1,11 +1,11 @@
-import { getPipeline, loadTransformers } from "@nodetool/transformers-js-nodes";
-import type { Chunk } from "@nodetool/protocol";
+import { getPipeline, loadTransformers } from "@nodetool-ai/transformers-js-nodes";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   Message,
   ProviderStreamItem,
   ProviderTool
-} from "@nodetool/runtime";
-import { createLogger } from "@nodetool/config";
+} from "@nodetool-ai/runtime";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.transformers-js-provider.chat");
 

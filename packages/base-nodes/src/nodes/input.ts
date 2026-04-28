@@ -1,4 +1,4 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";

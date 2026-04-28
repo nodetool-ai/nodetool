@@ -6,7 +6,7 @@
 
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 const DEFAULT_HEADERS: Record<string, string> = {

@@ -54,7 +54,7 @@ jest.mock("../torchPlatformCache", () => ({
   getTorchIndexUrl: jest.fn().mockReturnValue(null),
 }));
 
-jest.mock("@nodetool/runtime", () => ({
+jest.mock("@nodetool-ai/runtime", () => ({
   MIN_NODETOOL_CORE_VERSION: "0.7.0rc8",
 }));
 

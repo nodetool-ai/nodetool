@@ -5,13 +5,13 @@ title: "Proxy Reference"
 
 
 
-The NodeTool proxy (`@nodetool/deploy` `self-hosted.ts`) is a reverse proxy that starts Docker services on demand, terminates TLS/ACME via nginx, and forwards HTTP traffic using longest-prefix routing. It is deployed as a standalone container or run locally via the CLI.
+The NodeTool proxy (`@nodetool-ai/deploy` `self-hosted.ts`) is a reverse proxy that starts Docker services on demand, terminates TLS/ACME via nginx, and forwards HTTP traffic using longest-prefix routing. It is deployed as a standalone container or run locally via the CLI.
 
 ## Architecture
 
-- **Nginx reverse proxy** -- configured by `@nodetool/deploy` `self-hosted.ts`, handles incoming requests, matches URL prefixes, and proxies them to running containers.
-- **Docker manager** (`@nodetool/deploy` `docker.ts`) -- keeps track of registered services, starts/stops containers, and enforces idle timeouts.
-- **Configuration schema** (`@nodetool/deploy` `deployment-config.ts`) -- deserialises YAML into strongly typed settings for global behaviour and individual services.
+- **Nginx reverse proxy** -- configured by `@nodetool-ai/deploy` `self-hosted.ts`, handles incoming requests, matches URL prefixes, and proxies them to running containers.
+- **Docker manager** (`@nodetool-ai/deploy` `docker.ts`) -- keeps track of registered services, starts/stops containers, and enforces idle timeouts.
+- **Configuration schema** (`@nodetool-ai/deploy` `deployment-config.ts`) -- deserialises YAML into strongly typed settings for global behaviour and individual services.
 
 Key behaviours:
 
@@ -23,7 +23,7 @@ Key behaviours:
 
 ## Configuration (`proxy.yaml`)
 
-Rendered by the deployer into `<workspace>/proxy/proxy.yaml`; schema defined in `@nodetool/deploy` `deployment-config.ts`.
+Rendered by the deployer into `<workspace>/proxy/proxy.yaml`; schema defined in `@nodetool-ai/deploy` `deployment-config.ts`.
 
 ```yaml
 global:

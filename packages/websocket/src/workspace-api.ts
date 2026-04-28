@@ -8,7 +8,7 @@
 
 import { readFile } from "node:fs/promises";
 import { resolve, join, basename } from "node:path";
-import { Workspace } from "@nodetool/models";
+import { Workspace } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "./http-api.js";
 
 function jsonResponse(data: unknown, status = 200): Response {

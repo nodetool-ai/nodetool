@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { makeRegistry, makeRunner } from "./e2e/helpers.js";
-import type { Edge, NodeDescriptor } from "@nodetool/protocol";
+import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 import {
   AddColumnNode,
   AggregateNode,

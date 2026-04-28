@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/kie-nodes",
+  "name": "@nodetool-ai/kie-nodes",
   "type": "module",
   "version": "0.1.0",
   "description": "Kie.ai model nodes for the TS workflow runner",
@@ -11,7 +11,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/node-sdk": "*"
+    "@nodetool-ai/node-sdk": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -24,6 +24,23 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./kie-manifest.json": "./src/kie-manifest.json"
-  }
+    "./kie-manifest.json": "./dist/kie-manifest.json"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/kie-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

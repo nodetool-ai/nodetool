@@ -4,11 +4,11 @@
  * Port of src/nodetool/chat/regular_chat.py (process_regular_chat).
  */
 
-import type { BaseProvider } from "@nodetool/runtime";
-import type { Message, ToolCall, ProviderStreamItem } from "@nodetool/runtime";
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
-import type { Tool } from "@nodetool/agents";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { Message, ToolCall, ProviderStreamItem } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { Chunk } from "@nodetool-ai/protocol";
+import type { Tool } from "@nodetool-ai/agents";
 
 // ---------------------------------------------------------------------------
 // Types

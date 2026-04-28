@@ -5,7 +5,7 @@ import {
   handleAssetsRoot,
   handleAssetThumbnail
 } from "../http-api.js";
-import { loadPythonPackageMetadata } from "@nodetool/node-sdk";
+import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
 interface RouteOptions {

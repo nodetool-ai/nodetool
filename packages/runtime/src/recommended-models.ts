@@ -5,7 +5,7 @@
  * list without pulling in a Fastify server.
  */
 
-import type { UnifiedModel } from "@nodetool/protocol";
+import type { UnifiedModel } from "@nodetool-ai/protocol";
 import type { ProviderId } from "./providers/index.js";
 
 export interface RecommendedUnifiedModel extends UnifiedModel {

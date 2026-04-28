@@ -12,7 +12,7 @@ import {
   existsSync,
 } from "node:fs";
 import { join } from "node:path";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import {
   Codex,
   type ThreadEvent,

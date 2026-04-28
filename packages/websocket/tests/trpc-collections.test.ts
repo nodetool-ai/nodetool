@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { CollectionMetadata } from "@nodetool/protocol/api-schemas/collections.js";
+import type { CollectionMetadata } from "@nodetool-ai/protocol/api-schemas/collections.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool/vectorstore — tests exercise the router's orchestration of
+// Mock @nodetool-ai/vectorstore — tests exercise the router's orchestration of
 // store / collection handle calls, not the vector store itself.
-vi.mock("@nodetool/vectorstore", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/vectorstore")>();
+vi.mock("@nodetool-ai/vectorstore", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/vectorstore")>();
   return {
     ...actual,
     getVecStore: vi.fn(),
@@ -15,10 +15,10 @@ vi.mock("@nodetool/vectorstore", async (orig) => {
   };
 });
 
-// Mock @nodetool/models Workflow.get so list/workflow_name resolution is
+// Mock @nodetool-ai/models Workflow.get so list/workflow_name resolution is
 // deterministic and doesn't hit the DB.
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Workflow: {
@@ -28,8 +28,8 @@ vi.mock("@nodetool/models", async (orig) => {
   };
 });
 
-import { getVecStore, VecNotFoundError } from "@nodetool/vectorstore";
-import { Workflow } from "@nodetool/models";
+import { getVecStore, VecNotFoundError } from "@nodetool-ai/vectorstore";
+import { Workflow } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 

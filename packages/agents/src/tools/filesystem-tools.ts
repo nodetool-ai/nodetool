@@ -14,7 +14,7 @@ import {
   access
 } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 const MAX_READ_CHARS = 100_000;

@@ -1,5 +1,5 @@
-import { decodeWav, getPipeline, resampleLinear } from "@nodetool/transformers-js-nodes";
-import type { ASRResult } from "@nodetool/runtime";
+import { decodeWav, getPipeline, resampleLinear } from "@nodetool-ai/transformers-js-nodes";
+import type { ASRResult } from "@nodetool-ai/runtime";
 
 const TARGET_SAMPLE_RATE = 16000;
 

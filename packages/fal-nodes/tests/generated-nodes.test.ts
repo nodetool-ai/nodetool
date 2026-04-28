@@ -17,7 +17,7 @@ vi.mock("@fal-ai/client", () => ({
   }))
 }));
 
-import type { NodeClass } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { FAL_NODES, FalRawNode, FalDynamicNode } from "../src/index.js";
 
 describe("FAL_NODES from manifest", () => {

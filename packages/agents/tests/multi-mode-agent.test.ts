@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { MultiModeAgent } from "../src/multi-mode-agent.js";
 import { SubAgentPlanner } from "../src/sub-agent-planner.js";
-import type { ProcessingMessage } from "@nodetool/protocol";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { AgentMode, SubAgentConfig, Task } from "../src/types.js";
 
 // ---------------------------------------------------------------------------

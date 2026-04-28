@@ -235,9 +235,9 @@ To add a new provider:
 1. **Create provider class** in `packages/runtime/src/providers/`
 
 ```typescript
-import { BaseProvider } from "@nodetool/runtime";
-import { registerProvider } from "@nodetool/runtime";
-import type { Message, LanguageModel, ProviderId } from "@nodetool/runtime";
+import { BaseProvider } from "@nodetool-ai/runtime";
+import { registerProvider } from "@nodetool-ai/runtime";
+import type { Message, LanguageModel, ProviderId } from "@nodetool-ai/runtime";
 
 export class YourProvider extends BaseProvider {
   private apiKey: string;
@@ -300,8 +300,8 @@ Example test structure:
 
 ```typescript
 import { describe, it, expect } from "vitest";
-import { getProvider } from "@nodetool/runtime";
-import type { Message } from "@nodetool/runtime";
+import { getProvider } from "@nodetool-ai/runtime";
+import type { Message } from "@nodetool-ai/runtime";
 
 describe("YourProvider", () => {
   it("should generate a message", async () => {

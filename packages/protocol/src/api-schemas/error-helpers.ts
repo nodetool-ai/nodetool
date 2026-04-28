@@ -2,7 +2,7 @@ import { ApiErrorCode } from "./api-error-code.js";
 
 /**
  * Shape of the `error.data` object attached to TRPCClientError when the server
- * uses the errorFormatter from @nodetool/websocket/src/trpc/error-formatter.
+ * uses the errorFormatter from @nodetool-ai/websocket/src/trpc/error-formatter.
  * Re-declared here so clients don't depend on server internals.
  */
 export interface NodetoolTRPCErrorData {

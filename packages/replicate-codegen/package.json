@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/replicate-codegen",
+  "name": "@nodetool-ai/replicate-codegen",
   "type": "module",
   "version": "0.1.0",
   "private": true,
@@ -13,7 +13,7 @@
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
-    "@nodetool/node-sdk": "*",
+    "@nodetool-ai/node-sdk": "*",
     "@types/node": "^22.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.7.2",

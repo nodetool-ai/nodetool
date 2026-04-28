@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { initTestDb, Workflow } from "@nodetool/models";
+import { initTestDb, Workflow } from "@nodetool-ai/models";
 import { handleApiRequest } from "../src/http-api.js";
 
 describe("HTTP API: workflow DSL export", () => {
@@ -49,7 +49,7 @@ describe("HTTP API: workflow DSL export", () => {
 
     const body = await response.text();
     expect(body).toContain(
-      'import { constant, output, workflow } from "@nodetool/dsl";'
+      'import { constant, output, workflow } from "@nodetool-ai/dsl";'
     );
     expect(body).toContain("const greeting = constant.string({");
     expect(body).toContain(

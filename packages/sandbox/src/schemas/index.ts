@@ -2,9 +2,9 @@
  * Shared Zod schemas for the sandbox tool surface.
  *
  * Imported by:
- *   - host (@nodetool/sandbox) — to validate client requests and describe
+ *   - host (@nodetool-ai/sandbox) — to validate client requests and describe
  *     tools to LLMs
- *   - in-container (@nodetool/sandbox-agent) — to validate Fastify routes
+ *   - in-container (@nodetool-ai/sandbox-agent) — to validate Fastify routes
  *
  * Single source of truth means no schema drift between host and container.
  */

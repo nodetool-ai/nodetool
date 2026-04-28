@@ -10,17 +10,17 @@ import type {
   BaseProvider,
   ProcessingContext,
   Message
-} from "@nodetool/runtime";
-import { withAgentSpanGen } from "@nodetool/runtime";
-import type { NodeRegistry } from "@nodetool/node-sdk";
-import { createLogger } from "@nodetool/config";
+} from "@nodetool-ai/runtime";
+import { withAgentSpanGen } from "@nodetool-ai/runtime";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   GraphData,
   ProcessingMessage,
   Chunk,
   PlanningUpdate,
   ToolCallUpdate
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 
 import type { Tool } from "./tools/base-tool.js";
 import { GraphBuilder } from "./graph-builder.js";

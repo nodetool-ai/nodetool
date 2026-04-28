@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/sandbox-agent",
+  "name": "@nodetool-ai/sandbox-agent",
   "type": "module",
   "version": "0.1.0",
   "description": "In-container tool server: Fastify HTTP service exposing file, shell, browser, and desktop tools to the host sandbox. Ships baked into the sandbox Docker image.",
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@fastify/multipart": "^9.0.0",
-    "@nodetool/sandbox": "*",
+    "@nodetool-ai/sandbox": "*",
     "fastify": "^5.1.0",
     "playwright": "^1.49.0",
     "zod": "^4.0.0"
@@ -34,5 +34,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-agent"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

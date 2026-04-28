@@ -1,7 +1,7 @@
 /**
  * Tests for `nodetool models hf-*` and `recommended` commands.
  *
- * Mocks @nodetool/huggingface + @nodetool/runtime so we don't hit the
+ * Mocks @nodetool-ai/huggingface + @nodetool-ai/runtime so we don't hit the
  * network or the local HF cache.
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -18,7 +18,7 @@ class FakeDownloadManager {
   startDownload = startDownload;
 }
 
-vi.mock("@nodetool/huggingface", () => ({
+vi.mock("@nodetool-ai/huggingface", () => ({
   searchHfHub,
   listAllHfModels,
   readCachedHfModels,
@@ -32,7 +32,7 @@ vi.mock("@nodetool/huggingface", () => ({
   ])
 }));
 
-vi.mock("@nodetool/runtime", () => ({
+vi.mock("@nodetool-ai/runtime", () => ({
   RECOMMENDED_MODELS: [
     {
       id: "gpt-4o-mini",

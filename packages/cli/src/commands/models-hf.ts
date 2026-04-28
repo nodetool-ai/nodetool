@@ -15,7 +15,7 @@ import {
   readCachedHfModels,
   searchHfHub,
   type DownloadUpdate
-} from "@nodetool/huggingface";
+} from "@nodetool-ai/huggingface";
 
 import { asJson, printTable } from "./deploy-helpers.js";
 

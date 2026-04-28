@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { StepExecutor } from "../src/step-executor.js";
 import type { Step, Task } from "../src/types.js";
-import type { ProcessingMessage, TaskUpdate } from "@nodetool/protocol";
-import type { BaseProvider, ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingMessage, TaskUpdate } from "@nodetool-ai/protocol";
+import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type { Tool } from "../src/tools/base-tool.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";

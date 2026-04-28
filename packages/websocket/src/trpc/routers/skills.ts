@@ -13,8 +13,8 @@ import { protectedProcedure } from "../middleware.js";
 import {
   listOutput as skillsListOutput,
   type SkillInfo
-} from "@nodetool/protocol/api-schemas/skills.js";
-import { listOutput as fontsListOutput } from "@nodetool/protocol/api-schemas/fonts.js";
+} from "@nodetool-ai/protocol/api-schemas/skills.js";
+import { listOutput as fontsListOutput } from "@nodetool-ai/protocol/api-schemas/fonts.js";
 
 // ── Skill listing helpers (ported from legacy skills-api.ts) ──────
 

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { OpenAIProvider } from "./openai-provider.js";
 import type {
   ImageModel,

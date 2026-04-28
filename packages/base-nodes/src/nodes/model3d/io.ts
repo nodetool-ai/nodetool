@@ -1,8 +1,8 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
 import { dateName, extFormat, filePath, modelRef, modelRefToBytes } from "./utils.js";

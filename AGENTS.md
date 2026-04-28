@@ -116,7 +116,7 @@ Before submitting a PR, review for:
 - **WebSocket uses MsgPack, not JSON**: Use existing serialization helpers. Don't serialize WebSocket messages as JSON.
 - **Don't create WebSocket instances**: Use `GlobalWebSocketManager` singleton in the frontend.
 - **ES Modules everywhere**: All packages use `"type": "module"`. Compiled imports need `.js` extensions.
-- **Never import from `dist/`**: Use `@nodetool/<package>` workspace references in source code.
+- **Never import from `dist/`**: Use `@nodetool-ai/<package>` workspace references in source code.
 
 ---
 
@@ -257,7 +257,7 @@ See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific t
 ### TypeScript Backend (`packages/`)
 - **Node.js LTS**, **TypeScript 5.4+**, **ES Modules**
 - **Vitest** for testing
-- Key packages: `@nodetool/websocket` (server), `@nodetool/kernel` (runtime), `@nodetool/cli` (CLI)
+- Key packages: `@nodetool-ai/websocket` (server), `@nodetool-ai/kernel` (runtime), `@nodetool-ai/cli` (CLI)
 - See [packages/AGENTS.md](packages/AGENTS.md) for full package list
 
 ### Web

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // ── Shared model schema ─────────────────────────────────────────────
 
-// Mirrors UnifiedModel in @nodetool/protocol/api-types. Keep fields in sync
+// Mirrors UnifiedModel in @nodetool-ai/protocol/api-types. Keep fields in sync
 // with the TS interface; zod strips unknown fields on both input and output
 // validation, so an omitted property silently disappears from wire traffic.
 export const unifiedModel = z.object({
@@ -122,7 +122,7 @@ export const hfFileRequest = z.object({
 
 export const hfFileInfoInput = z.array(hfFileRequest);
 
-// Use unknown for file info since the shape comes from @nodetool/huggingface
+// Use unknown for file info since the shape comes from @nodetool-ai/huggingface
 export const hfFileInfoOutput = z.array(z.record(z.string(), z.unknown()));
 
 // ── HuggingFace search ─────────────────────────────────────────────

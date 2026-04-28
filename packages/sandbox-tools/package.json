@@ -1,8 +1,8 @@
 {
-  "name": "@nodetool/sandbox-tools",
+  "name": "@nodetool-ai/sandbox-tools",
   "type": "module",
   "version": "0.1.0",
-  "description": "Agent tool adapter: exposes a sandbox's ToolClient as a set of @nodetool/agents Tool instances",
+  "description": "Agent tool adapter: exposes a sandbox's ToolClient as a set of @nodetool-ai/agents Tool instances",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -13,9 +13,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/agents": "*",
-    "@nodetool/runtime": "*",
-    "@nodetool/sandbox": "*",
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox": "*",
     "zod": "^4.0.0"
   },
   "devDependencies": {
@@ -30,5 +30,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-tools"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

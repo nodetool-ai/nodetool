@@ -5,7 +5,7 @@
  * Centralized here so the prompt's table and the runtime catalog can't drift.
  */
 
-import { PROVIDER_NAMESPACES } from "@nodetool/node-sdk";
+import { PROVIDER_NAMESPACES } from "@nodetool-ai/node-sdk";
 
 export type GenericNodeCapability =
   | "text_to_image"
@@ -37,7 +37,7 @@ export interface GenericAINode {
  * Curated set of provider-agnostic nodes the agent must reach for FIRST when
  * the user asks for AI generation/transform of any kind.
  *
- * Verified to exist in `@nodetool/base-nodes` as of writing.
+ * Verified to exist in `@nodetool-ai/base-nodes` as of writing.
  */
 export const GENERIC_AI_NODES: readonly GenericAINode[] = [
   {

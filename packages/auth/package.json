@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/auth",
+  "name": "@nodetool-ai/auth",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -24,5 +24,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/auth"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

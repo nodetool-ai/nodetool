@@ -22,7 +22,7 @@
     "@mui/material": "^7.3.10",
     "@mui/x-date-pickers": "^7.23.1",
     "@mui/x-tree-view": "^7.23.0",
-    "@nodetool/protocol": "file:../packages/protocol",
+    "@nodetool-ai/protocol": "file:../packages/protocol",
     "@react-three/drei": "^10.0.0",
     "@react-three/fiber": "^9.6.0",
     "@supabase/supabase-js": "^2.104.1",

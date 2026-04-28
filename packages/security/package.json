@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/security",
+  "name": "@nodetool-ai/security",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -10,7 +10,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/config": "*",
+    "@nodetool-ai/config": "*",
     "@aws-sdk/client-secrets-manager": "^3.1029.0",
     "keytar": "^7.9.0"
   },
@@ -25,5 +25,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/security"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

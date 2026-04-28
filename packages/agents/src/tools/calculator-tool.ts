@@ -4,7 +4,7 @@
  * Port of src/nodetool/agents/tools/math_tools.py (CalculatorTool)
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 const MATH_SCOPE: Record<string, unknown> = {

@@ -6,8 +6,8 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { BaseAgent } from "../src/base-agent.js";
-import type { ProcessingContext, BaseProvider } from "@nodetool/runtime";
-import type { ProcessingMessage } from "@nodetool/protocol";
+import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 
 /* ------------------------------------------------------------------ */
 /*  Minimal concrete subclass for testing                             */

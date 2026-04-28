@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/replicate-nodes",
+  "name": "@nodetool-ai/replicate-nodes",
   "type": "module",
   "version": "0.1.0",
   "description": "Replicate AI model nodes for the TS workflow runner",
@@ -13,7 +13,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/node-sdk": "*",
+    "@nodetool-ai/node-sdk": "*",
     "replicate": "*"
   },
   "devDependencies": {
@@ -27,6 +27,23 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./replicate-manifest.json": "./src/replicate-manifest.json"
-  }
+    "./replicate-manifest.json": "./dist/replicate-manifest.json"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/replicate-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

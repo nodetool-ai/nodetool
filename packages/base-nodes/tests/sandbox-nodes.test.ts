@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 type RunAgentLoopArgs = {
   providerId?: string;
@@ -53,7 +53,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("@nodetool/sandbox", () => {
+vi.mock("@nodetool-ai/sandbox", () => {
   class SessionStore {
     acquire = mocks.acquire;
   }

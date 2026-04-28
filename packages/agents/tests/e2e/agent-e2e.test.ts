@@ -23,9 +23,9 @@ import {
   textScript,
   autoScript,
   toolThenFinishScript
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 import type { Task } from "../../src/types.js";
-import type { ProcessingMessage, StepResult } from "@nodetool/protocol";
+import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Test helpers

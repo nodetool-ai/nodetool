@@ -1,8 +1,8 @@
 /**
  * Image OCR (text recognition) nodes using tesseract.js.
  */
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
 

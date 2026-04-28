@@ -7,7 +7,7 @@
 
 ## Goal
 
-Expose `@nodetool/transformers-js-nodes` capabilities to the rest of NodeTool through the standard `BaseProvider` interface, so that:
+Expose `@nodetool-ai/transformers-js-nodes` capabilities to the rest of NodeTool through the standard `BaseProvider` interface, so that:
 
 - Chat UI / agent CLI / workflow message nodes can pick a transformers.js model the same way they pick Ollama or OpenAI.
 - TTS, ASR, and embedding model pickers (`useTTSProviders`, `useASRProviders`, `useEmbeddingProviders`) automatically surface transformers.js options.
@@ -23,7 +23,7 @@ Expose `@nodetool/transformers-js-nodes` capabilities to the rest of NodeTool th
 
 ## Package layout
 
-New workspace package `@nodetool/transformers-js-provider` at `packages/transformers-js-provider/`:
+New workspace package `@nodetool-ai/transformers-js-provider` at `packages/transformers-js-provider/`:
 
 ```
 packages/transformers-js-provider/
@@ -45,12 +45,12 @@ packages/transformers-js-provider/
     └── model-discovery.test.ts
 ```
 
-**Why a new package:** `@nodetool/runtime` is the dependency root for the websocket server and chat CLI. Embedding the wasm/onnx/kokoro stack there pulls those into every server boot. Keeping the provider in its own workspace package preserves the option to lazy-load it (mirrors `@nodetool/transformers-js-nodes` itself).
+**Why a new package:** `@nodetool-ai/runtime` is the dependency root for the websocket server and chat CLI. Embedding the wasm/onnx/kokoro stack there pulls those into every server boot. Keeping the provider in its own workspace package preserves the option to lazy-load it (mirrors `@nodetool-ai/transformers-js-nodes` itself).
 
 **Dependencies:**
-- `@nodetool/runtime` — `BaseProvider`, types, registry
-- `@nodetool/transformers-js-nodes` — `getPipeline`, `loadTransformers`, `recommendedFor`, `scanTransformersJsCache`, `getTransformersJsCacheDir`, `KOKORO_VOICES` (re-export)
-- `@nodetool/protocol` — `Chunk`
+- `@nodetool-ai/runtime` — `BaseProvider`, types, registry
+- `@nodetool-ai/transformers-js-nodes` — `getPipeline`, `loadTransformers`, `recommendedFor`, `scanTransformersJsCache`, `getTransformersJsCacheDir`, `KOKORO_VOICES` (re-export)
+- `@nodetool-ai/protocol` — `Chunk`
 - `kokoro-js` (transitive via transformers-js-nodes) — already a dep
 - No direct `@huggingface/transformers` import; everything routes through `getPipeline`/`loadTransformers` from `transformers-js-nodes`.
 
@@ -151,7 +151,7 @@ Future: per-instance overrides via constructor options (`{ defaultDtype, default
 
 ## Registration
 
-`packages/transformers-js-provider/src/index.ts` calls `registerProvider("transformers_js", () => new TransformersJsProvider())`. Registration is invoked from the websocket server's provider bootstrap (matches how `@nodetool/runtime`'s built-in providers register today). One-line edit to `packages/websocket/src/server.ts` (or wherever provider modules are imported for side effects).
+`packages/transformers-js-provider/src/index.ts` calls `registerProvider("transformers_js", () => new TransformersJsProvider())`. Registration is invoked from the websocket server's provider bootstrap (matches how `@nodetool-ai/runtime`'s built-in providers register today). One-line edit to `packages/websocket/src/server.ts` (or wherever provider modules are imported for side effects).
 
 The `availableProviderIds` query (in `getAvailableProviderIds(userId)`) should include `transformers_js` unconditionally — it has no secrets to gate on. Verify the existing implementation does the right thing for secret-less providers; adjust if needed.
 
@@ -193,4 +193,4 @@ No live model downloads in CI; everything mock-based. A separate `tests/integrat
 
 ## Migration / backwards compatibility
 
-Net additive. No public API changes in `@nodetool/runtime` or `@nodetool/transformers-js-nodes`. The new package is opt-in until registered; once the websocket server imports it for side effects, the provider becomes available to all clients. No DB migrations.
+Net additive. No public API changes in `@nodetool-ai/runtime` or `@nodetool-ai/transformers-js-nodes`. The new package is opt-in until registered; once the websocket server imports it for side effects, the provider becomes available to all clients. No DB migrations.

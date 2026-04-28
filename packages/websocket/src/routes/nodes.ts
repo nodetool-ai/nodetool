@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
 import { handleNodeMetadata } from "../http-api.js";
-import { resolveKieDynamicSchema } from "@nodetool/base-nodes";
+import { resolveKieDynamicSchema } from "@nodetool-ai/base-nodes";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
 interface RouteOptions {

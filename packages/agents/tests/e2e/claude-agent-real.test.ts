@@ -11,8 +11,8 @@ import { Agent } from "../../src/agent.js";
 import { TaskExecutor } from "../../src/task-executor.js";
 import { StepExecutor } from "../../src/step-executor.js";
 import { Tool } from "../../src/tools/base-tool.js";
-import { ClaudeAgentProvider, ProcessingContext } from "@nodetool/runtime";
-import type { ProcessingMessage, StepResult } from "@nodetool/protocol";
+import { ClaudeAgentProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import type { Task } from "../../src/types.js";
 
 const MODEL = "claude-sonnet-4-20250514";

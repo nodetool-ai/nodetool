@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import {
   ImageTo3DNode,

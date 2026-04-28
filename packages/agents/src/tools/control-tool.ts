@@ -8,8 +8,8 @@
  * it creates a RunEvent for dispatch to the controlled node.
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { ControlEvent, RunEvent } from "@nodetool/protocol";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ControlEvent, RunEvent } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
 
 /**

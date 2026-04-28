@@ -16,7 +16,7 @@
  * in isolation.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { initTestDb, Thread, Message } from "@nodetool/models";
+import { initTestDb, Thread, Message } from "@nodetool-ai/models";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ const { processChatSpy } = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("@nodetool/chat", () => ({
+vi.mock("@nodetool-ai/chat", () => ({
   processChat: processChatSpy,
 }));
 
@@ -67,8 +67,8 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
   getSessionMessages: async () => [],
 }));
 
-vi.mock("@nodetool/runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@nodetool/runtime")>();
+vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nodetool-ai/runtime")>();
   return {
     ...actual,
     getProvider: vi.fn(async () => ({

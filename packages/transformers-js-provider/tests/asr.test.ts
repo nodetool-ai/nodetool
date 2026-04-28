@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const asrPipelineFn = vi.fn();
 
-vi.mock("@nodetool/transformers-js-nodes", () => ({
+vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
   decodeWav: () => ({
     samples: new Float32Array([0, 0.1, -0.1, 0]),
     sampleRate: 8000,

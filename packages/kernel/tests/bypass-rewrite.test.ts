@@ -8,7 +8,7 @@ import {
   rewriteBypassedNodes,
   isNodeBypassed
 } from "../src/graph-utils.js";
-import type { NodeDescriptor, Edge, GraphData } from "@nodetool/protocol";
+import type { NodeDescriptor, Edge, GraphData } from "@nodetool-ai/protocol";
 
 function makeNode(
   id: string,

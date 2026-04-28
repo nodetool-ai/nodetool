@@ -1,5 +1,5 @@
 /**
- * @nodetool/protocol – Graph Types
+ * @nodetool-ai/protocol – Graph Types
  *
  * TypeScript equivalents of graph structures from:
  *   src/nodetool/types/api_graph.py (Edge)

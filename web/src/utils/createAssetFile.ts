@@ -1,7 +1,7 @@
 import { authHeader } from "../lib/auth";
 import type { Chunk } from "../stores/ApiTypes";
 import { trpcClient } from "../trpc/client";
-import { isTRPCErrorWithCode, ApiErrorCode } from "@nodetool/protocol/api-schemas";
+import { isTRPCErrorWithCode, ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
 import { resolveAssetUri } from "../components/node/output/hooks";
 
 interface AssetFileResult {

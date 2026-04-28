@@ -16,7 +16,7 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageTo3DParams,
   Message,

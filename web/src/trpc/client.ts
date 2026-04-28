@@ -6,7 +6,7 @@ import {
   type TRPCClientErrorLike
 } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
 import { isLocalhost } from "../lib/env";
 import { supabase } from "../lib/supabaseClient";

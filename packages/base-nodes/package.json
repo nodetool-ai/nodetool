@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/base-nodes",
+  "name": "@nodetool-ai/base-nodes",
   "type": "module",
   "version": "0.1.0",
   "description": "Basic nodetool-base node ports for the TS workflow runner",
@@ -24,16 +24,16 @@
     "@llamaindex/liteparse": "^1.5.2",
     "@mozilla/readability": "^0.6.0",
     "@napi-rs/canvas": "^0.1.65",
-    "@nodetool/agents": "*",
-    "@nodetool/code-runners": "*",
-    "@nodetool/config": "*",
-    "@nodetool/kernel": "*",
-    "@nodetool/kie-nodes": "*",
-    "@nodetool/node-sdk": "*",
-    "@nodetool/protocol": "*",
-    "@nodetool/runtime": "*",
-    "@nodetool/sandbox": "*",
-    "@nodetool/vectorstore": "*",
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/code-runners": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/kie-nodes": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox": "*",
+    "@nodetool-ai/vectorstore": "*",
     "@supabase/supabase-js": "^2.98.0",
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow-models/mobilenet": "^2.1.1",
@@ -82,5 +82,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/base-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

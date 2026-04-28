@@ -7,7 +7,7 @@
  * Use cases: human-in-the-loop, external callbacks, scheduled resumption.
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.kernel.suspendable");
 

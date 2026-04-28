@@ -2,10 +2,10 @@
  * Asset filename + storage path helpers — shared between the REST handler
  * in `http-api.ts` and the tRPC `assets` router. Kept in a standalone module
  * so the tRPC router doesn't need to pull in the whole `http-api.ts` (which
- * imports `@nodetool/dsl` → `base-nodes` → `kie-nodes` at module load).
+ * imports `@nodetool-ai/dsl` → `base-nodes` → `kie-nodes` at module load).
  */
 
-import { getDefaultAssetsPath } from "@nodetool/config";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import type { StorageHandlerOptions } from "../storage-api.js";
 
 const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {

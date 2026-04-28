@@ -15,7 +15,7 @@
  */
 
 import Dockerode from "dockerode";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   Sandbox,
   SandboxOptions,

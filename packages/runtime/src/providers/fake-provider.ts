@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
 import type {
   LanguageModel,

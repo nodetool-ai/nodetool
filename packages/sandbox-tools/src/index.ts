@@ -1,6 +1,6 @@
 /**
- * @nodetool/sandbox-tools — adapter that exposes a sandbox's ToolClient
- * as a set of @nodetool/agents Tool instances.
+ * @nodetool-ai/sandbox-tools — adapter that exposes a sandbox's ToolClient
+ * as a set of @nodetool-ai/agents Tool instances.
  *
  * Usage:
  *

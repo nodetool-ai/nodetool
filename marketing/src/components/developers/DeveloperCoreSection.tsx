@@ -22,7 +22,7 @@ nvm use         # Node 24.x
 npm install
 npm run build:packages`;
 
-const basicUsageCode = `import { workflow, constant, text, agent } from "@nodetool/dsl";
+const basicUsageCode = `import { workflow, constant, text, agent } from "@nodetool-ai/dsl";
 
 // Define an input
 const question = constant.string({ value: "What is NodeTool?" });
@@ -38,7 +38,7 @@ const reply = agent.run({
 const wf = workflow(reply);
 
 // Run it:
-//   import { WorkflowRunner } from "@nodetool/kernel";
+//   import { WorkflowRunner } from "@nodetool-ai/kernel";
 //   const result = await new WorkflowRunner().run(wf);`;
 
 const dslExplanation = [
@@ -222,7 +222,7 @@ export default function DeveloperCoreSection({
               <div>
                 <p className="text-sm text-slate-400 mb-2">npm package:</p>
                 <div className="rounded-lg bg-slate-950/90 p-4 text-xs text-slate-300 font-mono border border-slate-700/50 flex items-center justify-between gap-3">
-                  <code className="language-bash text-slate-500 line-through">npm install @nodetool/kernel</code>
+                  <code className="language-bash text-slate-500 line-through">npm install @nodetool-ai/kernel</code>
                   <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-500/30 whitespace-nowrap">
                     coming soon
                   </span>

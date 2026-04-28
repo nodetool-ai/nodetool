@@ -1,7 +1,7 @@
 import Replicate from "replicate";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -303,7 +303,7 @@ export class ReplicateProvider extends BaseProvider {
 
   async getAvailableImageModels(): Promise<ImageModel[]> {
     return loadImageModels(
-      "@nodetool/replicate-nodes",
+      "@nodetool-ai/replicate-nodes",
       "replicate-manifest.json",
       "replicate"
     );
@@ -311,7 +311,7 @@ export class ReplicateProvider extends BaseProvider {
 
   async getAvailableVideoModels(): Promise<VideoModel[]> {
     return loadVideoModels(
-      "@nodetool/replicate-nodes",
+      "@nodetool-ai/replicate-nodes",
       "replicate-manifest.json",
       "replicate"
     );

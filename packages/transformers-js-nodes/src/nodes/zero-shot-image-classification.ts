@@ -1,6 +1,6 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   DEVICE_VALUES,
   DTYPE_VALUES,

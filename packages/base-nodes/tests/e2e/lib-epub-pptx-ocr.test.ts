@@ -22,7 +22,7 @@ import {
   OutputNode
 } from "../../src/index.js";
 import { makeRegistry, makeRunner } from "./helpers.js";
-import type { Edge, NodeDescriptor } from "@nodetool/protocol";
+import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 
 async function buildEpubBase64(): Promise<string> {
   const zip = new JSZip();

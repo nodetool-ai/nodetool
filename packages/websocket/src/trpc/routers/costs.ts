@@ -1,4 +1,4 @@
-import { Prediction, type AggregateResult } from "@nodetool/models";
+import { Prediction, type AggregateResult } from "@nodetool-ai/models";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import {
@@ -12,7 +12,7 @@ import {
   summaryOutput,
   type PredictionResponse,
   type AggregateByUserOutput
-} from "@nodetool/protocol/api-schemas/costs.js";
+} from "@nodetool-ai/protocol/api-schemas/costs.js";
 
 function toPredictionResponse(pred: Prediction): PredictionResponse {
   return {

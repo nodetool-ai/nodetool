@@ -5,7 +5,7 @@
  */
 import { type Server } from "node:http";
 import { type AddressInfo } from "node:net";
-import { initTestDb } from "@nodetool/models";
+import { initTestDb } from "@nodetool-ai/models";
 import { createHttpApiServer } from "../../src/http-api.js";
 
 let server: Server;

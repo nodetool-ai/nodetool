@@ -19,7 +19,7 @@
       "node"
     ],
     "paths": {
-      "@nodetool/websocket/trpc": [
+      "@nodetool-ai/websocket/trpc": [
         "../packages/websocket/dist/trpc/router.d.ts"
       ]
     }

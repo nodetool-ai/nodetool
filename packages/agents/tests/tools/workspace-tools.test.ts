@@ -11,7 +11,7 @@ import {
   WorkspaceWriteTool,
   WorkspaceListTool
 } from "../../src/tools/workspace-tools.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */

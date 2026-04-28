@@ -155,9 +155,9 @@ If you're building custom nodes or using the TypeScript API, here are the key te
 | Component | What It Does |
 |-----------|-------------|
 | **Graph** | A collection of nodes and connections. Use `graph()` to build and `run_graph()` to execute. |
-| **DSL** | [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool/dsl`) for building workflows programmatically with type-safe factories. |
+| **DSL** | [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool-ai/dsl`) for building workflows programmatically with type-safe factories. |
 | **WorkflowRunner** | The execution engine. Handles parallel execution, GPU management, and progress streaming. |
-| **ProcessingContext** | Runtime environment providing user data, auth tokens, asset storage, and cache adapters (`@nodetool/runtime`). |
+| **ProcessingContext** | Runtime environment providing user data, auth tokens, asset storage, and cache adapters (`@nodetool-ai/runtime`). |
 
 ### Node Type Resolution
 

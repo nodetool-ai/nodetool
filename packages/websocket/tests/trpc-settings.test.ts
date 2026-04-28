@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type {
   SettingWithValue,
   SecretResponse
-} from "@nodetool/protocol/api-schemas/settings.js";
+} from "@nodetool-ai/protocol/api-schemas/settings.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool/models for Setting/Secret and cache helpers.
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+// Mock @nodetool-ai/models for Setting/Secret and cache helpers.
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Setting: {
@@ -28,17 +28,17 @@ vi.mock("@nodetool/models", async (orig) => {
   };
 });
 
-// Mock @nodetool/runtime for clearProviderCache.
-vi.mock("@nodetool/runtime", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/runtime")>();
+// Mock @nodetool-ai/runtime for clearProviderCache.
+vi.mock("@nodetool-ai/runtime", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/runtime")>();
   return {
     ...actual,
     clearProviderCache: vi.fn()
   };
 });
 
-import { Setting, Secret, clearSecretCache } from "@nodetool/models";
-import { clearProviderCache } from "@nodetool/runtime";
+import { Setting, Secret, clearSecretCache } from "@nodetool-ai/models";
+import { clearProviderCache } from "@nodetool-ai/runtime";
 
 const createCaller = createCallerFactory(appRouter);
 

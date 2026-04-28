@@ -31,7 +31,7 @@ function run(command, args) {
 }
 
 function getWorkspaceDir(workspaceName) {
-  return resolve(rootDir, "packages", workspaceName.replace("@nodetool/", ""));
+  return resolve(rootDir, "packages", workspaceName.replace("@nodetool-ai/", ""));
 }
 
 function getWorkspaceDependencies(workspaceName) {

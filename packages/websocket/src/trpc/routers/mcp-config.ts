@@ -29,7 +29,7 @@ import {
   type TargetStatus,
   type InstallResult,
   type UninstallResult
-} from "@nodetool/protocol/api-schemas/mcp-config.js";
+} from "@nodetool-ai/protocol/api-schemas/mcp-config.js";
 
 const ALL_TARGETS: McpTarget[] = ["claude", "codex", "opencode"];
 const TARGET_LABELS: Record<McpTarget, string> = {

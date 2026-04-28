@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/elevenlabs-nodes",
+  "name": "@nodetool-ai/elevenlabs-nodes",
   "type": "module",
   "version": "0.1.0",
   "description": "ElevenLabs AI nodes for nodetool",
@@ -12,8 +12,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/node-sdk": "*",
-    "@nodetool/runtime": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/runtime": "*",
     "@elevenlabs/elevenlabs-js": "^2.0.0",
     "ws": "^8.18.0"
   },
@@ -29,5 +29,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/elevenlabs-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

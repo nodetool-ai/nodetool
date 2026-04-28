@@ -1,5 +1,5 @@
 /**
- * @nodetool/protocol – Public API
+ * @nodetool-ai/protocol – Public API
  */
 
 export * from "./messages.js";

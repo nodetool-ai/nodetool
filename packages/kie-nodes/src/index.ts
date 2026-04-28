@@ -1,4 +1,4 @@
-import type { NodeClass } from "@nodetool/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { loadKieNodesFromManifest } from "./kie-factory.js";
 import type { KieManifestEntry } from "./kie-factory.js";
 import { readFileSync } from "node:fs";

@@ -1,4 +1,4 @@
-import { prop } from "@nodetool/node-sdk";
+import { prop } from "@nodetool-ai/node-sdk";
 
 import { GlbTransformNode } from "./base.js";
 import { DEFAULT_MODEL_3D } from "./defaults.js";

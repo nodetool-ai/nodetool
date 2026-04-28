@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { registerBaseNodes, LIB_PILLOW_NODES } from "../../src/index.js";
-import { NodeRegistry } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 describe("native lib.image via sharp", () => {
   it("registers pillow node types", () => {

@@ -22,7 +22,7 @@ import type {
   ImageToImageParams,
   ToolCall
 } from "./types.js";
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type { PythonStdioBridge } from "../python-stdio-bridge.js";
 
 type PythonProviderOptions = Record<string, unknown> & {

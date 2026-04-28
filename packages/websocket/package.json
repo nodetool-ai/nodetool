@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/websocket",
+  "name": "@nodetool-ai/websocket",
   "version": "0.1.0",
   "type": "module",
   "description": "Unified websocket runner for workflow and chat operations",
@@ -24,26 +24,26 @@
     "@fastify/static": "^9.1.1",
     "@fastify/websocket": "^11.0.1",
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "@nodetool/agents": "*",
-    "@nodetool/auth": "*",
-    "@nodetool/base-nodes": "*",
-    "@nodetool/chat": "*",
-    "@nodetool/config": "*",
-    "@nodetool/dsl": "*",
-    "@nodetool/elevenlabs-nodes": "*",
-    "@nodetool/transformers-js-nodes": "*",
-    "@nodetool/transformers-js-provider": "*",
-    "@nodetool/fal-nodes": "*",
-    "@nodetool/kie-nodes": "*",
-    "@nodetool/huggingface": "*",
-    "@nodetool/kernel": "*",
-    "@nodetool/models": "*",
-    "@nodetool/node-sdk": "*",
-    "@nodetool/protocol": "*",
-    "@nodetool/replicate-nodes": "*",
-    "@nodetool/runtime": "*",
-    "@nodetool/security": "*",
-    "@nodetool/vectorstore": "*",
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/auth": "*",
+    "@nodetool-ai/base-nodes": "*",
+    "@nodetool-ai/chat": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/dsl": "*",
+    "@nodetool-ai/elevenlabs-nodes": "*",
+    "@nodetool-ai/transformers-js-nodes": "*",
+    "@nodetool-ai/transformers-js-provider": "*",
+    "@nodetool-ai/fal-nodes": "*",
+    "@nodetool-ai/kie-nodes": "*",
+    "@nodetool-ai/huggingface": "*",
+    "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/models": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/replicate-nodes": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/security": "*",
+    "@nodetool-ai/vectorstore": "*",
     "@mariozechner/pi-coding-agent": "^0.67.4",
     "@openai/codex-sdk": "^0.118.0",
     "@opencode-ai/sdk": "^1.3.15",
@@ -71,5 +71,22 @@
       "import": "./dist/trpc/router.js",
       "default": "./dist/trpc/router.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/websocket"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

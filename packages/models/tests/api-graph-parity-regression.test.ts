@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import { toApiNode, toApiGraph } from "../src/api-graph.js";
-import type { NodeDescriptor, GraphData } from "@nodetool/protocol";
+import type { NodeDescriptor, GraphData } from "@nodetool-ai/protocol";
 
 describe("Python parity — API graph node serialization", () => {
   it("preserves ui/dynamic metadata and sync_mode on ApiNode", () => {

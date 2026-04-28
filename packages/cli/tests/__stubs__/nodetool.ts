@@ -1,5 +1,5 @@
 /**
- * Generic stub for all @nodetool/* workspace packages that have not been built,
+ * Generic stub for all @nodetool-ai/* workspace packages that have not been built,
  * plus direct CLI dependencies that are not installed at the root level.
  * Tests override the specific exports they need via vi.mock().
  */
@@ -264,7 +264,7 @@ export const workflowToDsl = (_graph?: unknown, _opts?: unknown) =>
   "// generated DSL";
 
 /**
- * Minimal stub for @nodetool/dsl run().
+ * Minimal stub for @nodetool-ai/dsl run().
  * Evaluates constant nodes and propagates values through edges to output nodes.
  */
 export async function run(wf: {

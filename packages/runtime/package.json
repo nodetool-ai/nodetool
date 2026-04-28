@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/runtime",
+  "name": "@nodetool-ai/runtime",
   "version": "0.1.0",
   "description": "Processing context, message queue, and output normalization",
   "type": "module",
@@ -15,8 +15,8 @@
     "@aki-io/aki-io": "^1.0.1",
     "@anthropic-ai/sdk": "^0.33.1",
     "@msgpack/msgpack": "^3.1.3",
-    "@nodetool/config": "*",
-    "@nodetool/protocol": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
     "@opentelemetry/resources": "^2.6.0",
@@ -43,5 +43,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/runtime"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

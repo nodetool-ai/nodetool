@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
-import { initTestDb, Thread, Message, Workflow, Job } from "@nodetool/models";
+import { initTestDb, Thread, Message, Workflow, Job } from "@nodetool-ai/models";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,

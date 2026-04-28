@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getNodeMetadata } from "@nodetool/node-sdk";
+import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   SummarizerNode,
   CreateThreadNode,

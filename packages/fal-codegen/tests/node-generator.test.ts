@@ -375,7 +375,7 @@ describe("NodeGenerator.generateModule()", () => {
   it("includes BaseNode and prop imports", () => {
     const code = gen.generateModule("text_to_image", [makeSpec()]);
     expect(code).toContain(
-      `import { BaseNode, prop } from "@nodetool/node-sdk"`
+      `import { BaseNode, prop } from "@nodetool-ai/node-sdk"`
     );
   });
 

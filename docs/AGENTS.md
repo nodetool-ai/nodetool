@@ -7,7 +7,7 @@ description: "Architecture of the NodeTool agent system — planning, execution,
 
 **Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) → **Agent System**
 
-The **agent system** (`@nodetool/agents`) gives LLMs the ability to decompose complex objectives into steps, execute those steps with tools, and return structured results. It powers the Agent, Research Agent, and Control Agent nodes in the workflow editor, as well as the standalone Agent CLI.
+The **agent system** (`@nodetool-ai/agents`) gives LLMs the ability to decompose complex objectives into steps, execute those steps with tools, and return structured results. It powers the Agent, Research Agent, and Control Agent nodes in the workflow editor, as well as the standalone Agent CLI.
 
 ---
 
@@ -174,7 +174,7 @@ The sandbox exposes a curated surface: vanilla JavaScript plus bridge functions 
 Register custom tools so they can be resolved by name:
 
 ```ts
-import { registerTool, resolveTool, getAllTools } from "@nodetool/agents";
+import { registerTool, resolveTool, getAllTools } from "@nodetool-ai/agents";
 
 registerTool(new MyCustomTool());
 const tool = resolveTool("my_custom_tool");
@@ -184,8 +184,8 @@ const allTools = getAllTools(); // returns all registered tools
 ### Writing a Custom Tool
 
 ```ts
-import { Tool } from "@nodetool/agents";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { Tool } from "@nodetool-ai/agents";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 class WeatherTool extends Tool {
   readonly name = "get_weather";
@@ -283,8 +283,8 @@ AgentNode ──control edge──> ImageGeneratorNode
 ### Full Agent with Planning
 
 ```ts
-import { Agent } from "@nodetool/agents";
-import { BrowserTool, GoogleSearchTool, WriteFileTool } from "@nodetool/agents";
+import { Agent } from "@nodetool-ai/agents";
+import { BrowserTool, GoogleSearchTool, WriteFileTool } from "@nodetool-ai/agents";
 
 const agent = new Agent({
   name: "researcher",
@@ -309,7 +309,7 @@ const result = agent.getResults();
 ### Simple Agent (Single Step)
 
 ```ts
-import { SimpleAgent } from "@nodetool/agents";
+import { SimpleAgent } from "@nodetool-ai/agents";
 
 const agent = new SimpleAgent({
   name: "extractor",

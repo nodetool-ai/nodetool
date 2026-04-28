@@ -101,7 +101,7 @@ The existing `onRequest` auth hook runs before tRPC and sets `req.userId`. `crea
 
 ### Schemas
 
-Zod schemas live in `@nodetool/protocol/src/api-schemas/` (zod is already a dep of the protocol package), one file per domain. Each file exports the input and output schemas for that domain's procedures. Server procedures import them for validation; client code imports them for form validation where useful.
+Zod schemas live in `@nodetool-ai/protocol/src/api-schemas/` (zod is already a dep of the protocol package), one file per domain. Each file exports the input and output schemas for that domain's procedures. Server procedures import them for validation; client code imports them for form validation where useful.
 
 ```
 packages/protocol/src/api-schemas/
@@ -112,7 +112,7 @@ packages/protocol/src/api-schemas/
   index.ts  # re-exports
 ```
 
-Complex entity types (Workflow, Asset, Job) already have TypeScript types in `@nodetool/protocol` or `@nodetool/models`. Zod schemas may reference these via `z.custom<T>()` where full runtime parsing is overkill, or be defined from scratch where input shape differs from the entity.
+Complex entity types (Workflow, Asset, Job) already have TypeScript types in `@nodetool-ai/protocol` or `@nodetool-ai/models`. Zod schemas may reference these via `z.custom<T>()` where full runtime parsing is overkill, or be defined from scratch where input shape differs from the entity.
 
 ### Transport and serialization
 
@@ -180,7 +180,7 @@ interface Context {
 }
 ```
 
-Clients use `import type { AppRouter } from "@nodetool/websocket/trpc"` — type-only import, no runtime coupling (TypeScript erases type-only imports at build). The router module is structured so nothing at its top level executes on import; all procedures and sub-routers are declared as values inside the `appRouter` builder, which is tree-shakable.
+Clients use `import type { AppRouter } from "@nodetool-ai/websocket/trpc"` — type-only import, no runtime coupling (TypeScript erases type-only imports at build). The router module is structured so nothing at its top level executes on import; all procedures and sub-routers are declared as values inside the `appRouter` builder, which is tree-shakable.
 
 ## Data flow
 

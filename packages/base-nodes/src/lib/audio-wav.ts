@@ -12,8 +12,8 @@
 
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { AudioRef } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { AudioRef } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 export interface WavData {
   samples: Float32Array;

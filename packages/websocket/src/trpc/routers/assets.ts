@@ -12,9 +12,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import nodePath from "node:path";
 import { Buffer } from "node:buffer";
-import { Asset } from "@nodetool/models";
-import type { Asset as AssetModel } from "@nodetool/models";
-import { buildAssetUrl } from "@nodetool/config";
+import { Asset } from "@nodetool-ai/models";
+import type { Asset as AssetModel } from "@nodetool-ai/models";
+import { buildAssetUrl } from "@nodetool-ai/config";
 import {
   getAssetFileName,
   getAssetStoragePath
@@ -40,7 +40,7 @@ import {
   searchOutput,
   byFilenameInput,
   type AssetResponse
-} from "@nodetool/protocol/api-schemas/assets.js";
+} from "@nodetool-ai/protocol/api-schemas/assets.js";
 
 function toAssetResponse(asset: AssetModel): AssetResponse {
   const isFolder = asset.content_type === "folder";

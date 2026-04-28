@@ -3,7 +3,7 @@
  *
  * Each method corresponds to a Fastify route on the sandbox-agent server.
  * Requests are validated on both sides against the shared Zod schemas in
- * @nodetool/sandbox/schemas.
+ * @nodetool-ai/sandbox/schemas.
  *
  * The client has no session state; a fresh client can be created against
  * an existing sandbox endpoint URL.

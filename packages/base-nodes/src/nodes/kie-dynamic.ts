@@ -1,10 +1,10 @@
 /**
  * Dynamic Kie.ai node that creates inputs/outputs from pasted API documentation.
  */
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
-import { getApiKey, kieExecuteTask, kieImageRef } from "@nodetool/kie-nodes";
-import type { TypeMetadata } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { getApiKey, kieExecuteTask, kieImageRef } from "@nodetool-ai/kie-nodes";
+import type { TypeMetadata } from "@nodetool-ai/node-sdk";
 
 interface KieParamInfo {
   name: string;

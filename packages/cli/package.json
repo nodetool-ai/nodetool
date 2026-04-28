@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/cli",
+  "name": "@nodetool-ai/cli",
   "version": "0.1.0",
   "description": "NodeTool chat CLI — interactive AI chat with agent mode and tool support",
   "type": "module",
@@ -16,29 +16,29 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/config": "*",
-    "@nodetool/agents": "*",
-    "@nodetool/deploy": "*",
-    "@nodetool/huggingface": "*",
-    "@nodetool/vectorstore": "*",
-    "@nodetool/websocket": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/deploy": "*",
+    "@nodetool-ai/huggingface": "*",
+    "@nodetool-ai/vectorstore": "*",
+    "@nodetool-ai/websocket": "*",
     "@trpc/client": "^11.0.0",
     "@trpc/server": "^11.0.0",
-    "@nodetool/base-nodes": "*",
-    "@nodetool/elevenlabs-nodes": "*",
-    "@nodetool/transformers-js-nodes": "*",
-    "@nodetool/dsl": "*",
-    "@nodetool/fal-nodes": "*",
-    "@nodetool/replicate-nodes": "*",
-    "@nodetool/kernel": "*",
-    "@nodetool/models": "*",
-    "@nodetool/node-sdk": "*",
-    "@nodetool/chat": "*",
-    "@nodetool/protocol": "*",
-    "@nodetool/runtime": "*",
-    "@nodetool/sandbox": "*",
-    "@nodetool/sandbox-tools": "*",
-    "@nodetool/security": "*",
+    "@nodetool-ai/base-nodes": "*",
+    "@nodetool-ai/elevenlabs-nodes": "*",
+    "@nodetool-ai/transformers-js-nodes": "*",
+    "@nodetool-ai/dsl": "*",
+    "@nodetool-ai/fal-nodes": "*",
+    "@nodetool-ai/replicate-nodes": "*",
+    "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/models": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/chat": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox": "*",
+    "@nodetool-ai/sandbox-tools": "*",
+    "@nodetool-ai/security": "*",
     "@inquirer/prompts": "^5.0.0",
     "chalk": "^5.3.0",
     "js-yaml": "^4.1.0",
@@ -64,5 +64,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/fal-nodes",
+  "name": "@nodetool-ai/fal-nodes",
   "type": "module",
   "version": "0.1.0",
   "description": "FAL AI nodes for nodetool",
@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@fal-ai/client": "^1.9.4",
-    "@nodetool/node-sdk": "*",
-    "@nodetool/runtime": "*"
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -27,6 +27,23 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./fal-manifest.json": "./src/fal-manifest.json"
-  }
+    "./fal-manifest.json": "./dist/fal-manifest.json"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/fal-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeEach } from "vitest";
-import { initTestDb, Workflow, Job, Asset } from "@nodetool/models";
+import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
 import { createMcpServer, createMcpStdioTransport } from "../src/mcp-server.js";
 
 function makeMetadataRoot(): string {

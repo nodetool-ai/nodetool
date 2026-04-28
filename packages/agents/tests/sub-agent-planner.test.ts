@@ -7,8 +7,8 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { SubAgentPlanner } from "../src/sub-agent-planner.js";
-import type { BaseProvider } from "@nodetool/runtime";
-import type { ProcessingMessage } from "@nodetool/protocol";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
 
 function createMockProvider(
   responseOverrides?: Partial<{

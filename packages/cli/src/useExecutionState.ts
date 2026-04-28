@@ -13,8 +13,8 @@ import type {
   ToolCallUpdate,
   Chunk,
   PlanningUpdate,
-} from "@nodetool/protocol";
-import { TaskUpdateEvent } from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
+import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // State types

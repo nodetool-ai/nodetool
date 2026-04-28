@@ -1,11 +1,11 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   DockerSandboxProvider,
   SessionStore,
   type ToolClient
-} from "@nodetool/sandbox";
-import type { ProcessingContext } from "@nodetool/runtime";
+} from "@nodetool-ai/sandbox";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
 import { runAgentLoop, type ToolLike } from "./agents.js";
 

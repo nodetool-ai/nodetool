@@ -1,5 +1,5 @@
 /**
- * @nodetool/models – Database models and query utilities.
+ * @nodetool-ai/models – Database models and query utilities.
  *
  * Public API surface for the models package. Re-exports everything
  * consumers need to define, query and persist data models.

@@ -13,7 +13,7 @@ import {
   type S3Client,
   type MessageCreateRequestLike
 } from "../src/context.js";
-import type { ProcessingMessage, NodeUpdate } from "@nodetool/protocol";
+import type { ProcessingMessage, NodeUpdate } from "@nodetool-ai/protocol";
 import { BaseProvider } from "../src/providers/base-provider.js";
 import type {
   Message,

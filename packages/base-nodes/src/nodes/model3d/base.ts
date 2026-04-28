@@ -1,5 +1,5 @@
-import { BaseNode } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Model3DRefLike } from "./types.js";
 import { modelRef, modelRefToBytes } from "./utils.js";
 

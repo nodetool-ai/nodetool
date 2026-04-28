@@ -7,7 +7,7 @@
  * arrive within the inactivity period, the workflow suspends.
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { SuspendableState } from "./suspendable.js";
 
 const log = createLogger("nodetool.kernel.trigger");

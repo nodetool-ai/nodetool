@@ -96,7 +96,7 @@ protocol → config → security → auth → storage
 - **State management**: Zustand stores (web/src/stores/), React Context wraps Zustand, TanStack Query for server state
 - **UI Primitives (MANDATORY)**: All frontend UI must use primitives from `web/src/components/ui_primitives/`. **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside of `ui_primitives/` or `editor_ui/`. See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the decision tree, migration rules, and full catalog of 90+ primitives. When touching any file, migrate raw MUI usage to primitives.
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. No inline `display: "flex"` — use `FlexRow`/`FlexColumn` layout primitives instead.
-- **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool/node-sdk`.
+- **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
 - **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), SimpleAgent (single-step), AgentExecutor (value extraction)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
@@ -123,7 +123,7 @@ npm run typecheck   # Must pass before committing
 - React Testing Library: `getByRole`/`getByLabelText`, `userEvent`, `waitFor`.
 - TanStack Query for all server state. Hierarchical keys. `enabled` for conditional queries.
 - Frontend tools prefixed `ui_` (e.g., `ui_add_node`).
-- All inter-package imports use `@nodetool/<package>`. Never import from `dist/`.
+- All inter-package imports use `@nodetool-ai/<package>`. Never import from `dist/`.
 - Throw `Error` objects, not strings. Comment intentionally empty catch blocks.
 
 ## Common Pitfalls

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyParams } from "@nodetool/protocol";
+import { uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyParams } from "@nodetool-ai/protocol";
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { FrontendToolRegistry } from "../frontendTools";
 

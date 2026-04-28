@@ -1,5 +1,5 @@
 /**
- * @nodetool/runtime – Public API
+ * @nodetool-ai/runtime – Public API
  */
 
 export {

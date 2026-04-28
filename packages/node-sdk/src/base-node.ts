@@ -1,10 +1,10 @@
-import type { NodeDescriptor, SyncMode } from "@nodetool/protocol";
-import type { NodeExecutor } from "@nodetool/kernel";
+import type { NodeDescriptor, SyncMode } from "@nodetool-ai/protocol";
+import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
   ProcessingContext,
   StreamingInputs,
   StreamingOutputs
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 import { getDeclaredPropertiesForClass } from "./decorators.js";
 import {
   validateNodeProperties,

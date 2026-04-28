@@ -19,8 +19,8 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool/config";
-import type { Chunk } from "@nodetool/protocol";
+import { createLogger } from "@nodetool-ai/config";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   LanguageModel,
   Message,
