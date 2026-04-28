@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/kernel",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.7.0-rc.11",
   "description": "Workflow kernel: Graph model, NodeInbox, and Actor runtime",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

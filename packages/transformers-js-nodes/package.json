@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/transformers-js-nodes",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.7.0-rc.11",
   "description": "Hugging Face Transformers.js nodes for nodetool — run NLP, vision, and audio models locally via ONNX Runtime",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
