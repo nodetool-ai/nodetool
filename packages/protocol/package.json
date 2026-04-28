@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/protocol",
+  "name": "@nodetool-ai/protocol",
   "version": "0.1.0",
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
   "type": "module",

@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import { getRawDb } from "@nodetool/models";
+import { getRawDb } from "@nodetool-ai/models";
 
 const serverStartTime = Date.now();
 

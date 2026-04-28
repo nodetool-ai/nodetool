@@ -9,17 +9,17 @@
  * selectable via the `mode` option.
  */
 
-import { createLogger } from "@nodetool/config";
-import type { BaseProvider } from "@nodetool/runtime";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { createLogger } from "@nodetool-ai/config";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   ProcessingMessage,
   StepResult,
   LogUpdate,
   TaskUpdate,
   Chunk
-} from "@nodetool/protocol";
-import { TaskUpdateEvent } from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
+import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { BaseAgent } from "./base-agent.js";
 import { StepExecutor } from "./step-executor.js";
 import { TaskPlanner } from "./task-planner.js";
@@ -29,7 +29,7 @@ import { TeamExecutor } from "./team/team-executor.js";
 import { SubAgentPlanner } from "./sub-agent-planner.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { AgentMode, Step, SubAgentConfig, Task, TaskPlan } from "./types.js";
-import type { NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { GraphPlanner } from "./graph-planner.js";
 import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 import { randomUUID } from "node:crypto";

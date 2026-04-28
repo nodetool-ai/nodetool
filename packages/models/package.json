@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/models",
+  "name": "@nodetool-ai/models",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -24,9 +24,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/config": "*",
-    "@nodetool/protocol": "*",
-    "@nodetool/security": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/security": "*",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.2"
   },

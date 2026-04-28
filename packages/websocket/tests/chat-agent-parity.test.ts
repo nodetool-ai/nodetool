@@ -15,7 +15,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
-import { initTestDb, Thread, Message } from "@nodetool/models";
+import { initTestDb, Thread, Message } from "@nodetool-ai/models";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
@@ -549,8 +549,8 @@ describe("dbMessageToProviderMessage filtering", () => {
 
 // ── handleAgentMessage ──────────────────────────────────────────────
 
-// Mock the @nodetool/agents module
-vi.mock("@nodetool/agents", () => {
+// Mock the @nodetool-ai/agents module
+vi.mock("@nodetool-ai/agents", () => {
   // Same fixture serves both Agent (legacy) and MultiModeAgent (new graph
   // path). Tests that don't pass `nodeRegistry` to the runner stay on Agent;
   // tests that do pass it would use MultiModeAgent.
@@ -824,7 +824,7 @@ describe("handleAgentMessage: error handling", () => {
     // Override the mock agent to throw. The runner now constructs a
     // MultiModeAgent (with useGraphPlanner inferred from the registry), so
     // override that class — Agent is no longer used in the agent path.
-    const originalMock = vi.mocked(await import("@nodetool/agents"));
+    const originalMock = vi.mocked(await import("@nodetool-ai/agents"));
     const OrigAgent = originalMock.MultiModeAgent;
 
     // Create a throwing agent class

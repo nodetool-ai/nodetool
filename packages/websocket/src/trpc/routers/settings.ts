@@ -8,9 +8,9 @@
  * populates the registry at module load time).
  */
 
-import { Secret, Setting, clearSecretCache } from "@nodetool/models";
-import type { Secret as SecretModel } from "@nodetool/models";
-import { clearProviderCache } from "@nodetool/runtime";
+import { Secret, Setting, clearSecretCache } from "@nodetool-ai/models";
+import type { Secret as SecretModel } from "@nodetool-ai/models";
+import { clearProviderCache } from "@nodetool-ai/runtime";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -30,7 +30,7 @@ import {
   secretDeleteInput,
   secretDeleteOutput,
   type SecretResponse
-} from "@nodetool/protocol/api-schemas/settings.js";
+} from "@nodetool-ai/protocol/api-schemas/settings.js";
 
 // ── Secret response helpers ────────────────────────────────────────
 

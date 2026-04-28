@@ -11,7 +11,7 @@
 
 import OpenAI from "openai";
 import { OpenAIProvider } from "./openai-provider.js";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   ASRModel,
   EmbeddingModel,

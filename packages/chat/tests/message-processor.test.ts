@@ -9,10 +9,10 @@ import type {
   ToolCall,
   ProviderStreamItem,
   ProviderTool
-} from "@nodetool/runtime";
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
-import { Tool } from "@nodetool/agents";
+} from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { Chunk } from "@nodetool-ai/protocol";
+import { Tool } from "@nodetool-ai/agents";
 
 // ---------------------------------------------------------------------------
 // Mock Tool

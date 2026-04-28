@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/replicate-nodes",
+  "name": "@nodetool-ai/replicate-nodes",
   "type": "module",
   "version": "0.1.0",
   "description": "Replicate AI model nodes for the TS workflow runner",
@@ -13,7 +13,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/node-sdk": "*",
+    "@nodetool-ai/node-sdk": "*",
     "replicate": "*"
   },
   "devDependencies": {

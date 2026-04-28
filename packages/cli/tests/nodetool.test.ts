@@ -8,8 +8,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-// Mock external @nodetool/* packages (resolved via vitest stub plugin)
-vi.mock("@nodetool/models", () => ({
+// Mock external @nodetool-ai/* packages (resolved via vitest stub plugin)
+vi.mock("@nodetool-ai/models", () => ({
   initDb: vi.fn(),
   Workflow: { get: vi.fn(async () => null) },
   Secret: {
@@ -20,11 +20,11 @@ vi.mock("@nodetool/models", () => ({
   getSecret: vi.fn(async () => null)
 }));
 
-vi.mock("@nodetool/config", () => ({
+vi.mock("@nodetool-ai/config", () => ({
   getDefaultDbPath: vi.fn(() => ":memory:")
 }));
 
-vi.mock("@nodetool/kernel", () => ({
+vi.mock("@nodetool-ai/kernel", () => ({
   WorkflowRunner: class {
     constructor() {}
     async run() {
@@ -33,7 +33,7 @@ vi.mock("@nodetool/kernel", () => ({
   }
 }));
 
-vi.mock("@nodetool/node-sdk", () => ({
+vi.mock("@nodetool-ai/node-sdk", () => ({
   NodeRegistry: class {
     static global = new (class {
       has() {
@@ -52,33 +52,33 @@ vi.mock("@nodetool/node-sdk", () => ({
   }
 }));
 
-vi.mock("@nodetool/base-nodes", () => ({
+vi.mock("@nodetool-ai/base-nodes", () => ({
   registerBaseNodes: vi.fn()
 }));
 
-vi.mock("@nodetool/elevenlabs-nodes", () => ({
+vi.mock("@nodetool-ai/elevenlabs-nodes", () => ({
   registerElevenLabsNodes: vi.fn()
 }));
 
-vi.mock("@nodetool/transformers-js-nodes", () => ({
+vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
   registerTransformersJsNodes: vi.fn()
 }));
 
-vi.mock("@nodetool/fal-nodes", () => ({
+vi.mock("@nodetool-ai/fal-nodes", () => ({
   registerFalNodes: vi.fn()
 }));
 
-vi.mock("@nodetool/replicate-nodes", () => ({
+vi.mock("@nodetool-ai/replicate-nodes", () => ({
   registerReplicateNodes: vi.fn()
 }));
 
-vi.mock("@nodetool/runtime", () => ({
+vi.mock("@nodetool-ai/runtime", () => ({
   ProcessingContext: class {
     constructor() {}
   }
 }));
 
-vi.mock("@nodetool/dsl", () => ({
+vi.mock("@nodetool-ai/dsl", () => ({
   workflowToDsl: vi.fn(() => "// generated DSL")
 }));
 
@@ -388,7 +388,7 @@ describe("settings show data structure", () => {
 
 describe("setupDb resilience", () => {
   it("does not throw when initDb fails", async () => {
-    const { initDb } = await import("@nodetool/models");
+    const { initDb } = await import("@nodetool-ai/models");
     (initDb as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
       throw new Error("DB init failed");
     });
@@ -406,7 +406,7 @@ describe("setupDb resilience", () => {
   });
 
   it("calls initDb with default path on success", async () => {
-    const { initDb } = await import("@nodetool/models");
+    const { initDb } = await import("@nodetool-ai/models");
     (initDb as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {});
 
     async function setupDb(): Promise<void> {

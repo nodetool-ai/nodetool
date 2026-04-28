@@ -4,8 +4,8 @@
  * Provides metadata, table of contents, chapter list, and full-text
  * extraction from EPUB e-book files.
  */
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";

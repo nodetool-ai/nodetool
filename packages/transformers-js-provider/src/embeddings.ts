@@ -1,4 +1,4 @@
-import { getPipeline } from "@nodetool/transformers-js-nodes";
+import { getPipeline } from "@nodetool-ai/transformers-js-nodes";
 
 interface EmbedArgs {
   text: string | string[];

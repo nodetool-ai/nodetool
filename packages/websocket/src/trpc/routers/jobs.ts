@@ -10,8 +10,8 @@
  * 501-placeholders for a feature that isn't available in standalone mode.
  */
 
-import { Job } from "@nodetool/models";
-import type { Job as JobModel } from "@nodetool/models";
+import { Job } from "@nodetool-ai/models";
+import type { Job as JobModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -28,7 +28,7 @@ import {
   cancelOutput,
   type JobResponse,
   type BackgroundJobResponse
-} from "@nodetool/protocol/api-schemas/jobs.js";
+} from "@nodetool-ai/protocol/api-schemas/jobs.js";
 
 function toJobResponse(job: JobModel): JobResponse {
   return {

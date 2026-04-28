@@ -3,10 +3,10 @@
  *
  * Adding a new sandbox tool here is a three-field change: name,
  * description, and the ToolClient method to invoke. The input schema is
- * imported directly from the shared @nodetool/sandbox/schemas.
+ * imported directly from the shared @nodetool-ai/sandbox/schemas.
  */
 
-import type { ToolClient } from "@nodetool/sandbox";
+import type { ToolClient } from "@nodetool-ai/sandbox";
 import {
   FileReadInput,
   FileWriteInput,
@@ -42,7 +42,7 @@ import {
   MessageAskUserInput,
   IdleInput,
   ExposePortInput
-} from "@nodetool/sandbox/schemas";
+} from "@nodetool-ai/sandbox/schemas";
 import type { SandboxToolDefinition } from "./SandboxTool.js";
 import { SandboxTool } from "./SandboxTool.js";
 

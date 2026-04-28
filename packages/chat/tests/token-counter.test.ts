@@ -4,7 +4,7 @@ import {
   countMessageTokens,
   countMessagesTokens
 } from "../src/token-counter.js";
-import type { Message } from "@nodetool/runtime";
+import type { Message } from "@nodetool-ai/runtime";
 
 describe("countTextTokens", () => {
   it("returns 0 for null/undefined/empty", () => {

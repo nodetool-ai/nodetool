@@ -12,7 +12,7 @@ import { describe, it, expect } from "vitest";
 import { Graph, GraphValidationError } from "../src/graph.js";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
-import type { NodeDescriptor } from "@nodetool/protocol";
+import type { NodeDescriptor } from "@nodetool-ai/protocol";
 
 function makeNode(overrides: Partial<NodeDescriptor> = {}): NodeDescriptor {
   return { id: "test_node", type: "test.Node", ...overrides };

@@ -9,7 +9,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { assetToUrl } from "../src/replicate-base.js";
 import { registerReplicateNodes } from "../src/index.js";
-import { NodeRegistry } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 /* ------------------------------------------------------------------ */
 /*  fetch mock setup                                                    */

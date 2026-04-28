@@ -9,7 +9,7 @@ import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
 import { getTorchIndexUrl } from "./torchPlatformCache";
-import { MIN_NODETOOL_CORE_VERSION } from "@nodetool/runtime";
+import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/runtime";
 
 /**
  * Python environment manager for the Electron shell.

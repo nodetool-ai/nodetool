@@ -7,7 +7,7 @@
 import { writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { getDeclaredPropertiesForClass } from "@nodetool/node-sdk";
+import { getDeclaredPropertiesForClass } from "@nodetool-ai/node-sdk";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const generatedDir = join(__dirname, "..", "src", "generated");

@@ -26,17 +26,17 @@ vi.mock("node:readline", () => ({
   }))
 }));
 
-vi.mock("@nodetool/models", () => ({
+vi.mock("@nodetool-ai/models", () => ({
   getSecret: vi.fn(async () => null)
 }));
 
-vi.mock("@nodetool/runtime", () => ({
+vi.mock("@nodetool-ai/runtime", () => ({
   ProcessingContext: class {
     constructor(_o?: unknown) {}
   }
 }));
 
-vi.mock("@nodetool/chat", () => ({
+vi.mock("@nodetool-ai/chat", () => ({
   processChat: vi.fn(
     async (_opts: {
       userInput: string;
@@ -52,7 +52,7 @@ vi.mock("@nodetool/chat", () => ({
   )
 }));
 
-vi.mock("@nodetool/agents", () => ({
+vi.mock("@nodetool-ai/agents", () => ({
   Agent: class {
     constructor(public opts: unknown) {}
     // eslint-disable-next-line @typescript-eslint/require-await
@@ -340,7 +340,7 @@ describe("runStdinMode — direct provider chat", () => {
   afterEach(releaseIO);
 
   it("calls processChat for regular messages without wsUrl", async () => {
-    const { processChat } = await import("@nodetool/chat");
+    const { processChat } = await import("@nodetool-ai/chat");
     (processChat as ReturnType<typeof vi.fn>).mockClear();
     _nextLines = ["Hello AI"];
     await runStdinMode({

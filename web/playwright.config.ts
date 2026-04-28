@@ -13,7 +13,7 @@ import { defineConfig, devices } from "@playwright/test";
  *    backed by a fully functional API instead of a simplified stub.
  *
  * Prerequisites:
- *   The @nodetool/* workspace packages should be built before running:
+ *   The @nodetool-ai/* workspace packages should be built before running:
  *     npm run build:packages   (from the repo root)
  *   If packages are not built, tsx will fall back to the development export
  *   condition and transpile TypeScript source on the fly (slower but works).

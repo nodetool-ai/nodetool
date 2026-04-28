@@ -1,5 +1,5 @@
-import { createLogger } from "@nodetool/config";
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { createLogger } from "@nodetool-ai/config";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
   BaseProvider,
   Message,
@@ -9,9 +9,9 @@ import type {
   ProcessingContext,
   ProviderStreamItem,
   ToolCall
-} from "@nodetool/runtime";
-import type { Chunk, ProcessingMessage } from "@nodetool/protocol";
-import { MultiModeAgent, Tool as AgentTool } from "@nodetool/agents";
+} from "@nodetool-ai/runtime";
+import type { Chunk, ProcessingMessage } from "@nodetool-ai/protocol";
+import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -875,7 +875,7 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
 }
 
 /**
- * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool/agents).
+ * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool-ai/agents).
  * This bridges the tool systems so MultiModeAgent can use tools defined in the node graph.
  */
 class ToolLikeAdapter extends AgentTool {

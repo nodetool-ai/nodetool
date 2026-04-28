@@ -1,4 +1,4 @@
-import { getSecret } from "@nodetool/models";
+import { getSecret } from "@nodetool-ai/models";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { z } from "zod";

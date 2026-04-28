@@ -20,22 +20,22 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 
 | Package | Purpose |
 |---------|---------|
-| **@nodetool/kernel** | DAG execution engine -- graph validation, node actors, inbox routing, edge counting |
-| **@nodetool/runtime** | Processing context, cache adapters, storage adapters, asset handling |
-| **@nodetool/protocol** | Shared message types (JobUpdate, NodeUpdate, EdgeUpdate, TaskUpdate) |
-| **@nodetool/agents** | Agent executor, task planner, step executor, multi-mode agent, 20+ tool types |
-| **@nodetool/dsl** | TypeScript DSL for building workflows programmatically with type-safe factories |
-| **@nodetool/config** | Settings management and environment configuration |
+| **@nodetool-ai/kernel** | DAG execution engine -- graph validation, node actors, inbox routing, edge counting |
+| **@nodetool-ai/runtime** | Processing context, cache adapters, storage adapters, asset handling |
+| **@nodetool-ai/protocol** | Shared message types (JobUpdate, NodeUpdate, EdgeUpdate, TaskUpdate) |
+| **@nodetool-ai/agents** | Agent executor, task planner, step executor, multi-mode agent, 20+ tool types |
+| **@nodetool-ai/dsl** | TypeScript DSL for building workflows programmatically with type-safe factories |
+| **@nodetool-ai/config** | Settings management and environment configuration |
 
 ### Infrastructure Packages
 
 | Package | Purpose |
 |---------|---------|
-| **@nodetool/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
-| **@nodetool/storage** | Asset storage backends (local filesystem, S3, Supabase) |
-| **@nodetool/vectorstore** | Vector database integration (Chroma) for RAG workflows |
-| **@nodetool/cli** | Command-line interface for workflow execution, deployment, and package management |
-| **@nodetool/base-nodes** | Core node implementations and dynamic node generation |
+| **@nodetool-ai/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
+| **@nodetool-ai/storage** | Asset storage backends (local filesystem, S3, Supabase) |
+| **@nodetool-ai/vectorstore** | Vector database integration (Chroma) for RAG workflows |
+| **@nodetool-ai/cli** | Command-line interface for workflow execution, deployment, and package management |
+| **@nodetool-ai/base-nodes** | Core node implementations and dynamic node generation |
 
 ### Frontend
 

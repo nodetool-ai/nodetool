@@ -2,7 +2,7 @@
  * Logging — matches Python's nodetool logging format.
  *
  * Usage:
- *   import { createLogger } from "@nodetool/config";
+ *   import { createLogger } from "@nodetool-ai/config";
  *   const log = createLogger("nodetool.kernel.runner");
  *   log.info("Workflow started", { jobId });
  *   log.debug("Node executing", { nodeId, type });

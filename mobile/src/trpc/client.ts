@@ -9,7 +9,7 @@
 
 import { createTRPCClient, httpBatchLink, type TRPCClientErrorLike } from '@trpc/client';
 import superjson from 'superjson';
-import type { AppRouter } from '@nodetool/websocket/trpc';
+import type { AppRouter } from '@nodetool-ai/websocket/trpc';
 
 import { getApiHost } from '../services/apiHost';
 import { useAuthStore } from '../stores/AuthStore';

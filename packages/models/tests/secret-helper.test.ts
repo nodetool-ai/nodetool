@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { setMasterKey } from "@nodetool/security";
+import { setMasterKey } from "@nodetool-ai/security";
 import { initTestDb } from "../src/db.js";
 import { Secret } from "../src/secret.js";
 import {

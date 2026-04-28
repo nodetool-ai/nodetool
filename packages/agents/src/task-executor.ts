@@ -14,10 +14,10 @@
  */
 
 import { createHash } from "node:crypto";
-import type { BaseProvider } from "@nodetool/runtime";
-import type { ProcessingContext } from "@nodetool/runtime";
-import { createLogger } from "@nodetool/config";
-import type { ProcessingMessage, Chunk, StepResult } from "@nodetool/protocol";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { createLogger } from "@nodetool-ai/config";
+import type { ProcessingMessage, Chunk, StepResult } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.agents.task-executor");
 import { StepExecutor } from "./step-executor.js";

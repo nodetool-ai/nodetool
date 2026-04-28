@@ -8,7 +8,7 @@
  *   • create / resetToken return plaintext `token` (shown once on creation).
  */
 
-import { FileUserManager } from "@nodetool/auth";
+import { FileUserManager } from "@nodetool-ai/auth";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -23,7 +23,7 @@ import {
   removeOutput,
   resetTokenInput,
   type UserListItem
-} from "@nodetool/protocol/api-schemas/users.js";
+} from "@nodetool-ai/protocol/api-schemas/users.js";
 
 /**
  * Check if a user ID has admin privileges. Mirrors `isAdmin` from the

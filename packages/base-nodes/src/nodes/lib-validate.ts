@@ -6,7 +6,7 @@
  * use" rather than RFC-complete.
  */
 
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 // ---------------------------------------------------------------------------
 // Shared validators

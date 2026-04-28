@@ -4,7 +4,7 @@ import {
   DataForSEONewsTool,
   DataForSEOImagesTool
 } from "../src/tools/dataseo-tools.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 /* ------------------------------------------------------------------ */
 /*  Mock context                                                      */

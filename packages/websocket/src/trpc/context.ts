@@ -1,6 +1,6 @@
 import type { FastifyRequest } from "fastify";
-import type { NodeRegistry } from "@nodetool/node-sdk";
-import type { PythonStdioBridge } from "@nodetool/runtime";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { PythonStdioBridge } from "@nodetool-ai/runtime";
 import type { HttpApiOptions } from "../http-api.js";
 
 export interface Context {

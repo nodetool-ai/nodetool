@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { SkillInfo } from "@nodetool/protocol/api-schemas/skills.js";
+import type { SkillInfo } from "@nodetool-ai/protocol/api-schemas/skills.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";

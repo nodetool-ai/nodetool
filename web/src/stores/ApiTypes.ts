@@ -1,6 +1,6 @@
-// Re-exports from @nodetool/protocol plus frontend-specific extensions.
+// Re-exports from @nodetool-ai/protocol plus frontend-specific extensions.
 // This file is a compatibility shim — new code should import from
-// @nodetool/protocol directly whenever possible.
+// @nodetool-ai/protocol directly whenever possible.
 
 import {
   Asset as ProtocolAsset,
@@ -114,7 +114,7 @@ import {
   WorkspaceListResponse,
   WorkspaceResponse,
   WorkspaceUpdateRequest
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Re-exports (alphabetical)
@@ -293,7 +293,7 @@ export interface NodeMetadata extends BaseNodeMetadata {
   auto_save_asset?: boolean;
 }
 
-/** TypeMetadata — re-declared locally because @nodetool/protocol exports a
+/** TypeMetadata — re-declared locally because @nodetool-ai/protocol exports a
  *  class with the same name.  This is the JSON-serializable interface shape. */
 export interface TypeMetadata {
   type: string;

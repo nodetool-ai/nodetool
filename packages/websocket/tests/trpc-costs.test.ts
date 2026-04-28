@@ -4,13 +4,13 @@ import type {
   ProviderAggregate,
   ModelAggregate,
   PredictionResponse
-} from "@nodetool/protocol/api-schemas/costs.js";
+} from "@nodetool-ai/protocol/api-schemas/costs.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Prediction: {
@@ -22,7 +22,7 @@ vi.mock("@nodetool/models", async (orig) => {
   };
 });
 
-import { Prediction } from "@nodetool/models";
+import { Prediction } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 

@@ -29,7 +29,7 @@ const quickJsVariant = (quickJsVariantModule as unknown as {
   default: Parameters<typeof loadQuickJs>[0];
 }).default;
 import { Scope } from "quickjs-emscripten-core";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
 // Constants

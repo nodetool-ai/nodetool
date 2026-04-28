@@ -11,18 +11,18 @@ description: "REST, WebSocket, and OpenAI-compatible API endpoints for NodeTool 
 NodeTool exposes three closely related API surfaces:
 
 - **Editor API (NodeTool application / desktop)**
-  - Served by `nodetool serve` (`@nodetool/websocket` -- `server.ts`).
+  - Served by `nodetool serve` (`@nodetool-ai/websocket` -- `server.ts`).
   - Used by the NodeTool desktop app and local web UI to manage workflows, assets, jobs, and settings.
   - Acts as the **control plane** for authoring and debugging; includes dev-only endpoints such as the terminal WebSocket and debug tooling.
   - Intended to run on a trusted local machine, not as a public internet API.
 
 - **Server API (deployable instance)**
-  - Served by `nodetool serve --mode private` (`@nodetool/websocket` -- `http-api.ts`).
+  - Served by `nodetool serve --mode private` (`@nodetool-ai/websocket` -- `http-api.ts`).
   - Provides a **stable, hardened runtime surface** for external clients: OpenAI-compatible chat, workflow execution, admin and storage routes, and health checks.
   - Designed for self-hosted, RunPod, Cloud Run, and other remote deployments; all non-health endpoints sit behind Bearer auth and TLS.
 
 - **Chat Server API (chat-only runtime)**
-  - Served by `nodetool chat-server` (`@nodetool/chat` -- `server.ts`).
+  - Served by `nodetool chat-server` (`@nodetool-ai/chat` -- `server.ts`).
   - Minimal OpenAI-compatible `/v1/chat/completions` and `/v1/models` plus `/health` for environments where you only need chat, not workflows or admin routes.
 
 This split exists because:

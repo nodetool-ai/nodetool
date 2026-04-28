@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/deploy",
+  "name": "@nodetool-ai/deploy",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -11,12 +11,12 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/config": "*",
-    "@nodetool/protocol": "*",
-    "@nodetool/runtime": "*",
-    "@nodetool/security": "*",
-    "@nodetool/storage": "*",
-    "@nodetool/websocket": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/security": "*",
+    "@nodetool-ai/storage": "*",
+    "@nodetool-ai/websocket": "*",
     "@trpc/client": "^11.0.0",
     "@trpc/server": "^11.0.0",
     "js-yaml": "^4.1.0",

@@ -10,7 +10,7 @@
  *   - Asset handling with pluggable storage adapters.
  */
 
-import type { AssetRef, ProcessingMessage } from "@nodetool/protocol";
+import type { AssetRef, ProcessingMessage } from "@nodetool-ai/protocol";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import {

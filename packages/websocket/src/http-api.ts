@@ -8,31 +8,31 @@ import { gzipSync } from "node:zlib";
 import { mkdir, writeFile, stat, readFile } from "node:fs/promises";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import nodePath from "node:path";
-import { createLogger, buildAssetUrl } from "@nodetool/config";
-import { workflowToDsl } from "@nodetool/dsl";
+import { createLogger, buildAssetUrl } from "@nodetool-ai/config";
+import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   Workflow,
   WorkflowVersion,
   Job,
   Asset
-} from "@nodetool/models";
+} from "@nodetool-ai/models";
 import {
   loadPythonPackageMetadata,
   type NodeMetadata,
   NodeRegistry
-} from "@nodetool/node-sdk";
-import { registerBaseNodes } from "@nodetool/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool/fal-nodes";
-import { registerKieNodes } from "@nodetool/kie-nodes";
-import { registerReplicateNodes } from "@nodetool/replicate-nodes";
+} from "@nodetool-ai/node-sdk";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
+import { registerFalNodes } from "@nodetool-ai/fal-nodes";
+import { registerKieNodes } from "@nodetool-ai/kie-nodes";
+import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import {
   PythonNodeExecutor,
   PythonStdioBridge,
   type NodeExecutor
-} from "@nodetool/runtime";
-import { WorkflowRunner } from "@nodetool/kernel";
+} from "@nodetool-ai/runtime";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
 import {

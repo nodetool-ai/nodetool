@@ -30,7 +30,7 @@ import { trpcClient } from "../trpc/client";
 import {
   isTRPCErrorWithCode,
   ApiErrorCode
-} from "@nodetool/protocol/api-schemas";
+} from "@nodetool-ai/protocol/api-schemas";
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";

@@ -6,8 +6,8 @@
  * declared properties, backed by a generic process() that calls the KIE API.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool/node-sdk";
+import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import {
   getApiKey,
   kieExecuteTask,

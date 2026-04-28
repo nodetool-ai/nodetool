@@ -1,5 +1,5 @@
 /**
- * @nodetool/kernel – Public API
+ * @nodetool-ai/kernel – Public API
  */
 
 export {

@@ -24,7 +24,7 @@ import {
   type ShellWriteToProcessOutput,
   type ShellKillProcessInput,
   type ShellKillProcessOutput
-} from "@nodetool/sandbox/schemas";
+} from "@nodetool-ai/sandbox/schemas";
 
 interface SessionState {
   tmuxName: string;

@@ -16,7 +16,7 @@ import type {
   Edge,
   NodeUpdate,
   EdgeUpdate
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 import { WorkflowRunner } from "../../src/runner.js";
 import {
   makeRegistry,

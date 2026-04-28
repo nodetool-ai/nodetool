@@ -8,14 +8,14 @@
  * - hybrid: Coordinator creates initial plan, agents can create subtasks.
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   BaseProvider,
   ProcessingContext,
   Message,
   ProviderTool
-} from "@nodetool/runtime";
-import { getProvider } from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
+import { getProvider } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 import { MessageBus } from "./message-bus.js";
 import { TaskBoard } from "./task-board.js";

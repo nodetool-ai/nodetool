@@ -33,19 +33,19 @@
 
 import { randomUUID } from "node:crypto";
 
-import { processChat } from "@nodetool/chat";
-import { Tool } from "@nodetool/agents";
+import { processChat } from "@nodetool-ai/chat";
+import { Tool } from "@nodetool-ai/agents";
 import {
   ProcessingContext,
   getProvider as getRuntimeProvider,
   isProviderConfigured,
   listRegisteredProviderIds,
-} from "@nodetool/runtime";
-import type { BaseProvider, Message, ToolCall } from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
+import type { BaseProvider, Message, ToolCall } from "@nodetool-ai/runtime";
 import {
   Message as DbMessage,
   Thread as DbThread,
-} from "@nodetool/models";
+} from "@nodetool-ai/models";
 import type {
   AgentMessage,
   AgentListSessionsRequest,
@@ -53,8 +53,8 @@ import type {
   AgentSessionInfoEntry,
   AgentTranscriptMessage,
   FrontendToolManifest,
-} from "@nodetool/protocol";
-import { createLogger } from "@nodetool/config";
+} from "@nodetool-ai/protocol";
+import { createLogger } from "@nodetool-ai/config";
 
 import {
   SYSTEM_PROMPT,
@@ -548,7 +548,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
     try {
       const limit = options.limit ?? 50;
 
-      // Drizzle-ORM access goes through the @nodetool/models package. To keep
+      // Drizzle-ORM access goes through the @nodetool-ai/models package. To keep
       // this provider self-contained, do a paginated thread scan and filter
       // each thread's messages — there are typically O(tens) of threads, so
       // this is fine.

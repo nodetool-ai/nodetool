@@ -7,7 +7,7 @@ import CodeBlock from "./CodeBlock";
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
 const customNodeCode = `// my-nodes/src/SentimentNode.ts
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 export class SentimentNode extends BaseNode {
   static readonly nodeType = "my.text.Sentiment";
@@ -24,8 +24,8 @@ export class SentimentNode extends BaseNode {
   }
 }`;
 
-const programmaticRunCode = `import { WorkflowRunner } from "@nodetool/kernel";
-import { workflow, constant, text } from "@nodetool/dsl";
+const programmaticRunCode = `import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { workflow, constant, text } from "@nodetool-ai/dsl";
 
 const a = constant.string({ value: "Hello, " });
 const b = constant.string({ value: "NodeTool!" });
@@ -60,7 +60,7 @@ const cliCommands = [
 
 const dslExampleCode = `// simple_chat_workflow.ts
 // A complete chat workflow in code
-import { workflow, input, agent, output } from "@nodetool/dsl";
+import { workflow, input, agent, output } from "@nodetool-ai/dsl";
 
 // Accept chat message input
 const userMessage = input.message({

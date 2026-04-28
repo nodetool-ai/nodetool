@@ -9,11 +9,11 @@ export * from "./nodes/test-nodes.js";
 export * from "./package-registry-client.js";
 export * from "./docs/index.js";
 export * from "./python-package-scan.js";
-export type { StreamingInputs, StreamingOutputs } from "@nodetool/runtime";
+export type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/runtime";
 export type {
   ImageRef,
   AudioRef,
   VideoRef,
   TextRef,
   DataframeRef
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";

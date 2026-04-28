@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiSearchNodesParams } from "@nodetool/protocol";
+import { uiSearchNodesParams } from "@nodetool-ai/protocol";
 import { computeSearchResults } from "../../../utils/nodeSearch";
 import { FrontendToolRegistry } from "../frontendTools";
 

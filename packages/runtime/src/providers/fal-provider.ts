@@ -7,7 +7,7 @@
 
 import { createRequire } from "node:module";
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageModel,
   VideoModel,
@@ -22,7 +22,7 @@ import { loadImageModels, loadVideoModels } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.fal");
 
-const FAL_MANIFEST_PKG = "@nodetool/fal-nodes";
+const FAL_MANIFEST_PKG = "@nodetool-ai/fal-nodes";
 const FAL_MANIFEST_PATH = "fal-manifest.json";
 
 type FalQueueUpdate = {

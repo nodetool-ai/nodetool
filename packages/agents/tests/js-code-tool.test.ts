@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { MiniJSAgentTool } from "../src/tools/js-code-tool.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const mockContext = {
   resolveWorkspacePath: (p: string) => `/tmp/test-workspace/${p}`,

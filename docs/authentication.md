@@ -147,18 +147,18 @@ export AUTH_CACHE_MAX=1000   # cache size
 
 The authentication system is split across two packages:
 
-- **`@nodetool/auth`** -- defines the abstract **AuthProvider** base class, token extraction from HTTP and WebSocket headers, and the `AuthResult` / `TokenType` types.
-- **`@nodetool/deploy`** -- provides the concrete token management functions: `getServerAuthToken()`, `generateSecureToken()`, `verifyServerToken()`, and config file I/O.
+- **`@nodetool-ai/auth`** -- defines the abstract **AuthProvider** base class, token extraction from HTTP and WebSocket headers, and the `AuthResult` / `TokenType` types.
+- **`@nodetool-ai/deploy`** -- provides the concrete token management functions: `getServerAuthToken()`, `generateSecureToken()`, `verifyServerToken()`, and config file I/O.
 
 ```ts
-// @nodetool/auth
+// @nodetool-ai/auth
 abstract class AuthProvider {
   extractTokenFromHeaders(headers: Record<string, string> | Headers): string | null;
   extractTokenFromWs(headers, queryParams?): string | null;
   abstract verifyToken(token: string): Promise<AuthResult>;
 }
 
-// @nodetool/deploy
+// @nodetool-ai/deploy
 function getServerAuthToken(): string;       // resolve token (env → config → generate)
 function generateSecureToken(): string;       // crypto.randomBytes(32).toString("base64url")
 function verifyServerToken(auth: string): Promise<"authenticated">;  // timing-safe compare
@@ -266,7 +266,7 @@ Get-Content $env:APPDATA\nodetool\deployment.yaml
 ### Programmatically
 
 ```ts
-import { getServerAuthToken, getTokenSource } from "@nodetool/deploy";
+import { getServerAuthToken, getTokenSource } from "@nodetool-ai/deploy";
 
 const token = getServerAuthToken();
 const source = getTokenSource();  // "environment" | "config" | "generated"
@@ -512,7 +512,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ### Custom Config Location
 
 ```ts
-import { loadAuthConfig, saveAuthConfig, generateSecureToken } from "@nodetool/deploy";
+import { loadAuthConfig, saveAuthConfig, generateSecureToken } from "@nodetool-ai/deploy";
 
 // Load current config
 const config = loadAuthConfig();

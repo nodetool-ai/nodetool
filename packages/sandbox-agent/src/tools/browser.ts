@@ -48,7 +48,7 @@ import type {
   BrowserConsoleViewOutput,
   BrowserElement,
   BrowserConsoleMessage
-} from "@nodetool/sandbox/schemas";
+} from "@nodetool-ai/sandbox/schemas";
 
 const CONSOLE_BUFFER_MAX = 500;
 

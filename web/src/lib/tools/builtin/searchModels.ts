@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiSearchModelsParams } from "@nodetool/protocol";
+import { uiSearchModelsParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { trpc } from "../../trpc";
 

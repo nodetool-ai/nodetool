@@ -1,4 +1,4 @@
-// @nodetool/huggingface — HuggingFace integration package
+// @nodetool-ai/huggingface — HuggingFace integration package
 // Cache scanning, model discovery, artifact inspection, and downloads
 
 export { getHfToken, resolveHfToken, clearHfTokenCache } from "./hf-auth.js";

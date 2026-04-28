@@ -4,8 +4,8 @@
  * Port of src/nodetool/agents/tools/base.py
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { ProviderTool } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProviderTool } from "@nodetool-ai/runtime";
 
 export abstract class Tool {
   abstract readonly name: string;

@@ -1,10 +1,10 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   ImageTo3DParams,
   Model3D,
   TextTo3DParams
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 
 import {
   DEFAULT_IMAGE,

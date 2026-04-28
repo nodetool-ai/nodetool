@@ -1,4 +1,4 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import {
   PythonDockerRunner,
   JavaScriptDockerRunner,
@@ -9,7 +9,7 @@ import {
   CommandDockerRunner,
   type StreamRunnerBase,
   ContainerFailureError
-} from "@nodetool/code-runners";
+} from "@nodetool-ai/code-runners";
 
 // ---------------------------------------------------------------------------
 // Helpers

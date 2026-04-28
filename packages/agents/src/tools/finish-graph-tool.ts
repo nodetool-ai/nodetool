@@ -5,8 +5,8 @@
  * (cycle detection, connectivity) and produces the GraphData.
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { GraphData } from "@nodetool/protocol";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { GraphData } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
 import type { GraphBuilder } from "../graph-builder.js";
 

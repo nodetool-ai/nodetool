@@ -4,7 +4,7 @@
 
 **Goal:** Big-bang replacement of the JSON REST API under `/api/*` with tRPC procedures, excluding `/v1/*`, `/api/oauth/*`, `/mcp`, `/health`/`/ready`, `/admin/*`, binary/stream downloads, and `/api/nodes/metadata`. All five clients (web, mobile, cli, electron main, deploy) migrate to `@trpc/client` with end-to-end typed `AppRouter`.
 
-**Architecture:** tRPC router composed from per-domain sub-routers in `packages/websocket/src/trpc/`, mounted on the existing Fastify instance at `/trpc` via `@trpc/server/adapters/fastify`. Zod input/output schemas live in `@nodetool/protocol/src/api-schemas/`. `AppRouter` type exported from `@nodetool/websocket/trpc` as a type-only subpath. Clients use `httpBatchLink` with `superjson` for native `Date`/`Map`/`Set` over the wire. Existing Fastify auth hook (`req.userId`) is the sole auth source; `ctx.userId` in tRPC reads it.
+**Architecture:** tRPC router composed from per-domain sub-routers in `packages/websocket/src/trpc/`, mounted on the existing Fastify instance at `/trpc` via `@trpc/server/adapters/fastify`. Zod input/output schemas live in `@nodetool-ai/protocol/src/api-schemas/`. `AppRouter` type exported from `@nodetool-ai/websocket/trpc` as a type-only subpath. Clients use `httpBatchLink` with `superjson` for native `Date`/`Map`/`Set` over the wire. Existing Fastify auth hook (`req.userId`) is the sole auth source; `ctx.userId` in tRPC reads it.
 
 **Tech Stack:** tRPC v11, `@trpc/server`, `@trpc/client`, `@trpc/react-query`, zod v4, superjson, Fastify v5, TanStack Query v5, TypeScript strict.
 
@@ -85,7 +85,7 @@ mobile/src/trpc/
 - `web/src/api.ts` — **deleted** (14k generated lines).
 - `web/src/serverState/*.ts` — rewritten to delegate to tRPC React Query hooks; public hook signatures preserved where practical.
 - `web/src/stores/ApiClient.ts` — deleted after all consumers moved to the tRPC client.
-- Call sites across `web/src/` that import from `web/src/api.ts`, `@nodetool/websocket`-style URL paths, or `stores/ApiClient` — swept to tRPC.
+- Call sites across `web/src/` that import from `web/src/api.ts`, `@nodetool-ai/websocket`-style URL paths, or `stores/ApiClient` — swept to tRPC.
 - `mobile/` — same as web.
 - `packages/cli/src/nodetool.ts` — `apiGet`/`apiPost` helpers replaced with a typed tRPC client.
 - `electron/src/api.ts` — REST `fetch` replaced with typed tRPC client calls.
@@ -168,11 +168,11 @@ In `dependencies`:
 ```json
 "@trpc/client": "^11.0.0",
 "@trpc/server": "^11.0.0",
-"@nodetool/websocket": "*",
+"@nodetool-ai/websocket": "*",
 "superjson": "^2.2.2"
 ```
 
-Note: `@nodetool/websocket` is a type-only dep (the `./trpc` subpath is type-erased); it's added to `dependencies` because npm workspaces resolve through there. If TypeScript project-references need adjustment, see Task 1.8.
+Note: `@nodetool-ai/websocket` is a type-only dep (the `./trpc` subpath is type-erased); it's added to `dependencies` because npm workspaces resolve through there. If TypeScript project-references need adjustment, see Task 1.8.
 
 - [ ] **Step 5: Add client dependency to `electron/package.json`**
 
@@ -181,7 +181,7 @@ In `dependencies`:
 ```json
 "@trpc/client": "^11.0.0",
 "@trpc/server": "^11.0.0",
-"@nodetool/websocket": "*",
+"@nodetool-ai/websocket": "*",
 "superjson": "^2.2.2"
 ```
 
@@ -192,7 +192,7 @@ In `dependencies`:
 ```json
 "@trpc/client": "^11.0.0",
 "@trpc/server": "^11.0.0",
-"@nodetool/websocket": "*",
+"@nodetool-ai/websocket": "*",
 "superjson": "^2.2.2"
 ```
 
@@ -355,8 +355,8 @@ export function throwApiError(
 ```ts
 // packages/websocket/src/trpc/context.ts
 import type { FastifyRequest } from "fastify";
-import type { NodeRegistry } from "@nodetool/node-sdk";
-import type { PythonStdioBridge } from "@nodetool/runtime";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { PythonStdioBridge } from "@nodetool-ai/runtime";
 import type { HttpApiOptions } from "../http-api.js";
 
 export interface Context {
@@ -451,12 +451,12 @@ git commit -m "feat(trpc): scaffold server — initTRPC, context, errorFormatter
 
 ---
 
-### Task 1.4: Create `api-schemas/` skeleton in `@nodetool/protocol`
+### Task 1.4: Create `api-schemas/` skeleton in `@nodetool-ai/protocol`
 
 **Files:**
 - Create: `packages/protocol/src/api-schemas/index.ts`
 
-Schemas are consumed via the `@nodetool/protocol/api-schemas` subpath (set up in Task 1.6). The main `packages/protocol/src/index.ts` is intentionally *not* modified — schemas are accessed via the subpath, not the root export, to keep the root package tree-shaking friendly.
+Schemas are consumed via the `@nodetool-ai/protocol/api-schemas` subpath (set up in Task 1.6). The main `packages/protocol/src/index.ts` is intentionally *not* modified — schemas are accessed via the subpath, not the root export, to keep the root package tree-shaking friendly.
 
 - [ ] **Step 1: Create the schemas index**
 
@@ -623,7 +623,7 @@ import { ApiErrorCode } from "./api-error-code.js";
 
 /**
  * Shape of the `error.data` object attached to TRPCClientError when the server
- * uses the errorFormatter from @nodetool/websocket/src/trpc/error-formatter.
+ * uses the errorFormatter from @nodetool-ai/websocket/src/trpc/error-formatter.
  * Re-declared here so clients don't depend on server internals.
  */
 export interface NodetoolTRPCErrorData {
@@ -685,8 +685,8 @@ export function apiError(code: ApiErrorCode, detail: string): ApiErrorResponse {
 Replace the contents of `packages/websocket/src/error-codes.ts`:
 
 ```ts
-export { ApiErrorCode, apiError } from "@nodetool/protocol/api-schemas/api-error-code.js";
-export type { ApiErrorResponse } from "@nodetool/protocol/api-schemas/api-error-code.js";
+export { ApiErrorCode, apiError } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
+export type { ApiErrorResponse } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 ```
 
 This preserves existing imports at all call sites while moving the canonical definition to protocol.
@@ -759,7 +759,7 @@ import {
   type TRPCClientErrorLike
 } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
 import { supabase } from "../lib/supabaseClient";
 import { isLocalhost } from "../stores/ApiClient";
@@ -808,7 +808,7 @@ import { httpBatchLink, loggerLink } from "@trpc/client";
 import superjson from "superjson";
 import { trpc } from "./client";
 import { queryClient } from "../queryClient";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
 import { supabase } from "../lib/supabaseClient";
 import { isLocalhost } from "../stores/ApiClient";
@@ -998,8 +998,8 @@ import { createCallerFactory } from "../../index.js";
 import type { Context } from "../../context.js";
 
 // Seam for mocking the Prediction model
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Prediction: {
@@ -1011,7 +1011,7 @@ vi.mock("@nodetool/models", async (orig) => {
   };
 });
 
-import { Prediction } from "@nodetool/models";
+import { Prediction } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -1146,7 +1146,7 @@ Expected: FAIL with `caller.costs is undefined` (the router doesn't exist yet).
 
 ```ts
 // packages/websocket/src/trpc/routers/costs.ts
-import { Prediction } from "@nodetool/models";
+import { Prediction } from "@nodetool-ai/models";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import {
@@ -1159,7 +1159,7 @@ import {
   aggregateByModelOutput,
   summaryOutput,
   type PredictionResponse
-} from "@nodetool/protocol/api-schemas/costs.js";
+} from "@nodetool-ai/protocol/api-schemas/costs.js";
 
 function toPredictionResponse(pred: Prediction): PredictionResponse {
   return {
@@ -1288,7 +1288,7 @@ git commit -m "feat(trpc): implement costs router + unit tests"
 Append to the existing file:
 
 ```ts
-import { Prediction } from "@nodetool/models";
+import { Prediction } from "@nodetool-ai/models";
 
 describe("tRPC /trpc/costs.list over Fastify", () => {
   it("returns an empty list for a user with no predictions", async () => {
@@ -1497,7 +1497,7 @@ Before each domain task, consult this table. Entries marked "†" have binary/st
 Apply the playbook with these specifics:
 
 - **Schemas** — read `settings-api.ts` to enumerate endpoints. Typical inputs: `key` (string), `value` (unknown), pagination cursor. Output: settings records with `{ key, value, updated_at }`. Write schemas and tests.
-- **Router tests** — mock the `Setting` and `Secret` models (seam via `vi.mock("@nodetool/models")`); verify list/get/update/delete round-trip.
+- **Router tests** — mock the `Setting` and `Secret` models (seam via `vi.mock("@nodetool-ai/models")`); verify list/get/update/delete round-trip.
 - **Router** — each operation calls the corresponding model method with `ctx.userId`; errors mapped via `throwApiError(ApiErrorCode.NOT_FOUND, ...)` etc.
 - **Wire into appRouter** — add `settings: settingsRouter` to `router.ts`.
 - **Integration** — smoke one GET via `app.inject`.
@@ -1516,7 +1516,7 @@ Apply the playbook with these specifics:
 Apply the playbook:
 
 - **Endpoints** (from `collection-api.ts`): list collections, get by name, create, update (name/metadata), delete, index documents. Indexing may take a large body — validate carefully.
-- **Special consideration:** vectorstore operations live in `@nodetool/vectorstore`. Router imports from there via the registry/handle pattern already in `collection-api.ts`.
+- **Special consideration:** vectorstore operations live in `@nodetool-ai/vectorstore`. Router imports from there via the registry/handle pattern already in `collection-api.ts`.
 
 - [ ] **Step 1–6:** follow the playbook. Commit messages: `feat(protocol): add collections api-schemas` → `feat(trpc): implement collections router + tests` → `test(trpc): integration smoke for collections` → `feat(web): migrate collections consumers to tRPC` → `refactor: remove REST collections route`.
 
@@ -1759,7 +1759,7 @@ import {
   type TRPCClientErrorLike
 } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 // Adjust to mobile's auth source
 import { getAuthToken, getBaseUrl } from "../services/auth";
 
@@ -1817,7 +1817,7 @@ git commit -m "refactor(mobile): migrate to @trpc/client; delete generated api.t
 ```ts
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 
 function createClient(apiUrl: string) {
   return createTRPCClient<AppRouter>({
@@ -1880,7 +1880,7 @@ git commit -m "refactor(cli): migrate nodetool command to @trpc/client"
 // electron/src/api.ts
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { Workflow } from "./types";
 import { logMessage } from "./logger";
 import { getServerUrl } from "./utils";
@@ -1946,7 +1946,7 @@ In each file, replace the `fetch`-based request method with a tRPC client. Examp
 ```ts
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 
 export class AdminClient {
   private client: ReturnType<typeof createTRPCClient<AppRouter>>;

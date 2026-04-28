@@ -1,5 +1,5 @@
 /**
- * API Types — Re-exports from @nodetool/protocol shared types.
+ * API Types — Re-exports from @nodetool-ai/protocol shared types.
  *
  * These types are used throughout the mobile app and are now sourced from
  * the shared protocol package instead of auto-generated OpenAPI types.
@@ -115,7 +115,7 @@ import type {
   Chunk,
   PlanningUpdate,
   Prediction,
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 
 // ── Re-exports ─────────────────────────────────────────────────────────
 // Graph & Node

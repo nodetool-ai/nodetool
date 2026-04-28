@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 import { SandboxTool, toJsonSchema } from "../src/SandboxTool.js";
-import { ToolClient } from "@nodetool/sandbox";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { ToolClient } from "@nodetool-ai/sandbox";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const makeFetch = (
   responder: (url: string, init?: RequestInit) => Response

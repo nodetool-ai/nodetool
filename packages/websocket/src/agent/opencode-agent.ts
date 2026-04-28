@@ -6,7 +6,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type { AgentTransport } from "./transport.js";
 import type {
   AgentGetSessionMessagesRequest,

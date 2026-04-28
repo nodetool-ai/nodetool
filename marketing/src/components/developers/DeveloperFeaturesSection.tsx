@@ -15,7 +15,7 @@ const features = [
     color: "text-violet-400",
     bgColor: "bg-violet-500/10",
     borderColor: "border-violet-500/20",
-    code: `import { WorkflowRunner } from "@nodetool/kernel";
+    code: `import { WorkflowRunner } from "@nodetool-ai/kernel";
 
 const runner = new WorkflowRunner();
 const result = await runner.run(graph, {
@@ -30,7 +30,7 @@ const result = await runner.run(graph, {
     color: "text-blue-400",
     bgColor: "bg-blue-500/10",
     borderColor: "border-blue-500/20",
-    code: `import { workflow, constant, text } from "@nodetool/dsl";
+    code: `import { workflow, constant, text } from "@nodetool-ai/dsl";
 
 const a = constant.string({ value: "Hello, " });
 const b = constant.string({ value: "NodeTool!" });
@@ -46,7 +46,7 @@ const wf = workflow(out);`,
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/10",
     borderColor: "border-emerald-500/20",
-    code: `import { BaseNode, prop } from "@nodetool/node-sdk";
+    code: `import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 export class MyNode extends BaseNode {
   static readonly nodeType = "my.pkg.MyNode";

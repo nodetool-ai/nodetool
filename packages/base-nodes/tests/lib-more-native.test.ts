@@ -39,7 +39,7 @@ import {
   FilterFileNamesLibNode,
   WorkspaceDirectoryLibNode
 } from "../src/index.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 describe("native lib.os", () => {
   it("checks existence, lists, copies and moves files", async () => {

@@ -9,7 +9,7 @@ The `nodetool` CLI is the TypeScript command-line interface for the NodeTool pla
 
 ## Installation
 
-The CLI is part of the `@nodetool/cli` package in the monorepo. Build it with:
+The CLI is part of the `@nodetool-ai/cli` package in the monorepo. Build it with:
 
 ```bash
 # From repo root

@@ -2,8 +2,8 @@
  * Tests for src/commands/deploy.ts and src/commands/deploy-helpers.ts
  *
  * Strategy:
- *   - Mock @nodetool/deploy, @nodetool/vectorstore, @nodetool/runtime,
- *     @nodetool/models, and @nodetool/config via vi.mock().
+ *   - Mock @nodetool-ai/deploy, @nodetool-ai/vectorstore, @nodetool-ai/runtime,
+ *     @nodetool-ai/models, and @nodetool-ai/config via vi.mock().
  *   - Use Commander's parseAsync on a freshly built Command for each case.
  *   - Capture stdout/stderr by spying on process.{stdout,stderr,exit}.
  */
@@ -99,7 +99,7 @@ const initDeploymentConfig = vi.fn(async () => ({
 }));
 const saveDeploymentConfig = vi.fn(async (_c: unknown) => {});
 
-vi.mock("@nodetool/deploy", () => ({
+vi.mock("@nodetool-ai/deploy", () => ({
   AdminHTTPClient: class {
     listWorkflows = listWorkflows;
     deleteWorkflow = deleteWorkflow;
@@ -168,16 +168,16 @@ vi.mock("@nodetool/deploy", () => ({
   DataCenter: { US_TEXAS_1: "US-TX-1" }
 }));
 
-vi.mock("@nodetool/vectorstore", () => ({
+vi.mock("@nodetool-ai/vectorstore", () => ({
   getCollection: vi.fn(async () => null)
 }));
 
-vi.mock("@nodetool/models", () => ({
+vi.mock("@nodetool-ai/models", () => ({
   Workflow: { find: vi.fn(async () => null) },
   Asset: { find: vi.fn(async () => null) }
 }));
 
-vi.mock("@nodetool/runtime", () => ({
+vi.mock("@nodetool-ai/runtime", () => ({
   FileStorageAdapter: class {
     constructor(_root?: string) {}
     async retrieve(_uri?: string) {
@@ -186,7 +186,7 @@ vi.mock("@nodetool/runtime", () => ({
   }
 }));
 
-vi.mock("@nodetool/config", () => ({
+vi.mock("@nodetool-ai/config", () => ({
   getDefaultAssetsPath: () => "/tmp/nodetool-assets-test"
 }));
 

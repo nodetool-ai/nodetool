@@ -6,8 +6,8 @@
  * to Message.delete() in batches of 100, mirroring the legacy behavior.
  */
 
-import { Thread, Message } from "@nodetool/models";
-import type { Thread as ThreadModel } from "@nodetool/models";
+import { Thread, Message } from "@nodetool-ai/models";
+import type { Thread as ThreadModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -24,7 +24,7 @@ import {
   summarizeInput,
   summarizeOutput,
   type ThreadResponse
-} from "@nodetool/protocol/api-schemas/threads.js";
+} from "@nodetool-ai/protocol/api-schemas/threads.js";
 
 /** Maximum length of a derived thread title before truncation. */
 const THREAD_TITLE_MAX_LEN = 60;

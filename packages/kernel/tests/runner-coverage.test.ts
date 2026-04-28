@@ -8,7 +8,7 @@
 
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
-import type { NodeDescriptor, Edge, ControlEvent } from "@nodetool/protocol";
+import type { NodeDescriptor, Edge, ControlEvent } from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "../src/actor.js";
 
 function simpleExecutor(

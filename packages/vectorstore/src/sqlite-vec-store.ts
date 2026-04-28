@@ -11,7 +11,7 @@ import type { Database as DatabaseType } from "better-sqlite3";
 import * as sqliteVec from "sqlite-vec";
 import { dirname } from "node:path";
 import { mkdirSync } from "node:fs";
-import { createLogger, getDefaultVectorstoreDbPath } from "@nodetool/config";
+import { createLogger, getDefaultVectorstoreDbPath } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.vectorstore.sqlite-vec");
 

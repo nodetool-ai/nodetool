@@ -14,8 +14,8 @@ import {
   listFilesOutput,
   fileInfoInput,
   fileInfoOutput
-} from "@nodetool/protocol/api-schemas/files.js";
-import { ApiErrorCode } from "@nodetool/protocol/api-schemas/api-error-code.js";
+} from "@nodetool-ai/protocol/api-schemas/files.js";
+import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 
 // ── Sandbox helpers ─────────────────────────────────────────────────────────
 

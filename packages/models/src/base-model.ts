@@ -9,7 +9,7 @@
 
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { eq } from "drizzle-orm";
 import type { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
 import { getDb } from "./db.js";

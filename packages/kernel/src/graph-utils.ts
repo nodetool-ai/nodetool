@@ -4,8 +4,8 @@
  * Port of src/nodetool/workflows/graph_utils.py.
  */
 
-import type { Edge, GraphData, NodeDescriptor } from "@nodetool/protocol";
-import { isControlEdge, TypeMetadata } from "@nodetool/protocol";
+import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
+import { isControlEdge, TypeMetadata } from "@nodetool-ai/protocol";
 import { Graph } from "./graph.js";
 
 /**

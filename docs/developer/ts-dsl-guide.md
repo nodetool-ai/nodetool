@@ -4,7 +4,7 @@ title: "TypeScript DSL Guide"
 description: "Define NodeTool workflows programmatically using type-safe TypeScript factory functions."
 ---
 
-The TypeScript DSL (`@nodetool/dsl`) provides type-safe factory functions for building NodeTool workflows in code. Define workflows programmatically with full IDE autocompletion, then serialize them to the same JSON format used by the visual editor.
+The TypeScript DSL (`@nodetool-ai/dsl`) provides type-safe factory functions for building NodeTool workflows in code. Define workflows programmatically with full IDE autocompletion, then serialize them to the same JSON format used by the visual editor.
 
 ## Table of Contents
 
@@ -22,7 +22,7 @@ The TypeScript DSL (`@nodetool/dsl`) provides type-safe factory functions for bu
 
 ## Installation
 
-The `@nodetool/dsl` package is part of the NodeTool monorepo:
+The `@nodetool-ai/dsl` package is part of the NodeTool monorepo:
 
 ```bash
 npm install  # from the repo root — installs all workspace packages
@@ -31,14 +31,14 @@ npm install  # from the repo root — installs all workspace packages
 Import namespaces directly:
 
 ```ts
-import { math, constant, text, image } from "@nodetool/dsl";
-import { workflow } from "@nodetool/dsl";
+import { math, constant, text, image } from "@nodetool-ai/dsl";
+import { workflow } from "@nodetool-ai/dsl";
 ```
 
 Or import from a specific namespace for tree-shaking:
 
 ```ts
-import { add, multiply } from "@nodetool/dsl/generated/nodetool.math";
+import { add, multiply } from "@nodetool-ai/dsl/generated/nodetool.math";
 ```
 
 ---
@@ -82,8 +82,8 @@ node.output()  // OutputHandle for the node's default output slot
 A workflow follows three steps: create nodes, connect them, build the graph.
 
 ```ts
-import { constant, math } from "@nodetool/dsl";
-import { workflow } from "@nodetool/dsl";
+import { constant, math } from "@nodetool-ai/dsl";
+import { workflow } from "@nodetool-ai/dsl";
 
 // 1. Create nodes
 const x = constant.float({ value: 3.14 });
@@ -148,7 +148,7 @@ const wf = workflow(branch1, branch2);
 Some nodes produce multiple outputs (e.g., `If` has `if_true` and `if_false`). Use `output("slotName")` to select the slot you want:
 
 ```ts
-import { control } from "@nodetool/dsl";
+import { control } from "@nodetool-ai/dsl";
 
 const branch = control.if_({ condition: true, value: "hello" });
 
@@ -224,7 +224,7 @@ The factory functions are auto-generated from node metadata. To regenerate after
 npm run codegen --workspace=packages/dsl
 ```
 
-This reads all nodes registered in `@nodetool/base-nodes`, introspects their metadata (inputs, outputs, types, defaults), and emits typed factory functions into `packages/dsl/src/generated/`.
+This reads all nodes registered in `@nodetool-ai/base-nodes`, introspects their metadata (inputs, outputs, types, defaults), and emits typed factory functions into `packages/dsl/src/generated/`.
 
 Generated files are committed to git. The codegen script is at `packages/dsl/scripts/codegen.ts`.
 
@@ -247,7 +247,7 @@ Generated files are committed to git. The codegen script is at `packages/dsl/scr
 
 ## Best Practices
 
-1. **Use namespace imports** — `import { math } from "@nodetool/dsl"` gives you autocompletion for all math nodes.
+1. **Use namespace imports** — `import { math } from "@nodetool-ai/dsl"` gives you autocompletion for all math nodes.
 
 2. **Let TypeScript catch errors** — the DSL is fully typed. If you pass a `string` where a `number` is expected, the compiler tells you.
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   registerBaseNodes,
   IfNode,

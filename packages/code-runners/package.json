@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/code-runners",
+  "name": "@nodetool-ai/code-runners",
   "type": "module",
   "version": "0.1.0",
   "description": "Streaming code runners: Docker containers and local subprocesses for executing Python, JS, Bash, Ruby, and Lua code",
@@ -12,7 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/config": "*",
+    "@nodetool-ai/config": "*",
     "dockerode": "^4.0.4"
   },
   "devDependencies": {
