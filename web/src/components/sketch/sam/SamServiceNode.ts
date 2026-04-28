@@ -419,6 +419,8 @@ export class SamServiceNode implements SamService {
     scale: number
   ): { x: number; y: number; width: number; height: number } {
     const promptMapper = this.createPromptMapper(sourceMetadata);
+    // Map all four corners before taking min/max so rotated or affine-transformed
+    // source layers still produce a correct axis-aligned box in source-image space.
     const corners = [
       this.mapPromptPointToSourceImage({ x: boxPrompt.x, y: boxPrompt.y }, promptMapper),
       this.mapPromptPointToSourceImage(
