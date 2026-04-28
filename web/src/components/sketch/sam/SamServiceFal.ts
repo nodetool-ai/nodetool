@@ -96,12 +96,19 @@ function parseJsonValue<T>(value: unknown): T | null {
     try {
       return JSON.parse(value) as T;
     } catch {
+      // Provider SAM fields may arrive as JSON-encoded strings or already-parsed
+      // objects; treat invalid JSON payloads as absent optional metadata and
+      // return null for invalid JSON or null/undefined inputs.
       return null;
     }
   }
   return value as T;
 }
 
+/**
+ * Normalize provider confidence scores from either a JSON string payload or an
+ * already-parsed array, discarding invalid or non-finite entries.
+ */
 function normalizeFalScores(value: unknown): number[] {
   const parsed = parseJsonValue<unknown>(value);
   if (!Array.isArray(parsed)) {
@@ -152,6 +159,10 @@ function normalizeFalBoxes(
         const maskWidth = fallbackMask?.width ?? 0;
         const maskHeight = fallbackMask?.height ?? 0;
         return {
+          // fal SAM 3.1 returns normalized [0..1] [cx, cy, w, h]; e.g.
+          // [0.5, 0.5, 0.5, 0.5] covers the centered middle quarter. Convert
+          // that center-based box back to top-left pixel bounds in the resized
+          // mask image before undoing resizeForInference's scale factor.
           x: Math.round((cx - width / 2) * maskWidth * invScale),
           y: Math.round((cy - height / 2) * maskHeight * invScale),
           width: Math.round(width * maskWidth * invScale),

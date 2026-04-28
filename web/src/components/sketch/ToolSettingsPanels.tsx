@@ -1547,7 +1547,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       ? "Split selected layer"
       : "Segment";
   const showClearPrompts = !isLocalSam3 || settings.promptMode !== "auto";
-  const backendLabel = modelInfo?.backendLabel ?? (isLocalSam3 ? "Local SAM3" : "This backend");
+  const backendLabel = modelInfo?.backendLabel ?? (isLocalSam3 ? "Local SAM3" : "Selected backend");
   const modelStatusText = getSegmentModelStatusText(
     isLocalSam3,
     localSam3Downloading,

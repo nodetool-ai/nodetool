@@ -801,7 +801,7 @@ describe("SamServiceFal", () => {
     }
 
     global.Image = MockImage as unknown as typeof Image;
-    jest.spyOn(document, "createElement").mockImplementation(((tagName: string) => {
+    jest.spyOn(document, "createElement").mockImplementation((tagName: string) => {
       if (tagName === "canvas") {
         return {
           width: 0,
@@ -813,7 +813,7 @@ describe("SamServiceFal", () => {
         } as unknown as HTMLCanvasElement;
       }
       return originalCreateElement(tagName);
-    }) as typeof document.createElement);
+    });
 
     const fetchMock = jest.fn()
       .mockResolvedValueOnce({
