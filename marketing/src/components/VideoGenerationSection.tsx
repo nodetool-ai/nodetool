@@ -53,7 +53,7 @@ export default function VideoGenerationSection({
             className="text-lg text-slate-400 leading-relaxed"
           >
             Generate videos from text or images using state-of-the-art models.
-            Support for Google Veo, Kling, Hailuo, Wan, and local open-weight generation.
+            Support for Seedance 2.0, Google Veo 3.1, Kling 3, Hailuo 02, Wan 2.2, and local open-weight generation.
           </motion.p>
 
           <motion.div
@@ -86,21 +86,21 @@ export default function VideoGenerationSection({
         >
           {[
             {
-              title: "Wan 2.2",
-              description: "Open-weight video diffusion via Replicate—text-to-video and image-to-video.",
+              title: "Seedance 2.0",
+              description: "State-of-the-art video generation with exceptional motion quality.",
               icon: Film,
-              category: "Open Weights",
-              features: ["Text-to-video", "Image-to-video", "Open model"],
+              category: "Best-in-Class",
+              features: ["Text-to-video", "Image-to-video", "Superior motion"],
               color: "text-green-400",
               bg: "bg-green-500/10",
               border: "border-green-500/20",
             },
             {
-              title: "Kling v2.1",
-              description: "Kuaishou's Kling 2.1—5s and 10s clips at up to 1080p from a starting image.",
+              title: "Kling 3",
+              description: "Latest Kling model with cinematic quality and strong prompt adherence.",
               icon: Video,
               category: "Text & Image to Video",
-              features: ["Image-to-video", "Up to 1080p", "Cinematic output"],
+              features: ["Text-to-video", "Image-to-video", "Cinematic output"],
               color: "text-cyan-400",
               bg: "bg-cyan-500/10",
               border: "border-cyan-500/20",
@@ -124,6 +124,16 @@ export default function VideoGenerationSection({
               color: "text-teal-400",
               bg: "bg-teal-500/10",
               border: "border-teal-500/20",
+            },
+            {
+              title: "Wan 2.2",
+              description: "Open-weight video diffusion via Replicate—text-to-video and image-to-video.",
+              icon: Film,
+              category: "Open Weights",
+              features: ["Text-to-video", "Image-to-video", "Open model"],
+              color: "text-orange-400",
+              bg: "bg-orange-500/10",
+              border: "border-orange-500/20",
             },
             {
               title: "HuggingFace",

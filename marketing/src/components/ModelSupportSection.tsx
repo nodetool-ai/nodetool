@@ -23,7 +23,8 @@ const localEngines = [
     { title: "Ollama", url: "https://ollama.com", LogoComponent: OllamaLogo, icon: Box, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
     { title: "llama.cpp", url: "https://github.com/ggml-org/llama.cpp", LogoComponent: LlamaCppLogo, icon: Zap, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
     { title: "vLLM", url: "https://github.com/vllm-project/vllm", LogoComponent: null, icon: Layers, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
-    { title: "LM Studio", url: "https://lmstudio.ai", LogoComponent: null, icon: Box, color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+    { title: "Nunchaku", url: "https://github.com/nunchaku-tech/nunchaku", LogoComponent: null, icon: Sparkles, color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+    { title: "LM Studio", url: "https://lmstudio.ai", LogoComponent: null, icon: Box, color: "text-fuchsia-400", bg: "bg-fuchsia-500/10", border: "border-fuchsia-500/20" },
 ];
 
 const cloudProviders = [
@@ -45,17 +46,20 @@ const cloudProviders = [
 ];
 
 const frontierModels = [
+    { name: "GPT-5.5", color: "text-emerald-400" },
     { name: "Claude Opus 4.7", color: "text-amber-400" },
     { name: "Claude Sonnet 4.6", color: "text-amber-400" },
     { name: "Claude Haiku 4.5", color: "text-amber-400" },
-    { name: "Gemini 2.5 Pro", color: "text-blue-400" },
-    { name: "Gemini 2.5 Flash", color: "text-blue-400" },
+    { name: "Gemini 3.1 Pro", color: "text-blue-400" },
+    { name: "Gemini 3.1 Flash", color: "text-blue-400" },
+    { name: "gpt-image-2", color: "text-emerald-400" },
+    { name: "FLUX", color: "text-pink-400" },
     { name: "Qwen Image", color: "text-sky-400" },
+    { name: "Seedance 2.0", color: "text-green-400" },
     { name: "Veo 3.1", color: "text-blue-400" },
-    { name: "Kling v2.1", color: "text-cyan-400" },
+    { name: "Kling 3", color: "text-cyan-400" },
     { name: "Hailuo 02", color: "text-red-400" },
     { name: "Wan 2.2", color: "text-orange-400" },
-    { name: "FLUX", color: "text-pink-400" },
     { name: "Whisper", color: "text-emerald-400" },
     { name: "ElevenLabs", color: "text-violet-400" },
 ];

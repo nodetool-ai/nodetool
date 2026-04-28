@@ -36,7 +36,7 @@ export const features = [
     name: "☁️ Access World-Class Models",
     description: (
       <>
-        One API for every top model. Generate video with Seedance 2.0, Kling 3.0, Luma & Runway,
+        One API for every top model. Generate video with Seedance 2.0, Kling 3, Luma & Runway,
         music with Suno, and images with Flux & Ideogram via Kie.ai. Plus
         support for local execution and major providers like OpenAI & Anthropic.
       </>
