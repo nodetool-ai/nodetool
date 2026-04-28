@@ -27,8 +27,7 @@ import {
   FormControlLabel,
   Button,
   IconButton,
-  Tooltip,
-  TextField
+  Tooltip
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -70,6 +69,7 @@ import {
 import type { SamModelInfo } from "./sam";
 import { LOCAL_SAM3_MODEL_ID } from "./sam";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { TextInput } from "../ui_primitives";
 import { useSketchStore } from "./state";
 import { getLayerDataImageUrl } from "./serialization";
 
@@ -1768,8 +1768,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           <Typography className="setting-label" sx={{ pt: "6px" }}>
             Concept
           </Typography>
-          <TextField
-            size="small"
+          <TextInput
+            compact
             value={settings.conceptPrompt}
             onChange={(event) => onChange({ conceptPrompt: event.target.value })}
             placeholder="Describe the object to isolate"

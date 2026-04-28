@@ -343,6 +343,7 @@ export class SamServiceNode implements SamService {
     scale: number,
     promptMetadata: LocalSam3PromptMetadata
   ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
+    const trimmedConceptPrompt = request.settings.conceptPrompt.trim();
     const nodeData: Record<string, unknown> = {
       image: await this.buildLocalSam3ImageInput(imageDataUrl),
       model: {
@@ -355,10 +356,9 @@ export class SamServiceNode implements SamService {
 
     if (
       promptMetadata.textPromptInputName &&
-      request.settings.conceptPrompt.trim().length > 0
+      trimmedConceptPrompt.length > 0
     ) {
-      nodeData[promptMetadata.textPromptInputName] =
-        request.settings.conceptPrompt.trim();
+      nodeData[promptMetadata.textPromptInputName] = trimmedConceptPrompt;
     }
 
     if (
