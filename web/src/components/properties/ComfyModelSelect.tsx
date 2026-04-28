@@ -44,7 +44,7 @@ const ComfyModelSelect = ({
     if (!models || isLoading || isError) {return [];}
     return (models as ComfyModelItem[])
       .map((model) => ({
-        value: model.name ?? model.path,
+        value: model.name ?? model.path ?? "",
         label: model.name ?? model.path ?? ""
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
