@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
-import useAssets from "../../serverState/useAssets";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { shallow } from "zustand/shallow";
 import {
@@ -34,7 +33,6 @@ export const useAssetActions = (asset: Asset) => {
   );
 
   const { mutation: updateAssetMutation } = useAssetUpdate();
-  const { refetchAssetsAndFolders } = useAssets();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
@@ -154,7 +152,7 @@ export const useAssetActions = (asset: Asset) => {
   );
 
   const handleDrop = useCallback(
-    async (event: React.DragEvent<HTMLDivElement>) => {
+    (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       setIsDragHovered(false);
 
@@ -165,27 +163,25 @@ export const useAssetActions = (asset: Asset) => {
         return;
       }
 
-      try {
-        let assetIdsToMove: string[] = [];
+      let assetIdsToMove: string[] = [];
 
-        if (dragData.type === "assets-multiple") {
-          assetIdsToMove = dragData.payload as string[];
-        } else if (dragData.type === "asset") {
-          assetIdsToMove = [(dragData.payload as Asset).id];
-        }
+      if (dragData.type === "assets-multiple") {
+        assetIdsToMove = dragData.payload as string[];
+      } else if (dragData.type === "asset") {
+        assetIdsToMove = [(dragData.payload as Asset).id];
+      }
 
-        if (asset.content_type === "folder" && assetIdsToMove.length > 0) {
-          await updateAssetMutation.mutateAsync(
-            assetIdsToMove.map((id: string) => ({ id, parent_id: asset.id }))
-          );
-          setMoveToFolderDialogOpen(false);
-          // Clear selection and refetch to update the UI
-          setSelectedAssetIds([]);
-          setSelectedAssets([]);
-          refetchAssetsAndFolders();
-        }
-      } catch (_error) {
-        console.error("Failed to process drop:", _error);
+      if (asset.content_type === "folder" && assetIdsToMove.length > 0) {
+        // Clear selection and close dialog immediately for instant feedback;
+        // the optimistic update in useAssetUpdate removes assets from view right away.
+        // If the server call fails, useAssetUpdate's onError rolls back the cache
+        // and shows an error notification.
+        setMoveToFolderDialogOpen(false);
+        setSelectedAssetIds([]);
+        setSelectedAssets([]);
+        updateAssetMutation.mutate(
+          assetIdsToMove.map((id: string) => ({ id, parent_id: asset.id }))
+        );
       }
     },
     [
@@ -194,8 +190,7 @@ export const useAssetActions = (asset: Asset) => {
       setMoveToFolderDialogOpen,
       updateAssetMutation,
       setSelectedAssetIds,
-      setSelectedAssets,
-      refetchAssetsAndFolders
+      setSelectedAssets
     ]
   );
 
