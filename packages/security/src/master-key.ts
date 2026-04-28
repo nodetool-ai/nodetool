@@ -41,25 +41,44 @@ interface KeytarModule {
   deletePassword(service: string, account: string): Promise<boolean>;
 }
 
-/** No-op keytar fallback when native module is unavailable (e.g. Docker). */
-const noopKeytar: KeytarModule = {
-  async getPassword() { return null; },
-  async setPassword() {},
-  async deletePassword() { return false; },
-};
+/**
+ * Thrown when the system keychain cannot be accessed. Callers can detect this
+ * specifically (vs other startup failures) to decide whether re-prompting the
+ * user for keychain access makes sense.
+ */
+export class KeychainAccessError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "KeychainAccessError";
+  }
+}
 
-/** Lazy-load keytar; falls back to no-op if the native module is missing. */
+function keychainAccessError(message: string): KeychainAccessError {
+  return new KeychainAccessError(
+    `${message}. Allow NodeTool access to the system keychain when prompted.`
+  );
+}
+
+/** Lazy-load keytar. Keychain failures are fatal: no generated fallback key. */
 let _keytarResolved: KeytarModule | null = null;
 async function loadKeytar(): Promise<KeytarModule> {
-  if (_keytarResolved) return _keytarResolved;
+  if (_keytarResolved) {
+    return _keytarResolved;
+  }
   try {
     const mod = await import("keytar");
     _keytarResolved = mod.default ?? mod;
     return _keytarResolved;
-  } catch {
-    log.info("keytar unavailable (headless environment), using env/AWS key sources only");
-    _keytarResolved = noopKeytar;
-    return _keytarResolved;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    log.error(
+      "keytar native module failed to load. For headless deployments " +
+        "(Docker, CI, Linux servers without libsecret) set the SECRETS_MASTER_KEY " +
+        "environment variable to a base64-encoded 32-byte key, or set " +
+        "AWS_SECRETS_MASTER_KEY_NAME to source the key from AWS Secrets Manager.",
+      { error: message }
+    );
+    throw keychainAccessError(`Unable to load system keychain backend: ${message}`);
   }
 }
 
@@ -199,20 +218,19 @@ export async function initMasterKey(): Promise<string> {
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    log.warn("Master key source failed, trying next", {
-      source: "keychain",
-      error: message
-    });
+    throw keychainAccessError(`Unable to read master key from system keychain: ${message}`);
   }
 
-  // 4. Auto-generate and persist to keychain
+  // 4. Auto-generate and persist to keychain. Persisting is mandatory; using
+  // an unpersisted generated key would make encrypted secrets unrecoverable on
+  // the next launch.
   const newKey = generateMasterKey();
   try {
     await keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, newKey);
     log.info("Master key generated and stored");
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    log.warn("Failed to persist master key to keychain", { error: message });
+    throw keychainAccessError(`Unable to store master key in system keychain: ${message}`);
   }
   cachedMasterKey = newKey;
   return newKey;
