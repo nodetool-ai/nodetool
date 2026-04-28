@@ -1224,6 +1224,8 @@ describe("NodeExecutor", () => {
       });
 
       const graph = mockExecutor.execute.mock.calls[0][0];
+      // resizeForInference returned scale=2, so prompt coordinates are doubled
+      // before they are sent to the Local SAM node contract.
       expect(graph.nodes[0].data.point_prompts).toEqual([
         { x: 6, y: 8, label: 1 }
       ]);
