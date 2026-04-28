@@ -3,14 +3,14 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { BaseProvider } from "@nodetool/runtime";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import type {
   ImageModel,
   LanguageModel,
   ProcessingContext,
   ProviderId,
   TTSModel
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 import { FindModelTool } from "../../src/tools/find-model-tool.js";
 
 const ctx = {} as ProcessingContext;

@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/node-sdk",
+  "name": "@nodetool-ai/node-sdk",
   "type": "module",
   "version": "0.1.0",
   "description": "Node SDK: BaseNode, NodeRegistry, and example nodes",
@@ -13,9 +13,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/kernel": "*",
-    "@nodetool/protocol": "*",
-    "@nodetool/runtime": "*"
+    "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

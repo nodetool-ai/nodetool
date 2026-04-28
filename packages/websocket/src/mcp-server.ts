@@ -9,31 +9,31 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { z } from "zod";
-import { createLogger } from "@nodetool/config";
-import { Workflow, Job, Asset } from "@nodetool/models";
+import { createLogger } from "@nodetool-ai/config";
+import { Workflow, Job, Asset } from "@nodetool-ai/models";
 import {
   toAssetResponse,
   toJobResponse,
   toWorkflowResponse
 } from "./http-api.js";
-import { uiToolSchemas } from "@nodetool/protocol";
+import { uiToolSchemas } from "@nodetool-ai/protocol";
 import {
   NodeRegistry,
   rankNodeMetadata,
   type NodeMetadata
-} from "@nodetool/node-sdk";
-import { registerBaseNodes } from "@nodetool/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool/fal-nodes";
-import { registerKieNodes } from "@nodetool/kie-nodes";
-import { registerReplicateNodes } from "@nodetool/replicate-nodes";
+} from "@nodetool-ai/node-sdk";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
+import { registerFalNodes } from "@nodetool-ai/fal-nodes";
+import { registerKieNodes } from "@nodetool-ai/kie-nodes";
+import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import {
   PythonNodeExecutor,
   PythonStdioBridge,
   type NodeExecutor
-} from "@nodetool/runtime";
-import { WorkflowRunner } from "@nodetool/kernel";
+} from "@nodetool-ai/runtime";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
 import type { AgentTransport } from "./agent/transport.js";
 
 export interface McpServerOptions {
@@ -870,7 +870,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ limit }) => {
       try {
-        const { getVecStore } = await import("@nodetool/vectorstore");
+        const { getVecStore } = await import("@nodetool-ai/vectorstore");
         const store = await getVecStore();
         const collections = await store.listCollections();
         const result = await Promise.all(
@@ -921,7 +921,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ name }) => {
       try {
-        const { getVecStore } = await import("@nodetool/vectorstore");
+        const { getVecStore } = await import("@nodetool-ai/vectorstore");
         const store = await getVecStore();
         const collection = await store.getCollection({ name });
         const count = await collection.count();
@@ -963,7 +963,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ name, query_texts, n_results }) => {
       try {
-        const { getVecStore } = await import("@nodetool/vectorstore");
+        const { getVecStore } = await import("@nodetool-ai/vectorstore");
         const store = await getVecStore();
         const collection = await store.getCollection({ name });
         const results = await collection.query({

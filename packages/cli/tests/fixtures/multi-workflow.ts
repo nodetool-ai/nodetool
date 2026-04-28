@@ -1,7 +1,7 @@
 /**
  * Fixture: two independent base-node workflows exported separately.
  */
-import { constant, output, workflow } from "@nodetool/dsl";
+import { constant, output, workflow } from "@nodetool-ai/dsl";
 
 const valueA = constant.integer({ value: 1 });
 const outA = output.output({ value: valueA.output() });

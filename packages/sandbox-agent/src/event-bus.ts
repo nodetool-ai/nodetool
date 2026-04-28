@@ -12,7 +12,7 @@
  */
 
 import { randomBytes } from "node:crypto";
-import type { SandboxEvent } from "@nodetool/sandbox/schemas";
+import type { SandboxEvent } from "@nodetool-ai/sandbox/schemas";
 
 const MAX_RING = 500;
 

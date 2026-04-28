@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { ListProviderModelsTool } from "../../src/tools/model-tools.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */

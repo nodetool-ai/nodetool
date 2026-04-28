@@ -4,7 +4,7 @@ import type {
   ExecuteResult,
   ProgressEvent
 } from "./python-bridge-types.js";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.python-node-executor");
 

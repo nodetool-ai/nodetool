@@ -17,9 +17,9 @@ import type {
   Message,
   ToolCall,
   ProviderStreamItem
-} from "@nodetool/runtime";
-import { withAgentSpanGen } from "@nodetool/runtime";
-import { createLogger } from "@nodetool/config";
+} from "@nodetool-ai/runtime";
+import { withAgentSpanGen } from "@nodetool-ai/runtime";
+import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
   type ProcessingMessage,
@@ -28,7 +28,7 @@ import {
   type StepResult,
   type TaskUpdate,
   type LogUpdate
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 import type { Step, Task } from "./types.js";
 import type { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
@@ -332,7 +332,7 @@ export class StepExecutor {
   private outputTokensTotal = 0;
   private _controlEvents: Array<{
     targetNodeId: string;
-    event: import("@nodetool/protocol").ControlEvent;
+    event: import("@nodetool-ai/protocol").ControlEvent;
   }> = [];
   private threadId?: string;
 
@@ -1357,7 +1357,7 @@ export class StepExecutor {
    */
   getControlEvents(): Array<{
     targetNodeId: string;
-    event: import("@nodetool/protocol").ControlEvent;
+    event: import("@nodetool-ai/protocol").ControlEvent;
   }> {
     return [...this._controlEvents];
   }

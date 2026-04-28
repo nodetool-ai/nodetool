@@ -10,7 +10,7 @@ import {
   getAllTools
 } from "../../src/tools/tool-registry.js";
 import { Tool } from "../../src/tools/base-tool.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */

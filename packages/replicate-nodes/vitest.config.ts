@@ -4,7 +4,7 @@ import { resolve } from "path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@nodetool/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts")
+      "@nodetool-ai/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts")
     }
   },
   test: {

@@ -3,10 +3,10 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool/models — the router orchestrates Message + Thread static
+// Mock @nodetool-ai/models — the router orchestrates Message + Thread static
 // methods; we stub those here.
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     Message: {
@@ -34,7 +34,7 @@ vi.mock("../src/resolve-media-urls.js", async (orig) => {
   };
 });
 
-import { Message, Thread } from "@nodetool/models";
+import { Message, Thread } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 

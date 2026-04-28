@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { LocalSearchNodesTool } from "../src/tools/local-search-nodes-tool.js";
 import { LocalGetNodeInfoTool } from "../src/tools/local-get-node-info-tool.js";
 import { LocalListNodesTool } from "../src/tools/local-list-nodes-tool.js";
-import type { NodeMetadata } from "@nodetool/node-sdk";
+import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 
 function createMetadata(overrides: Partial<NodeMetadata> = {}): NodeMetadata {
   return {

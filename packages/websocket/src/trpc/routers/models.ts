@@ -1,6 +1,6 @@
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import {
   getProvider,
   isProviderConfigured,
@@ -9,7 +9,7 @@ import {
   RECOMMENDED_MODELS,
   type ProviderId,
   type RecommendedUnifiedModel
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 
 const log = createLogger("nodetool.websocket.trpc.models");
 import {
@@ -18,7 +18,7 @@ import {
   getModelsByHfType,
   deleteCachedHfModel,
   getHuggingfaceFileInfos
-} from "@nodetool/huggingface";
+} from "@nodetool-ai/huggingface";
 import {
   getTransformersJsCacheDir,
   isRepoCached,
@@ -26,19 +26,19 @@ import {
   scanTransformersJsCache,
   TJS_MODEL_TYPES,
   type TjsModelRef
-} from "@nodetool/transformers-js-nodes";
-import type { UnifiedModel } from "@nodetool/protocol";
-import { MODEL_SEARCH_KINDS } from "@nodetool/protocol";
+} from "@nodetool-ai/transformers-js-nodes";
+import type { UnifiedModel } from "@nodetool-ai/protocol";
+import { MODEL_SEARCH_KINDS } from "@nodetool-ai/protocol";
 import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { z } from "zod";
-import { getSecret } from "@nodetool/models";
+import { getSecret } from "@nodetool-ai/models";
 
 // ── Local schemas (mirrored in packages/protocol/src/api-schemas/models.ts) ──
 
-// Mirrors UnifiedModel in @nodetool/protocol. Any field omitted here is
+// Mirrors UnifiedModel in @nodetool-ai/protocol. Any field omitted here is
 // stripped by the tRPC output validator — which is exactly how the `provider`
 // field silently disappeared and broke the client-side provider filter.
 const unifiedModelSchema = z.object({

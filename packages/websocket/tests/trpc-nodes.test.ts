@@ -6,15 +6,15 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     getSecret: vi.fn()
   };
 });
 
-import { getSecret } from "@nodetool/models";
+import { getSecret } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 

@@ -1,7 +1,7 @@
 /**
- * Code generation script for @nodetool/dsl
+ * Code generation script for @nodetool-ai/dsl
  *
- * Introspects all registered nodes from @nodetool/base-nodes and emits
+ * Introspects all registered nodes from @nodetool-ai/base-nodes and emits
  * type-safe factory functions grouped by namespace into packages/dsl/src/generated/.
  *
  * Run: npx tsx packages/dsl/scripts/codegen.ts
@@ -9,14 +9,14 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { ALL_BASE_NODES } from "@nodetool/base-nodes";
-import { getNodeMetadata } from "@nodetool/node-sdk";
+import { ALL_BASE_NODES } from "@nodetool-ai/base-nodes";
+import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import type {
   NodeMetadata,
   PropertyMetadata,
   TypeMetadata,
   OutputSlotMetadata
-} from "@nodetool/node-sdk";
+} from "@nodetool-ai/node-sdk";
 
 // ---------------------------------------------------------------------------
 // Constants

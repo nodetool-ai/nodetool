@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/config",
+  "name": "@nodetool-ai/config",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",

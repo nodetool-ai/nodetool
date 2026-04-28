@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
-import type { NodeDescriptor } from "@nodetool/protocol";
+import type { NodeDescriptor } from "@nodetool-ai/protocol";
 
 describe("control context property metadata", () => {
   it("_buildControlActionProperties includes min/max/description from propertyMeta", () => {

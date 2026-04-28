@@ -7,7 +7,7 @@ import {
   runGraph
 } from "../src/core.js";
 import type { OutputHandle, DslNode, SingleOutput } from "../src/core.js";
-import { NodeRegistry, ALL_E2E_NODES, Constant } from "@nodetool/node-sdk";
+import { NodeRegistry, ALL_E2E_NODES, Constant } from "@nodetool-ai/node-sdk";
 
 beforeAll(() => {
   for (const NodeClass of ALL_E2E_NODES) {

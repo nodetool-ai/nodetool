@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { EdgeMessageBus } from "../../src/team/edge-message-bus.js";
 import { EdgeTaskBoard } from "../../src/team/edge-task-board.js";
 import { TaskBoard } from "../../src/team/task-board.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // Minimal mock for ProcessingContext
 function mockContext(opts?: {

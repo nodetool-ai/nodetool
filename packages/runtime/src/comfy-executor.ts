@@ -2,7 +2,7 @@
  * ComfyUI workflow executor — submits prompts to any ComfyUI server
  * and streams progress via ComfyUI's WebSocket.
  */
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import WebSocket from "ws";
 
 const log = createLogger("runtime:comfy-executor");

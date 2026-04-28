@@ -22,11 +22,11 @@ nodetool-mypack/
 
 ## 2. Configure `package.json`
 
-Declare your package with `@nodetool/node-sdk` as a dependency:
+Declare your package with `@nodetool-ai/node-sdk` as a dependency:
 
 ```json
 {
-  "name": "@nodetool/mypack",
+  "name": "@nodetool-ai/mypack",
   "type": "module",
   "version": "0.1.0",
   "description": "Custom nodes for NodeTool",
@@ -38,7 +38,7 @@ Declare your package with `@nodetool/node-sdk` as a dependency:
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/node-sdk": "*"
+    "@nodetool-ai/node-sdk": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -48,7 +48,7 @@ Declare your package with `@nodetool/node-sdk` as a dependency:
 }
 ```
 
-Use a package name starting with `@nodetool/` so workspace resolution works as expected.
+Use a package name starting with `@nodetool-ai/` so workspace resolution works as expected.
 
 ## 3. Configure `tsconfig.json`
 
@@ -67,12 +67,12 @@ Extend the workspace base config:
 
 ## 4. Implement a node
 
-Every node extends **BaseNode** from `@nodetool/node-sdk` and uses the **`@prop`** decorator to declare inputs.
+Every node extends **BaseNode** from `@nodetool-ai/node-sdk` and uses the **`@prop`** decorator to declare inputs.
 
 Example `src/nodes/math-nodes.ts`:
 
 ```ts
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 export class AddOffsetNode extends BaseNode {
   static readonly nodeType = "mypack.math.AddOffset";
@@ -165,7 +165,7 @@ export class StreamingNode extends BaseNode {
 Create `src/index.ts` that exports all node classes and a registration function:
 
 ```ts
-import type { NodeClass, NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { MATH_NODES } from "./nodes/math-nodes.js";
 
 export const ALL_MYPACK_NODES: readonly NodeClass[] = [
@@ -179,7 +179,7 @@ export function registerMypackNodes(registry: NodeRegistry): void {
 }
 ```
 
-The `registerBaseNodes()` function in `@nodetool/base-nodes` follows this same pattern -- it iterates `ALL_BASE_NODES` and calls `registry.register()` for each class.
+The `registerBaseNodes()` function in `@nodetool-ai/base-nodes` follows this same pattern -- it iterates `ALL_BASE_NODES` and calls `registry.register()` for each class.
 
 ## 6. Build the package
 
@@ -229,4 +229,4 @@ The **`@prop`** decorator accepts a **`PropOptions`** object:
 ## Related Documentation
 
 - [Package Registry Guide](../packages.md) -- package anatomy and CLI commands.
-- [TypeScript DSL Guide](ts-dsl-guide.md) -- type-safe workflow definitions with `@nodetool/dsl`.
+- [TypeScript DSL Guide](ts-dsl-guide.md) -- type-safe workflow definitions with `@nodetool-ai/dsl`.

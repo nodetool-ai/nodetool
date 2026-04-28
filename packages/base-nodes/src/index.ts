@@ -1,4 +1,4 @@
-import type { NodeClass, NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
 
 export {
   IfNode,

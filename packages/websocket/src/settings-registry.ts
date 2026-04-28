@@ -4,7 +4,7 @@
  * (for getSetting()).
  */
 
-import { Setting } from "@nodetool/models";
+import { Setting } from "@nodetool-ai/models";
 
 // ── Types ──────────────────────────────────────────────────────────
 

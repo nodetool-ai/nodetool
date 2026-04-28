@@ -1,5 +1,5 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { StreamingInputs, StreamingOutputs } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const embedPipelineFn = vi.fn();
 
-vi.mock("@nodetool/transformers-js-nodes", () => ({
+vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
   getPipeline: vi.fn(async () => embedPipelineFn)
 }));
 

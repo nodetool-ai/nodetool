@@ -13,7 +13,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.deploy.ssh");
 

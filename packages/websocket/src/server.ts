@@ -13,19 +13,19 @@ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import crypto from "node:crypto";
-import { createLogger, getDefaultDbPath } from "@nodetool/config";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import type { NodeMetadata } from "@nodetool/node-sdk";
-import { registerBaseNodes } from "@nodetool/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
-import { registerTransformersJsProvider } from "@nodetool/transformers-js-provider";
-import { registerFalNodes } from "@nodetool/fal-nodes";
-import { registerKieNodes } from "@nodetool/kie-nodes";
-import { registerReplicateNodes } from "@nodetool/replicate-nodes";
-import { setSecretResolver, PythonStdioBridge } from "@nodetool/runtime";
-import { initMasterKey } from "@nodetool/security";
-import { initDb, getSecret } from "@nodetool/models";
+import { createLogger, getDefaultDbPath } from "@nodetool-ai/config";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { NodeMetadata } from "@nodetool-ai/node-sdk";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
+import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
+import { registerFalNodes } from "@nodetool-ai/fal-nodes";
+import { registerKieNodes } from "@nodetool-ai/kie-nodes";
+import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { setSecretResolver, PythonStdioBridge } from "@nodetool-ai/runtime";
+import { initMasterKey } from "@nodetool-ai/security";
+import { initDb, getSecret } from "@nodetool-ai/models";
 import {
   Tool,
   GoogleSearchTool,
@@ -50,7 +50,7 @@ import {
   DataForSEOSearchTool,
   DataForSEONewsTool,
   DataForSEOImagesTool
-} from "@nodetool/agents";
+} from "@nodetool-ai/agents";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
@@ -60,7 +60,7 @@ import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import { encode } from "@msgpack/msgpack";
-import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool/auth";
+import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool-ai/auth";
 import {
   fastifyTRPCPlugin,
   type FastifyTRPCPluginOptions

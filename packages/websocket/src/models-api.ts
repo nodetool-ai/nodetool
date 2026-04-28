@@ -16,9 +16,9 @@ import {
   type RecommendedUnifiedModel,
   type TTSModel,
   type VideoModel
-} from "@nodetool/runtime";
-import type { BaseProvider } from "@nodetool/runtime";
-import type { PythonStdioBridge } from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { PythonStdioBridge } from "@nodetool-ai/runtime";
 import {
   readCachedHfModels,
   searchCachedHfModels,
@@ -26,8 +26,8 @@ import {
   deleteCachedHfModel,
   getHuggingfaceFileInfos,
   type HFFileRequest
-} from "@nodetool/huggingface";
-import type { UnifiedModel } from "@nodetool/protocol";
+} from "@nodetool-ai/huggingface";
+import type { UnifiedModel } from "@nodetool-ai/protocol";
 
 export type { UnifiedModel };
 
@@ -289,7 +289,7 @@ function toOllamaModel(model: LanguageModel): Record<string, unknown> {
 // providers/index.ts are the single source of truth.
 // ---------------------------------------------------------------------------
 
-import { PythonProvider, registerProvider } from "@nodetool/runtime";
+import { PythonProvider, registerProvider } from "@nodetool-ai/runtime";
 
 /**
  * Register Python-only providers (HuggingFace Local, MLX) discovered
@@ -968,7 +968,7 @@ export async function handleModelsApiRequest(
     const body = await parseJsonBody<HFFileRequest[]>(request);
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
-      const { getSecret } = await import("@nodetool/models");
+      const { getSecret } = await import("@nodetool-ai/models");
       const token = (await getSecret("HF_TOKEN", "1")) ?? undefined;
       const infos = await getHuggingfaceFileInfos(body, token);
       return jsonResponse(infos);

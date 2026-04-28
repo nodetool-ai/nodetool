@@ -6,9 +6,9 @@
  * Uses runAgentLoop() from agents.ts for the loop mechanics.
  */
 
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ToolLike } from "./agents.js";
 import { runAgentLoop } from "./agents.js";
 import { exec } from "node:child_process";
@@ -141,7 +141,7 @@ async function getAssetBytes(
     // Handle /api/storage/ paths — resolve to local asset files on disk
     if (asset.uri.startsWith("/api/storage/")) {
       try {
-        const { getDefaultAssetsPath } = await import("@nodetool/config");
+        const { getDefaultAssetsPath } = await import("@nodetool-ai/config");
         const isTemp = asset.uri.startsWith("/api/storage/temp/");
         const key = isTemp
           ? asset.uri.slice("/api/storage/temp/".length)

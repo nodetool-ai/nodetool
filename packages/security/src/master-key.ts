@@ -21,7 +21,7 @@ import {
   GetSecretValueCommand
 } from "@aws-sdk/client-secrets-manager";
 import { generateMasterKey } from "./crypto.js";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.security.master-key");
 

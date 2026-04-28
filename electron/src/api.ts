@@ -1,6 +1,6 @@
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { Workflow } from "./types";
 import { logMessage } from "./logger";
 import { getServerUrl } from "./utils";

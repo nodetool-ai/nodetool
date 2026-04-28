@@ -1,17 +1,17 @@
 import type { FastifyPluginAsync } from "fastify";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { WsAdapter } from "../ws-adapter.js";
 import { UnifiedWebSocketRunner } from "../unified-websocket-runner.js";
-import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool/node-sdk";
-import type { PythonStdioBridge } from "@nodetool/runtime";
-import { PythonNodeExecutor, getProvider } from "@nodetool/runtime";
-import { Tool } from "@nodetool/agents";
-import type { NodeMetadata, PropertyMetadata } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { PythonStdioBridge } from "@nodetool-ai/runtime";
+import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
+import { Tool } from "@nodetool-ai/agents";
+import type { NodeMetadata, PropertyMetadata } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
-import { Workflow } from "@nodetool/models";
-import { WorkflowRunner } from "@nodetool/kernel";
-import type { NodeUpdate } from "@nodetool/protocol";
+import { Workflow } from "@nodetool-ai/models";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import type { NodeUpdate } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -113,7 +113,7 @@ class WorkflowTool extends Tool {
       id: string;
       type: string;
       data?: Record<string, unknown>;
-    }) => import("@nodetool/kernel").NodeExecutor
+    }) => import("@nodetool-ai/kernel").NodeExecutor
   ) {
     super();
     this.name = sanitizeToolName(`workflow_${workflow.tool_name}`);
@@ -238,7 +238,7 @@ async function handleTjsDownload(
   modelType: string,
   aborts: Map<string, AbortController>
 ): Promise<void> {
-  const tjs = await import("@nodetool/transformers-js-nodes");
+  const tjs = await import("@nodetool-ai/transformers-js-nodes");
   const abort = new AbortController();
   aborts.set(repoId, abort);
 
@@ -458,7 +458,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       });
       log.info("Download WebSocket client connected");
 
-      import("@nodetool/huggingface")
+      import("@nodetool-ai/huggingface")
         .then(({ getDownloadManager }) => {
           // TJS downloads are bookkept here so cancel can abort them.
           const tjsAborts = new Map<string, AbortController>();
@@ -511,7 +511,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         })
         .catch((err: unknown) => {
           log.error(
-            "Failed to load @nodetool/huggingface",
+            "Failed to load @nodetool-ai/huggingface",
             err instanceof Error ? err : new Error(String(err))
           );
           try {

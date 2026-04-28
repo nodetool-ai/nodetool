@@ -15,7 +15,7 @@ import type {
   InfoSearchWebOutput,
   SearchResult,
   SearchDateRange
-} from "@nodetool/sandbox/schemas";
+} from "@nodetool-ai/sandbox/schemas";
 
 export type SearchProvider = "tavily" | "brave" | "serper" | "mock";
 

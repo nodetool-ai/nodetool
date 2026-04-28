@@ -21,12 +21,12 @@ import type {
   ProviderCapability,
   TTSModel,
   VideoModel
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 import {
   RECOMMENDED_MODELS,
   providerCapabilities
-} from "@nodetool/runtime";
-import type { RecommendedUnifiedModel } from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
+import type { RecommendedUnifiedModel } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 const SUPPORTED_CAPABILITIES = [

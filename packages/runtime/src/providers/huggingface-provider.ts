@@ -1,6 +1,6 @@
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ImageModel,
   LanguageModel,

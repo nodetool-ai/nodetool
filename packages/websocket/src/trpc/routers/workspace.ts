@@ -12,7 +12,7 @@
 import { stat, readdir, access } from "node:fs/promises";
 import { existsSync, constants } from "node:fs";
 import { resolve, relative, join, isAbsolute } from "node:path";
-import { Workspace } from "@nodetool/models";
+import { Workspace } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -31,7 +31,7 @@ import {
   listFilesOutput,
   type WorkspaceResponse,
   type FileEntry
-} from "@nodetool/protocol/api-schemas/workspace.js";
+} from "@nodetool-ai/protocol/api-schemas/workspace.js";
 
 function toWorkspaceResponse(ws: Workspace): WorkspaceResponse {
   return {

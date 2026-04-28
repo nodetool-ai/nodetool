@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { Graph } from "../src/graph.js";
-import type { NodeDescriptor, Edge } from "@nodetool/protocol";
+import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 
 function makeNode(
   overrides: Partial<NodeDescriptor> & { id: string; type: string }

@@ -6,7 +6,7 @@
  * Delegates to the shared js-sandbox engine.
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import {
   DEFAULT_TIMEOUT_MS,

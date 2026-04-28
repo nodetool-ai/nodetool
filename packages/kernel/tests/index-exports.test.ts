@@ -1,5 +1,5 @@
 /**
- * Barrel export coverage for @nodetool/kernel index.ts
+ * Barrel export coverage for @nodetool-ai/kernel index.ts
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -18,7 +18,7 @@ import type {
   RunResult
 } from "../src/index.js";
 
-describe("@nodetool/kernel barrel exports", () => {
+describe("@nodetool-ai/kernel barrel exports", () => {
   it("exports Graph class", () => {
     expect(Graph).toBeDefined();
     expect(typeof Graph).toBe("function");

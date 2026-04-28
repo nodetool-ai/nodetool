@@ -8,7 +8,7 @@
  * for sub-word tokenization.
  */
 
-import type { Message, ToolCall } from "@nodetool/runtime";
+import type { Message, ToolCall } from "@nodetool-ai/runtime";
 
 /**
  * Approximate token count for a plain text string.

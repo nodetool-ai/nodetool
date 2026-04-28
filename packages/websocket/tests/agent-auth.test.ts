@@ -15,14 +15,14 @@
  * we don't need to mock the SDK subprocesses.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { initTestDb } from "@nodetool/models";
+import { initTestDb } from "@nodetool-ai/models";
 
 // processChat is the only LlmAgentSession dependency that does network /
 // heavy work on send(). Replace it with a stub that just appends an
 // assistant message — every test below avoids calling send() unless it's
 // specifically about the streaming path, but mocking once keeps things
 // hermetic.
-vi.mock("@nodetool/chat", () => ({
+vi.mock("@nodetool-ai/chat", () => ({
   processChat: vi.fn(async (opts: { messages: unknown[] }) => {
     (opts.messages as unknown[]).push({ role: "assistant", content: "ok" });
     return opts.messages;
@@ -79,10 +79,10 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
   getSessionMessages: async () => [],
 }));
 
-// The LLM provider asks @nodetool/runtime to look up the chat provider per
+// The LLM provider asks @nodetool-ai/runtime to look up the chat provider per
 // session. Always return a provider that yields a single text chunk.
-vi.mock("@nodetool/runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@nodetool/runtime")>();
+vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nodetool-ai/runtime")>();
   return {
     ...actual,
     getProvider: vi.fn(async () => ({

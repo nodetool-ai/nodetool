@@ -68,7 +68,7 @@ export default defineConfig(async ({ mode }) => {
       ]
     },
     resolve: {
-      // Use the `nodetool-dev` export condition so @nodetool/* packages
+      // Use the `nodetool-dev` export condition so @nodetool-ai/* packages
       // resolve to their `src/*.ts` sources instead of built `dist/*.js`.
       // This is the repo-wide convention declared in each package's exports.
       conditions: ["nodetool-dev", "import", "module", "browser", "default"],

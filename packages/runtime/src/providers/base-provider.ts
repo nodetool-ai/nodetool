@@ -33,7 +33,7 @@ import {
 } from "../tracing-helpers.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { createLogger, getAssetFilePath } from "@nodetool/config";
+import { createLogger, getAssetFilePath } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.provider");
 

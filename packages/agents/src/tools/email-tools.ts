@@ -5,7 +5,7 @@
  */
 
 import { Tool } from "./base-tool.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 

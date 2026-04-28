@@ -1,4 +1,4 @@
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type { BaseProvider } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.provider-registry");

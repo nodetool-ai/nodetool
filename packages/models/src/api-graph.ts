@@ -6,7 +6,7 @@
  * Ported from Python: src/nodetool/types/api_graph.py
  */
 
-import type { Edge, GraphData, NodeDescriptor } from "@nodetool/protocol";
+import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Types

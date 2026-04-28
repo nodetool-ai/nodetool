@@ -2,7 +2,7 @@
 /**
  * Resolve workspace "*" dependencies to real version numbers before publishing.
  *
- * Reads each public package's package.json and replaces any @nodetool/* dep
+ * Reads each public package's package.json and replaces any @nodetool-ai/* dep
  * pinned to "*" with "^<actual-version>" so that published packages on npm
  * have correct peer/dependency ranges.
  *
@@ -33,7 +33,7 @@ const { values } = parseArgs({
 if (values.help) {
   console.log(`Usage: node scripts/prepare-publish.mjs [--dry-run]
 
-Resolves @nodetool/* workspace "*" dependencies to "^<version>" in all
+Resolves @nodetool-ai/* workspace "*" dependencies to "^<version>" in all
 public package.json files, preparing them for npm publish.
 
   --dry-run   Show what would change without modifying files`);

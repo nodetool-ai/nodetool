@@ -9,7 +9,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { WebSocket } from "@fastify/websocket";
 import { randomUUID } from "node:crypto";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { getAgentRuntime } from "./agent-runtime.js";
 import { clearMcpFrontendTransport } from "../mcp-server.js";
 import type { AgentTransport } from "./transport.js";

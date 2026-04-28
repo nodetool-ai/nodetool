@@ -6,12 +6,12 @@
  * JSON link. The other CRUD + query endpoints move here.
  */
 
-import { Workflow } from "@nodetool/models";
+import { Workflow } from "@nodetool-ai/models";
 import {
   getVecStore,
   VecNotFoundError,
   type CollectionMetadata
-} from "@nodetool/vectorstore";
+} from "@nodetool-ai/vectorstore";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -26,7 +26,7 @@ import {
   deleteOutput,
   queryInput,
   queryOutput
-} from "@nodetool/protocol/api-schemas/collections.js";
+} from "@nodetool-ai/protocol/api-schemas/collections.js";
 
 /**
  * Normalize a CollectionMetadata (may contain `undefined` values per the

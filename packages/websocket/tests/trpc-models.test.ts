@@ -9,10 +9,10 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// ── Mock @nodetool/runtime ─────────────────────────────────────────────────
+// ── Mock @nodetool-ai/runtime ─────────────────────────────────────────────────
 
-vi.mock("@nodetool/runtime", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/runtime")>();
+vi.mock("@nodetool-ai/runtime", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/runtime")>();
   return {
     ...actual,
     listRegisteredProviderIds: vi.fn(),
@@ -25,12 +25,12 @@ import {
   listRegisteredProviderIds,
   isProviderConfigured,
   getProvider
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 
-// ── Mock @nodetool/huggingface ─────────────────────────────────────────────
+// ── Mock @nodetool-ai/huggingface ─────────────────────────────────────────────
 
-vi.mock("@nodetool/huggingface", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/huggingface")>();
+vi.mock("@nodetool-ai/huggingface", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/huggingface")>();
   return {
     ...actual,
     readCachedHfModels: vi.fn(),
@@ -47,19 +47,19 @@ import {
   getModelsByHfType,
   deleteCachedHfModel,
   getHuggingfaceFileInfos
-} from "@nodetool/huggingface";
+} from "@nodetool-ai/huggingface";
 
-// ── Mock @nodetool/models ──────────────────────────────────────────────────
+// ── Mock @nodetool-ai/models ──────────────────────────────────────────────────
 
-vi.mock("@nodetool/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/models")>();
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
     getSecret: vi.fn()
   };
 });
 
-import { getSecret } from "@nodetool/models";
+import { getSecret } from "@nodetool-ai/models";
 
 // ── Mock node:fs/promises & node:fs to avoid real disk I/O ────────────────
 
@@ -74,10 +74,10 @@ vi.mock("node:fs/promises", async (orig) => {
 
 import { access, readdir } from "node:fs/promises";
 
-// ── Mock @nodetool/transformers-js-nodes (cache-scan + path helpers) ──────
+// ── Mock @nodetool-ai/transformers-js-nodes (cache-scan + path helpers) ──────
 
-vi.mock("@nodetool/transformers-js-nodes", async (orig) => {
-  const actual = await orig<typeof import("@nodetool/transformers-js-nodes")>();
+vi.mock("@nodetool-ai/transformers-js-nodes", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/transformers-js-nodes")>();
   return {
     ...actual,
     scanTransformersJsCache: vi.fn().mockResolvedValue([]),
@@ -89,7 +89,7 @@ vi.mock("@nodetool/transformers-js-nodes", async (orig) => {
 import {
   scanTransformersJsCache,
   isRepoCached
-} from "@nodetool/transformers-js-nodes";
+} from "@nodetool-ai/transformers-js-nodes";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

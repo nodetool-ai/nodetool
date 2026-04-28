@@ -6,9 +6,9 @@
  * declared properties, backed by a generic process() that calls falSubmit.
  */
 
-import { BaseNode, registerDeclaredProperty } from "@nodetool/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool/node-sdk";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   getFalApiKey,
   falSubmit,

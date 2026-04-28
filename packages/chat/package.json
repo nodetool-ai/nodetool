@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/chat",
+  "name": "@nodetool-ai/chat",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -10,9 +10,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/protocol": "*",
-    "@nodetool/runtime": "*",
-    "@nodetool/agents": "*"
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/agents": "*"
   },
   "devDependencies": {
     "vitest": "^4.1.2",

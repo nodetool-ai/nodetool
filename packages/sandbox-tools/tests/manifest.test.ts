@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ToolClient } from "@nodetool/sandbox";
+import { ToolClient } from "@nodetool-ai/sandbox";
 import {
   createSandboxTools,
   listSandboxToolNames

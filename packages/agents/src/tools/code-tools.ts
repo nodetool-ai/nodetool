@@ -5,7 +5,7 @@
  * removed for security (no subprocess spawning).
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import { runInSandbox } from "../js-sandbox.js";
 

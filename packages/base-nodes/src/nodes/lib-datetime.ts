@@ -6,7 +6,7 @@
  * sandbox. The old dayjs snippets were converted into these nodes.
  */
 
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 // ---------------------------------------------------------------------------
 // Constants / helpers

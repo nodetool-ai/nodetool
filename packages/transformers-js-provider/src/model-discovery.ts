@@ -6,14 +6,14 @@ import {
   scanTransformersJsCache,
   type CachedTjsModel,
   type TjsModelRef
-} from "@nodetool/transformers-js-nodes";
+} from "@nodetool-ai/transformers-js-nodes";
 import type {
   ASRModel,
   EmbeddingModel,
   LanguageModel,
   ProviderId,
   TTSModel
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 
 const PROVIDER_ID: ProviderId = "transformers_js";
 

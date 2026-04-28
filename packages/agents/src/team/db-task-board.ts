@@ -8,7 +8,7 @@
 
 import { randomUUID } from "node:crypto";
 import { eq, and, inArray } from "drizzle-orm";
-import { getDb, teamTasks } from "@nodetool/models";
+import { getDb, teamTasks } from "@nodetool-ai/models";
 import type {
   AgentIdentity,
   BoardTask,

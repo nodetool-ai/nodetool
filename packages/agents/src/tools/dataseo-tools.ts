@@ -6,7 +6,7 @@
  *  - DataForSEO-specific tools from src/nodetool/agents/tools/serp_tools.py
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import type { SerpProvider } from "./serp-providers/index.js";
 

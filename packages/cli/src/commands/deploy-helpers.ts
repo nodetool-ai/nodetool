@@ -43,10 +43,10 @@ import {
   type SyncerAssetStorage,
   type WorkflowSyncerDeps,
   type AssetInfo
-} from "@nodetool/deploy";
-import { Asset, Workflow } from "@nodetool/models";
-import { FileStorageAdapter } from "@nodetool/runtime";
-import { getDefaultAssetsPath } from "@nodetool/config";
+} from "@nodetool-ai/deploy";
+import { Asset, Workflow } from "@nodetool-ai/models";
+import { FileStorageAdapter } from "@nodetool-ai/runtime";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 
 // ---------------------------------------------------------------------------
 // Output helpers (duplicated from nodetool.ts so the CLI root stays simple)

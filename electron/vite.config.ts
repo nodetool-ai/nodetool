@@ -45,7 +45,7 @@ const externalModules = ["electron", "electron/common", ...builtins];
 const mainExternalModules = [
   ...externalModules,
   "@anthropic-ai/claude-agent-sdk",
-  "@nodetool/protocol",
+  "@nodetool-ai/protocol",
   "zod",
 ];
 

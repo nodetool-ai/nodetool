@@ -15,7 +15,7 @@ import {
   access
 } from "node:fs/promises";
 import { join, relative } from "node:path";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 function resolveSafePath(context: ProcessingContext, rawPath: string): string {

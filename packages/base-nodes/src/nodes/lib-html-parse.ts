@@ -1,4 +1,4 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import * as cheerio from "cheerio";
 import { convert } from "html-to-text";
 import { Readability } from "@mozilla/readability";

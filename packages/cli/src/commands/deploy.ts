@@ -21,8 +21,8 @@ import {
   loadDeploymentConfig,
   saveDeploymentConfig,
   WorkflowSyncer
-} from "@nodetool/deploy";
-import { getCollection } from "@nodetool/vectorstore";
+} from "@nodetool-ai/deploy";
+import { getCollection } from "@nodetool-ai/vectorstore";
 
 import {
   asJson,
@@ -39,7 +39,7 @@ import {
   promptLine,
   runEditor
 } from "./deploy-helpers.js";
-import type { DeploymentType } from "@nodetool/deploy";
+import type { DeploymentType } from "@nodetool-ai/deploy";
 
 const SUPPORTED_TYPES: DeploymentType[] = [
   "docker",
@@ -50,7 +50,7 @@ const SUPPORTED_TYPES: DeploymentType[] = [
   "huggingface"
 ];
 
-/** Common GCP Cloud Run regions. Hardcoded because not exported by @nodetool/deploy. */
+/** Common GCP Cloud Run regions. Hardcoded because not exported by @nodetool-ai/deploy. */
 const GCP_REGIONS = [
   "us-central1",
   "us-east1",

@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { getNodeMetadata } from "@nodetool/node-sdk";
+import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   ApifyWebScraperNode,
   ApifyGoogleSearchScraperNode,

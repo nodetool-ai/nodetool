@@ -21,10 +21,10 @@ import ReadlineInput from "./readline-input.js";
 import Spinner from "ink-spinner";
 import { ExecutionTree } from "./ExecutionTree.js";
 import { useExecutionState } from "./useExecutionState.js";
-import type { Message, ToolCall } from "@nodetool/runtime";
-import { ProcessingContext } from "@nodetool/runtime";
-import { processChat } from "@nodetool/chat";
-import { MultiModeAgent } from "@nodetool/agents";
+import type { Message, ToolCall } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { processChat } from "@nodetool-ai/chat";
+import { MultiModeAgent } from "@nodetool-ai/agents";
 import {
   ReadFileTool, WriteFileTool, ListDirectoryTool,
   EditFileTool, GlobTool, GrepTool,
@@ -39,12 +39,12 @@ import {
   DataForSEOSearchTool, DataForSEONewsTool,
   SearchEmailTool, ArchiveEmailTool,
   getAllMcpTools,
-} from "@nodetool/agents";
+} from "@nodetool-ai/agents";
 import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
 import { saveSettings } from "./settings.js";
-import { getSecret } from "@nodetool/models";
+import { getSecret } from "@nodetool-ai/models";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -72,17 +72,17 @@ interface AppProps {
    * Pre-built tools appended to the tool list returned from buildTools().
    * Used by --sandbox to inject the 37 sandbox-tools adapter instances.
    */
-  extraTools?: import("@nodetool/agents").Tool[];
+  extraTools?: import("@nodetool-ai/agents").Tool[];
   /**
    * NodeRegistry for graph-native agent mode. When supplied, agent mode
    * uses MultiModeAgent + GraphPlanner so the agent builds workflows with
    * the curated `nodetool.*` core nodes plus a `find_model` tool.
    */
-  registry?: import("@nodetool/node-sdk").NodeRegistry;
+  registry?: import("@nodetool-ai/node-sdk").NodeRegistry;
   /** Configured BaseProvider instances by id for `find_model`. */
   agentProviders?: Record<
     string,
-    import("@nodetool/runtime").BaseProvider
+    import("@nodetool-ai/runtime").BaseProvider
   >;
 }
 
@@ -427,7 +427,7 @@ export function App({
 
     const enabled = enabledTools
       .filter(name => name in toolMap && !(hostToolsToExclude?.has(name)))
-      .map(name => toolMap[name] as import("@nodetool/agents").Tool);
+      .map(name => toolMap[name] as import("@nodetool-ai/agents").Tool);
     return extraTools && extraTools.length > 0
       ? [...enabled, ...extraTools]
       : enabled;

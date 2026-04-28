@@ -10,7 +10,7 @@ import {
   generateAllWorkflowDocs,
   type NodeMetadata,
   type WorkflowFile
-} from "@nodetool/node-sdk";
+} from "@nodetool-ai/node-sdk";
 import { asJson, findWorkspaceRoots, printTable } from "./package-helpers.js";
 
 interface ListOptions {
@@ -140,8 +140,8 @@ export function registerPackageCommands(program: Command): void {
             build: "tsc"
           },
           dependencies: {
-            "@nodetool/node-sdk": "*",
-            "@nodetool/runtime": "*"
+            "@nodetool-ai/node-sdk": "*",
+            "@nodetool-ai/runtime": "*"
           },
           devDependencies: {
             typescript: "^5.7.2"
@@ -178,7 +178,7 @@ export function registerPackageCommands(program: Command): void {
         fs.mkdirSync(path.join(cwd, "src"), { recursive: true });
         fs.writeFileSync(
           path.join(cwd, "src", "index.ts"),
-          `import type { NodeRegistry } from "@nodetool/node-sdk";\n` +
+          `import type { NodeRegistry } from "@nodetool-ai/node-sdk";\n` +
             `\n` +
             `export function registerNodes(_registry: NodeRegistry): void {\n` +
             `  // register your nodes here\n` +

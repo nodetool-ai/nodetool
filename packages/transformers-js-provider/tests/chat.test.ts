@@ -15,7 +15,7 @@ const { fakePipeline, loadTransformers } = vi.hoisted(() => ({
   }))
 }));
 
-vi.mock("@nodetool/transformers-js-nodes", () => ({
+vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
   getPipeline: vi.fn(async () => fakePipeline),
   loadTransformers
 }));

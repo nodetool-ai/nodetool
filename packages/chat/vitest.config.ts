@@ -4,10 +4,10 @@ import { resolve } from "path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@nodetool/protocol": resolve(__dirname, "../protocol/src/index.ts"),
-      "@nodetool/config": resolve(__dirname, "../config/src/index.ts"),
-      "@nodetool/runtime": resolve(__dirname, "../runtime/src/index.ts"),
-      "@nodetool/agents": resolve(__dirname, "../agents/src/index.ts")
+      "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src/index.ts"),
+      "@nodetool-ai/config": resolve(__dirname, "../config/src/index.ts"),
+      "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts"),
+      "@nodetool-ai/agents": resolve(__dirname, "../agents/src/index.ts")
     }
   },
   test: {

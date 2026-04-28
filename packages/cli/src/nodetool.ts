@@ -21,18 +21,18 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
-import type { AppRouter } from "@nodetool/websocket/trpc";
-import { workflowToDsl } from "@nodetool/dsl";
-import { initDb, Workflow, Secret, getSecret } from "@nodetool/models";
-import { getDefaultDbPath } from "@nodetool/config";
-import { WorkflowRunner } from "@nodetool/kernel";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import { registerBaseNodes } from "@nodetool/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool/elevenlabs-nodes";
-import { registerTransformersJsNodes } from "@nodetool/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool/fal-nodes";
-import { registerReplicateNodes } from "@nodetool/replicate-nodes";
-import { ProcessingContext, initTelemetry } from "@nodetool/runtime";
+import type { AppRouter } from "@nodetool-ai/websocket/trpc";
+import { workflowToDsl } from "@nodetool-ai/dsl";
+import { initDb, Workflow, Secret, getSecret } from "@nodetool-ai/models";
+import { getDefaultDbPath } from "@nodetool-ai/config";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
+import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
+import { registerFalNodes } from "@nodetool-ai/fal-nodes";
+import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
+import { ProcessingContext, initTelemetry } from "@nodetool-ai/runtime";
 import { registerPackageCommands } from "./commands/package.js";
 import {
   registerDeployCommands,
@@ -165,8 +165,8 @@ program
     try {
       const { resolve } = await import("node:path");
       const { runDslFile } = await import("./run-dsl.js");
-      const { registerBaseNodes } = await import("@nodetool/base-nodes");
-      const { NodeRegistry } = await import("@nodetool/node-sdk");
+      const { registerBaseNodes } = await import("@nodetool-ai/base-nodes");
+      const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
 
       registerBaseNodes(NodeRegistry.global);
 

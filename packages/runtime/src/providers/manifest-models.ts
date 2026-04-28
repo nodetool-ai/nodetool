@@ -8,7 +8,7 @@
  */
 
 import { createRequire } from "node:module";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type { ImageModel, VideoModel } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.manifest-models");

@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/kernel",
+  "name": "@nodetool-ai/kernel",
   "type": "module",
   "version": "0.1.0",
   "description": "Workflow kernel: Graph model, NodeInbox, and Actor runtime",
@@ -12,9 +12,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/config": "*",
-    "@nodetool/protocol": "*",
-    "@nodetool/runtime": "*"
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

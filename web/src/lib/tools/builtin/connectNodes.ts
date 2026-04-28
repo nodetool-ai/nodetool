@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiConnectNodesParams } from "@nodetool/protocol";
+import { uiConnectNodesParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import {

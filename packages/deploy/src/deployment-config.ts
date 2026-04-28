@@ -11,7 +11,7 @@ import * as path from "path";
 import * as os from "os";
 import * as crypto from "crypto";
 import * as yaml from "js-yaml";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.deploy.config");
 

@@ -2,7 +2,7 @@
  * Tests for WebSocket Phase 2 endpoints: T-WS-8, T-WS-9, T-WS-11, T-WS-18.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { initTestDb, Job } from "@nodetool/models";
+import { initTestDb, Job } from "@nodetool-ai/models";
 import { handleApiRequest } from "../src/http-api.js";
 import { handleFileRequest, type FileApiOptions } from "../src/file-api.js";
 import { createStorageHandler } from "../src/storage-api.js";

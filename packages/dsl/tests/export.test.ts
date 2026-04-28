@@ -51,7 +51,7 @@ describe("workflowToDsl", () => {
     );
 
     expect(source).toContain(
-      'import { constant, output, workflow } from "@nodetool/dsl";'
+      'import { constant, output, workflow } from "@nodetool-ai/dsl";'
     );
     expect(source).toContain("const inputNumber = constant.integer({");
     expect(source).toContain("const result = output.output({");
@@ -120,7 +120,7 @@ describe("workflowToDsl", () => {
     });
 
     expect(source).toContain(
-      'import { createNode, output, workflow } from "@nodetool/dsl";'
+      'import { createNode, output, workflow } from "@nodetool-ai/dsl";'
     );
     expect(source).toContain(
       'createNode<Record<string, unknown>>("custom.Node"'
@@ -442,7 +442,7 @@ describe("workflowToDsl", () => {
       ]
     });
     expect(source).toContain(
-      'import { constant, output, workflow } from "@nodetool/dsl";'
+      'import { constant, output, workflow } from "@nodetool-ai/dsl";'
     );
   });
 

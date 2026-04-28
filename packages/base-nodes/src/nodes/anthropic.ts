@@ -3,8 +3,8 @@
  * Uses the Claude Agent SDK to run Claude with tool-use capabilities.
  */
 
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 
 export class ClaudeAgentNode extends BaseNode {
   static readonly nodeType = "anthropic.agents.ClaudeAgent";

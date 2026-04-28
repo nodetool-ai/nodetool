@@ -5,7 +5,7 @@
 import { createReadStream } from "node:fs";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path, { extname } from "node:path";
-import { getDefaultAssetsPath } from "@nodetool/config";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 
 // ── MIME types ────────────────────────────────────────────────────
 

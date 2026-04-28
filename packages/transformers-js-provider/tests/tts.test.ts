@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const ttsPipelineFn = vi.fn();
 
-vi.mock("@nodetool/transformers-js-nodes", () => ({
+vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
   encodeWav: (samples: Float32Array, rate: number) => {
     const buf = Buffer.alloc(44 + samples.length * 2);
     buf.write("RIFF", 0);

@@ -24,7 +24,7 @@
  */
 
 import type { Tracer } from "@opentelemetry/api";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type { StdoutFormat } from "./trace-exporters.js";
 
 const log = createLogger("nodetool.runtime.telemetry");

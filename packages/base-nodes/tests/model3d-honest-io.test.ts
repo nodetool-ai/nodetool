@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ProcessingContext } from "@nodetool/runtime";
-import { getDeclaredPropertiesForClass } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { getDeclaredPropertiesForClass } from "@nodetool-ai/node-sdk";
 import {
   Boolean3DNode,
   CenterMeshNode,

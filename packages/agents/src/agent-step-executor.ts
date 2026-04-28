@@ -8,13 +8,13 @@
  * final result as a Record for downstream kernel routing.
  */
 
-import type { NodeExecutor } from "@nodetool/runtime";
-import type { ProcessingContext, BaseProvider } from "@nodetool/runtime";
+import type { NodeExecutor } from "@nodetool-ai/runtime";
+import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
 import type {
   NodeDescriptor,
   ProcessingMessage,
   StepResult
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 import { StepExecutor } from "./step-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";

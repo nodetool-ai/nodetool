@@ -10,7 +10,7 @@
  *   nodetool-chat --workspace /path/to/dir  # set workspace directory
  */
 
-import { initTelemetry } from "@nodetool/runtime";
+import { initTelemetry } from "@nodetool-ai/runtime";
 import { program } from "commander";
 import { render } from "ink";
 import React from "react";
@@ -18,18 +18,18 @@ import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
 import { buildConfiguredProviders } from "./providers.js";
-import { initDb, getSecret } from "@nodetool/models";
-import { getDefaultDbPath, configureLogging } from "@nodetool/config";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import { registerBaseNodes } from "@nodetool/base-nodes";
+import { initDb, getSecret } from "@nodetool-ai/models";
+import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import {
   DockerSandboxProvider,
   SessionStore,
   type Sandbox
-} from "@nodetool/sandbox";
-import { createSandboxTools } from "@nodetool/sandbox-tools";
+} from "@nodetool-ai/sandbox";
+import { createSandboxTools } from "@nodetool-ai/sandbox-tools";
 import { randomUUID } from "node:crypto";
-import type { Tool } from "@nodetool/agents";
+import type { Tool } from "@nodetool-ai/agents";
 
 // Configure logging: in interactive mode, suppress non-error logs to a file
 // so they don't interfere with the Ink TUI. Env vars can still override.

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import type { NodeDescriptor } from "@nodetool/protocol";
+import type { NodeDescriptor } from "@nodetool-ai/protocol";
 import type { PythonStdioBridge } from "../src/index.js";
 import { PythonNodeExecutor } from "../src/python-node-executor.js";
 

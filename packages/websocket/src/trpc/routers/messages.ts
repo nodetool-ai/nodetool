@@ -11,8 +11,8 @@
  * throw NOT_FOUND) to avoid leaking existence.
  */
 
-import { Message, Thread } from "@nodetool/models";
-import type { Message as MessageModel } from "@nodetool/models";
+import { Message, Thread } from "@nodetool-ai/models";
+import type { Message as MessageModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -27,7 +27,7 @@ import {
   deleteInput,
   deleteOutput,
   type MessageResponse
-} from "@nodetool/protocol/api-schemas/messages.js";
+} from "@nodetool-ai/protocol/api-schemas/messages.js";
 
 function toMessageResponse(msg: MessageModel): MessageResponse {
   return {

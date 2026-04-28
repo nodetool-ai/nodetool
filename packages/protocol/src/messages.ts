@@ -1,5 +1,5 @@
 /**
- * @nodetool/protocol – Message Types
+ * @nodetool-ai/protocol – Message Types
  *
  * TypeScript equivalents of the Python message types defined in:
  *   src/nodetool/workflows/types.py

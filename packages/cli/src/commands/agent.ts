@@ -14,7 +14,7 @@ import { Command } from "commander";
 import * as yaml from "js-yaml";
 import chalk from "chalk";
 
-import { ProcessingContext, type BaseProvider } from "@nodetool/runtime";
+import { ProcessingContext, type BaseProvider } from "@nodetool-ai/runtime";
 import {
   MultiModeAgent,
   FindModelTool,
@@ -56,9 +56,9 @@ import {
   getAllMcpTools,
   type Tool,
   type AgentMode
-} from "@nodetool/agents";
-import { initDb, getSecret } from "@nodetool/models";
-import { getDefaultDbPath, configureLogging } from "@nodetool/config";
+} from "@nodetool-ai/agents";
+import { initDb, getSecret } from "@nodetool-ai/models";
+import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
 
 // ---------------------------------------------------------------------------
@@ -137,7 +137,7 @@ class PreferringFindModelTool extends FindModelTool {
   }
 
   override async process(
-    context: import("@nodetool/runtime").ProcessingContext,
+    context: import("@nodetool-ai/runtime").ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const merged: Record<string, unknown> = { ...params };

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@nodetool/transformers-js-nodes", async () => {
+vi.mock("@nodetool-ai/transformers-js-nodes", async () => {
   return {
     KOKORO_VOICES: ["af_heart", "af_bella"] as const,
     getTransformersJsCacheDir: () => "/tmp/tjs-cache",

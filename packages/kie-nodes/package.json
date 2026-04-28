@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/kie-nodes",
+  "name": "@nodetool-ai/kie-nodes",
   "type": "module",
   "version": "0.1.0",
   "description": "Kie.ai model nodes for the TS workflow runner",
@@ -11,7 +11,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/node-sdk": "*"
+    "@nodetool-ai/node-sdk": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

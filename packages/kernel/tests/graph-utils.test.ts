@@ -9,7 +9,7 @@ import {
   getNodeInputTypes,
   getDownstreamSubgraph
 } from "../src/graph-utils.js";
-import type { NodeDescriptor, Edge } from "@nodetool/protocol";
+import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 
 // Helper to build a simple graph
 function makeGraph(nodes: NodeDescriptor[], edges: Edge[]): Graph {

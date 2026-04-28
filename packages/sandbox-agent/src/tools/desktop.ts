@@ -34,7 +34,7 @@ import type {
   KeyTypeInput,
   KeyTypeOutput,
   CursorPositionOutput
-} from "@nodetool/sandbox/schemas";
+} from "@nodetool-ai/sandbox/schemas";
 
 const XDOTOOL_BUTTON: Record<string, string> = {
   left: "1",

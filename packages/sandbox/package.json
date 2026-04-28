@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/sandbox",
+  "name": "@nodetool-ai/sandbox",
   "type": "module",
   "version": "0.1.0",
   "description": "Host-side sandbox provisioning: Docker-backed isolated Linux computers for agents, with shell, file, browser, and desktop tools",
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool/config": "*",
+    "@nodetool-ai/config": "*",
     "dockerode": "^4.0.4",
     "zod": "^4.0.0"
   },

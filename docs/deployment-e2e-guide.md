@@ -30,7 +30,7 @@ Important runtime behavior:
 
 ## Prerequisites
 
-- NodeTool CLI installed (`@nodetool/cli`).
+- NodeTool CLI installed (`@nodetool-ai/cli`).
 - Container runtime:
   - Docker or
   - Podman

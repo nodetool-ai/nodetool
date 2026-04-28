@@ -1,5 +1,5 @@
 {
-  "name": "@nodetool/transformers-js-nodes",
+  "name": "@nodetool-ai/transformers-js-nodes",
   "type": "module",
   "version": "0.1.0",
   "description": "Hugging Face Transformers.js nodes for nodetool — run NLP, vision, and audio models locally via ONNX Runtime",
@@ -14,9 +14,9 @@
   "dependencies": {
     "@huggingface/transformers": "^3.7.6",
     "kokoro-js": "^1.2.1",
-    "@nodetool/config": "*",
-    "@nodetool/node-sdk": "*",
-    "@nodetool/runtime": "*"
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -6,16 +6,16 @@
  * are resolved via the provided NodeRegistry.
  */
 
-import { WorkflowRunner } from "@nodetool/kernel";
-import type { NodeRegistry } from "@nodetool/node-sdk";
-import type { BaseProvider, ProcessingContext } from "@nodetool/runtime";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   GraphData,
   ProcessingMessage,
   NodeUpdate,
   StepResult
-} from "@nodetool/protocol";
-import { createLogger } from "@nodetool/config";
+} from "@nodetool-ai/protocol";
+import { createLogger } from "@nodetool-ai/config";
 import { AGENT_STEP_NODE_TYPE } from "./graph-builder.js";
 import { AgentStepExecutor } from "./agent-step-executor.js";
 import type { Tool } from "./tools/base-tool.js";

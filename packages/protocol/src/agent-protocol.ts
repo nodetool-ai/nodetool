@@ -1,5 +1,5 @@
 /**
- * @nodetool/protocol – Agent WebSocket Protocol
+ * @nodetool-ai/protocol – Agent WebSocket Protocol
  *
  * Shared type definitions for the agent runtime and WebSocket protocol
  * exchanged between the server (where the agent SDK runs) and renderers

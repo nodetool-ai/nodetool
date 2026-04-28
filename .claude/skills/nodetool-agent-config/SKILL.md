@@ -159,7 +159,7 @@ nodetool agent --config agent.yaml --prompt "Task" --verbose
 # Programmatic Usage (TypeScript)
 
 ```typescript
-import { Agent } from "@nodetool/core";
+import { Agent } from "@nodetool-ai/core";
 
 const agent = new Agent({
   name: "researcher",

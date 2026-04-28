@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NodeRegistry } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   TRANSFORMERS_JS_NODES,
   registerTransformersJsNodes

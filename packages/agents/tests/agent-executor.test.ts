@@ -4,8 +4,8 @@ import {
   FinishTool,
   jsonSchemaForOutputType
 } from "../src/agent-executor.js";
-import type { ToolCall } from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
+import type { ToolCall } from "@nodetool-ai/runtime";
+import type { Chunk } from "@nodetool-ai/protocol";
 
 function createMockProvider(toolCallArgs?: Record<string, unknown>) {
   const args = toolCallArgs ?? {

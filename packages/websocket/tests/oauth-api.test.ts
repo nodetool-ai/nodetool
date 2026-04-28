@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { initTestDb, OAuthCredential } from "@nodetool/models";
+import { initTestDb, OAuthCredential } from "@nodetool-ai/models";
 import {
   generatePkcePair,
   generateState,

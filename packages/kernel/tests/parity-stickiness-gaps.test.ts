@@ -19,7 +19,7 @@ import { describe, it, expect } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
 import { WorkflowRunner } from "../src/runner.js";
-import type { NodeDescriptor, Edge } from "@nodetool/protocol";
+import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Helpers

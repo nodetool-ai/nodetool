@@ -151,7 +151,7 @@ These nodes work with any provider — just select the model:
 # Custom Provider Development
 
 ```typescript
-import { BaseProvider, ProviderId, Message, ProviderStreamItem, LanguageModel } from "@nodetool/core";
+import { BaseProvider, ProviderId, Message, ProviderStreamItem, LanguageModel } from "@nodetool-ai/core";
 
 export class MyProvider extends BaseProvider {
   constructor(kwargs: Record<string, unknown> = {}) {
