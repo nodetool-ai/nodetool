@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useCallback, useState } from "react";
-import { Box, TextField } from "@mui/material";
+import React, { useCallback, useMemo, useState } from "react";
+import { Box } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
 import FolderIcon from "@mui/icons-material/Folder";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
@@ -28,7 +28,9 @@ import {
   ToolbarIconButton,
   UploadButton,
   Popover,
-  MenuItemPrimitive
+  MenuItemPrimitive,
+  SearchInput,
+  FlexRow
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
@@ -108,9 +110,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
     queryFn: async () => load("", 200)
   });
 
-  const filteredWorkflows: Workflow[] = workflowData?.workflows?.filter((w: Workflow) =>
-    w.name.toLowerCase().includes(workflowSearch.toLowerCase())
-  ) ?? [];
+  const workflowSearchLower = useMemo(() => workflowSearch.toLowerCase(), [workflowSearch]);
+
+  const filteredWorkflows: Workflow[] = useMemo(
+    () =>
+      workflowData?.workflows?.filter((w: Workflow) =>
+        w.name.toLowerCase().includes(workflowSearchLower)
+      ) ?? [],
+    [workflowData?.workflows, workflowSearchLower]
+  );
 
   const activeWorkflowName = workflowFilter
     ? (workflowData?.workflows?.find((w: Workflow) => w.id === workflowFilter)?.name ?? "Workflow")
@@ -207,13 +215,10 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
               : undefined
           }}
         >
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.5,
-              "& .MuiSvgIcon-root": { fontSize: 18 }
-            }}
+          <FlexRow
+            align="center"
+            gap={0.5}
+            sx={{ "& .MuiSvgIcon-root": { fontSize: 18 } }}
           >
             <AccountTreeIcon />
             <span
@@ -227,7 +232,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
               {activeWorkflowName ?? "Workflow"}
             </span>
             <ArrowDropDownIcon />
-          </Box>
+          </FlexRow>
         </ToolbarIconButton>
         <UploadButton
           onFileSelect={(files) => onUploadFiles?.(files)}
@@ -269,16 +274,14 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
         placement="bottom-left"
         paperSx={{ py: 0.5, minWidth: 220, maxHeight: 320 }}
       >
-        <Box sx={{ px: 1, pb: 0.5 }}>
-          <TextField
-            size="small"
-            placeholder="Search workflows..."
+        <Box sx={{ px: 1, pb: 0.5, pt: 0.5 }}>
+          <SearchInput
             value={workflowSearch}
-            onChange={(e) => setWorkflowSearch(e.target.value)}
+            onChange={setWorkflowSearch}
+            placeholder="Search workflows..."
             autoFocus
             fullWidth
-            variant="outlined"
-            sx={{ mt: 0.5 }}
+            size="small"
           />
         </Box>
         <Box sx={{ overflowY: "auto", maxHeight: 240 }}>
