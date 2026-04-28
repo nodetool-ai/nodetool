@@ -125,6 +125,11 @@ export class DockerSandboxProvider implements SandboxProvider {
     await this.ensureImage(image);
 
     const containerName = `nodetool-sandbox-${options.sessionId.replace(/[^a-zA-Z0-9_.-]/g, "-")}`;
+    // Reap any leftover container with the same name from a previous run.
+    // SessionStore tracks sandboxes in-memory only, so a server restart or
+    // ungraceful shutdown can leave an orphaned container that blocks
+    // createContainer with HTTP 409.
+    await this.removeExistingContainer(containerName);
     const binds: string[] = [];
     if (options.workspaceDir) {
       binds.push(`${options.workspaceDir}:/workspace:rw`);
@@ -267,6 +272,25 @@ export class DockerSandboxProvider implements SandboxProvider {
     } catch (err) {
       throw new Error(
         `Docker daemon is not available. Start Docker and try again. (${String(err)})`
+      );
+    }
+  }
+
+  private async removeExistingContainer(name: string): Promise<void> {
+    const existing = this.docker.getContainer(name);
+    try {
+      await existing.inspect();
+    } catch {
+      // No such container — nothing to clean up.
+      return;
+    }
+    try {
+      await existing.remove({ force: true });
+      log.info(`Removed orphaned sandbox container ${name}`);
+    } catch (err) {
+      log.warn(
+        `Failed to remove orphaned sandbox container ${name}; createContainer may still 409`,
+        err
       );
     }
   }
