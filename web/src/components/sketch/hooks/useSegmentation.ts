@@ -249,36 +249,14 @@ export function useSegmentation({
         return;
       }
 
-      // Get the active layer's image data
-      const canvas = canvasRef.current;
-      if (!canvas) {
+      const exportedLayer = exportSelectedRasterLayer(doc, activeLayer.id);
+      if (!exportedLayer) {
+        console.error(
+          "[useSegmentation] Cannot run segmentation: active raster layer has no exportable image data."
+        );
+        setStatus("error");
         return;
       }
-      const layerData = canvas.getLayerData(doc.activeLayerId);
-      if (!layerData) {
-        return;
-      }
-      const decodedLayer = deserializeLayerData(
-        layerData,
-        doc.canvas.width,
-        doc.canvas.height
-      );
-      if (!decodedLayer.image) {
-        return;
-      }
-      const sourceMetadata = {
-        layerId: activeLayer.id,
-        layerTransform: { ...activeLayer.transform },
-        contentBounds: { ...decodedLayer.bounds },
-        canvasSize: {
-          width: doc.canvas.width,
-          height: doc.canvas.height
-        },
-        documentOrigin: {
-          x: (activeLayer.transform.x ?? 0) + decodedLayer.bounds.x,
-          y: (activeLayer.transform.y ?? 0) + decodedLayer.bounds.y
-        }
-      };
 
       // Cancel any existing request
       abortRef.current?.abort();
@@ -292,11 +270,11 @@ export function useSegmentation({
         const service = getSamService(backend);
         const response = await service.runSegmentation(
           {
-            imageDataUrl: decodedLayer.image,
+            imageDataUrl: exportedLayer.imageDataUrl,
             pointPrompts: points,
             boxPrompt: box,
             settings: doc.toolSettings.segment,
-            sourceMetadata
+            sourceMetadata: exportedLayer.sourceMetadata
           },
           controller.signal
         );
@@ -306,7 +284,8 @@ export function useSegmentation({
         }
 
         const runId = generateSegmentationRunId();
-        const responseSourceMetadata = response.sourceMetadata ?? sourceMetadata;
+        const responseSourceMetadata =
+          response.sourceMetadata ?? exportedLayer.sourceMetadata;
         const responseMasks = response.masks.map((mask) => ({
           ...mask,
           sourceMetadata: mask.sourceMetadata ?? responseSourceMetadata
@@ -334,7 +313,7 @@ export function useSegmentation({
         setStatus("error");
       }
     },
-    [canvasRef]
+    []
   );
 
   const splitSelectedLayer = useCallback(async () => {

@@ -1258,6 +1258,77 @@ describe("NodeExecutor", () => {
     }
   });
 
+  it("maps Local SAM3 point and box prompts into exported layer space", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
+    const SamServiceFal = require("../sam/SamServiceFal");
+
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("model"),
+            makeMetadataProperty("points_per_side"),
+            makeMetadataProperty("pred_iou_thresh"),
+            makeMetadataProperty("point_prompts"),
+            makeMetadataProperty("box_prompts")
+          ]
+        }
+      } as any
+    });
+
+    const origResize = SamServiceFal.resizeForInference;
+    SamServiceFal.resizeForInference = jest
+      .fn()
+      .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 2 });
+
+    const mockExecutor = {
+      execute: jest.fn().mockResolvedValue({
+        success: true,
+        outputs: { sam_node: { output: [] } }
+      })
+    };
+
+    setNodeExecutor(mockExecutor);
+
+    try {
+      await new SamServiceNode("local-sam3").runSegmentation({
+        imageDataUrl: "data:image/png;base64,smallimage",
+        pointPrompts: [{ x: 15, y: 29, label: "positive" }],
+        boxPrompt: { x: 14, y: 27, width: 8, height: 10 },
+        sourceMetadata: {
+          layerId: "layer-1",
+          layerTransform: { x: 10, y: 20 },
+          contentBounds: { x: 2, y: 3, width: 24, height: 18 },
+          canvasSize: { width: 64, height: 64 },
+          documentOrigin: { x: 12, y: 23 }
+        },
+        settings: {
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "box"
+        }
+      });
+
+      const graph = mockExecutor.execute.mock.calls[0][0];
+      // layer_coord = (doc_coord - documentOrigin) * scale. Here
+      // documentOrigin = (12, 23), so doc point (15, 29) maps to layer-local
+      // (3, 6) before resizeForInference doubles it to (6, 12). The box
+      // origin/size follow the same translation-first, scale-second mapping.
+      expect(graph.nodes[0].data.point_prompts).toEqual([
+        { x: 6, y: 12, label: 1 }
+      ]);
+      expect(graph.nodes[0].data.box_prompts).toEqual([
+        { x: 4, y: 8, width: 16, height: 20 }
+      ]);
+    } finally {
+      SamServiceFal.resizeForInference = origResize;
+      setNodeExecutor(new WebSocketNodeExecutor());
+    }
+  });
+
   it("sends the Local SAM3 concept prompt only when metadata declares it", async () => {
     const { SamServiceNode } = require("../sam/SamServiceNode");
     const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");

@@ -30,6 +30,7 @@ import { getNodeExecutor } from "./NodeExecutor";
 import type { GraphNode, GraphEdge } from "./NodeExecutor";
 import { resizeForInference, MAX_INFERENCE_DIMENSION } from "./SamServiceFal";
 import { normalizeSamMasks } from "./normalizeSamMasks";
+import { CoordinateMapper } from "../painting/CoordinateMapper";
 
 const LOCAL_SAM3_NODE_TYPE = "huggingface.image_segmentation.MaskGeneration";
 const LOCAL_SAM3_DOWNLOAD_TYPE = "hf.model";
@@ -370,14 +371,18 @@ export class SamServiceNode implements SamService {
       request.pointPrompts.length > 0
     ) {
       nodeData[promptMetadata.pointPromptsInputName] = this.buildLocalSam3PointPrompts(
-        request.pointPrompts,
+        request,
         scale
       );
     }
 
     if (promptMetadata.boxPromptsInputName && request.boxPrompt) {
       nodeData[promptMetadata.boxPromptsInputName] = [
-        this.buildLocalSam3BoxPrompt(request.boxPrompt, scale)
+        this.buildLocalSam3BoxPrompt(
+          request.boxPrompt,
+          request.sourceMetadata,
+          scale
+        )
       ];
     }
 
@@ -394,26 +399,81 @@ export class SamServiceNode implements SamService {
   }
 
   private buildLocalSam3PointPrompts(
-    pointPrompts: SegmentationRequest["pointPrompts"],
+    request: SegmentationRequest,
     scale: number
   ): Array<{ x: number; y: number; label: 0 | 1 }> {
-    return pointPrompts.map((point) => ({
-      x: Math.round(point.x * scale),
-      y: Math.round(point.y * scale),
-      label: point.label === "positive" ? 1 : 0
-    }));
+    const promptMapper = this.createPromptMapper(request.sourceMetadata);
+    return request.pointPrompts.map((point) => {
+      const mappedPoint = this.mapPromptPointToSourceImage(point, promptMapper);
+      return {
+        x: Math.round(mappedPoint.x * scale),
+        y: Math.round(mappedPoint.y * scale),
+        label: point.label === "positive" ? 1 : 0
+      };
+    });
   }
 
   private buildLocalSam3BoxPrompt(
     boxPrompt: NonNullable<SegmentationRequest["boxPrompt"]>,
+    sourceMetadata: SegmentationRequest["sourceMetadata"],
     scale: number
   ): { x: number; y: number; width: number; height: number } {
+    const promptMapper = this.createPromptMapper(sourceMetadata);
+    // Map all four corners before taking min/max so rotated or affine-transformed
+    // source layers still produce a correct axis-aligned box in source-image space.
+    const corners = [
+      this.mapPromptPointToSourceImage({ x: boxPrompt.x, y: boxPrompt.y }, promptMapper),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y },
+        promptMapper
+      ),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x, y: boxPrompt.y + boxPrompt.height },
+        promptMapper
+      ),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y + boxPrompt.height },
+        promptMapper
+      )
+    ];
+    const minX = Math.min(...corners.map((corner) => corner.x));
+    const minY = Math.min(...corners.map((corner) => corner.y));
+    const maxX = Math.max(...corners.map((corner) => corner.x));
+    const maxY = Math.max(...corners.map((corner) => corner.y));
+
     return {
-      x: Math.round(boxPrompt.x * scale),
-      y: Math.round(boxPrompt.y * scale),
-      width: Math.round(boxPrompt.width * scale),
-      height: Math.round(boxPrompt.height * scale)
+      x: Math.round(minX * scale),
+      y: Math.round(minY * scale),
+      width: Math.round((maxX - minX) * scale),
+      height: Math.round((maxY - minY) * scale)
     };
+  }
+
+  private mapPromptPointToSourceImage(
+    point: { x: number; y: number },
+    promptMapper: CoordinateMapper | null
+  ): { x: number; y: number } {
+    if (!promptMapper) {
+      return point;
+    }
+
+    return promptMapper.docToLayer(point);
+  }
+
+  private createPromptMapper(
+    sourceMetadata: SegmentationRequest["sourceMetadata"]
+  ): CoordinateMapper | null {
+    if (!sourceMetadata) {
+      return null;
+    }
+
+    return new CoordinateMapper({
+      layerTransform: sourceMetadata.layerTransform,
+      rasterBounds: {
+        x: sourceMetadata.contentBounds.x,
+        y: sourceMetadata.contentBounds.y
+      }
+    });
   }
 
   private async buildLocalSam3ImageInput(imageDataUrl: string): Promise<{
