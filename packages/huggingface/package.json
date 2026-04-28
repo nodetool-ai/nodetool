@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@huggingface/hub": "^2.11.0",
     "@nodetool/config": "*",
     "@nodetool/security": "*"
   },
