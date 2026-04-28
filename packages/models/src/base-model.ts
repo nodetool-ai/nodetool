@@ -5,14 +5,25 @@
  * Each concrete model class provides a static `table` pointing to its
  * Drizzle table definition. The base class supplies common CRUD,
  * observer notifications, and etag computation.
+ *
+ * When Supabase is the active backend (isSupabaseMode() returns true)
+ * all CRUD operations are routed through the Supabase TypeScript SDK
+ * instead of Drizzle + better-sqlite3.
  */
 
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool/config";
 import { eq } from "drizzle-orm";
+import { getTableName } from "drizzle-orm";
 import type { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
 import { getDb } from "./db.js";
+import {
+  getSupabaseDb,
+  isSupabaseMode,
+  fromSupabaseRow,
+  toSupabaseRow
+} from "./supabase-db.js";
 
 const log = createLogger("nodetool.models");
 
@@ -158,6 +169,18 @@ export abstract class DBModel {
     this: any,
     key: string | number
   ): Promise<T | null> {
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const table = this.table as DrizzleTable;
+      const tableName = getTableName(table);
+      const { data, error } = await supabase
+        .from(tableName)
+        .select("*")
+        .eq(this.primaryKey, key)
+        .maybeSingle();
+      if (error || !data) return null;
+      return new this(fromSupabaseRow(table, data as Record<string, unknown>)) as T;
+    }
     const db = getDb();
     const table = this.table as DrizzleTable;
     const pkCol = getTableColumn(table, this.primaryKey);
@@ -172,6 +195,19 @@ export abstract class DBModel {
   async save(): Promise<this> {
     this.beforeSave();
     const ctor = this.constructor as typeof DBModel;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const tableName = getTableName(ctor.table);
+      const row = toSupabaseRow(ctor.table, this.toRow());
+      const { error } = await supabase.from(tableName).upsert(row);
+      if (error) {
+        throw new Error(`Supabase save failed on ${tableName}: ${error.message}`);
+      }
+      ModelObserver.notify(this, ModelChangeEvent.UPDATED);
+      return this;
+    }
+
     const db = getDb();
     const table = ctor.table;
     const row = this.toRow();
@@ -191,6 +227,21 @@ export abstract class DBModel {
 
   async delete(): Promise<void> {
     const ctor = this.constructor as typeof DBModel;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const tableName = getTableName(ctor.table);
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq(ctor.primaryKey, this.partitionValue());
+      if (error) {
+        throw new Error(`Supabase delete failed on ${tableName}: ${error.message}`);
+      }
+      ModelObserver.notify(this, ModelChangeEvent.DELETED);
+      return;
+    }
+
     const db = getDb();
     const table = ctor.table;
     const pkCol = getTableColumn(table, ctor.primaryKey);
@@ -207,6 +258,25 @@ export abstract class DBModel {
   async reload(): Promise<this> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructor must be callable with `new` for dynamic instantiation.
     const ctor = this.constructor as any;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const table = (ctor as typeof DBModel).table;
+      const tableName = getTableName(table);
+      const pk = (ctor as typeof DBModel).primaryKey;
+      const { data, error } = await supabase
+        .from(tableName)
+        .select("*")
+        .eq(pk, this.partitionValue())
+        .maybeSingle();
+      if (error || !data) {
+        throw new Error(`Item not found: ${this.partitionValue()}`);
+      }
+      const fresh = new ctor(fromSupabaseRow(table, data as Record<string, unknown>));
+      Object.assign(this, fresh);
+      return this;
+    }
+
     const db = getDb();
     const table = (ctor as typeof DBModel).table;
     const pkCol = getTableColumn(table, (ctor as typeof DBModel).primaryKey);

@@ -5,8 +5,10 @@
  */
 
 import { eq, and, desc } from "drizzle-orm";
+import { getTableName } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
+import { getSupabaseDb, isSupabaseMode, fromSupabaseRow } from "./supabase-db.js";
 import { jobs } from "./schema/jobs.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -199,6 +201,29 @@ export class Job extends DBModel {
     workerId: string,
     expectedVersion: number
   ): Promise<boolean> {
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const now = new Date().toISOString();
+      const newVersion = expectedVersion + 1;
+      const { data, error } = await supabase
+        .from(getTableName(jobs))
+        .update({
+          worker_id: workerId,
+          heartbeat_at: now,
+          version: newVersion,
+          updated_at: now
+        })
+        .eq("id", this.id)
+        .eq("version", expectedVersion)
+        .select("id");
+      if (error || !data || data.length === 0) return false;
+      this.worker_id = workerId;
+      this.heartbeat_at = now;
+      this.version = newVersion;
+      this.updated_at = now;
+      return true;
+    }
+
     try {
       const db = getDb();
       const now = new Date().toISOString();
@@ -245,6 +270,26 @@ export class Job extends DBModel {
     } = {}
   ): Promise<[Job[], string]> {
     const { limit = 50, status, workflowId } = opts;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      let q = supabase
+        .from(getTableName(jobs))
+        .select("*")
+        .eq("user_id", userId);
+      if (status) q = q.eq("status", status);
+      if (workflowId) q = q.eq("workflow_id", workflowId);
+      q = (q as typeof q).order("updated_at", { ascending: false }).limit(limit + 1);
+      const { data, error } = await q;
+      if (error) throw new Error(`Supabase paginate jobs: ${error.message}`);
+      const items = (data ?? []).map(
+        (r) => new Job(fromSupabaseRow(jobs, r as Record<string, unknown>))
+      );
+      if (items.length <= limit) return [items, ""];
+      items.pop();
+      return [items, items[items.length - 1]?.id ?? ""];
+    }
+
     const db = getDb();
 
     const conditions = [eq(jobs.user_id, userId)];

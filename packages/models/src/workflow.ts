@@ -5,8 +5,10 @@
  */
 
 import { eq, and, desc } from "drizzle-orm";
+import { getTableName } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
+import { getSupabaseDb, isSupabaseMode, fromSupabaseRow } from "./supabase-db.js";
 import { workflows } from "./schema/workflows.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -121,6 +123,26 @@ export class Workflow extends DBModel {
     } = {}
   ): Promise<[Workflow[], string]> {
     const { limit = 50, access, runMode } = opts;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      let q = supabase
+        .from(getTableName(workflows))
+        .select("*")
+        .eq("user_id", userId);
+      if (access) q = q.eq("access", access);
+      if (runMode) q = q.eq("run_mode", runMode);
+      q = (q as typeof q).order("updated_at", { ascending: false }).limit(limit + 1);
+      const { data, error } = await q;
+      if (error) throw new Error(`Supabase paginate workflows: ${error.message}`);
+      const items = (data ?? []).map(
+        (r) => new Workflow(fromSupabaseRow(workflows, r as Record<string, unknown>))
+      );
+      if (items.length <= limit) return [items, ""];
+      items.pop();
+      return [items, items[items.length - 1]?.id ?? ""];
+    }
+
     const db = getDb();
 
     const conditions = [eq(workflows.user_id, userId)];
@@ -147,6 +169,24 @@ export class Workflow extends DBModel {
     opts: { limit?: number } = {}
   ): Promise<[Workflow[], string]> {
     const { limit = 50 } = opts;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const { data, error } = await supabase
+        .from(getTableName(workflows))
+        .select("*")
+        .eq("access", "public")
+        .order("updated_at", { ascending: false })
+        .limit(limit + 1);
+      if (error) throw new Error(`Supabase paginatePublic workflows: ${error.message}`);
+      const items = (data ?? []).map(
+        (r) => new Workflow(fromSupabaseRow(workflows, r as Record<string, unknown>))
+      );
+      if (items.length <= limit) return [items, ""];
+      items.pop();
+      return [items, items[items.length - 1]?.id ?? ""];
+    }
+
     const db = getDb();
     const rows = db
       .select()
@@ -169,6 +209,29 @@ export class Workflow extends DBModel {
     opts: { limit?: number } = {}
   ): Promise<[Workflow[], string]> {
     const { limit = 50 } = opts;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const { data, error } = await supabase
+        .from(getTableName(workflows))
+        .select("*")
+        .eq("user_id", userId)
+        .eq("run_mode", "tool")
+        .order("updated_at", { ascending: false })
+        .limit(limit + 1);
+      if (error) throw new Error(`Supabase paginateTools workflows: ${error.message}`);
+      const items = (data ?? []).map(
+        (r) => new Workflow(fromSupabaseRow(workflows, r as Record<string, unknown>))
+      );
+      if (items.length <= limit) {
+        const tools = items.filter((w) => w.hasToolName());
+        return [tools, ""];
+      }
+      items.pop();
+      const tools = items.filter((w) => w.hasToolName());
+      return [tools, items[items.length - 1]?.id ?? ""];
+    }
+
     const db = getDb();
     const rows = db
       .select()
@@ -220,6 +283,20 @@ export class Workflow extends DBModel {
     userId: string,
     toolName: string
   ): Promise<Workflow | null> {
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const { data, error } = await supabase
+        .from(getTableName(workflows))
+        .select("*")
+        .eq("user_id", userId)
+        .eq("tool_name", toolName)
+        .eq("run_mode", "tool")
+        .limit(1)
+        .maybeSingle();
+      if (error || !data) return null;
+      return new Workflow(fromSupabaseRow(workflows, data as Record<string, unknown>));
+    }
+
     const db = getDb();
     const row = db
       .select()

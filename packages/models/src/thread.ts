@@ -5,8 +5,10 @@
  */
 
 import { eq, desc, asc } from "drizzle-orm";
+import { getTableName } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
+import { getSupabaseDb, isSupabaseMode, fromSupabaseRow } from "./supabase-db.js";
 import { threads } from "./schema/threads.js";
 
 export class Thread extends DBModel {
@@ -45,6 +47,24 @@ export class Thread extends DBModel {
     opts: { limit?: number; startKey?: string; reverse?: boolean } = {}
   ): Promise<[Thread[], string]> {
     const { limit = 50, reverse = true } = opts;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const { data, error } = await supabase
+        .from(getTableName(threads))
+        .select("*")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: !reverse })
+        .limit(limit + 1);
+      if (error) throw new Error(`Supabase paginate threads: ${error.message}`);
+      const items = (data ?? []).map(
+        (r) => new Thread(fromSupabaseRow(threads, r as Record<string, unknown>))
+      );
+      if (items.length <= limit) return [items, ""];
+      items.pop();
+      return [items, items[items.length - 1]?.id ?? ""];
+    }
+
     const db = getDb();
     const rows = db
       .select()

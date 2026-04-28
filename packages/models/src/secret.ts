@@ -5,8 +5,10 @@
  */
 
 import { eq, and } from "drizzle-orm";
+import { getTableName } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
+import { getSupabaseDb, isSupabaseMode, fromSupabaseRow } from "./supabase-db.js";
 import { secrets } from "./schema/secrets.js";
 import {
   encryptFernet,
@@ -45,6 +47,19 @@ export class Secret extends DBModel {
 
   /** Find a secret by user_id and key. */
   static async find(userId: string, key: string): Promise<Secret | null> {
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const { data, error } = await supabase
+        .from(getTableName(secrets))
+        .select("*")
+        .eq("user_id", userId)
+        .eq("key", key)
+        .limit(1)
+        .maybeSingle();
+      if (error || !data) return null;
+      return new Secret(fromSupabaseRow(secrets, data as Record<string, unknown>));
+    }
+
     const db = getDb();
     const row = db
       .select()
@@ -135,6 +150,22 @@ export class Secret extends DBModel {
     userId: string,
     limit = 100
   ): Promise<[Secret[], string]> {
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const { data, error } = await supabase
+        .from(getTableName(secrets))
+        .select("*")
+        .eq("user_id", userId)
+        .limit(limit + 1);
+      if (error) throw new Error(`Supabase listForUser secrets: ${error.message}`);
+      const items = (data ?? []).map(
+        (r) => new Secret(fromSupabaseRow(secrets, r as Record<string, unknown>))
+      );
+      if (items.length <= limit) return [items, ""];
+      items.pop();
+      return [items, items[items.length - 1]?.id ?? ""];
+    }
+
     const db = getDb();
     const rows = db
       .select()
@@ -152,6 +183,18 @@ export class Secret extends DBModel {
 
   /** List all secrets across all users (admin only). */
   static async listAll(limit = 1000): Promise<Secret[]> {
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      const { data, error } = await supabase
+        .from(getTableName(secrets))
+        .select("*")
+        .limit(limit);
+      if (error) throw new Error(`Supabase listAll secrets: ${error.message}`);
+      return (data ?? []).map(
+        (r) => new Secret(fromSupabaseRow(secrets, r as Record<string, unknown>))
+      );
+    }
+
     const db = getDb();
     const rows = db.select().from(secrets).limit(limit).all();
     return rows.map((r) => new Secret(r as Record<string, unknown>));

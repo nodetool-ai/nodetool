@@ -5,8 +5,10 @@
  */
 
 import { eq, desc, asc } from "drizzle-orm";
+import { getTableName } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
+import { getSupabaseDb, isSupabaseMode, fromSupabaseRow } from "./supabase-db.js";
 import { messages } from "./schema/messages.js";
 
 export class Message extends DBModel {

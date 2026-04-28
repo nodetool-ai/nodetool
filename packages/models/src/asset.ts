@@ -5,8 +5,10 @@
  */
 
 import { eq, and, like, desc, isNull } from "drizzle-orm";
+import { getTableName } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
+import { getSupabaseDb, isSupabaseMode, fromSupabaseRow } from "./supabase-db.js";
 import { assets } from "./schema/assets.js";
 
 export class Asset extends DBModel {
@@ -94,6 +96,35 @@ export class Asset extends DBModel {
       jobId,
       limit = 50
     } = opts;
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      let q = supabase
+        .from(getTableName(assets))
+        .select("*")
+        .eq("user_id", userId);
+      if (parentId !== undefined) {
+        if (parentId === null) {
+          q = q.is("parent_id", null);
+        } else {
+          q = q.eq("parent_id", parentId);
+        }
+      }
+      if (contentType) q = q.eq("content_type", contentType);
+      if (workflowId) q = q.eq("workflow_id", workflowId);
+      if (nodeId) q = q.eq("node_id", nodeId);
+      if (jobId) q = q.eq("job_id", jobId);
+      q = (q as typeof q).order("created_at", { ascending: false }).limit(limit + 1);
+      const { data, error } = await q;
+      if (error) throw new Error(`Supabase paginate assets: ${error.message}`);
+      const items = (data ?? []).map(
+        (r) => new Asset(fromSupabaseRow(assets, r as Record<string, unknown>))
+      );
+      if (items.length <= limit) return [items, ""];
+      items.pop();
+      return [items, items[items.length - 1]?.id ?? ""];
+    }
+
     const db = getDb();
 
     const conditions = [eq(assets.user_id, userId)];
@@ -157,25 +188,47 @@ export class Asset extends DBModel {
     const { contentType, limit = 100 } = opts;
     // Escape LIKE special characters to prevent pattern injection
     const sanitized = query.trim().replace(/[%_\\]/g, "\\$&");
-    const db = getDb();
 
-    const conditions = [
-      eq(assets.user_id, userId),
-      like(assets.name, `%${sanitized}%`)
-    ];
-    if (contentType) {
-      const sanitizedType = contentType.replace(/[%_\\]/g, "\\$&");
-      conditions.push(like(assets.content_type, `${sanitizedType}%`));
+    let items: Asset[];
+
+    if (isSupabaseMode()) {
+      const supabase = getSupabaseDb();
+      let q = supabase
+        .from(getTableName(assets))
+        .select("*")
+        .eq("user_id", userId)
+        .ilike("name", `%${sanitized}%`);
+      if (contentType) {
+        const sanitizedType = contentType.replace(/[%_\\]/g, "\\$&");
+        q = q.ilike("content_type", `${sanitizedType}%`);
+      }
+      q = (q as typeof q).limit(limit);
+      const { data, error } = await q;
+      if (error) throw new Error(`Supabase searchAssetsGlobal: ${error.message}`);
+      items = (data ?? []).map(
+        (r) => new Asset(fromSupabaseRow(assets, r as Record<string, unknown>))
+      );
+    } else {
+      const db = getDb();
+      const conditions = [
+        eq(assets.user_id, userId),
+        like(assets.name, `%${sanitized}%`)
+      ];
+      if (contentType) {
+        const sanitizedType = contentType.replace(/[%_\\]/g, "\\$&");
+        conditions.push(like(assets.content_type, `${sanitizedType}%`));
+      }
+
+      const rows = db
+        .select()
+        .from(assets)
+        .where(and(...conditions))
+        .limit(limit)
+        .all();
+
+      items = rows.map((r) => new Asset(r as Record<string, unknown>));
     }
 
-    const rows = db
-      .select()
-      .from(assets)
-      .where(and(...conditions))
-      .limit(limit)
-      .all();
-
-    const items = rows.map((r) => new Asset(r as Record<string, unknown>));
     const cursor = "";
 
     const pathInfo = await Asset.getAssetPathInfo(

@@ -27,12 +27,15 @@
     "@nodetool/config": "*",
     "@nodetool/protocol": "*",
     "@nodetool/security": "*",
+    "@supabase/supabase-js": "^2.98.0",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/pg": "^8.11.0",
     "drizzle-kit": "^0.31.10",
+    "pg": "^8.16.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   }
