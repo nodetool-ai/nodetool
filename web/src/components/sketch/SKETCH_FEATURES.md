@@ -351,8 +351,8 @@ Files:
 - `web/src/components/sketch/types/tools.ts`
 
 Steps:
-- [ ] Keep prompt UI out of the first local-only implementation.
-- [ ] Define sketch object separation prompt requirements: concept text, point prompts, and box prompts.
+- [x] Keep prompt UI out of the first local-only implementation.
+- [x] Define sketch object separation prompt requirements: concept text, point prompts, and box prompts.
 - [x] Inspect the installed local SAM3 runtime API for concept text, point prompt, and box prompt support.
 - [x] Record the supported prompt fields in the local node metadata.
 - [x] Add local node fields for supported sketch object separation prompts: concept text, points, or boxes.

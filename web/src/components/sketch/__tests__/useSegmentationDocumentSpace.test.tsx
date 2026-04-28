@@ -157,6 +157,10 @@ describe("useSegmentation document-space apply", () => {
         height: 30
       }
     };
+    sourceLayer.data = serializeLayerData(
+      "data:image/png;base64,source",
+      sourceLayer.contentBounds
+    );
     doc.layers = [sourceLayer];
     doc.activeLayerId = sourceLayer.id;
 
@@ -226,6 +230,105 @@ describe("useSegmentation document-space apply", () => {
     expect(drawMaskBoundsOverlayMock).not.toHaveBeenCalled();
   });
 
+  it("runs prompted segmentation from serialized layer exports instead of canvas layer data", async () => {
+    const doc = createDefaultDocument(128, 96);
+    const sourceLayer = {
+      ...doc.layers[0],
+      name: "Source",
+      transform: {
+        x: 12,
+        y: 18,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0
+      },
+      contentBounds: {
+        x: -8,
+        y: 6,
+        width: 40,
+        height: 30
+      },
+      data: serializeLayerData("data:image/png;base64,source", {
+        x: -8,
+        y: 6,
+        width: 40,
+        height: 30
+      })
+    };
+    doc.layers = [sourceLayer];
+    doc.activeLayerId = sourceLayer.id;
+
+    act(() => {
+      useSketchStore.getState().setDocument(doc);
+    });
+
+    const pushHistory = jest.fn();
+    const runSegmentationMock = jest.fn().mockResolvedValue({
+      masks: [],
+      modelId: "facebook/sam3",
+      backendId: "local-sam3",
+      nodeType: "huggingface.image_segmentation.MaskGeneration"
+    });
+
+    getSamServiceMock.mockReturnValue({
+      checkModelAvailability: jest.fn(),
+      runSegmentation: runSegmentationMock
+    } as never);
+
+    const canvasRef = {
+      current: {
+        getLayerData: jest.fn().mockReturnValue(null)
+      } as unknown as SketchCanvasRef
+    };
+
+    const { result } = renderHook(() =>
+      useSegmentation({
+        canvasRef,
+        pushHistory
+      })
+    );
+
+    await act(async () => {
+      await result.current.runSegmentation(
+        [{ x: 15, y: 29, label: "positive" }],
+        { x: 14, y: 27, width: 8, height: 10 }
+      );
+    });
+
+    expect(runSegmentationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageDataUrl: "data:image/png;base64,source",
+        pointPrompts: [{ x: 15, y: 29, label: "positive" }],
+        boxPrompt: { x: 14, y: 27, width: 8, height: 10 },
+        sourceMetadata: {
+          layerId: sourceLayer.id,
+          layerTransform: expect.objectContaining({
+            x: 12,
+            y: 18,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0
+          }),
+          contentBounds: {
+            x: -8,
+            y: 6,
+            width: 40,
+            height: 30
+          },
+          canvasSize: {
+            width: 128,
+            height: 96
+          },
+          documentOrigin: {
+            x: 4,
+            y: 24
+          }
+        }
+      }),
+      expect.any(AbortSignal)
+    );
+  });
+
   it("applies accepted masks as ordinary raster layers with document-space bounds and provenance", async () => {
     const doc = createDefaultDocument(128, 96);
     const sourceLayer = {
@@ -245,6 +348,10 @@ describe("useSegmentation document-space apply", () => {
         height: 30
       }
     };
+    sourceLayer.data = serializeLayerData(
+      "data:image/png;base64,source",
+      sourceLayer.contentBounds
+    );
     doc.layers = [sourceLayer];
     doc.activeLayerId = sourceLayer.id;
     doc.toolSettings.segment.outputCutouts = false;
@@ -347,6 +454,12 @@ describe("useSegmentation document-space apply", () => {
   it("uses document-space cutouts for accepted results when cutout output is enabled", async () => {
     const doc = createDefaultDocument(128, 96);
     const sourceLayer = createDefaultLayer("Source", "raster", 128, 96);
+    sourceLayer.data = serializeLayerData("data:image/png;base64,source", {
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 30
+    });
     doc.layers = [sourceLayer];
     doc.activeLayerId = sourceLayer.id;
     doc.toolSettings.segment.outputCutouts = true;

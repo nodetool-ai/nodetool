@@ -1591,7 +1591,8 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             if (v) {
               onChange({
                 backend: v as SegmentBackend,
-                // Local SAM3 currently exposes automatic mask generation only.
+                // Default Local SAM3 to automatic split; prompted modes appear
+                // only when installed node metadata confirms them.
                 ...(v === "local-sam3" ? { promptMode: "auto" as const } : {})
               });
               onCheckModel();
