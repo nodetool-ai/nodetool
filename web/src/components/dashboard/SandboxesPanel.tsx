@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useEffect, memo } from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme, Theme } from "@mui/material/styles";
 import {
@@ -92,6 +92,21 @@ function isSafeVncUrl(url: string): boolean {
 const SandboxesPanel: React.FC = () => {
   const theme = useTheme();
   const [selectedSandboxId, setSelectedSandboxId] = useState<string | null>(null);
+  const vncIframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  const enterVncFullscreen = useCallback(() => {
+    const el = vncIframeRef.current;
+    if (!el) return;
+    // Request fullscreen from the parent page — bypasses the iframe's
+    // Permissions Policy restriction that blocks noVNC's own button.
+    const request =
+      el.requestFullscreen ??
+      (el as unknown as { webkitRequestFullscreen?: () => Promise<void> })
+        .webkitRequestFullscreen;
+    if (typeof request === "function") {
+      void request.call(el);
+    }
+  }, []);
 
   const sandboxesQuery = trpc.sandboxes.list.useQuery(undefined, {
     refetchInterval: SANDBOX_LIST_REFETCH_INTERVAL_MS
@@ -272,20 +287,40 @@ const SandboxesPanel: React.FC = () => {
             {selectedSandbox && (
               <Card variant="outlined" padding="normal">
                 <FlexColumn gap={2}>
-                  <Text size="normal" weight={600}>
-                    Sandbox Live View
-                  </Text>
+                  <FlexRow gap={1} align="center" justify="space-between">
+                    <Text size="normal" weight={600}>
+                      Sandbox Live View
+                    </Text>
+                    {vncIframeUrl && (
+                      <EditorButton
+                        density="compact"
+                        variant="outlined"
+                        onClick={enterVncFullscreen}
+                      >
+                        Fullscreen
+                      </EditorButton>
+                    )}
+                  </FlexRow>
                   {vncIframeUrl ? (
                     <iframe
+                      ref={vncIframeRef}
                       title={`Live VNC view for sandbox: ${selectedSandbox.name}`}
                       src={vncIframeUrl}
                       sandbox="allow-scripts allow-same-origin"
+                      allow="fullscreen; clipboard-read; clipboard-write"
+                      allowFullScreen
                       css={{
                         width: "100%",
                         height: VNC_IFRAME_HEIGHT_PX,
                         border: `1px solid ${theme.vars.palette.grey[700]}`,
                         borderRadius: "6px",
-                        backgroundColor: "black"
+                        backgroundColor: "black",
+                        "&:fullscreen": {
+                          width: "100vw",
+                          height: "100vh",
+                          border: "none",
+                          borderRadius: 0
+                        }
                       }}
                     />
                   ) : (
