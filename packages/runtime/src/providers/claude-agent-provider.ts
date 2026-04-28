@@ -583,6 +583,12 @@ export class ClaudeAgentProvider extends BaseProvider {
           allowDangerouslySkipPermissions: true,
           disallowedTools: DISALLOWED_TOOLS,
           allowedTools,
+          // Isolate from the host's Claude Code config: don't load
+          // user/project/local settings (which is where installed skills
+          // and plugin configs live), and pass an empty plugin list so
+          // no plugin commands/agents/hooks are registered.
+          settingSources: [],
+          plugins: [],
           env: cleanEnv,
           ...(abortController ? { abortController } : {}),
           ...(mcpServer

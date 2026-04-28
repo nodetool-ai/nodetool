@@ -1835,9 +1835,9 @@ export class ClassifierNode extends BaseNode {
 }
 
 export class AgentNode extends BaseNode {
-  static readonly nodeType = "nodetool.agents.Agent";
-  static readonly title = "Agent";
-  static readonly description =
+  static readonly nodeType: string = "nodetool.agents.Agent";
+  static readonly title: string = "Agent";
+  static readonly description: string =
     "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming";
   static readonly metadataOutputTypes = {
     text: "str",
@@ -2451,6 +2451,19 @@ export class AgentNode extends BaseNode {
   })
   declare team_strategy: any;
 
+  /**
+   * Build the tool list for this run. Override in subclasses to inject
+   * additional tools (e.g. sandbox shell/file/browser tools) alongside the
+   * user-selected ones. Control tools from kernel control edges are
+   * appended separately by the genProcess paths and don't need to be
+   * handled here.
+   */
+  protected async buildTools(
+    _context?: ProcessingContext
+  ): Promise<ToolLike[]> {
+    return normalizeTools(this.tools ?? []);
+  }
+
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
@@ -2509,7 +2522,7 @@ export class AgentNode extends BaseNode {
       : [];
     const threadId = String(this.thread_id ?? this.thread_id ?? "").trim();
     const maxTokens = Number(this.max_tokens ?? this.max_tokens ?? 8192);
-    const tools: ToolLike[] = normalizeTools(this.tools ?? this.tools);
+    const tools: ToolLike[] = await this.buildTools(context);
 
     // Build control tools from _control_context (injected by the kernel
     // for nodes that have outgoing control edges). This lets the LLM
@@ -3075,7 +3088,7 @@ export class AgentNode extends BaseNode {
   ): AsyncGenerator<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? "");
     const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
-    const rawTools: ToolLike[] = normalizeTools(this.tools ?? []);
+    const rawTools: ToolLike[] = await this.buildTools(context);
 
     // Build control tools
     const controlContext = (this as any)._control_context;
