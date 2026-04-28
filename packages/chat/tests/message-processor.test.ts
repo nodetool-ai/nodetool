@@ -103,6 +103,10 @@ function chunk(content: string): Chunk {
   return { type: "chunk", content, done: false };
 }
 
+function thinkingChunk(content: string): Chunk {
+  return { type: "chunk", content, done: false, thinking: true };
+}
+
 function toolCall(
   id: string,
   name: string,
@@ -362,5 +366,52 @@ describe("processChat", () => {
 
     expect(result).toHaveLength(2);
     expect(result[1].content).toBe("Simple reply");
+  });
+
+  it("excludes thinking chunks from text output and onChunk callback", async () => {
+    const provider = createMockProvider([
+      [thinkingChunk("internal reasoning"), chunk("visible text")]
+    ]);
+
+    const onChunk = vi.fn();
+    const result = await processChat({
+      userInput: "Hello",
+      messages: [],
+      model: "test-model",
+      provider,
+      context: createMockContext(),
+      callbacks: { onChunk }
+    });
+
+    // onChunk should only be called for the visible text chunk, not the thinking chunk
+    expect(onChunk).toHaveBeenCalledTimes(1);
+    expect(onChunk).toHaveBeenCalledWith("visible text");
+
+    // The assistant message should contain only the visible text
+    const assistantMsg = result.find((m) => m.role === "assistant");
+    expect(assistantMsg?.content).toBe("visible text");
+  });
+
+  it("returns empty assistant message when only thinking chunks are present", async () => {
+    const provider = createMockProvider([
+      [thinkingChunk("only thinking, no visible output")]
+    ]);
+
+    const onChunk = vi.fn();
+    const result = await processChat({
+      userInput: "Hello",
+      messages: [],
+      model: "test-model",
+      provider,
+      context: createMockContext(),
+      callbacks: { onChunk }
+    });
+
+    // onChunk must not be called at all
+    expect(onChunk).not.toHaveBeenCalled();
+
+    // No assistant message should be added (thinking-only turn produces no visible text)
+    const assistantMsgs = result.filter((m) => m.role === "assistant");
+    expect(assistantMsgs).toHaveLength(0);
   });
 });
