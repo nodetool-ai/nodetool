@@ -159,6 +159,9 @@ export async function processChat(opts: {
 
       // --- Text chunk ---
       if (isChunk(item)) {
+        // Skip thinking chunks — they must not appear in user-visible text output.
+        if (item.thinking) continue;
+
         const text = item.content ?? "";
         callbacks?.onChunk?.(text);
         assistantText += text;
