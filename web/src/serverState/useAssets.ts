@@ -80,8 +80,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
 
   // Fetch assets filtered by workflow_id when workflowFilter is active
   const fetchWorkflowAssets = useCallback(async () => {
-    if (!workflowFilter) {return { assets: [], next: null };}
-    return await trpcClient.assets.list.query({ workflow_id: workflowFilter });
+    return await trpcClient.assets.list.query({ workflow_id: workflowFilter! });
   }, [workflowFilter]);
 
   const {
