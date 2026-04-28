@@ -14,6 +14,7 @@ import {
   type StatusType
 } from "../ui_primitives";
 import type { RealtimeCameraFramePublisherStatus } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
+import { realtimeCardSx } from "./realtimeStyles";
 
 interface RealtimeModelStatusCardProps {
   activeSession: RealtimeSessionRecord | null;
@@ -182,7 +183,7 @@ export const RealtimeModelStatusCard = ({
     <Card
       padding="normal"
       variant="outlined"
-      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+      sx={realtimeCardSx}
     >
       <FlexColumn gap={1.25}>
         <Text weight={600}>Model Runtime Status</Text>

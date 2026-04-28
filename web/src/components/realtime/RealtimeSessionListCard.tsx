@@ -1,6 +1,11 @@
 import type { RealtimeSessionRecord } from "@nodetool/protocol";
 
 import { Card, EditorButton, FlexColumn, FlexRow, Text } from "../ui_primitives";
+import {
+  realtimeCardSx,
+  realtimeControlSx,
+  realtimeMediaSx
+} from "./realtimeStyles";
 
 interface RealtimeSessionListCardProps {
   activeSessionId: string | null;
@@ -17,7 +22,7 @@ export const RealtimeSessionListCard = ({
     <Card
       padding="normal"
       variant="outlined"
-      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+      sx={realtimeCardSx}
     >
       <FlexColumn gap={2}>
         <Text weight={600}>Workflow Sessions</Text>
@@ -27,13 +32,13 @@ export const RealtimeSessionListCard = ({
               key={session.session_id}
               justify="space-between"
               align="center"
-              sx={(theme) => ({
+              sx={{
                 borderColor: "divider",
                 borderStyle: "solid",
                 borderWidth: 1,
-                borderRadius: theme.rounded.xs,
+                ...realtimeMediaSx,
                 padding: 1.5
-              })}
+              }}
             >
               <FlexColumn gap={0.5}>
                 <Text weight={600}>{session.session_id}</Text>
@@ -42,6 +47,7 @@ export const RealtimeSessionListCard = ({
               <EditorButton
                 onClick={() => onSelectSession(session.session_id)}
                 disabled={session.session_id === activeSessionId}
+                sx={realtimeControlSx}
               >
                 View
               </EditorButton>

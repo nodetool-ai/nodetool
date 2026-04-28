@@ -35,6 +35,7 @@ interface SelectProps {
    * Value differs from default — shows visual indicator (right border)
    */
   changed?: boolean;
+  sharp?: boolean;
 }
 
 const ChevronIcon = ({ className }: { className?: string }) => (
@@ -64,7 +65,8 @@ const Select: React.FC<SelectProps> = ({
   label,
   tabIndex,
   fuseOptions,
-  changed
+  changed,
+  sharp = false
 }) => {
   const theme = useTheme();
   const selectRef = useRef<HTMLDivElement>(null);
@@ -260,7 +262,7 @@ const Select: React.FC<SelectProps> = ({
   }, [filteredOptions, handleOptionClick]);
 
   return (
-    <div className="select-container" css={styles}>
+    <div className={`select-container${sharp ? " sharp" : ""}`} css={styles}>
       <Tooltip placement="top" delay={TOOLTIP_ENTER_DELAY} disableInteractive title={label}>
         <div
           ref={selectRef}
@@ -304,7 +306,7 @@ const Select: React.FC<SelectProps> = ({
       {activeSelect === id && dropdownPosition && ReactDOM.createPortal(
         <ul
           ref={optionsRef}
-          className="options-list nowheel"
+          className={`options-list nowheel${sharp ? " sharp-options" : ""}`}
           css={portalOptionsStyles(theme)}
           style={dropdownStyle}
           onMouseDown={(e) => e.stopPropagation()}

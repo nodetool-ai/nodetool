@@ -6,6 +6,7 @@ import type {
 
 import { Card, FlexColumn, Text } from "../ui_primitives";
 import type { RealtimeWebRTCRuntimeMode } from "../../hooks/browser/useRealtimeSessionWebRTC";
+import { realtimeCardSx } from "./realtimeStyles";
 
 interface RealtimeSessionDetailsCardProps {
   activeSession: RealtimeSessionRecord | null;
@@ -28,7 +29,7 @@ export const RealtimeSessionDetailsCard = ({
     <Card
       padding="normal"
       variant="outlined"
-      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+      sx={realtimeCardSx}
     >
       <FlexColumn gap={2}>
         <Text weight={600}>Active Session</Text>

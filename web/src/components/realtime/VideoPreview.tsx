@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { Card, FlexColumn, Text } from "../ui_primitives";
+import { realtimeCardSx, realtimePreviewPaneSx } from "./realtimeStyles";
 
 interface VideoPreviewProps {
   stream: MediaStream | null;
@@ -33,27 +34,31 @@ const VideoPreview = ({
     <Card
       padding="normal"
       variant="outlined"
-      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+      sx={realtimeCardSx}
     >
       <FlexColumn gap={1.5}>
         <Text weight={600}>{title}</Text>
-        {stream ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            muted={muted}
-            playsInline
-            style={{
-              width: "100%",
-              height: "clamp(220px, 24vh, 280px)",
-              borderRadius: "var(--rounded-xs)",
-              background: "black",
-              objectFit: "cover"
-            }}
-          />
-        ) : (
-          <Text color="secondary">{emptyText}</Text>
-        )}
+        <FlexColumn sx={realtimePreviewPaneSx}>
+          {stream ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              muted={muted}
+              playsInline
+              style={{
+                width: "100%",
+                height: "100%",
+                borderRadius: 0,
+                background: "black",
+                objectFit: "cover"
+              }}
+            />
+          ) : (
+            <Text color="secondary" align="center">
+              {emptyText}
+            </Text>
+          )}
+        </FlexColumn>
       </FlexColumn>
     </Card>
   );

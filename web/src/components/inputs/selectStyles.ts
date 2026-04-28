@@ -135,6 +135,10 @@ export const selectStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       outline: "none",
       boxShadow: "0 0 0 2px rgba(33, 150, 243, 0.2)"
+    },
+
+    "&.sharp .select-header, &.sharp .search-input, &.sharp .options-list, &.sharp .option": {
+      borderRadius: 0
     }
   });
 
@@ -198,5 +202,9 @@ export const portalOptionsStyles = (theme: Theme) =>
     ".option.highlighted": {
       backgroundColor: theme.vars.palette.action.hover,
       color: "var(--text-primary)"
+    },
+
+    "&.sharp-options, &.sharp-options .option": {
+      borderRadius: 0
     }
   });

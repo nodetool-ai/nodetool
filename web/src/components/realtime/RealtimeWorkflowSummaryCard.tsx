@@ -1,5 +1,6 @@
 import type { Workflow } from "../../stores/ApiTypes";
 import { Card, FlexColumn, Text } from "../ui_primitives";
+import { realtimeCardSx } from "./realtimeStyles";
 
 interface RealtimeWorkflowSummaryCardProps {
   workflow: Workflow;
@@ -12,7 +13,7 @@ export const RealtimeWorkflowSummaryCard = ({
     <Card
       padding="normal"
       variant="outlined"
-      sx={(theme) => ({ borderRadius: theme.rounded.xs })}
+      sx={realtimeCardSx}
     >
       <FlexColumn gap={1}>
         <Text weight={600}>{workflow.name}</Text>

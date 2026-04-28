@@ -28,6 +28,7 @@ import {
   useRealtimeCameraFramePublisher,
   type RealtimeCameraFramePublisherStatus
 } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
+import type { VideoCaptureResolutionPreset } from "../../hooks/browser/useVideoCapture";
 import { useRealtimeControlPlane } from "../../hooks/realtime/useRealtimeControlPlane";
 import type { RealtimeOutputFrame } from "../../stores/RealtimeSessionStore";
 
@@ -86,6 +87,8 @@ export interface RealtimeStreamController {
   activeAnalysisEvents: RealtimeAnalysisEvent[];
   activeOutputFrame: RealtimeOutputFrame | null;
   previewStream: MediaStream | null;
+  videoTrackSettings: MediaTrackSettings | null;
+  selectedVideoResolution: VideoCaptureResolutionPreset;
   remoteStream: MediaStream | null;
   signalingStatus: RealtimeSignalingStatus;
   connectionState: RTCPeerConnectionState | "closed";
@@ -105,6 +108,7 @@ export interface RealtimeStreamController {
   startPreview: () => Promise<void>;
   stopPreview: () => void;
   setBrightness: (brightness: number) => void;
+  handleVideoResolutionChange: (resolution: VideoCaptureResolutionPreset) => void;
   setVideoTargetNodeId: (nodeId: string) => void;
   setVideoTargetInputName: (inputName: string) => void;
   setActiveSession: (sessionId: string | null) => void;
@@ -147,9 +151,12 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const {
     error: previewError,
     previewStream,
+    videoTrackSettings,
+    selectedVideoResolution,
     isPreviewReady,
     startPreview,
-    stopPreview
+    stopPreview,
+    handleVideoResolutionChange
   } = useVideoCapture({
     includeAudio: false,
     autoFetchDevices: false
@@ -420,6 +427,8 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     activeAnalysisEvents,
     activeOutputFrame,
     previewStream,
+    videoTrackSettings,
+    selectedVideoResolution,
     remoteStream,
     signalingStatus,
     connectionState,
@@ -439,6 +448,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     startPreview,
     stopPreview,
     setBrightness,
+    handleVideoResolutionChange,
     setVideoTargetNodeId,
     setVideoTargetInputName,
     setActiveSession,
