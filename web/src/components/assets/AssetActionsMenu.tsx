@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useState } from "react";
-import { Box } from "@mui/material";
+import { Box, TextField } from "@mui/material";
 import TuneIcon from "@mui/icons-material/Tune";
 import FolderIcon from "@mui/icons-material/Folder";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
@@ -15,6 +15,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import SearchErrorBoundary from "../SearchErrorBoundary";
@@ -31,6 +32,9 @@ import {
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
+import { useQuery } from "@tanstack/react-query";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { WorkflowList, Workflow } from "../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -90,8 +94,27 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
   );
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
+  const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
+  const setWorkflowFilter = useAssetGridStore((state) => state.setWorkflowFilter);
   const [typeFilterAnchor, setTypeFilterAnchor] =
     useState<HTMLElement | null>(null);
+  const [workflowFilterAnchor, setWorkflowFilterAnchor] =
+    useState<HTMLElement | null>(null);
+  const [workflowSearch, setWorkflowSearch] = useState("");
+
+  const load = useWorkflowManager((state) => state.load);
+  const { data: workflowData } = useQuery<WorkflowList, Error>({
+    queryKey: ["workflows"],
+    queryFn: async () => load("", 200)
+  });
+
+  const filteredWorkflows: Workflow[] = workflowData?.workflows?.filter((w: Workflow) =>
+    w.name.toLowerCase().includes(workflowSearch.toLowerCase())
+  ) ?? [];
+
+  const activeWorkflowName = workflowFilter
+    ? (workflowData?.workflows?.find((w: Workflow) => w.id === workflowFilter)?.name ?? "Workflow")
+    : null;
 
   const handleTypeFilterChange = useCallback(
     (next: TypeFilterKey) => setTypeFilter(next),
@@ -169,6 +192,43 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             <ArrowDropDownIcon />
           </Box>
         </ToolbarIconButton>
+        <ToolbarIconButton
+          tooltip={workflowFilter ? `Workflow: ${activeWorkflowName}` : "Filter by workflow"}
+          onClick={(e) => setWorkflowFilterAnchor(e.currentTarget)}
+          tooltipPlacement="top"
+          nodrag={false}
+          sx={{
+            borderRadius: 1,
+            px: 0.75,
+            gap: 0.5,
+            fontSize: theme.fontSizeSmall,
+            color: workflowFilter
+              ? "var(--palette-primary-main)"
+              : undefined
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              "& .MuiSvgIcon-root": { fontSize: 18 }
+            }}
+          >
+            <AccountTreeIcon />
+            <span
+              style={{
+                maxWidth: 80,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {activeWorkflowName ?? "Workflow"}
+            </span>
+            <ArrowDropDownIcon />
+          </Box>
+        </ToolbarIconButton>
         <UploadButton
           onFileSelect={(files) => onUploadFiles?.(files)}
           iconVariant="file"
@@ -197,6 +257,57 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             dense
           />
         ))}
+      </Popover>
+
+      <Popover
+        open={Boolean(workflowFilterAnchor)}
+        anchorEl={workflowFilterAnchor}
+        onClose={() => {
+          setWorkflowFilterAnchor(null);
+          setWorkflowSearch("");
+        }}
+        placement="bottom-left"
+        paperSx={{ py: 0.5, minWidth: 220, maxHeight: 320 }}
+      >
+        <Box sx={{ px: 1, pb: 0.5 }}>
+          <TextField
+            size="small"
+            placeholder="Search workflows..."
+            value={workflowSearch}
+            onChange={(e) => setWorkflowSearch(e.target.value)}
+            autoFocus
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 0.5 }}
+          />
+        </Box>
+        <Box sx={{ overflowY: "auto", maxHeight: 240 }}>
+          <MenuItemPrimitive
+            label="All workflows"
+            icon={<FilterAltOffIcon />}
+            selected={workflowFilter === null}
+            onClick={() => {
+              setWorkflowFilter(null);
+              setWorkflowFilterAnchor(null);
+              setWorkflowSearch("");
+            }}
+            dense
+          />
+          {filteredWorkflows.map((workflow) => (
+            <MenuItemPrimitive
+              key={workflow.id}
+              label={workflow.name}
+              icon={<AccountTreeIcon />}
+              selected={workflowFilter === workflow.id}
+              onClick={() => {
+                setWorkflowFilter(workflow.id);
+                setWorkflowFilterAnchor(null);
+                setWorkflowSearch("");
+              }}
+              dense
+            />
+          ))}
+        </Box>
       </Popover>
 
       {expanded && (
