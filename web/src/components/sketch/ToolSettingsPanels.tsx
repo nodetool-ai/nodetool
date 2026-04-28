@@ -27,7 +27,8 @@ import {
   FormControlLabel,
   Button,
   IconButton,
-  Tooltip
+  Tooltip,
+  TextField
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -1517,6 +1518,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const localSam3SupportsBoxPrompts = Boolean(
     isLocalSam3 && modelInfo?.capabilities.boxPrompts
   );
+  const localSam3SupportsTextPrompts = Boolean(
+    isLocalSam3 && modelInfo?.capabilities.textPrompts
+  );
   const canRunSegmentation = isLocalSam3
     ? localSam3Ready &&
       (settings.promptMode === "auto" ? canSplitSelectedLayer : true)
@@ -1758,6 +1762,28 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         }
         sx={{ mt: "2px", ml: 0 }}
       />
+
+      {isLocalSam3 && localSam3SupportsTextPrompts && (
+        <Box className="setting-row" sx={{ alignItems: "flex-start" }}>
+          <Typography className="setting-label" sx={{ pt: "6px" }}>
+            Concept
+          </Typography>
+          <TextField
+            size="small"
+            value={settings.conceptPrompt}
+            onChange={(event) => onChange({ conceptPrompt: event.target.value })}
+            placeholder="Describe the object to isolate"
+            fullWidth
+            inputProps={{ "aria-label": "Concept prompt" }}
+            sx={{
+              flex: 1,
+              "& .MuiInputBase-root": {
+                fontSize: SKETCH_FONT.xs
+              }
+            }}
+          />
+        </Box>
+      )}
 
       {isLocalSam3 && (
         <>

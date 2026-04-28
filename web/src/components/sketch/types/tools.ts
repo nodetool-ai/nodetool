@@ -466,6 +466,8 @@ export type SegmentationStatus =
 export interface SegmentSettings {
   /** Current prompt mode: point clicks, box drag, or automatic separation. */
   promptMode: SegmentPromptMode;
+  /** Optional concept text used by backends that support text-guided object separation. */
+  conceptPrompt: string;
   /** Maximum number of objects to return. */
   maxObjects: number;
   /** Minimum mask area in pixels²; smaller fragments are discarded. */
@@ -658,6 +660,7 @@ export const DEFAULT_SELECT_SETTINGS: SelectSettings = {
 
 export const DEFAULT_SEGMENT_SETTINGS: SegmentSettings = {
   promptMode: "point",
+  conceptPrompt: "",
   maxObjects: 5,
   minObjectSize: 100,
   confidenceThreshold: 0.5,

@@ -118,6 +118,71 @@ describe("SegmentSettingsPanel", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows a Local SAM3 concept field only when metadata confirms text prompts", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "point",
+          conceptPrompt: "foreground object"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available",
+          capabilities: {
+            ...LOCAL_SAM3_CAPABILITIES,
+            textPrompts: true
+          }
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("textbox", { name: "Concept prompt" })).toHaveValue(
+      "foreground object"
+    );
+  });
+
+  it("hides the Local SAM3 concept field when text prompts are unavailable", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "point"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available",
+          capabilities: {
+            ...LOCAL_SAM3_CAPABILITIES,
+            pointPrompts: true
+          }
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByRole("textbox", { name: "Concept prompt" })
+    ).not.toBeInTheDocument();
+  });
+
   it("shows the node-pack hint when Local SAM3 metadata is unavailable", () => {
     render(
       <SegmentSettingsPanel

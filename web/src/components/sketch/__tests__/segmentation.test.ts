@@ -64,6 +64,7 @@ describe("Segmentation types and defaults", () => {
   it("DEFAULT_SEGMENT_SETTINGS has expected shape", () => {
     expect(DEFAULT_SEGMENT_SETTINGS).toEqual({
       promptMode: "point",
+      conceptPrompt: "",
       maxObjects: 5,
       minObjectSize: 100,
       confidenceThreshold: 0.5,
@@ -1217,7 +1218,8 @@ describe("NodeExecutor", () => {
         settings: {
           ...DEFAULT_SEGMENT_SETTINGS,
           backend: "local-sam3",
-          promptMode: "point"
+          promptMode: "point",
+          conceptPrompt: "foreground object"
         }
       });
 
@@ -1225,7 +1227,63 @@ describe("NodeExecutor", () => {
       expect(graph.nodes[0].data.point_prompts).toEqual([
         { x: 6, y: 8, label: 1 }
       ]);
+      expect(graph.nodes[0].data.prompt).toBeUndefined();
       expect(graph.nodes[0].data.box_prompts).toBeUndefined();
+    } finally {
+      SamServiceFal.resizeForInference = origResize;
+      setNodeExecutor(new WebSocketNodeExecutor());
+    }
+  });
+
+  it("sends the Local SAM3 concept prompt only when metadata declares it", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
+    const SamServiceFal = require("../sam/SamServiceFal");
+
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("model"),
+            makeMetadataProperty("points_per_side"),
+            makeMetadataProperty("pred_iou_thresh"),
+            makeMetadataProperty("prompt")
+          ]
+        }
+      } as any
+    });
+
+    const origResize = SamServiceFal.resizeForInference;
+    SamServiceFal.resizeForInference = jest
+      .fn()
+      .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 1 });
+
+    const mockExecutor = {
+      execute: jest.fn().mockResolvedValue({
+        success: true,
+        outputs: { sam_node: { output: [] } }
+      })
+    };
+
+    setNodeExecutor(mockExecutor);
+
+    try {
+      await new SamServiceNode("local-sam3").runSegmentation({
+        imageDataUrl: "data:image/png;base64,smallimage",
+        pointPrompts: [],
+        boxPrompt: null,
+        settings: {
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "point",
+          conceptPrompt: "person"
+        }
+      });
+
+      const graph = mockExecutor.execute.mock.calls[0][0];
+      expect(graph.nodes[0].data.prompt).toBe("person");
     } finally {
       SamServiceFal.resizeForInference = origResize;
       setNodeExecutor(new WebSocketNodeExecutor());

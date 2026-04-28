@@ -354,6 +354,14 @@ export class SamServiceNode implements SamService {
     };
 
     if (
+      promptMetadata.textPromptInputName &&
+      request.settings.conceptPrompt.trim().length > 0
+    ) {
+      nodeData[promptMetadata.textPromptInputName] =
+        request.settings.conceptPrompt.trim();
+    }
+
+    if (
       promptMetadata.pointPromptsInputName &&
       request.pointPrompts.length > 0
     ) {

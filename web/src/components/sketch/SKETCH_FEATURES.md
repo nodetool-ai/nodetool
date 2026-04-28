@@ -355,19 +355,19 @@ Steps:
 - [ ] Define sketch object separation prompt requirements: concept text, point prompts, and box prompts.
 - [x] Inspect the installed local SAM3 runtime API for concept text, point prompt, and box prompt support.
 - [x] Record the supported prompt fields in the local node metadata.
-- [ ] Add local node fields for supported sketch object separation prompts: concept text, points, or boxes.
+- [x] Add local node fields for supported sketch object separation prompts: concept text, points, or boxes.
 - [ ] If sketch later needs prompted local separation beyond current metadata, adapt `huggingface.image_segmentation.MaskGeneration` to declare the required point/box/text inputs before enabling those modes by default.
 - [ ] Add multi-mask controls for prompted runs after the sketch UI needs multiple prompted masks.
 - [ ] Return labels, scores, and boxes after the runtime returns them and sketch uses them for preview or naming.
-- [ ] Leave provider-only fields out of the local node: hosted URL controls, sync mode, output format, and RLE.
+- [x] Leave provider-only fields out of the local node: hosted URL controls, sync mode, output format, and RLE.
 - [x] Gate sketch UI prompt modes strictly from node metadata.
 - [x] Keep prompt UI hidden for inputs absent from the local node metadata.
 
 Check:
 - [x] The sketch editor does not send prompt inputs that the node does not declare.
-- [ ] Point, box, and concept UI appear only for local node metadata-confirmed inputs.
-- [ ] Local SAM3 remains focused on sketch layer split and object separation.
-- [ ] Tests cover capability detection from node metadata.
+- [x] Point, box, and concept UI appear only for local node metadata-confirmed inputs.
+- [x] Local SAM3 remains focused on sketch layer split and object separation.
+- [x] Tests cover capability detection from node metadata.
 
 ### [ ] 3.7 Add Paid SAM3 Backend After A Local Gap
 
