@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo, useMemo } from "react";
 import { Text } from "../ui_primitives";
 import { Asset } from "../../stores/ApiTypes";
-import { alphaSurfaceBg } from "../../styles/AlphaSurface";
+import { getAlphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface ImageViewerProps {
   asset?: Asset;
@@ -26,14 +26,11 @@ const styles = (theme: Theme) =>
     ".image-info": {
       position: "absolute",
       bottom: "0",
-      right: "1em",
-      zIndex: 1000
-    },
-    ".image-info p": {
-      fontSize: theme.fontSizeSmall,
-      textAlign: "right",
-      color: theme.vars.palette.grey[100],
-      textShadow: "0 0 4px rgba(0,0,0,0.9)"
+      right: theme.spacing(2),
+      zIndex: 1000,
+      color: theme.vars.palette.text.primary,
+      textShadow: `${theme.spacing(0, 0, 0.5)} ${theme.vars.palette.background.default}`,
+      textAlign: "right"
     }
   });
 
@@ -184,8 +181,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
     width: "100%",
     top: "0",
     display: "block" as const,
-    ...alphaSurfaceBg
-  }), []);
+    ...getAlphaSurfaceBg(theme)
+  }), [theme]);
 
   const imageStyle = useMemo(() => ({
     position: "absolute" as const,
@@ -199,7 +196,16 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ asset, url }) => {
   return (
     <div css={viewerStyles} className="image-viewer">
       <div className="image-info">
-        <Text size="small">{`${imageWidth} x ${imageHeight}`}</Text>
+        <Text
+          size="small"
+          sx={{
+            color: "inherit",
+            textAlign: "inherit",
+            textShadow: "inherit"
+          }}
+        >
+          {`${imageWidth} x ${imageHeight}`}
+        </Text>
       </div>
       <div
         style={containerStyle}
