@@ -50,7 +50,7 @@ const EnumProperty: React.FC<PropertyProps> = ({
   const options = useMemo(() => {
     return values?.map((val: string | number) => ({
       label: formatEnumLabel(val),
-      value: val
+      value: String(val)
     })) || [];
   }, [values]);
 
