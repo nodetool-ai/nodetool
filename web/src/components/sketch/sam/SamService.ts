@@ -207,6 +207,16 @@ export interface SegmentationResponse {
   backendId?: SegmentBackend;
   nodeType?: string;
   sourceMetadata?: SegmentationSourceMetadata;
+  previewImageUrl?: string;
+  providerMetadata?: unknown;
+  providerRle?: string | string[] | null;
+  providerScores?: number[];
+  providerBoxes?: Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
 }
 
 // ─── Service Interface ────────────────────────────────────────────────────────

@@ -385,13 +385,13 @@ Steps:
 - [x] Use `fal-ai/sam-3-1/image` for the future provider image backend.
 - [x] Use `fal-ai/sam-3-1/image-rle` for the future provider RLE backend.
 - [x] Update fal codegen config and generated manifest from the current `sam-3` entries to the `sam-3-1` endpoint set.
-- [ ] Map Provider SAM3 image output to `fal.image_to_image.Sam3Image`.
-- [ ] Map Provider SAM3 RLE output to `fal.image_to_image.Sam3ImageRle`.
-- [ ] Read paid provider secret state from existing secrets state.
+- [x] Map Provider SAM3 image output to `fal.image_to_image.Sam3Image`.
+- [x] Map Provider SAM3 RLE output to `fal.image_to_image.Sam3ImageRle`.
+- [x] Read paid provider secret state from existing secrets state.
 - [x] Use `prompt` for concept segmentation.
 - [x] Use `point_prompts` and `box_prompts` for prompted object separation.
 - [x] Request `return_multiple_masks`, `include_scores`, and `include_boxes` for multi-mask preview and naming.
-- [ ] Add provider output normalization for `masks`, preview `image`, `rle`, `metadata`, `scores`, and `boxes`.
+- [x] Add provider output normalization for `masks`, preview `image`, `rle`, `metadata`, `scores`, and `boxes`.
 - [x] Keep Provider SAM3 behind the same capability metadata checks as Local SAM3.
 - [x] Make Provider SAM3 implement the same sketch SAM backend interface as Local SAM3.
 

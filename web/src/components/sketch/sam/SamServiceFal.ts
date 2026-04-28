@@ -27,7 +27,9 @@ import useSecretsStore from "../../../stores/SecretsStore";
 const FAL_API_BASE = "https://queue.fal.run";
 const FAL_RESULT_BASE = "https://queue.fal.run";
 const SAM31_ENDPOINT = "fal-ai/sam-3-1/image";
+const SAM31_RLE_ENDPOINT = "fal-ai/sam-3-1/image-rle";
 const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam3Image";
+const FAL_SAM_RLE_NODE_TYPE = "fal.image_to_image.Sam3ImageRle";
 const FAL_SAM_TEXT_PROMPT_INPUTS = ["prompt"] as const;
 const FAL_SAM_POINT_PROMPT_INPUTS = ["point_prompts"] as const;
 const FAL_SAM_BOX_PROMPT_INPUTS = ["box_prompts"] as const;
@@ -84,12 +86,22 @@ interface FalResultImage {
   content_type?: string;
 }
 
+interface FalMaskMetadata {
+  label?: string;
+  name?: string;
+  score?: number;
+  box?: unknown;
+  bbox?: unknown;
+  bounds?: unknown;
+}
+
 interface FalSam3Result {
   masks?: FalResultImage[];
   image?: FalResultImage;
   metadata?: unknown;
   scores?: unknown;
   boxes?: unknown;
+  rle?: unknown;
 }
 
 interface FalNormalizedBox {
@@ -97,6 +109,10 @@ interface FalNormalizedBox {
   y: number;
   width: number;
   height: number;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function parseJsonValue<T>(value: unknown): T | null {
@@ -128,6 +144,20 @@ function normalizeFalScores(value: unknown): number[] {
   return parsed
     .map((entry) => (typeof entry === "number" && Number.isFinite(entry) ? entry : null))
     .filter((entry): entry is number => entry !== null);
+}
+
+function normalizeFalMetadataEntries(value: unknown): FalMaskMetadata[] {
+  const parsed = parseJsonValue<unknown>(value);
+  if (Array.isArray(parsed)) {
+    return parsed.filter(
+      (entry): entry is FalMaskMetadata =>
+        entry !== null && typeof entry === "object"
+    );
+  }
+  if (parsed && typeof parsed === "object") {
+    return [parsed as FalMaskMetadata];
+  }
+  return [];
 }
 
 function normalizeFalBoxes(
@@ -182,8 +212,103 @@ function normalizeFalBoxes(
       }
     }
 
+    if (entry && typeof entry === "object") {
+      const candidate = entry as Record<string, unknown>;
+      if (
+        isFiniteNumber(candidate.x) &&
+        isFiniteNumber(candidate.y) &&
+        isFiniteNumber(candidate.width) &&
+        isFiniteNumber(candidate.height)
+      ) {
+        return {
+          x: Math.round(candidate.x * invScale),
+          y: Math.round(candidate.y * invScale),
+          width: Math.round(candidate.width * invScale),
+          height: Math.round(candidate.height * invScale)
+        };
+      }
+    }
+
     return fallbackBox;
   });
+}
+
+function normalizeFalRle(value: unknown): string | string[] | null {
+  if (typeof value === "string" && value.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (typeof parsed === "string" && parsed.length > 0) {
+        return parsed;
+      }
+      if (Array.isArray(parsed)) {
+        const entries = parsed.filter(
+          (entry): entry is string => typeof entry === "string" && entry.length > 0
+        );
+        return entries.length > 0 ? entries : value;
+      }
+      return value;
+    } catch {
+      return value;
+    }
+  }
+  const parsed = parseJsonValue<unknown>(value);
+  if (typeof parsed === "string" && parsed.length > 0) {
+    return parsed;
+  }
+  if (Array.isArray(parsed)) {
+    const entries = parsed.filter(
+      (entry): entry is string => typeof entry === "string" && entry.length > 0
+    );
+    return entries.length > 0 ? entries : null;
+  }
+  return null;
+}
+
+function normalizeFalMetadataBox(
+  value: unknown,
+  fallbackMask: FalResultImage | undefined,
+  scale: number
+): FalNormalizedBox | null {
+  const invScale = scale > 0 ? 1 / scale : 1;
+  if (Array.isArray(value) && value.length >= 4) {
+    const [cx, cy, width, height] = value;
+    if (
+      isFiniteNumber(cx) &&
+      isFiniteNumber(cy) &&
+      isFiniteNumber(width) &&
+      isFiniteNumber(height)
+    ) {
+      const maskWidth = fallbackMask?.width ?? 0;
+      const maskHeight = fallbackMask?.height ?? 0;
+      return {
+        x: Math.round((cx - width / 2) * maskWidth * invScale),
+        y: Math.round((cy - height / 2) * maskHeight * invScale),
+        width: Math.round(width * maskWidth * invScale),
+        height: Math.round(height * maskHeight * invScale)
+      };
+    }
+  }
+  if (value && typeof value === "object") {
+    const candidate = value as Record<string, unknown>;
+    const x = candidate.x;
+    const y = candidate.y;
+    const width = candidate.width;
+    const height = candidate.height;
+    if (
+      isFiniteNumber(x) &&
+      isFiniteNumber(y) &&
+      isFiniteNumber(width) &&
+      isFiniteNumber(height)
+    ) {
+      return {
+        x: Math.round(x * invScale),
+        y: Math.round(y * invScale),
+        width: Math.round(width * invScale),
+        height: Math.round(height * invScale)
+      };
+    }
+  }
+  return null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -197,6 +322,21 @@ async function resolveFalApiKey(): Promise<string | null> {
     return await useSecretsStore.getState().fetchDecryptedSecret("FAL_API_KEY");
   } catch {
     return null;
+  }
+}
+
+async function isFalApiKeyConfigured(): Promise<boolean> {
+  const store = useSecretsStore.getState();
+  const secrets = Array.isArray(store.secrets) ? store.secrets : [];
+  const currentSecret = secrets.find((secret) => secret.key === "FAL_API_KEY");
+  if (currentSecret) {
+    return currentSecret.is_configured;
+  }
+  try {
+    const secrets = await store.fetchSecrets();
+    return Boolean(secrets.find((secret) => secret.key === "FAL_API_KEY")?.is_configured);
+  } catch {
+    return false;
   }
 }
 
@@ -289,10 +429,10 @@ async function uploadToFal(
 
 export class SamServiceFal implements SamService {
   async checkModelAvailability(): Promise<SamModelInfo> {
-    const apiKey = await resolveFalApiKey();
     const capabilities = getFalSamCapabilities();
+    const hasConfiguredSecret = await isFalApiKeyConfigured();
 
-    if (!apiKey) {
+    if (!hasConfiguredSecret) {
       return {
         status: "not-installed",
         backendId: "fal",
@@ -306,6 +446,18 @@ export class SamServiceFal implements SamService {
 
     // Test connectivity by checking the queue endpoint
     try {
+      const apiKey = await resolveFalApiKey();
+      if (!apiKey) {
+        return {
+          status: "not-installed",
+          backendId: "fal",
+          backendLabel: "fal.ai",
+          capabilities,
+          modelId: DEFAULT_SAM_MODEL_ID,
+          modelName: DEFAULT_SAM_MODEL_NAME,
+          errorMessage: "FAL_API_KEY not configured. Add it in Settings → Secrets."
+        };
+      }
       const res = await fetch(`${FAL_API_BASE}/${SAM31_ENDPOINT}`, {
         method: "OPTIONS",
         headers: { Authorization: `Key ${apiKey}` }
@@ -427,7 +579,7 @@ export class SamServiceFal implements SamService {
     const submitData = await submitRes.json();
 
     // If sync_mode returned the result directly
-    if (submitData.masks || submitData.image) {
+    if (submitData.masks || submitData.image || submitData.rle) {
       return this.parseResult(submitData as FalSam3Result, scale);
     }
 
@@ -499,19 +651,42 @@ export class SamServiceFal implements SamService {
     data: FalSam3Result,
     scale: number
   ): SegmentationResponse {
+    const previewImageUrl = data.image?.url;
     const images = data.masks ?? (data.image ? [data.image] : []);
+    const metadataEntries = normalizeFalMetadataEntries(data.metadata);
     const scores = normalizeFalScores(data.scores);
     const boxes = normalizeFalBoxes(data.boxes, images, scale);
+    const providerRle = normalizeFalRle(data.rle);
+    const providerNodeType =
+      providerRle !== null && images.length === 0
+        ? FAL_SAM_RLE_NODE_TYPE
+        : FAL_SAM_NODE_TYPE;
+    const providerModelId =
+      providerRle !== null && images.length === 0
+        ? SAM31_RLE_ENDPOINT
+        : DEFAULT_SAM_MODEL_ID;
 
     if (images.length === 0) {
       return {
         masks: [],
-        modelId: DEFAULT_SAM_MODEL_ID,
-        backendId: "fal"
+        modelId: providerModelId,
+        backendId: "fal",
+        nodeType: providerNodeType,
+        previewImageUrl,
+        providerMetadata: data.metadata,
+        providerRle,
+        providerScores: scores,
+        providerBoxes: boxes
       };
     }
 
     const masks: SegmentationMask[] = images.map((img, i) => {
+      const metadataEntry = metadataEntries[i];
+      const metadataBox = normalizeFalMetadataBox(
+        metadataEntry?.box ?? metadataEntry?.bbox ?? metadataEntry?.bounds,
+        img,
+        scale
+      );
       const fallbackBounds = boxes[i] ?? {
         x: 0,
         y: 0,
@@ -521,21 +696,29 @@ export class SamServiceFal implements SamService {
       return {
         id: `mask_${i}`,
         kind: "mask",
-        label: `Object ${i + 1}`,
+        label:
+          metadataEntry?.label?.trim() ||
+          metadataEntry?.name?.trim() ||
+          `Object ${i + 1}`,
         maskDataUrl: img.url,
-        confidence: scores[i] ?? 1,
-        bounds: fallbackBounds,
+        confidence: metadataEntry?.score ?? scores[i] ?? 1,
+        bounds: metadataBox ?? fallbackBounds,
         backendId: "fal",
-        modelId: DEFAULT_SAM_MODEL_ID,
-        nodeType: FAL_SAM_NODE_TYPE
+        modelId: providerModelId,
+        nodeType: providerNodeType
       };
     });
 
     return {
       masks,
-      modelId: DEFAULT_SAM_MODEL_ID,
+      modelId: providerModelId,
       backendId: "fal",
-      nodeType: FAL_SAM_NODE_TYPE
+      nodeType: providerNodeType,
+      previewImageUrl,
+      providerMetadata: data.metadata,
+      providerRle,
+      providerScores: scores,
+      providerBoxes: boxes
     };
   }
 }
