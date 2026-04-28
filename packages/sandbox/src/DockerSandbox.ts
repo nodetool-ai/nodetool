@@ -14,7 +14,6 @@
  *   - network enabled (agents need internet to research)
  */
 
-import { createConnection, type Socket as NetSocket } from "node:net";
 import Dockerode from "dockerode";
 import { createLogger } from "@nodetool/config";
 import type {
@@ -206,9 +205,8 @@ export class DockerSandboxProvider implements SandboxProvider {
         }
       }
 
-      const ready = await waitForTcp(
-        this.hostIp,
-        toolPort,
+      const ready = await waitForHttpReady(
+        `${toolUrl}/health`,
         this.readyTimeoutSeconds
       );
       if (!ready) {
@@ -332,30 +330,32 @@ async function waitForHostPort(
   throw new Error(`timed out waiting for host port for ${portKey}`);
 }
 
-async function waitForTcp(
-  host: string,
-  port: number,
+export async function waitForHttpReady(
+  url: string,
   timeoutSeconds: number
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutSeconds * 1000;
   while (Date.now() < deadline) {
-    if (await tcpProbe(host, port, 1000)) return true;
-    await sleep(200);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1000);
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        signal: controller.signal
+      });
+      if (res.ok) {
+        return true;
+      }
+      await res.body?.cancel();
+    } catch {
+      // Keep polling until the deadline; Docker may publish the port before
+      // Fastify is ready to accept and respond to HTTP requests.
+    } finally {
+      clearTimeout(timer);
+    }
+    await sleep(150);
   }
   return false;
-}
-
-function tcpProbe(host: string, port: number, timeoutMs = 1000): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    const sock: NetSocket = createConnection({ host, port, timeout: timeoutMs });
-    const done = (ok: boolean) => {
-      sock.destroy();
-      resolve(ok);
-    };
-    sock.once("connect", () => done(true));
-    sock.once("timeout", () => done(false));
-    sock.once("error", () => done(false));
-  });
 }
 
 function sleep(ms: number): Promise<void> {

@@ -16,7 +16,7 @@ type LanguageModelLike = {
 
 const DEFAULT_SCOPE_USER = "no-user";
 const DEFAULT_SCOPE_WORKFLOW = "no-workflow";
-const DEFAULT_SCOPE_JOB = "no-job";
+const DEFAULT_SESSION_ID = "workflow";
 
 type BrowserAction =
   | "view"
@@ -464,21 +464,12 @@ function asTrimmedString(value: unknown): string {
  */
 function getContextScope(context?: ProcessingContext): string {
   if (!context) {
-    return `${DEFAULT_SCOPE_USER}:${DEFAULT_SCOPE_WORKFLOW}:${DEFAULT_SCOPE_JOB}`;
+    return `${DEFAULT_SCOPE_USER}:${DEFAULT_SCOPE_WORKFLOW}`;
   }
   const userId = asTrimmedString(context.userId) || DEFAULT_SCOPE_USER;
   const workflowId =
     asTrimmedString(context.workflowId) || DEFAULT_SCOPE_WORKFLOW;
-  const jobId = asTrimmedString(context.jobId) || DEFAULT_SCOPE_JOB;
-  return `${userId}:${workflowId}:${jobId}`;
-}
-
-function resolveSessionId(value: unknown): string {
-  const sessionId = asTrimmedString(value);
-  if (sessionId.length > 0) {
-    return sessionId;
-  }
-  return `session-${randomUUID().slice(0, 8)}`;
+  return `${userId}:${workflowId}`;
 }
 
 function toEffectiveSessionId(
@@ -490,12 +481,16 @@ function toEffectiveSessionId(
 
 async function getClient(
   sessionId: string,
-  workspaceDir: string
+  workspaceDir: string,
+  context?: ProcessingContext
 ): Promise<ToolClient> {
   const store = getSandboxStore();
-  const options: { workspaceDir?: string } = {};
+  const options: { workspaceDir?: string; env?: Record<string, string> } = {};
   if (workspaceDir.length > 0) {
     options.workspaceDir = workspaceDir;
+  }
+  if (context?.userId) {
+    options.env = { NODETOOL_USER_ID: context.userId };
   }
   const sandbox = await store.acquire(sessionId, options);
   return sandbox.client;
@@ -522,20 +517,12 @@ export class SandboxShellNode extends BaseNode {
   static readonly description =
     "Execute shell commands in an isolated sandbox session.";
   static readonly metadataOutputTypes = {
-    session_id: "str",
-    command_id: "str",
-    output: "dict[str, any]"
+    output: "str",
+    running: "bool",
+    exit_code: "union[int, none]",
+    timed_out: "bool"
   };
   static readonly exposeAsTool = true;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Session ID",
-    description:
-      "Reuse a sandbox session by ID. Leave empty to create a transient session ID."
-  })
-  declare session_id: string;
 
   @prop({
     type: "str",
@@ -554,14 +541,6 @@ export class SandboxShellNode extends BaseNode {
   declare command: string;
 
   @prop({
-    type: "str",
-    default: "",
-    title: "Command ID",
-    description: "Optional command process ID for later shell view/wait calls."
-  })
-  declare command_id: string;
-
-  @prop({
     type: "float",
     default: 1,
     title: "Wait Seconds",
@@ -571,35 +550,34 @@ export class SandboxShellNode extends BaseNode {
   declare wait_seconds: number;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const sessionId = resolveSessionId(this.session_id);
-    const effectiveSessionId = toEffectiveSessionId(sessionId, context);
+    const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
     const workspaceDir = asTrimmedString(this.workspace_dir);
     const command = asString(this.command);
     const normalizedCommand = asTrimmedString(this.command);
     const waitSeconds = Number(this.wait_seconds ?? 1);
-    const commandId =
-      asTrimmedString(this.command_id) || `cmd-${randomUUID().slice(0, 8)}`;
+    const commandId = `cmd-${randomUUID().slice(0, 8)}`;
 
     if (normalizedCommand.length === 0) {
       throw new Error("Command is required");
     }
 
-    const client = await getClient(effectiveSessionId, workspaceDir);
+    const client = await getClient(effectiveSessionId, workspaceDir, context);
     await client.shellExec({
       id: commandId,
       command,
       exec_dir: workspaceDir || undefined
     });
 
-    const output =
+    const shellResult =
       waitSeconds > 0
         ? await client.shellWait({ id: commandId, seconds: waitSeconds })
         : await client.shellView({ id: commandId });
 
     return {
-      session_id: sessionId,
-      command_id: commandId,
-      output
+      output: shellResult.output,
+      running: shellResult.running,
+      exit_code: shellResult.exit_code,
+      timed_out: "timed_out" in shellResult ? shellResult.timed_out : false
     };
   }
 }
@@ -610,18 +588,9 @@ export class SandboxBrowserNode extends BaseNode {
   static readonly description =
     "Control the sandbox browser (navigate, inspect, click, input, and console actions).";
   static readonly metadataOutputTypes = {
-    session_id: "str",
     output: "dict[str, any]"
   };
   static readonly exposeAsTool = true;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Session ID",
-    description: "Sandbox session ID."
-  })
-  declare session_id: string;
 
   @prop({
     type: "str",
@@ -661,12 +630,11 @@ export class SandboxBrowserNode extends BaseNode {
   declare params: Record<string, unknown>;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const sessionId = resolveSessionId(this.session_id);
-    const effectiveSessionId = toEffectiveSessionId(sessionId, context);
+    const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
     const workspaceDir = asTrimmedString(this.workspace_dir);
     const action = asTrimmedString(this.action || "view") as BrowserAction;
     const params = asRecord(this.params);
-    const client = await getClient(effectiveSessionId, workspaceDir);
+    const client = await getClient(effectiveSessionId, workspaceDir, context);
 
     const actionDef = BROWSER_ACTIONS[action];
     if (!actionDef) {
@@ -675,7 +643,6 @@ export class SandboxBrowserNode extends BaseNode {
     const output = await actionDef.invoke(client, params);
 
     return {
-      session_id: sessionId,
       output
     };
   }
@@ -687,18 +654,9 @@ export class SandboxFileNode extends BaseNode {
   static readonly description =
     "Read, write, search, and replace files inside a sandbox session.";
   static readonly metadataOutputTypes = {
-    session_id: "str",
     output: "dict[str, any]"
   };
   static readonly exposeAsTool = true;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Session ID",
-    description: "Sandbox session ID."
-  })
-  declare session_id: string;
 
   @prop({
     type: "str",
@@ -726,12 +684,11 @@ export class SandboxFileNode extends BaseNode {
   declare params: Record<string, unknown>;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const sessionId = resolveSessionId(this.session_id);
-    const effectiveSessionId = toEffectiveSessionId(sessionId, context);
+    const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
     const workspaceDir = asTrimmedString(this.workspace_dir);
     const action = asTrimmedString(this.action || "read") as FileAction;
     const params = asRecord(this.params);
-    const client = await getClient(effectiveSessionId, workspaceDir);
+    const client = await getClient(effectiveSessionId, workspaceDir, context);
 
     const actionDef = FILE_ACTIONS[action];
     if (!actionDef) {
@@ -740,7 +697,6 @@ export class SandboxFileNode extends BaseNode {
     const output = await actionDef.invoke(client, params);
 
     return {
-      session_id: sessionId,
       output
     };
   }
@@ -752,7 +708,6 @@ export class SandboxAgentNode extends BaseNode {
   static readonly description =
     "Prompt-driven agent with access to configured sandbox shell, browser, and file tools.";
   static readonly metadataOutputTypes = {
-    session_id: "str",
     text: "str"
   };
   static readonly isStreamingOutput = true;
@@ -791,14 +746,6 @@ export class SandboxAgentNode extends BaseNode {
   @prop({
     type: "str",
     default: "",
-    title: "Session ID",
-    description: "Sandbox session ID."
-  })
-  declare session_id: string;
-
-  @prop({
-    type: "str",
-    default: "",
     title: "Workspace Dir",
     description: "Optional sandbox workspace directory."
   })
@@ -830,11 +777,10 @@ export class SandboxAgentNode extends BaseNode {
       throw new Error("Select a model for SandboxAgent.");
     }
 
-    const sessionId = resolveSessionId(this.session_id);
-    const effectiveSessionId = toEffectiveSessionId(sessionId, context);
+    const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
     const workspaceDir = asTrimmedString(this.workspace_dir);
     const maxIterations = Number(this.max_iterations ?? 12);
-    const client = await getClient(effectiveSessionId, workspaceDir);
+    const client = await getClient(effectiveSessionId, workspaceDir, context);
     const tools = createAgentTools(client);
 
     const { text } = await runAgentLoop({
@@ -851,7 +797,6 @@ export class SandboxAgentNode extends BaseNode {
     });
 
     return {
-      session_id: sessionId,
       text
     };
   }
