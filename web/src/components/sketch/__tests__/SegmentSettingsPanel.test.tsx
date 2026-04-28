@@ -82,6 +82,42 @@ describe("SegmentSettingsPanel", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows Local SAM3 point and box modes only when metadata confirms them", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "point"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseLocalSam3Info,
+          status: "available",
+          capabilities: {
+            ...LOCAL_SAM3_CAPABILITIES,
+            pointPrompts: true,
+            boxPrompts: true
+          }
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Point" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Box" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Segment" })).toBeInTheDocument();
+    expect(
+      screen.queryByText("Local SAM3 currently supports automatic layer split only.")
+    ).not.toBeInTheDocument();
+  });
+
   it("shows the node-pack hint when Local SAM3 metadata is unavailable", () => {
     render(
       <SegmentSettingsPanel

@@ -1511,8 +1511,15 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     localSam3DownloadStatus !== undefined &&
     IN_PROGRESS_DOWNLOAD_STATES.includes(localSam3DownloadStatus);
   const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
+  const localSam3SupportsPointPrompts = Boolean(
+    isLocalSam3 && modelInfo?.capabilities.pointPrompts
+  );
+  const localSam3SupportsBoxPrompts = Boolean(
+    isLocalSam3 && modelInfo?.capabilities.boxPrompts
+  );
   const canRunSegmentation = isLocalSam3
-    ? localSam3Ready && canSplitSelectedLayer
+    ? localSam3Ready &&
+      (settings.promptMode === "auto" ? canSplitSelectedLayer : true)
     : true;
   const canDownloadLocalSam3 =
     isLocalSam3 &&
@@ -1522,15 +1529,39 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     localSam3DownloadStatus !== "completed" &&
     !localSam3Downloading;
   const visiblePromptModes: SegmentPromptMode[] = isLocalSam3
-    ? ["auto"]
+    ? [
+        ...(localSam3SupportsPointPrompts ? ["point" as const] : []),
+        ...(localSam3SupportsBoxPrompts ? ["box" as const] : []),
+        "auto"
+      ]
     : ["point", "box", "auto"];
-  const segmentActionLabel = isLocalSam3 ? "Split selected layer" : "Segment";
+  const isCurrentPromptModeVisible =
+    !isLocalSam3 ||
+    settings.promptMode === "auto" ||
+    (settings.promptMode === "point" && localSam3SupportsPointPrompts) ||
+    (settings.promptMode === "box" && localSam3SupportsBoxPrompts);
+  const segmentActionLabel =
+    isLocalSam3 && settings.promptMode === "auto"
+      ? "Split selected layer"
+      : "Segment";
+  const showClearPrompts = !isLocalSam3 || settings.promptMode !== "auto";
   const modelStatusText = getSegmentModelStatusText(
     isLocalSam3,
     localSam3Downloading,
     localSam3Ready,
     modelInfo
   );
+
+  useEffect(() => {
+    if (isCurrentPromptModeVisible) {
+      return;
+    }
+    onChange({ promptMode: "auto" });
+  }, [
+    isCurrentPromptModeVisible,
+    onChange,
+    settings.promptMode
+  ]);
 
   useEffect(() => {
     if (!isLocalSam3) {
@@ -1799,7 +1830,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             >
               {segmentActionLabel}
             </Button>
-            {!isLocalSam3 && (
+            {showClearPrompts && (
               <Button
                 size="small"
                 variant="outlined"
@@ -1869,11 +1900,13 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         }}
       >
         {isLocalSam3
-          ? "Local SAM3 currently supports automatic layer split only."
+          ? localSam3SupportsPointPrompts || localSam3SupportsBoxPrompts
+            ? promptModeHelpText(settings.promptMode)
+            : "Local SAM3 currently supports automatic layer split only."
           : promptModeHelpText(settings.promptMode)}
       </Typography>
 
-      {isLocalSam3 && !canSplitSelectedLayer && (
+      {isLocalSam3 && settings.promptMode === "auto" && !canSplitSelectedLayer && (
         <Typography
           sx={{
             fontSize: SKETCH_FONT.xs,

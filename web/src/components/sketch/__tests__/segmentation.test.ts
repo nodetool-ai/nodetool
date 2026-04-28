@@ -1039,6 +1039,37 @@ describe("SamServiceNode", () => {
     expect(info.capabilities.pointPrompts).toBe(false);
     expect(info.capabilities.automaticSplit).toBe(true);
   });
+
+  it("detects Local SAM3 prompt capabilities from node metadata", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("model"),
+            makeMetadataProperty("points_per_side"),
+            makeMetadataProperty("pred_iou_thresh"),
+            makeMetadataProperty("prompt"),
+            makeMetadataProperty("point_prompts"),
+            makeMetadataProperty("box_prompts")
+          ]
+        }
+      } as any
+    });
+    useHfCacheStatusStore.setState({
+      statuses: { [LOCAL_SAM3_MODEL_ID]: true },
+      pending: {},
+      version: 0
+    });
+
+    const info = await new SamServiceNode("local-sam3").checkModelAvailability();
+
+    expect(info.capabilities.textPrompts).toBe(true);
+    expect(info.capabilities.pointPrompts).toBe(true);
+    expect(info.capabilities.boxPrompts).toBe(true);
+  });
 });
 
 // ─── SAM Node Configs ─────────────────────────────────────────────────────────
@@ -1142,6 +1173,63 @@ describe("NodeExecutor", () => {
 
     SamServiceFal.resizeForInference = origResize;
     setNodeExecutor(new WebSocketNodeExecutor());
+  });
+
+  it("only sends Local SAM3 prompt inputs that metadata declares", async () => {
+    const { SamServiceNode } = require("../sam/SamServiceNode");
+    const { setNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
+    const SamServiceFal = require("../sam/SamServiceFal");
+
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("model"),
+            makeMetadataProperty("points_per_side"),
+            makeMetadataProperty("pred_iou_thresh"),
+            makeMetadataProperty("point_prompts")
+          ]
+        }
+      } as any
+    });
+
+    const origResize = SamServiceFal.resizeForInference;
+    SamServiceFal.resizeForInference = jest
+      .fn()
+      .mockResolvedValue({ dataUrl: "data:image/png;base64,small", scale: 2 });
+
+    const mockExecutor = {
+      execute: jest.fn().mockResolvedValue({
+        success: true,
+        outputs: { sam_node: { output: [] } }
+      })
+    };
+
+    setNodeExecutor(mockExecutor);
+
+    try {
+      await new SamServiceNode("local-sam3").runSegmentation({
+        imageDataUrl: "data:image/png;base64,smallimage",
+        pointPrompts: [{ x: 3, y: 4, label: "positive" }],
+        boxPrompt: { x: 5, y: 6, width: 7, height: 8 },
+        settings: {
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "local-sam3",
+          promptMode: "point"
+        }
+      });
+
+      const graph = mockExecutor.execute.mock.calls[0][0];
+      expect(graph.nodes[0].data.point_prompts).toEqual([
+        { x: 6, y: 8, label: 1 }
+      ]);
+      expect(graph.nodes[0].data.box_prompts).toBeUndefined();
+    } finally {
+      SamServiceFal.resizeForInference = origResize;
+      setNodeExecutor(new WebSocketNodeExecutor());
+    }
   });
 
   it("uploads large Local SAM3 exports as assets instead of inline data", async () => {
