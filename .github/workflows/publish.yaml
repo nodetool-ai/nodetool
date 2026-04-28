@@ -1,0 +1,73 @@
+name: Publish npm packages
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (without leading v, e.g. 0.8.0)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  id-token: write  # for npm provenance attestation
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      - name: Install system libraries (keytar/libsecret)
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+
+      - name: Configure node-gyp Python path
+        run: |
+          echo "npm_config_python=$(which python3)" >> "$GITHUB_ENV"
+          echo "NODE_GYP_FORCE_PYTHON=$(which python3)" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve version
+        shell: bash
+        run: |
+          VERSION="${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}"
+          VERSION_NO_V="${VERSION#v}"
+          echo "VERSION_NO_V=${VERSION_NO_V}" >> "$GITHUB_ENV"
+          echo "Publishing version: ${VERSION_NO_V}"
+
+      - name: Bump package versions
+        run: node scripts/bump-version.mjs "$VERSION_NO_V"
+
+      - name: Build all packages
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+        run: npm run build:packages
+
+      - name: Resolve workspace "*" dependencies
+        run: node scripts/prepare-publish.mjs
+
+      - name: Verify dry-run
+        run: node scripts/prepare-publish.mjs --dry-run
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish \
+            --workspaces \
+            --access public \
+            --ignore-scripts \
+            --provenance

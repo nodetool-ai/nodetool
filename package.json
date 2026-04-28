@@ -77,6 +77,7 @@
     "dev:workflow": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts workflows run",
     "dev:nodetool": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts",
     "bump-version": "node ./scripts/bump-version.mjs",
+    "prepare-publish": "node ./scripts/prepare-publish.mjs",
     "install:all": "npm install && npm --prefix mobile install",
     "typecheck": "npm run typecheck:web && npm run typecheck:electron && npm run typecheck:mobile",
     "typecheck:web": "npm run typecheck --workspace=web",

@@ -4,7 +4,7 @@
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
   "type": "module",
   "main": "dist/index.js",
-  "types": "src/index.ts",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
@@ -21,21 +21,38 @@
   "exports": {
     ".": {
       "nodetool-dev": "./src/index.ts",
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./api-schemas": {
       "nodetool-dev": "./src/api-schemas/index.ts",
-      "types": "./src/api-schemas/index.ts",
+      "types": "./dist/api-schemas/index.d.ts",
       "import": "./dist/api-schemas/index.js",
       "default": "./dist/api-schemas/index.js"
     },
     "./api-schemas/*.js": {
       "nodetool-dev": "./src/api-schemas/*.ts",
-      "types": "./src/api-schemas/*.ts",
+      "types": "./dist/api-schemas/*.d.ts",
       "import": "./dist/api-schemas/*.js",
       "default": "./dist/api-schemas/*.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/protocol"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }
