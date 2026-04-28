@@ -1,8 +1,8 @@
 /**
  * PowerPoint (PPTX) text extraction nodes using office-text-extractor.
  */
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import { promises as fs } from "node:fs";
 
 type DocumentRefLike = {

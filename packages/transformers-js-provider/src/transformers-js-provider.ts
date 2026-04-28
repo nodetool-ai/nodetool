@@ -1,4 +1,4 @@
-import { BaseProvider } from "@nodetool-ai/runtime";
+import { BaseProvider } from "@nodetool/runtime";
 import type {
   ASRModel,
   ASRResult,
@@ -9,7 +9,7 @@ import type {
   ProviderStreamItem,
   ProviderTool,
   TTSModel
-} from "@nodetool-ai/runtime";
+} from "@nodetool/runtime";
 import { generateMessage, generateMessages } from "./chat.js";
 import { textToSpeechEncoded } from "./tts.js";
 import { automaticSpeechRecognition } from "./asr.js";

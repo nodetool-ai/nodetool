@@ -11,8 +11,8 @@
  * via processing context. Tasks have dependencies and belong to a team.
  */
 
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { BaseNode, prop } from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import {
   TeamExecutor,
   DbTaskBoard,
@@ -22,7 +22,7 @@ import {
   type TeamEvent,
   type TeamStrategy,
   type ITaskBoard
-} from "@nodetool-ai/agents";
+} from "@nodetool/agents";
 
 // ─── AgentNode ───
 

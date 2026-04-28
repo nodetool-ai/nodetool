@@ -44,7 +44,6 @@ import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
-import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import TuneIcon from "@mui/icons-material/Tune";
 import SvgFileIcon from "../SvgFileIcon";
@@ -138,7 +137,6 @@ const styles = (theme: Theme) =>
 
 import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
-import SandboxesPanel from "../dashboard/SandboxesPanel";
 import VerticalToolbar from "./VerticalToolbar";
 
 /* ------------------------------------------------------------------ */
@@ -230,7 +228,6 @@ const RIGHT_VIEW_LABELS: Record<RightPanelView, string> = {
   versions: "Versions",
   workflow: "Settings",
   workflowAssets: "Assets",
-  sandboxes: "Sandboxes",
   jobs: "Jobs",
   logs: "Logs"
 };
@@ -306,7 +303,6 @@ const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
             {renderTabButton("workflowAssets", "Assets", <FolderSpecialIcon />)}
             {renderTabButton("versions", "Versions", <HistoryIcon />)}
             {renderTabButton("logs", "Logs", <ArticleIcon />)}
-            {renderTabButton("sandboxes", "Sandboxes", <DesktopWindowsIcon />)}
             {renderTabButton("jobs", "Jobs", <WorkHistoryIcon />)}
           </div>
         }
@@ -557,7 +553,6 @@ const PanelRight: React.FC = () => {
   const handleVersionsToggle = useCallback(() => handlePanelToggle("versions"), [handlePanelToggle]);
   const handleWorkflowToggle = useCallback(() => handlePanelToggle("workflow"), [handlePanelToggle]);
   const handleWorkflowAssetsToggle = useCallback(() => handlePanelToggle("workflowAssets"), [handlePanelToggle]);
-  const handleSandboxesToggle = useCallback(() => handlePanelToggle("sandboxes"), [handlePanelToggle]);
   const handleAgentToggle = useCallback(() => handlePanelToggle("agent"), [handlePanelToggle]);
 
   const handleMobileSheetClose = useCallback(
@@ -584,8 +579,6 @@ const PanelRight: React.FC = () => {
       <ReactFlowProvider>
         {activeView === "logs" ? (
           <LogPanel />
-        ) : activeView === "sandboxes" ? (
-          <SandboxesPanel />
         ) : activeView === "jobs" ? (
           <Box
             className="jobs-panel"
@@ -713,7 +706,6 @@ const PanelRight: React.FC = () => {
         handleVersionsToggle={handleVersionsToggle}
         handleWorkflowToggle={handleWorkflowToggle}
         handleWorkflowAssetsToggle={handleWorkflowAssetsToggle}
-        handleSandboxesToggle={handleSandboxesToggle}
         handleAgentToggle={handleAgentToggle}
         activeView={activeView}
         panelVisible={isVisible}

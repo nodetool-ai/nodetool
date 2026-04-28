@@ -1,5 +1,5 @@
 /**
- * @nodetool-ai/code-runners – Public API
+ * @nodetool/code-runners – Public API
  *
  * Streaming code runners for executing code in Docker containers or local
  * subprocesses. 1:1 port of Python nodetool-core/code_runners.

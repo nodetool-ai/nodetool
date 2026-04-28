@@ -13,9 +13,9 @@ import type {
   ProcessingContext,
   Message,
   ToolCall
-} from "@nodetool-ai/runtime";
-import { withAgentSpanGen } from "@nodetool-ai/runtime";
-import { createLogger } from "@nodetool-ai/config";
+} from "@nodetool/runtime";
+import { withAgentSpanGen } from "@nodetool/runtime";
+import { createLogger } from "@nodetool/config";
 import {
   TaskUpdateEvent,
   type ProcessingMessage,
@@ -23,7 +23,7 @@ import {
   type PlanningUpdate,
   type TaskUpdate,
   type ToolCallUpdate
-} from "@nodetool-ai/protocol";
+} from "@nodetool/protocol";
 
 const log = createLogger("nodetool.agents.planner");
 import type { Task, TaskPlan, Step } from "./types.js";

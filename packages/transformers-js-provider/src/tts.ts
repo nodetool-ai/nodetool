@@ -4,8 +4,8 @@ import {
   getPipeline,
   isKokoroRepo,
   isSpeechT5Repo
-} from "@nodetool-ai/transformers-js-nodes";
-import type { EncodedAudioResult } from "@nodetool-ai/runtime";
+} from "@nodetool/transformers-js-nodes";
+import type { EncodedAudioResult } from "@nodetool/runtime";
 
 const SPEECHT5_DEFAULT_EMBEDDINGS =
   "https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/speaker_embeddings.bin";

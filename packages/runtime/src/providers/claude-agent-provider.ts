@@ -19,8 +19,8 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool-ai/config";
-import type { Chunk } from "@nodetool-ai/protocol";
+import { createLogger } from "@nodetool/config";
+import type { Chunk } from "@nodetool/protocol";
 import type {
   LanguageModel,
   Message,
@@ -474,12 +474,6 @@ export class ClaudeAgentProvider extends BaseProvider {
     audio?: Record<string, unknown>;
     thinkingBudget?: number;
     threadId?: string | null;
-    /**
-     * Upper bound on agentic turns inside the SDK query. Defaults to 100
-     * when tools are present (single-turn when not). Callers — typically
-     * AgentNode — can lift this for long-running sandbox sessions.
-     */
-    maxTurns?: number;
     /** Callback for tool execution. Required when tools are provided. */
     onToolCall?: OnToolCall;
     signal?: AbortSignal;
@@ -584,17 +578,11 @@ export class ClaudeAgentProvider extends BaseProvider {
         options: {
           model: args.model,
           systemPrompt,
-          maxTurns: hasTools ? (args.maxTurns ?? 100) : 1,
+          maxTurns: hasTools ? 10 : 1,
           permissionMode: "bypassPermissions",
           allowDangerouslySkipPermissions: true,
           disallowedTools: DISALLOWED_TOOLS,
           allowedTools,
-          // Isolate from the host's Claude Code config: don't load
-          // user/project/local settings (which is where installed skills
-          // and plugin configs live), and pass an empty plugin list so
-          // no plugin commands/agents/hooks are registered.
-          settingSources: [],
-          plugins: [],
           env: cleanEnv,
           ...(abortController ? { abortController } : {}),
           ...(mcpServer

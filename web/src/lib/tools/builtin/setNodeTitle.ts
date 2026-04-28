@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiSetNodeTitleParams } from "@nodetool-ai/protocol";
+import { uiSetNodeTitleParams } from "@nodetool/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 

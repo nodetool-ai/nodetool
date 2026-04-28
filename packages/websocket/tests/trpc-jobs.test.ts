@@ -3,9 +3,9 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool-ai/models — router orchestrates Job static + instance methods.
-vi.mock("@nodetool-ai/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/models")>();
+// Mock @nodetool/models — router orchestrates Job static + instance methods.
+vi.mock("@nodetool/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool/models")>();
   return {
     ...actual,
     Job: {
@@ -16,7 +16,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   };
 });
 
-import { Job } from "@nodetool-ai/models";
+import { Job } from "@nodetool/models";
 
 const createCaller = createCallerFactory(appRouter);
 

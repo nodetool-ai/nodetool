@@ -1,4 +1,4 @@
-import { workflow, constant, list } from "@nodetool-ai/dsl";
+import { workflow, constant, list } from "@nodetool/dsl";
 
 const items = constant.list({ value: [1, 2, 3, 4, 5] });
 

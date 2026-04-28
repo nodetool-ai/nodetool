@@ -18,9 +18,9 @@ import type {
   JobUpdate,
   NodeUpdate,
   EdgeUpdate
-} from "@nodetool-ai/protocol";
+} from "@nodetool/protocol";
 import type { NodeExecutor } from "../src/actor.js";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
 // Test executor factory

@@ -1,4 +1,4 @@
-import { workflow, constant, text } from "@nodetool-ai/dsl";
+import { workflow, constant, text } from "@nodetool/dsl";
 
 const greeting = constant.string({ value: "Hello, " });
 const name = constant.string({ value: "NodeTool!" });

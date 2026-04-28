@@ -21,7 +21,7 @@ A package is a standard npm workspace package that exports node classes and a re
 
 ```json
 {
-  "name": "@nodetool-ai/base-nodes",
+  "name": "@nodetool/base-nodes",
   "type": "module",
   "version": "0.1.0",
   "main": "dist/index.js",
@@ -32,12 +32,12 @@ A package is a standard npm workspace package that exports node classes and a re
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/node-sdk": "latest"
+    "@nodetool/node-sdk": "*"
   }
 }
 ```
 
-Every node package depends on **`@nodetool-ai/node-sdk`**, which provides `BaseNode`, the `@prop` decorator, and the `NodeRegistry` type.
+Every node package depends on **`@nodetool/node-sdk`**, which provides `BaseNode`, the `@prop` decorator, and the `NodeRegistry` type.
 
 ### Example `tsconfig.json`
 
@@ -54,10 +54,10 @@ Every node package depends on **`@nodetool-ai/node-sdk`**, which provides `BaseN
 
 ## Node Registration
 
-Each package exports a constant array of node classes and a registration function. The pattern used by `@nodetool-ai/base-nodes`:
+Each package exports a constant array of node classes and a registration function. The pattern used by `@nodetool/base-nodes`:
 
 ```ts
-import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { NodeClass, NodeRegistry } from "@nodetool/node-sdk";
 import { LIST_NODES } from "./nodes/list.js";
 import { TEXT_NODES } from "./nodes/text.js";
 
@@ -158,4 +158,4 @@ Installed packages automatically register nodes with the runtime:
 - [CLI Reference](cli.md) -- package subcommands.
 - [Configuration Guide](configuration.md) -- where package metadata is cached.
 - [Custom Nodes Guide](developer/custom-nodes-guide.md) -- step-by-step node implementation.
-- [TypeScript DSL Guide](developer/ts-dsl-guide.md) -- type-safe workflow definitions with `@nodetool-ai/dsl`.
+- [TypeScript DSL Guide](developer/ts-dsl-guide.md) -- type-safe workflow definitions with `@nodetool/dsl`.

@@ -41,9 +41,7 @@ function getKeychainExplanation(): { title: string; detail: string } {
  * - Subsequent launches (setting already recorded)
  * - CI / test runs (NODE_ENV=test or CI=true)
  */
-export async function showKeychainExplanationIfNeeded(
-  opts: { force?: boolean } = {}
-): Promise<void> {
+export async function showKeychainExplanationIfNeeded(): Promise<void> {
   // Windows Credential Manager does not surface a permission prompt, so the
   // explanation would be pointless friction there.
   if (process.platform === "win32") {
@@ -77,7 +75,7 @@ export async function showKeychainExplanationIfNeeded(
     return;
   }
 
-  if (!opts.force && settings[KEYCHAIN_EXPLANATION_ACKNOWLEDGED_KEY] === true) {
+  if (settings[KEYCHAIN_EXPLANATION_ACKNOWLEDGED_KEY] === true) {
     return;
   }
 
@@ -88,9 +86,7 @@ export async function showKeychainExplanationIfNeeded(
     await dialog.showMessageBox({
       type: "info",
       title,
-      message: opts.force
-        ? "NodeTool could not access your system keychain"
-        : "NodeTool needs access to your system keychain",
+      message: "NodeTool needs access to your system keychain",
       detail,
       buttons: ["Continue"],
       defaultId: 0,

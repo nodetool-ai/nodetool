@@ -8,7 +8,7 @@ import type {
   Message,
   ProviderStreamItem,
   ProviderTool
-} from "@nodetool-ai/runtime";
+} from "@nodetool/runtime";
 import {
   AnthropicProvider,
   OpenAIProvider,
@@ -21,9 +21,9 @@ import {
   LMStudioProvider,
   ClaudeAgentProvider,
   BaseProvider as BaseProviderClass
-} from "@nodetool-ai/runtime";
-import type { Chunk } from "@nodetool-ai/protocol";
-import { getSecret } from "@nodetool-ai/models";
+} from "@nodetool/runtime";
+import type { Chunk } from "@nodetool/protocol";
+import { getSecret } from "@nodetool/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
 
 export const KNOWN_PROVIDERS = [

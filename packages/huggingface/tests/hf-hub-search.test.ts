@@ -21,8 +21,6 @@ function fetchMockOnce(response: MockResponse) {
     ok: response.ok ?? true,
     status: response.status ?? 200,
     statusText: response.statusText ?? "OK",
-    headers: new Headers(),
-    url: "",
     json: async () => response.body,
     text: async () =>
       typeof response.body === "string"
@@ -92,18 +90,12 @@ describe("searchHfHub", () => {
     expect(results[0]!.repo_id).toBe("owner/my-model");
   });
 
-  it("post-filters by library_name=gguf for SUPPORTED_MODEL_TYPES entries", async () => {
-    const fn = fetchMockOnce({
-      body: [
-        { id: "owner/qwen2-gguf", library_name: "gguf" },
-        { id: "owner/qwen2-other", library_name: "transformers" }
-      ]
-    });
-    const results = await searchHfHub({ modelType: "qwen2" });
+  it("uses library=gguf for SUPPORTED_MODEL_TYPES entries", async () => {
+    const fn = fetchMockOnce({ body: [] });
+    await searchHfHub({ modelType: "qwen2" });
     const url = String(fn.mock.calls[0]![0]);
+    expect(url).toContain("library=gguf");
     expect(url).toMatch(/search=qwen2/);
-    expect(results).toHaveLength(1);
-    expect(results[0]!.id).toBe("owner/qwen2-gguf");
   });
 
   it("throws for GENERIC types without --task", async () => {
@@ -159,8 +151,6 @@ describe("listAllHfModels", () => {
         ok: true,
         status: 200,
         statusText: "OK",
-        headers: new Headers(),
-        url: "",
         json: async () => body,
         text: async () => JSON.stringify(body)
       };
@@ -184,8 +174,6 @@ describe("listAllHfModels", () => {
           ok: false,
           status: 500,
           statusText: "Internal Server Error",
-          headers: new Headers(),
-          url: "",
           json: async () => ({}),
           text: async () => "boom"
         };
@@ -195,8 +183,6 @@ describe("listAllHfModels", () => {
         ok: true,
         status: 200,
         statusText: "OK",
-        headers: new Headers(),
-        url: "",
         json: async () => body,
         text: async () => JSON.stringify(body)
       };
@@ -204,7 +190,8 @@ describe("listAllHfModels", () => {
     (globalThis as { fetch: unknown }).fetch = fn as unknown;
     const logErr = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const results = await listAllHfModels({ limit: 3 });
+    // Ensure we process all types without bailing entirely
+    const results = await listAllHfModels();
     // first type throws, later ones succeed
     expect(results.length).toBeGreaterThan(0);
     expect(logErr).toHaveBeenCalled();

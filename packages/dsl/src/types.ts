@@ -9,4 +9,4 @@ export type {
   ChartConfig,
   ChartData,
   ChartSeries
-} from "@nodetool-ai/protocol";
+} from "@nodetool/protocol";

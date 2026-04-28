@@ -1,4 +1,4 @@
-# @nodetool-ai/replicate-codegen
+# @nodetool/replicate-codegen
 
 Fetches OpenAPI schemas from Replicate and generates `replicate-nodes/src/replicate-manifest.json`.
 

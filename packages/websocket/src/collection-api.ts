@@ -10,7 +10,7 @@ import {
   getVecStore,
   VecNotFoundError,
   splitDocument
-} from "@nodetool-ai/vectorstore";
+} from "@nodetool/vectorstore";
 import type { HttpApiOptions } from "./http-api.js";
 
 function jsonResponse(data: unknown, status = 200): Response {

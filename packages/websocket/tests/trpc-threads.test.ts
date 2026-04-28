@@ -3,9 +3,9 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool-ai/models — router orchestrates Thread + Message static methods.
-vi.mock("@nodetool-ai/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/models")>();
+// Mock @nodetool/models — router orchestrates Thread + Message static methods.
+vi.mock("@nodetool/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool/models")>();
   return {
     ...actual,
     Thread: {
@@ -21,7 +21,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   };
 });
 
-import { Thread, Message } from "@nodetool-ai/models";
+import { Thread, Message } from "@nodetool/models";
 
 const createCaller = createCallerFactory(appRouter);
 

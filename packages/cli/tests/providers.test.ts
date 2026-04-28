@@ -6,11 +6,11 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("@nodetool-ai/models", () => ({
+vi.mock("@nodetool/models", () => ({
   getSecret: vi.fn(async (key: string) => process.env[key] ?? null)
 }));
 
-vi.mock("@nodetool-ai/runtime", () => {
+vi.mock("@nodetool/runtime", () => {
   class FakeProvider {
     constructor(public readonly id: string) {}
     async generateMessage() {

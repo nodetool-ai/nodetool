@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/code-runners",
+  "name": "@nodetool/code-runners",
   "type": "module",
-  "version": "0.7.0-rc.12",
+  "version": "0.1.0",
   "description": "Streaming code runners: Docker containers and local subprocesses for executing Python, JS, Bash, Ruby, and Lua code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,7 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/config": "*",
+    "@nodetool/config": "*",
     "dockerode": "^4.0.4"
   },
   "devDependencies": {
@@ -28,22 +28,5 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/code-runners"
-  },
-  "homepage": "https://nodetool.ai",
-  "bugs": {
-    "url": "https://github.com/nodetool-ai/nodetool/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

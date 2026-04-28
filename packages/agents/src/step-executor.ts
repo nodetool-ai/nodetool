@@ -17,9 +17,9 @@ import type {
   Message,
   ToolCall,
   ProviderStreamItem
-} from "@nodetool-ai/runtime";
-import { withAgentSpanGen } from "@nodetool-ai/runtime";
-import { createLogger } from "@nodetool-ai/config";
+} from "@nodetool/runtime";
+import { withAgentSpanGen } from "@nodetool/runtime";
+import { createLogger } from "@nodetool/config";
 import {
   TaskUpdateEvent,
   type ProcessingMessage,
@@ -28,7 +28,7 @@ import {
   type StepResult,
   type TaskUpdate,
   type LogUpdate
-} from "@nodetool-ai/protocol";
+} from "@nodetool/protocol";
 import type { Step, Task } from "./types.js";
 import type { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
@@ -332,7 +332,7 @@ export class StepExecutor {
   private outputTokensTotal = 0;
   private _controlEvents: Array<{
     targetNodeId: string;
-    event: import("@nodetool-ai/protocol").ControlEvent;
+    event: import("@nodetool/protocol").ControlEvent;
   }> = [];
   private threadId?: string;
 
@@ -787,103 +787,6 @@ export class StepExecutor {
   }
 
   /**
-   * Persist important sandbox outputs (downloads, screenshots, generated artifacts)
-   * as assets so they survive ephemeral workspace/container cleanup.
-   */
-  private async capturePersistentSandboxOutputs(
-    toolName: string,
-    toolArgs: Record<string, unknown> | undefined,
-    toolResult: unknown
-  ): Promise<unknown> {
-    if (
-      typeof toolResult !== "object" ||
-      toolResult === null ||
-      Array.isArray(toolResult)
-    ) {
-      return toolResult;
-    }
-
-    const result = { ...(toolResult as Record<string, unknown>) };
-    if (result.success === false) {
-      return result;
-    }
-
-    const candidates: Array<{ label: string; path: string }> = [];
-    const candidateKeys = new Set<string>();
-    const isExternalUri = (value: string): boolean => {
-      const lower = value.toLowerCase();
-      return (
-        lower.startsWith("http://") ||
-        lower.startsWith("https://") ||
-        lower.startsWith("asset://") ||
-        lower.startsWith("memory://") ||
-        lower.startsWith("s3://") ||
-        lower.startsWith("file://")
-      );
-    };
-    const maybeAdd = (label: string, value: unknown): void => {
-      if (
-        typeof value === "string" &&
-        value.trim().length > 0 &&
-        !value.startsWith("data:") &&
-        !isExternalUri(value)
-      ) {
-        const key = `${label}:${value}`;
-        if (!candidateKeys.has(key)) {
-          candidates.push({ label, path: value });
-          candidateKeys.add(key);
-        }
-      }
-    };
-
-    maybeAdd("output_file", result.output_file);
-    if (result.success === true) {
-      maybeAdd("output_file", toolArgs?.["output_file"]);
-    }
-    maybeAdd("image", result.image);
-    maybeAdd("audio", result.audio);
-
-    if (candidates.length === 0) {
-      return result;
-    }
-
-    const refs: Record<string, unknown> = {};
-    for (const candidate of candidates) {
-      try {
-        const ref = await this.context.sandboxToAsset(candidate.path);
-        refs[candidate.label] = ref;
-        const uri = ref.uri;
-        if (typeof uri === "string" && uri && !this.sourcesSet.has(uri)) {
-          this.sources.push(uri);
-          this.sourcesSet.add(uri);
-        }
-      } catch (error) {
-        log.warn("Failed to persist sandbox output as asset", {
-          stepId: this.step.id,
-          toolName,
-          path: candidate.path,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-    }
-
-    if (Object.keys(refs).length > 0) {
-      const existing = result.asset_refs;
-      if (
-        typeof existing === "object" &&
-        existing !== null &&
-        !Array.isArray(existing)
-      ) {
-        result.asset_refs = { ...existing, ...refs };
-      } else {
-        result.asset_refs = refs;
-      }
-    }
-
-    return result;
-  }
-
-  /**
    * Track URLs from browser tool navigation results.
    * Mirrors Python's _process_special_tool_side_effects().
    */
@@ -1231,11 +1134,6 @@ export class StepExecutor {
 
             // Save base64 binary artifacts (images, audio) to workspace files
             toolResult = await this.handleBinaryArtifact(toolResult);
-            toolResult = await this.capturePersistentSandboxOutputs(
-              tc.name,
-              tc.args,
-              toolResult
-            );
 
             // Track browser URLs for source lineage (from args and results)
             if (tc.name === "browser" && tc.args?.["url"]) {
@@ -1357,7 +1255,7 @@ export class StepExecutor {
    */
   getControlEvents(): Array<{
     targetNodeId: string;
-    event: import("@nodetool-ai/protocol").ControlEvent;
+    event: import("@nodetool/protocol").ControlEvent;
   }> {
     return [...this._controlEvents];
   }

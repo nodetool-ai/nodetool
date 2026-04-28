@@ -14,7 +14,6 @@ import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { ExpandCollapseButton, EmptyState, Text } from "../ui_primitives";
-import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -224,7 +223,6 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
   isHorizontal = false
 }) => {
   const theme = useTheme();
-  const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
   const { selectedAssetIds, handleSelectAsset, handleDeselectAssets } =
     useAssetSelection(assets);
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
@@ -340,8 +338,7 @@ const AssetListView: React.FC<AssetListViewProps> = memo(({
 
   const showSize = containerWidth > sizeThreshold;
   const showType = containerWidth > typeThreshold;
-  // Always show date when sorted by date; otherwise show based on available width
-  const showDate = assetsOrder === "date" || containerWidth > dateThreshold;
+  const showDate = containerWidth > dateThreshold;
 
   // Empty callback for disabled button - prevents new function creation on each render
   const emptyCallback = useCallback(() => {}, []);

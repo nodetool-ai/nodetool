@@ -1,6 +1,6 @@
 {
-  "name": "@nodetool-ai/storage",
-  "version": "0.7.0-rc.12",
+  "name": "@nodetool/storage",
+  "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,22 +24,5 @@
     "@types/node": "^22.0.0",
     "vitest": "^4.1.2",
     "typescript": "^5.7.2"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/storage"
-  },
-  "homepage": "https://nodetool.ai",
-  "bugs": {
-    "url": "https://github.com/nodetool-ai/nodetool/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

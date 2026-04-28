@@ -1,6 +1,6 @@
 {
-  "name": "@nodetool-ai/chat",
-  "version": "0.7.0-rc.12",
+  "name": "@nodetool/chat",
+  "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,9 +10,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*",
-    "@nodetool-ai/agents": "*"
+    "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*",
+    "@nodetool/agents": "*"
   },
   "devDependencies": {
     "vitest": "^4.1.2",
@@ -25,22 +25,5 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/chat"
-  },
-  "homepage": "https://nodetool.ai",
-  "bugs": {
-    "url": "https://github.com/nodetool-ai/nodetool/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

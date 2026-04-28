@@ -166,7 +166,7 @@ function findWrittenMetadataName(stderr: string): string | null {
 
 /**
  * Resolve a Python executable, matching the convention used by
- * `PythonStdioBridge` in `@nodetool-ai/runtime`.
+ * `PythonStdioBridge` in `@nodetool/runtime`.
  */
 export function resolvePythonBin(): string {
   const explicit = process.env["NODETOOL_PYTHON"];

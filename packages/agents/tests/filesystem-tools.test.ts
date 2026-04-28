@@ -17,7 +17,7 @@ import {
   listTools,
   getAllTools
 } from "../src/tools/tool-registry.js";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 let tempDir: string;
 

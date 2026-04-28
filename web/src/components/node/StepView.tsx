@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useMemo } from "react";
+import React from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -80,14 +80,13 @@ interface StepViewProps {
   step: Step;
 }
 
-const StepView: React.FC<StepViewProps> = memo(({ step }) => {
+const StepView: React.FC<StepViewProps> = ({ step }) => {
   const theme = useTheme();
-  const cssStyles = useMemo(() => styles(theme), [theme]);
   // Simple heuristic for running state: has start time but not completed
   const isRunning = (step.start_time ?? 0) > 0 && !step.completed;
 
   return (
-    <div css={cssStyles}>
+    <div css={styles(theme)}>
       <Surface
         className={`step-item ${isRunning ? "running" : ""} ${step.completed ? "completed" : ""}`}
       >
@@ -120,8 +119,6 @@ const StepView: React.FC<StepViewProps> = memo(({ step }) => {
       </Surface>
     </div>
   );
-});
-
-StepView.displayName = "StepView";
+};
 
 export default StepView;

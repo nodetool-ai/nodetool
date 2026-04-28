@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/kernel",
+  "name": "@nodetool/kernel",
   "type": "module",
-  "version": "0.7.0-rc.12",
+  "version": "0.1.0",
   "description": "Workflow kernel: Graph model, NodeInbox, and Actor runtime",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,9 +12,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/config": "*",
-    "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool/config": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -28,22 +28,5 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/kernel"
-  },
-  "homepage": "https://nodetool.ai",
-  "bugs": {
-    "url": "https://github.com/nodetool-ai/nodetool/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

@@ -1,4 +1,4 @@
-import type { Chunk } from "@nodetool-ai/protocol";
+import type { Chunk } from "@nodetool/protocol";
 
 export type ProviderId =
   | "openai"

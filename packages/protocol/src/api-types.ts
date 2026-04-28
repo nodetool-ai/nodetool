@@ -1,5 +1,5 @@
 /**
- * @nodetool-ai/protocol – API Entity Types
+ * @nodetool/protocol – API Entity Types
  *
  * Plain interfaces for HTTP API request/response shapes.
  * These mirror the database models but are transport-only (no class methods).

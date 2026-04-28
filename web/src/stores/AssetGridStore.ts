@@ -71,10 +71,6 @@ interface AssetGridState {
   setIsGlobalSearchActive: (active: boolean) => void;
   setGlobalSearchQuery: (query: string) => void;
   setIsGlobalSearchMode: (mode: boolean) => void;
-
-  // Workflow filter
-  workflowFilter: string | null;
-  setWorkflowFilter: (workflowId: string | null) => void;
 }
 
 export const useAssetGridStore = create<AssetGridState>((set, get) => ({
@@ -159,9 +155,5 @@ export const useAssetGridStore = create<AssetGridState>((set, get) => ({
   setGlobalSearchResults: (results) => set({ globalSearchResults: results }),
   setIsGlobalSearchActive: (active) => set({ isGlobalSearchActive: active }),
   setGlobalSearchQuery: (query) => set({ globalSearchQuery: query }),
-  setIsGlobalSearchMode: (mode) => set({ isGlobalSearchMode: mode }),
-
-  // Workflow filter
-  workflowFilter: null,
-  setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId })
+  setIsGlobalSearchMode: (mode) => set({ isGlobalSearchMode: mode })
 }));

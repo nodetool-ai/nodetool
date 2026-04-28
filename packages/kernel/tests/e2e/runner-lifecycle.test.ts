@@ -11,7 +11,7 @@ import type {
   NodeUpdate,
   JobUpdate,
   EdgeUpdate
-} from "@nodetool-ai/protocol";
+} from "@nodetool/protocol";
 import { WorkflowRunner } from "../../src/runner.js";
 import { GraphValidationError } from "../../src/graph.js";
 import {
@@ -396,7 +396,7 @@ describe("RUNNER-038: ExecutionContext.emit receives all messages", () => {
     const emitted: unknown[] = [];
     const ctx = {
       emit: vi.fn((m: unknown) => emitted.push(m))
-    } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
+    } as unknown as import("@nodetool/runtime").ProcessingContext;
 
     const runner = new WorkflowRunner("test", {
       resolveExecutor: () => ({

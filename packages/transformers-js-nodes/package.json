@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/transformers-js-nodes",
+  "name": "@nodetool/transformers-js-nodes",
   "type": "module",
-  "version": "0.7.0-rc.12",
+  "version": "0.1.0",
   "description": "Hugging Face Transformers.js nodes for nodetool — run NLP, vision, and audio models locally via ONNX Runtime",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,9 +14,9 @@
   "dependencies": {
     "@huggingface/transformers": "^3.7.6",
     "kokoro-js": "^1.2.1",
-    "@nodetool-ai/config": "*",
-    "@nodetool-ai/node-sdk": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool/config": "*",
+    "@nodetool/node-sdk": "*",
+    "@nodetool/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -29,22 +29,5 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/transformers-js-nodes"
-  },
-  "homepage": "https://nodetool.ai",
-  "bugs": {
-    "url": "https://github.com/nodetool-ai/nodetool/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

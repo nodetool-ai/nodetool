@@ -1,5 +1,5 @@
 /**
- * @nodetool-ai/chat -- Chat processing with streaming and tool calling.
+ * @nodetool/chat -- Chat processing with streaming and tool calling.
  */
 
 export {

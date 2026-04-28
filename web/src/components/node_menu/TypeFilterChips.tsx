@@ -56,33 +56,28 @@ const typeFilterChipsStyles = (theme: Theme) =>
       justifyContent: "space-between",
       width: "100%",
       flex: "1 1 100%",
-      gap: theme.spacing(1.5),
+      gap: "8px",
       minWidth: 0
     },
     ".quick-filters": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.5),
+      gap: "6px",
       minWidth: 0,
       flex: "1 1 auto",
-      overflow: "visible"
+      overflow: "hidden"
     },
     ".provider-quick": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.75),
-      marginRight: theme.spacing(0.25),
-      paddingRight: theme.spacing(1.5),
-      borderRight: `1px solid ${theme.vars.palette.divider}`
+      gap: "4px",
+      marginRight: "6px"
     },
     ".provider-quick-chip": {
-      height: "26px",
-      fontSize: theme.fontSizeSmaller,
-      borderRadius: "var(--rounded-xl)",
-      border: `1px solid ${theme.vars.palette.divider}`,
-      "& .MuiChip-label": {
-        paddingInline: theme.spacing(1.25)
-      }
+      height: "22px",
+      fontSize: "0.64rem",
+      borderRadius: "11px",
+      border: `1px solid ${theme.vars.palette.divider}`
     },
     ".provider-quick-chip.selected": {
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
@@ -90,17 +85,16 @@ const typeFilterChipsStyles = (theme: Theme) =>
       color: "var(--palette-primary-main)"
     },
     ".quick-label": {
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "0.68rem",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
-      marginInline: theme.spacing(0, 0.25),
-      whiteSpace: "nowrap"
+      marginRight: "2px"
     },
     ".filter-section": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.75),
+      gap: "6px",
       flexWrap: "nowrap"
     },
     ".filter-label": {
@@ -113,25 +107,22 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".type-chips": {
       display: "flex",
       flexWrap: "nowrap",
-      gap: theme.spacing(1)
+      gap: "4px"
     },
     ".type-chip": {
-      height: "26px",
-      padding: theme.spacing(0, 1),
-      fontSize: theme.fontSizeSmaller,
+      height: "23px",
+      padding: "0 0.7em",
+      fontSize: "0.65rem",
       borderRadius: "var(--rounded-xl)",
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
       transition: "all 0.15s ease",
       "& .MuiChip-label": {
-        paddingInline: theme.spacing(0.5)
+        padding: "0 8px"
       },
       "& .MuiChip-icon": {
-        marginLeft: theme.spacing(0.75),
-        marginRight: theme.spacing(0.25),
-        display: "inline-flex",
-        alignItems: "center"
+        marginLeft: "6px"
       },
       "&:hover": {
         backgroundColor: theme.vars.palette.action.selected,
@@ -146,16 +137,16 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".filter-actions": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.75),
+      gap: "6px",
       flexShrink: 0,
       marginLeft: "auto"
     },
     ".more-filters-button": {
       textTransform: "none",
       borderRadius: "var(--rounded-xl)",
-      fontSize: theme.fontSizeSmall,
+      fontSize: "0.74rem",
       lineHeight: 1.2,
-      padding: theme.spacing(0.75, 1.25),
+      padding: "5px 10px",
       minWidth: "unset",
       color: theme.vars.palette.text.primary,
       borderColor: theme.vars.palette.text.secondary,
@@ -366,7 +357,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   icon={
                     <IconForType
                       iconName={type.icon}
-                      containerStyle={{ width: 16, height: 16 }}
+                      containerStyle={{ width: 14, height: 14 }}
                     />
                   }
                   label={type.label}

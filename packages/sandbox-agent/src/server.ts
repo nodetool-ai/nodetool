@@ -2,7 +2,7 @@
  * In-container Fastify server exposing sandbox tools on NODETOOL_TOOL_PORT.
  *
  * Every route is validated against the shared Zod schemas in
- * @nodetool-ai/sandbox/schemas, so host and container agree on shapes by
+ * @nodetool/sandbox/schemas, so host and container agree on shapes by
  * construction.
  */
 
@@ -42,7 +42,7 @@ import {
   MessageAskUserInput,
   IdleInput,
   ExposePortInput
-} from "@nodetool-ai/sandbox/schemas";
+} from "@nodetool/sandbox/schemas";
 import {
   fileRead,
   fileWrite,

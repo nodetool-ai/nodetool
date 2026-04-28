@@ -14,7 +14,7 @@ import {
   decryptFernet,
   getMasterKey,
   initMasterKey
-} from "@nodetool-ai/security";
+} from "@nodetool/security";
 
 export class OAuthCredential extends DBModel {
   static override table = oauthCredentials;

@@ -3,7 +3,7 @@
  *
  * Each method corresponds to a Fastify route on the sandbox-agent server.
  * Requests are validated on both sides against the shared Zod schemas in
- * @nodetool-ai/sandbox/schemas.
+ * @nodetool/sandbox/schemas.
  *
  * The client has no session state; a fresh client can be created against
  * an existing sandbox endpoint URL.
@@ -490,18 +490,12 @@ export class ToolClient {
   ): Promise<TOut> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    const url = `${this.baseUrl}${path}`;
     try {
-      let res: Response;
-      try {
-        res = await this.fetchImpl(url, {
-          method: "GET",
-          signal: controller.signal
-        });
-      } catch (err) {
-        throw new Error(formatFetchError("GET", url, err));
-      }
-      return await this.parseResponse(res, outSchema);
+      const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: "GET",
+        signal: controller.signal
+      });
+      return this.parseResponse(res, outSchema);
     } finally {
       clearTimeout(timer);
     }
@@ -516,20 +510,14 @@ export class ToolClient {
     const validated = inSchema.parse(input);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    const url = `${this.baseUrl}${path}`;
     try {
-      let res: Response;
-      try {
-        res = await this.fetchImpl(url, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(validated),
-          signal: controller.signal
-        });
-      } catch (err) {
-        throw new Error(formatFetchError("POST", url, err));
-      }
-      return await this.parseResponse(res, outSchema);
+      const res = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(validated),
+        signal: controller.signal
+      });
+      return this.parseResponse(res, outSchema);
     } finally {
       clearTimeout(timer);
     }
@@ -557,15 +545,6 @@ export class ToolClient {
     }
     return outSchema.parse(body);
   }
-}
-
-function formatFetchError(method: string, url: string, err: unknown): string {
-  const message = err instanceof Error ? err.message : String(err);
-  const cause =
-    err instanceof Error && err.cause instanceof Error
-      ? ` (${err.cause.message})`
-      : "";
-  return `sandbox request failed: ${method} ${url}: ${message}${cause}`;
 }
 
 function parseSseFrame(frame: string): SandboxEvent | null {

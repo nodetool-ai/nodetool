@@ -12,7 +12,7 @@
 import type {
   ExposePortInput,
   ExposePortOutput
-} from "@nodetool-ai/sandbox/schemas";
+} from "@nodetool/sandbox/schemas";
 import { getPublicUrl, knownContainerPorts } from "../port-map.js";
 
 export async function exposePort(

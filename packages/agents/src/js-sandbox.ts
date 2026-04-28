@@ -8,8 +8,7 @@
  *
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
  * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
- * `assetToSandbox`, `sandboxToAsset`, `console`). Library-powered helpers
- * (lodash, dayjs, cheerio, csv-parse,
+ * `console`). Library-powered helpers (lodash, dayjs, cheerio, csv-parse,
  * validator) are intentionally NOT exposed here — use the dedicated workflow
  * nodes instead (lib.datetime.*, lib.html.*, lib.data.ParseCSV,
  * lib.validate.*, etc.). Keeping the sandbox lib-free makes snippet behaviour
@@ -29,7 +28,7 @@ const quickJsVariant = (quickJsVariantModule as unknown as {
   default: Parameters<typeof loadQuickJs>[0];
 }).default;
 import { Scope } from "quickjs-emscripten-core";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool/runtime";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -397,22 +396,6 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     return new Promise((resolve) => setTimeout(resolve, capped));
   };
 
-  const assetToSandbox = context
-    ? async (assetId: string, path: string): Promise<string> => {
-        return context.assetToSandbox(assetId, path);
-      }
-    : async (_assetId: string, _path: string): Promise<string> => {
-        throw new Error("assetToSandbox is not available without a context");
-      };
-
-  const sandboxToAsset = context
-    ? async (path: string): Promise<unknown> => {
-        return context.sandboxToAsset(path);
-      }
-    : async (_path: string): Promise<unknown> => {
-        throw new Error("sandboxToAsset is not available without a context");
-      };
-
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the
     // descriptor so callers that inspect `sandbox.JSON` / `sandbox.Math`
@@ -462,8 +445,6 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     sleep,
     getSecret,
     workspace,
-    assetToSandbox,
-    sandboxToAsset,
     __maxIter: MAX_LOOP_ITERATIONS
   };
 
@@ -533,8 +514,6 @@ const RESERVED_SANDBOX_NAMES = new Set([
   "sleep",
   "getSecret",
   "workspace",
-  "assetToSandbox",
-  "sandboxToAsset",
   "__maxIter"
 ]);
 
@@ -552,8 +531,6 @@ const EXPOSED_BRIDGE_NAMES = [
   "sleep",
   "getSecret",
   "workspace",
-  "assetToSandbox",
-  "sandboxToAsset",
   "__maxIter"
 ] as const;
 
@@ -604,8 +581,6 @@ export async function runInSandbox(
       bridges.fetch = neverReject(bridges.fetch as never);
       bridges.sleep = neverReject(bridges.sleep as never);
       bridges.getSecret = neverReject(bridges.getSecret as never);
-      bridges.assetToSandbox = neverReject(bridges.assetToSandbox as never);
-      bridges.sandboxToAsset = neverReject(bridges.sandboxToAsset as never);
       const ws = bridges.workspace as {
         read: (p: string) => Promise<string>;
         write: (p: string, c: string) => Promise<void>;
@@ -645,8 +620,6 @@ const __wrap = (fn) => async (...args) => {
 globalThis.fetch = __wrap(globalThis.fetch);
 globalThis.sleep = __wrap(globalThis.sleep);
 globalThis.getSecret = __wrap(globalThis.getSecret);
-globalThis.assetToSandbox = __wrap(globalThis.assetToSandbox);
-globalThis.sandboxToAsset = __wrap(globalThis.sandboxToAsset);
 const __ws = globalThis.workspace;
 globalThis.workspace = {
   read: __wrap(__ws.read),

@@ -8,7 +8,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("@nodetool-ai/models", () => ({
+vi.mock("@nodetool/models", () => ({
   initDb: vi.fn(),
   getSecret: vi.fn(async (key: string) => {
     // Simulates looking up secrets from the DB
@@ -17,7 +17,7 @@ vi.mock("@nodetool-ai/models", () => ({
   })
 }));
 
-vi.mock("@nodetool-ai/config", () => ({
+vi.mock("@nodetool/config", () => ({
   getDefaultDbPath: vi.fn(() => ":memory:")
 }));
 

@@ -175,7 +175,6 @@ function initializePermissionHandlers(): void {
     "media",
     "enumerate-devices",
     "mediaKeySystem",
-    "fullscreen",
   ];
   const clipboardSanitizedWritePermission = "clipboard-sanitized-write";
 

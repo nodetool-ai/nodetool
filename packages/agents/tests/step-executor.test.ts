@@ -1,32 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { StepExecutor } from "../src/step-executor.js";
 import type { Step, Task } from "../src/types.js";
-import type { ProcessingMessage, TaskUpdate } from "@nodetool-ai/protocol";
-import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
-import type { Tool } from "../src/tools/base-tool.js";
-import { mkdtemp, rm } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import type { ProcessingMessage } from "@nodetool/protocol";
 
 /**
  * Minimal mock provider that returns a single assistant message
  * with a finish_step tool call.
  */
-const asBaseProvider = (value: unknown): BaseProvider => {
-  return value as BaseProvider;
-};
-
-const asProcessingContext = (value: unknown): ProcessingContext => {
-  return value as ProcessingContext;
-};
-
-const asTool = (value: unknown): Tool => {
-  return value as Tool;
-};
-
-function createMockProvider(toolCallArgs?: Record<string, unknown>): BaseProvider {
+function createMockProvider(toolCallArgs?: Record<string, unknown>) {
   const args = toolCallArgs ?? { result: { answer: "42" } };
-  return asBaseProvider({
+  return {
     provider: "mock",
     hasToolSupport: async () => true,
     generateMessages: async function* () {
@@ -43,15 +26,11 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>): BaseProvide
         args
       };
     },
-    async *generateMessagesTraced(
-      args: Parameters<BaseProvider["generateMessages"]>[0]
-    ) {
-      yield* this.generateMessages(args);
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
     },
-    async generateMessageTraced(
-      args: Parameters<BaseProvider["generateMessage"]>[0]
-    ) {
-      return this.generateMessage(args);
+    async generateMessageTraced(...args: any[]) {
+      return (this as any).generateMessage(...args);
     },
     generateMessage: vi.fn(),
     getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
@@ -69,17 +48,15 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>): BaseProvide
     imageToVideo: vi.fn(),
     generateEmbedding: vi.fn(),
     isContextLengthError: () => false
-  });
+  } as any;
 }
 
 /**
  * Minimal mock context with storeStepResult and loadStepResult.
  */
-function createMockContext(
-  overrides: Record<string, unknown> = {}
-): ProcessingContext {
+function createMockContext() {
   const store = new Map<string, unknown>();
-  return asProcessingContext({
+  return {
     storeStepResult: vi.fn(async (key: string, value: unknown) => {
       store.set(key, value);
       return key;
@@ -89,9 +66,8 @@ function createMockContext(
     }),
     set: vi.fn(),
     get: vi.fn(),
-    _store: store,
-    ...overrides
-  });
+    _store: store
+  } as any;
 }
 
 describe("StepExecutor", () => {
@@ -176,7 +152,7 @@ describe("StepExecutor", () => {
           done: false
         };
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const context = createMockContext();
 
@@ -274,7 +250,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const mockTool = {
       name: "my_tool",
@@ -297,7 +273,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [mockTool as unknown as Tool]
+      tools: [mockTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -311,7 +287,7 @@ describe("StepExecutor", () => {
     // Should have tool_call_update messages for my_tool and finish_step
     const toolUpdates = messages.filter((m) => m.type === "tool_call_update");
     expect(toolUpdates.length).toBeGreaterThanOrEqual(1);
-    expect((toolUpdates[0] as { name?: string }).name).toBe("my_tool");
+    expect((toolUpdates[0] as any).name).toBe("my_tool");
   });
 
   it("handles unknown tool calls gracefully", async () => {
@@ -349,7 +325,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const context = createMockContext();
 
@@ -404,7 +380,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const failingTool = {
       name: "failing_tool",
@@ -427,7 +403,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [failingTool as unknown as Tool]
+      tools: [failingTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -474,7 +450,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const longTool = {
       name: "long_tool",
@@ -497,7 +473,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [longTool as unknown as Tool]
+      tools: [longTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -552,7 +528,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const context = createMockContext();
 
@@ -644,7 +620,7 @@ describe("StepExecutor", () => {
           args: { answer: "direct" }
         };
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const context = createMockContext();
     const executor = new StepExecutor({
@@ -690,7 +666,7 @@ describe("StepExecutor", () => {
           done: false
         };
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const context = createMockContext();
     const executor = new StepExecutor({
@@ -735,7 +711,7 @@ describe("StepExecutor", () => {
         // Return text (no tool calls) - in unstructured mode this completes on first iteration
         yield { type: "chunk" as const, content: "A".repeat(300), done: false };
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const context = createMockContext();
     const executor = new StepExecutor({
@@ -794,7 +770,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const context = createMockContext();
     const executor = new StepExecutor({
@@ -849,7 +825,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const simpleTool = {
       name: "simple_tool",
@@ -871,7 +847,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [simpleTool as unknown as Tool]
+      tools: [simpleTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -919,7 +895,7 @@ describe("StepExecutor", () => {
           };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const browserTool = {
       name: "browser",
@@ -945,7 +921,7 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [browserTool as unknown as Tool]
+      tools: [browserTool as any]
     });
 
     const messages: ProcessingMessage[] = [];
@@ -994,7 +970,7 @@ describe("StepExecutor", () => {
           yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
         }
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const browserTool = {
       name: "browser",
@@ -1016,313 +992,16 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [browserTool as unknown as Tool]
+      tools: [browserTool as any]
     });
 
-    for await (const message of executor.execute()) {
-      void message;
+    for await (const _ of executor.execute()) {
+      /* drain */
     }
 
     const sources = executor.getSources();
     // Should only appear once
     expect(sources.filter((s) => s === "https://dup.com")).toHaveLength(1);
-  });
-
-  it("persists download outputs to assets via sandboxToAsset", async () => {
-    const step: Step = {
-      id: "step_download_asset",
-      instructions: "Download then finish",
-      completed: false,
-      dependsOn: [],
-      outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: []
-    };
-    const task: Task = {
-      id: "task_download_asset",
-      title: "Download asset bridge",
-      steps: [step]
-    };
-
-    let callCount = 0;
-    const provider = {
-      ...createMockProvider(),
-      generateMessages: async function* () {
-        callCount += 1;
-        if (callCount === 1) {
-          yield {
-            id: "tc_download",
-            name: "download_file",
-            args: {
-              url: "https://example.com/file.txt",
-              output_file: "downloads/file.txt"
-            }
-          };
-          return;
-        }
-        yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
-      }
-    } as unknown as BaseProvider;
-
-    const downloadTool = {
-      name: "download_file",
-      description: "Download a file",
-      inputSchema: { type: "object" as const, properties: {}, required: [] },
-      process: vi.fn().mockResolvedValue({
-        success: true,
-        output_file: "downloads/file.txt"
-      }),
-      userMessage: () => "Downloading",
-      toProviderTool: () => ({
-        name: "download_file",
-        description: "Download a file",
-        inputSchema: { type: "object", properties: {}, required: [] }
-      })
-    };
-
-    const sandboxToAsset = vi.fn().mockResolvedValue({
-      type: "asset",
-      uri: "asset://persisted-download",
-      asset_id: "persisted-download"
-    });
-    const context = createMockContext({ sandboxToAsset });
-
-    const executor = new StepExecutor({
-      task,
-      step,
-      context,
-      provider,
-      model: "test-model",
-      tools: [downloadTool as unknown as Tool]
-    });
-
-    for await (const message of executor.execute()) {
-      void message;
-    }
-
-    expect(sandboxToAsset).toHaveBeenCalledWith("downloads/file.txt");
-    expect(executor.getSources()).toContain("asset://persisted-download");
-  });
-
-  it("persists generated binary artifacts to assets via sandboxToAsset", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nodetool-step-artifacts-"));
-    try {
-      const step: Step = {
-        id: "step_binary_artifact",
-        instructions: "Generate an image then finish",
-        completed: false,
-        dependsOn: [],
-        outputSchema: JSON.stringify({ type: "object", properties: {} }),
-        logs: []
-      };
-      const task: Task = {
-        id: "task_binary_artifact",
-        title: "Binary artifact bridge",
-        steps: [step]
-      };
-
-      let callCount = 0;
-      const provider = {
-        ...createMockProvider(),
-        generateMessages: async function* () {
-          callCount += 1;
-          if (callCount === 1) {
-            yield {
-              id: "tc_js",
-              name: "js",
-              args: { code: "return 'ok'" }
-            };
-            return;
-          }
-          yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
-        }
-      } as unknown as BaseProvider;
-
-      const jsTool = {
-        name: "js",
-        description: "Run sandboxed JS",
-        inputSchema: { type: "object" as const, properties: {}, required: [] },
-        process: vi.fn().mockResolvedValue({
-          success: true,
-          image: `data:image/png;base64,${Buffer.from("img").toString("base64")}`
-        }),
-        userMessage: () => "Running js",
-        toProviderTool: () => ({
-          name: "js",
-          description: "Run sandboxed JS",
-          inputSchema: { type: "object", properties: {}, required: [] }
-        })
-      };
-
-      const sandboxToAsset = vi.fn().mockResolvedValue({
-        type: "image",
-        uri: "asset://persisted-artifact",
-        asset_id: "persisted-artifact"
-      });
-      const context = createMockContext({ sandboxToAsset, workspaceDir: root });
-
-      const executor = new StepExecutor({
-        task,
-        step,
-        context,
-        provider,
-        model: "test-model",
-        tools: [jsTool as unknown as Tool]
-      });
-
-      for await (const message of executor.execute()) {
-        void message;
-      }
-
-      expect(sandboxToAsset).toHaveBeenCalled();
-      const firstArg = sandboxToAsset.mock.calls[0]?.[0];
-      expect(typeof firstArg).toBe("string");
-      expect(String(firstArg)).toContain("/artifacts/artifact_");
-      expect(executor.getSources()).toContain("asset://persisted-artifact");
-    } finally {
-      await rm(root, { recursive: true, force: true });
-    }
-  });
-
-  it("persists generic successful tool output_file paths as assets", async () => {
-    const step: Step = {
-      id: "step_generic_output_file",
-      instructions: "Generate an output file then finish",
-      completed: false,
-      dependsOn: [],
-      outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: []
-    };
-    const task: Task = {
-      id: "task_generic_output_file",
-      title: "Generic output file persistence",
-      steps: [step]
-    };
-
-    let callCount = 0;
-    const provider = {
-      ...createMockProvider(),
-      generateMessages: async function* () {
-        callCount += 1;
-        if (callCount === 1) {
-          yield {
-            id: "tc_img",
-            name: "openai_image_generation",
-            args: { prompt: "cat" }
-          };
-          return;
-        }
-        yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
-      }
-    } as unknown as BaseProvider;
-
-    const imageTool = {
-      name: "openai_image_generation",
-      description: "Generate image",
-      inputSchema: { type: "object" as const, properties: {}, required: [] },
-      process: vi.fn().mockResolvedValue({
-        success: true,
-        output_file: "generated/image.png"
-      }),
-      userMessage: () => "Generating image",
-      toProviderTool: () => ({
-        name: "openai_image_generation",
-        description: "Generate image",
-        inputSchema: { type: "object", properties: {}, required: [] }
-      })
-    };
-
-    const sandboxToAsset = vi.fn().mockResolvedValue({
-      type: "image",
-      uri: "asset://persisted-generic-output",
-      asset_id: "persisted-generic-output"
-    });
-    const context = createMockContext({ sandboxToAsset });
-
-    const executor = new StepExecutor({
-      task,
-      step,
-      context,
-      provider,
-      model: "test-model",
-      tools: [imageTool as unknown as Tool]
-    });
-
-    for await (const message of executor.execute()) {
-      void message;
-    }
-
-    expect(sandboxToAsset).toHaveBeenCalledWith("generated/image.png");
-    expect(executor.getSources()).toContain("asset://persisted-generic-output");
-  });
-
-  it("does not persist output_file from args when tool result is not successful", async () => {
-    const step: Step = {
-      id: "step_noisy_output_file",
-      instructions: "Fail screenshot then finish",
-      completed: false,
-      dependsOn: [],
-      outputSchema: JSON.stringify({ type: "object", properties: {} }),
-      logs: []
-    };
-    const task: Task = {
-      id: "task_noisy_output_file",
-      title: "Avoid noisy output_file persistence",
-      steps: [step]
-    };
-
-    let callCount = 0;
-    const provider = {
-      ...createMockProvider(),
-      generateMessages: async function* () {
-        callCount += 1;
-        if (callCount === 1) {
-          yield {
-            id: "tc_screenshot",
-            name: "take_screenshot",
-            args: { url: "https://example.com", output_file: "shots/a.png" }
-          };
-          return;
-        }
-        yield { id: "tc_finish", name: "finish_step", args: { result: {} } };
-      }
-    } as unknown as BaseProvider;
-
-    const screenshotTool = {
-      name: "take_screenshot",
-      description: "Take screenshot",
-      inputSchema: { type: "object" as const, properties: {}, required: [] },
-      process: vi.fn().mockResolvedValue({
-        error: "browser service unavailable"
-      }),
-      userMessage: () => "Taking screenshot",
-      toProviderTool: () => ({
-        name: "take_screenshot",
-        description: "Take screenshot",
-        inputSchema: { type: "object", properties: {}, required: [] }
-      })
-    };
-
-    const sandboxToAsset = vi.fn().mockResolvedValue({
-      type: "image",
-      uri: "asset://should-not-be-called",
-      asset_id: "should-not-be-called"
-    });
-    const context = createMockContext({ sandboxToAsset });
-
-    const executor = new StepExecutor({
-      task,
-      step,
-      context,
-      provider,
-      model: "test-model",
-      tools: [screenshotTool as unknown as Tool]
-    });
-
-    for await (const message of executor.execute()) {
-      void message;
-    }
-
-    expect(sandboxToAsset).not.toHaveBeenCalled();
   });
 
   it("getSources returns empty array initially", () => {
@@ -1404,7 +1083,7 @@ describe("StepExecutor", () => {
           done: false
         };
       }
-    } as unknown as BaseProvider;
+    } as any;
 
     const context = createMockContext();
 
@@ -1427,7 +1106,7 @@ describe("StepExecutor", () => {
 
     // Should have a StepFailed task_update
     const failedUpdates = messages.filter(
-      (m) => m.type === "task_update" && (m as TaskUpdate).event === "step_failed"
+      (m) => m.type === "task_update" && (m as any).event === "step_failed"
     );
     expect(failedUpdates).toHaveLength(1);
   });

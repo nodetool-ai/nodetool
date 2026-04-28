@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Agent, loadSkillsFromDirectory } from "../src/agent.js";
 import { parseFrontmatter } from "../src/agent.js";
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import type { ProcessingMessage } from "@nodetool/protocol";
 
 // ---------------------------------------------------------------------------
 // Mock helpers (same pattern as agents.test.ts)

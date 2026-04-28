@@ -22,7 +22,7 @@ import {
   type FileFindByNameInput,
   type FileFindByNameOutput,
   type FileMatch
-} from "@nodetool-ai/sandbox/schemas";
+} from "@nodetool/sandbox/schemas";
 
 const MAX_READ_BYTES = 10 * 1024 * 1024;
 

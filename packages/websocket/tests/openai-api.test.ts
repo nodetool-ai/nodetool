@@ -7,14 +7,14 @@ import {
   resolveProvider,
   type OpenAIApiOptions
 } from "../src/openai-api.js";
-import * as models from "@nodetool-ai/models";
-import type { BaseProvider } from "@nodetool-ai/runtime";
+import * as models from "@nodetool/models";
+import type { BaseProvider } from "@nodetool/runtime";
 import type {
   Message,
   ProviderStreamItem,
   ProviderTool
-} from "@nodetool-ai/runtime";
-import type { Chunk } from "@nodetool-ai/protocol";
+} from "@nodetool/runtime";
+import type { Chunk } from "@nodetool/protocol";
 
 // ---------------------------------------------------------------------------
 // Mock provider

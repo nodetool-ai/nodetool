@@ -342,7 +342,7 @@ export interface UsageInfo {
   taskCount?: number;
 }
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.cost");
 

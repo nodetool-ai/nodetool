@@ -18,7 +18,7 @@ import type {
   MessageAskUserOutput,
   IdleInput,
   IdleOutput
-} from "@nodetool-ai/sandbox/schemas";
+} from "@nodetool/sandbox/schemas";
 import { newEventId, publish } from "../event-bus.js";
 
 export async function messageNotifyUser(

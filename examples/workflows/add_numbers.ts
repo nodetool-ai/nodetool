@@ -1,4 +1,4 @@
-import { workflow, constant, libMath } from "@nodetool-ai/dsl";
+import { workflow, constant, libMath } from "@nodetool/dsl";
 
 const a = constant.float({ value: 3.14 });
 const b = constant.float({ value: 2.0 });

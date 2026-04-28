@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { initTestDb } from "@nodetool-ai/models";
+import { initTestDb } from "@nodetool/models";
 import { startServer, stopServer, getBaseUrl } from "./setup.js";
 
 beforeAll(startServer);

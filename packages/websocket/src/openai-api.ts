@@ -7,20 +7,20 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { BaseProvider } from "@nodetool/runtime";
 import {
   OllamaProvider,
   OpenAIProvider,
   AnthropicProvider
-} from "@nodetool-ai/runtime";
-import { getSecret } from "@nodetool-ai/models";
+} from "@nodetool/runtime";
+import { getSecret } from "@nodetool/models";
 import type {
   Message,
   ProviderTool,
   ProviderStreamItem,
   ToolCall
-} from "@nodetool-ai/runtime";
-import type { Chunk } from "@nodetool-ai/protocol";
+} from "@nodetool/runtime";
+import type { Chunk } from "@nodetool/protocol";
 
 // ---------------------------------------------------------------------------
 // Types

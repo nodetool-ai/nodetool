@@ -1,6 +1,6 @@
 {
-  "name": "@nodetool-ai/models",
-  "version": "0.7.0-rc.12",
+  "name": "@nodetool/models",
+  "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,9 +24,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/config": "*",
-    "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/security": "*",
+    "@nodetool/config": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/security": "*",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.2"
   },
@@ -35,22 +35,5 @@
     "drizzle-kit": "^0.31.10",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/models"
-  },
-  "homepage": "https://nodetool.ai",
-  "bugs": {
-    "url": "https://github.com/nodetool-ai/nodetool/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

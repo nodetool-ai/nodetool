@@ -23,7 +23,7 @@ import { Asset } from "../../stores/ApiTypes";
 import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
-import type { SxProps, Theme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
@@ -98,9 +98,8 @@ const styles = (theme: Theme) =>
     ".actions .button": {
       width: "2em",
       height: "2em",
-      backgroundColor: theme.vars.palette.background.paper,
-      color: theme.vars.palette.text.primary,
-      border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      color: "var(--palette-grey-0)",
       borderRadius: "var(--rounded-circle)",
       padding: "0.3em"
     },
@@ -108,8 +107,7 @@ const styles = (theme: Theme) =>
       fontSize: "1.2em"
     },
     ".actions .button:hover": {
-      backgroundColor: theme.vars.palette.action.hover,
-      color: theme.vars.palette.primary.main
+      backgroundColor: theme.vars.palette.grey[500]
     },
     // -------------------
     ".asset-navigation": {
@@ -125,11 +123,7 @@ const styles = (theme: Theme) =>
       fontWeight: "bold",
       bottom: "3em",
       textAlign: "right",
-      color: theme.vars.palette.primary.main
-    },
-    ".folder-separator": {
-      color: theme.vars.palette.text.primary,
-      marginRight: theme.spacing(1)
+      color: "var(--palette-primary-main)"
     },
     ".prev-next-button": {
       position: "absolute",
@@ -139,22 +133,21 @@ const styles = (theme: Theme) =>
       zIndex: 20000,
       cursor: "pointer",
       color: theme.vars.palette.grey[200],
-      backgroundColor: theme.vars.palette.background.paper,
-      border: `2px solid ${theme.vars.palette.action.disabledBackground}`
+      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.6)`,
+      border: `2px solid rgba(${theme.vars.palette.grey[500]} / 0.2)`
     },
     ".prev-next-button img": {
       cursor: "pointer !important",
       pointerEvents: "none"
     },
     ".prev-next-button:hover": {
-      backgroundColor: theme.vars.palette.action.hover,
-      color: theme.vars.palette.primary.main
+      backgroundColor: `rgba(${theme.vars.palette.grey[800]} / 0.93)`
     },
     ".prev-next-button.Mui-disabled": {
-      color: theme.vars.palette.action.disabled,
-      backgroundColor: theme.vars.palette.action.disabledBackground,
+      color: theme.vars.palette.grey[600],
+      backgroundColor: `rgba(${theme.vars.palette.grey[600]} / 0.27)`,
       cursor: "default",
-      border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
+      border: `1px solid rgba(${theme.vars.palette.grey[400]} / 0.2)`,
       pointerEvents: "none"
     },
     ".prev-next-button svg": {
@@ -179,7 +172,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[0]}`
     },
     ".prev-next-items .item": {
-      backgroundColor: theme.vars.palette.background.paper,
+      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.4)`,
       padding: "0",
       width: "120px",
       height: "80px",
@@ -194,15 +187,15 @@ const styles = (theme: Theme) =>
       top: "1em",
       left: "50%",
       transform: "translateX(-50%)",
-      padding: theme.spacing(1, 2),
-      backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: theme.shape.borderRadius,
+      padding: "8px 16px",
+      backgroundColor: "rgba(0,0,0,0.85)",
+      borderRadius: 8,
       zIndex: 10001,
-      color: theme.vars.palette.text.primary,
-      fontSize: theme.fontSizeSmall
+      color: "var(--palette-grey-0)",
+      fontSize: 13
     },
     ".compare-mode-bar button": {
-      color: theme.vars.palette.text.primary,
+      color: "var(--palette-grey-0)",
       textTransform: "none"
     },
     ".select-for-compare": {
@@ -211,11 +204,11 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translateX(-50%)",
       zIndex: 10001,
-      padding: theme.spacing(0.75, 1.5),
-      backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: theme.shape.borderRadius,
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.text.primary
+      padding: "6px 12px",
+      backgroundColor: "rgba(0,0,0,0.7)",
+      borderRadius: 6,
+      fontSize: 12,
+      color: "var(--palette-grey-0)"
     },
     ".prev-next-items .item.compare-selected": {
       outline: "3px solid",
@@ -289,26 +282,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     [assetsToUse]
   );
   const canCompare = isImage && imageAssets.length >= 2;
-
-  const viewerActionButtonSx = useMemo<SxProps<Theme>>(
-    () => ({
-      width: theme.spacing(4),
-      height: theme.spacing(4),
-      backgroundColor: theme.vars.palette.background.paper,
-      color: theme.vars.palette.text.primary,
-      border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-      borderRadius: "50%",
-      padding: theme.spacing(0.6),
-      "&:hover": {
-        backgroundColor: theme.vars.palette.action.hover,
-        color: theme.vars.palette.primary.main
-      },
-      "& svg": {
-        fontSize: theme.fontSizeBig
-      }
-    }),
-    [theme]
-  );
 
   // Compare mode handlers
   const startCompareMode = useCallback(() => {
@@ -607,7 +580,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           </FlexRow>
           <FlexColumn className="asset-info" gap={0.5} align="flex-end">
             <Text className="folder-name">
-              <span className="folder-separator">/</span>
+              <span style={{ color: "white", marginRight: ".5em" }}>/</span>
               {currentFolderName || ""}
             </Text>
             {currentAsset?.name && (
@@ -691,7 +664,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             onClick={handleDownload}
             className="button download"
             nodrag={false}
-            sx={viewerActionButtonSx}
           />
           {isImage && !compareMode && (
             <ToolbarIconButton
@@ -700,7 +672,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onClick={handleOpenImageEditor}
               className="button edit"
               nodrag={false}
-              sx={viewerActionButtonSx}
             />
           )}
           {isElectron && currentAsset?.content_type && isClipboardSupported(currentAsset.content_type) && (
@@ -720,7 +691,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onClick={handleCopyToClipboard}
               className="button copy"
               nodrag={false}
-              sx={viewerActionButtonSx}
             />
           )}
           {canCompare && !compareMode && !compareAssetB && (
@@ -730,7 +700,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               onClick={startCompareMode}
               className="button compare"
               nodrag={false}
-              sx={viewerActionButtonSx}
             />
           )}
           <CloseButton
@@ -738,7 +707,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             tooltip="Close"
             className="button close"
             nodrag={false}
-            sx={viewerActionButtonSx}
           />
         </FlexRow>
       </Dialog>

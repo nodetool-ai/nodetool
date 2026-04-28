@@ -8,6 +8,7 @@ import type {
   DragEvent as ReactDragEvent,
   ReactNode
 } from "react";
+import { Box } from "@mui/material";
 import { Tooltip, Text } from "../ui_primitives";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import ImageIcon from "@mui/icons-material/Image";
@@ -71,17 +72,17 @@ const buildQuickAction = (
 const rgb = (r: number, g: number, b: number) => `rgba(${r}, ${g}, ${b}`;
 
 export const QUICK_ACTION_BUTTONS: QuickActionDefinition[] = [
-  buildQuickAction("agent", "Agent", "nodetool.agents.Agent", <SupportAgentIcon />, rgb(79, 70, 229), rgb(99, 102, 241), "#4f46e5"),
-  buildQuickAction("code", "Code", "nodetool.code.Code", <CodeIcon />, rgb(34, 197, 94), rgb(74, 222, 128), "#16a34a"),
-  buildQuickAction("text-to-image", "Text to Image", "nodetool.image.TextToImage", <ImageIcon />, rgb(236, 72, 153), rgb(244, 114, 182), "#db2777"),
-  buildQuickAction("image-to-image", "Image to Image", "nodetool.image.ImageToImage", <AutoFixHighIcon />, rgb(16, 185, 129), rgb(52, 211, 153), "#059669"),
-  buildQuickAction("text-to-video", "Text to Video", "nodetool.video.TextToVideo", <VideoLibraryIcon />, rgb(168, 85, 247), rgb(192, 132, 252), "#9333ea"),
-  buildQuickAction("image-to-video", "Image to Video", "nodetool.video.ImageToVideo", <OndemandVideoIcon />, rgb(249, 115, 22), rgb(251, 146, 60), "#ea580c"),
-  buildQuickAction("text-to-speech", "Text to Speech", "nodetool.audio.TextToSpeech", <RecordVoiceOverIcon />, rgb(6, 182, 212), rgb(34, 211, 238), "#0891b2"),
-  buildQuickAction("speech-to-text", "Speech to Text", "nodetool.text.AutomaticSpeechRecognition", <KeyboardVoiceIcon />, rgb(14, 165, 233), rgb(56, 189, 248), "#0284c7"),
-  buildQuickAction("fal-dynamic", "FalAI", DYNAMIC_FAL_NODE_TYPE, <ApiIcon />, rgb(139, 92, 246), rgb(167, 139, 250), "#7c3aed"),
-  buildQuickAction("kie-dynamic", "KieAI", DYNAMIC_KIE_NODE_TYPE, <ApiIcon />, rgb(229, 92, 32), rgb(255, 140, 66), "#d94a12"),
-  buildQuickAction("replicate-dynamic", "Replicate", DYNAMIC_REPLICATE_NODE_TYPE, <ApiIcon />, rgb(59, 130, 246), rgb(129, 140, 248), "#2563eb")
+  buildQuickAction("agent", "Agent", "nodetool.agents.Agent", <SupportAgentIcon />, rgb(79, 70, 229), rgb(99, 102, 241), "#e0e7ff"),
+  buildQuickAction("code", "Code", "nodetool.code.Code", <CodeIcon />, rgb(34, 197, 94), rgb(74, 222, 128), "#dcfce7"),
+  buildQuickAction("text-to-image", "Text to Image", "nodetool.image.TextToImage", <ImageIcon />, rgb(236, 72, 153), rgb(244, 114, 182), "#fce7f3"),
+  buildQuickAction("image-to-image", "Image to Image", "nodetool.image.ImageToImage", <AutoFixHighIcon />, rgb(16, 185, 129), rgb(52, 211, 153), "#d1fae5"),
+  buildQuickAction("text-to-video", "Text to Video", "nodetool.video.TextToVideo", <VideoLibraryIcon />, rgb(168, 85, 247), rgb(192, 132, 252), "#f3e8ff"),
+  buildQuickAction("image-to-video", "Image to Video", "nodetool.video.ImageToVideo", <OndemandVideoIcon />, rgb(249, 115, 22), rgb(251, 146, 60), "#ffedd5"),
+  buildQuickAction("text-to-speech", "Text to Speech", "nodetool.audio.TextToSpeech", <RecordVoiceOverIcon />, rgb(6, 182, 212), rgb(34, 211, 238), "#cffafe"),
+  buildQuickAction("speech-to-text", "Speech to Text", "nodetool.text.AutomaticSpeechRecognition", <KeyboardVoiceIcon />, rgb(14, 165, 233), rgb(56, 189, 248), "#e0f2fe"),
+  buildQuickAction("fal-dynamic", "FalAI", DYNAMIC_FAL_NODE_TYPE, <ApiIcon />, rgb(139, 92, 246), rgb(167, 139, 250), "#e9d5ff"),
+  buildQuickAction("kie-dynamic", "KieAI", DYNAMIC_KIE_NODE_TYPE, <ApiIcon />, rgb(229, 92, 32), rgb(255, 140, 66), "#ffe0cc"),
+  buildQuickAction("replicate-dynamic", "Replicate", DYNAMIC_REPLICATE_NODE_TYPE, <ApiIcon />, rgb(59, 130, 246), rgb(129, 140, 248), "#dbeafe")
 ];
 
 const hexToRgba = (hex: string, alpha: number) => {
@@ -296,10 +297,10 @@ const tileStyles = (theme: Theme) =>
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",
-      border: `1px solid ${theme.vars.palette.divider}`,
+      border: "1px solid rgba(255, 255, 255, 0.06)",
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
       minHeight: "30px",
-      background: theme.vars.palette.background.paper,
+      background: "rgba(255, 255, 255, 0.02)",
       "&::before": {
         content: '""',
         position: "absolute",
@@ -314,9 +315,9 @@ const tileStyles = (theme: Theme) =>
       },
       "&:hover": {
         transform: "translateY(-3px)",
-        borderColor: theme.vars.palette.primary.main,
-        background: "var(--quick-hover-tile-bg)",
-        boxShadow: "none",
+        borderColor: "rgba(255, 255, 255, 0.15)",
+        background: "var(--quick-hover-tile-bg, rgba(255, 255, 255, 0.05))",
+        boxShadow: "0 8px 24px -6px rgba(0, 0, 0, 0.5)",
         "&::before": {
           opacity: 1
         },
@@ -333,7 +334,7 @@ const tileStyles = (theme: Theme) =>
       },
       "&.active": {
         borderColor: theme.vars.palette.primary.main,
-        boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
+        boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}, 0 4px 12px rgba(0,0,0,0.5)`
       }
     },
     ".constant-tile": {
@@ -357,9 +358,7 @@ const tileStyles = (theme: Theme) =>
       transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
       "& svg": {
         fontSize: "1.75rem",
-        filter: theme.palette.mode === "dark"
-          ? "drop-shadow(0 3px 5px rgba(0,0,0,0.35))"
-          : "none"
+        filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.4))"
       }
     },
     ".tile-label": {
@@ -368,7 +367,7 @@ const tileStyles = (theme: Theme) =>
       textAlign: "center",
       lineHeight: 1.3,
       color: theme.vars.palette.text.primary,
-      opacity: 0.9,
+      opacity: 0.8,
       transition: "opacity 0.3s ease",
       maxWidth: "100%"
     }
@@ -504,9 +503,9 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   );
 
   return (
-    <div css={memoizedStyles}>
+    <Box css={memoizedStyles}>
       <div className="tiles-header">
-        <Text size="normal" weight={600}>AI Nodes</Text>
+        <Text size="normal" weight={600}>Multi-Model Nodes</Text>
       </div>
       <div className="tiles-container">
         {QUICK_ACTION_BUTTONS.map((definition) => {
@@ -550,7 +549,8 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                     "--quick-hover-tile-bg": hoverGradient,
                     "--quick-shadow": shadow,
                     "--quick-shadow-hover": hoverShadow ?? shadow,
-                    "--quick-icon-color": iconColor
+                    "--quick-icon-color": iconColor,
+                    background: theme.vars.palette.action.hoverBackground
                   } as CSSProperties
                 }
               >
@@ -608,7 +608,8 @@ const QuickActionTiles = memo(function QuickActionTiles() {
                     "--quick-hover-tile-bg": hoverGradient,
                     "--quick-shadow": shadow,
                     "--quick-shadow-hover": hoverShadow ?? shadow,
-                    "--quick-icon-color": iconColor
+                    "--quick-icon-color": iconColor,
+                    background: theme.vars.palette.action.hoverBackground
                   } as CSSProperties
                 }
               >
@@ -621,7 +622,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
           );
         })}
       </div>
-    </div>
+    </Box>
   );
 });
 

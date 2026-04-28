@@ -9,7 +9,7 @@
  * - Backpressure via buffer limits per subscriber queue.
  */
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger } from "@nodetool/config";
 
 const log = createLogger("nodetool.kernel.channel");
 

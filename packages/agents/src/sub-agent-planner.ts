@@ -6,13 +6,13 @@
  * SubAgentConfig objects with specialized roles and skills.
  */
 
-import { createLogger } from "@nodetool-ai/config";
-import type { BaseProvider, Message, ProviderTool } from "@nodetool-ai/runtime";
+import { createLogger } from "@nodetool/config";
+import type { BaseProvider, Message, ProviderTool } from "@nodetool/runtime";
 import type {
   ProcessingMessage,
   LogUpdate,
   PlanningUpdate
-} from "@nodetool-ai/protocol";
+} from "@nodetool/protocol";
 import type { Tool } from "./tools/base-tool.js";
 import type { SubAgentConfig } from "./types.js";
 import { extractJSON } from "./utils/json-parser.js";

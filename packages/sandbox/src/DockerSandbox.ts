@@ -14,8 +14,9 @@
  *   - network enabled (agents need internet to research)
  */
 
+import { createConnection, type Socket as NetSocket } from "node:net";
 import Dockerode from "dockerode";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger } from "@nodetool/config";
 import type {
   Sandbox,
   SandboxOptions,
@@ -108,11 +109,6 @@ export class DockerSandboxProvider implements SandboxProvider {
   constructor(options: DockerSandboxProviderOptions = {}) {
     this.docker = new Dockerode();
     this.hostIp = options.hostIp ?? "127.0.0.1";
-    if (this.hostIp !== "127.0.0.1" && this.hostIp !== "::1") {
-      throw new Error(
-        "DockerSandboxProvider hostIp must be loopback (127.0.0.1 or ::1)"
-      );
-    }
     this.defaultImage = options.defaultImage ?? DEFAULT_SANDBOX_IMAGE;
     this.readyTimeoutSeconds = options.readyTimeoutSeconds ?? 30;
     this.autoPull = options.autoPull ?? true;
@@ -125,11 +121,6 @@ export class DockerSandboxProvider implements SandboxProvider {
     await this.ensureImage(image);
 
     const containerName = `nodetool-sandbox-${options.sessionId.replace(/[^a-zA-Z0-9_.-]/g, "-")}`;
-    // Reap any leftover container with the same name from a previous run.
-    // SessionStore tracks sandboxes in-memory only, so a server restart or
-    // ungraceful shutdown can leave an orphaned container that blocks
-    // createContainer with HTTP 409.
-    await this.removeExistingContainer(containerName);
     const binds: string[] = [];
     if (options.workspaceDir) {
       binds.push(`${options.workspaceDir}:/workspace:rw`);
@@ -142,11 +133,6 @@ export class DockerSandboxProvider implements SandboxProvider {
       `NODETOOL_USER_SERVICE_PORTS=${this.userServicePorts.join(",")}`,
       ...Object.entries(options.env ?? {}).map(([k, v]) => `${k}=${v}`)
     ];
-    const ownerUserId = options.env?.NODETOOL_USER_ID;
-    const labels: Record<string, string> = {
-      "com.nodetool.sandbox.managed": "true",
-      ...(ownerUserId ? { "com.nodetool.sandbox.owner": ownerUserId } : {})
-    };
 
     const toolPortKey = `${TOOL_SERVER_PORT}/tcp`;
     const vncPortKey = `${VNC_WS_PORT}/tcp`;
@@ -172,7 +158,6 @@ export class DockerSandboxProvider implements SandboxProvider {
       name: containerName,
       Image: image,
       Env: env,
-      Labels: labels,
       WorkingDir: "/home/ubuntu",
       OpenStdin: false,
       Tty: false,
@@ -210,8 +195,9 @@ export class DockerSandboxProvider implements SandboxProvider {
         }
       }
 
-      const ready = await waitForHttpReady(
-        `${toolUrl}/health`,
+      const ready = await waitForTcp(
+        this.hostIp,
+        toolPort,
         this.readyTimeoutSeconds
       );
       if (!ready) {
@@ -276,25 +262,6 @@ export class DockerSandboxProvider implements SandboxProvider {
     }
   }
 
-  private async removeExistingContainer(name: string): Promise<void> {
-    const existing = this.docker.getContainer(name);
-    try {
-      await existing.inspect();
-    } catch {
-      // No such container — nothing to clean up.
-      return;
-    }
-    try {
-      await existing.remove({ force: true });
-      log.info(`Removed orphaned sandbox container ${name}`);
-    } catch (err) {
-      log.warn(
-        `Failed to remove orphaned sandbox container ${name}; createContainer may still 409`,
-        err
-      );
-    }
-  }
-
   private async ensureImage(image: string): Promise<void> {
     try {
       await this.docker.getImage(image).inspect();
@@ -354,32 +321,30 @@ async function waitForHostPort(
   throw new Error(`timed out waiting for host port for ${portKey}`);
 }
 
-export async function waitForHttpReady(
-  url: string,
+async function waitForTcp(
+  host: string,
+  port: number,
   timeoutSeconds: number
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutSeconds * 1000;
   while (Date.now() < deadline) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 1000);
-    try {
-      const res = await fetch(url, {
-        method: "GET",
-        signal: controller.signal
-      });
-      if (res.ok) {
-        return true;
-      }
-      await res.body?.cancel();
-    } catch {
-      // Keep polling until the deadline; Docker may publish the port before
-      // Fastify is ready to accept and respond to HTTP requests.
-    } finally {
-      clearTimeout(timer);
-    }
-    await sleep(150);
+    if (await tcpProbe(host, port, 1000)) return true;
+    await sleep(200);
   }
   return false;
+}
+
+function tcpProbe(host: string, port: number, timeoutMs = 1000): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const sock: NetSocket = createConnection({ host, port, timeout: timeoutMs });
+    const done = (ok: boolean) => {
+      sock.destroy();
+      resolve(ok);
+    };
+    sock.once("connect", () => done(true));
+    sock.once("timeout", () => done(false));
+    sock.once("error", () => done(false));
+  });
 }
 
 function sleep(ms: number): Promise<void> {

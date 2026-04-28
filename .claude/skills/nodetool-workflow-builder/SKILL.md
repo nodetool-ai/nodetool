@@ -259,11 +259,11 @@ nodetool secrets store OPENAI_API_KEY  # Store API key
 
 # TypeScript DSL Format
 
-Write workflows as TypeScript with full type safety and IDE autocompletion using `@nodetool-ai/dsl`.
+Write workflows as TypeScript with full type safety and IDE autocompletion using `@nodetool/dsl`.
 
 ## Basic Pattern
 ```typescript
-import { workflow, constant, libMath } from "@nodetool-ai/dsl";
+import { workflow, constant, libMath } from "@nodetool/dsl";
 
 // Create nodes — each returns a DslNode with typed .output handle
 const a = constant.float({ value: 3.14 });

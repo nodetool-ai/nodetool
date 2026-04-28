@@ -3,9 +3,9 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool-ai/models — router orchestrates Asset static + instance methods.
-vi.mock("@nodetool-ai/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/models")>();
+// Mock @nodetool/models — router orchestrates Asset static + instance methods.
+vi.mock("@nodetool/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool/models")>();
   return {
     ...actual,
     Asset: {
@@ -18,9 +18,9 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   };
 });
 
-// Mock @nodetool-ai/config — `buildAssetUrl` is used by toAssetResponse.
-vi.mock("@nodetool-ai/config", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/config")>();
+// Mock @nodetool/config — `buildAssetUrl` is used by toAssetResponse.
+vi.mock("@nodetool/config", async (orig) => {
+  const actual = await orig<typeof import("@nodetool/config")>();
   return {
     ...actual,
     buildAssetUrl: vi.fn((filename: string) => `/api/storage/${filename}`)
@@ -37,7 +37,7 @@ vi.mock("node:fs/promises", async (orig) => {
   };
 });
 
-import { Asset } from "@nodetool-ai/models";
+import { Asset } from "@nodetool/models";
 
 const createCaller = createCallerFactory(appRouter);
 

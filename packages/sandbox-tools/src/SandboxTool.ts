@@ -1,6 +1,6 @@
 /**
  * SandboxTool — bridges a sandbox ToolClient method into an
- * @nodetool-ai/agents Tool.
+ * @nodetool/agents Tool.
  *
  * Each instance wraps exactly one sandbox tool; the manifest in
  * `./manifest.ts` instantiates one SandboxTool per sandbox surface
@@ -11,9 +11,9 @@
  */
 
 import { z } from "zod";
-import { Tool } from "@nodetool-ai/agents/tool";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { ToolClient } from "@nodetool-ai/sandbox";
+import { Tool } from "@nodetool/agents/tool";
+import type { ProcessingContext } from "@nodetool/runtime";
+import type { ToolClient } from "@nodetool/sandbox";
 
 export interface SandboxToolDefinition<TIn, TOut> {
   /** Tool name as exposed to the LLM. */

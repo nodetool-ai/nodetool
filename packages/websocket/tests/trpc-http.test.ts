@@ -16,13 +16,13 @@ import type { Context } from "../src/trpc/context.js";
 
 // ── Mock heavy dependencies ────────────────────────────────────────────────
 
-vi.mock("@nodetool-ai/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/models")>();
+vi.mock("@nodetool/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool/models")>();
   return { ...actual, getSecret: vi.fn().mockResolvedValue(null) };
 });
 
-vi.mock("@nodetool-ai/runtime", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/runtime")>();
+vi.mock("@nodetool/runtime", async (orig) => {
+  const actual = await orig<typeof import("@nodetool/runtime")>();
   return {
     ...actual,
     listRegisteredProviderIds: vi.fn().mockReturnValue([]),
@@ -31,8 +31,8 @@ vi.mock("@nodetool-ai/runtime", async (orig) => {
   };
 });
 
-vi.mock("@nodetool-ai/huggingface", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/huggingface")>();
+vi.mock("@nodetool/huggingface", async (orig) => {
+  const actual = await orig<typeof import("@nodetool/huggingface")>();
   return {
     ...actual,
     readCachedHfModels: vi.fn().mockResolvedValue([]),

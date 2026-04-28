@@ -1,5 +1,5 @@
-import { createLogger } from "@nodetool-ai/config";
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { createLogger } from "@nodetool/config";
+import { BaseNode, prop } from "@nodetool/node-sdk";
 import type {
   BaseProvider,
   Message,
@@ -9,9 +9,9 @@ import type {
   ProcessingContext,
   ProviderStreamItem,
   ToolCall
-} from "@nodetool-ai/runtime";
-import type { Chunk, ProcessingMessage } from "@nodetool-ai/protocol";
-import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
+} from "@nodetool/runtime";
+import type { Chunk, ProcessingMessage } from "@nodetool/protocol";
+import { MultiModeAgent, Tool as AgentTool } from "@nodetool/agents";
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -218,32 +218,6 @@ function normalizeProviderStreamItem(
   return {
     ...chunk,
     content_type: "text"
-  } as Chunk;
-}
-
-/**
- * Render a tool-call streaming item as a Chunk so callers see tool dispatches
- * inline with the assistant's text/thinking stream. The structured payload
- * lives in `content_metadata`; `content` is a human-readable summary.
- */
-function toolCallChunk(toolCall: ToolCall): Chunk {
-  const argsJson = (() => {
-    try {
-      return JSON.stringify(toolCall.args ?? {});
-    } catch {
-      return "{}";
-    }
-  })();
-  return {
-    type: "chunk",
-    content: `${toolCall.name}(${argsJson})`,
-    content_type: "tool_call",
-    content_metadata: {
-      tool_call_id: toolCall.id,
-      tool_name: toolCall.name,
-      args: toolCall.args ?? {}
-    },
-    done: false
   } as Chunk;
 }
 
@@ -901,7 +875,7 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
 }
 
 /**
- * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool-ai/agents).
+ * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool/agents).
  * This bridges the tool systems so MultiModeAgent can use tools defined in the node graph.
  */
 class ToolLikeAdapter extends AgentTool {
@@ -1861,9 +1835,9 @@ export class ClassifierNode extends BaseNode {
 }
 
 export class AgentNode extends BaseNode {
-  static readonly nodeType: string = "nodetool.agents.Agent";
-  static readonly title: string = "Agent";
-  static readonly description: string =
+  static readonly nodeType = "nodetool.agents.Agent";
+  static readonly title = "Agent";
+  static readonly description =
     "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming";
   static readonly metadataOutputTypes = {
     text: "str",
@@ -2458,17 +2432,6 @@ export class AgentNode extends BaseNode {
 
   @prop({
     type: "int",
-    default: 100,
-    title: "Max Turns",
-    description:
-      "Upper bound on agentic turns — one turn is a model call plus any tool execution it triggers. Caps both the AgentNode tool-loop iteration count and the provider's internal multi-turn budget (e.g. Claude Agent SDK). Raise for long sandbox sessions; lower to fail fast on runaway loops.",
-    min: 1,
-    max: 1000
-  })
-  declare max_turns: any;
-
-  @prop({
-    type: "int",
     default: 3,
     title: "Num Agents",
     description:
@@ -2487,19 +2450,6 @@ export class AgentNode extends BaseNode {
     values: ["coordinator", "autonomous", "hybrid"]
   })
   declare team_strategy: any;
-
-  /**
-   * Build the tool list for this run. Override in subclasses to inject
-   * additional tools (e.g. sandbox shell/file/browser tools) alongside the
-   * user-selected ones. Control tools from kernel control edges are
-   * appended separately by the genProcess paths and don't need to be
-   * handled here.
-   */
-  protected async buildTools(
-    _context?: ProcessingContext
-  ): Promise<ToolLike[]> {
-    return normalizeTools(this.tools ?? []);
-  }
 
   async *genProcess(
     context?: ProcessingContext
@@ -2559,8 +2509,7 @@ export class AgentNode extends BaseNode {
       : [];
     const threadId = String(this.thread_id ?? this.thread_id ?? "").trim();
     const maxTokens = Number(this.max_tokens ?? this.max_tokens ?? 8192);
-    const maxTurns = Math.max(1, Number(this.max_turns ?? 100));
-    const tools: ToolLike[] = await this.buildTools(context);
+    const tools: ToolLike[] = normalizeTools(this.tools ?? this.tools);
 
     // Build control tools from _control_context (injected by the kernel
     // for nodes that have outgoing control edges). This lets the LLM
@@ -2675,7 +2624,6 @@ export class AgentNode extends BaseNode {
         model: modelId,
         tools: providerTools,
         maxTokens,
-        maxTurns,
         threadId: threadId || undefined,
         onToolCall
       })) {
@@ -2708,12 +2656,6 @@ export class AgentNode extends BaseNode {
             nodeId: this.__node_id ?? null,
             toolName: item.name
           });
-          yield {
-            chunk: toolCallChunk(item),
-            thinking: null,
-            text: null,
-            audio: null
-          };
         }
       }
 
@@ -2783,20 +2725,16 @@ export class AgentNode extends BaseNode {
       // --- Standard multi-iteration loop (for non-agentic providers) ---
       let shouldContinue = false;
       let firstIteration = true;
-      let turn = 0;
 
-      while ((firstIteration || shouldContinue) && turn < maxTurns) {
+      while (firstIteration || shouldContinue) {
         firstIteration = false;
         shouldContinue = false;
-        turn += 1;
         log.info("AgentNode provider iteration starting", {
           nodeId: this.__node_id ?? null,
           providerId,
           modelId,
           threadId: threadId || null,
-          messageCount: messages.length,
-          turn,
-          maxTurns
+          messageCount: messages.length
         });
         const assistantToolCalls: ToolCall[] = [];
         let assistantText = "";
@@ -2811,7 +2749,6 @@ export class AgentNode extends BaseNode {
           model: modelId,
           tools: providerTools,
           maxTokens,
-          maxTurns,
           threadId: threadId || undefined
         })) {
           if (isChunkItem(item)) {
@@ -2853,12 +2790,6 @@ export class AgentNode extends BaseNode {
               toolName: item.name,
               argKeys: Object.keys(item.args ?? {})
             });
-            yield {
-              chunk: toolCallChunk(item),
-              thinking: null,
-              text: null,
-              audio: null
-            };
           }
         }
 
@@ -2991,18 +2922,7 @@ export class AgentNode extends BaseNode {
               toolCallId: toolCall.id,
               toolName: toolCall.name
             });
-            try {
-              result = await tool.process(context, toolCall.args);
-            } catch (err) {
-              const message = err instanceof Error ? err.message : String(err);
-              log.warn("AgentNode tool execution failed", {
-                nodeId: this.__node_id ?? null,
-                toolCallId: toolCall.id,
-                toolName: toolCall.name,
-                error: message
-              });
-              result = { status: "error", error: message };
-            }
+            result = await tool.process(context, toolCall.args);
           }
 
           const toolMessage: Message = {
@@ -3014,13 +2934,6 @@ export class AgentNode extends BaseNode {
           await saveThreadMessage(context, threadId, toolMessage);
           shouldContinue = true;
         }
-      }
-      if (shouldContinue && turn >= maxTurns) {
-        log.warn("AgentNode hit max_turns cap with pending tool calls", {
-          nodeId: this.__node_id ?? null,
-          turn,
-          maxTurns
-        });
       }
     }
 
@@ -3162,7 +3075,7 @@ export class AgentNode extends BaseNode {
   ): AsyncGenerator<Record<string, unknown>> {
     const prompt = asText(this.prompt ?? "");
     const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
-    const rawTools: ToolLike[] = await this.buildTools(context);
+    const rawTools: ToolLike[] = normalizeTools(this.tools ?? []);
 
     // Build control tools
     const controlContext = (this as any)._control_context;

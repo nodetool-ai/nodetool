@@ -1,5 +1,5 @@
 /**
- * @nodetool-ai/sandbox — Host-side sandbox provisioning.
+ * @nodetool/sandbox — Host-side sandbox provisioning.
  *
  * Provides isolated Linux environments for agents to drive. Current backend
  * is Docker; future backends (gVisor, Firecracker, E2B, Daytona) implement

@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { getSecret } from "@nodetool-ai/models";
+import { getSecret } from "@nodetool/models";
 import { getSetting } from "./settings-registry.js";
 import { pack, unpack } from "msgpackr";
 import {
   createLogger,
   getDefaultAssetsPath,
   buildAssetUrl
-} from "@nodetool-ai/config";
+} from "@nodetool/config";
 import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
 import {
   Graph,
@@ -16,7 +16,7 @@ import {
   type NodeExecutor,
   type NodeTypeResolver,
   type NodeValidator
-} from "@nodetool-ai/kernel";
+} from "@nodetool/kernel";
 import {
   Asset,
   Job,
@@ -27,7 +27,7 @@ import {
   Thread,
   Workflow,
   type DBModel
-} from "@nodetool-ai/models";
+} from "@nodetool/models";
 import type {
   ProviderTool,
   Message as ProviderMessage,
@@ -41,22 +41,22 @@ import type {
   TextToVideoParams,
   ImageToImageParams,
   ImageToVideoParams
-} from "@nodetool-ai/runtime";
+} from "@nodetool/runtime";
 import {
   FileStorageAdapter,
   ProcessingContext as RuntimeProcessingContext,
   executeComfy,
   type ComfyProgressEvent,
   type ComfyExecutionHandle
-} from "@nodetool-ai/runtime";
-import type { Chunk } from "@nodetool-ai/protocol";
+} from "@nodetool/runtime";
+import type { Chunk } from "@nodetool/protocol";
 import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
   WebSocketMode
-} from "@nodetool-ai/protocol";
-import { Tool } from "@nodetool-ai/agents";
-import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
+} from "@nodetool/protocol";
+import { Tool } from "@nodetool/agents";
+import type { NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -721,7 +721,7 @@ export interface UnifiedWebSocketRunnerOptions {
    * Optional pre-flight per-node validator. Forwarded to WorkflowRunner so
    * missing required fields and unset model selections abort the run before
    * any actor is spawned. `NodeRegistry.createNodeValidator()` from
-   * `@nodetool-ai/node-sdk` produces a compatible callback.
+   * `@nodetool/node-sdk` produces a compatible callback.
    */
   validateNode?: NodeValidator;
   /**
@@ -1885,7 +1885,7 @@ export class UnifiedWebSocketRunner {
     if (!collections.length || !queryText) return "";
 
     try {
-      const { getVecStore } = await import("@nodetool-ai/vectorstore");
+      const { getVecStore } = await import("@nodetool/vectorstore");
       const store = await getVecStore();
 
       const allResults: string[] = [];
@@ -3744,7 +3744,7 @@ export class UnifiedWebSocketRunner {
     const cached = this.configuredProvidersCache.get(userId);
     if (cached) return cached;
 
-    const providersMod = await import("@nodetool-ai/runtime");
+    const providersMod = await import("@nodetool/runtime");
     const ids: string[] = providersMod.listRegisteredProviderIds();
     const result: Record<string, BaseProvider> = {};
     await Promise.all(
@@ -3804,7 +3804,7 @@ export class UnifiedWebSocketRunner {
       GoogleSearchTool,
       getAllMcpTools,
       resolveTool
-    } = await import("@nodetool-ai/agents");
+    } = await import("@nodetool/agents");
 
     let selectedTools: Tool[] = [];
     const rawToolNames = Array.isArray(data.tools)

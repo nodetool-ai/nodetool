@@ -1,4 +1,4 @@
-// @nodetool-ai/vectorstore — SQLite-vec backed vector store
+// @nodetool/vectorstore — SQLite-vec backed vector store
 
 export {
   SqliteVecStore,

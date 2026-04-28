@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/sandbox",
+  "name": "@nodetool/sandbox",
   "type": "module",
-  "version": "0.7.0-rc.12",
+  "version": "0.1.0",
   "description": "Host-side sandbox provisioning: Docker-backed isolated Linux computers for agents, with shell, file, browser, and desktop tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/config": "*",
+    "@nodetool/config": "*",
     "dockerode": "^4.0.4",
     "zod": "^4.0.0"
   },
@@ -36,22 +36,5 @@
       "import": "./dist/schemas/index.js",
       "default": "./dist/schemas/index.js"
     }
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/sandbox"
-  },
-  "homepage": "https://nodetool.ai",
-  "bugs": {
-    "url": "https://github.com/nodetool-ai/nodetool/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

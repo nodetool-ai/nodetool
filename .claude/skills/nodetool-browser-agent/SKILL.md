@@ -154,14 +154,14 @@ nodetool agent --config browser-agent.yaml --interactive
 # Programmatic Usage (TypeScript)
 
 ```typescript
-import { Agent } from "@nodetool-ai/core";
+import { Agent } from "@nodetool/core";
 import {
   BrowserTool,
   ScreenshotTool,
   DOMExamineTool,
   DOMSearchTool,
   DOMExtractTool,
-} from "@nodetool-ai/core/tools";
+} from "@nodetool/core/tools";
 
 const agent = new Agent({
   name: "browser-agent",

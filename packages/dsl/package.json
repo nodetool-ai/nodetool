@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/dsl",
+  "name": "@nodetool/dsl",
   "type": "module",
-  "version": "0.7.0-rc.12",
+  "version": "0.1.0",
   "description": "Type-safe TypeScript DSL for defining NodeTool workflows",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -22,35 +22,18 @@
     "codegen": "tsx scripts/codegen.ts"
   },
   "dependencies": {
-    "@nodetool-ai/base-nodes": "*",
-    "@nodetool-ai/elevenlabs-nodes": "*",
-    "@nodetool-ai/transformers-js-nodes": "*",
-    "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/kernel": "*",
-    "@nodetool-ai/node-sdk": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool/base-nodes": "*",
+    "@nodetool/elevenlabs-nodes": "*",
+    "@nodetool/transformers-js-nodes": "*",
+    "@nodetool/protocol": "*",
+    "@nodetool/kernel": "*",
+    "@nodetool/node-sdk": "*",
+    "@nodetool/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/dsl"
-  },
-  "homepage": "https://nodetool.ai",
-  "bugs": {
-    "url": "https://github.com/nodetool-ai/nodetool/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }

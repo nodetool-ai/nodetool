@@ -33,7 +33,7 @@ import {
 } from "../tracing-helpers.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { createLogger, getAssetFilePath } from "@nodetool-ai/config";
+import { createLogger, getAssetFilePath } from "@nodetool/config";
 
 const log = createLogger("nodetool.runtime.provider");
 
@@ -250,12 +250,6 @@ export abstract class BaseProvider {
     /** Force the model to call a specific tool by name, or "any" to require any tool call. */
     toolChoice?: string | "any";
     maxTokens?: number;
-    /**
-     * Upper bound on internal agentic turns for providers that handle
-     * multi-turn tool execution within a single call (e.g. claude_agent).
-     * Ignored by providers that delegate the loop to the caller.
-     */
-    maxTurns?: number;
     temperature?: number;
     topP?: number;
     presencePenalty?: number;

@@ -1,5 +1,5 @@
 /**
- * @nodetool-ai/agents -- Agent system for planning and executing multi-step LLM tasks.
+ * @nodetool/agents -- Agent system for planning and executing multi-step LLM tasks.
  */
 
 // Types

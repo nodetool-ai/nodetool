@@ -1,10 +1,10 @@
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, prop } from "@nodetool/node-sdk";
 import type {
   NodeClass,
   StreamingInputs,
   StreamingOutputs
-} from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+} from "@nodetool/node-sdk";
+import type { ProcessingContext } from "@nodetool/runtime";
 import {
   getElevenLabsApiKey,
   VOICE_ID_MAP,

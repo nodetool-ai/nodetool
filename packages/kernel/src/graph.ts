@@ -9,16 +9,16 @@
  *   - Streaming upstream computation
  */
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger } from "@nodetool/config";
 import type {
   Edge,
   NodeDescriptor,
   GraphData,
   SyncMode
-} from "@nodetool-ai/protocol";
+} from "@nodetool/protocol";
 
 const log = createLogger("nodetool.kernel.graph");
-import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool-ai/protocol";
+import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool/protocol";
 
 // ---------------------------------------------------------------------------
 // Graph errors

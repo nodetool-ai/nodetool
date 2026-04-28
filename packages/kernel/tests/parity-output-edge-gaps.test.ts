@@ -23,7 +23,7 @@ import type {
   Edge,
   EdgeUpdate,
   OutputUpdate
-} from "@nodetool-ai/protocol";
+} from "@nodetool/protocol";
 import type { NodeExecutor } from "../src/actor.js";
 
 // ---------------------------------------------------------------------------
