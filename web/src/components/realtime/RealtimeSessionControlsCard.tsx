@@ -19,6 +19,7 @@ interface RealtimeSessionControlsCardProps {
   isStartSessionDisabled: boolean;
   hasPreviewStream: boolean;
   isStopSessionDisabled: boolean;
+  isStoppingSession: boolean;
   previewError: string | null;
   webrtcConfigError: string | null;
   webrtcError: string | null;
@@ -39,6 +40,7 @@ export const RealtimeSessionControlsCard = ({
   isStartSessionDisabled,
   hasPreviewStream,
   isStopSessionDisabled,
+  isStoppingSession,
   previewError,
   webrtcConfigError,
   webrtcError,
@@ -64,18 +66,25 @@ export const RealtimeSessionControlsCard = ({
           </EditorButton>
           <EditorButton
             onClick={
-              isStopSessionDisabled
+              isStopSessionDisabled || isStoppingSession
                 ? () => void onStartSession()
                 : () => void onStopSession()
             }
-            disabled={isStopSessionDisabled && isStartSessionDisabled}
+            disabled={
+              isStoppingSession ||
+              (isStopSessionDisabled && isStartSessionDisabled)
+            }
             sx={
-              isStopSessionDisabled
+              isStopSessionDisabled || isStoppingSession
                 ? realtimeStartControlSx
                 : realtimeStopControlSx
             }
           >
-            {isStopSessionDisabled ? "Start Session" : "Stop Session"}
+            {isStoppingSession
+              ? "Stopping..."
+              : isStopSessionDisabled
+                ? "Start Session"
+                : "Stop Session"}
           </EditorButton>
         </FlexRow>
 

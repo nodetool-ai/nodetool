@@ -110,6 +110,7 @@ export interface RealtimeStreamController {
   sessionError: string | null;
   isStartSessionDisabled: boolean;
   isStopSessionDisabled: boolean;
+  isStoppingSession: boolean;
   startPreview: () => Promise<void>;
   stopPreview: () => void;
   setBrightness: (brightness: number) => void;
@@ -154,6 +155,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const [videoTargetSourceHandle, setVideoTargetSourceHandle] =
     useState<string>("frame");
   const [webrtcConfigError, setWebrtcConfigError] = useState<string | null>(null);
+  const [isStoppingSession, setIsStoppingSession] = useState(false);
   const {
     error: previewError,
     previewStream,
@@ -198,8 +200,8 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       return sessions[activeSessionId];
     }
 
-    return workflowSessions[0] ?? null;
-  }, [activeSessionId, sessions, workflowSessions]);
+    return null;
+  }, [activeSessionId, sessions]);
   const activeMetrics = activeSession
     ? metrics[activeSession.session_id] ?? null
     : null;
@@ -257,6 +259,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       !workflowId ||
       !workflow?.graph ||
       Boolean(activeSession) ||
+      isStoppingSession ||
       !previewStream ||
       !isPreviewReady ||
       !videoTargetNodeId.trim() ||
@@ -265,6 +268,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   }, [
     activeSession,
     isPreviewReady,
+    isStoppingSession,
     previewStream,
     videoTargetInputName,
     videoTargetNodeId,
@@ -378,8 +382,22 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       return;
     }
 
-    await stopSession(activeSession.session_id, activeSession.workflow_id);
-    removeSession(activeSession.session_id);
+    const sessionId = activeSession.session_id;
+    const sessionWorkflowId = activeSession.workflow_id;
+    setIsStoppingSession(true);
+    removeSession(sessionId);
+    setActiveSession(null);
+
+    window.setTimeout(() => setIsStoppingSession(false), 1000);
+    void stopSession(sessionId, sessionWorkflowId)
+      .catch((error) => {
+        setWebrtcConfigError(
+          error instanceof Error
+            ? error.message
+            : "Failed to stop realtime session"
+        );
+      })
+      .finally(() => setIsStoppingSession(false));
   }, [activeSession, removeSession, setActiveSession, stopSession]);
 
   const handleBrightnessCommit = useCallback(
@@ -428,6 +446,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     sessionError,
     isStartSessionDisabled,
     isStopSessionDisabled,
+    isStoppingSession,
     startPreview,
     stopPreview,
     setBrightness,

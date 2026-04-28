@@ -88,6 +88,7 @@ const RealtimeStreamPage = () => {
         isStartSessionDisabled={controller.isStartSessionDisabled}
         hasPreviewStream={Boolean(controller.previewStream)}
         isStopSessionDisabled={controller.isStopSessionDisabled}
+        isStoppingSession={controller.isStoppingSession}
         previewError={controller.previewError}
         webrtcConfigError={controller.webrtcConfigError}
         webrtcError={controller.webrtcError}

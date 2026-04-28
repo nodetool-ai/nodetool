@@ -368,14 +368,14 @@ MVP direction:
 Steps:
 - [x] Identify the upstream Self-Forcing class/function that provides `inference(noise, text_prompts, return_latents, low_memory)`.
 - [x] Choose the lean MVP path: a NodeTool-controlled adapter around the official `CausalInferencePipeline` pattern, with any upstream package dependency kept explicit and minimal.
-- [ ] Map NodeTool's cached artifact paths into a typed model-path config for text encoder, transformer/checkpoint, VAE, optional LoRA, and optional VACE/control artifacts.
-- [ ] Add a small backend pipeline manager that lazy-loads one pipeline per profile, reuses warm state during a realtime session, and releases resources on stop/error.
+- [x] Map NodeTool's cached artifact paths into a typed model-path config for text encoder, transformer/checkpoint, VAE, optional LoRA, and optional VACE/control artifacts.
+- [x] Add a small backend pipeline manager that lazy-loads one pipeline per profile, reuses warm state during a realtime session, and releases resources on stop/error.
 - [ ] Add the smallest import/install path needed for the chosen backend to run inside the existing `nodetool` env; avoid external repo clones for the MVP.
 - [ ] Load the official Self-Forcing YAML config and instantiate `CausalInferencePipeline`.
 - [ ] Apply the cached Self-Forcing FP8/checkpoint artifact to the instantiated pipeline.
 - [ ] Move only the required components to CUDA/CPU for the RTX 3060 smoke profile.
 - [ ] Start with one conservative fallback resolution/profile if the cached Self-Forcing path cannot use arbitrary dimensions yet.
-- [ ] Audit `SelfForcing` and `LongLive` public fields against the parameter budget so user-facing nodes cover important controls without exposing adapter internals.
+- [x] Audit `SelfForcing` and `LongLive` public fields against the parameter budget so user-facing nodes cover important controls without exposing adapter internals.
 - [ ] Connect resolved artifacts to one upstream Self-Forcing pipeline class.
 - [ ] Run one inference call from an input frame and prompt.
 - [ ] Normalize sampler output to `rgb8` or `rgba8` `realtime_video_frame`.

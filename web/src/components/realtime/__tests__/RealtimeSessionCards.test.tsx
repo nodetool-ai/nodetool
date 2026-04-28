@@ -6,7 +6,6 @@ import type { RealtimeMetrics, RealtimeSessionRecord } from "@nodetool/protocol"
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { RealtimeCameraSetupCard } from "../RealtimeCameraSetupCard";
-import { RealtimeSessionControlsCard } from "../RealtimeSessionControlsCard";
 import { RealtimeSessionDetailsCard } from "../RealtimeSessionDetailsCard";
 import { RealtimeSessionListCard } from "../RealtimeSessionListCard";
 
