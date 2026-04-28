@@ -251,6 +251,10 @@ export function useSegmentation({
 
       const exportedLayer = exportSelectedRasterLayer(doc, activeLayer.id);
       if (!exportedLayer) {
+        console.error(
+          "[useSegmentation] Cannot run segmentation: active raster layer has no exportable image data."
+        );
+        setStatus("error");
         return;
       }
 
