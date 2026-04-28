@@ -1771,7 +1771,7 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/sam-3/image-rle": {
+    "fal-ai/sam-3-1/image-rle": {
       className: "Sam3ImageRle",
       docstring: "Sam 3",
       tags: ["editing", "transformation", "image-to-image", "img2img"],
@@ -1784,7 +1784,7 @@ export const config: ModuleConfig = {
       ]
     },
 
-    "fal-ai/sam-3/image": {
+    "fal-ai/sam-3-1/image": {
       className: "Sam3Image",
       docstring: "Segment Anything Model 3",
       tags: ["editing", "transformation", "image-to-image", "img2img"],

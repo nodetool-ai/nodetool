@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { SegmentSettingsPanel } from "../ToolSettingsPanels";
 import { DEFAULT_SEGMENT_SETTINGS } from "../types";
 import type { SamModelInfo } from "../sam";
-import { LOCAL_SAM3_CAPABILITIES } from "../sam";
+import { FAL_SAM_CAPABILITIES, LOCAL_SAM3_CAPABILITIES } from "../sam";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { useSketchStore } from "../state";
 
@@ -16,6 +16,16 @@ const baseLocalSam3Info: SamModelInfo = {
   modelId: "facebook/sam3",
   modelName: "Local SAM3",
   errorMessage: "Local SAM3 is not ready"
+};
+
+const baseFalInfo: SamModelInfo = {
+  status: "available",
+  backendId: "fal",
+  backendLabel: "fal.ai",
+  capabilities: FAL_SAM_CAPABILITIES,
+  nodeType: "fal.image_to_image.Sam3Image",
+  modelId: "fal-ai/sam-3-1/image",
+  modelName: "SAM 3.1 (fal.ai Cloud)"
 };
 
 describe("SegmentSettingsPanel", () => {
@@ -181,6 +191,32 @@ describe("SegmentSettingsPanel", () => {
     expect(
       screen.queryByRole("textbox", { name: "Concept prompt" })
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the provider concept field when backend capabilities allow text prompts", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "point",
+          conceptPrompt: "foreground object"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseFalInfo}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("textbox", { name: "Concept prompt" })).toHaveValue(
+      "foreground object"
+    );
   });
 
   it("shows the node-pack hint when Local SAM3 metadata is unavailable", () => {

@@ -194,7 +194,7 @@ Known provider node shape: fal has SAM3 image nodes with `image`, `prompt`, `poi
 
 Guardrail: treat `web/src/components/sketch/sam/` as prototype code to evaluate, not fixed architecture. Keep only the parts that translate sketch document concepts to NodeTool node graphs and back. Sketch defines a small SAM interface for layer split and prompted object separation. Local SAM3 and Provider SAM3 adapters must satisfy that same sketch interface so the user can choose either backend; do not chase provider-specific parity outside sketch needs.
 
-### [ ] 3.1 Define Local SAM3 Backend
+### [x] 3.1 Define Local SAM3 Backend
 Execution notes:
 - `web/src/components/sketch/SKETCH_EDITOR_PLAN.md` is the source of truth for this phase.
 - Work tasks top-to-bottom. do not jump to provider SAM3 before Local SAM3 split works.
@@ -382,18 +382,18 @@ Files:
 Steps:
 - [ ] Defer this task until Local SAM3 split works end to end.
 - [ ] Defer this task until a sketch interaction requires provider SAM3.
-- [ ] Use `fal-ai/sam-3-1/image` for the future provider image backend.
-- [ ] Use `fal-ai/sam-3-1/image-rle` for the future provider RLE backend.
-- [ ] Update fal codegen config and generated manifest from the current `sam-3` entries to the `sam-3-1` endpoint set.
+- [x] Use `fal-ai/sam-3-1/image` for the future provider image backend.
+- [x] Use `fal-ai/sam-3-1/image-rle` for the future provider RLE backend.
+- [x] Update fal codegen config and generated manifest from the current `sam-3` entries to the `sam-3-1` endpoint set.
 - [ ] Map Provider SAM3 image output to `fal.image_to_image.Sam3Image`.
 - [ ] Map Provider SAM3 RLE output to `fal.image_to_image.Sam3ImageRle`.
 - [ ] Read paid provider secret state from existing secrets state.
-- [ ] Use `prompt` for concept segmentation.
-- [ ] Use `point_prompts` and `box_prompts` for prompted object separation.
-- [ ] Request `return_multiple_masks`, `include_scores`, and `include_boxes` for multi-mask preview and naming.
+- [x] Use `prompt` for concept segmentation.
+- [x] Use `point_prompts` and `box_prompts` for prompted object separation.
+- [x] Request `return_multiple_masks`, `include_scores`, and `include_boxes` for multi-mask preview and naming.
 - [ ] Add provider output normalization for `masks`, preview `image`, `rle`, `metadata`, `scores`, and `boxes`.
 - [ ] Keep Provider SAM3 behind the same capability metadata checks as Local SAM3.
-- [ ] Make Provider SAM3 implement the same sketch SAM backend interface as Local SAM3.
+- [x] Make Provider SAM3 implement the same sketch SAM backend interface as Local SAM3.
 
 Check:
 - [ ] Provider SAM3 does not affect the Local SAM3 path.

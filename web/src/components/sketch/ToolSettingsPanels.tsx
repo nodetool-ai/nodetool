@@ -67,7 +67,11 @@ import {
   mergeRgbHexIntoColor
 } from "./types";
 import type { SamModelInfo } from "./sam";
-import { LOCAL_SAM3_MODEL_ID } from "./sam";
+import {
+  FAL_SAM_CAPABILITIES,
+  LOCAL_SAM3_CAPABILITIES,
+  LOCAL_SAM3_MODEL_ID
+} from "./sam";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { TextInput } from "../ui_primitives";
 import { useSketchStore } from "./state";
@@ -1512,15 +1516,12 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     localSam3DownloadStatus !== undefined &&
     IN_PROGRESS_DOWNLOAD_STATES.includes(localSam3DownloadStatus);
   const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
-  const localSam3SupportsPointPrompts = Boolean(
-    isLocalSam3 && modelInfo?.capabilities.pointPrompts
-  );
-  const localSam3SupportsBoxPrompts = Boolean(
-    isLocalSam3 && modelInfo?.capabilities.boxPrompts
-  );
-  const localSam3SupportsTextPrompts = Boolean(
-    isLocalSam3 && modelInfo?.capabilities.textPrompts
-  );
+  const backendCapabilities =
+    modelInfo?.capabilities ??
+    (isLocalSam3 ? LOCAL_SAM3_CAPABILITIES : FAL_SAM_CAPABILITIES);
+  const supportsPointPrompts = Boolean(backendCapabilities.pointPrompts);
+  const supportsBoxPrompts = Boolean(backendCapabilities.boxPrompts);
+  const supportsTextPrompts = Boolean(backendCapabilities.textPrompts);
   const canRunSegmentation = isLocalSam3
     ? localSam3Ready &&
       (settings.promptMode === "auto" ? canSplitSelectedLayer : true)
@@ -1532,23 +1533,21 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
     modelInfo.errorMessage !== LOCAL_SAM3_NODE_PACK_HINT &&
     localSam3DownloadStatus !== "completed" &&
     !localSam3Downloading;
-  const visiblePromptModes: SegmentPromptMode[] = isLocalSam3
-    ? [
-        ...(localSam3SupportsPointPrompts ? ["point" as const] : []),
-        ...(localSam3SupportsBoxPrompts ? ["box" as const] : []),
-        "auto"
-      ]
-    : ["point", "box", "auto"];
+  const visiblePromptModes: SegmentPromptMode[] = [
+    ...(supportsPointPrompts ? ["point" as const] : []),
+    ...(supportsBoxPrompts ? ["box" as const] : []),
+    "auto"
+  ];
   const isCurrentPromptModeVisible =
-    !isLocalSam3 ||
     settings.promptMode === "auto" ||
-    (settings.promptMode === "point" && localSam3SupportsPointPrompts) ||
-    (settings.promptMode === "box" && localSam3SupportsBoxPrompts);
+    (settings.promptMode === "point" && supportsPointPrompts) ||
+    (settings.promptMode === "box" && supportsBoxPrompts);
   const segmentActionLabel =
     isLocalSam3 && settings.promptMode === "auto"
       ? "Split selected layer"
       : "Segment";
   const showClearPrompts = !isLocalSam3 || settings.promptMode !== "auto";
+  const backendLabel = modelInfo?.backendLabel ?? (isLocalSam3 ? "Local SAM3" : "Selected backend");
   const modelStatusText = getSegmentModelStatusText(
     isLocalSam3,
     localSam3Downloading,
@@ -1764,7 +1763,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         sx={{ mt: "2px", ml: 0 }}
       />
 
-      {isLocalSam3 && localSam3SupportsTextPrompts && (
+      {supportsTextPrompts && (
         <Box className="setting-row" sx={{ alignItems: "flex-start" }}>
           <Typography className="setting-label" sx={{ pt: "6px" }}>
             Concept
@@ -1926,11 +1925,9 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           mt: "4px"
         }}
       >
-        {isLocalSam3
-          ? localSam3SupportsPointPrompts || localSam3SupportsBoxPrompts
-            ? promptModeHelpText(settings.promptMode)
-            : "Local SAM3 currently supports automatic layer split only."
-          : promptModeHelpText(settings.promptMode)}
+        {supportsPointPrompts || supportsBoxPrompts || supportsTextPrompts
+          ? promptModeHelpText(settings.promptMode)
+          : `${backendLabel} currently supports automatic layer split only.`}
       </Typography>
 
       {isLocalSam3 && settings.promptMode === "auto" && !canSplitSelectedLayer && (

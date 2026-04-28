@@ -1,7 +1,7 @@
 /**
- * SamServiceFal – real FAL AI backend integration for SAM 2 segmentation.
+ * SamServiceFal – real FAL AI backend integration for SAM 3.1 segmentation.
  *
- * Calls the fal-ai/sam2/image endpoint via its REST queue API.
+ * Calls the fal-ai/sam-3-1/image endpoint via its REST queue API.
  * FAL_API_KEY is loaded via GET /api/settings/secrets/FAL_API_KEY?decrypt=true (not in list payload).
  *
  * This service handles:
@@ -24,8 +24,8 @@ import useSecretsStore from "../../../stores/SecretsStore";
 
 const FAL_API_BASE = "https://queue.fal.run";
 const FAL_RESULT_BASE = "https://queue.fal.run";
-const SAM2_ENDPOINT = "fal-ai/sam2/image";
-const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam2Image";
+const SAM31_ENDPOINT = "fal-ai/sam-3-1/image";
+const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam3Image";
 
 /**
  * Maximum image dimension (width or height) sent to the model.
@@ -73,9 +73,106 @@ interface FalResultImage {
   content_type?: string;
 }
 
-interface FalSam2Result {
-  images?: FalResultImage[];
+interface FalSam3Result {
+  masks?: FalResultImage[];
   image?: FalResultImage;
+  metadata?: unknown;
+  scores?: unknown;
+  boxes?: unknown;
+}
+
+interface FalNormalizedBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function parseJsonValue<T>(value: unknown): T | null {
+  if (value == null) {
+    return null;
+  }
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      // Provider SAM fields may arrive as JSON-encoded strings or already-parsed
+      // objects; treat invalid JSON payloads as absent optional metadata and
+      // return null for invalid JSON or null/undefined inputs.
+      return null;
+    }
+  }
+  return value as T;
+}
+
+/**
+ * Normalize provider confidence scores from either a JSON string payload or an
+ * already-parsed array, discarding invalid or non-finite entries.
+ */
+function normalizeFalScores(value: unknown): number[] {
+  const parsed = parseJsonValue<unknown>(value);
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+  return parsed
+    .map((entry) => (typeof entry === "number" && Number.isFinite(entry) ? entry : null))
+    .filter((entry): entry is number => entry !== null);
+}
+
+function normalizeFalBoxes(
+  value: unknown,
+  fallbackMasks: FalResultImage[],
+  scale: number
+): FalNormalizedBox[] {
+  const parsed = parseJsonValue<unknown>(value);
+  if (!Array.isArray(parsed)) {
+    return fallbackMasks.map((mask) => ({
+      x: 0,
+      y: 0,
+      width: Math.round(mask.width * (scale > 0 ? 1 / scale : 1)),
+      height: Math.round(mask.height * (scale > 0 ? 1 / scale : 1))
+    }));
+  }
+
+  const invScale = scale > 0 ? 1 / scale : 1;
+  return parsed.map((entry, index) => {
+    const fallbackMask = fallbackMasks[index];
+    const fallbackBox: FalNormalizedBox = {
+      x: 0,
+      y: 0,
+      width: Math.round((fallbackMask?.width ?? 0) * invScale),
+      height: Math.round((fallbackMask?.height ?? 0) * invScale)
+    };
+
+    if (Array.isArray(entry) && entry.length >= 4) {
+      const [cx, cy, width, height] = entry;
+      if (
+        typeof cx === "number" &&
+        Number.isFinite(cx) &&
+        typeof cy === "number" &&
+        Number.isFinite(cy) &&
+        typeof width === "number" &&
+        Number.isFinite(width) &&
+        typeof height === "number" &&
+        Number.isFinite(height)
+      ) {
+        const maskWidth = fallbackMask?.width ?? 0;
+        const maskHeight = fallbackMask?.height ?? 0;
+        return {
+          // fal SAM 3.1 returns normalized [0..1] [cx, cy, w, h]; e.g.
+          // [0.5, 0.5, 0.5, 0.5] covers the centered middle quarter. Convert
+          // that center-based box back to top-left pixel bounds in the resized
+          // mask image before undoing resizeForInference's scale factor.
+          x: Math.round((cx - width / 2) * maskWidth * invScale),
+          y: Math.round((cy - height / 2) * maskHeight * invScale),
+          width: Math.round(width * maskWidth * invScale),
+          height: Math.round(height * maskHeight * invScale)
+        };
+      }
+    }
+
+    return fallbackBox;
+  });
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -183,7 +280,7 @@ export class SamServiceFal implements SamService {
 
     // Test connectivity by checking the queue endpoint
     try {
-      const res = await fetch(`${FAL_API_BASE}/${SAM2_ENDPOINT}`, {
+      const res = await fetch(`${FAL_API_BASE}/${SAM31_ENDPOINT}`, {
         method: "OPTIONS",
         headers: { Authorization: `Key ${apiKey}` }
       });
@@ -266,18 +363,27 @@ export class SamServiceFal implements SamService {
     const falInput: Record<string, unknown> = {
       image_url: imageUrl,
       sync_mode: true,
-      output_format: "png"
+      output_format: "png",
+      return_multiple_masks: request.settings.maxObjects > 1,
+      max_masks: request.settings.maxObjects,
+      include_scores: true,
+      include_boxes: true,
+      apply_mask: false
     };
 
+    const trimmedConceptPrompt = request.settings.conceptPrompt.trim();
+    if (trimmedConceptPrompt.length > 0) {
+      falInput.prompt = trimmedConceptPrompt;
+    }
     if (falPrompts.length > 0) {
-      falInput.prompts = falPrompts;
+      falInput.point_prompts = falPrompts;
     }
     if (falBoxPrompts.length > 0) {
       falInput.box_prompts = falBoxPrompts;
     }
 
     // 4. Submit to FAL queue
-    const submitRes = await fetch(`${FAL_API_BASE}/${SAM2_ENDPOINT}`, {
+    const submitRes = await fetch(`${FAL_API_BASE}/${SAM31_ENDPOINT}`, {
       method: "POST",
       headers: {
         Authorization: `Key ${apiKey}`,
@@ -295,8 +401,8 @@ export class SamServiceFal implements SamService {
     const submitData = await submitRes.json();
 
     // If sync_mode returned the result directly
-    if (submitData.images || submitData.image) {
-      return this.parseResult(submitData as FalSam2Result, scale);
+    if (submitData.masks || submitData.image) {
+      return this.parseResult(submitData as FalSam3Result, scale);
     }
 
     // Otherwise, poll the queue
@@ -326,7 +432,7 @@ export class SamServiceFal implements SamService {
       await new Promise((resolve) => setTimeout(resolve, QUEUE_POLL_INTERVAL_MS));
 
       const statusRes = await fetch(
-        `${FAL_RESULT_BASE}/${SAM2_ENDPOINT}/requests/${requestId}/status`,
+        `${FAL_RESULT_BASE}/${SAM31_ENDPOINT}/requests/${requestId}/status`,
         {
           headers: { Authorization: `Key ${apiKey}` },
           signal
@@ -342,7 +448,7 @@ export class SamServiceFal implements SamService {
       if (statusData.status === "COMPLETED") {
         // Fetch the result
         const resultRes = await fetch(
-          `${FAL_RESULT_BASE}/${SAM2_ENDPOINT}/requests/${requestId}`,
+          `${FAL_RESULT_BASE}/${SAM31_ENDPOINT}/requests/${requestId}`,
           {
             headers: { Authorization: `Key ${apiKey}` },
             signal
@@ -351,7 +457,7 @@ export class SamServiceFal implements SamService {
         if (!resultRes.ok) {
           throw new Error(`Failed to fetch result: ${resultRes.status}`);
         }
-        const resultData: FalSam2Result = await resultRes.json();
+        const resultData: FalSam3Result = await resultRes.json();
         return this.parseResult(resultData, scale);
       }
 
@@ -364,10 +470,12 @@ export class SamServiceFal implements SamService {
   }
 
   private parseResult(
-    data: FalSam2Result,
+    data: FalSam3Result,
     scale: number
   ): SegmentationResponse {
-    const images = data.images ?? (data.image ? [data.image] : []);
+    const images = data.masks ?? (data.image ? [data.image] : []);
+    const scores = normalizeFalScores(data.scores);
+    const boxes = normalizeFalBoxes(data.boxes, images, scale);
 
     if (images.length === 0) {
       return {
@@ -377,22 +485,20 @@ export class SamServiceFal implements SamService {
       };
     }
 
-    // Each image from SAM2 is a mask or a combined masked output
-    // Convert to our SegmentationMask format
     const masks: SegmentationMask[] = images.map((img, i) => {
-      const invScale = scale > 0 ? 1 / scale : 1;
+      const fallbackBounds = boxes[i] ?? {
+        x: 0,
+        y: 0,
+        width: Math.round(img.width * (scale > 0 ? 1 / scale : 1)),
+        height: Math.round(img.height * (scale > 0 ? 1 / scale : 1))
+      };
       return {
         id: `mask_${i}`,
         kind: "mask",
         label: `Object ${i + 1}`,
         maskDataUrl: img.url,
-        confidence: 1.0, // FAL doesn't return confidence per mask
-        bounds: {
-          x: 0,
-          y: 0,
-          width: Math.round(img.width * invScale),
-          height: Math.round(img.height * invScale)
-        },
+        confidence: scores[i] ?? 1,
+        bounds: fallbackBounds,
         backendId: "fal",
         modelId: DEFAULT_SAM_MODEL_ID,
         nodeType: FAL_SAM_NODE_TYPE
