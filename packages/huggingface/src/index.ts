@@ -45,7 +45,6 @@ export { getHuggingfaceFileInfos } from "./hf-file-info.js";
 export {
   asyncHfDownload,
   hfHubFileUrl,
-  hfHeadMetadata,
   hfCacheRoot,
   hfRepoCacheDir
 } from "./hf-downloader.js";

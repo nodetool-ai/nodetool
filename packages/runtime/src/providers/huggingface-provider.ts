@@ -48,6 +48,8 @@ async function getHfInference(apiKey: string): Promise<any> {
 // ---------------------------------------------------------------------------
 // Live HF Hub model discovery — queries warm inference models by pipeline tag,
 // sorted by likes, limited to 100 results, cached for 10 minutes.
+// Uses direct fetch because `@huggingface/hub` listModels does not expose the
+// `inference=warm` filter needed to limit results to inference-ready models.
 // ---------------------------------------------------------------------------
 
 const HF_API_BASE = "https://huggingface.co/api/models";
@@ -56,7 +58,6 @@ const MODEL_LIMIT = 100;
 
 interface HfModelEntry {
   id: string;
-  modelId?: string;
   likes?: number;
   pipeline_tag?: string;
 }
@@ -66,12 +67,12 @@ interface CachedResult<T> {
   timestamp: number;
 }
 
-const _modelCache = new Map<string, CachedResult<unknown[]>>();
+const _modelCache = new Map<string, CachedResult<HfModelEntry[]>>();
 
 async function fetchHfModels(pipelineTag: string): Promise<HfModelEntry[]> {
   const cached = _modelCache.get(pipelineTag);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached.data as HfModelEntry[];
+    return cached.data;
   }
 
   const url = `${HF_API_BASE}?pipeline_tag=${encodeURIComponent(pipelineTag)}&inference=warm&sort=likes&direction=-1&limit=${MODEL_LIMIT}`;
@@ -79,14 +80,14 @@ async function fetchHfModels(pipelineTag: string): Promise<HfModelEntry[]> {
     const res = await fetch(url);
     if (!res.ok) {
       log.warn(`HF API returned ${res.status} for ${pipelineTag}`);
-      return (cached?.data as HfModelEntry[]) ?? [];
+      return cached?.data ?? [];
     }
     const data = (await res.json()) as HfModelEntry[];
     _modelCache.set(pipelineTag, { data, timestamp: Date.now() });
     return data;
   } catch (err) {
     log.warn(`Failed to fetch HF models for ${pipelineTag}: ${err}`);
-    return (cached?.data as HfModelEntry[]) ?? [];
+    return cached?.data ?? [];
   }
 }
 

@@ -8,6 +8,8 @@
  * Port of nodetool-core's `hf_download.py`, simplified for TypeScript.
  */
 
+import { listFiles } from "@huggingface/hub";
+
 import { asyncHfDownload, hfRepoCacheDir } from "./hf-downloader.js";
 import { downloadLlamaCppModel } from "./llama-cpp-download.js";
 import { resolveHfToken } from "./hf-auth.js";
@@ -244,21 +246,19 @@ export class DownloadManager {
       // Resolve token
       const token = await resolveHfToken(this.token);
 
-      // List remote files
-      const apiUrl = `https://huggingface.co/api/models/${repoId}/tree/main?recursive=true`;
-      const listHeaders: Record<string, string> = {};
-      if (token) {
-        listHeaders["Authorization"] = `Bearer ${token}`;
+      // List remote files via @huggingface/hub
+      const treeEntries: HfTreeEntry[] = [];
+      for await (const entry of listFiles({
+        repo: { name: repoId, type: "model" },
+        recursive: true,
+        ...(token ? { accessToken: token } : {})
+      })) {
+        treeEntries.push({
+          type: entry.type,
+          path: entry.path,
+          size: entry.size
+        });
       }
-
-      const listResp = await fetch(apiUrl, { headers: listHeaders });
-      if (!listResp.ok) {
-        throw new Error(
-          `Failed to list files for ${repoId}: ${listResp.status} ${listResp.statusText}`
-        );
-      }
-      const treeEntries: HfTreeEntry[] =
-        (await listResp.json()) as HfTreeEntry[];
 
       // Filter
       let files = filterFiles(treeEntries, allowPatterns, ignorePatterns);
