@@ -1557,7 +1557,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   );
 
   useEffect(() => {
-    if (isCurrentPromptModeVisible || settings.promptMode === "auto") {
+    if (isCurrentPromptModeVisible) {
       return;
     }
     onChange({ promptMode: "auto" });

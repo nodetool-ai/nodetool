@@ -323,8 +323,11 @@ export class SamServiceNode implements SamService {
       const metadata = useMetadataStore
         .getState()
         .getMetadata(this.config.nodeType);
-      if (!metadata || !hasMetadataInputs(metadata, LOCAL_SAM3_REQUIRED_INPUTS)) {
+      if (!metadata) {
         throw new Error("Local SAM3 node metadata is unavailable");
+      }
+      if (!hasMetadataInputs(metadata, LOCAL_SAM3_REQUIRED_INPUTS)) {
+        throw new Error("Local SAM3 node metadata is missing required inputs");
       }
       return this.buildLocalSam3Graph(
         imageDataUrl,

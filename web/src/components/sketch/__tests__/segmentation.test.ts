@@ -1090,6 +1090,27 @@ describe("SAM node configurations", () => {
 // ─── NodeExecutor ─────────────────────────────────────────────────────────────
 
 describe("NodeExecutor", () => {
+  beforeEach(() => {
+    useMetadataStore.setState({
+      metadata: {
+        "huggingface.image_segmentation.MaskGeneration": {
+          node_type: "huggingface.image_segmentation.MaskGeneration",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("model"),
+            makeMetadataProperty("points_per_side"),
+            makeMetadataProperty("pred_iou_thresh")
+          ]
+        }
+      } as any
+    });
+  });
+
+  afterEach(() => {
+    useMetadataStore.setState({ metadata: {} });
+    useAssetStore.setState({ createAsset: useAssetStore.getInitialState().createAsset });
+  });
+
   it("getNodeExecutor returns a WebSocketNodeExecutor by default", () => {
     const { getNodeExecutor, WebSocketNodeExecutor } = require("../sam/NodeExecutor");
     const executor = getNodeExecutor();
