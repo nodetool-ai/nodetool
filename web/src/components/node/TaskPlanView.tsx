@@ -9,14 +9,13 @@ interface TaskPlanViewProps {
   data: Task[] | { type?: "task_plan"; title?: string; tasks?: Task[] };
 }
 
-const styles = () =>
-  css({
-    ".task-list-title": {
-      margin: "1rem 1rem",
-      fontWeight: "bold",
-      fontSize: "1rem"
-    }
-  });
+const cssStyles = css({
+  ".task-list-title": {
+    margin: "1rem 1rem",
+    fontWeight: "bold",
+    fontSize: "1rem"
+  }
+});
 
 const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
   const { tasks, title } = useMemo(() => {
@@ -29,7 +28,7 @@ const TaskPlanView: React.FC<TaskPlanViewProps> = ({ data }) => {
   }, [data]);
 
   return (
-    <div css={styles()}>
+    <div css={cssStyles}>
       {title && (
         <Text size="normal" weight={600} className="task-list-title">
           {title}
