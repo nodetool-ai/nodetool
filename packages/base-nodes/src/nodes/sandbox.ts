@@ -7,12 +7,7 @@ import {
 } from "@nodetool-ai/sandbox";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
-import { runAgentLoop, type ToolLike } from "./agents.js";
-
-type LanguageModelLike = {
-  provider?: string;
-  id?: string;
-};
+import { AgentNode, type ToolLike } from "./agents.js";
 
 const DEFAULT_SCOPE_USER = "no-user";
 const DEFAULT_SCOPE_WORKFLOW = "no-workflow";
@@ -459,6 +454,26 @@ function asTrimmedString(value: unknown): string {
 }
 
 /**
+ * Path inside the sandbox container where the host workspace is bind-mounted.
+ * See DockerSandbox: `${workspaceDir}:/workspace:rw`.
+ */
+const SANDBOX_WORKSPACE_MOUNT = "/workspace";
+
+/**
+ * Resolve the host workspace directory to mount into the sandbox.
+ * Prefer the explicit node prop; otherwise auto-mount the workflow's
+ * workspace from ProcessingContext so sandbox tools see project files.
+ */
+function resolveSandboxWorkspaceDir(
+  prop: unknown,
+  context?: ProcessingContext
+): string {
+  const explicit = asTrimmedString(prop);
+  if (explicit.length > 0) return explicit;
+  return asTrimmedString(context?.workspaceDir);
+}
+
+/**
  * Build a stable context scope used to isolate sandbox sessions per workflow run.
  * Format: "<userId>:<workflowId>:<jobId>" with explicit fallback tokens.
  */
@@ -551,7 +566,7 @@ export class SandboxShellNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
-    const workspaceDir = asTrimmedString(this.workspace_dir);
+    const workspaceDir = resolveSandboxWorkspaceDir(this.workspace_dir, context);
     const command = asString(this.command);
     const normalizedCommand = asTrimmedString(this.command);
     const waitSeconds = Number(this.wait_seconds ?? 1);
@@ -565,7 +580,7 @@ export class SandboxShellNode extends BaseNode {
     await client.shellExec({
       id: commandId,
       command,
-      exec_dir: workspaceDir || undefined
+      exec_dir: workspaceDir.length > 0 ? SANDBOX_WORKSPACE_MOUNT : undefined
     });
 
     const shellResult =
@@ -631,7 +646,7 @@ export class SandboxBrowserNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
-    const workspaceDir = asTrimmedString(this.workspace_dir);
+    const workspaceDir = resolveSandboxWorkspaceDir(this.workspace_dir, context);
     const action = asTrimmedString(this.action || "view") as BrowserAction;
     const params = asRecord(this.params);
     const client = await getClient(effectiveSessionId, workspaceDir, context);
@@ -685,7 +700,7 @@ export class SandboxFileNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
-    const workspaceDir = asTrimmedString(this.workspace_dir);
+    const workspaceDir = resolveSandboxWorkspaceDir(this.workspace_dir, context);
     const action = asTrimmedString(this.action || "read") as FileAction;
     const params = asRecord(this.params);
     const client = await getClient(effectiveSessionId, workspaceDir, context);
@@ -702,103 +717,37 @@ export class SandboxFileNode extends BaseNode {
   }
 }
 
-export class SandboxAgentNode extends BaseNode {
+/**
+ * SandboxAgent — same as the standard Agent node, but augments the tool
+ * list with the sandbox shell/browser/file actions and auto-mounts the
+ * workflow workspace into the container. Inherits streaming, mode
+ * dispatch (loop/plan/multi-agent), history, threads, image/audio,
+ * structured outputs, control tools, and the agentic-provider fast-path
+ * from AgentNode.
+ */
+export class SandboxAgentNode extends AgentNode {
   static readonly nodeType = "nodetool.sandbox.SandboxAgent";
   static readonly title = "SandboxAgent";
   static readonly description =
-    "Prompt-driven agent with access to configured sandbox shell, browser, and file tools.";
-  static readonly metadataOutputTypes = {
-    text: "str"
-  };
-  static readonly isStreamingOutput = true;
-
-  @prop({
-    type: "language_model",
-    default: {
-      type: "language_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      path: null,
-      supported_tasks: []
-    },
-    title: "Model",
-    description: "Model used by the sandbox agent."
-  })
-  declare model: LanguageModelLike;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Prompt",
-    description: "Prompt describing what the sandbox agent should do."
-  })
-  declare prompt: string;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "System Prompt",
-    description: "Optional system prompt."
-  })
-  declare system_prompt: string;
+    "Agent with access to sandbox shell, browser, and file tools alongside any user-selected tools.";
 
   @prop({
     type: "str",
     default: "",
     title: "Workspace Dir",
-    description: "Optional sandbox workspace directory."
+    description:
+      "Host directory bind-mounted into the sandbox at /workspace. Defaults to the workflow's workspace."
   })
   declare workspace_dir: string;
 
-  @prop({
-    type: "int",
-    default: 12,
-    title: "Max Iterations",
-    description: "Maximum agent tool-calling iterations.",
-    min: 1,
-    max: 100
-  })
-  declare max_iterations: number;
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const prompt = String(this.prompt ?? "").trim();
-    if (prompt.length === 0) {
-      throw new Error("Prompt is required");
-    }
-    if (!context || typeof context.getProvider !== "function") {
-      throw new Error("Processing context with provider access is required");
-    }
-
-    const model = (this.model ?? {}) as LanguageModelLike;
-    const providerId = asTrimmedString(model.provider);
-    const modelId = asTrimmedString(model.id);
-    if (providerId.length === 0 || modelId.length === 0) {
-      throw new Error("Select a model for SandboxAgent.");
-    }
-
-    const effectiveSessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
-    const workspaceDir = asTrimmedString(this.workspace_dir);
-    const maxIterations = Number(this.max_iterations ?? 12);
-    const client = await getClient(effectiveSessionId, workspaceDir, context);
-    const tools = createAgentTools(client);
-
-    const { text } = await runAgentLoop({
-      context,
-      providerId,
-      modelId,
-      systemPrompt:
-        String(this.system_prompt ?? "").trim() ||
-        "You are a careful sandbox execution agent. Use tools and provide concise results.",
-      prompt,
-      tools,
-      maxTokens: 4096,
-      maxIterations
-    });
-
-    return {
-      text
-    };
+  protected override async buildTools(
+    context?: ProcessingContext
+  ): Promise<ToolLike[]> {
+    const userTools = await super.buildTools(context);
+    const sessionId = toEffectiveSessionId(DEFAULT_SESSION_ID, context);
+    const workspaceDir = resolveSandboxWorkspaceDir(this.workspace_dir, context);
+    const client = await getClient(sessionId, workspaceDir, context);
+    return [...createAgentTools(client), ...userTools];
   }
 }
 
