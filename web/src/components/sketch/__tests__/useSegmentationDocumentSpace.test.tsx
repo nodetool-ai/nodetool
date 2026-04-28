@@ -277,7 +277,8 @@ describe("useSegmentation document-space apply", () => {
 
     const canvasRef = {
       current: {
-        getLayerData: jest.fn().mockReturnValue(null)
+        // Prompted runs should use serialized layer exports, not canvas readback.
+        getLayerData: jest.fn()
       } as unknown as SketchCanvasRef
     };
 

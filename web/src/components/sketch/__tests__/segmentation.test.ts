@@ -1313,6 +1313,9 @@ describe("NodeExecutor", () => {
       });
 
       const graph = mockExecutor.execute.mock.calls[0][0];
+      // documentOrigin = (12, 23), so doc point (15, 29) maps to layer-local
+      // (3, 6) before resizeForInference doubles it to (6, 12). The box
+      // origin/size follow the same translation-first, scale-second mapping.
       expect(graph.nodes[0].data.point_prompts).toEqual([
         { x: 6, y: 12, label: 1 }
       ]);
