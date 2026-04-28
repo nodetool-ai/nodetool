@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import crypto from "node:crypto";
-import { createLogger, getDefaultDbPath } from "@nodetool-ai/config";
+import { createLogger, configureLogging, getDefaultDbPath } from "@nodetool-ai/config";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -105,6 +105,10 @@ import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
 }
 
 const log = createLogger("nodetool.websocket.server");
+// Apply log level from NODETOOL_LOG_LEVEL / LOG_LEVEL env vars (the module
+// initialises eagerly, but an explicit call here picks up any env mutations
+// made by the process launcher before this point).
+configureLogging();
 const startupT0 = performance.now();
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;

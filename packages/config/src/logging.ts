@@ -31,7 +31,24 @@ const LEVEL_NUM: Record<LogLevel, number> = {
   error: 3
 };
 
-let currentLevel: LogLevel = "info";
+/** Maps Python-style log level names to their JS equivalents. */
+const LEVEL_ALIASES: Record<string, LogLevel> = {
+  warning: "warn",
+  critical: "error"
+};
+
+function normalizeLevel(raw: string): LogLevel | null {
+  const lower = raw.toLowerCase();
+  if ((VALID_LEVELS as string[]).includes(lower)) return lower as LogLevel;
+  return LEVEL_ALIASES[lower] ?? null;
+}
+
+// Initialize eagerly from env so configureLogging() is optional for entry
+// points (e.g. the WebSocket server) that skip the explicit call.
+let currentLevel: LogLevel =
+  normalizeLevel(
+    process.env["NODETOOL_LOG_LEVEL"] ?? process.env["LOG_LEVEL"] ?? ""
+  ) ?? "info";
 
 /** File descriptor for log output. Defaults to stderr; set via NODETOOL_LOG_FILE. */
 let logFd: number | null = null;
@@ -47,12 +64,9 @@ export function configureLogging(opts: LoggingOptions = {}): void {
   if (opts.level) {
     currentLevel = opts.level;
   } else {
-    const envLevel = (
-      process.env["NODETOOL_LOG_LEVEL"] ??
-      process.env["LOG_LEVEL"] ??
-      "info"
-    ).toLowerCase() as LogLevel;
-    currentLevel = VALID_LEVELS.includes(envLevel) ? envLevel : "info";
+    const envRaw =
+      process.env["NODETOOL_LOG_LEVEL"] ?? process.env["LOG_LEVEL"] ?? "info";
+    currentLevel = normalizeLevel(envRaw) ?? "info";
   }
 
   // Open log file if configured (lazy import to keep module lightweight)
