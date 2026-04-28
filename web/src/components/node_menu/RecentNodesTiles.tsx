@@ -4,9 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
-import type { CSSProperties, DragEvent as ReactDragEvent } from "react";
-import { Box } from "@mui/material";
-import { Tooltip, Text, ToolbarIconButton } from "../ui_primitives";
+import type { DragEvent as ReactDragEvent } from "react";
+import { Tooltip, Text, ToolbarIconButton, FlexRow } from "../ui_primitives";
 import HistoryIcon from "@mui/icons-material/History";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
@@ -18,6 +17,7 @@ import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles";
+import { IconForType, colorForType } from "../../config/data_types";
 
 const QUICK_ACTION_NODE_TYPES = new Set(
   QUICK_ACTION_BUTTONS.map((action) => action.nodeType)
@@ -59,7 +59,7 @@ const tileStyles = (theme: Theme) =>
       gap: "8px",
       alignContent: "start",
       overflowY: "auto",
-      padding: "2px",
+      padding: "6px 2px 2px",
       "&::-webkit-scrollbar": {
         width: "6px"
       },
@@ -84,10 +84,10 @@ const tileStyles = (theme: Theme) =>
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",
-      border: "1px solid rgba(255, 255, 255, 0.06)",
+      border: `1px solid ${theme.vars.palette.divider}`,
       transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-      minHeight: "30px",
-      background: "rgba(255, 255, 255, 0.02)",
+      minHeight: "64px",
+      background: theme.vars.palette.background.paper,
       "&::before": {
         content: '""',
         position: "absolute",
@@ -101,11 +101,14 @@ const tileStyles = (theme: Theme) =>
       },
       "&:hover": {
         transform: "translateY(-3px)",
-        borderColor: "rgba(255, 255, 255, 0.15)",
-        background: "rgba(255, 255, 255, 0.05)",
-        boxShadow: "0 8px 24px -6px rgba(0, 0, 0, 0.5)",
+        borderColor: theme.vars.palette.primary.main,
+        background: theme.vars.palette.action.hover,
+        boxShadow: "none",
         "&::before": {
           opacity: 1
+        },
+        "& .tile-icon": {
+          transform: "scale(1.1)"
         },
         "& .tile-label": {
           opacity: 1
@@ -116,13 +119,26 @@ const tileStyles = (theme: Theme) =>
         transition: "all 0.1s ease"
       }
     },
+    ".tile-icon": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: "6px",
+      transition: "transform 0.3s ease",
+      "& svg": {
+        fontSize: "1.5rem",
+        filter: theme.palette.mode === "dark"
+          ? "drop-shadow(0 3px 5px rgba(0,0,0,0.35))"
+          : "none"
+      }
+    },
     ".tile-label": {
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       textAlign: "center",
       lineHeight: 1.3,
       color: theme.vars.palette.text.primary,
-      opacity: 0.8,
+      opacity: 0.9,
       transition: "opacity 0.3s ease",
       maxWidth: "100%",
       overflow: "hidden",
@@ -282,12 +298,12 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
   }
 
   return (
-    <Box css={memoizedStyles}>
+    <div css={memoizedStyles}>
       <div className="tiles-header">
-        <Text size="normal" weight={600}>
+        <FlexRow align="center" gap={0.5}>
           <HistoryIcon fontSize="small" sx={{ opacity: 0.8 }} />
-          Recent Nodes
-        </Text>
+          <Text size="normal" weight={600}>Recent Nodes</Text>
+        </FlexRow>
         <ToolbarIconButton
           icon={<ClearIcon fontSize="small" />}
           tooltip="Clear recent nodes"
@@ -301,7 +317,10 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
       <div className="tiles-container">
         {filteredRecentNodes.map((recentNode) => {
           const { nodeType } = recentNode;
+          const metadata = getMetadata(nodeType);
           const displayName = nodeDisplayNames.get(nodeType) || nodeType;
+          const outputType = metadata?.outputs?.[0]?.type?.type || "notype";
+          const iconColor = colorForType(outputType);
 
           return (
             <Tooltip
@@ -332,19 +351,22 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                 onClick={handleTileClick}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
-                style={
-                  {
-                    background: theme.vars.palette.action.selected
-                  } as CSSProperties
-                }
               >
+                <div className="tile-icon" style={{ color: iconColor }}>
+                  <IconForType
+                    iconName={outputType}
+                    showTooltip={false}
+                    iconSize="normal"
+                    svgProps={{ style: { color: iconColor } }}
+                  />
+                </div>
                 <Text className="tile-label">{displayName}</Text>
               </div>
             </Tooltip>
           );
         })}
       </div>
-    </Box>
+    </div>
   );
 });
 

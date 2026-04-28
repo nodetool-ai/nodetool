@@ -282,7 +282,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
         <Box className="node-menu-container">
           <div className="main-content">
             <FlexColumn
-              gap={0.5}
+              gap={1}
               className="search-toolbar"
               sx={{
                 flexGrow: 0,
@@ -315,6 +315,14 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                     searchResults={searchResults}
                   />
                 </span>
+                <div style={{ marginLeft: "0.75em", flex: "1 1 auto", minWidth: 0 }}>
+                  <TypeFilterChips
+                    selectedInputType={selectedInputType}
+                    selectedOutputType={selectedOutputType}
+                    setSelectedInputType={setSelectedInputType}
+                    setSelectedOutputType={setSelectedOutputType}
+                  />
+                </div>
                 {searchTerm && searchTerm.trim() !== "" && (
                   <span
                     style={{
@@ -327,64 +335,6 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                     {searchResults.length} {searchResults.length === 1 ? "node" : "nodes"}
                   </span>
                 )}
-                {(selectedProviderType !== "all" || selectedInputType || selectedOutputType) && (
-                  <Chip
-                    size="small"
-                    label="Filtered"
-                    variant="outlined"
-                    sx={{
-                      height: "20px",
-                      fontSize: "0.65rem",
-                      borderColor: "var(--palette-warning-main)",
-                      color: "var(--palette-warning-main)"
-                    }}
-                  />
-                )}
-                <FlexRow
-                  gap={0.75}
-                  align="center"
-                  justify="flex-end"
-                  sx={{
-                    marginLeft: "auto",
-                    flexWrap: "wrap",
-                    minHeight: "24px"
-                  }}
-                >
-                  {selectedProviderType !== "all" && (
-                    <Chip
-                      size="small"
-                      label={`Provider: ${selectedProviderType === "api" ? "API" : "Local"}`}
-                      onDelete={() => setSelectedProviderType("all")}
-                    />
-                  )}
-                  {selectedInputType && (
-                    <Chip
-                      size="small"
-                      label={`Input: ${selectedInputType}`}
-                      onDelete={() => setSelectedInputType("")}
-                    />
-                  )}
-                  {selectedOutputType && (
-                    <Chip
-                      size="small"
-                      label={`Output: ${selectedOutputType}`}
-                      onDelete={() => setSelectedOutputType("")}
-                    />
-                  )}
-                </FlexRow>
-              </FlexRow>
-              <FlexRow
-                gap={1.5}
-                align="center"
-                className="filters-row"
-                sx={{ width: "100%", paddingRight: "0.25em" }}
-              >
-                <TypeFilterChips
-                  selectedInputType={selectedInputType}
-                  selectedOutputType={selectedOutputType}
-                  setSelectedInputType={setSelectedInputType}
-                  setSelectedOutputType={setSelectedOutputType}
-                />
               </FlexRow>
             </FlexColumn>
             <NamespaceList
