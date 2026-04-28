@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -30,10 +30,11 @@ interface TaskViewProps {
   task: Task;
 }
 
-const TaskView: React.FC<TaskViewProps> = ({ task }) => {
+const TaskView: React.FC<TaskViewProps> = memo(({ task }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   return (
-    <div css={styles(theme)} className="noscroll">
+    <div css={cssStyles} className="noscroll">
       <Card className="task-container" variant="elevated" elevation={1}>
         <Text size="normal" weight={600} className="task-title">
           Task: {task.title}
@@ -55,6 +56,8 @@ const TaskView: React.FC<TaskViewProps> = ({ task }) => {
       </Card>
     </div>
   );
-};
+});
+
+TaskView.displayName = "TaskView";
 
 export default TaskView;

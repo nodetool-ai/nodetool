@@ -145,6 +145,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
 
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme, MIN_WIDTH, MIN_HEIGHT), [theme]);
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
@@ -312,7 +313,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <div
-      css={styles(theme, MIN_WIDTH, MIN_HEIGHT)}
+      css={cssStyles}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} ${props.selected ? "selected" : ""}`}
       style={{

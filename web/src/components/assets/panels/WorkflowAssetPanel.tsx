@@ -12,6 +12,7 @@ import AssetGridContent from "../AssetGridContent";
 import AssetViewer from "../AssetViewer";
 import AssetDeleteConfirmation from "../AssetDeleteConfirmation";
 import useResultsStore from "../../../stores/ResultsStore";
+import { shallow } from "zustand/shallow";
 import WorkflowAssetToolbar from "./WorkflowAssetToolbar";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { getAssetCategory } from "../assetGridUtils";
@@ -36,8 +37,10 @@ const WorkflowAssetPanel: React.FC = () => {
   const selectedAssetIds = useAssetGridStore((state) => state.selectedAssetIds);
 
   // Subscribe to results store to detect new results
-  const results = useResultsStore((state) => state.results);
-  const outputResults = useResultsStore((state) => state.outputResults);
+  const { results, outputResults } = useResultsStore(
+    (state) => ({ results: state.results, outputResults: state.outputResults }),
+    shallow
+  );
 
   const {
     assets,
