@@ -203,6 +203,8 @@ describe("buildSandbox", () => {
     expect(typeof sandbox.sleep).toBe("function");
     expect(typeof sandbox.getSecret).toBe("function");
     expect(typeof sandbox.workspace).toBe("object");
+    expect(typeof sandbox.assetToSandbox).toBe("function");
+    expect(typeof sandbox.sandboxToAsset).toBe("function");
   });
 
   it("provides workspace stubs without context", () => {
@@ -215,6 +217,23 @@ describe("buildSandbox", () => {
     const { sandbox } = buildSandbox();
     const getSecret = sandbox.getSecret as (n: string) => Promise<unknown>;
     await expect(getSecret("ANY")).resolves.toBeUndefined();
+  });
+
+  it("asset bridge functions throw helpfully without context", async () => {
+    const { sandbox } = buildSandbox();
+    const assetToSandbox = sandbox.assetToSandbox as (
+      assetId: string,
+      path: string
+    ) => Promise<string>;
+    const sandboxToAsset = sandbox.sandboxToAsset as (
+      path: string
+    ) => Promise<unknown>;
+    await expect(assetToSandbox("a1", "out/file.txt")).rejects.toThrow(
+      "not available without a context"
+    );
+    await expect(sandboxToAsset("out/file.txt")).rejects.toThrow(
+      "not available without a context"
+    );
   });
 });
 
@@ -536,7 +555,13 @@ describe("runInSandbox context bridge", () => {
   const fakeContext = {
     getSecret: async (name: string) =>
       name === "API_KEY" ? "super-secret" : null,
-    resolveWorkspacePath: (p: string) => `/tmp/fake-ws/${p}`
+    resolveWorkspacePath: (p: string) => `/tmp/fake-ws/${p}`,
+    assetToSandbox: async (_assetId: string, p: string) => `/tmp/fake-ws/${p}`,
+    sandboxToAsset: async (p: string) => ({
+      type: "asset",
+      uri: `asset://from-${p}`,
+      asset_id: "a-from-sandbox"
+    })
   } as unknown as import("@nodetool/runtime").ProcessingContext;
 
   it("getSecret reads from the supplied context", async () => {
@@ -563,5 +588,26 @@ describe("runInSandbox context bridge", () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/workspace\.read is not available/);
+  });
+
+  it("assetToSandbox forwards to the supplied context", async () => {
+    const result = await runInSandbox({
+      code: `return await assetToSandbox("asset-1", "downloads/file.txt");`,
+      context: fakeContext
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("/tmp/fake-ws/downloads/file.txt");
+  });
+
+  it("sandboxToAsset forwards to the supplied context", async () => {
+    const result = await runInSandbox({
+      code: `return await sandboxToAsset("artifacts/image.png");`,
+      context: fakeContext
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toMatchObject({
+      type: "asset",
+      asset_id: "a-from-sandbox"
+    });
   });
 });

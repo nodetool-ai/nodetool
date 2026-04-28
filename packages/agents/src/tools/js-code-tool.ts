@@ -44,6 +44,12 @@ Output appears in the "logs" field of the result.
 ### workspace.read(path) / .write(path, content) / .list(path)
 Read/write files in the agent workspace.
 
+### assetToSandbox(assetId, path)
+Copy a persistent platform asset into the sandbox workspace at the given path.
+
+### sandboxToAsset(path) → AssetRef
+Persist a workspace file as an asset and return an AssetRef.
+
 ### getSecret(name) → string | undefined
 Read a secret by name (API keys, tokens, etc).
 
