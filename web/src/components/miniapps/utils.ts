@@ -1,14 +1,5 @@
 import { MiniAppInputKind } from "./types";
 
-export const fileToDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () =>
-      reject(reader.error || new Error("File read failed"));
-    reader.readAsDataURL(file);
-  });
-
 export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
   switch (nodeType) {
     case "nodetool.input.StringInput":
