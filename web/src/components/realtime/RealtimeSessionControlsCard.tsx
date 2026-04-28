@@ -10,7 +10,8 @@ import {
 } from "../ui_primitives";
 import {
   realtimeCardSx,
-  realtimeControlSx
+  realtimeStartControlSx,
+  realtimeStopControlSx
 } from "./realtimeStyles";
 
 interface RealtimeSessionControlsCardProps {
@@ -57,23 +58,20 @@ export const RealtimeSessionControlsCard = ({
             onClick={
               hasPreviewStream ? onStopPreview : () => void onStartPreview()
             }
-            sx={realtimeControlSx}
+            sx={hasPreviewStream ? realtimeStopControlSx : realtimeStartControlSx}
           >
             {hasPreviewStream ? "Stop Preview" : "Start Preview"}
           </EditorButton>
           <EditorButton
-            onClick={() => void onStartSession()}
-            disabled={isStartSessionDisabled}
-            sx={realtimeControlSx}
+            onClick={
+              hasActiveSession
+                ? () => void onStopSession()
+                : () => void onStartSession()
+            }
+            disabled={!hasActiveSession && isStartSessionDisabled}
+            sx={hasActiveSession ? realtimeStopControlSx : realtimeStartControlSx}
           >
-            Start Realtime Session
-          </EditorButton>
-          <EditorButton
-            onClick={() => void onStopSession()}
-            disabled={!hasActiveSession}
-            sx={realtimeControlSx}
-          >
-            Stop Session
+            {hasActiveSession ? "Stop Session" : "Start Session"}
           </EditorButton>
         </FlexRow>
 

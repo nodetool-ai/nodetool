@@ -3,7 +3,46 @@ export const realtimeCardSx = {
 };
 
 export const realtimeControlSx = {
-  borderRadius: 0
+  borderRadius: 0,
+  borderStyle: "solid",
+  borderWidth: 1,
+  fontWeight: 600,
+  height: 34,
+  px: 2,
+  "&:not(:disabled)": {
+    backgroundColor: "action.hover",
+    borderColor: "divider"
+  },
+  "&:not(:disabled):hover": {
+    backgroundColor: "action.selected",
+    borderColor: "text.secondary"
+  }
+};
+
+export const realtimeStartControlSx = {
+  ...realtimeControlSx,
+  "&:not(:disabled)": {
+    backgroundColor: "success.dark",
+    borderColor: "success.main",
+    color: "success.contrastText"
+  },
+  "&:not(:disabled):hover": {
+    backgroundColor: "success.main",
+    borderColor: "success.light"
+  }
+};
+
+export const realtimeStopControlSx = {
+  ...realtimeControlSx,
+  "&:not(:disabled)": {
+    backgroundColor: "error.dark",
+    borderColor: "error.main",
+    color: "error.contrastText"
+  },
+  "&:not(:disabled):hover": {
+    backgroundColor: "error.main",
+    borderColor: "error.light"
+  }
 };
 
 export const realtimeTextInputSx = {

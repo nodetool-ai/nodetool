@@ -75,20 +75,22 @@ export const RealtimeCameraSetupCard = ({
           sharp
         />
         <Caption>Actual: {actualMode}</Caption>
-        <TextInput
-          label="Target node id"
-          value={videoTargetNodeId}
-          onChange={(event) => onVideoTargetNodeIdChange(event.target.value)}
-          sx={realtimeTextInputSx}
-          compact
-        />
-        <TextInput
-          label="Target input name"
-          value={videoTargetInputName}
-          onChange={(event) => onVideoTargetInputNameChange(event.target.value)}
-          sx={realtimeTextInputSx}
-          compact
-        />
+        <FlexColumn gap={1.25} sx={{ pt: 1.5 }}>
+          <TextInput
+            label="Target node id"
+            value={videoTargetNodeId}
+            onChange={(event) => onVideoTargetNodeIdChange(event.target.value)}
+            sx={realtimeTextInputSx}
+            compact
+          />
+          <TextInput
+            label="Target input name"
+            value={videoTargetInputName}
+            onChange={(event) => onVideoTargetInputNameChange(event.target.value)}
+            sx={realtimeTextInputSx}
+            compact
+          />
+        </FlexColumn>
         <Caption>
           {ingressMode === "webrtc" ? "WebRTC" : "Frame push"} route: {route}
         </Caption>
