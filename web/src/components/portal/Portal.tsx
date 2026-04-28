@@ -351,7 +351,7 @@ const Portal: React.FC = () => {
       const id = idParts.join(":");
       const model: LanguageModel = {
         type: "language_model",
-        provider: provider as any,
+        provider,
         id: id,
         name: id
       };
@@ -459,7 +459,7 @@ const Portal: React.FC = () => {
 
         <div className="portal-input-wrapper">
           <ChatInputSection
-            status={status as any}
+            status={status === "stopping" ? "loading" : status}
             onSendMessage={handleSendMessage}
             selectedTools={selectedTools}
             onToolsChange={handleToolsChange}
