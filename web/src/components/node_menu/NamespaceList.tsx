@@ -156,7 +156,7 @@ const namespaceStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeNormal,
-      padding: "0.25em .75em .2em 0",
+      padding: theme.spacing(0.75, 1.5),
       borderRadius: "var(--rounded-md)",
       backgroundColor: theme.vars.palette.action.hover,
       margin: "1em .5em 0 0",
