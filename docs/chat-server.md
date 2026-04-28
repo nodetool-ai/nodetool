@@ -196,16 +196,21 @@ Errors are propagated as:
 
 ## Deployment
 
-The chat server runs as a standalone Node.js HTTP server provided by the `@nodetool-ai/websocket` package. The server
-exposes OpenAI-compatible endpoints under `/v1/` alongside WebSocket endpoints for workflow execution. You can start it
-directly:
+The chat server runs as a standalone Node.js HTTP server provided by the `@nodetool-ai/websocket` package. Start it
+via the CLI:
 
 ```bash
-# Default: listens on 127.0.0.1:7777
-node packages/websocket/src/server.ts
+# Install once
+npm install -g @nodetool-ai/cli
 
-# Custom host and port via environment variables
-HOST=0.0.0.0 PORT=8080 node packages/websocket/src/server.ts
+# Default: listens on 127.0.0.1:7777
+nodetool serve
+
+# Custom host and port
+nodetool serve --host 0.0.0.0 --port 8080
+
+# Or without a global install
+npx --package=@nodetool-ai/cli nodetool serve --host 0.0.0.0 --port 8080
 ```
 
 To embed chat functionality in your own Node.js application, import the chat processing logic from

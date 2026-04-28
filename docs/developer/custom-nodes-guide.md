@@ -38,7 +38,7 @@ Declare your package with `@nodetool-ai/node-sdk` as a dependency:
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/node-sdk": "*"
+    "@nodetool-ai/node-sdk": "latest"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -48,18 +48,20 @@ Declare your package with `@nodetool-ai/node-sdk` as a dependency:
 }
 ```
 
-Use a package name starting with `@nodetool-ai/` so workspace resolution works as expected.
-
 ## 3. Configure `tsconfig.json`
-
-Extend the workspace base config:
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "strict": true,
+    "declaration": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["src"]
 }
