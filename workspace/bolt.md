@@ -42,3 +42,7 @@
 ## 2024-05-24 - NodeStore `getSelectedNodes` `O(N)` Selection Optimization
 **Learning:** The `getSelectedNodes` function in the Zustand store currently filters the nodes array on every call (`get().nodes.filter((node) => node.selected)`). While `getSelectedNodeCount` is properly cached with an internal reference cache, `getSelectedNodes` is not. Since `getSelectedNodes` is an `O(N)` operation and is heavily called via `useNodes((state) => state.getSelectedNodes())` in several components, evaluating it without a reference cache on a 60fps loop during dragging creates performance issues, just like `getSelectedNodeCount` would.
 **Action:** Implement the same lightweight internal reference caching strategy for `getSelectedNodes` that is used for `getSelectedNodeCount`.
+
+## 2024-04-28 - Avoid findIndex + map for Zustand array upserts
+**Learning:** When dealing with high-frequency streaming events in Zustand stores (where arrays update constantly), using `array.findIndex()` combined with `array.map()` creates an O(N²) bottleneck that can block the main thread.
+**Action:** Use `array.findLastIndex()` (since updated messages/results are typically near the end of the array) and direct array copying/assignment (`const newArr = [...arr]; newArr[idx] = val;`) instead of mapping over the entire array.
