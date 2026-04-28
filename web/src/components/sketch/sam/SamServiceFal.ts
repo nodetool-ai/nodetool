@@ -339,7 +339,7 @@ async function resolveFalApiKey(): Promise<string | null> {
   try {
     return await useSecretsStore.getState().fetchDecryptedSecret("FAL_API_KEY");
   } catch {
-    // Secret decryption failed, so treat the provider as unavailable.
+    // Failed to fetch or decrypt the provider secret, so treat the provider as unavailable.
     return null;
   }
 }
@@ -357,7 +357,7 @@ async function isFalApiKeyConfigured(): Promise<boolean> {
       fetchedSecrets.find((secret) => secret.key === "FAL_API_KEY")?.is_configured
     );
   } catch {
-    // Secret metadata fetch failed, so default provider readiness to unconfigured.
+    // Failed to fetch the secrets list, so default provider readiness to unconfigured.
     return false;
   }
 }
