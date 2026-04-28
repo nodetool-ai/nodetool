@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { ToolClient, ToolInvocationError } from "../src/ToolClient.js";
 
 function makeFetch(
@@ -60,6 +60,19 @@ describe("ToolClient", () => {
     });
     await expect(client.fileRead({ file: "/tmp/x" })).rejects.toBeInstanceOf(
       ToolInvocationError
+    );
+  });
+
+  it("adds request details to network fetch failures", async () => {
+    const client = new ToolClient({
+      baseUrl: "http://sbx:7788",
+      fetch: vi
+        .fn<typeof fetch>()
+        .mockRejectedValue(new TypeError("fetch failed"))
+    });
+
+    await expect(client.health()).rejects.toThrow(
+      "sandbox request failed: GET http://sbx:7788/health: fetch failed"
     );
   });
 

@@ -18,6 +18,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import SvgFileIcon from "../SvgFileIcon";
 
@@ -30,8 +31,9 @@ interface VerticalToolbarProps {
     handleVersionsToggle: () => void;
     handleWorkflowToggle: () => void;
     handleWorkflowAssetsToggle: () => void;
+    handleSandboxesToggle: () => void;
     handleAgentToggle: () => void;
-    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "agent";
+    activeView: "inspector" | "assistant" | "logs" | "workspace" | "versions" | "workflow" | "jobs" | "workflowAssets" | "sandboxes" | "agent";
     panelVisible: boolean;
 }
 
@@ -44,6 +46,7 @@ function VerticalToolbar({
     handleVersionsToggle,
     handleWorkflowToggle,
     handleWorkflowAssetsToggle,
+    handleSandboxesToggle,
     handleAgentToggle,
     activeView,
     panelVisible
@@ -151,6 +154,16 @@ function VerticalToolbar({
                 ariaLabel="Toggle Logs panel (L)"
                 className="logs"
                 active={isActive("logs")}
+            />
+
+            <ToolbarIconButton
+                icon={<DesktopWindowsIcon />}
+                tooltip="Sandboxes"
+                tooltipPlacement="left-start"
+                onClick={handleSandboxesToggle}
+                ariaLabel="Toggle Sandboxes panel"
+                className="sandboxes"
+                active={isActive("sandboxes")}
             />
 
             <ToolbarIconButton

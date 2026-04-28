@@ -251,23 +251,14 @@ async function listOwnedSandboxes(userId: string): Promise<DockerInspect[]> {
   }
 }
 
-function enforceSingleSandboxPolicy(sandboxes: DockerInspect[]): void {
-  if (sandboxes.length > 1) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: `Only one active sandbox is allowed per user (found ${sandboxes.length})`
-    });
-  }
-}
-
 async function resolveOwnedSandbox(
   userId: string,
   containerId: string
 ): Promise<DockerInspect> {
-  const owned = await listOwnedSandboxes(userId);
-  enforceSingleSandboxPolicy(owned);
-  const matched = owned.find((entry) => entry.Id === containerId);
-  if (!matched) {
+  const inspectOut = await runDockerStrict(["inspect", containerId]);
+  const inspect = JSON.parse(inspectOut) as DockerInspect[];
+  const matched = inspect[0];
+  if (!matched || !isOwnedManagedSandbox(matched, userId)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Sandbox does not belong to the current user"
@@ -284,7 +275,6 @@ const TOOL_NAME_REGEX =
 export const sandboxesRouter = router({
   list: protectedProcedure.output(listOutput).query(async ({ ctx }) => {
     const owned = await listOwnedSandboxes(ctx.userId);
-    enforceSingleSandboxPolicy(owned);
     if (owned.length === 0) return [];
 
     const ids = owned.map((entry) => entry.Id).filter((id): id is string => Boolean(id));

@@ -106,27 +106,89 @@ describe("sandbox nodes", () => {
   it("SandboxShell executes and waits for command output", async () => {
     const node = new SandboxShellNode();
     node.assign({
-      session_id: "s1",
       workspace_dir: "/workspace",
       command: "echo hi",
-      command_id: "c1",
       wait_seconds: 1
     });
 
     const result = await node.process();
     expect(mocks.client.shellExec).toHaveBeenCalledWith({
-      id: "c1",
+      id: expect.stringMatching(/^cmd-/),
       command: "echo hi",
       exec_dir: "/workspace"
     });
-    expect(mocks.client.shellWait).toHaveBeenCalledWith({ id: "c1", seconds: 1 });
-    expect(result.session_id).toBe("s1");
+    const commandId = mocks.client.shellExec.mock.calls[0][0].id as string;
+    expect(mocks.client.shellWait).toHaveBeenCalledWith({
+      id: commandId,
+      seconds: 1
+    });
+    expect(result).toEqual({
+      output: "ok",
+      running: false,
+      exit_code: 0,
+      timed_out: false
+    });
+  });
+
+  it("reuses the default sandbox session across nodes in the same workflow run", async () => {
+    const context = {
+      userId: "user-1",
+      workflowId: "workflow-1",
+      jobId: "job-1"
+    } as unknown as ProcessingContext;
+
+    const first = new SandboxShellNode();
+    first.assign({ command: "echo first", wait_seconds: 1 });
+    const second = new SandboxFileNode();
+    second.assign({ action: "write", params: { file: "a.txt", content: "x" } });
+
+    await first.process(context);
+    await second.process(context);
+
+    expect(mocks.acquire).toHaveBeenNthCalledWith(
+      1,
+      "user-1:workflow-1:workflow",
+      { env: { NODETOOL_USER_ID: "user-1" } }
+    );
+    expect(mocks.acquire).toHaveBeenNthCalledWith(
+      2,
+      "user-1:workflow-1:workflow",
+      { env: { NODETOOL_USER_ID: "user-1" } }
+    );
+  });
+
+  it("reuses the sandbox across workflow runs with different job ids", async () => {
+    const first = new SandboxShellNode();
+    first.assign({ command: "echo first", wait_seconds: 1 });
+    const second = new SandboxShellNode();
+    second.assign({ command: "echo second", wait_seconds: 1 });
+
+    await first.process({
+      userId: "user-1",
+      workflowId: "workflow-1",
+      jobId: "job-1"
+    } as unknown as ProcessingContext);
+    await second.process({
+      userId: "user-1",
+      workflowId: "workflow-1",
+      jobId: "job-2"
+    } as unknown as ProcessingContext);
+
+    expect(mocks.acquire).toHaveBeenNthCalledWith(
+      1,
+      "user-1:workflow-1:workflow",
+      { env: { NODETOOL_USER_ID: "user-1" } }
+    );
+    expect(mocks.acquire).toHaveBeenNthCalledWith(
+      2,
+      "user-1:workflow-1:workflow",
+      { env: { NODETOOL_USER_ID: "user-1" } }
+    );
   });
 
   it("SandboxBrowser dispatches browser actions", async () => {
     const node = new SandboxBrowserNode();
     node.assign({
-      session_id: "s2",
       action: "navigate",
       params: { url: "https://example.com", wait_until: "load" }
     });
@@ -142,7 +204,6 @@ describe("sandbox nodes", () => {
   it("SandboxFile dispatches file actions", async () => {
     const node = new SandboxFileNode();
     node.assign({
-      session_id: "s3",
       action: "write",
       params: { file: "a.txt", content: "x" }
     });
@@ -159,8 +220,7 @@ describe("sandbox nodes", () => {
     const node = new SandboxAgentNode();
     node.assign({
       prompt: "do work",
-      model: { provider: "openai", id: "gpt-5" },
-      session_id: "s4"
+      model: { provider: "openai", id: "gpt-5" }
     });
 
     const context = {
@@ -177,6 +237,6 @@ describe("sandbox nodes", () => {
     expect(args.modelId).toBe("gpt-5");
     expect(Array.isArray(args.tools)).toBe(true);
     expect(args.tools?.length).toBeGreaterThan(10);
-    expect(result).toEqual({ session_id: "s4", text: "done" });
+    expect(result).toEqual({ text: "done" });
   });
 });
