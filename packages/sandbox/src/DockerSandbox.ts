@@ -109,6 +109,11 @@ export class DockerSandboxProvider implements SandboxProvider {
   constructor(options: DockerSandboxProviderOptions = {}) {
     this.docker = new Dockerode();
     this.hostIp = options.hostIp ?? "127.0.0.1";
+    if (this.hostIp !== "127.0.0.1" && this.hostIp !== "::1") {
+      throw new Error(
+        "DockerSandboxProvider hostIp must be loopback (127.0.0.1 or ::1)"
+      );
+    }
     this.defaultImage = options.defaultImage ?? DEFAULT_SANDBOX_IMAGE;
     this.readyTimeoutSeconds = options.readyTimeoutSeconds ?? 30;
     this.autoPull = options.autoPull ?? true;
@@ -133,6 +138,11 @@ export class DockerSandboxProvider implements SandboxProvider {
       `NODETOOL_USER_SERVICE_PORTS=${this.userServicePorts.join(",")}`,
       ...Object.entries(options.env ?? {}).map(([k, v]) => `${k}=${v}`)
     ];
+    const ownerUserId = options.env?.NODETOOL_USER_ID;
+    const labels: Record<string, string> = {
+      "com.nodetool.sandbox.managed": "true",
+      ...(ownerUserId ? { "com.nodetool.sandbox.owner": ownerUserId } : {})
+    };
 
     const toolPortKey = `${TOOL_SERVER_PORT}/tcp`;
     const vncPortKey = `${VNC_WS_PORT}/tcp`;
@@ -158,6 +168,7 @@ export class DockerSandboxProvider implements SandboxProvider {
       name: containerName,
       Image: image,
       Env: env,
+      Labels: labels,
       WorkingDir: "/home/ubuntu",
       OpenStdin: false,
       Tty: false,
