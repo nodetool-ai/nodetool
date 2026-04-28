@@ -21,8 +21,8 @@ NodeTool is a node-based visual programming tool for building AI workflows and a
 | | |
 | :--- | :--- |
 | **Visual workflow builder** | Drag-and-drop nodes with type-safe connections — no code required |
-| **Local-first architecture** | Run models on your machine via Ollama, MLX (Apple Silicon), and GGUF/GGML |
-| **Multi-provider support** | OpenAI, Anthropic, Ollama, Replicate, HuggingFace, and custom models |
+| **Local-first architecture** | Run models on your machine via Ollama, MLX (Apple Silicon), llama.cpp, vLLM, or LM Studio |
+| **Multi-provider support** | OpenAI, Anthropic, Google, xAI, Mistral, Groq, DeepSeek, Together, Replicate, HuggingFace, OpenRouter, and more |
 | **AI agent framework** | Build autonomous agents with tool use, planning, and 100+ built-in tools |
 | **RAG & vector databases** | Built-in document indexing and semantic search |
 | **Multimodal processing** | Text, images, video, and audio in unified workflows |
@@ -35,7 +35,7 @@ NodeTool is a node-based visual programming tool for building AI workflows and a
 
 - **AI Agents & Automation** — multi-step agents that plan, execute, and adapt
 - **Document Intelligence** — index documents, search with AI, and answer questions (RAG made simple)
-- **Image & Video Creation** — generate and transform media with FLUX, NanoBanana, and custom models
+- **Image & Video Creation** — generate and transform media with FLUX, Veo, Kling, and more
 - **Data Processing** — transform data, extract insights, and automate reports
 - **Voice & Audio** — transcribe, analyze, and generate speech with Whisper and ElevenLabs
 - **Smart Assistants** — AI assistants that understand documents, emails, and notes
@@ -47,10 +47,10 @@ Access the latest generative AI models through simple nodes:
 
 | Type | Models |
 | :--- | :--- |
-| **Video** | OpenAI Sora 2 Pro, Google Veo 3.1, xAI Grok Imagine, Alibaba Wan 2.6, MiniMax Hailuo 2.3, Kling 2.6 |
-| **Image** | Black Forest Labs FLUX.2, Google Nano Banana Pro, DALL-E 3 |
+| **Video** | Google Veo 3.1, Kling v2.1, MiniMax Hailuo 02, Wan 2.2 |
+| **Image** | FLUX, Qwen Image, DALL-E 3 |
 | **Audio** | OpenAI Whisper, OpenAI TTS, ElevenLabs |
-| **Text** | GPT-4, Claude, Gemini, Llama, Mistral (local or cloud) |
+| **Text** | Claude Opus 4.7, Claude Sonnet 4.6, Gemini 2.5 Pro, Gemini 2.5 Flash, GPT-4o, Llama, Mistral (local or cloud) |
 
 Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provider and model.
 
