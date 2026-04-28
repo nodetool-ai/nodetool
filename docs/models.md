@@ -149,10 +149,14 @@ In addition to local models, NodeTool provides access to cloud-based models thro
 | :--- | :--- | :--- | :--- | :--- |
 | **Sora 2 Pro** | OpenAI | Realistic motion, refined physics, native audio | 1080p | 15s |
 | **Veo 3.1** | Google | Realistic motion, multi-image refs, synced audio | 1080p | Extended |
+| **Seedance 2.0** | ByteDance | High-quality cinematic video, stable characters | 1080p | Variable |
+| **Runway Gen-3 Alpha** | Runway | Precise motion control, professional fidelity | 1080p | Variable |
+| **Runway Aleph** | Runway | Next-gen Runway video generation | 1080p | Variable |
+| **Luma** | Luma AI | AI-powered video modification and editing | 1080p | Variable |
 | **Grok Imagine** | xAI | Multimodal T2V/I2V with coherent motion | 1080p | Short clips |
 | **Wan 2.6** | Alibaba | Multi-shot, stable characters, affordable | 1080p | Variable |
 | **Hailuo 2.3** | MiniMax | Expressive characters, complex lighting | 1080p+ | Variable |
-| **Kling 2.6** | Kling | Synced speech & effects, audio-visual coherence | 1080p | Variable |
+| **Kling 3.0** | Kling | Synced speech & effects, audio-visual coherence | 1080p | Variable |
 
 **Access via**: `nodetool.video.TextToVideo`, `nodetool.video.ImageToVideo` nodes
 
@@ -160,10 +164,26 @@ In addition to local models, NodeTool provides access to cloud-based models thro
 
 | Model | Provider | Key Features | Output Quality |
 | :--- | :--- | :--- | :--- |
-| **FLUX.2** | Black Forest Labs | Photoreal, multi-reference consistency, accurate text | High |
-| **Nano Banana Pro** | Google | 2K native, 4K scaling, enhanced text & characters | Very High |
+| **FLUX.2 Pro** | Black Forest Labs | Photoreal, multi-reference consistency, accurate text | High |
+| **Nano Banana 2.0** | Google | 2K native, 4K scaling, enhanced text & characters | Very High |
+| **GPT Image 2** | OpenAI | Photorealistic generation and instruction-based editing | High |
+| **Ideogram V3** | Ideogram | Exceptional typography, artistic style control | High |
+| **Z-Image Turbo** | Z-AI | Fast generation with strong prompt adherence | High |
+| **Seedream 4.5** | ByteDance | High-fidelity generation and instruction-based editing | High |
+| **Imagen 4** | Google | Ultra-detailed photorealistic images | Very High |
 
 **Access via**: `nodetool.image.TextToImage` node
+
+### Music & Audio Generation (Cloud)
+
+| Model | Provider | Key Features |
+| :--- | :--- | :--- |
+| **Suno** | Suno | Full song creation from text, extend/cover/remix, instrumental support |
+| **ElevenLabs V3 Dialogue** | ElevenLabs | Multi-speaker dialogue with emotional control |
+| **ElevenLabs TTS Turbo 2.5** | ElevenLabs | Ultra-fast, natural text-to-speech |
+| **ElevenLabs Sound Effect** | ElevenLabs | Generate sound effects and ambient audio from text |
+
+**Access via**: `nodetool.audio.TextToSpeech` node; Suno and ElevenLabs advanced features via kie.ai
 
 ### Advantages of Cloud Models
 
@@ -188,7 +208,7 @@ All the cloud models listed above are available through [kie.ai](https://kie.ai/
 - Simplifies API key management (one key for all models)
 - Enables easy cost comparison and optimization across providers
 
-**Important**: Some models (xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6) currently require kie.ai or similar aggregators for access, as their API keys are not directly registered in NodeTool. Models with direct support include OpenAI Sora 2 Pro, Google Veo 3.1, and MiniMax Hailuo 2.3.
+**Important**: Many models (ByteDance Seedance, Runway, Luma, xAI Grok Imagine, Alibaba Wan 2.6, Kling 3.0, Ideogram V3, Z-Image Turbo, Suno) currently require kie.ai for access. Models with direct NodeTool API key support include OpenAI Sora 2 Pro, Google Veo 3.1, MiniMax Hailuo 2.3, and OpenAI GPT Image 2.
 
 This can be particularly beneficial for workflows using multiple SOTA models from different providers.
 
