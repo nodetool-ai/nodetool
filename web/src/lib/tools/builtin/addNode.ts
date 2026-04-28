@@ -96,7 +96,7 @@ FrontendToolRegistry.register({
       nodeStore.nodes.length
     );
 
-    const resolvedProperties: Record<string, any> = { ...(properties ?? {}) };
+    const resolvedProperties: Record<string, unknown> = { ...(properties ?? {}) };
     for (const property of metadata.properties) {
       const value = resolvedProperties[property.name];
       if (value === undefined) {
