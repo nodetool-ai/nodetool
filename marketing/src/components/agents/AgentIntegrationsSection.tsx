@@ -44,7 +44,7 @@ const integrations = [
   {
     category: "Data & Storage",
     items: [
-      { name: "ChromaDB", icon: Database },
+      { name: "SQLite-vec (VectorDB)", icon: Database },
       { name: "Files & Folders", icon: Folder },
       { name: "Assets", icon: Cloud },
       { name: "Downloads", icon: "📥" },

@@ -26,7 +26,6 @@ interface UseCase {
   iconBgFrom: string;
   iconBgTo: string;
   example: string;
-  codeExample: string;
 }
 
 const useCases: UseCase[] = [
@@ -38,17 +37,15 @@ const useCases: UseCase[] = [
     iconBgFrom: "from-teal-600/20",
     iconBgTo: "to-blue-600/20",
     example: "Research AI trends and create a summary with citations",
-    codeExample: "graph_planner_web_research.ts",
   },
   {
     name: "RAG Knowledge Base",
     description:
-      "Build Retrieval-Augmented Generation workflows that index documents in ChromaDB and answer questions with source attribution.",
+      "Build Retrieval-Augmented Generation workflows that index documents in a SQLite-vec vector store and answer questions with source attribution.",
     icon: Database,
     iconBgFrom: "from-blue-600/20",
     iconBgTo: "to-cyan-600/20",
     example: "Index documentation and answer technical questions",
-    codeExample: "graph_planner_rag_pattern.ts",
   },
   {
     name: "Multi-Agent Research Team",
@@ -58,7 +55,6 @@ const useCases: UseCase[] = [
     iconBgFrom: "from-cyan-600/20",
     iconBgTo: "to-emerald-600/20",
     example: "Research AI trends using a team of 3 specialized agents",
-    codeExample: "multi_agent_research.ts",
   },
   {
     name: "News & Current Events",
@@ -68,7 +64,6 @@ const useCases: UseCase[] = [
     iconBgFrom: "from-emerald-600/20",
     iconBgTo: "to-green-600/20",
     example: "Summarize today's tech news with sources",
-    codeExample: "google_news_agent.ts",
   },
   {
     name: "Coding Assistant",
@@ -78,7 +73,6 @@ const useCases: UseCase[] = [
     iconBgFrom: "from-pink-600/20",
     iconBgTo: "to-rose-600/20",
     example: "Generate a function and run tests",
-    codeExample: "coding_agent.ts",
   },
   {
     name: "Document Processing",
@@ -88,17 +82,15 @@ const useCases: UseCase[] = [
     iconBgFrom: "from-amber-600/20",
     iconBgTo: "to-orange-600/20",
     example: "Extract key findings from a research paper PDF",
-    codeExample: "document_processing_agent.ts",
   },
   {
     name: "Image Generation",
     description:
-      "Generate images with gpt-image-1.5, Flux, or Google Imagen. Chain with text generation for creative workflows.",
+      "Generate images with gpt-image-2 (OpenAI DALL-E), FLUX, or Imagen (Google Gemini API). Chain with text generation for creative workflows.",
     icon: Image,
     iconBgFrom: "from-indigo-600/20",
     iconBgTo: "to-teal-600/20",
     example: "Generate product mockups from descriptions",
-    codeExample: "image_generation_example.ts",
   },
   {
     name: "Planning Agent",
@@ -108,7 +100,6 @@ const useCases: UseCase[] = [
     iconBgFrom: "from-rose-600/20",
     iconBgTo: "to-pink-600/20",
     example: "Break down a complex project into executable steps",
-    codeExample: "planning_agent.ts",
   },
   {
     name: "Browser Automation",
@@ -118,7 +109,6 @@ const useCases: UseCase[] = [
     iconBgFrom: "from-teal-600/20",
     iconBgTo: "to-cyan-600/20",
     example: "Scrape product pricing from competitor websites",
-    codeExample: "browser_agent.ts",
   },
 ];
 
@@ -210,18 +200,9 @@ export default function AgentUseCasesSection({
                     <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">
                       Example Prompt
                     </p>
-                    <p className="text-sm text-amber-300/80 italic mb-3">
+                    <p className="text-sm text-amber-300/80 italic">
                       &quot;{item.example}&quot;
                     </p>
-                    <a
-                      href={`https://github.com/nodetool-ai/nodetool/blob/main/examples/${item.codeExample}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-amber-400 transition-colors font-mono"
-                    >
-                      <Code2 className="w-3 h-3" />
-                      {item.codeExample}
-                    </a>
                   </div>
                 </div>
               </Tilt3D>
@@ -238,7 +219,7 @@ export default function AgentUseCasesSection({
           transition={{ delay: 0.4 }}
         >
           <a
-            href="https://github.com/nodetool-ai/nodetool/tree/main/examples"
+            href="https://github.com/nodetool-ai/nodetool/tree/main/examples/workflows"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-teal-600/80 to-blue-600/80 text-white font-semibold hover:from-teal-500 hover:to-blue-500 transition-all shadow-lg shadow-teal-900/30 hover:shadow-teal-900/50"
