@@ -71,7 +71,7 @@ export const SAM_NODE_CONFIGS: Record<string, SamNodeConfig> = {
     isLocal: true,
     requiredSecret: null
   },
-  "fal-sam2": {
+  "fal-sam3-1": {
     backendId: "fal",
     nodeType: "fal.image_to_image.Sam3Image",
     displayName: "SAM 3.1 (fal.ai Cloud)",
@@ -338,7 +338,7 @@ export class SamServiceNode implements SamService {
       );
     }
 
-    return Promise.resolve(this.buildFalSam2Graph(imageDataUrl, request, scale));
+    return Promise.resolve(this.buildFalSam31Graph(imageDataUrl, request, scale));
   }
 
   private async buildLocalSam3Graph(
@@ -544,7 +544,7 @@ export class SamServiceNode implements SamService {
     return Math.max(0, Math.floor((base64Data.length * 3) / 4) - padding);
   }
 
-  private buildFalSam2Graph(
+  private buildFalSam31Graph(
     imageDataUrl: string,
     request: SegmentationRequest,
     scale: number
