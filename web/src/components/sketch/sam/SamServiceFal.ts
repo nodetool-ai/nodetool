@@ -15,9 +15,11 @@ import type { SamService, SamModelInfo, SegmentationRequest, SegmentationRespons
 import {
   DEFAULT_SAM_MODEL_ID,
   DEFAULT_SAM_MODEL_NAME,
-  FAL_SAM_CAPABILITIES
+  FAL_SAM_CAPABILITIES,
+  resolveSamPromptCapabilityInputs
 } from "./SamService";
 import type { SegmentationMask } from "../types";
+import useMetadataStore from "../../../stores/MetadataStore";
 import useSecretsStore from "../../../stores/SecretsStore";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -26,6 +28,15 @@ const FAL_API_BASE = "https://queue.fal.run";
 const FAL_RESULT_BASE = "https://queue.fal.run";
 const SAM31_ENDPOINT = "fal-ai/sam-3-1/image";
 const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam3Image";
+const FAL_SAM_TEXT_PROMPT_INPUTS = ["prompt"] as const;
+const FAL_SAM_POINT_PROMPT_INPUTS = ["point_prompts"] as const;
+const FAL_SAM_BOX_PROMPT_INPUTS = ["box_prompts"] as const;
+const FAL_SAM_METADATA_FALLBACK_CAPABILITIES = {
+  ...FAL_SAM_CAPABILITIES,
+  textPrompts: false,
+  pointPrompts: false,
+  boxPrompts: false
+} as const;
 
 /**
  * Maximum image dimension (width or height) sent to the model.
@@ -189,6 +200,20 @@ async function resolveFalApiKey(): Promise<string | null> {
   }
 }
 
+function getFalSamCapabilities() {
+  const metadata = useMetadataStore.getState().getMetadata(FAL_SAM_NODE_TYPE);
+  if (!metadata) {
+    return FAL_SAM_METADATA_FALLBACK_CAPABILITIES;
+  }
+  return resolveSamPromptCapabilityInputs({
+    metadata,
+    baseCapabilities: FAL_SAM_CAPABILITIES,
+    textPromptInputs: FAL_SAM_TEXT_PROMPT_INPUTS,
+    pointPromptInputs: FAL_SAM_POINT_PROMPT_INPUTS,
+    boxPromptInputs: FAL_SAM_BOX_PROMPT_INPUTS
+  }).capabilities;
+}
+
 /**
  * Resize an image data URL if it exceeds MAX_INFERENCE_DIMENSION.
  * Returns the (possibly resized) data URL and the scale factor applied.
@@ -265,13 +290,14 @@ async function uploadToFal(
 export class SamServiceFal implements SamService {
   async checkModelAvailability(): Promise<SamModelInfo> {
     const apiKey = await resolveFalApiKey();
+    const capabilities = getFalSamCapabilities();
 
     if (!apiKey) {
       return {
         status: "not-installed",
         backendId: "fal",
         backendLabel: "fal.ai",
-        capabilities: FAL_SAM_CAPABILITIES,
+        capabilities,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: "FAL_API_KEY not configured. Add it in Settings → Secrets."
@@ -290,7 +316,7 @@ export class SamServiceFal implements SamService {
           status: "available",
           backendId: "fal",
           backendLabel: "fal.ai",
-          capabilities: FAL_SAM_CAPABILITIES,
+          capabilities,
           modelId: DEFAULT_SAM_MODEL_ID,
           modelName: DEFAULT_SAM_MODEL_NAME
         };
@@ -299,7 +325,7 @@ export class SamServiceFal implements SamService {
         status: "error",
         backendId: "fal",
         backendLabel: "fal.ai",
-        capabilities: FAL_SAM_CAPABILITIES,
+        capabilities,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: `FAL API returned ${res.status}`
@@ -309,7 +335,7 @@ export class SamServiceFal implements SamService {
         status: "error",
         backendId: "fal",
         backendLabel: "fal.ai",
-        capabilities: FAL_SAM_CAPABILITIES,
+        capabilities,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: err instanceof Error ? err.message : "Connection failed"

@@ -1518,7 +1518,14 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
   const localSam3Ready = isLocalSam3 && modelInfo?.status === "available";
   const backendCapabilities =
     modelInfo?.capabilities ??
-    (isLocalSam3 ? LOCAL_SAM3_CAPABILITIES : FAL_SAM_CAPABILITIES);
+    (isLocalSam3
+      ? LOCAL_SAM3_CAPABILITIES
+      : {
+          ...FAL_SAM_CAPABILITIES,
+          textPrompts: false,
+          pointPrompts: false,
+          boxPrompts: false
+        });
   const supportsPointPrompts = Boolean(backendCapabilities.pointPrompts);
   const supportsBoxPrompts = Boolean(backendCapabilities.boxPrompts);
   const supportsTextPrompts = Boolean(backendCapabilities.textPrompts);

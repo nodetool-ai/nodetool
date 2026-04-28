@@ -392,14 +392,14 @@ Steps:
 - [x] Use `point_prompts` and `box_prompts` for prompted object separation.
 - [x] Request `return_multiple_masks`, `include_scores`, and `include_boxes` for multi-mask preview and naming.
 - [ ] Add provider output normalization for `masks`, preview `image`, `rle`, `metadata`, `scores`, and `boxes`.
-- [ ] Keep Provider SAM3 behind the same capability metadata checks as Local SAM3.
+- [x] Keep Provider SAM3 behind the same capability metadata checks as Local SAM3.
 - [x] Make Provider SAM3 implement the same sketch SAM backend interface as Local SAM3.
 
 Check:
 - [ ] Provider SAM3 does not affect the Local SAM3 path.
 - [ ] User-facing SAM actions behave the same for Local SAM3 and Provider SAM3 when both report the same capabilities.
 - [ ] Missing provider setup is shown as a hint, not an error.
-- [ ] Concept, point, and box prompt UI can be enabled by provider metadata without hardcoding UI assumptions.
+- [x] Concept, point, and box prompt UI can be enabled by provider metadata without hardcoding UI assumptions.
 - [ ] Provider SAM3 outputs still apply as ordinary document-space layers.
 
 ### [ ] 3.8 Validate The Local SAM3 Workflow Manually

@@ -748,6 +748,7 @@ describe("SamServiceFal", () => {
     useSecretsStore.setState({
       fetchDecryptedSecret: originalFetchDecryptedSecret
     });
+    useMetadataStore.setState({ metadata: {} });
     global.fetch = originalFetch;
     jest.restoreAllMocks();
   });
@@ -768,6 +769,55 @@ describe("SamServiceFal", () => {
     expect(info.status).toBe("not-installed");
     expect(info.errorMessage).toBeDefined();
     expect(info.errorMessage).toContain("FAL_API_KEY");
+  });
+
+  it("detects provider prompt capabilities from metadata", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    useSecretsStore.setState({
+      fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
+    });
+    useMetadataStore.setState({
+      metadata: {
+        "fal.image_to_image.Sam3Image": {
+          node_type: "fal.image_to_image.Sam3Image",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("prompt"),
+            makeMetadataProperty("point_prompts"),
+            makeMetadataProperty("box_prompts")
+          ]
+        }
+      } as any
+    });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(info.status).toBe("available");
+    expect(info.capabilities.textPrompts).toBe(true);
+    expect(info.capabilities.pointPrompts).toBe(true);
+    expect(info.capabilities.boxPrompts).toBe(true);
+  });
+
+  it("keeps provider prompt controls disabled until metadata confirms them", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    useSecretsStore.setState({
+      fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
+    });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(info.status).toBe("available");
+    expect(info.capabilities.textPrompts).toBe(false);
+    expect(info.capabilities.pointPrompts).toBe(false);
+    expect(info.capabilities.boxPrompts).toBe(false);
   });
 
   it("can be set via setSamService", () => {

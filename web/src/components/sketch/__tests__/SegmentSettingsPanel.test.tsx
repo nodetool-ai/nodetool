@@ -219,6 +219,34 @@ describe("SegmentSettingsPanel", () => {
     );
   });
 
+  it("does not assume provider prompt controls before capability metadata loads", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={null}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Point" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Box" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("textbox", { name: "Concept prompt" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Auto" })).toBeInTheDocument();
+  });
+
   it("shows the node-pack hint when Local SAM3 metadata is unavailable", () => {
     render(
       <SegmentSettingsPanel
