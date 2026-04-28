@@ -71,15 +71,15 @@ NodeTool provides access to high-quality generative AI models through cloud prov
 | **xAI Grok Imagine** | <img src="assets/icons/xai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> xAI | T2V/I2V/T2I | Multimodal text/image to short video with coherent motion and synchronized audio; also text-to-image |
 | **Alibaba Wan 2.6** | <img src="assets/icons/alibaba.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Alibaba | Multi-shot T2V/I2V | Affordable 1080p with stable characters and native audio; reference-guided generation |
 | **MiniMax Hailuo 2.3** | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | High-fidelity T2V/I2V | Expressive characters, complex motion and lighting effects |
-| **Kling 2.6** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
+| **Kling 3.0** | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | T2V/I2V with audio | Text/image to synchronized video with speech, ambient sound, and effects; strong audio-visual coherence |
 
 ### Top Image Generation Models
 
 | Model | Provider | Capabilities | Key Features |
 |-------|----------|-------------|--------------|
 | **Black Forest Labs FLUX.2** | <img src="assets/icons/bfl.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> BFL | T2I with control | Photoreal images, multi-reference consistency, accurate text rendering, flexible control |
-| **Google Nano Banana Pro** | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | High-res T2I/Edit | Sharper 2K output, 4K upscaling, improved text rendering, better character consistency |
-| **GPT Image 1.5** | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | T2I/Edit | High-quality photorealistic generation and instruction-based editing |
+| **Google Nano Banana 2.0** | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | High-res T2I/Edit | Sharper 2K output, 4K upscaling, improved text rendering, better character consistency |
+| **GPT Image 2** | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | T2I/Edit | High-quality photorealistic generation and instruction-based editing |
 | **Ideogram V3** | Ideogram | T2I/Edit | Exceptional typography rendering and artistic style control |
 | **Z-Image Turbo** | Z-AI | T2I | Fast high-quality text-to-image with strong prompt adherence |
 | **Seedream 4.5** | ByteDance | T2I/Edit | High-fidelity image generation and instruction-based editing |

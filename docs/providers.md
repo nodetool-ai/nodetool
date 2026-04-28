@@ -75,15 +75,15 @@ Text-to-video and image-to-video providers available through the unified interfa
 | Luma | Video modification | via kie.ai |
 | xAI Grok Imagine | T2V, I2V, T2I | via kie.ai |
 | Alibaba Wan 2.6 | T2V, I2V, multi-shot | via kie.ai |
-| Kling 2.6 | T2V, I2V with audio | via kie.ai |
+| Kling 3.0 | T2V, I2V with audio | via kie.ai |
 
 ### Image Generation Providers
 
 | Provider | Access |
 |----------|--------|
 | Black Forest Labs FLUX.2 Pro | via kie.ai or direct API |
-| Google Nano Banana Pro / Imagen 4 | `GEMINI_API_KEY` or via kie.ai |
-| OpenAI GPT Image 1.5 | `OPENAI_API_KEY` or via kie.ai |
+| Google Nano Banana 2.0 / Imagen 4 | `GEMINI_API_KEY` or via kie.ai |
+| OpenAI GPT Image 2 | `OPENAI_API_KEY` or via kie.ai |
 | OpenAI DALL-E 2/3 | `OPENAI_API_KEY` |
 | Ideogram V3 | via kie.ai |
 | Z-Image Turbo | via kie.ai |
@@ -112,7 +112,7 @@ Use the HuggingFace 3D nodes (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes 
 
 ### Multi-Provider Aggregators
 
-**kie.ai** — `KIE_API_KEY`. Unified access to multiple models via a single API. Recommended for providers without direct NodeTool API key support (ByteDance Seedance, Runway, Luma, xAI Grok Imagine, Alibaba Wan 2.6, Kling 2.6, FLUX.2, Nano Banana Pro, Ideogram V3, Z-Image Turbo, Suno, and more).
+**kie.ai** — `KIE_API_KEY`. Unified access to multiple models via a single API. Recommended for providers without direct NodeTool API key support (ByteDance Seedance, Runway, Luma, xAI Grok Imagine, Alibaba Wan 2.6, Kling 3.0, FLUX.2, Nano Banana 2.0, Ideogram V3, Z-Image Turbo, Suno, and more).
 
 ## Generic Nodes: Provider-Agnostic Workflows
 
@@ -121,10 +121,10 @@ Generic nodes in the `nodetool.*` namespace accept a `model` parameter and route
 | Node | Switch between |
 |------|---------------|
 | `nodetool.agents.Agent` | OpenAI, Anthropic, Gemini, xAI, DeepSeek, Ollama, any LLM |
-| `nodetool.image.TextToImage` | FLUX.2, Nano Banana Pro, GPT Image 1.5, Ideogram V3, Z-Image, DALL-E, HuggingFace, ComfyUI, MLX |
+| `nodetool.image.TextToImage` | FLUX.2, Nano Banana 2.0, GPT Image 2, Ideogram V3, Z-Image, DALL-E, HuggingFace, ComfyUI, MLX |
 | `nodetool.image.ImageToImage` | HuggingFace, local servers, cloud services |
-| `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 2.6, HuggingFace |
-| `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Luma, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 2.6, Stability AI |
+| `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, HuggingFace |
+| `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Luma, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, Stability AI |
 | `nodetool.3d.TextTo3D` | Hunyuan3D, Trellis 2, Meshy AI, Rodin AI, Shap-E, Point-E |
 | `nodetool.3d.ImageTo3D` | Hunyuan3D, Trellis 2, TripoSR, Meshy AI, Rodin AI, Shap-E |
 | `nodetool.audio.TextToSpeech` | OpenAI TTS, ElevenLabs, local TTS |
