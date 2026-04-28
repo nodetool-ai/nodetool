@@ -23,7 +23,10 @@ const RealtimeStreamPage = () => {
       gap={3.5}
       fullWidth
       fullHeight
-      sx={{
+      sx={(theme) => ({
+        "& *, & *::before, & *::after": {
+          borderRadius: `${theme.rounded.xs} !important`
+        },
         boxSizing: "border-box",
         minHeight: 0,
         ml: "5em",
@@ -32,7 +35,7 @@ const RealtimeStreamPage = () => {
         pl: { xs: 4, md: 7 },
         py: { xs: 3, md: 5 },
         width: "calc(100% - 5em)"
-      }}
+      })}
     >
       <FlexColumn gap={1.5} sx={{ maxWidth: 920 }}>
         <Text size="big" weight={600}>

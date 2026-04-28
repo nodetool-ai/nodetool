@@ -61,7 +61,7 @@ const runtimeStatus = ({
   if (sessionError) {
     return {
       status: "error",
-      label: "Startup error",
+      label: activeSession ? "Realtime error" : "Startup error",
       detail: sessionError,
       pulse: false
     };

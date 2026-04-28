@@ -264,6 +264,13 @@ const normalizeNonNegativeInteger = (
   value: unknown,
   fieldName: string
 ): number => {
+  if (typeof value === "bigint") {
+    if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error(`frame.${fieldName} must be a non-negative safe integer`);
+    }
+    return Number(value);
+  }
+
   if (!Number.isInteger(value) || Number(value) < 0) {
     throw new Error(`frame.${fieldName} must be a non-negative integer`);
   }
