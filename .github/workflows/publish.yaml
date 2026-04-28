@@ -34,7 +34,7 @@ jobs:
 
       - name: Configure node-gyp Python path
         run: |
-          npm config set python "$(which python3)"
+          echo "PYTHON=$(which python3)" >> "$GITHUB_ENV"
           echo "NODE_GYP_FORCE_PYTHON=$(which python3)" >> "$GITHUB_ENV"
 
       - name: Install dependencies
