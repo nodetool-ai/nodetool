@@ -13,7 +13,8 @@ import type {
   RealtimeUpdateParameterRequest,
   RealtimeUpdateParameterResult,
   RealtimeStopSessionRequest,
-  RealtimeStopSessionResult
+  RealtimeStopSessionResult,
+  RealtimeSessionErrorEvent
 } from "./python-bridge-types.js";
 import { createLogger } from "@nodetool/config";
 import type { RealtimeSessionInfo } from "@nodetool/protocol";
@@ -49,12 +50,12 @@ interface PythonBridgeLike {
     request: RealtimeStopSessionRequest
   ) => Promise<RealtimeStopSessionResult>;
   on?: (
-    event: "realtimeOutputFrame",
-    listener: (event: RealtimeOutputFrameEvent) => void
+    event: "realtimeOutputFrame" | "realtimeSessionError",
+    listener: (event: RealtimeOutputFrameEvent | RealtimeSessionErrorEvent) => void
   ) => unknown;
   off?: (
-    event: "realtimeOutputFrame",
-    listener: (event: RealtimeOutputFrameEvent) => void
+    event: "realtimeOutputFrame" | "realtimeSessionError",
+    listener: (event: RealtimeOutputFrameEvent | RealtimeSessionErrorEvent) => void
   ) => unknown;
 }
 import { readFile } from "node:fs/promises";
@@ -380,8 +381,13 @@ export class PythonNodeExecutor {
     }
 
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
+      const cleanup = () => {
+        clearTimeout(timeout);
         session.off("frame", onFrame);
+        session.off("sessionError", onSessionError);
+      };
+      const timeout = setTimeout(() => {
+        cleanup();
         reject(
           new Error(
             `Timed out waiting for realtime output from Python node ${this.nodeType}`
@@ -390,12 +396,16 @@ export class PythonNodeExecutor {
       }, REALTIME_OUTPUT_TIMEOUT_MS);
 
       const onFrame = (event: RealtimeOutputFrameEvent) => {
-        clearTimeout(timeout);
-        session.off("frame", onFrame);
+        cleanup();
         resolve(event);
+      };
+      const onSessionError = (event: RealtimeSessionErrorEvent) => {
+        cleanup();
+        reject(new Error(event.error));
       };
 
       session.on("frame", onFrame);
+      session.on("sessionError", onSessionError);
     });
   }
 

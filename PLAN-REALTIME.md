@@ -38,7 +38,7 @@ Use these as product and adapter guidance:
 
 - The understandable graph shape is `Source -> Pipeline -> Sink/Preview`. Keep the Nodetool starter and validation centered on that mental model.
 - Realtime node menu grouping is useful: `Source`, `Pipeline`, `Sink`, `Output`, `Controls`, `UI`, `Utility`, `Media`, and `VACE` make realtime authoring easier to scan than a flat model/provider list.
-- Pipeline nodes can expose advanced model parameters inline, but the MVP should not start there. Hide or collapse low-level knobs until the base run works.tasks in the plan
+- Pipeline nodes can expose advanced model parameters inline, but the MVP should not start there. Hide or collapse low-level knobs until the base run works.
 - Control inputs such as VACE/reference frames should be optional graph inputs connected from small control nodes, not mandatory fields on the base pipeline.
 - LongLive/Wan-style component layout is useful fallback guidance: keep separate concerns for model path resolution, text encoder, transformer/checkpoint, VAE, optional LoRA, optional VACE/control input, scheduler/steps, and frame post-processing. Do not expose the full set as first-run controls.
 - Use one conservative adapter profile while proving the path, such as 320x576 or 512 square output, fixed seed, known VAE, known quantization profile, known noise scale, and known denoising steps.
@@ -408,31 +408,31 @@ Steps:
 - [ ] Change the prompt once while running.
 - [ ] Stop the session cleanly.
 - [ ] Record latency, memory/offload state, and any dropped-frame count shown by the app/logs.
-- [ ] Use `TEMP_LOG` diagnostics to identify any failed browser -> websocket -> runner -> Python handoff.
-- [ ] Remove temporary `TEMP_LOG` diagnostics or convert the useful parts to normal debug logging after the smoke is understood.
+- [ ] Use realtime debug logs to identify any failed browser -> websocket -> runner -> Python handoff.
+- [ ] Keep useful diagnostics as normal debug/warn/error logging; remove temporary `TEMP_LOG` labels after the smoke is understood.
 
 Check:
 - [ ] A user sees generated model output in `Preview` on RTX 3060-class hardware.
 - [ ] No mock/dev pipeline is used for the success path.
 - [ ] No temporary `TEMP_LOG` instrumentation remains unless intentionally retained behind normal debug logging.
 
-### [ ] 1.6 Write One-Page User Runbook
+### [x] 1.6 Write One-Page User Runbook
 
 Files:
 - `nodetool-realtime/README.md` or this file
 
 Steps:
-- [ ] Document conda activation.
-- [ ] Document CUDA check.
-- [ ] Document required Python packages.
-- [ ] Document artifact cache check.
-- [ ] Document the exact workflow/template to open.
-- [ ] Document what to click.
-- [ ] Document expected `Preview` behavior.
-- [ ] Document which logs to collect on failure.
+- [x] Document conda activation.
+- [x] Document CUDA check.
+- [x] Document required Python packages.
+- [x] Document artifact cache check.
+- [x] Document the exact workflow/template to open.
+- [x] Document what to click.
+- [x] Document expected `Preview` behavior.
+- [x] Document which logs to collect on failure.
 
 Check:
-- [ ] Another user can attempt the MVP without reading source code.
+- [x] Another user can attempt the MVP without reading source code.
 
 ## Phase 2: Immediate User Value
 

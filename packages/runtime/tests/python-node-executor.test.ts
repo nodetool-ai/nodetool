@@ -15,6 +15,9 @@ import type { ProcessingContext } from "../src/context.js";
 class FakeRealtimeBridge {
   private frameListener: ((event: RealtimeOutputFrameEvent) => void) | null =
     null;
+  private errorListener: ((event: { session_id: string; error: string }) => void) | null =
+    null;
+  emitError = false;
 
   readonly startRealtimeSession = vi.fn(async () => ({
     session_id: "session-1",
@@ -22,6 +25,13 @@ class FakeRealtimeBridge {
   }));
   readonly pushRealtimeInputFrame = vi.fn(async () => {
     queueMicrotask(() => {
+      if (this.emitError) {
+        this.errorListener?.({
+          session_id: "session-1",
+          error: "boom from process"
+        });
+        return;
+      }
       this.frameListener?.({
         session_id: "session-1",
         handle: "frame",
@@ -41,16 +51,28 @@ class FakeRealtimeBridge {
   }));
   readonly execute = vi.fn();
 
-  on(event: string, listener: (event: RealtimeOutputFrameEvent) => void) {
+  on(
+    event: string,
+    listener: (event: RealtimeOutputFrameEvent | { session_id: string; error: string }) => void
+  ) {
     if (event === "realtimeOutputFrame") {
-      this.frameListener = listener;
+      this.frameListener = listener as (event: RealtimeOutputFrameEvent) => void;
+    }
+    if (event === "realtimeSessionError") {
+      this.errorListener = listener as (event: { session_id: string; error: string }) => void;
     }
     return this;
   }
 
-  off(event: string, listener: (event: RealtimeOutputFrameEvent) => void) {
+  off(
+    event: string,
+    listener: (event: RealtimeOutputFrameEvent | { session_id: string; error: string }) => void
+  ) {
     if (event === "realtimeOutputFrame" && this.frameListener === listener) {
       this.frameListener = null;
+    }
+    if (event === "realtimeSessionError" && this.errorListener === listener) {
+      this.errorListener = null;
     }
     return this;
   }
@@ -104,6 +126,35 @@ describe("PythonNodeExecutor realtime warm state", () => {
     expect(outputs).toEqual({
       frame: { type: "realtime_video_frame", sequence: 2 }
     });
+  });
+
+  it("rejects promptly when the warm Python realtime session emits an error", async () => {
+    const bridge = new FakeRealtimeBridge();
+    bridge.emitError = true;
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "realtime.longlive.LongLive",
+      { prompt: "test prompt" },
+      { frame: "realtime_video_frame" },
+      []
+    );
+
+    await executor.onSessionStart?.({} as never, {
+      session_id: "session-1",
+      workflow_id: "workflow-1",
+      transport: "websocket",
+      parameters: {},
+      media_tracks: []
+    });
+
+    await expect(
+      executor.process(
+        {
+          frame: { type: "realtime_video_frame", sequence: 1 }
+        },
+        {} as never
+      )
+    ).rejects.toThrow("boom from process");
   });
 });
 

@@ -59,7 +59,8 @@ export {
   type RealtimePushInputFrameResult,
   type RealtimeStopSessionRequest,
   type RealtimeStopSessionResult,
-  type RealtimeOutputFrameEvent
+  type RealtimeOutputFrameEvent,
+  type RealtimeSessionErrorEvent
 } from "./python-stdio-bridge.js";
 export {
   PythonRealtimeSession,
