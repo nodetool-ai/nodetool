@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/vectorstore",
-  "version": "0.7.0-rc.17",
+  "version": "0.7.0-rc.18",
   "type": "module",
   "description": "SQLite-vec vector store for NodeTool",
   "main": "dist/index.js",
