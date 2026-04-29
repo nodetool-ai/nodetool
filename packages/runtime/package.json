@@ -43,12 +43,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./bridge-protocol": {
-      "nodetool-dev": "./src/bridge-protocol.ts",
-      "types": "./dist/bridge-protocol.d.ts",
-      "import": "./dist/bridge-protocol.js",
-      "default": "./dist/bridge-protocol.js"
     }
   },
   "license": "MIT",

@@ -1,6 +1,11 @@
 /**
  * Bridge protocol versioning between the JS runtime and the Python worker.
  *
+ * Lives in @nodetool-ai/protocol (not @nodetool-ai/runtime) so the Electron
+ * main process can read these constants without dragging the runtime barrel
+ * — which re-exports every LLM provider with their heavy SDK imports —
+ * into the main bundle.
+ *
  * Bumped only when the stdio worker protocol changes in a non-backward-
  * compatible way (new message types, framing changes, schema breaks).
  * Most JS or Python releases do NOT bump this — we want to allow the JS

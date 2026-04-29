@@ -9,10 +9,11 @@ import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
 import { getTorchIndexUrl } from "./torchPlatformCache";
-// Import the smallest possible subpath: bringing in the full @nodetool-ai/runtime
-// barrel pulls sharp/openai/anthropic SDKs into the Electron main bundle, where
-// Vite/Rollup can't resolve their dynamic-require native bindings.
-import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/runtime/bridge-protocol";
+// The bridge-protocol constants live in @nodetool-ai/protocol — a tiny
+// zod-only package — specifically so the Electron main bundle can read them
+// without dragging the @nodetool-ai/runtime barrel (and every provider's
+// heavy SDK) into the main process.
+import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/protocol/bridge-protocol";
 
 /**
  * Python environment manager for the Electron shell.

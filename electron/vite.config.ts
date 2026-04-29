@@ -41,12 +41,20 @@ const builtins = [
 // All modules to externalize for preload
 const externalModules = ["electron", "electron/common", ...builtins];
 
-// Main process also needs runtime node_modules externalized
+// Main process also needs runtime node_modules externalized.
+// `sharp` and its `@img/sharp-*` native sub-packages MUST stay external —
+// Rollup's @rollup/plugin-commonjs cannot satisfy their dynamic require for
+// the platform-specific .node binding, and inlining them produces an
+// Electron main bundle that aborts at launch with "Could not dynamically
+// require …/sharp.node". Belt-and-suspenders alongside the lazy imports
+// in the runtime providers and the verify-bundle.mjs static check.
 const mainExternalModules = [
   ...externalModules,
   "@anthropic-ai/claude-agent-sdk",
   "@nodetool-ai/protocol",
   "zod",
+  "sharp",
+  /^@img\/sharp-/,
 ];
 
 export default defineConfig({

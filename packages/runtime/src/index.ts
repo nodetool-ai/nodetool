@@ -51,10 +51,14 @@ export {
   type PythonWorkerLoadError,
   type PythonWorkerStatus
 } from "./python-stdio-bridge.js";
+// Public API re-export — the source of truth lives in @nodetool-ai/protocol
+// so the Electron main bundle (which can't pull in the runtime barrel) and
+// any other thin consumer can read these constants without dragging the
+// providers in. Internal callers should import from protocol directly.
 export {
   BRIDGE_PROTOCOL_VERSION,
   MIN_NODETOOL_CORE_VERSION
-} from "./bridge-protocol.js";
+} from "@nodetool-ai/protocol/bridge-protocol";
 export { PythonNodeExecutor } from "./python-node-executor.js";
 export {
   type NodeExecutor,

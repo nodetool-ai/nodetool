@@ -23,7 +23,7 @@ import { createLogger } from "@nodetool-ai/config";
 import {
   BRIDGE_PROTOCOL_VERSION,
   MIN_NODETOOL_CORE_VERSION
-} from "./bridge-protocol.js";
+} from "@nodetool-ai/protocol/bridge-protocol";
 
 const log = createLogger("nodetool.runtime.python-stdio-bridge");
 import type {

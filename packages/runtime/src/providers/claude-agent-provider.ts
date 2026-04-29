@@ -29,7 +29,12 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
-import * as sdk from "@anthropic-ai/claude-agent-sdk";
+// `@anthropic-ai/claude-agent-sdk` is loaded lazily inside generateMessages.
+// Importing it at module scope means anything that re-exports this provider
+// (notably the Electron main bundle) requires the SDK package at startup —
+// and on Windows the SDK isn't resolvable from inside the ASAR, crashing the
+// app. The `import type` is erased at compile time.
+import type * as SdkType from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 
 const log = createLogger("nodetool.runtime.providers.claude_agent");
@@ -419,7 +424,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   private buildMcpServer(
     tools: ProviderTool[],
     onToolCall: OnToolCall,
-    sdk: typeof import("@anthropic-ai/claude-agent-sdk"),
+    sdk: typeof SdkType,
     z: any,
     toolCallTracker: ToolCall[]
   ) {
@@ -509,6 +514,16 @@ export class ClaudeAgentProvider extends BaseProvider {
       hasTools,
       toolNames: args.tools?.map((t) => t.name) ?? []
     });
+
+    // Lazy-load the SDK only on first use. This keeps anything that imports
+    // the provider transitively (Electron main, CLI, tests) from requiring
+    // the SDK at startup.
+    let sdk: typeof SdkType;
+    try {
+      sdk = await import("@anthropic-ai/claude-agent-sdk");
+    } catch (err) {
+      throw classifyClaudeAgentError(err);
+    }
 
     // Track tool calls made during this query (populated by MCP handlers)
     const toolCallTracker: ToolCall[] = [];

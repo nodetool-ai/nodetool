@@ -1,5 +1,8 @@
 import OpenAI, { toFile } from "openai";
-import sharp from "sharp";
+// `sharp` is loaded lazily at the call site. Importing it at module scope
+// pulls its native binding into anything that re-exports this provider —
+// notably the Electron main bundle, where Vite/Rollup can't resolve sharp's
+// dynamic require for `@img/sharp-*.node` and the app crashes at launch.
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
@@ -1225,6 +1228,7 @@ export class OpenAIProvider extends BaseProvider {
     const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
 
     const [targetW, targetH] = size.split("x").map(Number);
+    const sharp = (await import("sharp")).default;
     const resized =
       width === targetW && height === targetH
         ? image
