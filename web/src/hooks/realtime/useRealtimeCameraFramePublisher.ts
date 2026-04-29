@@ -10,8 +10,8 @@ import log from "loglevel";
 
 import { realtimeSessionClient } from "../../lib/websocket/RealtimeSessionClient";
 
-const DEFAULT_INTERVAL_MS = 500;
-const DEFAULT_MAX_WIDTH = 320;
+export const DEFAULT_REALTIME_FRAME_INTERVAL_MS = 500;
+export const DEFAULT_REALTIME_FRAME_MAX_WIDTH = 320;
 
 export interface CaptureVideoElementFrameOptions {
   sequence: number;
@@ -160,8 +160,8 @@ export const useRealtimeCameraFramePublisher = ({
   enabled,
   previewStream,
   session,
-  intervalMs = DEFAULT_INTERVAL_MS,
-  maxWidth = DEFAULT_MAX_WIDTH
+  intervalMs = DEFAULT_REALTIME_FRAME_INTERVAL_MS,
+  maxWidth = DEFAULT_REALTIME_FRAME_MAX_WIDTH
 }: RealtimeCameraFramePublisherOptions): RealtimeCameraFramePublisherStatus => {
   const sequenceRef = useRef(0);
   const firstFrameLogRef = useRef(false);

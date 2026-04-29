@@ -6,6 +6,7 @@ import type { RealtimeMetrics, RealtimeSessionRecord } from "@nodetool/protocol"
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { RealtimeCameraSetupCard } from "../RealtimeCameraSetupCard";
+import { RealtimeModelStatusCard } from "../RealtimeModelStatusCard";
 import { RealtimeSessionDetailsCard } from "../RealtimeSessionDetailsCard";
 import { RealtimeSessionListCard } from "../RealtimeSessionListCard";
 
@@ -161,10 +162,48 @@ describe("Realtime session cards", () => {
     );
 
     expect(screen.getByText("Camera active")).toBeInTheDocument();
+    expect(screen.getByText("Requested: 640x480")).toBeInTheDocument();
+    expect(
+      screen.getByText("Frame feed: downscaled to max 320px wide")
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Frame push route: video-source.camera")
     ).toBeInTheDocument();
     expect(screen.getByText("Source: realtime_frame")).toBeInTheDocument();
     expect(screen.getByText("3 frames pushed at 2 fps")).toBeInTheDocument();
+  });
+
+  it("surfaces missing backend push-frame acknowledgements", () => {
+    renderWithTheme(
+      <RealtimeModelStatusCard
+        activeSession={session()}
+        activeMetrics={null}
+        activeInferenceMetrics={[]}
+        activeAnalysisEvents={[]}
+        cameraPublisherStatus={{
+          enabled: true,
+          active: true,
+          trackId: "track-1",
+          nodeId: "video-source",
+          inputName: "camera",
+          sourceHandle: "realtime_frame",
+          intervalMs: 500,
+          targetFps: 2,
+          framesPublished: 145,
+          lastPublishedAt: 1234,
+          lastError: null,
+          skippedReason: null
+        }}
+        isLoadingSessions={false}
+        sessionError={null}
+      />
+    );
+
+    expect(
+      screen.getByText("No backend frame acknowledgements yet")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Browser frames: 145")).toBeInTheDocument();
+    expect(screen.getByText("Session status: running")).toBeInTheDocument();
+    expect(screen.getByText("Job id: job-1")).toBeInTheDocument();
   });
 });

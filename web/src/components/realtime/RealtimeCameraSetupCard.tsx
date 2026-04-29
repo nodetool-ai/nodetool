@@ -11,7 +11,10 @@ import {
   VIDEO_CAPTURE_RESOLUTION_PRESETS,
   type VideoCaptureResolutionPreset
 } from "../../hooks/browser/useVideoCapture";
-import type { RealtimeCameraFramePublisherStatus } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
+import {
+  DEFAULT_REALTIME_FRAME_MAX_WIDTH,
+  type RealtimeCameraFramePublisherStatus
+} from "../../hooks/realtime/useRealtimeCameraFramePublisher";
 import {
   realtimeCardSx,
   realtimeTextInputSx
@@ -74,7 +77,13 @@ export const RealtimeCameraSetupCard = ({
           label="Resolution"
           sharp
         />
+        <Caption>
+          Requested: {VIDEO_CAPTURE_RESOLUTION_PRESETS[selectedVideoResolution].label}
+        </Caption>
         <Caption>Actual: {actualMode}</Caption>
+        <Caption>
+          Frame feed: downscaled to max {DEFAULT_REALTIME_FRAME_MAX_WIDTH}px wide
+        </Caption>
         <FlexColumn gap={1.25} sx={{ pt: 1.5 }}>
           <TextInput
             label="Target node id"

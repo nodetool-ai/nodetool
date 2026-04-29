@@ -136,9 +136,10 @@ const runtimeStatus = ({
 
   if (cameraPublisherStatus.framesPublished > 0) {
     return {
-      status: "info",
-      label: "Camera frames leaving browser",
-      detail: "Waiting for backend routing metrics from the realtime session.",
+      status: "warning",
+      label: "No backend frame acknowledgements yet",
+      detail:
+        "The browser is publishing frames, but the session has not reported routed or unrouted frames. Check the WebSocket push-frame ack path and backend routing logs.",
       pulse: true
     };
   }
@@ -206,6 +207,12 @@ export const RealtimeModelStatusCard = ({
         <Caption>
           Inference nodes reporting: {activeInferenceMetrics.length.toLocaleString()}
         </Caption>
+        {activeSession ? (
+          <>
+            <Caption>Session status: {activeSession.status}</Caption>
+            <Caption>Job id: {activeSession.job_id ?? "pending"}</Caption>
+          </>
+        ) : null}
         {latestInferenceMetrics ? (
           <>
             <Caption>
