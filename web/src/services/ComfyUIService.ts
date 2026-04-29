@@ -117,20 +117,6 @@ export type ComfyUIWSMessageData = {
   [key: string]: unknown;
 };
 
-// ComfyUI node schema types based on /object_info response
-export type ComfyUIInputDefaultValue = string | number | boolean | null;
-
-export interface ComfyUIInputSpec {
-  type: string;
-  default?: ComfyUIInputDefaultValue;
-  min?: number;
-  max?: number;
-  step?: number;
-  options?: string[];
-  multiline?: boolean;
-  tooltip?: string;
-}
-
 export type ComfyUIInputParameter = [string, Record<string, unknown>?];
 
 export interface ComfyUINodeSchema {

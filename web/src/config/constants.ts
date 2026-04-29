@@ -1,13 +1,10 @@
 // APP
-export const APP_NAME = "nodetool";
 export const VERSION = "0.7.0-rc.12";
 
 // TOOLTIPS
 export const TOOLTIP_ENTER_DELAY = 700;
 export const TOOLTIP_LEAVE_DELAY = 0;
 export const TOOLTIP_ENTER_NEXT_DELAY = 350;
-
-export const DEBUG_RENDER_LOGGING = process.env.NODE_ENV !== "production";
 
 // NOTIFICATIONS
 export const NOTIFICATIONS_LIST_MAX_ITEMS = 100;
@@ -19,9 +16,6 @@ export const NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED = 10000; // 10 seconds - wo
 export const NOTIFICATION_TIMEOUT_MIN = 2000; // 2 seconds minimum
 export const NOTIFICATION_TIMEOUT_MAX = 12000; // 12 seconds maximum
 export const NOTIFICATION_READING_WPM = 200; // average reading speed in words per minute
-
-// CHAT
-export const CHAT_HISTORY_AMOUNT = 10;
 
 // LAYOUT
 export const HEADER_HEIGHT = 40; // AppHeader toolbar height in px
