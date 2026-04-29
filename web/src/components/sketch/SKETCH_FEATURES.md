@@ -106,6 +106,7 @@
 - [x] Elliptical selection
 - [x] Free-form / lasso selection
 - [x] Selection actions (cut, copy, paste, delete, invert)
+- [ ] Get selection mask from layer by CTRL + clicking on layer preview item in right panel > creates selection from layer
 
 ### Move/Transform
 - [x] Move layer content
@@ -168,19 +169,20 @@
 - [ ] Size warnings for large documents
 - [ ] Export/import project files
 
+
 ### Cleaner Node UI/Preview
 - [x] Preview thumbnail updates on document change
 - [x] Brush/eraser size cursor preview (zoom-aware)
 - [x] Keyboard shortcut hints in toolbar
-- [ ] Canvas size indicator in node
-- [ ] Input/output status indicators
+- [ ] Canvas size indicator in node > DEFERRED
+- [ ] Input/output status indicators > DEFERRED
 
 ### Import/Export Paths
 - [x] PNG export (flattened image)
 - [x] PNG mask export
 - [x] Save PNG to file / download
 - [ ] Load from file / upload
-- [ ] PSD export (stretch goal)
+
 
 ---
 
@@ -423,17 +425,30 @@ Check:
 ---
 
 ## Phase 4: Advanced Parity / Extensibility
-
-- [ ] Vector / pen / text layers
-- [ ] SVG import/export
-- [ ] Advanced brush system (custom brushes, textures, dynamics)
-- [ ] Multiple canvases / documents
-- [ ] PSD/ORA compatibility
-- [ ] User-selected NodeTool workflows for sketch image-to-image edits
-- [ ] Depth-map generation from a selected layer using NodeTool depth nodes
 - [ ] Inpainting from a selected layer plus sketch mask using NodeTool inpaint nodes
+- [ ] Depth-map generation from a selected layer using NodeTool depth nodes
+- [ ] User-selected NodeTool workflows for sketch image-to-image edits
+- [ ] Vector / pen / text layers
+
+
+### Phase 5: Effectt layers
+- [] plan how to implement stackable effect layers. add up to 10 new tasks below here in Phase 4 ...
+- [] ...
+
+### Phase 6: UI Polish
+- [] add 6 brush presets - presets inspired by krita brushes
+- ...
+
+
+
+## Ideas - do not implement
+- [ ] Advanced brush system (custom brushes, textures, dynamics)
 - [ ] 3D layer support (stretch goal)
+- [ ] PSD/ORA compatibility
+- [ ] Multiple canvases / documents
 - [ ] Plugin / extension system
+- [ ] SVG import/export
+- [ ] PBR / webgpu shaders for drawing
 
 ---
 
