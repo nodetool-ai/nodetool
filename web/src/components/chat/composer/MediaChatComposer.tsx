@@ -139,7 +139,7 @@ export interface MediaChatComposerProps {
  *       • chat  → model (via left slot, handled by parent toolbar) +
  *                 agent mode toggle
  *       • image → model, resolution (1K/2K/4K), aspect ratio, # variations
- *       • video → model, duration, resolution (1080p/1440p/4K), aspect ratio
+ *       • video → model, duration, resolution (720p/1080p/1440p/4K), aspect ratio
  *   - A Retake refresh icon
  *   - A primary "Generate" button (or plain Send for chat mode)
  *
