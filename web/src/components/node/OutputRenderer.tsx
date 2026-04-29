@@ -741,33 +741,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             }
             if (value[0].type === "chunk") {
               const chunks = value as Chunk[];
-              const allText = chunks.every((c) => isTextLikeChunk(c));
-              if (allText) {
-                const { text, truncated, totalChunks } =
-                  concatTextChunksSafely(chunks);
-                return (
-                  <div>
-                    {truncated && (
-                      <div
-                        style={{
-                          margin: "0.5em 0.75em",
-                          padding: "0.4em 0.6em",
-                          borderRadius: 8,
-                          background: "rgba(255, 193, 7, 0.12)",
-                          border: "1px solid rgba(255, 193, 7, 0.35)",
-                          color: "rgba(255, 255, 255, 0.85)",
-                          fontSize: "0.85em"
-                        }}
-                      >
-                        Output truncated (showing first{" "}
-                        {MAX_RENDERED_TEXT_CHARS.toLocaleString()} chars of{" "}
-                        {totalChunks.toLocaleString()} chunks).
-                      </div>
-                    )}
-                    <TextRenderer text={text} showActions={showTextActions} />
-                  </div>
-                );
-              }
               const audioChunks = chunks.filter(
                 (c) => c.content_type === "audio"
               );
@@ -781,25 +754,73 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   />
                 );
               }
-              // Mixed or non-text chunks: render each chunk individually
+              // Group consecutive text chunks together while preserving
+              // the original order with non-text chunks (e.g. tool_call).
+              type Group =
+                | { kind: "text"; chunks: Chunk[] }
+                | { kind: "other"; chunk: Chunk };
+              const groups: Group[] = [];
+              for (const c of chunks) {
+                if (isTextLikeChunk(c)) {
+                  const last = groups[groups.length - 1];
+                  if (last && last.kind === "text") {
+                    last.chunks.push(c);
+                  } else {
+                    groups.push({ kind: "text", chunks: [c] });
+                  }
+                } else {
+                  groups.push({ kind: "other", chunk: c });
+                }
+              }
               const seen = new Map<string, number>();
               return (
                 <Container>
-                  {chunks.map((c) => (
-                    <OutputRenderer
-                      key={withOccurrenceSuffix(
-                        `chunk:${c.content_type ?? ""}:${c.done ? 1 : 0
-                        }:${hashStringBounded(
-                          typeof c.content === "string"
-                            ? c.content
-                            : ""
-                        )}`,
-                        seen
-                      )}
-                      value={c}
-                      showTextActions={showTextActions}
-                    />
-                  ))}
+                  {groups.map((g, idx) => {
+                    if (g.kind === "text") {
+                      const { text, truncated, totalChunks } =
+                        concatTextChunksSafely(g.chunks);
+                      if (text.length === 0) return null;
+                      return (
+                        <div key={`text:${idx}:${hashStringBounded(text)}`}>
+                          {truncated && (
+                            <div
+                              style={{
+                                margin: "0.5em 0.75em",
+                                padding: "0.4em 0.6em",
+                                borderRadius: 8,
+                                background: "rgba(255, 193, 7, 0.12)",
+                                border: "1px solid rgba(255, 193, 7, 0.35)",
+                                color: "rgba(255, 255, 255, 0.85)",
+                                fontSize: "0.85em"
+                              }}
+                            >
+                              Output truncated (showing first{" "}
+                              {MAX_RENDERED_TEXT_CHARS.toLocaleString()} chars
+                              of {totalChunks.toLocaleString()} chunks).
+                            </div>
+                          )}
+                          <TextRenderer
+                            text={text}
+                            showActions={showTextActions}
+                          />
+                        </div>
+                      );
+                    }
+                    const c = g.chunk;
+                    return (
+                      <OutputRenderer
+                        key={withOccurrenceSuffix(
+                          `chunk:${c.content_type ?? ""}:${c.done ? 1 : 0
+                          }:${hashStringBounded(
+                            typeof c.content === "string" ? c.content : ""
+                          )}`,
+                          seen
+                        )}
+                        value={c}
+                        showTextActions={showTextActions}
+                      />
+                    );
+                  })}
                 </Container>
               );
             }

@@ -670,12 +670,16 @@ describe("AgentNode", () => {
       score: { type: "int" }
     };
     const mockProvider = {
-      async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
+      async *generateMessages(args: {
+        tools?: Array<{ name: string }>;
+      }): AsyncGenerator<Record<string, unknown>> {
+        const resultTool = args.tools?.find((tool) =>
+          tool.name.startsWith("submit_result")
+        );
         yield {
-          type: "chunk",
-          content: '{"answer":"ready","score":7}',
-          content_type: "text",
-          done: true
+          id: "call_result",
+          name: resultTool?.name ?? "submit_result",
+          args: { answer: "ready", score: 7 }
         };
       }
     };
@@ -693,6 +697,53 @@ describe("AgentNode", () => {
     const last = streamed[streamed.length - 1];
     expect(last.answer).toBe("ready");
     expect(last.score).toBe(7);
+  });
+
+  it("continues after non-executable tool calls until dynamic result is submitted", async () => {
+    const n = new (AgentNode as any)();
+    n._dynamic_outputs = {
+      answer: { type: "str" }
+    };
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "Search, then answer",
+      tools: [{ name: "google_search", description: "Search" }]
+    });
+
+    let calls = 0;
+    const mockProvider = {
+      async *generateMessages(args: {
+        tools?: Array<{ name: string }>;
+      }): AsyncGenerator<Record<string, unknown>> {
+        calls += 1;
+        if (calls === 1) {
+          yield {
+            id: "call_search",
+            name: "google_search",
+            args: { query: "latest" }
+          };
+          return;
+        }
+        const resultTool = args.tools?.find((tool) =>
+          tool.name.startsWith("submit_result")
+        );
+        yield {
+          id: "call_result",
+          name: resultTool?.name ?? "submit_result",
+          args: { answer: "done" }
+        };
+      }
+    };
+
+    const streamed: any[] = [];
+    for await (const item of n.genProcess({
+      getProvider: async () => mockProvider
+    } as any)) {
+      streamed.push(item);
+    }
+
+    expect(calls).toBe(2);
+    expect(streamed[streamed.length - 1].answer).toBe("done");
   });
 
   it("replays locally stored thread messages when model persistence is unavailable", async () => {

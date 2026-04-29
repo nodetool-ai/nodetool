@@ -23,7 +23,11 @@ import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-pro
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerKieNodes } from "@nodetool-ai/kie-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
-import { setSecretResolver, PythonStdioBridge } from "@nodetool-ai/runtime";
+import {
+  initTelemetry,
+  setSecretResolver,
+  PythonStdioBridge
+} from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import { initDb, getSecret } from "@nodetool-ai/models";
 import {
@@ -109,6 +113,7 @@ const log = createLogger("nodetool.websocket.server");
 // initialises eagerly, but an explicit call here picks up any env mutations
 // made by the process launcher before this point).
 configureLogging();
+await initTelemetry();
 const startupT0 = performance.now();
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;

@@ -12,6 +12,7 @@ import type {
 } from "@nodetool-ai/runtime";
 import type { Chunk, ProcessingMessage } from "@nodetool-ai/protocol";
 import { MultiModeAgent, Tool as AgentTool } from "@nodetool-ai/agents";
+import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -611,12 +612,22 @@ export function isToolCallItem(item: ProviderStreamItem): item is ToolCall {
 
 function normalizeTools(value: unknown): ToolLike[] {
   if (!Array.isArray(value)) return [];
-  return value.filter(
-    (tool): tool is ToolLike =>
-      !!tool &&
-      typeof tool === "object" &&
-      typeof (tool as { name?: unknown }).name === "string"
-  );
+  return value
+    .filter(
+      (tool): tool is ToolLike =>
+        !!tool &&
+        typeof tool === "object" &&
+        typeof (tool as { name?: unknown }).name === "string"
+    )
+    .map((tool) => hydrateBuiltinAgentTool(tool) as ToolLike);
+}
+
+function uniqueToolName(baseName: string, existingNames: string[]): string {
+  const used = new Set(existingNames);
+  if (!used.has(baseName)) return baseName;
+  let suffix = 2;
+  while (used.has(`${baseName}_${suffix}`)) suffix += 1;
+  return `${baseName}_${suffix}`;
 }
 
 export function toProviderTools(tools: ToolLike[]): Array<{
@@ -1134,6 +1145,7 @@ function getStructuredOutputSchema(
     else if (["dict", "object"].includes(declared)) type = "object";
     properties[name] = { type };
   }
+  if (required.length === 0) return null;
   return {
     type: "object",
     additionalProperties: false,
@@ -2548,7 +2560,7 @@ export class AgentNode extends BaseNode {
     }
 
     const prompt = asText(this.prompt ?? this.prompt ?? "");
-    const system = asText(this.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
+    let system = asText(this.system ?? this.system ?? DEFAULT_SYSTEM_PROMPT);
     const image = this.image ?? this.image;
     const audio = this.audio ?? this.audio;
     const historyInput = this.history ?? this.history;
@@ -2577,6 +2589,26 @@ export class AgentNode extends BaseNode {
     }
 
     const structuredSchema = getStructuredOutputSchema(this);
+    let structuredResult: Record<string, unknown> | null = null;
+    const structuredToolName = structuredSchema
+      ? uniqueToolName(
+          "submit_result",
+          tools.map((tool) => tool.name)
+        )
+      : null;
+    if (structuredSchema && structuredToolName) {
+      tools.push({
+        name: structuredToolName,
+        description:
+          "Submit the final structured result for this agent node's dynamic outputs. Call this exactly once when you have the final answer.",
+        inputSchema: structuredSchema,
+        process: async (_context, params) => {
+          structuredResult = params ?? {};
+          return { status: "completed" };
+        }
+      });
+      system = `${system}\n\nWhen the final answer is ready, call the ${structuredToolName} tool with values for the dynamic outputs. Do not format the final result as JSON text.`;
+    }
 
     const messages: Message[] = [
       { role: "system", content: system },
@@ -2602,8 +2634,6 @@ export class AgentNode extends BaseNode {
     }
 
     let lastTextOutput: string | null = null;
-    /** Latest extracted `<think>` body (for diagnostics / truncation errors). */
-    let lastExtractedThinking: string | null = null;
     const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
     const provider = await context.getProvider(providerId);
 
@@ -2748,9 +2778,6 @@ export class AgentNode extends BaseNode {
         const trimmed = cleanText.trim();
         if (trimmed) {
           lastTextOutput = trimmed;
-        }
-        if (thinkingText.trim()) {
-          lastExtractedThinking = thinkingText;
         }
         if (thinkingText && !streamedRedactedThinking) {
           yield {
@@ -2904,9 +2931,6 @@ export class AgentNode extends BaseNode {
           if (trimmed) {
             lastTextOutput = trimmed;
           }
-          if (thinkingText.trim()) {
-            lastExtractedThinking = thinkingText;
-          }
           if (thinkingText && !streamedRedactedThinking) {
             yield {
               chunk: null,
@@ -2929,6 +2953,12 @@ export class AgentNode extends BaseNode {
             content: [{ type: "text", text: assistantText }],
             toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null
           };
+          const rawParts = assistantToolCalls.find(
+            (tc) => tc._rawGeminiParts
+          )?._rawGeminiParts;
+          if (rawParts) {
+            assistantMessage._rawGeminiParts = rawParts as unknown[];
+          }
           messages.push(assistantMessage);
           await saveThreadMessage(context, threadId, assistantMessage);
         }
@@ -2938,12 +2968,21 @@ export class AgentNode extends BaseNode {
             (candidate) => candidate.name === toolCall.name
           );
           if (!tool || typeof tool.process !== "function") {
+            const message = `Unknown or non-executable tool: ${toolCall.name}`;
             log.warn("AgentNode tool call had no matching executable tool", {
               nodeId: this.__node_id ?? null,
               toolCallId: toolCall.id,
               toolName: toolCall.name,
               availableTools: tools.map((candidate) => candidate.name)
             });
+            const toolMessage: Message = {
+              role: "tool",
+              toolCallId: toolCall.id,
+              content: JSON.stringify({ status: "error", error: message })
+            };
+            messages.push(toolMessage);
+            await saveThreadMessage(context, threadId, toolMessage);
+            shouldContinue = true;
             continue;
           }
 
@@ -3012,6 +3051,10 @@ export class AgentNode extends BaseNode {
           };
           messages.push(toolMessage);
           await saveThreadMessage(context, threadId, toolMessage);
+          if (structuredToolName && toolCall.name === structuredToolName) {
+            shouldContinue = false;
+            break;
+          }
           shouldContinue = true;
         }
       }
@@ -3024,76 +3067,12 @@ export class AgentNode extends BaseNode {
       }
     }
 
-    if (structuredSchema) {
-      const structuredText = (lastTextOutput ?? "").trim();
-      if (!structuredText) {
-        const reasoningOnly = Boolean(lastExtractedThinking?.trim());
-        log.error("AgentNode structured output missing text payload", {
-          nodeId: this.__node_id ?? null,
-          providerId,
-          modelId,
-          reasoningOnly,
-          maxTokens
-        });
-        throw new Error(
-          reasoningOnly
-            ? "Agent did not return structured output text: the response was cut off during internal reasoning before any answer was produced. Increase max_tokens on this node (or reduce prompt / reasoning) so the model can finish with valid JSON."
-            : "Agent did not return structured output text."
-        );
-      }
-      lastTextOutput = structuredText;
-      let parsed = extractJson(lastTextOutput);
-      if (!parsed) {
-        // The LLM returned plain text instead of JSON. Rather than failing
-        // the workflow, build a best-effort result by assigning the raw text
-        // to each required string field in the schema.
-        log.warn(
-          "AgentNode structured output was not valid JSON, falling back to raw text",
-          {
-            nodeId: this.__node_id ?? null,
-            providerId,
-            modelId,
-            textPreview: lastTextOutput.slice(0, 200)
-          }
-        );
-        const props =
-          (
-            structuredSchema as {
-              properties?: Record<string, { type?: string }>;
-            }
-          ).properties ?? {};
-        const fallback: Record<string, unknown> = {};
-        for (const [name, spec] of Object.entries(props)) {
-          if (spec.type === "string") {
-            fallback[name] = lastTextOutput.trim();
-          } else {
-            fallback[name] = null;
-          }
-        }
-        parsed = fallback;
-      }
-      const required = Array.isArray(
-        (structuredSchema as { required?: unknown }).required
-      )
-        ? ((structuredSchema as { required: string[] }).required ?? [])
-        : [];
-      for (const name of required) {
-        if (!(name in parsed)) {
-          log.error("AgentNode structured output missing required field", {
-            nodeId: this.__node_id ?? null,
-            missingField: name,
-            parsedKeys: Object.keys(parsed)
-          });
-          throw new Error(
-            `Agent structured output is missing required field '${name}'`
-          );
-        }
-      }
-      log.info("AgentNode yielding structured output", {
+    if (structuredSchema && structuredResult) {
+      log.info("AgentNode yielding dynamic output tool result", {
         nodeId: this.__node_id ?? null,
-        keys: Object.keys(parsed)
+        keys: Object.keys(structuredResult)
       });
-      yield parsed;
+      yield structuredResult;
     }
 
     log.info("AgentNode completed", {
@@ -3101,7 +3080,7 @@ export class AgentNode extends BaseNode {
       providerId,
       modelId,
       finalTextLength: lastTextOutput?.length ?? 0,
-      returnedStructured: Boolean(structuredSchema)
+      returnedStructured: Boolean(structuredResult)
     });
   }
 

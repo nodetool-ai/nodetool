@@ -655,6 +655,9 @@ export abstract class BaseProvider {
   }
 
   protected parseToolCallArgs(raw: unknown): Record<string, unknown> {
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      return raw as Record<string, unknown>;
+    }
     if (typeof raw !== "string") {
       return {};
     }
