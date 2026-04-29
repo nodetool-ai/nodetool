@@ -9,7 +9,10 @@ import { logMessage, LOG_FILE } from "./logger";
 import { checkPermissions, fileExists } from "./utils";
 import { emitBootMessage, emitServerLog } from "./events";
 import { getTorchIndexUrl } from "./torchPlatformCache";
-import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/runtime";
+// Import the smallest possible subpath: bringing in the full @nodetool-ai/runtime
+// barrel pulls sharp/openai/anthropic SDKs into the Electron main bundle, where
+// Vite/Rollup can't resolve their dynamic-require native bindings.
+import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/runtime/bridge-protocol";
 
 /**
  * Python environment manager for the Electron shell.
