@@ -3,7 +3,7 @@ import type { ModuleConfig } from "../types.js";
 export const config: ModuleConfig = {
   configs: {
     "openrouter/router/video/enterprise": {
-      className: "OpenrouterRouterVideoEnterprise",
+      className: "RouterVideoEnterprise",
       docstring:
         "Run any VLM (Video Language Model) with fal, powered by OpenRouter.",
       tags: ["video", "transcription", "analysis", "video-understanding"],
@@ -16,7 +16,7 @@ export const config: ModuleConfig = {
       ]
     },
     "openrouter/router/video": {
-      className: "OpenrouterRouterVideo",
+      className: "RouterVideo",
       docstring:
         "Run any VLM (Video Language Model) with fal, powered by OpenRouter.",
       tags: ["video", "transcription", "analysis", "video-understanding"],
@@ -29,7 +29,7 @@ export const config: ModuleConfig = {
       ]
     },
     "nvidia/nemotron-3-nano-omni/video": {
-      className: "NvidiaNemotron3NanoOmniVideo",
+      className: "Nemotron3NanoOmniVideo",
       docstring: "Nvidia Nemotron 3 Nano Omni: video understanding.",
       tags: ["video-to-text", "vlm", "nvidia", "nemotron"],
       useCases: [

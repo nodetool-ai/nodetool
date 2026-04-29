@@ -5234,7 +5234,7 @@ export const config: ModuleConfig = {
       ]
     },
     "openai/gpt-image-2/edit": {
-      className: "OpenaiGptImage2Edit",
+      className: "GptImage2Edit",
       docstring: "Edit images with OpenAI GPT Image 2.",
       tags: ["editing", "image-to-image", "img2img", "openai", "gpt-image"],
       useCases: [

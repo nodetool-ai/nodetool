@@ -11,6 +11,27 @@ import {
   type NodePropertyValidationIssue
 } from "./validation.js";
 
+/**
+ * Coerce an incoming property value to fit the declared type.
+ *
+ * The only coercion today: when the declared type is `list[T]` and the
+ * value is a non-null scalar (not an array), wrap it in a one-element
+ * array. This lets a single upstream value flow into a list-typed input
+ * (e.g. a single Image into a `list[image]` slot) without a manual
+ * wrapper node.
+ */
+function coerceToDeclaredType(value: unknown, declaredType: string): unknown {
+  if (
+    value !== null &&
+    value !== undefined &&
+    !Array.isArray(value) &&
+    declaredType.startsWith("list[")
+  ) {
+    return [value];
+  }
+  return value;
+}
+
 export interface DeclaredOutputTypes {
   [name: string]: string;
 }
@@ -165,8 +186,11 @@ export abstract class BaseNode {
     const declaredNames = new Set(declared.map((p) => p.name));
     for (const { name, options } of declared) {
       if (Object.prototype.hasOwnProperty.call(properties, name)) {
-        // Explicit value provided — use it
-        (this as any)[name] = properties[name];
+        // Explicit value provided — use it (auto-wrap scalars into list[T]).
+        (this as any)[name] = coerceToDeclaredType(
+          properties[name],
+          options.type
+        );
       } else if (
         (this as any)[name] === undefined &&
         Object.prototype.hasOwnProperty.call(options, "default")

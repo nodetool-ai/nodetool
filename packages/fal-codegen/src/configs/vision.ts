@@ -345,7 +345,7 @@ export const config: ModuleConfig = {
       ]
     },
     "openrouter/router/vision": {
-      className: "OpenrouterRouterVision",
+      className: "RouterVision",
       docstring: "OpenRouter [Vision]",
       tags: ["vision", "analysis", "image-understanding", "detection"],
       useCases: [
@@ -405,7 +405,7 @@ export const config: ModuleConfig = {
       ]
     },
     "perceptron/isaac-01/openai/v1/chat/completions": {
-      className: "PerceptronIsaac01OpenaiV1ChatCompletions",
+      className: "Isaac01OpenaiV1ChatCompletions",
       docstring: "Isaac 0.1 [OpenAI Compatible Endpoint]",
       tags: ["vision", "analysis", "image-understanding", "detection"],
       useCases: [
@@ -417,7 +417,7 @@ export const config: ModuleConfig = {
       ]
     },
     "perceptron/isaac-01": {
-      className: "PerceptronIsaac01",
+      className: "Isaac01",
       docstring:
         "Isaac-01 is a multimodal vision-language model from Perceptron for various vision language tasks.",
       tags: ["vision", "analysis", "image-understanding", "detection"],
@@ -634,7 +634,7 @@ export const config: ModuleConfig = {
       ]
     },
     "nvidia/nemotron-3-nano-omni/vision": {
-      className: "NvidiaNemotron3NanoOmniVision",
+      className: "Nemotron3NanoOmniVision",
       docstring: "Nvidia Nemotron 3 Nano Omni: image understanding.",
       tags: ["vision", "image-to-text", "vlm", "nvidia", "nemotron"],
       useCases: [

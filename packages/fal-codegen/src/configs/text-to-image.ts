@@ -2672,7 +2672,7 @@ export const config: ModuleConfig = {
       ]
     },
     "openai/gpt-image-2": {
-      className: "OpenaiGptImage2",
+      className: "GptImage2",
       docstring: "OpenAI GPT Image 2 text-to-image generation.",
       tags: ["generation", "text-to-image", "txt2img", "openai", "gpt-image"],
       useCases: [

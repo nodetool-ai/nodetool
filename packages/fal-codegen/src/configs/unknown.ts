@@ -41,7 +41,7 @@ export const config: ModuleConfig = {
       ]
     },
     "openrouter/router/audio": {
-      className: "OpenrouterRouterAudio",
+      className: "RouterAudio",
       docstring:
         "Run any ALM (Audio Language Model) with fal, powered by OpenRouter.",
       tags: ["utility", "processing", "general"],

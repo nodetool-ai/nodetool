@@ -42,7 +42,7 @@ export const config: ModuleConfig = {
       ]
     },
     "nvidia/nemotron-3-nano-omni/audio": {
-      className: "NvidiaNemotron3NanoOmniAudio",
+      className: "Nemotron3NanoOmniAudio",
       docstring: "Nvidia Nemotron 3 Nano Omni: audio understanding.",
       tags: ["audio-to-text", "nvidia", "nemotron"],
       useCases: [
