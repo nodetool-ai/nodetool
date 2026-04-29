@@ -47,7 +47,6 @@
     "esbuild": "^0.28.0",
     "eslint": "^9.16.0",
     "jest": "^29.7.0",
-    "jest-environment-node": "^29.7.0",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2",
