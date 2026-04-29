@@ -60,7 +60,7 @@ export type MediaMode =
   | "motion_control";
 
 export type ImageResolution = "1K" | "2K" | "4K";
-export type VideoResolution = "1080p" | "1440p" | "4K";
+export type VideoResolution = "720p" | "1080p" | "1440p" | "4K";
 export type AudioFormat = "mp3" | "wav" | "pcm" | "opus";
 
 export interface AspectRatioOption {
@@ -95,7 +95,12 @@ export const VIDEO_ASPECT_RATIOS: AspectRatioOption[] = [
 ];
 
 export const IMAGE_RESOLUTIONS: ImageResolution[] = ["1K", "2K", "4K"];
-export const VIDEO_RESOLUTIONS: VideoResolution[] = ["1080p", "1440p", "4K"];
+export const VIDEO_RESOLUTIONS: VideoResolution[] = [
+  "720p",
+  "1080p",
+  "1440p",
+  "4K"
+];
 export const VIDEO_DURATIONS: number[] = [2, 3, 4, 5, 6, 8];
 export const IMAGE_VARIATIONS: number[] = [1, 2, 4, 6, 8];
 
