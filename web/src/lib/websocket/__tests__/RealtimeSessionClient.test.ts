@@ -12,6 +12,11 @@ jest.mock("../GlobalWebSocketManager", () => ({
 const client = realtimeSessionClient;
 const ws = globalWebSocketManager as jest.Mocked<typeof globalWebSocketManager>;
 
+const flushSubscription = async () => {
+  await Promise.resolve();
+  await Promise.resolve();
+};
+
 describe("RealtimeSessionClient", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -37,6 +42,8 @@ describe("RealtimeSessionClient", () => {
       graph,
       { transport: "websocket" }
     );
+    await flushSubscription();
+    expect(handler).toBeDefined();
 
     handler?.({
       type: "realtime_session_started",
@@ -82,6 +89,8 @@ describe("RealtimeSessionClient", () => {
       nodes: [],
       edges: []
     });
+    await flushSubscription();
+    expect(handler).toBeDefined();
 
     handler?.({
       type: "realtime_session_ack",
@@ -94,6 +103,40 @@ describe("RealtimeSessionClient", () => {
     await expect(sessionPromise).rejects.toThrow(
       "graph must be an object with nodes and edges arrays"
     );
+  });
+
+  it("resolves when a realtime session starts before the model is ready", async () => {
+    let handler: ((message: unknown) => void) | undefined;
+    ws.subscribe.mockImplementation((_key, nextHandler) => {
+      handler = nextHandler;
+      return jest.fn();
+    });
+
+    const sessionPromise = client.startSession("workflow-1", {}, {
+      nodes: [],
+      edges: []
+    });
+    await flushSubscription();
+    expect(handler).toBeDefined();
+
+    handler?.({
+      type: "realtime_session_started",
+      session_id: "session-1",
+      workflow_id: "workflow-1",
+      job_id: "job-1",
+      status: "starting",
+      transport: "websocket",
+      parameters: {},
+      media_tracks: [],
+      signaling: { status: "idle", offers: [], answers: [], candidates: [] },
+      created_at: "2026-04-28T00:00:00.000Z",
+      updated_at: "2026-04-28T00:00:00.000Z"
+    });
+
+    await expect(sessionPromise).resolves.toMatchObject({
+      session_id: "session-1",
+      status: "starting"
+    });
   });
 
   it("pushes deterministic realtime video frames through the session command surface", async () => {

@@ -15,7 +15,7 @@ Success means a user selects a camera, starts the workflow, and sees generated m
 - Use Nodetool's realtime graph path, not a separate operator UI.
 - Use one user-facing `Video Source` concept. The MVP implements the camera mode.
 - Target Self-Forcing Wan 2.1 1.3B low-VRAM first.
-- If one concrete Self-Forcing adapter attempt cannot produce a frame, switch the MVP target to LongLive.
+- Keep the RTX 3060 MVP on Self-Forcing/community Wan 1.3B low-VRAM paths. Standard LongLive and StreamDiffusion-style streaming are separate 24 GB-class options.
 - Keep dev/mock paths for tests and demos, but remove them from normal user controls and starter templates.
 - LoRA comes immediately after the base MVP.
 - VACE/reference image control comes immediately after LoRA.
@@ -40,11 +40,28 @@ Use these as product and adapter guidance:
 - Realtime node menu grouping is useful: `Source`, `Pipeline`, `Sink`, `Output`, `Controls`, `UI`, `Utility`, `Media`, and `VACE` make realtime authoring easier to scan than a flat model/provider list.
 - Pipeline nodes can expose advanced model parameters inline, but the MVP should not start there. Hide or collapse low-level knobs until the base run works.
 - Control inputs such as VACE/reference frames should be optional graph inputs connected from small control nodes, not mandatory fields on the base pipeline.
-- LongLive/Wan-style component layout is useful fallback guidance: keep separate concerns for model path resolution, text encoder, transformer/checkpoint, VAE, optional LoRA, optional VACE/control input, scheduler/steps, and frame post-processing. Do not expose the full set as first-run controls.
+- LongLive/Wan-style component layout is useful future-card guidance: keep separate concerns for model path resolution, text encoder, transformer/checkpoint, VAE, optional LoRA, optional VACE/control input, scheduler/steps, and frame post-processing. Do not put LongLive on the 3060 path unless we explicitly build an unsupported low-resolution/offload variant.
 - Use one conservative adapter profile while proving the path, such as 320x576 or 512 square output, fixed seed, known VAE, known quantization profile, known noise scale, and known denoising steps.
 - Make the server-side pipeline manager concrete: resolve/cache artifact paths, build a typed pipeline config, lazy-load one pipeline per profile, emit `resolving -> loading -> warming -> ready/error`, run frames through one `infer(frame, prompt, params)` call, reuse warm state across frames, and release/stop cleanly on session stop.
 - The operator needs a visible runtime state next to the graph: session starting, model resolving/loading/warming/ready/error, browser frames sent, backend frames routed, inference metrics, and last error.
 - Realtime should be discoverable from the normal app shell. A header entry such as `Editor | Chat | App | Realtime` is acceptable during the MVP, even if Play eventually moves into the editor.
+
+## RTX 3060 Adapter Assumptions
+
+Use these as dense engineering assumptions until replaced by measured smoke output:
+
+- Target stack: Wan 2.1 T2V 1.3B backbone, Self-Forcing DMD weights, UMT5-XXL text encoder, Wan 2.1 VAE, FP8 weights where available, BF16 activations.
+- 3060 constraint: FP8 saves VRAM on Ampere but does not buy FP8 tensor-core speed. Expect memory headroom, not Ada/Hopper throughput.
+- Scope/Daydream reference data puts standard LongLive and StreamDiffusion V2 around a 20 GB estimate with a 24 GB system floor. Treat RTX 4090/3090-class cards as the practical entry point for those packaged streaming pipelines.
+- 3060 path: Self-Forcing/community FP8 or GGUF Wan 1.3B variants only, unless we deliberately engineer unsupported LongLive offload, very short windows, and very low resolution.
+- Prompt path: text encoding is one-shot per prompt; CPU/offload is acceptable. Keeping UMT5 resident on GPU is lower priority than keeping DiT/VAE/generation stable.
+- VAE path: full Wan VAE is the keeper path. TAEHV/TAEW-style decode is a possible preview-only speed path if full VAE decode blocks visible iteration.
+- Self-Forcing loop: chunk-wise causal AR with KV cache. Implement rolling fixed-window KV as a ring buffer, not an unbounded tensor. Treat first-chunk/frame-sink anchoring as a quality option after base output works.
+- Sampling: DMD is a fixed few-step path. Do not expose step count/CFG/negative-branch tuning before the adapter proves output; extra steps can degrade DMD output.
+- Smoke sizes: official 480x832-style latent shapes are close to 12 GB once activations/cache/fragmentation are included. Validate smaller shapes explicitly, especially about 416x240 and 320x512.
+- Attention: FlashAttention 2.7.4.post1 is the upstream reference. If unavailable, SDPA works as a correctness fallback but is slow. SageAttention may be a later speed task; use the CUDA backend on Ampere, not known-black-output Triton paths.
+- System memory matters for offload. Treat 32 GB RAM as a floor and 64 GB as preferred for user-facing guidance once offload is enabled.
+- Throughput expectation: 3060-class output will not match paper H100/4090 numbers. Plan around correctness first, then optimize steady-state chunk time.
 
 ## Realtime Node Parameter Budget
 
@@ -171,8 +188,8 @@ Files:
 
 Steps:
 - [x] Make README point to this plan as the realtime source of truth.
-- [x] Make README describe Self-Forcing RTX 3060 first and LongLive as fallback.
-- [x] Move mock/dev smoke commands into a Development section.
+- [x] Make README describe Self-Forcing RTX 3060 first and LongLive as a future/24 GB-class path.
+- [x] Remove developer-only smoke commands from the user-facing README and make NodeTool template runs the documented validation path.
 - [x] Mark placeholder extras such as `fp8`, `gguf`, and `int8` as reserved/no-op, or remove them until they install real dependencies.
 - [x] Fix or remove stale `test:metadata-parity` wiring if the referenced test is still missing.
 - [x] Regenerate metadata after node/template changes.
@@ -242,6 +259,42 @@ Steps:
 
 Check:
 - [x] Tests guard visible behavior and important contracts, not scaffolding details.
+
+### [ ] 0.8 Close Realtime Setup Audit Gaps
+
+Files:
+- `web/src/components/realtime/useRealtimeStreamController.ts`
+- `web/src/components/realtime/realtimeTargetDiscovery.ts`
+- `web/src/components/realtime/RealtimeStreamPage.tsx`
+- `web/src/lib/websocket/RealtimeSessionClient.ts`
+- `web/src/components/node_menu/RenderNodes.tsx`
+- `nodetool-realtime/README.md`
+- `nodetool-realtime/src/nodetool/realtime/runtime_artifacts.py`
+- `nodetool-realtime/pyproject.toml`
+
+Current findings:
+- The app shell and `/realtime/:workflowId?` route exist, and frame-push routing now carries `input_name` plus `source_handle`, but TS tests mostly prove loopback/mocks. They do not yet prove the scanned Python `Video Source -> Self-Forcing -> VideoSink -> Preview` starter through the web session path.
+- `realtimeTargetDiscovery.ts` chooses the first matching media adapter. Graphs with multiple realtime-capable sources or sinks can route silently to the wrong target unless the UI asks the user or rejects ambiguity.
+- The current node menu still groups primarily by namespace. The product grouping names `Source`, `Pipeline`, `Sink`, `Output`, `Controls`, `UI`, `Utility`, `Media`, and `VACE` are guidance, not implemented menu structure.
+- `useRealtimeStreamController` has thin test coverage for start/stop gating, auto-applied discovered targets, manual overrides, `?transport=webrtc`, and `?webrtcRuntime`.
+- `nodetool-realtime` keeps `runtime_artifacts.__all__` intentionally narrow for core integration. If LoRA/VACE lifecycle hooks move into core, this API needs an explicit expansion rather than ad hoc imports from `model_artifacts.py`.
+- `nodetool-realtime` documents placeholder extras (`fp8`, `gguf`, `int8`) as reserved/no-op. Runtime errors that mention those extras should not imply that installing them currently enables a real backend.
+- The README is now user-facing and NodeTool-template-first. It no longer asks users to run standalone smoke commands; failures should point users toward visible NodeTool status, browser console errors, backend logs, model profile, model-file state, GPU model, and available VRAM.
+
+Steps:
+- [ ] Add a TS integration smoke for opening `/realtime/<workflow>`, seeing the Realtime shell state, starting a mocked realtime session, and verifying lifecycle/status rendering.
+- [ ] Add a metadata-backed starter smoke that loads the scanned `nodetool-realtime` template and asserts the graph uses `nodetool.video.VideoSource.realtime_frame -> realtime.self_forcing.SelfForcing.frame -> VideoSink/Preview`.
+- [ ] Define and test the ambiguous graph policy: either require the user to choose a realtime source/sink target when multiple candidates exist, or block start with a clear error.
+- [ ] Add focused `useRealtimeStreamController` tests for disabled start rules, discovered target auto-apply, manual target overrides, frame-push vs WebRTC transport selection, and clean stop.
+- [ ] Decide whether realtime menu grouping is an MVP task. If yes, add group metadata and render it; if not, mark the Source/Pipeline/Sink grouping as post-MVP and keep namespace grouping as the current behavior.
+- [x] Rewrite the README validation path around running the `Realtime Video Diffusion` template in NodeTool and collecting useful diagnostic information when it fails.
+- [ ] Keep `runtime_artifacts.__all__` minimal until core needs LoRA/VACE lifecycle APIs; add a task to expand it only with a corresponding core consumer and test.
+- [ ] Keep placeholder extras clearly documented as unavailable until `fp8`, `gguf`, and `int8` install real dependencies.
+
+Check:
+- [ ] A reviewer can trace the starter from package metadata to the Realtime route and know which tests protect each handoff.
+- [ ] Ambiguous realtime graph routing cannot silently choose the wrong source/sink.
+- [x] Windows users can follow the README without translating shell syntax.
 
 ## Phase 1: MVP Inference Path
 
@@ -372,12 +425,17 @@ Current findings:
 - The RTX 3060 preflight now has a compatibility package contract: if `nodetool_self_forcing_runtime` is installed and exposes `runtime_root()` or `RUNTIME_ROOT`, NodeTool validates that root for `pipeline/`, `utils/wan_wrapper.py`, `utils/scheduler.py`, and `demo_utils/memory.py`, then imports upstream `pipeline` from that package-provided root. `NODETOOL_SELF_FORCING_SOURCE_DIR` remains development-only.
 - Course correction: enough preflight and packaging scaffolding exists for now. Do not add more installer work before proving visible model output. The next goal is a timeboxed real-frame spike, even if it uses `NODETOOL_SELF_FORCING_SOURCE_DIR` on the dev machine.
 - The first output attempt should use the simplest upstream-compatible setup, not the final clean-install setup: complete Self-Forcing source root, official import path, conservative resolution, and a single `pipeline.inference(...)` call converted to a preview frame.
-- If the Self-Forcing spike cannot produce one frame after the import/runtime path and artifact mismatch are isolated, switch the Phase 1 output target to a real LongLive/Wan adapter. LongLive is an acceptable MVP fallback because the product risk is seeing realtime generated pixels in NodeTool, not proving Self-Forcing specifically.
+- If the official-compatible Self-Forcing spike cannot produce one frame on RTX 3060 after import/runtime and artifact mismatch issues are isolated, switch to a community FP8/GGUF Self-Forcing bridge or document the 3060 blocker. Standard LongLive belongs to a separate 24 GB-class lane.
 - The RTX 3060 smoke now reads `NODETOOL_SELF_FORCING_SOURCE_DIR` directly and auto-loads `pipeline.CausalInferencePipeline` from that complete checkout, so the dev proof no longer requires separate upstream module/class override variables.
 - Cache-only RTX 3060 smoke now resolves all four required artifacts and reaches the official component builder. The next concrete blocker is upstream's hardcoded relative Wan path: `WanDiffusionWrapper` / `WanTextEncoder` look for `wan_models/Wan2.1-T2V-1.3B/` instead of the resolved Hugging Face snapshot path.
 - The local `Wan-AI/Wan2.1-T2V-1.3B` cache snapshot was incomplete for the official wrapper path: it lacked `diffusion_pytorch_model.safetensors` even though the upstream Hugging Face repo publishes it. The runtime-files manifest/model pack now includes that safetensors file in `allow_patterns`; re-download/repair the Wan runtime snapshot before the next full smoke.
 - `nodetool.package_tools scan --package-dir . --write` has regenerated `nodetool-realtime` package metadata on disk, so the UI model pack now exposes the Wan runtime-files entry with `diffusion_pytorch_model.safetensors` included. The app can repair this through the normal model manager once package metadata is refreshed/loaded.
-- Cache-only Hugging Face repo resolution now validates every concrete `allow_patterns` file in the snapshot. An incomplete Wan runtime snapshot with `config.json` but without `diffusion_pytorch_model.safetensors` is treated as missing instead of failing later inside the upstream loader.
+- Cache-only Hugging Face repo resolution now validates every concrete `allow_patterns` file in the snapshot. An incomplete Wan runtime snapshot with `config.json` but without `diffusion_pytorch_model.safetensors` is treated as `cached_repo_incomplete:diffusion_pytorch_model.safetensors` instead of failing later inside the upstream loader.
+- The RTX 3060 smoke now uses the smallest upstream-valid noise shape `(1, 3, 16, 60, 104)` for the first visible-output spike. Upstream `CausalInferencePipeline` asserts that frame count is divisible by `num_frame_per_block`, which is 3 in the official DMD config, so a literal one-frame latent fails before inference.
+- LongLive remains useful for future/24 GB-class hardware, but Daydream/Scope-style streaming data says it is not a 3060 12 GB target in standard form. The default Python LongLive path is also still scaffolded: `LazyLongLiveBackend` needs real sampler/generate wiring before it can run without injected test doubles.
+- Current 3060 strategy: prove one generated frame with the official-compatible Self-Forcing path first, then tune memory/speed. Treat FP8 as a VRAM tool, CPU/offloaded UMT5 as acceptable, Wan VAE as keeper decode, TAEHV-style decode as preview-only, and SageAttention as post-correctness acceleration.
+- Runtime evidence after repairing `diffusion_pytorch_model.safetensors`: the smoke reaches generator load, warm, ready, and real denoising, then OOMs at timestep `960.0` with `(1, 3, 16, 60, 104)`. A smaller `(1, 3, 16, 30, 52)` override gets farther, to timestep `727.27`, but still OOMs. The next likely path is stronger offload/attention work or the Comfy/Kijai-style low-VRAM bridge, not LongLive.
+- Revised alternate path policy: if the official-compatible Self-Forcing path cannot emit a frame on 3060, switch to the Comfy/Kijai-style community FP8/GGUF Self-Forcing bridge or document the 3060 blocker. Keep LongLive as a separate option for users with larger GPUs unless new evidence proves a low-VRAM LongLive variant works.
 
 MVP direction:
 - The immediate goal is to see real generated output running inside NodeTool. Packaging, model-manager repair UX, clean installs, and ComfyUI-compatible low-VRAM bridges are secondary until one real frame is visible.
@@ -413,16 +471,25 @@ Steps:
 - [x] Add the official `diffusion_pytorch_model.safetensors` to the Wan runtime-files artifact/model-pack allow list so `ModelsManager` and smoke downloads can repair incomplete HF cache snapshots.
 - [x] Regenerate `nodetool-realtime` package metadata so the runtime-files model pack is visible to the app/model manager.
 - [x] Make cache-only repo resolution reject incomplete selected-file snapshots so partial Wan runtime caches are reported as missing artifacts.
-- [ ] Re-download/repair `Wan-AI/Wan2.1-T2V-1.3B:runtime-files` so the resolved snapshot includes `diffusion_pytorch_model.safetensors`.
+- [x] Re-download/repair `Wan-AI/Wan2.1-T2V-1.3B:runtime-files` so the resolved snapshot includes `diffusion_pytorch_model.safetensors`.
 - [ ] Resolve the upstream Wan path mismatch: either provide a safe `wan_models/Wan2.1-T2V-1.3B` alias for the resolved runtime snapshot during component construction, or replace the official wrapper constructors with explicit-path NodeTool builders.
+- [x] Reduce the RTX 3060 spike sampler to the smallest valid 3-frame block so the next smoke run can still return one preview frame.
+- [x] Add a smoke-only noise-shape override so the RTX 3060 run can validate smaller latent sizes without changing user-facing node fields.
+- [ ] Validate at least two low-VRAM spatial profiles with runtime evidence: about `416x240` for fastest proof and `320x512` for a better vertical/wide compromise.
+- [ ] Keep DMD sampling fixed to the upstream few-step config for the MVP; do not expose step count, CFG, or negative-branch controls until output is stable.
+- [ ] After one frame works, implement bounded rolling KV cache accounting and decide whether first-chunk/frame-sink anchoring is required for prompt-stable streaming.
+- [ ] After correctness, evaluate attention acceleration in this order: FlashAttention pinned upstream version if installable, SDPA as correctness fallback, SageAttention CUDA backend only if it preserves Wan output.
+- [ ] Consider TAEHV/TAEW preview decode only after full Wan VAE decode produces a keeper frame.
 - [x] Wire exactly one direct `pipeline.inference(...)` call from the smoke path with a fixed prompt and conservative shape; do this before implementing streaming reuse, prompt updates, or packaging polish.
 - [x] Convert the returned latent/video tensor to one `rgb8` or `rgba8` `realtime_video_frame` and route it to the existing preview path.
-- [ ] If Self-Forcing still cannot emit one frame after the direct inference call is wired, document the exact blocker and immediately switch Phase 1 output to LongLive.
-- [ ] LongLive fallback path, if triggered: port the smallest proven Scope-style LongLive/Wan component loader into `nodetool-realtime`, run one frame through the same `realtime_video_frame` output contract, and keep the public node named/profiled clearly so users see real generated output.
+- [ ] If the official-compatible Self-Forcing path still cannot emit one frame on 3060, document the exact blocker and switch Phase 1 output to a community FP8/GGUF Self-Forcing bridge before considering non-3060 LongLive.
+- [ ] Move LongLive work to the future/24 GB lane: implement the default `LazyLongLiveBackend` sampler/generate path and validate it against a 24 GB-class GPU before presenting it as a user-facing option.
+- [ ] If LongLive-on-3060 is revisited, require an explicit experimental plan: aggressive KV offload, capped/short windows, INT8 weights, BF16 compute, low resolution such as 256x448, and a clear unsupported status.
+- [ ] Populate `nodetool-realtime` optional extras (`fp8`, `gguf`, `int8`) only after the corresponding real backend path is validated; until then, keep errors/docs clear that they are placeholders.
 - [ ] After a real frame exists, add or publish the actual compatibility package/vendor artifact that contains the selected upstream Self-Forcing runtime files and implements the `nodetool_self_forcing_runtime` contract.
 - [ ] After a real frame exists, move only the required components to CUDA/CPU for the RTX 3060 smoke profile and optimize memory/offload placement.
 - [x] Audit `SelfForcing` and `LongLive` public fields against the parameter budget so user-facing nodes cover important controls without exposing adapter internals.
-- [ ] Connect resolved artifacts to the selected real pipeline class, Self-Forcing or LongLive, based on the timeboxed spike result.
+- [ ] Connect resolved artifacts to the selected real pipeline class, Self-Forcing or community Self-Forcing bridge, based on the timeboxed spike result.
 - [ ] Emit resolve, load, warm, ready, error, and stop phases.
 - [ ] Report backend, precision, VRAM/offload, latency, and artifact paths.
 

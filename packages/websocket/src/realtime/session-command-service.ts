@@ -97,6 +97,7 @@ export class RealtimeSessionCommandService {
 
     try {
       const graph = normalizeGraph(data.graph);
+      await this.dependencies.emitSessionStarted(session);
       await this.dependencies.runRealtimeJob(
         {
           job_id: jobId,
@@ -147,8 +148,6 @@ export class RealtimeSessionCommandService {
         sessionId: session.session_id
       });
     }
-
-    await this.dependencies.emitSessionStarted(session);
 
     const shouldWaitForTransportReadiness = session.transport === "webrtc";
     const readySession = shouldWaitForTransportReadiness

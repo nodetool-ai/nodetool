@@ -147,7 +147,7 @@ const runtimeStatus = ({
     return {
       status: "info",
       label: "Starting realtime session",
-      detail: "The session exists and is warming the realtime graph.",
+      detail: "The session is alive. Heavy models may take several minutes to load and warm.",
       pulse: true
     };
   }

@@ -40,8 +40,50 @@ describe("RealtimeCommandHandler", () => {
       error: "Failed to start realtime session: job runner did not stay active"
     });
     expect(failSessionStartup).toHaveBeenCalledTimes(1);
-    expect(emitSessionStarted).not.toHaveBeenCalled();
+    expect(emitSessionStarted).toHaveBeenCalledTimes(1);
     expect(emitSessionUpdated).not.toHaveBeenCalled();
+  });
+
+  it("emits the starting session before the realtime job finishes startup", async () => {
+    const emitSessionStarted = vi.fn().mockResolvedValue(undefined);
+    let resolveRunJob: (() => void) | undefined;
+    const runRealtimeJob = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveRunJob = resolve;
+        })
+    );
+    const getActiveJob = vi.fn().mockReturnValue({ runner: {} });
+    const handler = new RealtimeCommandHandler({
+      getUserId: () => "user-1",
+      runRealtimeJob,
+      cancelJob: vi.fn().mockResolvedValue(undefined),
+      getActiveJob,
+      trackSessionJob: vi.fn(),
+      clearSessionTracking: vi.fn(),
+      failSessionStartup: vi.fn().mockResolvedValue(undefined),
+      emitSessionStarted,
+      emitSessionUpdated: vi.fn().mockResolvedValue(undefined),
+      emitSessionStopped: vi.fn().mockResolvedValue(undefined),
+      emitSessionSignal: vi.fn().mockResolvedValue(undefined)
+    });
+
+    const startPromise = handler.handleStart({
+      workflow_id: "workflow-1",
+      graph: { nodes: [], edges: [] }
+    });
+    await Promise.resolve();
+
+    expect(emitSessionStarted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflow_id: "workflow-1",
+        status: "starting"
+      })
+    );
+
+    resolveRunJob?.();
+    await startPromise;
+    expect(getActiveJob).toHaveBeenCalled();
   });
 
   it("reports routed and unrouted realtime parameter updates", async () => {

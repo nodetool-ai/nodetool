@@ -164,6 +164,8 @@ export class RealtimeSessionClient {
       const unsubscribe = this.subscribe(workflowId, (message) => {
         if (isRealtimeSessionStarted(message) && message.workflow_id === workflowId) {
           sessionRecord = toSessionRecord(message);
+          cleanup();
+          resolve(sessionRecord);
           return;
         }
 
