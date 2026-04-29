@@ -55,7 +55,7 @@
     "meshoptimizer": "^1.1.1",
     "natural": "^8.1.1",
     "node-web-audio-api": "^1.0.8",
-    "nodemailer": "^8.0.6",
+    "nodemailer": "^8.0.7",
     "office-text-extractor": "^4.0.0",
     "papaparse": "^5.5.3",
     "playwright": "^1.58.2",
