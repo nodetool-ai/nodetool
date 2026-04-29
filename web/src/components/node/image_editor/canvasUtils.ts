@@ -29,51 +29,6 @@ export const loadImage = (url: string): Promise<HTMLImageElement> => {
 };
 
 /**
- * Checks if a URL is a blob URI
- */
-export const isBlobUrl = (url: string): boolean => {
-  return url.startsWith("blob:");
-};
-
-/**
- * Fetches a blob from a URL (useful for blob URIs)
- */
-export const fetchBlob = async (url: string): Promise<Blob> => {
-  if (!isBlobUrl(url)) {
-    throw new Error("URL is not a blob URL");
-  }
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch blob: ${response.statusText}`);
-  }
-  return response.blob();
-};
-
-/**
- * Draws an image centered on a canvas with zoom and pan
- */
-export const drawImageOnCanvas = (
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  canvas: HTMLCanvasElement,
-  zoom: number,
-  pan: Point
-): void => {
-  // Clear canvas
-  ctx.fillStyle = "#1a1a1a";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Calculate centered position
-  const scaledWidth = img.width * zoom;
-  const scaledHeight = img.height * zoom;
-  const x = (canvas.width - scaledWidth) / 2 + pan.x;
-  const y = (canvas.height - scaledHeight) / 2 + pan.y;
-
-  // Draw image
-  ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-};
-
-/**
  * Converts canvas coordinates to image coordinates
  */
 export const canvasToImageCoords = (
@@ -364,19 +319,6 @@ export const canvasToDataUrl = (
   quality = 0.92
 ): string => {
   return canvas.toDataURL(type, quality);
-};
-
-/**
- * Creates a drawing canvas element with specified dimensions
- */
-export const createDrawingCanvas = (
-  width: number,
-  height: number
-): HTMLCanvasElement => {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  return canvas;
 };
 
 /**

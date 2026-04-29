@@ -60,11 +60,6 @@ function getContrastTextColor(hexColor: string): string {
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
-export type CustomElement = {
-  type: "paragraph";
-  children: CustomText[];
-};
-
 export type CustomText = {
   text: string;
   bold?: boolean;
