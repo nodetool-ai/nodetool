@@ -47,6 +47,8 @@ const mainExternalModules = [
   "@anthropic-ai/claude-agent-sdk",
   "@nodetool-ai/protocol",
   "zod",
+  "sharp",
+  /^@img\/sharp-/,
 ];
 
 export default defineConfig({

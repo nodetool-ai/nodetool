@@ -1,5 +1,4 @@
 import OpenAI, { toFile } from "openai";
-import sharp from "sharp";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
@@ -1229,7 +1228,7 @@ export class OpenAIProvider extends BaseProvider {
       width === targetW && height === targetH
         ? image
         : new Uint8Array(
-            await sharp(image)
+            await (await import("sharp")).default(image)
               .resize(targetW, targetH, { fit: "cover", position: "centre" })
               .png()
               .toBuffer()
