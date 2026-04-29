@@ -399,6 +399,57 @@ jobs:
           npm run prepare-backend
           npx electron-builder --config electron-builder.json --publish never
 
+      - name: Verify macOS DMG/zip integrity
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Guard against electron-builder/dmgbuild regressions that silently
+          # drop files (e.g. the Electron Framework Mach-O) from the produced
+          # DMG. Mount each DMG, then assert the framework binary is present
+          # and large enough to be real (>50 MB).
+          fail=0
+          shopt -s nullglob
+          for dmg in electron/dist/Nodetool-*.dmg; do
+            echo "::group::Verify $dmg"
+            mountpoint=$(hdiutil attach -nobrowse -readonly -plist "$dmg" \
+              | /usr/bin/python3 -c "import sys,plistlib; p=plistlib.loads(sys.stdin.buffer.read()); print(next(e['mount-point'] for e in p['system-entities'] if 'mount-point' in e))")
+            fw="$mountpoint/Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+            if [ ! -f "$fw" ]; then
+              echo "::error file=$dmg::Missing Electron Framework binary at Versions/A/"
+              ls -la "$mountpoint/Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/" || true
+              fail=1
+            else
+              size=$(stat -f %z "$fw")
+              if [ "$size" -lt 52428800 ]; then
+                echo "::error file=$dmg::Electron Framework binary suspiciously small: ${size} bytes"
+                fail=1
+              else
+                echo "  OK: Electron Framework $(($size / 1048576)) MB"
+              fi
+            fi
+            hdiutil detach -quiet "$mountpoint" || hdiutil detach -force "$mountpoint" || true
+            echo "::endgroup::"
+          done
+          # Also sanity-check the .zip (electron-updater consumes this).
+          for zip in electron/dist/Nodetool-*.zip; do
+            echo "::group::Verify $zip"
+            entry="Nodetool.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework"
+            # Path contains spaces, so don't use $NF — match the first numeric line in the listing body.
+            size=$(unzip -l "$zip" "$entry" 2>/dev/null | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $1; exit}')
+            if [ -z "${size:-}" ] || [ "${size:-0}" -lt 52428800 ]; then
+              echo "::error file=$zip::Electron Framework missing or too small in zip (size=${size:-0})"
+              fail=1
+            else
+              echo "  OK: Electron Framework $(($size / 1048576)) MB"
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::macOS artifact verification failed; refusing to upload."
+            exit 1
+          fi
+
       - name: Upload macOS assets to GitHub Release
         if: matrix.os == 'macos-latest' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3

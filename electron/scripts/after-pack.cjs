@@ -50,6 +50,12 @@ async function promoteBackendNodeModules(context) {
   }
 }
 
+// Packages that must never be rebuilt even if they leak into the staged tree.
+// These are loaded optionally at runtime with a try/catch fallback; rebuilding
+// them couples our packaging to system libs (e.g. Cairo for `canvas`) we don't
+// actually need.
+const REBUILD_BLOCKLIST = new Set(["canvas"]);
+
 // Walk the staged node_modules and collect names of packages that contain a
 // binding.gyp (i.e. need a node-gyp rebuild against Electron's ABI). We
 // discover from the staged tree directly — the backend bundle's package.json
@@ -68,13 +74,16 @@ function findNativeModuleNames(nodeModulesPath) {
       const scopeDir = path.join(nodeModulesPath, entry.name);
       for (const sub of fs.readdirSync(scopeDir, { withFileTypes: true })) {
         if (!sub.isDirectory()) continue;
+        const fullName = `${entry.name}/${sub.name}`;
+        if (REBUILD_BLOCKLIST.has(fullName)) continue;
         const pkgPath = path.join(scopeDir, sub.name);
         if (hasBindingGyp(pkgPath)) {
-          names.push(`${entry.name}/${sub.name}`);
+          names.push(fullName);
         }
       }
       continue;
     }
+    if (REBUILD_BLOCKLIST.has(entry.name)) continue;
     const pkgPath = path.join(nodeModulesPath, entry.name);
     if (hasBindingGyp(pkgPath)) {
       names.push(entry.name);

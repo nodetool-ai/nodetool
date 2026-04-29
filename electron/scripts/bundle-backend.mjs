@@ -90,6 +90,7 @@ const EXTERNAL_PACKAGES = [
 const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
   "canvas",
 ];
+const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -279,6 +280,10 @@ async function copyExternalPackages() {
         ...(pkgJson.optionalDependencies ?? {}),
       };
       for (const depName of Object.keys(deps)) {
+        // Skip packages that are external for esbuild but must NOT be staged.
+        // These are loaded via runtime try/catch with a fallback (e.g. linkedom
+        // → canvas) and copying them would trigger a node-gyp rebuild.
+        if (esbuildOnlyExternalSet.has(depName)) continue;
         // Use a composite key to allow re-queuing from different resolve contexts
         const queueKey = `${depName}@${sourceRoot}`;
         if (!queued.has(queueKey)) {
