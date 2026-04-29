@@ -206,4 +206,34 @@ describe("Realtime session cards", () => {
     expect(screen.getByText("Session status: running")).toBeInTheDocument();
     expect(screen.getByText("Job id: job-1")).toBeInTheDocument();
   });
+
+  it("shows routed workflow frames once backend acknowledgements arrive", () => {
+    renderWithTheme(
+      <RealtimeModelStatusCard
+        activeSession={session()}
+        activeMetrics={metrics()}
+        activeInferenceMetrics={[]}
+        activeAnalysisEvents={[]}
+        cameraPublisherStatus={{
+          enabled: true,
+          active: true,
+          trackId: "track-1",
+          nodeId: "video-source",
+          inputName: "camera",
+          sourceHandle: "realtime_frame",
+          intervalMs: 500,
+          targetFps: 2,
+          framesPublished: 145,
+          lastPublishedAt: 1234,
+          lastError: null,
+          skippedReason: null
+        }}
+        isLoadingSessions={false}
+        sessionError={null}
+      />
+    );
+
+    expect(screen.getByText("Frames routed to workflow")).toBeInTheDocument();
+    expect(screen.getByText("Routed frames: 1")).toBeInTheDocument();
+  });
 });

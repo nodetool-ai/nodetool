@@ -206,6 +206,10 @@ export class RealtimeCommandHandler {
       routed = await router.routeFrame(trackId, frame);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      this.dependencies.realtimeWebRTCServer?.recordFramePushResult?.(
+        session.session_id,
+        false
+      );
       log.warn("Realtime pushed frame routing failed", {
         sessionId,
         workflowId: session.workflow_id,
@@ -226,6 +230,10 @@ export class RealtimeCommandHandler {
         metrics: router.metrics()
       };
     }
+    this.dependencies.realtimeWebRTCServer?.recordFramePushResult?.(
+      session.session_id,
+      routed
+    );
     const logKey = `${session.session_id}:${trackId}`;
     if (!this.tempLoggedFrameRoutes.has(logKey)) {
       this.tempLoggedFrameRoutes.add(logKey);

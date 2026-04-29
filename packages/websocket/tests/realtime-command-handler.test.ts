@@ -152,6 +152,7 @@ describe("RealtimeCommandHandler", () => {
 
   it("routes session-targeted realtime video frames through media track mappings", async () => {
     const pushInputValue = vi.fn().mockResolvedValue(undefined);
+    const recordFramePushResult = vi.fn();
     const session = realtimeSessionManager.createSession({
       userId: "user-1",
       workflowId: "workflow-1",
@@ -186,7 +187,12 @@ describe("RealtimeCommandHandler", () => {
       emitSessionStarted: vi.fn().mockResolvedValue(undefined),
       emitSessionUpdated: vi.fn().mockResolvedValue(undefined),
       emitSessionStopped: vi.fn().mockResolvedValue(undefined),
-      emitSessionSignal: vi.fn().mockResolvedValue(undefined)
+      emitSessionSignal: vi.fn().mockResolvedValue(undefined),
+      realtimeWebRTCServer: {
+        handleSignal: vi.fn().mockResolvedValue(undefined),
+        stopSession: vi.fn().mockResolvedValue(undefined),
+        recordFramePushResult
+      }
     });
 
     const result = await handler.handlePushFrame({
@@ -229,6 +235,7 @@ describe("RealtimeCommandHandler", () => {
       "realtime_frame"
     );
     expect(pushedFrame.data).toEqual(new Uint8Array([255, 0, 0, 255]));
+    expect(recordFramePushResult).toHaveBeenCalledWith(session.session_id, true);
   });
 
   it("delegates runtime-targeted WebRTC signaling to the backend server", async () => {

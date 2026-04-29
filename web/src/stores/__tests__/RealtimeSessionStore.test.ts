@@ -1,4 +1,5 @@
 import type { RealtimeMetrics, RealtimeSessionRecord } from "@nodetool/protocol";
+import { realtimeSessionClient } from "../../lib/websocket/RealtimeSessionClient";
 import { useRealtimeSessionStore } from "../RealtimeSessionStore";
 
 jest.mock("../../lib/websocket/RealtimeSessionClient", () => ({
@@ -12,7 +13,9 @@ jest.mock("../../lib/websocket/RealtimeSessionClient", () => ({
   }
 }));
 
-const session = (): RealtimeSessionRecord => ({
+const session = (
+  overrides: Partial<RealtimeSessionRecord> = {}
+): RealtimeSessionRecord => ({
   session_id: "session-1",
   workflow_id: "workflow-1",
   job_id: "job-1",
@@ -27,10 +30,11 @@ const session = (): RealtimeSessionRecord => ({
     error: null
   },
   created_at: "2026-01-01T00:00:00.000Z",
-  updated_at: "2026-01-01T00:00:00.000Z"
+  updated_at: "2026-01-01T00:00:00.000Z",
+  ...overrides
 });
 
-const metrics = (): RealtimeMetrics => ({
+const metrics = (overrides: Partial<RealtimeMetrics> = {}): RealtimeMetrics => ({
   type: "realtime_metrics",
   session_id: "session-1",
   workflow_id: "workflow-1",
@@ -72,11 +76,13 @@ const metrics = (): RealtimeMetrics => ({
     target_bps: null
   },
   reconnect_count: 0,
-  created_at: "2026-01-01T00:00:01.000Z"
+  created_at: "2026-01-01T00:00:01.000Z",
+  ...overrides
 });
 
 describe("RealtimeSessionStore", () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     useRealtimeSessionStore.setState({
       sessions: {},
       metrics: {},
@@ -100,6 +106,43 @@ describe("RealtimeSessionStore", () => {
       codec: {
         status: "unsupported"
       }
+    });
+  });
+
+  it("preserves push-frame ack counters when periodic metrics lag behind", () => {
+    useRealtimeSessionStore.getState().upsertSession(
+      session({ session_id: "session-push" })
+    );
+    const handler = jest.mocked(realtimeSessionClient.subscribe).mock.calls[0]?.[1];
+    expect(handler).toBeDefined();
+
+    handler?.({
+      type: "realtime_session_ack",
+      ok: true,
+      action: "push_frame",
+      session_id: "session-push",
+      workflow_id: "workflow-1",
+      job_id: "job-1",
+      track_id: "track-1",
+      routed: true
+    });
+    useRealtimeSessionStore.getState().upsertMetrics({
+      ...metrics({ session_id: "session-push" }),
+      frames: {
+        inbound: 0,
+        outbound: 0,
+        inbound_rtp_packets: 0,
+        routed: 0,
+        unrouted: 0,
+        decode_unsupported: 0,
+        encoded: 0
+      }
+    });
+
+    expect(useRealtimeSessionStore.getState().metrics["session-push"].frames).toMatchObject({
+      inbound: 1,
+      routed: 1,
+      unrouted: 0
     });
   });
 });

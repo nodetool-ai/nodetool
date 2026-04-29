@@ -242,6 +242,22 @@ describe("RealtimeWebRTCServer", () => {
       consumers: []
     });
   });
+
+  it("reports websocket frame-push metrics without a WebRTC peer", () => {
+    const server = new RealtimeWebRTCServer({
+      emitSessionSignal: async () => undefined
+    });
+
+    server.recordFramePushResult("session-1", true);
+    server.recordFramePushResult("session-1", false);
+
+    expect(server.getMetrics(session({ transport: "websocket" })).frames).toMatchObject({
+      inbound: 2,
+      routed: 1,
+      unrouted: 1,
+      inbound_rtp_packets: 0
+    });
+  });
 });
 
 describe("FrameRouter", () => {

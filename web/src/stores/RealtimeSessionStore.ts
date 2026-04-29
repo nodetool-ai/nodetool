@@ -356,7 +356,24 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
         set((state) => ({
           metrics: {
             ...state.metrics,
-            [metrics.session_id]: metrics
+            [metrics.session_id]: {
+              ...metrics,
+              frames: {
+                ...metrics.frames,
+                inbound: Math.max(
+                  state.metrics[metrics.session_id]?.frames.inbound ?? 0,
+                  metrics.frames.inbound
+                ),
+                routed: Math.max(
+                  state.metrics[metrics.session_id]?.frames.routed ?? 0,
+                  metrics.frames.routed
+                ),
+                unrouted: Math.max(
+                  state.metrics[metrics.session_id]?.frames.unrouted ?? 0,
+                  metrics.frames.unrouted
+                )
+              }
+            }
           }
         }));
       },

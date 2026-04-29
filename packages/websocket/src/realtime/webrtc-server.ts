@@ -26,6 +26,14 @@ export interface RealtimeWebRTCStopSessionsResult {
 export class RealtimeWebRTCServer {
   private readonly sessions = new Map<string, RealtimeWebRTCSession>();
   private readonly closedStates = new Set<string>();
+  private readonly framePushMetrics = new Map<
+    string,
+    {
+      inbound: number;
+      routed: number;
+      unrouted: number;
+    }
+  >();
   private readonly previousFrameMetrics = new Map<
     string,
     {
@@ -61,8 +69,22 @@ export class RealtimeWebRTCServer {
     } finally {
       this.sessions.delete(sessionId);
       this.closedStates.add(sessionId);
+      this.framePushMetrics.delete(sessionId);
       this.previousFrameMetrics.delete(sessionId);
     }
+  }
+
+  recordFramePushResult(sessionId: string, routed: boolean): void {
+    const current = this.framePushMetrics.get(sessionId) ?? {
+      inbound: 0,
+      routed: 0,
+      unrouted: 0
+    };
+    this.framePushMetrics.set(sessionId, {
+      inbound: current.inbound + 1,
+      routed: current.routed + (routed ? 1 : 0),
+      unrouted: current.unrouted + (routed ? 0 : 1)
+    });
   }
 
   async stopSessions(
@@ -106,7 +128,7 @@ export class RealtimeWebRTCServer {
   getMetrics(session: RealtimeSessionRecord): RealtimeMetrics {
     const activeSession = this.sessions.get(session.session_id);
     const activeMetrics = activeSession?.metrics();
-    const frames = activeMetrics?.frames ?? {
+    const baseFrames = activeMetrics?.frames ?? {
       inbound: 0,
       outbound: 0,
       inbound_rtp_packets: 0,
@@ -114,6 +136,13 @@ export class RealtimeWebRTCServer {
       unrouted: 0,
       decode_unsupported: 0,
       encoded: 0
+    };
+    const framePush = this.framePushMetrics.get(session.session_id);
+    const frames = {
+      ...baseFrames,
+      inbound: baseFrames.inbound + (framePush?.inbound ?? 0),
+      routed: baseFrames.routed + (framePush?.routed ?? 0),
+      unrouted: baseFrames.unrouted + (framePush?.unrouted ?? 0)
     };
     const nowMs = Date.now();
     const previous = this.previousFrameMetrics.get(session.session_id);

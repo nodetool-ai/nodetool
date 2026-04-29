@@ -48,6 +48,7 @@ export interface RealtimeWebRTCServerDependency {
     signal: NormalizedRealtimeSignal
   ): Promise<void>;
   stopSession(sessionId: string): Promise<void>;
+  recordFramePushResult?(sessionId: string, routed: boolean): void;
   getSessionState?(sessionId: string): string;
 }
 
