@@ -1826,6 +1826,78 @@ export const config: ModuleConfig = {
         "Generate top-tier video for film and media"
       ],
       basicFields: ["prompt", "duration", "aspect_ratio"]
+    },
+    "bytedance/seedance-2.0/text-to-video": {
+      className: "BytedanceSeedance20TextToVideo",
+      docstring: "Generate videos from text using ByteDance Seedance 2.0.",
+      tags: ["generation", "text-to-video", "txt2vid", "seedance", "bytedance"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedance-2.0/fast/text-to-video": {
+      className: "BytedanceSeedance20FastTextToVideo",
+      docstring: "Fast text-to-video with ByteDance Seedance 2.0.",
+      tags: ["generation", "text-to-video", "txt2vid", "seedance", "bytedance", "fast"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "alibaba/happy-horse/text-to-video": {
+      className: "AlibabaHappyHorseTextToVideo",
+      docstring: "Generate videos from text with Alibaba Happy Horse.",
+      tags: ["generation", "text-to-video", "txt2vid", "happy-horse", "alibaba"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/o3/4k/text-to-video": {
+      className: "KlingVideoO34kTextToVideo",
+      docstring: "Kling Video O3 4K text-to-video generation.",
+      tags: ["generation", "text-to-video", "txt2vid", "kling", "4k"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/v3/4k/text-to-video": {
+      className: "KlingVideoV34kTextToVideo",
+      docstring: "Kling Video v3 4K text-to-video generation.",
+      tags: ["generation", "text-to-video", "txt2vid", "kling", "4k"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/v3/video-agent": {
+      className: "HeygenV3VideoAgent",
+      docstring: "HeyGen v3 Video Agent: generate avatar videos from text.",
+      tags: ["generation", "text-to-video", "txt2vid", "heygen", "avatar"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

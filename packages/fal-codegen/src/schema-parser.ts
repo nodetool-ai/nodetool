@@ -619,15 +619,20 @@ export class SchemaParser {
   /**
    * Generate a PascalCase class name from endpoint ID.
    *
+   * The leading vendor segment is dropped (fal-ai, openai, openrouter, …).
+   *
    * Examples:
    * - "fal-ai/flux/dev" → "FluxDev"
    * - "fal-ai/luma-dream-machine/image-to-video" → "LumaDreamMachineImageToVideo"
+   * - "openai/gpt-image-2" → "GptImage2"
    */
   generateClassName(endpointId: string): string {
     let parts = endpointId.split("/");
 
-    // Skip 'fal-ai' prefix
-    if (parts.length > 0 && parts[0] === "fal-ai") {
+    // Drop the vendor segment (fal-ai, openai, openrouter, perceptron, …).
+    // FAL endpoint IDs always start with a vendor; including it in the
+    // class name produces awkward duplicates like `OpenaiGptImage2`.
+    if (parts.length > 1) {
       parts = parts.slice(1);
     }
 

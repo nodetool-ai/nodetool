@@ -2237,6 +2237,174 @@ export const config: ModuleConfig = {
         "Create premium video content for advertising"
       ],
       basicFields: ["start_image_url", "prompt", "duration"]
+    },
+    "bytedance/seedance-2.0/image-to-video": {
+      className: "BytedanceSeedance20ImageToVideo",
+      docstring: "Animate images with ByteDance Seedance 2.0.",
+      tags: ["generation", "image-to-video", "img2vid", "seedance", "bytedance"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedance-2.0/reference-to-video": {
+      className: "BytedanceSeedance20ReferenceToVideo",
+      docstring: "Reference-image-to-video with ByteDance Seedance 2.0.",
+      tags: ["generation", "image-to-video", "img2vid", "seedance", "bytedance", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedance-2.0/fast/image-to-video": {
+      className: "BytedanceSeedance20FastImageToVideo",
+      docstring: "Fast image-to-video with ByteDance Seedance 2.0.",
+      tags: ["generation", "image-to-video", "img2vid", "seedance", "bytedance", "fast"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "bytedance/seedance-2.0/fast/reference-to-video": {
+      className: "BytedanceSeedance20FastReferenceToVideo",
+      docstring: "Fast reference-image-to-video with ByteDance Seedance 2.0.",
+      tags: ["generation", "image-to-video", "img2vid", "seedance", "bytedance", "fast", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "alibaba/happy-horse/image-to-video": {
+      className: "AlibabaHappyHorseImageToVideo",
+      docstring: "Animate images with Alibaba Happy Horse.",
+      tags: ["generation", "image-to-video", "img2vid", "happy-horse", "alibaba"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "alibaba/happy-horse/reference-to-video": {
+      className: "AlibabaHappyHorseReferenceToVideo",
+      docstring: "Reference-image-to-video with Alibaba Happy Horse.",
+      tags: ["generation", "image-to-video", "img2vid", "happy-horse", "alibaba", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/o3/4k/image-to-video": {
+      className: "KlingVideoO34kImageToVideo",
+      docstring: "Kling Video O3 4K image-to-video.",
+      tags: ["generation", "image-to-video", "img2vid", "kling", "4k"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/o3/4k/reference-to-video": {
+      className: "KlingVideoO34kReferenceToVideo",
+      docstring: "Kling Video O3 4K reference-to-video.",
+      tags: ["generation", "image-to-video", "img2vid", "kling", "4k", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/kling-video/v3/4k/image-to-video": {
+      className: "KlingVideoV34kImageToVideo",
+      docstring: "Kling Video v3 4K image-to-video.",
+      tags: ["generation", "image-to-video", "img2vid", "kling", "4k"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/lyra-2/zoom": {
+      className: "Lyra2Zoom",
+      docstring: "Lyra 2 Zoom: animate images with cinematic zoom.",
+      tags: ["generation", "image-to-video", "img2vid", "lyra", "zoom"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/sora-2/characters": {
+      className: "Sora2Characters",
+      docstring: "Sora 2 Characters: image-to-video with consistent characters.",
+      tags: ["generation", "image-to-video", "img2vid", "sora", "characters"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixverse/c1/reference-to-video": {
+      className: "PixverseC1ReferenceToVideo",
+      docstring: "Pixverse C1 reference-to-video.",
+      tags: ["generation", "image-to-video", "img2vid", "pixverse", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixverse/c1/transition": {
+      className: "PixverseC1Transition",
+      docstring: "Pixverse C1 transition video generation.",
+      tags: ["generation", "image-to-video", "img2vid", "pixverse", "transition"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/pixverse/v6/image-to-video": {
+      className: "PixverseV6ImageToVideo",
+      docstring: "Pixverse v6 image-to-video.",
+      tags: ["generation", "image-to-video", "img2vid", "pixverse"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };
