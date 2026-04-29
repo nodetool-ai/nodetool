@@ -3,6 +3,8 @@
 ## 💡 What
 Optimized the `upsertResult` method in `web/src/stores/MiniAppsStore.ts` by replacing `findIndex` + `.map` with `findLastIndex` + direct array index assignment.
 
+Additionally, fixed a flaky test in `@nodetool/huggingface` where an arbitrary limit combined with an initial mock failure caused `listAllHfModels` to return 0 results instead of skipping and continuing.
+
 ## 🎯 Why
 During high-frequency events like streaming LLM tokens, results are continuously updated and typically appended to the end of the array. The previous implementation:
 ```typescript
