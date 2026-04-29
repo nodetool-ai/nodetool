@@ -110,6 +110,24 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     inputPer1kTokens: 0.0225,
     outputPer1kTokens: 0.09
   },
+  // Kie.ai chat models. Kie credits are advertised at $0.005/credit;
+  // NodeTool credits are $0.01, so values below are converted to NodeTool credits.
+  kieGpt55Tier: {
+    costType: CostType.TOKEN_BASED,
+    inputPer1kTokens: 0.14,
+    outputPer1kTokens: 0.84,
+    cachedPer1kTokens: 0.014
+  },
+  kieGemini31ProTier: {
+    costType: CostType.TOKEN_BASED,
+    inputPer1kTokens: 0,
+    outputPer1kTokens: 0
+  },
+  kieGemini3FlashTier: {
+    costType: CostType.TOKEN_BASED,
+    inputPer1kTokens: 0,
+    outputPer1kTokens: 0
+  },
   // GPT-4 Turbo
   gpt4Turbo: {
     costType: CostType.TOKEN_BASED,
@@ -290,6 +308,13 @@ export const MODEL_TO_TIER: Record<string, string> = {
   // Embeddings - OpenAI specific
   "openai:text-embedding-3-small": "embeddingSmall",
   "openai:text-embedding-3-large": "embeddingLarge",
+  // Kie.ai chat models
+  "kie:gpt-5-5": "kieGpt55Tier",
+  "kie:claude-opus-4-6": "claudeOpus4",
+  "kie:claude-sonnet-4-6": "claudeSonnet4",
+  "kie:claude-haiku-4-5": "claudeHaiku4",
+  "kie:gemini-3.1-pro": "kieGemini31ProTier",
+  "kie:gemini-3-flash": "kieGemini3FlashTier",
   // Anthropic Models - Anthropic specific
   "anthropic:claude-opus-4-6": "claudeOpus4",
   "anthropic:claude-opus-4-5": "claudeOpus4",

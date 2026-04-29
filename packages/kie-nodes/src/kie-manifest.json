@@ -6660,5 +6660,436 @@
         "paramName": "video_url"
       }
     ]
+  },
+  {
+    "className": "GptImage2TextToImage",
+    "moduleName": "image",
+    "modelId": "gpt-image-2-text-to-image",
+    "title": "GPT Image 2 Text To Image",
+    "description": "Generate images using GPT Image 2 Text-to-Image model via Kie.ai.\n\n    kie, gpt-image-2, openai, image generation, ai, text-to-image\n\n    GPT Image 2 generates high-quality images from text prompts with support\n    for multiple aspect ratios and resolutions up to 4K.\n\n    Use cases:\n    - Generate images from text descriptions\n    - Create visuals with precise control over aspect ratio and resolution\n    - Produce high-resolution images up to 4K",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the image to generate. Max 20000 characters."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image. Set to auto by default.",
+        "values": [
+          "auto",
+          "1:1",
+          "5:4",
+          "9:16",
+          "21:9",
+          "16:9",
+          "4:3",
+          "3:2",
+          "4:5",
+          "3:4",
+          "2:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Image resolution. Note: 1:1 images cannot be 4K. Auto aspect ratio only supports 1K.",
+        "values": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "GptImage2ImageToImage",
+    "moduleName": "image",
+    "modelId": "gpt-image-2-image-to-image",
+    "title": "GPT Image 2 Image To Image",
+    "description": "Generate images using GPT Image 2 Image-to-Image model via Kie.ai.\n\n    kie, gpt-image-2, openai, image generation, ai, image-to-image\n\n    GPT Image 2 Image-to-Image transforms existing images based on text prompts\n    with support for multiple aspect ratios and resolutions up to 4K.\n\n    Use cases:\n    - Transform existing images with text guidance\n    - Apply style changes to photos\n    - Create variations of existing images",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 200,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing how to transform the image. Max 20000 characters."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Source images to transform. Multiple images supported. Max 30MB each. Accepted: jpeg, png, webp, jpg."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated image. Set to auto by default.",
+        "values": [
+          "auto",
+          "1:1",
+          "5:4",
+          "9:16",
+          "21:9",
+          "16:9",
+          "4:3",
+          "3:2",
+          "4:5",
+          "3:4",
+          "2:3"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Image resolution. Note: 1:1 images cannot be 4K. Auto aspect ratio only supports 1K.",
+        "values": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "input_urls"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "HappyHorseTextToVideo",
+    "moduleName": "video",
+    "modelId": "happyhorse/text-to-video",
+    "title": "HappyHorse Text To Video",
+    "description": "Generate videos from text using the HappyHorse model via Kie.ai.\n\n    kie, happyhorse, video generation, ai, text-to-video\n\n    HappyHorse Text-to-Video generates high-quality videos from text prompts\n    with configurable resolution, aspect ratio, and duration.\n\n    Use cases:\n    - Generate cinematic videos from text descriptions\n    - Create animated shorts and visual stories\n    - Produce video content with precise duration control",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the video to generate. Max 5000 characters."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output video resolution.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Output aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Output duration in seconds. Must be between 3 and 15.",
+        "min": 3,
+        "max": 15
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Range: 0 to 2147483647."
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "HappyHorseImageToVideo",
+    "moduleName": "video",
+    "modelId": "happyhorse/image-to-video",
+    "title": "HappyHorse Image To Video",
+    "description": "Generate videos from images using the HappyHorse model via Kie.ai.\n\n    kie, happyhorse, video generation, ai, image-to-video\n\n    HappyHorse Image-to-Video animates static images into dynamic videos\n    with configurable resolution and duration.\n\n    Use cases:\n    - Bring still images to life with motion\n    - Create video content from photos\n    - Generate animated scenes from concept art",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text prompt describing the video to generate. Max 5000 characters."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "First-frame image(s) for the video. Exactly one image is typically required. Min resolution: 300x300px. Max 10MB each."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output video resolution.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Output duration in seconds. Must be between 3 and 15.",
+        "min": 3,
+        "max": 15
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Range: 0 to 2147483647."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "image_urls"
+      }
+    ]
+  },
+  {
+    "className": "HappyHorseReferenceToVideo",
+    "moduleName": "video",
+    "modelId": "happyhorse/reference-to-video",
+    "title": "HappyHorse Reference To Video",
+    "description": "Generate videos from reference images using the HappyHorse model via Kie.ai.\n\n    kie, happyhorse, video generation, ai, reference-to-video\n\n    HappyHorse Reference-to-Video creates videos using multiple reference images\n    as characters. Use 'character1', 'character2', etc. in the prompt to refer\n    to the corresponding images in order.\n\n    Use cases:\n    - Create videos with consistent character appearances\n    - Generate scenes using reference images as actors\n    - Produce narrative videos with multiple characters",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video. Use 'character1', 'character2', etc. to refer to reference images. Max 5000 characters."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Reference Images",
+        "description": "Reference image URL list. Provide 1-9 images. The order defines which image is character1, character2, etc. Min short side: 400px. Max 10MB each."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output video resolution.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Output aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Output duration in seconds. Must be between 3 and 15.",
+        "min": 3,
+        "max": 15
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Range: 0 to 2147483647."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "reference_images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "reference_image"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
+  },
+  {
+    "className": "HappyHorseVideoEdit",
+    "moduleName": "video",
+    "modelId": "happyhorse/video-edit",
+    "title": "HappyHorse Video Edit",
+    "description": "Edit videos using the HappyHorse model via Kie.ai.\n\n    kie, happyhorse, video editing, ai, video-to-video\n\n    HappyHorse Video Edit applies style transfers and local replacements\n    to existing videos while preserving camera motion and structure.\n\n    Use cases:\n    - Apply style transfers to videos\n    - Replace characters or objects in video footage\n    - Create visual effects while preserving original motion",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Edit instruction describing the intended change. Max 5000 characters."
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "default": {
+          "type": "video",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null,
+          "duration": null,
+          "format": null
+        },
+        "title": "Video",
+        "description": "Input video to edit. Duration: 3-60s. Max 100MB. MP4 or MOV format."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Reference Images",
+        "description": "Optional reference images for the edit (0-5). Max 10MB each. Min resolution: 300x300px."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "Output video resolution.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "audio_setting",
+        "type": "enum",
+        "default": "auto",
+        "title": "Audio Setting",
+        "description": "Audio handling strategy for the output video.",
+        "values": [
+          "auto",
+          "origin"
+        ]
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed for reproducibility. Range: 0 to 2147483647."
+      }
+    ],
+    "uploads": [
+      {
+        "field": "video",
+        "kind": "video",
+        "paramName": "video_url"
+      },
+      {
+        "field": "reference_images",
+        "kind": "image",
+        "isList": true,
+        "paramName": "reference_image"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt cannot be empty"
+      }
+    ]
   }
 ]
