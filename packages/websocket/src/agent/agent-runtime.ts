@@ -8,11 +8,11 @@
 
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import {
-  query,
-  listSessions,
-  getSessionMessages,
-} from "@anthropic-ai/claude-agent-sdk";
+// `@anthropic-ai/claude-agent-sdk` is an optionalDependencies package that
+// isn't always resolvable inside the packaged Electron ASAR (notably on
+// Windows). Importing it statically would crash the backend at startup
+// before any agent code ran. Load lazily at the call site instead; types
+// stay static (erased at compile time).
 import type {
   Query,
   SDKSessionInfo,
@@ -256,6 +256,7 @@ class ClaudeAgentSession implements AgentQuerySession {
         ? Object.keys(uiToolSchemas).map((n) => `mcp__nodetool-ui__${n}`)
         : [];
 
+      const { query } = await import("@anthropic-ai/claude-agent-sdk");
       const queryHandle = query({
         prompt: message,
         options: {
@@ -401,6 +402,7 @@ class ClaudeSdkProvider implements AgentSdkProvider {
     _userId: string,
   ): Promise<AgentSessionInfoEntry[]> {
     try {
+      const { listSessions } = await import("@anthropic-ai/claude-agent-sdk");
       const sdkSessions: SDKSessionInfo[] = await listSessions({
         dir: options.dir,
         limit: options.limit ?? 50,
@@ -432,6 +434,9 @@ class ClaudeSdkProvider implements AgentSdkProvider {
     _userId: string,
   ): Promise<AgentTranscriptMessage[]> {
     try {
+      const { getSessionMessages } = await import(
+        "@anthropic-ai/claude-agent-sdk"
+      );
       const sdkMessages: SessionMessage[] = await getSessionMessages(
         options.sessionId,
         { dir: options.dir },

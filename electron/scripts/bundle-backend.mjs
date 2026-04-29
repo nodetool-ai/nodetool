@@ -62,6 +62,19 @@ const EXTERNAL_PACKAGES = [
   "pdfjs-dist",
   "@napi-rs/canvas",
   "chart.js",
+  // Modules that source code lazy-imports but whose own top-level imports
+  // would be hoisted into server.mjs if inlined, defeating the lazy intent.
+  // pdf-parse hoisted `pdfjs-dist/legacy/build/pdf.mjs` and crashed on
+  // `new DOMMatrix()` at backend startup. Same trap waits for any package
+  // that side-effects at module init.
+  "office-text-extractor",
+  "pdf-parse",
+  "@llamaindex/liteparse",
+  "@hyzyla/pdfium",
+  "tesseract.js",
+  // Lazy-loaded SDK that fails on Windows when resolved from inside the
+  // ASAR at module init. Keeping it external preserves the lazy semantics.
+  "@anthropic-ai/claude-agent-sdk",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
   "@aws-sdk/*",
