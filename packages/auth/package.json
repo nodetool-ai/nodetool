@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/auth",
-  "version": "0.7.0-rc.15",
+  "version": "0.7.0-rc.16",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
