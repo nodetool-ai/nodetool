@@ -708,7 +708,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         showCodeBadge={showCodeBadge}
         codeBadgeTooltip="Code node"
       />
-      <NodeErrors id={id} workflow_id={workflow_id} />
+      <NodeErrors id={id} workflow_id={workflow_id} nodeType={type} />
       {!hasError && metadata?.required_runtimes && metadata.required_runtimes.length > 0 && (
         <NodeDependencyWarning requiredRuntimes={metadata.required_runtimes} />
       )}
