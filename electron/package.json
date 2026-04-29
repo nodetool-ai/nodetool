@@ -1,6 +1,6 @@
 {
   "name": "nodetool-electron",
-  "version": "0.7.0-rc.12",
+  "version": "0.7.0-rc.13",
   "private": true,
   "description": "node-based AI development tool",
   "homepage": "https://nodetool.ai",

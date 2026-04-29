@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/transformers-js-provider",
   "type": "module",
-  "version": "0.7.0-rc.12",
+  "version": "0.7.0-rc.13",
   "description": "Local-models BaseProvider backed by @huggingface/transformers and kokoro-js (chat, TTS, ASR, embeddings)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
