@@ -91,18 +91,18 @@ function mapComfyInputToProperty(
       optional: false,
       type_args: []
     },
-    description: (config.tooltip || "") as string,
-    default: config.default as string | undefined,
+    description: typeof config.tooltip === "string" ? config.tooltip : "",
+    default: config.default,
     required: false
   };
 
   // Handle number constraints
   if (comfyTypeName === "INT" || comfyTypeName === "FLOAT") {
     if (config.min !== undefined) {
-      property.min = config.min as number | undefined;
+      property.min = typeof config.min === "number" ? config.min : null;
     }
     if (config.max !== undefined) {
-      property.max = config.max as number | undefined;
+      property.max = typeof config.max === "number" ? config.max : null;
     }
   }
 
