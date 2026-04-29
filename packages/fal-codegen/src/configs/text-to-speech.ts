@@ -391,6 +391,18 @@ export const config: ModuleConfig = {
         "Accessibility solutions",
         "Content localization"
       ]
+    },
+    "fal-ai/gemini-3.1-flash-tts": {
+      className: "Gemini31FlashTts",
+      docstring: "Gemini 3.1 Flash text-to-speech.",
+      tags: ["audio", "tts", "text-to-speech", "gemini"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

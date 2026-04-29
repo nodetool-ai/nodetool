@@ -175,6 +175,18 @@ export const config: ModuleConfig = {
         "Speedy speech-to-text"
       ],
       basicFields: ["audio"]
+    },
+    "fal-ai/cohere-transcribe": {
+      className: "CohereTranscribe",
+      docstring: "Cohere transcription model: speech-to-text.",
+      tags: ["audio", "stt", "speech-to-text", "transcription", "cohere"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

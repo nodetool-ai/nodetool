@@ -88,6 +88,18 @@ export const config: ModuleConfig = {
         "Code generation",
         "Creative writing assistance"
       ]
+    },
+    "nvidia/nemotron-3-nano-omni": {
+      className: "NvidiaNemotron3NanoOmni",
+      docstring: "Nvidia Nemotron 3 Nano Omni multimodal LLM.",
+      tags: ["llm", "language-model", "text-generation", "nvidia", "nemotron"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

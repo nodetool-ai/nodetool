@@ -2035,6 +2035,102 @@ export const config: ModuleConfig = {
         "Special effects generation",
         "Content repurposing"
       ]
+    },
+    "alibaba/happy-horse/video-edit": {
+      className: "AlibabaHappyHorseVideoEdit",
+      docstring: "Edit videos with Alibaba Happy Horse.",
+      tags: ["editing", "video-to-video", "vid2vid", "happy-horse", "alibaba"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/v3/lipsync/speed": {
+      className: "HeygenV3LipsyncSpeed",
+      docstring: "HeyGen v3 lipsync (speed mode).",
+      tags: ["editing", "video-to-video", "vid2vid", "heygen", "lipsync"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/heygen/v3/lipsync/precision": {
+      className: "HeygenV3LipsyncPrecision",
+      docstring: "HeyGen v3 lipsync (precision mode).",
+      tags: ["editing", "video-to-video", "vid2vid", "heygen", "lipsync"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/reference-video-to-video": {
+      className: "Ltx2322bDistilledReferenceVideoToVideo",
+      docstring: "LTX 2.3-22b distilled reference video-to-video.",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/distilled/reference-video-to-video/lora": {
+      className: "Ltx2322bDistilledReferenceVideoToVideoLora",
+      docstring: "LTX 2.3-22b distilled reference video-to-video with LoRA.",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/reference-video-to-video": {
+      className: "Ltx2322bReferenceVideoToVideo",
+      docstring: "LTX 2.3-22b reference video-to-video.",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "reference"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ltx-2.3-22b/reference-video-to-video/lora": {
+      className: "Ltx2322bReferenceVideoToVideoLora",
+      docstring: "LTX 2.3-22b reference video-to-video with LoRA.",
+      tags: ["editing", "video-to-video", "vid2vid", "ltx", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/void-video-inpainting": {
+      className: "VoidVideoInpainting",
+      docstring: "Void: video inpainting.",
+      tags: ["editing", "video-to-video", "vid2vid", "inpainting"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

@@ -632,6 +632,18 @@ export const config: ModuleConfig = {
         "Automated image captioning",
         "Scene understanding"
       ]
+    },
+    "nvidia/nemotron-3-nano-omni/vision": {
+      className: "NvidiaNemotron3NanoOmniVision",
+      docstring: "Nvidia Nemotron 3 Nano Omni: image understanding.",
+      tags: ["vision", "image-to-text", "vlm", "nvidia", "nemotron"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

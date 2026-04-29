@@ -2586,6 +2586,126 @@ export const config: ModuleConfig = {
         "Social media content creation",
         "Rapid prototyping and mockups"
       ]
+    },
+    "fal-ai/ernie-image": {
+      className: "ErnieImage",
+      docstring: "ERNIE Image text-to-image generation by Baidu.",
+      tags: ["generation", "text-to-image", "txt2img", "ernie", "baidu"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ernie-image/lora": {
+      className: "ErnieImageLora",
+      docstring: "ERNIE Image with LoRA weights.",
+      tags: ["generation", "text-to-image", "txt2img", "ernie", "lora"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ernie-image/lora/turbo": {
+      className: "ErnieImageLoraTurbo",
+      docstring: "ERNIE Image Turbo with LoRA weights.",
+      tags: ["generation", "text-to-image", "txt2img", "ernie", "lora", "turbo"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ernie-image/turbo": {
+      className: "ErnieImageTurbo",
+      docstring: "ERNIE Image Turbo: faster ERNIE text-to-image generation.",
+      tags: ["generation", "text-to-image", "txt2img", "ernie", "turbo"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/nucleus-image": {
+      className: "NucleusImage",
+      docstring: "Nucleus Image text-to-image model.",
+      tags: ["generation", "text-to-image", "txt2img", "nucleus"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/nano-banana-2": {
+      className: "NanoBanana2",
+      docstring: "Nano Banana 2 text-to-image generation.",
+      tags: ["generation", "text-to-image", "txt2img", "nano-banana"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2-pro": {
+      className: "Flux2Pro",
+      docstring: "FLUX.2 Pro text-to-image generation.",
+      tags: ["generation", "text-to-image", "txt2img", "flux", "flux-2"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "openai/gpt-image-2": {
+      className: "OpenaiGptImage2",
+      docstring: "OpenAI GPT Image 2 text-to-image generation.",
+      tags: ["generation", "text-to-image", "txt2img", "openai", "gpt-image"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "imagineart/imagineart-2.0-preview/text-to-image": {
+      className: "ImagineartImagineart20PreviewTextToImage",
+      docstring: "ImagineArt 2.0 Preview text-to-image.",
+      tags: ["generation", "text-to-image", "txt2img", "imagineart"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/ideogram/custom-models/generate": {
+      className: "IdeogramCustomModelsGenerate",
+      docstring: "Generate images with a custom-trained Ideogram model.",
+      tags: ["generation", "text-to-image", "txt2img", "ideogram", "custom-model"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

@@ -313,6 +313,18 @@ export const config: ModuleConfig = {
         "Game asset generation",
         "Architectural visualization"
       ]
+    },
+    "fal-ai/meshy/v6/multi-image-to-3d": {
+      className: "MeshyV6MultiImageTo3d",
+      docstring: "Meshy v6: multi-image to 3D mesh generation.",
+      tags: ["3d", "generation", "image-to-3d", "meshy", "modeling"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

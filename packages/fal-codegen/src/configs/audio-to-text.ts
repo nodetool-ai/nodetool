@@ -40,6 +40,18 @@ export const config: ModuleConfig = {
         "Voice activity detection",
         "Meeting transcription"
       ]
+    },
+    "nvidia/nemotron-3-nano-omni/audio": {
+      className: "NvidiaNemotron3NanoOmniAudio",
+      docstring: "Nvidia Nemotron 3 Nano Omni: audio understanding.",
+      tags: ["audio-to-text", "nvidia", "nemotron"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };
