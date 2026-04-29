@@ -108,7 +108,9 @@ export {
   SQLiteMigrationAdapter,
   PostgresMigrationAdapter,
   migrations,
-  MigrationRunner
+  MigrationRunner,
+  createPostgresPool,
+  getPostgresUrlFromEnv
 } from "./migrations/index.js";
 export type {
   MigrationDBAdapter,
@@ -125,6 +127,11 @@ export type {
 // the transition. They are no-ops or thin wrappers.
 export { MemoryAdapterFactory, MemoryAdapter } from "./memory-adapter.js";
 export { SQLiteAdapter, SQLiteAdapterFactory } from "./sqlite-adapter.js";
+export {
+  SupabaseAdapter,
+  SupabaseAdapterFactory,
+  createSupabaseClientFromEnv
+} from "./supabase-adapter.js";
 export type {
   DatabaseAdapter,
   TableSchema,

@@ -28,6 +28,15 @@ export {
   PostgresMigrationAdapter
 } from "./db-adapter.js";
 
+export {
+  createPostgresPool,
+  getPostgresUrlFromEnv
+} from "./postgres-pool.js";
+export type {
+  CreatePostgresPoolOptions,
+  PostgresPoolHandle
+} from "./postgres-pool.js";
+
 export type { MigrationDef } from "./versions.js";
 export { migrations } from "./versions.js";
 
