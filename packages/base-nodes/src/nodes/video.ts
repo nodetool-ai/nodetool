@@ -38,9 +38,32 @@ async function videoBytesAsync(video: unknown, context?: ProcessingContext): Pro
   return new Uint8Array();
 }
 
-function imageBytes(image: unknown): Uint8Array {
+async function imageBytesAsync(
+  image: unknown,
+  context?: ProcessingContext
+): Promise<Uint8Array> {
   if (!image || typeof image !== "object") return new Uint8Array();
-  return toBytes((image as ImageRefLike).data);
+  const ref = image as ImageRefLike;
+  if (ref.data) return toBytes(ref.data);
+  if (typeof ref.uri === "string" && ref.uri) {
+    const uri = ref.uri;
+    const dataUriMatch = uri.match(/^data:[^;]*;base64,(.+)$/s);
+    if (dataUriMatch) {
+      return new Uint8Array(Buffer.from(dataUriMatch[1], "base64"));
+    }
+    if (context?.storage) {
+      const stored = await context.storage.retrieve(uri);
+      if (stored !== null) return new Uint8Array(stored);
+    }
+    if (uri.startsWith("file://")) {
+      return new Uint8Array(await fs.readFile(filePath(uri)));
+    }
+    if (uri.startsWith("http://") || uri.startsWith("https://")) {
+      const response = await fetch(uri);
+      return new Uint8Array(await response.arrayBuffer());
+    }
+  }
+  return new Uint8Array();
 }
 
 function filePath(uriOrPath: string): string {
@@ -401,7 +424,7 @@ export class ImageToVideoNode extends BaseNode {
   declare timeout_seconds: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const img = imageBytes(this.image);
+    const img = await imageBytesAsync(this.image, context);
     const prompt = String(this.prompt ?? "");
     const { providerId, modelId } = modelConfig(this.serialize());
     if (canUseProvider(context, providerId, modelId)) {

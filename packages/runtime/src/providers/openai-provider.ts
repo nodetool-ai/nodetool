@@ -1,4 +1,5 @@
 import OpenAI, { toFile } from "openai";
+import sharp from "sharp";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
@@ -862,9 +863,14 @@ export class OpenAIProvider extends BaseProvider {
     const responseMessage = choice.message;
 
     const toolCalls = Array.isArray(responseMessage.tool_calls)
-      ? responseMessage.tool_calls.map((tc) =>
-          this.buildToolCall(tc.id, tc.function.name, tc.function.arguments)
-        )
+      ? responseMessage.tool_calls
+          .filter(
+            (tc): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
+              tc.type === "function"
+          )
+          .map((tc) =>
+            this.buildToolCall(tc.id, tc.function.name, tc.function.arguments)
+          )
       : undefined;
 
     return {
@@ -895,9 +901,9 @@ export class OpenAIProvider extends BaseProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
-    const response = await this.getClient().images.generate(
+    const response = (await this.getClient().images.generate(
       request as unknown as OpenAI.Images.ImageGenerateParams
-    );
+    )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
     if (!item) {
@@ -949,9 +955,9 @@ export class OpenAIProvider extends BaseProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
-    const response = await this.getClient().images.edit(
+    const response = (await this.getClient().images.edit(
       request as unknown as OpenAI.Images.ImageEditParams
-    );
+    )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
     if (!item) {
@@ -1162,8 +1168,8 @@ export class OpenAIProvider extends BaseProvider {
       seconds: String(seconds)
     };
 
-    const video = await ((this.getClient() as any).videos as any).create(
-      request
+    const video = await this.getClient().videos.create(
+      request as unknown as OpenAI.Videos.VideoCreateParams
     );
     if (!video?.id) {
       throw new Error(
@@ -1182,9 +1188,7 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      latest = await ((this.getClient() as any).videos as any).retrieve({
-        video_id: video.id
-      });
+      latest = await this.getClient().videos.retrieve(video.id);
     }
 
     if (latest.status !== "completed") {
@@ -1196,17 +1200,11 @@ export class OpenAIProvider extends BaseProvider {
       );
     }
 
-    const bytes = await (this.getClient() as any).get(
-      `/videos/${video.id}/content`,
-      {
-        cast_to: Uint8Array,
-        options: {
-          params: { variant: "video" }
-        }
-      }
+    const contentResponse = await this.getClient().videos.downloadContent(
+      video.id,
+      { variant: "video" }
     );
-
-    return asUint8Array(bytes);
+    return new Uint8Array(await contentResponse.arrayBuffer());
   }
 
   async imageToVideo(
@@ -1218,20 +1216,33 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     const [width, height] = OpenAIProvider.extractImageDimensions(image);
-    const size = OpenAIProvider.snapToValidVideoDimensions(width, height);
+    const requestedSize = OpenAIProvider.resolveVideoSize(
+      params.aspectRatio,
+      params.resolution
+    );
+    const size =
+      requestedSize ?? OpenAIProvider.snapToValidVideoDimensions(width, height);
     const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
 
-    const [ext] = size.startsWith("720x1280") ? ["png"] : ["png"];
-    const mimeType = `image/${ext}`;
+    const [targetW, targetH] = size.split("x").map(Number);
+    const resized =
+      width === targetW && height === targetH
+        ? image
+        : new Uint8Array(
+            await sharp(image)
+              .resize(targetW, targetH, { fit: "cover", position: "centre" })
+              .png()
+              .toBuffer()
+          );
 
-    const video = await ((this.getClient() as any).videos as any).create({
-      model: params.model.id,
+    const video = await this.getClient().videos.create({
+      model: params.model.id as OpenAI.Videos.VideoModel,
       prompt: params.prompt ?? "",
-      input_reference: {
-        image_url: `data:${mimeType};base64,${Buffer.from(image).toString("base64")}`
-      },
-      size,
-      seconds: String(seconds)
+      input_reference: await toFile(Buffer.from(resized), "input_image.png", {
+        type: "image/png"
+      }),
+      size: size as OpenAI.Videos.VideoSize,
+      seconds: String(seconds) as OpenAI.Videos.VideoSeconds
     });
 
     if (!video?.id) {
@@ -1251,9 +1262,7 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      latest = await ((this.getClient() as any).videos as any).retrieve({
-        video_id: video.id
-      });
+      latest = await this.getClient().videos.retrieve(video.id);
     }
 
     if (latest.status !== "completed") {
@@ -1265,17 +1274,11 @@ export class OpenAIProvider extends BaseProvider {
       );
     }
 
-    const bytes = await (this.getClient() as any).get(
-      `/videos/${video.id}/content`,
-      {
-        cast_to: Uint8Array,
-        options: {
-          params: { variant: "video" }
-        }
-      }
+    const contentResponse = await this.getClient().videos.downloadContent(
+      video.id,
+      { variant: "video" }
     );
-
-    return asUint8Array(bytes);
+    return new Uint8Array(await contentResponse.arrayBuffer());
   }
 
   async generateEmbedding(args: {

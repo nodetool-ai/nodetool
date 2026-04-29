@@ -23,8 +23,9 @@
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/sdk-trace-base": "^2.6.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "openai": "^4.104.0",
+    "openai": "^6.35.0",
     "replicate": "^1.4.0",
+    "sharp": "^0.34.5",
     "ws": "^8.19.0"
   },
   "optionalDependencies": {
