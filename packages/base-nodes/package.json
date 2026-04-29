@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/base-nodes",
   "type": "module",
-  "version": "0.7.0-rc.13",
+  "version": "0.7.0-rc.14",
   "description": "Basic nodetool-base node ports for the TS workflow runner",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

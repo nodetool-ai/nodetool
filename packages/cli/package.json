@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli",
-  "version": "0.7.0-rc.13",
+  "version": "0.7.0-rc.14",
   "description": "NodeTool chat CLI — interactive AI chat with agent mode and tool support",
   "type": "module",
   "main": "dist/index.js",

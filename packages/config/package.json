@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/config",
-  "version": "0.7.0-rc.13",
+  "version": "0.7.0-rc.14",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

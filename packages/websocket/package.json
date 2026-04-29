@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/websocket",
-  "version": "0.7.0-rc.13",
+  "version": "0.7.0-rc.14",
   "type": "module",
   "description": "Unified websocket runner for workflow and chat operations",
   "main": "dist/index.js",
