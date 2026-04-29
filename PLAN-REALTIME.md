@@ -354,14 +354,31 @@ Files:
 Current findings:
 - Official Self-Forcing inference uses `pipeline.CausalInferencePipeline` for the DMD/few-step config and calls `pipeline.inference(noise=sampled_noise, text_prompts=prompts, return_latents=True, initial_latent=..., low_memory=...)`.
 - Official setup installs a package named `self_forcing`, but the import surface used by the scripts is the top-level `pipeline` package.
-- The current `nodetool` conda env has `omegaconf`, `diffusers`, and `transformers`, but does not have the upstream `pipeline`/`self_forcing` package, `torchao`, or `flash_attn`.
+- The current `nodetool` conda env has `omegaconf`, `diffusers`, `transformers`, and an incomplete `self_forcing` install, but does not have `torchao` or `flash_attn`.
 - The current smoke reaches the sampler construction path, proving artifact resolution and basic loader hooks are working; the next blocker is that the selected generator object is an artifact-load result, not an instantiated upstream pipeline with `inference(...)`.
+- The installed `self_forcing` distribution exposes `pipeline`, `model`, `trainer`, and `wan`, but importing `pipeline.CausalInferencePipeline` fails because the package does not include the top-level `utils.wan_wrapper` and `demo_utils.memory` modules referenced by upstream pipeline files.
+- NodeTool now preflights this upstream package shape before starting the RTX 3060 adapter and reports a clear missing-upstream-runtime error instead of failing later with a sampler surface error.
+- Upstream's documented `python setup.py develop` works by keeping the full repository root on `sys.path`; a normal package install is incomplete because `utils/` and `demo_utils/` are not Python packages. NodeTool may use `NODETOOL_SELF_FORCING_SOURCE_DIR` as a development bridge, but the user-facing solution must be a package-managed install/extra or compatibility package that works on a clean machine.
+- The RTX 3060 adapter now constructs the selected upstream class with the real `CausalInferencePipeline(args, device, generator, text_encoder, vae)` signature. The remaining runtime gap is converting resolved NodeTool artifacts into actual Wan generator/text-encoder/VAE component objects instead of raw state dicts or path references.
+- The adapter now rejects raw artifact values at the component boundary. It requires a Wan generator object with `get_scheduler` and `model`, a callable text encoder, and a VAE object with `decode_to_pixel`; the next task is to build those components from package-managed artifacts.
+- Scope's model setup splits runtime code from artifacts: pipeline schemas declare artifacts, the server downloads selected Hugging Face files/directories by pipeline id, and runtime code ships with the app/package. Follow that split for NodeTool: `ModelsManager`/model packs can cover HF artifact downloads, but Python backend code and optional dependencies belong in `nodetool-realtime` packaging/preflight.
+- The current RTX 3060 artifact set is not yet enough for the upstream Wan wrappers: upstream defaults expect a Wan model directory/tokenizer and package-local wrapper modules, while the current low-VRAM set contains an FP8 transformer artifact, a GGUF text encoder path, and a VAE safetensors file. The component builder must either adapt those artifacts deliberately or switch the MVP artifact manifest to a Scope-style Wan component set.
+- The Python artifact manifest now mirrors the UI model-pack runtime-files entry and can resolve selected Hugging Face repo snapshots from a concrete cached file such as `config.json`.
+- The RTX 3060 adapter has structured preflight issue codes for missing backend runtime, missing model artifacts, and missing component builder. This gives the app a clean way to tell the user whether to install a backend extra, download model files, or wait for/support a component builder.
+- ComfyUI/WanVideoWrapper confirms the low-VRAM FP8/GGUF artifacts are viable in that ecosystem, but they depend on Comfy-specific loaders/bridges. Use that as a compatibility reference, not as the default Self-Forcing component path.
+- The component-builder boundary now maps resolved artifacts into the official Self-Forcing factories: `WanDiffusionWrapper(is_causal=True)`, `WanTextEncoder()`, and `demo_utils.vae_block3.VAEDecoderWrapper()`. On the current env it still reports `missing_backend_dependency` because `utils.wan_wrapper` and `demo_utils.memory` are not installed as package modules.
+- Official Self-Forcing has only `setup.py` with `find_packages()` and documents `python setup.py develop`; there is no `pyproject.toml`, and a normal wheel/direct install does not package the top-level runtime modules. `nodetool-realtime[self-forcing]` now captures package-installable dependencies, but a compatibility package or complete source-root install is still required for `utils/` and `demo_utils/`.
+- The RTX 3060 preflight now has a compatibility package contract: if `nodetool_self_forcing_runtime` is installed and exposes `runtime_root()` or `RUNTIME_ROOT`, NodeTool validates that root for `pipeline/`, `utils/wan_wrapper.py`, `utils/scheduler.py`, and `demo_utils/memory.py`, then imports upstream `pipeline` from that package-provided root. `NODETOOL_SELF_FORCING_SOURCE_DIR` remains development-only.
+- Course correction: enough preflight and packaging scaffolding exists for now. Do not add more installer work before proving visible model output. The next goal is a timeboxed real-frame spike, even if it uses `NODETOOL_SELF_FORCING_SOURCE_DIR` on the dev machine.
+- The first output attempt should use the simplest upstream-compatible setup, not the final clean-install setup: complete Self-Forcing source root, official import path, conservative resolution, and a single `pipeline.inference(...)` call converted to a preview frame.
+- If the Self-Forcing spike cannot produce one frame after the import/runtime path and artifact mismatch are isolated, switch the Phase 1 output target to a real LongLive/Wan adapter. LongLive is an acceptable MVP fallback because the product risk is seeing realtime generated pixels in NodeTool, not proving Self-Forcing specifically.
 
 MVP direction:
-- The immediate goal is still to see real generated output running inside NodeTool, not to finish a polished installer.
+- The immediate goal is to see real generated output running inside NodeTool. Packaging, model-manager repair UX, clean installs, and ComfyUI-compatible low-VRAM bridges are secondary until one real frame is visible.
 - Use a NodeTool-controlled adapter boundary, but keep the first pass lean: instantiate an upstream-compatible `CausalInferencePipeline` path with the cached artifacts, make the existing smoke return one real frame, then run the template in the editor.
 - Do not build full model-manager dependency installation, multi-platform pack hardening, or advanced backend selection before the first real in-app output.
-- Do not require cloning an upstream repository for the MVP path. Prefer an explicit model-path config, conservative default resolution, and a small server-side pipeline manager that owns model lifecycle and inference.
+- For the dev proof, using a complete upstream source checkout via `NODETOOL_SELF_FORCING_SOURCE_DIR` is acceptable. For the user-facing path, do not require manual cloning; move that runtime into `nodetool_self_forcing_runtime` only after output is proven.
+- Keep two setup channels separate: model/artifact downloads are user-facing pack actions; backend Python runtime code is package-managed and diagnosed as missing backend dependency, not as a missing model.
 - Treat visible LongLive/Wan-style parameters as adapter config hints, not the Nodetool MVP surface: width/height, seed, VAE, quantization, noise scale, denoising steps, LoRA merge strength, and VACE slots help define the adapter config, but only prompt/profile/status should be first-run controls.
 - Prefer real app testing over adding more scaffolding: after each small runtime change, ask the user to launch the workflow in NodeTool and report browser console plus server `TEMP_LOG` output.
 
@@ -370,21 +387,37 @@ Steps:
 - [x] Choose the lean MVP path: a NodeTool-controlled adapter around the official `CausalInferencePipeline` pattern, with any upstream package dependency kept explicit and minimal.
 - [x] Map NodeTool's cached artifact paths into a typed model-path config for text encoder, transformer/checkpoint, VAE, optional LoRA, and optional VACE/control artifacts.
 - [x] Add a small backend pipeline manager that lazy-loads one pipeline per profile, reuses warm state during a realtime session, and releases resources on stop/error.
-- [ ] Add the smallest import/install path needed for the chosen backend to run inside the existing `nodetool` env; avoid external repo clones for the MVP.
-- [ ] Load the official Self-Forcing YAML config and instantiate `CausalInferencePipeline`.
-- [ ] Apply the cached Self-Forcing FP8/checkpoint artifact to the instantiated pipeline.
-- [ ] Move only the required components to CUDA/CPU for the RTX 3060 smoke profile.
-- [ ] Start with one conservative fallback resolution/profile if the cached Self-Forcing path cannot use arbitrary dimensions yet.
+- [x] Move RTX 3060 artifact-loader/checkpoint wiring out of the smoke script so the smoke and normal `SelfForcing` node use the same adapter kwargs.
+- [x] Add a runtime preflight for the installed upstream Self-Forcing `pipeline.CausalInferencePipeline` import surface.
+- [x] Add a dev-only source-dir bridge for a complete upstream Self-Forcing checkout so adapter work can continue without pretending the installed wheel is sufficient.
+- [x] Switch the checkpoint applier from placeholder `artifacts=...` construction to the real upstream `CausalInferencePipeline(args, device, generator, text_encoder, vae)` constructor shape.
+- [x] Add explicit component validation so raw safetensors dictionaries and GGUF path references are not passed into `CausalInferencePipeline`.
+- [x] Add a selected-file HF model-pack entry for Wan 2.1 base runtime files so the existing `ModelsManager` path can download more than individual model files.
+- [x] Add a Scope-style realtime artifact manifest/model-pack contract for the MVP profile, including selected Wan runtime files plus the low-VRAM transformer/text-encoder/VAE artifacts.
+- [x] Split preflight/reporting into at least `missing_backend_dependency`, `missing_model_artifact`, and `missing_model_component_builder` states.
+- [x] Add a component-builder hook so loaded artifact results can be converted into Wan generator/text-encoder/VAE objects before `CausalInferencePipeline` construction.
+- [x] Add the concrete RTX 3060 Wan component-builder wiring for official Self-Forcing wrapper factories, with import-injected tests for clean package installs and clear missing-runtime errors for incomplete installs.
+- [ ] Track the ComfyUI FP8/GGUF path separately: it may require Comfy/Kijai loader logic or a compatibility bridge rather than direct upstream Self-Forcing constructors.
+- [x] Add a package-managed dependency extra (`nodetool-realtime[self-forcing]`) for Self-Forcing runtime dependencies and make preflight errors point to it plus the remaining compatibility package/source-root requirement.
+- [x] Define the clean-install compatibility package contract so `nodetool_self_forcing_runtime.runtime_root()` or `RUNTIME_ROOT` can provide the selected Self-Forcing/Wan runtime modules (`utils/`, `demo_utils/`, `pipeline/`) without `NODETOOL_SELF_FORCING_SOURCE_DIR`.
+- [ ] Timebox the Self-Forcing real-frame spike: use a complete upstream checkout through `NODETOOL_SELF_FORCING_SOURCE_DIR`, run the RTX 3060 smoke, and record the first concrete blocker after `pipeline.CausalInferencePipeline` imports.
+- [ ] Load the official Self-Forcing config/runtime defaults needed by `CausalInferencePipeline`; hardcode only the current RTX 3060 smoke profile values in the adapter boundary, not in UI fields.
+- [ ] Decide the first-frame artifact set by runtime evidence: either adapt the current FP8/GGUF/VAE artifacts if the official wrappers accept them, or switch this spike to the official Wan/Self-Forcing artifact set that the upstream pipeline already expects.
+- [ ] Run exactly one direct `pipeline.inference(...)` call from the smoke path with a fixed prompt and conservative shape; do this before implementing streaming reuse, prompt updates, or packaging polish.
+- [ ] Convert the returned latent/video tensor to one `rgb8` or `rgba8` `realtime_video_frame` and route it to the existing preview path.
+- [ ] If Self-Forcing still cannot emit one frame after the direct inference call is wired, document the exact blocker and immediately switch Phase 1 output to LongLive.
+- [ ] LongLive fallback path, if triggered: port the smallest proven Scope-style LongLive/Wan component loader into `nodetool-realtime`, run one frame through the same `realtime_video_frame` output contract, and keep the public node named/profiled clearly so users see real generated output.
+- [ ] After a real frame exists, add or publish the actual compatibility package/vendor artifact that contains the selected upstream Self-Forcing runtime files and implements the `nodetool_self_forcing_runtime` contract.
+- [ ] After a real frame exists, move only the required components to CUDA/CPU for the RTX 3060 smoke profile and optimize memory/offload placement.
 - [x] Audit `SelfForcing` and `LongLive` public fields against the parameter budget so user-facing nodes cover important controls without exposing adapter internals.
-- [ ] Connect resolved artifacts to one upstream Self-Forcing pipeline class.
-- [ ] Run one inference call from an input frame and prompt.
-- [ ] Normalize sampler output to `rgb8` or `rgba8` `realtime_video_frame`.
+- [ ] Connect resolved artifacts to the selected real pipeline class, Self-Forcing or LongLive, based on the timeboxed spike result.
 - [ ] Emit resolve, load, warm, ready, error, and stop phases.
 - [ ] Report backend, precision, VRAM/offload, latency, and artifact paths.
-- [ ] If one frame cannot be produced because of upstream incompatibility, document the blocker and switch the MVP target to LongLive.
 
 Check:
 - [ ] One inference call returns a `realtime_video_frame`.
+- [ ] The first successful frame is produced by a real model path, not `FakeSelfForcingPipeline`.
+- [ ] Any remaining Self-Forcing packaging work is explicitly after the first visible output, not before it.
 
 ### [ ] 1.5 Run End-To-End On RTX 3060
 

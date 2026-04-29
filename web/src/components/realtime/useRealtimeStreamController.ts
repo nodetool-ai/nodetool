@@ -31,48 +31,7 @@ import {
 import type { VideoCaptureResolutionPreset } from "../../hooks/browser/useVideoCapture";
 import { useRealtimeControlPlane } from "../../hooks/realtime/useRealtimeControlPlane";
 import type { RealtimeOutputFrame } from "../../stores/RealtimeSessionStore";
-
-interface VideoTrackTarget {
-  nodeId: string;
-  inputName: string;
-  sourceHandle: string;
-}
-
-const getExternalInputName = (node: {
-  id: string;
-  name?: string | null;
-  properties?: Record<string, unknown> | null;
-}): string => {
-  const propertyName =
-    typeof node.properties?.name === "string" ? node.properties.name.trim() : "";
-  return propertyName || node.name || node.id;
-};
-
-const findVideoTrackTarget = (
-  workflow: Workflow | undefined
-): VideoTrackTarget | null => {
-  const nodes = workflow?.graph?.nodes ?? [];
-  const node = nodes.find((candidate) => {
-    const outputTypes = Object.values(candidate.outputs ?? {});
-    return (
-      candidate.type === "nodetool.video.VideoSource" ||
-      (candidate.is_media_adapter === true &&
-        candidate.is_streaming_output === true &&
-        outputTypes.includes("realtime_video_frame"))
-    );
-  });
-
-  if (!node) {
-    return null;
-  }
-
-  return {
-    nodeId: node.id,
-    inputName: getExternalInputName(node),
-    sourceHandle:
-      node.type === "nodetool.video.VideoSource" ? "realtime_frame" : "frame"
-  };
-};
+import { findVideoTrackTarget } from "./realtimeTargetDiscovery";
 
 const isStoppableSession = (session: RealtimeSessionRecord | null): boolean => {
   return session?.status === "starting" || session?.status === "running";
