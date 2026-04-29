@@ -107,6 +107,7 @@ Steps:
 - [x] Treat all streaming media adapters as external input nodes, not only `nodetool.realtime.*` nodes.
 - [x] Route pushed frames through the configured source handle, defaulting existing realtime adapters to `frame`.
 - [x] Auto-select the first graph media adapter in the realtime controller, using `realtime_frame` for `nodetool.video.VideoSource`.
+- [x] Keep `nodetool.video.VideoSource` frame-push targeting on the logical `camera` input instead of falling back to a node UUID/display name.
 - [x] Remove the duplicate `nodetool.realtime.VideoSource` registration so video ingress has one user-facing node.
 - [x] Disable WebRTC camera publishing when frame-push is active for the same session/input.
 - [x] Add status for selected device, target handle, frame cadence, and routing errors.
@@ -372,6 +373,11 @@ Current findings:
 - Course correction: enough preflight and packaging scaffolding exists for now. Do not add more installer work before proving visible model output. The next goal is a timeboxed real-frame spike, even if it uses `NODETOOL_SELF_FORCING_SOURCE_DIR` on the dev machine.
 - The first output attempt should use the simplest upstream-compatible setup, not the final clean-install setup: complete Self-Forcing source root, official import path, conservative resolution, and a single `pipeline.inference(...)` call converted to a preview frame.
 - If the Self-Forcing spike cannot produce one frame after the import/runtime path and artifact mismatch are isolated, switch the Phase 1 output target to a real LongLive/Wan adapter. LongLive is an acceptable MVP fallback because the product risk is seeing realtime generated pixels in NodeTool, not proving Self-Forcing specifically.
+- The RTX 3060 smoke now reads `NODETOOL_SELF_FORCING_SOURCE_DIR` directly and auto-loads `pipeline.CausalInferencePipeline` from that complete checkout, so the dev proof no longer requires separate upstream module/class override variables.
+- Cache-only RTX 3060 smoke now resolves all four required artifacts and reaches the official component builder. The next concrete blocker is upstream's hardcoded relative Wan path: `WanDiffusionWrapper` / `WanTextEncoder` look for `wan_models/Wan2.1-T2V-1.3B/` instead of the resolved Hugging Face snapshot path.
+- The local `Wan-AI/Wan2.1-T2V-1.3B` cache snapshot was incomplete for the official wrapper path: it lacked `diffusion_pytorch_model.safetensors` even though the upstream Hugging Face repo publishes it. The runtime-files manifest/model pack now includes that safetensors file in `allow_patterns`; re-download/repair the Wan runtime snapshot before the next full smoke.
+- `nodetool.package_tools scan --package-dir . --write` has regenerated `nodetool-realtime` package metadata on disk, so the UI model pack now exposes the Wan runtime-files entry with `diffusion_pytorch_model.safetensors` included. The app can repair this through the normal model manager once package metadata is refreshed/loaded.
+- Cache-only Hugging Face repo resolution now validates every concrete `allow_patterns` file in the snapshot. An incomplete Wan runtime snapshot with `config.json` but without `diffusion_pytorch_model.safetensors` is treated as missing instead of failing later inside the upstream loader.
 
 MVP direction:
 - The immediate goal is to see real generated output running inside NodeTool. Packaging, model-manager repair UX, clean installs, and ComfyUI-compatible low-VRAM bridges are secondary until one real frame is visible.
@@ -400,11 +406,17 @@ Steps:
 - [ ] Track the ComfyUI FP8/GGUF path separately: it may require Comfy/Kijai loader logic or a compatibility bridge rather than direct upstream Self-Forcing constructors.
 - [x] Add a package-managed dependency extra (`nodetool-realtime[self-forcing]`) for Self-Forcing runtime dependencies and make preflight errors point to it plus the remaining compatibility package/source-root requirement.
 - [x] Define the clean-install compatibility package contract so `nodetool_self_forcing_runtime.runtime_root()` or `RUNTIME_ROOT` can provide the selected Self-Forcing/Wan runtime modules (`utils/`, `demo_utils/`, `pipeline/`) without `NODETOOL_SELF_FORCING_SOURCE_DIR`.
-- [ ] Timebox the Self-Forcing real-frame spike: use a complete upstream checkout through `NODETOOL_SELF_FORCING_SOURCE_DIR`, run the RTX 3060 smoke, and record the first concrete blocker after `pipeline.CausalInferencePipeline` imports.
-- [ ] Load the official Self-Forcing config/runtime defaults needed by `CausalInferencePipeline`; hardcode only the current RTX 3060 smoke profile values in the adapter boundary, not in UI fields.
+- [x] Make the RTX 3060 smoke auto-use `NODETOOL_SELF_FORCING_SOURCE_DIR` for the upstream `CausalInferencePipeline` instead of requiring dev-only module/class override env vars.
+- [x] Timebox the Self-Forcing real-frame spike: use a complete upstream checkout through `NODETOOL_SELF_FORCING_SOURCE_DIR`, run the RTX 3060 smoke, and record the first concrete blocker after `pipeline.CausalInferencePipeline` imports.
+- [x] Load the official Self-Forcing config/runtime defaults needed by `CausalInferencePipeline`; hardcode only the current RTX 3060 smoke profile values in the adapter boundary, not in UI fields.
 - [ ] Decide the first-frame artifact set by runtime evidence: either adapt the current FP8/GGUF/VAE artifacts if the official wrappers accept them, or switch this spike to the official Wan/Self-Forcing artifact set that the upstream pipeline already expects.
-- [ ] Run exactly one direct `pipeline.inference(...)` call from the smoke path with a fixed prompt and conservative shape; do this before implementing streaming reuse, prompt updates, or packaging polish.
-- [ ] Convert the returned latent/video tensor to one `rgb8` or `rgba8` `realtime_video_frame` and route it to the existing preview path.
+- [x] Add the official `diffusion_pytorch_model.safetensors` to the Wan runtime-files artifact/model-pack allow list so `ModelsManager` and smoke downloads can repair incomplete HF cache snapshots.
+- [x] Regenerate `nodetool-realtime` package metadata so the runtime-files model pack is visible to the app/model manager.
+- [x] Make cache-only repo resolution reject incomplete selected-file snapshots so partial Wan runtime caches are reported as missing artifacts.
+- [ ] Re-download/repair `Wan-AI/Wan2.1-T2V-1.3B:runtime-files` so the resolved snapshot includes `diffusion_pytorch_model.safetensors`.
+- [ ] Resolve the upstream Wan path mismatch: either provide a safe `wan_models/Wan2.1-T2V-1.3B` alias for the resolved runtime snapshot during component construction, or replace the official wrapper constructors with explicit-path NodeTool builders.
+- [x] Wire exactly one direct `pipeline.inference(...)` call from the smoke path with a fixed prompt and conservative shape; do this before implementing streaming reuse, prompt updates, or packaging polish.
+- [x] Convert the returned latent/video tensor to one `rgb8` or `rgba8` `realtime_video_frame` and route it to the existing preview path.
 - [ ] If Self-Forcing still cannot emit one frame after the direct inference call is wired, document the exact blocker and immediately switch Phase 1 output to LongLive.
 - [ ] LongLive fallback path, if triggered: port the smallest proven Scope-style LongLive/Wan component loader into `nodetool-realtime`, run one frame through the same `realtime_video_frame` output contract, and keep the public node named/profiled clearly so users see real generated output.
 - [ ] After a real frame exists, add or publish the actual compatibility package/vendor artifact that contains the selected upstream Self-Forcing runtime files and implements the `nodetool_self_forcing_runtime` contract.
