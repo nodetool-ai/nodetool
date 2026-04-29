@@ -29,7 +29,7 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
-import * as sdk from "@anthropic-ai/claude-agent-sdk";
+import type * as SdkType from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 
 const log = createLogger("nodetool.runtime.providers.claude_agent");
@@ -419,7 +419,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   private buildMcpServer(
     tools: ProviderTool[],
     onToolCall: OnToolCall,
-    sdk: typeof import("@anthropic-ai/claude-agent-sdk"),
+    sdk: typeof SdkType,
     z: any,
     toolCallTracker: ToolCall[]
   ) {
@@ -503,6 +503,8 @@ export class ClaudeAgentProvider extends BaseProvider {
       );
     }
 
+    const sdk = await import("@anthropic-ai/claude-agent-sdk");
+
     log.info("Claude Agent generateMessages called", {
       toolCount,
       hasOnToolCall,
@@ -514,7 +516,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     const toolCallTracker: ToolCall[] = [];
 
     // Build MCP server if tools + callback provided
-    let mcpServer: ReturnType<typeof sdk.createSdkMcpServer> | undefined;
+    let mcpServer: ReturnType<typeof SdkType.createSdkMcpServer> | undefined;
     let allowedTools: string[] = [];
 
     if (hasTools && args.tools && args.onToolCall) {
@@ -577,7 +579,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
     }
 
-    let queryHandle: ReturnType<typeof sdk.query>;
+    let queryHandle: ReturnType<typeof SdkType.query>;
     try {
       queryHandle = sdk.query({
         prompt,
