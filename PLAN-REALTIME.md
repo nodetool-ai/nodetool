@@ -10,6 +10,8 @@ Video Source -> Self-Forcing RTX 3060 profile -> VideoSink -> Preview
 
 Success means a user selects a camera, starts the workflow, and sees generated model output in the normal Nodetool `Preview` node on RTX 3060-class hardware.
 
+For Phase 1, every task is subordinate to one observable outcome: real model-converted frames must appear in the output `Preview`. A change is on-path only if it helps a browser camera frame reach the runner, helps the selected model convert that input into a `realtime_video_frame`, or helps that frame route through `VideoSink -> Preview`. Packaging polish, broad status surfaces, optional controls, and extra model lanes wait until that preview frame exists.
+
 ## Locked Decisions
 
 - Use Nodetool's realtime graph path, not a separate operator UI.
@@ -62,6 +64,26 @@ Use these as dense engineering assumptions until replaced by measured smoke outp
 - Attention: FlashAttention 2.7.4.post1 is the upstream reference. If unavailable, SDPA works as a correctness fallback but is slow. SageAttention may be a later speed task; use the CUDA backend on Ampere, not known-black-output Triton paths.
 - System memory matters for offload. Treat 32 GB RAM as a floor and 64 GB as preferred for user-facing guidance once offload is enabled.
 - Throughput expectation: 3060-class output will not match paper H100/4090 numbers. Plan around correctness first, then optimize steady-state chunk time.
+
+## De-Risk Gates Before More Adapter Work
+
+These gates replace the previous pattern of discovering one blocker per app run:
+
+- Reference reproduction gate: before another deep app-template iteration, reproduce or document one known-working low-VRAM Wan/Self-Forcing reference path. Record exact model files, loader nodes/classes, precision, resolution, frame count, VAE decode path, offload/block-swap settings, and observed VRAM.
+- Frame-routing gate: before another model-runtime attempt in the app, prove that browser camera frames reach the active realtime runner and update backend routing metrics. `Browser frames > 0` with `Routed frames = 0`, `Unrouted frames = 0`, and `Inference nodes = 0` means the push-frame ack/metrics boundary is broken or invisible; fix that before loader work.
+- Loader decision gate: split Phase 1.4 into two explicit tracks and pick one after a short spike:
+  - Official-compatible Self-Forcing: complete upstream source or `nodetool_self_forcing_runtime`, `pipeline.CausalInferencePipeline`, NodeTool path redirects, official Wan wrappers, and full Wan VAE decode.
+  - Community low-VRAM bridge: Comfy/Kijai-style Wan loader with FP8/GGUF artifacts, explicit text encoder and VAE paths, optional VACE disabled by default, and low-VRAM offload/block-swap controls treated as required loader features.
+- Status surface gate: model loading must be visible outside node output values. The app should expose aggregate `resolving`, `loading transformer`, `loading text encoder`, `loading VAE`, `warming`, `ready`, and `error` stages during startup.
+- Manifest gate: base templates may load only required base artifacts. Optional VACE, LoRA, speed-LoRA, and control artifacts must not be resolved or loaded unless an explicit profile/control enables them.
+- Hardware gate: low-VRAM profiles stay on Self-Forcing/community Wan 1.3B FP8/GGUF paths. LongLive, StreamDiffusion-style streaming, full VACE/control stacks, and packaged Scope-style realtime pipelines are 24 GB-class options unless a separate unsupported low-memory experiment proves otherwise.
+
+Reference notes:
+
+- Scope/Daydream loads pipelines separately from streaming: `POST /api/v1/pipeline/load` starts loading, `GET /api/v1/pipeline/status` reports `status`, `error`, and `loading_stage`, and only then does WebRTC streaming begin. In code, `scope.server.pipeline_manager.PipelineManager` uses `PipelineStatus`, `set_loading_stage()`, thread-safe load state, and background executor loading.
+- Daydream public requirements put LongLive and StreamDiffusion V2 at a 24 GB minimum with about 20 GB runtime VRAM estimates. This is a hardware profile boundary, not a fallback decision for the low-VRAM path.
+- Kijai/ComfyUI WanVideoWrapper treats low-VRAM Wan as a loader ecosystem: transformer files in `models/diffusion_models`, text encoders/GGUF in text encoder or clip folders, VAE in `models/vae`, FP8 scaled models, GGUF loaders, optional VACE modules, and block/offload controls for memory. NodeTool should mirror the loader facts, not assume the official Self-Forcing constructors cover the community artifact layout.
+- Latest app run exposed a core runtime blocker before model inference: the browser published camera frames at 2 fps, but the session status stayed at `Routed frames: 0`, `Unrouted frames: 0`, and `Inference nodes reporting: 0`. The next actionable item is to prove whether `push_realtime_frame` acknowledgements reach `RealtimeSessionStore` and whether `FrameRouter.routeFrame()` reaches the active runner.
 
 ## Realtime Node Parameter Budget
 
@@ -319,7 +341,7 @@ Check:
 - [x] `Preview` displays a raw realtime frame.
 - [x] Unsupported formats show a clear message.
 
-### [x] 1.2 Connect Camera `Video Source` To Model Input
+### [ ] 1.2 Connect Camera `Video Source` To Model Input
 
 Files:
 - `packages/base-nodes/src/nodes/video.ts`
@@ -348,12 +370,12 @@ Steps:
 - [x] Preserve `sequence`, `timestamp_ns`, `pixel_format`, and latest-frame-wins behavior in the publisher path.
 - [x] Add focused tests proving source-handle routing reaches downstream graph edges.
 - [x] Show complete permission, missing-device, active-device, source failure, cadence, and routing status in the user UI.
-- [x] Run a smoke proving captured camera frames route to the model `frame` input handle.
+- [x] Add focused tests for captured camera frames routing to the model `frame` input handle.
 
 Check:
-- [x] Starting the realtime session sends camera frames into the model input.
+- [ ] App runtime check still needed: browser-published camera frames must increment routed or unrouted backend metrics and reach the active runner.
 
-### [x] 1.3 Resolve Required RTX 3060 Artifacts
+### [x] 1.3 Resolve Required Low-VRAM Artifacts
 
 Files:
 - `nodetool-realtime/src/nodetool/realtime/model_artifacts.py`
@@ -362,7 +384,7 @@ Files:
 
 Current cache snapshot:
 - Hugging Face cache root is `M:\HUGGINGFACE\hub`.
-- Required RTX 3060 Self-Forcing artifacts are already cached:
+- Required low-VRAM Self-Forcing artifacts are already cached:
   - `self_forcing_fp8_transformer`: `lym00/Wan2.1-T2V-1.3B-Self-Forcing-VACE-Addon-Experiment/Wan2.1_T2V_1.3B_SelfForcing_DMD-FP8_e4m3fn.safetensors` (`1,419,385,896` bytes)
   - `umt5_xxl_encoder_q5_k_m`: `city96/umt5-xxl-encoder-gguf/umt5-xxl-encoder-Q5_K_M.gguf` (`4,145,878,880` bytes)
   - `wan21_vae`: `Kijai/WanVideo_comfy/Wan2_1_VAE_bf16.safetensors` (`253,806,278` bytes)
@@ -380,7 +402,7 @@ Verified runtime state:
 - `safetensors` `0.7.0` and `huggingface_hub` `1.8.0` import successfully.
 - The GGUF artifact currently uses the `gguf_path_reference` loader; `nodetool-realtime[gguf]` has no runtime dependency yet.
 - Cache-only artifact resolution is fixed so Hugging Face files already present in the local cache resolve without enabling downloads.
-- Cache-only RTX 3060 smoke resolves all required artifacts and reaches `loading_transformer`; it then fails at the expected Phase 1.4 boundary: `Self-Forcing selected upstream pipeline must provide a callable inference method.`
+- Low-VRAM artifact resolution is good enough for the next bridge spike. The remaining blockers are runtime routing and bridge construction, not missing base artifacts.
 
 Steps:
 - [x] Check installed packs/cache before asking the user to download anything else.
@@ -405,98 +427,40 @@ Files:
 - `nodetool-realtime/src/nodetool/nodes/realtime/longlive.py`
 - `nodetool-realtime/tests/test_package_metadata.py`
 
-Current findings:
-- Official Self-Forcing inference uses `pipeline.CausalInferencePipeline` for the DMD/few-step config and calls `pipeline.inference(noise=sampled_noise, text_prompts=prompts, return_latents=True, initial_latent=..., low_memory=...)`.
-- Official setup installs a package named `self_forcing`, but the import surface used by the scripts is the top-level `pipeline` package.
-- The current `nodetool` conda env has `omegaconf`, `diffusers`, `transformers`, and an incomplete `self_forcing` install, but does not have `torchao` or `flash_attn`.
-- The current smoke reaches the sampler construction path, proving artifact resolution and basic loader hooks are working; the next blocker is that the selected generator object is an artifact-load result, not an instantiated upstream pipeline with `inference(...)`.
-- The installed `self_forcing` distribution exposes `pipeline`, `model`, `trainer`, and `wan`, but importing `pipeline.CausalInferencePipeline` fails because the package does not include the top-level `utils.wan_wrapper` and `demo_utils.memory` modules referenced by upstream pipeline files.
-- NodeTool now preflights this upstream package shape before starting the RTX 3060 adapter and reports a clear missing-upstream-runtime error instead of failing later with a sampler surface error.
-- Upstream's documented `python setup.py develop` works by keeping the full repository root on `sys.path`; a normal package install is incomplete because `utils/` and `demo_utils/` are not Python packages. NodeTool may use `NODETOOL_SELF_FORCING_SOURCE_DIR` as a development bridge, but the user-facing solution must be a package-managed install/extra or compatibility package that works on a clean machine.
-- The RTX 3060 adapter now constructs the selected upstream class with the real `CausalInferencePipeline(args, device, generator, text_encoder, vae)` signature. The remaining runtime gap is converting resolved NodeTool artifacts into actual Wan generator/text-encoder/VAE component objects instead of raw state dicts or path references.
-- The adapter now rejects raw artifact values at the component boundary. It requires a Wan generator object with `get_scheduler` and `model`, a callable text encoder, and a VAE object with `decode_to_pixel`; the next task is to build those components from package-managed artifacts.
-- Scope's model setup splits runtime code from artifacts: pipeline schemas declare artifacts, the server downloads selected Hugging Face files/directories by pipeline id, and runtime code ships with the app/package. Follow that split for NodeTool: `ModelsManager`/model packs can cover HF artifact downloads, but Python backend code and optional dependencies belong in `nodetool-realtime` packaging/preflight.
-- The current RTX 3060 artifact set is not yet enough for the upstream Wan wrappers: upstream defaults expect a Wan model directory/tokenizer and package-local wrapper modules, while the current low-VRAM set contains an FP8 transformer artifact, a GGUF text encoder path, and a VAE safetensors file. The component builder must either adapt those artifacts deliberately or switch the MVP artifact manifest to a Scope-style Wan component set.
-- The Python artifact manifest now mirrors the UI model-pack runtime-files entry and can resolve selected Hugging Face repo snapshots from a concrete cached file such as `config.json`.
-- The RTX 3060 adapter has structured preflight issue codes for missing backend runtime, missing model artifacts, and missing component builder. This gives the app a clean way to tell the user whether to install a backend extra, download model files, or wait for/support a component builder.
-- ComfyUI/WanVideoWrapper confirms the low-VRAM FP8/GGUF artifacts are viable in that ecosystem, but they depend on Comfy-specific loaders/bridges. Use that as a compatibility reference, not as the default Self-Forcing component path.
-- The component-builder boundary now maps resolved artifacts into the official Self-Forcing factories: `WanDiffusionWrapper(is_causal=True)`, `WanTextEncoder()`, and `demo_utils.vae_block3.VAEDecoderWrapper()`. On the current env it still reports `missing_backend_dependency` because `utils.wan_wrapper` and `demo_utils.memory` are not installed as package modules.
-- Official Self-Forcing has only `setup.py` with `find_packages()` and documents `python setup.py develop`; there is no `pyproject.toml`, and a normal wheel/direct install does not package the top-level runtime modules. `nodetool-realtime[self-forcing]` now captures package-installable dependencies, but a compatibility package or complete source-root install is still required for `utils/` and `demo_utils/`.
-- The RTX 3060 preflight now has a compatibility package contract: if `nodetool_self_forcing_runtime` is installed and exposes `runtime_root()` or `RUNTIME_ROOT`, NodeTool validates that root for `pipeline/`, `utils/wan_wrapper.py`, `utils/scheduler.py`, and `demo_utils/memory.py`, then imports upstream `pipeline` from that package-provided root. `NODETOOL_SELF_FORCING_SOURCE_DIR` remains development-only.
-- Course correction: enough preflight and packaging scaffolding exists for now. Do not add more installer work before proving visible model output. The next goal is a timeboxed real-frame spike, even if it uses `NODETOOL_SELF_FORCING_SOURCE_DIR` on the dev machine.
-- The first output attempt should use the simplest upstream-compatible setup, not the final clean-install setup: complete Self-Forcing source root, official import path, conservative resolution, and a single `pipeline.inference(...)` call converted to a preview frame.
-- If the official-compatible Self-Forcing spike cannot produce one frame on RTX 3060 after import/runtime and artifact mismatch issues are isolated, switch to a community FP8/GGUF Self-Forcing bridge or document the 3060 blocker. Standard LongLive belongs to a separate 24 GB-class lane.
-- The RTX 3060 smoke now reads `NODETOOL_SELF_FORCING_SOURCE_DIR` directly and auto-loads `pipeline.CausalInferencePipeline` from that complete checkout, so the dev proof no longer requires separate upstream module/class override variables.
-- Cache-only RTX 3060 smoke now resolves all four required artifacts and reaches the official component builder. The next concrete blocker is upstream's hardcoded relative Wan path: `WanDiffusionWrapper` / `WanTextEncoder` look for `wan_models/Wan2.1-T2V-1.3B/` instead of the resolved Hugging Face snapshot path.
-- The local `Wan-AI/Wan2.1-T2V-1.3B` cache snapshot was incomplete for the official wrapper path: it lacked `diffusion_pytorch_model.safetensors` even though the upstream Hugging Face repo publishes it. The runtime-files manifest/model pack now includes that safetensors file in `allow_patterns`; re-download/repair the Wan runtime snapshot before the next full smoke.
-- `nodetool.package_tools scan --package-dir . --write` has regenerated `nodetool-realtime` package metadata on disk, so the UI model pack now exposes the Wan runtime-files entry with `diffusion_pytorch_model.safetensors` included. The app can repair this through the normal model manager once package metadata is refreshed/loaded.
-- Cache-only Hugging Face repo resolution now validates every concrete `allow_patterns` file in the snapshot. An incomplete Wan runtime snapshot with `config.json` but without `diffusion_pytorch_model.safetensors` is treated as `cached_repo_incomplete:diffusion_pytorch_model.safetensors` instead of failing later inside the upstream loader.
-- The RTX 3060 smoke now uses the smallest upstream-valid noise shape `(1, 3, 16, 60, 104)` for the first visible-output spike. Upstream `CausalInferencePipeline` asserts that frame count is divisible by `num_frame_per_block`, which is 3 in the official DMD config, so a literal one-frame latent fails before inference.
-- LongLive remains useful for future/24 GB-class hardware, but Daydream/Scope-style streaming data says it is not a 3060 12 GB target in standard form. The default Python LongLive path is also still scaffolded: `LazyLongLiveBackend` needs real sampler/generate wiring before it can run without injected test doubles.
-- Current 3060 strategy: prove one generated frame with the official-compatible Self-Forcing path first, then tune memory/speed. Treat FP8 as a VRAM tool, CPU/offloaded UMT5 as acceptable, Wan VAE as keeper decode, TAEHV-style decode as preview-only, and SageAttention as post-correctness acceleration.
-- Runtime evidence after repairing `diffusion_pytorch_model.safetensors`: the smoke reaches generator load, warm, ready, and real denoising, then OOMs at timestep `960.0` with `(1, 3, 16, 60, 104)`. A smaller `(1, 3, 16, 30, 52)` override gets farther, to timestep `727.27`, but still OOMs. The next likely path is stronger offload/attention work or the Comfy/Kijai-style low-VRAM bridge, not LongLive.
-- Revised alternate path policy: if the official-compatible Self-Forcing path cannot emit a frame on 3060, switch to the Comfy/Kijai-style community FP8/GGUF Self-Forcing bridge or document the 3060 blocker. Keep LongLive as a separate option for users with larger GPUs unless new evidence proves a low-VRAM LongLive variant works.
+Current decision:
+- First prove the realtime frame-push path: browser camera frames must reach the active runner and update routed/unrouted metrics. If the UI shows browser frames but both routed and unrouted stay at zero, debug `push_realtime_frame -> realtime_session_ack -> RealtimeSessionStore -> runner.pushInputValue` before touching model loaders.
+- Use the community low-VRAM Wan/Self-Forcing bridge for the first generated frame. The official-compatible `CausalInferencePipeline` path is preserved as reference material and a later 24 GB/full-upstream track, not the active 12 GB route.
+- Keep LongLive separate for 24 GB-class users. Do not treat it as a fallback for low-VRAM Self-Forcing.
+- Treat `VideoSink -> Preview` as the Phase 1.4 acceptance gate. Loader structure, status reporting, and dependency packaging are incomplete unless one real converted frame reaches the existing preview path.
 
-MVP direction:
-- The immediate goal is to see real generated output running inside NodeTool. Packaging, model-manager repair UX, clean installs, and ComfyUI-compatible low-VRAM bridges are secondary until one real frame is visible.
-- Use a NodeTool-controlled adapter boundary, but keep the first pass lean: instantiate an upstream-compatible `CausalInferencePipeline` path with the cached artifacts, make the existing smoke return one real frame, then run the template in the editor.
-- Do not build full model-manager dependency installation, multi-platform pack hardening, or advanced backend selection before the first real in-app output.
-- For the dev proof, using a complete upstream source checkout via `NODETOOL_SELF_FORCING_SOURCE_DIR` is acceptable. For the user-facing path, do not require manual cloning; move that runtime into `nodetool_self_forcing_runtime` only after output is proven.
-- Keep two setup channels separate: model/artifact downloads are user-facing pack actions; backend Python runtime code is package-managed and diagnosed as missing backend dependency, not as a missing model.
-- Treat visible LongLive/Wan-style parameters as adapter config hints, not the Nodetool MVP surface: width/height, seed, VAE, quantization, noise scale, denoising steps, LoRA merge strength, and VACE slots help define the adapter config, but only prompt/profile/status should be first-run controls.
-- Prefer real app testing over adding more scaffolding: after each small runtime change, ask the user to launch the workflow in NodeTool and report browser console plus server `TEMP_LOG` output.
+Evidence to keep:
+- Artifact resolution, model-pack metadata, cache validation, and preflight issue codes are already useful and should remain part of the implementation.
+- The official-compatible spike imported the upstream shape, repaired the Wan runtime snapshot, reached real denoising, and then OOMed before decode on 12 GB. That is enough evidence to stop patching official constructors for the low-VRAM MVP.
+- Scope's split is the right lifecycle model: resolve/download artifacts separately, load asynchronously, expose `loading_stage`, then stream.
+- Kijai/ComfyUI WanVideoWrapper is the loader reference for low-VRAM artifacts: FP8/GGUF transformer/text encoder, explicit VAE path, optional VACE disabled unless selected, and memory/offload controls as real loader inputs.
 
-Steps:
-- [x] Identify the upstream Self-Forcing class/function that provides `inference(noise, text_prompts, return_latents, low_memory)`.
-- [x] Choose the lean MVP path: a NodeTool-controlled adapter around the official `CausalInferencePipeline` pattern, with any upstream package dependency kept explicit and minimal.
-- [x] Map NodeTool's cached artifact paths into a typed model-path config for text encoder, transformer/checkpoint, VAE, optional LoRA, and optional VACE/control artifacts.
-- [x] Add a small backend pipeline manager that lazy-loads one pipeline per profile, reuses warm state during a realtime session, and releases resources on stop/error.
-- [x] Move RTX 3060 artifact-loader/checkpoint wiring out of the smoke script so the smoke and normal `SelfForcing` node use the same adapter kwargs.
-- [x] Add a runtime preflight for the installed upstream Self-Forcing `pipeline.CausalInferencePipeline` import surface.
-- [x] Add a dev-only source-dir bridge for a complete upstream Self-Forcing checkout so adapter work can continue without pretending the installed wheel is sufficient.
-- [x] Switch the checkpoint applier from placeholder `artifacts=...` construction to the real upstream `CausalInferencePipeline(args, device, generator, text_encoder, vae)` constructor shape.
-- [x] Add explicit component validation so raw safetensors dictionaries and GGUF path references are not passed into `CausalInferencePipeline`.
-- [x] Add a selected-file HF model-pack entry for Wan 2.1 base runtime files so the existing `ModelsManager` path can download more than individual model files.
-- [x] Add a Scope-style realtime artifact manifest/model-pack contract for the MVP profile, including selected Wan runtime files plus the low-VRAM transformer/text-encoder/VAE artifacts.
-- [x] Split preflight/reporting into at least `missing_backend_dependency`, `missing_model_artifact`, and `missing_model_component_builder` states.
-- [x] Add a component-builder hook so loaded artifact results can be converted into Wan generator/text-encoder/VAE objects before `CausalInferencePipeline` construction.
-- [x] Add the concrete RTX 3060 Wan component-builder wiring for official Self-Forcing wrapper factories, with import-injected tests for clean package installs and clear missing-runtime errors for incomplete installs.
-- [ ] Track the ComfyUI FP8/GGUF path separately: it may require Comfy/Kijai loader logic or a compatibility bridge rather than direct upstream Self-Forcing constructors.
-- [x] Add a package-managed dependency extra (`nodetool-realtime[self-forcing]`) for Self-Forcing runtime dependencies and make preflight errors point to it plus the remaining compatibility package/source-root requirement.
-- [x] Define the clean-install compatibility package contract so `nodetool_self_forcing_runtime.runtime_root()` or `RUNTIME_ROOT` can provide the selected Self-Forcing/Wan runtime modules (`utils/`, `demo_utils/`, `pipeline/`) without `NODETOOL_SELF_FORCING_SOURCE_DIR`.
-- [x] Make the RTX 3060 smoke auto-use `NODETOOL_SELF_FORCING_SOURCE_DIR` for the upstream `CausalInferencePipeline` instead of requiring dev-only module/class override env vars.
-- [x] Timebox the Self-Forcing real-frame spike: use a complete upstream checkout through `NODETOOL_SELF_FORCING_SOURCE_DIR`, run the RTX 3060 smoke, and record the first concrete blocker after `pipeline.CausalInferencePipeline` imports.
-- [x] Load the official Self-Forcing config/runtime defaults needed by `CausalInferencePipeline`; hardcode only the current RTX 3060 smoke profile values in the adapter boundary, not in UI fields.
-- [ ] Decide the first-frame artifact set by runtime evidence: either adapt the current FP8/GGUF/VAE artifacts if the official wrappers accept them, or switch this spike to the official Wan/Self-Forcing artifact set that the upstream pipeline already expects.
-- [x] Add the official `diffusion_pytorch_model.safetensors` to the Wan runtime-files artifact/model-pack allow list so `ModelsManager` and smoke downloads can repair incomplete HF cache snapshots.
-- [x] Regenerate `nodetool-realtime` package metadata so the runtime-files model pack is visible to the app/model manager.
-- [x] Make cache-only repo resolution reject incomplete selected-file snapshots so partial Wan runtime caches are reported as missing artifacts.
-- [x] Re-download/repair `Wan-AI/Wan2.1-T2V-1.3B:runtime-files` so the resolved snapshot includes `diffusion_pytorch_model.safetensors`.
-- [ ] Resolve the upstream Wan path mismatch: either provide a safe `wan_models/Wan2.1-T2V-1.3B` alias for the resolved runtime snapshot during component construction, or replace the official wrapper constructors with explicit-path NodeTool builders.
-- [x] Reduce the RTX 3060 spike sampler to the smallest valid 3-frame block so the next smoke run can still return one preview frame.
-- [x] Add a smoke-only noise-shape override so the RTX 3060 run can validate smaller latent sizes without changing user-facing node fields.
-- [ ] Validate at least two low-VRAM spatial profiles with runtime evidence: about `416x240` for fastest proof and `320x512` for a better vertical/wide compromise.
-- [ ] Keep DMD sampling fixed to the upstream few-step config for the MVP; do not expose step count, CFG, or negative-branch controls until output is stable.
-- [ ] After one frame works, implement bounded rolling KV cache accounting and decide whether first-chunk/frame-sink anchoring is required for prompt-stable streaming.
-- [ ] After correctness, evaluate attention acceleration in this order: FlashAttention pinned upstream version if installable, SDPA as correctness fallback, SageAttention CUDA backend only if it preserves Wan output.
-- [ ] Consider TAEHV/TAEW preview decode only after full Wan VAE decode produces a keeper frame.
-- [x] Wire exactly one direct `pipeline.inference(...)` call from the smoke path with a fixed prompt and conservative shape; do this before implementing streaming reuse, prompt updates, or packaging polish.
-- [x] Convert the returned latent/video tensor to one `rgb8` or `rgba8` `realtime_video_frame` and route it to the existing preview path.
-- [ ] If the official-compatible Self-Forcing path still cannot emit one frame on 3060, document the exact blocker and switch Phase 1 output to a community FP8/GGUF Self-Forcing bridge before considering non-3060 LongLive.
-- [ ] Move LongLive work to the future/24 GB lane: implement the default `LazyLongLiveBackend` sampler/generate path and validate it against a 24 GB-class GPU before presenting it as a user-facing option.
-- [ ] If LongLive-on-3060 is revisited, require an explicit experimental plan: aggressive KV offload, capped/short windows, INT8 weights, BF16 compute, low resolution such as 256x448, and a clear unsupported status.
-- [ ] Populate `nodetool-realtime` optional extras (`fp8`, `gguf`, `int8`) only after the corresponding real backend path is validated; until then, keep errors/docs clear that they are placeholders.
-- [ ] After a real frame exists, add or publish the actual compatibility package/vendor artifact that contains the selected upstream Self-Forcing runtime files and implements the `nodetool_self_forcing_runtime` contract.
-- [ ] After a real frame exists, move only the required components to CUDA/CPU for the RTX 3060 smoke profile and optimize memory/offload placement.
-- [x] Audit `SelfForcing` and `LongLive` public fields against the parameter budget so user-facing nodes cover important controls without exposing adapter internals.
-- [ ] Connect resolved artifacts to the selected real pipeline class, Self-Forcing or community Self-Forcing bridge, based on the timeboxed spike result.
-- [ ] Emit resolve, load, warm, ready, error, and stop phases.
-- [ ] Report backend, precision, VRAM/offload, latency, and artifact paths.
+Next steps:
+- [ ] Prove the frame-push route in the app: one camera frame should increment either routed or unrouted backend metrics and call the active runner with `VideoSource.realtime_frame`.
+- [x] Fix the client metrics path so `push_frame` acknowledgements are not overwritten by lagging zero-valued periodic metrics.
+- [x] Record frame-push routed/unrouted counts in backend metrics so periodic `realtime_metrics` reflects websocket frame-push sessions, not only WebRTC sessions.
+- [ ] Build the selected community low-VRAM bridge around the current FP8/GGUF/VAE artifacts.
+  - [x] Add an explicit community low-VRAM bridge boundary that consumes the current runtime/FP8 transformer/GGUF text encoder/VAE manifest paths and reports a bridge-runtime dependency error instead of falling back to official Self-Forcing source-root failures.
+  - [ ] Implement the actual bridge runtime package surface (`nodetool_wan_bridge`) only as far as needed to produce one converted `realtime_video_frame` for Preview.
+- [ ] Return one real `realtime_video_frame` from the selected bridge and route it to `VideoSink -> Preview`.
+- [ ] Load only base required artifacts for the starter template. VACE, LoRA, speed-LoRA, and control artifacts stay disabled until an explicit profile/control enables them.
+  - [x] Keep optional VACE/LoRA artifact IDs out of the default community bridge config and default node path.
+- [ ] Emit only the model phases needed to explain why Preview is or is not receiving frames: `resolving`, `loading transformer`, `loading text encoder`, `loading VAE`, `warming`, `ready`, `error`, and `stop`.
+- [ ] Report backend, precision, VRAM/offload, latency, artifact paths, and last error only where they help diagnose missing Preview frames.
+- [ ] After one real frame exists, revisit clean-install packaging, CUDA/CPU placement, attention acceleration, preview decoders, LoRA, VACE, and the 24 GB LongLive lane.
 
 Check:
+- [ ] Browser frames > 0 produces nonzero routed or unrouted backend metrics.
+- [x] Store/card tests preserve and display routed frame counts after `push_frame` acknowledgements.
+- [x] Backend tests route pushed frames to the active runner on `VideoSource.realtime_frame`.
 - [ ] One inference call returns a `realtime_video_frame`.
 - [ ] The first successful frame is produced by a real model path, not `FakeSelfForcingPipeline`.
-- [ ] Any remaining Self-Forcing packaging work is explicitly after the first visible output, not before it.
+- [ ] Base runs skip optional VACE/LoRA/control artifacts unless explicitly enabled.
+- [ ] Any failure shown to the user includes stage and last error, not just a black preview.
 
 ### [ ] 1.5 Run End-To-End On RTX 3060
 
