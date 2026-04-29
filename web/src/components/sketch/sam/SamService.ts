@@ -41,6 +41,94 @@ export interface SamBackendCapabilities {
   rle: boolean;
 }
 
+export interface NodeMetadataInputLike {
+  name?: string | null;
+}
+
+export interface NodeMetadataLike {
+  properties?: NodeMetadataInputLike[];
+}
+
+interface ResolveSamPromptCapabilityInputsParams {
+  metadata: NodeMetadataLike | undefined;
+  baseCapabilities: SamBackendCapabilities;
+  textPromptInputs?: readonly string[];
+  pointPromptInputs?: readonly string[];
+  boxPromptInputs?: readonly string[];
+}
+
+export interface ResolvedSamPromptCapabilityInputs {
+  capabilities: SamBackendCapabilities;
+  textPromptInputName: string | null;
+  pointPromptsInputName: string | null;
+  boxPromptsInputName: string | null;
+}
+
+export function getMetadataInputNames(metadata: NodeMetadataLike | undefined): Set<string> {
+  if (!metadata?.properties) {
+    return new Set();
+  }
+  return new Set(
+    metadata.properties
+      .map((property) => property.name)
+      .filter((name): name is string => typeof name === "string" && name.length > 0)
+  );
+}
+
+export function getFirstAvailableInputName(
+  availableInputs: Set<string>,
+  inputNames: readonly string[]
+): string | null {
+  for (const inputName of inputNames) {
+    if (availableInputs.has(inputName)) {
+      return inputName;
+    }
+  }
+  return null;
+}
+
+export function hasMetadataInputs(
+  metadata: NodeMetadataLike | undefined,
+  inputNames: readonly string[]
+): boolean {
+  const availableInputs = getMetadataInputNames(metadata);
+  return inputNames.every((inputName) => availableInputs.has(inputName));
+}
+
+export function resolveSamPromptCapabilityInputs({
+  metadata,
+  baseCapabilities,
+  textPromptInputs = [],
+  pointPromptInputs = [],
+  boxPromptInputs = []
+}: ResolveSamPromptCapabilityInputsParams): ResolvedSamPromptCapabilityInputs {
+  const availableInputs = getMetadataInputNames(metadata);
+  const textPromptInputName = getFirstAvailableInputName(
+    availableInputs,
+    textPromptInputs
+  );
+  const pointPromptsInputName = getFirstAvailableInputName(
+    availableInputs,
+    pointPromptInputs
+  );
+  const boxPromptsInputName = getFirstAvailableInputName(
+    availableInputs,
+    boxPromptInputs
+  );
+
+  return {
+    capabilities: {
+      ...baseCapabilities,
+      textPrompts: textPromptInputName !== null,
+      pointPrompts: pointPromptsInputName !== null,
+      boxPrompts: boxPromptsInputName !== null
+    },
+    textPromptInputName,
+    pointPromptsInputName,
+    boxPromptsInputName
+  };
+}
+
 export interface SamModelInfo {
   status: SamModelStatus;
   backendId: SegmentBackend;
@@ -119,6 +207,16 @@ export interface SegmentationResponse {
   backendId?: SegmentBackend;
   nodeType?: string;
   sourceMetadata?: SegmentationSourceMetadata;
+  previewImageUrl?: string;
+  providerMetadata?: unknown;
+  providerRle?: string | string[] | null;
+  providerScores?: number[];
+  providerBoxes?: Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
 }
 
 // ─── Service Interface ────────────────────────────────────────────────────────

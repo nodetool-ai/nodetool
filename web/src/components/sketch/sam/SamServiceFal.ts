@@ -15,10 +15,13 @@ import type { SamService, SamModelInfo, SegmentationRequest, SegmentationRespons
 import {
   DEFAULT_SAM_MODEL_ID,
   DEFAULT_SAM_MODEL_NAME,
-  FAL_SAM_CAPABILITIES
+  FAL_SAM_CAPABILITIES,
+  resolveSamPromptCapabilityInputs
 } from "./SamService";
 import type { SegmentationMask } from "../types";
+import useMetadataStore from "../../../stores/MetadataStore";
 import useSecretsStore from "../../../stores/SecretsStore";
+import { CoordinateMapper } from "../painting/CoordinateMapper";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,6 +29,15 @@ const FAL_API_BASE = "https://queue.fal.run";
 const FAL_RESULT_BASE = "https://queue.fal.run";
 const SAM31_ENDPOINT = "fal-ai/sam-3-1/image";
 const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam3Image";
+const FAL_SAM_TEXT_PROMPT_INPUTS = ["prompt"] as const;
+const FAL_SAM_POINT_PROMPT_INPUTS = ["point_prompts"] as const;
+const FAL_SAM_BOX_PROMPT_INPUTS = ["box_prompts"] as const;
+const FAL_SAM_METADATA_FALLBACK_CAPABILITIES = {
+  ...FAL_SAM_CAPABILITIES,
+  textPrompts: false,
+  pointPrompts: false,
+  boxPrompts: false
+} as const;
 
 /**
  * Maximum image dimension (width or height) sent to the model.
@@ -73,12 +85,22 @@ interface FalResultImage {
   content_type?: string;
 }
 
+interface FalMaskMetadata {
+  label?: string;
+  name?: string;
+  score?: number;
+  box?: unknown;
+  bbox?: unknown;
+  bounds?: unknown;
+}
+
 interface FalSam3Result {
   masks?: FalResultImage[];
   image?: FalResultImage;
   metadata?: unknown;
   scores?: unknown;
   boxes?: unknown;
+  rle?: unknown;
 }
 
 interface FalNormalizedBox {
@@ -86,6 +108,25 @@ interface FalNormalizedBox {
   y: number;
   width: number;
   height: number;
+}
+
+function isFalMaskMetadata(value: unknown): value is FalMaskMetadata {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const candidate = value as FalMaskMetadata;
+  return (
+    typeof candidate.label === "string" ||
+    typeof candidate.name === "string" ||
+    isFiniteNumber(candidate.score) ||
+    candidate.box !== undefined ||
+    candidate.bbox !== undefined ||
+    candidate.bounds !== undefined
+  );
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
 }
 
 function parseJsonValue<T>(value: unknown): T | null {
@@ -117,6 +158,17 @@ function normalizeFalScores(value: unknown): number[] {
   return parsed
     .map((entry) => (typeof entry === "number" && Number.isFinite(entry) ? entry : null))
     .filter((entry): entry is number => entry !== null);
+}
+
+function normalizeFalMetadataEntries(value: unknown): FalMaskMetadata[] {
+  const parsed = parseJsonValue<unknown>(value);
+  if (Array.isArray(parsed)) {
+    return parsed.filter((entry): entry is FalMaskMetadata => isFalMaskMetadata(entry));
+  }
+  if (isFalMaskMetadata(parsed)) {
+    return [parsed];
+  }
+  return [];
 }
 
 function normalizeFalBoxes(
@@ -171,8 +223,108 @@ function normalizeFalBoxes(
       }
     }
 
+    if (entry && typeof entry === "object") {
+      const candidate = entry as Record<string, unknown>;
+      if (
+        isFiniteNumber(candidate.x) &&
+        isFiniteNumber(candidate.y) &&
+        isFiniteNumber(candidate.width) &&
+        isFiniteNumber(candidate.height)
+      ) {
+        return {
+          x: Math.round(candidate.x * invScale),
+          y: Math.round(candidate.y * invScale),
+          width: Math.round(candidate.width * invScale),
+          height: Math.round(candidate.height * invScale)
+        };
+      }
+    }
+
     return fallbackBox;
   });
+}
+
+function normalizeFalRle(value: unknown): string | string[] | null {
+  if (typeof value === "string" && value.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (typeof parsed === "string" && parsed.length > 0) {
+        return parsed;
+      }
+      if (Array.isArray(parsed)) {
+        const entries = parsed.filter(
+          (entry): entry is string => typeof entry === "string" && entry.length > 0
+        );
+        return entries.length > 0 ? entries : value;
+      }
+      return value;
+    } catch {
+      // Raw provider RLE may already be an opaque string instead of JSON.
+      return value;
+    }
+  }
+  const parsed = parseJsonValue<unknown>(value);
+  if (typeof parsed === "string" && parsed.length > 0) {
+    return parsed;
+  }
+  if (Array.isArray(parsed)) {
+    const entries = parsed.filter(
+      (entry): entry is string => typeof entry === "string" && entry.length > 0
+    );
+    return entries.length > 0 ? entries : null;
+  }
+  return null;
+}
+
+function getFalMetadataBoxCandidate(metadata: FalMaskMetadata | undefined): unknown {
+  return metadata?.box ?? metadata?.bbox ?? metadata?.bounds;
+}
+
+function normalizeFalMetadataBox(
+  value: unknown,
+  fallbackMask: FalResultImage | undefined,
+  scale: number
+): FalNormalizedBox | null {
+  const invScale = scale > 0 ? 1 / scale : 1;
+  if (Array.isArray(value) && value.length >= 4) {
+    const [cx, cy, width, height] = value;
+    if (
+      isFiniteNumber(cx) &&
+      isFiniteNumber(cy) &&
+      isFiniteNumber(width) &&
+      isFiniteNumber(height)
+    ) {
+      const maskWidth = fallbackMask?.width ?? 0;
+      const maskHeight = fallbackMask?.height ?? 0;
+      return {
+        x: Math.round((cx - width / 2) * maskWidth * invScale),
+        y: Math.round((cy - height / 2) * maskHeight * invScale),
+        width: Math.round(width * maskWidth * invScale),
+        height: Math.round(height * maskHeight * invScale)
+      };
+    }
+  }
+  if (value && typeof value === "object") {
+    const candidate = value as Record<string, unknown>;
+    const x = candidate.x;
+    const y = candidate.y;
+    const width = candidate.width;
+    const height = candidate.height;
+    if (
+      isFiniteNumber(x) &&
+      isFiniteNumber(y) &&
+      isFiniteNumber(width) &&
+      isFiniteNumber(height)
+    ) {
+      return {
+        x: Math.round(x * invScale),
+        y: Math.round(y * invScale),
+        width: Math.round(width * invScale),
+        height: Math.round(height * invScale)
+      };
+    }
+  }
+  return null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -185,8 +337,43 @@ async function resolveFalApiKey(): Promise<string | null> {
   try {
     return await useSecretsStore.getState().fetchDecryptedSecret("FAL_API_KEY");
   } catch {
+    // Failed to fetch or decrypt the provider secret, so treat the provider as unavailable.
     return null;
   }
+}
+
+async function isFalApiKeyConfigured(): Promise<boolean> {
+  const store = useSecretsStore.getState();
+  const secrets = Array.isArray(store.secrets) ? store.secrets : [];
+  const currentSecret = secrets.find((secret) => secret.key === "FAL_API_KEY");
+  if (currentSecret) {
+    return currentSecret.is_configured;
+  }
+  try {
+    const fetchedSecrets = await store.fetchSecrets();
+    return Boolean(
+      fetchedSecrets.find((secret) => secret.key === "FAL_API_KEY")?.is_configured
+    );
+  } catch {
+    // If the secrets list cannot be loaded, fall back to the specific provider secret
+    // so transient list/auth/server failures are not mislabeled as "not configured".
+    const falApiKey = await resolveFalApiKey();
+    return typeof falApiKey === "string" && falApiKey.trim().length > 0;
+  }
+}
+
+function getFalSamCapabilitiesFromMetadata() {
+  const metadata = useMetadataStore.getState().getMetadata(FAL_SAM_NODE_TYPE);
+  if (!metadata) {
+    return FAL_SAM_METADATA_FALLBACK_CAPABILITIES;
+  }
+  return resolveSamPromptCapabilityInputs({
+    metadata,
+    baseCapabilities: FAL_SAM_CAPABILITIES,
+    textPromptInputs: FAL_SAM_TEXT_PROMPT_INPUTS,
+    pointPromptInputs: FAL_SAM_POINT_PROMPT_INPUTS,
+    boxPromptInputs: FAL_SAM_BOX_PROMPT_INPUTS
+  }).capabilities;
 }
 
 /**
@@ -264,14 +451,15 @@ async function uploadToFal(
 
 export class SamServiceFal implements SamService {
   async checkModelAvailability(): Promise<SamModelInfo> {
-    const apiKey = await resolveFalApiKey();
+    const capabilities = getFalSamCapabilitiesFromMetadata();
+    const hasConfiguredSecret = await isFalApiKeyConfigured();
 
-    if (!apiKey) {
+    if (!hasConfiguredSecret) {
       return {
         status: "not-installed",
         backendId: "fal",
         backendLabel: "fal.ai",
-        capabilities: FAL_SAM_CAPABILITIES,
+        capabilities,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: "FAL_API_KEY not configured. Add it in Settings → Secrets."
@@ -280,6 +468,18 @@ export class SamServiceFal implements SamService {
 
     // Test connectivity by checking the queue endpoint
     try {
+      const apiKey = await resolveFalApiKey();
+      if (!apiKey) {
+        return {
+          status: "not-installed",
+          backendId: "fal",
+          backendLabel: "fal.ai",
+          capabilities,
+          modelId: DEFAULT_SAM_MODEL_ID,
+          modelName: DEFAULT_SAM_MODEL_NAME,
+          errorMessage: "FAL_API_KEY not configured. Add it in Settings → Secrets."
+        };
+      }
       const res = await fetch(`${FAL_API_BASE}/${SAM31_ENDPOINT}`, {
         method: "OPTIONS",
         headers: { Authorization: `Key ${apiKey}` }
@@ -290,7 +490,7 @@ export class SamServiceFal implements SamService {
           status: "available",
           backendId: "fal",
           backendLabel: "fal.ai",
-          capabilities: FAL_SAM_CAPABILITIES,
+          capabilities,
           modelId: DEFAULT_SAM_MODEL_ID,
           modelName: DEFAULT_SAM_MODEL_NAME
         };
@@ -299,7 +499,7 @@ export class SamServiceFal implements SamService {
         status: "error",
         backendId: "fal",
         backendLabel: "fal.ai",
-        capabilities: FAL_SAM_CAPABILITIES,
+        capabilities,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: `FAL API returned ${res.status}`
@@ -309,7 +509,7 @@ export class SamServiceFal implements SamService {
         status: "error",
         backendId: "fal",
         backendLabel: "fal.ai",
-        capabilities: FAL_SAM_CAPABILITIES,
+        capabilities,
         modelId: DEFAULT_SAM_MODEL_ID,
         modelName: DEFAULT_SAM_MODEL_NAME,
         errorMessage: err instanceof Error ? err.message : "Connection failed"
@@ -343,21 +543,21 @@ export class SamServiceFal implements SamService {
     }
 
     // 3. Build FAL request
-    const falPrompts: FalPointPrompt[] = request.pointPrompts.map((p) => ({
-      x: Math.round(p.x * scale),
-      y: Math.round(p.y * scale),
-      label: p.label === "positive" ? 1 : 0
-    }));
+    const promptMapper = this.createPromptMapper(request.sourceMetadata);
+    const falPrompts: FalPointPrompt[] = request.pointPrompts.map((p) => {
+      const mappedPoint = this.mapPromptPointToSourceImage(
+        { x: p.x, y: p.y },
+        promptMapper
+      );
+      return {
+        x: Math.round(mappedPoint.x * scale),
+        y: Math.round(mappedPoint.y * scale),
+        label: p.label === "positive" ? 1 : 0
+      };
+    });
 
     const falBoxPrompts: FalBoxPrompt[] = request.boxPrompt
-      ? [
-          {
-            x: Math.round(request.boxPrompt.x * scale),
-            y: Math.round(request.boxPrompt.y * scale),
-            width: Math.round(request.boxPrompt.width * scale),
-            height: Math.round(request.boxPrompt.height * scale)
-          }
-        ]
+      ? [this.buildFalBoxPrompt(request.boxPrompt, promptMapper, scale)]
       : [];
 
     const falInput: Record<string, unknown> = {
@@ -401,7 +601,7 @@ export class SamServiceFal implements SamService {
     const submitData = await submitRes.json();
 
     // If sync_mode returned the result directly
-    if (submitData.masks || submitData.image) {
+    if (submitData.masks || submitData.image || submitData.rle) {
       return this.parseResult(submitData as FalSam3Result, scale);
     }
 
@@ -473,19 +673,36 @@ export class SamServiceFal implements SamService {
     data: FalSam3Result,
     scale: number
   ): SegmentationResponse {
+    const previewImageUrl = data.image?.url;
     const images = data.masks ?? (data.image ? [data.image] : []);
+    const metadataEntries = normalizeFalMetadataEntries(data.metadata);
     const scores = normalizeFalScores(data.scores);
     const boxes = normalizeFalBoxes(data.boxes, images, scale);
+    const providerRle = normalizeFalRle(data.rle);
+    const providerNodeType = FAL_SAM_NODE_TYPE;
+    const providerModelId = DEFAULT_SAM_MODEL_ID;
 
     if (images.length === 0) {
       return {
         masks: [],
-        modelId: DEFAULT_SAM_MODEL_ID,
-        backendId: "fal"
+        modelId: providerModelId,
+        backendId: "fal",
+        nodeType: providerNodeType,
+        previewImageUrl,
+        providerMetadata: data.metadata,
+        providerRle,
+        providerScores: scores,
+        providerBoxes: boxes
       };
     }
 
     const masks: SegmentationMask[] = images.map((img, i) => {
+      const metadataEntry = metadataEntries[i];
+      const metadataBox = normalizeFalMetadataBox(
+        getFalMetadataBoxCandidate(metadataEntry),
+        img,
+        scale
+      );
       const fallbackBounds = boxes[i] ?? {
         x: 0,
         y: 0,
@@ -495,21 +712,89 @@ export class SamServiceFal implements SamService {
       return {
         id: `mask_${i}`,
         kind: "mask",
-        label: `Object ${i + 1}`,
+        label:
+          metadataEntry?.label?.trim() ||
+          metadataEntry?.name?.trim() ||
+          `Object ${i + 1}`,
         maskDataUrl: img.url,
-        confidence: scores[i] ?? 1,
-        bounds: fallbackBounds,
+        confidence: metadataEntry?.score ?? scores[i] ?? 1,
+        bounds: metadataBox ?? fallbackBounds,
         backendId: "fal",
-        modelId: DEFAULT_SAM_MODEL_ID,
-        nodeType: FAL_SAM_NODE_TYPE
+        modelId: providerModelId,
+        nodeType: providerNodeType
       };
     });
 
     return {
       masks,
-      modelId: DEFAULT_SAM_MODEL_ID,
+      modelId: providerModelId,
       backendId: "fal",
-      nodeType: FAL_SAM_NODE_TYPE
+      nodeType: providerNodeType,
+      previewImageUrl,
+      providerMetadata: data.metadata,
+      providerRle,
+      providerScores: scores,
+      providerBoxes: boxes
     };
+  }
+
+  private buildFalBoxPrompt(
+    boxPrompt: NonNullable<SegmentationRequest["boxPrompt"]>,
+    promptMapper: CoordinateMapper | null,
+    scale: number
+  ): FalBoxPrompt {
+    const corners = [
+      this.mapPromptPointToSourceImage({ x: boxPrompt.x, y: boxPrompt.y }, promptMapper),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y },
+        promptMapper
+      ),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x, y: boxPrompt.y + boxPrompt.height },
+        promptMapper
+      ),
+      this.mapPromptPointToSourceImage(
+        { x: boxPrompt.x + boxPrompt.width, y: boxPrompt.y + boxPrompt.height },
+        promptMapper
+      )
+    ];
+    const minX = Math.min(...corners.map((corner) => corner.x));
+    const minY = Math.min(...corners.map((corner) => corner.y));
+    const maxX = Math.max(...corners.map((corner) => corner.x));
+    const maxY = Math.max(...corners.map((corner) => corner.y));
+
+    return {
+      x: Math.round(minX * scale),
+      y: Math.round(minY * scale),
+      width: Math.round((maxX - minX) * scale),
+      height: Math.round((maxY - minY) * scale)
+    };
+  }
+
+  private mapPromptPointToSourceImage(
+    point: { x: number; y: number },
+    promptMapper: CoordinateMapper | null
+  ): { x: number; y: number } {
+    if (!promptMapper) {
+      return point;
+    }
+
+    return promptMapper.docToLayer(point);
+  }
+
+  private createPromptMapper(
+    sourceMetadata: SegmentationRequest["sourceMetadata"]
+  ): CoordinateMapper | null {
+    if (!sourceMetadata) {
+      return null;
+    }
+
+    return new CoordinateMapper({
+      layerTransform: sourceMetadata.layerTransform,
+      rasterBounds: {
+        x: sourceMetadata.contentBounds.x,
+        y: sourceMetadata.contentBounds.y
+      }
+    });
   }
 }

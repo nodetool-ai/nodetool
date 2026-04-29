@@ -219,6 +219,88 @@ describe("SegmentSettingsPanel", () => {
     );
   });
 
+  it("does not assume provider prompt controls before capability metadata loads", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={null}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Point" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Box" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("textbox", { name: "Concept prompt" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Auto" })).toBeInTheDocument();
+  });
+
+  it("uses the same split action label for provider auto mode when the backend is ready", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseFalInfo}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
+  });
+
+  it("shows the provider setup hint and disables split when the provider is unavailable", () => {
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={{
+          ...baseFalInfo,
+          status: "not-installed",
+          errorMessage: "FAL_API_KEY not configured. Add it in Settings → Secrets."
+        }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText("FAL_API_KEY not configured. Add it in Settings → Secrets.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+  });
+
   it("shows the node-pack hint when Local SAM3 metadata is unavailable", () => {
     render(
       <SegmentSettingsPanel
@@ -394,6 +476,46 @@ describe("SegmentSettingsPanel", () => {
           ...baseLocalSam3Info,
           status: "available"
         }}
+        onRunSegmentation={jest.fn()}
+        onApplyResult={jest.fn()}
+        onDiscardResult={jest.fn()}
+        onCancelSegmentation={jest.fn()}
+        onClearPrompts={jest.fn()}
+        onCheckModel={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Split selected layer" })).toBeDisabled();
+    expect(
+      screen.getByText("Select exactly one raster layer to split.")
+    ).toBeInTheDocument();
+  });
+
+  it("shows the same split-selection hint for provider auto mode", () => {
+    const document = useSketchStore.getState().document;
+    const extraLayer = {
+      ...document.layers[0],
+      id: "layer-3",
+      name: "Third Layer"
+    };
+    useSketchStore.setState({
+      document: {
+        ...document,
+        layers: [...document.layers, extraLayer]
+      },
+      selectedLayerIds: [document.layers[0].id, extraLayer.id]
+    });
+
+    render(
+      <SegmentSettingsPanel
+        settings={{
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          promptMode: "auto"
+        }}
+        onChange={jest.fn()}
+        segmentationStatus="idle"
+        modelInfo={baseFalInfo}
         onRunSegmentation={jest.fn()}
         onApplyResult={jest.fn()}
         onDiscardResult={jest.fn()}

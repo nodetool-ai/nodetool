@@ -13,6 +13,7 @@ import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type {
   SamBackendCapabilities,
   SamModelInfo,
+  NodeMetadataLike,
   SamService,
   SegmentationRequest,
   SegmentationResponse
@@ -20,9 +21,11 @@ import type {
 import {
   DEFAULT_SAM_MODEL_ID,
   FAL_SAM_CAPABILITIES,
+  hasMetadataInputs,
   LOCAL_SAM3_CAPABILITIES,
   LOCAL_SAM3_MODEL_ID,
   LOCAL_SAM3_MODEL_NAME,
+  resolveSamPromptCapabilityInputs,
   SAM_INLINE_IMAGE_MAX_BYTES
 } from "./SamService";
 import type { SegmentBackend } from "../types";
@@ -84,10 +87,6 @@ export const SAM_NODE_CONFIGS: Record<string, SamNodeConfig> = {
 
 export const DEFAULT_SAM_NODE_BACKEND = "local-sam3";
 
-interface NodeMetadataLike {
-  properties?: Array<{ name?: string | null }>;
-}
-
 interface LocalSam3PromptMetadata {
   capabilities: SamBackendCapabilities;
   pointPromptsInputName: string | null;
@@ -95,65 +94,16 @@ interface LocalSam3PromptMetadata {
   textPromptInputName: string | null;
 }
 
-function getMetadataInputNames(metadata: NodeMetadataLike | undefined): Set<string> {
-  if (!metadata?.properties) {
-    return new Set();
-  }
-  return new Set(
-    metadata.properties
-      .map((property) => property.name)
-      .filter((name): name is string => typeof name === "string" && name.length > 0)
-  );
-}
-
-function getFirstAvailableInputName(
-  availableInputs: Set<string>,
-  inputNames: readonly string[]
-): string | null {
-  for (const inputName of inputNames) {
-    if (availableInputs.has(inputName)) {
-      return inputName;
-    }
-  }
-  return null;
-}
-
-function hasMetadataInputs(
-  metadata: NodeMetadataLike | undefined,
-  inputNames: readonly string[]
-): boolean {
-  const availableInputs = getMetadataInputNames(metadata);
-  return inputNames.every((inputName) => availableInputs.has(inputName));
-}
-
 function getLocalSam3PromptMetadata(
   metadata: NodeMetadataLike | undefined
 ): LocalSam3PromptMetadata {
-  const availableInputs = getMetadataInputNames(metadata);
-  const textPromptInputName = getFirstAvailableInputName(
-    availableInputs,
-    LOCAL_SAM3_TEXT_PROMPT_INPUTS
-  );
-  const pointPromptsInputName = getFirstAvailableInputName(
-    availableInputs,
-    LOCAL_SAM3_POINT_PROMPT_INPUTS
-  );
-  const boxPromptsInputName = getFirstAvailableInputName(
-    availableInputs,
-    LOCAL_SAM3_BOX_PROMPT_INPUTS
-  );
-
-  return {
-    capabilities: {
-      ...LOCAL_SAM3_CAPABILITIES,
-      textPrompts: textPromptInputName !== null,
-      pointPrompts: pointPromptsInputName !== null,
-      boxPrompts: boxPromptsInputName !== null
-    },
-    textPromptInputName,
-    pointPromptsInputName,
-    boxPromptsInputName
-  };
+  return resolveSamPromptCapabilityInputs({
+    metadata,
+    baseCapabilities: LOCAL_SAM3_CAPABILITIES,
+    textPromptInputs: LOCAL_SAM3_TEXT_PROMPT_INPUTS,
+    pointPromptInputs: LOCAL_SAM3_POINT_PROMPT_INPUTS,
+    boxPromptInputs: LOCAL_SAM3_BOX_PROMPT_INPUTS
+  });
 }
 
 function getDownloadProgress(modelId: string): number | undefined {

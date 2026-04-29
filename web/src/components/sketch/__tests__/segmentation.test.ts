@@ -16,6 +16,7 @@
  */
 
 import { act } from "@testing-library/react";
+import type { SecretResponse } from "../../../stores/ApiTypes";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
@@ -58,6 +59,11 @@ import {
 } from "../sam";
 import { getToolSettingsLabel } from "../ToolSettingsPanels";
 import { useSketchStore } from "../state";
+
+const CONFIGURED_FAL_SECRET: SecretResponse = {
+  key: "FAL_API_KEY",
+  is_configured: true
+};
 
 // ─── Segmentation Types & Defaults ────────────────────────────────────────────
 
@@ -734,20 +740,24 @@ describe("Extended segment settings", () => {
 // ─── SamServiceFal ────────────────────────────────────────────────────────────
 
 describe("SamServiceFal", () => {
+  let originalFetchSecrets: ReturnType<typeof useSecretsStore.getState>["fetchSecrets"];
   let originalFetchDecryptedSecret: ReturnType<
     typeof useSecretsStore.getState
   >["fetchDecryptedSecret"];
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
+    originalFetchSecrets = useSecretsStore.getState().fetchSecrets;
     originalFetchDecryptedSecret = useSecretsStore.getState().fetchDecryptedSecret;
     originalFetch = global.fetch;
   });
 
   afterEach(() => {
     useSecretsStore.setState({
+      fetchSecrets: originalFetchSecrets,
       fetchDecryptedSecret: originalFetchDecryptedSecret
     });
+    useMetadataStore.setState({ metadata: {} });
     global.fetch = originalFetch;
     jest.restoreAllMocks();
   });
@@ -770,6 +780,123 @@ describe("SamServiceFal", () => {
     expect(info.errorMessage).toContain("FAL_API_KEY");
   });
 
+  it("reads provider secret readiness from the existing secrets state", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const fetchDecryptedSecret = jest.fn().mockResolvedValue("fal-key");
+    const fetchSecrets = jest.fn().mockResolvedValue([
+      {
+        key: "FAL_API_KEY",
+        is_configured: true
+      }
+    ]);
+    useSecretsStore.setState({
+      secrets: [],
+      fetchSecrets,
+      fetchDecryptedSecret
+    } as Partial<ReturnType<typeof useSecretsStore.getState>>);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(fetchSecrets).toHaveBeenCalled();
+    expect(fetchDecryptedSecret).toHaveBeenCalledWith("FAL_API_KEY");
+    expect(info.status).toBe("available");
+  });
+
+  it("uses configured provider secret state without refetching secret metadata", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const fetchSecrets = jest.fn();
+    useSecretsStore.setState({
+      secrets: [CONFIGURED_FAL_SECRET],
+      fetchSecrets,
+      fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
+    } as Partial<ReturnType<typeof useSecretsStore.getState>>);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(fetchSecrets).not.toHaveBeenCalled();
+    expect(info.status).toBe("available");
+  });
+
+  it("falls back to the decrypted provider secret when fetching the secrets list fails", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const fetchDecryptedSecret = jest.fn().mockResolvedValue("fal-key");
+    const fetchSecrets = jest.fn().mockRejectedValue(new Error("secrets list unavailable"));
+    useSecretsStore.setState({
+      secrets: [],
+      fetchSecrets,
+      fetchDecryptedSecret
+    } as Partial<ReturnType<typeof useSecretsStore.getState>>);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(fetchSecrets).toHaveBeenCalled();
+    expect(fetchDecryptedSecret).toHaveBeenCalledWith("FAL_API_KEY");
+    expect(info.status).toBe("available");
+  });
+
+  it("detects provider prompt capabilities from metadata", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    useSecretsStore.setState({
+      secrets: [CONFIGURED_FAL_SECRET],
+      fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
+    });
+    useMetadataStore.setState({
+      metadata: {
+        "fal.image_to_image.Sam3Image": {
+          node_type: "fal.image_to_image.Sam3Image",
+          properties: [
+            makeMetadataProperty("image"),
+            makeMetadataProperty("prompt"),
+            makeMetadataProperty("point_prompts"),
+            makeMetadataProperty("box_prompts")
+          ]
+        }
+      } as any
+    });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(info.status).toBe("available");
+    expect(info.capabilities.textPrompts).toBe(true);
+    expect(info.capabilities.pointPrompts).toBe(true);
+    expect(info.capabilities.boxPrompts).toBe(true);
+  });
+
+  it("keeps provider prompt controls disabled until metadata confirms them", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    useSecretsStore.setState({
+      secrets: [CONFIGURED_FAL_SECRET],
+      fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
+    });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(info.status).toBe("available");
+    expect(info.capabilities.textPrompts).toBe(false);
+    expect(info.capabilities.pointPrompts).toBe(false);
+    expect(info.capabilities.boxPrompts).toBe(false);
+  });
+
   it("can be set via setSamService", () => {
     const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
     const service = new Fal();
@@ -780,7 +907,177 @@ describe("SamServiceFal", () => {
     setSamService(new SamServiceStub());
   });
 
-  it("submits SAM 3.1 prompt inputs and normalizes masks, scores, and boxes", async () => {
+  it("submits SAM 3.1 prompt inputs and normalizes masks, preview metadata, scores, and boxes", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const originalImage = global.Image;
+    const originalCreateElement = document.createElement.bind(document);
+    const sourceMetadata = {
+      layerId: "layer-1",
+      layerTransform: {
+        x: 12,
+        y: 18,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0
+      },
+      contentBounds: {
+        x: -8,
+        y: 6,
+        width: 64,
+        height: 32
+      },
+      canvasSize: {
+        width: 256,
+        height: 192
+      },
+      documentOrigin: {
+        x: 4,
+        y: 24
+      }
+    };
+
+    useSecretsStore.setState({
+      fetchDecryptedSecret: jest.fn().mockResolvedValue("fal-key")
+    });
+
+    class MockImage {
+      onload: null | (() => void) = null;
+      onerror: null | (() => void) = null;
+      width = 64;
+      height = 32;
+
+      set src(_value: string) {
+        this.onload?.();
+      }
+    }
+
+    global.Image = MockImage as unknown as typeof Image;
+    jest.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+      if (tagName === "canvas") {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => ({
+            drawImage: jest.fn()
+          }),
+          toDataURL: () => "data:image/png;base64,resized"
+        } as unknown as HTMLCanvasElement;
+      }
+      return originalCreateElement(tagName);
+    });
+
+    const fetchMock = jest.fn()
+      .mockResolvedValueOnce({
+        blob: () => Promise.resolve(new Blob(["image"], { type: "image/png" }))
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ url: "https://files.example/source.png" })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            image: {
+              url: "https://files.example/preview.png",
+              width: 512,
+              height: 256
+            },
+            masks: [
+              {
+                url: "https://files.example/mask-a.png",
+                width: 512,
+                height: 256
+              }
+            ],
+            metadata: JSON.stringify([
+              {
+                label: "Foreground object",
+                score: 0.91,
+                box: [0.5, 0.5, 0.5, 0.5]
+              }
+            ]),
+            scores: "[0.93]",
+            boxes: "[[0.5,0.5,0.5,0.5]]",
+            rle: "encoded-rle"
+          })
+      });
+    global.fetch = fetchMock as typeof global.fetch;
+
+    try {
+      const service = new Fal();
+      const result = await service.runSegmentation({
+        imageDataUrl: "data:image/png;base64,input",
+        pointPrompts: [{ x: 12, y: 18, label: "positive" }],
+        boxPrompt: { x: 10, y: 14, width: 16, height: 8 },
+        settings: {
+          ...DEFAULT_SEGMENT_SETTINGS,
+          backend: "fal",
+          conceptPrompt: "foreground object",
+          maxObjects: 4
+        },
+        sourceMetadata
+      });
+
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        3,
+        "https://queue.fal.run/fal-ai/sam-3-1/image",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            image_url: "https://files.example/source.png",
+            sync_mode: true,
+            output_format: "png",
+            return_multiple_masks: true,
+            max_masks: 4,
+            include_scores: true,
+            include_boxes: true,
+            apply_mask: false,
+            prompt: "foreground object",
+            point_prompts: [{ x: 8, y: -6, label: 1 }],
+            box_prompts: [{ x: 6, y: -10, width: 16, height: 8 }]
+          })
+        })
+      );
+      expect(result.modelId).toBe("fal-ai/sam-3-1/image");
+      expect(result.nodeType).toBe("fal.image_to_image.Sam3Image");
+      expect(result.previewImageUrl).toBe("https://files.example/preview.png");
+      expect(result.providerMetadata).toBe(
+        JSON.stringify([
+          {
+            label: "Foreground object",
+            score: 0.91,
+            box: [0.5, 0.5, 0.5, 0.5]
+          }
+        ])
+      );
+      expect(result.providerRle).toBe("encoded-rle");
+      expect(result.providerScores).toEqual([0.93]);
+      expect(result.providerBoxes).toEqual([
+        {
+          x: 128,
+          y: 64,
+          width: 256,
+          height: 128
+        }
+      ]);
+      expect(result.masks[0]).toMatchObject({
+        label: "Foreground object",
+        maskDataUrl: "https://files.example/mask-a.png",
+        confidence: 0.91,
+        bounds: {
+          x: 128,
+          y: 64,
+          width: 256,
+          height: 128
+        }
+      });
+    } finally {
+      global.Image = originalImage;
+    }
+  });
+
+  it("keeps provider provenance aligned with the image endpoint for RLE-only responses", async () => {
     const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
     const originalImage = global.Image;
     const originalCreateElement = document.createElement.bind(document);
@@ -827,65 +1124,46 @@ describe("SamServiceFal", () => {
         ok: true,
         json: () =>
           Promise.resolve({
-            masks: [
-              {
-                url: "https://files.example/mask-a.png",
-                width: 512,
-                height: 256
-              }
-            ],
-            scores: "[0.93]",
-            boxes: "[[0.5,0.5,0.5,0.5]]"
+            rle: "[\"mask-rle-1\",\"mask-rle-2\"]",
+            scores: "[0.8,0.5]",
+            boxes: JSON.stringify([
+              { x: 128, y: 64, width: 256, height: 128 },
+              { x: 32, y: 16, width: 64, height: 32 }
+            ])
           })
       });
     global.fetch = fetchMock as typeof global.fetch;
 
     try {
-      const service = new Fal();
-      const result = await service.runSegmentation({
+      const result = await new Fal().runSegmentation({
         imageDataUrl: "data:image/png;base64,input",
-        pointPrompts: [{ x: 12, y: 18, label: "positive" }],
-        boxPrompt: { x: 10, y: 14, width: 16, height: 8 },
+        pointPrompts: [],
+        boxPrompt: null,
         settings: {
           ...DEFAULT_SEGMENT_SETTINGS,
-          backend: "fal",
-          conceptPrompt: "foreground object",
-          maxObjects: 4
+          backend: "fal"
         }
       });
 
-      expect(fetchMock).toHaveBeenNthCalledWith(
-        3,
-        "https://queue.fal.run/fal-ai/sam-3-1/image",
-        expect.objectContaining({
-          method: "POST",
-          body: JSON.stringify({
-            image_url: "https://files.example/source.png",
-            sync_mode: true,
-            output_format: "png",
-            return_multiple_masks: true,
-            max_masks: 4,
-            include_scores: true,
-            include_boxes: true,
-            apply_mask: false,
-            prompt: "foreground object",
-            point_prompts: [{ x: 12, y: 18, label: 1 }],
-            box_prompts: [{ x: 10, y: 14, width: 16, height: 8 }]
-          })
-        })
-      );
+      expect(result.masks).toEqual([]);
       expect(result.modelId).toBe("fal-ai/sam-3-1/image");
       expect(result.nodeType).toBe("fal.image_to_image.Sam3Image");
-      expect(result.masks[0]).toMatchObject({
-        maskDataUrl: "https://files.example/mask-a.png",
-        confidence: 0.93,
-        bounds: {
+      expect(result.providerRle).toEqual(["mask-rle-1", "mask-rle-2"]);
+      expect(result.providerScores).toEqual([0.8, 0.5]);
+      expect(result.providerBoxes).toEqual([
+        {
           x: 128,
           y: 64,
           width: 256,
           height: 128
+        },
+        {
+          x: 32,
+          y: 16,
+          width: 64,
+          height: 32
         }
-      });
+      ]);
     } finally {
       global.Image = originalImage;
     }
