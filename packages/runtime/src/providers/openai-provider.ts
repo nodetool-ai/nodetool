@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import OpenAI, { toFile } from "openai";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
@@ -936,7 +936,9 @@ export class OpenAIProvider extends BaseProvider {
 
     const request: Record<string, unknown> = {
       model: params.model.id,
-      image: ["image.png", image, "image/png"],
+      image: await toFile(Buffer.from(image), "image.png", {
+        type: "image/png"
+      }),
       prompt
     };
 
@@ -1225,7 +1227,9 @@ export class OpenAIProvider extends BaseProvider {
     const video = await ((this.getClient() as any).videos as any).create({
       model: params.model.id,
       prompt: params.prompt ?? "",
-      input_reference: [`input_image.${ext}`, image, mimeType],
+      input_reference: {
+        image_url: `data:${mimeType};base64,${Buffer.from(image).toString("base64")}`
+      },
       size,
       seconds: String(seconds)
     });
