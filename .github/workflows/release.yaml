@@ -399,6 +399,58 @@ jobs:
           npm run prepare-backend
           npx electron-builder --config electron-builder.json --publish never
 
+      - name: Smoke-launch macOS .app
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Spawn the unpacked .app's main binary. We don't need a window —
+          # any dyld/library-validation/native-module load failure aborts
+          # the process within ~2 seconds, which is exactly what we want to
+          # catch (missing Electron Framework, sharp leak, broken sign, ...).
+          # If the process is still alive after the timeout it means the
+          # main bundle loaded cleanly.
+          fail=0
+          shopt -s nullglob
+          for app in electron/dist/mac-arm64/Nodetool.app electron/dist/mac/Nodetool.app; do
+            [ -d "$app" ] || continue
+            echo "::group::Smoke-launch $app"
+            bin="$app/Contents/MacOS/Nodetool"
+            log=$(mktemp)
+            # Force a quick exit path: --version / --help would short-circuit, but
+            # we want to actually run the main bundle. Launch in background, give
+            # it 15s to either die (= bad) or stay alive (= good), then SIGTERM.
+            "$bin" >"$log" 2>&1 &
+            pid=$!
+            alive=0
+            for _ in $(seq 1 15); do
+              sleep 1
+              if ! kill -0 $pid 2>/dev/null; then
+                alive=0
+                break
+              fi
+              alive=1
+            done
+            if [ "$alive" -eq 0 ]; then
+              wait $pid 2>/dev/null || true
+              rc=$?
+              echo "::error file=$app::App died at launch (exit $rc)"
+              echo "--- launch log ---"
+              tail -200 "$log" || true
+              fail=1
+            else
+              echo "  OK: process survived 15s, terminating"
+              kill -TERM $pid 2>/dev/null || true
+              wait $pid 2>/dev/null || true
+            fi
+            rm -f "$log"
+            echo "::endgroup::"
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::Smoke launch failed; refusing to upload."
+            exit 1
+          fi
+
       - name: Verify macOS DMG/zip integrity
         if: matrix.os == 'macos-latest'
         shell: bash
