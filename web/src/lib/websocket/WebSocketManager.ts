@@ -67,7 +67,17 @@ const STATE_TRANSITIONS: Record<string, ConnectionStateTransition> = {
   }
 };
 
-export class WebSocketManager extends EventEmitter {
+export interface WebSocketManagerEvents {
+  open: () => void;
+  close: (code: number, reason: string, wasClean: boolean) => void;
+  error: (error: Error) => void;
+  message: (data: unknown) => void;
+  messageSent: (message: unknown) => void;
+  reconnecting: (attempt: number, maxAttempts: number) => void;
+  stateChange: (state: ConnectionState, previous: ConnectionState) => void;
+}
+
+export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
   private config: Required<Omit<WebSocketConfig, "protocols">> & {
     protocols?: string | string[];
   };
@@ -185,7 +195,8 @@ export class WebSocketManager extends EventEmitter {
       this.emit("messageSent", message);
     } catch (error) {
       console.error("Failed to send message:", error);
-      this.emit("error", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.emit("error", err);
       throw error;
     }
   }
@@ -199,7 +210,8 @@ export class WebSocketManager extends EventEmitter {
       this.ws!.send(data);
     } catch (error) {
       console.error("Failed to send raw data:", error);
-      this.emit("error", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.emit("error", err);
       throw error;
     }
   }
@@ -266,7 +278,8 @@ export class WebSocketManager extends EventEmitter {
       this.emit("message", data);
     } catch (error) {
       console.error("Failed to process message:", error);
-      this.emit("error", error);
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.emit("error", err);
     }
   }
 
@@ -471,7 +484,8 @@ export class WebSocketManager extends EventEmitter {
         this.send(message);
       } catch (error) {
         console.error("Failed to send queued message:", error);
-        this.emit("error", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.emit("error", err);
       }
     }
   }

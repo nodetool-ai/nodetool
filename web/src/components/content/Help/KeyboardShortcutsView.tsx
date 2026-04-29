@@ -43,6 +43,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
   >("all");
   const containerRef = useRef<HTMLDivElement>(null);
   const isKeyPressedRef = useRef(false);
+  const hoverHandlersRef = useRef(new WeakMap<HTMLButtonElement, { handleEnter: (event: MouseEvent) => void; handleLeave: () => void }>());
   const [hoverSlugs, setHoverSlugs] = useState<string[] | null>(null);
   const [tooltipAnchorEl, setTooltipAnchorEl] = useState<HTMLElement | null>(
     null
@@ -234,18 +235,18 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         };
         btn.addEventListener("mouseenter", handleEnter);
         btn.addEventListener("mouseleave", handleLeave);
-        // store cleanup handler
-        (btn as any)._hoverHandlers = { handleEnter, handleLeave };
+        hoverHandlersRef.current.set(btn, { handleEnter, handleLeave });
       }
     });
 
     // cleanup on dependencies change
     return () => {
       btns.forEach((btn) => {
-        const handlers = (btn as any)._hoverHandlers;
+        const handlers = hoverHandlersRef.current.get(btn);
         if (handlers) {
           btn.removeEventListener("mouseenter", handlers.handleEnter);
           btn.removeEventListener("mouseleave", handlers.handleLeave);
+          hoverHandlersRef.current.delete(btn);
         }
       });
     };

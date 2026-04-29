@@ -8,6 +8,7 @@
  * the constraint without requiring an explicit index signature.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyListener = (...args: any[]) => void;
 type DefaultEventMap = Record<string, AnyListener>;
 
@@ -17,9 +18,9 @@ type ListenerOf<Events, K extends keyof Events> = Events[K] extends AnyListener
 
 type ArgsOf<Events, K extends keyof Events> = Events[K] extends (
   ...args: infer A
-) => any
+) => unknown
   ? A
-  : any[];
+  : unknown[];
 
 export class EventEmitter<Events extends object = DefaultEventMap> {
   private readonly _listeners: Map<keyof Events, Set<AnyListener>> = new Map();
