@@ -825,6 +825,27 @@ describe("SamServiceFal", () => {
     expect(info.status).toBe("available");
   });
 
+  it("falls back to the decrypted provider secret when fetching the secrets list fails", async () => {
+    const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
+    const fetchDecryptedSecret = jest.fn().mockResolvedValue("fal-key");
+    const fetchSecrets = jest.fn().mockRejectedValue(new Error("secrets list unavailable"));
+    useSecretsStore.setState({
+      secrets: [],
+      fetchSecrets,
+      fetchDecryptedSecret
+    } as Partial<ReturnType<typeof useSecretsStore.getState>>);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200
+    }) as typeof global.fetch;
+
+    const info = await new Fal().checkModelAvailability();
+
+    expect(fetchSecrets).toHaveBeenCalled();
+    expect(fetchDecryptedSecret).toHaveBeenCalledWith("FAL_API_KEY");
+    expect(info.status).toBe("available");
+  });
+
   it("detects provider prompt capabilities from metadata", async () => {
     const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
     useSecretsStore.setState({
@@ -1056,7 +1077,7 @@ describe("SamServiceFal", () => {
     }
   });
 
-  it("maps provider RLE-only responses to the Sam3ImageRle node contract", async () => {
+  it("keeps provider provenance aligned with the image endpoint for RLE-only responses", async () => {
     const { SamServiceFal: Fal } = require("../sam/SamServiceFal");
     const originalImage = global.Image;
     const originalCreateElement = document.createElement.bind(document);
@@ -1125,8 +1146,8 @@ describe("SamServiceFal", () => {
       });
 
       expect(result.masks).toEqual([]);
-      expect(result.modelId).toBe("fal-ai/sam-3-1/image-rle");
-      expect(result.nodeType).toBe("fal.image_to_image.Sam3ImageRle");
+      expect(result.modelId).toBe("fal-ai/sam-3-1/image");
+      expect(result.nodeType).toBe("fal.image_to_image.Sam3Image");
       expect(result.providerRle).toEqual(["mask-rle-1", "mask-rle-2"]);
       expect(result.providerScores).toEqual([0.8, 0.5]);
       expect(result.providerBoxes).toEqual([

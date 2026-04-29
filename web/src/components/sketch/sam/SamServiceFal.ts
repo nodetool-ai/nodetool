@@ -28,9 +28,7 @@ import { CoordinateMapper } from "../painting/CoordinateMapper";
 const FAL_API_BASE = "https://queue.fal.run";
 const FAL_RESULT_BASE = "https://queue.fal.run";
 const SAM31_ENDPOINT = "fal-ai/sam-3-1/image";
-const SAM31_RLE_ENDPOINT = "fal-ai/sam-3-1/image-rle";
 const FAL_SAM_NODE_TYPE = "fal.image_to_image.Sam3Image";
-const FAL_SAM_RLE_NODE_TYPE = "fal.image_to_image.Sam3ImageRle";
 const FAL_SAM_TEXT_PROMPT_INPUTS = ["prompt"] as const;
 const FAL_SAM_POINT_PROMPT_INPUTS = ["point_prompts"] as const;
 const FAL_SAM_BOX_PROMPT_INPUTS = ["box_prompts"] as const;
@@ -357,8 +355,10 @@ async function isFalApiKeyConfigured(): Promise<boolean> {
       fetchedSecrets.find((secret) => secret.key === "FAL_API_KEY")?.is_configured
     );
   } catch {
-    // Failed to fetch the secrets list, so default provider readiness to unconfigured.
-    return false;
+    // If the secrets list cannot be loaded, fall back to the specific provider secret
+    // so transient list/auth/server failures are not mislabeled as "not configured".
+    const falApiKey = await resolveFalApiKey();
+    return typeof falApiKey === "string" && falApiKey.trim().length > 0;
   }
 }
 
@@ -679,13 +679,8 @@ export class SamServiceFal implements SamService {
     const scores = normalizeFalScores(data.scores);
     const boxes = normalizeFalBoxes(data.boxes, images, scale);
     const providerRle = normalizeFalRle(data.rle);
-    const isRleOnlyResponse = providerRle !== null && images.length === 0;
-    const providerNodeType = isRleOnlyResponse
-      ? FAL_SAM_RLE_NODE_TYPE
-      : FAL_SAM_NODE_TYPE;
-    const providerModelId = isRleOnlyResponse
-      ? SAM31_RLE_ENDPOINT
-      : DEFAULT_SAM_MODEL_ID;
+    const providerNodeType = FAL_SAM_NODE_TYPE;
+    const providerModelId = DEFAULT_SAM_MODEL_ID;
 
     if (images.length === 0) {
       return {
