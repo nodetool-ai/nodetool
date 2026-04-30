@@ -4,7 +4,7 @@ import { UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { handleResourceChange } from "../../stores/resourceChangeHandler";
 import { handleSystemStats } from "../../stores/systemStatsHandler";
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
-import { WebSocketManager } from "./WebSocketManager";
+import { ConnectionState, WebSocketManager } from "./WebSocketManager";
 import { FrontendToolRegistry } from "../tools/frontendTools";
 
 /**
@@ -19,15 +19,18 @@ export interface WebSocketMessage {
   [key: string]: unknown;
 }
 
-// Message handlers can receive any message type - they are responsible for their own type checking
-type MessageHandler = (message: any) => void;
-type GlobalWebSocketEvent =
-  | "open"
-  | "close"
-  | "error"
-  | "message"
-  | "reconnecting"
-  | "stateChange";
+type MessageHandler = (message: WebSocketMessage) => void;
+
+interface GlobalWebSocketEvents {
+  open: () => void;
+  close: (code?: number, reason?: string) => void;
+  error: (error: Error) => void;
+  message: (message: WebSocketMessage) => void;
+  reconnecting: (attempt: number, maxAttempts: number) => void;
+  stateChange: (state: ConnectionState, previous: ConnectionState) => void;
+}
+
+type GlobalWebSocketEvent = keyof GlobalWebSocketEvents;
 
 // Configuration constants
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -42,7 +45,7 @@ const RECONNECT_INTERVAL_MS = 1000;
  * 5 attempts/1s backoff; `ensureConnection` blocks until connected and reuses
  * Supabase auth when available.
  */
-class GlobalWebSocketManager extends EventEmitter {
+class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private static instance: GlobalWebSocketManager | null = null;
   private wsManager: WebSocketManager | null = null;
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
@@ -316,9 +319,9 @@ class GlobalWebSocketManager extends EventEmitter {
     return this.wsManager?.getWebSocket() ?? null;
   }
 
-  subscribeEvent(
-    event: GlobalWebSocketEvent,
-    listener: (...args: any[]) => void
+  subscribeEvent<K extends GlobalWebSocketEvent>(
+    event: K,
+    listener: GlobalWebSocketEvents[K]
   ): () => void {
     this.addListener(event, listener);
     return () => {

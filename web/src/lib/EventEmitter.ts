@@ -17,9 +17,9 @@ type ListenerOf<Events, K extends keyof Events> = Events[K] extends AnyListener
 
 type ArgsOf<Events, K extends keyof Events> = Events[K] extends (
   ...args: infer A
-) => any
+) => unknown
   ? A
-  : any[];
+  : unknown[];
 
 export class EventEmitter<Events extends object = DefaultEventMap> {
   private readonly _listeners: Map<keyof Events, Set<AnyListener>> = new Map();
