@@ -52,7 +52,6 @@
     "@types/jest": "29.5.14",
     "@types/node": "^25.5.2",
     "@types/react": "~19.1.10",
-    "@types/react-syntax-highlighter": "^15.5.13",
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.59.0",
     "babel-jest": "^30.3.0",
