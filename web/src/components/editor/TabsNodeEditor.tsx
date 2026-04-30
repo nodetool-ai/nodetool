@@ -271,6 +271,10 @@ type TabsNodeEditorProps = {
   hideContent?: boolean;
 };
 
+const areStringArraysEqual = (left: string[], right: string[]) =>
+  left.length === right.length &&
+  left.every((value, index) => value === right[index]);
+
 const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
   const { openWorkflows, currentWorkflowId } = useWorkflowManager((state) => ({
     openWorkflows: state.openWorkflows,
@@ -423,7 +427,12 @@ const TabsNodeEditor = ({ hideContent = false }: TabsNodeEditorProps) => {
     if (missingIds.length === 0) {
       return;
     }
-    const filtered = storageOpenIds.filter((id) => !missingIds.includes(id));
+    const missingIdSet = new Set(missingIds);
+    const filtered = storageOpenIds.filter((id) => !missingIdSet.has(id));
+    if (areStringArraysEqual(filtered, storageOpenIds)) {
+      return;
+    }
+
     setStorageOpenIds(filtered);
     try {
       localStorage.setItem("openWorkflows", JSON.stringify(filtered));
