@@ -45,6 +45,7 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
     error: unknown;
     providerErrors?: Array<{ provider: string; error: unknown }>;
     loadingProgress?: { total: number; loaded: number; loading: number };
+    providers?: string[];
     refetch?: () => Promise<unknown> | unknown;
   };
   onModelChange?: (model: TModel) => void;
@@ -86,8 +87,10 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const isIconOnly = true;
 
-  const { providers, filteredModels, favoriteModels, recentModels, totalCount } =
+  const { providers: providersFromModels, filteredModels, favoriteModels, recentModels, totalCount } =
     useModelMenuData<TModel>(models || [], storeHook);
+
+  const providers = modelData.providers ?? providersFromModels;
 
   // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);

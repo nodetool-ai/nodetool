@@ -52,20 +52,18 @@ describe("TogetherProvider", () => {
     expect(await provider.hasToolSupport("meta-llama/Llama-3-70b")).toBe(true);
   });
 
-  it("fetches available language models", async () => {
+  it("fetches available language models from direct array response", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({
-        data: [
-          {
-            id: "meta-llama/Llama-3-70b",
-            display_name: "Llama 3 70B",
-            type: "chat"
-          },
-          { id: "mistralai/Mixtral-8x7B", type: "language" },
-          { id: "stabilityai/sdxl", type: "image" }
-        ]
-      })
+      json: async () => [
+        {
+          id: "meta-llama/Llama-3-70b",
+          display_name: "Llama 3 70B",
+          type: "chat"
+        },
+        { id: "mistralai/Mixtral-8x7B", type: "language" },
+        { id: "stabilityai/sdxl", type: "image" }
+      ]
     });
 
     const provider = new TogetherProvider(
@@ -93,6 +91,31 @@ describe("TogetherProvider", () => {
         headers: { Authorization: "Bearer k" }
       })
     );
+  });
+
+  it("fetches available language models from { data: [...] } response", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          { id: "meta-llama/Llama-3-8b", display_name: "Llama 3 8B", type: "chat" }
+        ]
+      })
+    });
+
+    const provider = new TogetherProvider(
+      { TOGETHER_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const models = await provider.getAvailableLanguageModels();
+    expect(models).toEqual([
+      {
+        id: "meta-llama/Llama-3-8b",
+        name: "Llama 3 8B",
+        provider: "together"
+      }
+    ]);
   });
 
   it("returns empty list when model fetch fails", async () => {

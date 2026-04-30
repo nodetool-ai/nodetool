@@ -71,6 +71,7 @@ export const useEmbeddingModelsByProvider = (options?: {
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,

@@ -47,6 +47,7 @@ function TransformersJsModelMenuDialog({
       models: models
         .filter((m) => (m as { downloaded?: boolean }).downloaded === true)
         .sort((a, b) => (a.id || "").localeCompare(b.id || "")),
+      providers: ["transformers_js"],
       isLoading,
       isFetching,
       error,

@@ -67,10 +67,11 @@ export class TogetherProvider extends OpenAIProvider {
       return [];
     }
 
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; display_name?: string; type?: string }>;
-    };
-    const rows = payload.data ?? [];
+    const payload = (await response.json()) as
+      | Array<{ id?: string; display_name?: string; type?: string }>
+      | { data?: Array<{ id?: string; display_name?: string; type?: string }> };
+
+    const rows = Array.isArray(payload) ? payload : payload.data ?? [];
     return rows
       .filter(
         (row): row is { id: string; display_name?: string; type?: string } =>

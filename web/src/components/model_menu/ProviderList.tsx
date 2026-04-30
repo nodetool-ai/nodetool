@@ -652,10 +652,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
         )}
       </ListItemButton>
       {[...sortedProviders.enabledList, ...sortedProviders.disabledList]
-        .filter((p) => {
-          const env = requiredSecretForProvider(p);
-          return env ? isApiKeySet(env) : true;
-        })
         .map(
         (p, idx) => {
           const enabled = isProviderEnabled(p);

@@ -117,6 +117,7 @@ export const useLanguageModelsByProvider = (options?: {
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -184,6 +185,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -232,6 +234,7 @@ export const useTTSModelsByProvider = () => {
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -280,6 +283,7 @@ export const useASRModelsByProvider = () => {
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -333,6 +337,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -393,6 +398,7 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
 
   return {
     models: models || [],
+    providers: baseData.providers ?? [],
     isLoading,
     isFetching,
     error,
@@ -452,6 +458,7 @@ export const useTransformersJsModelsByType = (opts?: {
 
   return {
     models: query.data ?? [],
+    providers: ["transformers_js"],
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     error: query.error,
