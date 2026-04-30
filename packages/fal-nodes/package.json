@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/fal-nodes",
   "type": "module",
-  "version": "0.7.0-rc.19",
+  "version": "0.7.0-rc.20",
   "description": "FAL AI nodes for nodetool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

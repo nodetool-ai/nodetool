@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/storage",
-  "version": "0.7.0-rc.19",
+  "version": "0.7.0-rc.20",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
