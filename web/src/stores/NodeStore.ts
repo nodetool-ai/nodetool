@@ -723,37 +723,40 @@ export const createNodeStore = (
               Object.keys(nodeUpdate).length === 1 && "selected" in nodeUpdate;
 
             set((state) => {
-              let newNodes = state.nodes.map((n) =>
-                n.id === id ? { ...n, ...nodeUpdate } : n
-              );
+              const nodeIndex = state.nodes.findIndex((n) => n.id === id);
+              if (nodeIndex === -1) {
+                return state;
+              }
+
+              const newNodes = [...state.nodes];
+              const updatedNode = { ...newNodes[nodeIndex], ...nodeUpdate };
+              newNodes[nodeIndex] = updatedNode;
 
               // If parentId is being set or changed, reorder nodes
               if (nodeUpdate.parentId !== undefined) {
-                const updatedNode = newNodes.find((n) => n.id === id);
-                if (updatedNode) {
-                  // Remove the node from its current position
-                  newNodes = newNodes.filter((n) => n.id !== id);
-                  const parentIndex = newNodes.findIndex(
-                    (n) => n.id === nodeUpdate.parentId
-                  );
+                // Remove the node from its current position
+                newNodes.splice(nodeIndex, 1);
 
-                  if (
-                    nodeUpdate.parentId === null ||
-                    nodeUpdate.parentId === undefined
-                  ) {
-                    // If removing parentId, add to the end (or handle as per existing logic for no parent)
-                    newNodes.push(updatedNode);
-                  } else if (parentIndex !== -1) {
-                    // Insert after the parent
-                    newNodes.splice(parentIndex + 1, 0, updatedNode);
-                  } else {
-                    // Parent not found (should not happen if data is consistent), add to end
-                    // Or, if parentId is set but parent is not in the list yet,
-                    // this might still cause issues.
-                    // For safety, add child to the end if parent not found.
-                    // React Flow might still complain if parent isn't rendered.
-                    newNodes.push(updatedNode);
-                  }
+                const parentIndex = newNodes.findIndex(
+                  (n) => n.id === nodeUpdate.parentId
+                );
+
+                if (
+                  nodeUpdate.parentId === null ||
+                  nodeUpdate.parentId === undefined
+                ) {
+                  // If removing parentId, add to the end (or handle as per existing logic for no parent)
+                  newNodes.push(updatedNode);
+                } else if (parentIndex !== -1) {
+                  // Insert after the parent
+                  newNodes.splice(parentIndex + 1, 0, updatedNode);
+                } else {
+                  // Parent not found (should not happen if data is consistent), add to end
+                  // Or, if parentId is set but parent is not in the list yet,
+                  // this might still cause issues.
+                  // For safety, add child to the end if parent not found.
+                  // React Flow might still complain if parent isn't rendered.
+                  newNodes.push(updatedNode);
                 }
               }
               return { ...state, nodes: newNodes };
@@ -1337,35 +1340,38 @@ export const createNodeStore = (
             });
           },
           toggleBypass: (nodeId: string): void => {
-            const node = get().findNode(nodeId);
-            if (node) {
+            set((state) => {
+              const index = state.nodes.findIndex((n) => n.id === nodeId);
+              if (index === -1) {
+                return state;
+              }
+              const node = state.nodes[index];
               const newBypassed = !node.data.bypassed;
-              set((state) => ({
-                nodes: state.nodes.map((n) =>
-                  n.id === nodeId
-                    ? {
-                        ...n,
-                        className: newBypassed ? "bypassed" : undefined,
-                        data: { ...n.data, bypassed: newBypassed }
-                      }
-                    : n
-                )
-              }));
-              get().setWorkflowDirty(true);
-            }
+              const newNodes = [...state.nodes];
+              newNodes[index] = {
+                ...node,
+                className: newBypassed ? "bypassed" : undefined,
+                data: { ...node.data, bypassed: newBypassed }
+              };
+              return { nodes: newNodes };
+            });
+            get().setWorkflowDirty(true);
           },
           setBypass: (nodeId: string, bypassed: boolean): void => {
-            set((state) => ({
-              nodes: state.nodes.map((n) =>
-                n.id === nodeId
-                  ? {
-                      ...n,
-                      className: bypassed ? "bypassed" : undefined,
-                      data: { ...n.data, bypassed }
-                    }
-                  : n
-              )
-            }));
+            set((state) => {
+              const index = state.nodes.findIndex((n) => n.id === nodeId);
+              if (index === -1) {
+                return state;
+              }
+              const node = state.nodes[index];
+              const newNodes = [...state.nodes];
+              newNodes[index] = {
+                ...node,
+                className: bypassed ? "bypassed" : undefined,
+                data: { ...node.data, bypassed }
+              };
+              return { nodes: newNodes };
+            });
             get().setWorkflowDirty(true);
           },
           toggleBypassSelected: (): void => {
