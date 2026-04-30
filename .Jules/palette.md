@@ -43,3 +43,6 @@
 ## 2024-06-25 - Using `LoadingSpinner` Primitive over Raw Material-UI
 **Learning:** Found instances of raw Material-UI `CircularProgress` usage in components like `CircularActionButton`, `DialogActionButtons`, `DownloadButton`, `RefreshButton`, `RunWorkflowButton`, and `StateIconButton`. This usage goes against `STRATEGY.md` standardizing UI primitives.
 **Action:** When working on UI components, use the explicit primitive `<LoadingSpinner inline />` over the raw `<CircularProgress>` to adhere to standardisation guidelines. Ensure proper test updates to reflect mock substitutions.
+## 2025-05-30 - Added missing aria-labels to scattered IconButtons
+**Learning:** Some custom UI interactions like NodeTestRow, DataframeRenderer, and ReplicateSchemaLoader were missing `aria-label` properties on their icon-only `IconButton` components, breaking accessibility for interactive elements, despite sometimes having `<Tooltip>` wrappers.
+**Action:** Always add an explicit `aria-label` matching the interactive intent whenever rendering an icon-only `<IconButton>`.
