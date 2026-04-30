@@ -1,3 +1,5 @@
+/* eslint-disable no-control-regex */
+
 /**
  * Shell tools — named tmux sessions.
  *
@@ -263,11 +265,13 @@ function isInternalShellWrapperLine(line: string, marker: string | null): boolea
   return marker !== null && line.includes(`${DONE_PREFIX}${marker}__:`);
 }
 
+const ANSI_REGEX = new RegExp(
+  "[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]))",
+  "g"
+);
+
 function stripAnsi(value: string): string {
-  return value.replace(
-    /[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g,
-    ""
-  );
+  return value.replace(ANSI_REGEX, "");
 }
 
 function isPromptOnlyLine(line: string): boolean {

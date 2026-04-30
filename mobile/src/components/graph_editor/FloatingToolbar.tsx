@@ -66,12 +66,12 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
     }, [effectiveWorkflowId]);
 
     const cancel = useMemo(() => {
-      if (!effectiveWorkflowId) return undefined;
+      if (!effectiveWorkflowId) {return undefined;}
       return getWorkflowRunnerStore(effectiveWorkflowId).getState().cancel;
     }, [effectiveWorkflowId]);
 
     const resume = useMemo(() => {
-      if (!effectiveWorkflowId) return undefined;
+      if (!effectiveWorkflowId) {return undefined;}
       return getWorkflowRunnerStore(effectiveWorkflowId).getState().resume;
     }, [effectiveWorkflowId]);
 
@@ -110,10 +110,10 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
         setElapsed(0);
         timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
       } else {
-        if (timerRef.current) clearInterval(timerRef.current);
+        if (timerRef.current) {clearInterval(timerRef.current);}
       }
       return () => {
-        if (timerRef.current) clearInterval(timerRef.current);
+        if (timerRef.current) {clearInterval(timerRef.current);}
       };
     }, [isRunning]);
 

@@ -48,9 +48,9 @@ type OutputRendererProps = {
  * falls back to typeof for primitives.
  */
 const typeFor = (value: unknown): string => {
-  if (value === undefined || value === null) return "null";
-  if (Array.isArray(value)) return "array";
-  if (typeof value === "boolean") return "boolean";
+  if (value === undefined || value === null) {return "null";}
+  if (Array.isArray(value)) {return "array";}
+  if (typeof value === "boolean") {return "boolean";}
   if (typeof value === "object" && value !== null && "type" in value) {
     return (value as { type: string }).type;
   }
@@ -63,8 +63,8 @@ const typeFor = (value: unknown): string => {
 const resolveMediaUri = (
   uri: string | undefined | null
 ): string | null => {
-  if (!uri || uri.startsWith("memory://")) return null;
-  if (uri.startsWith("data:")) return uri;
+  if (!uri || uri.startsWith("memory://")) {return null;}
+  if (uri.startsWith("data:")) {return uri;}
   return apiService.resolveUrl(uri);
 };
 
@@ -124,7 +124,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
     // ── Typed text (e.g. {type: "text", text: "..."}) ───────────
     case "text": {
       const textVal = value?.text ?? "";
-      if (typeof textVal !== "string" || !textVal) return null;
+      if (typeof textVal !== "string" || !textVal) {return null;}
       return <MarkdownRenderer content={textVal} />;
     }
 
@@ -394,7 +394,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
       }
       // text or default
       const chunkText = typeof chunk.content === "string" ? chunk.content : "";
-      if (!chunkText) return null;
+      if (!chunkText) {return null;}
       return <MarkdownRenderer content={chunkText} />;
     }
 
@@ -542,7 +542,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
 
     // ── Array ────────────────────────────────────────────────────
     case "array": {
-      if (value.length === 0) return null;
+      if (value.length === 0) {return null;}
 
       const firstItem = value[0];
 

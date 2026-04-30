@@ -93,6 +93,7 @@ describe("OpenAIProvider", () => {
             tool_calls: [
               {
                 id: "tc1",
+                type: "function",
                 function: { name: "sum", arguments: '{"a":1}' }
               }
             ]

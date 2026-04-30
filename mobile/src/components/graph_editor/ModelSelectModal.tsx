@@ -86,7 +86,7 @@ export const ModelSelectModal: React.FC<ModelSelectModalProps> = ({
     const map = new Map<string, ModelItem[]>();
     for (const m of filtered) {
       const key = m.provider ?? "unknown";
-      if (!map.has(key)) map.set(key, []);
+      if (!map.has(key)) {map.set(key, []);}
       map.get(key)!.push(m);
     }
     // Flatten with section headers
@@ -178,7 +178,7 @@ export const ModelSelectModal: React.FC<ModelSelectModalProps> = ({
 
   const keyExtractor = useCallback(
     (item: (typeof grouped)[number], index: number) => {
-      if (item.type === "header") return `header-${item.provider}`;
+      if (item.type === "header") {return `header-${item.provider}`;}
       return item.model.id ?? `model-${index}`;
     },
     []

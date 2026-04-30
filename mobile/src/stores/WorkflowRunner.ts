@@ -109,7 +109,7 @@ export const createWorkflowRunnerStore = (
 
         const handler = (message: Record<string, unknown>) => {
           const workflow = get().workflow;
-          if (!workflow) return;
+          if (!workflow) {return;}
 
           // Track job_id from first message and subscribe to it too
           if (message.job_id && !get().job_id) {
@@ -273,7 +273,7 @@ function handleMessage(
     case "job_update": {
       const job = message as unknown as JobUpdate;
       // Don't overwrite error state with stale "running"
-      if (state.state === "error" && job.status === "running") return;
+      if (state.state === "error" && job.status === "running") {return;}
 
       switch (job.status) {
         case "completed":
@@ -337,7 +337,7 @@ function handleMessage(
     case "node_update": {
       const update = message as unknown as NodeUpdate;
       // Don't process updates after cancellation
-      if (state.state === "cancelled") return;
+      if (state.state === "cancelled") {return;}
 
       const updates: Partial<WorkflowRunner> = {
         nodeStatus: {
