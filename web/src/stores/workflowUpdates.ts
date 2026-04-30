@@ -123,8 +123,8 @@ export const subscribeToWorkflowUpdates = (
 
   const unsubscribeWorkflow = globalWebSocketManager.subscribe(
     workflowId,
-    (message: MsgpackData) => {
-      handleUpdate(workflow, message, runnerStore, getNodeStore);
+    (message) => {
+      handleUpdate(workflow, message as MsgpackData, runnerStore, getNodeStore);
     }
   );
 
@@ -142,7 +142,7 @@ export const subscribeToWorkflowUpdates = (
 
     unsubscribeJob = globalWebSocketManager.subscribe(
       jobId,
-      (message: MsgpackData) => {
+      (message) => {
         // Avoid double-processing when the backend already provides workflow_id.
         // The job_id routing exists as a fallback for updates where workflow_id is
         // missing/null (e.g. terminal job completion updates).
@@ -150,7 +150,7 @@ export const subscribeToWorkflowUpdates = (
           return;
         }
 
-        handleUpdate(workflow, message, runnerStore, getNodeStore);
+        handleUpdate(workflow, message as MsgpackData, runnerStore, getNodeStore);
       }
     );
   };

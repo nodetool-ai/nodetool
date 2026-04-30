@@ -14,7 +14,7 @@ describe("outputChunkUtils", () => {
     });
 
     it('returns true when content_type is empty string', () => {
-      expect(isTextLikeChunk({ content_type: "" } as Chunk)).toBe(true);
+      expect(isTextLikeChunk({ content_type: "" } as unknown as Chunk)).toBe(true);
     });
 
     it('returns true when content_type is "text"', () => {

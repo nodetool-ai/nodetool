@@ -103,7 +103,7 @@ export type WorkflowRunner = {
   endInputStream: (inputName: string, handle?: string) => void;
 };
 
-type MsgpackData =
+export type MsgpackData =
   | JobUpdate
   | Prediction
   | NodeProgress

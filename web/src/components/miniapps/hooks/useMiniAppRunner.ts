@@ -14,6 +14,7 @@ import {
 import {
   createWorkflowRunnerStore,
   MessageHandler,
+  MsgpackData,
   WorkflowRunnerStore
 } from "../../../stores/WorkflowRunner";
 import { MiniAppResult, RunnerMessage } from "../types";
@@ -203,7 +204,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         const currentWorkflow =
           runnerStore.getState().workflow || selectedWorkflow;
         if (currentWorkflow) {
-          handler(currentWorkflow, message);
+          handler(currentWorkflow, message as MsgpackData);
         }
       }
     );
@@ -231,7 +232,7 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
         const currentWorkflow =
           runnerStore.getState().workflow || selectedWorkflow;
         if (currentWorkflow) {
-          handler(currentWorkflow, message);
+          handler(currentWorkflow, message as MsgpackData);
         }
       });
     };
