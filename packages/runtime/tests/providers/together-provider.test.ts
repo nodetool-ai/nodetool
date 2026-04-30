@@ -21,7 +21,7 @@ function makeAsyncIterable(items: unknown[]) {
   };
 }
 
-/** Build a minimal valid WAV buffer containing one zero-valued stereo sample at 24 kHz. */
+/** Build a minimal valid WAV buffer containing one zero-valued 16-bit sample at 24 kHz. */
 function buildMinimalWav(sampleRate = 24000): Uint8Array {
   const pcmData = new Uint8Array([0x00, 0x00]); // one Int16 zero sample
   const buf = new ArrayBuffer(44 + pcmData.length);
@@ -686,7 +686,9 @@ describe("TogetherProvider", () => {
     };
 
     const p = provider.textToVideo(params);
-    // Attach a no-op handler immediately so the rejection is never "unhandled"
+    // Attach a no-op handler immediately so Node.js never considers this an
+    // "unhandled" rejection: the rejection fires during vi.runAllTimersAsync()
+    // which is before our try/catch below can attach a handler.
     p.catch(() => {});
 
     await vi.runAllTimersAsync();

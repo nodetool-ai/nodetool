@@ -308,7 +308,7 @@ function parseWavPCM(bytes: Uint8Array): {
   sampleRate: number;
 } {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  let sampleRate = 24000; // Together's documented default
+  let sampleRate = 24000; // Together's default sample rate for Orpheus/Kokoro (24 kHz)
   let offset = 12; // Skip "RIFF", file-size, "WAVE"
 
   while (offset + 8 <= bytes.byteLength) {
@@ -332,9 +332,9 @@ function parseWavPCM(bytes: Uint8Array): {
       };
     }
 
-    // Advance past this chunk; WAV requires word-alignment padding
     const advance = 8 + chunkSize + (chunkSize % 2 === 0 ? 0 : 1);
-    if (advance <= 0) break; // Safety guard against malformed files
+    // Guard against malformed chunk sizes that would loop forever
+    if (advance > bytes.byteLength - offset) break;
     offset += advance;
   }
 
@@ -600,7 +600,7 @@ export class TogetherProvider extends OpenAIProvider {
       throw new Error("text must not be empty");
     }
 
-    const voice = args.voice ?? "tara"; // Orpheus default; Kokoro uses "af_heart"
+    const voice = args.voice ?? "tara"; // Default to "tara" (Orpheus); Kokoro callers should pass e.g. "af_heart"
     const body: Record<string, unknown> = {
       model: args.model,
       input: args.text,
@@ -770,7 +770,9 @@ export class TogetherProvider extends OpenAIProvider {
 
     while (true) {
       if (Date.now() - start > timeoutMs) {
-        throw new Error("Together video generation timed out");
+        throw new Error(
+          `Together video generation timed out after ${timeoutMs / 1000}s for job ${jobId}`
+        );
       }
 
       await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
@@ -845,6 +847,7 @@ export class TogetherProvider extends OpenAIProvider {
       height
     };
 
+    // Together's API expects seconds as a string (e.g. "6"), not a number
     if (params.durationSeconds != null)
       body.seconds = String(params.durationSeconds);
     if (params.numInferenceSteps != null) body.steps = params.numInferenceSteps;
@@ -910,6 +913,7 @@ export class TogetherProvider extends OpenAIProvider {
       frame_images: [{ input_image: inputImage, frame: "first" }]
     };
 
+    // Together's API expects seconds as a string (e.g. "6"), not a number
     if (params.durationSeconds != null)
       body.seconds = String(params.durationSeconds);
     if (params.numInferenceSteps != null) body.steps = params.numInferenceSteps;
