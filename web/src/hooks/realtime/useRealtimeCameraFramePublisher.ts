@@ -11,7 +11,11 @@ import log from "loglevel";
 import { realtimeSessionClient } from "../../lib/websocket/RealtimeSessionClient";
 
 export const DEFAULT_REALTIME_FRAME_INTERVAL_MS = 500;
+export const REALTIME_FRAME_60FPS_INTERVAL_MS = 1000 / 60;
 export const DEFAULT_REALTIME_FRAME_MAX_WIDTH = 320;
+export const DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES = 1;
+
+export type RealtimeFramePushMode = "interval" | "60fps" | "uncapped";
 
 export interface CaptureVideoElementFrameOptions {
   sequence: number;
@@ -26,6 +30,8 @@ export interface RealtimeCameraFramePublisherOptions {
   session: RealtimeSessionRecord | null;
   intervalMs?: number;
   maxWidth?: number;
+  framePushMode?: RealtimeFramePushMode;
+  maxInFlightFrames?: number;
 }
 
 export type RealtimeCameraFramePublisherSkippedReason =
@@ -44,6 +50,8 @@ export interface RealtimeCameraFramePublisherStatus {
   intervalMs: number;
   targetFps: number;
   framesPublished: number;
+  framesSkipped: number;
+  inFlightFrames: number;
   lastPublishedAt: number | null;
   lastError: string | null;
   skippedReason: RealtimeCameraFramePublisherSkippedReason | null;
@@ -54,10 +62,34 @@ type RealtimeMediaTrack = RealtimeSessionRecord["media_tracks"][number];
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+const targetFpsForMode = (
+  framePushMode: RealtimeFramePushMode,
+  intervalMs: number
+): number => {
+  if (framePushMode === "uncapped") {
+    return 0;
+  }
+  if (framePushMode === "60fps") {
+    return 60;
+  }
+  return Math.round((1000 / intervalMs) * 10) / 10;
+};
+
+const intervalMsForMode = (
+  framePushMode: RealtimeFramePushMode,
+  intervalMs: number
+): number => {
+  if (framePushMode === "60fps") {
+    return REALTIME_FRAME_60FPS_INTERVAL_MS;
+  }
+  return intervalMs;
+};
+
 const inactiveStatus = (
   skippedReason: RealtimeCameraFramePublisherSkippedReason,
   intervalMs: number,
-  enabled: boolean
+  enabled: boolean,
+  framePushMode: RealtimeFramePushMode = "interval"
 ): RealtimeCameraFramePublisherStatus => ({
   enabled,
   active: false,
@@ -66,8 +98,10 @@ const inactiveStatus = (
   inputName: null,
   sourceHandle: null,
   intervalMs,
-  targetFps: Math.round((1000 / intervalMs) * 10) / 10,
+  targetFps: targetFpsForMode(framePushMode, intervalMs),
   framesPublished: 0,
+  framesSkipped: 0,
+  inFlightFrames: 0,
   lastPublishedAt: null,
   lastError: null,
   skippedReason
@@ -86,6 +120,8 @@ const sameStatus = (
   left.intervalMs === right.intervalMs &&
   left.targetFps === right.targetFps &&
   left.framesPublished === right.framesPublished &&
+  left.framesSkipped === right.framesSkipped &&
+  left.inFlightFrames === right.inFlightFrames &&
   left.lastPublishedAt === right.lastPublishedAt &&
   left.lastError === right.lastError &&
   left.skippedReason === right.skippedReason;
@@ -161,43 +197,36 @@ export const useRealtimeCameraFramePublisher = ({
   previewStream,
   session,
   intervalMs = DEFAULT_REALTIME_FRAME_INTERVAL_MS,
-  maxWidth = DEFAULT_REALTIME_FRAME_MAX_WIDTH
+  maxWidth = DEFAULT_REALTIME_FRAME_MAX_WIDTH,
+  framePushMode = "interval",
+  maxInFlightFrames = DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES
 }: RealtimeCameraFramePublisherOptions): RealtimeCameraFramePublisherStatus => {
   const sequenceRef = useRef(0);
-  const firstFrameLogRef = useRef(false);
-  const statusLogKeyRef = useRef<string | null>(null);
+  const inFlightRef = useRef(0);
   const [status, setStatus] = useState<RealtimeCameraFramePublisherStatus>(() =>
-    inactiveStatus("disabled", intervalMs, enabled)
+    inactiveStatus("disabled", intervalMs, enabled, framePushMode)
   );
 
   useEffect(() => {
-    const statusLogKey = JSON.stringify({
-      enabled: status.enabled,
-      active: status.active,
-      trackId: status.trackId,
-      nodeId: status.nodeId,
-      inputName: status.inputName,
-      sourceHandle: status.sourceHandle,
-      skippedReason: status.skippedReason,
-      lastError: status.lastError
-    });
-    if (statusLogKeyRef.current === statusLogKey) {
-      return;
-    }
-    statusLogKeyRef.current = statusLogKey;
-    console.info("TEMP_LOG realtime camera publisher status", status);
-  }, [status]);
+    const resolvedIntervalMs = intervalMsForMode(framePushMode, intervalMs);
 
-  useEffect(() => {
     if (!enabled) {
-      setStatusIfChanged(setStatus, inactiveStatus("disabled", intervalMs, false));
+      setStatusIfChanged(
+        setStatus,
+        inactiveStatus("disabled", resolvedIntervalMs, false, framePushMode)
+      );
       return;
     }
 
     if (!previewStream) {
       setStatusIfChanged(
         setStatus,
-        inactiveStatus("waiting_for_preview", intervalMs, true)
+        inactiveStatus(
+          "waiting_for_preview",
+          resolvedIntervalMs,
+          true,
+          framePushMode
+        )
       );
       return;
     }
@@ -205,7 +234,12 @@ export const useRealtimeCameraFramePublisher = ({
     if (!session) {
       setStatusIfChanged(
         setStatus,
-        inactiveStatus("waiting_for_session", intervalMs, true)
+        inactiveStatus(
+          "waiting_for_session",
+          resolvedIntervalMs,
+          true,
+          framePushMode
+        )
       );
       return;
     }
@@ -214,12 +248,17 @@ export const useRealtimeCameraFramePublisher = ({
     if (!track) {
       setStatusIfChanged(
         setStatus,
-        inactiveStatus("no_enabled_video_track", intervalMs, true)
+        inactiveStatus(
+          "no_enabled_video_track",
+          resolvedIntervalMs,
+          true,
+          framePushMode
+        )
       );
       return;
     }
 
-    firstFrameLogRef.current = false;
+    inFlightRef.current = 0;
     setStatus((current) => {
       const nextStatus = {
         ...current,
@@ -229,8 +268,9 @@ export const useRealtimeCameraFramePublisher = ({
         nodeId: track.node_id,
         inputName: track.input_name,
         sourceHandle: track.source_handle ?? "frame",
-        intervalMs,
-        targetFps: Math.round((1000 / intervalMs) * 10) / 10,
+        intervalMs: resolvedIntervalMs,
+        targetFps: targetFpsForMode(framePushMode, resolvedIntervalMs),
+        inFlightFrames: 0,
         lastError: null,
         skippedReason: null
       };
@@ -238,7 +278,16 @@ export const useRealtimeCameraFramePublisher = ({
       return sameStatus(current, nextStatus) ? current : nextStatus;
     });
 
+    let disposed = false;
+    let intervalId: number | null = null;
+    let videoFrameCallbackId: number | null = null;
     const video = document.createElement("video");
+    const callbackVideo = video as HTMLVideoElement & {
+      requestVideoFrameCallback?: (
+        callback: (now: number, metadata?: unknown) => void
+      ) => number;
+      cancelVideoFrameCallback?: (handle: number) => void;
+    };
     video.muted = true;
     video.playsInline = true;
     video.srcObject = previewStream;
@@ -251,6 +300,15 @@ export const useRealtimeCameraFramePublisher = ({
     });
 
     const publishFrame = (): void => {
+      if (inFlightRef.current >= maxInFlightFrames) {
+        setStatus((current) => ({
+          ...current,
+          framesSkipped: current.framesSkipped + 1,
+          inFlightFrames: inFlightRef.current
+        }));
+        return;
+      }
+
       const nextSequence = sequenceRef.current + 1;
       const frame = captureVideoElementFrame(video, {
         sequence: nextSequence,
@@ -263,25 +321,11 @@ export const useRealtimeCameraFramePublisher = ({
 
       sequenceRef.current = nextSequence;
       const publishedAt = Date.now();
-      if (!firstFrameLogRef.current) {
-        firstFrameLogRef.current = true;
-        console.info("TEMP_LOG realtime camera first frame publish", {
-          sessionId: session.session_id,
-          workflowId: session.workflow_id,
-          trackId: track.track_id,
-          nodeId: track.node_id,
-          inputName: track.input_name,
-          sourceHandle: track.source_handle ?? "frame",
-          sequence: frame.sequence,
-          width: frame.width,
-          height: frame.height,
-          pixelFormat: frame.pixel_format,
-          stride: frame.stride
-        });
-      }
+      inFlightRef.current += 1;
       setStatus((current) => ({
         ...current,
         framesPublished: current.framesPublished + 1,
+        inFlightFrames: inFlightRef.current,
         lastPublishedAt: publishedAt,
         lastError: null
       }));
@@ -290,22 +334,70 @@ export const useRealtimeCameraFramePublisher = ({
           trackId: track.track_id,
           frame
         })
+        .then(() => {
+          inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+          if (!disposed) {
+            setStatus((current) => ({
+              ...current,
+              inFlightFrames: inFlightRef.current
+            }));
+          }
+        })
         .catch((error: unknown) => {
+          inFlightRef.current = Math.max(0, inFlightRef.current - 1);
           log.warn("Realtime camera frame publish failed", error);
-          setStatus((current) => ({
-            ...current,
-            lastError: errorMessage(error)
-          }));
+          if (!disposed) {
+            setStatus((current) => ({
+              ...current,
+              inFlightFrames: inFlightRef.current,
+              lastError: errorMessage(error)
+            }));
+          }
         });
     };
 
-    const intervalId = window.setInterval(publishFrame, intervalMs);
+    const scheduleVideoFrame = (): void => {
+      if (disposed || typeof callbackVideo.requestVideoFrameCallback !== "function") {
+        return;
+      }
+      videoFrameCallbackId = callbackVideo.requestVideoFrameCallback(() => {
+        publishFrame();
+        scheduleVideoFrame();
+      });
+    };
+
+    if (
+      framePushMode === "uncapped" &&
+      typeof callbackVideo.requestVideoFrameCallback === "function"
+    ) {
+      scheduleVideoFrame();
+    } else {
+      intervalId = window.setInterval(publishFrame, resolvedIntervalMs);
+    }
+
     return () => {
-      window.clearInterval(intervalId);
+      disposed = true;
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+      if (
+        videoFrameCallbackId !== null &&
+        typeof callbackVideo.cancelVideoFrameCallback === "function"
+      ) {
+        callbackVideo.cancelVideoFrameCallback(videoFrameCallbackId);
+      }
       video.pause();
       video.srcObject = null;
     };
-  }, [enabled, intervalMs, maxWidth, previewStream, session]);
+  }, [
+    enabled,
+    framePushMode,
+    intervalMs,
+    maxInFlightFrames,
+    maxWidth,
+    previewStream,
+    session
+  ]);
 
   return status;
 };

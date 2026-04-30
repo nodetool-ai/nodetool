@@ -29,6 +29,8 @@ export interface RealtimeOutputFrame {
   outputName: string;
   frame: VideoFrame;
   receivedAt: number;
+  outputFps: number | null;
+  frameAgeMs: number | null;
 }
 
 interface RealtimeSessionStoreState {
@@ -412,6 +414,17 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
           return;
         }
 
+        const receivedAt = Date.now();
+        const previous = get().outputFrames[sessionId];
+        const outputFps =
+          previous && receivedAt > previous.receivedAt
+            ? 1000 / (receivedAt - previous.receivedAt)
+            : null;
+        const frameAgeMs =
+          typeof performance !== "undefined" && frame.timestamp_ns > 0
+            ? Math.max(0, performance.now() - frame.timestamp_ns / 1_000_000)
+            : null;
+
         set((state) => ({
           outputFrames: {
             ...state.outputFrames,
@@ -420,7 +433,9 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
               nodeName: update.node_name,
               outputName: update.output_name,
               frame,
-              receivedAt: Date.now()
+              receivedAt,
+              outputFps,
+              frameAgeMs
             }
           }
         }));

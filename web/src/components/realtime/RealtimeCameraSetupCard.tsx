@@ -15,6 +15,7 @@ import {
 } from "../../hooks/browser/useVideoCapture";
 import {
   DEFAULT_REALTIME_FRAME_MAX_WIDTH,
+  type RealtimeFramePushMode,
   type RealtimeCameraFramePublisherStatus
 } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
 import {
@@ -31,6 +32,7 @@ interface RealtimeCameraSetupCardProps {
   videoTargetNodeId: string;
   videoTargetInputName: string;
   videoTargetSourceHandle: string;
+  framePushMode: RealtimeFramePushMode;
   ingressMode: "frame-push" | "webrtc";
   cameraPublisherStatus: RealtimeCameraFramePublisherStatus;
   onRefreshDevices: () => void;
@@ -38,6 +40,7 @@ interface RealtimeCameraSetupCardProps {
   onVideoResolutionChange: (resolution: VideoCaptureResolutionPreset) => void;
   onVideoTargetNodeIdChange: (nodeId: string) => void;
   onVideoTargetInputNameChange: (inputName: string) => void;
+  onFramePushModeChange: (mode: RealtimeFramePushMode) => void;
 }
 
 export const RealtimeCameraSetupCard = ({
@@ -49,13 +52,15 @@ export const RealtimeCameraSetupCard = ({
   videoTargetNodeId,
   videoTargetInputName,
   videoTargetSourceHandle,
+  framePushMode,
   ingressMode,
   cameraPublisherStatus,
   onRefreshDevices,
   onVideoDeviceChange,
   onVideoResolutionChange,
   onVideoTargetNodeIdChange,
-  onVideoTargetInputNameChange
+  onVideoTargetInputNameChange,
+  onFramePushModeChange
 }: RealtimeCameraSetupCardProps) => {
   const cameraOptions = videoInputDevices.some((device) => device.deviceId === "")
     ? videoInputDevices.map((device) => ({
@@ -75,6 +80,13 @@ export const RealtimeCameraSetupCard = ({
       label: preset.label
     })
   );
+  const framePushModeOptions: Array<{
+    value: RealtimeFramePushMode;
+    label: string;
+  }> = [
+    { value: "60fps", label: "60fps test" },
+    { value: "uncapped", label: "Uncapped test" }
+  ];
   const actualMode = videoTrackSettings
     ? `${videoTrackSettings.width ?? "?"}x${videoTrackSettings.height ?? "?"}${
         videoTrackSettings.frameRate
@@ -131,6 +143,14 @@ export const RealtimeCameraSetupCard = ({
         <Caption>
           Frame feed: downscaled to max {DEFAULT_REALTIME_FRAME_MAX_WIDTH}px wide
         </Caption>
+        <Select
+          options={framePushModeOptions}
+          value={framePushMode}
+          onChange={(value) => onFramePushModeChange(value as RealtimeFramePushMode)}
+          placeholder="Frame push mode"
+          label="Frame push mode"
+          sharp
+        />
         <FlexColumn gap={1.25} sx={{ pt: 1.5 }}>
           <TextInput
             label="Target node id"
@@ -161,6 +181,10 @@ export const RealtimeCameraSetupCard = ({
         <Caption>
           {cameraPublisherStatus.framesPublished.toLocaleString()} frames pushed
           at {cameraPublisherStatus.targetFps.toLocaleString()} fps
+        </Caption>
+        <Caption>
+          {cameraPublisherStatus.framesSkipped.toLocaleString()} skipped,{" "}
+          {cameraPublisherStatus.inFlightFrames.toLocaleString()} in flight
         </Caption>
         {cameraPublisherStatus.skippedReason ? (
           <Caption color="warning">{cameraPublisherStatus.skippedReason}</Caption>

@@ -233,13 +233,15 @@ class GlobalWebSocketManager extends EventEmitter {
             console.error("GlobalWebSocketManager: Handler error:", error);
           }
         });
-      } else {
-        console.debug(
-          `GlobalWebSocketManager: No handlers for ${routingKey}`,
-          message
-        );
       }
     });
+
+    if (calledHandlers.size === 0) {
+      console.debug(
+        `GlobalWebSocketManager: No handlers for ${Array.from(routingKeys).join(", ")}`,
+        message
+      );
+    }
   }
 
   /**

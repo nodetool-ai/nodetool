@@ -10,6 +10,9 @@ interface RealtimeOutputPreviewCardProps {
 export const RealtimeOutputPreviewCard = ({
   outputFrame
 }: RealtimeOutputPreviewCardProps) => {
+  const outputFps = outputFrame?.outputFps ?? null;
+  const frameAgeMs = outputFrame?.frameAgeMs ?? null;
+
   return (
     <Card
       padding="normal"
@@ -28,10 +31,17 @@ export const RealtimeOutputPreviewCard = ({
           )}
         </FlexColumn>
         {outputFrame ? (
-          <Caption>
-            {outputFrame.nodeName || outputFrame.nodeId}.{outputFrame.outputName}{" "}
-            received {new Date(outputFrame.receivedAt).toLocaleTimeString()}
-          </Caption>
+          <>
+            <Caption>
+              {outputFrame.nodeName || outputFrame.nodeId}.{outputFrame.outputName}{" "}
+              received {new Date(outputFrame.receivedAt).toLocaleTimeString()}
+            </Caption>
+            <Caption>
+              Output fps: {outputFps === null ? "-" : outputFps.toFixed(1)}
+              {" | "}Frame age:{" "}
+              {frameAgeMs === null ? "-" : `${Math.round(frameAgeMs)} ms`}
+            </Caption>
+          </>
         ) : null}
       </FlexColumn>
     </Card>

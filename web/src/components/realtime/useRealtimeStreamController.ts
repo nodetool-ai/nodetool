@@ -27,6 +27,7 @@ import {
 } from "../../hooks/browser/useRealtimeSessionWebRTC";
 import {
   useRealtimeCameraFramePublisher,
+  type RealtimeFramePushMode,
   type RealtimeCameraFramePublisherStatus
 } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
 import type { VideoCaptureResolutionPreset } from "../../hooks/browser/useVideoCapture";
@@ -70,6 +71,7 @@ export interface RealtimeStreamController {
   videoTargetNodeId: string;
   videoTargetInputName: string;
   videoTargetSourceHandle: string;
+  framePushMode: RealtimeFramePushMode;
   ingressMode: "frame-push" | "webrtc";
   cameraPublisherStatus: RealtimeCameraFramePublisherStatus;
   previewError: string | null;
@@ -87,6 +89,7 @@ export interface RealtimeStreamController {
   handleVideoResolutionChange: (resolution: VideoCaptureResolutionPreset) => void;
   setVideoTargetNodeId: (nodeId: string) => void;
   setVideoTargetInputName: (inputName: string) => void;
+  setFramePushMode: (mode: RealtimeFramePushMode) => void;
   setActiveSession: (sessionId: string | null) => void;
   handleStartSession: () => Promise<void>;
   handleStopSession: () => Promise<void>;
@@ -126,6 +129,8 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     useState<string>("video");
   const [videoTargetSourceHandle, setVideoTargetSourceHandle] =
     useState<string>("frame");
+  const [framePushMode, setFramePushMode] =
+    useState<RealtimeFramePushMode>("60fps");
   const [webrtcConfigError, setWebrtcConfigError] = useState<string | null>(null);
   const [isStoppingSession, setIsStoppingSession] = useState(false);
   const appliedCameraSettingsKeyRef = useRef<string | null>(null);
@@ -233,8 +238,9 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       isPreviewReady,
     previewStream,
     session: activeSession,
-    intervalMs: 500,
-    maxWidth: 320
+    framePushMode,
+    maxWidth: 320,
+    maxInFlightFrames: 1
   });
   const isStartSessionDisabled = useMemo(() => {
     return (
@@ -514,6 +520,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     videoTargetNodeId,
     videoTargetInputName,
     videoTargetSourceHandle,
+    framePushMode,
     ingressMode,
     cameraPublisherStatus,
     previewError,
@@ -531,6 +538,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     handleVideoResolutionChange: handlePersistedVideoResolutionChange,
     setVideoTargetNodeId,
     setVideoTargetInputName,
+    setFramePushMode,
     setActiveSession,
     handleStartSession,
     handleStopSession,

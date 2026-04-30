@@ -98,6 +98,25 @@ describe("GlobalWebSocketManager", () => {
       expect(handler).toHaveBeenCalledWith({ session_id: "session-123" });
       unsubscribe();
     });
+
+    it("does not log unmatched routing keys when one key handled the message", () => {
+      const debug = jest.spyOn(console, "debug").mockImplementation();
+      const handler = jest.fn();
+      const unsubscribe = globalWebSocketManager.subscribe("session-123", handler);
+
+      (globalWebSocketManager as any).routeMessage({
+        session_id: "session-123",
+        workflow_id: "workflow-without-handler"
+      });
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(debug).not.toHaveBeenCalledWith(
+        expect.stringContaining("No handlers for"),
+        expect.anything()
+      );
+      unsubscribe();
+      debug.mockRestore();
+    });
   });
 
   describe("resource change handling", () => {

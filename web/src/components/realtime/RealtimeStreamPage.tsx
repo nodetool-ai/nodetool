@@ -159,6 +159,7 @@ const RealtimeStreamPage = () => {
               videoTargetNodeId={controller.videoTargetNodeId}
               videoTargetInputName={controller.videoTargetInputName}
               videoTargetSourceHandle={controller.videoTargetSourceHandle}
+              framePushMode={controller.framePushMode}
               ingressMode={controller.ingressMode}
               cameraPublisherStatus={controller.cameraPublisherStatus}
               onRefreshDevices={controller.refreshDevices}
@@ -166,6 +167,7 @@ const RealtimeStreamPage = () => {
               onVideoResolutionChange={controller.handleVideoResolutionChange}
               onVideoTargetNodeIdChange={controller.setVideoTargetNodeId}
               onVideoTargetInputNameChange={controller.setVideoTargetInputName}
+              onFramePushModeChange={controller.setFramePushMode}
             />
             <RealtimeModelStatusCard
               activeSession={controller.activeSession}

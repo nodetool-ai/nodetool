@@ -150,6 +150,8 @@ describe("Realtime session cards", () => {
           intervalMs: 500,
           targetFps: 2,
           framesPublished: 3,
+          framesSkipped: 1,
+          inFlightFrames: 0,
           lastPublishedAt: 1234,
           lastError: null,
           skippedReason: null
@@ -157,12 +159,14 @@ describe("Realtime session cards", () => {
         videoTargetNodeId="video-source"
         videoTargetInputName="camera"
         videoTargetSourceHandle="realtime_frame"
+        framePushMode="60fps"
         ingressMode="frame-push"
         onRefreshDevices={jest.fn()}
         onVideoDeviceChange={jest.fn()}
         onVideoResolutionChange={jest.fn()}
         onVideoTargetNodeIdChange={jest.fn()}
         onVideoTargetInputNameChange={jest.fn()}
+        onFramePushModeChange={jest.fn()}
       />
     );
 
@@ -176,6 +180,7 @@ describe("Realtime session cards", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Source: realtime_frame")).toBeInTheDocument();
     expect(screen.getByText("3 frames pushed at 2 fps")).toBeInTheDocument();
+    expect(screen.getByText("1 skipped, 0 in flight")).toBeInTheDocument();
   });
 
   it("surfaces missing backend push-frame acknowledgements", () => {
@@ -195,6 +200,8 @@ describe("Realtime session cards", () => {
           intervalMs: 500,
           targetFps: 2,
           framesPublished: 145,
+          framesSkipped: 0,
+          inFlightFrames: 0,
           lastPublishedAt: 1234,
           lastError: null,
           skippedReason: null
@@ -229,6 +236,8 @@ describe("Realtime session cards", () => {
           intervalMs: 500,
           targetFps: 2,
           framesPublished: 145,
+          framesSkipped: 0,
+          inFlightFrames: 0,
           lastPublishedAt: 1234,
           lastError: null,
           skippedReason: null

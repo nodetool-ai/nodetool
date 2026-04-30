@@ -73,6 +73,35 @@ const mockStream = (): MediaStream => ({
   getVideoTracks: jest.fn(() => [{ id: "camera-track" } as MediaStreamTrack])
 } as unknown as MediaStream);
 
+const mockPublisherElements = (
+  pixels: number[] = [9, 8, 7, 255]
+): HTMLVideoElement => {
+  const originalCreateElement = document.createElement.bind(document);
+  const video = mockVideo(1, 1, originalCreateElement);
+  video.play = jest.fn().mockResolvedValue(undefined);
+  video.pause = jest.fn();
+
+  jest.spyOn(document, "createElement").mockImplementation((tagName) => {
+    if (tagName === "video") {
+      return video;
+    }
+    if (tagName === "canvas") {
+      return mockCanvas(pixels);
+    }
+    return originalCreateElement(tagName);
+  });
+
+  return video;
+};
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve };
+};
+
 describe("captureVideoElementFrame", () => {
   it("captures browser video pixels as an rgba8 realtime video frame", () => {
     const frame = captureVideoElementFrame(mockVideo(2, 1), {
@@ -102,23 +131,12 @@ describe("useRealtimeCameraFramePublisher", () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     jest.useRealTimers();
   });
 
   it("reports active route and cadence after publishing a camera frame", async () => {
-    const originalCreateElement = document.createElement.bind(document);
-    jest.spyOn(document, "createElement").mockImplementation((tagName) => {
-      if (tagName === "video") {
-        const video = mockVideo(1, 1, originalCreateElement);
-        video.play = jest.fn().mockResolvedValue(undefined);
-        video.pause = jest.fn();
-        return video;
-      }
-      if (tagName === "canvas") {
-        return mockCanvas([9, 8, 7, 255]);
-      }
-      return originalCreateElement(tagName);
-    });
+    mockPublisherElements();
 
     const { result } = renderHook(() =>
       useRealtimeCameraFramePublisher({
@@ -159,6 +177,112 @@ describe("useRealtimeCameraFramePublisher", () => {
       lastError: null,
       skippedReason: null
     });
+  });
+
+  it("publishes at the 60fps test cadence", async () => {
+    mockPublisherElements([1, 2, 3, 255]);
+    const activeSession = session();
+    const stream = mockStream();
+
+    const { result } = renderHook(() =>
+      useRealtimeCameraFramePublisher({
+        enabled: true,
+        previewStream: stream,
+        session: activeSession,
+        framePushMode: "60fps",
+        maxWidth: 320
+      })
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(17);
+      await Promise.resolve();
+    });
+
+    expect(client.pushInputFrame).toHaveBeenCalledTimes(1);
+    expect(result.current).toMatchObject({
+      targetFps: 60,
+      framesPublished: 1,
+      framesSkipped: 0
+    });
+  });
+
+  it("skips stale frames when a push is already in flight", async () => {
+    mockPublisherElements([1, 2, 3, 255]);
+    const activeSession = session();
+    const stream = mockStream();
+    const push = deferred<void>();
+    client.pushInputFrame.mockReturnValue(push.promise);
+
+    const { result } = renderHook(() =>
+      useRealtimeCameraFramePublisher({
+        enabled: true,
+        previewStream: stream,
+        session: activeSession,
+        intervalMs: 10,
+        maxWidth: 320,
+        maxInFlightFrames: 1
+      })
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(10);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(10);
+      await Promise.resolve();
+    });
+
+    expect(client.pushInputFrame).toHaveBeenCalledTimes(1);
+    expect(result.current).toMatchObject({
+      framesPublished: 1,
+      framesSkipped: 1,
+      inFlightFrames: 1
+    });
+
+    await act(async () => {
+      push.resolve(undefined);
+      await Promise.resolve();
+    });
+    expect(result.current.inFlightFrames).toBe(0);
+  });
+
+  it("uses requestVideoFrameCallback for uncapped publishing when available", async () => {
+    const video = mockPublisherElements([5, 6, 7, 255]);
+    const activeSession = session();
+    const stream = mockStream();
+    const callbacks: Array<(now: number) => void> = [];
+    const requestVideoFrameCallback = jest.fn((callback: (now: number) => void) => {
+      callbacks.push(callback);
+      return callbacks.length;
+    });
+    const cancelVideoFrameCallback = jest.fn();
+    Object.assign(video, {
+      requestVideoFrameCallback,
+      cancelVideoFrameCallback
+    });
+
+    const { result } = renderHook(() =>
+      useRealtimeCameraFramePublisher({
+        enabled: true,
+        previewStream: stream,
+        session: activeSession,
+        framePushMode: "uncapped",
+        maxWidth: 320
+      })
+    );
+
+    await act(async () => {
+      callbacks[0]?.(performance.now());
+      await Promise.resolve();
+    });
+
+    expect(requestVideoFrameCallback).toHaveBeenCalled();
+    expect(client.pushInputFrame).toHaveBeenCalledTimes(1);
+    expect(result.current.targetFps).toBe(0);
+    expect(result.current.framesPublished).toBe(1);
+    expect(cancelVideoFrameCallback).not.toHaveBeenCalled();
   });
 
   it("reports a missing route when no enabled video track matches the preview stream", () => {
