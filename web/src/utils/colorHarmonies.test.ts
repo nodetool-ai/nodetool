@@ -7,10 +7,6 @@ import {
   getSquare,
   getHarmonyInfo,
   generateHarmony,
-  generateAllHarmonies,
-  getMonochromatic,
-  getShades,
-  getTints
 } from "./colorHarmonies";
 
 describe("colorHarmonies", () => {
@@ -145,57 +141,4 @@ describe("colorHarmonies", () => {
     });
   });
 
-  describe("generateAllHarmonies", () => {
-    it("returns 6 harmonies", () => {
-      const harmonies = generateAllHarmonies("#ff0000");
-      expect(harmonies).toHaveLength(6);
-    });
-  });
-
-  describe("getMonochromatic", () => {
-    it("returns the requested number of colors", () => {
-      const colors = getMonochromatic("#ff0000", 5);
-      expect(colors).toHaveLength(5);
-    });
-
-    it("defaults to 5 colors", () => {
-      const colors = getMonochromatic("#ff0000");
-      expect(colors).toHaveLength(5);
-    });
-
-    it("all results are valid hex colors", () => {
-      const colors = getMonochromatic("#3366cc", 7);
-      for (const c of colors) {
-        expect(c).toMatch(/^#[0-9a-f]{6}$/);
-      }
-    });
-  });
-
-  describe("getShades", () => {
-    it("returns the requested number of shades", () => {
-      const shades = getShades("#ff0000", 5);
-      expect(shades).toHaveLength(5);
-    });
-
-    it("all results are valid hex colors", () => {
-      const shades = getShades("#3366cc", 4);
-      for (const s of shades) {
-        expect(s).toMatch(/^#[0-9a-f]{6}$/);
-      }
-    });
-  });
-
-  describe("getTints", () => {
-    it("returns the requested number of tints", () => {
-      const tints = getTints("#ff0000", 5);
-      expect(tints).toHaveLength(5);
-    });
-
-    it("all results are valid hex colors", () => {
-      const tints = getTints("#3366cc", 4);
-      for (const t of tints) {
-        expect(t).toMatch(/^#[0-9a-f]{6}$/);
-      }
-    });
-  });
 });

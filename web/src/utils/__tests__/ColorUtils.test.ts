@@ -6,8 +6,6 @@ import {
   darkenHexColor,
   lightenHexColor,
   adjustSaturation,
-  adjustHue,
-  adjustLightness,
   createLinearGradient,
   simulateOpacity,
   NodeTypeCategory,
@@ -116,56 +114,6 @@ describe("ColorUtils", () => {
       // Negative values should desaturate
       const result = adjustSaturation("#ff0000", -50);
       expect(result).not.toBe("#ff0000");
-    });
-  });
-
-  describe("adjustHue", () => {
-    it("should rotate hue of hex colors", () => {
-      // Red rotated 120 degrees becomes green
-      expect(adjustHue("#ff0000", 120)).toBe("#00ff00");
-      
-      // Red rotated 240 degrees becomes blue
-      expect(adjustHue("#ff0000", 240)).toBe("#0000ff");
-    });
-
-    it("should preserve CSS variables", () => {
-      expect(adjustHue("var(--color-primary)", 120)).toBe(
-        "var(--color-primary)"
-      );
-    });
-
-    it("should handle full rotation", () => {
-      // 360 degree rotation should return to original
-      expect(adjustHue("#ff0000", 360)).toBe("#ff0000");
-    });
-
-    it("should handle negative rotation", () => {
-      // -120 degrees from red should give blue
-      expect(adjustHue("#ff0000", -120)).toBe("#0000ff");
-    });
-  });
-
-  describe("adjustLightness", () => {
-    it("should adjust lightness of hex colors", () => {
-      // Increasing lightness of gray
-      const lighter = adjustLightness("#808080", 50);
-      expect(lighter).not.toBe("#808080");
-      
-      // Decreasing lightness
-      const darker = adjustLightness("#808080", -50);
-      expect(darker).not.toBe("#808080");
-    });
-
-    it("should preserve CSS variables", () => {
-      expect(adjustLightness("var(--color-primary)", 50)).toBe(
-        "var(--color-primary)"
-      );
-    });
-
-    it("should handle edge cases", () => {
-      // Max lightness should approach white
-      const veryLight = adjustLightness("#808080", 100);
-      expect(veryLight).not.toBe("#808080");
     });
   });
 

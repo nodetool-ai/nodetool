@@ -54,20 +54,6 @@ export function adjustSaturation(hex: string, amount: number): string {
     .hex();
 }
 
-export function adjustHue(hex: string, amount: number): string {
-  if (isCssVar(hex)) {return hex;}
-
-  return chroma(hex).set("hsl.h", `+${amount}`).hex();
-}
-
-export function adjustLightness(hex: string, amount: number): string {
-  if (isCssVar(hex)) {return hex;}
-
-  return chroma(hex)
-    .set("hsl.l", `*${1 + amount / 100}`)
-    .hex();
-}
-
 type GradientDirection =
   | "to top"
   | "to bottom"

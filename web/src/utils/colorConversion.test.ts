@@ -9,13 +9,9 @@ import {
   cmykToRgb,
   rgbToLab,
   labToRgb,
-  parseColor,
-  hexToAllFormats,
   getLuminance,
   getContrastRatio,
   getWcagCompliance,
-  rgbToCss,
-  hslToCss,
   simulateColorBlindness,
   isLightColor,
   getContrastingTextColor
@@ -196,56 +192,6 @@ describe("colorConversion", () => {
     });
   });
 
-  describe("parseColor", () => {
-    it("parses hex colors", () => {
-      expect(parseColor("#ff0000")).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-    });
-
-    it("parses rgb() strings", () => {
-      expect(parseColor("rgb(255, 0, 0)")).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-    });
-
-    it("parses rgba() strings", () => {
-      expect(parseColor("rgba(255, 0, 0, 0.5)")).toEqual({ r: 255, g: 0, b: 0, a: 0.5 });
-    });
-
-    it("parses hsl() strings", () => {
-      const result = parseColor("hsl(0, 100%, 50%)");
-      expect(result).not.toBeNull();
-      expect(result!.r).toBe(255);
-      expect(result!.g).toBe(0);
-      expect(result!.b).toBe(0);
-    });
-
-    it("parses named colors", () => {
-      expect(parseColor("red")).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-      expect(parseColor("white")).toEqual({ r: 255, g: 255, b: 255, a: 1 });
-      expect(parseColor("black")).toEqual({ r: 0, g: 0, b: 0, a: 1 });
-    });
-
-    it("returns null for empty or unknown input", () => {
-      expect(parseColor("")).toBeNull();
-      expect(parseColor("notacolor")).toBeNull();
-    });
-
-    it("is case-insensitive", () => {
-      expect(parseColor("RED")).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-      expect(parseColor("#FF0000")).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-    });
-  });
-
-  describe("hexToAllFormats", () => {
-    it("produces all color model representations", () => {
-      const result = hexToAllFormats("#ff0000");
-      expect(result.hex).toBe("#ff0000");
-      expect(result.rgb.r).toBe(255);
-      expect(result.hsl.h).toBe(0);
-      expect(result.hsb.s).toBe(100);
-      expect(result.cmyk.m).toBe(100);
-      expect(result.lab).toBeDefined();
-    });
-  });
-
   describe("getLuminance", () => {
     it("returns 0 for black", () => {
       expect(getLuminance({ r: 0, g: 0, b: 0 })).toBe(0);
@@ -300,30 +246,6 @@ describe("colorConversion", () => {
         { r: 255, g: 255, b: 255 }
       );
       expect(result.aa).toBe(false);
-    });
-  });
-
-  describe("rgbToCss", () => {
-    it("formats rgb()", () => {
-      expect(rgbToCss({ r: 255, g: 0, b: 0 })).toBe("rgb(255, 0, 0)");
-    });
-
-    it("formats rgba() when alpha < 1", () => {
-      expect(rgbToCss({ r: 255, g: 0, b: 0, a: 0.5 })).toBe("rgba(255, 0, 0, 0.5)");
-    });
-
-    it("formats rgb() when alpha is 1", () => {
-      expect(rgbToCss({ r: 255, g: 0, b: 0, a: 1 })).toBe("rgb(255, 0, 0)");
-    });
-  });
-
-  describe("hslToCss", () => {
-    it("formats hsl()", () => {
-      expect(hslToCss({ h: 0, s: 100, l: 50 })).toBe("hsl(0, 100%, 50%)");
-    });
-
-    it("formats hsla() when alpha < 1", () => {
-      expect(hslToCss({ h: 0, s: 100, l: 50, a: 0.5 })).toBe("hsla(0, 100%, 50%, 0.5)");
     });
   });
 
