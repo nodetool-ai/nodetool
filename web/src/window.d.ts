@@ -449,6 +449,7 @@ declare global {
         ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
+        showManager?: () => void;
       };
 
       // Low-level IPC methods for registering handlers (available in Electron only)
