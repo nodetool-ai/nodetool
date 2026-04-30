@@ -204,7 +204,7 @@ export class Job extends DBModel {
       const now = new Date().toISOString();
       const newVersion = expectedVersion + 1;
       // Atomic CAS: only update if the database row still has the expected version.
-      const result = db
+      const updated = await db
         .update(jobs)
         .set({
           worker_id: workerId,
@@ -213,8 +213,8 @@ export class Job extends DBModel {
           updated_at: now
         })
         .where(and(eq(jobs.id, this.id), eq(jobs.version, expectedVersion)))
-        .run();
-      if (result.changes === 0) return false;
+        .returning({ id: jobs.id });
+      if (updated.length === 0) return false;
       // Sync in-memory state
       this.worker_id = workerId;
       this.heartbeat_at = now;
@@ -251,15 +251,14 @@ export class Job extends DBModel {
     if (status) conditions.push(eq(jobs.status, status));
     if (workflowId) conditions.push(eq(jobs.workflow_id, workflowId));
 
-    const rows = db
+    const rows = await db
       .select()
       .from(jobs)
       .where(and(...conditions))
       .orderBy(desc(jobs.updated_at))
-      .limit(limit + 1)
-      .all();
+      .limit(limit + 1);
 
-    const items = rows.map((r) => new Job(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Job(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";

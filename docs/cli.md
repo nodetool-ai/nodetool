@@ -144,6 +144,39 @@ nodetool run workflow.ts
 nodetool run workflow.ts --json
 ```
 
+## Database Migrations
+
+### `nodetool db migrate`
+
+Applies NodeTool migrations to a PostgreSQL/Supabase database. For Supabase, use the **direct connection URL** from Settings → Database (port `5432`), not the transaction pooler URL.
+
+**Options:**
+
+- `--direct-url <url>` — Supabase/PostgreSQL direct connection URL.
+- `--database-url <url>` — connection URL; defaults to `DIRECT_URL` or `DATABASE_URL`.
+- `--target <version>` — stop after a specific migration version.
+- `--dry-run` — show pending migrations without applying them.
+- `--skip-checksums` — skip checksum validation.
+- `--json` — output as JSON.
+
+**Examples:**
+
+```bash
+DIRECT_URL="postgresql://postgres:[password]@db.[project].supabase.co:5432/postgres" \
+  nodetool db migrate
+
+nodetool db status --direct-url "$DIRECT_URL"
+nodetool db migrate --direct-url "$DIRECT_URL" --dry-run
+```
+
+Other migration commands:
+
+```bash
+nodetool db status   --direct-url "$DIRECT_URL"
+nodetool db baseline --direct-url "$DIRECT_URL"   # for existing DBs
+nodetool db rollback --direct-url "$DIRECT_URL" --steps 1
+```
+
 ## Chat
 
 ### `nodetool chat`

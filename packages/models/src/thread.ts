@@ -46,15 +46,14 @@ export class Thread extends DBModel {
   ): Promise<[Thread[], string]> {
     const { limit = 50, reverse = true } = opts;
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(threads)
       .where(eq(threads.user_id, userId))
       .orderBy(reverse ? desc(threads.updated_at) : asc(threads.updated_at))
       .limit(limit + 1)
-      .all();
 
-    const items = rows.map((r) => new Thread(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Thread(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";

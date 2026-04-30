@@ -29,7 +29,7 @@ import {
   PythonStdioBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
-import { initDb, getSecret } from "@nodetool-ai/models";
+import { initDb, initPostgresDb, getSecret } from "@nodetool-ai/models";
 import {
   Tool,
   GoogleSearchTool,
@@ -187,11 +187,32 @@ async function notifyPythonBridgeResourceChanges(
 // Database setup
 // ---------------------------------------------------------------------------
 
-const dbPath = getDefaultDbPath();
+function maskDatabaseUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.password) {
+      parsed.password = "***";
+    }
+    return parsed.toString();
+  } catch {
+    return "(provided)";
+  }
+}
+
 try {
-  mkdirSync(dirname(dbPath), { recursive: true });
-  initDb(dbPath);
-  log.info(`Database ready [${startupMs()}]`, { path: dbPath });
+  const databaseUrl = process.env["DATABASE_URL"];
+  if (databaseUrl) {
+    await initPostgresDb(databaseUrl);
+    log.info(`PostgreSQL database ready [${startupMs()}]`, {
+      url: maskDatabaseUrl(databaseUrl)
+    });
+  } else {
+    const dbPath = getDefaultDbPath();
+    mkdirSync(dirname(dbPath), { recursive: true });
+    initDb(dbPath);
+    log.info(`SQLite database ready [${startupMs()}]`, { path: dbPath });
+  }
+
   // Initialize master key from keychain before any secret access.
   // This must happen before setSecretResolver so that getMasterKey() (sync)
   // returns the keychain key rather than auto-generating a new one.

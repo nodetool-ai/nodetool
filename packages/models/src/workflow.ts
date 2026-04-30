@@ -127,15 +127,14 @@ export class Workflow extends DBModel {
     if (access) conditions.push(eq(workflows.access, access));
     if (runMode) conditions.push(eq(workflows.run_mode, runMode));
 
-    const rows = db
+    const rows = await db
       .select()
       .from(workflows)
       .where(and(...conditions))
       .orderBy(desc(workflows.updated_at))
       .limit(limit + 1)
-      .all();
 
-    const items = rows.map((r) => new Workflow(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -148,15 +147,14 @@ export class Workflow extends DBModel {
   ): Promise<[Workflow[], string]> {
     const { limit = 50 } = opts;
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(workflows)
       .where(eq(workflows.access, "public"))
       .orderBy(desc(workflows.updated_at))
       .limit(limit + 1)
-      .all();
 
-    const items = rows.map((r) => new Workflow(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -170,21 +168,20 @@ export class Workflow extends DBModel {
   ): Promise<[Workflow[], string]> {
     const { limit = 50 } = opts;
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(workflows)
       .where(and(eq(workflows.user_id, userId), eq(workflows.run_mode, "tool")))
       .orderBy(desc(workflows.updated_at))
       .limit(limit + 1)
-      .all();
 
-    const items = rows.map((r) => new Workflow(r as Record<string, unknown>));
+    const items: Workflow[] = rows.map((r: Record<string, unknown>) => new Workflow(r as Record<string, unknown>));
     if (items.length <= limit) {
-      const tools = items.filter((w) => w.hasToolName());
+      const tools = items.filter((w: Workflow) => w.hasToolName());
       return [tools, ""];
     }
     items.pop();
-    const tools = items.filter((w) => w.hasToolName());
+    const tools = items.filter((w: Workflow) => w.hasToolName());
     const cursor = items[items.length - 1]?.id ?? "";
     return [tools, cursor];
   }
@@ -221,7 +218,7 @@ export class Workflow extends DBModel {
     toolName: string
   ): Promise<Workflow | null> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select()
       .from(workflows)
       .where(
@@ -231,8 +228,7 @@ export class Workflow extends DBModel {
           eq(workflows.run_mode, "tool")
         )
       )
-      .limit(1)
-      .get();
+      .limit(1);
     return row ? new Workflow(row as Record<string, unknown>) : null;
   }
 }

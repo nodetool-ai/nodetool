@@ -8,12 +8,12 @@ import { closeDb, getDb, getRawDb, initDb, initTestDb } from "../src/db.js";
 describe("db", () => {
   let tempDir: string | null = null;
 
-  beforeEach(() => {
-    closeDb();
+  beforeEach(async () => {
+    await closeDb();
   });
 
-  afterEach(() => {
-    closeDb();
+  afterEach(async () => {
+    await closeDb();
     if (tempDir) {
       rmSync(tempDir, { recursive: true, force: true });
       tempDir = null;
@@ -21,8 +21,8 @@ describe("db", () => {
   });
 
   it("throws when database accessors are used before initialization", () => {
-    expect(() => getDb()).toThrow(/Database not initialized/);
-    expect(() => getRawDb()).toThrow(/Database not initialized/);
+    expect(() => getDb()).toThrow(/not initialized/i);
+    expect(() => getRawDb()).toThrow(/not initialized/i);
   });
 
   it("initializes a file-backed database and exposes the raw connection", () => {
@@ -83,15 +83,15 @@ describe("db", () => {
     expect(jobCols).toContain("suspension_metadata_json");
   });
 
-  it("closeDb resets both the drizzle and raw database handles", () => {
+  it("closeDb resets both the drizzle and raw database handles", async () => {
     tempDir = mkdtempSync(join(tmpdir(), "nodetool-models-db-"));
     const dbPath = join(tempDir, "close.sqlite");
 
     initDb(dbPath);
-    closeDb();
+    await closeDb();
 
-    expect(() => getDb()).toThrow(/Database not initialized/);
-    expect(() => getRawDb()).toThrow(/Database not initialized/);
+    expect(() => getDb()).toThrow(/not initialized/i);
+    expect(() => getRawDb()).toThrow(/not initialized/i);
   });
 
   it("swallows close errors when replacing an existing test database", () => {
@@ -111,7 +111,7 @@ describe("db", () => {
     }
   });
 
-  it("swallows close errors when shutting down the active connection", () => {
+  it("swallows close errors when shutting down the active connection", async () => {
     initTestDb();
     const rawDb = getRawDb();
     const originalClose = rawDb.close.bind(rawDb);
@@ -120,9 +120,9 @@ describe("db", () => {
     };
 
     try {
-      expect(() => closeDb()).not.toThrow();
-      expect(() => getDb()).toThrow(/Database not initialized/);
-      expect(() => getRawDb()).toThrow(/Database not initialized/);
+      await expect(closeDb()).resolves.toBeUndefined();
+      expect(() => getDb()).toThrow(/not initialized/i);
+      expect(() => getRawDb()).toThrow(/not initialized/i);
     } finally {
       (rawDb as Database.Database & { close: () => void }).close =
         originalClose;

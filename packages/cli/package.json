@@ -49,7 +49,8 @@
     "marked": "^12.0.0",
     "marked-terminal": "^7.1.0",
     "react": "^19.0.0",
-    "superjson": "^2.2.2"
+    "superjson": "^2.2.2",
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
