@@ -119,7 +119,12 @@ export class VideoSourceNode extends BaseNode {
     image: "image",
     realtime_frame: "realtime_video_frame"
   };
-  static readonly basicFields = ["source", "image"];
+  static readonly basicFields = [
+    "source",
+    "camera_device_label",
+    "camera_resolution",
+    "image"
+  ];
   static readonly isStreamingOutput = true;
   static readonly isRealtimeCapable = true;
   static readonly isMediaAdapter = true;
@@ -148,6 +153,34 @@ export class VideoSourceNode extends BaseNode {
     description: "The latest still image captured from the source."
   })
   declare image: ImageRef | null;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Camera Device ID",
+    description:
+      "Browser media device id for the selected camera. Empty means system default."
+  })
+  declare camera_device_id: string;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Camera Device Label",
+    description:
+      "Human-readable label for the selected camera, used when a stored device is unavailable."
+  })
+  declare camera_device_label: string;
+
+  @prop({
+    type: "enum",
+    default: "hd",
+    title: "Camera Resolution",
+    description:
+      "Requested browser camera capture resolution. The browser may choose a nearby actual mode.",
+    values: ["qvga", "vga", "wide480p", "hd", "fhd"]
+  })
+  declare camera_resolution: "qvga" | "vga" | "wide480p" | "hd" | "fhd";
 
   @prop({
     type: "realtime_video_frame",

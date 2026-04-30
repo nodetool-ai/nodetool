@@ -2,11 +2,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type SyntheticEvent
 } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
   RealtimeAnalysisEvent,
@@ -31,9 +32,14 @@ import {
 import type { VideoCaptureResolutionPreset } from "../../hooks/browser/useVideoCapture";
 import { useRealtimeControlPlane } from "../../hooks/realtime/useRealtimeControlPlane";
 import type { RealtimeOutputFrame } from "../../stores/RealtimeSessionStore";
-import { findVideoTrackTarget } from "./realtimeTargetDiscovery";
+import {
+  findVideoTrackCameraSettings,
+  findVideoTrackTarget
+} from "./realtimeTargetDiscovery";
 
-const isStoppableSession = (session: RealtimeSessionRecord | null): boolean => {
+const isStoppableSession = (
+  session: RealtimeSessionRecord | null
+): session is RealtimeSessionRecord => {
   return session?.status === "starting" || session?.status === "running";
 };
 
@@ -51,6 +57,9 @@ export interface RealtimeStreamController {
   activeOutputFrame: RealtimeOutputFrame | null;
   previewStream: MediaStream | null;
   videoTrackSettings: MediaTrackSettings | null;
+  videoInputDevices: Array<{ deviceId: string; label: string }>;
+  selectedVideoDeviceId: string;
+  unavailableVideoDeviceLabel: string | null;
   selectedVideoResolution: VideoCaptureResolutionPreset;
   remoteStream: MediaStream | null;
   signalingStatus: RealtimeSignalingStatus;
@@ -72,6 +81,8 @@ export interface RealtimeStreamController {
   isStoppingSession: boolean;
   startPreview: () => Promise<void>;
   stopPreview: () => void;
+  refreshDevices: () => void;
+  handleVideoDeviceChange: (deviceId: string) => void;
   setBrightness: (brightness: number) => void;
   handleVideoResolutionChange: (resolution: VideoCaptureResolutionPreset) => void;
   setVideoTargetNodeId: (nodeId: string) => void;
@@ -88,7 +99,9 @@ export interface RealtimeStreamController {
 export const useRealtimeStreamController = (): RealtimeStreamController => {
   const { workflowId } = useParams<{ workflowId?: string }>();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
+  const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const {
     sessions,
     metrics,
@@ -115,14 +128,20 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     useState<string>("frame");
   const [webrtcConfigError, setWebrtcConfigError] = useState<string | null>(null);
   const [isStoppingSession, setIsStoppingSession] = useState(false);
+  const appliedCameraSettingsKeyRef = useRef<string | null>(null);
   const {
     error: previewError,
     previewStream,
     videoTrackSettings,
+    videoInputDevices,
+    selectedVideoDeviceId,
+    unavailableVideoDeviceLabel,
     selectedVideoResolution,
     isPreviewReady,
     startPreview,
     stopPreview,
+    refreshDevices,
+    handleVideoDeviceChange,
     handleVideoResolutionChange
   } = useVideoCapture({
     includeAudio: false,
@@ -176,6 +195,10 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const isStopSessionDisabled = !isStoppableSession(activeSession);
   const discoveredVideoTrackTarget = useMemo(
     () => findVideoTrackTarget(workflow),
+    [workflow]
+  );
+  const videoSourceCameraSettings = useMemo(
+    () => findVideoTrackCameraSettings(workflow),
     [workflow]
   );
   const webrtcRuntimeMode = useMemo<RealtimeWebRTCRuntimeMode>(() => {
@@ -265,6 +288,96 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     videoTargetSourceHandle
   ]);
 
+  useEffect(() => {
+    if (!videoSourceCameraSettings) {
+      return;
+    }
+
+    const settingsKey = [
+      videoSourceCameraSettings.nodeId,
+      videoSourceCameraSettings.deviceId,
+      videoSourceCameraSettings.resolution
+    ].join(":");
+    if (appliedCameraSettingsKeyRef.current === settingsKey) {
+      return;
+    }
+
+    appliedCameraSettingsKeyRef.current = settingsKey;
+    handleVideoDeviceChange(videoSourceCameraSettings.deviceId);
+    handleVideoResolutionChange(videoSourceCameraSettings.resolution);
+  }, [
+    handleVideoDeviceChange,
+    handleVideoResolutionChange,
+    videoSourceCameraSettings
+  ]);
+
+  const persistVideoSourceCameraSettings = useCallback(
+    (properties: Record<string, unknown>) => {
+      if (!workflow || !videoSourceCameraSettings) {
+        return;
+      }
+
+      const nextWorkflow: Workflow = {
+        ...workflow,
+        graph: {
+          ...workflow.graph,
+          nodes: (workflow.graph?.nodes ?? []).map((node) => {
+            if (node.id !== videoSourceCameraSettings.nodeId) {
+              return node;
+            }
+
+            return {
+              ...node,
+              properties: {
+                ...(node.properties ?? {}),
+                ...properties
+              }
+            };
+          }),
+          edges: workflow.graph?.edges ?? []
+        }
+      };
+
+      queryClient.setQueryData(["realtime-workflow", workflowId], nextWorkflow);
+      void saveWorkflow(nextWorkflow).catch((error: unknown) => {
+        setWebrtcConfigError(
+          error instanceof Error
+            ? error.message
+            : "Failed to save camera settings"
+        );
+      });
+    },
+    [queryClient, saveWorkflow, videoSourceCameraSettings, workflow, workflowId]
+  );
+
+  const handlePersistedVideoDeviceChange = useCallback(
+    (deviceId: string) => {
+      const deviceLabel =
+        videoInputDevices.find((device) => device.deviceId === deviceId)?.label ??
+        "";
+      handleVideoDeviceChange(deviceId);
+      persistVideoSourceCameraSettings({
+        camera_device_id: deviceId,
+        camera_device_label: deviceLabel
+      });
+    },
+    [
+      handleVideoDeviceChange,
+      persistVideoSourceCameraSettings,
+      videoInputDevices
+    ]
+  );
+
+  const handlePersistedVideoResolutionChange = useCallback(
+    (resolution: VideoCaptureResolutionPreset) => {
+      handleVideoResolutionChange(resolution);
+      persistVideoSourceCameraSettings({
+        camera_resolution: resolution
+      });
+    },
+    [handleVideoResolutionChange, persistVideoSourceCameraSettings]
+  );
+
   const handleStartSession = useCallback(async () => {
     if (!workflowId) {
       return;
@@ -341,8 +454,9 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
       return;
     }
 
-    const sessionId = activeSession.session_id;
-    const sessionWorkflowId = activeSession.workflow_id;
+    const session = activeSession;
+    const sessionId = session.session_id;
+    const sessionWorkflowId = session.workflow_id;
     setIsStoppingSession(true);
     removeSession(sessionId);
     setActiveSession(null);
@@ -387,6 +501,9 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     activeOutputFrame,
     previewStream,
     videoTrackSettings,
+    videoInputDevices,
+    selectedVideoDeviceId,
+    unavailableVideoDeviceLabel,
     selectedVideoResolution,
     remoteStream,
     signalingStatus,
@@ -408,8 +525,10 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     isStoppingSession,
     startPreview,
     stopPreview,
+    refreshDevices,
     setBrightness,
-    handleVideoResolutionChange,
+    handleVideoDeviceChange: handlePersistedVideoDeviceChange,
+    handleVideoResolutionChange: handlePersistedVideoResolutionChange,
     setVideoTargetNodeId,
     setVideoTargetInputName,
     setActiveSession,

@@ -1,7 +1,9 @@
 import {
   Card,
   Caption,
+  EditorButton,
   FlexColumn,
+  FlexRow,
   StatusIndicator,
   Text,
   TextInput
@@ -21,30 +23,52 @@ import {
 } from "./realtimeStyles";
 
 interface RealtimeCameraSetupCardProps {
+  videoInputDevices: Array<{ deviceId: string; label: string }>;
+  selectedVideoDeviceId: string;
   selectedVideoResolution: VideoCaptureResolutionPreset;
   videoTrackSettings: MediaTrackSettings | null;
+  unavailableVideoDeviceLabel: string | null;
   videoTargetNodeId: string;
   videoTargetInputName: string;
   videoTargetSourceHandle: string;
   ingressMode: "frame-push" | "webrtc";
   cameraPublisherStatus: RealtimeCameraFramePublisherStatus;
+  onRefreshDevices: () => void;
+  onVideoDeviceChange: (deviceId: string) => void;
   onVideoResolutionChange: (resolution: VideoCaptureResolutionPreset) => void;
   onVideoTargetNodeIdChange: (nodeId: string) => void;
   onVideoTargetInputNameChange: (inputName: string) => void;
 }
 
 export const RealtimeCameraSetupCard = ({
+  videoInputDevices,
+  selectedVideoDeviceId,
   selectedVideoResolution,
   videoTrackSettings,
+  unavailableVideoDeviceLabel,
   videoTargetNodeId,
   videoTargetInputName,
   videoTargetSourceHandle,
   ingressMode,
   cameraPublisherStatus,
+  onRefreshDevices,
+  onVideoDeviceChange,
   onVideoResolutionChange,
   onVideoTargetNodeIdChange,
   onVideoTargetInputNameChange
 }: RealtimeCameraSetupCardProps) => {
+  const cameraOptions = videoInputDevices.some((device) => device.deviceId === "")
+    ? videoInputDevices.map((device) => ({
+        value: device.deviceId,
+        label: device.label
+      }))
+    : [
+        { value: "", label: "System default camera" },
+        ...videoInputDevices.map((device) => ({
+          value: device.deviceId,
+          label: device.label
+        }))
+      ];
   const resolutionOptions = Object.entries(VIDEO_CAPTURE_RESOLUTION_PRESETS).map(
     ([value, preset]) => ({
       value,
@@ -67,6 +91,29 @@ export const RealtimeCameraSetupCard = ({
     <Card padding="normal" variant="outlined" sx={realtimeCardSx}>
       <FlexColumn gap={1.5}>
         <Text weight={600}>Camera Setup</Text>
+        <FlexRow gap={1} align="center" fullWidth>
+          <EditorButton
+            onClick={onRefreshDevices}
+            variant="text"
+            density="compact"
+          >
+            Load Cameras
+          </EditorButton>
+        </FlexRow>
+        <Select
+          options={cameraOptions}
+          value={selectedVideoDeviceId}
+          onChange={onVideoDeviceChange}
+          placeholder="System default camera"
+          label="Camera"
+          sharp
+        />
+        {unavailableVideoDeviceLabel ? (
+          <Caption color="warning">
+            Stored camera unavailable: {unavailableVideoDeviceLabel}. Using
+            system default.
+          </Caption>
+        ) : null}
         <Select
           options={resolutionOptions}
           value={selectedVideoResolution}

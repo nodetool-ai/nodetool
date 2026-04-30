@@ -89,6 +89,18 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const metadata = useMetadataStore((state) => state.getMetadata(type));
   const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
   const setOutputResult = useResultsStore((state) => state.setOutputResult);
+  const initialVideoDeviceId =
+    typeof data.properties.camera_device_id === "string"
+      ? data.properties.camera_device_id
+      : "";
+  const initialVideoDeviceLabel =
+    typeof data.properties.camera_device_label === "string"
+      ? data.properties.camera_device_label
+      : "";
+  const initialResolution =
+    typeof data.properties.camera_resolution === "string"
+      ? (data.properties.camera_resolution as VideoCaptureResolutionPreset)
+      : "hd";
   const {
     error,
     videoRef,
@@ -97,6 +109,7 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     isPreviewReady,
     isLoading,
     videoInputDevices,
+    unavailableVideoDeviceLabel,
     videoTrackSettings,
     selectedVideoDeviceId,
     selectedVideoResolution,
@@ -105,7 +118,13 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     refreshDevices,
     handleVideoDeviceChange,
     handleVideoResolutionChange
-  } = useVideoCapture({ includeAudio: false, autoFetchDevices: false });
+  } = useVideoCapture({
+    includeAudio: false,
+    autoFetchDevices: false,
+    initialVideoDeviceId,
+    initialVideoDeviceLabel,
+    initialResolution
+  });
 
   const options = useMemo(
     () => cameraOptions(videoInputDevices),
@@ -125,6 +144,29 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     updateNodeProperties(id, { image });
     setOutputResult(data.workflow_id, id, image);
   }, [data.workflow_id, id, setOutputResult, updateNodeProperties, videoRef]);
+
+  const handleCameraChange = useCallback(
+    (deviceId: string) => {
+      const deviceLabel =
+        options.find((option) => option.value === deviceId)?.label ?? "";
+      handleVideoDeviceChange(deviceId);
+      updateNodeProperties(id, {
+        camera_device_id: deviceId,
+        camera_device_label: deviceLabel
+      });
+    },
+    [handleVideoDeviceChange, id, options, updateNodeProperties]
+  );
+
+  const handleResolutionChange = useCallback(
+    (resolution: VideoCaptureResolutionPreset) => {
+      handleVideoResolutionChange(resolution);
+      updateNodeProperties(id, {
+        camera_resolution: resolution
+      });
+    },
+    [handleVideoResolutionChange, id, updateNodeProperties]
+  );
 
   if (!metadata) {
     throw new Error("Metadata not loaded for " + type);
@@ -191,7 +233,7 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           <Select
             options={options}
             value={selectedVideoDeviceId}
-            onChange={handleVideoDeviceChange}
+            onChange={handleCameraChange}
             placeholder="System default camera"
             label="Camera"
           />
@@ -202,7 +244,7 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             options={resolutionOptions}
             value={selectedVideoResolution}
             onChange={(value) =>
-              handleVideoResolutionChange(value as VideoCaptureResolutionPreset)
+              handleResolutionChange(value as VideoCaptureResolutionPreset)
             }
             placeholder="Resolution"
             label="Resolution"
@@ -210,6 +252,12 @@ const VideoSourceNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </div>
 
         {error ? <Text color="error">{error}</Text> : null}
+        {unavailableVideoDeviceLabel ? (
+          <Text size="small" color="warning">
+            Stored camera unavailable: {unavailableVideoDeviceLabel}. Using
+            system default.
+          </Text>
+        ) : null}
         {isWarmingUp ? (
           <Text size="small" color="warning">
             Warming up camera...

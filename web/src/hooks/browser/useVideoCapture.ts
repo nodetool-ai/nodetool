@@ -35,6 +35,8 @@ export const VIDEO_CAPTURE_RESOLUTION_PRESETS: Record<
 export interface UseVideoCaptureOptions {
   includeAudio?: boolean;
   autoFetchDevices?: boolean;
+  initialVideoDeviceId?: string;
+  initialVideoDeviceLabel?: string;
   initialResolution?: VideoCaptureResolutionPreset;
   warmupMs?: number;
 }
@@ -130,6 +132,7 @@ export function useVideoCapture(
   isLoading: boolean;
   videoInputDevices: VideoDevice[];
   audioInputDevices: VideoDevice[];
+  unavailableVideoDeviceLabel: string | null;
   videoTrackSettings: MediaTrackSettings | null;
   selectedVideoDeviceId: string;
   selectedAudioDeviceId: string;
@@ -144,6 +147,8 @@ export function useVideoCapture(
   const {
     includeAudio = true,
     autoFetchDevices = true,
+    initialVideoDeviceId = "",
+    initialVideoDeviceLabel = "",
     initialResolution = DEFAULT_VIDEO_RESOLUTION,
     warmupMs = DEFAULT_WARMUP_MS
   } = options;
@@ -160,10 +165,12 @@ export function useVideoCapture(
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [videoInputDevices, setVideoInputDevices] = useState<VideoDevice[]>([]);
   const [audioInputDevices, setAudioInputDevices] = useState<VideoDevice[]>([]);
+  const [unavailableVideoDeviceLabel, setUnavailableVideoDeviceLabel] =
+    useState<string | null>(null);
   const [videoTrackSettings, setVideoTrackSettings] =
     useState<MediaTrackSettings | null>(null);
   const [selectedVideoDeviceId, setSelectedVideoDeviceId] =
-    useState<string>("");
+    useState<string>(initialVideoDeviceId);
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] =
     useState<string>("");
   const [selectedVideoResolution, setSelectedVideoResolution] =
@@ -260,7 +267,16 @@ export function useVideoCapture(
           if (
             nextVideoInputs.some((device) => device.deviceId === currentSelection)
           ) {
+            setUnavailableVideoDeviceLabel(null);
             return currentSelection;
+          }
+
+          if (currentSelection) {
+            setUnavailableVideoDeviceLabel(
+              initialVideoDeviceLabel || currentSelection
+            );
+          } else {
+            setUnavailableVideoDeviceLabel(null);
           }
 
           if (nextVideoInputs.some((device) => device.deviceId.length === 0)) {
@@ -303,20 +319,27 @@ export function useVideoCapture(
           )}`
         );
       });
-  }, [includeAudio, selectedVideoResolution]);
+  }, [includeAudio, initialVideoDeviceLabel, selectedVideoResolution]);
 
-  const startPreview = useCallback(async () => {
+  const startPreviewWithSettings = useCallback(async (
+    videoDeviceId: string,
+    videoResolution: VideoCaptureResolutionPreset
+  ) => {
     setIsLoading(true);
     setError(null);
     clearWarmupTimeout();
     setIsWarmingUp(false);
     setIsPreviewReady(false);
+    stopMediaStream(streamRef.current);
+    streamRef.current = null;
+    setPreviewStream(null);
+    setVideoTrackSettings(null);
 
     try {
       const constraints: MediaStreamConstraints = {
         video: videoConstraintsForDevice(
-          selectedVideoDeviceId,
-          selectedVideoResolution
+          videoDeviceId,
+          videoResolution
         ),
         audio: includeAudio
           ? selectedAudioDeviceId
@@ -327,7 +350,6 @@ export function useVideoCapture(
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       logVideoTrackDiagnostics(stream, constraints);
-      stopMediaStream(streamRef.current);
       streamRef.current = stream;
       setVideoTrackSettings(stream.getVideoTracks()[0]?.getSettings?.() ?? null);
       setPreviewStream(stream);
@@ -353,14 +375,27 @@ export function useVideoCapture(
     clearWarmupTimeout,
     includeAudio,
     selectedAudioDeviceId,
+    warmupMs
+  ]);
+
+  const startPreview = useCallback(async () => {
+    await startPreviewWithSettings(
+      selectedVideoDeviceId,
+      selectedVideoResolution
+    );
+  }, [
     selectedVideoDeviceId,
     selectedVideoResolution,
-    warmupMs
+    startPreviewWithSettings
   ]);
 
   const handleVideoDeviceChange = useCallback((deviceId: string) => {
     setSelectedVideoDeviceId(deviceId);
-  }, []);
+    setUnavailableVideoDeviceLabel(null);
+    if (streamRef.current) {
+      void startPreviewWithSettings(deviceId, selectedVideoResolution);
+    }
+  }, [selectedVideoResolution, startPreviewWithSettings]);
 
   const handleAudioDeviceChange = useCallback((deviceId: string) => {
     setSelectedAudioDeviceId(deviceId);
@@ -369,8 +404,11 @@ export function useVideoCapture(
   const handleVideoResolutionChange = useCallback(
     (resolution: VideoCaptureResolutionPreset) => {
       setSelectedVideoResolution(resolution);
+      if (streamRef.current) {
+        void startPreviewWithSettings(selectedVideoDeviceId, resolution);
+      }
     },
-    []
+    [selectedVideoDeviceId, startPreviewWithSettings]
   );
 
   useEffect(() => {
@@ -420,6 +458,7 @@ export function useVideoCapture(
     isLoading,
     videoInputDevices,
     audioInputDevices,
+    unavailableVideoDeviceLabel,
     videoTrackSettings,
     selectedVideoDeviceId,
     selectedAudioDeviceId,

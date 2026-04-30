@@ -129,7 +129,7 @@ export const captureVideoElementFrame = (
     return null;
   }
 
-  const maxWidth = options.maxWidth ?? DEFAULT_MAX_WIDTH;
+  const maxWidth = options.maxWidth ?? DEFAULT_REALTIME_FRAME_MAX_WIDTH;
   const scale = sourceWidth > maxWidth ? maxWidth / sourceWidth : 1;
   const width = Math.max(1, Math.round(sourceWidth * scale));
   const height = Math.max(1, Math.round(sourceHeight * scale));

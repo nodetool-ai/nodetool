@@ -222,7 +222,7 @@ describe("RealtimeCommandHandler", () => {
     });
     const pushedFrame = pushInputValue.mock.calls[0][1] as VideoFrame;
     expect(pushInputValue).toHaveBeenCalledWith(
-      "camera",
+      "video-source",
       expect.objectContaining({
         type: "realtime_video_frame",
         width: 1,

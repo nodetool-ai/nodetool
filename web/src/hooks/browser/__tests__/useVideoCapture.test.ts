@@ -143,6 +143,68 @@ describe("useVideoCapture", () => {
     expect(result.current.selectedVideoResolution).toBe("vga");
   });
 
+  it("uses the initial camera settings when starting preview", async () => {
+    const previewStream = createMockStream();
+    mockGetUserMedia.mockResolvedValue(previewStream);
+
+    const { result } = renderHook(() =>
+      useVideoCapture({
+        includeAudio: false,
+        autoFetchDevices: false,
+        initialVideoDeviceId: "camera-1",
+        initialResolution: "wide480p",
+        warmupMs: 0
+      })
+    );
+
+    await act(async () => {
+      await result.current.startPreview();
+    });
+
+    expect(mockGetUserMedia).toHaveBeenCalledWith({
+      video: {
+        width: { ideal: 832 },
+        height: { ideal: 480 },
+        frameRate: { ideal: 30, max: 30 },
+        deviceId: { exact: "camera-1" }
+      },
+      audio: false
+    });
+  });
+
+  it("restarts an active preview when the resolution changes", async () => {
+    const firstStream = createMockStream();
+    const secondStream = createMockStream();
+    mockGetUserMedia
+      .mockResolvedValueOnce(firstStream)
+      .mockResolvedValueOnce(secondStream);
+
+    const { result } = renderHook(() =>
+      useVideoCapture({ includeAudio: false, autoFetchDevices: false, warmupMs: 0 })
+    );
+
+    await act(async () => {
+      await result.current.startPreview();
+    });
+    await act(async () => {
+      result.current.handleVideoResolutionChange("vga");
+    });
+
+    await waitFor(() => {
+      expect(mockGetUserMedia).toHaveBeenCalledTimes(2);
+    });
+    expect(mockGetUserMedia).toHaveBeenLastCalledWith({
+      video: {
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        frameRate: { ideal: 30, max: 30 }
+      },
+      audio: false
+    });
+    expect(firstStream.getTracks()[0].stop).toHaveBeenCalled();
+    expect(result.current.previewStream).toBe(secondStream);
+  });
+
   it("supports a wide 480p capture preset for realtime video", async () => {
     const previewStream = createMockStream();
     mockGetUserMedia.mockResolvedValue(previewStream);

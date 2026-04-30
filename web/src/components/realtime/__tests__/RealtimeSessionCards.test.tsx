@@ -135,8 +135,11 @@ describe("Realtime session cards", () => {
   it("renders camera source route and cadence status", () => {
     renderWithTheme(
       <RealtimeCameraSetupCard
+        videoInputDevices={[]}
+        selectedVideoDeviceId=""
         selectedVideoResolution="vga"
         videoTrackSettings={null}
+        unavailableVideoDeviceLabel={null}
         cameraPublisherStatus={{
           enabled: true,
           active: true,
@@ -155,6 +158,8 @@ describe("Realtime session cards", () => {
         videoTargetInputName="camera"
         videoTargetSourceHandle="realtime_frame"
         ingressMode="frame-push"
+        onRefreshDevices={jest.fn()}
+        onVideoDeviceChange={jest.fn()}
         onVideoResolutionChange={jest.fn()}
         onVideoTargetNodeIdChange={jest.fn()}
         onVideoTargetInputNameChange={jest.fn()}

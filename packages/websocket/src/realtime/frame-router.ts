@@ -43,7 +43,7 @@ export class FrameRouter {
     }
 
     await this.runner.pushInputValue(
-      track.input_name,
+      track.node_id,
       frame,
       track.source_handle ?? "frame"
     );
@@ -54,14 +54,14 @@ export class FrameRouter {
   finish(): void {
     const finishedInputs = new Set<string>();
     for (const track of this.tracksById.values()) {
-      if (finishedInputs.has(track.input_name)) {
+      if (finishedInputs.has(track.node_id)) {
         continue;
       }
       this.runner.finishInputStream?.(
-        track.input_name,
+        track.node_id,
         track.source_handle ?? "frame"
       );
-      finishedInputs.add(track.input_name);
+      finishedInputs.add(track.node_id);
     }
   }
 

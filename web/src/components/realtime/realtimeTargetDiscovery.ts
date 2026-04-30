@@ -1,4 +1,5 @@
 import type { Workflow } from "../../stores/ApiTypes";
+import type { VideoCaptureResolutionPreset } from "../../hooks/browser/useVideoCapture";
 
 interface WorkflowNodeLike {
   id: string;
@@ -15,6 +16,21 @@ export interface VideoTrackTarget {
   inputName: string;
   sourceHandle: string;
 }
+
+export interface VideoTrackCameraSettings {
+  nodeId: string;
+  deviceId: string;
+  deviceLabel: string;
+  resolution: VideoCaptureResolutionPreset;
+}
+
+const VIDEO_CAPTURE_RESOLUTION_VALUES = new Set<VideoCaptureResolutionPreset>([
+  "qvga",
+  "vga",
+  "wide480p",
+  "hd",
+  "fhd"
+]);
 
 const getExternalInputName = (node: WorkflowNodeLike): string => {
   if (node.type === "nodetool.video.VideoSource") {
@@ -53,5 +69,39 @@ export const findVideoTrackTarget = (
     inputName: getExternalInputName(node),
     sourceHandle:
       node.type === "nodetool.video.VideoSource" ? "realtime_frame" : "frame"
+  };
+};
+
+export const findVideoTrackCameraSettings = (
+  workflow: Workflow | undefined
+): VideoTrackCameraSettings | null => {
+  const nodes = (workflow?.graph?.nodes ?? []) as WorkflowNodeLike[];
+  const node = nodes.find(
+    (candidate) => candidate.type === "nodetool.video.VideoSource"
+  );
+
+  if (!node) {
+    return null;
+  }
+
+  const resolution =
+    typeof node.properties?.camera_resolution === "string" &&
+    VIDEO_CAPTURE_RESOLUTION_VALUES.has(
+      node.properties.camera_resolution as VideoCaptureResolutionPreset
+    )
+      ? (node.properties.camera_resolution as VideoCaptureResolutionPreset)
+      : "hd";
+
+  return {
+    nodeId: node.id,
+    deviceId:
+      typeof node.properties?.camera_device_id === "string"
+        ? node.properties.camera_device_id
+        : "",
+    deviceLabel:
+      typeof node.properties?.camera_device_label === "string"
+        ? node.properties.camera_device_label
+        : "",
+    resolution
   };
 };

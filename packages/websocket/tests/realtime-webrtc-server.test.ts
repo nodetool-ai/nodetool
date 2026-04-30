@@ -282,8 +282,8 @@ describe("FrameRouter", () => {
     await router.routeFrame("video-track", frame);
     router.finish();
 
-    expect(pushInputValue).toHaveBeenCalledWith("camera", frame, "frame");
-    expect(finishInputStream).toHaveBeenCalledWith("camera", "frame");
+    expect(pushInputValue).toHaveBeenCalledWith("video-source", frame, "frame");
+    expect(finishInputStream).toHaveBeenCalledWith("video-source", "frame");
     expect(router.metrics()).toMatchObject({ routedFrames: 1, unroutedFrames: 0 });
   });
 
@@ -395,7 +395,7 @@ describe("CodecBridge", () => {
       status: "active",
       name: "custom"
     });
-    expect(pushInputValue).toHaveBeenCalledWith("camera", frame, "frame");
+    expect(pushInputValue).toHaveBeenCalledWith("video-source", frame, "frame");
     await webrtcSession.close();
   });
 });

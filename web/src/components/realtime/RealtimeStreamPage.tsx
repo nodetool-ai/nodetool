@@ -151,13 +151,18 @@ const RealtimeStreamPage = () => {
         >
           <FlexColumn gap={2.5}>
             <RealtimeCameraSetupCard
+              videoInputDevices={controller.videoInputDevices}
+              selectedVideoDeviceId={controller.selectedVideoDeviceId}
               selectedVideoResolution={controller.selectedVideoResolution}
               videoTrackSettings={controller.videoTrackSettings}
+              unavailableVideoDeviceLabel={controller.unavailableVideoDeviceLabel}
               videoTargetNodeId={controller.videoTargetNodeId}
               videoTargetInputName={controller.videoTargetInputName}
               videoTargetSourceHandle={controller.videoTargetSourceHandle}
               ingressMode={controller.ingressMode}
               cameraPublisherStatus={controller.cameraPublisherStatus}
+              onRefreshDevices={controller.refreshDevices}
+              onVideoDeviceChange={controller.handleVideoDeviceChange}
               onVideoResolutionChange={controller.handleVideoResolutionChange}
               onVideoTargetNodeIdChange={controller.setVideoTargetNodeId}
               onVideoTargetInputNameChange={controller.setVideoTargetInputName}

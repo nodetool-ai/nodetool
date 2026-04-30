@@ -184,8 +184,9 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
 
           if (isRealtimeSessionAck(message)) {
             if (message.action === "push_frame" && message.session_id) {
+              const sessionId = message.session_id;
               set((state) => {
-                const existing = state.metrics[message.session_id];
+                const existing = state.metrics[sessionId];
                 const base = emptyRealtimeMetrics(message, existing);
                 const routedIncrement = message.ok && message.routed === true ? 1 : 0;
                 const unroutedIncrement =
@@ -193,7 +194,7 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
                 return {
                   metrics: {
                     ...state.metrics,
-                    [message.session_id]: {
+                    [sessionId]: {
                       ...base,
                       frames: {
                         ...base.frames,
@@ -403,9 +404,10 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
       },
 
       upsertOutputFrame(sessionId, update) {
+        const frame = update.value;
         if (
           update.output_type !== "realtime_video_frame" ||
-          !isRealtimeVideoFrame(update.value)
+          !isRealtimeVideoFrame(frame)
         ) {
           return;
         }
@@ -417,7 +419,7 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
               nodeId: update.node_id,
               nodeName: update.node_name,
               outputName: update.output_name,
-              frame: update.value,
+              frame,
               receivedAt: Date.now()
             }
           }
