@@ -406,6 +406,53 @@ async function main() {
     }
   }
 
+  // --- Copy example workflows and thumbnail assets ---
+  // server.ts resolves examples relative to import.meta.url, so in the
+  // packaged app (resources/backend/server.mjs) it looks for:
+  //   resources/backend/examples/nodetool-base/   (workflow JSONs)
+  //   resources/backend/assets/nodetool-base/     (thumbnail JPGs)
+  console.log("\nCopying example workflows and thumbnail assets...");
+  const BASE_NODES_NODETOOL_DIR = path.join(
+    ROOT_DIR,
+    "packages",
+    "base-nodes",
+    "nodetool"
+  );
+  const examplesSrc = path.join(
+    BASE_NODES_NODETOOL_DIR,
+    "examples",
+    "nodetool-base"
+  );
+  const assetsSrc = path.join(
+    BASE_NODES_NODETOOL_DIR,
+    "assets",
+    "nodetool-base"
+  );
+  const examplesDest = path.join(BUNDLE_DIR, "examples", "nodetool-base");
+  const assetsDest = path.join(BUNDLE_DIR, "assets", "nodetool-base");
+
+  if (fs.existsSync(examplesSrc)) {
+    await fsp.mkdir(path.dirname(examplesDest), { recursive: true });
+    await copyDir(examplesSrc, examplesDest);
+    const exampleCount = (await fsp.readdir(examplesDest)).filter((f) =>
+      f.toLowerCase().endsWith(".json")
+    ).length;
+    console.log(`  Copied ${exampleCount} example workflow(s) to examples/nodetool-base/`);
+  } else {
+    console.warn(`  Warning: examples directory not found, skipping: ${examplesSrc}`);
+  }
+
+  if (fs.existsSync(assetsSrc)) {
+    await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
+    await copyDir(assetsSrc, assetsDest);
+    const assetCount = (await fsp.readdir(assetsDest)).filter((f) =>
+      /\.(jpg|jpeg|png|gif|webp)$/i.test(f)
+    ).length;
+    console.log(`  Copied ${assetCount} thumbnail asset(s) to assets/nodetool-base/`);
+  } else {
+    console.warn(`  Warning: assets directory not found, skipping: ${assetsSrc}`);
+  }
+
   // --- Generate minimal package.json ---
   await fsp.writeFile(
     path.join(BUNDLE_DIR, "package.json"),
