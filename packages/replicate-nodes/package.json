@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/replicate-nodes",
   "type": "module",
-  "version": "0.7.0-rc.20",
+  "version": "0.7.0-rc.21",
   "description": "Replicate AI model nodes for the TS workflow runner",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

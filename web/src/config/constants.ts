@@ -1,5 +1,5 @@
 // APP
-export const VERSION = "0.7.0-rc.20";
+export const VERSION = "0.7.0-rc.21";
 
 // TOOLTIPS
 export const TOOLTIP_ENTER_DELAY = 700;
