@@ -1016,14 +1016,16 @@ describe("OpenAIProvider – textToVideo", () => {
       status: "completed"
     });
     const videosRetrieve = vi.fn();
-    const getContent = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]));
+    const downloadContent = vi.fn().mockResolvedValue({
+      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
+    });
 
     const mockClient = {
       videos: {
         create: videosCreate,
-        retrieve: videosRetrieve
-      },
-      get: getContent
+        retrieve: videosRetrieve,
+        downloadContent
+      }
     };
 
     const provider = new OpenAIProvider(
@@ -1106,9 +1108,11 @@ describe("OpenAIProvider – textToVideo", () => {
           return callCount >= 2
             ? { id: "v1", status: "completed" }
             : { id: "v1", status: "in_progress" };
+        }),
+        downloadContent: vi.fn().mockResolvedValue({
+          arrayBuffer: async () => new Uint8Array([1, 2]).buffer
         })
-      },
-      get: vi.fn().mockResolvedValue(new Uint8Array([1, 2]))
+      }
     };
 
     const provider = new OpenAIProvider(
@@ -1135,15 +1139,17 @@ describe("OpenAIProvider – imageToVideo", () => {
     png[2] = 0x4e;
     png[3] = 0x47;
     const view = new DataView(png.buffer);
-    view.setUint32(16, 640, false);
-    view.setUint32(20, 480, false);
+    view.setUint32(16, 1280, false);
+    view.setUint32(20, 720, false);
 
     const mockClient = {
       videos: {
         create: vi.fn().mockResolvedValue({ id: "v1", status: "completed" }),
-        retrieve: vi.fn()
-      },
-      get: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]))
+        retrieve: vi.fn(),
+        downloadContent: vi.fn().mockResolvedValue({
+          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
+        })
+      }
     };
 
     const provider = new OpenAIProvider(
@@ -1180,8 +1186,8 @@ describe("OpenAIProvider – imageToVideo", () => {
     png[2] = 0x4e;
     png[3] = 0x47;
     const view = new DataView(png.buffer);
-    view.setUint32(16, 640, false);
-    view.setUint32(20, 480, false);
+    view.setUint32(16, 1280, false);
+    view.setUint32(20, 720, false);
 
     const mockClient = {
       videos: { create: vi.fn().mockResolvedValue({}) }
@@ -1206,8 +1212,8 @@ describe("OpenAIProvider – imageToVideo", () => {
     png[2] = 0x4e;
     png[3] = 0x47;
     const view = new DataView(png.buffer);
-    view.setUint32(16, 640, false);
-    view.setUint32(20, 480, false);
+    view.setUint32(16, 1280, false);
+    view.setUint32(20, 720, false);
 
     const mockClient = {
       videos: {
@@ -1237,15 +1243,17 @@ describe("OpenAIProvider – imageToVideo", () => {
     png[2] = 0x4e;
     png[3] = 0x47;
     const view = new DataView(png.buffer);
-    view.setUint32(16, 640, false);
-    view.setUint32(20, 480, false);
+    view.setUint32(16, 1280, false);
+    view.setUint32(20, 720, false);
 
     const mockClient = {
       videos: {
         create: vi.fn().mockResolvedValue({ id: "v1", status: "queued" }),
-        retrieve: vi.fn().mockResolvedValue({ id: "v1", status: "completed" })
-      },
-      get: vi.fn().mockResolvedValue(new Uint8Array([4, 5]))
+        retrieve: vi.fn().mockResolvedValue({ id: "v1", status: "completed" }),
+        downloadContent: vi.fn().mockResolvedValue({
+          arrayBuffer: async () => new Uint8Array([4, 5]).buffer
+        })
+      }
     };
 
     const provider = new OpenAIProvider(

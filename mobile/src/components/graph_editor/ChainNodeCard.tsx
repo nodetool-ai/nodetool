@@ -61,7 +61,7 @@ interface ChainNodeCardProps {
 }
 
 function getOutputFromResult(result: unknown): unknown {
-  if (result === undefined || result === null) return undefined;
+  if (result === undefined || result === null) {return undefined;}
   if (
     typeof result === "object" &&
     !Array.isArray(result) &&
@@ -88,9 +88,9 @@ function useNodeExecState(workflowId: string | null, nodeId: string) {
   );
   // Per-node result from node_update, falling back to job-level results
   const result = runnerStore((s) => {
-    if (!workflowId) return undefined;
+    if (!workflowId) {return undefined;}
     const nodeResult = s.nodeResults[nodeId];
-    if (nodeResult !== undefined) return nodeResult;
+    if (nodeResult !== undefined) {return nodeResult;}
     const results = s.results as Record<string, unknown> | null | undefined;
     if (results && typeof results === "object" && !Array.isArray(results)) {
       return (results as Record<string, unknown>)[nodeId];
@@ -191,10 +191,10 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = ({
       setElapsed(0);
       timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {clearInterval(timerRef.current);}
     }
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {clearInterval(timerRef.current);}
     };
   }, [isRunning]);
 

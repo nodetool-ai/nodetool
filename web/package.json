@@ -80,7 +80,7 @@
     "lint:eslint": "eslint src",
     "lint:eslint:fix": "eslint src --fix",
     "check": "tsc && eslint src && jest",
-    "test": "jest --forceExit",
+    "test": "TZ=UTC jest --forceExit",
     "test:summary": "jest --reporters=\"summary\" --forceExit",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --forceExit",

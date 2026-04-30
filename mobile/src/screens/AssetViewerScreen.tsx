@@ -29,7 +29,7 @@ type AssetViewerScreenProps = {
 };
 
 function formatBytes(bytes?: number | null): string {
-  if (bytes == null || bytes <= 0) return 'Unknown size';
+  if (bytes == null || bytes <= 0) {return 'Unknown size';}
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let size = bytes;
   let unitIndex = 0;
@@ -41,7 +41,7 @@ function formatBytes(bytes?: number | null): string {
 }
 
 function formatDate(iso?: string): string {
-  if (!iso) return '-';
+  if (!iso) {return '-';}
   try {
     const d = new Date(iso);
     return d.toLocaleString();
@@ -51,7 +51,7 @@ function formatDate(iso?: string): string {
 }
 
 function formatDuration(seconds?: number | null): string | null {
-  if (seconds == null) return null;
+  if (seconds == null) {return null;}
   const total = Math.floor(seconds);
   const m = Math.floor(total / 60);
   const s = total % 60;
@@ -101,7 +101,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   useEffect(() => {
     const uri = apiService.resolveUrl(asset?.get_url);
     const isAudio = asset?.content_type?.startsWith('audio/');
-    if (!uri || !isAudio) return;
+    if (!uri || !isAudio) {return;}
 
     let isCancelled = false;
     (async () => {
@@ -110,7 +110,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
           { uri },
           { shouldPlay: false },
           (s) => {
-            if (!s.isLoaded) return;
+            if (!s.isLoaded) {return;}
             setAudioPosition(s.positionMillis || 0);
             setIsAudioPlaying(s.isPlaying);
             if (s.didJustFinish) {
@@ -144,7 +144,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
 
   const toggleAudio = useCallback(async () => {
     const sound = soundRef.current;
-    if (!sound) return;
+    if (!sound) {return;}
     try {
       if (isAudioPlaying) {
         await sound.pauseAsync();
@@ -157,13 +157,13 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   }, [isAudioPlaying]);
 
   const handleOpenRename = useCallback(() => {
-    if (!asset) return;
+    if (!asset) {return;}
     setRenameValue(asset.name);
     setIsRenaming(true);
   }, [asset]);
 
   const handleRename = useCallback(async () => {
-    if (!asset) return;
+    if (!asset) {return;}
     const newName = renameValue.trim();
     if (!newName || newName === asset.name) {
       setIsRenaming(false);
@@ -187,7 +187,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   }, [asset, renameValue]);
 
   const handleDelete = useCallback(() => {
-    if (!asset) return;
+    if (!asset) {return;}
     Alert.alert(
       'Delete asset?',
       `This will permanently delete "${asset.name}".`,
@@ -211,7 +211,7 @@ export default function AssetViewerScreen({ navigation, route }: AssetViewerScre
   }, [asset, navigation]);
 
   const handleShare = useCallback(async () => {
-    if (!asset?.get_url) return;
+    if (!asset?.get_url) {return;}
     try {
       await Share.share({
         message: asset.get_url,
@@ -460,14 +460,14 @@ function formatAudioTime(ms: number): string {
 }
 
 function iconForContentType(contentType: string): keyof typeof Ionicons.glyphMap {
-  if (contentType === 'folder') return 'folder';
-  if (contentType.startsWith('image/')) return 'image-outline';
-  if (contentType.startsWith('video/')) return 'film-outline';
-  if (contentType.startsWith('audio/')) return 'musical-notes-outline';
-  if (contentType.startsWith('text/')) return 'document-text-outline';
-  if (contentType.includes('pdf')) return 'document-text-outline';
-  if (contentType.includes('json') || contentType.includes('xml')) return 'code-outline';
-  if (contentType.includes('zip') || contentType.includes('archive')) return 'archive-outline';
+  if (contentType === 'folder') {return 'folder';}
+  if (contentType.startsWith('image/')) {return 'image-outline';}
+  if (contentType.startsWith('video/')) {return 'film-outline';}
+  if (contentType.startsWith('audio/')) {return 'musical-notes-outline';}
+  if (contentType.startsWith('text/')) {return 'document-text-outline';}
+  if (contentType.includes('pdf')) {return 'document-text-outline';}
+  if (contentType.includes('json') || contentType.includes('xml')) {return 'code-outline';}
+  if (contentType.includes('zip') || contentType.includes('archive')) {return 'archive-outline';}
   return 'document-outline';
 }
 

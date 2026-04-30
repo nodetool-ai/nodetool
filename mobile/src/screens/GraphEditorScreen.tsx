@@ -180,7 +180,7 @@ function MiniAppRunner({
     const params = inputDefinitions.reduce<Record<string, unknown>>(
       (accumulator, definition) => {
         const value = inputValues[definition.data.name];
-        if (value === undefined) return accumulator;
+        if (value === undefined) {return accumulator;}
 
         if (
           (definition.kind === "integer" || definition.kind === "float") &&
@@ -217,7 +217,7 @@ function MiniAppRunner({
   }, [inputDefinitions, inputValues, run, workflow]);
 
   const formattedResults = useMemo((): MiniAppResult[] => {
-    if (!runResults) return [];
+    if (!runResults) {return [];}
 
     if (Array.isArray(runResults)) {
       return runResults.map((r, i) => ({
