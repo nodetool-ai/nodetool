@@ -633,10 +633,13 @@ const _monoExamplesDir = resolve(
   "examples",
   "nodetool-base"
 );
+const _examplesDirCandidates: Array<string | null | undefined> = [
+  _envExamplesDir && existsSync(_envExamplesDir) ? _envExamplesDir : null,
+  existsSync(_bundledExamplesDir) ? _bundledExamplesDir : null,
+  existsSync(_monoExamplesDir) ? _monoExamplesDir : null
+];
 const _resolvedExamplesDir =
-  (_envExamplesDir && existsSync(_envExamplesDir) ? _envExamplesDir : null) ??
-  (existsSync(_bundledExamplesDir) ? _bundledExamplesDir : null) ??
-  (existsSync(_monoExamplesDir) ? _monoExamplesDir : null);
+  _examplesDirCandidates.find((d): d is string => Boolean(d)) ?? null;
 
 if (_resolvedExamplesDir) {
   log.info(`Examples directory resolved: ${_resolvedExamplesDir}`);
@@ -648,11 +651,10 @@ if (_resolvedExamplesDir) {
 // API options for HTTP route handlers
 // ---------------------------------------------------------------------------
 
-const apiOptions: HttpApiOptions = {
-  metadataRoots,
-  registry,
-  ...(_resolvedExamplesDir ? { examplesDir: _resolvedExamplesDir } : {})
-};
+const apiOptions: HttpApiOptions = { metadataRoots, registry };
+if (_resolvedExamplesDir) {
+  apiOptions.examplesDir = _resolvedExamplesDir;
+}
 const staticFolder = process.env["STATIC_FOLDER"];
 const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
 
