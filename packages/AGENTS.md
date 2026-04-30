@@ -13,7 +13,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/security` | Secret storage and encryption |
 | `@nodetool-ai/auth` | Authentication middleware and utilities |
 | `@nodetool-ai/storage` | File storage adapters (local, S3) |
-| `@nodetool-ai/models` | SQLite data models via Drizzle ORM (Workflow, Job, Asset, Secret) |
+| `@nodetool-ai/models` | Data models via Drizzle ORM — SQLite (local/Electron) and PostgreSQL/Supabase (cloud) |
 | `@nodetool-ai/node-sdk` | BaseNode class, NodeRegistry, node authoring API, type system |
 | `@nodetool-ai/runtime` | ProcessingContext, LLM providers (Anthropic, OpenAI, Gemini, Ollama, etc.), message queue |
 | `@nodetool-ai/kernel` | Workflow graph model, NodeInbox, ActorRuntime, WorkflowRunner |
