@@ -2577,7 +2577,7 @@ export class AgentNode extends BaseNode {
     // Build control tools from _control_context (injected by the kernel
     // for nodes that have outgoing control edges). This lets the LLM
     // call controlled nodes as tools.
-    const controlContext = (this as any)._control_context;
+    const controlContext = this.getDynamic<Record<string, unknown>>("_control_context");
     const controlTools = buildControlTools(controlContext);
     if (controlTools.length > 0) {
       tools.push(...controlTools);
@@ -3144,7 +3144,7 @@ export class AgentNode extends BaseNode {
     const rawTools: ToolLike[] = await this.buildTools(context);
 
     // Build control tools
-    const controlContext = (this as any)._control_context;
+    const controlContext = this.getDynamic<Record<string, unknown>>("_control_context");
     const controlTools = buildControlTools(controlContext);
     if (controlTools.length > 0) {
       rawTools.push(...controlTools);

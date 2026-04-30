@@ -1,8 +1,9 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { Message, ProcessingContext, ToolCall } from "@nodetool-ai/runtime";
 import {
   isChunkItem,
   isToolCallItem,
+  serializeToolResult,
   streamProviderMessages,
   toProviderTools,
   type ToolLike
@@ -192,6 +193,8 @@ function hasProviderSupport(
 const LIST_GENERATOR_SYSTEM_PROMPT =
   "You generate a list by calling the `add_item` tool exactly once per item. " +
   "Each call submits a single item as a short string. " +
+  "Continue calling `add_item` until all requested items have been emitted. " +
+  "If the user does not specify a count, emit 5 items. " +
   "Do not output prose, explanations, or markdown — only emit tool calls. " +
   "When the list is complete, stop without calling the tool again.";
 
@@ -233,27 +236,62 @@ async function* streamListItemsViaToolCalls(
   const tool = makeAddItemTool();
   const providerTools = toProviderTools([tool]);
 
-  const messages = [
-    { role: "system" as const, content: LIST_GENERATOR_SYSTEM_PROMPT },
-    { role: "user" as const, content: prompt }
+  const messages: Message[] = [
+    { role: "system", content: LIST_GENERATOR_SYSTEM_PROMPT },
+    { role: "user", content: prompt }
   ];
+  const maxIterations = parseRequestedCount(prompt, 5);
 
-  for await (const item of streamProviderMessages(
-    provider as Parameters<typeof streamProviderMessages>[0],
-    {
-      messages,
-      model: modelId,
-      tools: providerTools,
-      maxTokens
+  for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    const assistantToolCalls: ToolCall[] = [];
+    let assistantText = "";
+
+    for await (const item of streamProviderMessages(
+      provider as Parameters<typeof streamProviderMessages>[0],
+      {
+        messages,
+        model: modelId,
+        tools: providerTools,
+        maxTokens
+      }
+    )) {
+      if (isToolCallItem(item)) {
+        assistantToolCalls.push(item);
+        if (item.name === "add_item") {
+          const text = asText(
+            (item.args as { item?: unknown })?.item ?? ""
+          ).trim();
+          if (text) {
+            yield text;
+          }
+        }
+      } else if (isChunkItem(item) && !item.thinking) {
+        // Narrative text is ignored for output, but kept in the conversation
+        // history so providers can continue after tool calls correctly.
+        assistantText += item.content ?? "";
+      }
     }
-  )) {
-    if (isToolCallItem(item) && item.name === "add_item") {
-      const text = asText(
-        (item.args as { item?: unknown })?.item ?? ""
-      ).trim();
-      if (text) yield text;
-    } else if (isChunkItem(item)) {
-      // Ignore narrative text — items only come via tool calls.
+
+    if (assistantToolCalls.length === 0) {
+      break;
+    }
+
+    messages.push({
+      role: "assistant",
+      content: assistantText || null,
+      toolCalls: assistantToolCalls
+    });
+
+    for (const toolCall of assistantToolCalls) {
+      const result =
+        toolCall.name === "add_item" && typeof tool.process === "function"
+          ? await tool.process(context, toolCall.args)
+          : { error: `Unknown tool: ${toolCall.name}` };
+      messages.push({
+        role: "tool",
+        toolCallId: toolCall.id,
+        content: JSON.stringify(serializeToolResult(result))
+      });
     }
   }
 }

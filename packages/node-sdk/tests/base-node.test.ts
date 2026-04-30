@@ -108,4 +108,51 @@ describe("BaseNode", () => {
     const desc = ConcreteNode.toDescriptor();
     expect(desc.id).toBe("test.Concrete");
   });
+
+  it("toExecutor() passes _control_context via getDynamic()", async () => {
+    class ContextNode extends BaseNode {
+      static readonly nodeType = "test.Context";
+      async process() {
+        return {
+          secrets: this.getDynamic("_secrets"),
+          control: this.getDynamic("_control_context")
+        };
+      }
+    }
+    const node = new ContextNode();
+    const executor = node.toExecutor();
+    const result = await executor.process({
+      _secrets: { key: "val" },
+      _control_context: { node: "meta" }
+    });
+    expect(result.secrets).toEqual({ key: "val" });
+    expect(result.control).toEqual({ node: "meta" });
+  });
+
+  it("toExecutor() genProcess passes _control_context via getDynamic()", async () => {
+    class ContextStreamNode extends BaseNode {
+      static readonly nodeType = "test.ContextStream";
+      static readonly isStreamingOutput = true;
+      async process() {
+        return {};
+      }
+      async *genProcess() {
+        yield {
+          secrets: this.getDynamic("_secrets"),
+          control: this.getDynamic("_control_context")
+        };
+      }
+    }
+    const node = new ContextStreamNode();
+    const executor = node.toExecutor();
+    const results: Record<string, unknown>[] = [];
+    for await (const item of executor.genProcess!({
+      _secrets: { key: "val" },
+      _control_context: { node: "meta" }
+    })) {
+      results.push(item);
+    }
+    expect(results[0].secrets).toEqual({ key: "val" });
+    expect(results[0].control).toEqual({ node: "meta" });
+  });
 });

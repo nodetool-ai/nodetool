@@ -341,8 +341,9 @@ export abstract class BaseNode {
         context?: ProcessingContext
       ) => {
         const merged = await this._injectSecrets(inputs, context);
-        const { _secrets, ...props } = merged;
+        const { _secrets, _control_context, ...props } = merged;
         if (_secrets) this.setDynamic("_secrets", _secrets);
+        if (_control_context) this.setDynamic("_control_context", _control_context);
         this.assign(props);
         return this.process(context);
       },
@@ -352,8 +353,9 @@ export abstract class BaseNode {
         context?: ProcessingContext
       ) {
         const merged = await this._injectSecrets(inputs, context);
-        const { _secrets, ...props } = merged;
+        const { _secrets, _control_context, ...props } = merged;
         if (_secrets) this.setDynamic("_secrets", _secrets);
+        if (_control_context) this.setDynamic("_control_context", _control_context);
         this.assign(props);
         yield* this.genProcess(context);
       }.bind(this) as NodeExecutor["genProcess"],

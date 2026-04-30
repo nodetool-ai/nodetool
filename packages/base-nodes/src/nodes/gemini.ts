@@ -44,7 +44,8 @@ export class GroundedSearchNode extends BaseNode {
     "Search the web using Google's Gemini API with grounding capabilities.\n    google, search, grounded, web, gemini, ai\n\n    This node uses Google's Gemini API to perform web searches and return structured results\n    with source information. Requires a Gemini API key.\n\n    Use cases:\n    - Research current events and latest information\n    - Find reliable sources for fact-checking\n    - Gather web-based information with citations\n    - Get up-to-date information beyond the model's training data";
   static readonly metadataOutputTypes = {
     results: "list[str]",
-    sources: "list[source]"
+    sources: "list[source]",
+    text: "str"
   };
   static readonly requiredSettings = ["GEMINI_API_KEY"];
   static readonly exposeAsTool = true;
@@ -59,17 +60,26 @@ export class GroundedSearchNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "gemini-2.0-flash",
+    default: "gemini-3-flash-preview",
     title: "Model",
     description: "The Gemini model to use for search",
-    values: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]
+    values: [
+      "gemini-3.1-pro-preview",
+      "gemini-3.1-flash-image-preview",
+      "gemini-3-pro-image-preview",
+      "gemini-3-flash-preview",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash"
+    ]
   })
   declare model: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const query = String(this.query ?? "");
-    const model = String(this.model ?? "gemini-2.0-flash");
+    const model = String(this.model ?? "gemini-3-flash-preview");
 
     if (!query) throw new Error("Search query is required");
 
@@ -140,7 +150,7 @@ export class GroundedSearchNode extends BaseNode {
       }
     }
 
-    return { results, sources };
+    return { results, sources, text: results.join("\n") };
   }
 }
 
