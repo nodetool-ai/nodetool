@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/sandbox-agent",
   "type": "module",
-  "version": "0.7.0-rc.21",
+  "version": "0.7.0-rc.23",
   "description": "In-container tool server: Fastify HTTP service exposing file, shell, browser, and desktop tools to the host sandbox. Ships baked into the sandbox Docker image.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

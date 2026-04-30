@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/chat",
-  "version": "0.7.0-rc.21",
+  "version": "0.7.0-rc.23",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

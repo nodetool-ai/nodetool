@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/protocol",
-  "version": "0.7.0-rc.21",
+  "version": "0.7.0-rc.23",
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
   "type": "module",
   "main": "dist/index.js",
