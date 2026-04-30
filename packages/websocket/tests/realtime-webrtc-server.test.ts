@@ -11,14 +11,14 @@ import type {
   RealtimeSessionSignal,
   VideoFrame
 } from "@nodetool/protocol";
-import { RealtimeWebRTCServer } from "../src/realtime/webrtc-server.js";
+import { RealtimeWebRTCServer } from "../src/realtime/_legacy/webrtc-server.js";
 import { FrameRouter } from "../src/realtime/frame-router.js";
 import {
   UnsupportedCodecBridge,
   type CodecBridge,
   type CodecBridgeRtpInput
-} from "../src/realtime/codec-bridge.js";
-import { RealtimeWebRTCSession } from "../src/realtime/webrtc-session.js";
+} from "../src/realtime/_legacy/codec-bridge.js";
+import { RealtimeWebRTCSession } from "../src/realtime/_legacy/webrtc-session.js";
 
 const session = (
   overrides: Partial<RealtimeSessionRecord> = {}

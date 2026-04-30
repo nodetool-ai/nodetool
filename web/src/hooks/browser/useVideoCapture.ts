@@ -118,6 +118,17 @@ const stopMediaStream = (stream: MediaStream | null): void => {
   stream?.getTracks().forEach((track) => track.stop());
 };
 
+const findAvailableDeviceId = (
+  devices: VideoDevice[],
+  currentSelection: string
+): string => {
+  if (devices.some((device) => device.deviceId === currentSelection)) {
+    return currentSelection;
+  }
+
+  return devices[0]?.deviceId ?? "";
+};
+
 export function useVideoCapture(
   options: UseVideoCaptureOptions = {}
 ): {
@@ -211,6 +222,68 @@ export function useVideoCapture(
     setVideoTrackSettings(null);
   }, [clearWarmupTimeout]);
 
+  const applyEnumeratedDevices = useCallback(
+    (devices: MediaDeviceInfo[]) => {
+      const nextVideoInputs = mapDevices(
+        devices,
+        "videoinput",
+        "System default camera",
+        "Camera"
+      );
+      const nextAudioInputs = includeAudio
+        ? mapDevices(
+            devices,
+            "audioinput",
+            "System default input",
+            "Microphone"
+          )
+        : [];
+
+      setVideoInputDevices(nextVideoInputs);
+      setAudioInputDevices(nextAudioInputs);
+
+      setSelectedVideoDeviceId((currentSelection) => {
+        const nextSelection = findAvailableDeviceId(
+          nextVideoInputs,
+          currentSelection
+        );
+        setUnavailableVideoDeviceLabel(
+          currentSelection && nextSelection !== currentSelection
+            ? initialVideoDeviceLabel || currentSelection
+            : null
+        );
+        return nextSelection;
+      });
+
+      setSelectedAudioDeviceId((currentSelection) =>
+        findAvailableDeviceId(nextAudioInputs, currentSelection)
+      );
+
+      if (nextVideoInputs.length === 0) {
+        window.setTimeout(() => {
+          setError("No video input devices found");
+        }, 2000);
+      }
+    },
+    [includeAudio, initialVideoDeviceLabel]
+  );
+
+  const enumerateDevices = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      if (devices) {
+        applyEnumeratedDevices(devices);
+      }
+    } catch (enumerateError: unknown) {
+      setError(
+        `Error enumerating devices: ${getErrorMessage(
+          enumerateError,
+          "Unknown device enumeration error"
+        )}`
+      );
+    }
+  }, [applyEnumeratedDevices]);
+
   const refreshDevices = useCallback(() => {
     if (!navigator.mediaDevices) {
       setError("No media devices available");
@@ -240,70 +313,10 @@ export function useVideoCapture(
         return navigator.mediaDevices.enumerateDevices();
       })
       .then((devices) => {
-        if (!devices) {
+        if (devices) {
+          applyEnumeratedDevices(devices);
+        } else {
           setError("No devices found");
-          return;
-        }
-
-        const nextVideoInputs = mapDevices(
-          devices,
-          "videoinput",
-          "System default camera",
-          "Camera"
-        );
-        const nextAudioInputs = includeAudio
-          ? mapDevices(
-              devices,
-              "audioinput",
-              "System default input",
-              "Microphone"
-            )
-          : [];
-
-        setVideoInputDevices(nextVideoInputs);
-        setAudioInputDevices(nextAudioInputs);
-
-        setSelectedVideoDeviceId((currentSelection) => {
-          if (
-            nextVideoInputs.some((device) => device.deviceId === currentSelection)
-          ) {
-            setUnavailableVideoDeviceLabel(null);
-            return currentSelection;
-          }
-
-          if (currentSelection) {
-            setUnavailableVideoDeviceLabel(
-              initialVideoDeviceLabel || currentSelection
-            );
-          } else {
-            setUnavailableVideoDeviceLabel(null);
-          }
-
-          if (nextVideoInputs.some((device) => device.deviceId.length === 0)) {
-            return "";
-          }
-
-          return nextVideoInputs[0]?.deviceId ?? "";
-        });
-
-        setSelectedAudioDeviceId((currentSelection) => {
-          if (
-            nextAudioInputs.some((device) => device.deviceId === currentSelection)
-          ) {
-            return currentSelection;
-          }
-
-          if (nextAudioInputs.some((device) => device.deviceId.length === 0)) {
-            return "";
-          }
-
-          return nextAudioInputs[0]?.deviceId ?? "";
-        });
-
-        if (nextVideoInputs.length === 0) {
-          setTimeout(() => {
-            setError("No video input devices found");
-          }, 2000);
         }
       })
       .catch((fetchError: unknown) => {
@@ -319,7 +332,11 @@ export function useVideoCapture(
           )}`
         );
       });
-  }, [includeAudio, initialVideoDeviceLabel, selectedVideoResolution]);
+  }, [
+    applyEnumeratedDevices,
+    includeAudio,
+    selectedVideoResolution
+  ]);
 
   const startPreviewWithSettings = useCallback(async (
     videoDeviceId: string,
@@ -354,6 +371,7 @@ export function useVideoCapture(
       setVideoTrackSettings(stream.getVideoTracks()[0]?.getSettings?.() ?? null);
       setPreviewStream(stream);
       setIsPreviewing(true);
+      void enumerateDevices();
       if (warmupMs > 0) {
         setIsWarmingUp(true);
         warmupTimeoutRef.current = window.setTimeout(() => {
@@ -373,6 +391,7 @@ export function useVideoCapture(
     }
   }, [
     clearWarmupTimeout,
+    enumerateDevices,
     includeAudio,
     selectedAudioDeviceId,
     warmupMs

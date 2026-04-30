@@ -946,6 +946,7 @@ export class ProcessingContext {
   }
 
   private _messageResolve: (() => void) | null = null;
+  private _messageQueueClosed = false;
 
   /** Notify that a new message has been pushed. */
   private _notifyMessage(): void {
@@ -956,16 +957,30 @@ export class ProcessingContext {
     }
   }
 
-  async popMessageAsync(): Promise<ProcessingMessage> {
-    while (this._messages.length === 0) {
+  /**
+   * Signal that no more messages will be emitted. Unblocks any pending
+   * popMessageAsync() call so the consumer can drain remaining messages
+   * and exit cleanly.
+   */
+  closeMessageQueue(): void {
+    this._messageQueueClosed = true;
+    this._notifyMessage();
+  }
+
+  /**
+   * Wait for the next message. Returns null when the queue is closed and
+   * fully drained — the caller should stop consuming at that point.
+   */
+  async popMessageAsync(): Promise<ProcessingMessage | null> {
+    while (this._messages.length === 0 && !this._messageQueueClosed) {
       await new Promise<void>((r) => {
         this._messageResolve = r;
       });
     }
-    return this._messages.shift() as ProcessingMessage;
+    return this._messages.shift() ?? null;
   }
 
-  async pop_message_async(): Promise<ProcessingMessage> {
+  async pop_message_async(): Promise<ProcessingMessage | null> {
     return this.popMessageAsync();
   }
 

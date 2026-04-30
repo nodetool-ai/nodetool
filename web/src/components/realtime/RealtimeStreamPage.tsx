@@ -5,6 +5,7 @@ import {
   FlexRow,
   LoadingSpinner,
   ScrollArea,
+  SelectField,
   Text
 } from "../ui_primitives";
 import VideoPreview from "./VideoPreview";
@@ -17,9 +18,26 @@ import { RealtimeSessionListCard } from "./RealtimeSessionListCard";
 import { RealtimeWorkflowSummaryCard } from "./RealtimeWorkflowSummaryCard";
 import { realtimeCardSx } from "./realtimeStyles";
 import { useRealtimeStreamController } from "./useRealtimeStreamController";
+import {
+  REALTIME_DEBUG_LOG_RATE_OPTIONS,
+  RealtimeDebugLogRate,
+  useRealtimeDebugStore
+} from "../../stores/RealtimeDebugStore";
+
+const debugLogRateOptions = REALTIME_DEBUG_LOG_RATE_OPTIONS.map(({ value, label }) => ({
+  value,
+  label
+}));
 
 const RealtimeStreamPage = () => {
   const controller = useRealtimeStreamController();
+  const debugLogRate = useRealtimeDebugStore((state) => state.logRate);
+  const setDebugLogRate = useRealtimeDebugStore((state) => state.setLogRate);
+
+  const handleDebugLogRateChange = (next: string) => {
+    const parsed = Number(next) as RealtimeDebugLogRate;
+    setDebugLogRate(parsed);
+  };
 
   return (
     <FlexColumn
@@ -184,6 +202,16 @@ const RealtimeStreamPage = () => {
               compact
             >
               <FlexColumn gap={2.5}>
+                <Card padding="normal" variant="outlined" sx={realtimeCardSx}>
+                  <SelectField
+                    label="Per-frame debug logs"
+                    value={debugLogRate}
+                    onChange={handleDebugLogRateChange}
+                    options={debugLogRateOptions}
+                    description="Off keeps the realtime path silent for max speed. Use sampling (every 10th, 100th, 1000th) for spot checks without flooding the console."
+                    size="small"
+                  />
+                </Card>
                 <RealtimeSessionDetailsCard
                   activeSession={controller.activeSession}
                   activeMetrics={controller.activeMetrics}

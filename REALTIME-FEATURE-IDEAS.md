@@ -1,6 +1,48 @@
-# Realtime Feature Ideas
+# Realtime Feature Ideas and Product Guidance
 
-This document collects future realtime ideas, use cases, and model/library candidates. These are not commitments; `PLAN-REALTIME.md` remains the active implementation roadmap.
+This document collects product guidance, UX direction, node budget rules, and future ideas. None of this is active task work; `PLAN-REALTIME.md` is the active roadmap.
+
+## UI Priorities
+
+- Big live preview first.
+- Minimal controls: source, prompt, model profile, LoRA, reference image.
+- Clear states: idle, loading, warming, running, stopping, error.
+- Clear hardware readiness: backend, precision, VRAM/offload, missing artifacts.
+- Fast Play/Stop and prompt updates.
+- No timeline, preset community, plugin marketplace, or standalone operator UI before the graph MVP works.
+
+## Product Learnings
+
+- The understandable graph shape is `Source -> Pipeline -> Sink/Preview`. Keep the Nodetool starter and validation centered on that mental model.
+- Realtime node menu grouping is useful: `Source`, `Pipeline`, `Sink`, `Output`, `Controls`, `UI`, `Utility`, `Media`, and `VACE` make realtime authoring easier to scan than a flat model/provider list.
+- Pipeline nodes can expose advanced model parameters inline, but the MVP should not start there. Hide or collapse low-level knobs until the base run works.
+- Control inputs such as VACE/reference frames should be optional graph inputs connected from small control nodes, not mandatory fields on the base pipeline.
+- LongLive/Wan-style component layout is useful future-card guidance: keep separate concerns for model path resolution, text encoder, transformer/checkpoint, VAE, optional LoRA, optional VACE/control input, scheduler/steps, and frame post-processing.
+- Use one conservative adapter profile while proving the path: 320x576 or 512 square output, fixed seed, known VAE, known quantization profile, known noise scale, and known denoising steps.
+- The server-side pipeline manager should: resolve/cache artifact paths, build a typed pipeline config, lazy-load one pipeline per profile, emit `resolving -> loading -> warming -> ready/error`, run frames through one `infer(frame, prompt, params)` call, reuse warm state across frames, and release/stop cleanly on session stop.
+- The operator needs a visible runtime state next to the graph: session starting, model resolving/loading/warming/ready/error, browser frames sent, backend frames routed, inference metrics, and last error.
+- Realtime should be discoverable from the normal app shell. A header entry such as `Editor | Chat | App | Realtime` is acceptable during the MVP.
+
+## Node Parameter Budget
+
+Keep realtime nodes small enough to run, debug, and explain:
+
+- **First-run pipeline controls:** `frame`, `prompt`, optional `negative_prompt`, `profile` or model preset, output frame, and visible loading/error/status.
+- **First-run source controls:** camera device, requested resolution preset, actual selected resolution, preview/start/stop, and capture/publish status.
+- **Immediate post-MVP controls:** one LoRA selector, LoRA strength, one reference/VACE image input, and one control strength.
+- **Advanced collapsed controls:** seed, width, height, inference steps, guidance/noise scale, quantization/profile override, cache reset, and deterministic/reuse-cache toggles.
+- **Adapter config only:** model artifact paths, text encoder path, transformer/checkpoint path, VAE path, scheduler internals, denoising step schedule, VACE tensor/input names, dtype/offload placement, upstream class/import names, and arbitrary constructor/call kwargs.
+- **Not MVP UI:** multi-LoRA stacks, merge-mode matrices, full VACE/control catalogs, per-layer offload settings, arbitrary model-path text fields, debug smoke flags, fake pipeline toggles, and upstream package/module overrides.
+
+## Source UX Direction
+
+- `Video Source` is the one user-facing source node, not separate normal-camera and realtime-camera nodes.
+- The MVP source mode is camera capture with device selection, live preview, still capture, and a `realtime_frame` output.
+- Camera capture exposes common resolution requests, including low-bandwidth and wide 480p presets. The UI should show the actual browser-selected camera mode because `getUserMedia` treats presets as constraints, not guaranteed modes.
+- Camera preview warms up briefly before still capture or realtime publishing uses frames.
+- The normal workflow output is `image`, filled by an explicit Capture Still action even when a workflow is not running.
+- The realtime workflow output is `realtime_frame`, routed as `Video Source.realtime_frame -> model.frame`.
+- Future source modes: video assets (`VideoRef` playback), NDI, Syphon, Spout, and audio input/output. Do not add those before the camera MVP works.
 
 ## Future ideas
 

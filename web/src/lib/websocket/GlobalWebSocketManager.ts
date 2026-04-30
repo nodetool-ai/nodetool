@@ -6,6 +6,10 @@ import { handleSystemStats } from "../../stores/systemStatsHandler";
 import { ResourceChangeUpdate } from "../../stores/ApiTypes";
 import { WebSocketManager } from "./WebSocketManager";
 import { FrontendToolRegistry } from "../tools/frontendTools";
+import {
+  isRealtimePerFrameMessageType,
+  realtimeDebugLog
+} from "../realtimeDebug";
 
 /**
  * Base shape of every message routed through the WebSocket.
@@ -207,10 +211,14 @@ class GlobalWebSocketManager extends EventEmitter {
     }
 
     if (routingKeys.size === 0) {
-      console.debug(
-        "GlobalWebSocketManager: Message without routing key (job_id/session_id/workflow_id/thread_id)",
-        message
-      );
+      if (isRealtimePerFrameMessageType(message.type)) {
+        realtimeDebugLog(`ws.recv.unrouted.${message.type}`, message);
+      } else {
+        console.debug(
+          "GlobalWebSocketManager: Message without routing key (job_id/session_id/workflow_id/thread_id)",
+          message
+        );
+      }
       return;
     }
 
@@ -237,10 +245,18 @@ class GlobalWebSocketManager extends EventEmitter {
     });
 
     if (calledHandlers.size === 0) {
-      console.debug(
-        `GlobalWebSocketManager: No handlers for ${Array.from(routingKeys).join(", ")}`,
-        message
-      );
+      if (isRealtimePerFrameMessageType(message.type)) {
+        realtimeDebugLog(
+          `ws.recv.nohandler.${message.type}`,
+          Array.from(routingKeys).join(", "),
+          message
+        );
+      } else {
+        console.debug(
+          `GlobalWebSocketManager: No handlers for ${Array.from(routingKeys).join(", ")}`,
+          message
+        );
+      }
     }
   }
 
@@ -269,7 +285,11 @@ class GlobalWebSocketManager extends EventEmitter {
   }
 
   /**
-   * Send a message through the WebSocket
+   * Send a message through the WebSocket.
+   *
+   * Per-frame realtime messages (camera frames, sink frames, ack, metrics)
+   * are sampled through `realtimeDebugLog` so the realtime path stays silent
+   * by default. Other message types log every send as before.
    */
   async send(message: Record<string, unknown>): Promise<void> {
     await this.ensureConnection();
@@ -278,7 +298,12 @@ class GlobalWebSocketManager extends EventEmitter {
       throw new Error("WebSocket not connected");
     }
 
-    console.debug("GlobalWebSocketManager: Sending message", message);
+    const messageType = typeof message.type === "string" ? message.type : undefined;
+    if (isRealtimePerFrameMessageType(messageType)) {
+      realtimeDebugLog(`ws.send.${messageType}`, message);
+    } else {
+      console.debug("GlobalWebSocketManager: Sending message", message);
+    }
     this.wsManager.send(message);
   }
 

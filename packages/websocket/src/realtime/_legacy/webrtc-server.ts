@@ -4,7 +4,7 @@ import type {
   RealtimeSessionSignal
 } from "@nodetool/protocol";
 import type { CodecBridge } from "./codec-bridge.js";
-import type { FrameRouterRunner } from "./frame-router.js";
+import type { FrameRouterRunner } from "../frame-router.js";
 import {
   RealtimeWebRTCSession,
   type IncomingRealtimeSignal,

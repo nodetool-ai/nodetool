@@ -117,6 +117,30 @@ describe("useVideoCapture", () => {
     expect(previewStream.getTracks).toHaveBeenCalled();
   });
 
+  it("refreshes the device list after starting preview", async () => {
+    const previewStream = createMockStream();
+    mockGetUserMedia.mockResolvedValue(previewStream);
+    mockEnumerateDevices.mockResolvedValue([
+      { kind: "videoinput", deviceId: "default", label: "" },
+      { kind: "videoinput", deviceId: "camera-1", label: "USB Camera" }
+    ]);
+
+    const { result } = renderHook(() =>
+      useVideoCapture({ includeAudio: false, autoFetchDevices: false, warmupMs: 0 })
+    );
+
+    await act(async () => {
+      await result.current.startPreview();
+    });
+
+    await waitFor(() => {
+      expect(result.current.videoInputDevices).toEqual([
+        { deviceId: "", label: "System default camera" },
+        { deviceId: "camera-1", label: "USB Camera" }
+      ]);
+    });
+  });
+
   it("uses the selected resolution when starting preview", async () => {
     const previewStream = createMockStream();
     mockGetUserMedia.mockResolvedValue(previewStream);

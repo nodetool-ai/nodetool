@@ -14,7 +14,7 @@ import {
   UnsupportedCodecBridge,
   type CodecBridge
 } from "./codec-bridge.js";
-import { FrameRouter, type FrameRouterRunner } from "./frame-router.js";
+import { FrameRouter, type FrameRouterRunner } from "../frame-router.js";
 
 export type IncomingRealtimeSignal = Omit<
   RealtimeSessionSignal,

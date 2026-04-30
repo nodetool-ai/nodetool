@@ -3,7 +3,6 @@ import { createLogger } from "@nodetool/config";
 import { realtimeSessionManager } from "./session-manager.js";
 import type { RealtimeCommandHandlerDependencies } from "./command-handler-types.js";
 import { RealtimeSessionCommandService } from "./session-command-service.js";
-import { RealtimeSignalingTransport } from "./signaling-transport.js";
 import {
   normalizeMediaTracks,
   normalizeParameters,
@@ -21,18 +20,15 @@ export type {
   NormalizedRealtimeSignal,
   RealtimeCommandHandlerDependencies,
   RealtimeRunJobRequest,
-  RealtimeWebRTCServerDependency,
   WorkflowGraphPayload
 } from "./command-handler-types.js";
 
 export class RealtimeCommandHandler {
   private readonly sessionCommands: RealtimeSessionCommandService;
-  private readonly signalingTransport: RealtimeSignalingTransport;
   private readonly tempLoggedFrameRoutes = new Set<string>();
 
   constructor(private readonly dependencies: RealtimeCommandHandlerDependencies) {
     this.sessionCommands = new RealtimeSessionCommandService(dependencies);
-    this.signalingTransport = new RealtimeSignalingTransport(dependencies);
   }
 
   async handleStart(data: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -108,9 +104,13 @@ export class RealtimeCommandHandler {
   }
 
   async handleSignal(
-    data: Record<string, unknown>
+    _data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
-    return this.signalingTransport.handleSignal(data);
+    return {
+      type: "realtime_session_ack",
+      ok: false,
+      error: "WebRTC transport is not enabled in this build"
+    };
   }
 
   async handlePushFrame(
@@ -209,10 +209,6 @@ export class RealtimeCommandHandler {
       routed = await router.routeFrame(trackId, frame);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.dependencies.realtimeWebRTCServer?.recordFramePushResult?.(
-        session.session_id,
-        false
-      );
       log.warn("Realtime pushed frame routing failed", {
         sessionId,
         workflowId: session.workflow_id,
@@ -233,10 +229,6 @@ export class RealtimeCommandHandler {
         metrics: router.metrics()
       };
     }
-    this.dependencies.realtimeWebRTCServer?.recordFramePushResult?.(
-      session.session_id,
-      routed
-    );
     const logKey = `${session.session_id}:${trackId}`;
     if (!this.tempLoggedFrameRoutes.has(logKey)) {
       this.tempLoggedFrameRoutes.add(logKey);

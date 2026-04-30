@@ -68,7 +68,6 @@ import type { NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
 import { RealtimeCommandHandler } from "./realtime/command-handler.js";
 import { RealtimeLifecycleOrchestrator } from "./realtime/lifecycle-orchestrator.js";
 import { realtimeSessionManager } from "./realtime/session-manager.js";
-import { RealtimeWebRTCServer } from "./realtime/webrtc-server.js";
 import { FrameRouter } from "./realtime/frame-router.js";
 
 const log = createLogger("nodetool.websocket.runner");
@@ -781,7 +780,6 @@ export class UnifiedWebSocketRunner {
   private toolBridge = new ToolBridge();
   private observerRegistered = false;
   private realtimeHandler: RealtimeCommandHandler;
-  private readonly realtimeWebRTCServer: RealtimeWebRTCServer;
   private readonly realtimeLifecycle: RealtimeLifecycleOrchestrator;
 
   private logError(context: string, error: unknown): void {
@@ -925,11 +923,6 @@ export class UnifiedWebSocketRunner {
         process_uptime_sec: process.uptime(),
         memory: process.memoryUsage()
       }));
-    this.realtimeWebRTCServer = new RealtimeWebRTCServer({
-      emitSessionSignal: async (signal) => this.emitRealtimeSessionSignal(signal),
-      getRunnerForSession: (session) =>
-        session.job_id ? this.activeJobs.get(session.job_id)?.runner : undefined
-    });
     this.realtimeLifecycle = new RealtimeLifecycleOrchestrator({
       getUserId: () => this.getRealtimeUserId(),
       getActiveJob: (jobId) => {
@@ -943,7 +936,22 @@ export class UnifiedWebSocketRunner {
             | undefined
         };
       },
-      getMetrics: (session) => this.realtimeWebRTCServer.getMetrics(session),
+      getMetrics: (session) => ({
+        type: "realtime_metrics",
+        session_id: session.session_id,
+        workflow_id: session.workflow_id,
+        job_id: session.job_id,
+        transport: session.transport,
+        peer: { connection_state: "frame_push" },
+        codec: { status: "loopback", name: null },
+        frames: { inbound: 0, outbound: 0, inbound_rtp_packets: 0, routed: 0, unrouted: 0, decode_unsupported: 0, encoded: 0 },
+        rates: { inbound_fps: 0, outbound_fps: 0, routed_fps: 0 },
+        queues: { total_depth: 0, total_dropped: 0, consumers: [] },
+        latency: { decode_ms_avg: null, encode_ms_avg: null, frame_age_ms_avg: null },
+        bitrate: { target_bps: null },
+        reconnect_count: 0,
+        created_at: new Date().toISOString()
+      }),
       sendMessage: async (message) => this.sendMessage(message),
       onMetricsError: (err) => {
         log.warn("Failed to send realtime metrics", { error: String(err) });
@@ -978,8 +986,7 @@ export class UnifiedWebSocketRunner {
       emitSessionUpdated: async (session) => this.emitRealtimeSessionUpdated(session),
       emitSessionStopped: async (session, reason) =>
         this.emitRealtimeSessionStopped(session, reason),
-      emitSessionSignal: async (signal) => this.emitRealtimeSessionSignal(signal),
-      realtimeWebRTCServer: this.realtimeWebRTCServer
+      emitSessionSignal: async (signal) => this.emitRealtimeSessionSignal(signal)
     });
   }
 
@@ -1029,8 +1036,6 @@ export class UnifiedWebSocketRunner {
       }
       this.activeJobs.delete(jobId);
     }
-    await this.realtimeWebRTCServer.stopSessions(realtimeSessionIds);
-
     if (this.websocket) {
       try {
         await this.websocket.close();
@@ -1184,7 +1189,6 @@ export class UnifiedWebSocketRunner {
 
     const stopped = realtimeSessionManager.stopSession(sessionId, userId);
     if (stopped) {
-      await this.realtimeWebRTCServer.stopSession(sessionId);
       await this.emitRealtimeSessionStopped(
         stopped,
         reason ?? (status === "failed" ? "error" : status)
@@ -1898,143 +1902,139 @@ export class UnifiedWebSocketRunner {
       })
       .finally(() => {
         active.finished = true;
+        active.context.closeMessageQueue();
       });
 
-    while (!active.finished || active.context.hasMessages()) {
-      while (active.context.hasMessages()) {
-        const msg = active.context.popMessage();
-        if (!msg) break;
-        const outbound: Record<string, unknown> = {
-          ...(msg as unknown as Record<string, unknown>),
-          job_id:
-            (msg as unknown as Record<string, unknown>).job_id ?? active.jobId,
-          workflow_id:
-            (msg as unknown as Record<string, unknown>).workflow_id ??
-            active.workflowId
-        };
-        if (outbound.error !== undefined) {
-          outbound.error = formatSanitizedError(outbound.error);
-        }
+    // Event-driven message drain: no polling sleep.
+    // closeMessageQueue() is called when the job finishes; popMessageAsync()
+    // then returns null after the queue is fully drained and the loop exits.
+    while (true) {
+      const msg = await active.context.popMessageAsync();
+      if (!msg) break;
+      const outbound: Record<string, unknown> = {
+        ...(msg as unknown as Record<string, unknown>),
+        job_id:
+          (msg as unknown as Record<string, unknown>).job_id ?? active.jobId,
+        workflow_id:
+          (msg as unknown as Record<string, unknown>).workflow_id ??
+          active.workflowId
+      };
+      if (outbound.error !== undefined) {
+        outbound.error = formatSanitizedError(outbound.error);
+      }
+      if (
+        outbound.type === "notification" &&
+        typeof outbound.content === "string"
+      ) {
+        outbound.content = sanitizeLargeText(outbound.content);
+      }
+      if (outbound.type === "node_update" && outbound.status === "error") {
+        log.error("Node error", {
+          jobId: active.jobId,
+          nodeId: outbound.node_id,
+          error: outbound.error
+        });
+      } else if (
+        outbound.type === "job_update" &&
+        outbound.status === "failed"
+      ) {
+        log.error("Job failed", {
+          jobId: active.jobId,
+          error: outbound.error
+        });
+      }
+
+      // Skip messages for constant/input nodes — they produce trivial
+      // outputs that don't need to be relayed to the frontend.
+      if (
+        outbound.type === "output_update" ||
+        outbound.type === "node_update"
+      ) {
+        const nodeId = String(outbound.node_id ?? "");
+        const graphNodes =
+          (
+            active.graph as {
+              nodes?: Array<{ id?: unknown; type?: unknown }>;
+            }
+          ).nodes ?? [];
+        const node = graphNodes.find((n) => n.id === nodeId);
+        const nodeType = typeof node?.type === "string" ? node.type : "";
+
+        // Skip constant and input nodes entirely
         if (
-          outbound.type === "notification" &&
-          typeof outbound.content === "string"
+          nodeType.startsWith("nodetool.constant.") ||
+          nodeType.startsWith("nodetool.input.")
         ) {
-          outbound.content = sanitizeLargeText(outbound.content);
-        }
-        if (outbound.type === "node_update" && outbound.status === "error") {
-          log.error("Node error", {
-            jobId: active.jobId,
-            nodeId: outbound.node_id,
-            error: outbound.error
-          });
-        } else if (
-          outbound.type === "job_update" &&
-          outbound.status === "failed"
-        ) {
-          log.error("Job failed", {
-            jobId: active.jobId,
-            error: outbound.error
-          });
+          continue;
         }
 
-        // Skip messages for constant/input nodes — they produce trivial
-        // outputs that don't need to be relayed to the frontend.
-        if (
-          outbound.type === "output_update" ||
-          outbound.type === "node_update"
-        ) {
-          const nodeId = String(outbound.node_id ?? "");
-          const graphNodes =
-            (
-              active.graph as {
-                nodes?: Array<{ id?: unknown; type?: unknown }>;
-              }
-            ).nodes ?? [];
-          const node = graphNodes.find((n) => n.id === nodeId);
-          const nodeType = typeof node?.type === "string" ? node.type : "";
-
-          // Skip constant and input nodes entirely
-          if (
-            nodeType.startsWith("nodetool.constant.") ||
-            nodeType.startsWith("nodetool.input.")
-          ) {
+        // Only relay output_update for Output-type nodes
+        if (outbound.type === "output_update") {
+          if (!nodeType.includes("Output")) {
             continue;
           }
+          outputUpdateSeen = true;
+        }
 
-          // Only relay output_update for Output-type nodes
-          if (outbound.type === "output_update") {
-            if (
-              !nodeType.includes("Output") &&
-              nodeType !== "nodetool.realtime.VideoSink"
-            ) {
-              continue;
-            }
-            outputUpdateSeen = true;
-          }
-
-          // Auto-save generated assets before normalization strips inline data
-          if (
-            outbound.type === "node_update" &&
-            outbound.status === "completed" &&
-            outbound.result != null &&
-            this.getNodeMetadata
-          ) {
-            const meta = this.getNodeMetadata(nodeType);
-            if (meta?.auto_save_asset) {
-              try {
-                await autoSaveAssets(
-                  outbound.result as Record<string, unknown>,
-                  {
-                    userId: this.userId ?? "1",
-                    workflowId: active.workflowId,
-                    jobId: active.jobId,
-                    nodeId: String(outbound.node_id ?? ""),
-                    storagePath: getAssetStoragePath()
-                  }
-                );
-              } catch (err) {
-                log.warn("autoSaveAssets error", { error: String(err) });
-              }
-            }
-          }
-
-          // Materialize binary assets to temp URLs before sending over WebSocket
-          if (outbound.type === "node_update" && outbound.result != null) {
-            outbound.result = await active.context.normalizeOutputValue(
-              outbound.result
-            );
-          }
-          if (outbound.type === "output_update" && outbound.value != null) {
-            outbound.value = await active.context.normalizeOutputValue(
-              outbound.value
-            );
-          }
-
-          if (active.realtimeRunner && outbound.type === "output_update") {
-            const sessionId = this.realtimeLifecycle.getSessionIdForJob(active.jobId);
-            if (sessionId) {
-              outbound.session_id = sessionId;
-              outbound.workflow_id = active.workflowId;
+        // Auto-save generated assets before normalization strips inline data
+        if (
+          outbound.type === "node_update" &&
+          outbound.status === "completed" &&
+          outbound.result != null &&
+          this.getNodeMetadata
+        ) {
+          const meta = this.getNodeMetadata(nodeType);
+          if (meta?.auto_save_asset) {
+            try {
+              await autoSaveAssets(
+                outbound.result as Record<string, unknown>,
+                {
+                  userId: this.userId ?? "1",
+                  workflowId: active.workflowId,
+                  jobId: active.jobId,
+                  nodeId: String(outbound.node_id ?? ""),
+                  storagePath: getAssetStoragePath()
+                }
+              );
+            } catch (err) {
+              log.warn("autoSaveAssets error", { error: String(err) });
             }
           }
         }
-        await this.sendMessage(outbound);
-        if (outbound.type === "job_update") {
-          const status = String(outbound.status ?? "");
-          if (
-            ["completed", "failed", "cancelled", "error", "suspended"].includes(
-              status
-            )
-          ) {
-            terminalSeen = true;
-            if (outbound.result !== undefined) {
-              terminalWithResultSeen = true;
-            }
+
+        // Materialize binary assets to temp URLs before sending over WebSocket
+        if (outbound.type === "node_update" && outbound.result != null) {
+          outbound.result = await active.context.normalizeOutputValue(
+            outbound.result
+          );
+        }
+        if (outbound.type === "output_update" && outbound.value != null) {
+          outbound.value = await active.context.normalizeOutputValue(
+            outbound.value
+          );
+        }
+
+        if (active.realtimeRunner && outbound.type === "output_update") {
+          const sessionId = this.realtimeLifecycle.getSessionIdForJob(active.jobId);
+          if (sessionId) {
+            outbound.session_id = sessionId;
+            outbound.workflow_id = active.workflowId;
           }
         }
       }
-      if (!active.finished) {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+      await this.sendMessage(outbound);
+      if (outbound.type === "job_update") {
+        const status = String(outbound.status ?? "");
+        if (
+          ["completed", "failed", "cancelled", "error", "suspended"].includes(
+            status
+          )
+        ) {
+          terminalSeen = true;
+          if (outbound.result !== undefined) {
+            terminalWithResultSeen = true;
+          }
+        }
       }
     }
 

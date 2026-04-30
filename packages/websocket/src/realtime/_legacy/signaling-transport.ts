@@ -1,7 +1,7 @@
 import type { RealtimeSessionSignalingState } from "@nodetool/protocol";
-import { realtimeSessionManager } from "./session-manager.js";
-import type { RealtimeCommandHandlerDependencies } from "./command-handler-types.js";
-import { normalizeSignal } from "./command-normalization.js";
+import { realtimeSessionManager } from "../session-manager.js";
+import type { RealtimeCommandHandlerDependencies } from "../command-handler-types.js";
+import { normalizeSignal } from "../command-normalization.js";
 
 export class RealtimeSignalingTransport {
   constructor(private readonly dependencies: RealtimeCommandHandlerDependencies) {}
@@ -84,42 +84,7 @@ export class RealtimeSignalingTransport {
       await this.dependencies.emitSessionUpdated(session);
     }
 
-    const handledByWebRTCServer =
-      !!signal &&
-      session.transport === "webrtc" &&
-      signal.target === "runtime" &&
-      !!this.dependencies.realtimeWebRTCServer;
-
-    if (handledByWebRTCServer && signal) {
-      await this.dependencies.realtimeWebRTCServer!.handleSignal(session, signal);
-      if (
-        session.status === "starting" &&
-        this.dependencies.realtimeWebRTCServer!.getSessionState?.(
-          session.session_id
-        ) === "running"
-      ) {
-        const runningSession = realtimeSessionManager.updateSession(
-          session.session_id,
-          this.getUserId(),
-          { status: "running" }
-        );
-        if (runningSession) {
-          await this.dependencies.emitSessionUpdated(runningSession);
-          return {
-            type: "realtime_session_ack",
-            ok: true,
-            action: "signal",
-            session_id: runningSession.session_id,
-            workflow_id: runningSession.workflow_id,
-            job_id: runningSession.job_id,
-            status: runningSession.status,
-            signaling_status: runningSession.signaling.status
-          };
-        }
-      }
-    }
-
-    if (signal && !handledByWebRTCServer) {
+    if (signal) {
       await this.dependencies.emitSessionSignal({
         type: "realtime_session_signal",
         session_id: session.session_id,

@@ -1084,6 +1084,8 @@ export class WorkflowRunner {
         if (value === undefined) continue;
         if (handle === "__control__" || handle === "__control_output__")
           continue;
+        // Realtime media handles go via RealtimeMediaBus, not the control bus
+        if (declaredOutputs[handle] === "realtime_video_frame") continue;
         this._emit({
           type: "output_update",
           node_id: sourceNodeId,

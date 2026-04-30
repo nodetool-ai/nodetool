@@ -81,5 +81,4 @@ export interface RealtimeCommandHandlerDependencies {
     reason: string
   ) => Promise<void>;
   emitSessionSignal: (signal: RealtimeSessionSignal) => Promise<void>;
-  realtimeWebRTCServer?: RealtimeWebRTCServerDependency;
 }
