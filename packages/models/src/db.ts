@@ -18,6 +18,8 @@ export type DbDialect = "sqlite" | "postgres";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- union of BetterSQLite3Database and PostgresJsDatabase
 let _db: any = null;
 let _sqlite: Database.Database | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- postgres.js Sql instance
+let _pgClient: any = null;
 let _dbType: DbDialect = "sqlite";
 
 /**
@@ -25,7 +27,12 @@ let _dbType: DbDialect = "sqlite";
  * Configures WAL mode, busy timeout, and synchronous mode.
  */
 export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
-  if (_db) return _db as BetterSQLite3Database<typeof schema>;
+  if (_db && _dbType === "sqlite") return _db as BetterSQLite3Database<typeof schema>;
+  if (_db && _dbType === "postgres") {
+    throw new Error(
+      "A PostgreSQL connection is already active. Call closeDb() before switching to SQLite."
+    );
+  }
   const sqlite = new Database(dbPath);
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("busy_timeout = 30000");
@@ -44,13 +51,18 @@ export function initDb(dbPath: string): BetterSQLite3Database<typeof schema> {
 /**
  * Initialize a PostgreSQL database connection.
  * Accepts a connection string (e.g. Supabase DATABASE_URL or DIRECT_URL).
- * Runs all pending migrations automatically.
  *
  * For Supabase, use the connection pooler URL (port 6543, transaction mode)
  * for the application, and the direct URL (port 5432) for migrations.
+ * Migrations must be run separately via MigrationRunner + PostgresJsMigrationAdapter.
  */
 export async function initPostgresDb(connectionString: string): Promise<void> {
   if (_db && _dbType === "postgres") return;
+  if (_db && _dbType === "sqlite") {
+    throw new Error(
+      "A SQLite connection is already active. Call closeDb() before switching to PostgreSQL."
+    );
+  }
 
   // Dynamic import so that the `postgres` package is only loaded when needed,
   // keeping the SQLite-only path free of the extra dependency at runtime.
@@ -63,6 +75,7 @@ export async function initPostgresDb(connectionString: string): Promise<void> {
     connect_timeout: 10
   });
 
+  _pgClient = client;
   _db = drizzlePg(client, { schema: pgSchema });
   _dbType = "postgres";
 }
@@ -125,8 +138,9 @@ export function getRawDb(): Database.Database {
 
 /**
  * Close the database connection and reset state.
+ * For PostgreSQL, returns a Promise that resolves once the connection pool is drained.
  */
-export function closeDb(): void {
+export async function closeDb(): Promise<void> {
   if (_sqlite) {
     try {
       _sqlite.close();
@@ -134,6 +148,14 @@ export function closeDb(): void {
       /* ignore */
     }
     _sqlite = null;
+  }
+  if (_pgClient) {
+    try {
+      await _pgClient.end();
+    } catch {
+      /* ignore */
+    }
+    _pgClient = null;
   }
   _db = null;
   _dbType = "sqlite";
