@@ -170,8 +170,12 @@ export const captureVideoElementFrame = (
   const width = Math.max(1, Math.round(sourceWidth * scale));
   const height = Math.max(1, Math.round(sourceHeight * scale));
   const canvas = options.canvas ?? document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+  if (canvas.width !== width) {
+    canvas.width = width;
+  }
+  if (canvas.height !== height) {
+    canvas.height = height;
+  }
 
   const context = canvas.getContext("2d", { willReadFrequently: true });
   if (!context) {
@@ -282,6 +286,7 @@ export const useRealtimeCameraFramePublisher = ({
     let intervalId: number | null = null;
     let videoFrameCallbackId: number | null = null;
     const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
     const callbackVideo = video as HTMLVideoElement & {
       requestVideoFrameCallback?: (
         callback: (now: number, metadata?: unknown) => void
@@ -299,7 +304,8 @@ export const useRealtimeCameraFramePublisher = ({
       }));
     });
 
-    const publishFrame = (): void => {
+    let lastPublishedNow = 0;
+    const publishFrame = (now = performance.now()): void => {
       if (inFlightRef.current >= maxInFlightFrames) {
         setStatus((current) => ({
           ...current,
@@ -312,7 +318,8 @@ export const useRealtimeCameraFramePublisher = ({
       const nextSequence = sequenceRef.current + 1;
       const frame = captureVideoElementFrame(video, {
         sequence: nextSequence,
-        timestampNs: Math.round(performance.now() * 1_000_000),
+        timestampNs: Math.round(now * 1_000_000),
+        canvas,
         maxWidth
       });
       if (!frame) {
@@ -320,6 +327,7 @@ export const useRealtimeCameraFramePublisher = ({
       }
 
       sequenceRef.current = nextSequence;
+      lastPublishedNow = now;
       const publishedAt = Date.now();
       inFlightRef.current += 1;
       setStatus((current) => ({
@@ -360,16 +368,19 @@ export const useRealtimeCameraFramePublisher = ({
       if (disposed || typeof callbackVideo.requestVideoFrameCallback !== "function") {
         return;
       }
-      videoFrameCallbackId = callbackVideo.requestVideoFrameCallback(() => {
-        publishFrame();
+      videoFrameCallbackId = callbackVideo.requestVideoFrameCallback((now) => {
+        if (
+          framePushMode === "uncapped" ||
+          lastPublishedNow === 0 ||
+          now - lastPublishedNow >= resolvedIntervalMs
+        ) {
+          publishFrame(now);
+        }
         scheduleVideoFrame();
       });
     };
 
-    if (
-      framePushMode === "uncapped" &&
-      typeof callbackVideo.requestVideoFrameCallback === "function"
-    ) {
+    if (typeof callbackVideo.requestVideoFrameCallback === "function") {
       scheduleVideoFrame();
     } else {
       intervalId = window.setInterval(publishFrame, resolvedIntervalMs);

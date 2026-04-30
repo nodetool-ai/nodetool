@@ -84,8 +84,8 @@ export const RealtimeCameraSetupCard = ({
     value: RealtimeFramePushMode;
     label: string;
   }> = [
-    { value: "60fps", label: "60fps test" },
-    { value: "uncapped", label: "Uncapped test" }
+    { value: "60fps", label: "60fps" },
+    { value: "uncapped", label: "Uncapped" }
   ];
   const actualMode = videoTrackSettings
     ? `${videoTrackSettings.width ?? "?"}x${videoTrackSettings.height ?? "?"}${
@@ -98,6 +98,10 @@ export const RealtimeCameraSetupCard = ({
     cameraPublisherStatus.nodeId && cameraPublisherStatus.inputName
       ? `${cameraPublisherStatus.nodeId}.${cameraPublisherStatus.inputName}`
       : `${videoTargetNodeId}.${videoTargetInputName}`;
+  const targetRate =
+    framePushMode === "uncapped"
+      ? "uncapped"
+      : `${cameraPublisherStatus.targetFps.toLocaleString()} fps`;
 
   return (
     <Card padding="normal" variant="outlined" sx={realtimeCardSx}>
@@ -180,7 +184,7 @@ export const RealtimeCameraSetupCard = ({
         />
         <Caption>
           {cameraPublisherStatus.framesPublished.toLocaleString()} frames pushed
-          at {cameraPublisherStatus.targetFps.toLocaleString()} fps
+          at {targetRate}
         </Caption>
         <Caption>
           {cameraPublisherStatus.framesSkipped.toLocaleString()} skipped,{" "}
