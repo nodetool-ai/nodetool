@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useState, useEffect, useRef, memo, useCallback } from "react";
+import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
 import { Grid, InputLabel } from "@mui/material";
 import { ColumnDef } from "../../stores/ApiTypes";
 import isEqual from "fast-deep-equal";
@@ -228,6 +228,11 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
     onChange(newColumns, newData);
   }, [localColumns, allData, onChange]);
 
+  const deleteHandlers = useMemo(
+    () => localColumns.map((_, i) => () => handleDelete(i)),
+    [localColumns, handleDelete]
+  );
+
   return (
     <Grid container spacing={0} css={styles(theme)}>
       <div className="labels">
@@ -245,7 +250,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
           handleNameChange={handleNameChange}
           handleDataTypeChange={handleDataTypeChange}
           handleDescriptionChange={handleDescriptionChange}
-          onDelete={() => handleDelete(index)}
+          onDelete={deleteHandlers[index]}
           validDataTypes={validDataTypes}
         />
       ))}

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useEffect, useState, useRef } from "react";
+import { memo, useCallback, useRef } from "react";
 import useResultsStore from "../../stores/ResultsStore";
 import isEqual from "fast-deep-equal";
 import { ProgressBar } from "../ui_primitives/ProgressBar";
@@ -14,28 +14,23 @@ const NodeProgress = ({
   const progress = useResultsStore((state) =>
     state.getProgress(workflowId, id)
   );
-  const [eta, setEta] = useState<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (progress && startTimeRef.current === null) {
-      startTimeRef.current = Date.now();
-    }
+  if (progress && startTimeRef.current === null) {
+    startTimeRef.current = Date.now();
+  }
 
-    if (progress) {
-      const remainingItems = progress.total - progress.progress;
-      const elapsedTime = Date.now() - (startTimeRef.current || Date.now());
-      const itemsPerMs = progress.progress / elapsedTime;
-      const remainingTimeMs = remainingItems / itemsPerMs;
-      const etaSeconds = Math.round(remainingTimeMs / 1000);
-      setEta(etaSeconds);
+  const formatValue = useCallback(() => {
+    if (!progress) return "";
+    const elapsedTime = Date.now() - (startTimeRef.current ?? Date.now());
+    if (elapsedTime <= 0 || progress.progress <= 0) {
+      return `${progress.progress} / ${progress.total}`;
     }
+    const itemsPerMs = progress.progress / elapsedTime;
+    const remainingMs = (progress.total - progress.progress) / itemsPerMs;
+    const etaSeconds = Math.round(remainingMs / 1000);
+    return `${progress.progress} / ${progress.total}${etaSeconds > 0 ? ` (eta ${etaSeconds}s)` : ""}`;
   }, [progress]);
-
-  const formatValue = useCallback(
-    () => `${progress?.progress} / ${progress?.total}${eta ? ` (eta ${eta}s)` : ""}`,
-    [progress?.progress, progress?.total, eta]
-  );
 
   if (!progress) {
     return null;
