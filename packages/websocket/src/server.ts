@@ -607,10 +607,52 @@ app.addContentTypeParser("*", { parseAs: "buffer" }, (_req, body, done) => {
 });
 
 // ---------------------------------------------------------------------------
+// Examples directory detection
+// ---------------------------------------------------------------------------
+
+// Resolve examples directory so that example workflow JSON files can be served
+// without requiring a Python installation.
+//
+// Resolution order:
+//  1. NODETOOL_BASE_EXAMPLES_DIR env var (explicit override)
+//  2. Co-located with server entry point — used when the backend is bundled
+//     (e.g. resources/backend/server.mjs → resources/backend/examples/nodetool-base/)
+//  3. Monorepo layout — used in development and dist runs where server.js lives
+//     inside packages/websocket/src/ or packages/websocket/dist/
+const _serverDir = dirname(fileURLToPath(import.meta.url));
+const _envExamplesDir = process.env["NODETOOL_BASE_EXAMPLES_DIR"];
+const _bundledExamplesDir = resolve(_serverDir, "examples", "nodetool-base");
+const _monoExamplesDir = resolve(
+  _serverDir,
+  "..",
+  "..",
+  "..",
+  "packages",
+  "base-nodes",
+  "nodetool",
+  "examples",
+  "nodetool-base"
+);
+const _resolvedExamplesDir =
+  (_envExamplesDir && existsSync(_envExamplesDir) ? _envExamplesDir : null) ??
+  (existsSync(_bundledExamplesDir) ? _bundledExamplesDir : null) ??
+  (existsSync(_monoExamplesDir) ? _monoExamplesDir : null);
+
+if (_resolvedExamplesDir) {
+  log.info(`Examples directory resolved: ${_resolvedExamplesDir}`);
+} else {
+  log.warn("Examples directory not found — template workflows will be unavailable");
+}
+
+// ---------------------------------------------------------------------------
 // API options for HTTP route handlers
 // ---------------------------------------------------------------------------
 
-const apiOptions: HttpApiOptions = { metadataRoots, registry };
+const apiOptions: HttpApiOptions = {
+  metadataRoots,
+  registry,
+  ...(_resolvedExamplesDir ? { examplesDir: _resolvedExamplesDir } : {})
+};
 const staticFolder = process.env["STATIC_FOLDER"];
 const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
 
