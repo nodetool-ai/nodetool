@@ -1,11 +1,27 @@
 import { describe, it, expect, vi } from "vitest";
+import { encodeBinary } from "@aki-io/aki-io";
 import OpenAI from "openai";
 import { AkiProvider } from "../../src/providers/aki-provider.js";
 
-function makeOpenAIClient(overrides: Partial<{
-  create: ReturnType<typeof vi.fn>;
-  stream: ReturnType<typeof vi.fn>;
-}> = {}): OpenAI {
+type DoApiRequest = ReturnType<typeof vi.fn>;
+type GetGenerator = (params: unknown) => AsyncGenerator<unknown>;
+
+interface FakeAkiClient {
+  doApiRequest: DoApiRequest;
+  getApiRequestGenerator: GetGenerator;
+}
+
+function makeAkiFactory(client: Partial<FakeAkiClient> = {}) {
+  const base: FakeAkiClient = {
+    doApiRequest: vi.fn(),
+    getApiRequestGenerator: async function* () { /* empty */ }
+  };
+  const merged = { ...base, ...client } as FakeAkiClient;
+  const factory = vi.fn().mockReturnValue(merged);
+  return { factory, client: merged };
+}
+
+function makeOpenAIClient(overrides: { create?: ReturnType<typeof vi.fn> } = {}): OpenAI {
   return {
     chat: {
       completions: {
@@ -37,7 +53,9 @@ describe("AkiProvider", () => {
     expect(await provider.hasToolSupport("any-model")).toBe(true);
   });
 
-  it("generateMessage calls the OpenAI-compatible endpoint and returns assistant text", async () => {
+  // ── LLM via OpenAI endpoint ────────────────────────────────────────────────
+
+  it("generateMessage calls the OpenAI-compatible endpoint", async () => {
     const mockCompletion = {
       choices: [
         {
@@ -48,11 +66,9 @@ describe("AkiProvider", () => {
       usage: { prompt_tokens: 4, completion_tokens: 7 }
     };
     const create = vi.fn().mockResolvedValue(mockCompletion);
-    const client = makeOpenAIClient({ create });
-
     const provider = new AkiProvider(
       { AKI_API_KEY: "k" },
-      { client }
+      { client: makeOpenAIClient({ create }) }
     );
 
     const result = await provider.generateMessage({
@@ -69,12 +85,26 @@ describe("AkiProvider", () => {
     expect(result.role).toBe("assistant");
     expect(result.content).toBe("hello from aki");
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: "llama3_chat",
-        stream: false
-      })
+      expect.objectContaining({ model: "llama3_chat", stream: false })
     );
   });
+
+  it("uses https://aki.io/v1 as the OpenAI base URL", () => {
+    let capturedConfig: ConstructorParameters<typeof OpenAI>[0] | undefined;
+    const openaiClientFactory = (key: string) => {
+      capturedConfig = { apiKey: key, baseURL: "https://aki.io/v1" };
+      return makeOpenAIClient();
+    };
+
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "my-key" },
+      { openaiClientFactory }
+    );
+    provider.getClient();
+    expect(capturedConfig?.baseURL).toBe("https://aki.io/v1");
+  });
+
+  // ── Language model listing ─────────────────────────────────────────────────
 
   it("getAvailableLanguageModels fetches from https://aki.io/v1/models", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
@@ -87,10 +117,7 @@ describe("AkiProvider", () => {
       })
     } as Response);
 
-    const provider = new AkiProvider(
-      { AKI_API_KEY: "k" },
-      { fetchFn: mockFetch }
-    );
+    const provider = new AkiProvider({ AKI_API_KEY: "k" }, { fetchFn: mockFetch });
 
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
@@ -99,41 +126,128 @@ describe("AkiProvider", () => {
     ]);
     expect(mockFetch).toHaveBeenCalledWith(
       "https://aki.io/v1/models",
-      expect.objectContaining({
-        headers: { Authorization: "Bearer k" }
-      })
+      expect.objectContaining({ headers: { Authorization: "Bearer k" } })
     );
   });
 
   it("getAvailableLanguageModels returns empty array on fetch failure", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 401
-    } as Response);
-
-    const provider = new AkiProvider(
-      { AKI_API_KEY: "bad-key" },
-      { fetchFn: mockFetch }
-    );
-
-    const models = await provider.getAvailableLanguageModels();
-    expect(models).toEqual([]);
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 401 } as Response);
+    const provider = new AkiProvider({ AKI_API_KEY: "bad" }, { fetchFn: mockFetch });
+    expect(await provider.getAvailableLanguageModels()).toEqual([]);
   });
 
-  it("uses AKI_API_KEY as the OpenAI client api key", () => {
-    let capturedKey: string | undefined;
-    const clientFactory = (key: string) => {
-      capturedKey = key;
-      return makeOpenAIClient();
-    };
+  // ── Image model listing from manifest ─────────────────────────────────────
 
-    new AkiProvider({ AKI_API_KEY: "my-aki-key" }, { clientFactory });
-    // Access getClient() to trigger factory
+  it("getAvailableImageModels loads image endpoints from the manifest", async () => {
+    const { factory } = makeAkiFactory();
     const provider = new AkiProvider(
-      { AKI_API_KEY: "my-aki-key" },
-      { clientFactory }
+      { AKI_API_KEY: "k" },
+      { akiClientFactory: factory }
     );
-    provider.getClient();
-    expect(capturedKey).toBe("my-aki-key");
+
+    const models = await provider.getAvailableImageModels();
+    expect(models).toEqual([
+      { id: "sdxl_img", name: "SDXL", provider: "aki", supportedTasks: ["text_to_image"] },
+      { id: "flux-text2img", name: "FLUX Text to Image", provider: "aki", supportedTasks: ["text_to_image"] },
+      { id: "flux-img2img", name: "FLUX Image to Image", provider: "aki", supportedTasks: ["image_to_image"] }
+    ]);
+  });
+
+  // ── Image generation via AKI SDK ──────────────────────────────────────────
+
+  it("textToImage decodes image bytes from the AKI response", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      images: encodeBinary(Uint8Array.from([1, 2, 3]), "png")
+    });
+    const { factory } = makeAkiFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { akiClientFactory: factory }
+    );
+
+    const result = await provider.textToImage({
+      model: { id: "sdxl_img", name: "SDXL", provider: "aki", supportedTasks: ["text_to_image"] },
+      prompt: "a castle",
+      width: 1024,
+      height: 1024,
+      negativePrompt: "low quality"
+    });
+
+    expect(result).toEqual(Uint8Array.from([1, 2, 3]));
+    expect(doApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: "a castle",
+        width: 1024,
+        height: 1024,
+        negative_prompt: "low quality"
+      })
+    );
+  });
+
+  it("imageToImage sends the encoded image and decodes image bytes", async () => {
+    const doApiRequest = vi.fn().mockResolvedValue({
+      success: true,
+      images: encodeBinary(Uint8Array.from([4, 5, 6]), "png")
+    });
+    const { factory } = makeAkiFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { akiClientFactory: factory }
+    );
+
+    const inputImage = Uint8Array.from([9, 8, 7]);
+    const result = await provider.imageToImage(inputImage, {
+      model: { id: "flux-img2img", name: "FLUX Image to Image", provider: "aki", supportedTasks: ["image_to_image"] },
+      prompt: "make it cinematic",
+      targetWidth: 512,
+      targetHeight: 768,
+      strength: 0.7
+    });
+
+    expect(result).toEqual(Uint8Array.from([4, 5, 6]));
+    expect(doApiRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: "make it cinematic",
+        image: Buffer.from(inputImage).toString("base64"),
+        width: 512,
+        height: 768,
+        strength: 0.7
+      })
+    );
+  });
+
+  it("retries image requests with prompt when AKI rejects prompt_input", async () => {
+    const doApiRequest = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new Error(
+          "api request at https://aki.io/api/ failed!\nHTTP status code: 400\nError message: Invalid input parameter(s): prompt_input;Missing required argument: prompt"
+        )
+      )
+      .mockResolvedValueOnce({
+        success: true,
+        images: encodeBinary(Uint8Array.from([7, 8, 9]), "png")
+      });
+    const { factory } = makeAkiFactory({ doApiRequest });
+    const provider = new AkiProvider(
+      { AKI_API_KEY: "k" },
+      { akiClientFactory: factory }
+    );
+
+    const result = await provider.textToImage({
+      model: { id: "qwen_image", name: "Qwen Image", provider: "aki", supportedTasks: ["text_to_image"] },
+      prompt: "a neon city"
+    });
+
+    expect(result).toEqual(Uint8Array.from([7, 8, 9]));
+    expect(doApiRequest).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ prompt_input: "a neon city" })
+    );
+    expect(doApiRequest).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ prompt: "a neon city" })
+    );
   });
 });
