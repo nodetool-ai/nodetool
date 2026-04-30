@@ -7,6 +7,7 @@ import {
   REALTIME_NODES,
   registerRealtimeNodes,
   SessionInfo,
+  VideoPassthrough,
   VideoSink
 } from "../src/index.js";
 
@@ -15,6 +16,7 @@ describe("realtime node registration", () => {
     const registry = new NodeRegistry();
     const expectedNodeTypes = [
       "nodetool.realtime.VideoSink",
+      "nodetool.realtime.VideoPassthrough",
       "nodetool.realtime.AudioSource",
       "nodetool.realtime.AudioSink",
       "nodetool.realtime.Parameter",
@@ -25,6 +27,7 @@ describe("realtime node registration", () => {
 
     expect(REALTIME_NODES).toEqual([
       VideoSink,
+      VideoPassthrough,
       AudioSource,
       AudioSink,
       Parameter,

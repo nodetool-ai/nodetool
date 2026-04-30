@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ALL_BASE_NODES } from "@nodetool/base-nodes";
+import { REALTIME_NODES } from "@nodetool/realtime-nodes";
 import { getNodeMetadata } from "@nodetool/node-sdk";
 import type {
   NodeMetadata,
@@ -248,6 +249,22 @@ function barrelName(namespace: string): string {
   return name;
 }
 
+function normalizeCommentLine(value: string): string {
+  return value.replace(/\s+/g, " ").replace(/\*\//g, "* /").trim();
+}
+
+function descriptionLines(description: string): string[] {
+  const lines = description
+    .split(/\r?\n/)
+    .map(normalizeCommentLine)
+    .filter(Boolean);
+
+  const summary = lines[0];
+  const tags = lines.find((line) => line.toLowerCase().startsWith("tags:"));
+
+  return [summary, tags].filter((line): line is string => Boolean(line));
+}
+
 // ---------------------------------------------------------------------------
 // Code generation
 // ---------------------------------------------------------------------------
@@ -316,6 +333,9 @@ function generateFile(namespace: string, nodes: NodeInfo[]): string {
 
     // Comment
     lines.push(`// ${meta.title || className} — ${meta.node_type}`);
+    for (const line of descriptionLines(meta.description ?? "")) {
+      lines.push(`// ${line}`);
+    }
 
     // --- Inputs interface ---
     const hasProps = meta.properties.length > 0;
@@ -402,13 +422,14 @@ function generateBarrel(namespaces: string[]): string {
 // ---------------------------------------------------------------------------
 
 function main(): void {
-  console.log(`Introspecting ${ALL_BASE_NODES.length} node classes...`);
+  const nodeClasses = [...ALL_BASE_NODES, ...REALTIME_NODES];
+  console.log(`Introspecting ${nodeClasses.length} node classes...`);
 
   // Group nodes by namespace
   const byNamespace = new Map<string, NodeInfo[]>();
   let totalNodes = 0;
 
-  for (const nodeClass of ALL_BASE_NODES) {
+  for (const nodeClass of nodeClasses) {
     let meta: NodeMetadata;
     try {
       meta = getNodeMetadata(nodeClass);

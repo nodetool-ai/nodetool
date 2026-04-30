@@ -12,6 +12,50 @@ Success means a user selects a camera, starts the workflow, and sees generated m
 
 For Phase 1, every task is subordinate to one observable outcome: real model-converted frames must appear in the output `Preview`. A change is on-path only if it helps a browser camera frame reach the runner, helps the selected model convert that input into a `realtime_video_frame`, or helps that frame route through `VideoSink -> Preview`. Packaging polish, broad status surfaces, optional controls, and extra model lanes wait until that preview frame exists.
 
+## Next Steps To Real Preview Frames
+
+Core pipeline goal:
+
+`Camera frame -> active realtime runner input -> simple realtime module -> VideoSink -> Preview -> standalone Wan bridge -> one denoise/decode -> VideoSink -> Preview`
+
+Work only on this path until the normal Nodetool `Preview` shows one real model-converted frame. Do not move to packaging, LoRA, VACE, LongLive, broad UI polish, alternate backends, or general test coverage until this pipeline works. For this phase, tests are only direct feedback to concrete blockers and errors; add a focused test only when it helps reproduce or prevent the specific failure being fixed.
+
+1. [ ] **Camera frame -> active realtime runner input**
+   - Run the app with the realtime template and camera publisher.
+   - Confirm `Browser frames` is greater than zero.
+   - Confirm either `Routed frames` or `Unrouted frames` increments from backend metrics.
+   - Confirm at least one frame reaches `VideoSource.realtime_frame -> SelfForcing.frame` in the active runner.
+   - If this fails, debug only `push_realtime_frame -> frame ack/metrics -> FrameRouter -> runner.pushInputValue`.
+   - Latest app evidence: browser/backend ingestion works (`Browser frames: 39`, `Unrouted frames: 38`, active session inbound 38). Active-runner proof is still blocked because the realtime job fails during startup before frames can route into the runner.
+   - Current startup blocker: `nodetool_wan_bridge.create_components(...)` raises `Community Wan bridge component loading is not implemented yet.`
+
+2. [ ] **Simple realtime module -> VideoSink -> Preview baseline**
+   - [x] Add or expose a tiny TS realtime passthrough node first, then optionally RIFE and optical-flow style nodes if they already fit the realtime frame contract.
+   - [x] Register the passthrough node through `REALTIME_NODES` / `registerRealtimeNodes`.
+   - [x] Verify the non-app loopback path forwards pushed frames through passthrough into `VideoSink`.
+   - [ ] Run `Camera frame -> passthrough -> VideoSink -> Preview` in the app before touching Wan loading.
+   - Success means the normal Preview shows the live frame through a realtime processing node, proving routing, runner input, node output, and sink/preview without model-loader risk.
+   - If TS node discovery does not show the new nodes, check `packages/realtime-nodes/src/index.ts` (`REALTIME_NODES`, `registerRealtimeNodes`) and the server registry path before changing Python package metadata.
+   - If typed DSL helpers are needed for these TS nodes, update `packages/dsl/scripts/codegen.ts` to include `REALTIME_NODES` in addition to `ALL_BASE_NODES`, then run `npm run codegen --workspace=packages/dsl`.
+
+3. [ ] **Active runner input -> standalone Wan bridge call**
+   - Keep the bridge boundary in `nodetool_wan_bridge`; do not call a live ComfyUI runtime.
+   - Pass one received frame plus prompt/config into the bridge's `inference(...)` entry point.
+   - Load only the base required artifacts: Wan runtime files, FP8 Self-Forcing transformer, GGUF UMT5 text encoder, and Wan VAE.
+   - Keep VACE, LoRA, speed-LoRA, and control artifacts disabled and unresolved unless an explicit later profile/control enables them.
+   - If a loader detail is unclear while implementing, research only that missing detail, record it under this task, then return to implementation.
+
+4. [ ] **Standalone Wan bridge -> one denoise/decode**
+   - Build the smallest practical preview run first.
+   - Use a minimal shape that can produce a visible frame on the low-VRAM target; if shape is unknown at implementation time, try the two smallest plausible Wan-compatible shapes and record the one used.
+   - Return a real decoded frame from the bridge with `pixel_format=rgba8`, non-empty `data`, real bridge metadata, and no `FakeSelfForcingPipeline`.
+   - If the failure is a missing dependency, OOM, tensor shape error, or decode error, add the smallest focused reproduction only if it speeds up the fix.
+
+5. [ ] **realtime_video_frame -> VideoSink -> Preview**
+   - Route the generated `realtime_video_frame` through the existing `VideoSink`.
+   - Confirm the existing `Preview` node shows the converted output frame, not the raw camera frame and not a black placeholder.
+   - Keep diagnostics limited to what explains this path: routing count, backend stage, last error, precision/offload, latency, and artifact paths.
+
 ## Locked Decisions
 
 - Use Nodetool's realtime graph path, not a separate operator UI.
@@ -73,7 +117,7 @@ These gates replace the previous pattern of discovering one blocker per app run:
 - Frame-routing gate: before another model-runtime attempt in the app, prove that browser camera frames reach the active realtime runner and update backend routing metrics. `Browser frames > 0` with `Routed frames = 0`, `Unrouted frames = 0`, and `Inference nodes = 0` means the push-frame ack/metrics boundary is broken or invisible; fix that before loader work.
 - Loader decision gate: split Phase 1.4 into two explicit tracks and pick one after a short spike:
   - Official-compatible Self-Forcing: complete upstream source or `nodetool_self_forcing_runtime`, `pipeline.CausalInferencePipeline`, NodeTool path redirects, official Wan wrappers, and full Wan VAE decode.
-  - Community low-VRAM bridge: Comfy/Kijai-style Wan loader with FP8/GGUF artifacts, explicit text encoder and VAE paths, optional VACE disabled by default, and low-VRAM offload/block-swap controls treated as required loader features.
+  - Selected path: a community low-VRAM Wan bridge. This means NodeTool must call a concrete Wan loader surface for the current FP8 transformer, GGUF UMT5 text encoder, and Wan VAE; expose block/offload settings required to fit 12 GB; and keep optional VACE/LoRA/control artifacts out of the base run. If the import surface or required arguments are unclear, the task is research first, implementation second.
 - Status surface gate: model loading must be visible outside node output values. The app should expose aggregate `resolving`, `loading transformer`, `loading text encoder`, `loading VAE`, `warming`, `ready`, and `error` stages during startup.
 - Manifest gate: base templates may load only required base artifacts. Optional VACE, LoRA, speed-LoRA, and control artifacts must not be resolved or loaded unless an explicit profile/control enables them.
 - Hardware gate: low-VRAM profiles stay on Self-Forcing/community Wan 1.3B FP8/GGUF paths. LongLive, StreamDiffusion-style streaming, full VACE/control stacks, and packaged Scope-style realtime pipelines are 24 GB-class options unless a separate unsupported low-memory experiment proves otherwise.
@@ -437,26 +481,37 @@ Evidence to keep:
 - Artifact resolution, model-pack metadata, cache validation, and preflight issue codes are already useful and should remain part of the implementation.
 - The official-compatible spike imported the upstream shape, repaired the Wan runtime snapshot, reached real denoising, and then OOMed before decode on 12 GB. That is enough evidence to stop patching official constructors for the low-VRAM MVP.
 - Scope's split is the right lifecycle model: resolve/download artifacts separately, load asynchronously, expose `loading_stage`, then stream.
-- Kijai/ComfyUI WanVideoWrapper is the loader reference for low-VRAM artifacts: FP8/GGUF transformer/text encoder, explicit VAE path, optional VACE disabled unless selected, and memory/offload controls as real loader inputs.
+- Public Wan loader implementations are reference material for low-VRAM behavior: FP8/GGUF transformer/text encoder, explicit VAE path, optional VACE disabled unless selected, and memory/offload controls as real loader inputs. Direct ComfyUI runtime integration is not part of the accepted Phase 1.4 path.
 
 Next steps:
-- [ ] Prove the frame-push route in the app: one camera frame should increment either routed or unrouted backend metrics and call the active runner with `VideoSource.realtime_frame`.
-- [x] Fix the client metrics path so `push_frame` acknowledgements are not overwritten by lagging zero-valued periodic metrics.
-- [x] Record frame-push routed/unrouted counts in backend metrics so periodic `realtime_metrics` reflects websocket frame-push sessions, not only WebRTC sessions.
-- [ ] Build the selected community low-VRAM bridge around the current FP8/GGUF/VAE artifacts.
-  - [x] Add an explicit community low-VRAM bridge boundary that consumes the current runtime/FP8 transformer/GGUF text encoder/VAE manifest paths and reports a bridge-runtime dependency error instead of falling back to official Self-Forcing source-root failures.
-  - [ ] Implement the actual bridge runtime package surface (`nodetool_wan_bridge`) only as far as needed to produce one converted `realtime_video_frame` for Preview.
-- [ ] Return one real `realtime_video_frame` from the selected bridge and route it to `VideoSink -> Preview`.
-- [ ] Load only base required artifacts for the starter template. VACE, LoRA, speed-LoRA, and control artifacts stay disabled until an explicit profile/control enables them.
-  - [x] Keep optional VACE/LoRA artifact IDs out of the default community bridge config and default node path.
-- [ ] Emit only the model phases needed to explain why Preview is or is not receiving frames: `resolving`, `loading transformer`, `loading text encoder`, `loading VAE`, `warming`, `ready`, `error`, and `stop`.
-- [ ] Report backend, precision, VRAM/offload, latency, artifact paths, and last error only where they help diagnose missing Preview frames.
-- [ ] After one real frame exists, revisit clean-install packaging, CUDA/CPU placement, attention acceleration, preview decoders, LoRA, VACE, and the 24 GB LongLive lane.
+- [ ] Follow `Next Steps To Real Preview Frames` in order; treat that section as the active Phase 1.4 task list and the source of truth.
+- [ ] Camera frame -> active realtime runner input: one camera frame increments routed or unrouted backend metrics and calls the active runner with `VideoSource.realtime_frame`.
+  - [x] Fix client metrics so `push_frame` acknowledgements are not overwritten by lagging zero-valued periodic metrics.
+  - [x] Record frame-push routed/unrouted counts in backend metrics so periodic `realtime_metrics` reflects websocket frame-push sessions, not only WebRTC sessions.
+- [ ] Simple realtime module -> VideoSink -> Preview baseline: add/expose a TS passthrough node in `packages/realtime-nodes`, verify it appears through `registerRealtimeNodes`, and run a camera-to-preview path through it.
+  - [x] Added `nodetool.realtime.VideoPassthrough`.
+  - [x] Registered it in `REALTIME_NODES` / `registerRealtimeNodes`.
+  - [x] Added focused loopback coverage for `VideoSource -> VideoPassthrough -> VideoSink`.
+  - [x] Updated DSL codegen to include `REALTIME_NODES` and generated `nodetool.realtime.videoPassthrough(...)`.
+  - [x] Added `Realtime Passthrough Baseline` workflow example with no model loader.
+  - [ ] Run the app-only `Camera frame -> passthrough -> VideoSink -> Preview` check.
+  - [ ] Treat RIFE and optical-flow style modules as optional next baselines only after passthrough proves the frame contract.
+- [ ] Active runner input -> standalone Wan bridge call: replace `nodetool_wan_bridge`'s temporary injectable generator with base artifact loading and a real inference entry point.
+  - [x] Add an explicit bridge boundary that consumes runtime/FP8 transformer/GGUF text encoder/VAE manifest paths and reports a bridge-runtime dependency error instead of falling back to official Self-Forcing source-root failures.
+  - [x] Add the bridge package/import surface and `inference(...)` API shape consumed by the existing sampler.
+  - [x] Preserve bridge metadata on emitted `realtime_video_frame` values so Preview/status diagnostics identify the community low-VRAM path.
+  - [x] Keep optional VACE/LoRA artifact IDs out of the default bridge config and default node path.
+  - [ ] Load only the base required artifacts: Wan runtime files, FP8 Self-Forcing transformer, GGUF UMT5 text encoder, and Wan VAE.
+  - [ ] Keep VACE, LoRA, speed-LoRA, and control artifacts disabled until an explicit profile/control enables them.
+- [ ] Standalone Wan bridge -> one denoise/decode: run the smallest practical preview shape and return one real `rgba8 realtime_video_frame`.
+- [ ] `realtime_video_frame -> VideoSink -> Preview`: route the generated frame through the existing preview path.
+- [ ] Diagnostics for missing Preview frames: emit only the phases and status fields needed to explain this pipeline failure: routing count, backend stage, last error, precision/offload, latency, and artifact paths.
+- [ ] After one real Preview frame exists, revisit clean-install packaging, CUDA/CPU placement, attention acceleration, preview decoders, LoRA, VACE, and the 24 GB LongLive lane.
 
 Check:
 - [ ] Browser frames > 0 produces nonzero routed or unrouted backend metrics.
-- [x] Store/card tests preserve and display routed frame counts after `push_frame` acknowledgements.
-- [x] Backend tests route pushed frames to the active runner on `VideoSource.realtime_frame`.
+- [x] Existing focused checks preserve and display routed frame counts after `push_frame` acknowledgements.
+- [x] Existing focused checks route pushed frames to the active runner on `VideoSource.realtime_frame`.
 - [ ] One inference call returns a `realtime_video_frame`.
 - [ ] The first successful frame is produced by a real model path, not `FakeSelfForcingPipeline`.
 - [ ] Base runs skip optional VACE/LoRA/control artifacts unless explicitly enabled.
@@ -511,6 +566,83 @@ Check:
 - [x] Another user can attempt the MVP without reading source code.
 
 ## Phase 2: Immediate User Value
+
+### [ ] 2.0 Recreate Realtime Utility Modules As NodeTool Nodes
+
+Goal:
+- Add a small library of reusable realtime processing nodes after the first real model frame reaches `Preview`.
+- Implement them as fresh NodeTool nodes that closely match the intended behavior and frame contracts; do not copy source code from another project.
+- Keep each node independently useful in `Camera frame -> node -> VideoSink -> Preview` graphs.
+
+Order:
+- [ ] `RealtimePassthrough`
+  - Description: Show the live camera feed through the realtime graph unchanged so users can confirm routing and preview work before loading a model.
+  - Tags: realtime, video, passthrough, camera, preview, routing, baseline
+- [ ] `RealtimeGray`
+  - Description: Convert the live video feed to black-and-white for a simple visible processing check and for workflows that need luminance-only input.
+  - Tags: realtime, video, grayscale, black-and-white, luminance, preprocessing
+- [ ] `RealtimeScribble`
+  - Description: Turn live video into bold edge/contour drawings that can be previewed directly or used later as control input for generation.
+  - Tags: realtime, video, edges, contours, scribble, control, preprocessing
+- [ ] `RealtimeOpticalFlow`
+  - Description: Visualize motion between consecutive frames so users can see movement direction and speed as a color-coded realtime image.
+  - Tags: realtime, video, optical-flow, motion, tracking, visualization, preprocessing
+- [ ] `RealtimeRIFE`
+  - Description: Create in-between frames from live video to make motion smoother or increase apparent frame rate when the device supports it.
+  - Tags: realtime, video, interpolation, frame-rate, motion-smoothing, RIFE
+- [ ] `RealtimeVideoDepth`
+  - Description: Estimate a depth map from live video so nearby and distant areas can be previewed or used as control signals.
+  - Tags: realtime, video, depth, depth-map, distance, control, preprocessing
+- [ ] `RealtimeControllerViz`
+  - Description: Render keyboard, mouse, or controller input as a realtime visual overlay for debugging interactive workflows.
+  - Tags: realtime, controls, keyboard, mouse, controller, visualization, debugging
+
+Implementation notes:
+- Prefer TypeScript nodes under `packages/realtime-nodes` when the implementation can run in the TS runtime without Python model dependencies.
+- Use Python nodes under `nodetool-realtime` only for model-heavy processing that needs torch/CUDA or existing Python media utilities.
+- If TS nodes need typed DSL helpers, update `packages/dsl/scripts/codegen.ts` to include `REALTIME_NODES` alongside `ALL_BASE_NODES`, then run `npm run codegen --workspace=packages/dsl`.
+- Do not add these nodes to the active Phase 1.4 success path except for the simple passthrough baseline.
+
+Check:
+- [ ] Each node can be inserted between `VideoSource.realtime_frame` and `VideoSink.frame`.
+- [ ] Each node either emits a visible realtime frame in `Preview` or reports a clear unsupported-runtime error.
+- [ ] No utility node blocks the first real Wan-frame goal.
+
+### [ ] 2.0b Add Realtime WebGPU Shader Effect Nodes
+
+Goal:
+- Add browser/GPU-native realtime effect nodes for low-latency preview and creative processing after the first real model frame reaches `Preview`.
+- Keep these separate from model inference nodes: they should transform incoming realtime frames with WebGPU shaders and emit `realtime_video_frame` outputs.
+CONSIDER: this could be one node called Shader or FX that has a menu to select from 10s of shaders. shaders would show name first, but later description, thumbnail. one folder per shader with image and metadata in header of shader files or separate json file. also simple versioning.
+
+Order:
+- [ ] `ShaderPassthrough`
+  - Description: Run a live frame through the WebGPU shader path without changing the image so users can confirm GPU effects are available.
+  - Tags: realtime, video, WebGPU, shader, passthrough, baseline, GPU
+- [ ] `ShaderColor`
+  - Description: Adjust brightness, contrast, saturation, hue, invert, or grayscale on live video for fast creative color changes.
+  - Tags: realtime, video, WebGPU, shader, color, brightness, contrast, saturation, hue
+- [ ] `ShaderBlurSharpen`
+  - Description: Blur, sharpen, or enhance edges in live video for quick focus and stylization effects.
+  - Tags: realtime, video, WebGPU, shader, blur, sharpen, edges, stylize
+- [ ] `ShaderPixelateGlitch`
+  - Description: Add pixelation, scanlines, chromatic offsets, feedback, or glitch looks to live video.
+  - Tags: realtime, video, WebGPU, shader, pixelate, glitch, scanline, feedback
+- [ ] `ShaderCompositor`
+  - Description: Blend two live video inputs with selectable mix modes for overlays, crossfades, and layered effects.
+  - Tags: realtime, video, WebGPU, shader, composite, blend, overlay, mix
+
+Implementation notes:
+
+- Prefer TypeScript/browser runtime placement, likely split between `packages/realtime-browser` for WebGPU execution helpers and `packages/realtime-nodes` for node definitions.
+- Start with a single shared shader-node base that validates WebGPU availability, frame format, texture size, and fallback/error reporting.
+- Do not force CPU readback if the preview path can consume browser textures later; for the first version, emitting normal `realtime_video_frame` is acceptable if it keeps the graph contract simple.
+- Add typed DSL generation only after the node set stabilizes.
+
+Check:
+- [ ] Each shader node can be inserted between `VideoSource.realtime_frame` and `VideoSink.frame`.
+- [ ] Unsupported browsers/devices show a clear WebGPU unavailable error.
+- [ ] Shader effects do not change the backend model-loading or Wan bridge path.
 
 ### [ ] 2.1 Add One Compatible LoRA
 

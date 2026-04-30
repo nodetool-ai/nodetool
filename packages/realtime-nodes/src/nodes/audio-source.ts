@@ -5,7 +5,7 @@ export class AudioSource extends BaseNode {
   static readonly nodeType = "nodetool.realtime.AudioSource";
   static readonly title = "Audio Source";
   static readonly description =
-    "Realtime audio media source. PCM frames are pushed into this node by a realtime transport adapter.";
+    "Receive live audio from a realtime session so it can feed audio-processing or output nodes.\nTags: realtime, audio, source, microphone, input, PCM";
   static readonly metadataOutputTypes = {
     frame: "realtime_audio_frame"
   };

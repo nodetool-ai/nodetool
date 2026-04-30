@@ -1,33 +1,33 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { AudioFrame, InputBufferPolicy } from "@nodetool/protocol";
+import type { InputBufferPolicy, VideoFrame } from "@nodetool/protocol";
 import type {
   ProcessingContext,
   StreamingInputs,
   StreamingOutputs
 } from "@nodetool/runtime";
 
-export class AudioSink extends BaseNode {
-  static readonly nodeType = "nodetool.realtime.AudioSink";
-  static readonly title = "Audio Sink";
+export class VideoPassthrough extends BaseNode {
+  static readonly nodeType = "nodetool.realtime.VideoPassthrough";
+  static readonly title = "Video Passthrough";
   static readonly description =
-    "Send live audio frames to a realtime output transport for playback or streaming.\nTags: realtime, audio, sink, output, playback, streaming, PCM";
+    "Show the live camera feed through the realtime graph unchanged so routing and preview can be checked before loading a model.\nTags: realtime, video, passthrough, camera, preview, routing, baseline";
   static readonly metadataOutputTypes = {
-    frame: "realtime_audio_frame"
+    frame: "realtime_video_frame"
   };
   static readonly isStreamingInput = true;
+  static readonly isStreamingOutput = true;
   static readonly isRealtimeCapable = true;
-  static readonly isMediaAdapter = true;
   static readonly inputBufferPolicy: Record<string, InputBufferPolicy> = {
     frame: { capacity: 2, overflowPolicy: "drop_oldest" }
   };
 
   @prop({
-    type: "realtime_audio_frame",
+    type: "realtime_video_frame",
     default: null,
     title: "Frame",
-    description: "The incoming realtime audio frame."
+    description: "The incoming realtime video frame to forward unchanged."
   })
-  declare frame: AudioFrame | null;
+  declare frame: VideoFrame | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { frame: this.frame ?? null };
@@ -44,4 +44,4 @@ export class AudioSink extends BaseNode {
   }
 }
 
-export const AUDIO_SINK_NODES = [AudioSink] as const;
+export const VIDEO_PASSTHROUGH_NODES = [VideoPassthrough] as const;

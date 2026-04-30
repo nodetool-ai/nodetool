@@ -20,6 +20,7 @@ import {
   Parameter,
   registerRealtimeNodes,
   SessionInfo,
+  VideoPassthrough,
   VideoSink
 } from "../src/index.js";
 
@@ -276,6 +277,70 @@ describe("realtime frame routing nodes", () => {
     );
 
     const pushedFrame = frame(2);
+    await realtimeRunner.runner.pushInputValue(
+      "camera",
+      pushedFrame,
+      "realtime_frame"
+    );
+
+    const result = await realtimeRunner.stopRealtimeMode();
+
+    expect(result.status).toBe("completed");
+    expect(result.outputs.preview).toEqual([pushedFrame]);
+  });
+
+  it("routes pushed video frames through VideoPassthrough into VideoSink", async () => {
+    const nodeRegistry = registry();
+    const realtimeRunner = new RealtimeRunner("job-video-passthrough", {
+      resolveExecutor: resolveFromRegistry(nodeRegistry)
+    });
+
+    await realtimeRunner.startRealtimeMode(
+      { job_id: "job-video-passthrough", workflow_id: "workflow-1" },
+      {
+        nodes: [
+          videoSourceDescriptor("video-source"),
+          {
+            ...VideoPassthrough.toDescriptor("passthrough"),
+            name: "passthrough"
+          },
+          {
+            ...VideoSink.toDescriptor("video-sink"),
+            name: "preview"
+          }
+        ],
+        edges: [
+          {
+            source: "video-source",
+            sourceHandle: "realtime_frame",
+            target: "passthrough",
+            targetHandle: "frame"
+          },
+          {
+            source: "passthrough",
+            sourceHandle: "frame",
+            target: "video-sink",
+            targetHandle: "frame"
+          }
+        ]
+      },
+      realtimeSession({
+        session_id: "session-video-passthrough",
+        media_tracks: [
+          {
+            track_id: "track-camera",
+            kind: "video",
+            node_id: "video-source",
+            input_name: "camera",
+            source_handle: "realtime_frame",
+            label: null,
+            enabled: true
+          }
+        ]
+      })
+    );
+
+    const pushedFrame = frame(3);
     await realtimeRunner.runner.pushInputValue(
       "camera",
       pushedFrame,

@@ -3,6 +3,22 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 import type { ImageRef, AudioRef, VideoRef, FolderRef } from "../types.js";
 
+// Video Source — nodetool.video.VideoSource
+export interface VideoSourceInputs {
+  source?: Connectable<"camera">;
+  image?: Connectable<ImageRef>;
+  realtime_frame?: Connectable<unknown>;
+}
+
+export interface VideoSourceOutputs {
+  image: ImageRef;
+  realtime_frame: unknown;
+}
+
+export function videoSource(inputs: VideoSourceInputs): DslNode<VideoSourceOutputs> {
+  return createNode("nodetool.video.VideoSource", inputs as Record<string, unknown>, { outputNames: ["image", "realtime_frame"], streaming: true });
+}
+
 // Text To Video — nodetool.video.TextToVideo
 export interface TextToVideoInputs {
   model?: Connectable<unknown>;

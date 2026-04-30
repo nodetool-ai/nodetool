@@ -50,7 +50,7 @@ export function saveModel3D(inputs: SaveModel3DInputs): DslNode<SaveModel3DOutpu
 // Format Converter — nodetool.model3d.FormatConverter
 export interface FormatConverterInputs {
   model?: Connectable<unknown>;
-  output_format?: Connectable<"glb" | "gltf" | "obj" | "stl" | "ply">;
+  output_format?: Connectable<"glb" | "gltf">;
 }
 
 export interface FormatConverterOutputs {
@@ -67,19 +67,11 @@ export interface GetModel3DMetadataInputs {
 }
 
 export interface GetModel3DMetadataOutputs {
-  format: string;
-  vertex_count: number;
-  face_count: number;
-  is_watertight: boolean;
-  bounds_min: number[];
-  bounds_max: number[];
-  center_of_mass: number[];
-  volume: number;
-  surface_area: number;
+  output: Record<string, unknown>;
 }
 
-export function getModel3DMetadata(inputs: GetModel3DMetadataInputs): DslNode<GetModel3DMetadataOutputs> {
-  return createNode("nodetool.model3d.GetModel3DMetadata", inputs as Record<string, unknown>, { outputNames: ["format", "vertex_count", "face_count", "is_watertight", "bounds_min", "bounds_max", "center_of_mass", "volume", "surface_area"] });
+export function getModel3DMetadata(inputs: GetModel3DMetadataInputs): DslNode<GetModel3DMetadataOutputs, "output"> {
+  return createNode("nodetool.model3d.GetModel3DMetadata", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
 // Transform 3D — nodetool.model3d.Transform3D
@@ -109,6 +101,7 @@ export function transform3D(inputs: Transform3DInputs): DslNode<Transform3DOutpu
 export interface DecimateInputs {
   model?: Connectable<unknown>;
   target_ratio?: Connectable<number>;
+  target_vertices?: Connectable<number>;
 }
 
 export interface DecimateOutputs {
@@ -176,6 +169,54 @@ export function flipNormals(inputs: FlipNormalsInputs): DslNode<FlipNormalsOutpu
   return createNode("nodetool.model3d.FlipNormals", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
+// Normalize Model 3D — nodetool.model3d.NormalizeModel3D
+export interface NormalizeModel3DInputs {
+  model?: Connectable<unknown>;
+  center_mode?: Connectable<"bounds" | "centroid" | "none">;
+  axis_preset?: Connectable<"keep" | "z_to_y" | "y_to_z">;
+  scale_to_size?: Connectable<boolean>;
+  target_size?: Connectable<number>;
+  place_on_ground?: Connectable<boolean>;
+  ground_axis?: Connectable<"y" | "z">;
+}
+
+export interface NormalizeModel3DOutputs {
+  output: unknown;
+}
+
+export function normalizeModel3D(inputs: NormalizeModel3DInputs): DslNode<NormalizeModel3DOutputs, "output"> {
+  return createNode("nodetool.model3d.NormalizeModel3D", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+}
+
+// Extract Largest Component — nodetool.model3d.ExtractLargestComponent
+export interface ExtractLargestComponentInputs {
+  model?: Connectable<unknown>;
+}
+
+export interface ExtractLargestComponentOutputs {
+  output: unknown;
+}
+
+export function extractLargestComponent(inputs: ExtractLargestComponentInputs): DslNode<ExtractLargestComponentOutputs, "output"> {
+  return createNode("nodetool.model3d.ExtractLargestComponent", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+}
+
+// Repair Mesh — nodetool.model3d.RepairMesh
+export interface RepairMeshInputs {
+  model?: Connectable<unknown>;
+  merge_duplicate_vertices?: Connectable<boolean>;
+  remove_degenerate_faces?: Connectable<boolean>;
+  position_tolerance?: Connectable<number>;
+}
+
+export interface RepairMeshOutputs {
+  output: unknown;
+}
+
+export function repairMesh(inputs: RepairMeshInputs): DslNode<RepairMeshOutputs, "output"> {
+  return createNode("nodetool.model3d.RepairMesh", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+}
+
 // Merge Meshes — nodetool.model3d.MergeMeshes
 export interface MergeMeshesInputs {
   models?: Connectable<unknown[]>;
@@ -195,7 +236,8 @@ export interface TextTo3DInputs {
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
   art_style?: Connectable<string>;
-  output_format?: Connectable<"glb" | "gltf" | "obj" | "stl" | "ply">;
+  output_format?: Connectable<"glb" | "obj" | "fbx" | "usdz">;
+  enable_textures?: Connectable<boolean>;
   seed?: Connectable<number>;
   timeout_seconds?: Connectable<number>;
 }
@@ -213,7 +255,7 @@ export interface ImageTo3DInputs {
   model?: Connectable<unknown>;
   image?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
-  output_format?: Connectable<"glb" | "gltf" | "obj" | "stl" | "ply">;
+  output_format?: Connectable<"glb" | "obj" | "fbx" | "usdz">;
   seed?: Connectable<number>;
   timeout_seconds?: Connectable<number>;
 }

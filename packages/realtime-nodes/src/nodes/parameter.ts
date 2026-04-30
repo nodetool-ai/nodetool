@@ -4,7 +4,7 @@ export class Parameter extends BaseNode {
   static readonly nodeType = "nodetool.realtime.Parameter";
   static readonly title = "Realtime Parameter";
   static readonly description =
-    "Realtime control parameter. Live updates are routed to this node by name during a session.";
+    "Expose a live control value that can be changed while a realtime workflow is running.\nTags: realtime, parameter, control, live-update, automation, UI";
   static readonly metadataOutputTypes = {
     value: "any"
   };

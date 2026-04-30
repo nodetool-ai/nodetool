@@ -10,7 +10,7 @@ export class VideoSink extends BaseNode {
   static readonly nodeType = "nodetool.realtime.VideoSink";
   static readonly title = "Video Sink";
   static readonly description =
-    "Realtime video media sink. Emits incoming frames for preview or outbound transport adapters.";
+    "Send live video frames to the realtime preview or to an output transport.\nTags: realtime, video, sink, preview, output, transport";
   static readonly metadataOutputTypes = {
     frame: "realtime_video_frame"
   };

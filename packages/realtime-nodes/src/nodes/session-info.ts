@@ -6,7 +6,7 @@ export class SessionInfo extends BaseNode {
   static readonly nodeType = "nodetool.realtime.SessionInfo";
   static readonly title = "Realtime Session Info";
   static readonly description =
-    "Emits the current realtime session metadata captured at session startup.";
+    "Output the active realtime session details, including parameters, media tracks, transport, and metrics.\nTags: realtime, session, metadata, metrics, diagnostics, media-tracks";
   static readonly metadataOutputTypes = {
     session: "dict",
     session_id: "str",
