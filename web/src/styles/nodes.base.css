@@ -35,11 +35,12 @@
     filter 0.2s ease-in-out, transform 0.18s ease, outline-color 0.18s ease;
 }
 
-/* When any selected node is being dragged, suppress the transform transition on
-   ALL selected nodes. ReactFlow only adds .dragging to the grabbed node, so
-   co-selected nodes that move with it would otherwise animate with a CSS delay,
-   causing them to visually lag behind the instantly-updating edge paths. */
-.react-flow__nodes:has(.react-flow__node.selected.dragging) .react-flow__node.selected {
+/* When a NodesSelection rectangle is being dragged, ReactFlow moves all selected
+   nodes via the selection overlay — no individual node receives the `dragging`
+   class — so the transform transition on every selected node would otherwise
+   animate 180ms behind the cursor.  The JS drag handlers add/remove the
+   `nodesselection-dragging` class on the .react-flow container to signal this. */
+.react-flow.nodesselection-dragging .react-flow__node.selected {
   transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
     filter 0.2s ease-in-out, outline-color 0.18s ease;
 }
