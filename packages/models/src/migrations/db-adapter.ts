@@ -251,6 +251,11 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
    */
   async release(): Promise<void> {
     if (this.client) {
+      try {
+        await this.client.query("ROLLBACK");
+      } catch {
+        // Ignore rollback errors during cleanup.
+      }
       this.client.release();
       this.client = null;
     }
@@ -398,6 +403,11 @@ export class PostgresJsMigrationAdapter implements MigrationDBAdapter {
   /** Release the reserved connection back to the pool. */
   async release(): Promise<void> {
     if (this.reserved) {
+      try {
+        await this.reserved.unsafe("ROLLBACK");
+      } catch {
+        // Ignore rollback errors during cleanup.
+      }
       this.reserved.release();
       this.reserved = null;
     }

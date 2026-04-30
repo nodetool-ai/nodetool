@@ -1081,5 +1081,282 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_settings_user_id");
       await db.execute("DROP TABLE IF EXISTS nodetool_settings");
     }
+  },
+
+  // ── Ensure schema columns match current Drizzle models ─────────────
+  {
+    version: "20260430_000000",
+    name: "add_current_schema_missing_columns",
+    createsTables: [],
+    modifiesTables: [
+      "nodetool_workflows",
+      "nodetool_jobs",
+      "nodetool_messages",
+      "nodetool_threads",
+      "nodetool_assets",
+      "nodetool_secrets",
+      "nodetool_workspaces",
+      "nodetool_workflow_versions",
+      "nodetool_oauth_credentials",
+      "run_node_state",
+      "nodetool_predictions",
+      "run_events",
+      "run_leases",
+      "nodetool_team_tasks",
+      "nodetool_settings"
+    ],
+    async up(db) {
+      const tableColumns: Record<string, Record<string, string>> = {
+        nodetool_workflows: {
+          id: "TEXT",
+          user_id: "TEXT",
+          name: "TEXT",
+          tool_name: "TEXT",
+          description: "TEXT",
+          tags: "TEXT",
+          thumbnail: "TEXT",
+          thumbnail_url: "TEXT",
+          graph: "TEXT",
+          settings: "TEXT",
+          package_name: "TEXT",
+          path: "TEXT",
+          run_mode: "TEXT",
+          workspace_id: "TEXT",
+          html_app: "TEXT",
+          receive_clipboard: "INTEGER",
+          access: "TEXT",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        },
+        nodetool_jobs: {
+          id: "TEXT",
+          user_id: "TEXT",
+          job_type: "TEXT",
+          workflow_id: "TEXT",
+          status: "TEXT",
+          name: "TEXT",
+          graph: "TEXT",
+          params: "TEXT",
+          worker_id: "TEXT",
+          heartbeat_at: "TEXT",
+          started_at: "TEXT",
+          finished_at: "TEXT",
+          completed_at: "TEXT",
+          failed_at: "TEXT",
+          error: "TEXT",
+          error_message: "TEXT",
+          cost: "REAL",
+          logs: "TEXT",
+          retry_count: "INTEGER",
+          max_retries: "INTEGER",
+          version: "INTEGER",
+          suspended_node_id: "TEXT",
+          suspension_reason: "TEXT",
+          suspension_state_json: "TEXT",
+          suspension_metadata_json: "TEXT",
+          execution_strategy: "TEXT",
+          execution_id: "TEXT",
+          metadata_json: "TEXT",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        },
+        nodetool_messages: {
+          id: "TEXT",
+          user_id: "TEXT",
+          thread_id: "TEXT",
+          role: "TEXT",
+          name: "TEXT",
+          content: "TEXT",
+          tool_calls: "TEXT",
+          tool_call_id: "TEXT",
+          input_files: "TEXT",
+          output_files: "TEXT",
+          provider: "TEXT",
+          model: "TEXT",
+          cost: "REAL",
+          workflow_id: "TEXT",
+          graph: "TEXT",
+          tools: "TEXT",
+          collections: "TEXT",
+          agent_mode: "INTEGER",
+          help_mode: "INTEGER",
+          agent_execution_id: "TEXT",
+          execution_event_type: "TEXT",
+          workflow_target: "TEXT",
+          media_generation: "TEXT",
+          created_at: "TEXT"
+        },
+        nodetool_threads: {
+          id: "TEXT",
+          user_id: "TEXT",
+          title: "TEXT",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        },
+        nodetool_assets: {
+          id: "TEXT",
+          user_id: "TEXT",
+          parent_id: "TEXT",
+          file_id: "TEXT",
+          name: "TEXT",
+          content_type: "TEXT",
+          size: "REAL",
+          duration: "REAL",
+          metadata: "TEXT",
+          workflow_id: "TEXT",
+          node_id: "TEXT",
+          job_id: "TEXT",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        },
+        nodetool_secrets: {
+          id: "TEXT",
+          user_id: "TEXT",
+          key: "TEXT",
+          encrypted_value: "TEXT",
+          description: "TEXT",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        },
+        nodetool_workspaces: {
+          id: "TEXT",
+          user_id: "TEXT",
+          name: "TEXT",
+          path: "TEXT",
+          is_default: "INTEGER",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        },
+        nodetool_workflow_versions: {
+          id: "TEXT",
+          workflow_id: "TEXT",
+          user_id: "TEXT",
+          name: "TEXT",
+          description: "TEXT",
+          graph: "TEXT",
+          version: "INTEGER",
+          save_type: "TEXT",
+          autosave_metadata: "TEXT",
+          created_at: "TEXT"
+        },
+        nodetool_oauth_credentials: {
+          id: "TEXT",
+          user_id: "TEXT",
+          provider: "TEXT",
+          account_id: "TEXT",
+          encrypted_access_token: "TEXT",
+          encrypted_refresh_token: "TEXT",
+          username: "TEXT",
+          token_type: "TEXT",
+          scope: "TEXT",
+          received_at: "TEXT",
+          expires_at: "TEXT",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        },
+        run_node_state: {
+          id: "TEXT",
+          run_id: "TEXT",
+          node_id: "TEXT",
+          status: "TEXT",
+          attempt: "INTEGER",
+          scheduled_at: "TEXT",
+          started_at: "TEXT",
+          completed_at: "TEXT",
+          failed_at: "TEXT",
+          suspended_at: "TEXT",
+          updated_at: "TEXT",
+          last_error: "TEXT",
+          retryable: "INTEGER",
+          suspension_reason: "TEXT",
+          resume_state_json: "TEXT",
+          outputs_json: "TEXT"
+        },
+        nodetool_predictions: {
+          id: "TEXT",
+          user_id: "TEXT",
+          node_id: "TEXT",
+          provider: "TEXT",
+          model: "TEXT",
+          workflow_id: "TEXT",
+          error: "TEXT",
+          logs: "TEXT",
+          status: "TEXT",
+          cost: "REAL",
+          input_tokens: "INTEGER",
+          output_tokens: "INTEGER",
+          total_tokens: "INTEGER",
+          cached_tokens: "INTEGER",
+          reasoning_tokens: "INTEGER",
+          created_at: "TEXT",
+          started_at: "TEXT",
+          completed_at: "TEXT",
+          duration: "REAL",
+          hardware: "TEXT",
+          input_size: "INTEGER",
+          output_size: "INTEGER",
+          parameters: "TEXT",
+          metadata: "TEXT"
+        },
+        run_events: {
+          id: "TEXT",
+          run_id: "TEXT",
+          seq: "INTEGER",
+          event_type: "TEXT",
+          event_time: "TEXT",
+          node_id: "TEXT",
+          payload: "TEXT"
+        },
+        run_leases: {
+          run_id: "TEXT",
+          worker_id: "TEXT",
+          acquired_at: "TEXT",
+          expires_at: "TEXT"
+        },
+        nodetool_team_tasks: {
+          id: "TEXT",
+          team_id: "TEXT",
+          title: "TEXT",
+          description: "TEXT",
+          status: "TEXT",
+          created_by: "TEXT",
+          claimed_by: "TEXT",
+          depends_on: "TEXT",
+          required_skills: "TEXT",
+          priority: "INTEGER",
+          artifacts: "TEXT",
+          parent_task_id: "TEXT",
+          result: "TEXT",
+          failure_reason: "TEXT",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        },
+        nodetool_settings: {
+          id: "TEXT",
+          user_id: "TEXT",
+          key: "TEXT",
+          value: "TEXT",
+          description: "TEXT",
+          created_at: "TEXT",
+          updated_at: "TEXT"
+        }
+      };
+
+      for (const [tableName, columns] of Object.entries(tableColumns)) {
+        if (!(await db.tableExists(tableName))) {
+          continue;
+        }
+        for (const [columnName, columnType] of Object.entries(columns)) {
+          if (!(await db.columnExists(tableName, columnName))) {
+            await db.execute(
+              `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnType}`
+            );
+          }
+        }
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
   }
 ];

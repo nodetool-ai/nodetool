@@ -19,7 +19,9 @@ import type {
 
 export type BoardEventHandler = (event: TeamEvent) => void;
 
-function rowToTask(row: typeof teamTasks.$inferSelect): BoardTask {
+type TeamTaskRow = typeof teamTasks.$inferSelect;
+
+function rowToTask(row: TeamTaskRow): BoardTask {
   return {
     id: row.id,
     title: row.title,
@@ -339,7 +341,9 @@ export class DbTaskBoard implements ITaskBoard {
       .all();
 
     if (rows.length === 0) return false;
-    return rows.every((r) => r.status === "done" || r.status === "failed");
+    return rows.every(
+      (r: TeamTaskRow) => r.status === "done" || r.status === "failed"
+    );
   }
 
   detectDeadlock(): string[] | null {
@@ -365,7 +369,7 @@ export class DbTaskBoard implements ITaskBoard {
 
     if (stuck.length > 0 && active.length === 0) {
       const claimable = rows.filter(
-        (r) => r.status === "open" && this.dependenciesMet(r.id)
+        (r: TeamTaskRow) => r.status === "open" && this.dependenciesMet(r.id)
       );
       if (claimable.length === 0) return stuck;
     }

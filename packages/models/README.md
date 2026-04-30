@@ -55,6 +55,19 @@ For Supabase, both URLs are on the project's *Settings → Database* page.
 | `DATABASE_URL` | PostgreSQL connection string (Supabase pooler or direct) |
 | `NODETOOL_DB_PATH` | SQLite file path (defaults to `~/.nodetool/nodetool.db`) |
 
+## Running Supabase Migrations
+
+Use the CLI with your Supabase **direct connection URL** (port `5432`):
+
+```bash
+DIRECT_URL="postgresql://postgres:[password]@db.[project].supabase.co:5432/postgres" \
+  nodetool db migrate
+
+nodetool db status --direct-url "$DIRECT_URL"
+```
+
+Use the pooler URL (port `6543`, transaction mode) only for the running app, not migration runs.
+
 ## Schema Generation (drizzle-kit)
 
 ```bash
@@ -85,9 +98,13 @@ await initPostgresDb(process.env.DIRECT_URL!); // use direct URL for migrations
 
 const sql = postgres(process.env.DIRECT_URL!);
 const adapter = new PostgresJsMigrationAdapter(sql);
-const runner = new MigrationRunner(adapter);
-await runner.migrate();
-await sql.end();
+try {
+  const runner = new MigrationRunner(adapter);
+  await runner.migrate();
+} finally {
+  await adapter.release();
+  await sql.end();
+}
 ```
 
 For SQLite, the `SQLiteMigrationAdapter` accepts a `better-sqlite3` `Database` instance.

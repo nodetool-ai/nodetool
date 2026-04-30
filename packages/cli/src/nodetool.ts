@@ -41,6 +41,7 @@ import {
 import { registerHfCommands } from "./commands/models-hf.js";
 import { registerRecommendedCommand } from "./commands/models-recommended.js";
 import { registerAgentCommands } from "./commands/agent.js";
+import { registerDbCommands } from "./commands/db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1372,6 +1373,7 @@ registerPackageCommands(program);
 registerDeployCommands(program);
 registerListGcpOptions(program);
 registerAgentCommands(program);
+registerDbCommands(program);
 
 // ---------------------------------------------------------------------------
 
