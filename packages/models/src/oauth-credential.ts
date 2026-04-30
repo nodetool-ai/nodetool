@@ -114,7 +114,7 @@ export class OAuthCredential extends DBModel {
     accountId: string
   ): Promise<OAuthCredential | null> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select()
       .from(oauthCredentials)
       .where(
@@ -124,8 +124,7 @@ export class OAuthCredential extends DBModel {
           eq(oauthCredentials.account_id, accountId)
         )
       )
-      .limit(1)
-      .get();
+      .limit(1);
     return row ? new OAuthCredential(row as Record<string, unknown>) : null;
   }
 
@@ -135,7 +134,7 @@ export class OAuthCredential extends DBModel {
     provider: string
   ): Promise<OAuthCredential[]> {
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(oauthCredentials)
       .where(
@@ -144,9 +143,8 @@ export class OAuthCredential extends DBModel {
           eq(oauthCredentials.provider, provider)
         )
       )
-      .orderBy(desc(oauthCredentials.updated_at))
-      .all();
-    return rows.map((r) => new OAuthCredential(r as Record<string, unknown>));
+      .orderBy(desc(oauthCredentials.updated_at));
+    return rows.map((r: Record<string, unknown>) => new OAuthCredential(r as Record<string, unknown>));
   }
 
   /** Create a new credential with encrypted tokens. */

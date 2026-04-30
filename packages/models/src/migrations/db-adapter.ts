@@ -256,3 +256,150 @@ export class PostgresMigrationAdapter implements MigrationDBAdapter {
     }
   }
 }
+
+// ── postgres.js Implementation ───────────────────────────────────────
+
+/**
+ * Migration adapter for the `postgres` (postgres.js) package.
+ * Works with Supabase, Neon, or any standard PostgreSQL database.
+ *
+ * This is the recommended adapter when using `initPostgresDb()` since
+ * both the Drizzle ORM connection and the migration system use postgres.js.
+ *
+ * SQL uses `?` placeholders which are converted to `$1, $2, ...`
+ * for PostgreSQL compatibility with the SQLite-style migration SQL.
+ *
+ * Usage:
+ * ```typescript
+ * import postgres from 'postgres';
+ * import { PostgresJsMigrationAdapter, MigrationRunner } from '@nodetool-ai/models';
+ *
+ * const sql = postgres(process.env.DATABASE_URL);
+ * const adapter = new PostgresJsMigrationAdapter(sql);
+ * await adapter.begin();
+ * try {
+ *   const runner = new MigrationRunner(adapter);
+ *   await runner.migrate();
+ * } finally {
+ *   await adapter.release();
+ * }
+ * ```
+ */
+export class PostgresJsMigrationAdapter implements MigrationDBAdapter {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private sql: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private reserved: any = null;
+  private lastRowCount = 0;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(sql: any) {
+    this.sql = sql;
+  }
+
+  get dbType(): string {
+    return "postgres";
+  }
+
+  /** Convert `?` placeholders to PostgreSQL `$1, $2, ...` style. */
+  private pgSql(sql: string): string {
+    let idx = 0;
+    return sql.replace(/\?/g, () => `$${++idx}`);
+  }
+
+  /** Acquire a reserved connection for the migration session. */
+  async begin(): Promise<void> {
+    if (!this.reserved) {
+      this.reserved = await this.sql.reserve();
+      await this.reserved.unsafe("BEGIN");
+    }
+  }
+
+  private async getConn(): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!this.reserved) {
+      await this.begin();
+    }
+    return this.reserved;
+  }
+
+  async execute(sql: string, params?: SqlParams): Promise<void> {
+    const conn = await this.getConn();
+    const result = await conn.unsafe(this.pgSql(sql), params ?? []);
+    this.lastRowCount = result.count ?? 0;
+  }
+
+  async fetchone(sql: string, params?: SqlParams): Promise<Row | null> {
+    const conn = await this.getConn();
+    const rows = await conn.unsafe(this.pgSql(sql), params ?? []);
+    return rows[0] ?? null;
+  }
+
+  async fetchall(sql: string, params?: SqlParams): Promise<Row[]> {
+    const conn = await this.getConn();
+    return conn.unsafe(this.pgSql(sql), params ?? []);
+  }
+
+  async commit(): Promise<void> {
+    if (this.reserved) {
+      await this.reserved.unsafe("COMMIT");
+      await this.reserved.unsafe("BEGIN");
+    }
+  }
+
+  async rollback(): Promise<void> {
+    if (this.reserved) {
+      await this.reserved.unsafe("ROLLBACK");
+      await this.reserved.unsafe("BEGIN");
+    }
+  }
+
+  async tableExists(tableName: string): Promise<boolean> {
+    const row = await this.fetchone(
+      "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = ?) AS exists",
+      [tableName]
+    );
+    return row?.exists === true;
+  }
+
+  async columnExists(tableName: string, columnName: string): Promise<boolean> {
+    const row = await this.fetchone(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = ? AND column_name = ?
+      ) AS exists`,
+      [tableName, columnName]
+    );
+    return row?.exists === true;
+  }
+
+  async getColumns(tableName: string): Promise<string[]> {
+    const rows = await this.fetchall(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = ?
+       ORDER BY ordinal_position`,
+      [tableName]
+    );
+    return rows.map((r) => r.column_name);
+  }
+
+  async indexExists(indexName: string): Promise<boolean> {
+    const row = await this.fetchone(
+      "SELECT EXISTS (SELECT FROM pg_indexes WHERE schemaname = 'public' AND indexname = ?) AS exists",
+      [indexName]
+    );
+    return row?.exists === true;
+  }
+
+  getRowcount(): number {
+    return this.lastRowCount;
+  }
+
+  /** Release the reserved connection back to the pool. */
+  async release(): Promise<void> {
+    if (this.reserved) {
+      this.reserved.release();
+      this.reserved = null;
+    }
+  }
+}

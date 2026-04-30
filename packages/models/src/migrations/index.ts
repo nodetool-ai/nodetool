@@ -25,7 +25,8 @@ export {
 export type { MigrationDBAdapter, SqlParams, Row } from "./db-adapter.js";
 export {
   SQLiteMigrationAdapter,
-  PostgresMigrationAdapter
+  PostgresMigrationAdapter,
+  PostgresJsMigrationAdapter
 } from "./db-adapter.js";
 
 export type { MigrationDef } from "./versions.js";

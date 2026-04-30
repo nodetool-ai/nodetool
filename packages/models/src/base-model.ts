@@ -1,17 +1,14 @@
 /**
  * DBModel – base class for database-backed models.
  *
- * Rewritten to use Drizzle ORM as the query layer.
- * Each concrete model class provides a static `table` pointing to its
- * Drizzle table definition. The base class supplies common CRUD,
- * observer notifications, and etag computation.
+ * Uses Drizzle ORM as the query layer. Supports both SQLite (better-sqlite3)
+ * and PostgreSQL (postgres.js) via async methods that work on both dialects.
  */
 
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { eq } from "drizzle-orm";
-import type { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
 import { getDb } from "./db.js";
 
 const log = createLogger("nodetool.models");
@@ -53,10 +50,6 @@ export class ModelObserver {
   static notify(instance: DBModel, event: ModelChangeEvent): void {
     const className = instance.constructor.name;
 
-    // Intentional: catch and log observer errors to prevent one failing observer
-    // from blocking notifications to remaining observers.
-
-    // Class-specific observers
     for (const cb of ModelObserver.observers.get(className) ?? []) {
       try {
         cb(instance, event);
@@ -67,7 +60,6 @@ export class ModelObserver {
       }
     }
 
-    // Global observers
     for (const cb of ModelObserver.observers.get(null) ?? []) {
       try {
         cb(instance, event);
@@ -86,12 +78,10 @@ export class ModelObserver {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/** Create a time-ordered UUID (v4 for simplicity; Python uses uuid1). */
 export function createTimeOrderedUuid(): string {
   return randomUUID().replace(/-/g, "");
 }
 
-/** Compute an MD5 etag from a plain object. */
 export function computeEtag(data: Record<string, unknown>): string {
   const raw = JSON.stringify(data, Object.keys(data).sort());
   return createHash("md5").update(raw).digest("hex");
@@ -99,40 +89,27 @@ export function computeEtag(data: Record<string, unknown>): string {
 
 // ── DBModel Base ─────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle tables have deeply nested generics; `any` is required for the base-class pattern.
-export type DrizzleTable = SQLiteTableWithColumns<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle table type varies by dialect; any is required for the base-class pattern.
+export type DrizzleTable = any;
 
-/**
- * Helper to get column object from table by name.
- * Needed because Drizzle tables store columns as properties keyed by column name.
- * Returns the Drizzle column object for use with query builders (eq, etc.).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle column type varies per table; callers pass result to eq() which accepts any column.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getTableColumn(table: DrizzleTable, colName: string): any {
   return (table as Record<string, unknown>)[colName];
 }
 
-/**
- * Get column names from a Drizzle table.
- */
 function getColumnNames(table: DrizzleTable): string[] {
-  // Drizzle stores column config under Symbol.for("drizzle:Columns")
   const cols = (table as unknown as Record<symbol, Record<string, unknown>>)[
     Symbol.for("drizzle:Columns")
   ];
   if (cols) return Object.keys(cols);
-  // Fallback: iterate own enumerable string keys that look like columns
   return Object.keys(table).filter((k) => !k.startsWith("_"));
 }
 
 export abstract class DBModel {
-  /** Subclass must set this to its Drizzle table definition. */
   static table: DrizzleTable;
 
-  /** Primary key column name. Override for non-'id' PKs (e.g. RunLease uses 'run_id'). */
   static primaryKey = "id";
 
-  // Allow dynamic property access for column data — DBModel instances store column values as properties.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 
@@ -142,7 +119,7 @@ export abstract class DBModel {
 
   // ── CRUD ─────────────────────────────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `this: any` enables static polymorphism across subclasses.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async create<T extends DBModel>(
     this: any,
     data: Record<string, unknown>
@@ -153,7 +130,7 @@ export abstract class DBModel {
     return instance;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- `this: any` enables static polymorphism across subclasses.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async get<T extends DBModel>(
     this: any,
     key: string | number
@@ -161,12 +138,12 @@ export abstract class DBModel {
     const db = getDb();
     const table = this.table as DrizzleTable;
     const pkCol = getTableColumn(table, this.primaryKey);
-    const row = db.select().from(table).where(eq(pkCol, key)).get();
+    const rows = await db.select().from(table).where(eq(pkCol, key)).limit(1);
+    const row = rows[0];
     if (!row) return null;
     return new this(row as Record<string, unknown>) as T;
   }
 
-  /** Hook called before save. Subclasses may override. */
   beforeSave(): void {}
 
   async save(): Promise<this> {
@@ -177,13 +154,13 @@ export abstract class DBModel {
     const row = this.toRow();
     const pkCol = getTableColumn(table, ctor.primaryKey);
 
-    db.insert(table)
+    await db
+      .insert(table)
       .values(row)
       .onConflictDoUpdate({
         target: pkCol,
         set: row
-      })
-      .run();
+      });
 
     ModelObserver.notify(this, ModelChangeEvent.UPDATED);
     return this;
@@ -194,7 +171,7 @@ export abstract class DBModel {
     const db = getDb();
     const table = ctor.table;
     const pkCol = getTableColumn(table, ctor.primaryKey);
-    db.delete(table).where(eq(pkCol, this.partitionValue())).run();
+    await db.delete(table).where(eq(pkCol, this.partitionValue()));
     ModelObserver.notify(this, ModelChangeEvent.DELETED);
   }
 
@@ -205,29 +182,28 @@ export abstract class DBModel {
   }
 
   async reload(): Promise<this> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructor must be callable with `new` for dynamic instantiation.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ctor = this.constructor as any;
     const db = getDb();
     const table = (ctor as typeof DBModel).table;
     const pkCol = getTableColumn(table, (ctor as typeof DBModel).primaryKey);
-    const row = db
+    const rows = await db
       .select()
       .from(table)
       .where(eq(pkCol, this.partitionValue()))
-      .get();
+      .limit(1);
+    const row = rows[0];
     if (!row) throw new Error(`Item not found: ${this.partitionValue()}`);
     const fresh = new ctor(row as Record<string, unknown>);
     Object.assign(this, fresh);
     return this;
   }
 
-  /** Get the primary key value for this instance. */
   partitionValue(): string | number {
     const ctor = this.constructor as typeof DBModel;
     return this[ctor.primaryKey];
   }
 
-  /** Serialize to a plain row object for Drizzle. */
   toRow(): Record<string, unknown> {
     const ctor = this.constructor as typeof DBModel;
     const columnNames = getColumnNames(ctor.table);
@@ -245,7 +221,6 @@ export abstract class DBModel {
     return row;
   }
 
-  /** Compute an ETag for this instance. */
   getEtag(): string {
     return computeEtag(this.toRow());
   }

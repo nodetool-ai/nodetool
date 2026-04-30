@@ -79,14 +79,13 @@ export class RunNodeState extends DBModel {
     nodeId: string
   ): Promise<RunNodeState | null> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select()
       .from(runNodeState)
       .where(
         and(eq(runNodeState.run_id, runId), eq(runNodeState.node_id, nodeId))
       )
-      .limit(1)
-      .get();
+      .limit(1);
     return row ? new RunNodeState(row as Record<string, unknown>) : null;
   }
 
@@ -109,7 +108,7 @@ export class RunNodeState extends DBModel {
   /** Get all incomplete (scheduled or running) nodes for a run. */
   static async getIncompleteNodes(runId: string): Promise<RunNodeState[]> {
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(runNodeState)
       .where(
@@ -118,15 +117,14 @@ export class RunNodeState extends DBModel {
           inArray(runNodeState.status, ["scheduled", "running"])
         )
       )
-      .limit(10000)
-      .all();
-    return rows.map((r) => new RunNodeState(r as Record<string, unknown>));
+      .limit(10000);
+    return rows.map((r: Record<string, unknown>) => new RunNodeState(r as Record<string, unknown>));
   }
 
   /** Get all suspended nodes for a run. */
   static async getSuspendedNodes(runId: string): Promise<RunNodeState[]> {
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(runNodeState)
       .where(
@@ -135,9 +133,8 @@ export class RunNodeState extends DBModel {
           eq(runNodeState.status, "suspended")
         )
       )
-      .limit(10000)
-      .all();
-    return rows.map((r) => new RunNodeState(r as Record<string, unknown>));
+      .limit(10000);
+    return rows.map((r: Record<string, unknown>) => new RunNodeState(r as Record<string, unknown>));
   }
 
   // ── State transitions ─────────────────────────────────────────────

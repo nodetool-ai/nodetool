@@ -42,14 +42,13 @@ export class WorkflowVersion extends DBModel {
   ): Promise<WorkflowVersion[]> {
     const { limit = 100 } = opts;
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(workflowVersions)
       .where(eq(workflowVersions.workflow_id, workflowId))
       .orderBy(desc(workflowVersions.version))
-      .limit(limit)
-      .all();
-    return rows.map((r) => new WorkflowVersion(r as Record<string, unknown>));
+      .limit(limit);
+    return rows.map((r: Record<string, unknown>) => new WorkflowVersion(r as Record<string, unknown>));
   }
 
   /** Get a specific version by workflow_id + version number. */
@@ -58,7 +57,7 @@ export class WorkflowVersion extends DBModel {
     version: number
   ): Promise<WorkflowVersion | null> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select()
       .from(workflowVersions)
       .where(
@@ -67,8 +66,7 @@ export class WorkflowVersion extends DBModel {
           eq(workflowVersions.version, version)
         )
       )
-      .limit(1)
-      .get();
+      .limit(1);
     return row ? new WorkflowVersion(row as Record<string, unknown>) : null;
   }
 

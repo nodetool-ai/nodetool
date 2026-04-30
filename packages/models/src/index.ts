@@ -6,9 +6,18 @@
  */
 
 // ── Database Connection ─────────────────────────────────────────────
-export { initDb, initTestDb, getDb, getRawDb, closeDb } from "./db.js";
+export {
+  initDb,
+  initPostgresDb,
+  initTestDb,
+  getDb,
+  getDbType,
+  getRawDb,
+  closeDb
+} from "./db.js";
+export type { DbDialect } from "./db.js";
 
-// ── Drizzle Schema (for consumers needing raw queries) ──────────────
+// ── Drizzle Schema (SQLite — default) ──────────────────────────────
 export {
   workflows,
   jobs,
@@ -26,6 +35,9 @@ export {
   teamTasks,
   appSettings
 } from "./schema/index.js";
+
+// ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
+export * as pgSchema from "./schema-pg/index.js";
 
 // ── Base Model ───────────────────────────────────────────────────────
 export {
@@ -107,6 +119,7 @@ export {
   detectDatabaseState,
   SQLiteMigrationAdapter,
   PostgresMigrationAdapter,
+  PostgresJsMigrationAdapter,
   migrations,
   MigrationRunner
 } from "./migrations/index.js";
