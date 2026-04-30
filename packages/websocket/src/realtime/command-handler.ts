@@ -200,7 +200,10 @@ export class RealtimeCommandHandler {
       };
     }
 
-    const router = new FrameRouter(session, activeJob.runner);
+    const router =
+      typeof activeJob.getFrameRouter === "function"
+        ? activeJob.getFrameRouter(session)
+        : new FrameRouter(session, activeJob.runner);
     let routed: boolean;
     try {
       routed = await router.routeFrame(trackId, frame);

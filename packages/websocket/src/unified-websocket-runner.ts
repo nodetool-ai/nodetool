@@ -69,6 +69,7 @@ import { RealtimeCommandHandler } from "./realtime/command-handler.js";
 import { RealtimeLifecycleOrchestrator } from "./realtime/lifecycle-orchestrator.js";
 import { realtimeSessionManager } from "./realtime/session-manager.js";
 import { RealtimeWebRTCServer } from "./realtime/webrtc-server.js";
+import { FrameRouter } from "./realtime/frame-router.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -581,6 +582,8 @@ interface ActiveJob {
   comfyHandle?: ComfyExecutionHandle;
   resolveRealtimeResult?: (result: RunResult) => void;
   rejectRealtimeResult?: (error: unknown) => void;
+  /** Lazily built; invalidated when `media_tracks` layout changes. */
+  realtimeFrameRouter?: { tracksKey: string; router: FrameRouter };
 }
 
 class ToolBridge {
@@ -953,7 +956,17 @@ export class UnifiedWebSocketRunner {
       cancelJob: async (jobId, workflowId) => {
         await this.cancelJob(jobId, workflowId);
       },
-      getActiveJob: (jobId) => this.activeJobs.get(jobId),
+      getActiveJob: (jobId) => {
+        const active = this.activeJobs.get(jobId);
+        if (!active) {
+          return undefined;
+        }
+        return {
+          runner: active.runner,
+          getFrameRouter: (session: RealtimeSessionRecord) =>
+            this.getOrCreateRealtimeFrameRouter(active, session)
+        };
+      },
       trackSessionJob: (sessionId, jobId) => {
         this.realtimeLifecycle.trackSessionJob(sessionId, jobId);
       },
@@ -1086,6 +1099,29 @@ export class UnifiedWebSocketRunner {
 
   private getRealtimeUserId(): string {
     return this.userId ?? "1";
+  }
+
+  private getOrCreateRealtimeFrameRouter(
+    active: ActiveJob,
+    session: RealtimeSessionRecord
+  ): FrameRouter {
+    const tracksKey = session.media_tracks
+      .filter((track) => track.enabled !== false)
+      .map(
+        (track) =>
+          `${track.track_id}:${track.node_id}:${track.source_handle ?? "frame"}`
+      )
+      .sort()
+      .join("|");
+    if (
+      active.realtimeFrameRouter &&
+      active.realtimeFrameRouter.tracksKey === tracksKey
+    ) {
+      return active.realtimeFrameRouter.router;
+    }
+    const router = new FrameRouter(session, active.runner);
+    active.realtimeFrameRouter = { tracksKey, router };
+    return router;
   }
 
   private clearRealtimeSessionTracking(

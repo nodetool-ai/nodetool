@@ -7,6 +7,8 @@ import type {
   RealtimeSignalType
 } from "@nodetool/protocol";
 
+import type { FrameRouter } from "./frame-router.js";
+
 export type WorkflowGraphPayload = {
   nodes: Record<string, unknown>[];
   edges: Record<string, unknown>[];
@@ -32,6 +34,11 @@ export interface ActiveRealtimeJob {
       value: unknown
     ): Promise<{ routed: boolean; nodeIds: string[] }>;
   };
+  /**
+   * Optional: reuse one FrameRouter per job for push_frame so we do not
+   * rebuild the track-id map on every browser frame.
+   */
+  getFrameRouter?: (session: RealtimeSessionRecord) => FrameRouter;
 }
 
 export type NormalizedRealtimeSignal = {
