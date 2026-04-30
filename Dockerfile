@@ -36,11 +36,12 @@ COPY packages/chat/package.json packages/chat/
 COPY packages/websocket/package.json packages/websocket/
 COPY packages/cli/package.json packages/cli/
 COPY packages/deploy/package.json packages/deploy/
+COPY web/package.json web/
 
 # Install deps
 RUN npm ci 2>/dev/null || npm install
 
-# Copy source and build
+# Copy source and build backend packages
 COPY packages/ packages/
 COPY scripts/ scripts/
 COPY tsconfig*.json ./
@@ -48,8 +49,13 @@ COPY turbo.json ./
 
 RUN npm run build:packages
 
-# Create dir for web dist (mounted at runtime via -v)
-RUN mkdir -p /app/web/dist
+# Copy web source and build the frontend
+COPY web/ web/
+
+RUN cd web && npm run build
+
+# Tell the server to serve the built web app from the root path
+ENV STATIC_FOLDER=/app/web/dist
 
 EXPOSE 7777
 
