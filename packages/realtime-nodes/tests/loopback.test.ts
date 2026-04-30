@@ -65,6 +65,9 @@ const realtimeSession = (
 const registry = (): NodeRegistry => {
   const nodeRegistry = new NodeRegistry();
   registerRealtimeNodes(nodeRegistry);
+  nodeRegistry.register(AudioSource);
+  nodeRegistry.register(AudioSink);
+  nodeRegistry.register(SessionInfo);
   return nodeRegistry;
 };
 

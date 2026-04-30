@@ -8,20 +8,19 @@ export {
   VIDEO_PASSTHROUGH_NODES
 } from "./nodes/video-passthrough.js";
 export { VideoSink, VIDEO_SINK_NODES } from "./nodes/video-sink.js";
-import { AudioSink } from "./nodes/audio-sink.js";
-import { AudioSource } from "./nodes/audio-source.js";
 import { Parameter } from "./nodes/parameter.js";
-import { SessionInfo } from "./nodes/session-info.js";
 import { VideoPassthrough } from "./nodes/video-passthrough.js";
 import { VideoSink } from "./nodes/video-sink.js";
 
+/**
+ * Nodes registered by default on the server and in codegen. MVP keeps video
+ * passthrough/sink + parameter only. Audio and session-info nodes stay
+ * exported above for Phase 3 / tests; register them explicitly when needed.
+ */
 export const REALTIME_NODES: readonly NodeClass[] = [
   VideoSink,
   VideoPassthrough,
-  AudioSource,
-  AudioSink,
-  Parameter,
-  SessionInfo
+  Parameter
 ];
 
 export function registerRealtimeNodes(registry: NodeRegistry): void {

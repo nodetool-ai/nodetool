@@ -1,38 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { NodeRegistry } from "@nodetool/node-sdk";
 import {
-  AudioSink,
-  AudioSource,
   Parameter,
   REALTIME_NODES,
   registerRealtimeNodes,
-  SessionInfo,
   VideoPassthrough,
   VideoSink
 } from "../src/index.js";
 
 describe("realtime node registration", () => {
-  it("exports all first realtime nodes and registers them", () => {
+  it("registers MVP realtime nodes only", () => {
     const registry = new NodeRegistry();
     const expectedNodeTypes = [
       "nodetool.realtime.VideoSink",
       "nodetool.realtime.VideoPassthrough",
-      "nodetool.realtime.AudioSource",
-      "nodetool.realtime.AudioSink",
-      "nodetool.realtime.Parameter",
-      "nodetool.realtime.SessionInfo"
+      "nodetool.realtime.Parameter"
     ];
 
     registerRealtimeNodes(registry);
 
-    expect(REALTIME_NODES).toEqual([
-      VideoSink,
-      VideoPassthrough,
-      AudioSource,
-      AudioSink,
-      Parameter,
-      SessionInfo
-    ]);
+    expect(REALTIME_NODES).toEqual([VideoSink, VideoPassthrough, Parameter]);
     expect(registry.list()).toEqual(expectedNodeTypes);
     for (const nodeType of expectedNodeTypes) {
       expect(registry.has(nodeType)).toBe(true);
