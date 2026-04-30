@@ -41,6 +41,34 @@ export function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" |
   return typeof pkg.description === "string" ? pkg.description.trim() : "";
 }
 
+export function needsTorchPlatformDetection(packageName: string): boolean {
+  return TORCH_DEPENDENT_PACKAGES.has(canonicalizePackageName(packageName));
+}
+
+async function ensureTorchPlatformDetectedForPackage(
+  packageName: string
+): Promise<void> {
+  if (!needsTorchPlatformDetection(packageName)) {
+    return;
+  }
+
+  const saved = getSavedTorchPlatform();
+  if (saved) {
+    logMessage(
+      `Using saved torch platform for ${packageName}: ${saved.platform}`
+    );
+    return;
+  }
+
+  const message = `Detecting GPU platform before installing ${packageName}...`;
+  logMessage(message);
+  emitServerLog(message);
+  emitBootMessage(message);
+
+  const result = await detectTorchPlatform();
+  saveTorchPlatform(result);
+}
+
 // TODO: Package manager needs to be rewritten for npm packages.
 // This is a temporary stub — uv/pip is no longer installed in the conda env.
 function getUVPath(): string {
@@ -59,7 +87,12 @@ import {
   PackageUpdateInfo,
 } from "./types";
 import * as https from "https";
-import { getTorchIndexUrl } from "./torchPlatformCache";
+import {
+  getSavedTorchPlatform,
+  getTorchIndexUrl,
+  saveTorchPlatform,
+} from "./torchPlatformCache";
+import { detectTorchPlatform } from "./torchruntime";
 import { fileExists } from "./utils";
 
 /**
@@ -79,6 +112,10 @@ const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
 const REGISTRY_URL =
   "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 const METADATA_PATH = "src/nodetool/package_metadata";
+const TORCH_DEPENDENT_PACKAGES = new Set([
+  "nodetool-huggingface",
+  "nunchaku",
+]);
 
 // Get the app version dynamically from Electron's app.getVersion()
 function getAppVersion(): string {
@@ -771,6 +808,8 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     logMessage(message);
     emitServerLog(message);
 
+    await ensureTorchPlatformDetectedForPackage(packageName);
+
     const args = [
       "pip",
       "install",
@@ -866,6 +905,8 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     logMessage(message);
     emitServerLog(message);
     emitBootMessage(message);
+
+    await ensureTorchPlatformDetectedForPackage(packageName);
 
     const args = [
       "pip",
@@ -1037,6 +1078,10 @@ export async function installExpectedPackages(): Promise<{
       logMessage(message);
       emitServerLog(message);
       emitBootMessage(message);
+
+      for (const pkg of packagesNeedingUpdate) {
+        await ensureTorchPlatformDetectedForPackage(pkg.packageName);
+      }
 
       const args = [
         "pip",

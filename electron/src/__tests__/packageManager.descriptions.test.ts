@@ -1,4 +1,4 @@
-import { getPackageDescription } from '../packageManager';
+import { getPackageDescription, needsTorchPlatformDetection } from '../packageManager';
 
 jest.mock('electron', () => ({
   app: {
@@ -27,7 +27,16 @@ jest.mock('../utils', () => ({
 }));
 
 jest.mock('../torchPlatformCache', () => ({
+  getSavedTorchPlatform: jest.fn().mockReturnValue(null),
   getTorchIndexUrl: jest.fn().mockReturnValue(null),
+  saveTorchPlatform: jest.fn(),
+}));
+
+jest.mock('../torchruntime', () => ({
+  detectTorchPlatform: jest.fn().mockResolvedValue({
+    platform: 'cpu',
+    indexUrl: 'https://download.pytorch.org/whl/cpu',
+  }),
 }));
 
 describe('package descriptions', () => {
@@ -57,5 +66,12 @@ describe('package descriptions', () => {
     });
 
     expect(description).toBe('Existing description');
+  });
+
+  test('known torch-dependent packages require torch platform detection', () => {
+    expect(needsTorchPlatformDetection('nodetool-huggingface')).toBe(true);
+    expect(needsTorchPlatformDetection('NodeTool_HuggingFace')).toBe(true);
+    expect(needsTorchPlatformDetection('nunchaku')).toBe(true);
+    expect(needsTorchPlatformDetection('nodetool-core')).toBe(false);
   });
 });
