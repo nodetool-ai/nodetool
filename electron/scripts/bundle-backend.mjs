@@ -37,6 +37,7 @@ const ENTRY_POINT = path.join(
 const REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
+  "@jitl/quickjs-ng-wasmfile-release-sync",
 ];
 
 const EXTERNAL_PACKAGES = [
@@ -75,6 +76,11 @@ const EXTERNAL_PACKAGES = [
   // Lazy-loaded SDK that fails on Windows when resolved from inside the
   // ASAR at module init. Keeping it external preserves the lazy semantics.
   "@anthropic-ai/claude-agent-sdk",
+
+  // Emscripten package with a package-relative .wasm asset. Keeping it external
+  // preserves import.meta.url so emscripten-module.wasm resolves next to the
+  // package's own JS instead of next to backend/server.mjs.
+  "@jitl/quickjs-ng-wasmfile-release-sync",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
   "@aws-sdk/*",
