@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/sandbox",
   "type": "module",
-  "version": "0.7.0-rc.18",
+  "version": "0.7.0-rc.19",
   "description": "Host-side sandbox provisioning: Docker-backed isolated Linux computers for agents, with shell, file, browser, and desktop tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

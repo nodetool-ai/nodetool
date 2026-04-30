@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/code-runners",
   "type": "module",
-  "version": "0.7.0-rc.18",
+  "version": "0.7.0-rc.19",
   "description": "Streaming code runners: Docker containers and local subprocesses for executing Python, JS, Bash, Ruby, and Lua code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
