@@ -1,6 +1,7 @@
 import { normalizeOutputUpdateValue } from "../outputUpdateValue";
 import type { Chunk, OutputUpdate, WorkflowAttributes } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
+import useLogsStore from "../LogStore";
 import { handleUpdate, mergeNodeUpdateProperties } from "../workflowUpdates";
 
 const mockRunnerStore = {
@@ -30,6 +31,7 @@ beforeEach(() => {
     planningUpdates: {},
     previews: {}
   });
+  useLogsStore.getState().clearLogs();
   mockRunnerStore.setState.mockClear();
 });
 
@@ -83,6 +85,41 @@ describe("normalizeOutputUpdateValue", () => {
 });
 
 describe("handleUpdate", () => {
+  it("summarizes realtime video frames in output logs without pixel data", () => {
+    const update: OutputUpdate = {
+      type: "output_update",
+      node_id: "video-sink",
+      node_name: "Video Sink",
+      output_name: "frame",
+      output_type: "realtime_video_frame",
+      value: {
+        type: "realtime_video_frame",
+        data: new Uint8Array([69, 0, 0, 255, 62, 0, 0, 255]),
+        width: 2,
+        height: 1,
+        stride: 8,
+        pixel_format: "rgba8",
+        timestamp_ns: 123_000_000,
+        sequence: 8
+      },
+      metadata: {}
+    };
+
+    handleUpdate(
+      mockWorkflow,
+      update,
+      mockRunnerStore as never,
+      () => undefined
+    );
+
+    const [log] = useLogsStore.getState().logs;
+    expect(log.content).toBe(
+      "Output: realtime_video_frame 2x1 rgba8 stride 8 seq 8"
+    );
+    expect(log.content).not.toContain("\"data\"");
+    expect(log.content).not.toContain("69");
+  });
+
   it("stores workflow chunk updates by node id", () => {
     const chunk: Chunk = {
       type: "chunk",

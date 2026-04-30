@@ -42,6 +42,47 @@ type WorkflowSubscription = {
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const formatRealtimeVideoFrameLog = (
+  value: Record<string, unknown>
+): string => {
+  const details: string[] = ["realtime_video_frame"];
+  const width = value.width;
+  const height = value.height;
+  const pixelFormat = value.pixel_format;
+  const stride = value.stride;
+  const sequence = value.sequence;
+
+  if (typeof width === "number" && typeof height === "number") {
+    details.push(`${width}x${height}`);
+  }
+  if (typeof pixelFormat === "string" && pixelFormat.length > 0) {
+    details.push(pixelFormat);
+  }
+  if (typeof stride === "number") {
+    details.push(`stride ${stride}`);
+  }
+  if (typeof sequence === "number") {
+    details.push(`seq ${sequence}`);
+  }
+
+  return details.join(" ");
+};
+
+export const formatOutputUpdateLogValue = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (isRecord(value) && value.type === "realtime_video_frame") {
+    return formatRealtimeVideoFrameLog(value);
+  }
+
+  return JSON.stringify(value);
+};
+
 export const mergeNodeUpdateProperties = ({
   updateProperties,
   existingStatic,
@@ -349,10 +390,7 @@ export const handleUpdate = (
       workflowName: workflow.name,
       nodeId: update.node_id,
       nodeName: update.node_name,
-      content: `Output: ${typeof normalizedValue === "string"
-          ? normalizedValue
-          : JSON.stringify(normalizedValue)
-        }`,
+      content: `Output: ${formatOutputUpdateLogValue(normalizedValue)}`,
       severity: "info",
       timestamp: Date.now()
     });
