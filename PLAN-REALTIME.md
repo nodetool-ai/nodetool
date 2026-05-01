@@ -32,7 +32,7 @@ Phase R rebuilds the realtime data plane around a per-session media bus and a pa
 
 The whole realtime path is still pre-MVP, so Phase R is a clean rewrite, not an optimisation pass. Anything not on the camera -> media bus -> sink -> canvas path is fair game to delete or defer.
 
-**Status (May 2026):** Server slices **R.1.1–R.2.3** and kernel **R.0.5** are implemented (media bus, direct push ingress, paced `realtime_frame_out` sender, dual send lanes, `edge_update` throttle, skip streaming `output_update`). Browser **R.0.5b**, **R.3.1–R.3.3** landed (`realtimeMediaFrameSlots.ts`, subscribe/`realtime_frame_out`, rAF preview, paced camera defaults). **R.0.4** drain is event-driven (`popMessageAsync` + `closeMessageQueue`; no polling sleep). **R.4.1** extended `realtime_metrics` (media bus, frame sender, WS lanes, fps / slot-age hints) and surfaces them on **RealtimeOutputPreviewCard** + **RealtimeModelStatusCard**. Still open: **R.0.1** cleanup decision, **R.4.2** user perf gate numbers, **R.5** Python bridge.
+**Status (May 2026):** Server slices **R.1.1–R.2.3** and kernel **R.0.5** are implemented (media bus, direct push ingress, paced `realtime_frame_out` sender, dual send lanes, `edge_update` throttle, skip streaming `output_update`). Browser **R.0.5b**, **R.3.1–R.3.3** landed (`realtimeMediaFrameSlots.ts`, subscribe/`realtime_frame_out`, rAF preview, paced camera defaults). **`push_realtime_frame`** uses **async coalesced flush** (ack does not await DAG ticks) plus **ingress signature** to skip redundant ticks when camera slots did not advance. **R.0.4** drain is event-driven (`popMessageAsync` + `closeMessageQueue`; no polling sleep). **R.4.1** extended `realtime_metrics` (media bus, frame sender, WS lanes, fps / slot-age hints) and surfaces them on **RealtimeOutputPreviewCard** + **RealtimeModelStatusCard**. Still open: **R.0.1** cleanup decision, **R.4.2** user perf gate numbers, **R.5** Python bridge.
 
 ### Architecture target
 
@@ -144,7 +144,7 @@ Camera -> VideoPassthrough -> VideoSink -> Preview, no model in graph:
 
 - [x] **R.3.3 Camera publisher: paced + multi-in-flight.**
   - File: `web/src/hooks/realtime/useRealtimeCameraFramePublisher.ts`.
-  - **`framePushMode: "paced"`** @ ~30 Hz (`REALTIME_FRAME_PACED_INTERVAL_MS`), default **`maxInFlightFrames = 3`**, **`useRealtimeStreamController`** passes **`DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES`** (was hard-coded `1`).
+  - **`framePushMode: "paced"`** @ ~30 Hz (`REALTIME_FRAME_PACED_INTERVAL_MS`), default **`maxInFlightFrames = 8`**, **`useRealtimeStreamController`** passes **`DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES`** (was hard-coded `1`).
   - Two consecutive **`push_realtime_frame`** resolves slower than **250 ms** clears in-flight backlog (recovery heuristic).
 
 ### R.4 - Diagnostics + perf gate
@@ -160,6 +160,14 @@ Camera -> VideoPassthrough -> VideoSink -> Preview, no model in graph:
   - **Multi-sink:** server caps **`realtime_frame_out`** to one **`VideoSink`** by default (`applyVideoSinkEgressCap`). For the perf gate use a single preview **or** set **`NODETOOL_REALTIME_FULL_MULTI_SINK_EGRESS=1`** when intentionally measuring multi-preview bandwidth.
   - Record numbers here after validation — **`before:`** (baseline ~0.7 fps / ~14 s age from early Phase R) **`after:`** *TBD*.
   - Acceptance: matches the gate above (>= 30 fps, < 100 ms age, <= 35 video msgs/s out, <= 1 queued frame per slot, < 5 ms ack RTT).
+
+### Immediate perf backlog (live — reorder as measured)
+
+1. **Done (May 2026):** `push_frame` no longer awaits kernel ticks — **async coalesced flush** (`RealtimeCommandHandler`) returns ack immediately after `setInput`; ticks + egress pulse drain off the WS hot path.
+2. **Done (May 2026):** **Ingress signature** (`realtimeIngressSequenceSignature`) skips redundant `tickRealtimeMediaPlane` passes when no ingress slot sequence advanced (cheap wins on duplicate scheduling).
+3. **Next:** **Compressed preview egress** — optional JPEG/WebP (or NV12) for `realtime_frame_out` + matching decode in `RealtimeVideoFrameRenderer` to cut WS bandwidth and msgpack CPU vs raw RGBA.
+4. **Next:** **Cap redundant pulses** — only call `pulseRealtimeFrameSender` after an actual tick or when sink sequence advanced (minor CPU).
+5. **Watch:** **`NODE_ENV`/WS text mode** — never JSON-serialize pixel payloads (`serializeForJson` expands `Uint8Array`); ensure unified runner stays **`binary` + msgpack** for realtime sessions.
 
 ### R.5 - Self-Forcing pipeline real frame
 
@@ -248,10 +256,11 @@ Observed: passthrough-only graph at 0.7 fps with 14 s frame age on localhost, wi
 1. **Per-frame fan-out on the wire.** One camera frame produces at minimum: `realtime_session_ack` + ~~`output_update` for passthrough/sink `frame`~~ *(skipped when declared type is `realtime_video_frame`, R.0.5)* + N `edge_update` events. Still flows through `_messages` for control-plane traffic (`packages/runtime/src/context.ts`, `packages/kernel/src/runner.ts`).
 2. **Single send lock.** ~~`UnifiedWebSocketRunner.sendMessage` chains every outbound message through `this.sendLock`.~~ **Mitigated (R.2.2):** `controlSendLock` vs `mediaSendLock`; acks no longer queue behind binary frame payloads on the same mutex.
 3. **O(n) outbound queue drain.** ~~`streamJobMessages` polls `Array.shift()`…~~ **Mitigated (R.0.4):** drain awaits **`popMessageAsync()`** until **`closeMessageQueue()`** — no fixed polling interval on the hot path.
-4. **Camera publisher RTT-coupled.** ~~`useRealtimeCameraFramePublisher` defaults `maxInFlightFrames = 1`.~~ **Mitigated (R.3.3):** default **`paced` ~30 Hz**, **`maxInFlightFrames = 3`**, slow-ack streak clears backlog.
+4. **Camera publisher RTT-coupled.** ~~`useRealtimeCameraFramePublisher` defaults `maxInFlightFrames = 1`.~~ **Mitigated (R.3.3):** default **`paced` ~30 Hz**, **`maxInFlightFrames = 8`** (raised May 2026 after async flush decoupled ack latency), slow-ack streak clears backlog.
 5. **Per-frame React fan-out.** ~~`workflowUpdates`…~~ **Mitigated (R.0.5b)** skip **`realtime_video_frame`** **`output_update`**; preview uses **`realtime_frame_out`** + media slot + rAF (**R.3.1–R.3.2**).
 6. **Per-frame server allocations.** ~~`RealtimeCommandHandler.handlePushFrame` builds a brand-new `FrameRouter`…~~ **Mitigated (R.1.2):** ingress calls `mediaBus.setInput` directly; `frame-router.ts` removed.
 7. **Egress overlap + multi-sink amplification.** ~~Overlapping async `RealtimeFrameSender` ticks raced `mediaSendLock`…~~ **Mitigated (May 2026):** single-flight ticks + deferred coalesce + **`pulse`** after each kernel media tick; misleading “pacer drop” counter removed; **`queues.total_dropped`** reflects media-bus latest-wins drops only. **Multiple `VideoSink` nodes** multiply full binary `realtime_frame_out` sends — **default cap:** first sink only (`applyVideoSinkEgressCap`); opt out with **`NODETOOL_REALTIME_FULL_MULTI_SINK_EGRESS=1`** or raise **`NODETOOL_REALTIME_MAX_VIDEO_SINK_EGRESS`**. Daydream keeps frames as `torch.Tensor` inside per-pipeline paths and uses WebRTC tracks for pixels while the WebSocket carries control. Those files (e.g. `webrtc.py`, `tracks.py`, `frame_processor.py`, `pipeline_processor.py`) illustrate ideas only. Phase R does **not** adopt WebRTC; it keeps the same *separation of media vs control* on the existing WebSocket, implemented in `packages/websocket` + kernel (see **Code map** above).
+8. **`push_frame` serialized slow path.** ~~Each ingress awaited `tickRealtimeMediaPlane`…~~ **Mitigated (May 2026):** coalesced async flush returns **`realtime_session_ack`** immediately after **`mediaBus.setInput`**; redundant ticks skipped when ingress sequences unchanged (**`realtimeIngressSequenceSignature`**).
 
 ## Locked Decisions
 

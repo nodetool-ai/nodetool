@@ -181,3 +181,18 @@ export class RealtimeMediaBus implements IRealtimeMediaBus {
     return { inputs, outputs };
   }
 }
+
+/**
+ * Stable fingerprint of ingress slot sequences for coalescing realtime ticks.
+ * When unchanged since the last processed tick, repeating graph traversal is redundant.
+ */
+export function realtimeIngressSequenceSignature(
+  bus: RealtimeMediaBus,
+  sessionId: string
+): string {
+  const { inputs } = bus.metrics(sessionId);
+  return Object.keys(inputs)
+    .sort()
+    .map((k) => `${k}:${inputs[k]?.lastSequence ?? 0}`)
+    .join("|");
+}

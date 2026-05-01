@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { VideoFrame } from "@nodetool/protocol";
-import { RealtimeMediaBus } from "../src/realtime/media-bus.js";
+import {
+  RealtimeMediaBus,
+  realtimeIngressSequenceSignature
+} from "../src/realtime/media-bus.js";
 
 function mkFrame(seq: number): VideoFrame {
   return {
@@ -25,5 +28,19 @@ describe("RealtimeMediaBus", () => {
     const m = bus.metrics(sessionId);
     expect(m.inputs["n1:frame"]?.framesAccepted).toBe(1000);
     expect(m.inputs["n1:frame"]?.framesDropped).toBe(999);
+  });
+
+  it("realtimeIngressSequenceSignature reflects sorted ingress slot sequences", () => {
+    const bus = new RealtimeMediaBus();
+    const sessionId = "s1";
+    bus.setInput(sessionId, "b", "h", mkFrame(1));
+    bus.setInput(sessionId, "a", "h", mkFrame(2));
+    expect(realtimeIngressSequenceSignature(bus, sessionId)).toBe(
+      "a:h:1|b:h:1"
+    );
+    bus.setInput(sessionId, "a", "h", mkFrame(3));
+    expect(realtimeIngressSequenceSignature(bus, sessionId)).toBe(
+      "a:h:2|b:h:1"
+    );
   });
 });

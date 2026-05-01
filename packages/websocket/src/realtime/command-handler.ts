@@ -12,6 +12,7 @@ import {
 } from "./command-normalization.js";
 import { routeRealtimeParameterUpdates } from "./runner-parameter-routing.js";
 import { RealtimeSignalingTransport } from "./_legacy/signaling-transport.js";
+import { realtimeIngressSequenceSignature } from "./media-bus.js";
 
 const log = createLogger("nodetool.websocket.realtime-command-handler");
 
@@ -23,14 +24,90 @@ export type {
   WorkflowGraphPayload
 } from "./command-handler-types.js";
 
+type RealtimeMediaFlushState = {
+  dirty: boolean;
+  flushing: boolean;
+  jobId: string;
+  /** Last processed ingress fingerprint — avoids redundant DAG ticks when slots unchanged. */
+  lastIngressSig?: string;
+};
+
 export class RealtimeCommandHandler {
   private readonly sessionCommands: RealtimeSessionCommandService;
   private readonly signalingTransport: RealtimeSignalingTransport;
   private readonly tempLoggedFrameRoutes = new Set<string>();
+  /** Coalesced kernel ticks — avoids awaiting graph work on the WS push_frame hot path. */
+  private readonly realtimeMediaFlushBySession = new Map<
+    string,
+    RealtimeMediaFlushState
+  >();
 
   constructor(private readonly dependencies: RealtimeCommandHandlerDependencies) {
     this.sessionCommands = new RealtimeSessionCommandService(dependencies);
     this.signalingTransport = new RealtimeSignalingTransport(dependencies);
+  }
+
+  /**
+   * Queue a media-plane tick after `setInput`. Ingress stays bounded by latest-wins slots;
+   * ticks drain whatever coalesced backlog accumulated during slow graph work.
+   */
+  private scheduleRealtimeMediaFlush(sessionId: string, jobId: string): void {
+    let state = this.realtimeMediaFlushBySession.get(sessionId);
+    if (!state) {
+      state = { dirty: false, flushing: false, jobId };
+      this.realtimeMediaFlushBySession.set(sessionId, state);
+    }
+    state.jobId = jobId;
+    state.dirty = true;
+    if (state.flushing) {
+      return;
+    }
+    state.flushing = true;
+    void this.runRealtimeMediaFlush(sessionId);
+  }
+
+  private async runRealtimeMediaFlush(sessionId: string): Promise<void> {
+    const state = this.realtimeMediaFlushBySession.get(sessionId);
+    if (!state) {
+      return;
+    }
+    let aborted = false;
+    try {
+      while (state.dirty) {
+        state.dirty = false;
+        const activeJob = this.dependencies.getActiveJob(state.jobId);
+        if (!activeJob) {
+          this.realtimeMediaFlushBySession.delete(sessionId);
+          aborted = true;
+          return;
+        }
+        const ingressSig = realtimeIngressSequenceSignature(
+          activeJob.mediaBus,
+          sessionId
+        );
+        if (ingressSig !== state.lastIngressSig) {
+          state.lastIngressSig = ingressSig;
+          await activeJob.tickRealtimeMediaPlane(sessionId);
+        }
+        activeJob.pulseRealtimeFrameSender?.(sessionId);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      log.warn("Realtime media flush failed", {
+        sessionId,
+        jobId: state.jobId,
+        error: message
+      });
+    } finally {
+      if (aborted) {
+        return;
+      }
+      state.flushing = false;
+      if (state.dirty) {
+        state.flushing = true;
+        void this.runRealtimeMediaFlush(sessionId);
+      }
+    }
   }
 
   async handleStart(data: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -214,8 +291,7 @@ export class RealtimeCommandHandler {
           track.source_handle ?? "frame",
           frame
         );
-        await activeJob.tickRealtimeMediaPlane(sessionId);
-        activeJob.pulseRealtimeFrameSender?.(sessionId);
+        this.scheduleRealtimeMediaFlush(sessionId, session.job_id);
         routed = true;
       }
     } catch (error) {
