@@ -1748,10 +1748,10 @@ describe("data.ts uncovered lines", () => {
 
   it("FromListNode non-array values (line 250)", async () => {
     const node = new dataModule.FromListNode();
-    // values is not an array => defaults to []
+    // assign coerces scalar string into ["not-array"] for list[any] prop,
+    // so process() sees a single non-dict element and throws
     node.assign({ values: "not-array" });
-    const result = await node.process();
-    expect((result.output as any).rows).toEqual([]);
+    await expect(node.process()).rejects.toThrow("List must contain dicts.");
   });
 
   it("AddColumnNode non-array values (line 361)", async () => {
@@ -1762,8 +1762,9 @@ describe("data.ts uncovered lines", () => {
       values: "not-array"
     });
     const result = await node.process();
-    // values defaults to [] so column value is undefined
-    expect((result.output as any).rows[0].b).toBeUndefined();
+    // assign coerces scalar string into ["not-array"] for list[any] prop,
+    // so values[0] = "not-array" and is added as the column value
+    expect((result.output as any).rows[0].b).toBe("not-array");
   });
 
   it("ForEachRowNode.process returns empty (line 549-550)", async () => {

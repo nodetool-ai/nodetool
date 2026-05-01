@@ -1118,11 +1118,14 @@ describe("workspace nodes — full coverage", () => {
     expect(new JoinWorkspacePathsNode().serialize()).toEqual({ paths: [] });
   });
 
-  it("JoinWorkspacePathsNode throws when paths is not an array", async () => {
+  it("JoinWorkspacePathsNode with scalar string path", async () => {
     tmpDir = await freshDir();
     const __n275 = new JoinWorkspacePathsNode();
+    // assign coerces scalar string into ["not-array"] for list[str] prop,
+    // so paths = ["not-array"] and process succeeds with that as the joined path
     __n275.assign({ workspace_dir: tmpDir, paths: "not-array" });
-    await expect(__n275.process()).rejects.toThrow("empty");
+    const result = await __n275.process();
+    expect(result.output).toBe("not-array");
   });
 
   it("JoinWorkspacePathsNode joins path parts", async () => {
