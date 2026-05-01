@@ -207,10 +207,10 @@ describe("buildSandbox", () => {
     expect(typeof sandbox.sandboxToAsset).toBe("function");
   });
 
-  it("provides workspace stubs without context", () => {
+  it("provides workspace stubs without context", async () => {
     const { sandbox } = buildSandbox();
     const ws = sandbox.workspace as { read: (p: string) => Promise<string> };
-    expect(ws.read("test")).rejects.toThrow("not available without a context");
+    await expect(ws.read("test")).rejects.toThrow("not available without a context");
   });
 
   it("getSecret without context returns undefined", async () => {

@@ -6,7 +6,7 @@
 
 import { eq, lt } from "drizzle-orm";
 import { DBModel } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getDb, getDbType } from "./db.js";
 import { runLeases } from "./schema/run-leases.js";
 
 export class RunLease extends DBModel {
@@ -36,6 +36,58 @@ export class RunLease extends DBModel {
     const expiresIso = expires.toISOString();
 
     const db = getDb();
+
+    // better-sqlite3 transactions must be fully synchronous; async callbacks
+    // return a Promise and are rejected by the driver.
+    if (getDbType() === "sqlite") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return db.transaction((tx: any) => {
+        const existing = tx
+          .select()
+          .from(runLeases)
+          .where(eq(runLeases.run_id, runId))
+          .limit(1)
+          .get();
+
+        if (existing) {
+          if (new Date(existing.expires_at) < now) {
+            // Expired lease -- reclaim it
+            tx.update(runLeases)
+              .set({
+                worker_id: workerId,
+                acquired_at: nowIso,
+                expires_at: expiresIso
+              })
+              .where(eq(runLeases.run_id, runId))
+              .run();
+            return new RunLease({
+              ...existing,
+              worker_id: workerId,
+              acquired_at: nowIso,
+              expires_at: expiresIso
+            } as Record<string, unknown>);
+          }
+          // Lease still held by another worker
+          return null;
+        }
+
+        // No existing lease -- create one
+        tx.insert(runLeases).values({
+          run_id: runId,
+          worker_id: workerId,
+          acquired_at: nowIso,
+          expires_at: expiresIso
+        }).run();
+
+        return new RunLease({
+          run_id: runId,
+          worker_id: workerId,
+          acquired_at: nowIso,
+          expires_at: expiresIso
+        } as Record<string, unknown>);
+      });
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return db.transaction(async (tx: any) => {
       const [existing] = await tx
