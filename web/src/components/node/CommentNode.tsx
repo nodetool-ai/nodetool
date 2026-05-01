@@ -158,7 +158,7 @@ const initialConfigTemplate = {
     AutoLinkNode,
     LinkNode,
     HorizontalRuleNode
-  ],
+  ] as InitialConfigType["nodes"],
   theme: {
     text: {
       large: "font-size-large",
