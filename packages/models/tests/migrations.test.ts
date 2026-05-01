@@ -424,7 +424,7 @@ describe("MigrationRunner", () => {
 
 describe("Built-in migrations", () => {
   it("should have correct count of migrations", () => {
-    expect(migrations.length).toBe(31);
+    expect(migrations.length).toBe(32);
   });
 
   it("should have unique versions", () => {
@@ -444,7 +444,7 @@ describe("Built-in migrations", () => {
     const runner = new MigrationRunner(adapter);
 
     const applied = await runner.migrate();
-    expect(applied).toHaveLength(31);
+    expect(applied).toHaveLength(32);
 
     expect(await adapter.tableExists("nodetool_workflows")).toBe(true);
     expect(await adapter.tableExists("nodetool_assets")).toBe(true);
@@ -509,6 +509,6 @@ describe("Built-in migrations", () => {
     // Verify status shows everything applied
     const status = await runner.status();
     expect(status.pending).toHaveLength(0);
-    expect(status.applied.length).toBe(31);
+    expect(status.applied.length).toBe(32);
   });
 });

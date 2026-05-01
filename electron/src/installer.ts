@@ -1,6 +1,7 @@
 import { promises as fs, writeFileSync } from "fs";
 import type { Stats } from "fs";
 import * as https from "https";
+import * as http from "http";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
@@ -457,7 +458,7 @@ function downloadFileFromUrl(url: string, dest: string): Promise<void> {
 
     const makeRequest = (requestUrl: string): void => {
       const protocol = requestUrl.startsWith("https") ? https : http;
-      const req = protocol.get(requestUrl, (res) => {
+      const req = protocol.get(requestUrl, (res: http.IncomingMessage) => {
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           res.destroy();
           makeRequest(res.headers.location);
