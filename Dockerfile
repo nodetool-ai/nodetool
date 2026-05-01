@@ -1,9 +1,13 @@
-FROM node:20-slim
+FROM node:24-slim
 
-# System deps for native modules
+# System deps for native modules.
+# libsecret is required by keytar on Linux. The entrypoint below also provides a
+# Docker-friendly SECRETS_MASTER_KEY fallback so headless containers do not need
+# a desktop keychain/DBus session.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-venv python3-pip \
     build-essential curl ca-certificates \
+    libsecret-1-0 libsecret-1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -57,10 +61,32 @@ RUN cd web && npm run build
 # Tell the server to serve the built web app from the root path
 ENV STATIC_FOLDER=/app/web/dist
 
+# In Docker/headless Linux there is usually no system keychain. If neither a
+# master key nor AWS Secrets Manager is configured, persist a generated 32-byte
+# base64 key next to the SQLite database so encrypted secrets survive restarts
+# when /workspace is mounted as a volume. For production, pass
+# -e SECRETS_MASTER_KEY=$(openssl rand -base64 32) or configure AWS.
+RUN printf '%s\n' \
+    '#!/bin/sh' \
+    'set -eu' \
+    'KEY_FILE="${SECRETS_MASTER_KEY_FILE:-/workspace/.secrets_master_key}"' \
+    'if [ -z "${SECRETS_MASTER_KEY:-}" ] && [ -z "${AWS_SECRETS_MASTER_KEY_NAME:-}" ]; then' \
+    '  mkdir -p "$(dirname "$KEY_FILE")"' \
+    '  if [ ! -s "$KEY_FILE" ]; then' \
+    '    umask 077' \
+    '    node -e "process.stdout.write(require(\"crypto\").randomBytes(32).toString(\"base64\"))" > "$KEY_FILE"' \
+    '  fi' \
+    '  export SECRETS_MASTER_KEY="$(cat "$KEY_FILE")"' \
+    'fi' \
+    'exec "$@"' \
+    > /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 7777
 
 # Health check supports both TLS and plain HTTP
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
     CMD curl -fsk https://localhost:7777/health 2>/dev/null || curl -f http://localhost:7777/health 2>/dev/null || exit 1
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "packages/websocket/dist/server.js"]
