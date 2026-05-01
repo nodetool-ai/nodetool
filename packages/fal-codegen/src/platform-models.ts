@@ -90,7 +90,7 @@ export interface FalModelListItem {
   };
 }
 
-function authHeaders(apiKey: string | undefined): HeadersInit {
+function authHeaders(apiKey: string | undefined): Record<string, string> {
   if (!apiKey) {
     return {};
   }

@@ -30,6 +30,7 @@ import {
   DataframeInputNode,
   DocumentInputNode,
   ImageInputNode,
+  ImageEditorNode,
   ImageListInputNode,
   VideoListInputNode,
   AudioListInputNode,
@@ -356,6 +357,19 @@ describe("input nodes — full coverage", () => {
       description: "",
       max_length: 0,
       line_mode: "single_line"
+    });
+  });
+
+  it("ImageEditorNode returns image and mask outputs", async () => {
+    const node = new ImageEditorNode();
+    node.assign({
+      image: { type: "image", uri: "data:image/png;base64,image" },
+      mask: { type: "image", uri: "data:image/png;base64,mask" }
+    });
+    const result = await node.process();
+    expect(result).toEqual({
+      image: { type: "image", uri: "data:image/png;base64,image" },
+      mask: { type: "image", uri: "data:image/png;base64,mask" }
     });
   });
 

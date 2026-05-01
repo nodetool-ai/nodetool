@@ -230,22 +230,41 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           let data: Workflow;
           try {
             const graph = workflow.graph ?? { nodes: [], edges: [] };
-            data = (await trpcClient.workflows.update.mutate({
-              id: workflow.id,
-              name: workflow.name,
-              access: workflow.access ?? "private",
-              graph: graph as Parameters<typeof trpcClient.workflows.update.mutate>[0]["graph"],
-              tool_name: workflow.tool_name,
-              description: workflow.description,
-              tags: workflow.tags,
-              package_name: workflow.package_name,
-              thumbnail: workflow.thumbnail,
-              thumbnail_url: workflow.thumbnail_url,
-              settings: workflow.settings as Record<string, unknown> | null | undefined,
-              run_mode: workflow.run_mode,
-              workspace_id: workflow.workspace_id,
-              html_app: workflow.html_app
-            })) as Workflow;
+            const workflowName = workflow.name || "New Workflow";
+            if (workflow.id) {
+              data = (await trpcClient.workflows.update.mutate({
+                id: workflow.id,
+                name: workflowName,
+                access: workflow.access ?? "private",
+                graph: graph as Parameters<typeof trpcClient.workflows.update.mutate>[0]["graph"],
+                tool_name: workflow.tool_name,
+                description: workflow.description,
+                tags: workflow.tags,
+                package_name: workflow.package_name,
+                thumbnail: workflow.thumbnail,
+                thumbnail_url: workflow.thumbnail_url,
+                settings: workflow.settings as Record<string, unknown> | null | undefined,
+                run_mode: workflow.run_mode,
+                workspace_id: workflow.workspace_id,
+                html_app: workflow.html_app
+              })) as Workflow;
+            } else {
+              data = (await trpcClient.workflows.create.mutate({
+                name: workflowName,
+                access: workflow.access ?? "private",
+                graph: graph as Parameters<typeof trpcClient.workflows.create.mutate>[0]["graph"],
+                tool_name: workflow.tool_name,
+                description: workflow.description,
+                tags: workflow.tags,
+                package_name: workflow.package_name,
+                thumbnail: workflow.thumbnail,
+                thumbnail_url: workflow.thumbnail_url,
+                settings: workflow.settings as Record<string, unknown> | null | undefined,
+                run_mode: workflow.run_mode,
+                workspace_id: workflow.workspace_id,
+                html_app: workflow.html_app
+              })) as Workflow;
+            }
           } catch (err) {
             throw createErrorMessage(err, "Failed to save workflow");
           }
@@ -253,8 +272,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           // Version snapshot is best-effort — the main save already succeeded.
           try {
             await trpcClient.workflows.versions.create.mutate({
-              id: workflow.id,
-              name: workflow.name,
+              id: data.id,
+              name: data.name,
               description: `Manual save: ${new Date().toISOString()}`
             });
           } catch (err) {
@@ -274,17 +293,28 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
 
           set((state) => {
-            const nodeStore = state.nodeStores[persistedWorkflow.id];
+            const previousWorkflowId = workflow.id;
+            const nodeStore = state.nodeStores[previousWorkflowId];
+            const nextNodeStores = { ...state.nodeStores };
             if (nodeStore) {
               nodeStore.setState({
                 workflow: persistedWorkflow
               });
               nodeStore.getState().setWorkflowDirty(false);
+              if (previousWorkflowId !== persistedWorkflow.id) {
+                delete nextNodeStores[previousWorkflowId];
+                nextNodeStores[persistedWorkflow.id] = nodeStore;
+              }
             }
 
             return {
+              nodeStores: nextNodeStores,
+              currentWorkflowId:
+                state.currentWorkflowId === previousWorkflowId
+                  ? persistedWorkflow.id
+                  : state.currentWorkflowId,
               openWorkflows: state.openWorkflows.map((w) =>
-                w.id === persistedWorkflow.id
+                w.id === previousWorkflowId || w.id === persistedWorkflow.id
                   ? omit(persistedWorkflow, ["graph"])
                   : w
               )
@@ -534,6 +564,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {Workflow} workflow The workflow to add
        */
       addWorkflow: (workflow: Workflow) => {
+        if (!workflow.id) {
+          workflow.id = uuidv4();
+        }
+        if (!workflow.name) {
+          workflow.name = "New Workflow";
+        }
         const existingStore = get().getNodeStore(workflow.id);
         if (existingStore) {
           console.warn(

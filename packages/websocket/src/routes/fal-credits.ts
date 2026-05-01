@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import { Secret } from "@nodetool/models";
+import { Secret } from "@nodetool-ai/models";
 
 /** Platform API billing + credits (GET /v1/account was removed — returns 404). */
 const FAL_ACCOUNT_BILLING_URL =

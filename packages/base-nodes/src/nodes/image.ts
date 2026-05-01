@@ -1476,6 +1476,78 @@ export class FlipNode extends TransformImageNode {
   }
 }
 
+export class ImageEditorNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.ImageEditor";
+  static readonly title = "Image Editor";
+  static readonly description =
+    "Provides a sketch canvas as a workflow parameter. Outputs the flattened image and optional mask produced by the sketch editor.\n    input, parameter, sketch, drawing, canvas, image, mask";
+  static readonly metadataOutputTypes = {
+    image: "image",
+    mask: "image"
+  };
+  static readonly basicFields = ["name"];
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Name",
+    description: "The parameter name for the workflow."
+  })
+  declare name: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Description",
+    description: "The description of the input for the workflow."
+  })
+  declare description: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Sketch Data",
+    description: "Serialized sketch document state."
+  })
+  declare sketch_data: any;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The flattened sketch image."
+  })
+  declare image: any;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Mask",
+    description: "The mask image exported from the sketch, if available."
+  })
+  declare mask: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {
+      image: this.image ?? {},
+      mask: this.mask ?? {}
+    };
+  }
+}
+
+
 export const IMAGE_NODES = [
   LoadImageFileNode,
   LoadImageFolderNode,
@@ -1493,5 +1565,6 @@ export const IMAGE_NODES = [
   RotateNode,
   FlipNode,
   TextToImageNode,
-  ImageToImageNode
+  ImageToImageNode,
+  ImageEditorNode
 ] as const;

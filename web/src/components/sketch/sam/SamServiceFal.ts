@@ -12,12 +12,12 @@
  */
 
 import type { SamService, SamModelInfo, SegmentationRequest, SegmentationResponse } from "./SamService";
+import { resolveSamPromptCapabilityInputs } from "./SamService";
 import {
   DEFAULT_SAM_MODEL_ID,
   DEFAULT_SAM_MODEL_NAME,
-  FAL_SAM_CAPABILITIES,
-  resolveSamPromptCapabilityInputs
-} from "./SamService";
+  FAL_SAM_CAPABILITIES
+} from "./SamConstants";
 import type { SegmentationMask } from "../types";
 import useMetadataStore from "../../../stores/MetadataStore";
 import useSecretsStore from "../../../stores/SecretsStore";

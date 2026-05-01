@@ -2,6 +2,7 @@
 
 import { temporal } from "zundo";
 import type { TemporalState } from "zundo";
+import { v4 as uuidv4 } from "uuid";
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeMetadata, RepoPath, UnifiedModel, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
@@ -28,6 +29,7 @@ import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { WorkflowAttributes } from "./ApiTypes";
+
 import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
@@ -340,8 +342,8 @@ export const createNodeStore = (
           workflow: workflow
             ? workflow
             : {
-                id: "",
-                name: "",
+                id: uuidv4(),
+                name: "New Workflow",
                 access: "private",
                 description: "",
                 thumbnail: "",

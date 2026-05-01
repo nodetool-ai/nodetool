@@ -113,7 +113,6 @@ export {
   DataframeInputNode,
   DocumentInputNode,
   ImageInputNode,
-  SketchInputNode,
   ImageListInputNode,
   VideoListInputNode,
   AudioListInputNode,
@@ -288,6 +287,7 @@ export {
   FlipNode,
   TextToImageNode,
   ImageToImageNode,
+  ImageEditorNode,
   IMAGE_NODES
 } from "./nodes/image.js";
 export {

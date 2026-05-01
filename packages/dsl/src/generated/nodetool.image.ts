@@ -273,3 +273,21 @@ export interface ImageToImageOutputs {
 export function imageToImage(inputs: ImageToImageInputs): DslNode<ImageToImageOutputs, "output"> {
   return createNode("nodetool.image.ImageToImage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
+
+// Image Editor — nodetool.image.ImageEditor
+export interface ImageEditorInputs {
+  name?: Connectable<string>;
+  description?: Connectable<string>;
+  sketch_data?: Connectable<unknown>;
+  image?: Connectable<ImageRef>;
+  mask?: Connectable<ImageRef>;
+}
+
+export interface ImageEditorOutputs {
+  image: ImageRef;
+  mask: ImageRef;
+}
+
+export function imageEditor(inputs: ImageEditorInputs): DslNode<ImageEditorOutputs> {
+  return createNode("nodetool.image.ImageEditor", inputs as Record<string, unknown>, { outputNames: ["image", "mask"] });
+}

@@ -115,6 +115,17 @@ export function usePointerHandlerUtils({
   // ─── Coordinate transform ──────────────────────────────────────────
   const screenToCanvas = useCallback(
     (clientX: number, clientY: number): Point => {
+      const displayCanvas = displayCanvasRef.current;
+      if (displayCanvas) {
+        const rect = displayCanvas.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          return {
+            x: ((clientX - rect.left) / rect.width) * doc.canvas.width,
+            y: ((clientY - rect.top) / rect.height) * doc.canvas.height
+          };
+        }
+      }
+
       const container = containerRef.current;
       if (!container) {
         return { x: 0, y: 0 };
@@ -130,7 +141,14 @@ export function usePointerHandlerUtils({
         doc.canvas.height
       );
     },
-    [zoom, pan, containerRef, doc.canvas.width, doc.canvas.height]
+    [
+      displayCanvasRef,
+      doc.canvas.width,
+      doc.canvas.height,
+      containerRef,
+      zoom,
+      pan
+    ]
   );
 
   // ─── Mirror / Symmetry drawing helper ─────────────────────────────
