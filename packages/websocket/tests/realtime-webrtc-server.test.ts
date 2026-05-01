@@ -12,7 +12,6 @@ import type {
   VideoFrame
 } from "@nodetool/protocol";
 import { RealtimeWebRTCServer } from "../src/realtime/_legacy/webrtc-server.js";
-import { FrameRouter } from "../src/realtime/frame-router.js";
 import {
   UnsupportedCodecBridge,
   type CodecBridge,
@@ -257,54 +256,6 @@ describe("RealtimeWebRTCServer", () => {
       unrouted: 1,
       inbound_rtp_packets: 0
     });
-  });
-});
-
-describe("FrameRouter", () => {
-  it("routes decoded frames to mapped realtime inputs and closes streams", async () => {
-    const pushInputValue = vi.fn().mockResolvedValue(undefined);
-    const finishInputStream = vi.fn();
-    const router = new FrameRouter(session(), {
-      pushInputValue,
-      finishInputStream
-    });
-    const frame: VideoFrame = {
-      type: "realtime_video_frame",
-      data: new Uint8Array([255, 0, 0, 255]),
-      width: 1,
-      height: 1,
-      stride: 4,
-      pixel_format: "rgba8",
-      timestamp_ns: 1,
-      sequence: 1
-    };
-
-    await router.routeFrame("video-track", frame);
-    router.finish();
-
-    expect(pushInputValue).toHaveBeenCalledWith("video-source", frame, "frame");
-    expect(finishInputStream).toHaveBeenCalledWith("video-source", "frame");
-    expect(router.metrics()).toMatchObject({ routedFrames: 1, unroutedFrames: 0 });
-  });
-
-  it("tracks unrouted frames without pushing fake media into the graph", async () => {
-    const pushInputValue = vi.fn().mockResolvedValue(undefined);
-    const router = new FrameRouter(session(), { pushInputValue });
-    const frame: AudioFrame = {
-      type: "realtime_audio_frame",
-      data: new Uint8Array([0, 0]),
-      sample_rate: 48_000,
-      channels: 1,
-      sample_format: "s16le",
-      samples: 1,
-      timestamp_ns: 1,
-      sequence: 1
-    };
-
-    await router.routeFrame("missing-track", frame);
-
-    expect(pushInputValue).not.toHaveBeenCalled();
-    expect(router.metrics()).toMatchObject({ routedFrames: 0, unroutedFrames: 1 });
   });
 });
 

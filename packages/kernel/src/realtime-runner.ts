@@ -6,7 +6,7 @@ import {
   type WorkflowGraphData,
   type WorkflowRunnerOptions
 } from "./runner.js";
-import type { RealtimeMetrics, RealtimeSessionInfo } from "@nodetool/protocol";
+import type { RealtimeMediaBus, RealtimeMetrics, RealtimeSessionInfo } from "@nodetool/protocol";
 import { createLogger } from "@nodetool/config";
 
 const log = createLogger("nodetool.kernel.realtime-runner");
@@ -103,6 +103,10 @@ export class RealtimeRunner {
     if (this.sessionInfo?.session_id === metrics.session_id) {
       this.sessionInfo.metrics = metrics;
     }
+  }
+
+  tickRealtimeMedia(sessionId: string, bus: RealtimeMediaBus): Promise<void> {
+    return this.runner.tickRealtimeMedia(sessionId, bus);
   }
 
   private async runWarmStateHooks(stage: "start" | "stop"): Promise<void> {

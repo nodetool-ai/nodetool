@@ -20,7 +20,9 @@ import type {
   Edge,
   ProcessingMessage,
   ControlEvent,
-  InputBufferPolicy
+  InputBufferPolicy,
+  RealtimeMediaBus,
+  VideoFrame
 } from "@nodetool/protocol";
 import { TypeMetadata } from "@nodetool/protocol";
 
@@ -175,6 +177,9 @@ export class WorkflowRunner {
 
   /** Realtime-only bounded message/output retention policy. */
   private _realtimeBuffers = new RealtimeRunBuffers();
+
+  /** Last wall-clock emit for throttled realtime edge_update (active status). */
+  private _realtimeEdgeEmitAt = new Map<string, number>();
 
   /** Cancellation flag. */
   private _cancelled = false;
@@ -333,6 +338,50 @@ export class WorkflowRunner {
 
   getExecutor(nodeId: string): NodeExecutor | undefined {
     return this._executors.get(nodeId);
+  }
+
+  /**
+   * Media-plane tick: propagate bus outputs along data edges into each
+   * realtime-capable node's onRealtimeTick hook.
+   */
+  async tickRealtimeMedia(
+    sessionId: string,
+    bus: RealtimeMediaBus
+  ): Promise<void> {
+    if (this._options.runMode !== "realtime") {
+      return;
+    }
+    const ctx = this._options.executionContext;
+    if (!ctx || !this._graph) {
+      return;
+    }
+
+    const layers = this._graph.topologicalSort();
+    for (const layer of layers) {
+      for (const node of layer) {
+        if (!node.is_realtime_capable) {
+          continue;
+        }
+        const executor = this._executors.get(node.id);
+        if (!executor?.onRealtimeTick) {
+          continue;
+        }
+
+        const frames: Record<string, VideoFrame | null> = {};
+        for (const edge of this._graph.findDataEdges(node.id)) {
+          const slot = bus.getLatestOutput(
+            sessionId,
+            edge.source,
+            edge.sourceHandle
+          );
+          frames[edge.targetHandle] = slot?.frame ?? null;
+        }
+
+        ctx.setRealtimeIncomingFrames(frames);
+        await executor.onRealtimeTick(ctx, bus, sessionId);
+        ctx.clearRealtimeIncomingFrames();
+      }
+    }
   }
 
   getMediaAdapterInputNames(): string[] {
@@ -1262,6 +1311,15 @@ export class WorkflowRunner {
       `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
     const counter = (this._edgeCounters.get(id) ?? 0) + 1;
     this._edgeCounters.set(id, counter);
+
+    if (this._options.runMode === "realtime") {
+      const now = Date.now();
+      const last = this._realtimeEdgeEmitAt.get(id) ?? 0;
+      if (now - last < 1000) {
+        return;
+      }
+      this._realtimeEdgeEmitAt.set(id, now);
+    }
 
     this._emit({
       type: "edge_update",

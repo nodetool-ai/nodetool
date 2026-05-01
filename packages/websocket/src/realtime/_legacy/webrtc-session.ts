@@ -1,4 +1,6 @@
 import type {
+  RealtimeFrame,
+  RealtimeMediaTrackMapping,
   RealtimeMetrics,
   RealtimeSessionRecord,
   RealtimeSessionSignal,
@@ -14,7 +16,16 @@ import {
   UnsupportedCodecBridge,
   type CodecBridge
 } from "./codec-bridge.js";
-import { FrameRouter, type FrameRouterRunner } from "../frame-router.js";
+
+/** Minimal runner bridge for decoded RTP frames (legacy WebRTC path). */
+export interface LegacyRealtimeInputBridge {
+  pushInputValue(
+    inputName: string,
+    value: unknown,
+    sourceHandle?: string
+  ): Promise<void>;
+  finishInputStream?(inputName: string, sourceHandle?: string): void;
+}
 
 export type IncomingRealtimeSignal = Omit<
   RealtimeSessionSignal,
@@ -23,7 +34,7 @@ export type IncomingRealtimeSignal = Omit<
 
 export interface RealtimeWebRTCSessionOptions {
   session: RealtimeSessionRecord;
-  runner?: FrameRouterRunner;
+  runner?: LegacyRealtimeInputBridge;
   codecBridge?: CodecBridge;
   emitSessionSignal: (signal: RealtimeSessionSignal) => Promise<void>;
 }
@@ -39,7 +50,9 @@ export interface RealtimeWebRTCSessionMetrics {
 export class RealtimeWebRTCSession {
   private readonly peer = new RTCPeerConnection();
   private readonly codecBridge: CodecBridge;
-  private readonly frameRouter?: FrameRouter;
+  private readonly tracksById = new Map<string, RealtimeMediaTrackMapping>();
+  private routedFrames = 0;
+  private unroutedFrames = 0;
   private state: RealtimeWebRTCSessionState = "new";
   private inboundFrames = 0;
   private outboundFrames = 0;
@@ -53,9 +66,12 @@ export class RealtimeWebRTCSession {
 
   constructor(private readonly options: RealtimeWebRTCSessionOptions) {
     this.codecBridge = options.codecBridge ?? new UnsupportedCodecBridge();
-    this.frameRouter = options.runner
-      ? new FrameRouter(options.session, options.runner)
-      : undefined;
+    for (const track of options.session.media_tracks) {
+      if (track.enabled === false) {
+        continue;
+      }
+      this.tracksById.set(track.track_id, track);
+    }
     this.attachTrackRouting();
     this.attachIceEmission();
   }
@@ -73,9 +89,9 @@ export class RealtimeWebRTCSession {
       connectionState?: string;
       iceConnectionState?: string;
     };
-    const routed = this.frameRouter?.metrics() ?? {
-      routedFrames: 0,
-      unroutedFrames: 0
+    const routed = {
+      routedFrames: this.routedFrames,
+      unroutedFrames: this.unroutedFrames
     };
     return {
       peer: {
@@ -111,12 +127,12 @@ export class RealtimeWebRTCSession {
       return;
     }
 
-    try {
-      this.frameRouter?.finish();
-    } catch {
-      // Teardown must still release peer resources when a saved mapping points
-      // at a missing/stale realtime input.
-    }
+      try {
+        this.finishStreams();
+      } catch {
+        // Teardown must still release peer resources when a saved mapping points
+        // at a missing/stale realtime input.
+      }
 
     await Promise.resolve(this.peer.close());
     this.state = "closed";
@@ -203,11 +219,49 @@ export class RealtimeWebRTCSession {
         status: "active",
         name: "custom"
       };
-      await this.frameRouter?.routeFrame(trackId, result.frame);
+      await this.routeDecodedFrame(trackId, result.frame);
       this.inboundFrames += 1;
       return;
     }
     this.unsupportedCodecFrames += 1;
+  }
+
+  private finishStreams(): void {
+    const runner = this.options.runner;
+    if (!runner?.finishInputStream) {
+      return;
+    }
+    const finishedInputs = new Set<string>();
+    for (const track of this.tracksById.values()) {
+      if (finishedInputs.has(track.node_id)) {
+        continue;
+      }
+      try {
+        runner.finishInputStream(track.node_id, track.source_handle ?? "frame");
+      } catch {
+        // Best-effort — mirror legacy FrameRouter.finish per-node behavior.
+      }
+      finishedInputs.add(track.node_id);
+    }
+  }
+
+  private async routeDecodedFrame(
+    trackId: string,
+    frame: RealtimeFrame
+  ): Promise<void> {
+    const track = this.tracksById.get(trackId);
+    const runner = this.options.runner;
+    if (!track || !runner) {
+      this.unroutedFrames += 1;
+      return;
+    }
+
+    await runner.pushInputValue(
+      track.node_id,
+      frame,
+      track.source_handle ?? "frame"
+    );
+    this.routedFrames += 1;
   }
 
   private resolveTrackId(track: MediaStreamTrack, kind: "audio" | "video"): string {

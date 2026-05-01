@@ -1,7 +1,30 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { VideoFrame } from "@nodetool/protocol";
+import type { ActiveRealtimeJob } from "../src/realtime/command-handler-types.js";
 import { RealtimeCommandHandler } from "../src/realtime/command-handler.js";
 import { realtimeSessionManager } from "../src/realtime/session-manager.js";
+
+function stubMediaBus(): ActiveRealtimeJob["mediaBus"] {
+  return {
+    setInput: vi.fn(),
+    getLatestInput: vi.fn(),
+    setOutput: vi.fn(),
+    getLatestOutput: vi.fn(),
+    clearSession: vi.fn(),
+    subscribeOutputs: vi.fn(() => () => undefined),
+    metrics: vi.fn(() => ({ inputs: {}, outputs: {} }))
+  };
+}
+
+function stubActiveJob(
+  runner: ActiveRealtimeJob["runner"]
+): ActiveRealtimeJob {
+  return {
+    runner,
+    mediaBus: stubMediaBus(),
+    tickRealtimeMediaPlane: vi.fn().mockResolvedValue(undefined)
+  };
+}
 
 describe("RealtimeCommandHandler", () => {
   beforeEach(() => {
@@ -53,7 +76,7 @@ describe("RealtimeCommandHandler", () => {
           resolveRunJob = resolve;
         })
     );
-    const getActiveJob = vi.fn().mockReturnValue({ runner: {} });
+    const getActiveJob = vi.fn().mockReturnValue(stubActiveJob({}));
     const handler = new RealtimeCommandHandler({
       getUserId: () => "user-1",
       runRealtimeJob,
@@ -110,12 +133,12 @@ describe("RealtimeCommandHandler", () => {
       getUserId: () => "user-1",
       runRealtimeJob: vi.fn().mockResolvedValue(undefined),
       cancelJob: vi.fn().mockResolvedValue(undefined),
-      getActiveJob: vi.fn().mockReturnValue({
-        runner: {
+      getActiveJob: vi.fn().mockReturnValue(
+        stubActiveJob({
           pushParameter,
           pushInputValue
-        }
-      }),
+        })
+      ),
       trackSessionJob: vi.fn(),
       clearSessionTracking: vi.fn(),
       failSessionStartup: vi.fn().mockResolvedValue(undefined),
@@ -151,7 +174,9 @@ describe("RealtimeCommandHandler", () => {
   });
 
   it("routes session-targeted realtime video frames through media track mappings", async () => {
-    const pushInputValue = vi.fn().mockResolvedValue(undefined);
+    const mediaBus = stubMediaBus();
+    const setInput = vi.mocked(mediaBus.setInput);
+    const tickRealtimeMediaPlane = vi.fn().mockResolvedValue(undefined);
     const recordFramePushResult = vi.fn();
     const session = realtimeSessionManager.createSession({
       userId: "user-1",
@@ -177,9 +202,9 @@ describe("RealtimeCommandHandler", () => {
       runRealtimeJob: vi.fn().mockResolvedValue(undefined),
       cancelJob: vi.fn().mockResolvedValue(undefined),
       getActiveJob: vi.fn().mockReturnValue({
-        runner: {
-          pushInputValue
-        }
+        runner: {},
+        mediaBus,
+        tickRealtimeMediaPlane
       }),
       trackSessionJob: vi.fn(),
       clearSessionTracking: vi.fn(),
@@ -220,9 +245,11 @@ describe("RealtimeCommandHandler", () => {
       track_id: "deterministic-video",
       routed: true
     });
-    const pushedFrame = pushInputValue.mock.calls[0][1] as VideoFrame;
-    expect(pushInputValue).toHaveBeenCalledWith(
+    const pushedFrame = setInput.mock.calls[0][3] as VideoFrame;
+    expect(setInput).toHaveBeenCalledWith(
+      session.session_id,
       "video-source",
+      "realtime_frame",
       expect.objectContaining({
         type: "realtime_video_frame",
         width: 1,
@@ -231,10 +258,10 @@ describe("RealtimeCommandHandler", () => {
         pixel_format: "rgba8",
         timestamp_ns: 1000,
         sequence: 1
-      }),
-      "realtime_frame"
+      })
     );
     expect(pushedFrame.data).toEqual(new Uint8Array([255, 0, 0, 255]));
+    expect(tickRealtimeMediaPlane).toHaveBeenCalledWith(session.session_id);
     expect(recordFramePushResult).toHaveBeenCalledWith(session.session_id, true);
   });
 

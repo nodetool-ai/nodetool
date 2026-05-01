@@ -11,6 +11,9 @@
  * consumers can switch on `msg.type` for exhaustive handling.
  */
 
+import type { RealtimeMediaBusSlotMetrics } from "./realtime-media-plane.js";
+import type { VideoFrame } from "./realtime-frame.js";
+
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
@@ -165,6 +168,20 @@ export interface OutputUpdate {
   output_type: string;
   metadata: Record<string, unknown>;
   workflow_id?: string | null;
+  /** Present when routing realtime preview frames through the workflow subscription. */
+  session_id?: string;
+}
+
+/** High-rate realtime video egress on the media lane (server → browser). */
+export interface RealtimeFrameOut {
+  type: "realtime_frame_out";
+  session_id: string;
+  workflow_id: string | null;
+  job_id: string | null;
+  node_id: string;
+  output_name: string;
+  sequence: number;
+  frame: VideoFrame;
 }
 
 export interface PreviewUpdate {
@@ -454,6 +471,23 @@ export interface RealtimeMetrics {
   };
   reconnect_count: number;
   created_at: string;
+  /** Phase R media plane diagnostics (optional for backward compatibility). */
+  media_plane?: {
+    inputs: Record<string, RealtimeMediaBusSlotMetrics>;
+    outputs: Record<string, RealtimeMediaBusSlotMetrics>;
+  };
+  frame_sender?: {
+    framesSent: number;
+    framesDroppedByPacer: number;
+  };
+  websocket_lanes?: {
+    control_pending: number;
+    media_pending: number;
+  };
+  node_ticks?: Record<
+    string,
+    { last_error?: string | null; last_tick_duration_ms?: number | null }
+  >;
 }
 
 export type RealtimeInferencePlacement =
@@ -629,6 +663,7 @@ export type ProcessingMessage =
   | NodeProgress
   | EdgeUpdate
   | OutputUpdate
+  | RealtimeFrameOut
   | PreviewUpdate
   | SaveUpdate
   | BinaryUpdate

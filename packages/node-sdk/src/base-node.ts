@@ -1,6 +1,7 @@
 import type {
   InputBufferPolicy,
   NodeDescriptor,
+  RealtimeMediaBus,
   RealtimeNodeProfile,
   RealtimeSessionInfo,
   SyncMode
@@ -254,6 +255,15 @@ export abstract class BaseNode {
   resetWarmState(): void {}
 
   /**
+   * Realtime media-plane tick — driven by RealtimeMediaBus ingress, not NodeInbox.
+   */
+  async onRealtimeTick(
+    _context: ProcessingContext,
+    _bus: RealtimeMediaBus,
+    _sessionId: string
+  ): Promise<void> {}
+
+  /**
    * Validate the current property values on this instance.
    *
    * Default implementation defers to the class's static validateProperties
@@ -372,7 +382,12 @@ export abstract class BaseNode {
         context: ProcessingContext,
         session: RealtimeSessionInfo
       ) => this.onSessionStop(context, session),
-      resetWarmState: () => this.resetWarmState()
+      resetWarmState: () => this.resetWarmState(),
+      onRealtimeTick: (
+        context: ProcessingContext,
+        bus: RealtimeMediaBus,
+        sessionId: string
+      ) => this.onRealtimeTick(context, bus, sessionId)
     };
     if (this.run) {
       executor.run = async (

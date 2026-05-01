@@ -10,7 +10,7 @@
  *   - Asset handling with pluggable storage adapters.
  */
 
-import type { ProcessingMessage } from "@nodetool/protocol";
+import type { ProcessingMessage, VideoFrame } from "@nodetool/protocol";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import {
@@ -474,6 +474,10 @@ export class ProcessingContext {
   /** Optional message listener (for real-time streaming). */
   private _onMessage: ((msg: ProcessingMessage) => void) | null = null;
 
+  /** Incoming realtime frames keyed by target handle (set per tick by WorkflowRunner). */
+  private _realtimeIncomingFrames: Record<string, VideoFrame | null> | null =
+    null;
+
   /** Cache adapter. */
   readonly cache: CacheAdapter;
 
@@ -922,6 +926,30 @@ export class ProcessingContext {
     if (this._onMessage) {
       this._onMessage(msg);
     }
+  }
+
+  /**
+   * Replace the realtime message listener (optional fast path mirroring emit).
+   */
+  setOnMessage(handler: ((msg: ProcessingMessage) => void) | null): void {
+    this._onMessage = handler;
+  }
+
+  /** Map target handle → latest upstream video frame for the current realtime tick. */
+  setRealtimeIncomingFrames(
+    frames: Record<string, VideoFrame | null>
+  ): void {
+    this._realtimeIncomingFrames = frames;
+  }
+
+  getRealtimeIncomingFrames():
+    | Readonly<Record<string, VideoFrame | null>>
+    | null {
+    return this._realtimeIncomingFrames;
+  }
+
+  clearRealtimeIncomingFrames(): void {
+    this._realtimeIncomingFrames = null;
   }
 
   postMessage(msg: ProcessingMessage): void {

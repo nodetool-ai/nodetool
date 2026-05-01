@@ -11,7 +11,7 @@ import {
   normalizeTransport
 } from "./command-normalization.js";
 import { routeRealtimeParameterUpdates } from "./runner-parameter-routing.js";
-import { FrameRouter } from "./frame-router.js";
+import { RealtimeSignalingTransport } from "./_legacy/signaling-transport.js";
 
 const log = createLogger("nodetool.websocket.realtime-command-handler");
 
@@ -25,10 +25,12 @@ export type {
 
 export class RealtimeCommandHandler {
   private readonly sessionCommands: RealtimeSessionCommandService;
+  private readonly signalingTransport: RealtimeSignalingTransport;
   private readonly tempLoggedFrameRoutes = new Set<string>();
 
   constructor(private readonly dependencies: RealtimeCommandHandlerDependencies) {
     this.sessionCommands = new RealtimeSessionCommandService(dependencies);
+    this.signalingTransport = new RealtimeSignalingTransport(dependencies);
   }
 
   async handleStart(data: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -104,13 +106,9 @@ export class RealtimeCommandHandler {
   }
 
   async handleSignal(
-    _data: Record<string, unknown>
+    data: Record<string, unknown>
   ): Promise<Record<string, unknown>> {
-    return {
-      type: "realtime_session_ack",
-      ok: false,
-      error: "WebRTC transport is not enabled in this build"
-    };
+    return this.signalingTransport.handleSignal(data);
   }
 
   async handlePushFrame(
@@ -200,13 +198,25 @@ export class RealtimeCommandHandler {
       };
     }
 
-    const router =
-      typeof activeJob.getFrameRouter === "function"
-        ? activeJob.getFrameRouter(session)
-        : new FrameRouter(session, activeJob.runner);
-    let routed: boolean;
+    const track = session.media_tracks.find(
+      (candidate) =>
+        candidate.track_id === trackId && candidate.enabled !== false
+    );
+
+    let routed = false;
     try {
-      routed = await router.routeFrame(trackId, frame);
+      if (!track) {
+        routed = false;
+      } else {
+        activeJob.mediaBus.setInput(
+          sessionId,
+          track.node_id,
+          track.source_handle ?? "frame",
+          frame
+        );
+        await activeJob.tickRealtimeMediaPlane(sessionId);
+        routed = true;
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       log.warn("Realtime pushed frame routing failed", {
@@ -226,20 +236,27 @@ export class RealtimeCommandHandler {
         track_id: trackId,
         routed: false,
         error: message,
-        metrics: router.metrics()
+        metrics: activeJob.mediaBus.metrics(sessionId)
       };
     }
+
+    this.dependencies.realtimeWebRTCServer?.recordFramePushResult?.(
+      session.session_id,
+      routed
+    );
     const logKey = `${session.session_id}:${trackId}`;
     if (!this.tempLoggedFrameRoutes.has(logKey)) {
       this.tempLoggedFrameRoutes.add(logKey);
-      const track = session.media_tracks.find((candidate) => candidate.track_id === trackId);
+      const mappedTrack = session.media_tracks.find(
+        (candidate) => candidate.track_id === trackId
+      );
       log.debug("Realtime first pushed frame routed", {
         sessionId,
         workflowId: session.workflow_id,
         jobId: session.job_id,
         trackId,
         routed,
-        track,
+        track: mappedTrack,
         frame: {
           sequence: frame.sequence,
           width: frame.width,
@@ -247,7 +264,7 @@ export class RealtimeCommandHandler {
           pixelFormat: frame.pixel_format,
           stride: frame.stride
         },
-        metrics: router.metrics()
+        metrics: activeJob.mediaBus.metrics(sessionId)
       });
     }
     return {
@@ -259,7 +276,7 @@ export class RealtimeCommandHandler {
       job_id: session.job_id,
       track_id: trackId,
       routed,
-      metrics: router.metrics()
+      metrics: activeJob.mediaBus.metrics(sessionId)
     };
   }
 

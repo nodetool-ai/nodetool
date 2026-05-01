@@ -85,17 +85,27 @@ export class RealtimeSignalingTransport {
     }
 
     if (signal) {
-      await this.dependencies.emitSessionSignal({
-        type: "realtime_session_signal",
-        session_id: session.session_id,
-        workflow_id: session.workflow_id,
-        signal_type: signal.signal_type,
-        source: signal.source,
-        target: signal.target,
-        description: signal.description,
-        candidate: signal.candidate,
-        created_at: new Date().toISOString()
-      });
+      if (
+        session.transport === "webrtc" &&
+        this.dependencies.realtimeWebRTCServer
+      ) {
+        await this.dependencies.realtimeWebRTCServer.handleSignal(
+          session,
+          signal
+        );
+      } else {
+        await this.dependencies.emitSessionSignal({
+          type: "realtime_session_signal",
+          session_id: session.session_id,
+          workflow_id: session.workflow_id,
+          signal_type: signal.signal_type,
+          source: signal.source,
+          target: signal.target,
+          description: signal.description,
+          candidate: signal.candidate,
+          created_at: new Date().toISOString()
+        });
+      }
     }
 
     return {

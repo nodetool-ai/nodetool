@@ -4,7 +4,7 @@ import type {
   RealtimeSessionSignal
 } from "@nodetool/protocol";
 import type { CodecBridge } from "./codec-bridge.js";
-import type { FrameRouterRunner } from "../frame-router.js";
+import type { LegacyRealtimeInputBridge } from "./webrtc-session.js";
 import {
   RealtimeWebRTCSession,
   type IncomingRealtimeSignal,
@@ -13,7 +13,9 @@ import {
 
 export interface RealtimeWebRTCServerOptions {
   emitSessionSignal: (signal: RealtimeSessionSignal) => Promise<void>;
-  getRunnerForSession?: (session: RealtimeSessionRecord) => FrameRouterRunner | undefined;
+  getRunnerForSession?: (
+    session: RealtimeSessionRecord
+  ) => LegacyRealtimeInputBridge | undefined;
   codecBridge?: CodecBridge;
   stopTimeoutMs?: number;
 }

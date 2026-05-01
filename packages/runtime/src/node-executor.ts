@@ -6,7 +6,10 @@
  * interface for backward compatibility.
  */
 
-import type { RealtimeSessionInfo } from "@nodetool/protocol";
+import type {
+  RealtimeMediaBus,
+  RealtimeSessionInfo
+} from "@nodetool/protocol";
 import type { ProcessingContext } from "./context.js";
 
 // ---------------------------------------------------------------------------
@@ -92,4 +95,11 @@ export interface NodeExecutor {
 
   /** Clears any retained warm-state between realtime sessions. */
   resetWarmState?(): void;
+
+  /** Media-plane tick for realtime-capable nodes (bus-driven path). */
+  onRealtimeTick?(
+    context: ProcessingContext,
+    bus: RealtimeMediaBus,
+    sessionId: string
+  ): Promise<void>;
 }

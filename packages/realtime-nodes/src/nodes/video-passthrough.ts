@@ -1,5 +1,5 @@
 import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { InputBufferPolicy, VideoFrame } from "@nodetool/protocol";
+import type { InputBufferPolicy, RealtimeMediaBus, VideoFrame } from "@nodetool/protocol";
 import type {
   ProcessingContext,
   StreamingInputs,
@@ -31,6 +31,18 @@ export class VideoPassthrough extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     return { frame: this.frame ?? null };
+  }
+
+  async onRealtimeTick(
+    ctx: ProcessingContext,
+    bus: RealtimeMediaBus,
+    sessionId: string
+  ): Promise<void> {
+    const incoming = ctx.getRealtimeIncomingFrames?.();
+    const frame = incoming?.frame ?? null;
+    if (frame) {
+      bus.setOutput(sessionId, this.__node_id, "frame", frame);
+    }
   }
 
   async run(

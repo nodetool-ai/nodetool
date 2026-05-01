@@ -68,7 +68,8 @@ import type { NodeMetadata, NodeRegistry } from "@nodetool/node-sdk";
 import { RealtimeCommandHandler } from "./realtime/command-handler.js";
 import { RealtimeLifecycleOrchestrator } from "./realtime/lifecycle-orchestrator.js";
 import { realtimeSessionManager } from "./realtime/session-manager.js";
-import { FrameRouter } from "./realtime/frame-router.js";
+import { RealtimeMediaBus } from "./realtime/media-bus.js";
+import { RealtimeFrameSender } from "./realtime/frame-sender.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -581,8 +582,6 @@ interface ActiveJob {
   comfyHandle?: ComfyExecutionHandle;
   resolveRealtimeResult?: (result: RunResult) => void;
   rejectRealtimeResult?: (error: unknown) => void;
-  /** Lazily built; invalidated when `media_tracks` layout changes. */
-  realtimeFrameRouter?: { tracksKey: string; router: FrameRouter };
 }
 
 class ToolBridge {
@@ -770,7 +769,10 @@ export class UnifiedWebSocketRunner {
   private configuredProvidersCache: Map<string, Record<string, BaseProvider>> =
     new Map();
 
-  private sendLock: Promise<void> = Promise.resolve();
+  private controlSendLock: Promise<void> = Promise.resolve();
+  private mediaSendLock: Promise<void> = Promise.resolve();
+  private readonly realtimeMediaBus = new RealtimeMediaBus();
+  private realtimeFrameSender!: RealtimeFrameSender;
   private activeJobs = new Map<string, ActiveJob>();
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
@@ -923,6 +925,11 @@ export class UnifiedWebSocketRunner {
         process_uptime_sec: process.uptime(),
         memory: process.memoryUsage()
       }));
+    this.realtimeFrameSender = new RealtimeFrameSender({
+      bus: this.realtimeMediaBus,
+      sendMessage: (msg, opts) =>
+        this.sendMessage(msg as Record<string, unknown>, opts)
+    });
     this.realtimeLifecycle = new RealtimeLifecycleOrchestrator({
       getUserId: () => this.getRealtimeUserId(),
       getActiveJob: (jobId) => {
@@ -971,8 +978,14 @@ export class UnifiedWebSocketRunner {
         }
         return {
           runner: active.runner,
-          getFrameRouter: (session: RealtimeSessionRecord) =>
-            this.getOrCreateRealtimeFrameRouter(active, session)
+          mediaBus: this.realtimeMediaBus,
+          tickRealtimeMediaPlane: async (sessionId: string) => {
+            const rr = active.realtimeRunner;
+            if (!rr) {
+              return;
+            }
+            await rr.tickRealtimeMedia(sessionId, this.realtimeMediaBus);
+          }
         };
       },
       trackSessionJob: (sessionId, jobId) => {
@@ -1019,9 +1032,9 @@ export class UnifiedWebSocketRunner {
     this.stopRealtimeMetricsBroadcast();
     this.unregisterObserver();
     this.toolBridge.cancelAll();
+    this.realtimeFrameSender.stopAll();
 
     this.currentTask = null;
-    const realtimeSessionIds = this.realtimeLifecycle.getTrackedSessionIds();
     for (const [jobId, job] of this.activeJobs) {
       if (job.comfyHandle) {
         job.comfyHandle.cancel();
@@ -1060,7 +1073,10 @@ export class UnifiedWebSocketRunner {
     return value;
   }
 
-  async sendMessage(message: Record<string, unknown>): Promise<void> {
+  async sendMessage(
+    message: Record<string, unknown>,
+    options?: { lane?: "control" | "media" }
+  ): Promise<void> {
     if (!this.websocket) return;
     if (
       this.websocket.clientState === "disconnected" ||
@@ -1084,11 +1100,18 @@ export class UnifiedWebSocketRunner {
         ? (this.serializeForJson(message) as Record<string, unknown>)
         : message;
 
-    const prev = this.sendLock;
+    const lane = options?.lane ?? "control";
+    const prev =
+      lane === "media" ? this.mediaSendLock : this.controlSendLock;
     let release!: () => void;
-    this.sendLock = new Promise<void>((resolve) => {
+    const next = new Promise<void>((resolve) => {
       release = resolve;
     });
+    if (lane === "media") {
+      this.mediaSendLock = next;
+    } else {
+      this.controlSendLock = next;
+    }
 
     await prev;
     try {
@@ -1106,27 +1129,23 @@ export class UnifiedWebSocketRunner {
     return this.userId ?? "1";
   }
 
-  private getOrCreateRealtimeFrameRouter(
-    active: ActiveJob,
-    session: RealtimeSessionRecord
-  ): FrameRouter {
-    const tracksKey = session.media_tracks
-      .filter((track) => track.enabled !== false)
-      .map(
-        (track) =>
-          `${track.track_id}:${track.node_id}:${track.source_handle ?? "frame"}`
-      )
-      .sort()
-      .join("|");
-    if (
-      active.realtimeFrameRouter &&
-      active.realtimeFrameRouter.tracksKey === tracksKey
-    ) {
-      return active.realtimeFrameRouter.router;
+  private collectRealtimeFrameSinks(graph: ActiveJob["graph"]): Array<{
+    nodeId: string;
+    handle: string;
+  }> {
+    const sinks: Array<{ nodeId: string; handle: string }> = [];
+    for (const raw of graph.nodes) {
+      const node = raw as { id?: unknown; type?: unknown };
+      const id = typeof node.id === "string" ? node.id : null;
+      const type = typeof node.type === "string" ? node.type : "";
+      if (!id) {
+        continue;
+      }
+      if (type === "nodetool.realtime.VideoSink") {
+        sinks.push({ nodeId: id, handle: "frame" });
+      }
     }
-    const router = new FrameRouter(session, active.runner);
-    active.realtimeFrameRouter = { tracksKey, router };
-    return router;
+    return sinks;
   }
 
   private clearRealtimeSessionTracking(
@@ -1176,6 +1195,9 @@ export class UnifiedWebSocketRunner {
     if (!sessionId) {
       return;
     }
+
+    this.realtimeFrameSender.stopSession(sessionId);
+    this.realtimeMediaBus.clearSession(sessionId);
 
     const userId = this.getRealtimeUserId();
     if (status === "failed") {
@@ -1668,6 +1690,11 @@ export class UnifiedWebSocketRunner {
         workflowId,
         sessionId: session.session_id
       });
+      this.realtimeFrameSender.startSession(session.session_id, {
+        jobId,
+        workflowId,
+        sinks: this.collectRealtimeFrameSinks(active.graph)
+      });
     } catch (error) {
       log.error("Realtime runner startup failed", {
         jobId,
@@ -1968,9 +1995,9 @@ export class UnifiedWebSocketRunner {
           continue;
         }
 
-        // Only relay output_update for Output-type nodes
+        // Only relay output_update for Output-type nodes (realtime uses media lane).
         if (outbound.type === "output_update") {
-          if (!nodeType.includes("Output")) {
+          if (!active.realtimeRunner && !nodeType.includes("Output")) {
             continue;
           }
           outputUpdateSeen = true;
