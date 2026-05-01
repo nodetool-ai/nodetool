@@ -16,7 +16,7 @@ import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { SecretResponse } from "../../stores/ApiTypes";
 
-const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
+const URL_PATTERN = /(https?:\/\/[^\s.,;:!?()]+)/g;
 
 /** Renders a description string with any embedded URLs as clickable external links. */
 const DescriptionWithLinks: React.FC<{ text: string }> = ({ text }) => {
