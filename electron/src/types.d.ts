@@ -929,7 +929,11 @@ export type RuntimePackageId =
   | "ffmpeg"
   | "pandoc"
   | "pdftotext"
-  | "yt-dlp";
+  | "yt-dlp"
+  | "claude-agent-sdk"
+  | "codex-sdk"
+  | "transformers-js"
+  | "tensorflow-js";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;

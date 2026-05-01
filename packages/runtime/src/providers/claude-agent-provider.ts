@@ -19,7 +19,7 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importOptionalModule } from "@nodetool-ai/config";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   LanguageModel,
@@ -520,7 +520,9 @@ export class ClaudeAgentProvider extends BaseProvider {
     // the SDK at startup.
     let sdk: typeof SdkType;
     try {
-      sdk = await import("@anthropic-ai/claude-agent-sdk");
+      sdk = await importOptionalModule<typeof import("@anthropic-ai/claude-agent-sdk")>(
+        "@anthropic-ai/claude-agent-sdk"
+      );
     } catch (err) {
       throw classifyClaudeAgentError(err);
     }

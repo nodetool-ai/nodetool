@@ -120,10 +120,10 @@
     "tsx": "^4.0.0",
     "turbo": "^2.9.6",
     "typescript-eslint": "^8.56.1",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "@openai/codex-sdk": "^0.118.0"
   },
   "dependencies": {
-    "@openai/codex-sdk": "^0.118.0",
     "keytar": "^7.9.0",
     "msgpackr": "^1.11.9"
   },

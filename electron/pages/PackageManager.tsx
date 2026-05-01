@@ -431,7 +431,7 @@ const PackageManager: React.FC = () => {
         {activeTab === "runtimes" ? (
           <div className="runtimes-section">
             <p className="runtimes-description">
-              Runtimes are system tools required by certain nodes. Install them to enable video processing, code execution, document conversion, and more.
+              Runtimes and optional Node.js modules enable extra features such as video processing, code execution, Claude/Codex agents, Transformers.js, and TensorFlow.js nodes.
             </p>
             {error && (
               <div className="error-banner">
