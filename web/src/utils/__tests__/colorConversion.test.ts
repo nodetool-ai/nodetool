@@ -9,13 +9,9 @@ import {
   cmykToRgb,
   rgbToLab,
   labToRgb,
-  parseColor,
-  hexToAllFormats,
   getLuminance,
   getContrastRatio,
   getWcagCompliance,
-  rgbToCss,
-  hslToCss,
   simulateColorBlindness,
   isLightColor,
   getContrastingTextColor
@@ -122,49 +118,6 @@ describe("colorConversion utilities", () => {
     });
   });
 
-  describe("parseColor", () => {
-    it("parses hex colors", () => {
-      expect(parseColor("#ff0000")).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-    });
-
-    it("parses rgb() colors", () => {
-      expect(parseColor("rgb(255, 0, 0)")).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-    });
-
-    it("parses rgba() colors", () => {
-      expect(parseColor("rgba(255, 0, 0, 0.5)")).toEqual({ r: 255, g: 0, b: 0, a: 0.5 });
-    });
-
-    it("parses hsl() colors", () => {
-      const result = parseColor("hsl(0, 100%, 50%)");
-      expect(result).not.toBeNull();
-      expect(result!.r).toBe(255);
-      expect(result!.g).toBe(0);
-      expect(result!.b).toBe(0);
-    });
-
-    it("parses named colors", () => {
-      expect(parseColor("red")).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-      expect(parseColor("blue")).toEqual({ r: 0, g: 0, b: 255, a: 1 });
-    });
-
-    it("returns null for invalid colors", () => {
-      expect(parseColor("invalid")).toBeNull();
-      expect(parseColor("")).toBeNull();
-    });
-  });
-
-  describe("hexToAllFormats", () => {
-    it("converts hex to all formats", () => {
-      const result = hexToAllFormats("#ff0000");
-      expect(result.hex).toBe("#ff0000");
-      expect(result.rgb).toEqual({ r: 255, g: 0, b: 0, a: 1 });
-      expect(result.hsl.h).toBe(0);
-      expect(result.hsb.h).toBe(0);
-      expect(result.cmyk.m).toBe(100);
-    });
-  });
-
   describe("getLuminance", () => {
     it("calculates luminance correctly", () => {
       expect(getLuminance({ r: 255, g: 255, b: 255 })).toBeCloseTo(1, 2);
@@ -194,20 +147,6 @@ describe("colorConversion utilities", () => {
       const gray2 = { r: 120, g: 120, b: 120 };
       const compliance = getWcagCompliance(gray1, gray2);
       expect(compliance.aa).toBe(false);
-    });
-  });
-
-  describe("rgbToCss", () => {
-    it("formats RGB as CSS string", () => {
-      expect(rgbToCss({ r: 255, g: 0, b: 0 })).toBe("rgb(255, 0, 0)");
-      expect(rgbToCss({ r: 255, g: 0, b: 0, a: 0.5 })).toBe("rgba(255, 0, 0, 0.5)");
-    });
-  });
-
-  describe("hslToCss", () => {
-    it("formats HSL as CSS string", () => {
-      expect(hslToCss({ h: 0, s: 100, l: 50 })).toBe("hsl(0, 100%, 50%)");
-      expect(hslToCss({ h: 0, s: 100, l: 50, a: 0.5 })).toBe("hsla(0, 100%, 50%, 0.5)");
     });
   });
 

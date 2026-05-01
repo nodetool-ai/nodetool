@@ -1,7 +1,6 @@
 import { promises as fs, writeFileSync } from "fs";
 import type { Stats } from "fs";
 import * as https from "https";
-import * as http from "http";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,

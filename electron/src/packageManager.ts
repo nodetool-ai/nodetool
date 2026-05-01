@@ -140,16 +140,6 @@ async function getInstalledNodetoolPackages(): Promise<string[]> {
   }
 }
 
-// Export a function to get expected version for a specific package
-export function getExpectedVersion(packageName: string): string | null {
-  return getAppVersion();
-}
-
-// Export a function to get all packages that need version checking
-export async function getPackagesWithVersionRequirements(): Promise<string[]> {
-  return await getInstalledNodetoolPackages();
-}
-
 // Simple in-memory cache for nodes
 let nodeCache: PackageNode[] | null = null;
 
