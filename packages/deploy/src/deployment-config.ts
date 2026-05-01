@@ -440,6 +440,7 @@ export const GCPDeploymentSchema = z.object({
   resources: withEmptyDefault(GCPResourceConfigSchema),
   storage: GCPStorageConfigSchema.optional(),
   iam: withEmptyDefault(GCPIAMConfigSchema),
+  environment: z.record(z.string(), z.string()).optional(),
   persistent_paths: PersistentPathsSchema.optional(),
   workflows: z.array(z.string()).default([]),
   state: withEmptyDefault(GCPStateSchema)
@@ -478,6 +479,42 @@ const AnyDeploymentSchema = z.discriminatedUnion("type", [
   HuggingFaceDeploymentSchema
 ]);
 export type AnyDeployment = z.infer<typeof AnyDeploymentSchema>;
+
+function generateDeploymentMasterKey(): string {
+  return crypto.randomBytes(32).toString("base64");
+}
+
+/**
+ * Ensure a deployment has a SECRETS_MASTER_KEY configured in the environment
+ * that will be applied to the deployed container/service.
+ *
+ * @returns true when the deployment was modified.
+ */
+export function ensureDeploymentMasterKey(
+  deployment: AnyDeployment
+): boolean {
+  if (deployment.type === "docker") {
+    const env = deployment.container.environment ?? {};
+    if (env["SECRETS_MASTER_KEY"]) {
+      return false;
+    }
+    deployment.container.environment = {
+      ...env,
+      SECRETS_MASTER_KEY: generateDeploymentMasterKey()
+    };
+    return true;
+  }
+
+  const env = deployment.environment ?? {};
+  if (env["SECRETS_MASTER_KEY"]) {
+    return false;
+  }
+  deployment.environment = {
+    ...env,
+    SECRETS_MASTER_KEY: generateDeploymentMasterKey()
+  };
+  return true;
+}
 
 export const DeploymentConfigSchema = z.object({
   version: z.string().default("2.0"),
@@ -561,16 +598,17 @@ export async function loadDeploymentConfig(): Promise<DeploymentConfig> {
 
   const config = parseDeploymentConfig(data);
 
-  // Auto-generate server_auth_token for Docker deployments
+  // Auto-generate deployment secrets that are required for headless/container
+  // deployments and persist them in deployment.yaml.
   let configUpdated = false;
   for (const deployment of Object.values(config.deployments)) {
-    if (deployment.type === "docker") {
-      if (!deployment.server_auth_token) {
-        deployment.server_auth_token = crypto
-          .randomBytes(32)
-          .toString("base64url");
-        configUpdated = true;
-      }
+    if (ensureDeploymentMasterKey(deployment)) {
+      configUpdated = true;
+    }
+
+    if (deployment.type === "docker" && !deployment.server_auth_token) {
+      deployment.server_auth_token = crypto.randomBytes(32).toString("base64url");
+      configUpdated = true;
     }
   }
 
