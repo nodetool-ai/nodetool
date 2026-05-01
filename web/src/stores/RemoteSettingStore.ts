@@ -79,11 +79,17 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
   },
 
   setSettingValue: (envVar: string, value: string) => {
-    set((state) => ({
-      settings: state.settings.map((s) =>
-        s.env_var === envVar ? { ...s, value } : s
-      )
-    }));
+    set((state) => {
+      // Bolt Optimization: Use findIndex and shallow assignment instead of .map()
+      // to avoid O(N) array traversal overhead and prevent unnecessary re-renders when no item matches.
+      const index = state.settings.findIndex((s) => s.env_var === envVar);
+      if (index === -1) return state;
+
+      const newSettings = [...state.settings];
+      newSettings[index] = { ...newSettings[index], value };
+
+      return { settings: newSettings };
+    });
   }
 }));
 

@@ -119,11 +119,17 @@ export const useColorPickerStore = create<ColorPickerState>()(
       },
 
       updateSwatch: (id: string, updates: Partial<ColorSwatch>) => {
-        set((state) => ({
-          swatches: state.swatches.map((s) =>
-            s.id === id ? { ...s, ...updates } : s
-          )
-        }));
+        set((state) => {
+          // Bolt Optimization: Use findIndex and shallow assignment instead of .map()
+          // to avoid O(N) array traversal overhead and prevent unnecessary re-renders when no item matches.
+          const index = state.swatches.findIndex((s) => s.id === id);
+          if (index === -1) return state;
+
+          const newSwatches = [...state.swatches];
+          newSwatches[index] = { ...newSwatches[index], ...updates };
+
+          return { swatches: newSwatches };
+        });
       },
 
       clearSwatches: () => {
@@ -150,11 +156,17 @@ export const useColorPickerStore = create<ColorPickerState>()(
       },
 
       updatePalette: (id: string, updates: Partial<ColorPalette>) => {
-        set((state) => ({
-          palettes: state.palettes.map((p) =>
-            p.id === id ? { ...p, ...updates } : p
-          )
-        }));
+        set((state) => {
+          // Bolt Optimization: Use findIndex and shallow assignment instead of .map()
+          // to avoid O(N) array traversal overhead and prevent unnecessary re-renders when no item matches.
+          const index = state.palettes.findIndex((p) => p.id === id);
+          if (index === -1) return state;
+
+          const newPalettes = [...state.palettes];
+          newPalettes[index] = { ...newPalettes[index], ...updates };
+
+          return { palettes: newPalettes };
+        });
       },
 
       addGradient: (gradient: GradientValue) => {
