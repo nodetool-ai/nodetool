@@ -152,6 +152,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
         <Tooltip title="Reload Schema" arrow delay={TOOLTIP_ENTER_DELAY}>
           <IconButton
             size="small"
+            aria-label="Reload Schema"
             disabled={loading}
             onClick={() => void handleLoad(true)}
             sx={{
