@@ -215,6 +215,7 @@ export class RealtimeCommandHandler {
           frame
         );
         await activeJob.tickRealtimeMediaPlane(sessionId);
+        activeJob.pulseRealtimeFrameSender?.(sessionId);
         routed = true;
       }
     } catch (error) {

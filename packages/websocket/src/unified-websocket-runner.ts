@@ -70,6 +70,7 @@ import { RealtimeLifecycleOrchestrator } from "./realtime/lifecycle-orchestrator
 import { realtimeSessionManager } from "./realtime/session-manager.js";
 import { RealtimeMediaBus } from "./realtime/media-bus.js";
 import { RealtimeFrameSender } from "./realtime/frame-sender.js";
+import { applyVideoSinkEgressCap } from "./realtime/video-sink-egress-policy.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -977,6 +978,9 @@ export class UnifiedWebSocketRunner {
               return;
             }
             await rr.tickRealtimeMedia(sessionId, this.realtimeMediaBus);
+          },
+          pulseRealtimeFrameSender: (sessionId: string) => {
+            this.realtimeFrameSender.pulse(sessionId);
           }
         };
       },
@@ -1282,6 +1286,10 @@ export class UnifiedWebSocketRunner {
       (sum, slot) => sum + slot.framesAccepted,
       0
     );
+    const busFramesDropped = [
+      ...Object.values(mp.inputs),
+      ...Object.values(mp.outputs)
+    ].reduce((sum, slot) => sum + slot.framesDropped, 0);
 
     const now = Date.now();
     const prev = this.realtimeMetricsRateWindow.get(sessionId);
@@ -1353,7 +1361,7 @@ export class UnifiedWebSocketRunner {
       },
       queues: {
         total_depth: this.controlLaneOutstanding + this.mediaLaneOutstanding,
-        total_dropped: sender.framesDroppedByPacer,
+        total_dropped: busFramesDropped,
         consumers: []
       },
       latency: {
@@ -1799,7 +1807,9 @@ export class UnifiedWebSocketRunner {
       this.realtimeFrameSender.startSession(session.session_id, {
         jobId,
         workflowId,
-        sinks: this.collectRealtimeFrameSinks(active.graph)
+        sinks: applyVideoSinkEgressCap(
+          this.collectRealtimeFrameSinks(active.graph)
+        )
       });
     } catch (error) {
       log.error("Realtime runner startup failed", {

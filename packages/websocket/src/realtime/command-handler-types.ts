@@ -38,6 +38,8 @@ export interface ActiveRealtimeJob {
   mediaBus: RealtimeMediaBus;
   /** Runs kernel ticks after ingress writes to the bus. */
   tickRealtimeMediaPlane(sessionId: string): Promise<void>;
+  /** Non-blocking egress pulse after ticks — keeps preview latency bounded vs timer skew. */
+  pulseRealtimeFrameSender?(sessionId: string): void;
 }
 
 export type NormalizedRealtimeSignal = {

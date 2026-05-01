@@ -223,10 +223,17 @@ export const RealtimeModelStatusCard = ({
             ) : null}
             {activeMetrics.frame_sender ? (
               <Caption>
-                Egress pacer:{" "}
-                {activeMetrics.frame_sender.framesSent.toLocaleString()} sent ·{" "}
-                {activeMetrics.frame_sender.framesDroppedByPacer.toLocaleString()}{" "}
-                dropped by pacer
+                Egress:{" "}
+                {activeMetrics.frame_sender.framesSent.toLocaleString()} wire sends
+                {activeMetrics.queues &&
+                typeof activeMetrics.queues.total_dropped === "number" &&
+                activeMetrics.queues.total_dropped > 0 ? (
+                  <>
+                    {" "}
+                    · {activeMetrics.queues.total_dropped.toLocaleString()} latest-wins
+                    drops on media bus
+                  </>
+                ) : null}
               </Caption>
             ) : null}
             {activeMetrics.media_plane &&

@@ -23,6 +23,10 @@ type SessionState = {
   lastSentSeq: Map<string, number>;
   framesSent: number;
   framesDroppedByPacer: number;
+  /** Prevents overlapping ticks — `setInterval` does not await async work. */
+  tickInFlight: boolean;
+  /** One trailing rerun coalesces overlapping pulse/timer wakes into a single follow-up tick. */
+  tickDeferred: boolean;
 };
 
 /**
@@ -57,6 +61,8 @@ export class RealtimeFrameSender {
       lastSentSeq,
       framesSent: 0,
       framesDroppedByPacer: 0,
+      tickInFlight: false,
+      tickDeferred: false,
       timer: setInterval(() => {
         void this.tickSession(sessionId);
       }, this.intervalMs)
@@ -93,40 +99,58 @@ export class RealtimeFrameSender {
     };
   }
 
+  /**
+   * Schedule one egress pass without awaiting — call after kernel media ticks so
+   * preview keeps up with camera pushes instead of waiting on the paced timer only.
+   */
+  pulse(sessionId: string): void {
+    void this.tickSession(sessionId);
+  }
+
   private async tickSession(sessionId: string): Promise<void> {
     const state = this.sessions.get(sessionId);
     if (!state) {
       return;
     }
-    for (const sink of state.sinks) {
-      const latest = this.bus.getLatestOutput(
-        sessionId,
-        sink.nodeId,
-        sink.handle
-      );
-      const sinkKey = `${sink.nodeId}:${sink.handle}`;
-      const prevSeq = state.lastSentSeq.get(sinkKey) ?? -1;
-      if (!latest || latest.sequence <= prevSeq) {
-        if (latest && latest.sequence <= prevSeq) {
-          state.framesDroppedByPacer += 1;
+    if (state.tickInFlight) {
+      state.tickDeferred = true;
+      return;
+    }
+    state.tickInFlight = true;
+    try {
+      for (const sink of state.sinks) {
+        const latest = this.bus.getLatestOutput(
+          sessionId,
+          sink.nodeId,
+          sink.handle
+        );
+        const sinkKey = `${sink.nodeId}:${sink.handle}`;
+        const prevSeq = state.lastSentSeq.get(sinkKey) ?? -1;
+        if (!latest || latest.sequence <= prevSeq) {
+          continue;
         }
-        continue;
+        state.lastSentSeq.set(sinkKey, latest.sequence);
+        state.framesSent += 1;
+        const msg: RealtimeFrameOut = {
+          type: "realtime_frame_out",
+          session_id: sessionId,
+          workflow_id: state.workflowId,
+          job_id: state.jobId,
+          node_id: sink.nodeId,
+          output_name: sink.handle,
+          sequence: latest.sequence,
+          frame: latest.frame
+        };
+        await this.sendMessage(msg as unknown as Record<string, unknown>, {
+          lane: "media"
+        });
       }
-      state.lastSentSeq.set(sinkKey, latest.sequence);
-      state.framesSent += 1;
-      const msg: RealtimeFrameOut = {
-        type: "realtime_frame_out",
-        session_id: sessionId,
-        workflow_id: state.workflowId,
-        job_id: state.jobId,
-        node_id: sink.nodeId,
-        output_name: sink.handle,
-        sequence: latest.sequence,
-        frame: latest.frame
-      };
-      await this.sendMessage(msg as unknown as Record<string, unknown>, {
-        lane: "media"
-      });
+    } finally {
+      state.tickInFlight = false;
+      if (state.tickDeferred) {
+        state.tickDeferred = false;
+        void this.tickSession(sessionId);
+      }
     }
   }
 }

@@ -26,13 +26,13 @@ Authoritative implementation is **this repo** (`nodetool`) plus the **`nodetool-
 
 ## Phase R - Realtime Rewrite (top priority, blocks all model work)
 
-The realtime path has never reached usable speed. Apr 30 evidence with no model in the graph: 0.7 fps, 14 s frame age. Diagnosis (below) shows the cause is architectural — video frames are forced through the workflow control message bus, every outbound message shares one `sendLock`, the polling drain is `Array.shift()` on an unbounded array with a 10 ms floor, the camera publisher is RTT-coupled (`maxInFlightFrames = 1`), and every frame triggers Zustand fan-out and log appends in the browser.
+The realtime path has never reached usable speed. Apr 30 evidence with no model in the graph: 0.7 fps, 14 s frame age. Diagnosis (below) shows the cause was architectural — video frames were forced through the workflow control message bus, every outbound message shared one `sendLock`, the control-queue drain could stall behind backlog, the camera publisher was RTT-coupled (`maxInFlightFrames = 1`), and every frame triggered Zustand fan-out and log appends in the browser.
 
 Phase R rebuilds the realtime data plane around a per-session media bus and a paced output sender. Control plane (`node_update`, `edge_update`, `realtime_session_*`, `realtime_metrics`) stays on the existing message bus but is rate-limited in realtime mode.
 
 The whole realtime path is still pre-MVP, so Phase R is a clean rewrite, not an optimisation pass. Anything not on the camera -> media bus -> sink -> canvas path is fair game to delete or defer.
 
-**Status (May 2026):** Server slices **R.1.1–R.2.3** and kernel **R.0.5** are implemented (media bus, direct push ingress, paced `realtime_frame_out` sender, dual send lanes, `edge_update` throttle, skip streaming `output_update`). Browser **R.0.5b**, **R.3.1–R.3.3** landed (`realtimeMediaFrameSlots.ts`, subscribe/`realtime_frame_out`, rAF preview, paced camera defaults). Still open: **R.0.1** cleanup decision, **R.0.4** polling drain, **R.4** diagnostics, **R.5** Python bridge.
+**Status (May 2026):** Server slices **R.1.1–R.2.3** and kernel **R.0.5** are implemented (media bus, direct push ingress, paced `realtime_frame_out` sender, dual send lanes, `edge_update` throttle, skip streaming `output_update`). Browser **R.0.5b**, **R.3.1–R.3.3** landed (`realtimeMediaFrameSlots.ts`, subscribe/`realtime_frame_out`, rAF preview, paced camera defaults). **R.0.4** drain is event-driven (`popMessageAsync` + `closeMessageQueue`; no polling sleep). **R.4.1** extended `realtime_metrics` (media bus, frame sender, WS lanes, fps / slot-age hints) and surfaces them on **RealtimeOutputPreviewCard** + **RealtimeModelStatusCard**. Still open: **R.0.1** cleanup decision, **R.4.2** user perf gate numbers, **R.5** Python bridge.
 
 ### Architecture target
 
@@ -79,10 +79,11 @@ Camera -> VideoPassthrough -> VideoSink -> Preview, no model in graph:
   - **Progress:** Codec/session/server live under `packages/websocket/src/realtime/_legacy/`. **`handleSignal`** delegates to **`RealtimeSignalingTransport`** (`signaling-transport.ts`): websocket/frame-push stays default; **`transport === "webrtc"`** + optional **`realtimeWebRTCServer`** still reaches legacy handlers when wired.
   - **Remaining:** Optionally strip imports further or gate compile behind feature flag per original acceptance.
 
-- [ ] **R.0.4 Drop the polling drain in `streamJobMessages`.**
-  - Files: `packages/runtime/src/context.ts`, `packages/websocket/src/unified-websocket-runner.ts`.
-  - Replace `popMessage()` polling + `setTimeout(10)` with `ProcessingContext.setOnMessage(...)` event delivery (the field already exists). Bound `_messages` or remove it for realtime jobs since the bus replaces it for media.
-  - Acceptance: no `Array.shift()` on the hot path; no 10 ms wait floor; job lifecycle terminal-message bookkeeping still works.
+- [x] **R.0.4 Drop the polling drain in `streamJobMessages`.**
+  - Files: `packages/runtime/src/context.ts` (`popMessageAsync`, `closeMessageQueue`), `packages/websocket/src/unified-websocket-runner.ts`.
+  - **Done:** `streamJobMessages` drains with **`await active.context.popMessageAsync()`** in a tight loop until **`closeMessageQueue()`** yields **`null`** — event-driven, **no `setTimeout(10)`** polling floor on this path.
+  - Optional later: wire **`setOnMessage`** for zero-await fan-out if profiling shows benefit; **`_messages`** remains bounded by normal queue semantics for control-plane posts.
+  - Acceptance: met — no polling sleep on the hot drain path; terminal/job bookkeeping unchanged.
 
 - [x] **R.0.5 Stop emitting `output_update` for streaming media handles.**
   - Files: `packages/kernel/src/runner.ts`, `packages/protocol/src/messages.ts`, `packages/websocket/src/unified-websocket-runner.ts`.
@@ -148,15 +149,16 @@ Camera -> VideoPassthrough -> VideoSink -> Preview, no model in graph:
 
 ### R.4 - Diagnostics + perf gate
 
-- [ ] **R.4.1 Realtime metrics surface.**
-  - Files: `packages/protocol/src/realtime-frame.ts`, `packages/websocket/src/realtime/...`, `web/src/components/realtime/RealtimeOutputPreviewCard.tsx`, `web/src/components/realtime/RealtimeModelStatusCard.tsx`.
-  - Server emits `realtime_metrics` ~1 Hz with: per-input `framesAccepted` / `framesDropped` / `lastSequence`, per-output `framesSent` / `framesDroppedByPacer`, per-node `lastError` / `lastTickDurationMs`, lane queue depths.
-  - Browser shows: in-fps, out-fps, frame age, server send-queue depth, last error.
-  - Acceptance: numbers update at least once per second while a session is running and zero on stop.
+- [x] **R.4.1 Realtime metrics surface.**
+  - Files: `packages/protocol/src/realtime-media-plane.ts` (`RealtimeMetrics`, slot **`last_received_at`**), `packages/websocket/src/realtime/media-bus.ts`, `packages/websocket/src/unified-websocket-runner.ts` (**`buildRealtimeMetrics`**, lane counters, fps window, **`intervalMs: 1000`**), `web/src/stores/RealtimeSessionStore.ts`, `web/src/components/realtime/RealtimeOutputPreviewCard.tsx`, `RealtimeModelStatusCard.tsx`, `RealtimeStreamPage.tsx`.
+  - **Done:** ~1 Hz **`realtime_metrics`** includes **`media_plane`** (per-slot accept/drop/seq + **`last_received_at`**), **`frame_sender`** (sent / pacer drops), **`websocket_lanes`** (**`control_pending`** / **`media_pending`**), cumulative **`frames`**, rolling **fps** estimates and **`frame_age_ms_avg`**. UI shows server throughput, WS backlog, bus slots, preview captions.
+  - **Deferred:** per-node **`lastTickDurationMs`** / **`lastError`** as **`node_ticks`** until the kernel exposes them on the metrics path.
+  - Acceptance: metrics refresh ~1 Hz while running; cleared/zero on stop (session teardown clears rate windows).
 
 - [ ] **R.4.2 Verify the perf gate.**
   - Run the passthrough-only template, watch the diagnostics for 30 s on the user's RTX 3060 box.
-  - Record numbers in this plan: `before:` (current 0.7 fps / 14 s age) and `after:` once R.0 - R.3 land.
+  - **Multi-sink:** server caps **`realtime_frame_out`** to one **`VideoSink`** by default (`applyVideoSinkEgressCap`). For the perf gate use a single preview **or** set **`NODETOOL_REALTIME_FULL_MULTI_SINK_EGRESS=1`** when intentionally measuring multi-preview bandwidth.
+  - Record numbers here after validation — **`before:`** (baseline ~0.7 fps / ~14 s age from early Phase R) **`after:`** *TBD*.
   - Acceptance: matches the gate above (>= 30 fps, < 100 ms age, <= 35 video msgs/s out, <= 1 queued frame per slot, < 5 ms ack RTT).
 
 ### R.5 - Self-Forcing pipeline real frame
@@ -189,13 +191,11 @@ Return an object where `.inference(noise, text_prompts, return_latents, low_memo
 
 ---
 
-- [ ] **R.5.1.a Resolve `runtime_path` — fetch Wan 2.1 T2V 1.3B config files only.**
-  - File: `nodetool-realtime/src/nodetool/realtime/model_artifacts.py` (artifact manifest).
-  - `Wan-AI/Wan2.1-T2V-1.3B` full weights are not cached. We only need `config.json`, `tokenizer` directory, and `generation_config.json` — not the `diffusion_pytorch_model*.safetensors` weights.
-  - Use `huggingface_hub.snapshot_download("Wan-AI/Wan2.1-T2V-1.3B", ignore_patterns=["*.safetensors", "*.bin", "*.pt"])` to fetch config + tokenizer only (~few MB).
-  - Update `rtx3060_self_forcing_artifact_manifest()` so `runtime_files` resolves to the config-only download and does not require the full weight files.
-  - Alternatively: if diffusers `WanTransformer3DModel` can be initialized from a hardcoded config dict, skip the download and remove `runtime_path` from the community bridge path entirely.
-  - Acceptance: `CommunityLowVramBridgeConfig.runtime_path` points to a directory containing a valid `config.json`; `create_components` no longer fails on a missing base model.
+- [x] **R.5.1.a Resolve `runtime_path` — fetch Wan 2.1 T2V 1.3B config files only.**
+  - File: `nodetool-realtime/src/nodetool/realtime/model_artifacts.py` (`WAN21_T2V_13B_RUNTIME_ALLOW_PATTERNS`), `nodetool-realtime/src/nodetool/nodes/realtime/self_forcing.py` (model pack), `nodetool-realtime/src/nodetool/realtime/wan21/self_forcing_rtx3060.py` (upstream builder loads VAE from **`wan21_vae`** artifact path, not `Wan2.1_VAE.pth` inside runtime).
+  - **Done:** `wan21_t2v_1_3b_runtime_files` **`allow_patterns`** are **`config.json`** plus **`google/umt5-xxl/*`** tokenizer files only (~MB-scale); **no** base **`diffusion_pytorch_model*.safetensors`**, **`Wan2.1_VAE.pth`**, or **`models_t5_umt5-xxl-enc-bf16.pth`** in that snapshot.
+  - **`snapshot_download`** (via `_default_hf_hub_download`) receives those **`allow_patterns`**; **`CommunityLowVramBridgeConfig.runtime_path`** resolves to the slim snapshot root with a valid **`config.json`**.
+  - Acceptance: **`runtime_path`** contains **`config.json`** + tokenizer assets; VAE weights come only from **`wan21_vae`** (e.g. Kijai BF16 safetensors).
 
 - [ ] **R.5.1.b Pick and wire the GGUF text encoder library.**
   - File: `nodetool-realtime/pyproject.toml`, `nodetool-realtime/src/nodetool_wan_bridge/__init__.py`.
@@ -247,12 +247,11 @@ Observed: passthrough-only graph at 0.7 fps with 14 s frame age on localhost, wi
 
 1. **Per-frame fan-out on the wire.** One camera frame produces at minimum: `realtime_session_ack` + ~~`output_update` for passthrough/sink `frame`~~ *(skipped when declared type is `realtime_video_frame`, R.0.5)* + N `edge_update` events. Still flows through `_messages` for control-plane traffic (`packages/runtime/src/context.ts`, `packages/kernel/src/runner.ts`).
 2. **Single send lock.** ~~`UnifiedWebSocketRunner.sendMessage` chains every outbound message through `this.sendLock`.~~ **Mitigated (R.2.2):** `controlSendLock` vs `mediaSendLock`; acks no longer queue behind binary frame payloads on the same mutex.
-3. **O(n) outbound queue drain.** `streamJobMessages` polls `Array.shift()` on `ProcessingContext._messages` with a 10 ms `setTimeout` floor. Backlog turns the drain O(n^2). *(Still open — **R.0.4**.)*
+3. **O(n) outbound queue drain.** ~~`streamJobMessages` polls `Array.shift()`…~~ **Mitigated (R.0.4):** drain awaits **`popMessageAsync()`** until **`closeMessageQueue()`** — no fixed polling interval on the hot path.
 4. **Camera publisher RTT-coupled.** ~~`useRealtimeCameraFramePublisher` defaults `maxInFlightFrames = 1`.~~ **Mitigated (R.3.3):** default **`paced` ~30 Hz**, **`maxInFlightFrames = 3`**, slow-ack streak clears backlog.
 5. **Per-frame React fan-out.** ~~`workflowUpdates`…~~ **Mitigated (R.0.5b)** skip **`realtime_video_frame`** **`output_update`**; preview uses **`realtime_frame_out`** + media slot + rAF (**R.3.1–R.3.2**).
 6. **Per-frame server allocations.** ~~`RealtimeCommandHandler.handlePushFrame` builds a brand-new `FrameRouter`…~~ **Mitigated (R.1.2):** ingress calls `mediaBus.setInput` directly; `frame-router.ts` removed.
-
-**Scope (insights only):** Daydream keeps frames as `torch.Tensor` inside per-pipeline paths and uses WebRTC tracks for pixels while the WebSocket carries control. Those files (e.g. `webrtc.py`, `tracks.py`, `frame_processor.py`, `pipeline_processor.py`) illustrate ideas only. Phase R does **not** adopt WebRTC; it keeps the same *separation of media vs control* on the existing WebSocket, implemented in `packages/websocket` + kernel (see **Code map** above).
+7. **Egress overlap + multi-sink amplification.** ~~Overlapping async `RealtimeFrameSender` ticks raced `mediaSendLock`…~~ **Mitigated (May 2026):** single-flight ticks + deferred coalesce + **`pulse`** after each kernel media tick; misleading “pacer drop” counter removed; **`queues.total_dropped`** reflects media-bus latest-wins drops only. **Multiple `VideoSink` nodes** multiply full binary `realtime_frame_out` sends — **default cap:** first sink only (`applyVideoSinkEgressCap`); opt out with **`NODETOOL_REALTIME_FULL_MULTI_SINK_EGRESS=1`** or raise **`NODETOOL_REALTIME_MAX_VIDEO_SINK_EGRESS`**. Daydream keeps frames as `torch.Tensor` inside per-pipeline paths and uses WebRTC tracks for pixels while the WebSocket carries control. Those files (e.g. `webrtc.py`, `tracks.py`, `frame_processor.py`, `pipeline_processor.py`) illustrate ideas only. Phase R does **not** adopt WebRTC; it keeps the same *separation of media vs control* on the existing WebSocket, implemented in `packages/websocket` + kernel (see **Code map** above).
 
 ## Locked Decisions
 

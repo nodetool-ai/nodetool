@@ -48,4 +48,46 @@ describe("RealtimeFrameSender", () => {
 
     sender.stopSession("sid");
   });
+
+  it("does not overlap ticks while a slow send is still in flight", async () => {
+    const bus = new RealtimeMediaBus();
+    let active = 0;
+    let peakConcurrent = 0;
+    const pendingResolvers: Array<() => void> = [];
+    const sendMessage = vi.fn(() => {
+      active++;
+      peakConcurrent = Math.max(peakConcurrent, active);
+      return new Promise<void>((resolve) => {
+        pendingResolvers.push(() => {
+          active--;
+          resolve();
+        });
+      });
+    });
+
+    const sender = new RealtimeFrameSender({
+      bus,
+      intervalMs: 10,
+      sendMessage
+    });
+
+    sender.startSession("sid", {
+      jobId: "j1",
+      workflowId: "w1",
+      sinks: [{ nodeId: "sink1", handle: "frame" }]
+    });
+
+    bus.setOutput("sid", "sink1", "frame", mkFrame(1));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(peakConcurrent).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+
+    pendingResolvers.shift()?.();
+    await Promise.resolve();
+
+    sender.stopSession("sid");
+  });
 });

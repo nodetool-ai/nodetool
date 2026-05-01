@@ -131,6 +131,7 @@ That makes it useful for asset capture today, but it is not yet a reusable realt
 
 The actionable backlog (live status, ownership, and dependencies) lives in `nodetool/PLAN-REALTIME.md`. The items still open against this contract specifically are:
 
+- **Multi–VideoSink egress (ws preview):** by default the server caps `realtime_frame_out` to **one** `VideoSink` so bandwidth stays near Phase R targets (`packages/websocket/src/realtime/video-sink-egress-policy.ts`). Set `NODETOOL_REALTIME_FULL_MULTI_SINK_EGRESS=1` to emit every sink, or `NODETOOL_REALTIME_MAX_VIDEO_SINK_EGRESS=<n>` for a numeric cap.
 - Tighten the `starting → running` gate so it also waits on media-transport readiness once a server-side WebRTC peer exists.
 - Stand up a server-side WebRTC termination point so the mapped browser tracks actually reach the live graph through `nodetool.realtime` source nodes.
 - Promote ad-hoc parameter pushes into an explicit realtime parameter/control queue when the dedicated realtime runner lands.
