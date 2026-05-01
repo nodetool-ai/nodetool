@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { VariableSizeList, ListChildComponentProps } from "react-window";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DataObjectIcon from "@mui/icons-material/DataObject";
@@ -204,80 +203,51 @@ const formatTime = (ts: number) => {
   }
 };
 
-// Memoized row component for better performance
-type RowItemData = {
-  rows: LogRow[];
-  rowKeys: string[];
+type RowItemProps = {
+  row: LogRow;
+  rowKey: string;
+  isExpanded: boolean;
   showTimestampColumn: boolean;
   columns: string;
-  expandedKeys: Set<string>;
-  toggleExpand: (key: string, index: number) => void;
+  size: number;
+  start: number;
+  onToggle: (key: string) => void;
 };
 
-// Custom comparison function for RowItem to prevent unnecessary re-renders
-const areEqual = (prevProps: ListChildComponentProps<RowItemData>, nextProps: ListChildComponentProps<RowItemData>) => {
-  const { style: prevStyle, data: prevData, index: prevIndex } = prevProps;
-  const { style: nextStyle, data: nextData, index: nextIndex } = nextProps;
-
-  if (prevIndex !== nextIndex) {
-    return false;
-  }
-
-  // Check style properties relevant to layout (top, left, width, height)
-  // We use strict equality for values, assuming style object structure is consistent from react-window
-  if (
-    prevStyle.top !== nextStyle.top ||
-    prevStyle.left !== nextStyle.left ||
-    prevStyle.width !== nextStyle.width ||
-    prevStyle.height !== nextStyle.height
-  ) {
-    return false;
-  }
-
-  // If data reference is the same, no need to check deeper
-  if (prevData === nextData) {
-    return true;
-  }
-
-  // Granular data check
-  const prevRow = prevData.rows[prevIndex];
-  const nextRow = nextData.rows[nextIndex];
-
-  // If the specific row data changed
-  if (prevRow !== nextRow) {
-    return false;
-  }
-
-  const prevKey = prevData.rowKeys[prevIndex];
-  const nextKey = nextData.rowKeys[nextIndex]; // Should be same if rows/index same
-
-  // Check if expansion state changed for THIS row
-  const prevExpanded = prevData.expandedKeys.has(prevKey);
-  const nextExpanded = nextData.expandedKeys.has(nextKey);
-  if (prevExpanded !== nextExpanded) {
-    return false;
-  }
-
-  // Check global column settings
-  if (prevData.showTimestampColumn !== nextData.showTimestampColumn) {
-    return false;
-  }
-  if (prevData.columns !== nextData.columns) {
-    return false;
-  }
-
-  return true;
-};
-
-const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemData>) => {
-  const { toggleExpand } = data;
-  const r = data.rows[index];
-  const rowKey = data.rowKeys[index];
+const RowItem = memo(({
+  row,
+  rowKey,
+  isExpanded,
+  showTimestampColumn,
+  columns,
+  size,
+  start,
+  onToggle
+}: RowItemProps) => {
   const theme = useTheme();
-  const colors = SEVERITY_COLORS(theme)[r.severity];
+  const colors = SEVERITY_COLORS(theme)[row.severity];
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const timeTooltip = data.showTimestampColumn ? "" : formatTime(r.timestamp);
-  const isExpanded = data.expandedKeys.has(rowKey);
+  const timeTooltip = showTimestampColumn ? "" : formatTime(row.timestamp);
+
+  const wrapperStyle = useMemo<React.CSSProperties>(
+    () => ({
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: size,
+      transform: `translateY(${start}px)`,
+    }),
+    [size, start]
+  );
+
+  const rowStyle = useMemo<React.CSSProperties>(
+    () => ({
+      gridTemplateColumns: columns,
+      borderLeftColor: colors.text,
+    }),
+    [columns, colors.text]
+  );
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -294,8 +264,8 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
   }, []);
 
   const handleRowClick = useCallback(() => {
-    toggleExpand(rowKey, index);
-  }, [toggleExpand, rowKey, index]);
+    onToggle(rowKey);
+  }, [onToggle, rowKey]);
 
   const handleActionsClick = useCallback((event: React.MouseEvent) => {
     event.stopPropagation();
@@ -303,39 +273,36 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
 
 
   const open = Boolean(anchorEl);
-  
+
   return (
-    <div style={style}>
+    <div role="listitem" style={wrapperStyle}>
       <div
-        className={`row row-${r.severity}${isExpanded ? " expanded" : ""}`}
-        style={{
-          gridTemplateColumns: data.columns,
-          borderLeftColor: colors.text
-        }}
+        className={`row row-${row.severity}${isExpanded ? " expanded" : ""}`}
+        style={rowStyle}
         onClick={handleRowClick}
       >
         <Tooltip
           title={timeTooltip}
           placement="top-start"
           delay={500}
-          disabled={data.showTimestampColumn}
+          disabled={showTimestampColumn}
         >
           <div className={`cell content${isExpanded ? " expanded" : ""}`}>
-            {r.content}
+            {row.content}
           </div>
         </Tooltip>
-        {data.showTimestampColumn && (
-          <div className="cell timestamp">{formatTime(r.timestamp)}</div>
+        {showTimestampColumn && (
+          <div className="cell timestamp">{formatTime(row.timestamp)}</div>
         )}
         <div className="cell actions" onClick={handleActionsClick}>
           <CopyButton
-            value={r.content}
+            value={row.content}
             tooltip="Copy log to clipboard"
             tooltipPlacement="top"
             className="copy-btn"
             sx={{ padding: "2px" }}
           />
-          {r.data !== undefined && r.data !== null && (
+          {row.data !== undefined && row.data !== null && (
             <>
               <ToolbarIconButton
                 icon={<DataObjectIcon fontSize="inherit" />}
@@ -354,9 +321,8 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
               >
                 <FlexColumn gap={0} sx={{ p: 2 }}>
                   <pre style={{ margin: 0, fontSize: "0.75rem", fontFamily: "monospace" }}>
-                    {JSON.stringify(r.data, null, 2)}
+                    {JSON.stringify(row.data, null, 2)}
                   </pre>
-                  {/* Close button inside popover just in case */}
                   <FlexRow justify="flex-end" sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}>
                     <Text
                       component="span"
@@ -375,7 +341,7 @@ const RowItem = memo(({ index, style, data }: ListChildComponentProps<RowItemDat
       </div>
     </div>
   );
-}, areEqual);
+});
 
 RowItem.displayName = "RowItem";
 
@@ -390,7 +356,7 @@ export const LogsTable: React.FC<LogsTableProps> = ({
 }) => {
   const theme = useTheme();
   const styles = tableStyles(theme);
-  const listRef = useRef<VariableSizeList>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const prevRowCountRef = useRef(rows.length);
@@ -414,10 +380,9 @@ export const LogsTable: React.FC<LogsTableProps> = ({
 
   useEffect(() => {
     setExpandedKeys(new Set());
-    listRef.current?.resetAfterIndex(0);
   }, [rowKeys]);
 
-  const toggleExpand = useCallback((key: string, index: number) => {
+  const toggleExpand = useCallback((key: string) => {
     setExpandedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
@@ -427,17 +392,27 @@ export const LogsTable: React.FC<LogsTableProps> = ({
       }
       return next;
     });
-    listRef.current?.resetAfterIndex(index);
+  }, []);
+
+  const [listWidth, setListWidth] = useState(0);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setListWidth(el.clientWidth);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   const estimateRowHeight = useCallback(
-    (row: LogRow, listWidth: number, expanded: boolean) => {
+    (row: LogRow, width: number, expanded: boolean) => {
       if (!expanded) {
         return rowHeight;
       }
       const padding = 24;
       const actionsWidth = 60;
-      const contentWidth = Math.max(120, listWidth - padding - actionsWidth);
+      const contentWidth = Math.max(120, width - padding - actionsWidth);
       const avgCharWidth = 7;
       const maxCharsPerLine = Math.max(10, Math.floor(contentWidth / avgCharWidth));
       const lineHeight = 16;
@@ -448,77 +423,50 @@ export const LogsTable: React.FC<LogsTableProps> = ({
     [rowHeight]
   );
 
+  const virtualizer = useVirtualizer({
+    count: filteredRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) =>
+      estimateRowHeight(
+        filteredRows[index],
+        listWidth,
+        expandedKeys.has(rowKeys[index])
+      ),
+    overscan: 5,
+    getItemKey: (index) => rowKeys[index] ?? index,
+  });
+
+  // estimateSize closes over expandedKeys/listWidth, but the virtualizer
+  // caches per-index sizes. Force re-measurement when those inputs change.
+  useEffect(() => {
+    virtualizer.measure();
+  }, [expandedKeys, listWidth, rowKeys, virtualizer]);
+
   // Auto-scroll to bottom when new logs arrive (if at bottom)
   useEffect(() => {
     if (autoScroll && isAtBottom && filteredRows.length > prevRowCountRef.current) {
-      // Use requestAnimationFrame for smooth scrolling
       requestAnimationFrame(() => {
-        listRef.current?.scrollToItem(filteredRows.length - 1, "end");
+        virtualizer.scrollToIndex(filteredRows.length - 1, { align: "end" });
       });
     }
     prevRowCountRef.current = filteredRows.length;
-  }, [filteredRows.length, isAtBottom, autoScroll]);
+  }, [filteredRows.length, isAtBottom, autoScroll, virtualizer]);
 
-  const handleScroll = useCallback(({ scrollOffset, scrollUpdateWasRequested }: { 
-    scrollOffset: number; 
-    scrollUpdateWasRequested: boolean 
-  }) => {
-    if (scrollUpdateWasRequested) {return;}
-    
-    // Calculate if we're near the bottom
-    const listHeight = listRef.current?.props.height as number || 0;
-    const totalHeight = filteredRows.length * rowHeight;
-    const threshold = rowHeight * 2; // Within 2 rows of bottom
-    
-    const atBottom = scrollOffset + listHeight >= totalHeight - threshold;
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const threshold = rowHeight * 2;
+    const atBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
     setIsAtBottom(atBottom);
     setShowScrollButton(!atBottom && filteredRows.length > 10);
   }, [filteredRows.length, rowHeight]);
 
   const scrollToBottom = useCallback(() => {
-    listRef.current?.scrollToItem(filteredRows.length - 1, "end");
+    virtualizer.scrollToIndex(filteredRows.length - 1, { align: "end" });
     setIsAtBottom(true);
     setShowScrollButton(false);
-  }, [filteredRows.length]);
-
-  // Optimization: Memoize itemData to prevent RowItem re-renders when other props change
-  // (like showScrollButton or isAtBottom state changes in LogsTable)
-  const itemData = useMemo(() => ({
-    rows: filteredRows,
-    rowKeys,
-    showTimestampColumn,
-    columns,
-    expandedKeys,
-    toggleExpand
-  }), [filteredRows, rowKeys, showTimestampColumn, columns, expandedKeys, toggleExpand]);
-
-  const renderList = useCallback((listHeight: number, listWidth: number) => (
-    <VariableSizeList
-      ref={listRef}
-      height={listHeight}
-      width={listWidth}
-      itemCount={filteredRows.length}
-      itemSize={(index) =>
-        estimateRowHeight(
-          filteredRows[index],
-          listWidth,
-          expandedKeys.has(rowKeys[index])
-        )
-      }
-      itemData={itemData}
-      onScroll={handleScroll}
-      overscanCount={5}
-    >
-      {RowItem}
-    </VariableSizeList>
-  ), [
-    filteredRows,
-    handleScroll,
-    estimateRowHeight,
-    itemData,
-    rowKeys,
-    expandedKeys // Still need these deps for itemSize
-  ]);
+  }, [filteredRows.length, virtualizer]);
 
   return (
     <FlexColumn css={styles} style={height ? { height } : undefined} fullWidth>
@@ -535,14 +483,47 @@ export const LogsTable: React.FC<LogsTableProps> = ({
                 <Text size="small">{emptyText}</Text>
               </FlexColumn>
             ) : (
-              <AutoSizer>
-                {({ height: h, width }) => renderList(h, width)}
-              </AutoSizer>
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  overflow: "auto",
+                }}
+              >
+                <div
+                  role="list"
+                  style={{
+                    height: virtualizer.getTotalSize(),
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {virtualizer.getVirtualItems().map((vi) => {
+                    const row = filteredRows[vi.index];
+                    const rowKey = rowKeys[vi.index];
+                    return (
+                      <RowItem
+                        key={vi.key}
+                        row={row}
+                        rowKey={rowKey}
+                        isExpanded={expandedKeys.has(rowKey)}
+                        showTimestampColumn={showTimestampColumn}
+                        columns={columns}
+                        size={vi.size}
+                        start={vi.start}
+                        onToggle={toggleExpand}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </FlexColumn>
         </FlexColumn>
       </Card>
-      
+
       {showScrollButton && (
         <ToolbarIconButton
           icon={<KeyboardArrowDownIcon />}

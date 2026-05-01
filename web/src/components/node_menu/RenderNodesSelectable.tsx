@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 // mui
 // store
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -220,10 +221,12 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
   scrollToNamespace,
   onScrollToNamespaceComplete
 }) => {
-  const { groupedSearchResults, searchTerm } = useNodeMenuStore((state) => ({
-    groupedSearchResults: state.groupedSearchResults,
-    searchTerm: state.searchTerm
-  }));
+  const { groupedSearchResults, searchTerm } = useNodeMenuStore(
+    useShallow((state) => ({
+      groupedSearchResults: state.groupedSearchResults,
+      searchTerm: state.searchTerm
+    }))
+  );
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
   
@@ -311,9 +314,7 @@ const RenderNodesSelectable: React.FC<RenderNodesSelectableProps> = ({
     return new Set(selectedNodeTypes);
   }, [selectedNodeTypes]);
 
-  const { selectedPath } = useNodeMenuStore((state) => ({
-    selectedPath: state.selectedPath.join(".")
-  }));
+  const selectedPath = useNodeMenuStore((state) => state.selectedPath.join("."));
 
   const nodesByNamespaceAll = useMemo(() => groupNodes(nodes), [nodes]);
 

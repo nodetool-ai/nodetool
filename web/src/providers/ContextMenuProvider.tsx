@@ -4,7 +4,7 @@
  * and maintain menu state including position, associated node, and metadata.
  */
 
-import React, { useCallback, useState, useRef, useEffect } from "react";
+import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import {
   ContextMenuContext,
   ContextMenuState
@@ -159,14 +159,13 @@ export function ContextMenuProvider({
     },
     [clickOutsideHandler, active]
   );
+  const contextValue = useMemo(
+    () => ({ ...state, openContextMenu, closeContextMenu }),
+    [state, openContextMenu, closeContextMenu]
+  );
+
   return (
-    <ContextMenuContext.Provider
-      value={{
-        ...state,
-        openContextMenu,
-        closeContextMenu
-      }}
-    >
+    <ContextMenuContext.Provider value={contextValue}>
       {children}
     </ContextMenuContext.Provider>
   );

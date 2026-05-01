@@ -53,7 +53,7 @@ import ObjectRenderer from "./output/ObjectRenderer";
 import { RealtimeAudioOutput } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
-import { isTextLikeChunk } from "./outputChunkUtils";
+import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -107,50 +107,48 @@ const withOccurrenceSuffix = (
   return n === 0 ? base : `${base}-${n}`;
 };
 
-const stableKeyForOutputValue = (v: any): string => {
+const stableKeyForOutputValue = (v: unknown): string => {
   if (v === null) {
     return "null";
   }
   if (v === undefined) {
     return "undefined";
   }
-  const t = typeof v;
-  if (t === "string") {
+  if (typeof v === "string") {
     return `str:${hashStringBounded(v)}`;
   }
-  if (t === "number" || t === "boolean" || t === "bigint") {
-    return `${t}:${String(v)}`;
+  if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") {
+    return `${typeof v}:${String(v)}`;
   }
   if (v instanceof Uint8Array) {
     return `u8:${hashBytesBounded(v)}`;
   }
   if (Array.isArray(v)) {
-    // Often byte arrays or lists of primitives
     return `arr:${hashBytesBounded(v)}`;
   }
-  if (t === "object") {
-    const id = (v as Record<string, unknown>).id;
+  if (typeof v === "object") {
+    const obj = v as Record<string, unknown>;
+    const id = obj.id;
     if (typeof id === "string" || typeof id === "number") {
       return `id:${String(id)}`;
     }
-    const uri = (v as Record<string, unknown>).uri;
+    const uri = obj.uri;
     if (typeof uri === "string" && uri) {
       return `uri:${uri}`;
     }
-    const type = (v as Record<string, unknown>).type;
-    const name = (v as Record<string, unknown>).name;
+    const type = obj.type;
+    const name = obj.name;
     if (typeof type === "string" && typeof name === "string") {
       return `type-name:${type}:${name}`;
     }
     if (typeof type === "string") {
       return `type:${type}:${hashStringBounded(
-        JSON.stringify(Object.keys(v).slice(0, 50))
+        JSON.stringify(Object.keys(obj).slice(0, 50))
       )}`;
     }
     try {
       return `json:${hashStringBounded(JSON.stringify(v))}`;
     } catch {
-      // JSON.stringify failed, return generic type
       return "object";
     }
   }
@@ -217,6 +215,26 @@ const concatTextChunksSafely = (
 };
 
 // Custom hook for draggable scrolling
+const formatAudioChunkTimestamp = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "00:00.000";
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${secs
+      .toFixed(3)
+      .padStart(6, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${secs
+    .toFixed(3)
+    .padStart(6, "0")}`;
+};
+
 const useDraggableScroll = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -244,8 +262,7 @@ const useDraggableScroll = () => {
 
   // Set up global listeners once
   useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) =>
-      handleMouseMoveRef.current(e);
+    const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
     const handleGlobalMouseUp = () => handleMouseUpRef.current();
 
     document.addEventListener("mousemove", handleGlobalMouseMove);
@@ -278,19 +295,13 @@ const useDraggableScroll = () => {
 export type OutputRendererProps = {
   value: any;
   showTextActions?: boolean;
-  /**
-   * When false, image tile grids hide multi-select / compare. When omitted, defaults to true.
-   * Preview node passes false unless multiple renderable images exist.
-   */
-  imageGridEnableSelection?: boolean;
 };
 
 // all helpers/styles/hooks moved to ./output/*
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({
   value,
-  showTextActions = true,
-  imageGridEnableSelection
+  showTextActions = true
 }) => {
   const shouldRender = !(
     value === undefined ||
@@ -343,13 +354,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       bytes[2] === 0x44 &&
       bytes[3] === 0x46;
     const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
-    const arrayBuffer = bytes.buffer.slice(
-      bytes.byteOffset,
-      bytes.byteOffset + bytes.byteLength
-    ) as ArrayBuffer;
-    const url = URL.createObjectURL(
-      new Blob([arrayBuffer], { type: mimeType })
-    );
+    const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+    const url = URL.createObjectURL(new Blob([arrayBuffer], { type: mimeType }));
     return { url, isPdf };
   }, [type, value]);
 
@@ -391,10 +397,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "image_comparison":
         return <ImageComparisonRenderer value={value} />;
       case "image":
-        console.log("[OutputRenderer] image value:", { type: value?.type, uri: value?.uri, hasData: !!value?.data, dataType: typeof value?.data, keys: value ? Object.keys(value) : [] });
         if (Array.isArray(value.data)) {
           const seen = new Map<string, number>();
-          return value.data.map((v: any) => (
+          return value.data.map((v: string | Uint8Array) => (
             <ImageView
               key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
               source={v}
@@ -402,13 +407,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           ));
         } else {
           let imageSource: string | Uint8Array;
-          if (
-            value?.uri &&
-            value.uri !== "" &&
-            !value.uri.startsWith("memory://")
-          ) {
+          if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
             imageSource = resolveAssetUri(value.uri);
-            console.log("[OutputRenderer] using uri path, imageSource:", imageSource);
           } else if (value?.data instanceof Uint8Array) {
             imageSource = value.data;
           } else if (Array.isArray(value?.data)) {
@@ -424,11 +424,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         // Handle different audio data formats
         let audioSource: string | Uint8Array;
 
-        if (
-          value?.uri &&
-          value.uri !== "" &&
-          !value.uri.startsWith("memory://")
-        ) {
+        if (value?.uri && value.uri !== "" && !value.uri.startsWith("memory://")) {
           // Use URI if available (resolve asset:// to /api/storage/)
           audioSource = resolveAssetUri(value.uri);
         } else if (Array.isArray(value?.data)) {
@@ -438,35 +434,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           // Already a Uint8Array
           audioSource = value.data;
         } else if (typeof value?.data === "string") {
-          const d = value.data as string;
-          if (
-            d.startsWith("data:") ||
-            d.startsWith("http://") ||
-            d.startsWith("https://") ||
-            d.startsWith("/") ||
-            d.startsWith("blob:")
-          ) {
-            audioSource = d;
-          } else {
-            // Raw base64 string — convert to Uint8Array so AudioPlayer creates a valid blob URL
-            try {
-              const binary = atob(d);
-              const bytes = new Uint8Array(binary.length);
-              for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
-              }
-              audioSource = bytes;
-            } catch {
-              audioSource = d;
-            }
-          }
+          // Data URI or base64 string
+          audioSource = value.data;
         } else {
           // Fallback
           audioSource = "";
         }
 
-        const metadata =
-          (value as { metadata?: { format?: string } }).metadata || {};
+        const metadata = (value as { metadata?: { format?: string } }).metadata || {};
         let mimeType = getMimeTypeFromUri(value?.uri);
         if (!mimeType) {
           mimeType = metadata.format === "wav" ? "audio/wav" : "audio/mp3";
@@ -485,9 +460,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       }
       case "html": {
         const uri =
-          value?.uri &&
-          typeof value.uri === "string" &&
-          !value.uri.startsWith("memory://")
+          value?.uri && typeof value.uri === "string" && !value.uri.startsWith("memory://")
             ? resolveAssetUri(value.uri)
             : "";
         if (uri) {
@@ -495,12 +468,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <iframe
               src={uri}
               sandbox=""
-              style={{
-                width: "100%",
-                height: "100%",
-                minHeight: 320,
-                border: "none"
-              }}
+              style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
               title="HTML output"
             />
           );
@@ -523,12 +491,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <iframe
             srcDoc={html}
             sandbox=""
-            style={{
-              width: "100%",
-              height: "100%",
-              minHeight: 320,
-              border: "none"
-            }}
+            style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
             title="HTML output"
           />
         );
@@ -537,13 +500,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         const rawUri =
           value?.uri && typeof value.uri === "string" ? value.uri : "";
         const uriFromRef =
-          rawUri && !rawUri.startsWith("memory://")
-            ? resolveAssetUri(rawUri)
-            : "";
+          rawUri && !rawUri.startsWith("memory://") ? resolveAssetUri(rawUri) : "";
         const uri = uriFromRef || documentDataPreview.url;
-        const mimeType = uriFromRef
-          ? getMimeTypeFromUri(uriFromRef)
-          : undefined;
+        const mimeType = uriFromRef ? getMimeTypeFromUri(uriFromRef) : undefined;
         const isPdf =
           documentDataPreview.isPdf ||
           mimeType === "application/pdf" ||
@@ -554,12 +513,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (
             <iframe
               src={uri}
-              style={{
-                width: "100%",
-                height: "100%",
-                minHeight: 360,
-                border: "none"
-              }}
+              style={{ width: "100%", height: "100%", minHeight: 360, border: "none" }}
               title="PDF output"
             />
           );
@@ -597,13 +551,10 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         const url = resolveAssetUri(rawUri);
         const format =
-          value &&
-          typeof value === "object" &&
-          typeof (value as Record<string, unknown>).format === "string"
+          value && typeof value === "object" && typeof (value as Record<string, unknown>).format === "string"
             ? ((value as Record<string, unknown>).format as string)
             : undefined;
-        const contentType =
-          getMimeTypeFromUri(url) ||
+        const contentType = getMimeTypeFromUri(url) ||
           (format === "gltf" ? "model/gltf+json" : "model/gltf-binary");
 
         return (
@@ -663,11 +614,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           }
           // For objects/arrays, recurse
           return (
-            <OutputRenderer
-              value={singleValue}
-              showTextActions={showTextActions}
-              imageGridEnableSelection={imageGridEnableSelection}
-            />
+            <OutputRenderer value={singleValue} showTextActions={showTextActions} />
           );
         }
 
@@ -676,11 +623,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <ObjectRenderer
             value={value}
             renderValue={(v) => (
-              <OutputRenderer
-                value={v}
-                showTextActions={showTextActions}
-                imageGridEnableSelection={imageGridEnableSelection}
-              />
+              <OutputRenderer value={v} showTextActions={showTextActions} />
             )}
           />
         );
@@ -696,10 +639,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           if (value[0] === undefined || value[0] === null) {
             return null;
           }
-          if (
-            typeof value[0] === "string" &&
-            value.every((v: any) => typeof v === "string")
-          ) {
+          if (typeof value[0] === "string" && value.every((v: unknown) => typeof v === "string")) {
             const seen = new Map<string, number>();
             return (
               <div
@@ -746,35 +686,61 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             );
           }
           if (typeof value[0] === "object") {
+            if (value.every((item: unknown) => isAudioChunkLike(item))) {
+              const seen = new Map<string, number>();
+              return (
+                <div
+                  ref={scrollRef}
+                  onMouseDown={handleMouseDown}
+                  className="nodrag"
+                  style={{
+                    height: "100%",
+                    overflow: "auto",
+                    cursor: "grab",
+                    userSelect: "none"
+                  }}
+                >
+                  <List sx={{ p: 1 }}>
+                    {value.map((chunk: { timestamp: [number, number]; text: string }) => {
+                      const key = withOccurrenceSuffix(
+                        `audio-chunk:${chunk.timestamp[0]}:${chunk.timestamp[1]}:${hashStringBounded(chunk.text)}`,
+                        seen
+                      );
+                      return (
+                        <ListItem
+                          key={key}
+                          sx={{
+                            alignItems: "flex-start",
+                            borderRadius: 2,
+                            bgcolor: "background.paper",
+                            boxShadow: 1,
+                            mb: 1,
+                            px: 2,
+                            display: "block"
+                          }}
+                        >
+                          <ListItemText
+                            primary={`${formatAudioChunkTimestamp(chunk.timestamp[0])} → ${formatAudioChunkTimestamp(chunk.timestamp[1])}`}
+                            secondary={chunk.text}
+                            primaryTypographyProps={{
+                              sx: {
+                                fontFamily: "monospace",
+                                fontSize: "0.85rem"
+                              }
+                            }}
+                            secondaryTypographyProps={{
+                              sx: { whiteSpace: "pre-wrap", color: "text.primary" }
+                            }}
+                          />
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </div>
+              );
+            }
             if (value[0].type === "chunk") {
               const chunks = value as Chunk[];
-              const allText = chunks.every((c) => isTextLikeChunk(c));
-              if (allText) {
-                const { text, truncated, totalChunks } =
-                  concatTextChunksSafely(chunks);
-                return (
-                  <div>
-                    {truncated && (
-                      <div
-                        style={{
-                          margin: "0.5em 0.75em",
-                          padding: "0.4em 0.6em",
-                          borderRadius: 8,
-                          background: "rgba(255, 193, 7, 0.12)",
-                          border: "1px solid rgba(255, 193, 7, 0.35)",
-                          color: "rgba(255, 255, 255, 0.85)",
-                          fontSize: "0.85em"
-                        }}
-                      >
-                        Output truncated (showing first{" "}
-                        {MAX_RENDERED_TEXT_CHARS.toLocaleString()} chars of{" "}
-                        {totalChunks.toLocaleString()} chunks).
-                      </div>
-                    )}
-                    <TextRenderer text={text} showActions={showTextActions} />
-                  </div>
-                );
-              }
               const audioChunks = chunks.filter(
                 (c) => c.content_type === "audio"
               );
@@ -783,32 +749,78 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 return (
                   <RealtimeAudioOutput
                     chunks={audioChunks}
-                    sampleRate={
-                      (firstMeta?.sample_rate as number | undefined) ?? 22000
-                    }
+                    sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 22000}
                     channels={(firstMeta?.channels as number | undefined) ?? 1}
                   />
                 );
               }
-              // Mixed or non-text chunks: render each chunk individually
+              // Group consecutive text chunks together while preserving
+              // the original order with non-text chunks (e.g. tool_call).
+              type Group =
+                | { kind: "text"; chunks: Chunk[] }
+                | { kind: "other"; chunk: Chunk };
+              const groups: Group[] = [];
+              for (const c of chunks) {
+                if (isTextLikeChunk(c)) {
+                  const last = groups[groups.length - 1];
+                  if (last && last.kind === "text") {
+                    last.chunks.push(c);
+                  } else {
+                    groups.push({ kind: "text", chunks: [c] });
+                  }
+                } else {
+                  groups.push({ kind: "other", chunk: c });
+                }
+              }
               const seen = new Map<string, number>();
               return (
                 <Container>
-                  {chunks.map((c) => (
-                    <OutputRenderer
-                      key={withOccurrenceSuffix(
-                        `chunk:${c.content_type ?? ""}:${
-                          c.done ? 1 : 0
-                        }:${hashStringBounded(
-                          typeof c.content === "string" ? c.content : ""
-                        )}`,
-                        seen
-                      )}
-                      value={c}
-                      showTextActions={showTextActions}
-                      imageGridEnableSelection={imageGridEnableSelection}
-                    />
-                  ))}
+                  {groups.map((g, idx) => {
+                    if (g.kind === "text") {
+                      const { text, truncated, totalChunks } =
+                        concatTextChunksSafely(g.chunks);
+                      if (text.length === 0) return null;
+                      return (
+                        <div key={`text:${idx}:${hashStringBounded(text)}`}>
+                          {truncated && (
+                            <div
+                              style={{
+                                margin: "0.5em 0.75em",
+                                padding: "0.4em 0.6em",
+                                borderRadius: 8,
+                                background: "rgba(255, 193, 7, 0.12)",
+                                border: "1px solid rgba(255, 193, 7, 0.35)",
+                                color: "rgba(255, 255, 255, 0.85)",
+                                fontSize: "0.85em"
+                              }}
+                            >
+                              Output truncated (showing first{" "}
+                              {MAX_RENDERED_TEXT_CHARS.toLocaleString()} chars
+                              of {totalChunks.toLocaleString()} chunks).
+                            </div>
+                          )}
+                          <TextRenderer
+                            text={text}
+                            showActions={showTextActions}
+                          />
+                        </div>
+                      );
+                    }
+                    const c = g.chunk;
+                    return (
+                      <OutputRenderer
+                        key={withOccurrenceSuffix(
+                          `chunk:${c.content_type ?? ""}:${c.done ? 1 : 0
+                          }:${hashStringBounded(
+                            typeof c.content === "string" ? c.content : ""
+                          )}`,
+                          seen
+                        )}
+                        value={c}
+                        showTextActions={showTextActions}
+                      />
+                    );
+                  })}
                 </Container>
               );
             }
@@ -820,18 +832,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             }
             if (value[0].type === "image") {
               return (
-                <AssetGrid
-                  values={value}
-                  onOpenIndex={onDoubleClickAsset}
-                  enableSelection={imageGridEnableSelection ?? true}
-                />
+                <AssetGrid values={value} onOpenIndex={onDoubleClickAsset} />
               );
             }
             if (["audio", "video", "html"].includes(value[0].type)) {
               const seen = new Map<string, number>();
               return (
                 <Container>
-                  {value.map((v: any) => (
+                  {value.map((v: unknown) => (
                     <OutputRenderer
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(v),
@@ -839,14 +847,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                       )}
                       value={v}
                       showTextActions={showTextActions}
-                      imageGridEnableSelection={imageGridEnableSelection}
                     />
                   ))}
                 </Container>
               );
             }
             const columnType = (
-              v: any
+              v: unknown
             ): "string" | "float" | "int" | "datetime" | "object" => {
               if (typeof v === "string") {
                 return "string";
@@ -859,7 +866,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             const df: DataframeRef = {
               type: "dataframe" as const,
               uri: "",
-              data: value.map((v: any) => Object.values(v)),
+              data: value.map((v: Record<string, unknown>) => Object.values(v)),
               columns: Object.entries(value[0]).map((i) => ({
                 name: i[0],
                 data_type: columnType(i[1]),
@@ -874,12 +881,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <Container>
             {(() => {
               const seen = new Map<string, number>();
-              return value.map((v: any) => (
+              return value.map((v: unknown) => (
                 <OutputRenderer
                   key={withOccurrenceSuffix(stableKeyForOutputValue(v), seen)}
                   value={v}
                   showTextActions={showTextActions}
-                  imageGridEnableSelection={imageGridEnableSelection}
                 />
               ));
             })()}
@@ -888,12 +894,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "segmentation_result":
         return (
           <div>
-            {Object.entries(value).map((v: any) => (
+            {Object.entries(value).map((v: [string, unknown]) => (
               <OutputRenderer
                 key={v[0]}
                 value={v[1]}
                 showTextActions={showTextActions}
-                imageGridEnableSelection={imageGridEnableSelection}
               />
             ))}
           </div>
@@ -940,8 +945,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     handleMouseDown,
     scrollRef,
     showTextActions,
-    handleModel3DDoubleClick,
-    imageGridEnableSelection
+    handleModel3DDoubleClick
   ]);
 
   const handleCloseAsset = useCallback(() => {

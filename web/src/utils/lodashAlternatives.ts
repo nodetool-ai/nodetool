@@ -98,7 +98,7 @@ export function throttle<T extends (...args: any[]) => void>(
  * Returns a shallow copy of `obj` without the specified `keys`.
  * Accepts a single key or an array of keys, matching lodash's API.
  */
-export function omit<T extends Record<string, unknown>, K extends keyof T>(
+export function omit<T extends object, K extends keyof T>(
   obj: T,
   keys: K | K[]
 ): Omit<T, K> {

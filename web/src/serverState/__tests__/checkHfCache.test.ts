@@ -1,10 +1,18 @@
 import { checkHfCache, HfCacheCheckResponse } from "../checkHfCache";
 
-global.fetch = jest.fn();
+const mockMutate = jest.fn();
+
+jest.mock("../../lib/trpc", () => ({
+  trpc: {
+    models: {
+      huggingfaceCheckCache: {
+        mutate: (...args: unknown[]) => mockMutate(...args)
+      }
+    }
+  }
+}));
 
 describe("checkHfCache", () => {
-  const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -17,13 +25,7 @@ describe("checkHfCache", () => {
       missing: [],
     };
 
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-      status: 200,
-      statusText: "OK",
-      text: async () => "",
-    } as unknown as Response);
+    mockMutate.mockResolvedValueOnce(mockResponse);
 
     const result = await checkHfCache({
       repo_id: "test/repo",
@@ -31,26 +33,16 @@ describe("checkHfCache", () => {
     });
 
     expect(result).toEqual(mockResponse);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/models/huggingface/check_cache"),
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          repo_id: "test/repo",
-          allow_pattern: "*.safetensors",
-        }),
-      }
-    );
+    expect(mockMutate).toHaveBeenCalledWith({
+      repo_id: "test/repo",
+      allow_pattern: "*.safetensors",
+    });
   });
 
   it("throws error with status code on failure", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-      statusText: "Not Found",
-      text: async () => "Repo not found",
-    } as unknown as Response);
+    mockMutate.mockRejectedValueOnce(
+      new Error("HF cache check failed (404): Repo not found")
+    );
 
     await expect(
       checkHfCache({ repo_id: "nonexistent/repo" })
@@ -58,12 +50,9 @@ describe("checkHfCache", () => {
   });
 
   it("handles missing error text", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-      text: async () => "",
-    } as unknown as Response);
+    mockMutate.mockRejectedValueOnce(
+      new Error("HF cache check failed (500): Internal Server Error")
+    );
 
     await expect(
       checkHfCache({ repo_id: "test/repo" })
@@ -71,48 +60,31 @@ describe("checkHfCache", () => {
   });
 
   it("sends request with ignore_pattern", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        repo_id: "test/repo",
-        all_present: false,
-        total_files: 10,
-        missing: ["file1.bin"],
-      }),
-      status: 200,
-      statusText: "OK",
-      text: async () => "",
-    } as unknown as Response);
+    mockMutate.mockResolvedValueOnce({
+      repo_id: "test/repo",
+      all_present: false,
+      total_files: 10,
+      missing: ["file1.bin"],
+    });
 
     await checkHfCache({
       repo_id: "test/repo",
       ignore_pattern: "*.txt",
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        body: JSON.stringify({
-          repo_id: "test/repo",
-          ignore_pattern: "*.txt",
-        }),
-      })
-    );
+    expect(mockMutate).toHaveBeenCalledWith({
+      repo_id: "test/repo",
+      ignore_pattern: "*.txt",
+    });
   });
 
   it("handles null allow_pattern and ignore_pattern", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        repo_id: "test/repo",
-        all_present: true,
-        total_files: 1,
-        missing: [],
-      }),
-      status: 200,
-      statusText: "OK",
-      text: async () => "",
-    } as unknown as Response);
+    mockMutate.mockResolvedValueOnce({
+      repo_id: "test/repo",
+      all_present: true,
+      total_files: 1,
+      missing: [],
+    });
 
     await checkHfCache({
       repo_id: "test/repo",
@@ -120,45 +92,29 @@ describe("checkHfCache", () => {
       ignore_pattern: null,
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        body: JSON.stringify({
-          repo_id: "test/repo",
-          allow_pattern: null,
-          ignore_pattern: null,
-        }),
-      })
-    );
+    expect(mockMutate).toHaveBeenCalledWith({
+      repo_id: "test/repo",
+      allow_pattern: null,
+      ignore_pattern: null,
+    });
   });
 
   it("handles array patterns", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        repo_id: "test/repo",
-        all_present: true,
-        total_files: 2,
-        missing: [],
-      }),
-      status: 200,
-      statusText: "OK",
-      text: async () => "",
-    } as unknown as Response);
+    mockMutate.mockResolvedValueOnce({
+      repo_id: "test/repo",
+      all_present: true,
+      total_files: 2,
+      missing: [],
+    });
 
     await checkHfCache({
       repo_id: "test/repo",
       allow_pattern: ["*.safetensors", "*.bin"],
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        body: JSON.stringify({
-          repo_id: "test/repo",
-          allow_pattern: ["*.safetensors", "*.bin"],
-        }),
-      })
-    );
+    expect(mockMutate).toHaveBeenCalledWith({
+      repo_id: "test/repo",
+      allow_pattern: ["*.safetensors", "*.bin"],
+    });
   });
 });

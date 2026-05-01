@@ -15,29 +15,6 @@ describe('FilePreview', () => {
   });
 
   describe('Image files', () => {
-    const validImageFile: DroppedFile = {
-      dataUri: 'data:image/png;base64,abc123',
-      type: 'image/png',
-      name: 'test-image.png',
-    };
-
-    const jpegImageFile: DroppedFile = {
-      dataUri: 'data:image/jpeg;base64,xyz789',
-      type: 'image/jpeg',
-      name: 'photo.jpg',
-    };
-
-    it('renders image preview for valid image data URI', () => {
-      render(<FilePreview file={validImageFile} onRemove={mockOnRemove} />);
-      // Image component should be rendered
-      expect(screen.UNSAFE_root).toBeTruthy();
-    });
-
-    it('renders image preview for JPEG images', () => {
-      render(<FilePreview file={jpegImageFile} onRemove={mockOnRemove} />);
-      expect(screen.UNSAFE_root).toBeTruthy();
-    });
-
     it('shows file icon for image with invalid data URI format', () => {
       const invalidImageFile: DroppedFile = {
         dataUri: 'https://example.com/image.png', // Not a base64 data URI

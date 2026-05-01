@@ -33,7 +33,7 @@ This is useful for:
 The simplest way to add suspension to a workflow is using the `WaitNode`:
 
 ```typescript
-import { WaitNode } from "@nodetool/base-nodes/nodes/triggers";
+import { WaitNode } from "@nodetool-ai/base-nodes/nodes/triggers";
 
 // Create a wait node that suspends the workflow
 const waitNode = new WaitNode();
@@ -67,8 +67,8 @@ When resumed, the WaitNode outputs:
 For more control, create your own suspendable node by extending `SuspendableNode`:
 
 ```typescript
-import { SuspendableState } from "@nodetool/kernel/suspendable";
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { SuspendableState } from "@nodetool-ai/kernel/suspendable";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 class ApprovalNode extends BaseNode {
   static readonly nodeType = "custom.ApprovalNode";
@@ -244,8 +244,8 @@ When user clicks Resume:
 ## Example: Webhook Callback
 
 ```typescript
-import { SuspendableState } from "@nodetool/kernel/suspendable";
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { SuspendableState } from "@nodetool-ai/kernel/suspendable";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 class WebhookWaitNode extends BaseNode {
   static readonly nodeType = "custom.WebhookWaitNode";

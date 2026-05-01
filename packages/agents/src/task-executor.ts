@@ -14,10 +14,10 @@
  */
 
 import { createHash } from "node:crypto";
-import type { BaseProvider } from "@nodetool/runtime";
-import type { ProcessingContext } from "@nodetool/runtime";
-import { createLogger } from "@nodetool/config";
-import type { ProcessingMessage, Chunk, StepResult } from "@nodetool/protocol";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { createLogger } from "@nodetool-ai/config";
+import type { ProcessingMessage, Chunk, StepResult } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.agents.task-executor");
 import { StepExecutor } from "./step-executor.js";
@@ -233,13 +233,16 @@ export class TaskExecutor {
         for (const [key, value] of Object.entries(
           item as Record<string, unknown>
         )) {
+          const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const strValue = String(value);
           instructions = instructions.replace(
-            new RegExp(`\\{${key}\\}`, "g"),
-            String(value)
+            new RegExp(`\\{${escapedKey}\\}`, "g"),
+            () => strValue
           );
         }
       } else {
-        instructions = instructions.replace(/\{item\}/g, String(item));
+        const strItem = String(item);
+        instructions = instructions.replace(/\{item\}/g, () => strItem);
       }
 
       const hash = this.shortHash(item);

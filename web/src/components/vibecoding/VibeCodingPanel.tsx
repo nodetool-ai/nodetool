@@ -20,11 +20,10 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { CloseButton } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
-import { client } from "../../stores/ApiClient";
+import { trpcClient } from "../../trpc/client";
 import VibeCodingChat from "./VibeCodingChat";
 import VibeCodingPreview from "./VibeCodingPreview";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
 
 const createStyles = (theme: Theme) =>
   css({
@@ -73,7 +72,7 @@ const createStyles = (theme: Theme) =>
     ".dirty-indicator": {
       width: "8px",
       height: "8px",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       backgroundColor: theme.palette.warning.main
     }
   });
@@ -140,13 +139,11 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
 
     setIsSaving(true);
     try {
-      await client.PUT("/api/workflows/{id}", {
-        params: { path: { id: workflow.id } },
-        body: {
-          name: workflow.name,
-          access: workflow.access,
-          html_app: session.currentHtml
-        }
+      await trpcClient.workflows.update.mutate({
+        id: workflow.id,
+        name: workflow.name,
+        access: workflow.access,
+        html_app: session.currentHtml
       });
       setSavedHtml(workflow.id, session.currentHtml);
       setSnackbar({
@@ -155,7 +152,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         severity: "success"
       });
     } catch (error: unknown) {
-      log.error("Failed to save:", error);
+      console.error("Failed to save:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to save app";
       setSnackbar({
@@ -172,13 +169,11 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
   const handleClearApp = useCallback(async () => {
     setIsSaving(true);
     try {
-      await client.PUT("/api/workflows/{id}", {
-        params: { path: { id: workflow.id } },
-        body: {
-          name: workflow.name,
-          access: workflow.access,
-          html_app: null
-        }
+      await trpcClient.workflows.update.mutate({
+        id: workflow.id,
+        name: workflow.name,
+        access: workflow.access,
+        html_app: null
       });
       setSavedHtml(workflow.id, null);
       setCurrentHtml(workflow.id, null);
@@ -189,7 +184,7 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
         severity: "success"
       });
     } catch (error: unknown) {
-      log.error("Failed to clear:", error);
+      console.error("Failed to clear:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to clear app";
       setSnackbar({

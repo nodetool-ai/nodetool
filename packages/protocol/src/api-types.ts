@@ -1,5 +1,5 @@
 /**
- * @nodetool/protocol – API Entity Types
+ * @nodetool-ai/protocol – API Entity Types
  *
  * Plain interfaces for HTTP API request/response shapes.
  * These mirror the database models but are transport-only (no class methods).
@@ -17,7 +17,7 @@ export interface ImageRef {
   uri?: string;
   asset_id?: string | null;
   temp_id?: string | null;
-  data?: string | null;
+  data?: unknown;
   metadata?: Record<string, unknown> | null;
   mimeType?: string;
   width?: number;
@@ -30,7 +30,7 @@ export interface AudioRef {
   asset_id?: string | null;
   temp_id?: string | null;
   duration?: number | null;
-  data?: string | null;
+  data?: unknown;
   metadata?: Record<string, unknown> | null;
 }
 
@@ -40,7 +40,7 @@ export interface VideoRef {
   asset_id?: string | null;
   temp_id?: string | null;
   duration?: number | null;
-  data?: string | null;
+  data?: unknown;
   metadata?: Record<string, unknown> | null;
   format?: string | null;
 }
@@ -348,7 +348,7 @@ export interface MessageTextContent {
 }
 
 export interface MessageImageContent {
-  type: "image";
+  type: "image_url";
   image: ImageRef;
 }
 
@@ -391,6 +391,60 @@ export interface ToolCall {
   message?: string | null;
 }
 
+/**
+ * Media-generation request metadata attached to chat messages.
+ * When `mode` is "image" or "video", the server interprets the message as a
+ * text-to-image / text-to-video request and invokes the provider's media
+ * generation API rather than a regular LLM round. The resulting assets are
+ * returned as MessageImageContent / MessageVideoContent in the assistant
+ * message and stored via the asset service.
+ */
+export type MediaGenerationMode =
+  | "chat"
+  | "image"
+  | "image_edit"
+  | "video"
+  | "image_to_video"
+  | "audio"
+  | "audio_to_video"
+  | "retake"
+  | "extend"
+  | "motion_control";
+
+export interface MediaGenerationRequest {
+  mode: MediaGenerationMode;
+  /** Provider id (e.g. "fal_ai", "openai", "replicate"). */
+  provider?: string | null;
+  /** Model id for the selected media model. */
+  model?: string | null;
+  /** Output width in pixels (image or video). */
+  width?: number | null;
+  /** Output height in pixels (image or video). */
+  height?: number | null;
+  /** Aspect ratio label, e.g. "16:9". */
+  aspect_ratio?: string | null;
+  /** Named resolution tier, e.g. "1K", "1080p". */
+  resolution?: string | null;
+  /** Number of variations to generate (images). */
+  variations?: number | null;
+  /** Duration in seconds (video). */
+  duration?: number | null;
+  /** Voice id for text-to-speech. */
+  voice?: string | null;
+  /** Speech rate for text-to-speech (0.25 - 4.0). */
+  speed?: number | null;
+  /** Output audio format (e.g. "mp3", "wav", "pcm"). */
+  audio_format?: string | null;
+  /** Strength for image-to-image edits (0..1). */
+  strength?: number | null;
+  /** Sampler steps for image-to-image edits. */
+  num_inference_steps?: number | null;
+  /** Source image asset id (image_edit / image_to_video). */
+  source_asset_id?: string | null;
+  /** Extra provider-specific params. */
+  extras?: Record<string, unknown> | null;
+}
+
 export interface Message {
   type?: "message";
   id?: string | null;
@@ -411,11 +465,29 @@ export interface Message {
   tools?: string[] | null;
   collections?: string[] | null;
   agent_mode?: boolean | null;
+  /**
+   * When `agent_mode` is true, selects which planner the server uses:
+   * - `"multi"` — TaskPlanner builds a parallel task DAG (one LLM step per
+   *   task) and ParallelTaskExecutor runs them.
+   * - `"graph"` — GraphPlanner builds a workflow graph of nodes
+   *   (TextToImage, AgentStep, etc.) and AgentWorkflowRunner executes it.
+   *
+   * If omitted, the server picks a default ("graph" when a NodeRegistry is
+   * wired, otherwise "multi") for backward compatibility.
+   */
+  agent_planner?: "multi" | "graph" | null;
   help_mode?: boolean | null;
   agent_execution_id?: string | null;
   execution_event_type?: string | null;
   workflow_target?: string | null;
   created_at?: string | null;
+  /**
+   * Media-generation metadata. When present with `mode !== "chat"` the server
+   * routes the prompt to the provider's media API instead of a regular LLM
+   * turn. Echoed back on assistant messages so the UI can render generation
+   * headers (model, variation count, resolution) alongside the output assets.
+   */
+  media_generation?: MediaGenerationRequest | null;
 }
 
 export interface MessageCreateRequest {
@@ -509,6 +581,7 @@ export interface Node {
   dynamic_properties?: Record<string, unknown>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
   sync_mode: string;
+  [key: string]: unknown;
 }
 
 export interface Graph {
@@ -583,11 +656,25 @@ export type Provider =
   | "empty"
   | string;
 
-export interface InferenceProvider {
-  name: string;
-  description?: string;
-  is_available: boolean;
-}
+export type InferenceProvider =
+  | "cerebras"
+  | "cohere"
+  | "fal-ai"
+  | "featherless-ai"
+  | "fireworks-ai"
+  | "groq"
+  | "hf-inference"
+  | "hyperbolic"
+  | "nebius"
+  | "novita"
+  | "nscale"
+  | "openai"
+  | "replicate"
+  | "sambanova"
+  | "scaleway"
+  | "together"
+  | "zai-org"
+  | string;
 
 export interface ProviderInfo {
   provider: Provider;
@@ -601,6 +688,14 @@ export interface LanguageModel {
   provider: Provider;
   path?: string | null;
   supported_tasks?: string[];
+  /**
+   * Whether this model supports tool / function calling. `null` or omitted
+   * means unknown — callers should treat it as supported by default. Set
+   * explicitly to `false` for models the provider declares as
+   * non-tool-capable (e.g. HuggingFace inference models, Replicate, OpenAI
+   * `o1` family on OpenRouter).
+   */
+  supports_tools?: boolean | null;
 }
 
 export interface EmbeddingModel {
@@ -695,6 +790,10 @@ export interface UnifiedModel {
   supported_tasks?: string[] | null;
   trending_score?: number | null;
   image?: string | null;
+  /** See {@link LanguageModel.supports_tools}. Only meaningful for LLMs. */
+  supports_tools?: boolean | null;
+  /** Voice IDs supported by this model. Only meaningful for TTS models. */
+  voices?: string[] | null;
 }
 
 export interface ModelPack {

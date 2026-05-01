@@ -8,21 +8,13 @@
  */
 
 import { createHash } from "node:crypto";
+import {
+  createClient,
+  type SupabaseClient as SupabaseClientType
+} from "@supabase/supabase-js";
 import { AuthProvider, AuthResult, TokenType } from "../auth-provider.js";
 
-/** Minimal Supabase client interface (subset we actually use). */
-interface SupabaseClient {
-  auth: {
-    getUser(
-      jwt?: string
-    ): Promise<{ data: { user: { id: string } | null }; error: unknown }>;
-  };
-}
-
-/** Minimal interface for the @supabase/supabase-js module. */
-interface SupabaseModule {
-  createClient(url: string, key: string): SupabaseClient;
-}
+type SupabaseClient = SupabaseClientType;
 
 export interface SupabaseAuthProviderOptions {
   supabaseUrl: string;
@@ -42,7 +34,6 @@ export class SupabaseAuthProvider extends AuthProvider {
   private cacheTtl: number;
   private cacheMax: number;
   private _client: SupabaseClient | null = null;
-  private _clientPromise: Promise<SupabaseClient> | null = null;
 
   /**
    * LRU cache: Map preserves insertion order; we delete-and-reinsert on access
@@ -61,22 +52,11 @@ export class SupabaseAuthProvider extends AuthProvider {
 
   // ── Client initialisation ────────────────────────────────────────────
 
-  private async _getClient(): Promise<SupabaseClient> {
-    if (this._client) return this._client;
-    if (this._clientPromise) return this._clientPromise;
-
-    this._clientPromise = (async () => {
-      // Dynamic import — @supabase/supabase-js is an optional dependency.
-      const moduleName = "@supabase/supabase-js";
-      const mod: SupabaseModule = await import(
-        /* webpackIgnore: true */ moduleName
-      );
-      const client = mod.createClient(this.supabaseUrl, this.supabaseKey);
-      this._client = client;
-      return client;
-    })();
-
-    return this._clientPromise;
+  private _getClient(): SupabaseClient {
+    if (!this._client) {
+      this._client = createClient(this.supabaseUrl, this.supabaseKey);
+    }
+    return this._client;
   }
 
   // ── Cache helpers ────────────────────────────────────────────────────
@@ -137,16 +117,7 @@ export class SupabaseAuthProvider extends AuthProvider {
       return { ok: true, userId: cachedUserId, tokenType: TokenType.USER };
     }
 
-    let client: SupabaseClient;
-    try {
-      client = await this._getClient();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      return {
-        ok: false,
-        error: `Failed to initialise Supabase client: ${message}`
-      };
-    }
+    const client = this._getClient();
 
     try {
       const { data, error } = await client.auth.getUser(token);
@@ -176,6 +147,5 @@ export class SupabaseAuthProvider extends AuthProvider {
   override clearCaches(): void {
     this._cache.clear();
     this._client = null;
-    this._clientPromise = null;
   }
 }

@@ -1,29 +1,31 @@
 {
-  "name": "@nodetool/runtime",
-  "version": "0.1.0",
+  "name": "@nodetool-ai/runtime",
+  "version": "0.7.0-rc.23",
   "description": "Processing context, message queue, and output normalization",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').mkdirSync('dist/providers',{recursive:true}); require('node:fs').cpSync('src/providers/aki-manifest.json', 'dist/providers/aki-manifest.json')\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.33.1",
+    "@aki-io/aki-io": "^1.0.1",
+    "@anthropic-ai/sdk": "^0.36.2",
     "@msgpack/msgpack": "^3.1.3",
-    "@nodetool/config": "*",
-    "@nodetool/protocol": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
     "@opentelemetry/resources": "^2.6.0",
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/sdk-trace-base": "^2.6.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "openai": "^4.104.0",
+    "openai": "^6.35.0",
     "replicate": "^1.4.0",
+    "sharp": "^0.34.5",
     "ws": "^8.19.0"
   },
   "optionalDependencies": {
@@ -42,5 +44,22 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/runtime"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

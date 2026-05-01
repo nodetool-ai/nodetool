@@ -294,7 +294,7 @@ async function main() {
   let AnthropicProvider;
   let OllamaProvider;
   let LlamaProvider;
-  let PythonBridge;
+  let PythonStdioBridge;
   let PythonNodeExecutor;
   let getSecret;
   let SQLiteAdapterFactory;
@@ -307,7 +307,6 @@ async function main() {
     const elevenLabsNodesPath = path.resolve(tsRoot, "packages/elevenlabs-nodes/dist/index.js");
     const runtimePath = path.resolve(tsRoot, "packages/runtime/dist/index.js");
     const falNodesPath = path.resolve(tsRoot, "packages/fal-nodes/dist/index.js");
-    const securityPath = path.resolve(tsRoot, "packages/security/dist/index.js");
     const modelsPath = path.resolve(tsRoot, "packages/models/dist/index.js");
 
     ({ WorkflowRunner } = await import(pathToFileURL(kernelPath).href));
@@ -320,11 +319,10 @@ async function main() {
       AnthropicProvider,
       OllamaProvider,
       LlamaProvider,
-      PythonBridge,
+      PythonStdioBridge,
       PythonNodeExecutor,
     } = await import(pathToFileURL(runtimePath).href));
-    ({ getSecret } = await import(pathToFileURL(securityPath).href));
-    ({ SQLiteAdapterFactory, setGlobalAdapterResolver, Secret } = await import(pathToFileURL(modelsPath).href));
+    ({ SQLiteAdapterFactory, setGlobalAdapterResolver, Secret, getSecret } = await import(pathToFileURL(modelsPath).href));
     try {
       ({ registerFalNodes } = await import(pathToFileURL(falNodesPath).href));
     } catch {
@@ -360,7 +358,7 @@ async function main() {
   let pythonBridge = null;
   if (needsPython) {
     process.stderr.write("Starting Python bridge for non-TS nodes...\n");
-    pythonBridge = new PythonBridge({
+    pythonBridge = new PythonStdioBridge({
       workerArgs: process.env.NODETOOL_WORKER_NAMESPACES
         ? ["--namespaces", process.env.NODETOOL_WORKER_NAMESPACES]
         : [],

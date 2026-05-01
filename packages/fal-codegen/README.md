@@ -1,4 +1,4 @@
-# @nodetool/fal-codegen
+# @nodetool-ai/fal-codegen
 
 Fetches OpenAPI schemas from FAL.ai and generates `fal-nodes/src/fal-manifest.json`.
 

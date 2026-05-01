@@ -5,23 +5,23 @@ title: "Indexing & Vector Stores"
 
 
 
-NodeTool ships a lightweight ingestion pipeline for semantic search and retrieval-augmented generation (RAG) tasks. The indexing logic is split across `@nodetool/vectorstore` (store and embedding) and `@nodetool/deploy` (collection routes).
+NodeTool ships a lightweight ingestion pipeline for semantic search and retrieval-augmented generation (RAG) tasks. The indexing logic is split across `@nodetool-ai/vectorstore` (store and embedding) and `@nodetool-ai/deploy` (collection routes).
 
 ## Overview
 
-- **Collection metadata** (`CollectionResponse` in `@nodetool/protocol` `packages/protocol/src/api-types.ts`) stores ingest configuration, including an optional workflow ID.
-- **Vector store** -- the default backend is SQLite-vec (`@nodetool/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`), with a Chroma-compatible chunking helper in `packages/vectorstore/src/chroma-client.ts`.
-- **Indexing route** -- `indexFileToCollection()` (`@nodetool/deploy` `packages/deploy/src/collection-routes.ts`) orchestrates ingestion based on collection metadata.
+- **Collection metadata** (`CollectionResponse` in `@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) stores ingest configuration, including an optional workflow ID.
+- **Vector store** -- the default backend is SQLite-vec (`@nodetool-ai/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`), with a Chroma-compatible chunking helper in `packages/vectorstore/src/chroma-client.ts`.
+- **Indexing route** -- `indexFileToCollection()` (`@nodetool-ai/deploy` `packages/deploy/src/collection-routes.ts`) orchestrates ingestion based on collection metadata.
 
 ### Default Flow
 
-1. `indexFileToCollection()` resolves the target collection via `getCollection()` (`@nodetool/vectorstore` `packages/vectorstore/src/index.ts`).
-2. If the collection specifies a custom workflow ID, the service executes it by constructing a `RunJobRequest` (`@nodetool/protocol` `packages/protocol/src/api-types.ts`) with `CollectionInput` and `FileInput` nodes populated.
-3. Otherwise, it falls back to the default ingestion path, which splits the document with `splitDocument()` (`@nodetool/vectorstore` `packages/vectorstore/src/chroma-client.ts`), embeds it, and stores embeddings in SQLite-vec.
+1. `indexFileToCollection()` resolves the target collection via `getCollection()` (`@nodetool-ai/vectorstore` `packages/vectorstore/src/index.ts`).
+2. If the collection specifies a custom workflow ID, the service executes it by constructing a `RunJobRequest` (`@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) with `CollectionInput` and `FileInput` nodes populated.
+3. Otherwise, it falls back to the default ingestion path, which splits the document with `splitDocument()` (`@nodetool-ai/vectorstore` `packages/vectorstore/src/chroma-client.ts`), embeds it, and stores embeddings in SQLite-vec.
 
 ### Messages & Progress
 
-While custom workflows run, the service streams `JobUpdate`, `NodeUpdate`, and progress messages (from `@nodetool/protocol` `packages/protocol/src/messages.ts`). Tests under `packages/deploy/tests/collection-routes.test.ts` cover expected message sequences.
+While custom workflows run, the service streams `JobUpdate`, `NodeUpdate`, and progress messages (from `@nodetool-ai/protocol` `packages/protocol/src/messages.ts`). Tests under `packages/deploy/tests/collection-routes.test.ts` cover expected message sequences.
 
 ## Configuring Chroma
 
@@ -45,9 +45,9 @@ Return values can include summaries, metadata, or alternate embeddings. Review `
 
 ## CLI & API Integration
 
-- `POST /collections/{name}/index` (see `@nodetool/websocket` `packages/websocket/src/collection-api.ts`) triggers ingestion via HTTP.
-- The MCP server (`@nodetool/websocket` `packages/websocket/src/mcp-server.ts`) exposes commands for IDE plug-ins to index assets.
-- Admin routes under `@nodetool/deploy` `packages/deploy/src/admin-routes.ts` provide remote ingestion endpoints for deployed servers.
+- `POST /collections/{name}/index` (see `@nodetool-ai/websocket` `packages/websocket/src/collection-api.ts`) triggers ingestion via HTTP.
+- The MCP server (`@nodetool-ai/websocket` `packages/websocket/src/mcp-server.ts`) exposes commands for IDE plug-ins to index assets.
+- Admin routes under `@nodetool-ai/deploy` `packages/deploy/src/admin-routes.ts` provide remote ingestion endpoints for deployed servers.
 
 ## Troubleshooting
 

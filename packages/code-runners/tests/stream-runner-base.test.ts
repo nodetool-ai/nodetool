@@ -1,11 +1,39 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, rmdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve as pathResolve, join as pathJoin } from "node:path";
+import { spawnSync } from "node:child_process";
 import {
   StreamRunnerBase,
   ContainerFailureError
 } from "../src/stream-runner-base.js";
 import { JavaScriptDockerRunner } from "../src/javascript-runner.js";
 import { BashDockerRunner } from "../src/bash-runner.js";
+
+// Build a tmp path that's portable across POSIX and Windows. `pathResolve`
+// is needed so the expected value matches what `getWorkspaceHostPath`
+// returns (it normalizes drive letters and separators).
+function makeTmpPath(name: string): string {
+  return pathResolve(pathJoin(tmpdir(), name));
+}
+
+// Bash subprocess tests need a working `bash` on PATH. On Windows the
+// command frequently resolves to a broken WSL stub. Probe at module load
+// so the bash-only suites can `describe.skipIf` cleanly.
+const BASH_AVAILABLE = (() => {
+  try {
+    const result = spawnSync("bash", ["-c", "echo ok"], {
+      encoding: "utf-8",
+      timeout: 5000
+    });
+    return (
+      result.status === 0 && (result.stdout ?? "").trim().endsWith("ok")
+    );
+  } catch {
+    return false;
+  }
+})();
+const describeBash = BASH_AVAILABLE ? describe : describe.skip;
 
 // ---------------------------------------------------------------------------
 // Minimal concrete subclass for testing the abstract-like base class
@@ -257,7 +285,7 @@ describe("StreamRunnerBase.getWorkspaceHostPath", () => {
 
   it("creates directory and returns resolved path", () => {
     const runner = new EchoRunner();
-    const tmpDir = `/tmp/code-runner-test-${Date.now()}`;
+    const tmpDir = makeTmpPath(`code-runner-test-${Date.now()}`);
     const result = runner.getWorkspaceHostPath(tmpDir);
     expect(result).toBe(tmpDir);
     expect(existsSync(tmpDir)).toBe(true);
@@ -267,7 +295,7 @@ describe("StreamRunnerBase.getWorkspaceHostPath", () => {
 
   it("returns path even when directory already exists", () => {
     const runner = new EchoRunner();
-    const tmpDir = `/tmp/code-runner-test-existing-${Date.now()}`;
+    const tmpDir = makeTmpPath(`code-runner-test-existing-${Date.now()}`);
     // First call creates it
     runner.getWorkspaceHostPath(tmpDir);
     // Second call should still return the path
@@ -299,7 +327,7 @@ describe("StreamRunnerBase.resolveExecutionWorkspacePath", () => {
 
   it("in subprocess mode with dir returns resolved path", () => {
     const runner = new EchoRunner({ mode: "subprocess" });
-    const tmpDir = `/tmp/code-runner-resolve-${Date.now()}`;
+    const tmpDir = makeTmpPath(`code-runner-resolve-${Date.now()}`);
     const result = runner.resolveExecutionWorkspacePath(tmpDir);
     expect(result).toBe(tmpDir);
     rmdirSync(tmpDir);
@@ -426,7 +454,7 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
 // StreamRunnerBase subprocess mode — Bash runner
 // ============================================================================
 
-describe("StreamRunnerBase subprocess mode (Bash)", () => {
+describeBash("StreamRunnerBase subprocess mode (Bash)", () => {
   it("streams stdout from bash echo", async () => {
     const runner = new BashDockerRunner({
       mode: "subprocess",
@@ -468,7 +496,7 @@ describe("StreamRunnerBase subprocess mode (Bash)", () => {
 // Timeout behavior
 // ============================================================================
 
-describe("StreamRunnerBase timeout", () => {
+describeBash("StreamRunnerBase timeout", () => {
   it("kills subprocess when timeoutSeconds is exceeded", async () => {
     const runner = new BashDockerRunner({
       mode: "subprocess",
@@ -500,7 +528,7 @@ describe("StreamRunnerBase.stop()", () => {
     }).not.toThrow();
   });
 
-  it("terminates an active subprocess", async () => {
+  it.skipIf(!BASH_AVAILABLE)("terminates an active subprocess", async () => {
     const runner = new BashDockerRunner({
       mode: "subprocess",
       timeoutSeconds: 60

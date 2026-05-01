@@ -1,22 +1,54 @@
 {
-  "id": "830163fea2fc11f0b02700001a475e0e",
-  "access": "public",
-  "created_at": "2025-10-06T23:55:02.932361",
-  "updated_at": "2025-10-06T23:55:02.932384",
+  "id": "",
+  "access": "private",
+  "created_at": "2026-04-27T11:06:04.425Z",
+  "updated_at": "2026-04-27T11:19:25.637Z",
   "name": "Image To Audio Story",
   "tool_name": null,
   "description": "Generate and narrate creative stories from images using AI",
   "tags": [
     "start",
-    "multimodal"
+    "multimodal",
+    "example"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
+    "edges": [
+      {
+        "id": "15db2a09-693e-4931-8273-fa64a60b6d52",
+        "source": "1",
+        "sourceHandle": "output",
+        "target": "77a9cf98-c4c6-4585-930b-badbe641a662",
+        "targetHandle": "image",
+        "edge_type": "data"
+      },
+      {
+        "id": "1f250e91-0e04-4516-a492-0132c6387f46",
+        "source": "77a9cf98-c4c6-4585-930b-badbe641a662",
+        "sourceHandle": "text",
+        "target": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "f54a3637-22e0-4fd8-bab6-f660cee1af4c",
+        "source": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
+        "sourceHandle": "audio",
+        "target": "75a2da09-46ef-43b2-9e98-522b1590173d",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "audio"
+        },
+        "edge_type": "data"
+      }
+    ],
     "nodes": [
       {
         "id": "1",
-        "parent_id": null,
         "type": "nodetool.constant.Image",
         "data": {
           "value": {
@@ -25,14 +57,14 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 50,
-            "y": 180
+            "y": 222
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -40,11 +72,13 @@
       },
       {
         "id": "77a9cf98-c4c6-4585-930b-badbe641a662",
-        "parent_id": null,
         "type": "nodetool.agents.Agent",
         "data": {
           "model": {
-            "type": "language_model"
+            "type": "language_model",
+            "id": "gpt-5.5",
+            "provider": "openai",
+            "name": "gpt-5.5"
           },
           "system": "You are a friendly assistant.",
           "prompt": "Write a compelling story about the image.",
@@ -59,27 +93,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "cc2281ff-ee94-444d-9392-b0cb9f76f0d3",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 980,
-            "y": 171
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 174,
-          "selectable": true
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -87,7 +102,6 @@
       },
       {
         "id": "9f51da20-90d9-46a7-8131-c79ac63df648",
-        "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
           "comment": {
@@ -100,7 +114,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "\ud83c\udfa8 Image-to-Story-to-Speech Pipeline",
+                      "text": "🎨 Image-to-Story-to-Speech Pipeline",
                       "type": "text",
                       "version": 1
                     }
@@ -149,7 +163,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "\ud83d\udccb Pipeline Flow:",
+                      "text": "📋 Pipeline Flow:",
                       "type": "text",
                       "version": 1
                     }
@@ -294,7 +308,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "\ud83d\udca1 Key Features:",
+                      "text": "💡 Key Features:",
                       "type": "text",
                       "version": 1
                     }
@@ -452,7 +466,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "\u2699\ufe0f Customization:",
+                      "text": "⚙️ Customization:",
                       "type": "text",
                       "version": 1
                     }
@@ -805,7 +819,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "\ud83c\udfaf Use Cases:",
+                      "text": "🎯 Use Cases:",
                       "type": "text",
                       "version": 1
                     }
@@ -972,7 +986,6 @@
           }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": -664,
             "y": -3
@@ -980,7 +993,8 @@
           "zIndex": 0,
           "width": 280,
           "height": 954,
-          "selectable": true
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -988,66 +1002,71 @@
       },
       {
         "id": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
-        "parent_id": null,
         "type": "nodetool.audio.TextToSpeech",
         "data": {
           "model": {
-            "type": "tts_model"
+            "type": "tts_model",
+            "id": "tts-1",
+            "provider": "openai",
+            "name": "TTS 1",
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "alloy"
           },
           "speed": 1
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 670,
-            "y": 119
+            "y": 196
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "75a2da09-46ef-43b2-9e98-522b1590173d",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "audio"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 980,
+            "y": 192
+          },
+          "zIndex": 0,
+          "width": 398,
+          "height": 301,
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
       }
-    ],
-    "edges": [
-      {
-        "id": "15db2a09-693e-4931-8273-fa64a60b6d52",
-        "source": "1",
-        "sourceHandle": "output",
-        "target": "77a9cf98-c4c6-4585-930b-badbe641a662",
-        "targetHandle": "image",
-        "ui_properties": null
-      },
-      {
-        "id": "1f250e91-0e04-4516-a492-0132c6387f46",
-        "source": "77a9cf98-c4c6-4585-930b-badbe641a662",
-        "sourceHandle": "text",
-        "target": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "b4c1162b-c620-4f04-bf3f-96af15c28784",
-        "source": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
-        "sourceHandle": "chunk",
-        "target": "cc2281ff-ee94-444d-9392-b0cb9f76f0d3",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "chunk"
-        }
-      }
     ]
   },
   "input_schema": null,
   "output_schema": null,
-  "settings": null,
+  "settings": {},
   "package_name": "nodetool-base",
   "path": null,
-  "run_mode": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "html_app": null,
+  "etag": "401c49fd798bf06e9cc964974b0783ff"
 }

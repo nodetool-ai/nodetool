@@ -22,7 +22,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: "column",
       height: "100%",
       backgroundColor: theme.palette.background.default,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       overflow: "hidden"
     },
     ".preview-header": {
@@ -149,7 +149,7 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
         <div className="preview-actions">
           {onViewSource && (
             <Tooltip title="View Source">
-              <IconButton size="small" onClick={onViewSource}>
+              <IconButton size="small" onClick={onViewSource} aria-label="View Source">
                 <CodeIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -161,7 +161,7 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
             disabled={!html}
           />
           <Tooltip title="Open in New Tab">
-            <IconButton size="small" onClick={handleOpenInNew} disabled={!html}>
+            <IconButton size="small" onClick={handleOpenInNew} disabled={!html} aria-label="Open in New Tab">
               <OpenInNewIcon fontSize="small" />
             </IconButton>
           </Tooltip>

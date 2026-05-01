@@ -6,7 +6,6 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useClipboard } from "../browser/useClipboard";
-import log from "loglevel";
 
 import { useNodes } from "../../contexts/NodeContext";
 import {
@@ -15,6 +14,7 @@ import {
 } from "../../utils/NodeTypeMapping";
 import { useRunFromHere } from "./useRunFromHere";
 import { useDuplicateNodes } from "../useDuplicate";
+import { shallow } from "zustand/shallow";
 
 interface UseNodeContextMenuReturn {
   menuPosition: { x: number; y: number } | null;
@@ -70,7 +70,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     toggleBypass: state.toggleBypass,
     nodes: state.nodes,
     setSelectedNodes: state.setSelectedNodes
-  }));
+  }), shallow);
 
   const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
   const node = rawNode as Node<NodeData> | null;
@@ -109,43 +109,17 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
   }, [closeContextMenu, nodeId, toggleBypass]);
 
   const handleCopyMetadataToClipboard = useCallback(() => {
-    if (!nodeId || !node) {
-      return;
+    if (nodeId && nodeData) {
+      console.info("Copying node data to clipboard", nodeData);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: "Copied Node Data to Clipboard!"
+      });
+      writeClipboard(JSON.stringify(nodeData, null, 2), true, true);
+      closeContextMenu();
     }
-    const payload = node.data ?? {};
-    void (async () => {
-      let text: string;
-      try {
-        text = JSON.stringify(payload, null, 2);
-      } catch (err) {
-        log.error("Copy node data: JSON.stringify failed", err);
-        addNotification({
-          type: "error",
-          alert: true,
-          content: "Could not serialize node data (possibly circular values)."
-        });
-        closeContextMenu();
-        return;
-      }
-      try {
-        await writeClipboard(text, true, false);
-        addNotification({
-          type: "info",
-          alert: true,
-          content: "Copied node data to clipboard."
-        });
-      } catch (err) {
-        log.error("Copy node data: clipboard write failed", err);
-        addNotification({
-          type: "error",
-          alert: true,
-          content: "Could not write to the clipboard. Check permissions or try again."
-        });
-      } finally {
-        closeContextMenu();
-      }
-    })();
-  }, [nodeId, node, addNotification, writeClipboard, closeContextMenu]);
+  }, [nodeId, nodeData, addNotification, writeClipboard, closeContextMenu]);
 
   const handleFindTemplates = useCallback(() => {
     const nodeType = node?.type || "";
@@ -181,7 +155,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
       const name = match ? match[1].toLowerCase() : "input";
       updateNodeData(nodeId, { properties: { ...nodeData?.properties, name } });
       updateNode(nodeId, { type: targetType });
-      log.info("Converted constant node to input node", {
+      console.info("Converted constant node to input node", {
         from: node.type,
         to: targetType
       });
@@ -210,7 +184,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     if (targetType) {
       updateNodeData(nodeId, { properties: { ...nodeData?.properties } });
       updateNode(nodeId, { type: targetType });
-      log.info("Converted input node to constant node", {
+      console.info("Converted input node to constant node", {
         from: node.type,
         to: targetType
       });

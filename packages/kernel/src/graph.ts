@@ -9,25 +9,34 @@
  *   - Streaming upstream computation
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   Edge,
   NodeDescriptor,
   GraphData,
   SyncMode
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.graph");
-import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool/protocol";
+import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Graph errors
 // ---------------------------------------------------------------------------
 
+export interface GraphValidationIssue {
+  nodeId?: string;
+  nodeType?: string;
+  property?: string;
+  message: string;
+}
+
 export class GraphValidationError extends Error {
-  constructor(message: string) {
+  readonly issues: GraphValidationIssue[];
+  constructor(message: string, issues: GraphValidationIssue[] = []) {
     super(message);
     this.name = "GraphValidationError";
+    this.issues = issues;
   }
 }
 

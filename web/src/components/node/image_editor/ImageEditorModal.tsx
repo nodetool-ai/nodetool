@@ -55,7 +55,6 @@ import {
   selectAll,
   isMaskEmpty
 } from "./selectionMask";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -610,7 +609,7 @@ const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
       onSave(dataUrl, blob);
     } catch (error) {
-      log.error("Failed to save image:", error);
+      console.error("Failed to save image:", error);
     } finally {
       setIsSaving(false);
     }

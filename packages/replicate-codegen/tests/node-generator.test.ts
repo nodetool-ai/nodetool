@@ -430,13 +430,13 @@ describe("NodeGenerator.generate()", () => {
 describe("NodeGenerator.generateModule()", () => {
   const gen = new NodeGenerator();
 
-  it("includes BaseNode and prop imports from @nodetool/node-sdk", () => {
+  it("includes BaseNode and prop imports from @nodetool-ai/node-sdk", () => {
     const code = gen.generateModule("image-generate", [makeSpec()]);
     expect(code).toContain(
-      `import { BaseNode, prop } from "@nodetool/node-sdk"`
+      `import { BaseNode, prop } from "@nodetool-ai/node-sdk"`
     );
     expect(code).toContain(
-      `import type { NodeClass } from "@nodetool/node-sdk"`
+      `import type { NodeClass } from "@nodetool-ai/node-sdk"`
     );
   });
 

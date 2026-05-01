@@ -7,7 +7,7 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { OAuthCredential } from "@nodetool/models";
+import { OAuthCredential } from "@nodetool-ai/models";
 
 // ── Constants ────────────────────────────────────────────────────────
 

@@ -34,7 +34,7 @@ import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useRunFromHere } from "../../hooks/nodes/useRunFromHere";
 import { NodeData } from "../../stores/NodeData";
-import { isDevelopment } from "../../stores/ApiClient";
+import { isDevelopment } from "../../lib/env";
 
 interface NodeToolbarProps {
   nodeId: string | null;
@@ -257,7 +257,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "8px",
+              borderRadius: "var(--rounded-lg)",
               minWidth: 200
             }
           }

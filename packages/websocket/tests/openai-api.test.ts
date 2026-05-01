@@ -7,14 +7,14 @@ import {
   resolveProvider,
   type OpenAIApiOptions
 } from "../src/openai-api.js";
-import * as security from "@nodetool/security";
-import type { BaseProvider } from "@nodetool/runtime";
+import * as models from "@nodetool-ai/models";
+import type { BaseProvider } from "@nodetool-ai/runtime";
 import type {
   Message,
   ProviderStreamItem,
   ProviderTool
-} from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
+} from "@nodetool-ai/runtime";
+import type { Chunk } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Mock provider
@@ -494,7 +494,7 @@ describe("OpenAI-compatible API", () => {
   describe("provider resolution", () => {
     it("uses the authenticated user's secret when resolving providers", async () => {
       const getSecretSpy = vi
-        .spyOn(security, "getSecret")
+        .spyOn(models, "getSecret")
         .mockImplementation(async (key, userId) => `${userId}-${key}`);
 
       const provider = (await resolveProvider(

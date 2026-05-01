@@ -14,9 +14,11 @@ import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes } from "../../contexts/NodeContext";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import {
-  EditorState
+  EditorState,
+  LexicalEditor
 } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import ToolbarPlugin from "../textEditor/ToolbarPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -24,7 +26,7 @@ import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
-import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 // Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
@@ -57,11 +59,6 @@ function getContrastTextColor(hexColor: string): string {
 
   return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
-
-export type CustomElement = {
-  type: "paragraph";
-  children: CustomText[];
-};
 
 export type CustomText = {
   text: string;
@@ -149,7 +146,7 @@ const styles = (theme: Theme) =>
 const initialConfigTemplate = {
   namespace: "CommentNodeEditor",
   onError: (error: Error) => {
-    log.error(error);
+    console.error(error);
   },
   nodes: [
     HeadingNode,
@@ -195,7 +192,7 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { updateNodeData, updateNode } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
     updateNode: state.updateNode
-  }));
+  }), shallow);
   const [color, setColor] = useState(
     props.data.properties.comment_color ||
       theme.vars.palette.c_bg_comment ||
@@ -206,16 +203,14 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const contentOnFocusRef = useRef<EditorState | null>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
 
-  const editorConfig = useMemo(() => {
-    const config: any = {
-      ...initialConfigTemplate
-    };
-
+  const editorConfig = useMemo((): InitialConfigType => {
     const comment = props.data.properties.comment;
+
+    let editorState: InitialConfigType["editorState"];
 
     // Handle string comments as markdown
     if (typeof comment === "string" && comment.length > 0) {
-      config.editorState = (_editor: any) => {
+      editorState = (_editor: LexicalEditor) => {
         $convertFromMarkdownString(comment, TRANSFORMERS);
       };
     }
@@ -223,13 +218,16 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     else if (
       comment &&
       typeof comment === "object" &&
-      "root" in comment &&
-      Object.keys(comment).length > 0
+      "root" in (comment as Record<string, unknown>) &&
+      Object.keys(comment as Record<string, unknown>).length > 0
     ) {
-      config.editorState = JSON.stringify(comment);
+      editorState = JSON.stringify(comment);
     }
 
-    return config;
+    return {
+      ...initialConfigTemplate,
+      ...(editorState !== undefined ? { editorState } : {})
+    };
   }, [props.data.properties.comment]);
 
   const textColor = useMemo(() => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { MiniJSAgentTool } from "../src/tools/js-code-tool.js";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const mockContext = {
   resolveWorkspacePath: (p: string) => `/tmp/test-workspace/${p}`,
@@ -257,7 +257,10 @@ describe("MiniJSAgentTool", () => {
           { type: "b", val: 2 },
           { type: "a", val: 3 },
         ];
-        return _.groupBy(data, item => item.type);
+        return data.reduce((acc, item) => {
+          (acc[item.type] ||= []).push(item);
+          return acc;
+        }, {});
       `
     })) as Record<string, unknown>;
     expect(result.result).toEqual({
@@ -334,12 +337,15 @@ describe("MiniJSAgentTool", () => {
   });
 
   it("URL class constructs URLs", async () => {
+    // QuickJS's URL doesn't propagate searchParams mutations back; build the
+    // query via URLSearchParams directly and concatenate.
     const result = (await tool.process(mockContext, {
       code: `
         const u = new URL("https://api.example.com/search");
-        u.searchParams.set("q", "test");
-        u.searchParams.set("page", "2");
-        return u.toString();
+        const p = new URLSearchParams();
+        p.set("q", "test");
+        p.set("page", "2");
+        return u.origin + u.pathname + "?" + p.toString();
       `
     })) as Record<string, unknown>;
     expect(result.result).toContain("q=test");
@@ -347,13 +353,19 @@ describe("MiniJSAgentTool", () => {
   });
 
   it("URL class parses components", async () => {
+    // QuickJS's URLSearchParams only implements forEach (no
+    // keys/values/entries/Symbol.iterator), so build the params dict via
+    // forEach instead of `for..of` iteration.
     const result = (await tool.process(mockContext, {
       code: `
         const u = new URL("https://example.com/path?foo=bar&baz=1");
+        const p = new URLSearchParams(u.search);
+        const params = {};
+        p.forEach((v, k) => { params[k] = v; });
         return {
           hostname: u.hostname,
           pathname: u.pathname,
-          params: Object.fromEntries(u.searchParams),
+          params,
         };
       `
     })) as Record<string, unknown>;
@@ -439,8 +451,11 @@ describe("MiniJSAgentTool", () => {
           { name: "Eve", score: 88, dept: "sales" },
         ];
 
-        // Group by department using lodash groupBy
-        const byDept = _.groupBy(rawData, item => item.dept);
+        // Group by department (vanilla reduce — sandbox is lib-free)
+        const byDept = rawData.reduce((acc, item) => {
+          (acc[item.dept] ||= []).push(item);
+          return acc;
+        }, {});
 
         // Calculate stats per department
         const stats = {};

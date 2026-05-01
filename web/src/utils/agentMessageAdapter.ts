@@ -1,20 +1,18 @@
 /**
- * Adapter module for converting Claude Agent SDK message types
+ * Adapter module for converting Claude/Codex/OpenCode agent SDK messages
  * to NodeTool Message types for use in ChatView.
  *
- * The Claude Agent SDK uses its own message format (SDKMessage variants)
- * while the NodeTool ChatView expects the internal Message type.
- * This module bridges the two.
- *
- * Messages arrive via Electron IPC as serialized AgentMessage objects
- * (defined in electron/src/types.d.ts) rather than raw SDK types.
+ * Messages arrive over the agent WebSocket (`/ws/agent`, see
+ * `web/src/lib/agent/AgentSocketClient.ts`) as serialized `AgentMessage`
+ * envelopes whose schema is defined in
+ * `packages/websocket/src/agent/types.ts`.
  */
 
 import type { Message, MessageContent } from "../stores/ApiTypes";
 
 /**
- * Serialized Claude Agent message received via IPC.
- * Mirrors the AgentMessage type from the Electron types.
+ * Serialized agent message received over the agent WebSocket.
+ * Mirrors the `AgentMessage` type in `web/src/lib/agent/agentTypes.ts`.
  */
 interface AgentMessage {
   type: "assistant" | "user" | "result" | "system" | "status" | "stream_event";

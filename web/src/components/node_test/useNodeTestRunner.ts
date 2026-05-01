@@ -1,8 +1,12 @@
 import { useState, useCallback, useRef } from "react";
 import { NodeMetadata } from "../../stores/ApiTypes";
+import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import { applyDefaultModels } from "../../utils/applyDefaultModels";
 import { applyTestAssets } from "../../utils/testAssets";
-import { runInlineGraphJob } from "../../lib/workflow/runInlineGraphJob";
+import { uuidv4 } from "../../stores/uuidv4";
+import { BASE_URL } from "../../stores/BASE_URL";
+import { isLocalhost } from "../../lib/env";
+import { supabase } from "../../lib/supabaseClient";
 
 export type NodeTestStatus =
   | "idle"
@@ -26,7 +30,7 @@ export function useNodeTestRunner() {
   const queueRef = useRef<NodeMetadata[]>([]);
   const activeRef = useRef(0);
   const cancelledRef = useRef(false);
-  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const unsubscribesRef = useRef<Map<string, () => void>>(new Map());
   const completedRef = useRef<Set<string>>(new Set());
 
   const updateResult = useCallback(
@@ -41,83 +45,6 @@ export function useNodeTestRunner() {
     []
   );
 
-  const runSingleNode = useCallback(
-    async (metadata: NodeMetadata) => {
-      const nodeType = metadata.node_type;
-      const workflowId = `test-${nodeType}-${Date.now()}`;
-      const nodeId = "test-node-1";
-      const startTime = performance.now();
-      const abortController = new AbortController();
-
-      updateResult(nodeType, {
-        status: "running",
-        output: undefined,
-        error: undefined
-      });
-
-      const properties: Record<string, unknown> = {};
-      for (const property of metadata.properties) {
-        if (property.name) {
-          properties[property.name] = property.default;
-        }
-      }
-
-      const withModels = applyDefaultModels(properties, metadata.properties);
-      const withAssets = applyTestAssets(withModels, metadata.properties);
-
-      try {
-        abortControllersRef.current.set(nodeType, abortController);
-
-        const result = await runInlineGraphJob({
-          workflowId,
-          graph: {
-            nodes: [
-              {
-                id: nodeId,
-                type: metadata.node_type,
-                data: withAssets,
-                ui_properties: { position: { x: 0, y: 0 }, width: 200 }
-              }
-            ],
-            edges: []
-          },
-          signal: abortController.signal
-        });
-
-        abortControllersRef.current.delete(nodeType);
-        const durationMs = Math.round(performance.now() - startTime);
-
-        if (result.success) {
-          if (completedRef.current.has(nodeType)) {
-            return;
-          }
-
-          completedRef.current.add(nodeType);
-          updateResult(nodeType, {
-            status: "passed",
-            output: result.outputs[nodeId] ?? result.outputs,
-            durationMs
-          });
-          return;
-        }
-
-        updateResult(nodeType, {
-          status: result.error === "Aborted" ? "idle" : "failed",
-          error: result.error,
-          durationMs
-        });
-      } catch (error) {
-        abortControllersRef.current.delete(nodeType);
-        updateResult(nodeType, {
-          status: "failed",
-          error: error instanceof Error ? error.message : String(error),
-          durationMs: Math.round(performance.now() - startTime)
-        });
-      }
-    },
-    [updateResult]
-  );
-
   const processQueue = useCallback(async () => {
     while (
       queueRef.current.length > 0 &&
@@ -125,9 +52,7 @@ export function useNodeTestRunner() {
       !cancelledRef.current
     ) {
       const metadata = queueRef.current.shift();
-      if (!metadata) {
-        break;
-      }
+      if (!metadata) break;
 
       activeRef.current++;
       runSingleNode(metadata).finally(() => {
@@ -135,29 +60,161 @@ export function useNodeTestRunner() {
         processQueue();
       });
     }
-  }, [concurrency, runSingleNode]);
+  }, [concurrency]);
+
+  const runSingleNode = useCallback(
+    async (metadata: NodeMetadata) => {
+      const nodeType = metadata.node_type;
+      const jobId = uuidv4();
+      const workflowId = `test-${nodeType}-${Date.now()}`;
+      const nodeId = "test-node-1";
+      const startTime = performance.now();
+
+      updateResult(nodeType, {
+        status: "running",
+        output: undefined,
+        error: undefined
+      });
+
+      // Build properties with defaults
+      const properties: Record<string, unknown> = {};
+      for (const prop of metadata.properties) {
+        if (prop.name) {
+          properties[prop.name] = prop.default;
+        }
+      }
+      const withModels = applyDefaultModels(properties, metadata.properties);
+      const withAssets = applyTestAssets(withModels, metadata.properties);
+
+      // Build graph node
+      const graphNode = {
+        id: nodeId,
+        type: metadata.node_type,
+        data: withAssets,
+        ui_properties: { position: { x: 0, y: 0 }, width: 200 }
+      };
+
+      // Auth
+      let authToken = "local_token";
+      let userId = "1";
+      if (!isLocalhost) {
+        const {
+          data: { session }
+        } = await supabase.auth.getSession();
+        authToken = session?.access_token || "";
+        userId = session?.user?.id || "";
+      }
+
+      // Subscribe to messages
+      const unsub = globalWebSocketManager.subscribe(
+        workflowId,
+        (message: Record<string, unknown>) => {
+          const type = message.type as string;
+
+          if (type === "node_update") {
+            const status = message.status as string;
+            if (status === "completed") {
+              // Only take the first completed update — ignore duplicates
+              if (completedRef.current.has(nodeType)) return;
+              completedRef.current.add(nodeType);
+              const durationMs = Math.round(performance.now() - startTime);
+              const result = message.result as
+                | Record<string, unknown>
+                | undefined;
+              updateResult(nodeType, {
+                status: "passed",
+                output: result,
+                durationMs
+              });
+            } else if (status === "error") {
+              const durationMs = Math.round(performance.now() - startTime);
+              updateResult(nodeType, {
+                status: "failed",
+                error: (message.error as string) || "Unknown error",
+                durationMs
+              });
+            }
+          }
+
+          if (type === "job_update") {
+            const status = message.status as string;
+            if (status === "failed") {
+              const durationMs = Math.round(performance.now() - startTime);
+              updateResult(nodeType, {
+                status: "failed",
+                error: (message.error as string) || "Job failed",
+                durationMs
+              });
+              unsub();
+              unsubscribesRef.current.delete(nodeType);
+            }
+            if (status === "completed" || status === "cancelled") {
+              unsub();
+              unsubscribesRef.current.delete(nodeType);
+            }
+          }
+        }
+      );
+
+      unsubscribesRef.current.set(nodeType, unsub);
+
+      // Send run_job command
+      try {
+        await globalWebSocketManager.send({
+          type: "run_job",
+          command: "run_job",
+          data: {
+            type: "run_job_request",
+            job_id: jobId,
+            job_type: "workflow",
+            execution_strategy: "threaded",
+            workflow_id: workflowId,
+            user_id: userId,
+            auth_token: authToken,
+            api_url: BASE_URL,
+            params: {},
+            explicit_types: false,
+            graph: {
+              nodes: [graphNode],
+              edges: []
+            }
+          }
+        });
+      } catch (err) {
+        const durationMs = Math.round(performance.now() - startTime);
+        updateResult(nodeType, {
+          status: "failed",
+          error: err instanceof Error ? err.message : String(err),
+          durationMs
+        });
+        unsub();
+        unsubscribesRef.current.delete(nodeType);
+      }
+    },
+    [updateResult]
+  );
 
   const runNodes = useCallback(
     (metadataList: NodeMetadata[]) => {
       cancelledRef.current = false;
-      for (const metadata of metadataList) {
-        completedRef.current.delete(metadata.node_type);
-        updateResult(metadata.node_type, { status: "queued" });
+      for (const m of metadataList) {
+        completedRef.current.delete(m.node_type);
+        updateResult(m.node_type, { status: "queued" });
       }
       queueRef.current.push(...metadataList);
       processQueue();
     },
-    [processQueue, updateResult]
+    [updateResult, processQueue]
   );
 
   const stopAll = useCallback(() => {
     cancelledRef.current = true;
     queueRef.current = [];
-    for (const [nodeType, abortController] of abortControllersRef.current) {
-      abortController.abort();
+    for (const [nodeType, unsub] of unsubscribesRef.current) {
+      unsub();
       updateResult(nodeType, { status: "idle" });
     }
-    abortControllersRef.current.clear();
+    unsubscribesRef.current.clear();
   }, [updateResult]);
 
   const clearResults = useCallback(() => {

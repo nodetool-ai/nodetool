@@ -50,7 +50,7 @@ export const OutputSelector: React.FC<OutputSelectorProps> = ({
     [onSelect]
   );
 
-  if (outputs.length <= 1) return null;
+  if (outputs.length <= 1) {return null;}
 
   return (
     <>

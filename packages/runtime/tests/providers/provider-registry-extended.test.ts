@@ -8,6 +8,7 @@ import {
   getProviderSecretKey
 } from "../../src/providers/provider-registry.js";
 import { FakeProvider } from "../../src/providers/fake-provider.js";
+import { PythonProvider } from "../../src/providers/python-provider.js";
 
 class SecretAwareFakeProvider extends FakeProvider {
   receivedOptions: Record<string, unknown>;
@@ -159,5 +160,31 @@ describe("provider-registry — extended coverage", () => {
     } finally {
       delete process.env[envKey];
     }
+  });
+
+  it("instantiates PythonProvider from registry kwargs and preserves bridge access", async () => {
+    const id = uniqueId();
+    const bridge = {
+      getProviderModels: async (
+        providerId: string,
+        modelType: string,
+        secrets: Record<string, string>
+      ) => [{ id: `${providerId}-${modelType}`, name: "Test Model", secrets }]
+    };
+
+    registerProvider(id, PythonProvider as any, {
+      _id: "huggingface",
+      _bridge: bridge
+    });
+
+    const provider = (await getProvider(id, "u1")) as PythonProvider;
+
+    await expect(provider.getAvailableLanguageModels()).resolves.toEqual([
+      {
+        id: "huggingface-language",
+        name: "Test Model",
+        secrets: {}
+      }
+    ]);
   });
 });

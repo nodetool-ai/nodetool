@@ -28,7 +28,6 @@ import { useFindInWorkflow } from "./useFindInWorkflow";
 import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
-import log from "loglevel";
 
 /**
  * Hook that registers and manages all keyboard shortcuts for the node editor.
@@ -130,13 +129,17 @@ export const useNodeEditorShortcuts = (
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
+    if (!active) {
+      return;
+    }
+
     const mousePos = getMousePosition();
     openNodeMenu({
       x: mousePos.x,
       y: mousePos.y,
       centerOnScreen: true
     });
-  }, [openNodeMenu]);
+  }, [active, openNodeMenu]);
 
   const handleGroup = useCallback(() => {
     const selectedNodes = nodeStore.getState().getSelectedNodes();
@@ -255,7 +258,7 @@ export const useNodeEditorShortcuts = (
           alert: true
         });
       } catch (error) {
-        log.error("Failed to save workflow:", error);
+        console.error("Failed to save workflow:", error);
         addNotification({
           content: `Failed to save workflow: ${error instanceof Error ? error.message : "Server unreachable"}`,
           type: "error",
@@ -486,6 +489,9 @@ export const useNodeEditorShortcuts = (
       toggleInspector: { callback: handleInspectorToggle },
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
+      openSettings: {
+        callback: () => navigate("/settings")
+      },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
       newWorkflow: { callback: handleNewWorkflow },
@@ -641,6 +647,10 @@ export const useNodeEditorShortcuts = (
 
   // useEffect for shortcut registration
   useEffect(() => {
+    if (!active) {
+      return;
+    }
+
     const registered: string[] = [];
 
     NODE_EDITOR_SHORTCUTS.forEach((sc) => {
@@ -679,7 +689,7 @@ export const useNodeEditorShortcuts = (
       registered.forEach((combo) => unregisterComboCallback(combo));
     };
     // selectedNodeCount affects active flags for align shortcuts
-  }, [selectedNodeCount, electronDetails, shortcutMeta]);
+  }, [active, selectedNodeCount, electronDetails, shortcutMeta]);
 
   // Return dialog state and handlers for external use
   return {

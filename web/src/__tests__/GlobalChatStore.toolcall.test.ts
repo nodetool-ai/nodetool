@@ -3,16 +3,11 @@ import { TextEncoder, TextDecoder } from "util";
 (global as any).TextEncoder = TextEncoder;
 (global as any).TextDecoder = TextDecoder;
 
-// Mock ApiClient and Supabase to avoid import.meta usage and network
-jest.mock("../stores/ApiClient", () => ({
-  client: {
-    GET: jest.fn(),
-    POST: jest.fn(),
-    PUT: jest.fn(),
-    DELETE: jest.fn()
-  },
-  CHAT_URL: "ws://localhost:1234",
-  isLocalhost: true
+// Mock env/auth and Supabase to avoid import.meta usage and network
+jest.mock("../lib/env", () => ({
+  isLocalhost: true,
+  isProduction: false,
+  isElectron: false
 }));
 jest.mock("../stores/BASE_URL", () => ({
   BASE_URL: "http://localhost:7777",

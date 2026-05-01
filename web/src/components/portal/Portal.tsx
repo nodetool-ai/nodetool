@@ -22,9 +22,11 @@ import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import AppHeader from "../panels/AppHeader";
 import ChatInputSection from "../chat/containers/ChatInputSection";
+import SchoolIcon from "@mui/icons-material/School";
 
 const KNOWN_PROVIDER_KEYS = [
   "OPENAI_API_KEY",
@@ -65,7 +67,11 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "0 24px",
-      paddingTop: 40
+      paddingTop: 40,
+      [theme.breakpoints.down("sm")]: {
+        padding: "0 12px",
+        paddingTop: 24
+      }
     },
     ".portal-heading": {
       fontSize: 18,
@@ -137,6 +143,12 @@ const styles = (theme: Theme) =>
           opacity: 0.9,
           background: theme.vars.palette.action.hover
         }
+      },
+      // Mobile: tighten the inline composer footer (model + agent toggle live here)
+      [theme.breakpoints.down("sm")]: {
+        "& .chat-input-section": {
+          padding: "8px 0 0 0 !important"
+        }
       }
     },
     ".portal-hint": {
@@ -144,6 +156,44 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       textAlign: "center" as const,
       marginTop: 12
+    },
+    ".portal-skip-welcome": {
+      background: "none",
+      border: "none",
+      padding: "4px 8px",
+      marginTop: 8,
+      fontSize: 11,
+      color: theme.vars.palette.text.disabled,
+      cursor: "pointer",
+      textDecoration: "underline",
+      textUnderlineOffset: "2px",
+      transition: "color 0.2s ease",
+      "&:hover": {
+        color: theme.vars.palette.text.secondary
+      }
+    },
+    ".portal-getting-started": {
+      marginTop: 20,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "8px 16px",
+      borderRadius: 999,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      background: "transparent",
+      color: theme.vars.palette.text.secondary,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      "& svg": {
+        fontSize: 16
+      },
+      "&:hover": {
+        borderColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.text.primary,
+        background: theme.vars.palette.action.hover
+      }
     },
 
     // Recents wrapper
@@ -215,6 +265,13 @@ const Portal: React.FC = () => {
 
   const fetchSecrets = useSecretsStore((s) => s.fetchSecrets);
   const secrets = useSecretsStore((s) => s.secrets);
+
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+
+  const handleSkipWelcome = useCallback(() => {
+    updateSettings({ showWelcomeOnStartup: false });
+    navigate("/editor", { replace: true });
+  }, [updateSettings, navigate]);
 
   // Fetch secrets on mount to know if providers are configured
   useEffect(() => {
@@ -294,7 +351,7 @@ const Portal: React.FC = () => {
       const id = idParts.join(":");
       const model: LanguageModel = {
         type: "language_model",
-        provider: provider as any,
+        provider,
         id: id,
         name: id
       };
@@ -314,6 +371,10 @@ const Portal: React.FC = () => {
     setIsTransitioning(true);
     setTimeout(onComplete, TRANSITION_DURATION);
   }, []);
+
+  const handleOpenGettingStarted = useCallback(() => {
+    transitionTo(() => navigate("/welcome"));
+  }, [navigate, transitionTo]);
 
   // Handle clicking a recent chat thread
   const handleThreadClick = useCallback(
@@ -392,21 +453,13 @@ const Portal: React.FC = () => {
     >
       <AppHeader />
       <div className="portal-center">
-        <div className="portal-heading">
-          {isReturningUser ? (
-            <>
-              Welcome back.
-              <br />
-              {"What's next?"}
-            </>
-          ) : (
-            "What shall we build?"
-          )}
-        </div>
+        {!isReturningUser && (
+          <div className="portal-heading">What shall we build?</div>
+        )}
 
         <div className="portal-input-wrapper">
           <ChatInputSection
-            status={status as any}
+            status={status === "stopping" ? "loading" : status}
             onSendMessage={handleSendMessage}
             selectedTools={selectedTools}
             onToolsChange={handleToolsChange}
@@ -440,6 +493,29 @@ const Portal: React.FC = () => {
 
         {!isReturningUser && !isTransitioning && (
           <div className="portal-hint">Type anything to get started</div>
+        )}
+
+        {!isTransitioning && (
+          <button
+            type="button"
+            className="portal-getting-started"
+            onClick={handleOpenGettingStarted}
+            title="Open the guided getting started page"
+          >
+            <SchoolIcon />
+            {isReturningUser ? "Open getting started" : "New here? Start the guided tour"}
+          </button>
+        )}
+
+        {!isTransitioning && (
+          <button
+            type="button"
+            className="portal-skip-welcome"
+            onClick={handleSkipWelcome}
+            title="Don't show this screen on startup. You can re-enable it from Settings."
+          >
+            Skip welcome screen
+          </button>
         )}
       </div>
     </Box>

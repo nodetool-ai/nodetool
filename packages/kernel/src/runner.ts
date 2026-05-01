@@ -14,21 +14,50 @@
  *   - Completion detection.
  */
 
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   NodeDescriptor,
   Edge,
   ProcessingMessage,
   ControlEvent
-} from "@nodetool/protocol";
-import { TypeMetadata } from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
+import { TypeMetadata } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.runner");
-import type { ProcessingContext } from "@nodetool/runtime";
-import { isControlEdge, isDataEdge } from "@nodetool/protocol";
-import { Graph } from "./graph.js";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { withWorkflowSpan } from "@nodetool-ai/runtime";
+import { isControlEdge, isDataEdge } from "@nodetool-ai/protocol";
+import { Graph, GraphValidationError } from "./graph.js";
+import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
+
+// ---------------------------------------------------------------------------
+// Node-level validation hook
+// ---------------------------------------------------------------------------
+
+/**
+ * Issue reported by a node validator. Mirrors the shape of
+ * `@nodetool-ai/node-sdk`'s `NodePropertyValidationIssue`, redeclared here to
+ * avoid a circular dependency (node-sdk depends on kernel).
+ */
+export interface NodeValidationIssue {
+  nodeId?: string;
+  nodeType?: string;
+  property: string;
+  message: string;
+}
+
+/**
+ * Function used by WorkflowRunner to validate each node before execution.
+ * `connectedHandles` lists the targetHandles on the node that have an
+ * incoming data edge — those properties are produced at runtime and the
+ * validator must not flag them as missing.
+ */
+export type NodeValidator = (
+  node: NodeDescriptor,
+  connectedHandles: ReadonlySet<string>
+) => NodeValidationIssue[] | undefined | null;
 
 // ---------------------------------------------------------------------------
 // Runner options
@@ -60,6 +89,16 @@ export interface WorkflowRunnerOptions {
 
   /** Optional execution context passed to each node executor call. */
   executionContext?: ProcessingContext;
+
+  /**
+   * Optional pre-flight validator invoked once per node after structural
+   * graph validation succeeds. Returning a non-empty list of issues aborts
+   * the run with a `GraphValidationError` before any actor is spawned.
+   *
+   * `NodeRegistry.createNodeValidator()` from `@nodetool-ai/node-sdk` produces
+   * a callback compatible with this signature.
+   */
+  validateNode?: NodeValidator;
 }
 
 // ---------------------------------------------------------------------------
@@ -203,6 +242,20 @@ export class WorkflowRunner {
     request: RunJobRequest,
     graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
   ): Promise<RunResult> {
+    return withWorkflowSpan(
+      {
+        workflowId: request.workflow_id ?? undefined,
+        nodeCount: graphData.nodes.length,
+        extra: { "workflow.job_id": request.job_id }
+      },
+      () => this._runImpl(request, graphData)
+    );
+  }
+
+  private async _runImpl(
+    request: RunJobRequest,
+    graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
+  ): Promise<RunResult> {
     this._resetRunState();
 
     try {
@@ -210,7 +263,13 @@ export class WorkflowRunner {
         jobId: request.job_id,
         workflowId: request.workflow_id
       });
-      this._graph = new Graph(graphData);
+      // Rewrite the graph to route around nodes marked
+      // `ui_properties.bypassed === true`. Each outgoing edge of a
+      // bypassed node is re-attached to the matching upstream source
+      // (by type compatibility); outgoing edges with no compatible
+      // upstream are dropped, as is the bypassed node itself.
+      const effectiveGraph = rewriteBypassedNodes(graphData);
+      this._graph = new Graph(effectiveGraph);
 
       // Python parity: _filter_invalid_edges — silently remove edges
       // whose source or target node doesn't exist in the graph.
@@ -221,6 +280,10 @@ export class WorkflowRunner {
 
       // Validate
       this._graph.validate();
+
+      // Pre-flight node validation: catch missing required fields and
+      // unset model selections before spawning any actors.
+      this._validateNodes();
 
       // Emit job_update: running
       this._emit({
@@ -280,12 +343,24 @@ export class WorkflowRunner {
       log.error("Workflow failed", { jobId: request.job_id, error: message });
       // Drain active edges on error for front-end cleanup
       this._drainActiveEdges();
+      const validationIssues =
+        err instanceof GraphValidationError && err.issues.length > 0
+          ? err.issues
+              .filter((i): i is typeof i & { nodeId: string } => !!i.nodeId)
+              .map((i) => ({
+                node_id: i.nodeId,
+                node_type: i.nodeType ?? null,
+                property: i.property ?? "",
+                message: i.message
+              }))
+          : null;
       this._emit({
         type: "job_update",
         status: "failed",
         job_id: request.job_id,
         workflow_id: request.workflow_id ?? null,
-        error: message
+        error: message,
+        validation_issues: validationIssues
       });
       return {
         outputs: Object.fromEntries(this._outputs),
@@ -343,6 +418,62 @@ export class WorkflowRunner {
         nodes: [...this._graph.nodes],
         edges: validEdges
       });
+    }
+  }
+
+  /**
+   * Run the optional `validateNode` callback for every node in the graph,
+   * passing the set of property handles that have an incoming data edge.
+   * Aggregates issues across nodes and throws a single GraphValidationError.
+   */
+  private _validateNodes(): void {
+    const validator = this._options.validateNode;
+    if (!validator) return;
+
+    // Build map: nodeId -> set of targetHandles with an incoming data edge.
+    const connectedByNode = new Map<string, Set<string>>();
+    for (const edge of this._graph.edges) {
+      if (!isDataEdge(edge)) continue;
+      let handles = connectedByNode.get(edge.target);
+      if (!handles) {
+        handles = new Set();
+        connectedByNode.set(edge.target, handles);
+      }
+      handles.add(edge.targetHandle);
+    }
+
+    const issues: NodeValidationIssue[] = [];
+    for (const node of this._graph.nodes) {
+      const handles = connectedByNode.get(node.id) ?? new Set<string>();
+      const nodeIssues = validator(node, handles);
+      if (nodeIssues && nodeIssues.length > 0) {
+        for (const issue of nodeIssues) {
+          issues.push({
+            nodeId: issue.nodeId ?? node.id,
+            nodeType: issue.nodeType ?? node.type,
+            property: issue.property,
+            message: issue.message
+          });
+        }
+      }
+    }
+
+    if (issues.length > 0) {
+      const lines = issues.map((issue) => {
+        const where = ` on node "${issue.nodeId}"${
+          issue.nodeType ? ` (${issue.nodeType})` : ""
+        }`;
+        return `  - ${issue.message}${where}`;
+      });
+      throw new GraphValidationError(
+        `Graph validation failed with ${issues.length} issue(s):\n${lines.join("\n")}`,
+        issues.map((issue) => ({
+          nodeId: issue.nodeId,
+          nodeType: issue.nodeType,
+          property: issue.property,
+          message: issue.message
+        }))
+      );
     }
   }
 
@@ -733,9 +864,16 @@ export class WorkflowRunner {
       this._incrementEdgeCounter(edge);
     }
 
-    // Emit output_update for each produced output handle
+    // Emit output_update for each produced output handle.
+    // Skip constant and input nodes: the client already holds their value
+    // as a property (or supplied it as a runtime param), so re-sending it
+    // (often a large image/audio payload) is redundant.
     const sourceNode = this._graph.findNode(sourceNodeId);
-    if (sourceNode) {
+    if (
+      sourceNode &&
+      !sourceNode.type.startsWith("nodetool.constant.") &&
+      !sourceNode.type.startsWith("nodetool.input.")
+    ) {
       const declaredOutputs = sourceNode.outputs ?? {};
       for (const [handle, value] of Object.entries(outputs)) {
         if (value === undefined) continue;

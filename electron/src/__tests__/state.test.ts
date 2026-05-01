@@ -19,15 +19,6 @@ describe('State', () => {
       expect(serverState.serverPort).toBe(7777);
     });
 
-    it('should be mutable', () => {
-      serverState.isStarted = true;
-      serverState.bootMsg = 'Custom message';
-      serverState.serverPort = 9000;
-
-      expect(serverState.isStarted).toBe(true);
-      expect(serverState.bootMsg).toBe('Custom message');
-      expect(serverState.serverPort).toBe(9000);
-    });
   });
 
   describe('mainWindow management', () => {

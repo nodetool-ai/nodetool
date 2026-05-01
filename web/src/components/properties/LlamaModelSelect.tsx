@@ -7,7 +7,7 @@ import {
 import { Text, Caption, LoadingSpinner, FlexRow } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
-import { isElectron } from "../../stores/ApiClient";
+import { isElectron } from "../../lib/env";
 import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { EditorMenu, EditorMenuItem } from "../editor_ui";

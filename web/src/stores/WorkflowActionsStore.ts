@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { Workflow } from "./ApiTypes";
 
 interface WorkflowActionsState {
@@ -36,4 +37,12 @@ export const useWorkflowActionsStore = create<WorkflowActionsState>((set) => ({
     }),
 }));
 
-export const useWorkflowActions = () => useWorkflowActionsStore((state) => state);
+export const useWorkflowActions = () =>
+  useWorkflowActionsStore(
+    useShallow((state) => ({
+      onEdit: state.onEdit,
+      onDuplicate: state.onDuplicate,
+      onDelete: state.onDelete,
+      onOpenAsApp: state.onOpenAsApp
+    }))
+  );

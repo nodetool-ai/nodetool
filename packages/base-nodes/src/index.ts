@@ -1,4 +1,4 @@
-import type { NodeClass, NodeRegistry } from "@nodetool/node-sdk";
+import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
 
 export {
   IfNode,
@@ -221,6 +221,22 @@ export {
 } from "./nodes/code.js";
 export { CodeNode } from "./nodes/code-node.js";
 export {
+  DateNowNode,
+  FormatDateNode,
+  DateAddNode,
+  DateDiffNode,
+  DateStartEndNode,
+  LIB_DATETIME_NODES
+} from "./nodes/lib-datetime.js";
+export {
+  ValidateEmailNode,
+  ValidateURLNode,
+  ValidateIPNode,
+  ValidateStringNode,
+  SanitizeStringNode,
+  LIB_VALIDATE_NODES
+} from "./nodes/lib-validate.js";
+export {
   LoadAudioAssetsNode,
   LoadAudioFileNode,
   LoadAudioFolderNode,
@@ -339,7 +355,6 @@ export {
   ImageTo3DNode,
   MODEL3D_NODES
 } from "./nodes/model3d.js";
-export { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
 export {
   WorkspaceDirectoryLibNode,
   OpenWorkspaceDirectoryLibNode,
@@ -578,8 +593,35 @@ export {
   PdfExtractTextBlocksNode,
   PdfExtractStyledTextNode,
   PdfPageMetadataNode,
+  PdfScreenshotNode,
+  PdfSearchTextNode,
+  PdfExtractOcrNode,
   LIB_PDF_NODES
 } from "./nodes/lib-pdf.js";
+export {
+  EpubMetadataLibNode,
+  EpubTableOfContentsLibNode,
+  EpubExtractTextLibNode,
+  EpubExtractChaptersLibNode,
+  LIB_EPUB_NODES
+} from "./nodes/lib-epub.js";
+export {
+  PptxExtractTextLibNode,
+  PptxExtractSlidesLibNode,
+  LIB_PPTX_NODES
+} from "./nodes/lib-pptx.js";
+export {
+  OcrExtractTextLibNode,
+  OcrExtractDataLibNode,
+  LIB_OCR_NODES
+} from "./nodes/lib-ocr.js";
+export {
+  TensorflowMobileNetClassifyNode,
+  TensorflowMobileNetEmbeddingNode,
+  TensorflowCocoSsdDetectNode,
+  TensorflowQnaNode,
+  LIB_TENSORFLOW_NODES
+} from "./nodes/lib-tensorflow.js";
 export {
   KieAINode,
   KIE_DYNAMIC_NODES,
@@ -608,6 +650,13 @@ export { MISTRAL_NODES } from "./nodes/mistral.js";
 export { OPENAI_NODES } from "./nodes/openai.js";
 export { SEARCH_NODES } from "./nodes/search.js";
 export { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
+export {
+  SandboxShellNode,
+  SandboxBrowserNode,
+  SandboxFileNode,
+  SandboxAgentNode,
+  SANDBOX_NODES
+} from "./nodes/sandbox.js";
 export { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 export { TeamAgentNode, TeamLeadNode, TEAM_NODES } from "./nodes/team.js";
 export {
@@ -640,7 +689,6 @@ import { VIDEO_NODES } from "./nodes/video.js";
 import { AGENT_NODES } from "./nodes/agents.js";
 import { GENERATOR_NODES } from "./nodes/generators.js";
 import { MODEL3D_NODES } from "./nodes/model3d.js";
-import { LIB_COMPAT_PY_NODES } from "./nodes/lib-compat.js";
 import { LIB_OS_NODES } from "./nodes/lib-os.js";
 import { LIB_MARKDOWN_NODES } from "./nodes/lib-markdown.js";
 import { LIB_SECRET_NODES } from "./nodes/lib-secret.js";
@@ -669,6 +717,10 @@ import { LIB_MARKITDOWN_NODES } from "./nodes/lib-doc-convert.js";
 import { LIB_SEABORN_NODES } from "./nodes/lib-charts.js";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "./nodes/lib-audio-effects.js";
 import { LIB_PDF_NODES } from "./nodes/lib-pdf.js";
+import { LIB_EPUB_NODES } from "./nodes/lib-epub.js";
+import { LIB_PPTX_NODES } from "./nodes/lib-pptx.js";
+import { LIB_OCR_NODES } from "./nodes/lib-ocr.js";
+import { LIB_TENSORFLOW_NODES } from "./nodes/lib-tensorflow.js";
 import { LIB_NOTION_NODES } from "./nodes/lib-notion.js";
 import { KIE_DYNAMIC_NODES } from "./nodes/kie-dynamic.js";
 import { VECTOR_NODES } from "./nodes/vector.js";
@@ -679,9 +731,12 @@ import { MISTRAL_NODES } from "./nodes/mistral.js";
 import { OPENAI_NODES } from "./nodes/openai.js";
 import { SEARCH_NODES } from "./nodes/search.js";
 import { TOOL_AGENT_NODES } from "./nodes/tool-agents.js";
+import { SANDBOX_NODES } from "./nodes/sandbox.js";
 import { ANTHROPIC_NODES } from "./nodes/anthropic.js";
 import { TEAM_NODES } from "./nodes/team.js";
 import { LIB_NLP_NODES } from "./nodes/lib-nlp.js";
+import { LIB_DATETIME_NODES } from "./nodes/lib-datetime.js";
+import { LIB_VALIDATE_NODES } from "./nodes/lib-validate.js";
 
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
@@ -697,6 +752,8 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...DATA_NODES,
   ...CODE_NODES,
   CodeNode,
+  ...LIB_DATETIME_NODES,
+  ...LIB_VALIDATE_NODES,
   ...AUDIO_NODES,
   ...TRIGGER_NODES,
   ...IMAGE_NODES,
@@ -704,7 +761,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...AGENT_NODES,
   ...GENERATOR_NODES,
   ...MODEL3D_NODES,
-  ...LIB_COMPAT_PY_NODES,
   ...LIB_OS_NODES,
   ...LIB_MARKDOWN_NODES,
   ...LIB_SECRET_NODES,
@@ -733,6 +789,10 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
+  ...LIB_EPUB_NODES,
+  ...LIB_PPTX_NODES,
+  ...LIB_OCR_NODES,
+  ...LIB_TENSORFLOW_NODES,
   ...LIB_NOTION_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
@@ -743,6 +803,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...OPENAI_NODES,
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
+  ...SANDBOX_NODES,
   ...ANTHROPIC_NODES,
   ...TEAM_NODES,
   ...LIB_NLP_NODES

@@ -13,10 +13,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ChatIcon from "@mui/icons-material/Chat";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CheckIcon from "@mui/icons-material/Check";
 
-export type AgentMode = "chat" | "agent";
+export type AgentMode = "chat" | "multi" | "graph";
+export type AgentPlanner = "multi" | "graph";
 
 interface AgentModeOption {
   value: AgentMode;
@@ -33,10 +35,18 @@ const AGENT_MODE_OPTIONS: AgentModeOption[] = [
     icon: <ChatIcon fontSize="small" />
   },
   {
-    value: "agent",
-    label: "Agent",
-    description: "Autonomous mode with planning and tool use",
+    value: "multi",
+    label: "Agent (Multi-task)",
+    description:
+      "Plans parallel LLM tasks and executes them with tool use",
     icon: <PsychologyIcon fontSize="small" />
+  },
+  {
+    value: "graph",
+    label: "Agent (Graph builder)",
+    description:
+      "Builds a workflow graph from core nodes and runs it end-to-end",
+    icon: <AccountTreeIcon fontSize="small" />
   }
 ];
 
@@ -47,7 +57,7 @@ const styles = (theme: Theme) =>
       fontSize: "0.8125rem",
       fontWeight: 500,
       padding: "4px 10px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       minWidth: "auto",
       gap: "4px",
       color: theme.vars.palette.grey[300],
@@ -89,7 +99,7 @@ const styles = (theme: Theme) =>
 const menuStyles = (theme: Theme) =>
   css({
     ".MuiPaper-root": {
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       minWidth: "240px",
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[700]}80`,
@@ -98,7 +108,7 @@ const menuStyles = (theme: Theme) =>
       padding: "4px"
     },
     ".MuiMenuItem-root": {
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       margin: "2px 0",
       padding: "8px 12px",
       gap: "10px",
@@ -136,19 +146,23 @@ const menuStyles = (theme: Theme) =>
 interface AgentModeSelectorProps {
   agentMode: boolean;
   onToggle: (enabled: boolean) => void;
+  agentPlanner?: AgentPlanner;
+  onPlannerChange?: (planner: AgentPlanner) => void;
   disabled?: boolean;
 }
 
 export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   agentMode,
   onToggle,
+  agentPlanner = "graph",
+  onPlannerChange,
   disabled = false
 }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  const currentMode: AgentMode = agentMode ? "agent" : "chat";
+  const currentMode: AgentMode = agentMode ? agentPlanner : "chat";
   const currentOption = AGENT_MODE_OPTIONS.find(
     (o) => o.value === currentMode
   )!;
@@ -166,10 +180,16 @@ export const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
   const handleSelect = useCallback(
     (mode: AgentMode) => {
-      onToggle(mode === "agent");
+      if (mode === "chat") {
+        onToggle(false);
+      } else {
+        // mode is "multi" | "graph"
+        if (onPlannerChange) onPlannerChange(mode);
+        onToggle(true);
+      }
       setAnchorEl(null);
     },
-    [onToggle]
+    [onToggle, onPlannerChange]
   );
 
   return (

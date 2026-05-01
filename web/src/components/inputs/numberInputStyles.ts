@@ -78,6 +78,34 @@ export const numberInputStyles = (theme: Theme) =>
       marginTop: 0
     },
 
+    ".number-stepper": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "2px",
+      marginLeft: "6px"
+    },
+
+    ".step-button": {
+      width: "16px",
+      height: "16px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "transparent",
+      border: `1px solid ${theme.vars.palette.grey[600]}`,
+      borderRadius: "3px",
+      color: theme.vars.palette.grey[100],
+      cursor: "pointer",
+      padding: 0,
+      fontSize: "11px",
+      lineHeight: 1,
+
+      "&:hover": {
+        borderColor: theme.vars.palette.primary.main,
+        color: theme.vars.palette.primary.main
+      }
+    },
+
     // Changed state: value differs from default
     "&.changed .slider-value .value": {
       color: theme.vars.palette.primary.main
@@ -136,7 +164,7 @@ export const numberInputStyles = (theme: Theme) =>
       width: "100%",
       height: "4px",
       marginTop: 0,
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
       fontSize: "0.5em",
       minWidth: "1px"
     },
@@ -146,7 +174,7 @@ export const numberInputStyles = (theme: Theme) =>
       opacity: 1,
       backgroundColor: theme.vars.palette.grey[500],
       height: "100%",
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
 
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.main

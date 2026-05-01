@@ -17,7 +17,6 @@ import isEqual from "fast-deep-equal";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import log from "loglevel";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 interface PropertyDropzoneProps {
@@ -73,18 +72,18 @@ const PropertyDropzone = ({
         maxWidth: "none",
         textAlign: "left",
         transition: "all 0.2s ease",
-        outline: `1px dashed ${theme.vars.palette.grey[600]}`,
+        outline: `1px dashed ${theme.vars.palette.divider}`,
         margin: "5px 0",
-        backgroundColor: "rgba(0, 0, 0, 0.2)",
-        borderRadius: "6px",
+        backgroundColor: theme.vars.palette.Paper.overlay,
+        borderRadius: "var(--rounded-md)",
 
         "&:hover": {
-          outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-          backgroundColor: "rgba(0, 0, 0, 0.3)"
+          outline: `1px dashed ${theme.vars.palette.text.secondary}`,
+          backgroundColor: theme.vars.palette.action.selected
         },
         "&.drag-over": {
-          backgroundColor: theme.vars.palette.grey[600],
-          outline: `2px dashed ${theme.vars.palette.grey[100]}`,
+          backgroundColor: theme.vars.palette.action.selected,
+          outline: `2px dashed ${theme.vars.palette.primary.main}`,
           outlineOffset: "-2px"
         }
       },
@@ -92,7 +91,7 @@ const PropertyDropzone = ({
         width: "100%",
         border: "0",
         maxWidth: "none",
-        outline: `1px solid ${theme.vars.palette.grey[700]}`,
+        outline: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: "transparent",
         padding: "4px"
       },
@@ -114,7 +113,7 @@ const PropertyDropzone = ({
       },
       ".dropzone .image-preview-surface": {
         ...alphaSurfaceBg,
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         overflow: "hidden"
       },
       ".dropzone img": {
@@ -123,7 +122,7 @@ const PropertyDropzone = ({
         maxHeight: "200px",
         objectFit: "contain",
         display: "block",
-        borderRadius: "4px"
+        borderRadius: "var(--rounded-sm)"
       },
       ".prop-drop": {
         fontSize: theme.fontSizeTiny,
@@ -247,7 +246,7 @@ const PropertyDropzone = ({
         onChange({ uri: asset.get_url || "", type: contentType });
       },
       onFailed: (error) => {
-        log.error("Failed to upload asset:", error);
+        console.error("Failed to upload asset:", error);
       }
     });
 
@@ -300,7 +299,7 @@ const PropertyDropzone = ({
         const fileData = await window.api.clipboard?.readFileBuffer(filePath);
 
         if (!fileData) {
-          log.error("Failed to read file");
+          console.error("Failed to read file");
           return;
         }
 
@@ -324,12 +323,12 @@ const PropertyDropzone = ({
             onChange({ uri: asset.get_url || "", type: contentType });
           },
           onFailed: (error) => {
-            log.error("Failed to upload asset:", error);
+            console.error("Failed to upload asset:", error);
           }
         });
       }
     } catch (error) {
-      log.error("Error opening file picker:", error);
+      console.error("Error opening file picker:", error);
     }
   }, [contentType, onChange, uploadAssetFn]);
 

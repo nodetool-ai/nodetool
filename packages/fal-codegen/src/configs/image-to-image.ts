@@ -5208,6 +5208,54 @@ export const config: ModuleConfig = {
         "Product photography refinement",
         "Automated image optimization"
       ]
+    },
+    "fal-ai/nano-banana-2/edit": {
+      className: "NanoBanana2Edit",
+      docstring: "Edit images with Nano Banana 2.",
+      tags: ["editing", "image-to-image", "img2img", "nano-banana"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/flux-2-pro/edit": {
+      className: "Flux2ProEdit",
+      docstring: "Edit images with FLUX.2 Pro.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "flux-2"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "openai/gpt-image-2/edit": {
+      className: "GptImage2Edit",
+      docstring: "Edit images with OpenAI GPT Image 2.",
+      tags: ["editing", "image-to-image", "img2img", "openai", "gpt-image"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/bytedance/seedream/v5/lite/edit": {
+      className: "BytedanceSeedreamV5LiteEdit",
+      docstring: "Edit images with ByteDance Seedream v5 Lite.",
+      tags: ["editing", "image-to-image", "img2img", "seedream", "bytedance"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

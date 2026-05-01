@@ -39,7 +39,7 @@ interface UseNodeFocusReturn {
  */
 export const useNodeFocus = (): UseNodeFocusReturn => {
   const nodes = useNodes((state) => state.nodes);
-  const setNodes = useNodes((state) => state.setNodes);
+  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
 
   const focusedNodeId = useNodeFocusStore((state) => state.focusedNodeId);
   const isNavigationMode = useNodeFocusStore((state) => state.isNavigationMode);
@@ -85,14 +85,12 @@ export const useNodeFocus = (): UseNodeFocusReturn => {
 
   const selectFocused = useCallback(() => {
     if (focusedNodeId) {
-      setNodes(
-        nodes.map((node: Node<NodeData>) => ({
-          ...node,
-          selected: node.id === focusedNodeId
-        }))
+      const focusedNode = nodes.find(
+        (node: Node<NodeData>) => node.id === focusedNodeId
       );
+      setSelectedNodes(focusedNode ? [focusedNode] : []);
     }
-  }, [focusedNodeId, nodes, setNodes]);
+  }, [focusedNodeId, nodes, setSelectedNodes]);
 
   const goBack = useCallback(() => {
     if (focusHistory.length > 1) {

@@ -8,7 +8,6 @@ import { useTheme } from "@mui/material/styles";
 import { Text } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
-import log from "loglevel";
 
 // Types
 export type PathType = "file_path" | "folder_path";
@@ -51,7 +50,7 @@ const createPathPropertyStyles = (theme: Theme) =>
     ".path-picker__browse-button": {
       backgroundColor: theme.vars.palette.grey[600],
       border: `1px solid ${theme.vars.palette.grey[500]}`,
-      borderRadius: "2px",
+      borderRadius: "var(--rounded-xs)",
       color: theme.vars.palette.common.white,
       cursor: "pointer",
       padding: "2px 4px",
@@ -76,7 +75,7 @@ const createPathPropertyStyles = (theme: Theme) =>
     ".path-picker__reset-button": {
       backgroundColor: "transparent",
       border: "none",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       color: theme.vars.palette.grey[400],
       cursor: "pointer",
       padding: "4px 8px",
@@ -153,7 +152,7 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
         }
       } catch (error) {
         // If native dialog fails, fall back to the custom dialog
-        log.error("Native dialog failed, falling back to custom dialog:", error);
+        console.error("Native dialog failed, falling back to custom dialog:", error);
         setIsFileBrowserOpen(true);
       }
     } else {

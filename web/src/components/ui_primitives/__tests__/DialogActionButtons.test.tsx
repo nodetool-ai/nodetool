@@ -4,10 +4,10 @@ import { ThemeProvider } from "@mui/material/styles";
 import { DialogActionButtons } from "../DialogActionButtons";
 import mockTheme from "../../../__mocks__/themeMock";
 
-// Mock CircularProgress to avoid MUI internal issues
-jest.mock("@mui/material/CircularProgress", () => ({
+// Mock LoadingSpinner
+jest.mock("../LoadingSpinner", () => ({
   __esModule: true,
-  default: () => <span data-testid="loading-spinner" />
+  LoadingSpinner: () => <span data-testid="loading-spinner" />
 }));
 
 // Mock MUI Button

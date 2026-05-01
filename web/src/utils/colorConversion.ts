@@ -37,15 +37,6 @@ export interface LAB {
   b: number; // -128 to 127
 }
 
-export interface ColorValue {
-  hex: string;
-  rgb: RGB;
-  hsl: HSL;
-  hsb: HSB;
-  cmyk: CMYK;
-  lab: LAB;
-}
-
 /**
  * Clamp a value between min and max
  */
@@ -410,91 +401,6 @@ export function labToRgb(lab: LAB): RGB {
 }
 
 /**
- * Parse any color string and convert to RGB
- * Supports hex, rgb(), rgba(), hsl(), hsla(), and named colors
- */
-export function parseColor(color: string): RGB | null {
-  if (!color) {return null;}
-
-  color = color.trim().toLowerCase();
-
-  // Handle hex
-  if (color.startsWith("#")) {
-    return hexToRgb(color);
-  }
-
-  // Handle rgb()/rgba()
-  const rgbMatch = color.match(
-    /rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/
-  );
-  if (rgbMatch) {
-    return {
-      r: parseInt(rgbMatch[1], 10),
-      g: parseInt(rgbMatch[2], 10),
-      b: parseInt(rgbMatch[3], 10),
-      a: rgbMatch[4] ? parseFloat(rgbMatch[4]) : 1
-    };
-  }
-
-  // Handle hsl()/hsla()
-  const hslMatch = color.match(
-    /hsla?\s*\(\s*(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?(?:\s*,\s*([\d.]+))?\s*\)/
-  );
-  if (hslMatch) {
-    return hslToRgb({
-      h: parseInt(hslMatch[1], 10),
-      s: parseInt(hslMatch[2], 10),
-      l: parseInt(hslMatch[3], 10),
-      a: hslMatch[4] ? parseFloat(hslMatch[4]) : 1
-    });
-  }
-
-  // Handle named colors (common ones)
-  const namedColors: Record<string, string> = {
-    white: "#ffffff",
-    black: "#000000",
-    red: "#ff0000",
-    green: "#00ff00",
-    blue: "#0000ff",
-    yellow: "#ffff00",
-    cyan: "#00ffff",
-    magenta: "#ff00ff",
-    orange: "#ffa500",
-    purple: "#800080",
-    pink: "#ffc0cb",
-    gray: "#808080",
-    grey: "#808080",
-    transparent: "#00000000"
-  };
-
-  if (namedColors[color]) {
-    return hexToRgb(namedColors[color]);
-  }
-
-  return null;
-}
-
-/**
- * Convert a hex color to all color models
- */
-export function hexToAllFormats(hex: string): ColorValue {
-  const rgb = hexToRgb(hex);
-  const hsl = rgbToHsl(rgb);
-  const hsb = rgbToHsb(rgb);
-  const cmyk = rgbToCmyk(rgb);
-  const lab = rgbToLab(rgb);
-
-  return {
-    hex: rgbToHex(rgb, rgb.a !== undefined && rgb.a < 1),
-    rgb,
-    hsl,
-    hsb,
-    cmyk,
-    lab
-  };
-}
-
-/**
  * Get the relative luminance of a color (WCAG definition)
  */
 export function getLuminance(rgb: RGB): number {
@@ -547,26 +453,6 @@ export function getWcagCompliance(
     aaa: ratio >= 7,
     aaaLarge: ratio >= 4.5
   };
-}
-
-/**
- * Format RGB as CSS string
- */
-export function rgbToCss(rgb: RGB): string {
-  if (rgb.a !== undefined && rgb.a < 1) {
-    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${rgb.a})`;
-  }
-  return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-}
-
-/**
- * Format HSL as CSS string
- */
-export function hslToCss(hsl: HSL): string {
-  if (hsl.a !== undefined && hsl.a < 1) {
-    return `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${hsl.a})`;
-  }
-  return `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
 }
 
 /**

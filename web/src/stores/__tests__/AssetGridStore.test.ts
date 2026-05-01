@@ -28,6 +28,7 @@ describe("AssetGridStore", () => {
     store.setSearchTerm("");
     store.setViewMode("grid");
     store.setSizeFilter("all");
+    store.setTypeFilter("all");
     store.setAssetItemSize(2);
     store.setIsGlobalSearchMode(false);
     store.setGlobalSearchResults([]);
@@ -39,6 +40,7 @@ describe("AssetGridStore", () => {
       expect(state.viewMode).toBe("grid");
       expect(state.assetItemSize).toBe(2);
       expect(state.sizeFilter).toBe("all");
+      expect(state.typeFilter).toBe("all");
     });
 
     it("has no selected assets initially", () => {
@@ -93,6 +95,23 @@ describe("AssetGridStore", () => {
       });
 
       expect(useAssetGridStore.getState().sizeFilter).toBe("small");
+    });
+
+    it("sets type filter", () => {
+      act(() => {
+        useAssetGridStore.getState().setTypeFilter("image");
+      });
+
+      expect(useAssetGridStore.getState().typeFilter).toBe("image");
+    });
+
+    it("resets type filter to all", () => {
+      act(() => {
+        useAssetGridStore.getState().setTypeFilter("video");
+        useAssetGridStore.getState().setTypeFilter("all");
+      });
+
+      expect(useAssetGridStore.getState().typeFilter).toBe("all");
     });
   });
 

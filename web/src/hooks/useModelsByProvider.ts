@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { trpc } from "../lib/trpc";
 import type {
   LanguageModel,
   ImageModel,
@@ -9,7 +9,6 @@ import type {
   VideoModel,
   UnifiedModel
 } from "../stores/ApiTypes";
-import { BASE_URL } from "../stores/BASE_URL";
 import {
   useLanguageModelProviders,
   useImageModelProviders,
@@ -17,18 +16,17 @@ import {
   useASRProviders,
   useVideoProviders
 } from "./useProviders";
-import log from "loglevel";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
  *
- * Backend contract (nodetool-core/nodetool/api/model.py):
- * - GET /api/models/llm/{provider}     → LanguageModel[]
- * - GET /api/models/image/{provider}   → ImageModel[]
- * - GET /api/models/tts/{provider}     → TTSModel[]
- * - GET /api/models/asr/{provider}     → ASRModel[]
- * - GET /api/models/video/{provider}   → VideoModel[]
- * - GET /api/models/huggingface/type/{model_type} → UnifiedModel[] filtered server-side by hf.* type
+ * Backend contract (tRPC models router):
+ * - trpc.models.llmByProvider({ provider })     → LanguageModel[]
+ * - trpc.models.imageByProvider({ provider })   → ImageModel[]
+ * - trpc.models.ttsByProvider({ provider })     → TTSModel[]
+ * - trpc.models.asrByProvider({ provider })     → ASRModel[]
+ * - trpc.models.videoByProvider({ provider })   → VideoModel[]
+ * - trpc.models.huggingfaceByType({ model_type }) → UnifiedModel[] filtered by hf.* type
  *
  * Providers are enumerated via use*Providers hooks and fanned out into parallel
  * queries to minimize latency. Each hook returns aggregated models along with
@@ -41,6 +39,12 @@ import log from "loglevel";
  */
 export const useLanguageModelsByProvider = (options?: {
   allowedProviders?: string[];
+  /**
+   * When true, drop models whose `supports_tools` is explicitly `false`.
+   * Models with `supports_tools` unset/null are kept (unknown is assumed
+   * to support tools — matches the BaseProvider default).
+   */
+  requireToolSupport?: boolean;
 }) => {
   const { providers: allProviders, isLoading: providersLoading } =
     useLanguageModelProviders();
@@ -58,14 +62,7 @@ export const useLanguageModelsByProvider = (options?: {
       queryKey: ["language-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/llm/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
-        });
-        if (error) {throw error;}
+        const data = await trpc.models.llmByProvider.query({ provider: providerValue });
         return {
           provider: providerValue,
           models: (data || []) as LanguageModel[]
@@ -81,9 +78,13 @@ export const useLanguageModelsByProvider = (options?: {
   const isFetching = queries.some((q) => q.isFetching);
   const error = queries.find((q) => q.error)?.error;
 
-  const allModels = queries
+  const aggregatedLanguageModels = queries
     .filter((q) => q.data)
     .flatMap((q) => q.data!.models);
+
+  const allModels = options?.requireToolSupport
+    ? aggregatedLanguageModels.filter((m) => m.supports_tools !== false)
+    : aggregatedLanguageModels;
 
   // Track per-provider errors for debugging feedback
   const providerErrors = useMemo(() => {
@@ -116,6 +117,7 @@ export const useLanguageModelsByProvider = (options?: {
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -139,23 +141,12 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
       queryFn: async () => {
         try {
           const providerValue = provider.provider;
-          const { data, error } = await client.GET("/api/models/image/{provider}", {
-            params: {
-              path: {
-                provider: providerValue
-              }
-            }
-          });
-          if (error) {
-            log.error(`Error fetching image models for provider ${providerValue}:`, error);
-            throw error;
-          }
+          const data = await trpc.models.imageByProvider.query({ provider: providerValue });
           return {
             provider: providerValue,
             models: (data || []) as ImageModel[]
           };
-        } catch (err) {
-          log.error(`Failed to fetch image models for provider ${provider.provider}:`, err);
+        } catch {
           // Return empty array for this provider instead of failing completely
           return {
             provider: provider.provider,
@@ -194,6 +185,7 @@ export const useImageModelsByProvider = (opts?: { task?: "text_to_image" | "imag
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -213,14 +205,7 @@ export const useTTSModelsByProvider = () => {
       queryKey: ["tts-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/tts/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
-        });
-        if (error) {throw error;}
+        const data = await trpc.models.ttsByProvider.query({ provider: providerValue });
         return {
           provider: providerValue,
           models: (data || []) as TTSModel[]
@@ -249,6 +234,7 @@ export const useTTSModelsByProvider = () => {
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -268,14 +254,7 @@ export const useASRModelsByProvider = () => {
       queryKey: ["asr-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/asr/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
-        });
-        if (error) {throw error;}
+        const data = await trpc.models.asrByProvider.query({ provider: providerValue });
         return {
           provider: providerValue,
           models: (data || []) as ASRModel[]
@@ -304,6 +283,7 @@ export const useASRModelsByProvider = () => {
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -323,14 +303,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
       queryKey: ["video-models", provider.provider],
       queryFn: async () => {
         const providerValue = provider.provider;
-        const { data, error } = await client.GET("/api/models/video/{provider}", {
-          params: {
-            path: {
-              provider: providerValue
-            }
-          }
-        });
-        if (error) {throw error;}
+        const data = await trpc.models.videoByProvider.query({ provider: providerValue });
         return {
           provider: providerValue,
           models: (data || []) as VideoModel[]
@@ -364,6 +337,7 @@ export const useVideoModelsByProvider = (opts?: { task?: "text_to_video" | "imag
 
   return {
     models: allModels || [],
+    providers: providers.map((p) => p.provider),
     isLoading,
     isFetching,
     error,
@@ -424,6 +398,7 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
 
   return {
     models: models || [],
+    providers: baseData.providers ?? [],
     isLoading,
     isFetching,
     error,
@@ -433,27 +408,10 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
 
 const fetchHfModelsByType = async (
   modelType: string,
-  task?: "text_to_image" | "image_to_image"
+  _task?: "text_to_image" | "image_to_image"
 ): Promise<UnifiedModel[]> => {
-  const params = new URLSearchParams();
-  if (task) {
-    params.append("task", task);
-  }
-
   const normalizedType = modelType.startsWith("hf.") ? modelType : `hf.${modelType}`;
-  const encodedType = encodeURIComponent(normalizedType);
-  const url = `${BASE_URL}/api/models/huggingface/type/${encodedType}${
-    params.toString() ? `?${params.toString()}` : ""
-  }`;
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(
-      `Failed to fetch HuggingFace models for type ${normalizedType}: ${res.status} ${res.statusText} ${text}`
-    );
-  }
-  return (await res.json()) as UnifiedModel[];
+  return trpc.models.huggingfaceByType.query({ model_type: normalizedType }) as Promise<UnifiedModel[]>;
 };
 
 const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
@@ -470,4 +428,58 @@ const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {
     path: model.path || undefined,
     supported_tasks: pipelineTask ? [pipelineTask] : []
   };
+};
+
+/**
+ * Hook to fetch Transformers.js models for a given `tjs.<task>` type.
+ *
+ * The backend merges the curated recommended list with anything cached locally
+ * in the Transformers.js cache directory. Recommended-but-uncached entries are
+ * returned with `downloaded: false` so the picker can show them as
+ * downloadable.
+ */
+export const useTransformersJsModelsByType = (opts?: {
+  modelType?: string;
+}) => {
+  const query = useQuery({
+    queryKey: ["tjs-models", opts?.modelType ?? "none"],
+    enabled: !!opts?.modelType,
+    queryFn: async () => {
+      if (!opts?.modelType) return [] as ImageModel[];
+      const models = (await trpc.models.transformersJsByType.query({
+        model_type: opts.modelType
+      })) as UnifiedModel[];
+      return models.map(convertUnifiedToTransformersJsModel);
+    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always"
+  });
+
+  return {
+    models: query.data ?? [],
+    providers: ["transformers_js"],
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    refetch: query.refetch
+  };
+};
+
+const convertUnifiedToTransformersJsModel = (
+  model: UnifiedModel
+): ImageModel => {
+  // Preserve `downloaded` / `size_on_disk` past the conversion — the picker
+  // filters by `downloaded === true` and these fields don't live on the
+  // ImageModel interface, so we widen via cast.
+  return {
+    type: "image_model",
+    provider: "transformers_js" as ImageModel["provider"],
+    id: model.id || model.repo_id || "",
+    name: model.name || model.repo_id || model.id || "",
+    path: model.path || undefined,
+    supported_tasks: [],
+    downloaded: model.downloaded ?? false,
+    size_on_disk: model.size_on_disk ?? null
+  } as ImageModel;
 };

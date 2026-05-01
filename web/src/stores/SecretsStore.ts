@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { client } from "./ApiClient";
+import { trpcClient } from "../trpc/client";
 import { createErrorMessage } from "../utils/errorHandling";
 import { SecretResponse } from "./ApiTypes";
 
@@ -8,10 +8,6 @@ interface SecretsStore {
   isLoading: boolean;
   error: string | null;
   fetchSecrets: (limit?: number) => Promise<SecretResponse[]>;
-  /**
-   * Load a single secret's decrypted value from the API (not included in listSecrets).
-   * Returns null if missing, empty, or the request fails.
-   */
   fetchDecryptedSecret: (key: string) => Promise<string | null>;
   getSecretValue: (key: string) => Promise<string | null>;
   updateSecret: (key: string, value: string, description?: string) => Promise<void>;
@@ -23,31 +19,20 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchSecrets: async (limit = 100) => {
+  // Note: the `limit` parameter is retained for signature compatibility with
+  // existing callers, but the tRPC `settings.secrets.list` procedure does not
+  // accept a limit (it returns the full registry + DB merge in one shot).
+  fetchSecrets: async (_limit = 100) => {
     set({ isLoading: true, error: null });
     try {
-      const { error, data } = await client.GET("/api/settings/secrets", {
-        params: {
-          query: {
-            limit,
-          }
-        }
-      });
-
-      if (error) {
-        throw createErrorMessage(error, "Failed to load secrets");
-      }
-
-      set({
-        secrets: data.secrets,
-        isLoading: false
-      });
-
-      return data.secrets;
+      const data = await trpcClient.settings.secrets.list.query();
+      const secrets = data.secrets as SecretResponse[];
+      set({ secrets, isLoading: false });
+      return secrets;
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       set({
-        error: error.message || "Failed to load secrets",
+        error: createErrorMessage(error, "Failed to load secrets").message,
         isLoading: false
       });
       throw error;
@@ -55,38 +40,16 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
   },
 
   fetchDecryptedSecret: async (key: string) => {
-    try {
-      const { error, data } = await client.GET("/api/settings/secrets/{key}", {
-        params: {
-          path: { key },
-          query: { decrypt: true }
-        }
-      });
-
-      if (error || data == null) {
-        return null;
-      }
-
-      const body = data as Record<string, unknown>;
-      const value = body.value;
-      if (typeof value !== "string") {
-        return null;
-      }
-      const trimmed = value.trim();
-      return trimmed.length > 0 ? trimmed : null;
-    } catch {
-      return null;
-    }
+    return get().getSecretValue(key);
   },
 
   getSecretValue: async (key: string) => {
     try {
-      const { error, data } = await client.GET("/api/settings/secrets/{key}", {
-        params: { path: { key } }
+      const data = await trpcClient.settings.secrets.get.query({
+        key,
+        decrypt: true
       });
-      if (error) return null;
-      const record = data as Record<string, unknown>;
-      return typeof record.value === "string" ? record.value : null;
+      return typeof data.value === "string" ? data.value : null;
     } catch {
       return null;
     }
@@ -95,27 +58,18 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
   updateSecret: async (key: string, value: string, description?: string) => {
     set({ error: null });
     try {
-      const { error } = await client.PUT("/api/settings/secrets/{key}", {
-        params: {
-          path: {
-            key
-          }
-        },
-        body: {
-          value,
-          description
-        }
+      await trpcClient.settings.secrets.upsert.mutate({
+        key,
+        value,
+        ...(description !== undefined ? { description } : {})
       });
-
-      if (error) {
-        throw createErrorMessage(error, "Failed to update secret");
-      }
-
       // Refresh secrets list
       await get().fetchSecrets();
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
-      set({ error: error.message || "Failed to update secret" });
+      set({
+        error: createErrorMessage(error, "Failed to update secret").message
+      });
       throw error;
     }
   },
@@ -123,27 +77,17 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
   deleteSecret: async (key: string) => {
     set({ error: null });
     try {
-      const { error } = await client.DELETE("/api/settings/secrets/{key}", {
-        params: {
-          path: {
-            key
-          }
-        }
-      });
-
-      if (error) {
-        throw createErrorMessage(error, "Failed to delete secret");
-      }
-
+      await trpcClient.settings.secrets.delete.mutate({ key });
       // Refresh secrets list
       await get().fetchSecrets();
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
-      set({ error: error.message || "Failed to delete secret" });
+      set({
+        error: createErrorMessage(error, "Failed to delete secret").message
+      });
       throw error;
     }
   }
-
 }));
 
 export default useSecretsStore;

@@ -6,7 +6,7 @@
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 export interface VecCollection {

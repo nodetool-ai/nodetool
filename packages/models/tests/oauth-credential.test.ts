@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ModelObserver } from "../src/base-model.js";
 import { initTestDb } from "../src/db.js";
 import { OAuthCredential } from "../src/oauth-credential.js";
-import { encryptFernet, setMasterKey } from "@nodetool/security";
+import { encryptFernet, setMasterKey } from "@nodetool-ai/security";
 
 const TEST_MASTER_KEY = "dGVzdC1tYXN0ZXIta2V5LWZvci11bml0LXRlc3Rz"; // base64
 

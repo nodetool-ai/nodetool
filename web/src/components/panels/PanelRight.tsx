@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, IconButton, useMediaQuery } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore, type RightPanelView } from "../../stores/RightPanelStore";
@@ -30,7 +30,11 @@ import { VersionHistoryPanel } from "../version";
 import ContextMenus from "../context_menus/ContextMenus";
 import WorkflowForm from "../workflows/WorkflowForm";
 import AgentPanel from "./AgentPanel";
-import { MobileBottomSheet, Tooltip } from "../ui_primitives";
+import { MobileBottomSheet, ToolbarIconButton } from "../ui_primitives";
+import { isProduction } from "../../lib/env";
+
+const workspacesEnabled = !isProduction;
+const sandboxesEnabled = !isProduction;
 
 // Icons for mobile tab rail
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -40,6 +44,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import SettingsIcon from "@mui/icons-material/Settings";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import FolderSpecialIcon from "@mui/icons-material/FolderSpecial";
+import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import TuneIcon from "@mui/icons-material/Tune";
 import SvgFileIcon from "../SvgFileIcon";
@@ -133,6 +138,7 @@ const styles = (theme: Theme) =>
 
 import WorkflowAssetPanel from "../assets/panels/WorkflowAssetPanel";
 import JobsPanel from "./jobs/JobsPanel";
+import SandboxesPanel from "../dashboard/SandboxesPanel";
 import VerticalToolbar from "./VerticalToolbar";
 
 /* ------------------------------------------------------------------ */
@@ -201,7 +207,7 @@ const mobileTabRailStyles = (theme: Theme) =>
     WebkitOverflowScrolling: "touch",
     "& .tab-button": {
       padding: "6px 10px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       color: theme.vars.palette.text.secondary,
       minWidth: "auto",
       flexShrink: 0,
@@ -224,6 +230,7 @@ const RIGHT_VIEW_LABELS: Record<RightPanelView, string> = {
   versions: "Versions",
   workflow: "Settings",
   workflowAssets: "Assets",
+  sandboxes: "Sandboxes",
   jobs: "Jobs",
   logs: "Logs"
 };
@@ -252,30 +259,32 @@ const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
     label: string,
     icon: React.ReactNode
   ) => (
-    <Tooltip title={label} placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-      <IconButton
-        className={`tab-button ${activeView === view ? "active" : ""}`}
-        onClick={() => setView(view)}
-        aria-label={label}
-        tabIndex={-1}
-      >
-        {icon}
-      </IconButton>
-    </Tooltip>
+    <ToolbarIconButton
+      icon={icon}
+      tooltip={label}
+      tooltipPlacement="bottom"
+      delay={TOOLTIP_ENTER_DELAY}
+      className="tab-button"
+      active={activeView === view}
+      onClick={() => setView(view)}
+      ariaLabel={label}
+      tabIndex={-1}
+    />
   );
 
   return (
     <>
-      <IconButton
-        className={`panel-right-mobile-launcher ${isVisible ? "active" : ""}`}
+      <ToolbarIconButton
+        icon={<TuneIcon />}
+        tooltip={isVisible ? "Close panel" : "Open inspector panel"}
+        className="panel-right-mobile-launcher"
+        active={isVisible}
         css={mobileLauncherStyles(theme)}
         onClick={isVisible ? onClose : onOpen}
-        aria-label={isVisible ? "Close panel" : "Open inspector panel"}
+        ariaLabel={isVisible ? "Close panel" : "Open inspector panel"}
         aria-expanded={isVisible}
         tabIndex={-1}
-      >
-        <TuneIcon />
-      </IconButton>
+      />
 
       <MobileBottomSheet
         open={isVisible}
@@ -291,11 +300,14 @@ const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
               <SvgFileIcon iconName="assistant" svgProp={{ width: 18, height: 18 }} />
             )}
             {renderTabButton("agent", "Agent", <SmartToyIcon />)}
-            {renderTabButton("workspace", "Workspace", <FolderIcon />)}
+            {workspacesEnabled &&
+              renderTabButton("workspace", "Workspace", <FolderIcon />)}
             {renderTabButton("workflow", "Settings", <SettingsIcon />)}
             {renderTabButton("workflowAssets", "Assets", <FolderSpecialIcon />)}
             {renderTabButton("versions", "Versions", <HistoryIcon />)}
             {renderTabButton("logs", "Logs", <ArticleIcon />)}
+            {sandboxesEnabled &&
+              renderTabButton("sandboxes", "Sandboxes", <DesktopWindowsIcon />)}
             {renderTabButton("jobs", "Jobs", <WorkHistoryIcon />)}
           </div>
         }
@@ -333,6 +345,16 @@ const PanelRight: React.FC = () => {
   const activeView = useRightPanelStore((state) => state.panel.activeView);
   const setActiveView = useRightPanelStore((state) => state.setActiveView);
   const setVisibility = useRightPanelStore((state) => state.setVisibility);
+
+  // If a previous session persisted a production-disabled view, fall back to a safe default view.
+  useEffect(() => {
+    if (
+      (!workspacesEnabled && activeView === "workspace") ||
+      (!sandboxesEnabled && activeView === "sandboxes")
+    ) {
+      setActiveView("inspector");
+    }
+  }, [activeView, setActiveView]);
 
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId
@@ -538,6 +560,7 @@ const PanelRight: React.FC = () => {
   const handleVersionsToggle = useCallback(() => handlePanelToggle("versions"), [handlePanelToggle]);
   const handleWorkflowToggle = useCallback(() => handlePanelToggle("workflow"), [handlePanelToggle]);
   const handleWorkflowAssetsToggle = useCallback(() => handlePanelToggle("workflowAssets"), [handlePanelToggle]);
+  const handleSandboxesToggle = useCallback(() => handlePanelToggle("sandboxes"), [handlePanelToggle]);
   const handleAgentToggle = useCallback(() => handlePanelToggle("agent"), [handlePanelToggle]);
 
   const handleMobileSheetClose = useCallback(
@@ -564,6 +587,8 @@ const PanelRight: React.FC = () => {
       <ReactFlowProvider>
         {activeView === "logs" ? (
           <LogPanel />
+        ) : activeView === "sandboxes" && sandboxesEnabled ? (
+          <SandboxesPanel />
         ) : activeView === "jobs" ? (
           <Box
             className="jobs-panel"
@@ -577,7 +602,7 @@ const PanelRight: React.FC = () => {
             <PanelHeadline title="Jobs" />
             <JobsPanel />
           </Box>
-        ) : activeView === "workspace" ? (
+        ) : activeView === "workspace" && workspacesEnabled ? (
           <Box
             className="workspace-panel"
             sx={{
@@ -691,6 +716,7 @@ const PanelRight: React.FC = () => {
         handleVersionsToggle={handleVersionsToggle}
         handleWorkflowToggle={handleWorkflowToggle}
         handleWorkflowAssetsToggle={handleWorkflowAssetsToggle}
+        handleSandboxesToggle={handleSandboxesToggle}
         handleAgentToggle={handleAgentToggle}
         activeView={activeView}
         panelVisible={isVisible}

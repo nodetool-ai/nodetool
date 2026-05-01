@@ -1,0 +1,32 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "react-hooks", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "off",
+    "typescript/explicit-module-boundary-types": "off",
+    "typescript/no-unused-vars": "off",
+    "no-unused-vars": "off",
+    "no-console": "off",
+    "no-unsafe-optional-chaining": "warn",
+    "react/jsx-key": "warn",
+    "typescript/no-unnecessary-parameter-property-assignment": "warn",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    "jest.config.ts",
+    "vite.config.ts",
+    "vitest.*.config.ts",
+    "playwright.config.ts",
+    "**/*.d.ts",
+    "src/api.ts"
+  ]
+}

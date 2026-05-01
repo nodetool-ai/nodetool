@@ -9,13 +9,33 @@ import useMetadataStore from "../../../stores/MetadataStore";
 
 const styles = (theme: Theme) =>
   css`
-    padding: 2rem;
-    max-width: 600px;
-    margin: 0 auto;
+    min-height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 3rem 1.5rem;
+    background-color: ${theme.vars.palette.c_editor_bg_color};
+    background-image: radial-gradient(
+      circle,
+      ${theme.vars.palette.c_editor_grid_color} 1px,
+      transparent 1px
+    );
+    background-size: 20px 20px;
+    background-position: 0 0;
+    color: ${theme.vars.palette.text.primary};
+
+    .doc-card {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem;
+      background-color: ${theme.vars.palette.background.paper};
+      border: 1px solid ${theme.vars.palette.divider};
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    }
 
     .loading {
       font-size: 1.2rem;
-      color: ${theme.vars.palette.grey[400]};
+      color: ${theme.vars.palette.text.secondary};
     }
 
     .error {
@@ -36,7 +56,11 @@ const NodeDocumentation: React.FC = () => {
     return <NodeInfo nodeMetadata={nodeMetadata} />;
   };
 
-  return <div css={styles(theme)}>{renderContent()}</div>;
+  return (
+    <div css={styles(theme)}>
+      <div className="doc-card">{renderContent()}</div>
+    </div>
+  );
 };
 
 export default React.memo(NodeDocumentation);

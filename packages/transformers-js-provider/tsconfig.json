@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"],
+  "exclude": ["dist"],
+  "references": [
+    { "path": "../config" },
+    { "path": "../protocol" },
+    { "path": "../runtime" },
+    { "path": "../transformers-js-nodes" }
+  ]
+}

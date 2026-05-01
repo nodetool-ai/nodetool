@@ -10,7 +10,6 @@ import { useAssetById } from "../../serverState/useAssetById";
 import { BASE_URL } from "../../stores/BASE_URL";
 import type { Asset } from "../../stores/ApiTypes";
 import { ImageEditor } from "../node/image_editor";
-import log from "loglevel";
 
 /**
  * Normalize API media URLs for use in <img> / canvas loaders.
@@ -45,7 +44,7 @@ const resolveImageEditorSource = (asset: Asset): string | null => {
     }
     const thumb = resolvePublicMediaUrl(asset.thumb_url);
     if (thumb) {
-        log.warn(
+        console.warn(
             `[AssetEditor] Asset ${asset.id} has no get_url; using thumb_url for the editor (lower resolution).`
         );
         return thumb;
@@ -103,7 +102,7 @@ const AssetEditor: React.FC = () => {
             return "No asset ID provided";
         }
         if (queryError) {
-            log.error("[AssetEditor] Failed to fetch asset:", queryError);
+            console.error("[AssetEditor] Failed to fetch asset:", queryError);
             return "Failed to load asset";
         }
         if (!loading && !asset) {
@@ -115,7 +114,7 @@ const AssetEditor: React.FC = () => {
         if (asset && asset.content_type?.startsWith("image/")) {
             const src = resolveImageEditorSource(asset);
             if (!src) {
-                log.error(
+                console.error(
                     "[AssetEditor] Image asset has no get_url or thumb_url; cannot load ImageEditor.",
                     asset.id
                 );
@@ -150,7 +149,7 @@ const AssetEditor: React.FC = () => {
             setIsSaving(true);
 
             try {
-                log.info(`[AssetEditor] Saving edited image for asset: ${asset.id}`);
+                console.info(`[AssetEditor] Saving edited image for asset: ${asset.id}`);
 
                 // Convert blob to base64
                 const base64Data = await blobToBase64(blob);
@@ -168,14 +167,14 @@ const AssetEditor: React.FC = () => {
                     invalidateQueries(["assets", { parent_id: asset.parent_id }]);
                 }
 
-                log.info(
+                console.info(
                     `[AssetEditor] Successfully saved edited image for asset: ${asset.id}`
                 );
 
                 // Navigate back after successful save
                 navigate(-1);
             } catch (err) {
-                log.error("[AssetEditor] Failed to save edited image:", err);
+                console.error("[AssetEditor] Failed to save edited image:", err);
                 // Keep the editor open on error
             } finally {
                 setIsSaving(false);

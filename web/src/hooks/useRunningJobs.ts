@@ -1,26 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { Job, JobListResponse } from "../stores/ApiTypes";
-import { client } from "../stores/ApiClient";
-import { createErrorMessage } from "../utils/errorHandling";
+import { Job } from "../stores/ApiTypes";
+import { trpcClient } from "../trpc/client";
 import { useAuth } from "../stores/useAuth";
 
 /**
  * Fetches running jobs from the API
  */
 const fetchRunningJobs = async (): Promise<Job[]> => {
-  const { data, error } = await client.GET("/api/jobs/", {
-    params: {
-      query: {
-        limit: 20
-      }
-    }
-  });
-
-  if (error) {
-    throw createErrorMessage(error, "Failed to fetch running jobs");
-  }
-
-  return (data as JobListResponse | undefined)?.jobs ?? [];
+  const data = await trpcClient.jobs.list.query({ limit: 20 });
+  return (data.jobs ?? []) as unknown as Job[];
 };
 
 /**

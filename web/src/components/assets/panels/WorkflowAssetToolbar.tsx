@@ -19,7 +19,10 @@ import { useSettingsStore } from "../../../stores/SettingsStore";
 import { useAssetSelection } from "../../../hooks/assets/useAssetSelection";
 import SliderBasic from "../../inputs/SliderBasic";
 import { Asset } from "../../../stores/ApiTypes";
+import AssetTypeFilter from "../AssetTypeFilter";
+import { TypeFilterKey } from "../../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
+import { shallow } from "zustand/shallow";
 
 interface WorkflowAssetToolbarProps {
   assets: Asset[];
@@ -89,12 +92,19 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
   const [viewMode, setViewMode] = useAssetGridStore((state) => [
     state.viewMode,
     state.setViewMode
-  ]);
+  ] as const, shallow);
+  const typeFilter = useAssetGridStore((state) => state.typeFilter);
+  const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
   const [settings, setAssetItemSize, setAssetsOrder] = useSettingsStore((state) => [
     state.settings,
     state.setAssetItemSize,
     state.setAssetsOrder
-  ]);
+  ] as const, shallow);
+
+  const handleTypeFilterChange = useCallback(
+    (next: TypeFilterKey) => setTypeFilter(next),
+    [setTypeFilter]
+  );
 
 
   const handleViewModeToggle = useCallback(() => {
@@ -166,6 +176,11 @@ const WorkflowAssetToolbar: React.FC<WorkflowAssetToolbarProps> = ({
           ariaLabel={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
         />
       </FlexRow>
+
+      <AssetTypeFilter
+        value={typeFilter}
+        onChange={handleTypeFilterChange}
+      />
 
       <NodeSelect
         variant="outlined"

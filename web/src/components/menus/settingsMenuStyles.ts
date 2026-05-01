@@ -45,19 +45,35 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     height: "100%",
     padding: ".5em 1em"
   },
-  ".top": {
+  ".settings-page-header": {
     display: "flex",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: "0.75em 1.25em",
+    gap: "1.25rem",
+    padding: "1.25rem 1.75rem 1rem",
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    "& p, & h2": {
+    "& .settings-back": {
+      flexShrink: 0
+    },
+    "& .settings-page-header__titles": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "2px",
+      minWidth: 0
+    },
+    "& .settings-page-header__title": {
       margin: 0,
-      color: theme.vars.palette.grey[0],
-      fontSize: theme.fontSizeBigger,
-      lineHeight: "1.5",
-      fontWeight: "500"
+      color: theme.vars.palette.text.primary,
+      fontSize: "1.5rem",
+      fontWeight: 600,
+      lineHeight: 1.2,
+      letterSpacing: "-0.01em"
+    },
+    "& .settings-page-header__subtitle": {
+      margin: 0,
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.fontSizeSmall,
+      lineHeight: 1.4
     }
   },
   ".settings-menu": {
@@ -83,8 +99,20 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     padding: "1.5em 0",
     overflowY: "auto"
   },
+  ".settings-sidebar-folder": {
+    display: "flex",
+    flexDirection: "column",
+    "& + &": {
+      marginTop: "0.25em"
+    }
+  },
+  ".settings-sidebar-folder-items": {
+    display: "flex",
+    flexDirection: "column",
+    paddingBottom: "0.25em"
+  },
   ".settings-sidebar-item": {
-    padding: "0.25em 1.5em",
+    padding: "0.25em 1.5em 0.25em 2.75em",
     cursor: "pointer",
     fontSize: theme.fontSizeSmall,
     color: theme.vars.palette.grey[0],
@@ -102,13 +130,44 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     }
   },
   ".settings-sidebar-category": {
-    padding: "1em 1.5em 0.5em",
-    color: "var(--palette-primary-main)",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.4em",
+    padding: "0.6em 1em 0.4em 0.75em",
+    color: theme.vars.palette.grey[0],
     fontSize: theme.fontSizeSmaller,
-    fontWeight: "500",
-    letterSpacing: "0.05em",
+    fontWeight: "600",
+    letterSpacing: "0.04em",
     textTransform: "uppercase",
-    opacity: "0.8"
+    opacity: "0.85",
+    cursor: "pointer",
+    userSelect: "none",
+    transition: "all 0.15s ease",
+    borderRadius: "var(--rounded-sm)",
+    outline: "none",
+    "&:hover": {
+      opacity: 1,
+      backgroundColor: theme.vars.palette.action.hover
+    },
+    "&:focus-visible": {
+      boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
+    },
+    "&.open .settings-sidebar-chevron": {
+      transform: "rotate(0deg)"
+    },
+    ".settings-sidebar-chevron": {
+      fontSize: "1rem",
+      color: theme.vars.palette.text.secondary,
+      transition: "transform 0.18s ease",
+      transform: "rotate(-90deg)"
+    },
+    ".settings-sidebar-folder-icon": {
+      fontSize: "1.05rem",
+      color: "var(--palette-primary-main)"
+    },
+    ".settings-sidebar-category-label": {
+      flex: 1
+    }
   },
   ".sticky-header": {
     position: "sticky",
@@ -121,6 +180,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".settings-content": {
     flex: 1,
     minWidth: 0,
+    minHeight: 0,
     padding: "0 1em",
     overflowY: "auto",
     "&::-webkit-scrollbar": {
@@ -131,19 +191,46 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     },
     "&::-webkit-scrollbar-thumb": {
       background: theme.vars.palette.action.disabledBackground,
-      borderRadius: "4px"
+      borderRadius: "var(--rounded-sm)"
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: theme.vars.palette.action.disabled
     }
   },
+  ".settings-content--full": {
+    padding: 0,
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    "& .tab-panel": {
+      display: "none",
+      flex: 1,
+      minHeight: 0
+    },
+    "& .tab-panel:not([hidden])": {
+      display: "flex"
+    },
+    "& .tab-panel-content": {
+      flex: 1,
+      minHeight: 0,
+      paddingBottom: 0,
+      display: "flex",
+      flexDirection: "column"
+    },
+    "& .settings-panel-padded": {
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column",
+      padding: "1.25rem 1.75rem"
+    }
+  },
   ".settings-section": {
-    backgroundColor: theme.vars.palette.background.default,
-    backdropFilter: "blur(5px)",
-    borderRadius: "8px",
-    padding: "0.5em 1.2em 1.2em 1.2em",
-    margin: "1.5em 0 1.5em 0",
-    boxShadow: "0 2px 12px rgba(0, 0, 0, 0.2)",
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    padding: 0,
+    margin: "1.5em 0",
+    boxShadow: "none",
     border: "0 none",
 
     width: "100%",
@@ -253,7 +340,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     padding: "0.4em 0.6em",
     marginTop: "0",
     backgroundColor: theme.vars.palette.background.paper,
-    borderRadius: "8px",
+    borderRadius: "var(--rounded-lg)",
     transition: "background-color 0.2s ease",
     "&:hover": {
       backgroundColor: theme.vars.palette.background.default

@@ -37,12 +37,11 @@ export class Setting extends DBModel {
   /** Find a setting by user_id and key. */
   static async find(userId: string, key: string): Promise<Setting | null> {
     const db = getDb();
-    const row = db
+    const [row] = await db
       .select()
       .from(appSettings)
       .where(and(eq(appSettings.user_id, userId), eq(appSettings.key, key)))
-      .limit(1)
-      .get();
+      .limit(1);
     return row ? new Setting(row as Record<string, unknown>) : null;
   }
 
@@ -90,12 +89,11 @@ export class Setting extends DBModel {
   /** List all settings for a user. */
   static async listForUser(userId: string): Promise<Setting[]> {
     const db = getDb();
-    const rows = db
+    const rows = await db
       .select()
       .from(appSettings)
-      .where(eq(appSettings.user_id, userId))
-      .all();
-    return rows.map((r) => new Setting(r as Record<string, unknown>));
+      .where(eq(appSettings.user_id, userId));
+    return rows.map((r: Record<string, unknown>) => new Setting(r as Record<string, unknown>));
   }
 
   /** Get the plaintext value. */

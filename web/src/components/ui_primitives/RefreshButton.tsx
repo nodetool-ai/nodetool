@@ -14,7 +14,8 @@
  */
 
 import { forwardRef, memo } from "react";
-import { IconButton, IconButtonProps, Tooltip, CircularProgress } from "@mui/material";
+import { IconButton, IconButtonProps, Tooltip } from "@mui/material";
+import { LoadingSpinner } from "./LoadingSpinner";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useTheme } from "@mui/material/styles";
@@ -109,7 +110,8 @@ export const RefreshButton = memo(
       const getIcon = () => {
         if (isLoading) {
           return (
-            <CircularProgress
+            <LoadingSpinner
+              inline
               size={buttonSize === "large" ? 22 : buttonSize === "medium" ? 18 : 16}
               color="inherit"
             />

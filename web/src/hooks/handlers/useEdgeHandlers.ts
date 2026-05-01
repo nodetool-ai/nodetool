@@ -3,6 +3,7 @@ import type { Edge } from "@xyflow/react";
 import { useNodes } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useConnectionStore from "../../stores/ConnectionStore";
+import { shallow } from "zustand/shallow";
 
 /**
  * Result object containing edge event handlers.
@@ -17,7 +18,7 @@ export type EdgeHandlersResult = {
   /** Handler called when edge dragging starts */
   onEdgeUpdateStart: () => void;
   /** Handler called when edge dragging ends */
-  onEdgeUpdateEnd: (event: MouseEvent, edge: Edge) => void;
+  onEdgeUpdateEnd: (event: MouseEvent | TouchEvent, edge: Edge) => void;
   /** Handler for middle-click on an edge (deletes the edge) */
   onEdgeClick: (event: ReactMouseEvent, edge: Edge) => void;
 };
@@ -65,7 +66,7 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
     deleteEdge: state.deleteEdge,
     edgeUpdateSuccessful: state.edgeUpdateSuccessful,
     setEdgeUpdateSuccessful: state.setEdgeUpdateSuccessful
-  }));
+  }), shallow);
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const setIsReconnecting = useConnectionStore(
@@ -140,7 +141,7 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
 
   // change edge connection
   const onEdgeUpdateEnd = useCallback(
-    (event: MouseEvent, edge: Edge) => {
+    (_event: MouseEvent | TouchEvent, edge: Edge) => {
       // delete edge when dropped
       if (!edgeUpdateSuccessful) {
         deleteEdge(edge.id);

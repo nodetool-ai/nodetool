@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
+import { trpc } from "../lib/trpc";
 
 /**
  * Hook to fetch and cache available providers with their capabilities.
@@ -13,11 +13,7 @@ export const useProviders = () => {
     error
   } = useQuery({
     queryKey: ["providers"],
-    queryFn: async () => {
-      const { data, error } = await client.GET("/api/models/providers", {});
-      if (error) {throw error;}
-      return data || [];
-    },
+    queryFn: () => trpc.models.providers.query(),
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     refetchOnWindowFocus: false
   });

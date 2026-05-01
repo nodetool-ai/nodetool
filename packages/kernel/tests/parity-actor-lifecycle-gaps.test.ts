@@ -16,7 +16,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
-import type { NodeDescriptor, NodeUpdate } from "@nodetool/protocol";
+import type { NodeDescriptor, NodeUpdate } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Helpers (mirrored from actor.test.ts)

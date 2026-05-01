@@ -9,7 +9,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.kernel.durable-inbox");
 

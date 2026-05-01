@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
-import { isDevelopment } from "../../stores/ApiClient";
+import { isDevelopment } from "../../lib/env";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useDuplicateNodes } from "../../hooks/useDuplicate";

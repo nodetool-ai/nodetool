@@ -6,12 +6,12 @@ Visual AI workflow platform. TypeScript monorepo with React frontend, Electron d
 
 ```bash
 # After ANY code change, run all three:
-make typecheck   # Type check all packages (web, electron, mobile)
-make lint        # Lint all packages
-make test        # Run all tests (web, electron, mobile)
+npm run typecheck   # Type check all packages (web, electron, mobile)
+npm run lint        # Lint all packages
+npm run test        # Run all tests (web, electron, mobile)
 
 # Combined check (runs all three above):
-make check
+npm run check
 ```
 
 ### Package-Specific Commands
@@ -34,20 +34,20 @@ cd electron && npm run typecheck
 cd electron && npm run lint
 
 # Dev servers
-make dev          # Backend (tsx --watch) + web Vite server
-make dev-server   # Backend only
-make electron-dev # Electron dev (auto-rebuilds native modules)
+npm run dev          # Backend (tsx --watch) + web Vite server
+npm run dev:server   # Backend only
+npm run electron:dev # Electron dev (auto-rebuilds native modules)
 ```
 
 ### Prerequisites
 
-- **Node.js 22.x** (required — see `.nvmrc`). Use `nvm use` to activate.
+- **Node.js 24.x** (required — see `.nvmrc`). Use `nvm use` to activate.
 - npm (comes with Node)
 - Python 3.11+ with conda (optional, for Python nodes)
 
 ```bash
 # First-time setup
-nvm use              # Reads .nvmrc, activates Node 22
+nvm use              # Reads .nvmrc, activates Node 24
 npm install          # Install all workspace dependencies
 npm run build:packages  # Build backend packages
 ```
@@ -75,7 +75,7 @@ packages/           # 24 npm workspace packages (TypeScript backend)
   ...
 
 web/                # React 18 + Vite + MUI + Zustand + ReactFlow
-electron/           # Electron 35 desktop app
+electron/           # Electron 39 desktop app
 mobile/             # React Native / Expo
 ```
 
@@ -96,7 +96,7 @@ protocol → config → security → auth → storage
 - **State management**: Zustand stores (web/src/stores/), React Context wraps Zustand, TanStack Query for server state
 - **UI Primitives (MANDATORY)**: All frontend UI must use primitives from `web/src/components/ui_primitives/`. **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside of `ui_primitives/` or `editor_ui/`. See the **[Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** for the decision tree, migration rules, and full catalog of 90+ primitives. When touching any file, migrate raw MUI usage to primitives.
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. No inline `display: "flex"` — use `FlexRow`/`FlexColumn` layout primitives instead.
-- **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool/node-sdk`.
+- **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
 - **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), SimpleAgent (single-step), AgentExecutor (value extraction)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
@@ -109,8 +109,8 @@ protocol → config → security → auth → storage
 Before every commit, run lint and typecheck. Do not commit if either fails.
 
 ```bash
-make lint        # Must pass before committing
-make typecheck   # Must pass before committing
+npm run lint        # Must pass before committing
+npm run typecheck   # Must pass before committing
 ```
 
 ## Rules
@@ -123,18 +123,18 @@ make typecheck   # Must pass before committing
 - React Testing Library: `getByRole`/`getByLabelText`, `userEvent`, `waitFor`.
 - TanStack Query for all server state. Hierarchical keys. `enabled` for conditional queries.
 - Frontend tools prefixed `ui_` (e.g., `ui_add_node`).
-- All inter-package imports use `@nodetool/<package>`. Never import from `dist/`.
+- All inter-package imports use `@nodetool-ai/<package>`. Never import from `dist/`.
 - Throw `Error` objects, not strings. Comment intentionally empty catch blocks.
 
 ## Common Pitfalls
 
-- **Node.js 22.x is required**. Electron 35 embeds Node 22 — native modules (better-sqlite3) must be compiled against the same ABI. Use `nvm use 22` (see `.nvmrc`). Node 23+ or 24+ will cause `NODE_MODULE_VERSION` mismatch errors in Electron.
-- **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `make dev`.
+- **Node.js 24.x is required**. Electron 39 embeds Node 24 — native modules (better-sqlite3) must be compiled against the same ABI. Use `nvm use 24` (see `.nvmrc`). Mismatched major versions will cause `NODE_MODULE_VERSION` errors in Electron.
+- **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `npm run dev`.
 - **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`.
-- **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors in Electron dev mode, run `make electron-dev` which automatically rebuilds native modules (better-sqlite3, bufferutil) against Electron's ABI via node-gyp. Do NOT use `npm rebuild` or `electron-builder install-app-deps` — these rebuild for system Node, not Electron's embedded Node.
+- **Native module ABI mismatch**: If you see `NODE_MODULE_VERSION` errors in Electron dev mode, run `npm run electron:dev` which automatically rebuilds native modules (better-sqlite3, bufferutil) against Electron's ABI via node-gyp. Do NOT use `npm rebuild` or `electron-builder install-app-deps` — these rebuild for system Node, not Electron's embedded Node.
 - **Claude Agent Provider in nested sessions (e.g. Claude Code web)**: The SDK spawns a subprocess via `node cli.js`. In environments like Claude Code on the web (`claude.ai/code`), you must: (1) strip all `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars — not just `CLAUDECODE`; (2) run as a non-root user — the SDK refuses `--dangerously-skip-permissions` when uid=0; (3) keep `ANTHROPIC_BASE_URL` and `HTTP_PROXY`/`HTTPS_PROXY` vars for API routing. See `docs/AGENTS.md` § Claude Agent SDK for full details.
 
 ## CLI
@@ -258,18 +258,74 @@ Most server-calling commands accept `--api-url <url>` (default: `http://localhos
 
 ### Observing Agent Execution
 
+NodeTool emits a hierarchy of OpenTelemetry spans that an analyzer agent can
+ingest to study and optimize prompts/agents/workflows:
+
+```
+workflow.run                       (kernel WorkflowRunner)
+  node.process                     (kernel NodeActor — one per node)
+    agent.execute                  (Agent.execute)
+      agent.plan                   (TaskPlanner / GraphPlanner)
+        llm.chat / llm.stream      (BaseProvider)
+      agent.step                   (StepExecutor)
+        llm.chat / llm.stream
+```
+
+Every `llm.chat` / `llm.stream` span carries `gen_ai.usage.input_tokens`,
+`gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, and
+`gen_ai.usage.cost_credits`. Token counts also appear in the `llm_call`
+message events emitted by `BaseProvider`.
+
+#### Sinks
+
+Multiple sinks can run simultaneously (each gets its own span processor):
+
 ```bash
-# Debug logging (all LLM calls, planning details)
-NODETOOL_LOG_LEVEL=debug npm run dev:chat -- --agent
+# JSONL log file (analyzer-friendly — one span per line)
+NODETOOL_TRACE_FILE=/tmp/nodetool-trace.jsonl npm run dev:chat -- --agent
+npm run dev:chat -- --agent --trace-file /tmp/nodetool-trace.jsonl
 
-# OpenTelemetry tracing to console
-OTEL_TRACES_EXPORTER=console TRACELOOP_DISABLE_BATCH=true npm run dev:chat -- --agent
+# Stdout — pretty (human) or json (JSONL)
+NODETOOL_TRACE_STDOUT=pretty npm run dev:chat -- --agent
+npm run dev:chat -- --agent --trace-stdout pretty
+npm run dev:chat -- --agent --trace-stdout json
 
-# Traceloop cloud
+# OpenTelemetry — Traceloop cloud
 TRACELOOP_API_KEY=your-key npm run dev:chat -- --agent
 
-# Custom OTLP backend (Jaeger, Grafana)
+# OpenTelemetry — custom OTLP backend (Jaeger, Grafana, etc.)
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:chat -- --agent
+
+# Debug logging (all LLM calls, planning details)
+NODETOOL_LOG_LEVEL=debug npm run dev:chat -- --agent
+```
+
+The `--trace-file` and `--trace-stdout` flags also work on the `nodetool` CLI:
+
+```bash
+npm run dev:nodetool -- --trace-file trace.jsonl run workflow.ts
+npm run dev:nodetool -- --trace-stdout pretty workflows run <id>
+```
+
+#### JSONL trace schema
+
+Each line in the file is one span:
+
+```json
+{
+  "trace_id": "...", "span_id": "...", "parent_span_id": "...",
+  "name": "agent.plan", "kind": "INTERNAL",
+  "start_time_ms": 1700000000000, "end_time_ms": 1700000001234,
+  "duration_ms": 1234,
+  "status": { "code": "OK" },
+  "attributes": {
+    "agent.objective": "...", "agent.kind": "plan",
+    "agent.provider": "anthropic", "agent.model": "claude-sonnet-4-6",
+    "gen_ai.usage.input_tokens": 150, "gen_ai.usage.output_tokens": 80
+  },
+  "events": [],
+  "resource": { "service.name": "nodetool" }
+}
 ```
 
 See [packages/agents/CLAUDE.md](packages/agents/CLAUDE.md) for agent architecture, parallel execution, skills, and tuning.

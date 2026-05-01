@@ -85,7 +85,7 @@ const toolsSelectorStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "6px",
       padding: "4px 6px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       marginBottom: "2px",
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
@@ -315,7 +315,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                   marginLeft: "-4px",
                   backgroundColor: theme.vars.palette.grey[700],
                   color: theme.vars.palette.grey[200],
-                  borderRadius: "6px",
+                  borderRadius: "var(--rounded-md)",
                   height: "18px",
                   "& .MuiChip-label": {
                     padding: "0 5px",
@@ -482,7 +482,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                         <IconForType
                           iconName={outputType}
                           containerStyle={{
-                            borderRadius: "2px",
+                            borderRadius: "var(--rounded-xs)",
                             marginLeft: "0",
                             marginTop: "0"
                           }}
@@ -490,7 +490,7 @@ const NodeToolsSelector: React.FC<NodeToolsSelectorProps> = ({
                             backgroundColor: theme.vars.palette.grey[800],
                             margin: "0",
                             padding: "1px",
-                            borderRadius: "2px",
+                            borderRadius: "var(--rounded-xs)",
                             width: "20px",
                             height: "20px"
                           }}

@@ -2,38 +2,19 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useCallback, useState } from "react";
+import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import {
-  Box,
-  Typography,
-  Button,
-  Menu,
-  MenuItem,
-  Divider,
-  CircularProgress,
-  Link
+  Box
 } from "@mui/material";
 import { Tooltip, Text, EditorButton, FlexRow, CloseButton } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import LaunchIcon from "@mui/icons-material/Launch";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, useViewport } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
+import { useNodes } from "../../contexts/NodeContext";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
-import {
-  formatFalUnitPricingShort,
-  formatFalUnitPricingTooltip,
-} from "../../utils/formatFalUnitPricing";
-import type { FalUnitPricing } from "../../stores/ApiTypes";
-import {
-  FAL_DASHBOARD_KEYS_URL,
-  falCreditsDetailSuggestsKeysLink,
-  fetchFalCredits,
-  formatCredits,
-  type FalCredits
-} from "../../utils/falCredits";
 
 const PrettyNamespace = memo<{ namespace: string }>(({ namespace }) => {
   const parts = namespace.split(".");
@@ -70,26 +51,27 @@ interface NodeInfo {
   type: string;
   namespace: string;
   description: string | undefined;
-  falUnitPricing: FalUnitPricing | null | undefined;
   position: { x: number; y: number };
   hasError: boolean;
   errorMessage: string | undefined;
   executionStatus: "pending" | "running" | "completed" | "error" | undefined;
 }
 
+const PANEL_WIDTH = 320;
+const PANEL_GAP = 16;
+const VIEWPORT_MARGIN = 16;
+const MIN_PANEL_HEIGHT = 200;
+
 const styles = (theme: Theme) =>
   css({
     "&.node-info-panel": {
       position: "fixed",
-      top: "80px",
-      right: "50px",
-      width: "320px",
-      maxHeight: "calc(100vh - 150px)",
+      width: `${PANEL_WIDTH}px`,
       zIndex: 15000,
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
       border: `1px solid ${theme.vars.palette.divider}`,
       overflow: "hidden",
@@ -129,7 +111,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "2px 6px",
       textTransform: "uppercase",
       display: "inline-block",
@@ -164,7 +146,7 @@ const styles = (theme: Theme) =>
       marginTop: "8px",
       padding: "8px 10px",
       backgroundColor: `${theme.vars.palette.error.main}15`,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       borderLeft: `3px solid ${theme.vars.palette.error.main}`
     },
     "& .error-text": {
@@ -182,7 +164,7 @@ const styles = (theme: Theme) =>
       display: "block",
       margin: "0 -4px",
       padding: "2px 8px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       backgroundColor: "transparent",
       color: "var(--palette-grey-400)",
       fontSize: "9px",
@@ -202,30 +184,12 @@ const styles = (theme: Theme) =>
         color: "var(--palette-primary-main) !important"
       }
     },
-    "& .fal-pricing-button": {
-      display: "block",
-      marginTop: "6px",
-      marginLeft: "-4px",
-      marginRight: "-4px",
-      padding: "2px 8px",
-      borderRadius: "4px",
-      backgroundColor: "transparent",
-      color: theme.vars.palette.success.main,
-      fontSize: "9px",
-      textAlign: "left",
-      fontWeight: 600,
-      letterSpacing: "0.02em",
-      textTransform: "none",
-      "&:hover": {
-        backgroundColor: `${theme.vars.palette.success.main}18`,
-      },
-    },
     "& .action-button": {
       flex: 1,
       minWidth: "80px",
       fontSize: "12px",
       padding: "6px 10px",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       marginTop: "12px",
       "& .MuiButton-startIcon": {
         marginRight: "4px"
@@ -235,28 +199,79 @@ const styles = (theme: Theme) =>
 
 const NodeInfoPanel: React.FC = memo(() => {
   const theme = useTheme();
-  const { getNode, setCenter } = useReactFlow();
+  const { getNode, setCenter, flowToScreenPosition } = useReactFlow();
+  const { x: viewportX, y: viewportY, zoom } = useViewport();
   const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
-  const [falMenuAnchor, setFalMenuAnchor] = useState<HTMLElement | null>(null);
-  const [falCreditsLoading, setFalCreditsLoading] = useState(false);
-  const [falCreditsData, setFalCreditsData] = useState<FalCredits | null | "error">(null);
-  const falMenuOpen = Boolean(falMenuAnchor);
+  const inspectedNodeBounds = useNodes((state) => {
+    if (!inspectedNodeId) {
+      return null;
+    }
+    const node = state.findNode(inspectedNodeId);
+    if (!node) {
+      return null;
+    }
+    return {
+      x: node.position.x,
+      y: node.position.y,
+      width: node.measured?.width ?? node.width ?? 200,
+      height: node.measured?.height ?? node.height ?? 100
+    };
+  });
 
-  const handleFalPricingClick = useCallback(async (event: React.MouseEvent<HTMLElement>) => {
-    setFalMenuAnchor(event.currentTarget);
-    setFalCreditsLoading(true);
-    setFalCreditsData(null);
-    const result = await fetchFalCredits();
-    setFalCreditsLoading(false);
-    setFalCreditsData(result ?? "error");
+  const [windowSize, setWindowSize] = useState(() => ({
+    width: typeof window === "undefined" ? 1920 : window.innerWidth,
+    height: typeof window === "undefined" ? 1080 : window.innerHeight
+  }));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const handleFalMenuClose = useCallback(() => {
-    setFalMenuAnchor(null);
-  }, []);
+  const panelStyle = useMemo<React.CSSProperties | undefined>(() => {
+    if (!inspectedNodeBounds) {
+      return undefined;
+    }
+    const { x, y, width } = inspectedNodeBounds;
+    const topRight = flowToScreenPosition({ x: x + width, y });
+    const topLeft = flowToScreenPosition({ x, y });
+    const { width: vw, height: vh } = windowSize;
+
+    let left = topRight.x + PANEL_GAP;
+    if (left + PANEL_WIDTH + VIEWPORT_MARGIN > vw) {
+      left = topLeft.x - PANEL_GAP - PANEL_WIDTH;
+    }
+    left = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(left, vw - PANEL_WIDTH - VIEWPORT_MARGIN)
+    );
+
+    let top = topRight.y;
+    top = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(top, vh - MIN_PANEL_HEIGHT - VIEWPORT_MARGIN)
+    );
+    const maxHeight = vh - top - VIEWPORT_MARGIN;
+
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      maxHeight: `${maxHeight}px`
+    };
+  }, [
+    inspectedNodeBounds,
+    flowToScreenPosition,
+    viewportX,
+    viewportY,
+    zoom,
+    windowSize
+  ]);
 
   const nodeInfo = useMemo((): NodeInfo | null => {
     if (!inspectedNodeId) {
@@ -276,7 +291,6 @@ const NodeInfoPanel: React.FC = memo(() => {
       type: nodeType,
       namespace: metadata?.namespace || "",
       description: metadata?.description || undefined,
-      falUnitPricing: metadata?.fal_unit_pricing,
       position: node.position,
       hasError: (node.data.hasError as boolean) || false,
       errorMessage: node.data.errorMessage as string | undefined,
@@ -331,7 +345,7 @@ const NodeInfoPanel: React.FC = memo(() => {
   }
 
   return (
-    <Box className="node-info-panel" css={styles(theme)}>
+    <Box className="node-info-panel" css={styles(theme)} style={panelStyle}>
       <Box className="panel-content">
         <FlexRow align="center" justify="space-between" sx={{ mb: 1 }}>
           <Text className="node-name">{nodeInfo.label}</Text>
@@ -367,112 +381,6 @@ const NodeInfoPanel: React.FC = memo(() => {
             <PrettyNamespace namespace={nodeInfo.namespace} />
           </EditorButton>
         </Tooltip>
-
-        {nodeInfo.falUnitPricing && (
-          <>
-            <Button
-              tabIndex={1}
-              className="fal-pricing-button"
-              onClick={handleFalPricingClick}
-              aria-haspopup="true"
-              aria-expanded={falMenuOpen}
-            >
-              FAL {formatFalUnitPricingShort(nodeInfo.falUnitPricing)}
-            </Button>
-            <Menu
-              anchorEl={falMenuAnchor}
-              open={falMenuOpen}
-              onClose={handleFalMenuClose}
-              anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-              transformOrigin={{ vertical: "top", horizontal: "left" }}
-              slotProps={{
-                paper: {
-                  sx: {
-                    minWidth: 220,
-                    fontSize: "12px",
-                    "& .MuiMenuItem-root": { fontSize: "12px" }
-                  }
-                }
-              }}
-            >
-              <Box sx={{ px: 2, py: 1 }}>
-                <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "success.main", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  FAL Pricing
-                </Typography>
-                <Typography sx={{ fontSize: "12px", mt: 0.5, whiteSpace: "pre-line", color: "text.secondary" }}>
-                  {formatFalUnitPricingTooltip(nodeInfo.falUnitPricing)}
-                </Typography>
-              </Box>
-              <Divider />
-              <Box sx={{ px: 2, py: 1 }}>
-                <Typography sx={{ fontSize: "11px", fontWeight: 600, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Account Credits
-                </Typography>
-                {falCreditsLoading ? (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-                    <CircularProgress size={12} />
-                    <Typography sx={{ fontSize: "12px", color: "text.secondary" }}>Loading…</Typography>
-                  </Box>
-                ) : falCreditsData === "error" || falCreditsData === null ? (
-                  <Typography sx={{ fontSize: "12px", color: "text.disabled", mt: 0.5 }}>
-                    {falCreditsData === "error" ? "Could not load credits" : "—"}
-                  </Typography>
-                ) : falCreditsData.unavailable ? (
-                  <Box sx={{ mt: 0.5 }}>
-                    <Typography
-                      sx={{
-                        fontSize: "12px",
-                        color: "warning.main",
-                        lineHeight: 1.4,
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {falCreditsData.detail ?? "Credits unavailable"}
-                    </Typography>
-                    {falCreditsDetailSuggestsKeysLink(falCreditsData.detail) && (
-                      <Link
-                        href={FAL_DASHBOARD_KEYS_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleFalMenuClose();
-                        }}
-                        sx={{
-                          fontSize: "12px",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 0.5,
-                          mt: 1,
-                          fontWeight: 600,
-                        }}
-                      >
-                        fal.ai API keys
-                        <LaunchIcon sx={{ fontSize: 14 }} />
-                      </Link>
-                    )}
-                  </Box>
-                ) : (
-                  <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "success.main", mt: 0.5 }}>
-                    {formatCredits(falCreditsData)} remaining
-                  </Typography>
-                )}
-              </Box>
-              <Divider />
-              <MenuItem
-                component="a"
-                href={`https://fal.ai/models/${nodeInfo.falUnitPricing.endpoint_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleFalMenuClose}
-                sx={{ gap: 1, fontSize: "12px" }}
-              >
-                <LaunchIcon sx={{ fontSize: 14 }} />
-                View on fal.ai
-              </MenuItem>
-            </Menu>
-          </>
-        )}
 
         {parsedDescription && (
           <>

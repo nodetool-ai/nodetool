@@ -63,7 +63,9 @@ export const ColorSwatch: React.FC<ColorSwatchProps> = ({
 }) => {
   const theme = useTheme();
 
-  const radius = borderRadius ?? (shape === "circle" ? "50%" : 4);
+  const radius =
+    borderRadius ??
+    (shape === "circle" ? theme.rounded.circle : theme.rounded.sm);
 
   const handleClick = () => {
     onClick?.(color);

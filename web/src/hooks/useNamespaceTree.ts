@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
+import { isProduction } from "../lib/env";
 import useMetadataStore from "../stores/MetadataStore";
-import { isProduction } from "../stores/ApiClient";
+import { useComfyUIStore } from "../stores/ComfyUIStore";
 import { useSecrets } from "./useSecrets";
 import {
   getProviderKindForNamespace,
@@ -77,6 +78,7 @@ export interface NamespaceTree {
  */
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
+  const isComfyConnected = useComfyUIStore((state) => state.isConnected);
   const { isApiKeySet } = useSecrets();
 
   // Check if a namespace should be disabled
@@ -95,6 +97,9 @@ const useNamespaceTree = (): NamespaceTree => {
   // Get unique namespaces and sort them (enabled first, then disabled)
   const uniqueNamespaces = useMemo(() => {
     const namespaces = Object.values(metadata)
+      .filter(
+        (node) => isComfyConnected || !node.node_type?.startsWith("comfy.")
+      )
       .map((node) => node.namespace)
       .filter((namespace) => namespace !== "default")
       .filter(
@@ -109,7 +114,7 @@ const useNamespaceTree = (): NamespaceTree => {
       }
       return aDisabled ? 1 : -1;
     });
-  }, [metadata, isNamespaceDisabled]);
+  }, [metadata, isNamespaceDisabled, isComfyConnected]);
 
   // Build the tree structure
   return useMemo(() => {

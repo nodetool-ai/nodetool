@@ -1,14 +1,23 @@
 /**
- * @nodetool/models – Database models and query utilities.
+ * @nodetool-ai/models – Database models and query utilities.
  *
  * Public API surface for the models package. Re-exports everything
  * consumers need to define, query and persist data models.
  */
 
 // ── Database Connection ─────────────────────────────────────────────
-export { initDb, initTestDb, getDb, getRawDb, closeDb } from "./db.js";
+export {
+  initDb,
+  initPostgresDb,
+  initTestDb,
+  getDb,
+  getDbType,
+  getRawDb,
+  closeDb
+} from "./db.js";
+export type { DbDialect } from "./db.js";
 
-// ── Drizzle Schema (for consumers needing raw queries) ──────────────
+// ── Drizzle Schema (SQLite — default) ──────────────────────────────
 export {
   workflows,
   jobs,
@@ -26,6 +35,9 @@ export {
   teamTasks,
   appSettings
 } from "./schema/index.js";
+
+// ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
+export * as pgSchema from "./schema-pg/index.js";
 
 // ── Base Model ───────────────────────────────────────────────────────
 export {
@@ -53,6 +65,14 @@ export { Message } from "./message.js";
 export { Thread } from "./thread.js";
 
 export { Secret } from "./secret.js";
+export {
+  getSecret,
+  getSecretRequired,
+  hasSecret,
+  getSecretSync,
+  clearSecretCache,
+  clearAllSecretCache
+} from "./secret-helper.js";
 
 export { Setting } from "./setting.js";
 
@@ -99,6 +119,7 @@ export {
   detectDatabaseState,
   SQLiteMigrationAdapter,
   PostgresMigrationAdapter,
+  PostgresJsMigrationAdapter,
   migrations,
   MigrationRunner
 } from "./migrations/index.js";

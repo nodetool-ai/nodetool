@@ -1,22 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { client } from "../stores/ApiClient";
-import { AssetList } from "../stores/ApiTypes";
-import { createErrorMessage } from "../utils/errorHandling";
+import { trpcClient } from "../trpc/client";
+import { Asset } from "../stores/ApiTypes";
 
-const fetchJobAssets = async (jobId: string) => {
-  const { data, error } = await client.GET("/api/assets/", {
-    params: {
-      query: {
-        job_id: jobId
-      }
-    }
-  });
-
-  if (error) {
-    throw createErrorMessage(error, "Failed to fetch job assets");
-  }
-
-  return (data as AssetList).assets;
+const fetchJobAssets = async (jobId: string): Promise<Asset[]> => {
+  const data = await trpcClient.assets.list.query({ job_id: jobId });
+  return (data.assets ?? []) as unknown as Asset[];
 };
 
 export const useJobAssets = (jobId: string) => {

@@ -2,6 +2,7 @@
 import { memo, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
+import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
 import PropertyLabel from "./PropertyLabel";
@@ -12,6 +13,8 @@ import isEqual from "fast-deep-equal";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
+import usePropertyValidationStore from "../../stores/PropertyValidationStore";
+import { Tooltip } from "../ui_primitives/Tooltip";
 
 export type PropertyFieldProps = {
   id: string;
@@ -55,18 +58,20 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     state.isKeyPressed("Meta")
   );
 
-  // Combine connection store subscriptions into a single selector to reduce re-renders
   const { connectType, connectDirection, connectNodeId } = useConnectionStore(
-    useMemo(
-      () => (state) => ({
-        connectType: state.connectType,
-        connectDirection: state.connectDirection,
-        connectNodeId: state.connectNodeId
-      }),
-      []
-    )
+    (state) => ({
+      connectType: state.connectType,
+      connectDirection: state.connectDirection,
+      connectNodeId: state.connectNodeId
+    }),
+    shallow
   );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const validationError = usePropertyValidationStore((state) =>
+    data.workflow_id
+      ? state.errors[`${data.workflow_id}:${id}:${property.name}` as const]
+      : undefined
+  );
   const classConnectable = useMemo(() => {
     // Control edges can connect to any node's control handle
     if (connectType?.type === "control") {
@@ -118,8 +123,12 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     [id, openContextMenu, property.description, property.name, property.type]
   );
 
-  return (
-    <div className={`node-property ${Slugify(property.type.type)}`}>
+  const fieldClass = `node-property ${Slugify(property.type.type)}${
+    validationError ? " has-validation-error" : ""
+  }`;
+
+  const inner = (
+    <div className={fieldClass}>
       {showHandle && (
         <div className="handle-popup" style={handlePopupStyle}>
           <HandleTooltip
@@ -170,6 +179,13 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
         </div>
       )}
     </div>
+  );
+
+  if (!validationError) return inner;
+  return (
+    <Tooltip title={validationError} placement="top" arrow enterDelay={250}>
+      {inner}
+    </Tooltip>
   );
 };
 

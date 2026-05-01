@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
     },
     ".modal-content": {
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
       width: "90%",
@@ -92,7 +92,7 @@ const styles = (theme: Theme) =>
     ".preview-swatch": {
       flex: 1,
       height: "48px",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       cursor: "pointer",
       position: "relative",
@@ -133,7 +133,7 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       backgroundColor: "rgba(0,0,0,0.7)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       padding: "4px 8px",
       color: "white",
       fontSize: "11px",

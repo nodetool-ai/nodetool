@@ -23,7 +23,7 @@ import { Asset } from "../../stores/ApiTypes";
 import useAssets from "../../serverState/useAssets";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
@@ -36,7 +36,6 @@ import {
   FlexRow,
   FlexColumn
 } from "../ui_primitives";
-import log from "loglevel";
 
 const containerStyles = css({
   width: "100%",
@@ -91,7 +90,7 @@ const styles = (theme: Theme) =>
       top: "20px"
     },
     ".actions": {
-      zIndex: 10000,
+      zIndex: 10_200,
       position: "absolute",
       top: "1em",
       right: "2em"
@@ -99,16 +98,18 @@ const styles = (theme: Theme) =>
     ".actions .button": {
       width: "2em",
       height: "2em",
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
-      color: "var(--palette-grey-0)",
-      borderRadius: "50%",
+      backgroundColor: theme.vars.palette.background.paper,
+      color: theme.vars.palette.text.primary,
+      border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
+      borderRadius: "var(--rounded-circle)",
       padding: "0.3em"
     },
     ".actions button svg": {
       fontSize: "1.2em"
     },
     ".actions .button:hover": {
-      backgroundColor: theme.vars.palette.grey[500]
+      backgroundColor: theme.vars.palette.action.hover,
+      color: theme.vars.palette.primary.main
     },
     // -------------------
     ".asset-navigation": {
@@ -124,7 +125,11 @@ const styles = (theme: Theme) =>
       fontWeight: "bold",
       bottom: "3em",
       textAlign: "right",
-      color: "var(--palette-primary-main)"
+      color: theme.vars.palette.primary.main
+    },
+    ".folder-separator": {
+      color: theme.vars.palette.text.primary,
+      marginRight: theme.spacing(1)
     },
     ".prev-next-button": {
       position: "absolute",
@@ -134,21 +139,22 @@ const styles = (theme: Theme) =>
       zIndex: 20000,
       cursor: "pointer",
       color: theme.vars.palette.grey[200],
-      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.6)`,
-      border: `2px solid rgba(${theme.vars.palette.grey[500]} / 0.2)`
+      backgroundColor: theme.vars.palette.background.paper,
+      border: `2px solid ${theme.vars.palette.action.disabledBackground}`
     },
     ".prev-next-button img": {
       cursor: "pointer !important",
       pointerEvents: "none"
     },
     ".prev-next-button:hover": {
-      backgroundColor: `rgba(${theme.vars.palette.grey[800]} / 0.93)`
+      backgroundColor: theme.vars.palette.action.hover,
+      color: theme.vars.palette.primary.main
     },
     ".prev-next-button.Mui-disabled": {
-      color: theme.vars.palette.grey[600],
-      backgroundColor: `rgba(${theme.vars.palette.grey[600]} / 0.27)`,
+      color: theme.vars.palette.action.disabled,
+      backgroundColor: theme.vars.palette.action.disabledBackground,
       cursor: "default",
-      border: `1px solid rgba(${theme.vars.palette.grey[400]} / 0.2)`,
+      border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
       pointerEvents: "none"
     },
     ".prev-next-button svg": {
@@ -173,7 +179,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[0]}`
     },
     ".prev-next-items .item": {
-      backgroundColor: `rgba(${theme.vars.palette.grey[700]} / 0.4)`,
+      backgroundColor: theme.vars.palette.background.paper,
       padding: "0",
       width: "120px",
       height: "80px",
@@ -188,15 +194,15 @@ const styles = (theme: Theme) =>
       top: "1em",
       left: "50%",
       transform: "translateX(-50%)",
-      padding: "8px 16px",
-      backgroundColor: "rgba(0,0,0,0.85)",
-      borderRadius: 8,
+      padding: theme.spacing(1, 2),
+      backgroundColor: theme.vars.palette.background.paper,
+      borderRadius: theme.shape.borderRadius,
       zIndex: 10001,
-      color: "var(--palette-grey-0)",
-      fontSize: 13
+      color: theme.vars.palette.text.primary,
+      fontSize: theme.fontSizeSmall
     },
     ".compare-mode-bar button": {
-      color: "var(--palette-grey-0)",
+      color: theme.vars.palette.text.primary,
       textTransform: "none"
     },
     ".select-for-compare": {
@@ -205,11 +211,11 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translateX(-50%)",
       zIndex: 10001,
-      padding: "6px 12px",
-      backgroundColor: "rgba(0,0,0,0.7)",
-      borderRadius: 6,
-      fontSize: 12,
-      color: "var(--palette-grey-0)"
+      padding: theme.spacing(0.75, 1.5),
+      backgroundColor: theme.vars.palette.background.paper,
+      borderRadius: theme.shape.borderRadius,
+      fontSize: theme.fontSizeSmaller,
+      color: theme.vars.palette.text.primary
     },
     ".prev-next-items .item.compare-selected": {
       outline: "3px solid",
@@ -284,6 +290,26 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
   const canCompare = isImage && imageAssets.length >= 2;
 
+  const viewerActionButtonSx = useMemo<SxProps<Theme>>(
+    () => ({
+      width: theme.spacing(4),
+      height: theme.spacing(4),
+      backgroundColor: theme.vars.palette.background.paper,
+      color: theme.vars.palette.text.primary,
+      border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
+      borderRadius: "50%",
+      padding: theme.spacing(0.6),
+      "&:hover": {
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.primary.main
+      },
+      "& svg": {
+        fontSize: theme.fontSizeBig
+      }
+    }),
+    [theme]
+  );
+
   // Compare mode handlers
   const startCompareMode = useCallback(() => {
     if (currentAsset) {
@@ -343,7 +369,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       }
       copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      log.error("Failed to copy to clipboard:", error);
+      console.error("Failed to copy to clipboard:", error);
     }
   }, [currentAsset?.get_url, currentAsset?.content_type, currentAsset?.name, url, contentType]);
 
@@ -581,7 +607,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           </FlexRow>
           <FlexColumn className="asset-info" gap={0.5} align="flex-end">
             <Text className="folder-name">
-              <span style={{ color: "white", marginRight: ".5em" }}>/</span>
+              <span className="folder-separator">/</span>
               {currentFolderName || ""}
             </Text>
             {currentAsset?.name && (
@@ -620,57 +646,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         open={open}
         onClose={handleClose}
       >
-        <FlexRow className="actions" gap={1.5} align="center">
-          <DownloadButton
-            onClick={handleDownload}
-            className="button download"
-            nodrag={false}
-          />
-          {isImage && !compareMode && (
-            <ToolbarIconButton
-              icon={<EditIcon />}
-              tooltip="Edit Image"
-              onClick={handleOpenImageEditor}
-              className="button edit"
-              nodrag={false}
-            />
-          )}
-          {isElectron && currentAsset?.content_type && isClipboardSupported(currentAsset.content_type) && (
-            <ToolbarIconButton
-              icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
-              tooltip={
-                copied
-                  ? "Copied!"
-                  : currentAsset.content_type.startsWith("image/")
-                    ? "Copy Image"
-                    : currentAsset.content_type.startsWith("video/")
-                      ? "Copy Video Info"
-                      : currentAsset.content_type.startsWith("audio/")
-                        ? "Copy Audio Info"
-                        : "Copy Content"
-              }
-              onClick={handleCopyToClipboard}
-              className="button copy"
-              nodrag={false}
-            />
-          )}
-          {canCompare && !compareMode && !compareAssetB && (
-            <ToolbarIconButton
-              icon={<CompareIcon />}
-              tooltip="Compare with another image"
-              onClick={startCompareMode}
-              className="button compare"
-              nodrag={false}
-            />
-          )}
-          <CloseButton
-            onClick={compareAssetB ? exitCompareView : handleClose}
-            tooltip="Close"
-            className="button close"
-            nodrag={false}
-          />
-        </FlexRow>
-
         {/* Compare mode instruction bar */}
         {compareMode && !compareAssetB && (
           <FlexRow className="compare-mode-bar" gap={1} align="center">
@@ -700,6 +675,72 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           assetViewer
         )}
         {navigation}
+
+        {/*
+          Render the toolbar after the main viewer in DOM order so it paints (and
+          receives hit targets) on top; ImageViewer is a full-area interactive layer
+          and would otherwise take precedence for equal/ambiguous stacking.
+        */}
+        <FlexRow
+          className="actions"
+          gap={1.5}
+          align="center"
+          sx={{ zIndex: 10_200 }}
+        >
+          <DownloadButton
+            onClick={handleDownload}
+            className="button download"
+            nodrag={false}
+            sx={viewerActionButtonSx}
+          />
+          {isImage && !compareMode && (
+            <ToolbarIconButton
+              icon={<EditIcon />}
+              tooltip="Edit Image"
+              onClick={handleOpenImageEditor}
+              className="button edit"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {isElectron && currentAsset?.content_type && isClipboardSupported(currentAsset.content_type) && (
+            <ToolbarIconButton
+              icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
+              tooltip={
+                copied
+                  ? "Copied!"
+                  : currentAsset.content_type.startsWith("image/")
+                    ? "Copy Image"
+                    : currentAsset.content_type.startsWith("video/")
+                      ? "Copy Video Info"
+                      : currentAsset.content_type.startsWith("audio/")
+                        ? "Copy Audio Info"
+                        : "Copy Content"
+              }
+              onClick={handleCopyToClipboard}
+              className="button copy"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {canCompare && !compareMode && !compareAssetB && (
+            <ToolbarIconButton
+              icon={<CompareIcon />}
+              tooltip="Compare with another image"
+              onClick={startCompareMode}
+              className="button compare"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          <CloseButton
+            onClick={compareAssetB ? exitCompareView : handleClose}
+            tooltip="Close"
+            className="button close"
+            nodrag={false}
+            sx={viewerActionButtonSx}
+          />
+        </FlexRow>
       </Dialog>
     </div>
   );

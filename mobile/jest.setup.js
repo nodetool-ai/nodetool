@@ -5,6 +5,20 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
+// Mock react-native-url-polyfill (side-effect import in services/supabase.ts)
+jest.mock('react-native-url-polyfill/auto', () => ({}));
+
+// Mock expo-constants (used for Supabase config and app version)
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: {
+    expoConfig: {
+      version: '1.0.0',
+      extra: {},
+    },
+  },
+}));
+
 // Mock uuid
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid-1234'),
@@ -80,6 +94,16 @@ jest.mock('expo-image-picker', () => ({
     canceled: false,
     assets: [{ uri: 'file:///test/photo.jpg', type: 'image', fileName: 'photo.jpg' }],
   }),
+}));
+
+// Mock @react-native-google-signin/google-signin (native module not available in Jest)
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: jest.fn(),
+    hasPlayServices: jest.fn().mockResolvedValue(true),
+    signIn: jest.fn().mockResolvedValue({ data: { idToken: null } }),
+    signOut: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 // Mock expo-document-picker

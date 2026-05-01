@@ -1,19 +1,23 @@
-
 import { act } from "@testing-library/react";
+import { restFetch } from "../../lib/rest-fetch";
+import { trpcClient } from "../../trpc/client";
 import { useCollectionStore } from "../CollectionStore";
-import { client } from "../ApiClient";
 
-// Mock the client module
-jest.mock("../ApiClient", () => ({
-  client: {
-    GET: jest.fn(),
-    POST: jest.fn(),
-    DELETE: jest.fn()
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    collections: {
+      list: { query: jest.fn() },
+      delete: { mutate: jest.fn() }
+    }
   }
 }));
 
-// Use 'any' to bypass strict typing for mocked API responses
-const mockClient = client as any;
+jest.mock("../../lib/rest-fetch", () => ({
+  restFetch: jest.fn()
+}));
+
+const listQuery = trpcClient.collections.list.query as jest.Mock;
+const mockRestFetch = restFetch as jest.Mock;
 
 describe("CollectionStore Benchmark", () => {
   beforeEach(() => {
@@ -43,8 +47,11 @@ describe("CollectionStore Benchmark", () => {
       }
     } as unknown as React.DragEvent<HTMLDivElement>;
 
-    mockClient.POST.mockResolvedValue({ data: { path: "/test.txt" }, error: null });
-    mockClient.GET.mockResolvedValue({ data: { collections: [] }, error: null });
+    mockRestFetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ path: "/test.txt" })
+    });
+    listQuery.mockResolvedValue({ collections: [], count: 0 });
 
     const handler = useCollectionStore.getState().handleDrop("collection1");
 
@@ -52,10 +59,7 @@ describe("CollectionStore Benchmark", () => {
       await handler(mockEvent);
     });
 
-    // POST is called for every file upload (3 times).
-    expect(mockClient.POST).toHaveBeenCalledTimes(3);
-
-    // After optimization, GET should be called only once for the entire batch.
-    expect(mockClient.GET).toHaveBeenCalledTimes(1);
+    expect(mockRestFetch).toHaveBeenCalledTimes(3);
+    expect(listQuery).toHaveBeenCalledTimes(1);
   });
 });

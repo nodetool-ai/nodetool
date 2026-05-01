@@ -20,9 +20,8 @@ import { Job } from "../../../stores/ApiTypes";
 import { useWorkflow } from "../../../serverState/useWorkflow";
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { useJobAssets } from "../../../serverState/useJobAssets";
-import { client } from "../../../stores/ApiClient";
+import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
-import log from "loglevel";
 import AssetGridContent from "../../assets/AssetGridContent";
 import isEqual from "fast-deep-equal";
 
@@ -145,10 +144,8 @@ const JobItem = ({ job }: { job: Job }) => {
       setCancelling(true);
 
       try {
-        // Cancel via REST API - this reliably reaches the backend
-        await client.POST("/api/jobs/{job_id}/cancel", {
-          params: { path: { job_id: job.id } }
-        });
+        // Cancel via tRPC — reliably reaches the backend
+        await trpcClient.jobs.cancel.mutate({ id: job.id });
 
         // Also update the local runner store state if it has this job
         const runnerStore = getWorkflowRunnerStore(job.workflow_id);
@@ -157,7 +154,7 @@ const JobItem = ({ job }: { job: Job }) => {
           runnerState.cancel();
         }
       } catch (err) {
-        log.error("Failed to cancel job:", err);
+        console.error("Failed to cancel job:", err);
       } finally {
         // Refresh the jobs list to show updated status
         queryClient.invalidateQueries({ queryKey: ["jobs"] });

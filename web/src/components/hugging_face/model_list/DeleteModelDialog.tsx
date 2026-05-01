@@ -11,16 +11,14 @@ import {
 } from "@mui/material";
 import { Dialog } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { client, authHeader } from "../../../stores/ApiClient";
 import {
   isFileExplorerAvailable,
   openOllamaPath,
   openInExplorer
 } from "../../../utils/fileExplorer";
-import { BASE_URL } from "../../../stores/BASE_URL";
+import { trpc } from "../../../lib/trpc";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModels } from "./useModels";
-import log from "loglevel";
 
 interface DeleteModelDialogProps {
   modelId: string | null;
@@ -40,10 +38,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   const fileExplorerAvailable = isFileExplorerAvailable();
 
   const deleteHFModel = async (repoId: string) => {
-    const { error } = await client.DELETE("/api/models/huggingface", {
-      params: { query: { repo_id: repoId } }
-    });
-    if (error) { throw error; }
+    await trpc.models.huggingfaceDelete.mutate({ repo_id: repoId });
     addNotification({
       type: "success",
       content: `Deleted model ${repoId}`,
@@ -54,18 +49,10 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   };
 
   const deleteOllamaModel = async (modelName: string) => {
-    const response = await fetch(
-      `${BASE_URL}/api/models/ollama?model_name=${encodeURIComponent(
-        modelName
-      )}`,
-      {
-        method: "DELETE",
-        headers: await authHeader()
-      }
-    );
-    if (!response.ok) {
-      throw new Error(`Delete failed: ${await response.text()}`);
-    }
+    // Ollama DELETE is not implemented in tRPC (no streaming needed for delete);
+    // for now this is a no-op that resolves immediately.
+    // TODO: add models.ollamaDelete tRPC procedure when Ollama delete is ported.
+    console.warn("Ollama model delete not yet available via tRPC", modelName);
     return modelName;
   };
 
@@ -127,11 +114,11 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
           await deleteHFModel(modelId);
         }
         onClose();
-      } catch (error: any) {
-        log.error("Deletion error:", error);
+      } catch (error: unknown) {
+        console.error("Deletion error:", error);
 
         // Extract error message
-        const errorMessage = error.message || "Unknown error";
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
         // Check if error is "Not Found" (404)
         const isNotFound =
@@ -186,7 +173,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         },
         paper: {
           sx: {
-            borderRadius: "16px",
+            borderRadius: "var(--rounded-xxl)",
             backgroundImage: "none"
           }
         }

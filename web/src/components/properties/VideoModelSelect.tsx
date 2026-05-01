@@ -2,8 +2,8 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { VideoModel } from "../../stores/ApiTypes";
-import { BASE_URL } from "../../stores/BASE_URL";
+import type { ModelPack, UnifiedModel, VideoModel } from "../../stores/ApiTypes";
+import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
@@ -21,28 +21,24 @@ interface VideoModelSelectProps {
   onChange: (value: VideoModelValue) => void;
   value: string;
   task?: "text_to_video" | "image_to_video";
+  recommendedModels?: UnifiedModel[];
+  modelPacks?: ModelPack[];
 }
 
 const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   onChange,
   value,
-  task
+  task,
+  recommendedModels,
+  modelPacks
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
-  const loadVideoModels = useCallback(async () => {
-    const res = await fetch(`${BASE_URL}/api/models/video`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch video models: ${res.status}`);
-    }
-    return (await res.json()) as VideoModel[];
-  }, []);
-
   const { data: models } = useQuery({
     queryKey: ["video-models"],
-    queryFn: async () => await loadVideoModels()
+    queryFn: () => trpc.models.video.query() as Promise<VideoModel[]>
   });
 
   const currentSelectedModelDetails = useMemo(() => {
@@ -94,6 +90,8 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
         onClose={handleClose}
         onModelChange={handleDialogModelSelect}
         task={task}
+        recommendedModels={recommendedModels}
+        modelPacks={modelPacks}
       />
     </>
   );

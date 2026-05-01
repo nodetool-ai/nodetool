@@ -18,6 +18,7 @@ export const createStyles = (theme: Theme) => ({
     justifyContent: "flex-start",
     alignItems: "center",
     overflowY: "auto",
+    overflowAnchor: "none",
     padding: ".5em",
     marginTop: ".2em",
     position: "relative",
@@ -30,7 +31,7 @@ export const createStyles = (theme: Theme) => ({
     },
     "&::-webkit-scrollbar-thumb": {
       background: `${theme.vars.palette.action.disabled} !important`,
-      borderRadius: "4px"
+      borderRadius: "var(--rounded-sm)"
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: `${theme.vars.palette.warning.main} !important`
@@ -49,7 +50,7 @@ export const createStyles = (theme: Theme) => ({
       fontSize: theme.fontSizeNormal,
       marginBottom: "0.5em",
       padding: "0.5em 0",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       position: "relative",
       display: "flex",
       flexDirection: "column",
@@ -167,7 +168,7 @@ export const createStyles = (theme: Theme) => ({
     ".error-message": {
       backgroundColor: theme.vars.palette.error.dark,
       border: `1px solid ${theme.vars.palette.error.main}`,
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       padding: "1em",
       color: theme.vars.palette.error.contrastText,
       "& .markdown": {
@@ -208,7 +209,7 @@ export const createStyles = (theme: Theme) => ({
     ".dot": {
       width: "10px",
       height: "10px",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       backgroundColor: theme.vars.palette.text.secondary,
       margin: "0 5px"
     },
@@ -375,7 +376,7 @@ export const createStyles = (theme: Theme) => ({
       gap: "0.5rem",
       marginBottom: "1.5rem",
       padding: "0.75rem",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
     },

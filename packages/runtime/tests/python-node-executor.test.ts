@@ -3,15 +3,17 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { PythonNodeExecutor } from "../src/python-node-executor.js";
-import type { PythonBridge, ExecuteResult } from "../src/python-bridge.js";
+import type { PythonStdioBridge } from "../src/index.js";
+import type { ExecuteResult } from "../src/python-bridge-types.js";
 import type { ProcessingContext } from "../src/context.js";
 
-function createMockBridge(executeResult: ExecuteResult): PythonBridge {
+function createMockBridge(executeResult: ExecuteResult): PythonStdioBridge {
   return {
     execute: vi.fn().mockResolvedValue(executeResult),
+    executeStream: vi.fn(),
     hasNodeType: vi.fn().mockReturnValue(true),
     getNodeMetadata: vi.fn().mockReturnValue([])
-  } as unknown as PythonBridge;
+  } as unknown as PythonStdioBridge;
 }
 
 function createMockContext(
@@ -74,6 +76,32 @@ describe("PythonNodeExecutor", () => {
     expect(result.output).toEqual(
       expect.objectContaining({ uri: expect.any(String) })
     );
+  });
+
+  it("converts lower-case protocol media output types to stored asset refs", async () => {
+    const audioBytes = new Uint8Array([82, 73, 70, 70]); // RIFF magic
+    const bridge = createMockBridge({
+      outputs: { chunk: { type: "chunk", content: "", done: true, content_type: "audio" } },
+      blobs: { audio: audioBytes }
+    });
+
+    const ctx = createMockContext();
+    vi.mocked(ctx.storage!.store).mockResolvedValue("file:///tmp/output.wav");
+
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "test.AudioNode",
+      {},
+      { audio: "audio", chunk: "chunk" },
+      []
+    );
+
+    const result = await executor.process({}, ctx);
+    expect(ctx.storage!.store).toHaveBeenCalled();
+    expect(result.audio).toEqual({
+      uri: "file:///tmp/output.wav",
+      type: "audio"
+    });
   });
 
   it("extracts media-ref lists into blob arrays", async () => {
@@ -175,6 +203,39 @@ describe("PythonNodeExecutor", () => {
     expect(call[1]).toEqual({});
     expect(Uint8Array.from(call[3].image as ArrayLike<number>)).toEqual(
       new Uint8Array([4, 5, 6])
+    );
+  });
+
+  it("streams Python node partial outputs when executeStream is available", async () => {
+    const bridge = createMockBridge({ outputs: { text: "final" }, blobs: {} });
+    vi.mocked(bridge.executeStream).mockImplementation(async function* () {
+      yield { outputs: { chunk: "hello", text: null }, blobs: {} };
+      yield { outputs: { chunk: " world", text: "hello world" }, blobs: {} };
+    });
+
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "test.StreamingNode",
+      {},
+      { chunk: "chunk", text: "str" },
+      []
+    );
+
+    const outputs: Record<string, unknown>[] = [];
+    for await (const partial of executor.genProcess({ prompt: "hi" })) {
+      outputs.push(partial);
+    }
+
+    expect(outputs).toEqual([
+      { chunk: "hello", text: null },
+      { chunk: " world", text: "hello world" }
+    ]);
+    expect(vi.mocked(bridge.executeStream)).toHaveBeenCalledWith(
+      "test.StreamingNode",
+      { prompt: "hi" },
+      {},
+      {},
+      undefined
     );
   });
 });

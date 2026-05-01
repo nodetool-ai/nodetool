@@ -24,7 +24,8 @@ const parseThinkSections = (input: string): Section[] => {
     return [];
   }
   const sections: Section[] = [];
-  const regex = /<think>([\s\S]*?)<\/think>/g;
+  const regex =
+    /<think>([\s\S]*?)<\/(?:redacted_thinking|think)>/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 

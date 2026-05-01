@@ -35,29 +35,25 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   }
 }));
 
-// Mock ApiClient
-jest.mock("../../../stores/ApiClient", () => ({
-  client: {
-    GET: jest.fn()
+// Mock tRPC client
+const mockWorkflowsListQuery = jest.fn();
+jest.mock("../../../trpc/client", () => ({
+  trpcClient: {
+    workflows: {
+      list: {
+        query: (...args: unknown[]) => mockWorkflowsListQuery(...args)
+      }
+    }
   }
 }));
-
-// Mock errorHandling utility
-jest.mock("../../../utils/errorHandling", () => ({
-  createErrorMessage: jest.fn((error, message) => ({
-    message,
-    error
-  }))
-}));
-
-import BackToEditorButton from "../BackToEditorButton";
-import { client } from "../../../stores/ApiClient";
 
 // Mock the CSS-in-JS for emotion
 jest.mock("@emotion/react", () => ({
   ...jest.requireActual("@emotion/react"),
   css: jest.fn((styles) => styles)
 }));
+
+import BackToEditorButton from "../BackToEditorButton";
 
 describe("BackToEditorButton", () => {
   let queryClient: QueryClient;
@@ -85,19 +81,18 @@ describe("BackToEditorButton", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock successful API response by default
-    (client.GET as jest.Mock).mockResolvedValue({
-      data: {
-        workflows: [
-          {
-            id: "test-workflow-id",
-            name: "Test Workflow",
-            updated_at: "2024-01-01T00:00:00Z",
-            description: null,
-            thumbnail_url: null
-          }
-        ]
-      }
+    // Mock successful tRPC response by default
+    mockWorkflowsListQuery.mockResolvedValue({
+      workflows: [
+        {
+          id: "test-workflow-id",
+          name: "Test Workflow",
+          updated_at: "2024-01-01T00:00:00Z",
+          description: null,
+          thumbnail_url: null
+        }
+      ],
+      next: null
     });
   });
 
@@ -183,14 +178,9 @@ describe("BackToEditorButton", () => {
       render(<BackToEditorButton />, { wrapper });
 
       await waitFor(() => {
-        expect(client.GET).toHaveBeenCalledWith("/api/workflows/", {
-          params: {
-            query: {
-              cursor: "",
-              limit: 20,
-              columns: "name,id,updated_at,description,thumbnail_url"
-            }
-          }
+        expect(mockWorkflowsListQuery).toHaveBeenCalledWith({
+          cursor: "",
+          limit: 20
         });
       });
     });
@@ -202,13 +192,13 @@ describe("BackToEditorButton", () => {
       // Wait a bit to ensure no query was made
       await waitFor(
         () => {
-          expect(client.GET).not.toHaveBeenCalled();
+          expect(mockWorkflowsListQuery).not.toHaveBeenCalled();
         },
         { timeout: 100 }
       );
     });
 
-    it("displays workflow name when API returns matching workflow", async () => {
+    it("displays workflow name when tRPC returns matching workflow", async () => {
       const wrapper = createWrapper();
       render(<BackToEditorButton />, { wrapper });
 
@@ -218,10 +208,8 @@ describe("BackToEditorButton", () => {
     });
 
     it("handles API error gracefully", async () => {
-      // Mock API error
-      (client.GET as jest.Mock).mockResolvedValue({
-        error: { message: "Failed to load workflows" }
-      });
+      // Mock tRPC error
+      mockWorkflowsListQuery.mockRejectedValue(new Error("Failed to load workflows"));
 
       const wrapper = createWrapper();
       render(<BackToEditorButton />, { wrapper });
@@ -274,8 +262,9 @@ describe("BackToEditorButton", () => {
 
   describe("Edge cases", () => {
     it("handles empty workflow list gracefully", async () => {
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: { workflows: [] }
+      mockWorkflowsListQuery.mockResolvedValue({
+        workflows: [],
+        next: null
       });
 
       const wrapper = createWrapper();
@@ -287,18 +276,17 @@ describe("BackToEditorButton", () => {
     });
 
     it("handles workflow not found in list", async () => {
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: {
-          workflows: [
-            {
-              id: "different-workflow-id",
-              name: "Different Workflow",
-              updated_at: "2024-01-01T00:00:00Z",
-              description: null,
-              thumbnail_url: null
-            }
-          ]
-        }
+      mockWorkflowsListQuery.mockResolvedValue({
+        workflows: [
+          {
+            id: "different-workflow-id",
+            name: "Different Workflow",
+            updated_at: "2024-01-01T00:00:00Z",
+            description: null,
+            thumbnail_url: null
+          }
+        ],
+        next: null
       });
 
       const wrapper = createWrapper();
@@ -310,18 +298,17 @@ describe("BackToEditorButton", () => {
     });
 
     it("handles null workflow name gracefully", async () => {
-      (client.GET as jest.Mock).mockResolvedValue({
-        data: {
-          workflows: [
-            {
-              id: "test-workflow-id",
-              name: null,
-              updated_at: "2024-01-01T00:00:00Z",
-              description: null,
-              thumbnail_url: null
-            }
-          ]
-        }
+      mockWorkflowsListQuery.mockResolvedValue({
+        workflows: [
+          {
+            id: "test-workflow-id",
+            name: null,
+            updated_at: "2024-01-01T00:00:00Z",
+            description: null,
+            thumbnail_url: null
+          }
+        ],
+        next: null
       });
 
       const wrapper = createWrapper();

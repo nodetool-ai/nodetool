@@ -121,7 +121,7 @@ describe("AnthropicProvider", () => {
       provider.convertMessage({
         role: "user",
         content: [
-          { type: "image", image: { uri: "https://example.com/a.jpg" } }
+          { type: "image_url", image: { uri: "https://example.com/a.jpg" } }
         ]
       })
     ).resolves.toEqual({

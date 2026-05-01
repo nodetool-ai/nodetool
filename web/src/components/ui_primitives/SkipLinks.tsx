@@ -14,7 +14,7 @@ const skipLinkStyles = (theme: Theme) =>
       padding: "8px 16px",
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      borderRadius: "0 0 8px 8px",
+      borderRadius: `0 0 ${theme.rounded.lg} ${theme.rounded.lg}`,
       fontSize: "0.875rem",
       fontWeight: 500,
       textDecoration: "none",

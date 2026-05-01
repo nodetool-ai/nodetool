@@ -1,9 +1,12 @@
 import { tryCacheFiles, tryCacheRepos } from '../tryCacheFiles';
-import { client } from '../../stores/ApiClient';
+import { trpc } from '../../lib/trpc';
 
-jest.mock('../../stores/ApiClient', () => ({
-  client: {
-    POST: jest.fn()
+jest.mock('../../lib/trpc', () => ({
+  trpc: {
+    models: {
+      huggingfaceTryCacheFiles: { mutate: jest.fn() },
+      huggingfaceTryCacheRepos: { mutate: jest.fn() }
+    }
   }
 }));
 
@@ -13,18 +16,18 @@ describe('tryCacheFiles', () => {
   });
 
   it('successfully caches files and returns data', async () => {
-    (client.POST as jest.Mock).mockResolvedValue({ data: { ok: true }, error: null });
+    (trpc.models.huggingfaceTryCacheFiles.mutate as jest.Mock).mockResolvedValue({ ok: true });
 
     const files = ['file1', 'file2'];
     const result = await tryCacheFiles(files as any);
 
-    expect(client.POST).toHaveBeenCalledWith('/api/models/huggingface/try_cache_files', { body: files });
+    expect(trpc.models.huggingfaceTryCacheFiles.mutate).toHaveBeenCalledWith(files);
     expect(result).toEqual({ ok: true });
   });
 
   it('throws error with descriptive message when API fails', async () => {
-    (client.POST as jest.Mock).mockResolvedValue({ data: null, error: 'fail' });
-    await expect(tryCacheFiles(['file'] as any)).rejects.toThrow('Failed to check if file is cached: fail');
+    (trpc.models.huggingfaceTryCacheFiles.mutate as jest.Mock).mockRejectedValue(new Error('fail'));
+    await expect(tryCacheFiles(['file'] as any)).rejects.toThrow('fail');
   });
 });
 
@@ -34,15 +37,15 @@ describe('tryCacheRepos', () => {
   });
 
   it('successfully caches repos and returns data', async () => {
-    (client.POST as jest.Mock).mockResolvedValue({ data: { ok: true }, error: null });
+    (trpc.models.huggingfaceTryCacheRepos.mutate as jest.Mock).mockResolvedValue({ ok: true });
     const repos = ['repo1'];
     const result = await tryCacheRepos(repos);
-    expect(client.POST).toHaveBeenCalledWith('/api/models/huggingface/try_cache_repos', { body: repos });
+    expect(trpc.models.huggingfaceTryCacheRepos.mutate).toHaveBeenCalledWith(repos);
     expect(result).toEqual({ ok: true });
   });
 
   it('throws error with descriptive message when API fails', async () => {
-    (client.POST as jest.Mock).mockResolvedValue({ data: null, error: 'boom' });
-    await expect(tryCacheRepos(['repo1'])).rejects.toThrow('Failed to check if repo is cached: boom');
+    (trpc.models.huggingfaceTryCacheRepos.mutate as jest.Mock).mockRejectedValue(new Error('boom'));
+    await expect(tryCacheRepos(['repo1'])).rejects.toThrow('boom');
   });
 });

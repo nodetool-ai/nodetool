@@ -3,7 +3,7 @@
  *
  * Strips image content blocks where the data is base64-encoded.
  */
-import type { MessageContent, MessageImageContent } from "@nodetool/runtime";
+import type { MessageContent, MessageImageContent } from "@nodetool-ai/runtime";
 
 function isBase64Image(content: MessageImageContent): boolean {
   const { uri, data } = content.image;
@@ -20,7 +20,7 @@ export function removeBase64Images(
   content: MessageContent[]
 ): MessageContent[] {
   return content.filter((item) => {
-    if (item.type !== "image") return true;
+    if (item.type !== "image_url") return true;
     return !isBase64Image(item as MessageImageContent);
   });
 }

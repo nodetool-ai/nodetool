@@ -1,4 +1,4 @@
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk } from "@nodetool-ai/protocol";
 
 export type ProviderId =
   | "openai"
@@ -79,7 +79,7 @@ export interface MessageTextContent {
 }
 
 export interface MessageImageContent {
-  type: "image";
+  type: "image_url";
   image: {
     uri?: string;
     data?: Uint8Array | string;
@@ -117,6 +117,8 @@ export interface TextToImageParams {
   negativePrompt?: string | null;
   width?: number;
   height?: number;
+  aspectRatio?: string | null;
+  resolution?: string | null;
   quality?: string | null;
   guidanceScale?: number | null;
   numInferenceSteps?: number | null;
@@ -131,6 +133,8 @@ export interface ImageToImageParams {
   negativePrompt?: string | null;
   targetWidth?: number | null;
   targetHeight?: number | null;
+  aspectRatio?: string | null;
+  resolution?: string | null;
   quality?: string | null;
   guidanceScale?: number | null;
   numInferenceSteps?: number | null;
@@ -144,6 +148,8 @@ export interface TextToVideoParams {
   prompt: string;
   negativePrompt?: string | null;
   numFrames?: number | null;
+  /** Requested duration in seconds (provider decides fps). */
+  durationSeconds?: number | null;
   aspectRatio?: string | null;
   resolution?: string | null;
   guidanceScale?: number | null;
@@ -156,6 +162,8 @@ export interface ImageToVideoParams {
   prompt?: string | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
+  /** Requested duration in seconds (provider decides fps). */
+  durationSeconds?: number | null;
   aspectRatio?: string | null;
   resolution?: string | null;
   guidanceScale?: number | null;
@@ -167,13 +175,36 @@ export type ProviderStreamItem = Chunk | ToolCall;
 
 export interface StreamingAudioChunk {
   samples: Int16Array;
+  /** Sample rate in Hz. Defaults to 24000 when omitted. */
+  sampleRate?: number;
 }
 
+/**
+ * Returned by providers that produce fully-encoded audio (e.g. FLAC, WAV)
+ * rather than raw PCM samples.
+ */
+export interface EncodedAudioResult {
+  data: Uint8Array;
+  mimeType: string;
+}
+
+/**
+ * Describes an AI **generation model** that produces 3D assets (e.g. Meshy's
+ * `meshy-4`, Rodin's `rodin-regular`). This is the model **used to generate**
+ * a 3D asset, not the asset itself — the asset is represented by `Model3DRef`
+ * elsewhere in the codebase.
+ *
+ * Mirrors the `<MediaType>Model` pattern (`ImageModel`, `VideoModel`,
+ * `TTSModel`, `ASRModel`, `EmbeddingModel`).
+ */
 export interface Model3D {
   id: string;
   name: string;
   provider: ProviderId;
+  /** Capability hints, e.g. `["text_to_3d"]`, `["image_to_3d"]`, or both. */
   supportedTasks?: string[];
+  /** File formats the model can emit, e.g. `["glb", "obj", "fbx"]`. */
+  outputFormats?: string[];
 }
 
 export interface TextTo3DParams {
@@ -183,6 +214,15 @@ export interface TextTo3DParams {
   artStyle?: string | null;
   outputFormat?: string;
   seed?: number | null;
+  /** Per-call timeout. Providers translate this into max polling attempts. */
+  timeoutSeconds?: number | null;
+  /**
+   * When `true`, providers that support a separate texture/refine pass will
+   * run it after shape generation, embedding PBR textures into the output GLB.
+   * Defaults to `undefined` (= no refine) to preserve backward compatibility.
+   * Meshy text-to-3D supports this; Rodin and image-to-3D providers ignore it.
+   */
+  enableTextures?: boolean;
 }
 
 export interface ImageTo3DParams {
@@ -190,4 +230,6 @@ export interface ImageTo3DParams {
   prompt?: string | null;
   outputFormat?: string;
   seed?: number | null;
+  /** Per-call timeout. Providers translate this into max polling attempts. */
+  timeoutSeconds?: number | null;
 }

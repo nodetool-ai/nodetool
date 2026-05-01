@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
+import isEqual from "fast-deep-equal";
 import {
   TabulatorFull as Tabulator,
   CellComponent,
@@ -57,7 +58,7 @@ const DictTable: React.FC<DictTableProps> = ({
               minWidth: 25,
               resizable: false,
               frozen: true,
-              cellClick: function (_e: any, cell: CellComponent) {
+              cellClick: function (_e: UIEvent, cell: CellComponent) {
                 cell.getRow().toggleSelect();
               },
               editable: false,
@@ -199,4 +200,4 @@ const DictTable: React.FC<DictTableProps> = ({
   );
 };
 
-export default DictTable;
+export default memo(DictTable, isEqual);

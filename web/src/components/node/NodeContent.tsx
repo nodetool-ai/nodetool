@@ -169,11 +169,11 @@ const NodeContent: React.FC<NodeContentProps> = ({
 }) => {
   const { handleAddProperty } = useDynamicProperty(
     id,
-    data.dynamic_properties as Record<string, any>
+    data.dynamic_properties
   );
 
-  const isEmptyObject = (obj: any) => {
-    return obj && typeof obj === "object" && Object.keys(obj).length === 0;
+  const isEmptyObject = (obj: unknown): boolean => {
+    return !!obj && typeof obj === "object" && Object.keys(obj).length === 0;
   };
 
   // For output nodes, always show overlay when result is available

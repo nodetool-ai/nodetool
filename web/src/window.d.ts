@@ -141,8 +141,6 @@ interface ClipboardContentInfo {
 
 declare global {
   interface Window {
-    // Logger instance attached for debugging purposes (loglevel)
-    log?: import("loglevel").Logger;
     api: {
       runApp: (workflowId: string) => Promise<void>;
 
@@ -451,6 +449,7 @@ declare global {
         ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
+        showManager?: () => void;
       };
 
       // Low-level IPC methods for registering handlers (available in Electron only)

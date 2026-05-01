@@ -6,6 +6,7 @@ import { create } from "zustand";
 import { NodeMetadata, TypeName } from "./ApiTypes";
 import { ConnectDirection } from "./ConnectionStore";
 import useMetadataStore from "./MetadataStore";
+import { useComfyUIStore } from "./ComfyUIStore";
 import {
   computeSearchResults,
   filterNodesUtil,
@@ -119,7 +120,13 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 
     const getFilteredMetadata = () => {
       const all = Object.values(useMetadataStore.getState().metadata);
-      return options.onlyTools ? all.filter((n) => n.expose_as_tool) : all;
+      const isComfyConnected = useComfyUIStore.getState().isConnected;
+      const visibleNodes = isComfyConnected
+        ? all
+        : all.filter((node) => !node.node_type?.startsWith("comfy."));
+      return options.onlyTools
+        ? visibleNodes.filter((n) => n.expose_as_tool)
+        : visibleNodes;
     };
     const filterNodes = (nodes: NodeMetadata[]) =>
       filterNodesUtil(
@@ -558,11 +565,5 @@ export const createNodeMenuStore = (options: NodeMenuStoreOptions = {}) =>
 
 export const useNodeMenuStore = createNodeMenuStore();
 export const useNodeToolsMenuStore = createNodeMenuStore({ onlyTools: true });
-
-export const __setNodeToolsMenuStore = (
-  state: Partial<NodeMenuStore>
-) => {
-  useNodeToolsMenuStore.setState(state);
-};
 
 export default useNodeMenuStore;

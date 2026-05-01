@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       height: 28,
       minWidth: 28,
       backgroundColor: theme.palette.primary.main,
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       color: "white",
       "&:hover": {
         backgroundColor: theme.palette.primary.dark,
@@ -124,6 +124,7 @@ const PortalInput: React.FC<PortalInputProps> = ({
         onClick={handleSend}
         disabled={disabled || !value.trim()}
         size="small"
+        aria-label="Send message"
       >
         <ArrowUpwardIcon sx={{ fontSize: 16 }} />
       </IconButton>

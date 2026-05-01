@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { ParallelTaskExecutor } from "../src/parallel-task-executor.js";
 import type { TaskPlan } from "../src/types.js";
-import type { ProcessingMessage, StepResult } from "@nodetool/protocol";
+import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 
 function createMockProvider(delayMs = 0) {
   return {

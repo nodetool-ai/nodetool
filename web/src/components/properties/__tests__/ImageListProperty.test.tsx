@@ -6,7 +6,6 @@ import ImageListProperty from "../ImageListProperty";
 
 // Mock dependencies
 jest.mock("../../../config/data_types", () => ({}));
-jest.mock("../../../stores/ApiClient", () => ({ client: { GET: jest.fn() } }));
 jest.mock("../../../serverState/useAssetUpload", () => ({
   useAssetUpload: () => ({
     uploadAsset: jest.fn(),

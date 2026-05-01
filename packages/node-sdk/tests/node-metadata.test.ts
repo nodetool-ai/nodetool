@@ -31,6 +31,7 @@ describe("getNodeMetadata", () => {
     expect(meta.node_type).toBe("nodetool.test.Add");
     expect(meta.namespace).toBe("nodetool.test");
     expect(meta.is_streaming_output).toBe(false);
+    expect(meta.is_dynamic).toBe(true);
   });
 
   it("extracts properties with defaults", () => {
@@ -206,16 +207,15 @@ describe("getNodeMetadata — additional coverage", () => {
     expect(configProp!.default).toEqual({ key: "value" });
   });
 
-  // ── is_dynamic is always false ────────────────────────────────────────
+  // ── is_dynamic defaults to false when node classes do not opt in ───────
 
-  it("is_dynamic is always false for multiple node types", () => {
+  it("is_dynamic is false for non-dynamic node types", () => {
     const nodeClasses = [
-      Add,
       Passthrough,
       StreamingCounter,
       Constant,
-      StringConcat,
-      ThresholdProcessor
+      ThresholdProcessor,
+      Multiply
     ];
     for (const cls of nodeClasses) {
       const meta = getNodeMetadata(cls);
@@ -649,6 +649,48 @@ describe("getNodeMetadata – outputTypes support", () => {
     const messageOut = meta.outputs.find((o) => o.name === "message");
     expect(messageOut).toBeDefined();
     expect(messageOut!.type.type).toBe("str");
+  });
+
+  it("treats `tjs.*`-typed model props as basic fields by default", () => {
+    class TjsLikeNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.TjsLike";
+      static readonly title = "TJS-like";
+      static readonly description = "";
+
+      @prop({ type: "str", default: "hello", title: "Text" })
+      declare text: any;
+
+      @prop({
+        type: "tjs.text_classification",
+        default: { type: "tjs.text_classification", repo_id: "Xenova/foo" },
+        title: "Model"
+      })
+      declare model: any;
+
+      @prop({ type: "int", default: 1, title: "Top K" })
+      declare top_k: any;
+
+      @prop({ type: "enum", default: "auto", title: "Quantization", values: ["auto", "fp16"] })
+      declare dtype: any;
+
+      @prop({ type: "enum", default: "auto", title: "Device", values: ["auto", "cpu"] })
+      declare device: any;
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(
+      TjsLikeNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    // 5 props total — heuristic kicks in (not the ≤3 fall-through).
+    // `model` (tjs.* selector) and `text` (str / primary input) must be basic;
+    // `top_k`, `dtype`, `device` should remain advanced.
+    expect(meta.basic_fields).toEqual(expect.arrayContaining(["model", "text"]));
+    expect(meta.basic_fields).not.toContain("top_k");
+    expect(meta.basic_fields).not.toContain("dtype");
+    expect(meta.basic_fields).not.toContain("device");
   });
 
   it("marks outputs as streaming when isStreamingOutput is true", () => {

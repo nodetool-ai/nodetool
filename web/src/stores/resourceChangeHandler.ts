@@ -7,7 +7,6 @@
  * This enables real-time synchronization of the client state with the backend
  * database without requiring manual cache invalidation or polling.
  */
-import log from "loglevel";
 import { queryClient } from "../queryClient";
 import { ResourceChangeUpdate } from "./ApiTypes";
 import { loadMetadata } from "../serverState/useMetadata";
@@ -25,10 +24,28 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
   collection: ["collections"],
   workspace: ["workspaces"],
   secret: ["secrets"],
-  model: ["models"],
   metadata: ["metadata"]
   // Add more mappings as needed
 };
+
+const PROVIDER_QUERY_KEYS = ["providers"] as const;
+const MODEL_QUERY_KEYS = [
+  "models",
+  "language-models",
+  "embedding-models",
+  "image-models",
+  "tts-models",
+  "asr-models",
+  "video-models",
+  "allModels"
+] as const;
+
+function invalidateQueryKeys(keys: readonly string[]): void {
+  keys.forEach((queryKey) => {
+    console.debug(`[ResourceChange] Invalidating query cache: [${queryKey}]`);
+    queryClient.invalidateQueries({ queryKey: [queryKey] });
+  });
+}
 
 /**
  * Handle resource change notifications from the WebSocket.
@@ -38,15 +55,28 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
 export function handleResourceChange(update: ResourceChangeUpdate): void {
   const { event, resource_type, resource } = update;
 
-  log.info(`[ResourceChange] Received update: ${event} ${resource_type}`, {
+  console.info(`[ResourceChange] Received update: ${event} ${resource_type}`, {
     id: resource.id,
     etag: resource.etag
   });
 
   // Special handling for metadata changes (e.g. Python bridge nodes registered)
   if (resource_type === "metadata") {
-    log.info("[ResourceChange] Reloading node metadata");
+    console.info("[ResourceChange] Reloading node metadata");
     void loadMetadata();
+    invalidateQueryKeys(["metadata"]);
+    return;
+  }
+
+  if (resource_type === "provider") {
+    console.info("[ResourceChange] Invalidating provider and model queries");
+    invalidateQueryKeys([...PROVIDER_QUERY_KEYS, ...MODEL_QUERY_KEYS]);
+    return;
+  }
+
+  if (resource_type === "model") {
+    console.info("[ResourceChange] Invalidating model queries");
+    invalidateQueryKeys(MODEL_QUERY_KEYS);
     return;
   }
 
@@ -54,32 +84,29 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   const queryKeys = RESOURCE_TYPE_TO_QUERY_KEYS[resource_type];
 
   if (!queryKeys || queryKeys.length === 0) {
-    log.debug(
+    console.debug(
       `[ResourceChange] No query keys configured for resource_type: ${resource_type}, skipping cache invalidation`
     );
     return;
   }
 
-  log.debug(
+  console.debug(
     `[ResourceChange] Invalidating ${queryKeys.length} query key(s) for ${resource_type}:`,
     queryKeys
   );
 
   // Invalidate all relevant query caches
-  queryKeys.forEach((queryKey) => {
-    log.debug(`[ResourceChange] Invalidating query cache: [${queryKey}]`);
-    queryClient.invalidateQueries({ queryKey: [queryKey] });
-  });
+  invalidateQueryKeys(queryKeys);
 
   // For specific resources, also invalidate their individual caches
   if (resource.id) {
-    log.debug(
+    console.debug(
       `[ResourceChange] Invalidating individual resource queries for ${resource_type}:${resource.id}`
     );
 
     // For workflows, invalidate the specific workflow query
     if (resource_type === "workflow") {
-      log.debug(
+      console.debug(
         `[ResourceChange] Invalidating workflow queries: ["workflow", "${resource.id}"], ["workflow", "${resource.id}", "versions"]`
       );
       queryClient.invalidateQueries({
@@ -92,7 +119,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
 
     // For threads, invalidate the specific thread query
     if (resource_type === "thread") {
-      log.debug(
+      console.debug(
         `[ResourceChange] Invalidating thread queries: ["thread", "${resource.id}"], ["messages", "${resource.id}"]`
       );
       queryClient.invalidateQueries({
@@ -105,7 +132,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
 
     // For jobs, invalidate the specific job query
     if (resource_type === "job") {
-      log.debug(
+      console.debug(
         `[ResourceChange] Invalidating job query: ["job", "${resource.id}"]`
       );
       queryClient.invalidateQueries({
@@ -114,7 +141,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     }
   }
 
-  log.debug(
+  console.debug(
     `[ResourceChange] Cache invalidation complete for ${event} ${resource_type}:${resource.id}`
   );
 }

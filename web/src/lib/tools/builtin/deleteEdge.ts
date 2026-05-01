@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiDeleteEdgeParams } from "@nodetool/protocol";
+import { uiDeleteEdgeParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 

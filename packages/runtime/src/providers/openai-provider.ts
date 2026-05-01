@@ -1,12 +1,17 @@
-import OpenAI from "openai";
-import type { Chunk } from "@nodetool/protocol";
-import { createLogger } from "@nodetool/config";
+import OpenAI, { toFile } from "openai";
+// `sharp` is loaded lazily at the call site. Importing it at module scope
+// pulls its native binding into anything that re-exports this provider —
+// notably the Electron main bundle, where Vite/Rollup can't resolve sharp's
+// dynamic require for `@img/sharp-*.node` and the app crashes at launch.
+import type { Chunk } from "@nodetool-ai/protocol";
+import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.openai");
 import type {
   ASRModel,
   EmbeddingModel,
+  EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
@@ -226,6 +231,12 @@ export class OpenAIProvider extends BaseProvider {
 
   async getAvailableImageModels(): Promise<ImageModel[]> {
     return [
+      {
+        id: "gpt-image-2",
+        name: "GPT Image 2",
+        provider: "openai",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      },
       {
         id: "gpt-image-1.5",
         name: "GPT Image 1.5",
@@ -471,11 +482,11 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async uriToBase64(uri: string): Promise<string> {
-    if (uri.startsWith("data:")) {
-      return this.normalizeDataUri(uri);
+    const resolved = await this.resolveUri(uri);
+    if (resolved.startsWith("data:")) {
+      return this.normalizeDataUri(resolved);
     }
-
-    const response = await this._fetch(uri);
+    const response = await this._fetch(resolved);
     if (!response.ok) {
       throw new Error(`Failed to fetch URI: ${response.status}`);
     }
@@ -855,9 +866,14 @@ export class OpenAIProvider extends BaseProvider {
     const responseMessage = choice.message;
 
     const toolCalls = Array.isArray(responseMessage.tool_calls)
-      ? responseMessage.tool_calls.map((tc) =>
-          this.buildToolCall(tc.id, tc.function.name, tc.function.arguments)
-        )
+      ? responseMessage.tool_calls
+          .filter(
+            (tc): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
+              tc.type === "function"
+          )
+          .map((tc) =>
+            this.buildToolCall(tc.id, tc.function.name, tc.function.arguments)
+          )
       : undefined;
 
     return {
@@ -888,9 +904,9 @@ export class OpenAIProvider extends BaseProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
-    const response = await this.getClient().images.generate(
+    const response = (await this.getClient().images.generate(
       request as unknown as OpenAI.Images.ImageGenerateParams
-    );
+    )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
     if (!item) {
@@ -929,7 +945,9 @@ export class OpenAIProvider extends BaseProvider {
 
     const request: Record<string, unknown> = {
       model: params.model.id,
-      image: ["image.png", image, "image/png"],
+      image: await toFile(Buffer.from(image), "image.png", {
+        type: "image/png"
+      }),
       prompt
     };
 
@@ -940,9 +958,9 @@ export class OpenAIProvider extends BaseProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
-    const response = await this.getClient().images.edit(
+    const response = (await this.getClient().images.edit(
       request as unknown as OpenAI.Images.ImageEditParams
-    );
+    )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
     if (!item) {
@@ -969,6 +987,7 @@ export class OpenAIProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     if (!args.text) {
       throw new Error("text must not be empty");
@@ -1009,6 +1028,56 @@ export class OpenAIProvider extends BaseProvider {
         : response
     );
     yield { samples: toInt16Samples(bytes) };
+  }
+
+  /**
+   * OpenAI supports several fully-encoded TTS formats directly (mp3, opus,
+   * aac, flac, wav). Use this path when the caller has requested one of them
+   * so we can skip the PCM → WAV wrapping step and honor the user's choice.
+   * For `"pcm"` (and anything unrecognised) we return `null` and let the
+   * streaming PCM path handle it.
+   */
+  override async textToSpeechEncoded(args: {
+    text: string;
+    model: string;
+    voice?: string;
+    speed?: number;
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
+    if (!args.text) {
+      throw new Error("text must not be empty");
+    }
+
+    const fmt = (args.audioFormat ?? "").toLowerCase();
+    const formatToMime: Record<string, string> = {
+      mp3: "audio/mpeg",
+      opus: "audio/ogg",
+      aac: "audio/aac",
+      flac: "audio/flac",
+      wav: "audio/wav"
+    };
+    if (!(fmt in formatToMime)) {
+      return null;
+    }
+
+    const voice = args.voice ?? "alloy";
+    const speed = Math.max(0.25, Math.min(4.0, args.speed ?? 1.0));
+
+    const speechApi = this.getClient().audio.speech as any;
+    const response = await speechApi.create({
+      model: args.model,
+      input: args.text,
+      voice,
+      speed,
+      response_format: fmt
+    });
+
+    const bytes = asUint8Array(
+      typeof response.arrayBuffer === "function"
+        ? await response.arrayBuffer()
+        : response
+    );
+    return { data: bytes, mimeType: formatToMime[fmt] };
   }
 
   async automaticSpeechRecognition(args: {
@@ -1102,8 +1171,8 @@ export class OpenAIProvider extends BaseProvider {
       seconds: String(seconds)
     };
 
-    const video = await ((this.getClient() as any).videos as any).create(
-      request
+    const video = await this.getClient().videos.create(
+      request as unknown as OpenAI.Videos.VideoCreateParams
     );
     if (!video?.id) {
       throw new Error(
@@ -1122,9 +1191,7 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      latest = await ((this.getClient() as any).videos as any).retrieve({
-        video_id: video.id
-      });
+      latest = await this.getClient().videos.retrieve(video.id);
     }
 
     if (latest.status !== "completed") {
@@ -1136,17 +1203,11 @@ export class OpenAIProvider extends BaseProvider {
       );
     }
 
-    const bytes = await (this.getClient() as any).get(
-      `/videos/${video.id}/content`,
-      {
-        cast_to: Uint8Array,
-        options: {
-          params: { variant: "video" }
-        }
-      }
+    const contentResponse = await this.getClient().videos.downloadContent(
+      video.id,
+      { variant: "video" }
     );
-
-    return asUint8Array(bytes);
+    return new Uint8Array(await contentResponse.arrayBuffer());
   }
 
   async imageToVideo(
@@ -1158,18 +1219,34 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     const [width, height] = OpenAIProvider.extractImageDimensions(image);
-    const size = OpenAIProvider.snapToValidVideoDimensions(width, height);
+    const requestedSize = OpenAIProvider.resolveVideoSize(
+      params.aspectRatio,
+      params.resolution
+    );
+    const size =
+      requestedSize ?? OpenAIProvider.snapToValidVideoDimensions(width, height);
     const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
 
-    const [ext] = size.startsWith("720x1280") ? ["png"] : ["png"];
-    const mimeType = `image/${ext}`;
+    const [targetW, targetH] = size.split("x").map(Number);
+    const sharp = (await import("sharp")).default;
+    const resized =
+      width === targetW && height === targetH
+        ? image
+        : new Uint8Array(
+            await sharp(image)
+              .resize(targetW, targetH, { fit: "cover", position: "centre" })
+              .png()
+              .toBuffer()
+          );
 
-    const video = await ((this.getClient() as any).videos as any).create({
-      model: params.model.id,
+    const video = await this.getClient().videos.create({
+      model: params.model.id as OpenAI.Videos.VideoModel,
       prompt: params.prompt ?? "",
-      input_reference: [`input_image.${ext}`, image, mimeType],
-      size,
-      seconds: String(seconds)
+      input_reference: await toFile(Buffer.from(resized), "input_image.png", {
+        type: "image/png"
+      }),
+      size: size as OpenAI.Videos.VideoSize,
+      seconds: String(seconds) as OpenAI.Videos.VideoSeconds
     });
 
     if (!video?.id) {
@@ -1189,9 +1266,7 @@ export class OpenAIProvider extends BaseProvider {
       }
 
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
-      latest = await ((this.getClient() as any).videos as any).retrieve({
-        video_id: video.id
-      });
+      latest = await this.getClient().videos.retrieve(video.id);
     }
 
     if (latest.status !== "completed") {
@@ -1203,17 +1278,11 @@ export class OpenAIProvider extends BaseProvider {
       );
     }
 
-    const bytes = await (this.getClient() as any).get(
-      `/videos/${video.id}/content`,
-      {
-        cast_to: Uint8Array,
-        options: {
-          params: { variant: "video" }
-        }
-      }
+    const contentResponse = await this.getClient().videos.downloadContent(
+      video.id,
+      { variant: "video" }
     );
-
-    return asUint8Array(bytes);
+    return new Uint8Array(await contentResponse.arrayBuffer());
   }
 
   async generateEmbedding(args: {

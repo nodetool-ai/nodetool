@@ -2,7 +2,7 @@
 
 import { Box } from "@mui/material";
 import { LoadingSpinner, ScrollArea, Text } from "../ui_primitives";
-import { useCallback, useMemo, useState, useEffect, memo } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -20,9 +20,7 @@ import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
 import AppHeader from "../panels/AppHeader";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeGrid as Grid, GridChildComponentProps } from "react-window";
-import log from "loglevel";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 const styles = (theme: Theme) =>
   css({
@@ -137,7 +135,7 @@ const styles = (theme: Theme) =>
       maxWidth: "400px",
       "& .MuiOutlinedInput-root": {
         background: theme.vars.palette.action.hover,
-        borderRadius: "12px",
+        borderRadius: "var(--rounded-xl)",
         "& .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.divider
         },
@@ -297,7 +295,7 @@ const TemplateGrid = memo(function TemplateGrid() {
           detailedNodeMatchResults.filter((sr) => sr.matches.length > 0)
         );
       } catch (error) {
-        log.error("Search failed:", error);
+        console.error("Search failed:", error);
         setSearchResults([]); // Clear results on error
       }
     } else if (
@@ -383,7 +381,7 @@ const TemplateGrid = memo(function TemplateGrid() {
         const newWorkflow = await copyTemplateWorkflow(workflow);
         navigate("/editor/" + newWorkflow.id);
       } catch (error) {
-        log.error("Error copying workflow:", error);
+        console.error("Error copying workflow:", error);
         setLoadingWorkflowId(null);
       }
     },
@@ -430,65 +428,50 @@ const TemplateGrid = memo(function TemplateGrid() {
     return Math.max(1, Math.floor((width + GAP) / (CARD_WIDTH + GAP)));
   }, []);
 
-  // Grid item data for virtualization
-  const gridItemData = useMemo(
-    () => ({
-      filteredWorkflows,
-      searchResults,
-      nodesOnlySearch,
-      loadingWorkflowId,
-      onClickWorkflow,
-      columns: 1 // Will be updated dynamically
-    }),
-    [
-      filteredWorkflows,
-      searchResults,
-      nodesOnlySearch,
-      loadingWorkflowId,
-      onClickWorkflow
-    ]
-  );
+  // Pre-compute a Map for O(1) search result lookups instead of O(n) .find() per cell
+  const searchResultsMap = useMemo(() => {
+    const map = new Map<string, FrontendSearchResult>();
+    for (const r of searchResults) {
+      map.set(r.workflow.id, r);
+    }
+    return map;
+  }, [searchResults]);
 
-  // Grid cell renderer
-  const GridCell = useCallback(
-    ({
-      columnIndex,
-      rowIndex,
-      style,
-      data
-    }: GridChildComponentProps<typeof gridItemData & { columns: number }>) => {
-      const index = rowIndex * data.columns + columnIndex;
-      const workflow = data.filteredWorkflows[index];
+  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
-      if (!workflow) { return null; }
+  const setGridScrollRef = useCallback((el: HTMLDivElement | null) => {
+    resizeObserverRef.current?.disconnect();
+    resizeObserverRef.current = null;
+    gridScrollRef.current = el;
+    if (!el) {
+      return;
+    }
+    setContainerWidth(el.clientWidth);
+    const observer = new ResizeObserver(() =>
+      setContainerWidth(el.clientWidth)
+    );
+    observer.observe(el);
+    resizeObserverRef.current = observer;
+  }, []);
 
-      const searchResult = data.searchResults.find(
-        (r: FrontendSearchResult) => r.workflow.id === workflow.id
-      );
-      const matchedNodes = searchResult?.matches?.length
-        ? searchResult.matches
-        : [];
-      const isLoading = data.loadingWorkflowId === workflow.id;
+  useEffect(() => {
+    return () => {
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, []);
 
-      return (
-        <div
-          style={{
-            ...style,
-            padding: GAP / 2
-          }}
-        >
-          <WorkflowCard
-            workflow={workflow}
-            matchedNodes={matchedNodes}
-            nodesOnlySearch={data.nodesOnlySearch}
-            isLoading={isLoading}
-            onClick={data.onClickWorkflow}
-          />
-        </div>
-      );
-    },
-    []
-  );
+  const columns = Math.max(1, calculateColumns(containerWidth));
+  const rowCount = Math.ceil(filteredWorkflows.length / columns);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => gridScrollRef.current,
+    estimateSize: () => CARD_HEIGHT + GAP,
+    overscan: 2,
+  });
 
   // Show loading state
   const showLoading = isLoadingTemplates || isFetchingSearchData;
@@ -546,27 +529,68 @@ const TemplateGrid = memo(function TemplateGrid() {
         )}
         {showGrid && (
           <Box className="virtualized-container">
-            <AutoSizer>
-              {({ height, width }: { height: number; width: number }) => {
-                const columns = calculateColumns(width);
-                const rowCount = Math.ceil(filteredWorkflows.length / columns);
-                const columnWidth = Math.floor(width / columns);
-
-                return (
-                  <Grid
-                    columnCount={columns}
-                    columnWidth={columnWidth}
-                    height={height}
-                    rowCount={rowCount}
-                    rowHeight={CARD_HEIGHT + GAP}
-                    width={width}
-                    itemData={{ ...gridItemData, columns }}
-                  >
-                    {GridCell}
-                  </Grid>
-                );
-              }}
-            </AutoSizer>
+            <div
+              ref={setGridScrollRef}
+              style={{ height: "100%", width: "100%", overflow: "auto" }}
+            >
+              <div
+                style={{
+                  height: rowVirtualizer.getTotalSize(),
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const cells = [];
+                  for (let col = 0; col < columns; col += 1) {
+                    const index = virtualRow.index * columns + col;
+                    const workflow = filteredWorkflows[index];
+                    if (!workflow) {
+                      break;
+                    }
+                    const searchResult = searchResultsMap.get(workflow.id);
+                    const matchedNodes = searchResult?.matches?.length
+                      ? searchResult.matches
+                      : [];
+                    const isLoading = loadingWorkflowId === workflow.id;
+                    cells.push(
+                      <div
+                        key={workflow.id}
+                        style={{
+                          width: `${100 / columns}%`,
+                          padding: GAP / 2,
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <WorkflowCard
+                          workflow={workflow}
+                          matchedNodes={matchedNodes}
+                          nodesOnlySearch={nodesOnlySearch}
+                          isLoading={isLoading}
+                          onClick={onClickWorkflow}
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: virtualRow.size,
+                        transform: `translateY(${virtualRow.start}px)`,
+                        display: "flex",
+                      }}
+                    >
+                      {cells}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </Box>
         )}
         {showNoResults && (

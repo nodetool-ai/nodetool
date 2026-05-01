@@ -1,4 +1,4 @@
-# @nodetool/storage
+# @nodetool-ai/storage
 
 Storage abstraction layer for NodeTool providing a uniform interface over
 multiple storage backends: local file system, in-memory (for tests), Amazon S3
@@ -49,7 +49,7 @@ This means:
 ### FileStorage
 
 ```ts
-import { FileStorage } from "@nodetool/storage";
+import { FileStorage } from "@nodetool-ai/storage";
 
 const store = new FileStorage("/var/data/uploads");
 await store.upload("images/photo.jpg", buffer, "image/jpeg");
@@ -62,7 +62,7 @@ console.log(store.getUrl("images/photo.jpg")); // file:///var/data/uploads/image
 Requires `@aws-sdk/client-s3` installed in the consuming application.
 
 ```ts
-import { S3Storage } from "@nodetool/storage";
+import { S3Storage } from "@nodetool-ai/storage";
 
 // Amazon S3
 const s3 = new S3Storage("my-bucket", undefined, "cdn.example.com", "us-east-1");
@@ -79,7 +79,7 @@ console.log(s3.getUrl("assets/logo.png")); // https://cdn.example.com/assets/log
 Requires `@supabase/supabase-js` installed in the consuming application.
 
 ```ts
-import { SupabaseStorage } from "@nodetool/storage";
+import { SupabaseStorage } from "@nodetool-ai/storage";
 
 const store = new SupabaseStorage(
   "https://<project>.supabase.co",

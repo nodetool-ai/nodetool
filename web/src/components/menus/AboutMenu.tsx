@@ -6,10 +6,9 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
-import { isElectron } from "../../stores/ApiClient";
+import { isElectron, isProduction } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip } from "../ui_primitives";
-import log from "loglevel";
 
 // Note: This interface mirrors the SystemInfo type from window.d.ts
 // We use a local copy to avoid type export complexity
@@ -177,7 +176,7 @@ const AboutMenu: React.FC = memo(() => {
         setSystemInfo(info ?? null);
       } catch (err) {
         setError("Failed to load system information");
-        log.error("Failed to fetch system info:", err);
+        console.error("Failed to fetch system info:", err);
       } finally {
         setLoading(false);
       }
@@ -312,8 +311,8 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         )}
       </div>
 
-      {/* Installation Paths - only show in Electron */}
-      {systemInfo && (
+      {/* Installation Paths - hide in production */}
+      {systemInfo && !isProduction && (
         <>
           <Text size="big" id="installation-paths">
             Installation Paths

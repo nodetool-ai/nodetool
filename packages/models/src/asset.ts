@@ -117,15 +117,14 @@ export class Asset extends DBModel {
       conditions.push(eq(assets.job_id, jobId));
     }
 
-    const rows = db
+    const rows = await db
       .select()
       .from(assets)
       .where(and(...conditions))
       .orderBy(desc(assets.created_at))
       .limit(limit + 1)
-      .all();
 
-    const items = rows.map((r) => new Asset(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Asset(r as Record<string, unknown>));
     if (items.length <= limit) return [items, ""];
     items.pop();
     const cursor = items[items.length - 1]?.id ?? "";
@@ -168,19 +167,18 @@ export class Asset extends DBModel {
       conditions.push(like(assets.content_type, `${sanitizedType}%`));
     }
 
-    const rows = db
+    const rows = await db
       .select()
       .from(assets)
       .where(and(...conditions))
       .limit(limit)
-      .all();
 
-    const items = rows.map((r) => new Asset(r as Record<string, unknown>));
+    const items = rows.map((r: Record<string, unknown>) => new Asset(r as Record<string, unknown>));
     const cursor = "";
 
     const pathInfo = await Asset.getAssetPathInfo(
       userId,
-      items.map((a) => a.id)
+      items.map((a: Record<string, unknown>) => a.id)
     );
 
     const folderPaths: Array<Record<string, string>> = [];

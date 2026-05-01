@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { execSync } from "node:child_process";
-import { ClaudeAgentProvider, ProcessingContext } from "@nodetool/runtime";
+import { ClaudeAgentProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import { TeamExecutor } from "../../src/team/team-executor.js";
 import { Tool } from "../../src/tools/base-tool.js";
 import type {

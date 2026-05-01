@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
-import { IconButton, Button, Popover } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { useShallow } from "zustand/react/shallow";
+import { Button, Popover } from "@mui/material";
+import { ToolbarIconButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import ListIcon from "@mui/icons-material/List";
 import AddIcon from "@mui/icons-material/Add";
@@ -13,13 +14,13 @@ import type { ThreadInfo } from "../chat/thread";
 import SvgFileIcon from "../SvgFileIcon";
 import PanelHeadline from "../ui/PanelHeadline";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { LanguageModel, Message, Workflow } from "../../stores/ApiTypes";
+import { Message, Workflow } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
-import { useLanguageModelsByProvider } from "../../hooks/useModelsByProvider";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useMetadataStore from "../../stores/MetadataStore";
-import log from "loglevel";
+
+const EMPTY_COLLECTIONS: string[] = [];
 
 const containerStyles = css({
   flex: 1,
@@ -77,7 +78,8 @@ const extractFirstTextContent = (message: Message): string | null => {
 
 /**
  * WorkflowAssistantChat embeds a ChatView scoped to the current workflow.
- * It supports only "talk to a workflow" mode (no agent/help mode behavior).
+ * Supports both plain chat-with-workflow mode and agent mode — any chat
+ * provider can be selected as the agent provider via the composer.
  */
 const WorkflowAssistantChat: React.FC = () => {
   const theme = useTheme();
@@ -100,35 +102,38 @@ const WorkflowAssistantChat: React.FC = () => {
     currentToolMessage,
     selectedModel,
     setSelectedModel,
+    agentMode,
     setAgentMode,
+    agentPlanner,
+    setAgentPlanner,
     setSelectedTools,
     setSelectedCollections
   } = useGlobalChatStore(
-    useMemo(
-      () => (state) => ({
-        status: state.status,
-        sendMessage: state.sendMessage,
-        progress: state.progress,
-        statusMessage: state.statusMessage,
-        error: state.error,
-        stopGeneration: state.stopGeneration,
-        getCurrentMessagesSync: state.getCurrentMessagesSync,
-        createNewThread: state.createNewThread,
-        currentThreadId: state.currentThreadId,
-        threads: state.threads,
-        switchThread: state.switchThread,
-        deleteThread: state.deleteThread,
-        messageCache: state.messageCache,
-        currentRunningToolCallId: state.currentRunningToolCallId,
-        currentToolMessage: state.currentToolMessage,
-        selectedModel: state.selectedModel,
-        setSelectedModel: state.setSelectedModel,
-        setAgentMode: state.setAgentMode,
-        setSelectedTools: state.setSelectedTools,
-        setSelectedCollections: state.setSelectedCollections
-      }),
-      []
-    )
+    useShallow((state) => ({
+      status: state.status,
+      sendMessage: state.sendMessage,
+      progress: state.progress,
+      statusMessage: state.statusMessage,
+      error: state.error,
+      stopGeneration: state.stopGeneration,
+      getCurrentMessagesSync: state.getCurrentMessagesSync,
+      createNewThread: state.createNewThread,
+      currentThreadId: state.currentThreadId,
+      threads: state.threads,
+      switchThread: state.switchThread,
+      deleteThread: state.deleteThread,
+      messageCache: state.messageCache,
+      currentRunningToolCallId: state.currentRunningToolCallId,
+      currentToolMessage: state.currentToolMessage,
+      selectedModel: state.selectedModel,
+      setSelectedModel: state.setSelectedModel,
+      agentMode: state.agentMode,
+      setAgentMode: state.setAgentMode,
+      agentPlanner: state.agentPlanner,
+      setAgentPlanner: state.setAgentPlanner,
+      setSelectedTools: state.setSelectedTools,
+      setSelectedCollections: state.setSelectedCollections
+    }))
   );
 
   const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
@@ -136,12 +141,12 @@ const WorkflowAssistantChat: React.FC = () => {
   const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
   const nodeMetadata = useMetadataStore((state) => state.metadata);
 
-  // Force workflow-only behavior in this panel.
+  // Tools and collections aren't selectable here — the workflow itself is the
+  // tool surface. Agent mode and provider/model stay user-controlled.
   useEffect(() => {
-    setAgentMode(false);
     setSelectedTools([]);
     setSelectedCollections([]);
-  }, [setAgentMode, setSelectedTools, setSelectedCollections]);
+  }, [setSelectedTools, setSelectedCollections]);
 
   const total = progress.total;
   const nodes = useNodes((state) => state.nodes, areNodesEqualIgnoringPosition);
@@ -154,11 +159,12 @@ const WorkflowAssistantChat: React.FC = () => {
     useState<HTMLButtonElement | null>(null);
   const isThreadListOpen = Boolean(threadListAnchorEl);
 
-  const messageInputNames = useMemo(() => {
+  const { messageInputNames, messageListInputNames } = useMemo(() => {
     if (!nodes || nodes.length === 0) {
-      return [] as string[];
+      return { messageInputNames: [] as string[], messageListInputNames: [] as string[] };
     }
-    const names: string[] = [];
+    const msgNames: string[] = [];
+    const msgListNames: string[] = [];
     for (const node of nodes) {
       const data = (node.data ?? {}) as Record<string, unknown>;
       const properties =
@@ -189,51 +195,19 @@ const WorkflowAssistantChat: React.FC = () => {
         nodeType === "nodetool.input.MessageInput" ||
         nodeType.endsWith(".MessageInput")
       ) {
-        names.push(nodeName);
-      }
-    }
-    return Array.from(new Set(names));
-  }, [nodes]);
-
-  const messageListInputNames = useMemo(() => {
-    if (!nodes || nodes.length === 0) {
-      return [] as string[];
-    }
-    const names: string[] = [];
-    for (const node of nodes) {
-      const data = (node.data ?? {}) as Record<string, unknown>;
-      const properties =
-        typeof data.properties === "object" && data.properties !== null
-          ? (data.properties as Record<string, unknown>)
-          : {};
-      const nodeType =
-        typeof data.type === "string"
-          ? data.type
-          : typeof data.originalType === "string"
-            ? data.originalType
-            : typeof properties.type === "string"
-              ? properties.type
-          : typeof node.type === "string"
-            ? node.type
-            : "";
-      const nodeName =
-        typeof properties.name === "string"
-          ? properties.name.trim()
-          : typeof data.name === "string"
-            ? data.name.trim()
-            : "";
-      if (!nodeName) {
-        continue;
-      }
-      if (
+        msgNames.push(nodeName);
+      } else if (
         nodeType === "MessageListInput" ||
         nodeType === "nodetool.input.MessageListInput" ||
         nodeType.endsWith(".MessageListInput")
       ) {
-        names.push(nodeName);
+        msgListNames.push(nodeName);
       }
     }
-    return Array.from(new Set(names));
+    return {
+      messageInputNames: Array.from(new Set(msgNames)),
+      messageListInputNames: Array.from(new Set(msgListNames))
+    };
   }, [nodes]);
 
   const hasMessageInput =
@@ -251,34 +225,6 @@ const WorkflowAssistantChat: React.FC = () => {
     return `workflow_${toolName}`;
   }, [currentWorkflowId, getWorkflow]);
 
-  const { models: approvedModels } = useLanguageModelsByProvider({
-    allowedProviders: ["OpenAI", "MiniMax", "Anthropic", "Google", "Gemini"]
-  });
-
-  useEffect(() => {
-    if (approvedModels.length > 0) {
-      const isApproved = approvedModels.some(
-        (m: LanguageModel) =>
-          m.id === selectedModel.id &&
-          m.provider.toLowerCase() === selectedModel.provider?.toLowerCase()
-      );
-      if (!isApproved) {
-        // Fallback to first approved model (usually gpt-4o if available)
-        const fallback =
-          approvedModels.find((m: LanguageModel) => m.id === "gpt-4o") ||
-          approvedModels[0];
-        if (fallback) {
-          setSelectedModel({
-            type: "language_model",
-            id: fallback.id,
-            provider: fallback.provider,
-            name: fallback.name || fallback.id
-          });
-        }
-      }
-    }
-  }, [approvedModels, selectedModel.id, selectedModel.provider, setSelectedModel]);
-
   // Handlers for thread actions
   const handleNewChat = useCallback(() => {
     createNewThread()
@@ -287,7 +233,7 @@ const WorkflowAssistantChat: React.FC = () => {
         setThreadListAnchorEl(null);
       })
       .catch((createError) => {
-        log.error("Failed to create new thread:", createError);
+        console.error("Failed to create new thread:", createError);
       });
   }, [createNewThread, switchThread]);
 
@@ -313,7 +259,7 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleDeleteThread = useCallback(
     (id: string) => {
       deleteThread(id).catch((deleteError) => {
-        log.error("Failed to delete thread:", deleteError);
+        console.error("Failed to delete thread:", deleteError);
       });
     },
     [deleteThread]
@@ -362,14 +308,19 @@ const WorkflowAssistantChat: React.FC = () => {
           switchThread(newThreadId);
         })
         .catch((createError) => {
-          log.error("Failed to create new thread:", createError);
+          console.error("Failed to create new thread:", createError);
         });
     }
   }, [currentThreadId, status, createNewThread, switchThread]);
 
   const handleSendMessage = useCallback(
     async (message: Message) => {
-      const enrichedMessage = (hasMessageInput
+      // In agent mode, let the agent run autonomously: skip the
+      // workflow_target/MessageInput routing and tool auto-injection.
+      const messageAgentMode = (message as Message & { agent_mode?: boolean })
+        .agent_mode;
+      const useWorkflowRouting = !messageAgentMode && hasMessageInput;
+      const enrichedMessage = (useWorkflowRouting
         ? {
             ...message,
             workflow_id: currentWorkflowId ?? undefined,
@@ -378,21 +329,23 @@ const WorkflowAssistantChat: React.FC = () => {
         : {
             ...message,
             workflow_id: currentWorkflowId ?? undefined,
-            ...(currentWorkflowToolId
+            ...(!messageAgentMode && currentWorkflowToolId
               ? { tools: [currentWorkflowToolId] }
               : {})
           }) as Message;
-      const enrichedMessageWithInputNames = enrichedMessage as Message & {
-        workflow_message_input_name?: string;
-        workflow_messages_input_name?: string;
-      };
-      if (messageInputNames.length > 0) {
-        enrichedMessageWithInputNames.workflow_message_input_name =
-          messageInputNames[0];
-      }
-      if (messageListInputNames.length > 0) {
-        enrichedMessageWithInputNames.workflow_messages_input_name =
-          messageListInputNames[0];
+      if (useWorkflowRouting) {
+        const enrichedMessageWithInputNames = enrichedMessage as Message & {
+          workflow_message_input_name?: string;
+          workflow_messages_input_name?: string;
+        };
+        if (messageInputNames.length > 0) {
+          enrichedMessageWithInputNames.workflow_message_input_name =
+            messageInputNames[0];
+        }
+        if (messageListInputNames.length > 0) {
+          enrichedMessageWithInputNames.workflow_messages_input_name =
+            messageListInputNames[0];
+        }
       }
       await sendMessage(enrichedMessage);
     },
@@ -410,18 +363,18 @@ const WorkflowAssistantChat: React.FC = () => {
   const handleAddMessageInput = useCallback(() => {
     const workflowId = currentWorkflowId;
     if (!workflowId) {
-      log.error("No current workflow ID");
+      console.error("No current workflow ID");
       return;
     }
     const currentNodeStore = getNodeStore(workflowId);
     if (!currentNodeStore) {
-      log.error("No node store found for current workflow");
+      console.error("No node store found for current workflow");
       return;
     }
 
     const metadata = nodeMetadata["nodetool.input.MessageInput"];
     if (!metadata) {
-      log.error("MessageInput node metadata not found");
+      console.error("MessageInput node metadata not found");
       return;
     }
 
@@ -447,74 +400,82 @@ const WorkflowAssistantChat: React.FC = () => {
     return status;
   };
 
-  // Create ThreadInfo-compatible data for ThreadList
-  const threadsWithMessages: Record<string, ThreadInfo> = Object.fromEntries(
-    Object.entries(threads).map(([id, thread]) => [
-      id,
-      {
-        id: thread.id,
-        title: thread.title ?? undefined,
-        updatedAt: thread.updated_at,
-        messages: messageCache[id] || []
-      }
-    ])
+  const threadsWithMessages: Record<string, ThreadInfo> = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(threads).map(([id, thread]) => [
+          id,
+          {
+            id: thread.id,
+            title: thread.title ?? undefined,
+            updatedAt: thread.updated_at,
+            messages: messageCache[id] || []
+          }
+        ])
+      ),
+    [threads, messageCache]
   );
 
-  const WorkflowChatWelcome: React.FC = () => (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "1.5em"
-      }}
-    >
-      <SvgFileIcon
-        wrapperStyle=" color: 'var(--c_hl)' "
-        iconName="chat"
-        svgProp={{
-          width: 44,
-          height: 44,
-          opacity: 0.8,
-          color: "var(--palette-primary-main)"
-        }}
-      />
-      <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
-        WORKFLOW CHAT
-      </h2>
-      <p>
-        Chat with your workflow. Set <code>run_mode</code> to <code>chat</code> in workflow
-        settings.
-      </p>
-      <p
+  const workflowChatWelcome = useMemo(
+    () => (
+      <div
         style={{
-          fontSize: "0.85em",
-          color: "var(--palette-grey-400)",
-          marginTop: "1em",
-          maxWidth: "320px"
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          padding: "1.5em"
         }}
       >
-        Messages are sent to your workflow&apos;s MessageInput/MessageListInput nodes.
-      </p>
-      {!hasMessageInput && (
-        <Button
-          onClick={handleAddMessageInput}
-          size="small"
-          variant="outlined"
-          color="primary"
-          startIcon={<AddIcon />}
-          sx={{
-            marginTop: "1.5em",
-            textTransform: "none"
+        <SvgFileIcon
+          wrapperStyle=" color: 'var(--c_hl)' "
+          iconName="chat"
+          svgProp={{
+            width: 44,
+            height: 44,
+            opacity: 0.8,
+            color: "var(--palette-primary-main)"
+          }}
+        />
+        <h2 style={{ fontFamily: "var(--fontFamily2)", color: "var(--c_hl2)" }}>
+          WORKFLOW CHAT
+        </h2>
+        <p>
+          Chat with your workflow, or switch to <strong>Agent</strong> mode in
+          the composer to plan and run tools with any provider.
+        </p>
+        <p
+          style={{
+            fontSize: "0.85em",
+            color: "var(--palette-grey-400)",
+            marginTop: "1em",
+            maxWidth: "320px"
           }}
         >
-          Add Message Input
-        </Button>
-      )}
-    </div>
+          In chat mode, messages route to your workflow&apos;s
+          MessageInput/MessageListInput nodes. In agent mode, the selected
+          provider runs autonomously with planning and tool use.
+        </p>
+        {!hasMessageInput && (
+          <Button
+            onClick={handleAddMessageInput}
+            size="small"
+            variant="outlined"
+            color="primary"
+            startIcon={<AddIcon />}
+            sx={{
+              marginTop: "1.5em",
+              textTransform: "none"
+            }}
+          >
+            Add Message Input
+          </Button>
+        )}
+      </div>
+    ),
+    [hasMessageInput, handleAddMessageInput]
   );
 
   return (
@@ -530,11 +491,11 @@ const WorkflowAssistantChat: React.FC = () => {
         }}
       >
         <NewChatButton onNewThread={handleNewChat} />
-        <Tooltip title="Chat History">
-          <IconButton onClick={handleOpenThreadList} size="small">
-            <ListIcon />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<ListIcon />}
+          tooltip="Chat History"
+          onClick={handleOpenThreadList}
+        />
 
         <Popover
           open={isThreadListOpen}
@@ -582,7 +543,7 @@ const WorkflowAssistantChat: React.FC = () => {
             backgroundColor: "var(--palette-error-dark)",
             color: theme.vars.palette.common.white,
             padding: "8px 16px",
-            borderRadius: "4px",
+            borderRadius: "var(--rounded-sm)",
             maxWidth: "90%",
             boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
           }}
@@ -599,18 +560,15 @@ const WorkflowAssistantChat: React.FC = () => {
         sendMessage={handleSendMessage}
         progressMessage={statusMessage}
         model={selectedModel}
-        selectedCollections={[]}
+        selectedCollections={EMPTY_COLLECTIONS}
         onModelChange={setSelectedModel}
         onStop={stopGeneration}
         onNewChat={handleNewChat}
-        noMessagesPlaceholder={<WorkflowChatWelcome />}
-        allowedProviders={[
-          "OpenAI",
-          "MiniMax",
-          "Anthropic",
-          "Google",
-          "Gemini"
-        ]}
+        noMessagesPlaceholder={workflowChatWelcome}
+        agentMode={agentMode}
+        onAgentModeToggle={setAgentMode}
+        agentPlanner={agentPlanner}
+        onAgentPlannerChange={setAgentPlanner}
         runningToolCallId={currentRunningToolCallId}
         runningToolMessage={currentToolMessage}
         workflowId={currentWorkflowId ?? null}

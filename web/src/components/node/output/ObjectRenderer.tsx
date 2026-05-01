@@ -20,7 +20,7 @@ const objectStyles = (theme: Theme) =>
       flexDirection: "column",
       gap: "0.25em",
       padding: "0.5em",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       backgroundColor: theme.vars.palette.action.hover,
       "&:last-child": {
         marginBottom: 0
@@ -39,8 +39,8 @@ const objectStyles = (theme: Theme) =>
   });
 
 interface ObjectRendererProps {
-  value: Record<string, any>;
-  renderValue: (value: any, key: string) => React.ReactNode;
+  value: Record<string, unknown>;
+  renderValue: (value: unknown, key: string) => React.ReactNode;
 }
 
 /**

@@ -16,7 +16,6 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { getMousePosition } from "../../utils/MousePosition";
-import log from "loglevel";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -59,17 +58,13 @@ const OutputContextMenu: React.FC = () => {
   const [saveNodeMetadata, setSaveNodeMetadata] = useState<unknown>();
   const {
     showMenu,
-    typeMetadata: _typeMetadata,
     setSourceHandle,
-    setTargetHandle: _setTargetHandle,
     setNodeId,
     setFilterType,
     setConnectableType
   } = useConnectableNodesStore((state) => ({
     showMenu: state.showMenu,
-    typeMetadata: state.typeMetadata,
     setSourceHandle: state.setSourceHandle,
-    setTargetHandle: state.setTargetHandle,
     setNodeId: state.setNodeId,
     setFilterType: state.setFilterType,
     setConnectableType: state.setTypeMetadata
@@ -96,7 +91,7 @@ const OutputContextMenu: React.FC = () => {
 
   const fetchMetadata = useCallback(
     (nodeType: string) => {
-      log.info(`Fetching metadata for node type: ${nodeType}`);
+      console.info(`Fetching metadata for node type: ${nodeType}`);
       const datatypeLabel = labelForType(nodeType || "").replaceAll(" ", "");
       const adjustedLabel = datatypeLabel === "String" ? "Text" : datatypeLabel;
       
@@ -126,7 +121,7 @@ const OutputContextMenu: React.FC = () => {
       targetHandle: string | null = null
     ) => {
       if (!metadata) {
-        log.info("Metadata is undefined, cannot create node.");
+        console.info("Metadata is undefined, cannot create node.");
         return;
       }
 
@@ -386,7 +381,7 @@ const OutputContextMenu: React.FC = () => {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "12px",
+              borderRadius: "var(--rounded-xl)",
               backgroundColor: theme.vars.palette.background.paper,
               border: `1px solid ${theme.vars.palette.divider}`,
               boxShadow: theme.shadows[8],

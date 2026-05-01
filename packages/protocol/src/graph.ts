@@ -1,5 +1,5 @@
 /**
- * @nodetool/protocol – Graph Types
+ * @nodetool-ai/protocol – Graph Types
  *
  * TypeScript equivalents of graph structures from:
  *   src/nodetool/types/api_graph.py (Edge)
@@ -22,6 +22,7 @@ export interface Edge {
   targetHandle: string;
   ui_properties?: Record<string, string> | null;
   edge_type?: EdgeType;
+  [key: string]: unknown;
 }
 
 export function isControlEdge(edge: Edge): boolean {

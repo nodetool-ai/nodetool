@@ -8,10 +8,10 @@ import {
   constantForType,
   contentTypeToNodeType
 } from "../../utils/NodeTypeMapping";
-import log from "loglevel";
 import Papa from "papaparse";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
+import { shallow } from "zustand/shallow";
 interface ParsedCSV {
   data: string[][];
   errors: Papa.ParseError[];
@@ -21,7 +21,7 @@ export const useAddNodeFromAsset = () => {
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
     createNode: state.createNode
-  }));
+  }), shallow);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -62,7 +62,7 @@ export const useAddNodeFromAsset = () => {
         };
         addNode(newNode);
       } else {
-        log.error("CSV content is empty or could not be parsed");
+        console.error("CSV content is empty or could not be parsed");
       }
     },
     [createNode, addNode]
@@ -73,7 +73,7 @@ export const useAddNodeFromAsset = () => {
       if (asset === undefined) {
         return;
       }
-      const assetType = contentTypeToNodeType(asset.content_type);
+      const assetType = contentTypeToNodeType(asset.content_type, asset.name);
       const nodeType = constantForType(assetType || "");
       if (nodeType === null) {
         addNotification({
@@ -123,7 +123,7 @@ export const useAddNodeFromAsset = () => {
               createDataframeNode(csvContent, position, nodeMetadata);
             })
             .catch((error) => {
-              log.error("Failed to download asset content", error);
+              console.error("Failed to download asset content", error);
             });
           break;
         case "str":
@@ -132,7 +132,7 @@ export const useAddNodeFromAsset = () => {
               createNodeWithAsset("nodetool.constant.String", content);
             })
             .catch((error) => {
-              log.error("Failed to download asset content", error);
+              console.error("Failed to download asset content", error);
             });
           break;
         case "text":
@@ -141,7 +141,7 @@ export const useAddNodeFromAsset = () => {
               createNodeWithAsset("nodetool.constant.Text", content);
             })
             .catch((error) => {
-              log.error("Failed to download asset content", error);
+              console.error("Failed to download asset content", error);
             });
           break;
         case "folder":

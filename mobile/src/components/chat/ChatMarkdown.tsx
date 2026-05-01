@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, ReactNode } from 'react';
 import { StyleSheet, View, ScrollView, Platform } from 'react-native';
-import Markdown, { RenderRules } from 'react-native-markdown-display';
+import Markdown, { ASTNode, RenderRules } from 'react-native-markdown-display';
 import SyntaxHighlighter from 'react-native-syntax-highlighter';
 import { atomDark, tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useTheme } from '../../hooks/useTheme';
@@ -16,8 +16,8 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
   const fontFamily = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
 
   const rules: RenderRules = useMemo(() => ({
-    fence: (node: any, _children: any, _parent: any, styles: any) => {
-      const language = (node as any).sourceInfo || (node as any).attributes?.lang || 'text';
+    fence: (node: ASTNode, _children: ReactNode[], _parent: ASTNode[], styles: any) => {
+      const language = (node as ASTNode & { sourceInfo?: string }).sourceInfo || node.attributes['lang'] as string | undefined || 'text';
 
       return (
         <View key={node.key} style={styles.fence}>
@@ -42,7 +42,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
         </View>
       );
     },
-    code_block: (node: any, _children: any, _parent: any, styles: any) => {
+    code_block: (node: ASTNode, _children: ReactNode[], _parent: ASTNode[], styles: any) => {
       return (
         <View key={node.key} style={styles.code_block}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>

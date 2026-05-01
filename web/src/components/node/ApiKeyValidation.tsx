@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Text, EditorButton } from "../ui_primitives";
-import { useSettingsStore } from "../../stores/SettingsStore";
 import { useApiKeyValidation } from "../../hooks/useApiKeyValidation";
 
 interface ApiKeyValidationProps {
@@ -9,12 +9,12 @@ interface ApiKeyValidationProps {
 
 const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
   ({ nodeNamespace }) => {
-    const setMenuOpen = useSettingsStore((state) => state.setMenuOpen);
+    const navigate = useNavigate();
     const missingAPIKey = useApiKeyValidation(nodeNamespace);
 
     const handleOpenSettings = useCallback(() => {
-      setMenuOpen(true, 1);
-    }, [setMenuOpen]);
+      navigate("/settings?tab=1");
+    }, [navigate]);
 
     const content = useMemo(() => {
       if (!missingAPIKey || typeof missingAPIKey !== "string") {return null;}

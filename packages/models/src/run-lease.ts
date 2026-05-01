@@ -36,27 +36,25 @@ export class RunLease extends DBModel {
     const expiresIso = expires.toISOString();
 
     const db = getDb();
-    // Use a transaction with BEGIN IMMEDIATE to get an exclusive lock,
-    // preventing two workers from acquiring the same lease concurrently.
-    return db.transaction((tx: any) => {
-      const existing = tx
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return db.transaction(async (tx: any) => {
+      const [existing] = await tx
         .select()
         .from(runLeases)
         .where(eq(runLeases.run_id, runId))
-        .limit(1)
-        .get();
+        .limit(1);
 
       if (existing) {
         if (new Date(existing.expires_at) < now) {
           // Expired lease -- reclaim it
-          tx.update(runLeases)
+          await tx
+            .update(runLeases)
             .set({
               worker_id: workerId,
               acquired_at: nowIso,
               expires_at: expiresIso
             })
-            .where(eq(runLeases.run_id, runId))
-            .run();
+            .where(eq(runLeases.run_id, runId));
           return new RunLease({
             ...existing,
             worker_id: workerId,
@@ -69,14 +67,12 @@ export class RunLease extends DBModel {
       }
 
       // No existing lease -- create one
-      tx.insert(runLeases)
-        .values({
-          run_id: runId,
-          worker_id: workerId,
-          acquired_at: nowIso,
-          expires_at: expiresIso
-        })
-        .run();
+      await tx.insert(runLeases).values({
+        run_id: runId,
+        worker_id: workerId,
+        acquired_at: nowIso,
+        expires_at: expiresIso
+      });
 
       return new RunLease({
         run_id: runId,
@@ -99,12 +95,10 @@ export class RunLease extends DBModel {
     await this.delete();
   }
 
-  /** Check if this lease has expired. */
   isExpired(): boolean {
     return new Date(this.expires_at) < new Date();
   }
 
-  /** Check if this lease is held by a specific worker (and not expired). */
   isHeldBy(workerId: string): boolean {
     return this.worker_id === workerId && !this.isExpired();
   }
@@ -113,11 +107,10 @@ export class RunLease extends DBModel {
   static async cleanupExpired(): Promise<number> {
     const now = new Date().toISOString();
     const db = getDb();
-    const expired = db
+    const expired = await db
       .select()
       .from(runLeases)
-      .where(lt(runLeases.expires_at, now))
-      .all();
+      .where(lt(runLeases.expires_at, now));
 
     for (const row of expired) {
       const lease = new RunLease(row as Record<string, unknown>);

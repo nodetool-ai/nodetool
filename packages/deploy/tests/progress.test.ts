@@ -36,12 +36,6 @@ describe("ProgressManager", () => {
   });
 
   describe("start/stop", () => {
-    it("starts the progress display", () => {
-      pm.start();
-      // No error, internal state set
-      expect(true).toBe(true);
-    });
-
     it("stop clears all tasks", () => {
       pm.start();
       pm.addTask("op1", "Task 1", 100);

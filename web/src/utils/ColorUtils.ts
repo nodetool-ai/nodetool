@@ -1,5 +1,4 @@
 import chroma from "chroma-js";
-import log from "loglevel";
 
 // Utility to detect CSS variable references (e.g. "var(--palette-primary-main)")
 function isCssVar(color: string): boolean {
@@ -26,7 +25,7 @@ export function hexToRgba(hex: string, alpha: number): string {
   } catch (err) {
     // Fallback: if chroma cannot parse the color, just return the original
     // string unchanged to avoid runtime errors.
-    log.error("hexToRgba: unable to parse color", hex, err);
+    console.error("hexToRgba: unable to parse color", hex, err);
     return hex;
   }
 }
@@ -52,20 +51,6 @@ export function adjustSaturation(hex: string, amount: number): string {
 
   return chroma(hex)
     .set("hsl.s", `*${1 + amount / 100}`)
-    .hex();
-}
-
-export function adjustHue(hex: string, amount: number): string {
-  if (isCssVar(hex)) {return hex;}
-
-  return chroma(hex).set("hsl.h", `+${amount}`).hex();
-}
-
-export function adjustLightness(hex: string, amount: number): string {
-  if (isCssVar(hex)) {return hex;}
-
-  return chroma(hex)
-    .set("hsl.l", `*${1 + amount / 100}`)
     .hex();
 }
 

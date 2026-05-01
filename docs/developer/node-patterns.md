@@ -6,7 +6,7 @@ description: "Architectural patterns for building TypeScript nodes: single-outpu
 
 ## Overview
 
-This guide covers the key implementation patterns you will encounter when building custom nodes for NodeTool. Every node extends **`BaseNode`** from `@nodetool/node-sdk`, declares its inputs with the **`@prop`** decorator, and implements a `process()` or `genProcess()` method that receives an `inputs` record and returns an outputs record.
+This guide covers the key implementation patterns you will encounter when building custom nodes for NodeTool. Every node extends **`BaseNode`** from `@nodetool-ai/node-sdk`, declares its inputs with the **`@prop`** decorator, and implements a `process()` or `genProcess()` method that receives an `inputs` record and returns an outputs record.
 
 ---
 
@@ -17,7 +17,7 @@ The most common pattern. The node declares one or more `@prop` inputs and return
 This pattern is taken from `ConstantStringNode` in `base-nodes/src/nodes/constant.ts`:
 
 ```ts
-import { BaseNode, prop } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 
 export class ConstantStringNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.String";

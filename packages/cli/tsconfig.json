@@ -38,6 +38,9 @@
       "path": "../elevenlabs-nodes"
     },
     {
+      "path": "../transformers-js-nodes"
+    },
+    {
       "path": "../fal-nodes"
     },
     {
@@ -57,6 +60,12 @@
     },
     {
       "path": "../runtime"
+    },
+    {
+      "path": "../sandbox"
+    },
+    {
+      "path": "../sandbox-tools"
     },
     {
       "path": "../security"

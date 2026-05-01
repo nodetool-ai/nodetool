@@ -26,7 +26,7 @@ import {
   writeFileSync
 } from "node:fs";
 import { resolve as pathResolve, join as pathJoin, sep } from "node:path";
-import { getNodetoolDataDir } from "@nodetool/config";
+import { getNodetoolDataDir } from "@nodetool-ai/config";
 import { get as httpGet, type IncomingMessage } from "node:http";
 import { get as httpsGet } from "node:https";
 

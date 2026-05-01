@@ -6,7 +6,7 @@ import { Box } from "@mui/material";
 import { EditorButton, Text } from "./ui_primitives";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
+
 
 const searchErrorBoundaryStyles = (theme: Theme) =>
   css({
@@ -18,7 +18,7 @@ const searchErrorBoundaryStyles = (theme: Theme) =>
     textAlign: "center",
     background: theme.vars.palette.c_gray0,
     border: `1px solid ${theme.vars.palette.c_gray1}`,
-    borderRadius: "8px",
+    borderRadius: "var(--rounded-lg)",
     margin: "1rem",
     padding: "2rem",
 
@@ -75,7 +75,7 @@ class SearchErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    log.error("Search component error:", error, errorInfo);
+    console.error("Search component error:", error, errorInfo);
   }
 
   handleRetry = () => {

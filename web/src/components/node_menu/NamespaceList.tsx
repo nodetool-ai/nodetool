@@ -9,6 +9,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
 import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
@@ -83,7 +84,7 @@ const namespaceStyles = (theme: Theme) =>
     ".node-list::-webkit-scrollbar-track": { background: "transparent" },
     ".node-list::-webkit-scrollbar-thumb": {
       backgroundColor: theme.vars.palette.action.disabledBackground,
-      borderRadius: "8px"
+      borderRadius: "var(--rounded-lg)"
     },
     ".node-list::-webkit-scrollbar-thumb:hover": {
       backgroundColor: theme.vars.palette.action.disabled
@@ -155,8 +156,8 @@ const namespaceStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.25em",
       fontSize: theme.fontSizeNormal,
-      padding: "0.25em .75em .2em 0",
-      borderRadius: "6px",
+      padding: theme.spacing(0.75, 1.5),
+      borderRadius: "var(--rounded-md)",
       backgroundColor: theme.vars.palette.action.hover,
       margin: "1em .5em 0 0",
       border: `1px solid ${theme.vars.palette.divider}`
@@ -205,14 +206,14 @@ const namespaceStyles = (theme: Theme) =>
       alignItems: "center",
       margin: "2px 0",
       padding: "0",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       cursor: "pointer",
       transition: "all 0.2s ease",
       border: "1px solid transparent",
       ".node-button": {
         padding: "2px 4px",
         flexGrow: 1,
-        borderRadius: "6px",
+        borderRadius: "var(--rounded-md)",
         minHeight: "24px",
         "&:hover": {
           backgroundColor: "transparent"
@@ -238,7 +239,7 @@ const namespaceStyles = (theme: Theme) =>
     ".node.focused": {
       color: "var(--palette-primary-main)",
       backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.1)",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       border: "1px solid rgba(var(--palette-primary-mainChannel) / 0.2)",
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
     },
@@ -290,7 +291,7 @@ const namespaceStyles = (theme: Theme) =>
     },
     ".node-packs-info .MuiButton-root": {
       textTransform: "none",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       padding: "6px 10px",
       borderColor: theme.vars.palette.divider,
       color: theme.vars.palette.text.secondary,
@@ -442,7 +443,7 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
     selectedInputType: state.selectedInputType,
     selectedOutputType: state.selectedOutputType,
     selectedProviderType: state.selectedProviderType
-  }));
+  }), shallow);
 
   const allMetadata = useMetadataStore((state) => state.metadata);
 

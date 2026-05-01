@@ -24,7 +24,15 @@ jobs:
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
       options: --privileged
-    
+
+    # Prevent node-gyp header extraction from calling fchown, which fails in
+    # overlayfs/container filesystems with "TAR_ENTRY_ERROR EINVAL: invalid
+    # argument, fchown".  These vars are picked up by npm regardless of whether
+    # npm is invoked directly or through flatpak-builder.
+    env:
+      npm_config_tar_ignore_ownership: "true"
+      npm_config_unsafe_perm: "true"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

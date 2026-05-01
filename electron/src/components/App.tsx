@@ -150,7 +150,7 @@ const App: React.FC = () => {
   );
 
   const handleMenuEvent = useCallback(
-    (data: any) => {
+    (data: { type?: string }) => {
       // Basic reaction to menu clicks so users see immediate feedback
       // Extend this switch to wire up actual actions as needed
       switch (data?.type) {
@@ -227,8 +227,8 @@ const App: React.FC = () => {
     setBootMessage("Retrying backend start...");
     setShowBootMessage(true);
     setShowLogs(true);
-    void window.api.server.restart().catch((error: any) => {
-      const message = error?.message ?? "Failed to restart backend server.";
+    void window.api.server.restart().catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to restart backend server.";
       setServerStatus("error");
       setServerError(message);
       setBootMessage(message);
@@ -249,8 +249,8 @@ const App: React.FC = () => {
     setBootMessage("Starting server...");
     setServerStatus("starting");
     setServerError(null);
-    void window.api.server.start().catch((error: any) => {
-      const message = error?.message ?? "Failed to start backend server.";
+    void window.api.server.start().catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to start backend server.";
       setServerStatus("error");
       setServerError(message);
       setBootMessage(message);

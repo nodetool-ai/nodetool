@@ -6,7 +6,7 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 async function getOpenAIClient() {
@@ -99,7 +99,7 @@ export class OpenAIImageGenerationTool extends Tool {
     try {
       const client = await getOpenAIClient();
       const response = await client.images.generate({
-        model: "gpt-image-1",
+        model: "gpt-image-2",
         prompt,
         n: 1
       });
@@ -110,12 +110,7 @@ export class OpenAIImageGenerationTool extends Tool {
       const b64Image = imageData.b64_json as string | undefined;
       if (!b64Image) return { error: "No image data received from OpenAI" };
 
-      const workspace = (context as unknown as Record<string, unknown>)[
-        "workspace"
-      ] as string | undefined;
-      const filePath = workspace
-        ? path.join(workspace, outputFile)
-        : outputFile;
+      const filePath = context.resolveWorkspacePath(outputFile);
       await fs.mkdir(path.dirname(filePath), { recursive: true });
       await fs.writeFile(filePath, Buffer.from(b64Image, "base64"));
 

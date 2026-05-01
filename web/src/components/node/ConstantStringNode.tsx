@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
       border: "none",
       outline: "none",
       background: "rgba(255,255,255,0.03)",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       color: theme.vars.palette.text.primary,
       fontFamily: theme.fontFamily1 || "'Inter', Arial, sans-serif",
       fontSize: theme.fontSizeSmaller || "0.75rem",

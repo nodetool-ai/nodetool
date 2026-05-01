@@ -17,7 +17,7 @@ const styles = css({
     height: "24px",
     lineHeight: "22px",
     textAlign: "center",
-    borderRadius: "6px",
+    borderRadius: "var(--rounded-md)",
     color: "inherit",
     cursor: "pointer",
     "&:hover": {

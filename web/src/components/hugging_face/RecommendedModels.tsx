@@ -18,7 +18,7 @@ import {
   openHuggingfacePath,
   openOllamaPath
 } from "../../utils/fileExplorer";
-import { isLocalhost } from "../../stores/ApiClient";
+import { isLocalhost } from "../../lib/env";
 import { useHfCacheStatusStore } from "../../stores/HfCacheStatusStore";
 import {
   buildHfCacheRequest,

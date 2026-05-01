@@ -640,6 +640,30 @@ export const config: ModuleConfig = {
         "Background music generation",
         "Podcast audio production"
       ]
+    },
+    "fal-ai/minimax-music/v2.5": {
+      className: "MinimaxMusicV25",
+      docstring: "MiniMax Music v2.5: text-to-music generation.",
+      tags: ["audio", "music", "text-to-audio", "minimax"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
+    },
+    "fal-ai/minimax-music/v2.6": {
+      className: "MinimaxMusicV26",
+      docstring: "MiniMax Music v2.6: text-to-music generation.",
+      tags: ["audio", "music", "text-to-audio", "minimax"],
+      useCases: [
+        "Automated content generation",
+        "Creative workflows",
+        "Batch processing",
+        "Professional applications",
+        "Rapid prototyping"
+      ]
     }
   }
 };

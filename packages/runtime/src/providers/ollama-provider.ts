@@ -1,5 +1,5 @@
-import type { Chunk } from "@nodetool/protocol";
-import { createLogger } from "@nodetool/config";
+import type { Chunk } from "@nodetool-ai/protocol";
+import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.ollama");
@@ -223,7 +223,11 @@ export class OllamaProvider extends BaseProvider {
       return Buffer.from(image.data).toString("base64");
     }
     if (image.uri) {
-      const response = await this._fetch(image.uri);
+      const resolved = await this.resolveUri(image.uri);
+      if (resolved.startsWith("data:")) {
+        return parseDataUri(resolved).base64;
+      }
+      const response = await this._fetch(resolved);
       if (!response.ok) {
         throw new Error(`Failed to fetch image URI: ${response.status}`);
       }
@@ -282,7 +286,7 @@ export class OllamaProvider extends BaseProvider {
     const text = asTextParts(parts);
     const images = await Promise.all(
       parts
-        .filter((part): part is MessageImageContent => part.type === "image")
+        .filter((part): part is MessageImageContent => part.type === "image_url")
         .map((part) => this.imageToBase64(part.image))
     );
 

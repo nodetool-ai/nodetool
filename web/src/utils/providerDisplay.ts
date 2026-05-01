@@ -108,7 +108,8 @@ export const formatGenericProviderName = (provider?: string): string => {
     meshy: "Meshy AI",
     "meshy-ai": "Meshy AI",
     rodin: "Rodin AI",
-    "rodin-ai": "Rodin AI"
+    "rodin-ai": "Rodin AI",
+    mlx: "MLX"
   };
 
   if (providerAliasNames[providerLower]) {
@@ -121,6 +122,11 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (providerLower === "google") {return "Gemini";}
   if (providerLower === "fal_ai" || providerLower === "fal-ai" || providerLower === "falai") {return "FAL AI";}
   if (providerLower === "zai-org" || providerLower === "zai_org" || providerLower === "zai") {return "Z.AI";}
+  if (providerLower === "moonshot" || providerLower === "kimi") {return "Moonshot AI";}
+  if (providerLower === "minimax") {return "MiniMax";}
+  if (providerLower === "cohere") {return "Cohere";}
+  if (providerLower === "voyage" || providerLower === "voyage-ai" || providerLower === "voyageai") {return "Voyage AI";}
+  if (providerLower === "jina" || providerLower === "jina-ai" || providerLower === "jinaai") {return "Jina AI";}
   const withSpaces = insertSpacesBeforeCapitals(
     provider.replace(/_/g, " ").replace(/-/g, " ")
   );
@@ -203,6 +209,15 @@ export const getProviderUrl = (provider?: string): string | null => {
   if (providerLower.includes("fal")) {return "https://fal.ai";}
   if (providerLower.includes("replicate")) {return "https://replicate.com";}
   if (providerLower.includes("aime")) {return "https://www.aime.info/en/";}
+  if (providerLower.includes("moonshot") || providerLower.includes("kimi"))
+    {return "https://platform.moonshot.ai";}
+  if (providerLower.includes("minimax"))
+    {return "https://platform.minimax.io";}
+  if (providerLower === "cohere") {return "https://cohere.com";}
+  if (providerLower === "voyage" || providerLower === "voyage-ai" || providerLower === "voyageai")
+    {return "https://www.voyageai.com";}
+  if (providerLower === "jina" || providerLower === "jina-ai" || providerLower === "jinaai")
+    {return "https://jina.ai";}
   if (providerLower === "zai" || providerLower === "zai-org" || providerLower === "zai_org" || providerLower === "z.ai")
     {return "https://z.ai";}
   // Unknown

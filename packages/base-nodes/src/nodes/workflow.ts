@@ -1,7 +1,7 @@
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import { WorkflowRunner, Graph } from "@nodetool/kernel";
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { NodeDescriptor, Edge } from "@nodetool/protocol";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { randomUUID } from "node:crypto";
 
 /**

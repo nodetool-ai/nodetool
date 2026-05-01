@@ -6,7 +6,7 @@
  * This replaces the simple mock HTTP server used previously for screenshot
  * automation. Running the real backend ensures:
  *   - All API endpoints match exactly what the frontend expects
- *   - Real node metadata from @nodetool/base-nodes etc.
+ *   - Real node metadata from @nodetool-ai/base-nodes etc.
  *   - Proper WebSocket support for /ws
  *   - Data seeded with the real model classes (correct DB schema)
  *
@@ -26,8 +26,8 @@ import {
   Message,
   Asset,
   secrets
-} from "@nodetool/models";
-import { initMasterKey, encryptFernet, getMasterKey } from "@nodetool/security";
+} from "@nodetool-ai/models";
+import { initMasterKey, encryptFernet, getMasterKey } from "@nodetool-ai/security";
 import { createTestUiServer } from "./test-ui-server.js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

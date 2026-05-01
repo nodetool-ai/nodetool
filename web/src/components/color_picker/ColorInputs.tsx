@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
     ".color-input": {
       "& .MuiInputBase-root": {
         backgroundColor: theme.vars.palette.grey[900],
-        borderRadius: "4px",
+        borderRadius: "var(--rounded-sm)",
         fontSize: "12px"
       },
       "& .MuiInputBase-input": {

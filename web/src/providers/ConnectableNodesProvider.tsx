@@ -63,24 +63,32 @@ export function ConnectableNodesProvider({
     setMenuPosition(null);
   }, []);
 
-  const value: ConnectableNodesState = {
-    nodeMetadata,
-    filterType,
-    typeMetadata,
-    isVisible,
-    menuPosition,
-    sourceHandle,
-    targetHandle,
-    nodeId,
-    setSourceHandle,
-    setTargetHandle,
-    setNodeId,
-    setFilterType,
-    setTypeMetadata,
-    getConnectableNodes,
-    showMenu,
-    hideMenu
-  };
+  const value = useMemo<ConnectableNodesState>(
+    () => ({
+      nodeMetadata,
+      filterType,
+      typeMetadata,
+      isVisible,
+      menuPosition,
+      sourceHandle,
+      targetHandle,
+      nodeId,
+      setSourceHandle,
+      setTargetHandle,
+      setNodeId,
+      setFilterType,
+      setTypeMetadata,
+      getConnectableNodes,
+      showMenu,
+      hideMenu
+    }),
+    [
+      nodeMetadata, filterType, typeMetadata, isVisible, menuPosition,
+      sourceHandle, targetHandle, nodeId, setSourceHandle, setTargetHandle,
+      setNodeId, setFilterType, setTypeMetadata, getConnectableNodes,
+      showMenu, hideMenu
+    ]
+  );
 
   return (
     <ConnectableNodesContext.Provider value={value}>

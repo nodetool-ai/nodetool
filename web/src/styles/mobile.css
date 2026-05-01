@@ -125,11 +125,67 @@
   .mobile .models-manager-dialog .model-list-item .show-in-explorer-button {
     display: none !important;
   }
-  /* Model Menu (LanguageModelSelect) Mobile Trims */
-  .mobile .model-menu__dialog .MuiDialog-paper {
-    width: 98% !important;
+  /* Settings Dialog Mobile - fullscreen, edge-to-edge, no sidebar */
+  .mobile .settings-dialog .MuiPaper-root {
+    margin: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+  }
+
+  .mobile .settings-dialog .top {
+    padding: 0.6em 0.75em !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background-color: var(--palette-background-paper) !important;
+  }
+
+  .mobile .settings-dialog .settings-tabs {
+    margin-bottom: 0.5em !important;
+  }
+
+  .mobile .settings-dialog .settings-tabs .MuiTab-root {
+    min-width: auto !important;
+    min-height: 44px !important;
+    padding: 6px 12px !important;
+    font-size: 0.85rem !important;
+    flex: 1 !important;
+  }
+
+  .mobile .settings-dialog .sticky-header {
+    padding: 0 0.5em !important;
+  }
+
+  .mobile .settings-dialog .settings-content {
+    padding: 0 0.75em 1.5em !important;
+  }
+
+  .mobile .settings-dialog .settings-section {
+    padding: 0.5em 0.75em 0.75em !important;
+    margin: 1em 0 !important;
+  }
+
+  /* Stack settings item label and control instead of side-by-side */
+  .mobile .settings-dialog .settings-item .MuiInputBase-root {
     max-width: 100% !important;
-    margin: 8px !important;
+    width: 100% !important;
+  }
+
+  .mobile .settings-dialog .settings-item .MuiFormControl-root .MuiInputBase-root {
+    max-width: 100% !important;
+  }
+
+  /* Model Menu fullscreen on mobile — match Settings dialog pattern. */
+  .mobile .model-menu__dialog .MuiDialog-paper {
+    margin: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
   }
 
   /* Collapse complex 3-column grid → single column */
@@ -162,31 +218,13 @@
     display: none !important;
   }
 
-  /* Chat Composer Mobile Styles */
+  /* Chat Composer Mobile Styles
+     Keep compose-message in its default column layout on mobile so the
+     embedded toolbar (model select + agent mode) renders in the footer
+     below the textarea. */
   .mobile .compose-message {
-    display: flex !important;
-    flex-direction: row !important;
-    height: 40px !important;
     gap: 4px !important;
-    padding: 0 !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    overflow: hidden !important;
     contain: layout style !important;
-  }
-
-  .mobile .compose-message .message-input-container {
-    flex: 1 !important;
-    min-width: 0 !important;
-    height: 40px !important;
-    max-height: 40px !important;
-  }
-
-  .mobile .compose-message .action-buttons-container {
-    flex-shrink: 0 !important;
-    height: 40px !important;
-    display: flex !important;
-    align-items: center !important;
   }
 
   /* Chat Thread View Mobile Styles */
@@ -205,8 +243,7 @@
 
   /* Chat Input Section Mobile Styles */
   .mobile .chat-input-section {
-    flex-direction: row !important;
-    padding: 12px 12px 8px 12px !important;
+    padding: 8px 8px 0 8px !important;
   }
 
   /* Show chat composer action buttons on mobile (send/stop/new) */
@@ -220,27 +257,6 @@
   .mobile .new-chat-button-wrapper {
     display: none !important;
   }
-
-  /* Ensure composer icon buttons fit the 40px composer height */
-  .mobile .compose-message .MuiIconButton-root {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-    padding: 0 !important;
-  }
-
-  .mobile .chat-input-section .chat-controls {
-    max-width: auto !important;
-    width: auto !important;
-  }
-
-  /* .mobile .chat-input-sectioan .chat-composer-wrapper {
-    width: auto !important;
-    order: 2 !important;
-    min-height: 40px !important;
-    max-height: 40px !important;
-  } */
 
   .mobile .chat-input-section .chat-composer-wrapper .chat-input {
     padding: 0px 12px;
@@ -267,13 +283,54 @@
 
   /* Adjust logo spacing on mobile */
   .mobile .app-header .logo-container {
-    margin-right: 12px !important;
+    margin-right: 6px !important;
   }
 
-  /* Keep header fixed at the very top on mobile */
+  /* Tighten toolbar padding on mobile */
+  .mobile .app-header .toolbar {
+    padding: 0 4px 0 6px !important;
+  }
+
+  /* Compact mode pills on mobile to free up space */
+  .mobile .app-header .mode-pills {
+    height: 1.5em !important;
+  }
+
+  .mobile .app-header .mode-pill {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    letter-spacing: 0.01em !important;
+  }
+
+  /* Compact buttons-right gap and margins on mobile */
+  .mobile .app-header .buttons-right {
+    gap: 2px !important;
+    margin-left: 4px !important;
+  }
+
+  /* Templates button: icon-only square on mobile */
+  .mobile .app-header .templates-button {
+    padding: 4px 6px !important;
+    min-width: 32px !important;
+  }
+
+  /* Hide Help button on mobile to save space (still accessible via shortcut) */
+  .mobile .app-header .help-button {
+    display: none !important;
+  }
+
+  /* Hide notification badge button on mobile to save space */
+  .mobile .app-header .notification-button {
+    display: none !important;
+  }
+
+  /* Header pinned to top; honour iOS safe-area so it clears the notch. */
   .mobile .app-header {
     position: fixed !important;
     top: 0 !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-left: env(safe-area-inset-left, 0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
     z-index: 1400 !important; /* Higher than panels */
   }
 
@@ -308,6 +365,12 @@
   /* Panel Right Mobile Styles - Hide entire right panel container on mobile */
   .mobile .panel-right,
   .mobile .panel-right .panel-container {
+    display: none !important;
+  }
+
+  /* Bottom trace panel is desktop-only; would overlap mobile bottom sheets. */
+  .mobile .panel-bottom-drawer,
+  .mobile .panel-bottom-drawer .MuiDrawer-paper {
     display: none !important;
   }
 
@@ -564,13 +627,13 @@
     align-self: stretch !important;
   }
 
-  /* Chat Composer Mobile Styles */
+  /* Chat Composer Mobile Styles
+     Allow vertical room for the embedded model + agent toolbar in the footer. */
   .mobile .chat-composer .compose-message {
     padding: 6px 8px !important;
     margin-top: 8px !important;
     border-radius: 20px !important;
-    min-height: 40px !important;
-    max-height: 100px !important;
+    min-height: 88px !important;
   }
 
   .mobile .chat-composer .compose-message textarea {
@@ -689,6 +752,7 @@
   .mobile .chat-input-section {
     width: 100% !important;
     align-items: stretch !important;
+    flex-direction: column !important;
   }
 
   /* Chat Thread View */
@@ -708,11 +772,51 @@
 
   /* Chat Composer */
   .mobile .chat-composer .compose-message {
-    min-height: 52px;
-    justify-content: center;
+    min-height: 88px;
   }
   .mobile .chat-composer .compose-message textarea {
-    padding: 12px 10px 12px 6px;
-    min-height: 48px;
+    padding: 8px 10px 4px 6px;
+    min-height: 36px;
+  }
+}
+
+/* Honour iOS safe-area bottom (home indicator) on bottom-anchored elements. */
+@media (max-width: 599.95px) {
+  .mobile .panel-bottom-drawer .MuiDrawer-paper,
+  .mobile .panel-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  .mobile .chat-input-section,
+  .mobile .global-chat-container .chat-input-section {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .mobile .mobile-bottom-sheet,
+  .mobile [data-mobile-bottom-sheet] {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+
+  /* Inputs >=16px so iOS Safari doesn't auto-zoom on focus. */
+  .mobile input[type="text"],
+  .mobile input[type="search"],
+  .mobile input[type="number"],
+  .mobile input[type="email"],
+  .mobile input[type="url"],
+  .mobile input[type="tel"],
+  .mobile input[type="password"],
+  .mobile textarea,
+  .mobile select {
+    font-size: max(16px, 1em) !important;
+  }
+
+  .mobile .app-header .toolbar,
+  .mobile .tabs-container,
+  .mobile [data-mobile-scroll-x] {
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .mobile .MuiDialog-root .MuiDialogActions-root {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }

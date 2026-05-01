@@ -2,47 +2,12 @@
  * SupabaseStorage — T-ST-5.
  *
  * Storage backend for Supabase Storage buckets.
- * Uses dynamic import for @supabase/supabase-js (optional dependency).
  */
 
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AbstractStorage } from "./abstract-storage.js";
 
-/**
- * Inline type definitions that mirror the @supabase/supabase-js public API
- * surface used by SupabaseStorage.  Declaring them here keeps
- * @supabase/supabase-js an optional *runtime* dependency — the package
- * compiles and type-checks without it.  At runtime the real SDK is loaded via
- * dynamic `import()` inside `getClient()`.
- */
-interface SupabaseBucket {
-  upload(
-    path: string,
-    data: Buffer | Uint8Array | Blob | ArrayBuffer,
-    options?: { contentType?: string }
-  ): Promise<{
-    data: { path: string } | null;
-    error: { message: string } | null;
-  }>;
-  download(
-    path: string
-  ): Promise<{ data: Blob | null; error: { message: string } | null }>;
-  remove(
-    paths: string[]
-  ): Promise<{ data: unknown; error: { message: string } | null }>;
-  getPublicUrl(path: string): { data: { publicUrl: string } };
-}
-
-interface SupabaseStorageClient {
-  from(bucketName: string): SupabaseBucket;
-}
-
-interface SupabaseClientLike {
-  storage: SupabaseStorageClient;
-}
-
-interface SupabaseSdkModule {
-  createClient(url: string, key: string): SupabaseClientLike;
-}
+type SupabaseClientLike = SupabaseClient;
 
 export class SupabaseStorage implements AbstractStorage {
   private client: SupabaseClientLike | null = null;
@@ -53,19 +18,15 @@ export class SupabaseStorage implements AbstractStorage {
     private readonly bucketName: string
   ) {}
 
-  private async getClient(): Promise<SupabaseClientLike> {
-    if (this.client) return this.client;
-    const moduleName = "@supabase/supabase-js";
-    const sdk = (await import(
-      /* webpackIgnore: true */ moduleName
-    )) as SupabaseSdkModule;
-    this.client = sdk.createClient(this.supabaseUrl, this.supabaseKey);
+  private getClientSync(): SupabaseClientLike {
+    if (!this.client) {
+      this.client = createClient(this.supabaseUrl, this.supabaseKey);
+    }
     return this.client;
   }
 
-  private async bucket(): Promise<SupabaseBucket> {
-    const client = await this.getClient();
-    return client.storage.from(this.bucketName);
+  private async bucket() {
+    return this.getClientSync().storage.from(this.bucketName);
   }
 
   async upload(

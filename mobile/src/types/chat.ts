@@ -4,6 +4,7 @@
  */
 
 import { Message, MessageContent, LanguageModel, Thread, Chunk, JobUpdate, NodeUpdate, NodeProgress, OutputUpdate } from './ApiTypes';
+import type { MediaGenerationRequest } from '../stores/MediaGenerationStore';
 
 // Re-export types we use directly
 export type { Message, LanguageModel, Thread, Chunk };
@@ -76,6 +77,7 @@ export interface ChatMessageRequest {
   collections?: string[];
   agent_mode?: boolean;
   help_mode?: boolean;
+  media_generation?: MediaGenerationRequest;
 }
 
 /**
@@ -105,31 +107,6 @@ export interface ChatState {
 
   // Model selection (for future)
   selectedModel: LanguageModel | null;
-}
-
-/**
- * Actions for the chat store
- */
-export interface ChatActions {
-  // Connection actions
-  connect: () => Promise<void>;
-  disconnect: () => void;
-
-  // Message actions
-  sendMessage: (content: MessageContent[], text: string) => Promise<void>;
-  stopGeneration: () => void;
-
-  // Thread actions
-  createNewThread: (title?: string) => Promise<string>;
-  switchThread: (threadId: string) => void;
-
-  // Getters
-  getCurrentMessages: () => Message[];
-
-  // Internal
-  addMessageToCache: (threadId: string, message: Message) => void;
-  setStatus: (status: ChatStatus) => void;
-  setError: (error: string | null) => void;
 }
 
 /**

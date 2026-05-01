@@ -23,7 +23,7 @@ export const ChainConnector: React.FC<ChainConnectorProps> = ({
   return (
     <FlexColumn align="center" sx={{ py: 0.25 }}>
       <Box sx={{ width: 2, height: 12, backgroundColor: `${color}50` }} />
-      <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: color }} />
+      <Box sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", backgroundColor: color }} />
       <Box sx={{ width: 2, height: 12, backgroundColor: `${color}50` }} />
       <FlexRow gap={0.5} align="center" sx={{ mt: -0.25 }}>
         <ArrowDownwardIcon sx={{ fontSize: 12, color: theme.vars.palette.text.disabled }} />

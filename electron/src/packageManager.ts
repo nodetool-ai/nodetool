@@ -4,6 +4,71 @@ import { logMessage } from "./logger";
 import { getProcessEnv, getPythonPath, getCondaEnvPath } from "./config";
 import * as path from "path";
 
+/** Extract the message from an unknown catch-clause error. */
+function errorMsg(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Shape of a single entry from `uv pip list --format=json`. */
+interface PipPackage {
+  name: string;
+  version: string;
+}
+
+/** Shape of a package entry from the nodetool registry JSON. */
+interface RegistryPackageItem {
+  name: string;
+  description?: string;
+  repo_id: string;
+  namespaces?: string[];
+  version?: string;
+  latestVersion?: string;
+  latest_version?: string;
+}
+
+const PACKAGE_DESCRIPTION_OVERRIDES: Record<string, string> = {
+  "nodetool-ai/nodetool-core":
+    "Essential NodeTool core nodes and shared runtime components. Install this package in every NodeTool environment.",
+  "nunchaku-tech/nunchaku":
+    "Accelerates FLUX and Qwen image models with Nunchaku quantization kernels. Install this only if you plan to run Nunchaku-optimized HuggingFace models.",
+};
+
+export function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" | "description">): string {
+  const override = PACKAGE_DESCRIPTION_OVERRIDES[pkg.repo_id.toLowerCase()];
+  if (override) {
+    return override;
+  }
+  return typeof pkg.description === "string" ? pkg.description.trim() : "";
+}
+
+export function needsTorchPlatformDetection(packageName: string): boolean {
+  return TORCH_DEPENDENT_PACKAGES.has(canonicalizePackageName(packageName));
+}
+
+async function ensureTorchPlatformDetectedForPackage(
+  packageName: string
+): Promise<void> {
+  if (!needsTorchPlatformDetection(packageName)) {
+    return;
+  }
+
+  const saved = getSavedTorchPlatform();
+  if (saved) {
+    logMessage(
+      `Using saved torch platform for ${packageName}: ${saved.platform}`
+    );
+    return;
+  }
+
+  const message = `Detecting GPU platform before installing ${packageName}...`;
+  logMessage(message);
+  emitServerLog(message);
+  emitBootMessage(message);
+
+  const result = await detectTorchPlatform();
+  saveTorchPlatform(result);
+}
+
 // TODO: Package manager needs to be rewritten for npm packages.
 // This is a temporary stub — uv/pip is no longer installed in the conda env.
 function getUVPath(): string {
@@ -22,7 +87,12 @@ import {
   PackageUpdateInfo,
 } from "./types";
 import * as https from "https";
-import { getTorchIndexUrl } from "./torchPlatformCache";
+import {
+  getSavedTorchPlatform,
+  getTorchIndexUrl,
+  saveTorchPlatform,
+} from "./torchPlatformCache";
+import { detectTorchPlatform } from "./torchruntime";
 import { fileExists } from "./utils";
 
 /**
@@ -42,6 +112,10 @@ const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
 const REGISTRY_URL =
   "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 const METADATA_PATH = "src/nodetool/package_metadata";
+const TORCH_DEPENDENT_PACKAGES = new Set([
+  "nodetool-huggingface",
+  "nunchaku",
+]);
 
 // Get the app version dynamically from Electron's app.getVersion()
 function getAppVersion(): string {
@@ -56,24 +130,14 @@ function getAppVersion(): string {
 async function getInstalledNodetoolPackages(): Promise<string[]> {
   try {
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const allPackages = JSON.parse(output);
+    const allPackages = JSON.parse(output) as PipPackage[];
     return allPackages
-      .filter((pkg: any) => pkg.name.startsWith("nodetool-"))
-      .map((pkg: any) => pkg.name);
-  } catch (error: any) {
-    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+      .filter((pkg) => pkg.name.startsWith("nodetool-"))
+      .map((pkg) => pkg.name);
+  } catch (error: unknown) {
+    logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
     return [];
   }
-}
-
-// Export a function to get expected version for a specific package
-export function getExpectedVersion(packageName: string): string | null {
-  return getAppVersion();
-}
-
-// Export a function to get all packages that need version checking
-export async function getPackagesWithVersionRequirements(): Promise<string[]> {
-  return await getInstalledNodetoolPackages();
 }
 
 // Simple in-memory cache for nodes
@@ -93,10 +157,10 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
 
       response.on("end", () => {
         try {
-          const registryData = JSON.parse(data);
-          const packages = (registryData.packages || []).map((pkg: any) => ({
+          const registryData = JSON.parse(data) as { packages?: RegistryPackageItem[] };
+          const packages = (registryData.packages || []).map((pkg) => ({
             name: pkg.name,
-            description: pkg.description ?? "",
+            description: getPackageDescription(pkg),
             repo_id: pkg.repo_id,
             namespaces: pkg.namespaces,
             version:
@@ -245,9 +309,9 @@ async function fetchLatestVersionFromSimpleIndex(
 
     candidates.sort(compareVersions);
     return candidates[candidates.length - 1];
-  } catch (error: any) {
+  } catch (error: unknown) {
     logMessage(
-      `Failed to fetch latest version for ${packageName}: ${error.message}`,
+      `Failed to fetch latest version for ${packageName}: ${errorMsg(error)}`,
       "warn"
     );
     return null;
@@ -259,14 +323,14 @@ async function fetchPackageNodes(repoId: string): Promise<PackageNode[]> {
     const packageName = repoId.split("/")[1];
     const url = `https://raw.githubusercontent.com/${repoId}/main/${METADATA_PATH}/${packageName}.json`;
     const jsonText = await httpsGet(url);
-    const metadata = JSON.parse(jsonText);
-    const nodes: PackageNode[] = (metadata.nodes || []).map((node: any) => ({
+    const metadata = JSON.parse(jsonText) as { nodes?: Partial<PackageNode>[] };
+    const nodes: PackageNode[] = (metadata.nodes || []).map((node) => ({
       ...node,
       package: repoId,
-    }));
+    } as PackageNode));
     return nodes;
-  } catch (error: any) {
-    logMessage(`Error fetching nodes from ${repoId}: ${error.message}`, "warn");
+  } catch (error: unknown) {
+    logMessage(`Error fetching nodes from ${repoId}: ${errorMsg(error)}`, "warn");
     return [];
   }
 }
@@ -289,14 +353,10 @@ export async function fetchAllNodes(
     }
     nodeCache = allNodes;
     return allNodes;
-  } catch (error: any) {
-    logMessage(`Failed to fetch all nodes: ${error.message}`, "error");
+  } catch (error: unknown) {
+    logMessage(`Failed to fetch all nodes: ${errorMsg(error)}`, "error");
     return [];
   }
-}
-
-export function clearNodeCache(): void {
-  nodeCache = null;
 }
 
 export async function searchNodes(query: string = ""): Promise<PackageNode[]> {
@@ -447,9 +507,9 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
     try {
       const registry = await fetchAvailablePackages();
       registryPackages = registry.packages;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logMessage(
-        `Failed to fetch package registry for update check: ${error.message}`,
+        `Failed to fetch package registry for update check: ${errorMsg(error)}`,
         "warn"
       );
     }
@@ -505,8 +565,8 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
 
     const results = await Promise.all(updateChecks);
     return results.filter((entry): entry is PackageUpdateInfo => entry !== null);
-  } catch (error: any) {
-    logMessage(`Failed to check for package updates: ${error.message}`, "warn");
+  } catch (error: unknown) {
+    logMessage(`Failed to check for package updates: ${errorMsg(error)}`, "warn");
     return [];
   }
 }
@@ -520,24 +580,60 @@ export async function getPackageForNodeType(
 }
 
 /**
+ * Ensure the Python runtime (python + uv) is installed in the conda env.
+ *
+ * After the install-wizard refactor (commits 08534478e / a6a392c47), Python
+ * is an opt-in runtime that the user installs from the Runtimes panel. Any
+ * `uv` operation triggered before that runtime is installed (e.g. clicking
+ * "Install" on a Python package in the Package Manager) used to fail with
+ * "uv executable not found", with no recovery path inside the Package
+ * Manager UI. We now install the Python runtime on demand the first time
+ * a uv command is requested, then proceed.
+ *
+ * This is idempotent: once `uv` exists on disk, the check is a no-op.
+ */
+async function ensurePythonRuntimeAvailable(): Promise<void> {
+  const uvPath = getUVPath();
+  if (await fileExists(uvPath)) {
+    return;
+  }
+
+  emitBootMessage("Setting up Python runtime (one-time, ~1-2 min)...");
+  logMessage(
+    `uv not found at ${uvPath} — auto-installing Python runtime before uv operation`,
+    "warn"
+  );
+
+  const result = await installRuntimePackage("python");
+  if (!result.success) {
+    throw new Error(
+      `Could not set up Python runtime automatically: ${result.message}. ` +
+      `Open the Runtimes panel and install Python manually, then retry.`
+    );
+  }
+
+  // Belt-and-braces: verify uv really did appear, in case the install
+  // reported success but landed something unexpected.
+  if (!(await fileExists(uvPath))) {
+    throw new Error(
+      `Python runtime install reported success but uv was not found at ${uvPath}. ` +
+      `Open the Runtimes panel and reinstall Python.`
+    );
+  }
+}
+
+/**
  * Run a uv command
  */
 async function runUvCommand(
   args: string[],
   options?: { stdin?: string; silent?: boolean }
 ): Promise<string> {
+  await ensurePythonRuntimeAvailable();
+
   const uvPath = getUVPath();
   const pythonPath = getPythonPath();
   const command = [uvPath, ...args];
-
-  // Check if uv executable exists before attempting to spawn
-  const uvExists = await fileExists(uvPath);
-  if (!uvExists) {
-    const errorMsg = `Python environment not properly installed: uv executable not found at ${uvPath}. ` +
-      `Please use "Reinstall environment" to set up the Python environment correctly.`;
-    logMessage(errorMsg, "error");
-    throw new Error(errorMsg);
-  }
 
   return new Promise((resolve, reject) => {
     logMessage(`Running uv command: ${command.join(" ")}`);
@@ -552,6 +648,8 @@ async function runUvCommand(
     const process = spawn(command[0], command.slice(1), {
       env,
       stdio: "pipe",
+      // Prevent a console window from flashing on Windows while uv runs.
+      windowsHide: true,
     });
 
     if (options?.stdin && process.stdin) {
@@ -620,12 +718,12 @@ async function listInstalledPackagesInternal(): Promise<PackageModel[]> {
   try {
     // Use uv pip list to get all installed packages
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const allPackages = JSON.parse(output);
+    const allPackages = JSON.parse(output) as PipPackage[];
 
     // Filter for nodetool packages
     const nodetoolPackages = allPackages
-      .filter((pkg: any) => pkg.name.startsWith("nodetool-"))
-      .map((pkg: any) => {
+      .filter((pkg) => pkg.name.startsWith("nodetool-"))
+      .map((pkg) => {
         return {
           name: pkg.name,
           description: "", // uv pip list doesn't provide description
@@ -639,8 +737,8 @@ async function listInstalledPackagesInternal(): Promise<PackageModel[]> {
       });
 
     return nodetoolPackages;
-  } catch (error: any) {
-    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+  } catch (error: unknown) {
+    logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
     return [];
   }
 }
@@ -672,8 +770,8 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
       packages: enrichedPackages,
       count: enrichedPackages.length,
     };
-  } catch (error: any) {
-    logMessage(`Failed to list installed packages: ${error.message}`, "error");
+  } catch (error: unknown) {
+    logMessage(`Failed to list installed packages: ${errorMsg(error)}`, "error");
     return { packages: [], count: 0 };
   }
 }
@@ -699,6 +797,8 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     const message = `Installing ${packageName} v${latestVersion}...`;
     logMessage(message);
     emitServerLog(message);
+
+    await ensureTorchPlatformDetectedForPackage(packageName);
 
     const args = [
       "pip",
@@ -727,14 +827,17 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       success: true,
       message: `Package ${repoId} v${latestVersion} installed successfully from wheel index`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logMessage(
-      `Failed to install package ${repoId}: ${error.message}`,
+      `Failed to install package ${repoId}: ${errorMsg(error)}`,
       "error"
     );
+    // Renderer prepends its own "Failed to install package:" framing, so
+    // return just the underlying reason to avoid duplicated prefixes in
+    // user-facing dialogs (see electron/pages/PackageManager.tsx).
     return {
       success: false,
-      message: `Failed to install package: ${error.message}`,
+      message: errorMsg(error),
     };
   }
 }
@@ -756,14 +859,15 @@ export async function uninstallPackage(
       success: true,
       message: `Package ${repoId} uninstalled successfully`,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logMessage(
-      `Failed to uninstall package ${repoId}: ${error.message}`,
+      `Failed to uninstall package ${repoId}: ${errorMsg(error)}`,
       "error"
     );
+    // Renderer prepends its own "Failed to uninstall package:" framing.
     return {
       success: false,
-      message: `Failed to uninstall package: ${error.message}`,
+      message: errorMsg(error),
     };
   }
 }
@@ -791,6 +895,8 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     logMessage(message);
     emitServerLog(message);
     emitBootMessage(message);
+
+    await ensureTorchPlatformDetectedForPackage(packageName);
 
     const args = [
       "pip",
@@ -822,42 +928,14 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       success: true,
       message: `Package ${repoId} updated to v${latestVersion} successfully from wheel index`,
     };
-  } catch (error: any) {
-    logMessage(`Failed to update package ${repoId}: ${error.message}`, "error");
+  } catch (error: unknown) {
+    logMessage(`Failed to update package ${repoId}: ${errorMsg(error)}`, "error");
+    // Renderer prepends its own "Failed to update package:" framing.
     return {
       success: false,
-      message: `Failed to update package: ${error.message}`,
+      message: errorMsg(error),
     };
   }
-}
-
-/**
- * Get installation information for a package
- */
-export function getPackageInstallationInfo(repoId: string): {
-  packageName: string;
-  repoId: string;
-  wheelCommand: string;
-  gitCommand: string;
-  packageIndexUrl: string;
-} {
-  const packageName = repoId.split("/")[1];
-
-  return {
-    packageName,
-    repoId,
-    wheelCommand: `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`,
-    gitCommand: `uv pip install git+https://github.com/${repoId}.git`,
-    packageIndexUrl: PACKAGE_INDEX_URL,
-  };
-}
-
-/**
- * Get the recommended install command for a package
- */
-export function getInstallCommandForPackage(repoId: string): string {
-  const packageName = repoId.split("/")[1];
-  return `uv pip install --index-url ${PYPI_SIMPLE_INDEX_URL} --extra-index-url ${PACKAGE_INDEX_URL} ${packageName}`;
 }
 
 export { PACKAGE_INDEX_URL };
@@ -894,13 +972,13 @@ export async function checkPackageVersion(
     }
 
     return { needsUpdate: false, currentVersion };
-  } catch (error: any) {
-    if (error.message.includes("package not found")) {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("package not found")) {
       logMessage(`Package ${packageName} not installed, needs installation`);
       return { needsUpdate: true, expectedVersion };
     }
     logMessage(
-      `Failed to check version for ${packageName}: ${error.message}`,
+      `Failed to check version for ${packageName}: ${errorMsg(error)}`,
       "warn"
     );
     return { needsUpdate: false };
@@ -952,9 +1030,9 @@ export async function checkExpectedPackageVersions(): Promise<
         });
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logMessage(
-      `Failed to check expected package versions: ${error.message}`,
+      `Failed to check expected package versions: ${errorMsg(error)}`,
       "error"
     );
   }
@@ -991,6 +1069,10 @@ export async function installExpectedPackages(): Promise<{
       emitServerLog(message);
       emitBootMessage(message);
 
+      for (const pkg of packagesNeedingUpdate) {
+        await ensureTorchPlatformDetectedForPackage(pkg.packageName);
+      }
+
       const args = [
         "pip",
         "install",
@@ -1017,12 +1099,13 @@ export async function installExpectedPackages(): Promise<{
       emitBootMessage(successMessage);
 
       packagesUpdated = packagesNeedingUpdate.length;
-    } catch (error: any) {
-      logMessage(`Failed to install packages: ${error.message}`, "error");
+    } catch (error: unknown) {
+      const msg = errorMsg(error);
+      logMessage(`Failed to install packages: ${msg}`, "error");
       for (const pkg of packagesNeedingUpdate) {
         failures.push({
           packageName: pkg.packageName,
-          error: error.message,
+          error: msg,
         });
       }
     }
@@ -1261,9 +1344,9 @@ export async function installRuntimePackage(
     }
 
     return { success: true, message: `${def.name} installed successfully` };
-  } catch (error: any) {
-    logMessage(`Failed to install runtime package ${packageId}: ${error.message}`, "error");
-    return { success: false, message: `Failed to install: ${error.message}` };
+  } catch (error: unknown) {
+    logMessage(`Failed to install runtime package ${packageId}: ${errorMsg(error)}`, "error");
+    return { success: false, message: `Failed to install: ${errorMsg(error)}` };
   } finally {
     runtimeInstalling.delete(packageId);
   }
@@ -1290,8 +1373,8 @@ export async function uninstallRuntimePackage(
     await removeCondaPackageBySpec(condaEnvPath, def.condaPackages, `Removing ${def.name}`);
 
     return { success: true, message: `${def.name} removed successfully` };
-  } catch (error: any) {
-    logMessage(`Failed to uninstall runtime package ${packageId}: ${error.message}`, "error");
-    return { success: false, message: `Failed to uninstall: ${error.message}` };
+  } catch (error: unknown) {
+    logMessage(`Failed to uninstall runtime package ${packageId}: ${errorMsg(error)}`, "error");
+    return { success: false, message: `Failed to uninstall: ${errorMsg(error)}` };
   }
 }

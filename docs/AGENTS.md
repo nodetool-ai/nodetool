@@ -7,7 +7,7 @@ description: "Architecture of the NodeTool agent system — planning, execution,
 
 **Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) → **Agent System**
 
-The **agent system** (`@nodetool/agents`) gives LLMs the ability to decompose complex objectives into steps, execute those steps with tools, and return structured results. It powers the Agent, Research Agent, and Control Agent nodes in the workflow editor, as well as the standalone Agent CLI.
+The **agent system** (`@nodetool-ai/agents`) gives LLMs the ability to decompose complex objectives into steps, execute those steps with tools, and return structured results. It powers the Agent, Research Agent, and Control Agent nodes in the workflow editor, as well as the standalone Agent CLI.
 
 ---
 
@@ -140,7 +140,7 @@ abstract class Tool {
 | **Web** | `BrowserTool`, `ScreenshotTool` | `browser-tools.ts` |
 | **HTTP** | `HttpRequestTool`, `DownloadFileTool` | `http-tools.ts` |
 | **Search** | `GoogleSearchTool`, `GoogleNewsTool`, `GoogleImagesTool` | `search-tools.ts` |
-| **Code execution** | `RunCodeTool` | `code-tools.ts` |
+| **Code execution** | `RunCodeTool`, `MiniJSAgentTool` | `code-tools.ts`, `js-code-tool.ts` |
 | **Math** | `CalculatorTool`, `StatisticsTool`, `GeometryTool`, `TrigonometryTool`, `ConversionTool` | `math-tools.ts`, `calculator-tool.ts` |
 | **OpenAI** | `OpenAIWebSearchTool`, `OpenAIImageGenerationTool`, `OpenAITextToSpeechTool` | `openai-tools.ts` |
 | **Google** | `GoogleGroundedSearchTool`, `GoogleImageGenerationTool` | `google-tools.ts` |
@@ -151,12 +151,30 @@ abstract class Tool {
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
 | **MCP** | `ListWorkflowsTool`, `RunWorkflowTool`, `SearchNodesTool`, and more | `mcp-tools.ts` |
 
+### JavaScript Sandbox
+
+The `MiniJSAgentTool` and the `CodeNode` workflow node both run user JavaScript inside a **QuickJS WebAssembly** sandbox (`packages/agents/src/js-sandbox.ts`). QuickJS runs in its own WASM instance with a separate heap, providing a true memory/CPU boundary — unlike Node's `node:vm` which shares the V8 heap.
+
+**Limits enforced:**
+
+| Limit | Value |
+|-------|-------|
+| Execution timeout | 30 s |
+| Guest heap | 64 MB |
+| Guest stack | 512 KB |
+| Max output size | 100 KB |
+| Max loop iterations | 10 000 |
+| Max `fetch` calls | 20 |
+| Max response body | 1 MB |
+
+The sandbox exposes a curated surface: vanilla JavaScript plus bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`, `console`). Third-party libraries (lodash, dayjs, etc.) are intentionally excluded — use dedicated workflow nodes instead.
+
 ### Tool Registry
 
 Register custom tools so they can be resolved by name:
 
 ```ts
-import { registerTool, resolveTool, getAllTools } from "@nodetool/agents";
+import { registerTool, resolveTool, getAllTools } from "@nodetool-ai/agents";
 
 registerTool(new MyCustomTool());
 const tool = resolveTool("my_custom_tool");
@@ -166,8 +184,8 @@ const allTools = getAllTools(); // returns all registered tools
 ### Writing a Custom Tool
 
 ```ts
-import { Tool } from "@nodetool/agents";
-import type { ProcessingContext } from "@nodetool/runtime";
+import { Tool } from "@nodetool-ai/agents";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 class WeatherTool extends Tool {
   readonly name = "get_weather";
@@ -265,8 +283,8 @@ AgentNode ──control edge──> ImageGeneratorNode
 ### Full Agent with Planning
 
 ```ts
-import { Agent } from "@nodetool/agents";
-import { BrowserTool, GoogleSearchTool, WriteFileTool } from "@nodetool/agents";
+import { Agent } from "@nodetool-ai/agents";
+import { BrowserTool, GoogleSearchTool, WriteFileTool } from "@nodetool-ai/agents";
 
 const agent = new Agent({
   name: "researcher",
@@ -291,7 +309,7 @@ const result = agent.getResults();
 ### Simple Agent (Single Step)
 
 ```ts
-import { SimpleAgent } from "@nodetool/agents";
+import { SimpleAgent } from "@nodetool-ai/agents";
 
 const agent = new SimpleAgent({
   name: "extractor",

@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electron";
-import { getMainWindow, serverState } from "./state";
+import { serverState } from "./state";
 import { IpcChannels, UpdateProgressData } from "./types.d";
 import { logMessage } from "./logger";
 
@@ -57,16 +57,10 @@ function emitUpdateProgress(
   } satisfies UpdateProgressData);
 }
 
-function emitShowPackageManager(): void {
-  logMessage("Sending SHOW_PACKAGE_MANAGER to renderer");
-  broadcastToWindows(IpcChannels.SHOW_PACKAGE_MANAGER);
-}
-
 export {
   emitBootMessage,
   emitServerStarted,
   emitServerLog,
   emitServerError,
   emitUpdateProgress,
-  emitShowPackageManager,
 };

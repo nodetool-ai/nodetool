@@ -97,6 +97,16 @@ describe("generateClassName", () => {
   it("handles single-segment endpoint without fal-ai prefix", () => {
     expect(parser.generateClassName("some-model")).toBe("SomeModel");
   });
+
+  it("strips non-fal-ai vendor prefixes", () => {
+    expect(parser.generateClassName("openai/gpt-image-2")).toBe("GptImage2");
+    expect(parser.generateClassName("openai/gpt-image-2/edit")).toBe(
+      "GptImage2Edit"
+    );
+    expect(
+      parser.generateClassName("openrouter/router/openai/v1/responses")
+    ).toBe("RouterOpenaiV1Responses");
+  });
 });
 
 // ---------------------------------------------------------------------------

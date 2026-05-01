@@ -16,7 +16,7 @@ describe("BottomPanelStore", () => {
       expect(state.panel.isVisible).toBe(false);
       expect(state.panel.isDragging).toBe(false);
       expect(state.panel.hasDragged).toBe(false);
-      expect(state.panel.activeView).toBe("terminal");
+      expect(state.panel.activeView).toBe("trace");
     });
   });
 
@@ -75,8 +75,8 @@ describe("BottomPanelStore", () => {
 
   describe("setActiveView", () => {
     it("should change active view", () => {
-      useBottomPanelStore.getState().setActiveView("terminal");
-      expect(useBottomPanelStore.getState().panel.activeView).toBe("terminal");
+      useBottomPanelStore.getState().setActiveView("trace");
+      expect(useBottomPanelStore.getState().panel.activeView).toBe("trace");
     });
   });
 
@@ -106,21 +106,21 @@ describe("BottomPanelStore", () => {
   describe("handleViewChange", () => {
     it("should toggle visibility for same view", () => {
       useBottomPanelStore.getState().setVisibility(true);
-      useBottomPanelStore.getState().handleViewChange("terminal");
+      useBottomPanelStore.getState().handleViewChange("trace");
       expect(useBottomPanelStore.getState().panel.isVisible).toBe(false);
     });
 
     it("should switch view and show panel for different view", () => {
       useBottomPanelStore.getState().setVisibility(false);
-      useBottomPanelStore.getState().handleViewChange("terminal");
-      expect(useBottomPanelStore.getState().panel.activeView).toBe("terminal");
+      useBottomPanelStore.getState().handleViewChange("trace");
+      expect(useBottomPanelStore.getState().panel.activeView).toBe("trace");
       expect(useBottomPanelStore.getState().panel.isVisible).toBe(true);
     });
 
     it("should expand panel if collapsed when same view selected", () => {
       useBottomPanelStore.getState().setSize(40);
       useBottomPanelStore.getState().setVisibility(false);
-      useBottomPanelStore.getState().handleViewChange("terminal");
+      useBottomPanelStore.getState().handleViewChange("trace");
       expect(useBottomPanelStore.getState().panel.panelSize).toBe(200);
       expect(useBottomPanelStore.getState().panel.isVisible).toBe(true);
     });

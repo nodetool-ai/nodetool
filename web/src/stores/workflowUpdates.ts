@@ -20,7 +20,7 @@ import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
 import useErrorStore, { normalizeNodeError } from "./ErrorStore";
-import log from "loglevel";
+import usePropertyValidationStore from "./PropertyValidationStore";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
@@ -41,6 +41,51 @@ type WorkflowSubscription = {
 };
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
+
+export const mergeNodeUpdateProperties = ({
+  updateProperties,
+  existingStatic,
+  existingDynamic,
+  isDynamicSchemaNode
+}: {
+  updateProperties: Record<string, unknown>;
+  existingStatic: Record<string, unknown>;
+  existingDynamic: Record<string, unknown>;
+  isDynamicSchemaNode: boolean;
+}): {
+  staticProperties: Record<string, unknown>;
+  dynamicProperties: Record<string, unknown>;
+} => {
+  const nextDynamic = { ...existingDynamic };
+  const nextStatic = { ...existingStatic };
+
+  for (const key in updateProperties) {
+    if (!Object.prototype.hasOwnProperty.call(updateProperties, key)) {
+      continue;
+    }
+    const value = updateProperties[key];
+    if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
+      // Dynamic schema node inputs are user-editable between runs;
+      // backend echoes execution-time values that can be stale.
+      if (isDynamicSchemaNode) {
+        continue;
+      }
+      nextDynamic[key] = value;
+      continue;
+    }
+
+    // Preserve existing static values so user edits made while a run is in
+    // progress are not overwritten by stale execution-time echoes.
+    if (!Object.prototype.hasOwnProperty.call(existingStatic, key)) {
+      nextStatic[key] = value;
+    }
+  }
+
+  return {
+    staticProperties: nextStatic,
+    dynamicProperties: nextDynamic
+  };
+};
 
 const formatJobDurationSeconds = (
   duration: number | null | undefined
@@ -78,8 +123,8 @@ export const subscribeToWorkflowUpdates = (
 
   const unsubscribeWorkflow = globalWebSocketManager.subscribe(
     workflowId,
-    (message: MsgpackData) => {
-      handleUpdate(workflow, message, runnerStore, getNodeStore);
+    (message) => {
+      handleUpdate(workflow, message as MsgpackData, runnerStore, getNodeStore);
     }
   );
 
@@ -97,7 +142,7 @@ export const subscribeToWorkflowUpdates = (
 
     unsubscribeJob = globalWebSocketManager.subscribe(
       jobId,
-      (message: MsgpackData) => {
+      (message) => {
         // Avoid double-processing when the backend already provides workflow_id.
         // The job_id routing exists as a fallback for updates where workflow_id is
         // missing/null (e.g. terminal job completion updates).
@@ -105,7 +150,7 @@ export const subscribeToWorkflowUpdates = (
           return;
         }
 
-        handleUpdate(workflow, message, runnerStore, getNodeStore);
+        handleUpdate(workflow, message as MsgpackData, runnerStore, getNodeStore);
       }
     );
   };
@@ -196,6 +241,7 @@ export const handleUpdate = (
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
   const clearProgress = useResultsStore.getState().clearProgress;
+  const addChunk = useResultsStore.getState().addChunk;
   const setPreview = useResultsStore.getState().setPreview;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
@@ -249,7 +295,7 @@ export const handleUpdate = (
     if (planningUpdate.node_id) {
       setPlanningUpdate(workflow.id, planningUpdate.node_id, planningUpdate);
     } else {
-      log.error("PlanningUpdate has no node_id");
+      console.error("PlanningUpdate has no node_id");
     }
   }
   if (data.type === "tool_call_update") {
@@ -281,7 +327,7 @@ export const handleUpdate = (
     if (task.node_id) {
       setTask(workflow.id, task.node_id, task.task);
     } else {
-      log.error("TaskUpdate has no node_id");
+      console.error("TaskUpdate has no node_id");
     }
   }
 
@@ -311,6 +357,13 @@ export const handleUpdate = (
       timestamp: Date.now()
     });
   }
+
+  if (data.type === "chunk") {
+    const chunk = data as Chunk;
+    if (chunk.node_id && chunk.content) {
+      addChunk(workflow.id, chunk.node_id, chunk.content);
+    }
+  }
   if (data.type === "job_update") {
     const job = data as JobUpdate;
     const runState = (job as JobUpdate & { run_state?: JobRunState }).run_state;
@@ -331,6 +384,9 @@ export const handleUpdate = (
       if (currentState !== "error") {
         newState = "running";
       }
+      // A new run starts: clear any prior pre-flight validation highlights
+      // so stale red outlines don't linger after the user fixes them.
+      usePropertyValidationStore.getState().clearWorkflow(workflow.id);
     } else if (job.status === "suspended") {
       newState = "suspended";
     } else if (job.status === "paused") {
@@ -398,19 +454,43 @@ export const handleUpdate = (
         clearTimings(workflow.id);
         break;
       case "failed":
-      case "timed_out":
-        runner.addNotification({
-          type: "error",
-          alert: true,
-          content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
-          timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
-        });
+      case "timed_out": {
+        const validationIssues = (
+          job as JobUpdate & {
+            validation_issues?: Array<{
+              node_id: string;
+              property: string;
+              message: string;
+            }> | null;
+          }
+        ).validation_issues;
+        if (validationIssues && validationIssues.length > 0) {
+          usePropertyValidationStore
+            .getState()
+            .setIssues(workflow.id, validationIssues);
+          const noun =
+            validationIssues.length === 1 ? "field" : "fields";
+          runner.addNotification({
+            type: "error",
+            alert: true,
+            content: `Fix ${validationIssues.length} highlighted ${noun} before running.`,
+            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+          });
+        } else {
+          runner.addNotification({
+            type: "error",
+            alert: true,
+            content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
+            timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+          });
+        }
         clearStatuses(workflow.id);
         clearEdges(workflow.id);
         clearProgress(workflow.id);
         clearOutputResults(workflow.id);
         clearTimings(workflow.id);
         break;
+      }
       case "queued":
         runnerStore.setState({
           statusMessage: "Worker is booting (may take a 15 seconds)..."
@@ -483,7 +563,7 @@ export const handleUpdate = (
 
     const normalizedNodeError = normalizeNodeError(update.error);
     if (normalizedNodeError) {
-      log.error("WorkflowRunner update error", normalizedNodeError);
+      console.error("WorkflowRunner update error", normalizedNodeError);
       runner.addNotification({
         type: "error",
         alert: true,
@@ -558,33 +638,26 @@ export const handleUpdate = (
       if (nodeStore) {
         const state = nodeStore.getState();
         const node = state.findNode(update.node_id);
+        const existingStatic = node?.data?.properties || {};
         const existingDynamic = node?.data?.dynamic_properties || {};
-        const nextDynamic = { ...existingDynamic };
-        const nextStatic: Record<string, unknown> = {};
 
         const isDynamicSchemaNode =
           update.node_type === "fal.DynamicFal" ||
           update.node_type === DYNAMIC_KIE_NODE_TYPE ||
           update.node_type === "kie.DynamicKie";
 
-        for (const key in update.properties) {
-          if (!Object.prototype.hasOwnProperty.call(update.properties, key)) {continue;}
-          const value = update.properties[key];
-          if (Object.prototype.hasOwnProperty.call(existingDynamic, key)) {
-            // Dynamic schema node inputs are user-editable between runs;
-            // backend echoes execution-time values that can be stale.
-            if (isDynamicSchemaNode) {
-              continue;
-            }
-            nextDynamic[key] = value;
-          } else {
-            nextStatic[key] = value;
+        const { staticProperties, dynamicProperties } = mergeNodeUpdateProperties(
+          {
+            updateProperties: update.properties,
+            existingStatic,
+            existingDynamic,
+            isDynamicSchemaNode
           }
-        }
+        );
 
         state.updateNodeData(update.node_id, {
-          properties: nextStatic,
-          dynamic_properties: nextDynamic
+          properties: staticProperties,
+          dynamic_properties: dynamicProperties
         });
       }
     }

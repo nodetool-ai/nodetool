@@ -13,7 +13,6 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import log from "loglevel";
 
 interface TextItem {
   uri: string;
@@ -39,7 +38,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       width: "100%",
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: "all 0.2s ease",
@@ -100,7 +99,7 @@ const styles = (theme: Theme) =>
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -325,7 +324,7 @@ const TextListProperty = (props: PropertyProps) => {
         const newTexts = await Promise.all(uploadPromises);
         handleAddTexts(newTexts);
       } catch (error) {
-        log.error("Failed to upload text files:", error);
+        console.error("Failed to upload text files:", error);
       }
     },
     [uploadAsset, handleAddTexts, filteredAssets, globalSearchResults, selectedAssets]
@@ -391,7 +390,7 @@ const TextListProperty = (props: PropertyProps) => {
         handleAddTexts(newTexts);
       }
     } catch (error) {
-      log.error("Error opening file picker:", error);
+      console.error("Error opening file picker:", error);
     }
   }, [uploadAsset, handleAddTexts]);
 
@@ -431,7 +430,7 @@ const TextListProperty = (props: PropertyProps) => {
       const newTexts = await Promise.all(uploadPromises);
       handleAddTexts(newTexts);
     } catch (error) {
-      log.error("Failed to upload text files:", error);
+      console.error("Failed to upload text files:", error);
     }
 
     // Reset input so same file can be selected again

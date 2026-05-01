@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useLayoutEffect } from 'react';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
@@ -9,21 +9,20 @@ interface MobileClassProviderProps {
 const MobileClassProvider: React.FC<MobileClassProviderProps> = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isCoarsePointer = useMediaQuery('(pointer: coarse)');
 
-  useEffect(() => {
+  // useLayoutEffect: apply class pre-paint so first frame is mobile-styled.
+  useLayoutEffect(() => {
     const body = document.body;
-    
-    if (isMobile) {
-      body.classList.add('mobile');
-    } else {
-      body.classList.remove('mobile');
-    }
 
-    // Cleanup function to remove the class when component unmounts
+    body.classList.toggle('mobile', isMobile);
+    body.classList.toggle('coarse-pointer', isCoarsePointer);
+
     return () => {
       body.classList.remove('mobile');
+      body.classList.remove('coarse-pointer');
     };
-  }, [isMobile]);
+  }, [isMobile, isCoarsePointer]);
 
   return <>{children}</>;
 };

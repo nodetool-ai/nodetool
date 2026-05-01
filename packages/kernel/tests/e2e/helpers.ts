@@ -3,9 +3,9 @@
  */
 
 import { WorkflowRunner } from "../../src/runner.js";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import type { NodeDescriptor, Edge } from "@nodetool/protocol";
-import { ALL_TEST_NODES, ALL_CONTROLLER_NODES } from "@nodetool/node-sdk";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
+import { ALL_TEST_NODES, ALL_CONTROLLER_NODES } from "@nodetool-ai/node-sdk";
 
 // Re-export commonly used node classes so test files don't need a long import list
 export {
@@ -31,7 +31,7 @@ export {
   IntInput,
   FloatInput,
   StringInput
-} from "@nodetool/node-sdk";
+} from "@nodetool-ai/node-sdk";
 
 // ---------------------------------------------------------------------------
 // Registry + runner factories

@@ -5,13 +5,13 @@ import React, { useCallback, useEffect, useRef, useState, memo } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import { Public as GlobalIcon, Folder as LocalIcon } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
-import { useDebouncedCallback } from "use-debounce";
+import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
+
 
 const styles = (theme: Theme) =>
   css({
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       appearance: "none",
       color: "var(--palette-text-primary)",
       backgroundColor: "var(--palette-grey-800)",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       transition: "all 0.2s"
     },
     "input[type='text']:focus": {
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       height: "16px",
       border: "2px solid var(--palette-grey-500)",
       borderTop: "2px solid var(--palette-grey-100)",
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       animation: "spin 1s linear infinite"
     },
     "@keyframes spin": {
@@ -218,7 +218,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       } catch (error) {
         // Don't log errors for aborted requests
         if (!abortController.signal.aborted) {
-          log.error("Global search error:", error);
+          console.error("Global search error:", error);
           setIsGlobalSearchActive(false);
           setGlobalSearchResults([]);
         }

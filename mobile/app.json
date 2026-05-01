@@ -3,6 +3,7 @@
     "name": "NodeTool",
     "slug": "nodetool-mobile",
     "version": "1.0.0",
+    "scheme": "nodetool",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,7 +14,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ai.nodetool.mobile"
+      "bundleIdentifier": "ai.nodetool.mobile",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.865599262139-dmfkvddphs7h1qu6dvrgj0t9aq656h84"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,6 +36,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "supabaseUrl": "https://zmytgmyiwfmdajmxjbag.supabase.co",
+      "supabaseAnonKey": "sb_publishable_sGCndMc7Ku5J6Bct80D9WQ_Ik96Qu9a"
+    },
+    "plugins": [
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
+    ]
   }
 }

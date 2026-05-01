@@ -2,15 +2,15 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback, useMemo, memo } from "react";
+import React, { useCallback, useMemo, useRef, memo } from "react";
 import {
   Box,
-  List,
   ListItemButton,
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Tooltip, Text } from "../ui_primitives";
+import { Tooltip, EmptyState } from "../ui_primitives";
+import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import type { ImageModel, LanguageModel } from "../../stores/ApiTypes";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -23,19 +23,43 @@ import {
   requiredSecretForProvider,
   ModelSelectorModel
 } from "../../stores/ModelMenuStore";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import AutoSizer from "react-virtualized-auto-sizer";
-import {
-  FixedSizeList as VirtualList,
-  ListChildComponentProps
-} from "react-window";
+
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useSecrets } from "../../hooks/useSecrets";
 
-const listStyles = css({
-  overflowY: "auto",
-  overflowX: "hidden",
-  maxHeight: 600
-});
+import type { Theme } from "@mui/material/styles";
+
+const ROW_HEIGHT = 40;
+
+const listStyles = (theme: Theme) =>
+  css({
+    overflowY: "auto",
+    overflowX: "hidden",
+    maxHeight: 600,
+    "& .MuiListItemButton-root": { py: 0.5 },
+    "& .MuiListItemText-primary": {
+      fontSize: theme.vars.fontSizeNormal,
+      color: theme.vars.palette.text.primary,
+      fontWeight: 500
+    },
+    "& .MuiListItemText-secondary": {
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.vars.fontSizeSmall
+    },
+    "& .model-menu__model-item.is-unavailable": {
+      opacity: 0.55,
+      cursor: "not-allowed"
+    },
+    "& .model-menu__model-item.is-unavailable .MuiListItemText-primary": {
+      color: theme.vars.palette.text.disabled
+    },
+    "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary": {
+      color: theme.vars.palette.text.disabled
+    },
+    "& .MuiListItemButton-root:hover .favorite-star": {
+      opacity: 1
+    }
+  });
 
 /**
  * HighlightedModelName - Memoized component for highlighting search term in model name.
@@ -82,17 +106,32 @@ export interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
   onSelect: (m: TModel) => void;
   searchTerm?: string;
+  /** Called when the user clicks the "Browse Downloads" CTA in the empty state */
+  onGoToDownloads?: () => void;
+  /** Whether the dialog has recommended downloads available */
+  hasDownloads?: boolean;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
   models,
   onSelect,
-  searchTerm = ""
+  searchTerm = "",
+  onGoToDownloads,
+  hasDownloads = false
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
   const { isApiKeySet } = useSecrets();
   const theme = useTheme();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: models.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+    getItemKey: (index) => `${models[index].provider}:${models[index].id}`,
+  });
 
   // Stable handler for model selection using data attributes
   const handleModelClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -105,7 +144,7 @@ function ModelList<TModel extends ModelSelectorModel>({
   }, [models, onSelect]);
 
   const renderRow = useCallback(
-    ({ index, style }: ListChildComponentProps) => {
+    ({ index, style }: { index: number; style: React.CSSProperties }) => {
       const m = models[index];
       const fav = isFavorite(m.provider || "", m.id || "");
       const env = requiredSecretForProvider(m.provider);
@@ -124,7 +163,7 @@ function ModelList<TModel extends ModelSelectorModel>({
               ? "Add API key in Settings to use this model"
               : "";
       return (
-        <div style={style} key={`${m.provider}:${m.id}`}>
+        <div role="listitem" style={style}>
           <Tooltip disableInteractive title={tooltipTitle}>
             <ListItemButton
               className={`model-menu__model-item ${available ? "" : "is-unavailable"
@@ -300,71 +339,66 @@ function ModelList<TModel extends ModelSelectorModel>({
   return (
     <Box sx={{ height: "100%", minHeight: 320, overflow: "hidden" }}>
       {models.length === 0 ? (
-        <Box
-          sx={{
-            p: 10,
-            color: theme.vars.palette.text.primary,
-            fontSize: theme.vars.fontSizeNormal
+        searchTerm.trim().length > 0 ? (
+          <EmptyState
+            variant="no-results"
+            size="small"
+            title="No models found"
+            description={`No models match "${searchTerm}". Try a different term, enable more providers, or download a local model from the Downloads tab.`}
+          />
+        ) : hasDownloads ? (
+          <EmptyState
+            variant="empty"
+            size="small"
+            icon={<DownloadIcon className="empty-icon" />}
+            title="No models yet — let's get started"
+            description="Download a local model or add an API key for a cloud provider to get going."
+            actionText="Browse Recommended Downloads"
+            onAction={onGoToDownloads}
+          />
+        ) : (
+          <EmptyState
+            variant="empty"
+            size="small"
+            title="No models available"
+            description="Enable a provider in the left sidebar or add an API key in Settings."
+          />
+        )
+      ) : (
+        <div
+          ref={scrollRef}
+          css={listStyles(theme)}
+          className="model-menu__models-list"
+          style={{
+            height: "100%",
+            width: "100%",
+            minHeight: 320,
+            overflow: "auto",
           }}
         >
-          <InfoOutlinedIcon color="warning" fontSize="medium" />
-          <Text>
-            {searchTerm.trim().length === 0
-              ? "No models available. Select or enable providers in the left sidebar to see models."
-              : `No models found for "${searchTerm}". Try a different term or enable more providers.`}
-          </Text>
-        </Box>
-      ) : (
-        <AutoSizer>
-          {({ height, width }) => {
-            const safeHeight = Math.max(height || 0, 320);
-            const safeWidth = Math.max(width || 0, 350);
-            return (
-              <List
-                dense
-                css={listStyles}
-                className="model-menu__models-list"
-                sx={{
-                  overflowX: "hidden",
-                  height: safeHeight,
-                  width: safeWidth,
-                  "& .MuiListItemButton-root": { py: 0.5 },
-                  "& .MuiListItemText-primary": {
-                    fontSize: theme.vars.fontSizeNormal
-                  },
-                  "& .MuiListItemText-secondary": {
-                    color: theme.vars.palette.text.secondary,
-                    fontSize: theme.vars.fontSizeSmall
-                  },
-                  "& .model-menu__model-item.is-unavailable": {
-                    opacity: 0.55,
-                    cursor: "not-allowed"
-                  },
-                  "& .model-menu__model-item.is-unavailable .MuiListItemText-primary":
-                  {
-                    color: theme.vars.palette.text.disabled
-                  },
-                  "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary":
-                  {
-                    color: theme.vars.palette.text.disabled
-                  },
-                  "& .MuiListItemButton-root:hover .favorite-star": {
-                    opacity: 1
-                  }
-                }}
-              >
-                <VirtualList
-                  height={safeHeight}
-                  width={safeWidth}
-                  itemCount={models.length}
-                  itemSize={40}
-                >
-                  {renderRow}
-                </VirtualList>
-              </List>
-            );
-          }}
-        </AutoSizer>
+          <div
+            role="list"
+            style={{
+              height: virtualizer.getTotalSize(),
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((vi) =>
+              renderRow({
+                index: vi.index,
+                style: {
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: vi.size,
+                  transform: `translateY(${vi.start}px)`,
+                },
+              })
+            )}
+          </div>
+        </div>
       )}
     </Box>
   );

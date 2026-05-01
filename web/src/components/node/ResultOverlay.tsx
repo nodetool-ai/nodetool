@@ -97,7 +97,7 @@ const ResultOverlay: React.FC<ResultOverlayProps> = ({
             width: 24,
             height: 24,
             padding: "4px",
-            borderRadius: "4px",
+            borderRadius: "var(--rounded-sm)",
             opacity: 0.6,
             transition: "opacity 0.2s ease",
             backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,

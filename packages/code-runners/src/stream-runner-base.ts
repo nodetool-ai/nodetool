@@ -193,6 +193,22 @@ export class StreamRunnerBase {
   }
 
   /**
+   * Hook for subclasses that want the local subprocess to be executed
+   * through the OS shell (`/bin/sh -c "…"` on POSIX, `cmd.exe /d /s /c "…"`
+   * on Windows). This is required for "shell command" runners where the
+   * user input may rely on shell built-ins such as `echo`, pipes, redirects
+   * or globbing — none of which work with a bare `spawn(argv0, args)`.
+   *
+   * When this returns `true`, `_localRun` ignores the parsed command vector
+   * and spawns the original `userCode` string with `{ shell: true }`.
+   * `wrapSubprocessCommand` is bypassed in this mode (sandboxing wrappers
+   * don't compose with arbitrary shell strings).
+   */
+  subprocessUseShell(): boolean {
+    return false;
+  }
+
+  /**
    * Hook to clean up resources from `wrapSubprocessCommand`.
    */
   cleanupSubprocessWrapper(_cleanupData: unknown): void {
@@ -578,13 +594,19 @@ export class StreamRunnerBase {
     options?: StreamOptions
   ): AsyncGenerator<[Slot, string], void> {
     const env: Record<string, unknown> = {};
+    const useShell = this.subprocessUseShell();
     let commandVec = this.buildContainerCommand(userCode, envLocals);
     const stdinStream = options?.stdinStream ?? null;
 
-    // Allow subclass to wrap the command (e.g., sandbox-exec)
-    const [wrappedCommand, cleanupData] =
-      this.wrapSubprocessCommand(commandVec);
-    commandVec = wrappedCommand;
+    // Allow subclass to wrap the command (e.g., sandbox-exec). Skipped in
+    // shell mode because the wrapper would have to compose with an
+    // arbitrary shell string, which is not generally safe.
+    let cleanupData: unknown = null;
+    if (!useShell) {
+      const wrapped = this.wrapSubprocessCommand(commandVec);
+      commandVec = wrapped[0];
+      cleanupData = wrapped[1];
+    }
 
     // Prepare environment and working directory
     const procEnv: Record<string, string> = {
@@ -593,11 +615,20 @@ export class StreamRunnerBase {
     };
     const cwd = options?.workspaceDir ?? process.cwd();
 
-    const child = spawn(commandVec[0], commandVec.slice(1), {
-      cwd,
-      env: procEnv,
-      stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
-    });
+    // In shell mode we delegate parsing (quoting, pipes, built-ins like
+    // `echo` on Windows) to the OS shell by passing the raw user code.
+    const child = useShell
+      ? spawn(userCode, {
+          cwd,
+          env: procEnv,
+          shell: true,
+          stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
+        })
+      : spawn(commandVec[0], commandVec.slice(1), {
+          cwd,
+          env: procEnv,
+          stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
+        });
 
     this._activeChild = child;
 

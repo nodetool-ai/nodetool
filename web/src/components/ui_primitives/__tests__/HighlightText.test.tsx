@@ -7,7 +7,6 @@ import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { HighlightText } from "../HighlightText";
 import mockTheme from "../../../__mocks__/themeMock";
-import log from "loglevel";
 
 const renderWithTheme = (component: React.ReactElement) => {
   return render(
@@ -171,7 +170,7 @@ describe("HighlightText", () => {
     it("should handle regex errors gracefully and return original text", () => {
       // This test verifies the try-catch block in tokenize function
       // by using a query that would cause issues if not properly escaped
-      const consoleWarnSpy = jest.spyOn(log, "warn").mockImplementation();
+      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
 
       renderWithTheme(<HighlightText text="Test text" query="[" />);
       expect(screen.getByText("Test text")).toBeInTheDocument();

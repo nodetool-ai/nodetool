@@ -13,13 +13,13 @@ import {
 import { ListProviderModelsTool } from "../src/tools/model-tools.js";
 import { removeBase64Images } from "../src/utils/remove-base64-images.js";
 import { wrapGeneratorsParallel } from "../src/utils/wrap-generators-parallel.js";
-import type { MessageContent } from "@nodetool/runtime";
+import type { MessageContent } from "@nodetool-ai/runtime";
 
 // Minimal context stub for workspace tools
 function makeContext(workspaceDir: string) {
   return {
     workspaceDir
-  } as unknown as import("@nodetool/runtime").ProcessingContext;
+  } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
 }
 
 // ── T-AG-1 — Workspace tools ────────────────────────────────────────
@@ -165,11 +165,11 @@ describe("T-AG-3: ListProviderModelsTool", () => {
     };
     const tool = new ListProviderModelsTool({
       openai:
-        mockProvider as unknown as import("@nodetool/runtime").BaseProvider
+        mockProvider as unknown as import("@nodetool-ai/runtime").BaseProvider
     });
 
     const result = (await tool.process(
-      {} as import("@nodetool/runtime").ProcessingContext,
+      {} as import("@nodetool-ai/runtime").ProcessingContext,
       { provider: "openai" }
     )) as Record<string, unknown>;
 
@@ -182,7 +182,7 @@ describe("T-AG-3: ListProviderModelsTool", () => {
   it("returns error for unknown provider", async () => {
     const tool = new ListProviderModelsTool({});
     const result = (await tool.process(
-      {} as import("@nodetool/runtime").ProcessingContext,
+      {} as import("@nodetool-ai/runtime").ProcessingContext,
       { provider: "unknown" }
     )) as Record<string, unknown>;
     expect(result.success).toBe(false);
@@ -193,10 +193,10 @@ describe("T-AG-3: ListProviderModelsTool", () => {
     const mockProvider = {};
     const tool = new ListProviderModelsTool({
       openai:
-        mockProvider as unknown as import("@nodetool/runtime").BaseProvider
+        mockProvider as unknown as import("@nodetool-ai/runtime").BaseProvider
     });
     const result = (await tool.process(
-      {} as import("@nodetool/runtime").ProcessingContext,
+      {} as import("@nodetool-ai/runtime").ProcessingContext,
       { provider: "openai" }
     )) as Record<string, unknown>;
     expect(result.success).toBe(false);
@@ -209,7 +209,7 @@ describe("T-AG-7: removeBase64Images", () => {
   it("removes base64 image content blocks", () => {
     const content: MessageContent[] = [
       { type: "text", text: "hello" },
-      { type: "image", image: { uri: "data:image/png;base64,abc123" } },
+      { type: "image_url", image: { uri: "data:image/png;base64,abc123" } },
       { type: "text", text: "world" }
     ];
     const result = removeBase64Images(content);
@@ -221,11 +221,11 @@ describe("T-AG-7: removeBase64Images", () => {
   it("preserves real-URL images", () => {
     const content: MessageContent[] = [
       { type: "text", text: "hello" },
-      { type: "image", image: { uri: "https://example.com/image.png" } }
+      { type: "image_url", image: { uri: "https://example.com/image.png" } }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(2);
-    expect(result[1].type).toBe("image");
+    expect(result[1].type).toBe("image_url");
   });
 
   it("preserves text content", () => {
@@ -239,7 +239,10 @@ describe("T-AG-7: removeBase64Images", () => {
 
   it("removes image with base64 data field", () => {
     const content: MessageContent[] = [
-      { type: "image", image: { data: "base64string", mimeType: "image/png" } }
+      {
+        type: "image_url",
+        image: { data: "base64string", mimeType: "image/png" }
+      }
     ];
     const result = removeBase64Images(content);
     expect(result.length).toBe(0);

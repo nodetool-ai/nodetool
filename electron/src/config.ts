@@ -204,6 +204,24 @@ const getSystemDataPath = (filename: string): string => {
   }
 };
 
+/**
+ * Returns the default assets directory.
+ * Matches backend config path precedence for compatibility.
+ */
+const getDefaultAssetsPath = (): string => {
+  const assetFolder = process.env.ASSET_FOLDER;
+  if (assetFolder) {
+    return assetFolder;
+  }
+
+  const storagePath = process.env.STORAGE_PATH;
+  if (storagePath) {
+    return storagePath;
+  }
+
+  return getSystemDataPath("assets");
+};
+
 const getProcessEnv = (): ProcessEnv => {
   const condaPath: string = getCondaEnvPath();
 
@@ -314,6 +332,7 @@ export {
   getLlamaServerPath,
   getProcessEnv,
   getSystemDataPath,
+  getDefaultAssetsPath,
   _resetCondaEnvCache,
   PID_FILE_PATH,
   PID_DIRECTORY,

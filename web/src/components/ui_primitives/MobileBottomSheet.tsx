@@ -61,7 +61,7 @@ const getSx = (theme: Theme, maxHeight: string): SxProps<Theme> => ({
       display: "block",
       width: "40px",
       height: "4px",
-      borderRadius: "2px",
+      borderRadius: theme.rounded.xs,
       backgroundColor: theme.vars.palette.grey[600]
     }
   },

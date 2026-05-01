@@ -14,7 +14,7 @@ const styles = (theme: Theme, isBypassed: boolean) =>
       width: 28,
       height: 28,
       padding: 0,
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       backgroundColor: isBypassed
         ? theme.vars.palette.warning.dark
         : "transparent",

@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 export type ImageRefLike = {
   data?: string | Uint8Array;

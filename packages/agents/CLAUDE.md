@@ -1,5 +1,43 @@
 # Agents Package
 
+## JavaScript Sandbox (`src/js-sandbox.ts`)
+
+User-authored JS from `MiniJSAgentTool` and `nodetool.code.Code` runs in a
+**QuickJS WebAssembly sandbox** via `@sebastianwessel/quickjs`. The guest lives
+in its own WASM heap, so runaway or malicious code can't corrupt the host V8
+heap the way it could under the previous `node:vm` implementation.
+
+Hard limits enforced by the runtime:
+
+| Limit | Value | Configured by |
+|-------|-------|---------------|
+| Execution time | `timeoutMs` (default 30 s) | `setInterruptHandler` (CPU budget) + wall-clock race |
+| Guest heap | `GUEST_MEMORY_LIMIT` = 64 MB | `runtime.setMemoryLimit` |
+| Call stack | `GUEST_STACK_LIMIT` = 512 KB | `runtime.setMaxStackSize` |
+| Fetch calls | `MAX_FETCH_CALLS` = 20 per run | counter inside bridge |
+| Fetch body | `MAX_RESPONSE_BODY_SIZE` = 1 MB | truncation inside bridge |
+| Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation |
+
+Exposed guest surface: `console`, `fetch`, `uuid`, `sleep`, `getSecret`,
+`workspace.{read,write,list}` (requires a `ProcessingContext`), and any
+caller-supplied `globals`. `eval` and `Function` are deleted at init so the
+user cannot re-enter dynamic code generation. Core JS (`JSON`, `Math`, `Date`,
+`Map`, `URL`, `TextEncoder`, etc.) is QuickJS's native implementation, not a
+host-bridged version.
+
+**State sync-back**: object-typed globals are deep-replaced on the host after
+the guest runs, so `CodeNode`'s `state` object persists across invocations.
+Primitive globals pass by value (no sync).
+
+**Known QuickJS limitations**:
+- `url.searchParams.set(...)` doesn't propagate back to the parent URL. Build
+  the query via `URLSearchParams` directly.
+- Host async functions must never reject — `js-sandbox.ts` wraps them in a
+  `neverReject` adapter that returns a tagged error object, which a guest
+  prelude rewraps into a real `throw`. Working around a known handle leak in
+  `@sebastianwessel/quickjs@3.0.1` (tracked as `list_empty(&rt->gc_obj_list)`
+  assertion on runtime dispose).
+
 ## Running Agents from CLI
 
 ### Interactive Chat
@@ -36,8 +74,8 @@ echo "Summarize this codebase" | nodetool-chat --agent --provider anthropic
 ### Programmatic Usage
 
 ```typescript
-import { Agent } from "@nodetool/agents";
-import { createRuntimeContext } from "@nodetool/runtime";
+import { Agent } from "@nodetool-ai/agents";
+import { createRuntimeContext } from "@nodetool-ai/runtime";
 
 const ctx = createRuntimeContext({ jobId: "...", userId: "1", workspaceDir: "." });
 
@@ -171,25 +209,63 @@ export NODETOOL_LOG_FILE=/tmp/agents.log
 
 ### OpenTelemetry Tracing
 
-Every `generateMessagesTraced()` call creates an OpenTelemetry span with attributes: `llm.provider`, `llm.model`, `llm.request.message_count`, `llm.request.tools_count`, `llm.response.content`, `llm.response.tool_calls_count`.
+Span hierarchy (an analyzer agent can read this tree to optimize prompts):
+
+```
+workflow.run
+  node.process
+    agent.execute
+      agent.plan        (TaskPlanner.planMultiTask / GraphPlanner.plan)
+        llm.chat        (BaseProvider.generateMessageTraced)
+        llm.stream      (BaseProvider.generateMessagesTraced)
+      agent.step        (StepExecutor.execute)
+        llm.chat
+        llm.stream
+```
+
+Span attributes:
+
+- `agent.*`: `agent.kind` (execute/plan/step), `agent.objective`, `agent.provider`, `agent.model`, `agent.tools_count`, `agent.task` (for steps), `agent.plan.kind` (multi/single/graph)
+- `llm.*`: `llm.provider`, `llm.model`, `llm.request.message_count`, `llm.request.tools_count`, `llm.request.max_tokens`, `llm.request.stream`, `llm.response.content` (first 2000 chars), `llm.response.tool_calls_count`
+- `gen_ai.*` (OTel GenAI semconv): `gen_ai.system`, `gen_ai.request.model`, `gen_ai.operation.name`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, `gen_ai.usage.cost_credits`
+- `workflow.*` / `node.*`: `workflow.id`, `workflow.name`, `workflow.node_count`, `node.id`, `node.type`
+
+Sinks (simultaneous, each on its own SpanProcessor):
 
 ```bash
-# Console output (development)
+# JSONL trace file — one span per line, analyzer-friendly
+export NODETOOL_TRACE_FILE=/tmp/nodetool-trace.jsonl
+
+# Stdout — pretty (human) or json (JSONL)
+export NODETOOL_TRACE_STDOUT=pretty       # or "json"
+
+# OpenTelemetry — console (legacy)
 export OTEL_TRACES_EXPORTER=console
 export TRACELOOP_DISABLE_BATCH=true
 
-# Traceloop cloud
+# OpenTelemetry — Traceloop cloud
 export TRACELOOP_API_KEY=your-key
 
-# Custom OTLP backend (Jaeger, Grafana, etc.)
+# OpenTelemetry — custom OTLP backend (Jaeger, Grafana, etc.)
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+CLI flags pass these through:
+
+```bash
+nodetool-chat --agent --trace-file trace.jsonl
+nodetool-chat --agent --trace-stdout pretty
+nodetool --trace-file trace.jsonl run workflow.ts
 ```
 
 Telemetry must be initialized before use:
 
 ```typescript
-import { initTelemetry } from "@nodetool/runtime";
-await initTelemetry();
+import { initTelemetry } from "@nodetool-ai/runtime";
+await initTelemetry({
+  traceFile: "trace.jsonl",   // optional
+  stdout: "pretty",            // optional: "pretty" | "json" | false
+});
 ```
 
 The CLI calls `initTelemetry()` at startup automatically. The WebSocket server requires env vars to be set before starting.
@@ -202,7 +278,7 @@ The web UI renders the same tree view in the chat panel (`ExecutionTree` compone
 
 ### Cost Tracking
 
-`CostCalculator` in `@nodetool/runtime` tracks per-call costs based on provider pricing:
+`CostCalculator` in `@nodetool-ai/runtime` tracks per-call costs based on provider pricing:
 
 ```typescript
 provider.trackUsage(model, { inputTokens: 100, outputTokens: 50 });

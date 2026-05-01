@@ -13,7 +13,7 @@ const styles = (theme: Theme, _isRunning: boolean) =>
       width: 28,
       height: 28,
       padding: 0,
-      borderRadius: "50%",
+      borderRadius: "var(--rounded-circle)",
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.common.black,
       transition: "all 0.15s ease",

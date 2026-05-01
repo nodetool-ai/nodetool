@@ -10,8 +10,8 @@
 import { describe, it, expect } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
-import type { NodeDescriptor, NodeUpdate } from "@nodetool/protocol";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { NodeDescriptor, NodeUpdate } from "@nodetool-ai/protocol";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 function makeNode(overrides: Partial<NodeDescriptor> = {}): NodeDescriptor {
   return { id: "test_node", type: "test.Node", ...overrides };

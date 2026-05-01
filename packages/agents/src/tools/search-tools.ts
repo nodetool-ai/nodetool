@@ -7,7 +7,7 @@
  * Internally delegates to the SerpApiProvider abstraction when available.
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import type { SerpProvider } from "./serp-providers/index.js";
 import { SerpApiProvider } from "./serp-providers/serpapi-provider.js";

@@ -35,7 +35,7 @@ export const selectStyles = (theme: Theme) =>
       backdropFilter: "blur(10px)",
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       zIndex: 10000
     },
 
@@ -50,7 +50,7 @@ export const selectStyles = (theme: Theme) =>
       color: "var(--text-primary)",
       transition: "all 0.1s ease",
       whiteSpace: "nowrap",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       marginBottom: "2px"
     },
 
@@ -88,7 +88,7 @@ export const selectStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[900],
       fontSize: theme.fontSizeSmall,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       cursor: "pointer",
       display: "flex",
       justifyContent: "space-between",
@@ -130,7 +130,7 @@ export const selectStyles = (theme: Theme) =>
       padding: "0 8px",
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.primary.main}`,
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       color: "var(--text-primary)",
       fontSize: theme.fontSizeSmall,
       outline: "none",
@@ -156,7 +156,7 @@ export const portalOptionsStyles = (theme: Theme) =>
       backdropFilter: "blur(10px)",
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-      borderRadius: "8px",
+      borderRadius: "var(--rounded-lg)",
       zIndex: 10000
     },
 
@@ -171,7 +171,7 @@ export const portalOptionsStyles = (theme: Theme) =>
       color: "var(--text-primary)",
       transition: "all 0.1s ease",
       whiteSpace: "nowrap",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       marginBottom: "2px"
     },
 

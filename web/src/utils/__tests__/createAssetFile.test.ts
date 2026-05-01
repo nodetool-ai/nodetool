@@ -1,5 +1,15 @@
 import { createAssetFile } from "../createAssetFile";
-import { client } from "../../stores/ApiClient";
+
+jest.mock("../../trpc/client", () => ({
+  trpcClient: {
+    assets: {
+      get: { query: jest.fn() }
+    }
+  }
+}));
+
+import { trpcClient } from "../../trpc/client";
+const assetGetQuery = trpcClient.assets.get.query as jest.Mock;
 
 const readFileAsText = async (file: File): Promise<string> => {
   if (typeof file.text === "function") {
@@ -120,14 +130,91 @@ describe("createAssetFile", () => {
     expect(files[1].filename).toBe("note_1.txt");
   });
 
-  it("resolves asset refs through asset metadata instead of fetching asset:// directly", async () => {
-    jest.spyOn(client, "GET").mockResolvedValue({
-      data: {
-        id: "asset-1",
-        name: "fal-video.mp4",
-        get_url: "/api/storage/asset-1.mp4"
+  it("fetches image via storage URI when data is a non-binary wrapper (ExtData-like)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([137, 80, 78, 71, 13, 10]).buffer
+    });
+
+    // Simulate `@msgpack/msgpack`'s ExtData with a placeholder payload.
+    class ExtData {
+      type: number;
+      data: Uint8Array;
+      constructor(type: number, data: Uint8Array) {
+        this.type = type;
+        this.data = data;
       }
-    } as any);
+    }
+    const ext = new ExtData(17, new Uint8Array([0]));
+
+    const [result] = await createAssetFile(
+      {
+        type: "image",
+        uri: "/api/storage/temp/abc.png",
+        data: ext as unknown as Uint8Array,
+        mimeType: "image/png",
+        width: 1672,
+        height: 1024
+      } as any,
+      "node"
+    );
+
+    expect(global.fetch).toHaveBeenCalled();
+    const fetchUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+    expect(fetchUrl).toContain("/api/storage/temp/abc.png");
+    expect(result.file.size).toBe(6);
+    expect(result.type).toBe("image/png");
+  });
+
+  it("uses inline ExtData.data Uint8Array when it actually contains real bytes", async () => {
+    class ExtData {
+      type: number;
+      data: Uint8Array;
+      constructor(type: number, data: Uint8Array) {
+        this.type = type;
+        this.data = data;
+      }
+    }
+    const realBytes = new Uint8Array(64).fill(7);
+    const ext = new ExtData(17, realBytes);
+
+    const [result] = await createAssetFile(
+      { type: "image", data: ext as unknown as Uint8Array, mimeType: "image/png" } as any,
+      "node"
+    );
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(result.file.size).toBe(64);
+  });
+
+  it("fetches image from asset:// when asset_id is absent (URI-only image ref)", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer
+    });
+
+    const [result] = await createAssetFile(
+      {
+        type: "image",
+        uri: "asset://abc123.png"
+      },
+      "node"
+    );
+
+    expect(assetGetQuery).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalled();
+    const fetchUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+    expect(fetchUrl).toContain("/api/storage/");
+    expect(fetchUrl).toContain("abc123.png");
+    expect(result.file.size).toBe(4);
+  });
+
+  it("resolves asset refs through asset metadata instead of fetching asset:// directly", async () => {
+    assetGetQuery.mockResolvedValueOnce({
+      id: "asset-1",
+      name: "fal-video.mp4",
+      get_url: "/api/storage/asset-1.mp4"
+    });
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
@@ -142,9 +229,7 @@ describe("createAssetFile", () => {
       "node"
     );
 
-    expect(client.GET).toHaveBeenCalledWith("/api/assets/{id}", {
-      params: { path: { id: "asset-1" } }
-    });
+    expect(assetGetQuery).toHaveBeenCalledWith({ id: "asset-1" });
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/storage/asset-1.mp4"),
       expect.objectContaining({ mode: "cors" })

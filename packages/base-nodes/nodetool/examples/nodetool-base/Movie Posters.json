@@ -1,8 +1,8 @@
 {
-  "id": "movie-posters",
+  "id": "",
   "access": "private",
-  "created_at": "2026-01-18T08:58:38.909755",
-  "updated_at": "2026-01-18T09:06:30.696809",
+  "created_at": "2026-04-27T11:20:53.184Z",
+  "updated_at": "2026-04-27T12:18:03.938Z",
   "name": "Movie Posters",
   "tool_name": null,
   "description": "Create cinematic movie posters using AI image generation",
@@ -11,7 +11,7 @@
     "image",
     "example"
   ],
-  "thumbnail": "",
+  "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
     "edges": [
@@ -20,28 +20,32 @@
         "source": "strategy_template_prompt",
         "sourceHandle": "output",
         "target": "strategy_prompt_formatter",
-        "targetHandle": "template"
+        "targetHandle": "template",
+        "edge_type": "data"
       },
       {
         "id": "ed372108-44fe-4325-a615-c98f19282ade",
         "source": "strategy_prompt_formatter",
         "sourceHandle": "output",
         "target": "strategy_llm",
-        "targetHandle": "prompt"
+        "targetHandle": "prompt",
+        "edge_type": "data"
       },
       {
         "id": "4f7df337-3a31-411d-9ec1-1af5ed3fbe1c",
         "source": "strategy_llm",
         "sourceHandle": "text",
         "target": "prompt_list_generator",
-        "targetHandle": "input_text"
+        "targetHandle": "input_text",
+        "edge_type": "data"
       },
       {
         "id": "7dd2c9a0-81c3-4c18-a8d8-b02b9cb82c2e",
         "source": "designer_instructions_prompt",
         "sourceHandle": "output",
         "target": "prompt_list_generator",
-        "targetHandle": "prompt"
+        "targetHandle": "prompt",
+        "edge_type": "data"
       },
       {
         "id": "bdf22e6b-0b03-4434-b628-210a75c1e2b6",
@@ -51,7 +55,8 @@
         "targetHandle": "PRIMARY_AUDIENCE",
         "ui_properties": {
           "className": "str"
-        }
+        },
+        "edge_type": "data"
       },
       {
         "id": "b7ac2972-706a-400d-92b4-038aa9e10107",
@@ -61,7 +66,8 @@
         "targetHandle": "MOVIE_TITLE",
         "ui_properties": {
           "className": "str"
-        }
+        },
+        "edge_type": "data"
       },
       {
         "id": "a391366e-3c3b-47a2-bfc0-6f9f93216b4b",
@@ -71,27 +77,52 @@
         "targetHandle": "GENRE",
         "ui_properties": {
           "className": "str"
-        }
+        },
+        "edge_type": "data"
       },
       {
-        "id": "f3a0ec18-b7c1-447a-8ac5-c5f8767a9469",
+        "id": "23e08a8d-fec1-4722-9bbf-81f4e5ca353a",
         "source": "prompt_list_generator",
         "sourceHandle": "item",
-        "target": "b058212b-fa64-4026-88b4-f06978609d89",
+        "target": "0276f606-d899-4487-be65-4615564507cc",
         "targetHandle": "prompt",
         "ui_properties": {
           "className": "str"
-        }
+        },
+        "edge_type": "data"
       },
       {
-        "id": "e39331e4-c02f-46f0-bcc2-b940d51e4db4",
-        "source": "b058212b-fa64-4026-88b4-f06978609d89",
+        "id": "c6ebff7f-36a8-4590-a334-72afe6272bb5",
+        "source": "0276f606-d899-4487-be65-4615564507cc",
         "sourceHandle": "output",
-        "target": "a920173c-f874-4ef1-ac7e-4becd0a50073",
+        "target": "fb158571-fec0-4b09-95c5-eeb350084986",
         "targetHandle": "value",
         "ui_properties": {
           "className": "image"
-        }
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "b826a7a6-238c-4364-a320-aeea84d0b70c",
+        "source": "strategy_llm",
+        "sourceHandle": "text",
+        "target": "b272e901-1506-481b-be89-a76b58fe8c96",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "263ba5b1-4d07-487d-a0ed-73a1faf0a0c6",
+        "source": "prompt_list_generator",
+        "sourceHandle": "item",
+        "target": "a508973c-4630-49ca-a597-6e916c8574d0",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -100,7 +131,10 @@
         "type": "nodetool.agents.Agent",
         "data": {
           "model": {
-            "type": "language_model"
+            "type": "language_model",
+            "id": "gpt-5.5",
+            "provider": "openai",
+            "name": "gpt-5.5"
           },
           "system": "You are a friendly assistant.",
           "image": {},
@@ -111,10 +145,9 @@
           "max_tokens": 4096
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 710,
-            "y": 373
+            "y": 700
           },
           "zIndex": 0,
           "width": 280,
@@ -134,11 +167,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 50,
-            "y": 450
+            "x": 4,
+            "y": 141
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 454,
+          "height": 389,
           "selectable": true,
           "bypassed": false
         },
@@ -151,10 +185,9 @@
         "type": "nodetool.text.FormatText",
         "data": {},
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 400,
-            "y": 479
+            "y": 857
           },
           "zIndex": 0,
           "width": 280,
@@ -162,9 +195,9 @@
           "bypassed": false
         },
         "dynamic_properties": {
-          "MOVIE_TITLE": "",
-          "GENRE": "",
-          "PRIMARY_AUDIENCE": ""
+          "MOVIE_TITLE": "Infinity",
+          "GENRE": "Science Fiction",
+          "PRIMARY_AUDIENCE": "Gen-Z"
         },
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -173,14 +206,13 @@
         "id": "movie_title_input",
         "type": "nodetool.input.StringInput",
         "data": {
-          "value": "Spaceships",
+          "value": "Infinity",
           "name": "Movie Title"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 50,
-            "y": 1010
+            "x": 49,
+            "y": 555
           },
           "zIndex": 0,
           "width": 280,
@@ -195,14 +227,13 @@
         "id": "genre_input",
         "type": "nodetool.input.StringInput",
         "data": {
-          "value": "S",
+          "value": "Science Fiction",
           "name": "Genre"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 50,
-            "y": 213
+            "x": 48,
+            "y": 877
           },
           "zIndex": 0,
           "width": 280,
@@ -217,14 +248,13 @@
         "id": "audience_input",
         "type": "nodetool.input.StringInput",
         "data": {
-          "value": "Boys, Age 8-12, Gamers",
+          "value": "Gen-Z",
           "name": "Primary Audience"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 50,
-            "y": 773
+            "x": 49,
+            "y": 1193
           },
           "zIndex": 0,
           "width": 280,
@@ -240,15 +270,17 @@
         "type": "nodetool.generators.ListGenerator",
         "data": {
           "model": {
-            "type": "language_model"
+            "type": "language_model",
+            "id": "gpt-5.5-2026-04-23",
+            "provider": "openai",
+            "name": "gpt-5.5-2026-04-23"
           },
           "max_tokens": 4096
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1050,
-            "y": 104
+            "y": 254
           },
           "zIndex": 0,
           "width": 280,
@@ -263,13 +295,44 @@
         "id": "designer_instructions_prompt",
         "type": "nodetool.constant.String",
         "data": {
-          "value": "You are a senior movie-poster designer.  \n\nUsing the given strategy, create **3 cinematic Stable Diffusion prompts** for poster concepts.  \n\n\n\nGuidelines:  \n\n- Start with the main subject (hero, scene, or symbol).  \n\n- Add composition (wide shot, close-up, collage, minimalist).  \n\n- Weave in genre cues and audience triggers.  \n\n- Apply the color palette and lighting mood.  \n\n- Add typography as “cinematic title text, [style]”.  \n\n- Keep ≤ 60 words per prompt.  \n\n- Exclude watermarks, real logos, or extra limbs.  \n\nOutput format:  \n\n1. Prompt A  \n\n2. Prompt B  \n\n3. Prompt C  \n\n"
+          "value": "You are a senior movie-poster designer.  \n\nUsing the given strategy, create **3 cinematic image prompts** for poster concepts.  \n\nGuidelines:  \n- Start with the main subject (hero, scene, or symbol).  \n- Add composition (wide shot, close-up, collage, minimalist).  \n- Weave in genre cues and audience triggers.  \n- Apply the color palette and lighting mood.  \n- Add typography as “cinematic title text, [style]”.  \n- Keep ≤ 60 words per prompt.  \n- Exclude watermarks, real logos, or extra limbs.  "
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 710,
-            "y": 50
+            "x": 568,
+            "y": 234
+          },
+          "zIndex": 0,
+          "width": 403,
+          "height": 283,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "0276f606-d899-4487-be65-4615564507cc",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "id": "gpt-image-2",
+            "provider": "openai",
+            "name": "GPT Image 2",
+            "path": "gpt-image-2"
+          },
+          "negative_prompt": "",
+          "aspect_ratio": "3:4",
+          "resolution": "2K",
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 242
           },
           "zIndex": 0,
           "width": 280,
@@ -281,41 +344,62 @@
         "sync_mode": "on_any"
       },
       {
-        "id": "b058212b-fa64-4026-88b4-f06978609d89",
-        "type": "kie.image.NanoBanana",
+        "id": "fb158571-fec0-4b09-95c5-eeb350084986",
+        "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "image_size": "1:1"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1360,
-            "y": 163
-          },
-          "zIndex": 0,
-          "width": 276,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "a920173c-f874-4ef1-ac7e-4becd0a50073",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "output",
-          "description": ""
+          "name": "output"
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 1670,
-            "y": 148
+            "y": 248
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 517,
+          "height": 374,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "b272e901-1506-481b-be89-a76b58fe8c96",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "text"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1066,
+            "y": 927
+          },
+          "zIndex": 0,
+          "width": 435,
+          "height": 490,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
+        "id": "a508973c-4630-49ca-a597-6e916c8574d0",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "item"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1357,
+            "y": 590
+          },
+          "zIndex": 0,
+          "width": 400,
+          "height": 300,
           "selectable": true,
           "bypassed": false
         },
@@ -325,48 +409,15 @@
       }
     ]
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "Movie Title": {
-        "type": "string",
-        "default": "Spaceships",
-        "label": ""
-      },
-      "Genre": {
-        "type": "string",
-        "default": "S",
-        "label": ""
-      },
-      "Primary Audience": {
-        "type": "string",
-        "default": "Boys, Age 8-12, Gamers",
-        "label": ""
-      }
-    },
-    "required": [
-      "Movie Title",
-      "Genre",
-      "Primary Audience"
-    ]
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {
-      "output": {
-        "type": "any",
-        "label": ""
-      }
-    },
-    "required": [
-      "output"
-    ]
-  },
+  "input_schema": null,
+  "output_schema": null,
   "settings": {},
   "package_name": "nodetool-base",
   "path": null,
-  "run_mode": null,
+  "run_mode": "workflow",
   "workspace_id": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "html_app": null,
+  "etag": "24f14de30fb53474db960ff03071c37d"
 }

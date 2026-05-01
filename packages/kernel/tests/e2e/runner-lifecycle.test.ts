@@ -11,7 +11,7 @@ import type {
   NodeUpdate,
   JobUpdate,
   EdgeUpdate
-} from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
 import { WorkflowRunner } from "../../src/runner.js";
 import { GraphValidationError } from "../../src/graph.js";
 import {
@@ -396,7 +396,7 @@ describe("RUNNER-038: ExecutionContext.emit receives all messages", () => {
     const emitted: unknown[] = [];
     const ctx = {
       emit: vi.fn((m: unknown) => emitted.push(m))
-    } as unknown as import("@nodetool/runtime").ProcessingContext;
+    } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
 
     const runner = new WorkflowRunner("test", {
       resolveExecutor: () => ({
@@ -509,18 +509,3 @@ describe("RUNNER-046: Non-input source node executes as actor", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Skipped Python-specific scenarios
-// ---------------------------------------------------------------------------
-
-describe.skip("RUNNER-048..051: Job model DB persistence (Python-specific)", () => {
-  it.skip("SQLite job model not available in TypeScript port", () => {});
-});
-
-describe.skip("RUNNER-035: WorkflowSuspendedException (Python-only)", () => {
-  it.skip("Suspension protocol not ported", () => {});
-});
-
-describe.skip("RUNNER-036: CUDA OOM formatting (Python/GPU-specific)", () => {
-  it.skip("GPU-specific error formatting not ported", () => {});
-});

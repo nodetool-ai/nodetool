@@ -11,6 +11,7 @@ import { Tooltip } from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
+import { shallow } from "zustand/shallow";
 import { findOutputHandle } from "../../utils/handleUtils";
 import { useSyncEdgeSelection } from "../../hooks/nodes/useSyncEdgeSelection";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -34,7 +35,7 @@ const styles = (theme: Theme) =>
     backgroundColor: rerouteBackground(theme, 0.8),
     backdropFilter: theme.vars.palette.glass.blur,
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
-    borderRadius: "50%",
+    borderRadius: "var(--rounded-circle)",
     cursor: "grab",
     transition: "all 0.2s ease",
 
@@ -59,7 +60,7 @@ const titleStyles = (theme: Theme) =>
     backdropFilter: theme.vars.palette.glass.blur,
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
     padding: "2px 6px",
-    borderRadius: "4px",
+    borderRadius: "var(--rounded-sm)",
     border: `1px solid ${theme.vars.palette.divider}`,
     cursor: "default",
     userSelect: "none",
@@ -142,7 +143,7 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
       sourceData: sourceNode.data,
       sourceHandle: incoming.sourceHandle
     };
-  });
+  }, shallow);
 
   const { slug: upstreamSlug, color: upstreamColor } = useMemo(() => {
     const anyType = DATA_TYPES.find((dt) => dt.slug === "any");

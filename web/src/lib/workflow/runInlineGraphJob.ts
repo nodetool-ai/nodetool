@@ -1,6 +1,5 @@
 import { globalWebSocketManager } from "../websocket/GlobalWebSocketManager";
 import { BASE_URL } from "../../stores/BASE_URL";
-import { isLocalhost } from "../../stores/ApiClient";
 import { uuidv4 } from "../../stores/uuidv4";
 
 export interface GraphNode {
@@ -43,6 +42,8 @@ export interface RunInlineGraphJobOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 120_000;
+const isLocalhost =
+  !BASE_URL || BASE_URL.includes("localhost") || BASE_URL.includes("127.0.0.1");
 
 async function resolveAuthContext(): Promise<{
   authToken: string;

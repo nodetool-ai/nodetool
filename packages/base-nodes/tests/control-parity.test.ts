@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { WorkflowRunner } from "@nodetool/kernel";
-import { NodeRegistry } from "@nodetool/node-sdk";
-import type { Edge, NodeDescriptor } from "@nodetool/protocol";
+import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 import {
   registerBaseNodes,
   CollectNode,

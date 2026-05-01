@@ -122,7 +122,7 @@ kbd {
   padding: 0.2em 0.25em;
   margin: .1em 0.25em .1em 0;
   border: 1px solid var(--palette-grey-500);
-  border-radius: 4px;
+  border-radius: var(--rounded-sm);
   display: inline-block;
   font-size: var(--fontSizeSmaller);
   font-family: var(--fontFamily2);

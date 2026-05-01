@@ -22,7 +22,7 @@ import {
 } from "../../utils/comfyWorkflowConverter";
 import { ComfyUIWorkflow, ComfyUIPrompt } from "../../services/ComfyUIService";
 import { Graph, Workflow } from "../../stores/ApiTypes";
-import log from "loglevel";
+import { shallow } from "zustand/shallow";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -160,7 +160,7 @@ export const useFileHandlers = () => {
     createNode: state.createNode,
     addNode: state.addNode,
     workflow: state.workflow
-  }));
+  }), shallow);
   const addNotification = useNotificationStore((state) => state.addNotification);
   const { user } = useAuth((auth) => ({ user: auth.user }));
   const createDataframe = useCreateDataframe(createNode, addNode);
@@ -175,7 +175,10 @@ export const useFileHandlers = () => {
           workflow_id: workflow.id,
           parent_id: currentFolderId || user?.id,
           onCompleted: (uploadedAsset: Asset) => {
-            const assetType = contentTypeToNodeType(uploadedAsset.content_type);
+            const assetType = contentTypeToNodeType(
+              uploadedAsset.content_type,
+              uploadedAsset.name || file.name
+            );
             const nodeType = constantForType(assetType || "");
 
             if (nodeType === null) {
@@ -266,11 +269,11 @@ export const useFileHandlers = () => {
   const handleJsonFile = useCallback(
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
       try {
-        log.info("[drop/json] Reading JSON file", { name: file.name });
+        console.info("[drop/json] Reading JSON file", { name: file.name });
         const jsonContent = await file.text();
         const jsonData = JSON.parse(jsonContent) as unknown;
         if (isComfyWorkflowJson(jsonData)) {
-          log.info("[drop/json] Detected ComfyUI workflow JSON", {
+          console.info("[drop/json] Detected ComfyUI workflow JSON", {
             name: file.name
           });
           try {
@@ -287,7 +290,7 @@ export const useFileHandlers = () => {
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error) {
-            log.error("[drop/json] Failed creating workflow from Comfy JSON", {
+            console.error("[drop/json] Failed creating workflow from Comfy JSON", {
               name: file.name,
               error
             });
@@ -298,7 +301,7 @@ export const useFileHandlers = () => {
             };
           }
         } else if (isNodetoolWorkflowJson(jsonData)) {
-          log.info("[drop/json] Detected NodeTool workflow JSON", {
+          console.info("[drop/json] Detected NodeTool workflow JSON", {
             name: file.name
           });
           try {
@@ -311,7 +314,7 @@ export const useFileHandlers = () => {
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error) {
-            log.error("[drop/json] Failed creating workflow from NodeTool JSON", {
+            console.error("[drop/json] Failed creating workflow from NodeTool JSON", {
               name: file.name,
               error
             });
@@ -322,7 +325,7 @@ export const useFileHandlers = () => {
             };
           }
         } else if (isComfyPromptJson(jsonData)) {
-          log.info("[drop/json] Detected ComfyUI prompt JSON (API format)", {
+          console.info("[drop/json] Detected ComfyUI prompt JSON (API format)", {
             name: file.name
           });
           try {
@@ -339,7 +342,7 @@ export const useFileHandlers = () => {
             navigate(`/editor/${createdWorkflow.id}`);
             return { success: true, data: createdWorkflow };
           } catch (error) {
-            log.error("[drop/json] Failed creating workflow from Comfy prompt JSON", {
+            console.error("[drop/json] Failed creating workflow from Comfy prompt JSON", {
               name: file.name,
               error
             });
@@ -353,14 +356,14 @@ export const useFileHandlers = () => {
             };
           }
         } else {
-          log.info("[drop/json] JSON not recognized as workflow, uploading as asset", {
+          console.info("[drop/json] JSON not recognized as workflow, uploading as asset", {
             name: file.name
           });
           // Handle as regular JSON file
           return await handleGenericFile(file, position);
         }
       } catch (error) {
-        log.error("[drop/json] Failed to parse/process JSON file", {
+        console.error("[drop/json] Failed to parse/process JSON file", {
           name: file.name,
           error
         });

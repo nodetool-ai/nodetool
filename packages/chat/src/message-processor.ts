@@ -4,11 +4,11 @@
  * Port of src/nodetool/chat/regular_chat.py (process_regular_chat).
  */
 
-import type { BaseProvider } from "@nodetool/runtime";
-import type { Message, ToolCall, ProviderStreamItem } from "@nodetool/runtime";
-import type { ProcessingContext } from "@nodetool/runtime";
-import type { Chunk } from "@nodetool/protocol";
-import type { Tool } from "@nodetool/agents";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { Message, ToolCall, ProviderStreamItem } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { Chunk } from "@nodetool-ai/protocol";
+import type { Tool } from "@nodetool-ai/agents";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -93,6 +93,13 @@ export async function processChat(opts: {
   callbacks?: ChatCallbacks;
   threadId?: string;
   signal?: AbortSignal;
+  /**
+   * Cap on tool-calling rounds before we stop and let the user intervene.
+   * Each round = one provider stream + parallel execution of any tool calls
+   * it produced. Prevents runaway loops when the model repeatedly emits
+   * invalid tool calls and gets the same error back. Defaults to 25.
+   */
+  maxIterations?: number;
 }): Promise<Message[]> {
   const {
     userInput,
@@ -103,7 +110,8 @@ export async function processChat(opts: {
     tools = [],
     callbacks,
     threadId,
-    signal
+    signal,
+    maxIterations = 25
   } = opts;
 
   // 1. Add user message
@@ -114,7 +122,7 @@ export async function processChat(opts: {
 
   let messagesToSend: Message[] = messages;
 
-  while (true) {
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
     const toolCallResults: Array<ToolCall & { result: unknown }> = [];
     let assistantText = "";
 
@@ -151,6 +159,9 @@ export async function processChat(opts: {
 
       // --- Text chunk ---
       if (isChunk(item)) {
+        // Skip thinking chunks — they must not appear in user-visible text output.
+        if (item.thinking) continue;
+
         const text = item.content ?? "";
         callbacks?.onChunk?.(text);
         assistantText += text;

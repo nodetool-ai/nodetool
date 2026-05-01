@@ -18,7 +18,6 @@ import {
   stripContextContent
 } from "../utils/messageUtils";
 import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
-import { formatToolName } from "../../../utils/formatUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
   CopyButton,
@@ -36,12 +35,15 @@ import { Collapse } from "@mui/material";
 
 
 import AgentExecutionView from "./AgentExecutionView";
+import MediaOutputGroup, { isMediaOnlyContent } from "./MediaOutputGroup";
+import { formatToolName } from "../../../utils/formatUtils";
+import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
  * Extracted outside MessageView to prevent recreation on every render.
  */
-const PrettyJson: React.FC<{ value: any }> = React.memo(({ value }) => {
+const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
   const text = useMemo(() => {
     try {
       if (typeof value === "string") {
@@ -64,7 +66,7 @@ PrettyJson.displayName = "PrettyJson";
  */
 const ToolCallCard: React.FC<{
   tc: ToolCall;
-  result?: { name?: string | null; content: any };
+  result?: { name?: string | null; content: unknown };
 }> = React.memo(({ tc, result: _result }) => {
   const [open, setOpen] = useState(false);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
@@ -118,12 +120,12 @@ interface MessageViewProps {
   expandedThoughts: { [key: string]: boolean };
   onToggleThought: (key: string) => void;
   onInsertCode?: (text: string, language?: string) => void;
-  toolResultsByCallId?: Record<string, { name?: string | null; content: any }>;
+  toolResultsByCallId?: Record<string, { name?: string | null; content: unknown }>;
   executionMessagesById?: Map<string, Message[]>;
 }
 
 export const MessageView: React.FC<
-  MessageViewProps & { componentStyles?: any }
+  MessageViewProps & { componentStyles?: Record<string, unknown> }
 > = React.memo(({
   message,
   expandedThoughts,
@@ -314,13 +316,28 @@ export const MessageView: React.FC<
                   message.id || 0
                 )}
               {Array.isArray(content) &&
-                content.map((c: MessageContent, i: number) => (
-                  <MessageContentRenderer
-                    key={`${message.id}-content-${c.type}-${i}`}
-                    content={c}
-                    renderTextContent={renderTextContent}
-                    index={i}
+                (isMediaOnlyContent(content) &&
+                (((message as Message & {
+                  media_generation?: MediaGenerationRequest | null;
+                }).media_generation?.mode ?? "chat") !== "chat" ||
+                  content.length > 1) ? (
+                  <MediaOutputGroup
+                    message={
+                      message as Message & {
+                        media_generation?: MediaGenerationRequest | null;
+                      }
+                    }
+                    mediaContents={content as MessageContent[]}
                   />
+                ) : (
+                  content.map((c: MessageContent, i: number) => (
+                    <MessageContentRenderer
+                      key={`${message.id}-content-${c.type}-${i}`}
+                      content={c}
+                      renderTextContent={renderTextContent}
+                      index={i}
+                    />
+                  ))
                 ))}
             </>
           )}

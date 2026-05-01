@@ -2,35 +2,28 @@
 import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
+import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
 import { Container } from "@mui/material";
 import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import type { AssetRef } from "../../../stores/ApiTypes";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
-import { countPreviewGridImages } from "../output/AssetGrid";
+import { getPreviewNodeSelectionSx } from "../selectionStyles";
 import { NodeHeader } from "../NodeHeader";
-import EditableTitle from "../EditableTitle";
-import NodeToolButtons from "../NodeToolButtons";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeOutputs } from "../NodeOutputs";
 import PreviewActions from "./PreviewActions";
 import { downloadPreviewAssets } from "../../../utils/downloadPreviewAssets";
 import { useSyncEdgeSelection } from "../../../hooks/nodes/useSyncEdgeSelection";
-import useSelect from "../../../hooks/nodes/useSelect";
-import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useMetadataStore from "../../../stores/MetadataStore";
-import { useNodes } from "../../../contexts/NodeContext";
 
 const styles = (theme: Theme) =>
   css([
@@ -44,7 +37,7 @@ const styles = (theme: Theme) =>
         height: "100%",
         minWidth: "150px",
         maxWidth: "unset",
-        minHeight: "150px",
+        minHeight: "80px",
         borderRadius: "calc(var(--rounded-node) - 1px)",
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
@@ -103,7 +96,7 @@ const styles = (theme: Theme) =>
       },
       ".preview-node-content > .content.scrollable::-webkit-scrollbar-thumb": {
         backgroundColor: theme.vars.palette.grey[500],
-        borderRadius: "6px"
+        borderRadius: "var(--rounded-md)"
       },
       ".preview-node-content > .content.scrollable::-webkit-scrollbar-track": {
         backgroundColor: "transparent"
@@ -199,51 +192,25 @@ const styles = (theme: Theme) =>
     tableStyles(theme)
   ]);
 
-const TOOLBAR_SHOW_DELAY = 200;
-
-const Toolbar = memo(function Toolbar({
-  id,
-  selected,
-  dragging
-}: {
-  id: string;
-  selected: boolean;
-  dragging?: boolean;
-}) {
-  const { activeSelect } = useSelect();
-  const selectedCount = useNodes((state) => state.getSelectedNodeCount());
-  const delayedSelected = useDelayedVisibility({
-    shouldBeVisible: selected && !dragging,
-    delay: TOOLBAR_SHOW_DELAY
-  });
-  const isVisible =
-    delayedSelected && !activeSelect && !dragging && selectedCount === 1;
-  return (
-    <NodeToolbar position={Position.Top} offset={0} isVisible={isVisible}>
-      <NodeToolButtons nodeId={id} />
-    </NodeToolbar>
-  );
-});
-
-const getOutputFromResult = (result: any) => {
+const getOutputFromResult = (result: unknown): unknown => {
   if (result === null || result === undefined) {
     return null;
   }
 
   if (Array.isArray(result)) {
-    const outputs = result.map((item: any) => {
+    const outputs = result.map((item: unknown) => {
       if (
         item &&
         typeof item === "object" &&
         "output" in item &&
-        item.output !== undefined
+        (item as Record<string, unknown>).output !== undefined
       ) {
-        return item.output;
+        return (item as Record<string, unknown>).output;
       }
       return item;
     });
 
-    if (outputs.every((output: any) => typeof output === "string")) {
+    if (outputs.every((output): output is string => typeof output === "string")) {
       return outputs.join("\n");
     }
     return outputs;
@@ -253,9 +220,9 @@ const getOutputFromResult = (result: any) => {
     typeof result === "object" &&
     result !== null &&
     "output" in result &&
-    result.output !== undefined
+    (result as Record<string, unknown>).output !== undefined
   ) {
-    return result.output;
+    return (result as Record<string, unknown>).output;
   }
 
   return result;
@@ -274,65 +241,14 @@ const isEditorGraphSnapshot = (value: unknown): boolean => {
   return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
 };
 
-const resolveConnectedOutputValue = (
-  result: unknown,
-  sourceHandle: string | null | undefined
-): unknown => {
-  if (!sourceHandle || !result || typeof result !== "object") {
-    return result;
-  }
-
-  const record = result as Record<string, unknown>;
-  if (sourceHandle in record) {
-    return record[sourceHandle];
-  }
-
-  const outputRecord = record.output;
-  if (outputRecord && typeof outputRecord === "object") {
-    const nestedRecord = outputRecord as Record<string, unknown>;
-    if (sourceHandle in nestedRecord) {
-      return nestedRecord[sourceHandle];
-    }
-  }
-
-  return result;
-};
-
-const resolveNodePropertyValue = (
-  node: { data?: NodeData } | undefined,
-  sourceHandle: string | null | undefined
-): unknown => {
-  if (!node?.data) {
-    return undefined;
-  }
-
-  const dynamicProps = node.data.dynamic_properties || {};
-  if (sourceHandle && dynamicProps[sourceHandle] !== undefined) {
-    return dynamicProps[sourceHandle];
-  }
-  if (dynamicProps.value !== undefined) {
-    return dynamicProps.value;
-  }
-
-  const props = node.data.properties || {};
-  if (sourceHandle && props[sourceHandle] !== undefined) {
-    return props[sourceHandle];
-  }
-  if (props.value !== undefined) {
-    return props.value;
-  }
-
-  return undefined;
-};
-
-const getCopySource = (value: any): any => {
+const getCopySource = (value: unknown): unknown => {
   if (value === null || value === undefined) {
     return value;
   }
 
   if (Array.isArray(value)) {
     const flattened = value.map((item) => getCopySource(item));
-    if (flattened.every((entry) => typeof entry === "string")) {
+    if (flattened.every((entry): entry is string => typeof entry === "string")) {
       return flattened.join("\n");
     }
     return flattened;
@@ -342,28 +258,28 @@ const getCopySource = (value: any): any => {
     typeof value === "object" &&
     value !== null &&
     "type" in value &&
-    value.type === "text" &&
-    typeof value.data === "string"
+    (value as Record<string, unknown>).type === "text" &&
+    typeof (value as Record<string, unknown>).data === "string"
   ) {
-    return value.data;
+    return (value as Record<string, unknown>).data;
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "output" in value &&
-    value.output !== undefined
+    (value as Record<string, unknown>).output !== undefined
   ) {
-    return getCopySource(value.output);
+    return getCopySource((value as Record<string, unknown>).output);
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "value" in value &&
-    value.value !== undefined
+    (value as Record<string, unknown>).value !== undefined
   ) {
-    return getCopySource(value.value);
+    return getCopySource((value as Record<string, unknown>).value);
   }
 
   return value;
@@ -384,8 +300,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   const [isContentFocused, setIsContentFocused] = useState(false);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
-  const edges = useNodes((state) => state.edges);
-  const findNode = useNodes((state) => state.findNode);
+  const { getEdges } = useReactFlow();
 
   const result = useResultsStore((state) =>
     state.getPreview(props.data.workflow_id, props.id)
@@ -393,10 +308,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const incomingValueEdge = useMemo(
     () =>
-      edges.find(
+      getEdges().find(
         (edge) => edge.target === props.id && edge.targetHandle === "value"
       ),
-    [edges, props.id]
+    [getEdges, props.id]
   );
 
   const sourceNodeValue = useResultsStore((state) => {
@@ -405,24 +320,10 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
       return undefined;
     }
 
-    const rawSourceValue = (
+    return (
       state.getOutputResult(props.data.workflow_id, sourceNodeId) ??
       state.getResult(props.data.workflow_id, sourceNodeId) ??
       state.getPreview(props.data.workflow_id, sourceNodeId)
-    );
-
-    const resolvedSourceValue = resolveConnectedOutputValue(
-      rawSourceValue,
-      incomingValueEdge?.sourceHandle
-    );
-
-    if (resolvedSourceValue !== undefined) {
-      return resolvedSourceValue;
-    }
-
-    return resolveNodePropertyValue(
-      findNode(sourceNodeId),
-      incomingValueEdge?.sourceHandle
     );
   });
 
@@ -443,32 +344,11 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     [displayResult]
   );
 
-  /** For a top-level list of image refs only: allow grid multi-select when there is more than one renderable image. Otherwise leave default (nested grids unchanged). */
-  const previewImageGridEnableSelection = useMemo((): boolean | undefined => {
-    const out = previewOutput ?? displayResult;
-    if (!Array.isArray(out) || out.length === 0) {
-      return undefined;
-    }
-    const first = out[0];
-    if (
-      !first ||
-      typeof first !== "object" ||
-      (first as { type?: string }).type !== "image"
-    ) {
-      return undefined;
-    }
-    return countPreviewGridImages(out as AssetRef[]) > 1;
-  }, [previewOutput, displayResult]);
-
   const memoizedOutputRenderer = useMemo(() => {
     return displayResult !== undefined ? (
-      <OutputRenderer
-        value={displayResult}
-        showTextActions={false}
-        imageGridEnableSelection={previewImageGridEnableSelection}
-      />
+      <OutputRenderer value={displayResult} showTextActions={false} />
     ) : null;
-  }, [displayResult, previewImageGridEnableSelection]);
+  }, [displayResult]);
 
   const copyPayloadSource = useMemo(
     () => getCopySource(previewOutput ?? displayResult ?? null),
@@ -477,7 +357,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   const handleAddToAssets = useCallback(async () => {
     if (previewOutput === null || previewOutput === undefined) {
-      log.warn("No result output to add to assets");
+      console.warn("No result output to add to assets");
       return;
     }
 
@@ -490,7 +370,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         content: `${assetFiles.length} file(s) added to assets successfully`
       });
     } catch (error) {
-      log.error("Error in handleAddToAssets:", error);
+      console.error("Error in handleAddToAssets:", error);
       addNotification({
         type: "error",
         content: "Failed to add preview to assets"
@@ -510,7 +390,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
         content: "Download started successfully"
       });
     } catch (error) {
-      log.error("Error in handleDownload:", error);
+      console.error("Error in handleDownload:", error);
       addNotification({
         type: "error",
         content: "Failed to start download"
@@ -550,9 +430,9 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     if (displayResult === null || displayResult === undefined) {
       return false;
     }
-    const checkType = (item: any): boolean => {
+    const checkType = (item: unknown): boolean => {
       if (item && typeof item === "object" && "type" in item) {
-        const t = item.type;
+        const t = (item as Record<string, unknown>).type;
         return t === "image" || t === "video";
       }
       return false;
@@ -571,32 +451,12 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
 
   return (
     <Container
-      maxWidth={false}
-      disableGutters
       css={styles(theme)}
-      sx={{
-        position: "relative",
-        display: "flex",
-        boxShadow: props.selected
-          ? `0 0 0 2px var(--palette-grey-100)`
-          : "none",
-        backgroundColor: theme.vars.palette.c_node_bg,
-        backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
-        WebkitBackdropFilter: props.selected
-          ? theme.vars.palette.glass.blur
-          : "none"
-      }}
+      sx={getPreviewNodeSelectionSx(theme, Boolean(props.selected))}
       className={`preview-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
       }`}
     >
-      {props.selected && (
-        <Toolbar
-          id={props.id}
-          selected={props.selected}
-          dragging={props.dragging}
-        />
-      )}
       <div className={`preview-node-content `}>
         <Handle
           style={{ top: "50%" }}
@@ -606,7 +466,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           isConnectable={true}
         />
         <>
-          <NodeResizeHandle minWidth={150} minHeight={150} />
+          <NodeResizeHandle minWidth={150} minHeight={80} />
           <NodeHeader
             id={props.id}
             data={props.data}
@@ -651,20 +511,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           {memoizedOutputRenderer}
         </div>
       </div>
-      {props.data.title ? (
-        <EditableTitle nodeId={props.id} title={props.data.title} />
-      ) : null}
     </Container>
   );
 };
 
-export default memo(PreviewNode, (prevProps, nextProps) => {
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.type === nextProps.type &&
-    prevProps.selected === nextProps.selected &&
-    prevProps.dragging === nextProps.dragging &&
-    prevProps.parentId === nextProps.parentId &&
-    isEqual(prevProps.data, nextProps.data)
-  );
-});
+export default memo(PreviewNode, isEqual);

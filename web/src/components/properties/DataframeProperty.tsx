@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
       backgroundColor: alpha(theme.palette.common.black, 0.2),
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",

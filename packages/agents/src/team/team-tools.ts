@@ -6,7 +6,7 @@
  * giving them the ability to message teammates and manage tasks.
  */
 
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 import type { AgentIdentity, IMessageBus, ITaskBoard } from "./types.js";
 

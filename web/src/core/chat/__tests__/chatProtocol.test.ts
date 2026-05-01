@@ -228,6 +228,137 @@ describe("chatProtocol", () => {
     expect(set).not.toHaveBeenCalled();
   });
 
+  it("applies chunks using chunk.thread_id when currentThreadId points to a different thread", async () => {
+    let capturedState: any = {
+      status: "connected",
+      currentThreadId: "thread-current",
+      threads: {
+        "thread-current": {
+          id: "thread-current",
+          title: "Current",
+          updated_at: new Date().toISOString()
+        },
+        "thread-stream": {
+          id: "thread-stream",
+          title: undefined,
+          updated_at: new Date().toISOString()
+        }
+      },
+      messageCache: {
+        "thread-current": [
+          { role: "user", type: "message", content: "Current thread" }
+        ],
+        "thread-stream": [
+          { role: "user", type: "message", content: "Hello stream" }
+        ]
+      },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    };
+
+    const set = jest.fn((updater) => {
+      capturedState = {
+        ...capturedState,
+        ...(typeof updater === "function" ? updater(capturedState) : updater)
+      };
+    });
+
+    const get = () => capturedState;
+
+    await handleChatWebSocketMessage(
+      {
+        type: "chunk",
+        thread_id: "thread-stream",
+        content: "Hi from stream",
+        done: true
+      } as any,
+      set,
+      get
+    );
+
+    expect(capturedState.messageCache["thread-stream"]).toEqual([
+      { role: "user", type: "message", content: "Hello stream" },
+      expect.objectContaining({
+        role: "assistant",
+        type: "message",
+        content: "Hi from stream"
+      })
+    ]);
+    expect(capturedState.messageCache["thread-current"]).toEqual([
+      { role: "user", type: "message", content: "Current thread" }
+    ]);
+    expect(capturedState.updateThreadTitle).toHaveBeenCalledWith(
+      "thread-stream",
+      "Hello stream"
+    );
+  });
+
+  it("resets loading status when a non-stream assistant message arrives", async () => {
+    jest.useFakeTimers();
+    const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
+
+    const timeoutId = setTimeout(() => undefined, 5000);
+    let capturedState: any = {
+      status: "loading",
+      currentThreadId: "thread-1",
+      sendMessageTimeoutId: timeoutId,
+      progress: { current: 1, total: 2 },
+      statusMessage: "Thinking...",
+      currentPlanningUpdate: { planning_status: "in_progress" },
+      currentTaskUpdate: { execution_status: "running" },
+      currentTaskUpdateThreadId: "thread-1",
+      currentLogUpdate: { message: "step started" },
+      threads: {
+        "thread-1": {
+          id: "thread-1",
+          title: undefined,
+          updated_at: new Date().toISOString()
+        }
+      },
+      messageCache: {
+        "thread-1": [{ role: "user", type: "message", content: "Hello" }]
+      },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    };
+
+    const set = jest.fn((updater) => {
+      capturedState = {
+        ...capturedState,
+        ...(typeof updater === "function" ? updater(capturedState) : updater)
+      };
+    });
+
+    const get = () => capturedState;
+
+    await handleChatWebSocketMessage(
+      {
+        type: "message",
+        role: "assistant",
+        thread_id: "thread-1",
+        content: "Hi there!"
+      } as any,
+      set,
+      get
+    );
+
+    expect(capturedState.status).toBe("connected");
+    expect(clearTimeoutSpy).toHaveBeenCalledWith(timeoutId);
+    expect(capturedState.sendMessageTimeoutId).toBeNull();
+    expect(capturedState.progress).toEqual({ current: 0, total: 0 });
+    expect(capturedState.statusMessage).toBeNull();
+    expect(capturedState.currentPlanningUpdate).toBeNull();
+    expect(capturedState.currentTaskUpdate).toBeNull();
+    expect(capturedState.currentTaskUpdateThreadId).toBeNull();
+    expect(capturedState.currentLogUpdate).toBeNull();
+    expect(capturedState.messageCache["thread-1"]).toHaveLength(2);
+
+    clearTimeoutSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
   it("returns tool errors for unknown client tools", async () => {
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
 

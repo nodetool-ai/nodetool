@@ -7,7 +7,9 @@ import { List } from "@mui/material";
 import { Text } from "../ui_primitives";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { shallow } from "zustand/shallow";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
+import { HomeNamespaceIcon } from "./NamespaceIcon";
 
 interface NamespacePanelProps {
   namespaceTree: NamespaceTree;
@@ -40,7 +42,7 @@ const namespacePanelStyles = (theme: Theme) =>
       maxHeight: "calc(min(750px, 80vh))",
       paddingRight: "0.75em",
       paddingLeft: "0.65em",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.action.hover,
       boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)"
@@ -49,7 +51,7 @@ const namespacePanelStyles = (theme: Theme) =>
     "& .namespace-list::-webkit-scrollbar-track": { background: "transparent" },
     "& .namespace-list::-webkit-scrollbar-thumb": {
       backgroundColor: theme.vars.palette.action.disabledBackground,
-      borderRadius: "8px"
+      borderRadius: "var(--rounded-lg)"
     },
     "& .namespace-list::-webkit-scrollbar-thumb:hover": {
       backgroundColor: theme.vars.palette.action.disabled
@@ -87,11 +89,24 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .namespace-item": {
       color: theme.vars.palette.text.primary,
-      textTransform: "capitalize",
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5em",
       whiteSpace: "nowrap",
       overflow: "hidden",
-      textOverflow: "ellipsis",
       userSelect: "none"
+    },
+    "& .namespace-item .namespace-label": {
+      textTransform: "capitalize",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      minWidth: 0
+    },
+    "& .namespace-item .namespace-icon": {
+      color: theme.vars.palette.text.secondary
+    },
+    "& .list-item.selected .namespace-item .namespace-icon": {
+      color: "var(--palette-primary-main)"
     },
     "& .disabled .namespace-item": {
       color: theme.vars.palette.text.disabled
@@ -168,7 +183,8 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
       searchTerm: state.searchTerm,
       selectedPath: state.selectedPath,
       setSelectedPath: state.setSelectedPath
-    })
+    }),
+    shallow
   );
   const selectedProviderType = useNodeMenuStore(
     (state) => state.selectedProviderType
@@ -245,7 +261,12 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
             }
           >
             <div className="namespace-item">
-              {searchTerm.length > minSearchTermLength ? "All results" : "Home"}
+              <HomeNamespaceIcon />
+              <span className="namespace-label">
+                {searchTerm.length > minSearchTermLength
+                  ? "All results"
+                  : "Home"}
+              </span>
             </div>
           </div>
         </div>

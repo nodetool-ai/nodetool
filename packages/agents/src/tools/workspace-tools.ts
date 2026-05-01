@@ -13,7 +13,7 @@ import {
   access
 } from "node:fs/promises";
 import { resolve, join, basename, dirname } from "node:path";
-import type { ProcessingContext } from "@nodetool/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 function resolveSandboxed(workspaceRoot: string, userPath: string): string {

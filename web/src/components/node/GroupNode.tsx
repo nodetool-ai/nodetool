@@ -4,6 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { shallow } from "zustand/shallow";
 import { Node, NodeProps, ResizeDragEvent } from "@xyflow/react";
 
 // store
@@ -119,7 +120,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}33`,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       padding: "0.75em 1em",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
       zIndex: 100,
@@ -144,6 +145,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
 
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme, MIN_WIDTH, MIN_HEIGHT), [theme]);
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
@@ -158,7 +160,8 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       updateNodeData: state.updateNodeData,
       updateNode: state.updateNode,
       setBypass: state.setBypass
-    })
+    }),
+    shallow
   );
 
   // Optimization: Only subscribe to relevant booleans instead of full node/edge arrays
@@ -310,7 +313,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   return (
     <div
-      css={styles(theme, MIN_WIDTH, MIN_HEIGHT)}
+      css={cssStyles}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} ${props.selected ? "selected" : ""}`}
       style={{

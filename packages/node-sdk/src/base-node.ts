@@ -1,11 +1,36 @@
-import type { NodeDescriptor, SyncMode } from "@nodetool/protocol";
-import type { NodeExecutor } from "@nodetool/kernel";
+import type { NodeDescriptor, SyncMode } from "@nodetool-ai/protocol";
+import type { NodeExecutor } from "@nodetool-ai/kernel";
 import type {
   ProcessingContext,
   StreamingInputs,
   StreamingOutputs
-} from "@nodetool/runtime";
+} from "@nodetool-ai/runtime";
 import { getDeclaredPropertiesForClass } from "./decorators.js";
+import {
+  validateNodeProperties,
+  type NodePropertyValidationIssue
+} from "./validation.js";
+
+/**
+ * Coerce an incoming property value to fit the declared type.
+ *
+ * The only coercion today: when the declared type is `list[T]` and the
+ * value is a non-null scalar (not an array), wrap it in a one-element
+ * array. This lets a single upstream value flow into a list-typed input
+ * (e.g. a single Image into a `list[image]` slot) without a manual
+ * wrapper node.
+ */
+function coerceToDeclaredType(value: unknown, declaredType: string): unknown {
+  if (
+    value !== null &&
+    value !== undefined &&
+    !Array.isArray(value) &&
+    declaredType.startsWith("list[")
+  ) {
+    return [value];
+  }
+  return value;
+}
 
 export interface DeclaredOutputTypes {
   [name: string]: string;
@@ -18,6 +43,17 @@ export type FalUnitPricingStatic = {
   readonly billingUnit: string;
   readonly currency: string;
 };
+
+export interface NodeValidationOptions {
+  /**
+   * Set of property names that are connected to incoming data edges. These
+   * properties are produced at runtime by upstream nodes, so their current
+   * value should not be flagged as missing.
+   */
+  connectedHandles?: ReadonlySet<string> | ReadonlyArray<string>;
+  /** Node id to attach to issues. Defaults to the node's __node_id. */
+  nodeId?: string;
+}
 
 export type NodeClass = {
   new (properties?: Record<string, unknown>): BaseNode;
@@ -48,6 +84,10 @@ export type NodeClass = {
   }>;
   getDeclaredOutputs(): Record<string, string>;
   toDescriptor(id?: string): NodeDescriptor;
+  validateProperties(
+    properties: Record<string, unknown>,
+    options?: NodeValidationOptions
+  ): NodePropertyValidationIssue[];
 };
 
 // ---------------------------------------------------------------------------
@@ -116,6 +156,32 @@ export abstract class BaseNode {
     return { ...(this.outputTypes ?? {}) };
   }
 
+  /**
+   * Validate a property bag against this node's declared @prop metadata.
+   *
+   * Flags two classes of problem:
+   *   - Properties declared `required: true` whose value is missing/empty.
+   *   - Properties whose type ends in `_model` whose value carries the
+   *     "empty" provider sentinel or an empty model id.
+   *
+   * Properties listed in `options.connectedHandles` are ignored — those
+   * receive their value from an upstream node at runtime.
+   *
+   * Subclasses may override this to add custom rules. Most nodes won't
+   * need to: declarative `@prop` metadata is enough.
+   */
+  static validateProperties(
+    properties: Record<string, unknown>,
+    options: NodeValidationOptions = {}
+  ): NodePropertyValidationIssue[] {
+    const cls = this as unknown as typeof BaseNode;
+    return validateNodeProperties(cls.getDeclaredProperties(), properties, {
+      connectedHandles: options.connectedHandles,
+      nodeId: options.nodeId,
+      nodeType: cls.nodeType
+    });
+  }
+
   assign(properties: Record<string, unknown>): void {
     const ctor = this.constructor as typeof BaseNode;
     const declared = ctor.getDeclaredProperties();
@@ -129,8 +195,11 @@ export abstract class BaseNode {
     const declaredNames = new Set(declared.map((p) => p.name));
     for (const { name, options } of declared) {
       if (Object.prototype.hasOwnProperty.call(properties, name)) {
-        // Explicit value provided — use it
-        (this as any)[name] = properties[name];
+        // Explicit value provided — use it (auto-wrap scalars into list[T]).
+        (this as any)[name] = coerceToDeclaredType(
+          properties[name],
+          options.type
+        );
       } else if (
         (this as any)[name] === undefined &&
         Object.prototype.hasOwnProperty.call(options, "default")
@@ -188,6 +257,23 @@ export abstract class BaseNode {
   async initialize(): Promise<void> {}
   async preProcess(): Promise<void> {}
   async finalize(): Promise<void> {}
+
+  /**
+   * Validate the current property values on this instance.
+   *
+   * Default implementation defers to the class's static validateProperties
+   * over the result of `serialize()`. Subclasses can override to add
+   * runtime-only rules (for example, mutually-exclusive fields).
+   */
+  validate(
+    options: NodeValidationOptions = {}
+  ): NodePropertyValidationIssue[] {
+    const ctor = this.constructor as typeof BaseNode;
+    return ctor.validateProperties(this.serialize(), {
+      connectedHandles: options.connectedHandles,
+      nodeId: options.nodeId ?? (this.__node_id || undefined)
+    });
+  }
 
   abstract process(
     context?: ProcessingContext
@@ -264,8 +350,9 @@ export abstract class BaseNode {
         context?: ProcessingContext
       ) => {
         const merged = await this._injectSecrets(inputs, context);
-        const { _secrets, ...props } = merged;
+        const { _secrets, _control_context, ...props } = merged;
         if (_secrets) this.setDynamic("_secrets", _secrets);
+        if (_control_context) this.setDynamic("_control_context", _control_context);
         this.assign(props);
         return this.process(context);
       },
@@ -275,8 +362,9 @@ export abstract class BaseNode {
         context?: ProcessingContext
       ) {
         const merged = await this._injectSecrets(inputs, context);
-        const { _secrets, ...props } = merged;
+        const { _secrets, _control_context, ...props } = merged;
         if (_secrets) this.setDynamic("_secrets", _secrets);
+        if (_control_context) this.setDynamic("_control_context", _control_context);
         this.assign(props);
         yield* this.genProcess(context);
       }.bind(this) as NodeExecutor["genProcess"],

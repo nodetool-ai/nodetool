@@ -24,7 +24,6 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 import ThemeToggle from "../ui/ThemeToggle";
 import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
-import log from "loglevel";
 
 const StandaloneMiniApp: React.FC = () => {
   const theme = useTheme();
@@ -128,7 +127,7 @@ const StandaloneMiniApp: React.FC = () => {
 
       await runWorkflow(params, workflow, workflowNodes, workflowEdges);
     } catch (error) {
-      log.error("Failed to run workflow", error);
+      console.error("Failed to run workflow", error);
       setSubmitError(
         error instanceof Error ? error.message : "Failed to run workflow"
       );

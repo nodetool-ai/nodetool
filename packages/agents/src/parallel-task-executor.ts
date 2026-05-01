@@ -13,17 +13,17 @@
  *     → repeats until all tasks complete
  */
 
-import type { BaseProvider } from "@nodetool/runtime";
-import type { ProcessingContext } from "@nodetool/runtime";
-import { createLogger } from "@nodetool/config";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { createLogger } from "@nodetool-ai/config";
 import type {
   ProcessingMessage,
   Chunk,
   StepResult,
   LogUpdate,
   TaskUpdate
-} from "@nodetool/protocol";
-import { TaskUpdateEvent } from "@nodetool/protocol";
+} from "@nodetool-ai/protocol";
+import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { TaskExecutor } from "./task-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";

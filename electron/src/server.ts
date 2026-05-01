@@ -28,7 +28,7 @@ function isDevMode(): boolean {
 }
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
-import { getServerUrl, getServerPort } from "./utils";
+import { getServerUrl } from "./utils";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
@@ -37,12 +37,24 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { readSettings, getModelServiceStartupSettings, readSettingsAsync } from "./settings";
+import { getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 import { probeHttpOk, waitForHttpOk } from "./httpProbe";
 
 let backendWatchdog: Watchdog | null = null;
 let llamaWatchdog: Watchdog | null = null;
 const LLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "llama-server.pid");
+
+/**
+ * Set when the backend subprocess emits a `KeychainAccessError` marker on its
+ * stderr/stdout during startup. The Electron main process reads this to decide
+ * whether a startup failure is recoverable by re-prompting the user for
+ * keychain access.
+ */
+let backendKeychainErrorSeen = false;
+
+export function backendFailedDueToKeychain(): boolean {
+  return backendKeychainErrorSeen;
+}
 
 /** Server Management Module */
 
@@ -479,6 +491,11 @@ function handleServerOutput(data: Buffer): void {
   //   logMessage(output);
   // }
 
+  if (output.includes("KeychainAccessError")) {
+    backendKeychainErrorSeen = true;
+    logMessage("Backend reported KeychainAccessError", "error");
+  }
+
   if (output.includes("Address already in use")) {
     const message =
       "The server cannot start because the port is already in use. Please close any applications using the port and try again.";
@@ -530,6 +547,7 @@ function isLlamaServerRunning(): boolean {
  */
 async function initializeBackendServer(): Promise<void> {
   logMessage("Initializing backend server");
+  backendKeychainErrorSeen = false;
   try {
     serverState.status = "starting";
     serverState.error = undefined;

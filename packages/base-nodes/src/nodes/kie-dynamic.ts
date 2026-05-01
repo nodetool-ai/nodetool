@@ -1,10 +1,10 @@
 /**
  * Dynamic Kie.ai node that creates inputs/outputs from pasted API documentation.
  */
-import { BaseNode, prop } from "@nodetool/node-sdk";
-import type { NodeClass } from "@nodetool/node-sdk";
-import { getApiKey, kieExecuteTask } from "@nodetool/kie-nodes";
-import type { TypeMetadata } from "@nodetool/node-sdk";
+import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { getApiKey, kieExecuteTask, kieImageRef } from "@nodetool-ai/kie-nodes";
+import type { TypeMetadata } from "@nodetool-ai/node-sdk";
 
 interface KieParamInfo {
   name: string;
@@ -320,9 +320,9 @@ export class KieAINode extends BaseNode {
       300
     );
 
-    if (bundle.outputType === "video") return { video: { data: result.data } };
-    if (bundle.outputType === "audio") return { audio: { data: result.data } };
-    return { image: { data: result.data } };
+    if (bundle.outputType === "video") return { video: { type: "video", uri: "", data: result.data } };
+    if (bundle.outputType === "audio") return { audio: { type: "audio", uri: "", data: result.data } };
+    return { image: await kieImageRef(result.data) };
   }
 }
 

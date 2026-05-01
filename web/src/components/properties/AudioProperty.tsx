@@ -43,7 +43,7 @@ const styles = () =>
       }
     },
     "& .realtime-visualizer": {
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       overflow: "hidden",
       background: "rgba(0, 0, 0, 0.4)"
     },
@@ -52,7 +52,7 @@ const styles = () =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       background: "rgba(0, 0, 0, 0.2)",
       border: "1px dashed rgba(255, 255, 255, 0.15)",
       color: "rgba(255, 255, 255, 0.4)",

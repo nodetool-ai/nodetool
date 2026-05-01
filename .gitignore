@@ -13,7 +13,8 @@ __pycache__
 *.pt
 *.pth
 *.safetensors
-.claude/
+.claude/*
+!.claude/skills/
 build/
 coverage/
 dist/
@@ -34,7 +35,6 @@ postgres_data/
 .expo
 
 .bin
-.claude
 .vite
 .venv
 node_modules
@@ -43,6 +43,7 @@ docs.chromadb
 # Cache
 .cache
 .eslintcache
+.turbo/
 # tsx temp files (Windows bug: resolves tmpdir as "undefined")
 **/undefined/
 
@@ -69,6 +70,5 @@ key.pem
 .codegen-cache/
 .codegpt
 __plans__
-.claude/settings.local.json
 .memory
 *.tsbuildinfo

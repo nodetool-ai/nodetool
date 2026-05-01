@@ -1,5 +1,5 @@
 /**
- * Barrel export coverage for @nodetool/node-sdk index.ts
+ * Barrel export coverage for @nodetool-ai/node-sdk index.ts
  */
 import { describe, it, expect } from "vitest";
 import {
@@ -21,7 +21,7 @@ import {
   ALL_TEST_NODES
 } from "../src/index.js";
 
-describe("@nodetool/node-sdk barrel exports", () => {
+describe("@nodetool-ai/node-sdk barrel exports", () => {
   it("exports BaseNode", () => {
     expect(BaseNode).toBeDefined();
   });

@@ -12,7 +12,6 @@ import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import log from "loglevel";
 
 interface VideoItem {
   uri: string;
@@ -39,7 +38,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       paddingTop: "56.25%", // 16:9 aspect ratio
       backgroundColor: "rgba(0, 0, 0, 0.2)",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: "all 0.2s ease",
@@ -97,7 +96,7 @@ const styles = (theme: Theme) =>
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
       backgroundColor: "rgba(0, 0, 0, 0.2)",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -292,7 +291,7 @@ const VideoListProperty = (props: PropertyProps) => {
         const newVideos = await Promise.all(uploadPromises);
         handleAddVideos(newVideos);
       } catch (error) {
-        log.error("Failed to upload videos:", error);
+        console.error("Failed to upload videos:", error);
       }
     },
     [uploadAsset, handleAddVideos, filteredAssets, globalSearchResults, selectedAssets]
@@ -358,7 +357,7 @@ const VideoListProperty = (props: PropertyProps) => {
         handleAddVideos(newVideos);
       }
     } catch (error) {
-      log.error("Error opening file picker:", error);
+      console.error("Error opening file picker:", error);
     }
   }, [uploadAsset, handleAddVideos]);
 
@@ -400,7 +399,7 @@ const VideoListProperty = (props: PropertyProps) => {
       const newVideos = await Promise.all(uploadPromises);
       handleAddVideos(newVideos);
     } catch (error) {
-      log.error("Failed to upload videos:", error);
+      console.error("Failed to upload videos:", error);
     }
 
     // Reset input so same file can be selected again

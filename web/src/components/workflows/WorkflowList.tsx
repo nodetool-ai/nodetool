@@ -12,10 +12,9 @@ import {
   WorkflowAttributes,
   WorkflowList as WorkflowListType
 } from "../../stores/ApiTypes";
-import { client } from "../../stores/ApiClient";
-import { createErrorMessage } from "../../utils/errorHandling";
 import isEqual from "fast-deep-equal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { trpcClient } from "../../trpc/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
@@ -24,7 +23,6 @@ import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
 import { FlexColumn, FlexRow, LoadingSpinner, Text } from "../ui_primitives";
-import log from "loglevel";
 
 const styles = (theme: Theme) =>
   css({
@@ -37,10 +35,10 @@ const styles = (theme: Theme) =>
       position: "sticky",
       top: 0,
       zIndex: 2,
-      padding: "0.5em 0",
-      background: "transparent",
-      backdropFilter: "blur(4px)",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
+      padding: "0.75em 0 0.65em",
+      background: `linear-gradient(180deg, rgb(${theme.vars.palette.background.defaultChannel} / 0.92), rgb(${theme.vars.palette.background.defaultChannel} / 0.82))`,
+      backdropFilter: "blur(12px)",
+      borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
     },
 
     ".status": {
@@ -48,7 +46,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300]
     },
     ".workflow-items": {
-      padding: "0.5em 0.75em 0.75em",
+      padding: "0.75em 0.75em 1em",
       flex: 1,
       overflow: "hidden"
     },
@@ -69,20 +67,10 @@ const styles = (theme: Theme) =>
   });
 
 const loadWorkflows = async (cursor?: string, limit?: number) => {
-  cursor = cursor || "";
-  const { data, error } = await client.GET("/api/workflows/", {
-    params: {
-      query: {
-        cursor,
-        limit,
-        columns: "name,id,updated_at,description,tags,graph"
-      }
-    }
-  });
-  if (error) {
-    throw createErrorMessage(error, "Failed to load workflows");
-  }
-  return data;
+  return trpcClient.workflows.list.query({
+    cursor: cursor ?? "",
+    limit: limit ?? 100
+  }) as unknown as WorkflowListType;
 };
 
 const WorkflowList = () => {
@@ -95,12 +83,9 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const shiftKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("Shift")
-  );
-  const controlKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("Control")
-  );
+  const [toolsExpanded, setToolsExpanded] = useState(false);
+  const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
+  const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
@@ -121,9 +106,7 @@ const WorkflowList = () => {
 
   // Derive available tags from all workflows
   const availableTags = useMemo(() => {
-    if (!data?.workflows) {
-      return [];
-    }
+    if (!data?.workflows) { return []; }
     const tagSet = new Set<string>();
     data.workflows.forEach((workflow) => {
       workflow.tags?.forEach((tag) => tagSet.add(tag));
@@ -132,9 +115,7 @@ const WorkflowList = () => {
   }, [data?.workflows]);
 
   const workflows = useMemo(() => {
-    if (!data?.workflows) {
-      return [];
-    }
+    if (!data?.workflows) { return []; }
     let filtered = data.workflows;
 
     if (filterValue !== "") {
@@ -159,13 +140,7 @@ const WorkflowList = () => {
     }
 
     return filtered;
-  }, [
-    data?.workflows,
-    filterValue,
-    showFavoritesOnly,
-    favoriteWorkflowIds,
-    selectedTags
-  ]);
+  }, [data?.workflows, filterValue, showFavoritesOnly, favoriteWorkflowIds, selectedTags]);
 
   const onSelect = useCallback((workflow: Workflow) => {
     setSelectedWorkflows((prev) =>
@@ -178,15 +153,13 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyPressed || shiftKeyPressed) {
-        return;
-      }
+      if (controlKeyPressed || shiftKeyPressed) { return; }
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
         !target.closest(".delete-selected-button")
       ) {
-        setSelectedWorkflows((prev) => (prev.length > 0 ? [] : prev));
+        setSelectedWorkflows([]);
       }
     },
     [controlKeyPressed, shiftKeyPressed]
@@ -208,6 +181,7 @@ const WorkflowList = () => {
   const createWorkflow = useWorkflowManager((state) => state.create);
   const updateWorkflow = useWorkflowManager((state) => state.updateWorkflow);
   const getWorkflow = useWorkflowManager((state) => state.getWorkflow);
+
 
   const handleOpenWorkflow = useCallback(
     (workflow: Workflow) => {
@@ -242,9 +216,7 @@ const WorkflowList = () => {
       const baseName = workflow.name.replace(/ \(\d+\)$/, "");
       const existingNames = workflowNamesMap.get(baseName) || [];
       let highestNumber = 0;
-      const regex = new RegExp(
-        `^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\((\\d+)\\)$`
-      );
+      const regex = new RegExp(`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\((\\d+)\\)$`);
       existingNames.forEach((name) => {
         const match = name.match(regex);
         if (match && match[1]) {
@@ -269,15 +241,13 @@ const WorkflowList = () => {
   const handleRename = useCallback(
     async (workflow: Workflow, newName: string) => {
       try {
-        await client.PUT("/api/workflows/{id}", {
-          params: { path: { id: workflow.id } },
-          body: { ...workflow, name: newName }
+        await trpcClient.workflows.update.mutate({
+          id: workflow.id,
+          name: newName
         });
         // Update the cache optimistically
         queryClient.setQueryData<WorkflowListType>(["workflows"], (old) => {
-          if (!old) {
-            return old;
-          }
+          if (!old) { return old; }
           return {
             ...old,
             workflows: old.workflows.map((w) =>
@@ -291,7 +261,7 @@ const WorkflowList = () => {
           updateWorkflow({ ...openWorkflow, name: newName });
         }
       } catch (err) {
-        log.error("Failed to rename workflow:", err);
+        console.error("Failed to rename workflow:", err);
       }
     },
     [queryClient, getWorkflow, updateWorkflow]
@@ -300,6 +270,8 @@ const WorkflowList = () => {
   const handleToggleFavorites = useCallback(() => {
     setShowFavoritesOnly((prev) => !prev);
   }, []);
+
+
 
   return (
     <>
@@ -337,20 +309,13 @@ const WorkflowList = () => {
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavorites={handleToggleFavorites}
             availableTags={availableTags}
+            compact={!toolsExpanded}
+            onExpand={() => setToolsExpanded(true)}
           />
         </FlexRow>
         <div className="status">
           {isLoading && (
-            <FlexColumn
-              gap={3}
-              justify="center"
-              align="center"
-              sx={{
-                height: "45vh",
-                width: "100%",
-                color: theme.vars.palette.grey[0]
-              }}
-            >
+            <FlexColumn gap={3} justify="center" align="center" sx={{ height: "45vh", width: "100%", color: theme.vars.palette.grey[0] }}>
               <LoadingSpinner size="large" text="Loading Workflows" />
             </FlexColumn>
           )}
@@ -369,12 +334,7 @@ const WorkflowList = () => {
         </div>
         <div className="workflow-items">
           {!isLoading && !isError && workflows.length === 0 ? (
-            <FlexColumn
-              gap={2}
-              align="center"
-              justify="center"
-              sx={{ padding: "2em 1em", color: theme.vars.palette.grey[300] }}
-            >
+            <FlexColumn gap={2} align="center" justify="center" sx={{ padding: "2em 1em", color: theme.vars.palette.grey[300] }}>
               {data?.workflows && data.workflows.length > 0 ? (
                 <>
                   <Text size="normal" weight={600}>No matching workflows</Text>

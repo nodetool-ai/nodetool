@@ -1,4 +1,4 @@
-export type FetchLike = typeof fetch;
+type FetchLike = typeof fetch;
 
 interface ProbeHttpOkOptions {
   timeoutMs?: number;

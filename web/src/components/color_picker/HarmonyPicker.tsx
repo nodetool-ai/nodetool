@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
     ".harmony-color": {
       flex: 1,
       height: "32px",
-      borderRadius: "4px",
+      borderRadius: "var(--rounded-sm)",
       cursor: "pointer",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       display: "flex",

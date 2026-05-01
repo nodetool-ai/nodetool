@@ -1,4 +1,4 @@
-// @nodetool/vectorstore — SQLite-vec backed vector store
+// @nodetool-ai/vectorstore — SQLite-vec backed vector store
 
 export {
   SqliteVecStore,
@@ -22,6 +22,9 @@ export {
   OllamaEmbeddingFunction,
   GeminiEmbeddingFunction,
   MistralEmbeddingFunction,
+  CohereEmbeddingFunction,
+  VoyageEmbeddingFunction,
+  JinaEmbeddingFunction,
   getProviderEmbeddingFunction,
   type EmbeddingProvider,
   type ProviderEmbeddingOptions

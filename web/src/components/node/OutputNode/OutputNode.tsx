@@ -7,7 +7,6 @@ import { Container } from "@mui/material";
 import { Text } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import log from "loglevel";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
@@ -18,6 +17,7 @@ import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
+import { getOutputNodeSelectionSx } from "../selectionStyles";
 import { NodeHeader } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeInputs } from "../NodeInputs";
@@ -82,7 +82,7 @@ const styles = (theme: Theme) =>
       },
       ".output-node-content > .content.scrollable::-webkit-scrollbar-thumb": {
         backgroundColor: theme.vars.palette.grey[500],
-        borderRadius: "6px"
+        borderRadius: "var(--rounded-md)"
       },
       ".output-node-content > .content.scrollable::-webkit-scrollbar-track": {
         backgroundColor: "transparent"
@@ -190,25 +190,25 @@ const styles = (theme: Theme) =>
     tableStyles(theme)
   ]);
 
-const getOutputFromResult = (result: any) => {
+const getOutputFromResult = (result: unknown): unknown => {
   if (result === null || result === undefined) {
     return null;
   }
 
   if (Array.isArray(result)) {
-    const outputs = result.map((item: any) => {
+    const outputs = result.map((item: unknown) => {
       if (
         item &&
         typeof item === "object" &&
         "output" in item &&
-        item.output !== undefined
+        (item as Record<string, unknown>).output !== undefined
       ) {
-        return item.output;
+        return (item as Record<string, unknown>).output;
       }
       return item;
     });
 
-    if (outputs.every((output: any) => typeof output === "string")) {
+    if (outputs.every((output): output is string => typeof output === "string")) {
       return outputs.join("\n");
     }
     return outputs;
@@ -218,22 +218,22 @@ const getOutputFromResult = (result: any) => {
     typeof result === "object" &&
     result !== null &&
     "output" in result &&
-    result.output !== undefined
+    (result as Record<string, unknown>).output !== undefined
   ) {
-    return result.output;
+    return (result as Record<string, unknown>).output;
   }
 
   return result;
 };
 
-const getCopySource = (value: any): any => {
+const getCopySource = (value: unknown): unknown => {
   if (value === null || value === undefined) {
     return value;
   }
 
   if (Array.isArray(value)) {
     const flattened = value.map((item) => getCopySource(item));
-    if (flattened.every((entry) => typeof entry === "string")) {
+    if (flattened.every((entry): entry is string => typeof entry === "string")) {
       return flattened.join("\n");
     }
     return flattened;
@@ -243,28 +243,28 @@ const getCopySource = (value: any): any => {
     typeof value === "object" &&
     value !== null &&
     "type" in value &&
-    value.type === "text" &&
-    typeof value.data === "string"
+    (value as Record<string, unknown>).type === "text" &&
+    typeof (value as Record<string, unknown>).data === "string"
   ) {
-    return value.data;
+    return (value as Record<string, unknown>).data;
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "output" in value &&
-    value.output !== undefined
+    (value as Record<string, unknown>).output !== undefined
   ) {
-    return getCopySource(value.output);
+    return getCopySource((value as Record<string, unknown>).output);
   }
 
   if (
     typeof value === "object" &&
     value !== null &&
     "value" in value &&
-    value.value !== undefined
+    (value as Record<string, unknown>).value !== undefined
   ) {
-    return getCopySource(value.value);
+    return getCopySource((value as Record<string, unknown>).value);
   }
 
   return value;
@@ -323,7 +323,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
   const handleAddToAssets = useCallback(async () => {
     if (outputValue === null || outputValue === undefined) {
-      log.warn("No result output to add to assets");
+      console.warn("No result output to add to assets");
       return;
     }
 
@@ -336,7 +336,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         content: `${assetFiles.length} file(s) added to assets successfully`
       });
     } catch (error) {
-      log.error("Error in handleAddToAssets:", error);
+      console.error("Error in handleAddToAssets:", error);
       addNotification({
         type: "error",
         content: "Failed to add output to assets"
@@ -356,7 +356,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
         content: "Download started successfully"
       });
     } catch (error) {
-      log.error("Error in handleDownload:", error);
+      console.error("Error in handleDownload:", error);
       addNotification({
         type: "error",
         content: "Failed to start download"
@@ -393,9 +393,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
     if (result === null || result === undefined) {
       return false;
     }
-    const checkType = (item: any): boolean => {
+    const checkType = (item: unknown): boolean => {
       if (item && typeof item === "object" && "type" in item) {
-        const t = item.type;
+        const t = (item as Record<string, unknown>).type;
         return t === "image" || t === "video";
       }
       return false;
@@ -415,20 +415,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   return (
     <Container
       css={styles(theme)}
-      sx={{
-        display: "flex",
-        border: props.selected
-          ? `3px solid ${theme.vars.palette.primary.main}`
-          : `1px solid ${theme.vars.palette.grey[700]}`,
-        boxShadow: props.selected
-          ? `0 0 0 2px rgb(${theme.vars.palette.primary.mainChannel} / 0.95), 0 0 28px rgb(${theme.vars.palette.primary.mainChannel} / 0.55), 0 8px 20px rgb(${theme.vars.palette.primary.mainChannel} / 0.25)`
-          : "none",
-        backgroundColor: theme.vars.palette.c_node_bg,
-        backdropFilter: props.selected ? theme.vars.palette.glass.blur : "none",
-        WebkitBackdropFilter: props.selected
-          ? theme.vars.palette.glass.blur
-          : "none"
-      }}
+      sx={getOutputNodeSelectionSx(theme, Boolean(props.selected))}
       className={`output-node nopan node-drag-handle ${hasParent ? "hasParent" : ""
         }`}
     >

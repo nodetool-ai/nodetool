@@ -1,5 +1,5 @@
 /**
- * @nodetool/protocol – Message Types
+ * @nodetool-ai/protocol – Message Types
  *
  * TypeScript equivalents of the Python message types defined in:
  *   src/nodetool/workflows/types.py
@@ -16,6 +16,8 @@
 // ---------------------------------------------------------------------------
 
 export enum TaskUpdateEvent {
+  TaskPlanned = "task_planned",
+  TaskRemoved = "task_removed",
   TaskCreated = "task_created",
   StepStarted = "step_started",
   EnteredConclusionStage = "entered_conclusion_stage",
@@ -26,7 +28,13 @@ export enum TaskUpdateEvent {
 
 export type Severity = "info" | "warning" | "error";
 
-export type ContentType = "text" | "audio" | "image" | "video" | "document";
+export type ContentType =
+  | "text"
+  | "audio"
+  | "image"
+  | "video"
+  | "document"
+  | "tool_call";
 
 export type EdgeType = "data" | "control";
 
@@ -109,6 +117,20 @@ export interface JobUpdate {
   traceback?: string | null;
   run_state?: RunStateInfo | null;
   duration?: number | null;
+  /**
+   * Per-property issues from pre-flight graph validation. Present when
+   * `status === "failed"` and the failure was caused by a validation error
+   * (not a runtime exception). Frontend uses this to highlight specific
+   * fields on the offending nodes instead of showing a node-level banner.
+   */
+  validation_issues?: ValidationIssue[] | null;
+}
+
+export interface ValidationIssue {
+  node_id: string;
+  node_type?: string | null;
+  property: string;
+  message: string;
 }
 
 export interface NodeUpdate {
@@ -280,6 +302,7 @@ export interface Prediction {
   created_at?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
+  [key: string]: unknown;
 }
 
 export interface LLMCallUpdate {

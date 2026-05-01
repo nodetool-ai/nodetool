@@ -1,4 +1,4 @@
-import { Tray, Menu, app, BrowserWindow, shell } from "electron";
+import { Tray, Menu, app, shell } from "electron";
 import path from "path";
 import { promises as fs } from "fs";
 import { logMessage, LOG_FILE } from "./logger";
@@ -264,7 +264,7 @@ const focusNodeTool = handleActivation;
  * @param {Record<string, any>} settings - The current application settings
  * @returns {Electron.MenuItemConstructorOptions[]} Menu items for close behavior
  */
-function getCloseBehaviorMenuItems(settings: Record<string, any>): Electron.MenuItemConstructorOptions[] {
+function getCloseBehaviorMenuItems(settings: Record<string, unknown>): Electron.MenuItemConstructorOptions[] {
   const currentAction = settings.windowCloseAction;
 
   return [

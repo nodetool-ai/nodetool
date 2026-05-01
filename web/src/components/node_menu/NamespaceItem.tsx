@@ -3,6 +3,7 @@ import { ListItem } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
+import NamespaceIcon from "./NamespaceIcon";
 
 interface NamespaceItemProps {
   namespace: string;
@@ -44,6 +45,8 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
     [isSelected, path, setSelectedPath]
   );
 
+  const isTopLevel = path.length === 1;
+
   return (
     <>
       <ListItem
@@ -52,7 +55,12 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
         } ${isHighlighted ? "highlighted" : "no-highlight"}`}
         onClick={handleClick}
       >
-        <div className="namespace-item">{formatNamespaceLabel(namespace)}</div>
+        <div className="namespace-item">
+          {isTopLevel && <NamespaceIcon namespace={namespace} />}
+          <span className="namespace-label">
+            {formatNamespaceLabel(namespace)}
+          </span>
+        </div>
       </ListItem>
       {hasChildren && isExpanded && (
         <div className="sublist">

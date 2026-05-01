@@ -14,11 +14,12 @@
  *   - zip_all: wait until ALL handles have data (with sticky semantics).
  */
 
-import { createLogger } from "@nodetool/config";
-import type { NodeDescriptor, ControlEvent } from "@nodetool/protocol";
+import { createLogger } from "@nodetool-ai/config";
+import type { NodeDescriptor, ControlEvent } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.actor");
-import type { ProcessingContext, NodeExecutor } from "@nodetool/runtime";
+import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
+import { withNodeSpan } from "@nodetool-ai/runtime";
 import { NodeInbox } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 
@@ -102,6 +103,13 @@ export class NodeActor {
    * Returns the last outputs produced.
    */
   async run(): Promise<ActorResult> {
+    return withNodeSpan(
+      { nodeId: this.node.id, nodeType: this.node.type },
+      () => this._runImpl()
+    );
+  }
+
+  private async _runImpl(): Promise<ActorResult> {
     let errorMessage: string | undefined;
     try {
       log.debug("Actor started", {
@@ -174,7 +182,15 @@ export class NodeActor {
       nodeId: this.node.id,
       type: this.node.type
     });
-    this._emitNodeStatus("completed", this._latestResult ?? {});
+    // Skip attaching result for constant/input nodes: the client already
+    // holds these values as properties, so echoing them back is redundant.
+    const skipResult =
+      this.node.type.startsWith("nodetool.constant.") ||
+      this.node.type.startsWith("nodetool.input.");
+    this._emitNodeStatus(
+      "completed",
+      skipResult ? undefined : (this._latestResult ?? {})
+    );
     return { outputs: this._latestResult ?? {} };
   }
 

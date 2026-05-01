@@ -1,11 +1,10 @@
-import { app } from "electron";
 import path from "path";
 import log from "electron-log";
 import { createWriteStream, existsSync, mkdirSync, WriteStream } from "fs";
 import { getSystemDataPath } from "./config";
 
 /** The log level for the logger */
-export type LogLevel = "info" | "warn" | "error";
+type LogLevel = "info" | "warn" | "error";
 
 /**
  * The path to the log file

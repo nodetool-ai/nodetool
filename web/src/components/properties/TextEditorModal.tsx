@@ -56,12 +56,11 @@ import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
 import { codeHighlightTokenStyles } from "../textEditor/codeHighlightStyles";
 import { NewChatButton } from "../chat";
-import log from "loglevel";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
   onError: (error: Error) => {
-    log.error(error);
+    console.error(error);
   },
   nodes: [
     HeadingNode,
@@ -132,7 +131,8 @@ const styles = (theme: Theme) =>
       top: 0,
       left: 0,
       width: "100vw",
-      height: "100vh",
+      // dvh: avoid the gap iOS Safari leaves when the URL bar collapses.
+      height: "100dvh",
       padding: 0,
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.85)`
     },
@@ -219,7 +219,7 @@ const styles = (theme: Theme) =>
       gap: "0.35em",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.35)`,
       padding: "3px 7px",
-      borderRadius: "12px",
+      borderRadius: "var(--rounded-xl)",
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
       boxShadow: `inset 0 1px 2px rgba(0,0,0,0.15), 0 1px 0 rgba(255,255,255,0.03)`,
       "& + .toolbar-group": {
@@ -236,7 +236,7 @@ const styles = (theme: Theme) =>
       background: "transparent",
       color: theme.vars.palette.text.secondary,
       border: "none",
-      borderRadius: "6px",
+      borderRadius: "var(--rounded-md)",
       padding: "3px 6px",
       fontSize: "0.75rem",
       fontWeight: 600,
@@ -555,6 +555,49 @@ const styles = (theme: Theme) =>
       ".button": {
         minWidth: "34px",
         minHeight: "34px"
+      }
+    },
+    // Phones: edge-to-edge — desktop layout leaves a 51px dead band on the left.
+    "@media (max-width: 599.95px)": {
+      ".modal-overlay": {
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100dvh",
+        maxHeight: "100dvh",
+        padding: 0,
+        alignItems: "stretch"
+      },
+      ".modal-content, .modal-content.fullscreen": {
+        width: "100vw",
+        maxWidth: "100vw",
+        height: "100dvh !important",
+        maxHeight: "100dvh",
+        margin: 0,
+        borderRadius: 0,
+        border: "none",
+        animation: "none"
+      },
+      ".resize-handle": {
+        display: "none"
+      },
+      ".language-select": {
+        display: "none"
+      },
+      ".modal-header": {
+        padding: "0.4em 0.6em",
+        minHeight: "2.6em"
+      },
+      ".description": {
+        display: "none"
+      },
+      ".toolbar-group": {
+        padding: "2px 4px"
+      },
+      ".button": {
+        minWidth: "32px",
+        minHeight: "32px",
+        padding: "4px"
       }
     }
   });
@@ -1174,7 +1217,7 @@ const TextEditorModal = ({
                     <NewChatButton onNewThread={() => void createNewThread()} />
                     <ChatView
                       status={
-                        status === "stopping" ? "loading" : (status as any)
+                        status === "stopping" ? "loading" : status
                       }
                       progress={progress.current}
                       total={progress.total}

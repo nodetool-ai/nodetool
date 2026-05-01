@@ -1,29 +1,31 @@
-import { createLogger } from "@nodetool/config";
+import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
-import type { Chunk } from "@nodetool/protocol";
+import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ImageModel,
   LanguageModel,
+  VideoModel,
   Message,
   MessageContent,
   MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
-  StreamingAudioChunk,
+  EncodedAudioResult,
   TextToImageParams,
   TTSModel
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.huggingface");
 
-/** Lazy-loaded HuggingFace Inference SDK handle. */
+// ---------------------------------------------------------------------------
+// HF Inference SDK (lazy-loaded)
+// ---------------------------------------------------------------------------
+
 let _hfModule: any = null;
 
 async function getHfInference(apiKey: string): Promise<any> {
   if (!_hfModule) {
     try {
-      // Dynamic import — @huggingface/inference is an optional dependency
-
       _hfModule = await (Function(
         'return import("@huggingface/inference")'
       )() as Promise<any>);
@@ -43,76 +45,98 @@ async function getHfInference(apiKey: string): Promise<any> {
   return new HfInference(apiKey);
 }
 
-/** Curated list of popular HuggingFace language models. */
-const HF_LANGUAGE_MODELS: LanguageModel[] = [
-  {
-    id: "meta-llama/Llama-3.1-70B-Instruct",
-    name: "Llama 3.1 70B Instruct",
-    provider: "huggingface"
-  },
-  {
-    id: "meta-llama/Llama-3.1-8B-Instruct",
-    name: "Llama 3.1 8B Instruct",
-    provider: "huggingface"
-  },
-  {
-    id: "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    name: "Mixtral 8x7B Instruct",
-    provider: "huggingface"
-  },
-  {
-    id: "mistralai/Mistral-7B-Instruct-v0.3",
-    name: "Mistral 7B Instruct v0.3",
-    provider: "huggingface"
-  },
-  {
-    id: "microsoft/Phi-3-mini-4k-instruct",
-    name: "Phi 3 Mini 4K Instruct",
-    provider: "huggingface"
-  },
-  {
-    id: "HuggingFaceH4/zephyr-7b-beta",
-    name: "Zephyr 7B Beta",
-    provider: "huggingface"
-  },
-  { id: "google/gemma-2-9b-it", name: "Gemma 2 9B IT", provider: "huggingface" }
-];
+// ---------------------------------------------------------------------------
+// Live HF Hub model discovery — queries warm inference models by pipeline tag,
+// sorted by likes, limited to 100 results, cached for 10 minutes.
+// Uses direct fetch because `@huggingface/hub` listModels does not expose the
+// `inference=warm` filter needed to limit results to inference-ready models.
+// ---------------------------------------------------------------------------
 
-/** Curated list of popular HuggingFace image models. */
-const HF_IMAGE_MODELS: ImageModel[] = [
-  {
-    id: "stabilityai/stable-diffusion-xl-base-1.0",
-    name: "Stable Diffusion XL Base 1.0",
-    provider: "huggingface",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "runwayml/stable-diffusion-v1-5",
-    name: "Stable Diffusion v1.5",
-    provider: "huggingface",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "black-forest-labs/FLUX.1-schnell",
-    name: "FLUX.1 Schnell",
-    provider: "huggingface",
-    supportedTasks: ["text_to_image"]
-  }
-];
+const HF_API_BASE = "https://huggingface.co/api/models";
+const CACHE_TTL_MS = 10 * 60 * 1000;
+const MODEL_LIMIT = 100;
 
-/** Curated list of popular HuggingFace TTS models. */
-const HF_TTS_MODELS: TTSModel[] = [
-  {
-    id: "facebook/mms-tts-eng",
-    name: "MMS TTS English",
-    provider: "huggingface"
-  },
-  {
-    id: "espnet/kan-bayashi_ljspeech_vits",
-    name: "VITS LJSpeech",
-    provider: "huggingface"
+interface HfModelEntry {
+  id: string;
+  likes?: number;
+  pipeline_tag?: string;
+}
+
+interface CachedResult<T> {
+  data: T;
+  timestamp: number;
+}
+
+const _modelCache = new Map<string, CachedResult<HfModelEntry[]>>();
+
+async function fetchHfModels(pipelineTag: string): Promise<HfModelEntry[]> {
+  const cached = _modelCache.get(pipelineTag);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
   }
-];
+
+  const url = `${HF_API_BASE}?pipeline_tag=${encodeURIComponent(pipelineTag)}&inference=warm&sort=likes&direction=-1&limit=${MODEL_LIMIT}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      log.warn(`HF API returned ${res.status} for ${pipelineTag}`);
+      return cached?.data ?? [];
+    }
+    const data = (await res.json()) as HfModelEntry[];
+    _modelCache.set(pipelineTag, { data, timestamp: Date.now() });
+    return data;
+  } catch (err) {
+    log.warn(`Failed to fetch HF models for ${pipelineTag}: ${err}`);
+    return cached?.data ?? [];
+  }
+}
+
+function hfModelName(id: string): string {
+  // "black-forest-labs/FLUX.1-schnell" → "FLUX.1 Schnell"
+  const parts = id.split("/");
+  const raw = parts[parts.length - 1];
+  return raw
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+async function getHfLanguageModels(): Promise<LanguageModel[]> {
+  const entries = await fetchHfModels("text-generation");
+  return entries.map((m) => ({
+    id: m.id,
+    name: hfModelName(m.id),
+    provider: "huggingface"
+  }));
+}
+
+async function getHfImageModels(): Promise<ImageModel[]> {
+  const entries = await fetchHfModels("text-to-image");
+  return entries.map((m) => ({
+    id: m.id,
+    name: hfModelName(m.id),
+    provider: "huggingface",
+    supportedTasks: ["text_to_image"]
+  }));
+}
+
+async function getHfVideoModels(): Promise<VideoModel[]> {
+  const entries = await fetchHfModels("text-to-video");
+  return entries.map((m) => ({
+    id: m.id,
+    name: hfModelName(m.id),
+    provider: "huggingface",
+    supportedTasks: ["text_to_video"]
+  }));
+}
+
+async function getHfTTSModels(): Promise<TTSModel[]> {
+  const entries = await fetchHfModels("text-to-speech");
+  return entries.map((m) => ({
+    id: m.id,
+    name: hfModelName(m.id),
+    provider: "huggingface"
+  }));
+}
 
 interface HuggingFaceProviderOptions {
   /** Override for testing — inject a mock HfInference instance. */
@@ -325,19 +349,25 @@ export class HuggingFaceProvider extends BaseProvider {
     throw new Error("HuggingFace textToImage returned unexpected result type");
   }
 
-  override async *textToSpeech(args: {
+  /**
+   * HuggingFace TTS returns encoded audio (typically FLAC) — not raw PCM.
+   * Use the encoded path so the caller stores the bytes directly.
+   */
+  override async textToSpeechEncoded(args: {
     text: string;
     model: string;
     voice?: string;
     speed?: number;
-  }): AsyncGenerator<StreamingAudioChunk> {
+    /** Ignored — HuggingFace models return their native encoding. */
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
     if (!args.text) {
       throw new Error("text must not be empty");
     }
 
     const client = await this.getClient();
 
-    log.debug("HuggingFace textToSpeech", { model: args.model });
+    log.debug("HuggingFace textToSpeechEncoded", { model: args.model });
 
     const result = await client.textToSpeech({
       model: args.model,
@@ -357,26 +387,33 @@ export class HuggingFaceProvider extends BaseProvider {
       );
     }
 
-    // Assume 16-bit PCM samples
-    const aligned =
-      bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
-    const samples = new Int16Array(
-      aligned.buffer,
-      aligned.byteOffset,
-      aligned.byteLength / 2
-    );
-    yield { samples };
+    // HuggingFace Inference API returns FLAC by default for most TTS models.
+    // Detect format from magic bytes, fall back to FLAC.
+    let mimeType = "audio/flac";
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+      mimeType = "audio/wav";
+    } else if (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) {
+      mimeType = "audio/mpeg";
+    } else if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+      mimeType = "audio/ogg";
+    }
+
+    return { data: bytes, mimeType };
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    return HF_LANGUAGE_MODELS;
+    return getHfLanguageModels();
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return HF_IMAGE_MODELS;
+    return getHfImageModels();
+  }
+
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    return getHfVideoModels();
   }
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return HF_TTS_MODELS;
+    return getHfTTSModels();
   }
 }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiMoveNodeParams } from "@nodetool/protocol";
+import { uiMoveNodeParams } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 

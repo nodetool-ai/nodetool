@@ -18,7 +18,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { selectStyles, portalOptionsStyles } from "./selectStyles";
 
 interface Option {
-  value: any;
+  value: string;
   label: string | React.ReactNode;
   tabIndex?: number;
 }

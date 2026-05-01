@@ -1,5 +1,13 @@
 /** @jsxImportSource @emotion/react */
-import { useRef, useEffect, useMemo, memo, useState } from "react";
+import {
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  memo,
+  useState,
+  type MouseEvent as ReactMouseEvent
+} from "react";
 import {
   useReactFlow,
   Background,
@@ -8,7 +16,9 @@ import {
   SelectionMode,
   ConnectionMode,
   useViewport,
-  useUpdateNodeInternals
+  useUpdateNodeInternals,
+  type Edge,
+  type Node
 } from "@xyflow/react";
 
 import useConnectionStore from "../../stores/ConnectionStore";
@@ -24,10 +34,8 @@ import {
   DynamicFalSchemaNode,
   DYNAMIC_FAL_NODE_TYPE
 } from "../node/DynamicFalSchemaNode";
-import {
-  DynamicKieSchemaNode,
-  DYNAMIC_KIE_NODE_TYPE
-} from "../node/DynamicKieSchemaNode";
+import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
+import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
 import {
   DynamicReplicateNode,
   DYNAMIC_REPLICATE_NODE_TYPE
@@ -118,6 +126,8 @@ const ReactFlowWrapper = ({
   );
 
   const [isSelecting] = useState(false);
+  const [suppressNodeDrivenEdgeSelection, setSuppressNodeDrivenEdgeSelection] =
+    useState(false);
 
   const reactFlowInstance = useReactFlow();
   const pendingNodeType = useNodePlacementStore(
@@ -211,6 +221,9 @@ const ReactFlowWrapper = ({
 
   // Single trigger: connection drag ended or edges changed (add/remove/reconnect).
   // Wait one frame, then refresh handle positions for all nodes.
+  // Use a ref for nodes to avoid re-running on every node position change (60fps drag).
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
   const prevConnectingRef = useRef(connecting);
   const prevEdgeCountRef = useRef(edges.length);
   useEffect(() => {
@@ -220,14 +233,14 @@ const ReactFlowWrapper = ({
     prevEdgeCountRef.current = edges.length;
     if (dragEnded || edgesChanged) {
       const rafId = requestAnimationFrame(() => {
-        const nodeIds = nodes.map((n) => n.id);
+        const nodeIds = nodesRef.current.map((n) => n.id);
         if (nodeIds.length > 0) {
           updateNodeInternals(nodeIds);
         }
       });
       return () => cancelAnimationFrame(rafId);
     }
-  }, [connecting, edges.length, nodes, updateNodeInternals]);
+  }, [connecting, edges.length, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const { zoom } = useViewport();
@@ -381,8 +394,20 @@ const ReactFlowWrapper = ({
 
   const { handleNodeContextMenu, handleNodesChange } = useNodeEvents();
 
-  const { onEdgeContextMenu, onEdgeUpdateEnd, onEdgeUpdateStart, onEdgeClick } =
-    useEdgeHandlers();
+  const {
+    onEdgeContextMenu,
+    onEdgeUpdateEnd,
+    onEdgeUpdateStart,
+    onEdgeClick: onEdgeClickBase
+  } = useEdgeHandlers();
+
+  const onEdgeClick = useCallback(
+    (event: ReactMouseEvent, edge: Edge) => {
+      setSuppressNodeDrivenEdgeSelection(false);
+      onEdgeClickBase(event, edge);
+    },
+    [onEdgeClickBase]
+  );
 
   const {
     onSelectionDragStart,
@@ -401,8 +426,21 @@ const ReactFlowWrapper = ({
     onSelectionStartBase: onSelectionStart,
     onSelectionEndBase: onSelectionEnd,
     onSelectionDragStartBase: onSelectionDragStart,
-    onSelectionDragStopBase: onSelectionDragStop
+    onSelectionDragStopBase: onSelectionDragStop,
+    setSuppressNodeDrivenEdgeSelection
   });
+
+  const handleNodeClick = useCallback((_event: ReactMouseEvent, _node: Node) => {
+    setSuppressNodeDrivenEdgeSelection(false);
+  }, []);
+
+  const handlePaneClickWithSuppress = useCallback(
+    (event: ReactMouseEvent) => {
+      setSuppressNodeDrivenEdgeSelection(false);
+      handlePaneClick(event);
+    },
+    [handlePaneClick]
+  );
 
   const edgeStatuses = useResultsStore((state) => state.edges);
   const nodeStatuses = useStatusStore((state) => state.statuses);
@@ -421,16 +459,23 @@ const ReactFlowWrapper = ({
     [activeGradientKeys]
   );
 
-  // Memoize selected node IDs to avoid recalculating on every edge iteration
-  const selectedNodeIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const node of nodes) {
-      if (node.selected) {
-        ids.add(node.id);
-      }
+  // Stable selector: only updates when the set of selected IDs actually changes,
+  // not on every position update during drag.
+  const selectedNodeIds = useNodes(
+    useCallback(
+      (state) =>
+        state.nodes.reduce((set, node) => {
+          if (node.selected) set.add(node.id);
+          return set;
+        }, new Set<string>()),
+      []
+    ),
+    (a, b) => {
+      if (a.size !== b.size) return false;
+      for (const id of a) if (!b.has(id)) return false;
+      return true;
     }
-    return ids;
-  }, [nodes]);
+  );
 
   // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
   const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
@@ -440,7 +485,7 @@ const ReactFlowWrapper = ({
       return;
     }
 
-    if (!nodes.length || !edges.length) {
+    if (!edges.length) {
       return;
     }
 
@@ -466,7 +511,9 @@ const ReactFlowWrapper = ({
       const isEdgeAlreadySelected = Boolean(edge.selected);
       const nodeDrivenSelection =
         selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
-      const shouldSelect = isEdgeAlreadySelected || nodeDrivenSelection;
+      const shouldSelect =
+        isEdgeAlreadySelected ||
+        (!suppressNodeDrivenEdgeSelection && nodeDrivenSelection);
 
       if (isEdgeAlreadySelected !== shouldSelect) {
         selectionUpdates[edge.id] = shouldSelect;
@@ -476,7 +523,13 @@ const ReactFlowWrapper = ({
     if (Object.keys(selectionUpdates).length > 0) {
       setEdgeSelectionState(selectionUpdates);
     }
-  }, [nodes, edges, setEdgeSelectionState, isSelecting, selectedNodeIds]);
+  }, [
+    edges,
+    setEdgeSelectionState,
+    isSelecting,
+    selectedNodeIds,
+    suppressNodeDrivenEdgeSelection
+  ]);
 
   useEffect(() => {
     if (shouldFitToScreen) {
@@ -501,7 +554,7 @@ const ReactFlowWrapper = ({
   }, [zoom, connecting]);
 
   const conditionalProps = useMemo(() => {
-    const props: any = {};
+    const props: { selectionOnDrag?: boolean } = {};
     // fitView disabled — viewport is restored from stored state
     if (settings.panControls === "RMB") {
       props.selectionOnDrag = true;
@@ -583,7 +636,8 @@ const ReactFlowWrapper = ({
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         onNodeContextMenu={handleNodeContextMenu}
-        onPaneClick={handlePaneClick}
+        onPaneClick={handlePaneClickWithSuppress}
+        onNodeClick={handleNodeClick}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}

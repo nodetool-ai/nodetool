@@ -1,5 +1,5 @@
-import type { Chunk } from "@nodetool/protocol";
-import { createLogger } from "@nodetool/config";
+import type { Chunk } from "@nodetool-ai/protocol";
+import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.gemini");
@@ -76,6 +76,38 @@ interface GeminiModelEntry {
   name?: string;
   displayName?: string;
   supportedGenerationMethods?: string[];
+}
+
+// Gemini's function-declaration schema is a strict subset of OpenAPI 3.0.
+// It rejects JSON-Schema-only fields like `additionalProperties`, `$schema`,
+// `$id`, `$ref`, `definitions`, `patternProperties`, etc. Any one of these
+// anywhere in the tree causes a 400 that aborts the entire tool batch, so we
+// recursively strip them before sending.
+const GEMINI_UNSUPPORTED_SCHEMA_KEYS = new Set([
+  "additionalProperties",
+  "$schema",
+  "$id",
+  "$ref",
+  "definitions",
+  "patternProperties",
+  "unevaluatedProperties",
+  "dependentSchemas",
+  "dependentRequired"
+]);
+
+function sanitizeGeminiSchema(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeGeminiSchema);
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (GEMINI_UNSUPPORTED_SCHEMA_KEYS.has(k)) continue;
+      out[k] = sanitizeGeminiSchema(v);
+    }
+    return out;
+  }
+  return value;
 }
 
 function sanitizeToolName(name: string): string {
@@ -165,7 +197,7 @@ export class GeminiProvider extends BaseProvider {
       return { text: (content as MessageTextContent).text };
     }
 
-    if (content.type === "image") {
+    if (content.type === "image_url") {
       const img = (content as MessageImageContent).image;
       let base64Data: string;
       let mimeType = img.mimeType ?? "image/jpeg";
@@ -356,10 +388,12 @@ export class GeminiProvider extends BaseProvider {
       nameMap.set(original, unique);
       reverseMap.set(unique, original);
 
+      const rawParameters =
+        tool.inputSchema ?? { type: "object", properties: {} };
       declarations.push({
         name: unique,
         description: tool.description ?? "",
-        parameters: tool.inputSchema ?? { type: "object", properties: {} }
+        parameters: sanitizeGeminiSchema(rawParameters) as Record<string, unknown>
       });
     }
 
@@ -929,6 +963,8 @@ export class GeminiProvider extends BaseProvider {
     model: string;
     voice?: string;
     speed?: number;
+    /** Ignored — Gemini returns raw PCM; backend wraps/encodes to honor. */
+    audioFormat?: string;
   }): AsyncGenerator<StreamingAudioChunk> {
     const { text, model, voice = "Puck" } = args;
 
