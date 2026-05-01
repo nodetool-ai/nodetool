@@ -8,6 +8,7 @@ import NodeProgress from "./NodeProgress";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
 import ResultOverlay from "./ResultOverlay";
+import ImageTransformLivePreview from "./ImageTransformLivePreview";
 
 interface NodeContentProps {
   id: string;
@@ -180,6 +181,11 @@ const NodeContent: React.FC<NodeContentProps> = ({
   const shouldShowOverlay = isOutputNode
     ? Boolean(result && !isEmptyObject(result))
     : Boolean(showResultOverlay && result && !isEmptyObject(result));
+  const isImageTransformNode = [
+    "nodetool.image.Crop",
+    "nodetool.image.Resize",
+    "nodetool.image.Blur"
+  ].includes(nodeType);
 
   return (
     <FlexColumn
@@ -202,6 +208,9 @@ const NodeContent: React.FC<NodeContentProps> = ({
         basicFields={basicFields}
         onToggleAdvancedFields={onToggleAdvancedFields}
       />
+      {isImageTransformNode && !shouldShowOverlay && (
+        <ImageTransformLivePreview nodeType={nodeType} data={data} />
+      )}
       {(nodeMetadata?.is_dynamic || nodeMetadata?.supports_dynamic_outputs) && (
         <NodePropertyForm
           id={id}

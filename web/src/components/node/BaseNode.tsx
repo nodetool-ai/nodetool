@@ -330,7 +330,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
   const [showResultOverlay, setShowResultOverlay] = useState(false);
   const initialRenderRef = useRef(true);
-  const suppressResultOverlay = type === "nodetool.constant.Model3D";
+  const isClientPreviewNode = [
+    "nodetool.image.Crop",
+    "nodetool.image.Resize",
+    "nodetool.image.Blur"
+  ].includes(type);
+  const suppressResultOverlay =
+    type === "nodetool.constant.Model3D" || isClientPreviewNode;
   const nodeType = useMemo(
     () => ({
       isConstantNode: type.startsWith("nodetool.constant"),
