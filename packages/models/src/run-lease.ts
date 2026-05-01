@@ -49,7 +49,7 @@ export class RunLease extends DBModel {
       if (new Date(existing.expires_at) < now) {
         // Lease expired -- worker can take it over
         // We use an optimistic lock (UPDATE ... WHERE worker_id = existing.worker_id)
-        const res = await db
+        await db
           .update(runLeases)
           .set({
             worker_id: workerId,
