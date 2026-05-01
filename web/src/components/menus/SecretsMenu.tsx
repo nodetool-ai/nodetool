@@ -4,15 +4,37 @@ import { EditButton } from "../ui_primitives/EditButton";
 import WarningIcon from "@mui/icons-material/Warning";
 import { Box } from "@mui/material";
 import { FlexColumn, FlexRow, TextInput, Text, Caption, Tooltip, Dialog, ToolbarIconButton, Divider } from "../ui_primitives";
+import { ExternalLink } from "../ui_primitives/ExternalLink";
 import LockIcon from "@mui/icons-material/Lock";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useMemo, memo } from "react";
+import type React from "react";
 import { useTheme } from "@mui/material/styles";
 import { getSharedSettingsStyles } from "./sharedSettingsStyles";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { SecretResponse } from "../../stores/ApiTypes";
+
+const URL_PATTERN = /(https?:\/\/[^\s]+)/g;
+
+/** Renders a description string with any embedded URLs as clickable external links. */
+const DescriptionWithLinks: React.FC<{ text: string }> = ({ text }) => {
+  const parts = text.split(URL_PATTERN);
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <ExternalLink key={i} href={part} size="small" iconVariant="open">
+            {part}
+          </ExternalLink>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
 
 interface SecretFormData {
   key: string;
@@ -260,7 +282,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                           </FlexRow>
                           {secret.description && (
                             <Text className="description">
-                              {secret.description}
+                              <DescriptionWithLinks text={secret.description} />
                             </Text>
                           )}
                         </FlexColumn>
@@ -335,7 +357,7 @@ const SecretsMenu = memo(({ searchTerm: externalSearchTerm }: SecretsMenuProps) 
                           </Text>
                           {secret.description && (
                             <Text className="description">
-                              {secret.description}
+                              <DescriptionWithLinks text={secret.description} />
                             </Text>
                           )}
                           <Caption
