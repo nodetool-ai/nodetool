@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
   getNodetoolDataDir,
   getDefaultDbPath,
+  getPostgresDatabaseUrl,
   getDefaultVectorstoreDbPath,
   getDefaultAssetsPath,
   getAssetDomain,
@@ -59,13 +60,62 @@ describe("getDefaultDbPath", () => {
 
   it("uses DB_PATH env var when set", () => {
     saved.DB_PATH = process.env.DB_PATH;
+    saved.DATABASE_URL = process.env.DATABASE_URL;
     process.env.DB_PATH = "/override/my.db";
+    delete process.env.DATABASE_URL;
     expect(getDefaultDbPath()).toBe("/override/my.db");
+  });
+
+  it("throws when DB_PATH and DATABASE_URL are both set", () => {
+    saved.DB_PATH = process.env.DB_PATH;
+    saved.DATABASE_URL = process.env.DATABASE_URL;
+    process.env.DB_PATH = "/override/my.db";
+    process.env.DATABASE_URL = "postgresql://user:pass@localhost/nodetool";
+    expect(() => getDefaultDbPath()).toThrow(/DB_PATH and DATABASE_URL/);
+    expect(() => getPostgresDatabaseUrl()).toThrow(/DB_PATH and DATABASE_URL/);
+  });
+
+  it("uses DATABASE_URL when DB_PATH is not set", () => {
+    saved.DB_PATH = process.env.DB_PATH;
+    saved.DATABASE_URL = process.env.DATABASE_URL;
+    delete process.env.DB_PATH;
+    process.env.DATABASE_URL = "sqlite:///override/my.db";
+    expect(getDefaultDbPath()).toBe("/override/my.db");
+  });
+
+  it("returns a PostgreSQL DATABASE_URL", () => {
+    saved.DB_PATH = process.env.DB_PATH;
+    saved.DATABASE_URL = process.env.DATABASE_URL;
+    delete process.env.DB_PATH;
+    process.env.DATABASE_URL = "postgresql://user:pass@localhost/nodetool";
+    expect(getPostgresDatabaseUrl()).toBe(
+      "postgresql://user:pass@localhost/nodetool"
+    );
+  });
+
+  it("supports Prisma-style file DATABASE_URL values", () => {
+    saved.DB_PATH = process.env.DB_PATH;
+    saved.DATABASE_URL = process.env.DATABASE_URL;
+    delete process.env.DB_PATH;
+    process.env.DATABASE_URL = "file:./dev.db";
+    expect(getDefaultDbPath()).toBe("./dev.db");
+  });
+
+  it("ignores non-SQLite DATABASE_URL values", () => {
+    saved.DB_PATH = process.env.DB_PATH;
+    saved.DATABASE_URL = process.env.DATABASE_URL;
+    delete process.env.DB_PATH;
+    process.env.DATABASE_URL = "postgres://localhost/nodetool";
+    expect(getDefaultDbPath()).toBe(
+      join(getNodetoolDataDir(), "nodetool.sqlite3")
+    );
   });
 
   it("defaults to nodetool.sqlite3 inside data dir", () => {
     saved.DB_PATH = process.env.DB_PATH;
+    saved.DATABASE_URL = process.env.DATABASE_URL;
     delete process.env.DB_PATH;
+    delete process.env.DATABASE_URL;
     expect(getDefaultDbPath()).toBe(
       join(getNodetoolDataDir(), "nodetool.sqlite3")
     );

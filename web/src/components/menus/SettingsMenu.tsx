@@ -23,7 +23,7 @@ import {
 } from "../ui_primitives";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { isLocalhost, isElectron } from "../../lib/env";
+import { isLocalhost, isElectron, isProduction } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
@@ -40,6 +40,9 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
+
+const workspacesEnabled = !isProduction;
+const aboutTabIndex = workspacesEnabled ? 5 : 4;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -72,7 +75,11 @@ function SettingsPage() {
   const settingsTab = useMemo(() => {
     const raw = Number(searchParams.get("tab") ?? 0);
     if (Number.isNaN(raw)) return 0;
-    return Math.min(5, Math.max(0, raw));
+    const bounded = Math.min(5, Math.max(0, raw));
+    if (!workspacesEnabled && bounded === 5) {
+      return aboutTabIndex;
+    }
+    return bounded;
   }, [searchParams]);
 
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
@@ -368,13 +375,13 @@ function SettingsPage() {
                 <Tab label="API & Keys" id="settings-tab-1" />
                 <Tab label="Models" id="settings-tab-2" />
                 <Tab label="Collections" id="settings-tab-3" />
-                <Tab label="Workspaces" id="settings-tab-4" />
-                <Tab label="About" id="settings-tab-5" />
+                {workspacesEnabled && <Tab label="Workspaces" id="settings-tab-4" />}
+                <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
               </Tabs>
             </div>
 
             <div className="settings-container">
-              {!isMobile && (settingsTab === 0 || settingsTab === 1 || settingsTab === 5) && (
+              {!isMobile && (settingsTab === 0 || settingsTab === 1 || settingsTab === aboutTabIndex) && (
                 <SettingsSidebar
                   key={`sidebar-${settingsTab}`}
                   activeSection={activeSection}
@@ -383,7 +390,7 @@ function SettingsPage() {
                       ? generalSidebarSections
                       : settingsTab === 1
                         ? apiKeysSidebarSections
-                        : settingsTab === 5
+                        : settingsTab === aboutTabIndex
                           ? getAboutSidebarSections()
                           : []
                   }
@@ -393,7 +400,7 @@ function SettingsPage() {
 
               <div
                 className={`settings-content${
-                  settingsTab === 2 || settingsTab === 3 || settingsTab === 4
+                  settingsTab === 2 || settingsTab === 3 || (settingsTab === 4 && workspacesEnabled)
                     ? " settings-content--full"
                     : ""
                 }`}
@@ -786,14 +793,16 @@ function SettingsPage() {
                 </TabPanel>
 
                 {/* Tab 4: Workspaces */}
-                <TabPanel value={settingsTab} index={4}>
-                  <Box className="settings-panel-padded">
-                    <WorkspacesManager />
-                  </Box>
-                </TabPanel>
+                {workspacesEnabled && (
+                  <TabPanel value={settingsTab} index={4}>
+                    <Box className="settings-panel-padded">
+                      <WorkspacesManager />
+                    </Box>
+                  </TabPanel>
+                )}
 
-                {/* Tab 5: About */}
-                <TabPanel value={settingsTab} index={5}>
+                {/* About */}
+                <TabPanel value={settingsTab} index={aboutTabIndex}>
                   <AboutMenu />
                 </TabPanel>
               </div>

@@ -6,7 +6,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { VERSION } from "../../config/constants";
-import { isElectron } from "../../lib/env";
+import { isElectron, isProduction } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip } from "../ui_primitives";
 
@@ -311,8 +311,8 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         )}
       </div>
 
-      {/* Installation Paths - only show in Electron */}
-      {systemInfo && (
+      {/* Installation Paths - hide in production */}
+      {systemInfo && !isProduction && (
         <>
           <Text size="big" id="installation-paths">
             Installation Paths

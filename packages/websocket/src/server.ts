@@ -13,7 +13,13 @@ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 import crypto from "node:crypto";
-import { createLogger, configureLogging, getDefaultDbPath } from "@nodetool-ai/config";
+import {
+  createLogger,
+  configureLogging,
+  getDefaultDbPath,
+  getPostgresDatabaseUrl,
+  loadEnvironment
+} from "@nodetool-ai/config";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -108,6 +114,8 @@ import { agentSocketRoute, getAgentRuntime } from "./agent/index.js";
   }
 }
 
+loadEnvironment(resolve(dirname(fileURLToPath(import.meta.url)), "../../.."));
+
 const log = createLogger("nodetool.websocket.server");
 // Apply log level from NODETOOL_LOG_LEVEL / LOG_LEVEL env vars (the module
 // initialises eagerly, but an explicit call here picks up any env mutations
@@ -200,11 +208,11 @@ function maskDatabaseUrl(url: string): string {
 }
 
 try {
-  const databaseUrl = process.env["DATABASE_URL"];
-  if (databaseUrl) {
-    await initPostgresDb(databaseUrl);
+  const postgresDatabaseUrl = getPostgresDatabaseUrl();
+  if (postgresDatabaseUrl) {
+    await initPostgresDb(postgresDatabaseUrl);
     log.info(`PostgreSQL database ready [${startupMs()}]`, {
-      url: maskDatabaseUrl(databaseUrl)
+      url: maskDatabaseUrl(postgresDatabaseUrl)
     });
   } else {
     const dbPath = getDefaultDbPath();

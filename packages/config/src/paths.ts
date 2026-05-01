@@ -9,6 +9,7 @@
 
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
 
 /**
  * Base directory for all Nodetool user data.
@@ -33,10 +34,86 @@ export function getNodetoolDataDir(): string {
   );
 }
 
-/** Default path for the main SQLite database. Override with DB_PATH. */
+function stripUrlSuffix(value: string): string {
+  return value.split(/[?#]/, 1)[0];
+}
+
+function normalizeWindowsDrivePath(value: string): string {
+  if (process.platform === "win32" && /^\/[A-Za-z]:[\\/]/.test(value)) {
+    return value.slice(1);
+  }
+  return value;
+}
+
+function assertNoDatabaseOverrideConflict(): void {
+  if (process.env["DB_PATH"]?.trim() && process.env["DATABASE_URL"]?.trim()) {
+    throw new Error(
+      "DB_PATH and DATABASE_URL are both set. Use only one database configuration variable."
+    );
+  }
+}
+
+export function getPostgresDatabaseUrl(): string | undefined {
+  assertNoDatabaseOverrideConflict();
+  const raw = process.env["DATABASE_URL"]?.trim();
+  if (!raw) {
+    return undefined;
+  }
+  return /^postgres(?:ql)?:\/\//i.test(raw) ? raw : undefined;
+}
+
+/**
+ * Resolve a SQLite database path from DATABASE_URL.
+ *
+ * Supports common SQLite forms such as:
+ * - /absolute/path/nodetool.sqlite3
+ * - file:./nodetool.sqlite3
+ * - file:///absolute/path/nodetool.sqlite3
+ * - sqlite:./nodetool.sqlite3
+ * - sqlite:///absolute/path/nodetool.sqlite3
+ */
+function getDatabaseUrlDbPath(): string | undefined {
+  const raw = process.env["DATABASE_URL"]?.trim();
+  if (!raw) {
+    return undefined;
+  }
+
+  if (/^file:\/\//i.test(raw)) {
+    return fileURLToPath(new URL(raw));
+  }
+
+  if (/^file:/i.test(raw)) {
+    return stripUrlSuffix(raw.slice("file:".length));
+  }
+
+  if (/^sqlite:/i.test(raw)) {
+    const value = stripUrlSuffix(raw.slice("sqlite:".length));
+    if (value.startsWith("///")) {
+      return normalizeWindowsDrivePath(`/${value.slice(3)}`);
+    }
+    if (value.startsWith("//")) {
+      return value.slice(2);
+    }
+    return value;
+  }
+
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(raw)) {
+    return raw;
+  }
+
+  // Non-SQLite DATABASE_URL values are handled by callers that support other
+  // dialects (for example PostgreSQL via getPostgresDatabaseUrl()). For SQLite
+  // path resolution, ignore them and fall back to the default path.
+  return undefined;
+}
+
+/** Default path for the main SQLite database. Override with DB_PATH or DATABASE_URL. */
 export function getDefaultDbPath(): string {
+  assertNoDatabaseOverrideConflict();
   return (
-    process.env["DB_PATH"] ?? join(getNodetoolDataDir(), "nodetool.sqlite3")
+    process.env["DB_PATH"] ??
+    getDatabaseUrlDbPath() ??
+    join(getNodetoolDataDir(), "nodetool.sqlite3")
   );
 }
 

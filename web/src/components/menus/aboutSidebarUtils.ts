@@ -1,3 +1,5 @@
+import { isProduction } from "../../lib/env";
+
 interface SidebarSection {
   category: string;
   items: Array<{ id: string; label: string }>;
@@ -17,7 +19,9 @@ export const getAboutSidebarSections = (): SidebarSection[] => {
     {
       category: "Resources",
       items: [
-        { id: "installation-paths", label: "Installation Paths" },
+        ...(!isProduction
+          ? [{ id: "installation-paths", label: "Installation Paths" }]
+          : []),
         { id: "links", label: "Links" }
       ]
     }

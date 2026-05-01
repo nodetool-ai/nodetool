@@ -10,9 +10,8 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
 import { isProduction } from "../../lib/env";
-import { getIsElectronDetails } from "../../utils/browser";
 
-const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
+const workspacesEnabled = !isProduction;
 
 const DEFAULT_TAG_SUGGESTIONS = [
   "image",

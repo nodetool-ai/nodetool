@@ -32,9 +32,9 @@ import WorkflowForm from "../workflows/WorkflowForm";
 import AgentPanel from "./AgentPanel";
 import { MobileBottomSheet, ToolbarIconButton } from "../ui_primitives";
 import { isProduction } from "../../lib/env";
-import { getIsElectronDetails } from "../../utils/browser";
 
-const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
+const workspacesEnabled = !isProduction;
+const sandboxesEnabled = !isProduction;
 
 // Icons for mobile tab rail
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
@@ -306,7 +306,8 @@ const MobilePanelRight: React.FC<MobilePanelRightProps> = ({
             {renderTabButton("workflowAssets", "Assets", <FolderSpecialIcon />)}
             {renderTabButton("versions", "Versions", <HistoryIcon />)}
             {renderTabButton("logs", "Logs", <ArticleIcon />)}
-            {renderTabButton("sandboxes", "Sandboxes", <DesktopWindowsIcon />)}
+            {sandboxesEnabled &&
+              renderTabButton("sandboxes", "Sandboxes", <DesktopWindowsIcon />)}
             {renderTabButton("jobs", "Jobs", <WorkHistoryIcon />)}
           </div>
         }
@@ -345,10 +346,12 @@ const PanelRight: React.FC = () => {
   const setActiveView = useRightPanelStore((state) => state.setActiveView);
   const setVisibility = useRightPanelStore((state) => state.setVisibility);
 
-  // If a previous session persisted "workspace" but workspaces are disabled
-  // (production web), fall back to a safe default view.
+  // If a previous session persisted a production-disabled view, fall back to a safe default view.
   useEffect(() => {
-    if (!workspacesEnabled && activeView === "workspace") {
+    if (
+      (!workspacesEnabled && activeView === "workspace") ||
+      (!sandboxesEnabled && activeView === "sandboxes")
+    ) {
       setActiveView("inspector");
     }
   }, [activeView, setActiveView]);
@@ -584,7 +587,7 @@ const PanelRight: React.FC = () => {
       <ReactFlowProvider>
         {activeView === "logs" ? (
           <LogPanel />
-        ) : activeView === "sandboxes" ? (
+        ) : activeView === "sandboxes" && sandboxesEnabled ? (
           <SandboxesPanel />
         ) : activeView === "jobs" ? (
           <Box

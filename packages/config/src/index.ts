@@ -31,6 +31,7 @@ export {
 export {
   getNodetoolDataDir,
   getDefaultDbPath,
+  getPostgresDatabaseUrl,
   getDefaultVectorstoreDbPath,
   getDefaultAssetsPath,
   getDefaultTransformersJsCacheDir,

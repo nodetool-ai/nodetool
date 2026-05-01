@@ -49,7 +49,8 @@ The server is configured via environment variables:
 |----------|---------|-------------|
 | `PORT` | `7777` | HTTP listen port |
 | `HOST` | `127.0.0.1` | Bind address |
-| `DB_PATH` | `~/.local/share/nodetool/nodetool.sqlite3` | SQLite database path |
+| `DB_PATH` | `~/.local/share/nodetool/nodetool.sqlite3` | SQLite database path. Do not set together with `DATABASE_URL`. |
+| `DATABASE_URL` | — | PostgreSQL URL (`postgres://` / `postgresql://`) or SQLite URL/path (`file:` / `sqlite:`) |
 | `ANTHROPIC_API_KEY` | — | Anthropic API key |
 | `OPENAI_API_KEY` | — | OpenAI API key |
 | `GEMINI_API_KEY` | — | Google Gemini API key |

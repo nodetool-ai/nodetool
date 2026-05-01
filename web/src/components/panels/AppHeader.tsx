@@ -15,9 +15,8 @@ import { FlexRow, Tooltip } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import { isProduction } from "../../lib/env";
-import { getIsElectronDetails } from "../../utils/browser";
 
-const workspacesEnabled = getIsElectronDetails().isElectron || !isProduction;
+const workspacesEnabled = !isProduction;
 
 const styles = (theme: Theme) =>
   css({
