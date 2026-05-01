@@ -27,6 +27,7 @@ import {
 } from "../../hooks/browser/useRealtimeSessionWebRTC";
 import {
   useRealtimeCameraFramePublisher,
+  DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES,
   type RealtimeFramePushMode,
   type RealtimeCameraFramePublisherStatus
 } from "../../hooks/realtime/useRealtimeCameraFramePublisher";
@@ -130,7 +131,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
   const [videoTargetSourceHandle, setVideoTargetSourceHandle] =
     useState<string>("frame");
   const [framePushMode, setFramePushMode] =
-    useState<RealtimeFramePushMode>("60fps");
+    useState<RealtimeFramePushMode>("paced");
   const [webrtcConfigError, setWebrtcConfigError] = useState<string | null>(null);
   const [isStoppingSession, setIsStoppingSession] = useState(false);
   const appliedCameraSettingsKeyRef = useRef<string | null>(null);
@@ -240,7 +241,7 @@ export const useRealtimeStreamController = (): RealtimeStreamController => {
     session: activeSession,
     framePushMode,
     maxWidth: 320,
-    maxInFlightFrames: 1
+    maxInFlightFrames: DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES
   });
   const isStartSessionDisabled = useMemo(() => {
     return (

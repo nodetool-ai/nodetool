@@ -640,7 +640,7 @@ describe("UnifiedWebSocketRunner", () => {
 
     const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
     expect(sent).toEqual(
-      expect.arrayContaining([
+        expect.arrayContaining([
         expect.objectContaining({
           type: "realtime_metrics",
           session_id: session.session_id,
@@ -655,6 +655,18 @@ describe("UnifiedWebSocketRunner", () => {
           queues: expect.objectContaining({
             total_depth: 0,
             total_dropped: 0
+          }),
+          media_plane: expect.objectContaining({
+            inputs: {},
+            outputs: {}
+          }),
+          frame_sender: expect.objectContaining({
+            framesSent: 0,
+            framesDroppedByPacer: 0
+          }),
+          websocket_lanes: expect.objectContaining({
+            control_pending: 0,
+            media_pending: 0
           })
         })
       ])

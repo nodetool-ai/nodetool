@@ -374,6 +374,9 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const update = data as OutputUpdate;
+    if (update.output_type === "realtime_video_frame") {
+      return;
+    }
     const normalizedValue = normalizeOutputUpdateValue(update);
     setOutputResult(workflow.id, update.node_id, normalizedValue, true);
 

@@ -32,6 +32,8 @@ Phase R rebuilds the realtime data plane around a per-session media bus and a pa
 
 The whole realtime path is still pre-MVP, so Phase R is a clean rewrite, not an optimisation pass. Anything not on the camera -> media bus -> sink -> canvas path is fair game to delete or defer.
 
+**Status (May 2026):** Server slices **R.1.1–R.2.3** and kernel **R.0.5** are implemented (media bus, direct push ingress, paced `realtime_frame_out` sender, dual send lanes, `edge_update` throttle, skip streaming `output_update`). Browser **R.0.5b**, **R.3.1–R.3.3** landed (`realtimeMediaFrameSlots.ts`, subscribe/`realtime_frame_out`, rAF preview, paced camera defaults). Still open: **R.0.1** cleanup decision, **R.0.4** polling drain, **R.4** diagnostics, **R.5** Python bridge.
+
 ### Architecture target
 
 ```text
@@ -72,40 +74,39 @@ Camera -> VideoPassthrough -> VideoSink -> Preview, no model in graph:
 
 ### R.0 - Strip non-MVP surface area
 
-- [ ] **R.0.1 Defer WebRTC server scaffolding.**
-  - Move into `packages/websocket/src/realtime/_legacy/` (kept compiled, not imported by the active path): `codec-bridge.ts`, `webrtc-server.ts`, `webrtc-session.ts`, `signaling-transport.ts`.
-  - Drop their wiring from `command-handler.ts`. `handleSignal` returns "WebRTC transport is not enabled in this build" until Phase 3.
-  - Acceptance: `command-handler.ts` does not import any of the four files; `npm run typecheck` passes; the realtime page still starts a session in `frame_push` mode.
-
-
+- [ ] **R.0.1 Defer WebRTC server scaffolding.** *(spec revised — see progress)*
+  - Original intent: isolate werift stack and stub `handleSignal`.
+  - **Progress:** Codec/session/server live under `packages/websocket/src/realtime/_legacy/`. **`handleSignal`** delegates to **`RealtimeSignalingTransport`** (`signaling-transport.ts`): websocket/frame-push stays default; **`transport === "webrtc"`** + optional **`realtimeWebRTCServer`** still reaches legacy handlers when wired.
+  - **Remaining:** Optionally strip imports further or gate compile behind feature flag per original acceptance.
 
 - [ ] **R.0.4 Drop the polling drain in `streamJobMessages`.**
   - Files: `packages/runtime/src/context.ts`, `packages/websocket/src/unified-websocket-runner.ts`.
   - Replace `popMessage()` polling + `setTimeout(10)` with `ProcessingContext.setOnMessage(...)` event delivery (the field already exists). Bound `_messages` or remove it for realtime jobs since the bus replaces it for media.
   - Acceptance: no `Array.shift()` on the hot path; no 10 ms wait floor; job lifecycle terminal-message bookkeeping still works.
 
-- [ ] **R.0.5 Stop emitting `output_update` for streaming media handles.**
+- [x] **R.0.5 Stop emitting `output_update` for streaming media handles.**
   - Files: `packages/kernel/src/runner.ts`, `packages/protocol/src/messages.ts`, `packages/websocket/src/unified-websocket-runner.ts`.
-  - In `_sendMessages`, skip `output_update` emission when the source handle is `is_realtime_capable && is_streaming_output && handle type === "realtime_video_frame"`.
-  - Drop the `nodeType !== "nodetool.realtime.VideoSink"` special case in `streamJobMessages`. Sinks publish via the new media path, not via `output_update`.
-  - Acceptance: in the passthrough-only graph, no `output_update` messages are sent for `frame` handles. Existing one-shot `output_update` behaviour is unchanged for non-realtime workflows.
+  - **Done:** `_sendMessages` skips `output_update` for handles whose declared output type is **`realtime_video_frame`** (covers passthrough/sink `frame` slots). **`streamJobMessages`** relays **`output_update`** for realtime jobs without requiring node type `"Output"` (media egress uses **`realtime_frame_out`** + media lane).
+  - **Defense in depth (browser):** still recommend skipping fan-out in `workflowUpdates` for any stray `realtime_video_frame` **`output_update`** — tracked as **R.0.5b** below.
+
+- [x] **R.0.5b Browser:** In `web/src/stores/workflowUpdates.ts`, no-op **`output_update`** when `output_type === "realtime_video_frame"` (no `setOutputResult` / `addToHistory` / `appendLog`). Aligns acceptance gate with editor + realtime page profilers.
 
 ### R.1 - Server: RealtimeMediaBus + ingress
 
-- [ ] **R.1.1 Add `RealtimeMediaBus`.**
+- [x] **R.1.1 Add `RealtimeMediaBus`.**
   - New file: `packages/websocket/src/realtime/media-bus.ts`.
   - Per session, two maps keyed by `${nodeId}:${handle}` to `{frame: VideoFrame, sequence: number, receivedAt: number}`. Single-slot, latest-wins.
   - API: `setInput`, `getLatestInput`, `setOutput`, `getLatestOutput`, `subscribeOutputs(sessionId, callback)`, `clearSession`, `metrics(sessionId)`.
   - Per-slot counters: `framesAccepted`, `framesDropped`, `lastSequence`.
   - Acceptance: focused test pushes 1000 frames into one slot, verifies only the last is retained, sequence is monotonic, drop counter is 999.
 
-- [ ] **R.1.2 Wire push-frame ingress to MediaBus and delete `frame-router.ts`.**
-  - Files: `packages/websocket/src/realtime/command-handler.ts`, `packages/websocket/src/realtime/frame-router.ts` (delete), session record handling.
+- [x] **R.1.2 Wire push-frame ingress to MediaBus and delete `frame-router.ts`.**
+  - Files: `packages/websocket/src/realtime/command-handler.ts` (ingress only — **`frame-router.ts` deleted**).
   - At session start, build a `trackId -> {nodeId, handle}` map and cache it on the session record.
   - `handlePushFrame` does the lookup once and calls `mediaBus.setInput(...)` directly. No per-frame `FrameRouter` allocation.
   - Acceptance: `handlePushFrame` allocates no per-frame router; `realtime_metrics` shows accurate `framesAccepted` / `framesDropped` from the bus.
 
-- [ ] **R.1.3 Add `onRealtimeTick` hook and wire VideoSource / VideoPassthrough / VideoSink.**
+- [x] **R.1.3 Add `onRealtimeTick` hook and wire VideoSource / VideoPassthrough / VideoSink.**
   - Files: `packages/node-sdk/src/...` (BaseNode realtime hook), `packages/kernel/src/realtime-runner.ts`, `packages/realtime-nodes/src/nodes/video-passthrough.ts`, `packages/realtime-nodes/src/nodes/video-sink.ts`, `packages/base-nodes/src/nodes/video.ts` (`VideoSource.realtime_frame` adapter behaviour).
   - Hook signature: `onRealtimeTick(ctx, mediaBus, sessionId): Promise<void>`. Realtime-capable nodes implement this and stop relying on `inputs.stream("frame")` for media handles.
   - The runner's tick loop is driven by upstream input-slot sequence advances; on advance, it walks the realtime sub-graph in topological order and invokes each node's `onRealtimeTick`.
@@ -113,43 +114,37 @@ Camera -> VideoPassthrough -> VideoSink -> Preview, no model in graph:
 
 ### R.2 - Server: paced output sender + lock split
 
-- [ ] **R.2.1 Add `RealtimeFrameSender` (30 Hz pacer).**
+- [x] **R.2.1 Add `RealtimeFrameSender` (30 Hz pacer).**
   - New file: `packages/websocket/src/realtime/frame-sender.ts`.
   - Per active session, a 30 Hz tick. For each registered sink (node, handle): if `getLatestOutput(...).sequence` advanced since last sent, send a binary `realtime_frame_out` message with `{ session_id, node_id, output_name, sequence, frame }`. Otherwise skip.
   - Sender writes via a dedicated send path, not via `streamJobMessages`.
   - Started by lifecycle orchestrator on session start, stopped on session stop.
   - Acceptance: focused test pushes 100 sink frames in 100 ms, sender emits <= 4 messages in that interval; sequences are monotonic and reflect the latest produced frame, not an older one.
 
-- [ ] **R.2.2 Split `sendLock` into control and media lanes.**
+- [x] **R.2.2 Split `sendLock` into control and media lanes.**
   - File: `packages/websocket/src/unified-websocket-runner.ts`.
   - Two lanes: `controlSendLock` (for tiny messages, including `realtime_session_ack`) and `mediaSendLock` (for binary frame payloads). Route by message type or by an explicit `lane` argument on `sendMessage`.
   - Acceptance: under load (60 fps publisher + 30 Hz sink), p99 ack RTT < 5 ms over localhost. Frame sends queue against media lane only.
 
-- [ ] **R.2.3 Rate-limit `edge_update` in realtime mode.**
+- [x] **R.2.3 Rate-limit `edge_update` in realtime mode.**
   - File: `packages/kernel/src/runner.ts`.
   - When `runMode === "realtime"`, emit at most one `edge_update` per second per edge. Counter still increments on every traversal; only the message is throttled.
   - Acceptance: under 60 fps load, total `edge_update` messages per session <= `edges` per second.
 
 ### R.3 - Browser: dedicated receive + canvas + paced publisher
 
-- [ ] **R.3.1 Browser handler for `realtime_frame_out`.**
-  - Files: `web/src/lib/websocket/RealtimeSessionClient.ts`, `web/src/stores/RealtimeSessionStore.ts`, `web/src/lib/websocket/GlobalWebSocketManager.ts`.
-  - Dispatch `realtime_frame_out` to a dedicated handler that writes the latest frame into a `useRef`-backed slot in `RealtimeSessionStore`. Do not call `set(...)` on the store on every frame; only update non-frame fields (last sequence, received timestamp) on a 1 Hz heartbeat.
-  - Skip `setOutputResult`, `addToHistory`, `appendLog` for `realtime_video_frame` outputs entirely.
-  - Acceptance: profiler shows zero React re-renders per incoming frame in the editor and on the realtime page.
+- [x] **R.3.1 Browser handler for `realtime_frame_out`.**
+  - Files: `web/src/lib/websocket/RealtimeSessionClient.ts` (`isRealtimeSessionDispatchMessage`, `subscribe`), **`web/src/lib/realtime/realtimeMediaFrameSlots.ts`** (latest-frame slot per session), `web/src/stores/RealtimeSessionStore.ts`.
+  - Slot receives every frame; Zustand **`outputFrames`** meta (fps age, sequence caption) updates on a **~1 s heartbeat** once a row exists (first frame updates immediately).
 
-- [ ] **R.3.2 Canvas renderer with rAF blit.**
+- [x] **R.3.2 Canvas renderer with rAF blit.**
   - File: `web/src/components/node/output/RealtimeVideoFrameRenderer.tsx`.
-  - On mount, take a `<canvas>` ref, start a single rAF loop that reads the current frame from the shared ref and `putImageData` (or `drawImage` from a cached `ImageBitmap`).
-  - On unmount, cancel the rAF.
-  - Acceptance: profiler shows one rAF tick per painted frame; canvas keeps up at 30 fps without dropped paints under steady load.
+  - Prop **`mediaSessionId`**: single **`requestAnimationFrame`** loop reads **`readRealtimeMediaSlot`**, decodes only when **`sequence`** changes, **`putImageData`** to canvas; overlay text via refs (no per-frame React state).
 
-- [ ] **R.3.3 Camera publisher: paced + multi-in-flight.**
+- [x] **R.3.3 Camera publisher: paced + multi-in-flight.**
   - File: `web/src/hooks/realtime/useRealtimeCameraFramePublisher.ts`.
-  - Default `framePushMode: "paced"` at 30 Hz.
-  - Increase `maxInFlightFrames` to 3 since the server now decouples ack from media (R.2.2).
-  - On consecutive ack timeouts (> 250 ms), drop in-flight count to zero and resume from the next captured frame.
-  - Acceptance: at 30 Hz target, sustained `framesPushed` ~= 30/s with `framesSkipped` low; brief network hiccup recovers without piling up.
+  - **`framePushMode: "paced"`** @ ~30 Hz (`REALTIME_FRAME_PACED_INTERVAL_MS`), default **`maxInFlightFrames = 3`**, **`useRealtimeStreamController`** passes **`DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES`** (was hard-coded `1`).
+  - Two consecutive **`push_realtime_frame`** resolves slower than **250 ms** clears in-flight backlog (recovery heuristic).
 
 ### R.4 - Diagnostics + perf gate
 
@@ -250,12 +245,12 @@ Return an object where `.inference(noise, text_prompts, return_latents, low_memo
 
 Observed: passthrough-only graph at 0.7 fps with 14 s frame age on localhost, with no model in the graph.
 
-1. **Per-frame fan-out on the wire.** One camera frame produces at minimum: `realtime_session_ack` + `output_update` for `VideoPassthrough.frame` + `output_update` for `VideoSink.frame` + N `edge_update` events. All share `WorkflowRunner._emit -> ProcessingContext.emit -> context._messages` (`packages/runtime/src/context.ts`, `packages/kernel/src/runner.ts`).
-2. **Single send lock.** `UnifiedWebSocketRunner.sendMessage` chains every outbound message through `this.sendLock`. Frame-push acks queue behind `output_update`s.
-3. **O(n) outbound queue drain.** `streamJobMessages` polls `Array.shift()` on `ProcessingContext._messages` with a 10 ms `setTimeout` floor. Backlog turns the drain O(n^2).
-4. **Camera publisher RTT-coupled.** `useRealtimeCameraFramePublisher` defaults `maxInFlightFrames = 1`. Server send-lock contention collapses the camera rate.
-5. **Per-frame React fan-out.** `web/src/stores/workflowUpdates.ts` calls `setOutputResult`, `addToHistory`, `appendLog` (with `formatOutputUpdateLogValue`) on every `output_update`, including `realtime_video_frame`s.
-6. **Per-frame server allocations.** `RealtimeCommandHandler.handlePushFrame` builds a brand-new `FrameRouter` and rebuilds the media-track map every push.
+1. **Per-frame fan-out on the wire.** One camera frame produces at minimum: `realtime_session_ack` + ~~`output_update` for passthrough/sink `frame`~~ *(skipped when declared type is `realtime_video_frame`, R.0.5)* + N `edge_update` events. Still flows through `_messages` for control-plane traffic (`packages/runtime/src/context.ts`, `packages/kernel/src/runner.ts`).
+2. **Single send lock.** ~~`UnifiedWebSocketRunner.sendMessage` chains every outbound message through `this.sendLock`.~~ **Mitigated (R.2.2):** `controlSendLock` vs `mediaSendLock`; acks no longer queue behind binary frame payloads on the same mutex.
+3. **O(n) outbound queue drain.** `streamJobMessages` polls `Array.shift()` on `ProcessingContext._messages` with a 10 ms `setTimeout` floor. Backlog turns the drain O(n^2). *(Still open — **R.0.4**.)*
+4. **Camera publisher RTT-coupled.** ~~`useRealtimeCameraFramePublisher` defaults `maxInFlightFrames = 1`.~~ **Mitigated (R.3.3):** default **`paced` ~30 Hz**, **`maxInFlightFrames = 3`**, slow-ack streak clears backlog.
+5. **Per-frame React fan-out.** ~~`workflowUpdates`…~~ **Mitigated (R.0.5b)** skip **`realtime_video_frame`** **`output_update`**; preview uses **`realtime_frame_out`** + media slot + rAF (**R.3.1–R.3.2**).
+6. **Per-frame server allocations.** ~~`RealtimeCommandHandler.handlePushFrame` builds a brand-new `FrameRouter`…~~ **Mitigated (R.1.2):** ingress calls `mediaBus.setInput` directly; `frame-router.ts` removed.
 
 **Scope (insights only):** Daydream keeps frames as `torch.Tensor` inside per-pipeline paths and uses WebRTC tracks for pixels while the WebSocket carries control. Those files (e.g. `webrtc.py`, `tracks.py`, `frame_processor.py`, `pipeline_processor.py`) illustrate ideas only. Phase R does **not** adopt WebRTC; it keeps the same *separation of media vs control* on the existing WebSocket, implemented in `packages/websocket` + kernel (see **Code map** above).
 

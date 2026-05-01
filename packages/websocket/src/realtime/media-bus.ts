@@ -70,6 +70,7 @@ export class RealtimeMediaBus implements IRealtimeMediaBus {
     const s = this.getOrCreateSession(sessionId);
     const key = slotKey(nodeId, handle);
     const prev = s.inputs.get(key);
+    const receivedAt = Date.now();
     const metrics: RealtimeMediaBusSlotMetrics = prev
       ? { ...prev.metrics }
       : { framesAccepted: 0, framesDropped: 0, lastSequence: 0 };
@@ -78,10 +79,11 @@ export class RealtimeMediaBus implements IRealtimeMediaBus {
       metrics.framesDropped += 1;
     }
     metrics.lastSequence += 1;
+    metrics.last_received_at = receivedAt;
     const slot: InternalSlot = {
       frame,
       sequence: metrics.lastSequence,
-      receivedAt: Date.now(),
+      receivedAt,
       metrics
     };
     s.inputs.set(key, slot);
@@ -116,6 +118,7 @@ export class RealtimeMediaBus implements IRealtimeMediaBus {
     const s = this.getOrCreateSession(sessionId);
     const key = slotKey(nodeId, handle);
     const prev = s.outputs.get(key);
+    const receivedAt = Date.now();
     const metrics: RealtimeMediaBusSlotMetrics = prev
       ? { ...prev.metrics }
       : { framesAccepted: 0, framesDropped: 0, lastSequence: 0 };
@@ -124,10 +127,11 @@ export class RealtimeMediaBus implements IRealtimeMediaBus {
       metrics.framesDropped += 1;
     }
     metrics.lastSequence += 1;
+    metrics.last_received_at = receivedAt;
     const slot: InternalSlot = {
       frame,
       sequence: metrics.lastSequence,
-      receivedAt: Date.now(),
+      receivedAt,
       metrics
     };
     s.outputs.set(key, slot);

@@ -145,6 +145,8 @@ const RealtimeStreamPage = () => {
               <VideoPreview stream={controller.previewStream} />
               <RealtimeOutputPreviewCard
                 outputFrame={controller.activeOutputFrame}
+                mediaSessionId={controller.activeSession?.session_id ?? null}
+                metrics={controller.activeMetrics}
               />
               {controller.ingressMode === "webrtc" ? (
                 <VideoPreview

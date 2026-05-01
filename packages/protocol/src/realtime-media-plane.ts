@@ -12,6 +12,8 @@ export interface RealtimeMediaBusSlotMetrics {
   framesAccepted: number;
   framesDropped: number;
   lastSequence: number;
+  /** Epoch ms when this slot last accepted a frame (diagnostics). */
+  last_received_at?: number;
 }
 
 /**

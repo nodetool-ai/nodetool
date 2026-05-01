@@ -84,6 +84,7 @@ export const RealtimeCameraSetupCard = ({
     value: RealtimeFramePushMode;
     label: string;
   }> = [
+    { value: "paced", label: "30fps (paced)" },
     { value: "60fps", label: "60fps" },
     { value: "uncapped", label: "Uncapped" }
   ];

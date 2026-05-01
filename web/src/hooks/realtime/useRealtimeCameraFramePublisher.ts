@@ -12,10 +12,13 @@ import { realtimeSessionClient } from "../../lib/websocket/RealtimeSessionClient
 
 export const DEFAULT_REALTIME_FRAME_INTERVAL_MS = 500;
 export const REALTIME_FRAME_60FPS_INTERVAL_MS = 1000 / 60;
+export const REALTIME_FRAME_PACED_INTERVAL_MS = 1000 / 30;
 export const DEFAULT_REALTIME_FRAME_MAX_WIDTH = 320;
-export const DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES = 1;
+export const DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES = 3;
 
-export type RealtimeFramePushMode = "interval" | "60fps" | "uncapped";
+const ACK_SLOW_MS = 250;
+
+export type RealtimeFramePushMode = "interval" | "60fps" | "paced" | "uncapped";
 
 export interface CaptureVideoElementFrameOptions {
   sequence: number;
@@ -69,6 +72,9 @@ const targetFpsForMode = (
   if (framePushMode === "uncapped") {
     return 0;
   }
+  if (framePushMode === "paced") {
+    return 30;
+  }
   if (framePushMode === "60fps") {
     return 60;
   }
@@ -79,6 +85,9 @@ const intervalMsForMode = (
   framePushMode: RealtimeFramePushMode,
   intervalMs: number
 ): number => {
+  if (framePushMode === "paced") {
+    return REALTIME_FRAME_PACED_INTERVAL_MS;
+  }
   if (framePushMode === "60fps") {
     return REALTIME_FRAME_60FPS_INTERVAL_MS;
   }
@@ -207,6 +216,7 @@ export const useRealtimeCameraFramePublisher = ({
 }: RealtimeCameraFramePublisherOptions): RealtimeCameraFramePublisherStatus => {
   const sequenceRef = useRef(0);
   const inFlightRef = useRef(0);
+  const slowAckStreakRef = useRef(0);
   const [status, setStatus] = useState<RealtimeCameraFramePublisherStatus>(() =>
     inactiveStatus("disabled", intervalMs, enabled, framePushMode)
   );
@@ -263,6 +273,7 @@ export const useRealtimeCameraFramePublisher = ({
     }
 
     inFlightRef.current = 0;
+    slowAckStreakRef.current = 0;
     setStatus((current) => {
       const nextStatus = {
         ...current,
@@ -329,6 +340,7 @@ export const useRealtimeCameraFramePublisher = ({
       sequenceRef.current = nextSequence;
       lastPublishedNow = now;
       const publishedAt = Date.now();
+      const publishStartedAt = publishedAt;
       inFlightRef.current += 1;
       setStatus((current) => ({
         ...current,
@@ -344,6 +356,16 @@ export const useRealtimeCameraFramePublisher = ({
         })
         .then(() => {
           inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+          const elapsed = Date.now() - publishStartedAt;
+          if (elapsed > ACK_SLOW_MS) {
+            slowAckStreakRef.current += 1;
+            if (slowAckStreakRef.current >= 2) {
+              inFlightRef.current = 0;
+              slowAckStreakRef.current = 0;
+            }
+          } else {
+            slowAckStreakRef.current = 0;
+          }
           if (!disposed) {
             setStatus((current) => ({
               ...current,
@@ -353,6 +375,7 @@ export const useRealtimeCameraFramePublisher = ({
         })
         .catch((error: unknown) => {
           inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+          slowAckStreakRef.current = 0;
           log.warn("Realtime camera frame publish failed", error);
           if (!disposed) {
             setStatus((current) => ({

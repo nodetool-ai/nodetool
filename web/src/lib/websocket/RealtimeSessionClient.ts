@@ -1,5 +1,6 @@
 import type {
   RealtimeAnalysisEvent,
+  RealtimeFrameOut,
   RealtimeInferenceMetrics,
   RealtimeMediaTrackMapping,
   OutputUpdate,
@@ -25,6 +26,10 @@ export type RealtimeSessionMessage =
   | RealtimeMetrics
   | RealtimeInferenceMetrics
   | RealtimeAnalysisEvent;
+
+export type RealtimeSessionDispatchMessage =
+  | RealtimeSessionMessage
+  | RealtimeFrameOut;
 
 export interface RealtimeTransportConfig {
   transport: RealtimeSessionTransport;
@@ -120,6 +125,36 @@ export const isRealtimeSessionMessage = (
   );
 };
 
+const isVideoFramePayload = (value: unknown): value is VideoFrame => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { type?: unknown }).type === "realtime_video_frame"
+  );
+};
+
+export const isRealtimeFrameOutMessage = (
+  message: unknown
+): message is RealtimeFrameOut => {
+  return (
+    isObject(message) &&
+    message.type === "realtime_frame_out" &&
+    typeof message.session_id === "string" &&
+    typeof message.node_id === "string" &&
+    typeof message.output_name === "string" &&
+    typeof message.sequence === "number" &&
+    isVideoFramePayload(message.frame)
+  );
+};
+
+export const isRealtimeSessionDispatchMessage = (
+  message: unknown
+): message is RealtimeSessionDispatchMessage => {
+  return (
+    isRealtimeSessionMessage(message) || isRealtimeFrameOutMessage(message)
+  );
+};
+
 const isRealtimeSessionSignal = (
   message: unknown
 ): message is RealtimeSessionSignal => {
@@ -137,10 +172,10 @@ export class RealtimeSessionClient {
 
   subscribe(
     key: string,
-    handler: (message: RealtimeSessionMessage) => void
+    handler: (message: RealtimeSessionDispatchMessage) => void
   ): () => void {
     return globalWebSocketManager.subscribe(key, (message: unknown) => {
-      if (isRealtimeSessionMessage(message)) {
+      if (isRealtimeSessionDispatchMessage(message)) {
         handler(message);
       }
     });

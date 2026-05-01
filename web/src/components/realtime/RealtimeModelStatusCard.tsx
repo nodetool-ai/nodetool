@@ -204,6 +204,42 @@ export const RealtimeModelStatusCard = ({
         <Caption>
           Unrouted frames: {(activeMetrics?.frames.unrouted ?? 0).toLocaleString()}
         </Caption>
+        {activeMetrics ? (
+          <>
+            <Caption>
+              Server throughput (est.):{" "}
+              {activeMetrics.rates.inbound_fps.toFixed(1)} in fps ·{" "}
+              {activeMetrics.rates.outbound_fps.toFixed(1)} out fps
+              {activeMetrics.latency.frame_age_ms_avg != null
+                ? ` · avg bus slot age ${Math.round(activeMetrics.latency.frame_age_ms_avg)} ms`
+                : ""}
+            </Caption>
+            {activeMetrics.websocket_lanes ? (
+              <Caption>
+                WebSocket send backlog: control{" "}
+                {activeMetrics.websocket_lanes.control_pending} · media{" "}
+                {activeMetrics.websocket_lanes.media_pending}
+              </Caption>
+            ) : null}
+            {activeMetrics.frame_sender ? (
+              <Caption>
+                Egress pacer:{" "}
+                {activeMetrics.frame_sender.framesSent.toLocaleString()} sent ·{" "}
+                {activeMetrics.frame_sender.framesDroppedByPacer.toLocaleString()}{" "}
+                dropped by pacer
+              </Caption>
+            ) : null}
+            {activeMetrics.media_plane &&
+            (Object.keys(activeMetrics.media_plane.inputs).length > 0 ||
+              Object.keys(activeMetrics.media_plane.outputs).length > 0) ? (
+              <Caption>
+                Media bus:{" "}
+                {Object.keys(activeMetrics.media_plane.inputs).length} input slot(s) ·{" "}
+                {Object.keys(activeMetrics.media_plane.outputs).length} output slot(s)
+              </Caption>
+            ) : null}
+          </>
+        ) : null}
         <Caption>
           Inference nodes reporting: {activeInferenceMetrics.length.toLocaleString()}
         </Caption>

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type {
   RealtimeAnalysisEvent,
+  RealtimeFrameOut,
   RealtimeInferenceMetrics,
   RealtimeMetrics,
   VideoFrame,
@@ -14,9 +15,14 @@ import {
   realtimeSessionClient,
   type RealtimeOutputUpdate,
   type RealtimeSessionAck,
-  type RealtimeSessionMessage,
+  type RealtimeSessionDispatchMessage,
   type RealtimeTransportConfig
 } from "../lib/websocket/RealtimeSessionClient";
+import {
+  clearRealtimeMediaSlot,
+  readRealtimeMediaSlot,
+  writeRealtimeMediaSlot
+} from "../lib/realtime/realtimeMediaFrameSlots";
 
 type RealtimeGraphPayload = {
   nodes: Array<Record<string, unknown>>;
@@ -27,10 +33,12 @@ export interface RealtimeOutputFrame {
   nodeId: string;
   nodeName: string;
   outputName: string;
-  frame: VideoFrame;
+  /** Null when pixels are only in the media slot (`RealtimeVideoFrameRenderer` + `mediaSessionId`). */
+  frame: VideoFrame | null;
   receivedAt: number;
   outputFps: number | null;
   frameAgeMs: number | null;
+  sequence?: number;
 }
 
 interface RealtimeSessionStoreState {
@@ -66,6 +74,8 @@ interface RealtimeSessionStoreState {
 }
 
 const sessionSubscriptions = new Map<string, () => void>();
+const outputFrameMetaHeartbeatLast = new Map<string, number>();
+const OUTPUT_FRAME_META_HEARTBEAT_MS = 1000;
 
 const toRecordFromMessage = (
   message: RealtimeSessionStarted | RealtimeSessionUpdated
@@ -131,7 +141,7 @@ const emptyRealtimeMetrics = (
 });
 
 const isRealtimeSessionAck = (
-  message: RealtimeSessionMessage
+  message: RealtimeSessionDispatchMessage
 ): message is RealtimeSessionAck => message.type === "realtime_session_ack";
 
 const isRealtimeVideoFrame = (value: unknown): value is VideoFrame => {
@@ -144,6 +154,57 @@ const isRealtimeVideoFrame = (value: unknown): value is VideoFrame => {
 
 export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
   (set, get) => {
+    const applyRealtimeFrameOut = (msg: RealtimeFrameOut): void => {
+      writeRealtimeMediaSlot(msg.session_id, {
+        frame: msg.frame,
+        sequence: msg.sequence,
+        nodeId: msg.node_id,
+        outputName: msg.output_name
+      });
+
+      const prev = get().outputFrames[msg.session_id];
+      const now = Date.now();
+      const lastHb = outputFrameMetaHeartbeatLast.get(msg.session_id) ?? 0;
+      if (prev && now - lastHb < OUTPUT_FRAME_META_HEARTBEAT_MS) {
+        return;
+      }
+      outputFrameMetaHeartbeatLast.set(msg.session_id, now);
+
+      const slot = readRealtimeMediaSlot(msg.session_id);
+      if (!slot) {
+        return;
+      }
+
+      const receivedAt = slot.receivedAtMs;
+      const outputFps =
+        prev && receivedAt > prev.receivedAt
+          ? 1000 / (receivedAt - prev.receivedAt)
+          : null;
+      const frameAgeMs =
+        typeof performance !== "undefined" && slot.frame.timestamp_ns > 0
+          ? Math.max(
+              0,
+              performance.now() - slot.frame.timestamp_ns / 1_000_000
+            )
+          : null;
+
+      set((state) => ({
+        outputFrames: {
+          ...state.outputFrames,
+          [msg.session_id]: {
+            nodeId: msg.node_id,
+            nodeName: prev?.nodeName ?? "",
+            outputName: msg.output_name,
+            frame: null,
+            receivedAt,
+            outputFps,
+            frameAgeMs,
+            sequence: msg.sequence
+          }
+        }
+      }));
+    };
+
     const attachSessionSubscription = (sessionId: string) => {
       if (sessionSubscriptions.has(sessionId)) {
         return;
@@ -151,7 +212,12 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
 
       const unsubscribe = realtimeSessionClient.subscribe(
         sessionId,
-        (message: RealtimeSessionMessage) => {
+        (message: RealtimeSessionDispatchMessage) => {
+          if (message.type === "realtime_frame_out") {
+            applyRealtimeFrameOut(message);
+            return;
+          }
+
           if (message.type === "realtime_session_started") {
             get().upsertSession(toRecordFromMessage(message));
             return;
@@ -367,6 +433,10 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
                   state.metrics[metrics.session_id]?.frames.inbound ?? 0,
                   metrics.frames.inbound
                 ),
+                outbound: Math.max(
+                  state.metrics[metrics.session_id]?.frames.outbound ?? 0,
+                  metrics.frames.outbound
+                ),
                 routed: Math.max(
                   state.metrics[metrics.session_id]?.frames.routed ?? 0,
                   metrics.frames.routed
@@ -435,7 +505,8 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
               frame,
               receivedAt,
               outputFps,
-              frameAgeMs
+              frameAgeMs,
+              sequence: frame.sequence
             }
           }
         }));
@@ -454,6 +525,8 @@ export const useRealtimeSessionStore = create<RealtimeSessionStoreState>(
           delete nextInferenceMetrics[sessionId];
           delete nextAnalysisEvents[sessionId];
           delete nextOutputFrames[sessionId];
+          outputFrameMetaHeartbeatLast.delete(sessionId);
+          clearRealtimeMediaSlot(sessionId);
 
           return {
             sessions: nextSessions,

@@ -771,6 +771,12 @@ export class UnifiedWebSocketRunner {
 
   private controlSendLock: Promise<void> = Promise.resolve();
   private mediaSendLock: Promise<void> = Promise.resolve();
+  private controlLaneOutstanding = 0;
+  private mediaLaneOutstanding = 0;
+  private readonly realtimeMetricsRateWindow = new Map<
+    string,
+    { atMs: number; inboundAccepted: number; framesSent: number }
+  >();
   private readonly realtimeMediaBus = new RealtimeMediaBus();
   private realtimeFrameSender!: RealtimeFrameSender;
   private activeJobs = new Map<string, ActiveJob>();
@@ -943,26 +949,12 @@ export class UnifiedWebSocketRunner {
             | undefined
         };
       },
-      getMetrics: (session) => ({
-        type: "realtime_metrics",
-        session_id: session.session_id,
-        workflow_id: session.workflow_id,
-        job_id: session.job_id,
-        transport: session.transport,
-        peer: { connection_state: "frame_push" },
-        codec: { status: "loopback", name: null },
-        frames: { inbound: 0, outbound: 0, inbound_rtp_packets: 0, routed: 0, unrouted: 0, decode_unsupported: 0, encoded: 0 },
-        rates: { inbound_fps: 0, outbound_fps: 0, routed_fps: 0 },
-        queues: { total_depth: 0, total_dropped: 0, consumers: [] },
-        latency: { decode_ms_avg: null, encode_ms_avg: null, frame_age_ms_avg: null },
-        bitrate: { target_bps: null },
-        reconnect_count: 0,
-        created_at: new Date().toISOString()
-      }),
+      getMetrics: (session) => this.buildRealtimeMetrics(session),
       sendMessage: async (message) => this.sendMessage(message),
       onMetricsError: (err) => {
         log.warn("Failed to send realtime metrics", { error: String(err) });
-      }
+      },
+      intervalMs: 1000
     });
     this.realtimeHandler = new RealtimeCommandHandler({
       getUserId: () => this.getRealtimeUserId(),
@@ -1101,6 +1093,11 @@ export class UnifiedWebSocketRunner {
         : message;
 
     const lane = options?.lane ?? "control";
+    if (lane === "media") {
+      this.mediaLaneOutstanding++;
+    } else {
+      this.controlLaneOutstanding++;
+    }
     const prev =
       lane === "media" ? this.mediaSendLock : this.controlSendLock;
     let release!: () => void;
@@ -1113,8 +1110,8 @@ export class UnifiedWebSocketRunner {
       this.controlSendLock = next;
     }
 
-    await prev;
     try {
+      await prev;
       if (this.mode === "binary") {
         await this.websocket.sendBytes(pack(payload));
       } else {
@@ -1122,6 +1119,11 @@ export class UnifiedWebSocketRunner {
       }
     } finally {
       release();
+      if (lane === "media") {
+        this.mediaLaneOutstanding--;
+      } else {
+        this.controlLaneOutstanding--;
+      }
     }
   }
 
@@ -1198,6 +1200,7 @@ export class UnifiedWebSocketRunner {
 
     this.realtimeFrameSender.stopSession(sessionId);
     this.realtimeMediaBus.clearSession(sessionId);
+    this.realtimeMetricsRateWindow.delete(sessionId);
 
     const userId = this.getRealtimeUserId();
     if (status === "failed") {
@@ -1254,7 +1257,7 @@ export class UnifiedWebSocketRunner {
     await this.sendMessage(message);
   }
 
-  private async emitRealtimeSessionSignal(
+  async emitRealtimeSessionSignal(
     signal: RealtimeSessionSignal
   ): Promise<void> {
     await this.sendMessage({
@@ -1268,6 +1271,109 @@ export class UnifiedWebSocketRunner {
       candidate: signal.candidate,
       created_at: signal.created_at
     });
+  }
+
+  private buildRealtimeMetrics(session: RealtimeSessionRecord): RealtimeMetrics {
+    const sessionId = session.session_id;
+    const mp = this.realtimeMediaBus.metrics(sessionId);
+    const sender = this.realtimeFrameSender.getMetrics(sessionId);
+
+    const inboundAccepted = Object.values(mp.inputs).reduce(
+      (sum, slot) => sum + slot.framesAccepted,
+      0
+    );
+
+    const now = Date.now();
+    const prev = this.realtimeMetricsRateWindow.get(sessionId);
+    let inbound_fps = 0;
+    let outbound_fps = 0;
+    if (prev !== undefined && now > prev.atMs) {
+      const dtSec = (now - prev.atMs) / 1000;
+      if (dtSec >= 0.05) {
+        inbound_fps = Math.max(
+          0,
+          (inboundAccepted - prev.inboundAccepted) / dtSec
+        );
+        outbound_fps = Math.max(
+          0,
+          (sender.framesSent - prev.framesSent) / dtSec
+        );
+      }
+    }
+    this.realtimeMetricsRateWindow.set(sessionId, {
+      atMs: now,
+      inboundAccepted,
+      framesSent: sender.framesSent
+    });
+
+    const ages: number[] = [];
+    for (const m of Object.values(mp.outputs)) {
+      if (typeof m.last_received_at === "number") {
+        ages.push(Math.max(0, now - m.last_received_at));
+      }
+    }
+    for (const m of Object.values(mp.inputs)) {
+      if (typeof m.last_received_at === "number") {
+        ages.push(Math.max(0, now - m.last_received_at));
+      }
+    }
+    const frame_age_ms_avg =
+      ages.length > 0 ? ages.reduce((a, b) => a + b, 0) / ages.length : null;
+
+    const peerConnected =
+      session.transport === "webrtc" ? "connected" : "frame_push";
+
+    return {
+      type: "realtime_metrics",
+      session_id: session.session_id,
+      workflow_id: session.workflow_id,
+      job_id: session.job_id,
+      transport: session.transport,
+      peer: {
+        connection_state: peerConnected,
+        ice_connection_state: session.transport === "webrtc" ? "connected" : null
+      },
+      codec: {
+        status: session.transport === "webrtc" ? "unsupported" : "loopback",
+        name: null
+      },
+      frames: {
+        inbound: inboundAccepted,
+        outbound: sender.framesSent,
+        inbound_rtp_packets: 0,
+        routed: 0,
+        unrouted: 0,
+        decode_unsupported: 0,
+        encoded: 0
+      },
+      rates: {
+        inbound_fps,
+        outbound_fps,
+        routed_fps: 0
+      },
+      queues: {
+        total_depth: this.controlLaneOutstanding + this.mediaLaneOutstanding,
+        total_dropped: sender.framesDroppedByPacer,
+        consumers: []
+      },
+      latency: {
+        decode_ms_avg: null,
+        encode_ms_avg: null,
+        frame_age_ms_avg
+      },
+      bitrate: { target_bps: null },
+      reconnect_count: 0,
+      created_at: new Date().toISOString(),
+      media_plane: mp,
+      frame_sender: {
+        framesSent: sender.framesSent,
+        framesDroppedByPacer: sender.framesDroppedByPacer
+      },
+      websocket_lanes: {
+        control_pending: this.controlLaneOutstanding,
+        media_pending: this.mediaLaneOutstanding
+      }
+    };
   }
 
   async emitRealtimeMetrics(): Promise<void> {
