@@ -125,7 +125,7 @@ const errorStyles = (theme: Theme) =>
       gap: "4px",
       padding: "2px 8px",
       borderRadius: "4px",
-      border: `1px solid ${theme.vars.palette.grey[1000]}44`,
+      border: `1px solid ${theme.vars.palette.grey[1000]}`,
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[1000],
       fontSize: theme.fontSizeSmaller,
