@@ -161,9 +161,11 @@ const VibeCodingPreview: React.FC<VibeCodingPreviewProps> = ({
             disabled={!html}
           />
           <Tooltip title="Open in New Tab">
-            <IconButton size="small" onClick={handleOpenInNew} disabled={!html} aria-label="Open in New Tab">
-              <OpenInNewIcon fontSize="small" />
-            </IconButton>
+            <span style={{ display: "inline-flex" }}>
+              <IconButton size="small" onClick={handleOpenInNew} disabled={!html} aria-label="Open in New Tab">
+                <OpenInNewIcon fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
         </div>
       </div>

@@ -46,3 +46,6 @@
 ## 2025-05-30 - Added missing aria-labels to scattered IconButtons
 **Learning:** Some custom UI interactions like NodeTestRow, DataframeRenderer, and ReplicateSchemaLoader were missing `aria-label` properties on their icon-only `IconButton` components, breaking accessibility for interactive elements, despite sometimes having `<Tooltip>` wrappers.
 **Action:** Always add an explicit `aria-label` matching the interactive intent whenever rendering an icon-only `<IconButton>`.
+## 2026-04-24 - Tooltips on disabled Material-UI IconButtons
+**Learning:** By default, disabled HTML elements (like the `<IconButton disabled>`) do not fire mouse events (like `hover` or `mouseenter`). Because of this, any `<Tooltip>` wrapping the disabled button fails to appear, hiding important state context from the user.
+**Action:** When wrapping a potentially `disabled` Material-UI component (like an `<IconButton disabled>`) inside a `<Tooltip>`, wrap the disabled component in a `<span style={{ display: 'inline-flex' }}>` tag. The `inline-flex` display preserves the intended component layout and alignment while capturing the pointer events so the tooltip can appear.
