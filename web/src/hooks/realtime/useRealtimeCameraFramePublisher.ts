@@ -16,6 +16,9 @@ export const REALTIME_FRAME_PACED_INTERVAL_MS = 1000 / 30;
 export const DEFAULT_REALTIME_FRAME_MAX_WIDTH = 320;
 export const DEFAULT_REALTIME_MAX_IN_FLIGHT_FRAMES = 8;
 
+/** JPEG quality for realtime ingress when `canvas.toBlob` is available (smaller wire payloads than RGBA). */
+export const REALTIME_INGRESS_JPEG_QUALITY = 0.82;
+
 const ACK_SLOW_MS = 250;
 
 export type RealtimeFramePushMode = "interval" | "60fps" | "paced" | "uncapped";
@@ -162,6 +165,78 @@ const selectVideoTrack = (
       (track) => track.kind === "video" && track.enabled !== false
     ) ?? null
   );
+};
+
+/** Prefer MJPEG ingress whenever safe — skips `getImageData` (major main-thread win). */
+export const shouldRealtimeCapturePreferJpeg = (
+  framePushMode: RealtimeFramePushMode
+): boolean => {
+  if (framePushMode === "uncapped") {
+    return false;
+  }
+  if (typeof HTMLCanvasElement === "undefined") {
+    return false;
+  }
+  if (typeof HTMLCanvasElement.prototype.toBlob !== "function") {
+    return false;
+  }
+  if (process.env.NODE_ENV === "test") {
+    return false;
+  }
+  return true;
+};
+
+export const captureVideoElementFrameAsJpeg = async (
+  video: HTMLVideoElement,
+  options: CaptureVideoElementFrameOptions & { quality?: number }
+): Promise<VideoFrame | null> => {
+  const sourceWidth = video.videoWidth;
+  const sourceHeight = video.videoHeight;
+  if (sourceWidth <= 0 || sourceHeight <= 0) {
+    return null;
+  }
+
+  const maxWidth = options.maxWidth ?? DEFAULT_REALTIME_FRAME_MAX_WIDTH;
+  const scale = sourceWidth > maxWidth ? maxWidth / sourceWidth : 1;
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+  const canvas = options.canvas ?? document.createElement("canvas");
+  if (canvas.width !== width) {
+    canvas.width = width;
+  }
+  if (canvas.height !== height) {
+    canvas.height = height;
+  }
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return null;
+  }
+
+  context.drawImage(video, 0, 0, width, height);
+
+  const blob: Blob | null = await new Promise((resolve) => {
+    canvas.toBlob(
+      (b) => resolve(b),
+      "image/jpeg",
+      options.quality ?? REALTIME_INGRESS_JPEG_QUALITY
+    );
+  });
+  if (!blob) {
+    return null;
+  }
+
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  return {
+    type: "realtime_video_frame",
+    data: buf,
+    width,
+    height,
+    stride: buf.byteLength,
+    pixel_format: "jpeg",
+    timestamp_ns: options.timestampNs,
+    sequence: options.sequence
+  };
 };
 
 export const captureVideoElementFrame = (
@@ -316,6 +391,8 @@ export const useRealtimeCameraFramePublisher = ({
     });
 
     let lastPublishedNow = 0;
+    const preferJpeg = shouldRealtimeCapturePreferJpeg(framePushMode);
+
     const publishFrame = (now = performance.now()): void => {
       if (inFlightRef.current >= maxInFlightFrames) {
         setStatus((current) => ({
@@ -327,9 +404,81 @@ export const useRealtimeCameraFramePublisher = ({
       }
 
       const nextSequence = sequenceRef.current + 1;
+      const timestampNs = Math.round(now * 1_000_000);
+
+      const beginSend = (frame: VideoFrame): void => {
+        const publishStartedAt = Date.now();
+        sequenceRef.current = nextSequence;
+        lastPublishedNow = now;
+        inFlightRef.current += 1;
+        setStatus((current) => ({
+          ...current,
+          framesPublished: current.framesPublished + 1,
+          inFlightFrames: inFlightRef.current,
+          lastPublishedAt: Date.now(),
+          lastError: null
+        }));
+        void realtimeSessionClient
+          .pushInputFrame(session.session_id, session.workflow_id, {
+            trackId: track.track_id,
+            frame
+          })
+          .then(() => {
+            inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+            const elapsed = Date.now() - publishStartedAt;
+            if (elapsed > ACK_SLOW_MS) {
+              slowAckStreakRef.current += 1;
+              if (slowAckStreakRef.current >= 2) {
+                inFlightRef.current = 0;
+                slowAckStreakRef.current = 0;
+              }
+            } else {
+              slowAckStreakRef.current = 0;
+            }
+            if (!disposed) {
+              setStatus((current) => ({
+                ...current,
+                inFlightFrames: inFlightRef.current
+              }));
+            }
+          })
+          .catch((error: unknown) => {
+            inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+            slowAckStreakRef.current = 0;
+            log.warn("Realtime camera frame publish failed", error);
+            if (!disposed) {
+              setStatus((current) => ({
+                ...current,
+                inFlightFrames: inFlightRef.current,
+                lastError: errorMessage(error)
+              }));
+            }
+          });
+      };
+
+      if (preferJpeg) {
+        void captureVideoElementFrameAsJpeg(video, {
+          sequence: nextSequence,
+          timestampNs,
+          canvas,
+          maxWidth,
+          quality: REALTIME_INGRESS_JPEG_QUALITY
+        })
+          .then((frame) => {
+            if (!frame || disposed) {
+              return;
+            }
+            beginSend(frame);
+          })
+          .catch((error: unknown) => {
+            log.warn("Realtime JPEG capture failed; caller may retry next frame", error);
+          });
+        return;
+      }
+
       const frame = captureVideoElementFrame(video, {
         sequence: nextSequence,
-        timestampNs: Math.round(now * 1_000_000),
+        timestampNs,
         canvas,
         maxWidth
       });
@@ -337,54 +486,7 @@ export const useRealtimeCameraFramePublisher = ({
         return;
       }
 
-      sequenceRef.current = nextSequence;
-      lastPublishedNow = now;
-      const publishedAt = Date.now();
-      const publishStartedAt = publishedAt;
-      inFlightRef.current += 1;
-      setStatus((current) => ({
-        ...current,
-        framesPublished: current.framesPublished + 1,
-        inFlightFrames: inFlightRef.current,
-        lastPublishedAt: publishedAt,
-        lastError: null
-      }));
-      void realtimeSessionClient
-        .pushInputFrame(session.session_id, session.workflow_id, {
-          trackId: track.track_id,
-          frame
-        })
-        .then(() => {
-          inFlightRef.current = Math.max(0, inFlightRef.current - 1);
-          const elapsed = Date.now() - publishStartedAt;
-          if (elapsed > ACK_SLOW_MS) {
-            slowAckStreakRef.current += 1;
-            if (slowAckStreakRef.current >= 2) {
-              inFlightRef.current = 0;
-              slowAckStreakRef.current = 0;
-            }
-          } else {
-            slowAckStreakRef.current = 0;
-          }
-          if (!disposed) {
-            setStatus((current) => ({
-              ...current,
-              inFlightFrames: inFlightRef.current
-            }));
-          }
-        })
-        .catch((error: unknown) => {
-          inFlightRef.current = Math.max(0, inFlightRef.current - 1);
-          slowAckStreakRef.current = 0;
-          log.warn("Realtime camera frame publish failed", error);
-          if (!disposed) {
-            setStatus((current) => ({
-              ...current,
-              inFlightFrames: inFlightRef.current,
-              lastError: errorMessage(error)
-            }));
-          }
-        });
+      beginSend(frame);
     };
 
     const scheduleVideoFrame = (): void => {

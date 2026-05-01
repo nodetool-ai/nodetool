@@ -1,4 +1,9 @@
-export type VideoPixelFormat = "rgba8" | "rgb8" | "yuv420p" | "nv12";
+export type VideoPixelFormat =
+  | "rgba8"
+  | "rgb8"
+  | "jpeg"
+  | "yuv420p"
+  | "nv12";
 
 export type AudioSampleFormat = "s16le" | "f32le";
 

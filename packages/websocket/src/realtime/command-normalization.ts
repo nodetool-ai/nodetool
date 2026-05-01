@@ -228,9 +228,31 @@ export const normalizeGraph = (
 const videoPixelFormats = new Set<VideoPixelFormat>([
   "rgba8",
   "rgb8",
+  "jpeg",
   "yuv420p",
   "nv12"
 ]);
+
+function validateJpegBitstream(data: Uint8Array): void {
+  if (
+    data.length < 4 ||
+    data[0] !== 0xff ||
+    data[1] !== 0xd8 ||
+    data[2] !== 0xff
+  ) {
+    throw new Error("JPEG missing SOI marker");
+  }
+  let endMarker = false;
+  for (let i = data.length - 2; i >= 0; i--) {
+    if (data[i] === 0xff && data[i + 1] === 0xd9) {
+      endMarker = true;
+      break;
+    }
+  }
+  if (!endMarker) {
+    throw new Error("JPEG missing EOI marker");
+  }
+}
 
 const normalizeFrameBytes = (value: unknown): Uint8Array => {
   if (value instanceof Uint8Array) {
@@ -295,9 +317,28 @@ export const normalizeRealtimeVideoFrame = (value: unknown): VideoFrame => {
     throw new Error("frame.pixel_format is unsupported");
   }
 
+  const data = normalizeFrameBytes(record.data);
+
+  if (pixelFormat === "jpeg") {
+    validateJpegBitstream(data);
+    return {
+      type: "realtime_video_frame",
+      data,
+      width: normalizePositiveInteger(record.width, "width"),
+      height: normalizePositiveInteger(record.height, "height"),
+      stride: data.byteLength,
+      pixel_format: "jpeg",
+      timestamp_ns: normalizeNonNegativeInteger(
+        record.timestamp_ns,
+        "timestamp_ns"
+      ),
+      sequence: normalizeNonNegativeInteger(record.sequence, "sequence")
+    };
+  }
+
   return {
     type: "realtime_video_frame",
-    data: normalizeFrameBytes(record.data),
+    data,
     width: normalizePositiveInteger(record.width, "width"),
     height: normalizePositiveInteger(record.height, "height"),
     stride: normalizePositiveInteger(record.stride, "stride"),

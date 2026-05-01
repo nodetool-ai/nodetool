@@ -28,6 +28,22 @@ describe("Realtime frame protocol types", () => {
     expect(frame.pixel_format).toBe("rgba8");
   });
 
+  it("allows JPEG-compressed realtime video payloads", () => {
+    const frame: VideoFrame = {
+      type: "realtime_video_frame",
+      data: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+      width: 320,
+      height: 240,
+      stride: 4,
+      pixel_format: "jpeg",
+      timestamp_ns: 1,
+      sequence: 1
+    };
+
+    expect(frameKind(frame)).toBe("video");
+    expect(frame.pixel_format).toBe("jpeg");
+  });
+
   it("models audio frames as raw PCM chunks", () => {
     const frame: AudioFrame = {
       type: "realtime_audio_frame",
