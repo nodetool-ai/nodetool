@@ -17,6 +17,8 @@ import { prettifyModelType } from "../../../utils/modelFormatting";
 import { IconForType } from "../../../config/data_types";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
+import ModelsRightSidebar from "./ModelsRightSidebar";
+import LocalModelsHero from "./LocalModelsHero";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
@@ -106,8 +108,15 @@ const styles = (theme: Theme) =>
       flexGrow: 1,
       height: "100%",
       overflow: "hidden",
-      padding: "0 1em 4em 1em",
-      position: "relative"
+      padding: "1em 1em 4em 1em",
+      position: "relative",
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column"
+    },
+    ".right-sidebar": {
+      flexShrink: 0,
+      borderLeft: `1px solid ${theme.vars.palette.divider}`
     },
     ".model-list-section": {
       marginBottom: theme.spacing(5)
@@ -362,6 +371,7 @@ const ModelListIndex: React.FC = () => {
         </Box>
 
         <Box className="content">
+          <LocalModelsHero models={allModels ?? []} />
           {isFetching && (
             <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}>
               <LoadingSpinner size="small" />
@@ -430,9 +440,10 @@ const ModelListIndex: React.FC = () => {
               ref={scrollRef}
               className="model-list"
               style={{
-                height: "100%",
+                flex: 1,
+                minHeight: 0,
                 width: "100%",
-                overflow: "auto",
+                overflow: "auto"
               }}
             >
               <div
@@ -566,6 +577,10 @@ const ModelListIndex: React.FC = () => {
             modelId={modelToDelete}
             onClose={handleCancelDelete}
           />
+        </Box>
+
+        <Box className="right-sidebar">
+          <ModelsRightSidebar />
         </Box>
       </Box>
     </Box>

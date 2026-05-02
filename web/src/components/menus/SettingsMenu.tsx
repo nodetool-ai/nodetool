@@ -76,6 +76,23 @@ function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const session = useAuth((state) => state.session);
 
+  const tabSubtitle = (tab: number): string => {
+    switch (tab) {
+      case 0:
+        return "Editor and workspace preferences.";
+      case 1:
+        return "Manage API keys, providers, and editor preferences.";
+      case 2:
+        return "Manage local models and runtime preferences.";
+      case 3:
+        return "Vector store collections for retrieval and search.";
+      case 4:
+        return "Workspaces and project organization.";
+      default:
+        return "Manage API keys, providers, and editor preferences.";
+    }
+  };
+
   const settingsTab = useMemo(() => {
     const raw = Number(searchParams.get("tab") ?? 0);
     if (Number.isNaN(raw)) return 0;
@@ -362,7 +379,9 @@ function SettingsPage() {
           <div className="settings-page-header__titles">
             <h1 className="settings-page-header__title">Settings</h1>
             <p className="settings-page-header__subtitle">
-              Manage API keys, providers, and editor preferences.
+              {settingsTab === aboutTabIndex
+                ? "About this application."
+                : tabSubtitle(settingsTab)}
             </p>
           </div>
         </header>
